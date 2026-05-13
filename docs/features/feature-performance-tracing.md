@@ -1,6 +1,6 @@
 ---
 title: "Mobile Performance Tracing"
-description: "Trace any operation in your mobile app — API calls, DB queries, custom user flows — with nested spans, attributes, and automatic screen load traces."
+description: "Trace any operation in your mobile app — API calls, DB queries, custom user flows — with nested spans, attributes and automatic screen load traces."
 ---
 
 # Performance Tracing
@@ -33,11 +33,11 @@ description: "Trace any operation in your mobile app — API calls, DB queries, 
 
 ## Introduction
 
-You can easily track the performance of any part of your application, such as API calls, DB queries, any function, or a user journey, using the performance tracing APIs. The SDK supports nested spans to track hierarchical operations.
+You can easily track the performance of any part of your application, such as API calls, DB queries, any function or a user journey, using the performance tracing APIs. The SDK supports nested spans to track hierarchical operations.
 
 > [!NOTE]
 >
-> measure-sh can automatically track traces for screen load times in Android and iOS apps for _Activities_, _Fragments_, and _UIViewControllers_. See [Screen Load Time](#screen-load-time) for more details.
+> measure-sh can automatically track traces for screen load times in Android and iOS apps for _Activities_, _Fragments_ and _UIViewControllers_. See [Screen Load Time](#screen-load-time) for more details.
 
 Here's a simple example of how to use the performance tracing APIs:
 
@@ -121,11 +121,11 @@ onboarding-flow ━━━━━━━━━━━━━━━━━━━━━�
 
 ## Concepts
 
-Tracing helps you understand how long certain operations take to complete, from the moment they begin until they finish, including all the intermediate steps, dependencies, and parallel activities that occur during execution.
+Tracing helps you understand how long certain operations take to complete, from the moment they begin until they finish, including all the intermediate steps, dependencies and parallel activities that occur during execution.
 
 A **trace** represents the entire operation, which could be a complete user journey like onboarding, further divided into multiple steps like login, create profile, etc. A trace is represented by a `trace_id`.
 
-A **span** is the fundamental building block of a trace. A span represents a single unit of work. This could be an HTTP request, a database query, a function call, etc. Each span contains information about the operation — when it started, how long it took, and whether it completed successfully or not. A span is identified using a `span_id` and a user-defined `name`.
+A **span** is the fundamental building block of a trace. A span represents a single unit of work. This could be an HTTP request, a database query, a function call, etc. Each span contains information about the operation — when it started, how long it took and whether it completed successfully or not. A span is identified using a `span_id` and a user-defined `name`.
 
 Each span can optionally have a **parent span**, which allows you to create a hierarchy of spans. This is useful for tracking nested operations. For example, if a user journey involves multiple steps, each step can be represented as a child span of the main user journey span.
 
@@ -326,7 +326,7 @@ Attributes are key-value pairs that can be attached to a span. Attributes are us
 > [!NOTE]
 > - Attribute keys must be strings with a maximum length of `256` characters.
 > - Attribute keys must only contain alphabets, numbers, hyphens and underscores.
-> - Attribute values must be one of the primitive types: `int`, `long`, `double`, `float`, or `boolean`.
+> - Attribute values must be one of the primitive types: `int`, `long`, `double`, `float` or `boolean`.
 > - String attribute values can have a maximum length of `256` characters.
 
 To add attributes to a span, use `setAttribute`.
@@ -538,7 +538,7 @@ final span = spanBuilder.startSpan();
 ## Distributed Tracing
 
 Distributed tracing is a monitoring method that helps tracking requests as they travel through
-different services in a distributed system (like microservices, serverless functions, and mobile
+different services in a distributed system (like microservices, serverless functions and mobile
 apps).
 
 The `traceparent` header is a key component of distributed tracing that helps track requests as they

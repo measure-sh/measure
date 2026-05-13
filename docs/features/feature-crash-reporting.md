@@ -1,6 +1,6 @@
 ---
 title: "Mobile Crash Reporting (Android, iOS, Flutter)"
-description: "Track crashes in Android, iOS, and Flutter apps. Crash-free rate, perceived crash rate, UI snapshots, crash grouping, and symbolicated stack traces."
+description: "Track crashes in Android, iOS and Flutter apps. Crash-free rate, perceived crash rate, UI snapshots, crash grouping and symbolicated stack traces."
 ---
 
 # Crash Reporting
@@ -74,7 +74,7 @@ Crashes are grouped to help you identify the most common issues in your app. Eac
 
 Exceptions in Android (JVM) are grouped based on the exception type and the stack trace. Crashes with the same type and the same method name and file name from the _first frame_ of the stack trace are grouped together.
 
-For example, for the following crash, the exception type is `java.lang.NullPointerException`, the method name of the first frame is `onCreate`, and the file name is `MainActivity.kt`:
+For example, for the following crash, the exception type is `java.lang.NullPointerException`, the method name of the first frame is `onCreate` and the file name is `MainActivity.kt`:
 
 ```
 java.lang.NullPointerException: Attempt to invoke virtual method 'void com.example.app.MainActivity.onCreate(android.os.Bundle)' on a null object reference
@@ -87,7 +87,7 @@ java.lang.NullPointerException: Attempt to invoke virtual method 'void com.examp
 
 Exceptions in iOS (Objective-C/Swift) are grouped based on the exception signal and the stack trace. Crashes with the same signal, for example, `SIGABRT`, the same method name and file name from the _first frame belonging to the application binary_ are grouped together.
 
-For example, for the following crash, the signal is `SIGABRT`, the method name of the first relevant frame is `-viewDidLoad`, and the file name is `MainViewController.m`:
+For example, for the following crash, the signal is `SIGABRT`, the method name of the first relevant frame is `-viewDidLoad` and the file name is `MainViewController.m`:
 
 ```
 Exception Type: EXC_CRASH (SIGABRT)
@@ -112,7 +112,7 @@ In Flutter, crashes are grouped based on the exception type and the stack trace.
 and the same method name and file name from the _first frame_ of the stack trace are grouped together.
 
 For example, for the following crash, the exception type is `FlutterError`, the method name of the first frame
-is `_incrementCounter`, and the file name is `main.dart`:
+is `_incrementCounter` and the file name is `main.dart`:
 
 ```
 FlutterError (setState() called after dispose(): _MyHomePageState#12345(ticker: _TickerModeEnabled))

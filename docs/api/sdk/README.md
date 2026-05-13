@@ -1,6 +1,6 @@
 ---
 title: "SDK Ingestion REST API Reference"
-description: "Reference for the Measure SDK ingestion REST API. Events, builds, config, attachments, traces, and authentication."
+description: "Reference for the Measure SDK ingestion REST API. Events, builds, config, attachments, traces and authentication."
 ---
 
 # SDK REST API Documentation <!-- omit in toc -->

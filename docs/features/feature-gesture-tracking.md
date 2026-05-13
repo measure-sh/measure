@@ -162,7 +162,7 @@ them into different gesture types:
 
 Gesture target detection identifies the UI element interacted with during a gesture. It first determines the view at the
 touch location and then searches its subviews to find the most relevant target. For scroll detection, it checks if the
-interacted element is a scrollable view like `UIScrollView`, `UIDatePicker`, or `UIPickerView`.
+interacted element is a scrollable view like `UIScrollView`, `UIDatePicker` or `UIPickerView`.
 
 ### Flutter
 
@@ -233,7 +233,7 @@ widgets, while for scrolls, it looks for scrollable widgets.
 ### Layout snapshots
 
 Layout snapshots capture your app's UI structure by traversing the widget tree from the root widget. The SDK collects
-key information about each widget—including its type, position, size, and hierarchy—to build a lightweight
+key information about each widget—including its type, position, size and hierarchy—to build a lightweight
 representation of your UI.
 
 The entire layout snapshot is generated in a single pass through the widget tree using the `visitChildElements` method.

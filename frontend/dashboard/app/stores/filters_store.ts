@@ -470,7 +470,7 @@ interface FiltersStoreState {
   selectedVersions: AppVersion[];
 
   // Filter selections — reset to defaults on page navigation, persisted
-  // within a page. App, versions, and dates above are persisted across pages.
+  // within a page. App, versions and dates above are persisted across pages.
   selectedRootSpanName: string;
   selectedSessionTypes: SessionType[];
   selectedSpanStatuses: SpanStatus[];
@@ -800,7 +800,7 @@ function clearSelections(): Partial<FiltersStoreState> {
 
 // Resolve filter selections for the current app and filter data.
 // Priority: URL params > existing selections > defaults.
-// App, versions, and dates are handled by the caller.
+// App, versions and dates are handled by the caller.
 function applyFilterOptions(
   data: FilterOptionsData,
   app: App,
@@ -1345,7 +1345,7 @@ export function createFiltersStore() {
         }
 
         // Source changed — clear per-page selections so applyFilterOptions
-        // applies fresh defaults. App, versions, and dates are preserved.
+        // applies fresh defaults. App, versions and dates are preserved.
         set({
           config,
           selectedOsVersions: [],

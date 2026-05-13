@@ -34,13 +34,13 @@ export default function Security() {
             SaaS offering).
             <br />
             <br /> Security is a core priority throughout the development,
-            deployment, and maintenance of our systems, and we adhere to
-            established industry best practices to safeguard code, data, and
+            deployment and maintenance of our systems, and we adhere to
+            established industry best practices to safeguard code, data and
             operations.
             <br />
-            <br /> This policy outlines the principles, standards, and controls
+            <br /> This policy outlines the principles, standards and controls
             that guide our commitment to maintaining the confidentiality,
-            integrity, and availability of our software, infrastructure, and
+            integrity and availability of our software, infrastructure and
             services.
           </p>
 
@@ -155,7 +155,7 @@ export default function Security() {
             Google-managed encryption keys with the <b>AES-256</b> algorithm.
             Data in transit, including API requests and responses, is encrypted
             using <b>TLS 1.2</b> or higher. We apply strict access controls,
-            monitoring, and regular security reviews to ensure data security.
+            monitoring and regular security reviews to ensure data security.
             Our architecture follows the principle of least privilege and
             enforces separation between customer environments. Measure Cloud
             adheres to Google&apos;s security best practices, as outlined in the{" "}

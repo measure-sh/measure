@@ -16,12 +16,14 @@ import { underlineLinkStyle } from "../utils/shared_styles";
 
 export const metadata: Metadata = {
   title: "Open Source Firebase Crashlytics Alternative",
-  description: "Open source alternative to Firebase Crashlytics. Unifies crashes, ANRs, performance, network and full session timelines for mobile engineering teams.",
+  description:
+    "Open source alternative to Firebase Crashlytics. Unifies crashes, ANRs, performance, network and full session timelines for mobile engineering teams.",
   alternates: { canonical: "/crashlytics-alternatives" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Open Source Firebase Crashlytics Alternative | Measure",
-    description: "Open source alternative to Firebase Crashlytics. Unifies crashes, ANRs, performance, network and full session timelines for mobile engineering teams.",
+    description:
+      "Open source alternative to Firebase Crashlytics. Unifies crashes, ANRs, performance, network and full session timelines for mobile engineering teams.",
     url: "/crashlytics-alternatives",
   },
 };
@@ -56,7 +58,7 @@ export default function CrashlyticsAlternatives() {
                 tooling to complete the mobile app monitoring picture.
                 <br />
                 <br />
-                Want performance traces? You need the Firebase Peformance
+                Want performance traces? You need the Firebase Performance
                 Monitoring add-on. Want to understand what the user was doing
                 when the crash happened? You&apos;ll need to enable Google
                 Analytics and manually instrument breadcrumb logs for every kind
@@ -144,7 +146,7 @@ export default function CrashlyticsAlternatives() {
                 attached to every crash, ANR or error.
                 <br />
                 <br />
-                You see exactly what the user did, what the app did, and where
+                You see exactly what the user did, what the app did and where
                 things went wrong, without instrumenting every screen by hand.
               </p>
             </div>
@@ -175,7 +177,7 @@ export default function CrashlyticsAlternatives() {
                   fully open source
                 </Link>
                 . Read the SDK, read the backend, file issues, contribute fixes.
-                Your data is yours, the pipeline is auditable, and you can be
+                Your data is yours, the pipeline is auditable and you can be
                 part of the community and help make it better.
               </p>
             </div>
@@ -195,7 +197,7 @@ export default function CrashlyticsAlternatives() {
                 you need, that&apos;s a fair choice. The catch is that going
                 further usually means stepping into the rest of the Firebase and
                 GCP price list: BigQuery exports for analysis, Cloud Functions
-                for alerting, and other paid GCP services for anything you want
+                for alerting and other paid GCP services for anything you want
                 to do with the data.
                 <br />
                 <br />
@@ -244,7 +246,7 @@ export default function CrashlyticsAlternatives() {
                 >
                   GitHub
                 </Link>
-                . If something is missing, you can file it, see where it sits,
+                . If something is missing, you can file it, see where it sits
                 or send a pull request.
               </p>
             </div>

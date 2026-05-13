@@ -25,7 +25,7 @@ To manage masking in SwiftUI, Measure provides the `.msrMask()` and `.msrUnmask(
 
 In UIKit, every visible element on screen corresponds to a `UIView` instance in the view hierarchy.
 Measure's masking traverses this hierarchy and redacts views that match known sensitive types such
-as `UILabel`, `UITextField`, and `UITextView`.
+as `UILabel`, `UITextField` and `UITextView`.
 
 SwiftUI does not follow this pattern. Most SwiftUI views do not produce individual `UIView` instances.
 Instead, the entire SwiftUI view tree is hosted inside a `_UIHostingView`, which renders its content
@@ -66,7 +66,7 @@ means content behind the unmasked view will also become visible in the screensho
 Use this for:
 
 - Non-sensitive SwiftUI content you want to remain visible in screenshots
-- Structural views like navigation titles, icons, or static labels that contain no user data
+- Structural views like navigation titles, icons or static labels that contain no user data
 
 ```swift
 Text("Welcome back")

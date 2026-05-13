@@ -1,6 +1,6 @@
 ---
 title: "Upgrade Measure Android SDK to v0.16.0"
-description: "Upgrade the Measure Android SDK to v0.16.0. MeasureConfig moved to the dashboard, stricter span validation, and configurable session timelines."
+description: "Upgrade the Measure Android SDK to v0.16.0. MeasureConfig moved to the dashboard, stricter span validation and configurable session timelines."
 ---
 
 # Upgrading to Android SDK v0.16.0

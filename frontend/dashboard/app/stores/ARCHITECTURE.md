@@ -86,7 +86,7 @@ In `app/query/query_client.ts`:
 2. Import and use it in the component
 3. For mutations, add `onSuccess` invalidation for affected query keys
 
-No store files, registry, or provider changes needed.
+No store files, registry or provider changes needed.
 
 ## Zustand — shared client state (3 stores)
 

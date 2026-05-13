@@ -1,6 +1,6 @@
 ---
 title: "In-App Bug Reports — iOS SDK"
-description: "et users report bugs from inside your iOS app. Built-in or custom UI, screenshots, attachments, theming, and shake to report"
+description: "et users report bugs from inside your iOS app. Built-in or custom UI, screenshots, attachments, theming and shake to report"
 ---
 
 # Bug Reports — iOS

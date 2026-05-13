@@ -80,7 +80,7 @@ function stripHtmlTags(input) {
 /**
  * Reduce a markdown body to plain text suitable for full-text search.
  * Strips fences, headings, raw HTML, images/links, emphasis markers,
- * list/blockquote prefixes, table pipes, and GFM callout markers
+ * list/blockquote prefixes, table pipes and GFM callout markers
  * (`[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`).
  */
 function stripSearchContent(body) {

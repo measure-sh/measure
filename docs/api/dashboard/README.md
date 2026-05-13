@@ -1,6 +1,6 @@
 ---
 title: "Dashboard REST API Reference"
-description: "Reference for Measure's Dashboard REST API. Every endpoint, request body, response format, and status code."
+description: "Reference for Measure's Dashboard REST API. Every endpoint, request body, response format and status code."
 ---
 
 # Dashboard REST API Documentation <!-- omit in toc -->
@@ -856,7 +856,7 @@ List of HTTP status codes for success and failures.
 - [**PATCH `/apps/:id/config`**](#patch-appsidconfig) - Update an app's config.
 - [**GET `/apps/:id/networkRequests/domains`**](#get-appsidnetworkrequestsdomains) - Fetch an app's unique network request domains.
 - [**GET `/apps/:id/networkRequests/paths`**](#get-appsidnetworkrequestspaths) - Fetch an app's network request paths for a domain.
-- [**GET `/apps/:id/networkRequests/trends`**](#get-appsidnetworkrequeststrends) - Fetch an app's network request trends by latency, error rate, and frequency.
+- [**GET `/apps/:id/networkRequests/trends`**](#get-appsidnetworkrequeststrends) - Fetch an app's network request trends by latency, error rate and frequency.
 - [**GET `/apps/:id/networkRequests/plots/overviewStatusCodes`**](#get-appsidnetworkrequestsplotsoverviewstatuscodes) - Fetch an app's overall network status distribution plot.
 - [**GET `/apps/:id/networkRequests/plots/endpointLatency`**](#get-appsidnetworkrequestsplotsendpointlatency) - Fetch a network endpoint's latency percentiles plot.
 - [**GET `/apps/:id/networkRequests/plots/endpointStatusCodes`**](#get-appsidnetworkrequestsplotsendpointstatuscodes) - Fetch a network endpoint's status distribution plot.
@@ -6077,7 +6077,7 @@ List of HTTP status codes for success and failures.
 
 ### GET `/apps/:id/networkRequests/trends`
 
-Fetch an app's network request trends showing top endpoints by latency, error rate, and frequency.
+Fetch an app's network request trends showing top endpoints by latency, error rate and frequency.
 
 #### Usage Notes
 

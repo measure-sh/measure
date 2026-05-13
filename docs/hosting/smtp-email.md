@@ -1,6 +1,6 @@
 ---
 title: "Set Up SMTP Email for Self-Hosted Measure"
-description: "Configure an SMTP email provider for your self-hosted Measure instance to send invites, alerts, and daily summary emails."
+description: "Configure an SMTP email provider for your self-hosted Measure instance to send invites, alerts and daily summary emails."
 ---
 
 # Set up an SMTP email provider

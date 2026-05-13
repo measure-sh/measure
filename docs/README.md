@@ -1,6 +1,6 @@
 ---
 title: "Measure SDK Documentation"
-description: "Measure documentation. SDK integration, features, self-hosting, and REST API reference for monitoring mobile apps."
+description: "Measure documentation. SDK integration, features, self-hosting and REST API reference for monitoring mobile apps."
 ---
 
 # Documentation

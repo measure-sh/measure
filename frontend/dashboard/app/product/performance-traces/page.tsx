@@ -9,12 +9,14 @@ import TraceDemo from "./trace_demo";
 
 export const metadata: Metadata = {
   title: "Mobile App Performance Tracing & Monitoring",
-  description: "Improve mobile app performance with traces and spans. Find slow code, isolate bottlenecks, and fix performance issues hurting your app.",
+  description:
+    "Improve mobile app performance with traces and spans. Find slow code, isolate bottlenecks and fix performance issues hurting your app.",
   alternates: { canonical: "/product/performance-traces" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Mobile App Performance Tracing & Monitoring",
-    description: "Improve mobile app performance with traces and spans. Find slow code, isolate bottlenecks, and fix performance issues hurting your app.",
+    description:
+      "Improve mobile app performance with traces and spans. Find slow code, isolate bottlenecks and fix performance issues hurting your app.",
     url: "/product/performance-traces",
   },
 };
@@ -36,8 +38,8 @@ export default function ProductPerformanceTraces() {
           <br />
           Performance traces let you understand how API fetches, complex code
           operations and UI rendering stack up within a single user flow or
-          aggregrate across millions of sessions, with waterfall charts that
-          make bottlenecks immediately obvious.
+          aggregate across millions of sessions, with waterfall charts that make
+          bottlenecks immediately obvious.
           <br />
           <br />
           Every trace includes rich context such as device type and network
@@ -46,7 +48,7 @@ export default function ProductPerformanceTraces() {
           <br />
           <br />
           Whether you&apos;re reducing checkout time, speeding up content
-          loading, or improving screen transitions, Performance Traces give you
+          loading or improving screen transitions, Performance Traces give you
           the quantitative data you need to make precise improvements.
         </p>
 

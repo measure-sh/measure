@@ -196,7 +196,7 @@ SDK are picked up on the next Xcode build without needing to `pod update`.
 
 ## CI/CD
 
-CI is handled by `.github/workflows/frank.yml`. It triggers on PRs and pushes to `main` when changes are made to `samples/frank/`, `android/`, `ios/`, `flutter/`, or `react-native/`. Each run builds both debug and release for Android and a release archive for iOS. On merge to `main`, it also publishes to Firebase App Distribution (`measure-devs` group). Android uses the `wzieba/Firebase-Distribution-Github-Action` while iOS uses the Firebase CLI directly (since the GitHub Action requires a Linux runner).
+CI is handled by `.github/workflows/frank.yml`. It triggers on PRs and pushes to `main` when changes are made to `samples/frank/`, `android/`, `ios/`, `flutter/` or `react-native/`. Each run builds both debug and release for Android and a release archive for iOS. On merge to `main`, it also publishes to Firebase App Distribution (`measure-devs` group). Android uses the `wzieba/Firebase-Distribution-Github-Action` while iOS uses the Firebase CLI directly (since the GitHub Action requires a Linux runner).
 
 ### CI Secrets
 

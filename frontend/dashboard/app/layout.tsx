@@ -35,7 +35,7 @@ const fira_code = Fira_Code({
 
 const title = "Measure";
 const description =
-  "Open source mobile app monitoring for crashes, ANRs, performance, bug reports, user journeys, and more.";
+  "Open source mobile app monitoring for crashes, ANRs, performance, bug reports, user journeys and more.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://measure.sh"),

@@ -32,7 +32,7 @@ export default function ProductCrashesAndANRs() {
         <p className="text-lg leading-relaxed font-body md:w-6xl text-justify px-4">
           Get instant visibility into every exception with detailed crash
           reports that include full stack traces, device information, OS
-          versions, and intelligent analysis of the sequence of user actions
+          versions and intelligent analysis of the sequence of user actions
           that led to the failure.
           <br />
           <br />

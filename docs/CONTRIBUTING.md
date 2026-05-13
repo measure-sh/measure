@@ -1,6 +1,6 @@
 ---
 title: "Contribute to Measure"
-description: "Contribute to Measure. Project workflow, local development setup, tests, commit messages, and release process."
+description: "Contribute to Measure. Project workflow, local development setup, tests, commit messages and release process."
 ---
 
 # Measure Contribution Guidelines
@@ -422,4 +422,4 @@ set VERSION $(git cliff --bumped-version) && git tag -s $VERSION -m $VERSION && 
 - Public facing docs should be in [docs](../README.md) folder - API requests & responses, self host guide, SDK guides and so on
 - Main folder of subproject should link to main guide. ex: [frontend README](../frontend/dashboard/README.md) has link to self hosting and local dev guide
 - Non public facing docs can stay in sub folder. ex: [backend benchmarking README](../backend/benchmarking/README.md) which describes its purpose
-- Docs pages, sidebar nav, search index, and sitemap are all auto-generated at build time from the markdown files. The sidebar nav is derived from the link structure in [docs/README.md](../README.md) — ordering and grouping come from the links there, and titles come from each page's `# H1` heading. To add a new doc page, create the `.md` file and add a link to it in the README
+- Docs pages, sidebar nav, search index and sitemap are all auto-generated at build time from the markdown files. The sidebar nav is derived from the link structure in [docs/README.md](../README.md) — ordering and grouping come from the links there, and titles come from each page's `# H1` heading. To add a new doc page, create the `.md` file and add a link to it in the README

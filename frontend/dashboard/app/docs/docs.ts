@@ -103,7 +103,7 @@ function stripHtmlTags(input: string): string {
 /**
  * Reduce a markdown body to plain text suitable for full-text search.
  * Strips fences, headings, raw HTML, images/links, emphasis markers,
- * list/blockquote prefixes, table pipes, and GFM callout markers
+ * list/blockquote prefixes, table pipes and GFM callout markers
  * (`[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`).
  */
 export function stripSearchContent(content: string): string {
@@ -134,7 +134,7 @@ export function extractTitle(content: string): string {
 
 /**
  * Extract the first plain paragraph from markdown content, skipping
- * the title, TOC lists, admonitions, headings, tables, and code blocks.
+ * the title, TOC lists, admonitions, headings, tables and code blocks.
  * Returns an empty string when no suitable paragraph is found.
  */
 export function extractDescription(content: string): string {

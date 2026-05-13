@@ -1,6 +1,6 @@
 ---
 title: "SDK Configuration Options"
-description: "Every Measure SDK configuration option. Tune data collection, masking, sampling, and disk usage at init or remotely from the dashboard."
+description: "Every Measure SDK configuration option. Tune data collection, masking, sampling and disk usage at init or remotely from the dashboard."
 ---
 
 # Configuration Options
@@ -217,7 +217,7 @@ ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"api-key" apiUrl:@"
 ## `maxDiskUsageInMb`
 
 Allows setting the maximum disk usage for Measure SDK. This is useful to control the amount of disk space
-used by the SDK for storing session data, crash reports, and other collected information.
+used by the SDK for storing session data, crash reports and other collected information.
 
 All Measure SDKs store data to disk and upload it to the server in batches. While the app is in foreground, the data
 is synced periodically and usually the disk space used by the SDK is low. However, if the device is offline
@@ -345,7 +345,7 @@ the amount of data collected.
 
 ## Launch Metrics Sampling
 
-Launch metrics include Cold Launch, Warm Launch, and Hot Launch metrics shown on the Overview page on the dashboard. A
+Launch metrics include Cold Launch, Warm Launch and Hot Launch metrics shown on the Overview page on the dashboard. A
 sampling rate can be configured to control the number of sessions for whom these launch metrics are collected.
 
 By default, 0.01% (1 in 10000) of sessions will have launch metrics collected. You can adjust this percentage
@@ -354,7 +354,7 @@ from 0.001% to 100% to control the amount of data collected.
 ## Journey Sampling
 
 Journey events are used to construct the Journey view in the Measure dashboard. Journey events include Activity
-Lifecycle events, Fragment Lifecycle events, and Screen View events. A sampling rate can be configured to control
+Lifecycle events, Fragment Lifecycle events and Screen View events. A sampling rate can be configured to control
 the number of sessions for whom these Journey events are collected.
 
 By default, 0.01% (1 in 10000) of sessions will have Journey events collected. You can adjust this percentage from

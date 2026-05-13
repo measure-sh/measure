@@ -35,7 +35,7 @@ export default function ProductUserJourneys() {
           <br />
           <br />
           User Journeys automatically map every screen transition, showing you
-          which flows are most popular, where users drop off, and which
+          which flows are most popular, where users drop off and which
           navigation patterns you never anticipated. Easily add your own screens
           and views to enrich them further.
           <br />

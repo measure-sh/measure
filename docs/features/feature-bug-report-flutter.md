@@ -1,6 +1,6 @@
 ---
 title: "In-App Bug Reports — Flutter SDK"
-description: "Let users report bugs from inside your Flutter app. Built-in or custom UI, screenshots, attachments, i18n, and shake to report."
+description: "Let users report bugs from inside your Flutter app. Built-in or custom UI, screenshots, attachments, i18n and shake to report."
 ---
 
 # Bug Reports — Flutter
@@ -137,10 +137,10 @@ Measure.trackBugReport(
 
 ## Add Attributes
 
-Attributes allow attaching additional contextual data to bug reports. This helps in adding relevant information about the user's state, app configuration, or other metadata that can help with debugging.
+Attributes allow attaching additional contextual data to bug reports. This helps in adding relevant information about the user's state, app configuration or other metadata that can help with debugging.
 
 - Attribute keys must be strings with a maximum length of 256 characters.
-- Attribute values must be one of the primitive types: `int`, `long`, `double`, `float`, or `boolean`.
+- Attribute values must be one of the primitive types: `int`, `long`, `double`, `float` or `boolean`.
 - String attribute values can have a maximum length of 256 characters.
 
 To add attributes, use the optinal `attributes` property in `createBugReportWidget`:

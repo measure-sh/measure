@@ -169,7 +169,7 @@ export default function TermsOfService() {
               <dd className="mt-1 text-justify">
                 (referred to as &quot;You&quot;, &quot;you&quot;,
                 &quot;Your&quot; or &quot;your&quot; in this Agreement) is the
-                individual accessing or using the Service, or the company, or
+                individual accessing or using the Service, or the company or
                 other legal entity on behalf of which such individual is
                 accessing or using the Service, as applicable.
               </dd>
@@ -247,7 +247,7 @@ export default function TermsOfService() {
           <p className="mb-4 text-justify text-lg">
             You shall provide the Company with accurate and complete billing
             information including full name, address, state, zip code, telephone
-            number, and a valid payment method information. You authorize the
+            number and a valid payment method information. You authorize the
             Company to charge your payment method for both recurring
             subscription fees and any applicable usage or overage fees.
           </p>
@@ -316,7 +316,7 @@ export default function TermsOfService() {
           <h3 className="text-2xl font-display mt-12 mb-4">User Accounts</h3>
           <p className="mb-4 text-justify text-lg">
             When you create an account with us, you must provide us information
-            that is accurate, complete, and current at all times. Failure to do
+            that is accurate, complete and current at all times. Failure to do
             so constitutes a breach of the Terms, which may result in immediate
             termination of your account on our Service.
           </p>
@@ -335,7 +335,7 @@ export default function TermsOfService() {
             You may not use as a username the name of another person or entity
             or that is not lawfully available for use, a name or trademark that
             is subject to any rights of another person or entity other than you
-            without appropriate authorization, or a name that is otherwise
+            without appropriate authorization or a name that is otherwise
             offensive, vulgar or obscene.
           </p>
 
@@ -362,7 +362,7 @@ export default function TermsOfService() {
           </p>
           <p className="mb-4 text-justify text-lg">
             The Company has no control over, and assumes no responsibility for,
-            the content, privacy policies, or practices of any third party web
+            the content, privacy policies or practices of any third party web
             sites or services. You further acknowledge and agree that the
             Company shall not be responsible or liable, directly or indirectly,
             for any damage or loss caused or alleged to be caused by or in
@@ -402,12 +402,12 @@ export default function TermsOfService() {
           <p className="mb-4 text-justify text-lg">
             To the maximum extent permitted by applicable law, in no event shall
             the Company or its suppliers be liable for any special, incidental,
-            indirect, or consequential damages whatsoever (including, but not
+            indirect or consequential damages whatsoever (including, but not
             limited to, damages for loss of profits, loss of data or other
             information, for business interruption, for personal injury, loss of
             privacy arising out of or in any way related to the use of or
             inability to use the Service, third-party software and/or
-            third-party hardware used with the Service, or otherwise in
+            third-party hardware used with the Service or otherwise in
             connection with any provision of this Terms), even if the Company or
             any supplier has been advised of the possibility of such damages and
             even if the remedy fails of its essential purpose.
@@ -433,7 +433,7 @@ export default function TermsOfService() {
             disclaims all warranties, whether express, implied, statutory or
             otherwise, with respect to the Service, including all implied
             warranties of merchantability, fitness for a particular purpose,
-            title and non-infringement, and warranties that may arise out of
+            title and non-infringement and warranties that may arise out of
             course of dealing, course of performance, usage or trade practice.
             Without limitation to the foregoing, the Company provides no
             warranty or undertaking, and makes no representation of any kind
@@ -447,11 +447,11 @@ export default function TermsOfService() {
             Without limiting the foregoing, neither the Company nor any of the
             company&apos;s provider makes any representation or warranty of any
             kind, express or implied: (i) as to the operation or availability of
-            the Service, or the information, content, and materials or products
+            the Service, or the information, content and materials or products
             included thereon; (ii) that the Service will be uninterrupted or
-            error-free; (iii) as to the accuracy, reliability, or currency of
+            error-free; (iii) as to the accuracy, reliability or currency of
             any information or content provided through the Service; or (iv)
-            that the Service, its servers, the content, or e-mails sent from or
+            that the Service, its servers, the content or e-mails sent from or
             on behalf of the Company are free of viruses, scripts, trojan
             horses, worms, malware, timebombs or other harmful components.
           </p>

@@ -41,7 +41,7 @@ export default function ProductBugReports() {
           <br />
           Every bug report links directly to the complete session timeline, so
           you can see exactly what the user experienced, review the sequence of
-          events, and identify the root cause without stumbling around in the
+          events and identify the root cause without stumbling around in the
           dark.
           <br />
           <br />

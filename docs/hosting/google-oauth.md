@@ -1,6 +1,6 @@
 ---
 title: "Set Up Google OAuth for Self-Hosted Measure"
-description: "Set up a Google OAuth application for your self-hosted Measure instance. Configure the consent screen, scopes, and redirect URIs."
+description: "Set up a Google OAuth application for your self-hosted Measure instance. Configure the consent screen, scopes and redirect URIs."
 ---
 
 # Setup a Google OAuth Application

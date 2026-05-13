@@ -1,5 +1,5 @@
 ---
-description: "Automatic capture of Activity, Fragment, View Controller, SwiftUI, and Flutter lifecycle events plus screen views for navigation."
+description: "Automatic capture of Activity, Fragment, View Controller, SwiftUI and Flutter lifecycle events plus screen views for navigation."
 ---
 
 # Navigation & Lifecycle Tracking
@@ -155,7 +155,7 @@ From version `0.12.0` onwards, you can also add attributes to the tracked screen
 providing additional context about the screen.
 
 - Attribute keys must be strings with a maximum length of 256 characters.
-- Attribute values must be one of the primitive types: `int`, `long`, `double`, `float`, or `boolean`.
+- Attribute values must be one of the primitive types: `int`, `long`, `double`, `float` or `boolean`.
 - String attribute values can have a maximum length of 256 characters.
 
 
