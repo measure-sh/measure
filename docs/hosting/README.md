@@ -1,6 +1,6 @@
 ---
 title: "Self-Hosting Guide"
-description: "Self-host Measure to monitor crashes, ANRs, and performance for your mobile apps. Deploy on a Linux VM and configure OAuth, SMTP, and Slack."
+description: "Self-host Measure to monitor crashes, ANRs and performance for your mobile apps. Deploy on a Linux VM and configure OAuth, SMTP and Slack."
 ---
 
 # Self Hosting Guide <!-- omit in toc -->

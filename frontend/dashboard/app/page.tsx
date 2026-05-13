@@ -17,12 +17,14 @@ import { underlineLinkStyle } from "./utils/shared_styles";
 
 export const metadata: Metadata = {
   title: "Open Source Mobile App Monitoring & Crash Reporting",
-  description: "Open source mobile app monitoring — crashes, ANRs, bug reports, performance traces, network and session timelines. A Firebase Crashlytics alternative.",
+  description:
+    "Open source mobile app monitoring — crashes, ANRs, bug reports, performance traces, network and session timelines. A Firebase Crashlytics alternative.",
   alternates: { canonical: "/" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Open Source Mobile App Monitoring & Crash Reporting | Measure",
-    description: "Open source mobile app monitoring — crashes, ANRs, bug reports, performance traces, network and session timelines. A Firebase Crashlytics alternative.",
+    description:
+      "Open source mobile app monitoring — crashes, ANRs, bug reports, performance traces, network and session timelines. A Firebase Crashlytics alternative.",
     url: "/",
   },
 };
@@ -296,7 +298,7 @@ export default function Home() {
             <Link href="/product/mcp" className={underlineLinkStyle}>
               MCP
             </Link>{" "}
-            server. Let your coding agent query errors, traces, and session
+            server. Let your coding agent query errors, traces and session
             timelines directly in your development workflow.
           </p>
           <div className="py-8" />

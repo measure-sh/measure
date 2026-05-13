@@ -1,6 +1,6 @@
 ---
 title: "Error Tracking (Handled Exceptions)"
-description: "Track handled exceptions in your mobile app — issues that don't crash but still affect users. Android, iOS, and Flutter APIs."
+description: "Track handled exceptions in your mobile app — issues that don't crash but still affect users. Android, iOS and Flutter APIs."
 ---
 
 # Track errors
@@ -32,7 +32,7 @@ From version `0.12.0` onwards you can also add attributes to the tracked excepti
 providing additional context about the error.
 
 - Attribute keys must be strings with a maximum length of 256 characters.
-- Attribute values must be one of the primitive types: `int`, `long`, `double`, `float`, or `boolean`.
+- Attribute values must be one of the primitive types: `int`, `long`, `double`, `float` or `boolean`.
 - String attribute values can have a maximum length of 256 characters.
 
 ```kotlin
@@ -61,7 +61,7 @@ do {
 You can optionally include attributes and enable stack trace collection.
 
 - Attribute keys must be strings with a maximum length of 256 characters.
-- Attribute values must be one of the primitive types: `int`, `long`, `double`, `float`, or `boolean`.
+- Attribute values must be one of the primitive types: `int`, `long`, `double`, `float` or `boolean`.
 - String attribute values can have a maximum length of 256 characters.
 
 ```swift

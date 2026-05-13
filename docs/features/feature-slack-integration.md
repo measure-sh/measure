@@ -1,6 +1,6 @@
 ---
 title: "Slack Integration — Crash, ANR, Bug Report Alerts and Daily Summaries"
-description: "Receive Measure crash spike, ANR spike, bug report alerts and daily summaries in Slack. Manage subscriptions, list channels, and stop alerts via slash commands."
+description: "Receive Measure crash spike, ANR spike, bug report alerts and daily summaries in Slack. Manage subscriptions, list channels and stop alerts via slash commands."
 ---
 
 # Slack Integration

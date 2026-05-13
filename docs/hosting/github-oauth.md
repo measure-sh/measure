@@ -1,6 +1,6 @@
 ---
 title: "Set Up GitHub OAuth for Self-Hosted Measure"
-description: "Set up a GitHub OAuth application for your self-hosted Measure instance. Register, configure credentials, and connect to Measure."
+description: "Set up a GitHub OAuth application for your self-hosted Measure instance. Register, configure credentials and connect to Measure."
 ---
 
 # Setup a GitHub OAuth Application

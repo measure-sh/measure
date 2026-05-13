@@ -35,14 +35,14 @@ export default function ProductNetworkPerformance() {
           you a clear picture of how your API layer is performing at a glance.
           <br />
           <br />
-          Drill into your top endpoints ranked by latency, error rate, and
+          Drill into your top endpoints ranked by latency, error rate and
           request frequency to pinpoint exactly which calls are slowing down
           your app or failing silently. Visualize when specific endpoints are
           called during a session to understand request patterns and timing.
           <br />
           <br />
           With Network Performance, you can proactively catch degraded
-          endpoints, reduce error rates, and optimize the API calls that matter
+          endpoints, reduce error rates and optimize the API calls that matter
           most to your users.
         </p>
 

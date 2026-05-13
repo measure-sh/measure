@@ -1,6 +1,6 @@
 ---
 title: "Measure SDK and project Versioning"
-description: "How Measure versions its SDKs, backend, and dashboard with semver and platform-prefixed git tags."
+description: "How Measure versions its SDKs, backend and dashboard with semver and platform-prefixed git tags."
 ---
 
 # Versioning

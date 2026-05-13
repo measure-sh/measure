@@ -1,6 +1,6 @@
 ---
 title: "Measure SDK Integration Guide"
-description: "Integrate the Measure SDK on Android, iOS, or Flutter to track your app. Create an app in the dashboard, add the SDK, and verify installation."
+description: "Integrate the Measure SDK on Android, iOS or Flutter to track your app. Create an app in the dashboard, add the SDK and verify installation."
 ---
 
 # Getting Started

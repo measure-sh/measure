@@ -4,6 +4,13 @@ const nextConfig = {
   poweredByHeader: false,
   experimental: {
     proxyTimeout: 90000,
+    // The /_md/[...path] route handler reads markdown source files at runtime.
+    // Next's tracer can't infer these dynamic reads, so include them explicitly
+    // in the standalone output. Without this, agents requesting Accept:text/markdown
+    // would get 406 in production.
+    outputFileTracingIncludes: {
+      "/page-md/[...path]": ["./app/**/page.md", "./content/docs/**/*"],
+    },
   },
   images: {
     remotePatterns: [

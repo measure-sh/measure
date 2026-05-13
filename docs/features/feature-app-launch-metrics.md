@@ -1,6 +1,6 @@
 ---
 title: "Mobile App Launch Metrics"
-description: "Track cold, warm, and hot launch times for Android and iOS apps with full sampling control.."
+description: "Track cold, warm and hot launch times for Android and iOS apps with full sampling control.."
 ---
 
 # App Launch Metrics
@@ -14,7 +14,7 @@ description: "Track cold, warm, and hot launch times for Android and iOS apps wi
 
 ## Introduction
 
-Measure automatically tracks cold, warm, and hot app launches along with the time taken for each. No sampling is done, ensuring that the data is accurate and represents the real-world performance of your app.
+Measure automatically tracks cold, warm and hot app launches along with the time taken for each. No sampling is done, ensuring that the data is accurate and represents the real-world performance of your app.
 
 - **Cold Launch**: The time taken to launch the app from scratch.
 - **Warm Launch**: The time taken to launch the app from a previously cached state.
@@ -31,7 +31,7 @@ metrics.
 
 ## Data Collected
 
-Check out the data collected by Measure for [Cold Launch](../api/sdk/README.md#cold_launch), [Warm Launch](../api/sdk/README.md#warm_launch), and [Hot Launch](../api/sdk/README.md#hot_launch) respectively.
+Check out the data collected by Measure for [Cold Launch](../api/sdk/README.md#cold_launch), [Warm Launch](../api/sdk/README.md#warm_launch) and [Hot Launch](../api/sdk/README.md#hot_launch) respectively.
 
 ## How It Works
 
@@ -96,7 +96,7 @@ certain resources being released, the system might need to recreate those resour
 
 #### Cold Launch
 
-A cold launch refers to an app starting up from scratch. Cold launches occur when the app is launched after a reboot or when the app is updated. When an app is launched from scratch, the app is brought from the disk to the memory, iOS loads startup system-side services that support the app, frameworks, and daemons that the app depends on to launch might also require re-launching and paging in from disk. Once this is done, the process is spanned.
+A cold launch refers to an app starting up from scratch. Cold launches occur when the app is launched after a reboot or when the app is updated. When an app is launched from scratch, the app is brought from the disk to the memory, iOS loads startup system-side services that support the app, frameworks and daemons that the app depends on to launch might also require re-launching and paging in from disk. Once this is done, the process is spanned.
 
 #### Warm Launch
 

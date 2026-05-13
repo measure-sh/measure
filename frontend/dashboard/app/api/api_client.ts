@@ -8,7 +8,7 @@ import posthog from "posthog-js"
  * - Posthog metrics for API calls
  *
  * It does not manage auth state — that lives in useSessionStore.
- * It does not deduplicate, cache, or track in-flight requests — those concerns
+ * It does not deduplicate, cache or track in-flight requests — those concerns
  * are owned by the store layer (see app/stores/utils/in_flight.ts).
  */
 export class ApiClient {

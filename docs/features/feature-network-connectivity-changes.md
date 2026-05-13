@@ -1,6 +1,6 @@
 ---
 title: "Network Connectivity Change Tracking"
-description: "Track when your app gains or loses network connectivity, switches between WiFi and cellular, or changes carrier."
+description: "Track when your app gains or loses network connectivity, switches between WiFi and cellular or changes carrier."
 ---
 
 # Network Connectivity Changes
@@ -11,7 +11,7 @@ description: "Track when your app gains or loses network connectivity, switches 
 * [**Data collected**](#data-collected)
 
 Measure SDK captures changes to network connection state of the device. This includes changes to the type of network
-connection (WiFi, Mobile, etc.), the network provider (Airtel, T-Mobile, etc.), and the network generation (2G, 3G, 4G,
+connection (WiFi, Mobile, etc.), the network provider (Airtel, T-Mobile, etc.) and the network generation (2G, 3G, 4G,
 etc.).
 
 ## Android

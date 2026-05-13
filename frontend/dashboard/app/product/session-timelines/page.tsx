@@ -35,7 +35,7 @@ export default function ProductSessionTimelines() {
           <br />
           <br />
           Session Timeline captures the complete story - see which API call
-          failed, what the user clicked right before an error occurred, and how
+          failed, what the user clicked right before an error occurred and how
           your app&apos;s resources were behaving at that precise moment.
           <br />
           <br />

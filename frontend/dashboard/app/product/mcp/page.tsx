@@ -9,12 +9,12 @@ import LandingHeader from "../../components/landing_header";
 
 export const metadata: Metadata = {
   title: "MCP Server — Connect AI Agents to Measure",
-  description: "Connect Measure to Claude Code, Codex, Cursor, Gemini, and other AI coding agents. Query crashes, traces, sessions and bug reports from your editor or AI agent workflows.",
+  description: "Connect Measure to Claude Code, Codex, Cursor, Gemini and other AI coding agents. Query crashes, traces, sessions and bug reports from your editor or AI agent workflows.",
   alternates: { canonical: "/product/mcp" },
   openGraph: {
     ...sharedOpenGraph,
     title: "MCP Server — Connect AI Agents to Measure | Measure",
-    description: "Connect Measure to Claude Code, Codex, Cursor, Gemini, and other AI coding agents. Query crashes, traces, sessions and bug reports from your editor or AI agent workflows.",
+    description: "Connect Measure to Claude Code, Codex, Cursor, Gemini and other AI coding agents. Query crashes, traces, sessions and bug reports from your editor or AI agent workflows.",
     url: "/product/mcp",
   },
 };
@@ -32,8 +32,8 @@ export default function ProductMCP() {
           Context Protocol.
           <br />
           <br />
-          MCP lets AI coding assistants like Claude, Codex, and Gemini access
-          your errors, performance traces, session timelines, and bug reports
+          MCP lets AI coding assistants like Claude, Codex and Gemini access
+          your errors, performance traces, session timelines and bug reports
           directly in your development workflow.
           <br />
           <br />

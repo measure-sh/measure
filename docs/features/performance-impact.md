@@ -88,9 +88,9 @@ key operations performed by the SDK can be found below:
 
 | Operation                 | p95       | Description                                                   |
 |---------------------------|-----------|---------------------------------------------------------------|
-| `trackEvent`              | 195 µs    | Includes event collection, attribute enrichment, and queueing |
+| `trackEvent`              | 195 µs    | Includes event collection, attribute enrichment and queueing |
 | `appendAttributes`        | 360 µs    | Dynamic attribute gathering (e.g., network, device state)     |
-| `trackBugReport`          | 120 µs    | Complete flow including screenshot, layout, and metadata      |
+| `trackBugReport`          | 120 µs    | Complete flow including screenshot, layout and metadata      |
 | `trackEventUserTriggered` | 32 µs     | User-triggered event tracking                                 |
 | `trackSpanTriggered`      | 96 µs     | When a trace event is emitted                                 |
 | `spanProcessorOnStart`    | 105 µs    | Span construction                                             |

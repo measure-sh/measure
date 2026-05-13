@@ -12,7 +12,11 @@
 const fs = require("fs");
 const path = require("path");
 
-const { stripHtmlComments, stripFrontmatter, mdPathToSlug } = require("./copy_docs");
+const {
+  stripHtmlComments,
+  stripFrontmatter,
+  mdPathToSlug,
+} = require("./copy_docs");
 
 const rootDir = path.resolve(__dirname, "..");
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://measure.sh";
@@ -24,6 +28,92 @@ function getDocsDirectory() {
   }
   // Local dev fallback
   return path.resolve(rootDir, "..", "..", "docs");
+}
+
+function getAppDirectory() {
+  return path.join(rootDir, "app");
+}
+
+/**
+ * Parse flat key:value YAML frontmatter from a markdown file. Mirrors the
+ * parser in app/docs/docs.ts — kept duplicated here because this script
+ * runs at build time before Next.js compiles TS.
+ */
+function parseFrontmatterKV(text) {
+  const match = text.match(/^---\s*\r?\n([\s\S]*?)\r?\n---\s*(?:\r?\n|$)/);
+  if (!match) {
+    return {};
+  }
+  const kv = {};
+  for (const line of match[1].split(/\r?\n/)) {
+    const m = line.match(/^([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.*)$/);
+    if (!m) {
+      continue;
+    }
+    let v = m[2].trim();
+    if (
+      (v.startsWith('"') && v.endsWith('"')) ||
+      (v.startsWith("'") && v.endsWith("'"))
+    ) {
+      v = v.slice(1, -1);
+    }
+    kv[m[1]] = v;
+  }
+  return kv;
+}
+
+/**
+ * Walk app/ and return [{ slug, title, filePath }] for every route folder
+ * that has both `page.tsx` (a real Next.js route) and `page.md` (a
+ * hand-authored markdown twin).
+ *
+ * The dual-file check is the filter: folders like app/components/ have no
+ * page.tsx so they're skipped; dynamic routes like app/[teamId]/ have
+ * page.tsx but no page.md so they're also skipped. No hardcoded skip list.
+ *
+ * Slug mapping:
+ *   app/page.md                       -> "/"
+ *   app/about/page.md                 -> "/about"
+ *   app/product/mcp/page.md           -> "/product/mcp"
+ */
+function walkPagesWithMd(appDir) {
+  if (!fs.existsSync(appDir)) {
+    return [];
+  }
+  const pages = [];
+
+  function walk(dir, prefix) {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+    const hasPageMd = entries.some((e) => e.isFile() && e.name === "page.md");
+    const hasPageTsx = entries.some((e) => e.isFile() && e.name === "page.tsx");
+
+    if (hasPageMd && hasPageTsx) {
+      const slug = prefix.length === 0 ? "/" : `/${prefix.join("/")}`;
+      const filePath = path.join(dir, "page.md");
+      const raw = fs.readFileSync(filePath, "utf-8");
+      const fm = parseFrontmatterKV(raw);
+      pages.push({
+        slug,
+        title: fm.title || prefix[prefix.length - 1] || "index",
+        filePath,
+      });
+    }
+
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        walk(path.join(dir, entry.name), [...prefix, entry.name]);
+      }
+    }
+  }
+
+  walk(appDir, []);
+  // Homepage first, then alphabetical by slug
+  return pages.sort((a, b) => {
+    if (a.slug === "/") return -1;
+    if (b.slug === "/") return 1;
+    return a.slug.localeCompare(b.slug);
+  });
 }
 
 /**
@@ -71,13 +161,11 @@ function flattenNavSlugs(navData) {
  * Produces a markdown file with H1 title, blockquote description,
  * and organized links to all doc pages.
  */
-function generateLlmsTxt(navData) {
+function generateLlmsTxt(navData, pages = []) {
   const lines = [];
   lines.push("# measure.sh");
   lines.push("");
-  lines.push(
-    "> Open source tool to monitor mobile apps"
-  );
+  lines.push("> Open source tool to monitor mobile apps");
   lines.push("");
 
   const standaloneItems = [];
@@ -92,7 +180,7 @@ function generateLlmsTxt(navData) {
           for (const grandchild of child.children) {
             if (grandchild.slug) {
               lines.push(
-                `- [${grandchild.title}](${SITE_URL}${grandchild.slug})`
+                `- [${grandchild.title}](${SITE_URL}${grandchild.slug})`,
               );
             }
           }
@@ -115,10 +203,20 @@ function generateLlmsTxt(navData) {
     lines.push("");
   }
 
+  if (pages.length > 0) {
+    lines.push("## Pages");
+    lines.push("");
+    for (const p of pages) {
+      const url = p.slug === "/" ? SITE_URL : `${SITE_URL}${p.slug}`;
+      lines.push(`- [${p.title}](${url})`);
+    }
+    lines.push("");
+  }
+
   lines.push("## Optional");
   lines.push("");
   lines.push(
-    `- [llms-full.txt](${SITE_URL}/llms-full.txt): Complete documentation in a single file`
+    `- [llms-full.txt](${SITE_URL}/llms-full.txt): Complete documentation in a single file`,
   );
   lines.push("");
 
@@ -135,22 +233,22 @@ function rewriteRelativeLinks(content) {
       (match, text, href) => {
         const slug = mdPathToSlug(href);
         return `[${text}](${SITE_URL}${slug})`;
-      }
+      },
     )
     .replace(
       /!\[([^\]]*)\]\((?:\.\/)?assets\/([^)]+)\)/g,
       (match, alt, assetPath) => {
         return `![${alt}](${SITE_URL}/docs/assets/${assetPath})`;
-      }
+      },
     );
 }
 
 /**
  * Generate llms-full.txt with all documentation concatenated.
- * Follows the nav ordering, strips HTML comments, and rewrites
+ * Follows the nav ordering, strips HTML comments and rewrites
  * relative links to absolute URLs.
  */
-function generateLlmsFullTxt(docsDir, navData) {
+function generateLlmsFullTxt(docsDir, navData, pages = []) {
   const slugs = flattenNavSlugs(navData);
   const seen = new Set();
   const sections = [];
@@ -175,6 +273,13 @@ function generateLlmsFullTxt(docsDir, navData) {
     sections.push(`---\nSource: ${sourceUrl}\n---\n\n${rewritten}`);
   }
 
+  for (const p of pages) {
+    const raw = fs.readFileSync(p.filePath, "utf-8");
+    const cleaned = stripHtmlComments(stripFrontmatter(raw));
+    const sourceUrl = p.slug === "/" ? SITE_URL : `${SITE_URL}${p.slug}`;
+    sections.push(`---\nSource: ${sourceUrl}\n---\n\n${cleaned}`);
+  }
+
   return sections.join("\n\n");
 }
 
@@ -185,26 +290,29 @@ module.exports = {
   generateLlmsTxt,
   generateLlmsFullTxt,
   rewriteRelativeLinks,
+  walkPagesWithMd,
+  parseFrontmatterKV,
   SITE_URL,
 };
 
 // Main — only runs when executed directly, not when required by tests
 if (require.main === module) {
   const docsDir = getDocsDirectory();
+  const appDir = getAppDirectory();
   const navPath = path.join(rootDir, "content", "docs_nav.json");
 
   if (!fs.existsSync(navPath)) {
-    console.error(
-      "Error: docs_nav.json not found. Run copy_docs.js first."
-    );
+    console.error("Error: docs_nav.json not found. Run copy_docs.js first.");
     process.exit(1);
   }
 
   const navData = JSON.parse(fs.readFileSync(navPath, "utf-8"));
+  const pages = walkPagesWithMd(appDir);
+  console.log(`Found ${pages.length} pages with a markdown twin.`);
 
   // Generate llms.txt
   console.log("Generating llms.txt...");
-  const llmsTxt = generateLlmsTxt(navData);
+  const llmsTxt = generateLlmsTxt(navData, pages);
   const llmsTxtDest = path.join(rootDir, "public", "llms.txt");
   fs.mkdirSync(path.dirname(llmsTxtDest), { recursive: true });
   fs.writeFileSync(llmsTxtDest, llmsTxt);
@@ -212,7 +320,7 @@ if (require.main === module) {
 
   // Generate llms-full.txt
   console.log("Generating llms-full.txt...");
-  const llmsFullTxt = generateLlmsFullTxt(docsDir, navData);
+  const llmsFullTxt = generateLlmsFullTxt(docsDir, navData, pages);
   const llmsFullTxtDest = path.join(rootDir, "public", "llms-full.txt");
   fs.writeFileSync(llmsFullTxtDest, llmsFullTxt);
   console.log("llms-full.txt generated.");

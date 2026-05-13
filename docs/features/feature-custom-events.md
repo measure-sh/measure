@@ -13,7 +13,7 @@ description: "Track app-specific events like user actions with custom attributes
 
 ## Introduction
 
-Custom events let you add your own context on top of the automatically collected events. They’re great for tracking things that matter to your app, like user actions, feature usage, feature flags, or any other domain-specific data. This helps you debug issues more effectively and analyze the real-world impact of your features.
+Custom events let you add your own context on top of the automatically collected events. They’re great for tracking things that matter to your app, like user actions, feature usage, feature flags or any other domain-specific data. This helps you debug issues more effectively and analyze the real-world impact of your features.
 
 > [!TIP]
 >
@@ -62,7 +62,7 @@ A custom event can also contain attributes, which are key-value pairs.
 > [!NOTE]
 > - Attribute keys must be strings with a maximum length of `256` characters.
 > - Attribute keys must only contain alphabets, numbers, hyphens and underscores.
-> - Attribute values must be one of the primitive types: `int`, `long`, `double`, `float`, or `boolean`.
+> - Attribute values must be one of the primitive types: `int`, `long`, `double`, `float` or `boolean`.
 > - String attribute values can have a maximum length of `256` characters.
 
 #### Android

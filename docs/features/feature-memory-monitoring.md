@@ -1,6 +1,6 @@
 ---
 title: "Mobile App Memory Monitoring"
-description: "Periodically capture memory usage of Android, iOS, and Flutter apps to spot leaks and memory pressure."
+description: "Periodically capture memory usage of Android, iOS and Flutter apps to spot leaks and memory pressure."
 ---
 
 # Memory Monitoring

@@ -139,7 +139,7 @@ export default function PrivacyPolicy() {
                 is any information that relates to an identified or identifiable
                 individual in connection with your account and use of our
                 Service. This includes information such as your name, email
-                address, and payment information.
+                address and payment information.
               </dd>
             </div>
 
@@ -191,7 +191,7 @@ export default function PrivacyPolicy() {
               <dd className="mt-1 text-justify">
                 (referred to as &quot;You&quot;, &quot;you&quot;,
                 &quot;Your&quot; or &quot;your&quot; in this Agreement) is the
-                individual accessing or using the Service, or the company, or
+                individual accessing or using the Service, or the company or
                 other legal entity on behalf of which such individual is
                 accessing or using the Service, as applicable.
               </dd>
@@ -206,7 +206,7 @@ export default function PrivacyPolicy() {
             We collect and process two distinct categories of data when you use
             our Service: Personal Data about you as a user, and Monitoring Data
             that you send to our platform for monitoring purposes. These are
-            separate categories with different purposes, uses, and retention
+            separate categories with different purposes, uses and retention
             policies.
           </p>
 
@@ -260,7 +260,7 @@ export default function PrivacyPolicy() {
           <p className="mb-4 text-justify text-lg">
             We use Cookies and similar tracking technologies to track the
             activity on our Service and store certain information. Tracking
-            technologies used are beacons, tags, and scripts to collect and
+            technologies used are beacons, tags and scripts to collect and
             track information and to improve and analyze our Service. The
             technologies we use may include:
           </p>
@@ -278,7 +278,7 @@ export default function PrivacyPolicy() {
             <li className="text-justify">
               <strong>Web Beacons.</strong> Certain sections of our Service and
               our emails may contain small electronic files known as web beacons
-              (also referred to as clear gifs, pixel tags, and single-pixel
+              (also referred to as clear gifs, pixel tags and single-pixel
               gifs) that permit the Company, for example, to count users who
               have visited those pages or opened an email and for other related
               website statistics (for example, recording the popularity of a
@@ -366,7 +366,7 @@ export default function PrivacyPolicy() {
             </li>
             <li className="text-justify">
               <strong>To contact you:</strong> To contact you by email,
-              telephone calls, SMS, or other equivalent forms of electronic
+              telephone calls, SMS or other equivalent forms of electronic
               communication, such as a mobile application&apos;s push
               notifications regarding updates or informative communications
               related to the functionalities, products or contracted services,
@@ -387,9 +387,9 @@ export default function PrivacyPolicy() {
             <li className="text-justify">
               <strong>For business transfers:</strong> We may use your
               information to evaluate or conduct a merger, divestiture,
-              restructuring, reorganization, dissolution, or other sale or
+              restructuring, reorganization, dissolution or other sale or
               transfer of some or all of our assets, whether as a going concern
-              or as part of bankruptcy, liquidation, or similar proceeding, in
+              or as part of bankruptcy, liquidation or similar proceeding, in
               which Personal Data held by us about our Service users is among
               the assets transferred.
             </li>
@@ -410,7 +410,7 @@ export default function PrivacyPolicy() {
             <li className="text-justify">
               <strong>With Service Providers:</strong> We may share your
               personal account information with Service Providers to monitor and
-              analyze the use of our Service, to contact you, and to process
+              analyze the use of our Service, to contact you and to process
               payments.
             </li>
             <li className="text-justify">
@@ -451,7 +451,7 @@ export default function PrivacyPolicy() {
           </h2>
           <p className="mb-4 text-justify text-lg">
             The Company will retain your Personal Data (such as your name, email
-            address, account information, and payment details—but NOT your
+            address, account information and payment details—but NOT your
             Monitoring Data) only for as long as is necessary for the purposes
             set out in this Privacy Policy. Specifically:
           </p>
@@ -466,7 +466,7 @@ export default function PrivacyPolicy() {
               legal obligations (for example, if we are required to retain your
               data to comply with applicable laws, tax regulations, or
               accounting requirements), resolve disputes, enforce our legal
-              agreements and policies, and prevent fraud.
+              agreements and policies and prevent fraud.
             </li>
             <li className="text-justify">
               We will also retain Usage Data for internal analysis purposes.
@@ -516,10 +516,10 @@ export default function PrivacyPolicy() {
             about you from within the Service.
           </p>
           <p className="mb-4 text-justify text-lg">
-            You may update, amend, or delete your Personal Data at any time by
+            You may update, amend or delete your Personal Data at any time by
             signing in to your Account, if you have one, and visiting the
             account settings section that allows you to manage your personal
-            information. You may also contact us to request access to, correct,
+            information. You may also contact us to request access to, correct
             or delete any Personal Data that you have provided to us.
           </p>
           <p className="mb-6 text-justify text-lg">

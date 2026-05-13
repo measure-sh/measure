@@ -18,12 +18,14 @@ import PricingCalculator from "./pricing_calculator";
 
 export const metadata: Metadata = {
   title: "Pricing & Plans",
-  description: "Free tier for solo devs and small teams. Usage-based Pro plan for scale. No seat limits. 100% open source.",
+  description:
+    "Free tier for solo devs and small teams. Usage-based Pro plan for scale. No seat limits. No artificial bundles. 100% open source.",
   alternates: { canonical: "/pricing" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Pricing & Plans | Measure",
-    description: "Free tier for solo devs and small teams. Usage-based Pro plan for scale. No seat limits. 100% open source.",
+    description:
+      "Free tier for solo devs and small teams. Usage-based Pro plan for scale. No seat limits. No artificial bundles. 100% open source.",
     url: "/pricing",
   },
 };
@@ -40,7 +42,7 @@ export default function Pricing() {
         <div className="py-8" />
         <p className="text-lg leading-relaxed font-body md:w-6xl text-justify px-4">
           Simple pricing based on the data used. No stressing over seat limits.
-          No need to buy artifical bundles of crashes and spans - just track
+          No need to buy artificial bundles of crashes and spans - just track
           what you need to get to the root cause faster.
         </p>
 
