@@ -71,12 +71,10 @@ void main() {
       const description = 'Test bug with attachments';
       final attachmentBytes = createTestPngBytes();
       final attachments = <MsrAttachment>[
-        MsrAttachment(
-          name: 'test.png',
-          id: 'test-id',
-          size: attachmentBytes.length,
+        MsrAttachment.fromBytes(
           bytes: attachmentBytes,
           type: AttachmentType.screenshot,
+          uuid: 'test-id',
         ),
       ];
 
@@ -127,12 +125,10 @@ void main() {
       const description = 'Test bug with storage failure';
       final attachmentBytes = createTestPngBytes();
       final attachments = <MsrAttachment>[
-        MsrAttachment(
-          name: 'test.png',
-          id: 'test-id',
-          size: attachmentBytes.length,
+        MsrAttachment.fromBytes(
           bytes: attachmentBytes,
           type: AttachmentType.screenshot,
+          uuid: 'test-id',
         ),
       ];
       fileStorage.shouldFailWrite = true;
@@ -149,19 +145,15 @@ void main() {
       final attachment1Bytes = createTestPngBytes();
       final attachment2Bytes = createTestPngBytes();
       final attachments = <MsrAttachment>[
-        MsrAttachment(
-          name: 'test1.png',
-          id: 'test1-id',
-          size: attachment1Bytes.length,
+        MsrAttachment.fromBytes(
           bytes: attachment1Bytes,
           type: AttachmentType.screenshot,
+          uuid: 'test1-id',
         ),
-        MsrAttachment(
-          name: 'test2.png',
-          id: 'test2-id',
-          size: attachment2Bytes.length,
+        MsrAttachment.fromBytes(
           bytes: attachment2Bytes,
           type: AttachmentType.screenshot,
+          uuid: 'test2-id',
         ),
       ];
 
@@ -197,19 +189,15 @@ void main() {
       final attachment1Bytes = createTestPngBytes();
       final attachment2Bytes = createTestPngBytes();
       final attachments = <MsrAttachment>[
-        MsrAttachment(
-          name: 'test1.png',
-          id: 'test1-id',
-          size: attachment1Bytes.length,
+        MsrAttachment.fromBytes(
           bytes: attachment1Bytes,
           type: AttachmentType.screenshot,
+          uuid: 'test1-id',
         ),
-        MsrAttachment(
-          name: 'test2.png',
-          id: 'test2-id',
-          size: attachment2Bytes.length,
+        MsrAttachment.fromBytes(
           bytes: attachment2Bytes,
           type: AttachmentType.screenshot,
+          uuid: 'test2-id',
         ),
       ];
 

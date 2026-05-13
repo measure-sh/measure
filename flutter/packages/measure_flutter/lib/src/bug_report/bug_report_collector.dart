@@ -74,16 +74,14 @@ class BugReportCollector {
         }
 
         final uuid = _idProvider.uuid();
-        final width = attachment.width;
-        final height = attachment.height;
 
         final File? file;
         final int sizeBytes;
-        if (width != null && height != null) {
+        if (attachment.hasRawPixels) {
           final webp = await _methodChannel.encodeWebP(
             pixels: bytes,
-            width: width,
-            height: height,
+            width: attachment.width!,
+            height: attachment.height!,
           );
           if (webp == null) {
             _logger.log(LogLevel.error, 'BugReportCollector: WebP encoding failed');

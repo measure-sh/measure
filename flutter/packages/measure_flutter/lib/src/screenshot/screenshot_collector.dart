@@ -62,12 +62,12 @@ class DefaultScreenshotCollector extends ScreenshotCollector {
         return null;
       }
 
-      return MsrAttachment.fromBytes(
+      return MsrAttachment.fromRawPixels(
         bytes: rgba.buffer.asUint8List(),
-        type: AttachmentType.screenshot,
-        uuid: idProvider.uuid(),
         width: width,
         height: height,
+        type: AttachmentType.screenshot,
+        uuid: idProvider.uuid(),
       );
     } catch (e) {
       logger.log(
