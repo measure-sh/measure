@@ -23,6 +23,7 @@ type GroupType string
 const (
 	GroupTypeCrash GroupType = "crash"
 	GroupTypeANR   GroupType = "anr"
+	GroupTypeError GroupType = "error"
 )
 
 // IssueGroup interface represents
@@ -44,6 +45,7 @@ type ExceptionGroup struct {
 	LineNumber      int32                  `json:"line_number" db:"line_number"`
 	Handled         bool                   `json:"handled" db:"handled"`
 	IsCustom        bool                   `json:"is_custom" db:"is_custom"`
+	Fatal           bool                   `json:"fatal"`
 	Count           uint64                 `json:"count"`
 	EventIDs        []uuid.UUID            `json:"event_ids,omitempty"`
 	EventExceptions []event.EventException `json:"exception_events,omitempty"`
@@ -115,8 +117,14 @@ func (e *ExceptionGroup) Insert(ctx context.Context, conn driver.Conn) (err erro
 		return err
 	}
 
+	var table = "nonfatal_exception_groups"
+
+	if e.Fatal {
+		table = "fatal_exception_groups"
+	}
+
 	stmt := sqlf.
-		New("insert into fatal_exception_groups").
+		New("insert into "+table).
 		Clause("(").
 		Expr("team_id").
 		Expr("app_id").
@@ -476,7 +484,7 @@ func GetANRGroupsFromFingerprints(ctx context.Context, conn driver.Conn, af *fil
 }
 
 // NewExceptionGroup constructs a new ExceptionGroup and returns a pointer to it.
-func NewExceptionGroup(appId uuid.UUID, countryCode string, attribute event.Attribute, fingerprint string, exceptionType, message, methodName, fileName string, lineNumber int32, handled bool, isCustom bool, timestamp time.Time) *ExceptionGroup {
+func NewExceptionGroup(appId uuid.UUID, countryCode string, attribute event.Attribute, fingerprint string, exceptionType, message, methodName, fileName string, lineNumber int32, handled, fatal, isCustom bool, timestamp time.Time) *ExceptionGroup {
 	return &ExceptionGroup{
 		AppID:       appId,
 		CountryCode: countryCode,
@@ -488,6 +496,7 @@ func NewExceptionGroup(appId uuid.UUID, countryCode string, attribute event.Attr
 		FileName:    fileName,
 		LineNumber:  lineNumber,
 		Handled:     handled,
+		Fatal:       fatal,
 		IsCustom:    isCustom,
 		UpdatedAt:   timestamp,
 	}

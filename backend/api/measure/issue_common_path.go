@@ -59,12 +59,18 @@ func cleanNullBytes(s string) string {
 	return s
 }
 
+// Deprecated: Use GetErrorGroupCommonPath instead.
 func GetCrashGroupCommonPath(c *gin.Context) {
 	getCrashOrANRGroupCommonPath(c, group.GroupTypeCrash)
 }
 
+// Deprecated: Use GetErrorGroupCommonPath instead.
 func GetANRGroupCommonPath(c *gin.Context) {
 	getCrashOrANRGroupCommonPath(c, group.GroupTypeANR)
+}
+
+func GetErrorGroupCommonPath(c *gin.Context) {
+	getCrashOrANRGroupCommonPath(c, group.GroupTypeError)
 }
 
 func getCrashOrANRGroupCommonPath(c *gin.Context, groupType group.GroupType) {
@@ -84,6 +90,8 @@ func getCrashOrANRGroupCommonPath(c *gin.Context, groupType group.GroupType) {
 		groupId = c.Param("crashGroupId")
 	case group.GroupTypeANR:
 		groupId = c.Param("anrGroupId")
+	case group.GroupTypeError:
+		groupId = c.Param("errorGroupId")
 	}
 
 	if groupId == "" {
@@ -153,33 +161,39 @@ func GetIssueGroupCommonPath(ctx context.Context, teamID, appID uuid.UUID, group
 		TeamId: teamID,
 	}
 
-	// Validate the group exists
-	exists, err := app.IssueGroupExists(ctx, groupType, fingerprint)
-	{
-		msg := fmt.Sprintf("no %s group found with id %q", groupType, fingerprint)
-		if !exists || errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("%s", msg)
+	var err error
+
+	// Validate the group exists. Skip for the unified error type since
+	// the fingerprint may live in any of fatal/nonfatal/anr tables and
+	// IssueGroupExists isn't a clean fit; a bogus fingerprint will
+	// surface as zero sessions analyzed.
+	if groupType != group.GroupTypeError {
+		var exists bool
+		exists, err = app.IssueGroupExists(ctx, groupType, fingerprint)
+		{
+			msg := fmt.Sprintf("no %s group found with id %q", groupType, fingerprint)
+			if !exists || errors.Is(err, sql.ErrNoRows) {
+				return nil, fmt.Errorf("%s", msg)
+			}
 		}
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to get %s group with id %q: %v", groupType, fingerprint, err)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get %s group with id %q: %v", groupType, fingerprint, err)
+		}
 	}
 
 	// Build the WHERE clause condition based on type
 	var fingerprintCondition string
 	var lcRootValue string
-	{
-		var typeName string
-		switch groupType {
-		case group.GroupTypeCrash:
-			typeName = "exception"
-			lcRootValue = logcomment.Crashes
-		case group.GroupTypeANR:
-			typeName = "anr"
-			lcRootValue = logcomment.ANRs
-		}
-
-		fingerprintCondition = fmt.Sprintf("%s.fingerprint = fp", typeName)
+	switch groupType {
+	case group.GroupTypeCrash:
+		fingerprintCondition = "exception.fingerprint = fp"
+		lcRootValue = logcomment.Crashes
+	case group.GroupTypeANR:
+		fingerprintCondition = "anr.fingerprint = fp"
+		lcRootValue = logcomment.ANRs
+	case group.GroupTypeError:
+		fingerprintCondition = "(exception.fingerprint = fp OR anr.fingerprint = fp)"
+		lcRootValue = logcomment.Errors
 	}
 
 	lc := logcomment.New(2)
@@ -283,7 +297,6 @@ func GetIssueGroupCommonPath(ctx context.Context, teamID, appID uuid.UUID, group
             exception_data,
             exception_handled,
             anr_data,
-            anr_handled,
             position_from_end
           FROM (
             SELECT
@@ -294,7 +307,6 @@ func GetIssueGroupCommonPath(ctx context.Context, teamID, appID uuid.UUID, group
               if(e.type = 'exception', e.exception.exceptions, '') AS exception_data,
               if(e.type = 'exception', e.exception.handled, false) AS exception_handled,
               if(e.type = 'anr', e.anr.exceptions, '') AS anr_data,
-              if(e.type = 'anr', e.anr.handled, false) AS anr_handled,
               multiIf(
                 (e.type = 'exception') OR (e.type = 'anr'), e.type,
                 e.type = 'app_exit', concat('App exited: ', coalesce(e.app_exit.reason, 'unknown reason')),
@@ -362,8 +374,7 @@ func GetIssueGroupCommonPath(ctx context.Context, teamID, appID uuid.UUID, group
             any(thread_name) AS thread_name,
             any(exception_data) AS exception_data,
             any(exception_handled) AS exception_handled,
-            any(anr_data) AS anr_data,
-            any(anr_handled) AS anr_handled
+            any(anr_data) AS anr_data
           FROM recent_events
           GROUP BY
             position_from_end,
@@ -379,8 +390,7 @@ func GetIssueGroupCommonPath(ctx context.Context, teamID, appID uuid.UUID, group
             confidence_pct,
             exception_data,
             exception_handled,
-            anr_data,
-            anr_handled
+            anr_data
           FROM (
             SELECT
               *,
@@ -397,8 +407,7 @@ func GetIssueGroupCommonPath(ctx context.Context, teamID, appID uuid.UUID, group
         confidence_pct,
         exception_data,
         exception_handled,
-        anr_data,
-        anr_handled
+        anr_data
       FROM best_event_per_position
       ORDER BY position_from_end DESC
       `,
@@ -442,7 +451,6 @@ func GetIssueGroupCommonPath(ctx context.Context, teamID, appID uuid.UUID, group
 		var exceptionData string
 		var exceptionHandled bool
 		var anrData string
-		var anrHandled bool
 
 		if err := rows.Scan(
 			&eventType,
@@ -452,7 +460,6 @@ func GetIssueGroupCommonPath(ctx context.Context, teamID, appID uuid.UUID, group
 			&exceptionData,
 			&exceptionHandled,
 			&anrData,
-			&anrHandled,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan reproduction step: %v", err)
 		}
@@ -481,11 +488,7 @@ func GetIssueGroupCommonPath(ctx context.Context, teamID, appID uuid.UUID, group
 		case "anr":
 			var anr event.ANR
 			if anrData != "" && json.Unmarshal([]byte(anrData), &anr.Exceptions) == nil {
-				prefix := "ANR: "
-				if anrHandled {
-					prefix = "Handled ANR: "
-				}
-				step.Description = fmt.Sprintf("%s%s", prefix, formatExceptionMessage(
+				step.Description = fmt.Sprintf("ANR: %s", formatExceptionMessage(
 					anr.GetType(),
 					anr.GetMessage(),
 					anr.GetFileName(),
@@ -493,9 +496,6 @@ func GetIssueGroupCommonPath(ctx context.Context, teamID, appID uuid.UUID, group
 				))
 			} else {
 				step.Description = "ANR (Application Not Responding) occurred"
-				if anrHandled {
-					step.Description = "Handled ANR (Application Not Responding) occurred"
-				}
 			}
 		default:
 			step.Description = rawDescription

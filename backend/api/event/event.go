@@ -362,7 +362,7 @@ type Exception struct {
 	Framework    string         `json:"framework"`
 	Error        *Error         `json:"error"`
 	// NumCode represents the numeric error code.
-	NumCode int `json:"num_code"`
+	NumCode int32 `json:"num_code"`
 	// Code represents the string error code.
 	Code string `json:"code"`
 	// Meta represents arbitrary metadata

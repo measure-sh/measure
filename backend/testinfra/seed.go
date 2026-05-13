@@ -321,14 +321,14 @@ func (h *TestHelper) SeedEventWithSession(ctx context.Context, t *testing.T, tea
 	}
 }
 
-// SeedExceptionGroup inserts a row into unhandled_exception_groups so that
+// SeedExceptionGroup inserts a row into fatal_exception_groups so that
 // crash-alert group-info lookups succeed. fingerprint must be exactly 32
 // characters to match the FixedString(32) id column.
 func (h *TestHelper) SeedExceptionGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {
 	t.Helper()
 
 	query := `insert into
-		unhandled_exception_groups (
+		fatal_exception_groups (
 			team_id, app_id, id, app_version, type, message, method_name, file_name, line_number, os_versions, country_codes, network_providers, network_types, network_generations, device_locales, device_manufacturers, device_names, device_models, count, timestamp
 		)
 		select
@@ -394,7 +394,7 @@ func (h *TestHelper) SeedAnrGroup(ctx context.Context, t *testing.T, teamID, app
 	}
 }
 
-// SeedAppMetrics inserts generic, unhandled-exception, and ANR events so that
+// SeedAppMetrics inserts generic, exception/error, and ANR events so that
 // the app_metrics_mv materialised view populates app_metrics. Each event gets
 // a unique session_id, so:
 //
