@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Reduce iggy consumer poll interval (#3620) by @detj in #3620
 - (**backend**): Use UUID for autumn customer ids by @anupcowkur in #3546
 - (**backend**): Support symbolication of iOS system frameworks (#3495) by @detj in #3495
 - (**backend**): Switch to bearer token auth for reading gcs symbols (#3509) by @detj in #3509
