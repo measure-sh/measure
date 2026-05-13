@@ -15,6 +15,7 @@ object MethodConstants {
     const val FUNCTION_DISABLE_SHAKE_DETECTOR = "disableShakeDetector"
     const val FUNCTION_GET_DYNAMIC_CONFIG_PATH = "getDynamicConfigPath"
     const val FUNCTION_ENCODE_WEBP = "encodeWebP"
+    const val FUNCTION_INTERNAL_ADD_LOG = "internalAddLog"
 
     // arguments
     const val ARG_EVENT_DATA = "event_data"
@@ -41,6 +42,8 @@ object MethodConstants {
     const val ARG_ENCODE_WEBP_PIXELS = "pixels"
     const val ARG_ENCODE_WEBP_WIDTH = "width"
     const val ARG_ENCODE_WEBP_HEIGHT = "height"
+    const val ARG_DIAGNOSTIC_MODE_PLATFORM = "platform"
+    const val ARG_DIAGNOSTIC_MODE_MESSAGE = "message"
 
     // Callbacks
     const val CALLBACK_ON_SHAKE_DETECTED = "onShakeDetected"

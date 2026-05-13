@@ -468,6 +468,7 @@ const measureReady = Measure.init(
   new MeasureConfig({
     enableLogging: true,
     enableFullCollectionMode: true,
+    enableDiagnosticMode: true,
   }),
 );
 

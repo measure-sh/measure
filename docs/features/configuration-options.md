@@ -259,7 +259,7 @@ Defaults to `false`.
 To pull all log files to your local machine:
 
 ```shell
-adb shell "run-as <your.package.name> tar czf - measure/sdk_debug_logs/" > sdk_debug_logs.tar.gz
+adb shell "run-as <your.package.name> tar czf - files/measure/sdk_debug_logs/" > sdk_debug_logs.tar.gz
 ```
 
 To delete all diagnostic log files:

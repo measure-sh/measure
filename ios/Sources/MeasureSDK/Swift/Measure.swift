@@ -107,10 +107,10 @@ import UIKit
                                           attachments: attachments)
     }
 
-    func internalAddLog(platform: String, message: String, error: Error?) {
+    func internalAddLog(platform: String, message: String) {
         guard let measureInternal = measureInternal else { return }
 
-        measureInternal.internalAddLog(platform: platform, message: message, error: error)
+        measureInternal.internalAddLog(platform: platform, message: message)
     }
 
     func internalTrackSpan(name: String, // swiftlint:disable:this function_parameter_count
@@ -472,9 +472,8 @@ extension Measure {
     /// - Parameters:
     ///   - platform: The platform sending the log. `react-native` for React native project or `flutter` for Flutter project.
     ///   - message: Message to log
-    ///   - error: Error object to log
-    public static func internalAddLog(platform: String, message: String, error: Error?) {
-        Measure.shared.internalAddLog(platform: platform, message: message, error: error)
+    public static func internalAddLog(platform: String, message: String) {
+        Measure.shared.internalAddLog(platform: platform, message: message)
     }
 
     /// An internal method to track spans from cross-platform frameworks

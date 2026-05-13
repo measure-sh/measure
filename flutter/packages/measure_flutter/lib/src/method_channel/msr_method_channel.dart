@@ -128,6 +128,20 @@ class MsrMethodChannel extends MeasureFlutterPlatform {
     );
   }
 
+  @override
+  Future<void> internalAddLog({
+    required String platform,
+    required String message,
+  }) {
+    return _methodChannel.invokeMethod(
+      MethodConstants.functionInternalAddLog,
+      {
+        MethodConstants.argDiagnosticModePlatform: platform,
+        MethodConstants.argDiagnosticModeMessage: message,
+      },
+    );
+  }
+
   void setMethodCallHandler(
       Future<void> Function(MethodCall call) handleMethodCall) {
     _methodChannel.setMethodCallHandler(handleMethodCall);

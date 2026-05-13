@@ -239,8 +239,7 @@ export function trackBugReport(
 
 export function internalAddLog(
   platform: string,
-  message: string,
-  errorMessage?: string | null
+  message: string
 ): Promise<void> {
   if (!MeasureModule.internalAddLog || isDisabled()) {
     return Promise.reject(
@@ -248,7 +247,7 @@ export function internalAddLog(
     );
   }
 
-  return MeasureModule.internalAddLog(platform, message, errorMessage ?? null);
+  return MeasureModule.internalAddLog(platform, message);
 }
 
 export function getSessionId(): Promise<string | null> {

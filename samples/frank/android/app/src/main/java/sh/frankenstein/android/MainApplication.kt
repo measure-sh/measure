@@ -38,6 +38,7 @@ class MainApplication : Application(), ReactApplication {
             this, MeasureConfig(
                 enableLogging = true,
                 enableFullCollectionMode = true,
+                enableDiagnosticMode = true,
             )
         )
         SoLoader.init(this, OpenSourceMergedSoMapping)

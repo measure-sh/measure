@@ -17,7 +17,10 @@ Future<void> main() async {
   };
   await Measure.instance.init(
     () => runApp(const MeasureWidget(child: FlutterApp())),
-    config: const MeasureConfig(enableLogging: true),
+    config: const MeasureConfig(
+      enableLogging: true,
+      enableDiagnosticMode: true,
+    ),
   );
 }
 

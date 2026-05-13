@@ -41,6 +41,8 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
                 try getDynamicConfigPath(result: result)
             case MethodConstants.functionEncodeWebP:
                 try encodeWebP(call, result: result)
+            case MethodConstants.functionInternalAddLog:
+                try internalAddLog(call, result: result)
             default:
                 result(FlutterMethodNotImplemented)
             }
@@ -202,6 +204,14 @@ public class MeasurePlugin: NSObject, FlutterPlugin {
     private func getDynamicConfigPath(result: @escaping FlutterResult) throws {
         let path = Measure.internalGetDynamicConfigPath()
         result(path)
+    }
+
+    private func internalAddLog(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {
+        let reader = MethodCallReader(call)
+        let platform: String = try reader.requireArg(MethodConstants.argDiagnosticModePlatform)
+        let message: String = try reader.requireArg(MethodConstants.argDiagnosticModeMessage)
+        Measure.internalAddLog(platform: platform, message: message)
+        result(nil)
     }
 
     private func encodeWebP(_ call: FlutterMethodCall, result: @escaping FlutterResult) throws {

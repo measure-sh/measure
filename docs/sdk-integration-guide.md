@@ -670,6 +670,22 @@ Measure.initialize(with: clientInfo, config: config)
 
 </details>
 
+<details>
+    <summary>Flutter</summary>
+
+Enable diagnostic mode during SDK initialization.
+
+```dart
+await Measure.instance.init(
+  () => runApp(MeasureWidget(child: MyApp())),
+  config: const MeasureConfig(enableDiagnosticMode: true),
+);
+```
+
+On iOS, the `enableDiagnosticModeGesture` flag is set on the native `BaseMeasureConfig` in your `AppDelegate` (see the iOS section above), not on the Dart `MeasureConfig`.
+
+</details>
+
 #### Step 2: Reproduce the issue
 
 Run the app and reproduce the issue you're facing. The SDK will write logs to files in the
