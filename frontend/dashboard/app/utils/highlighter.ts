@@ -6,7 +6,12 @@ export type CodeBlockLanguage =
   | "swift"
   | "dart"
   | "yaml"
-  | "ruby";
+  | "ruby"
+  | "groovy"
+  | "json"
+  | "jsonc"
+  | "objective-c"
+  | "shellscript";
 
 export const CODE_BLOCK_THEME_LIGHT = "vitesse-light";
 export const CODE_BLOCK_THEME_DARK = "vitesse-dark";
@@ -49,6 +54,11 @@ export function loadHighlighter(): Promise<HighlighterCore> {
           import("@shikijs/langs/dart"),
           import("@shikijs/langs/yaml"),
           import("@shikijs/langs/ruby"),
+          import("@shikijs/langs/groovy"),
+          import("@shikijs/langs/json"),
+          import("@shikijs/langs/jsonc"),
+          import("@shikijs/langs/objective-c"),
+          import("@shikijs/langs/shellscript"),
         ],
         engine: createJavaScriptRegexEngine(),
       });

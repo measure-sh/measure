@@ -82,6 +82,28 @@ export function cleanContent(content: string): string {
 }
 
 /**
+ * Reduce a markdown body to plain text suitable for full-text search.
+ * Strips fences, headings, raw HTML, images/links, emphasis markers,
+ * list/blockquote prefixes, table pipes, and GFM callout markers
+ * (`[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`).
+ */
+export function stripSearchContent(content: string): string {
+  return cleanContent(content)
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/^#{1,6}\s+.+$/gm, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/\[!(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/gi, "")
+    .replace(/[*_`~]/g, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*>\s?/gm, "")
+    .replace(/\|/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
  * Extract title from the first # heading in markdown content
  */
 export function extractTitle(content: string): string {
@@ -289,14 +311,7 @@ export function generateSearchIndex(): SearchIndexEntry[] {
       headings.push(match[1].trim());
     }
 
-    // Strip markdown syntax for plain text search content
-    const plainContent = content
-      .replace(/^#{1,6}\s+.+$/gm, "") // Remove headings (already captured)
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Links -> text
-      .replace(/[*_`~]/g, "") // Remove emphasis markers
-      .replace(/\n{2,}/g, "\n") // Collapse newlines
-      .trim()
-      .slice(0, 500); // Keep first 500 chars for search
+    const plainContent = stripSearchContent(content).slice(0, 500);
 
     entries.push({
       slug: slug.length === 0 ? "/" : `/${slug.join("/")}`,

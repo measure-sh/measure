@@ -1,7 +1,46 @@
+import CodeBlock from "@/app/components/code_block";
+import type { CodeBlockLanguage } from "@/app/utils/highlighter";
 import { cn } from "@/app/utils/shadcn_utils";
 import { underlineLinkStyle } from "@/app/utils/shared_styles";
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import React from "react";
 import type { Components } from "react-markdown";
+
+// Map markdown fence aliases to the Shiki language names we load in highlighter.ts.
+const LANG_ALIASES: Record<string, CodeBlockLanguage> = {
+  sh: "shellscript",
+  shell: "shellscript",
+  bash: "shellscript",
+  objc: "objective-c",
+};
+
+const SUPPORTED_LANGUAGES: ReadonlySet<CodeBlockLanguage> = new Set<CodeBlockLanguage>([
+  "kotlin",
+  "xml",
+  "swift",
+  "dart",
+  "yaml",
+  "ruby",
+  "groovy",
+  "json",
+  "jsonc",
+  "objective-c",
+  "shellscript",
+]);
+
+function resolveLanguage(className: string | undefined): CodeBlockLanguage | null {
+  if (!className) {
+    return null;
+  }
+  const match = className.match(/(?:^|\s)language-(\S+)/);
+  if (!match) {
+    return null;
+  }
+  const raw = match[1].toLowerCase();
+  const mapped = (LANG_ALIASES[raw] ?? raw) as CodeBlockLanguage;
+  return SUPPORTED_LANGUAGES.has(mapped) ? mapped : null;
+}
 
 /**
  * Rewrite relative markdown links to /docs/... routes.
@@ -228,11 +267,34 @@ export function createMarkdownComponents(currentSlug: string[], isIndex = false)
         </blockquote>
       );
     },
-    pre: ({ children }) => (
-      <pre className="font-code bg-muted rounded-lg p-4 my-4 overflow-x-auto text-sm">
-        {children}
-      </pre>
-    ),
+    pre: ({ children }) => {
+      // react-markdown wraps fenced code in <pre><code class="language-X">…</code></pre>.
+      // When we recognize the language, render a syntax-highlighted CodeBlock and let it
+      // own the outer <pre> (Shiki emits its own <pre><code>).
+      const childArray = React.Children.toArray(children);
+      if (childArray.length === 1 && React.isValidElement(childArray[0])) {
+        const child = childArray[0] as React.ReactElement<{
+          children?: React.ReactNode;
+          className?: string;
+        }>;
+        const language = resolveLanguage(child.props.className);
+        if (language) {
+          const code = extractTextContent(child.props.children).replace(/\n$/, "");
+          return (
+            <CodeBlock
+              code={code}
+              language={language}
+              className="font-code text-sm rounded-lg overflow-hidden my-4 [&_pre]:p-4 [&_pre]:overflow-x-auto"
+            />
+          );
+        }
+      }
+      return (
+        <pre className="font-code bg-muted rounded-lg p-4 my-4 overflow-x-auto text-sm">
+          {children}
+        </pre>
+      );
+    },
     code: ({ children, className }) => {
       if (!className) {
         return (
@@ -271,13 +333,17 @@ export function createMarkdownComponents(currentSlug: string[], isIndex = false)
     ),
     hr: () => <hr className="my-10 border-border" />,
     details: ({ children }) => (
-      <details className="my-4 border border-border rounded-lg">
+      <details className="group my-4 border border-border rounded-lg [&>*:not(summary)]:px-4 [&>*:not(summary):last-child]:pb-4">
         {children}
       </details>
     ),
     summary: ({ children }) => (
-      <summary className="cursor-pointer font-semibold p-4 hover:bg-muted/50 rounded-lg">
-        {children}
+      <summary className="cursor-pointer font-semibold p-4 hover:bg-muted/50 rounded-lg flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
+        <ChevronRight
+          className="w-4 h-4 shrink-0 transition-transform group-open:rotate-90"
+          aria-hidden="true"
+        />
+        <span>{children}</span>
       </summary>
     ),
     strong: ({ children }) => (

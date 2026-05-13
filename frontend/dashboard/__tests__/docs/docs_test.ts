@@ -1,4 +1,4 @@
-import { cleanContent, extractDescription, extractTitle, extractTocEntries, parseFrontmatter } from '@/app/docs/docs'
+import { cleanContent, extractDescription, extractTitle, extractTocEntries, parseFrontmatter, stripSearchContent } from '@/app/docs/docs'
 import { describe, expect, it } from '@jest/globals'
 
 describe('extractTocEntries', () => {
@@ -371,5 +371,111 @@ describe('parseFrontmatter', () => {
       '---\n# a comment\ndescription: D\n---\n# X',
     )
     expect(out.frontmatter).toEqual({ description: 'D' })
+  })
+})
+
+describe('stripSearchContent', () => {
+  it('returns empty string for empty input', () => {
+    expect(stripSearchContent('')).toBe('')
+  })
+
+  it('strips fenced code blocks entirely', () => {
+    expect(stripSearchContent('Before\n\n```ts\nconst x = 1\n```\n\nAfter')).toBe(
+      'Before After',
+    )
+  })
+
+  it('strips headings of all levels', () => {
+    expect(
+      stripSearchContent('# H1\n\n## H2\n\n### H3\n\nbody\n\n#### H4\n\nmore'),
+    ).toBe('body more')
+  })
+
+  it('strips raw HTML tags but keeps inner text', () => {
+    const out = stripSearchContent(
+      '<details><summary>Self-host Compatibility</summary>Body</details>',
+    )
+    expect(out).not.toMatch(/[<>]/)
+    expect(out).toContain('Self-host Compatibility')
+    expect(out).toContain('Body')
+  })
+
+  it('strips image syntax', () => {
+    expect(stripSearchContent('See ![diagram](img.png) below')).toBe('See below')
+  })
+
+  it('unwraps markdown links to visible text', () => {
+    expect(stripSearchContent('Read [the docs](https://example.com) now.')).toBe(
+      'Read the docs now.',
+    )
+  })
+
+  it('strips all five GFM callout markers but keeps body', () => {
+    for (const kind of ['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION']) {
+      const out = stripSearchContent(`> [!${kind}]\n> body for ${kind}`)
+      expect(out).not.toContain(`[!${kind}]`)
+      expect(out).toContain(`body for ${kind}`)
+    }
+  })
+
+  it('strips callout markers case-insensitively', () => {
+    expect(stripSearchContent('[!note] x')).not.toMatch(/\[!/i)
+    expect(stripSearchContent('[!Tip] x')).not.toMatch(/\[!/i)
+  })
+
+  it('strips emphasis, strong, code, and strikethrough markers', () => {
+    expect(stripSearchContent('**bold** *italic* `code` ~strike~')).toBe(
+      'bold italic code strike',
+    )
+  })
+
+  it('strips list bullets (-, *, +)', () => {
+    expect(stripSearchContent('- one\n* two\n+ three')).toBe('one two three')
+  })
+
+  it('strips blockquote markers', () => {
+    expect(stripSearchContent('> quoted text')).toBe('quoted text')
+  })
+
+  it('replaces table pipes with spaces', () => {
+    const out = stripSearchContent(
+      '| Col A | Col B |\n| --- | --- |\n| Val 1 | Val 2 |',
+    )
+    expect(out).not.toContain('|')
+    expect(out).toContain('Col A')
+    expect(out).toContain('Val 1')
+  })
+
+  it('strips HTML comments', () => {
+    expect(stripSearchContent('Before <!-- hidden --> after')).toBe('Before after')
+  })
+
+  it('collapses multiple whitespace into a single space', () => {
+    expect(stripSearchContent('a    b\n\n\nc')).toBe('a b c')
+  })
+
+  it('handles a realistic mixed-syntax markdown block end-to-end', () => {
+    const md = [
+      '# Bug Reports — Android',
+      '',
+      '* [Session Timeline](#session-timeline)',
+      '',
+      '> [!NOTE]',
+      '> Use **Measure.launchBugReportActivity** to start the flow.',
+      '',
+      '```kotlin',
+      'Measure.launchBugReportActivity(activity)',
+      '```',
+      '',
+      '<details><summary>More</summary>Extra info</details>',
+    ].join('\n')
+    const out = stripSearchContent(md)
+    expect(out).not.toMatch(/```|<|>|\[!|!\[/)
+    expect(out).not.toContain('Bug Reports — Android')
+    expect(out).toContain('Session Timeline')
+    expect(out).toContain(
+      'Use Measure.launchBugReportActivity to start the flow.',
+    )
+    expect(out).toContain('Extra info')
   })
 })
