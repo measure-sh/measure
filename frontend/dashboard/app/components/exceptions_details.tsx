@@ -27,6 +27,7 @@ import {
   AccordionTrigger,
 } from "./accordion";
 import { buttonVariants } from "./button_variants";
+import CodeBlock from "./code_block";
 import CopyAiContext from "./copy_ai_context";
 import ExceptionGroupCommonPath from "./exception_group_common_path";
 import ExceptionsDetailsPlot from "./exceptions_details_plot";
@@ -178,8 +179,8 @@ interface ExceptionsDetailsProps {
   hideDemoTitle?: boolean;
 }
 
-const stackTraceAccordionContentStyle =
-  "whitespace-pre-wrap font-code leading-5.5 bg-accent text-accent-foreground p-4 rounded-sm";
+const stackTraceCodeBlockClassName =
+  "font-code text-sm leading-5.5 rounded-sm overflow-hidden [&_pre]:p-4 [&_pre]:overflow-x-auto";
 
 export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
   exceptionsType = ExceptionsType.Crash,
@@ -505,14 +506,16 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
                           {"Thread: " +
                             exceptionsDetails.results[0].attribute.thread_name}
                         </AccordionTrigger>
-                        <AccordionContent
-                          className={stackTraceAccordionContentStyle}
-                        >
-                          {
-                            (
-                              exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse
-                            ).results[0].exception.stacktrace
-                          }
+                        <AccordionContent>
+                          <CodeBlock
+                            language="java"
+                            className={stackTraceCodeBlockClassName}
+                            code={
+                              (
+                                exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse
+                              ).results[0].exception.stacktrace
+                            }
+                          />
                         </AccordionContent>
                       </AccordionItem>
                     )}
@@ -527,14 +530,16 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
                           {"Thread: " +
                             exceptionsDetails.results[0].attribute.thread_name}
                         </AccordionTrigger>
-                        <AccordionContent
-                          className={stackTraceAccordionContentStyle}
-                        >
-                          {
-                            (
-                              exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse
-                            ).results[0].anr.stacktrace
-                          }
+                        <AccordionContent>
+                          <CodeBlock
+                            language="java"
+                            className={stackTraceCodeBlockClassName}
+                            code={
+                              (
+                                exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse
+                              ).results[0].anr.stacktrace
+                            }
+                          />
                         </AccordionContent>
                       </AccordionItem>
                     )}
@@ -546,10 +551,12 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
                         <AccordionTrigger className="font-display">
                           {"Thread: " + e.name}
                         </AccordionTrigger>
-                        <AccordionContent
-                          className={stackTraceAccordionContentStyle}
-                        >
-                          {e.frames.join("\n")}
+                        <AccordionContent>
+                          <CodeBlock
+                            language="java"
+                            className={stackTraceCodeBlockClassName}
+                            code={e.frames.join("\n")}
+                          />
                         </AccordionContent>
                       </AccordionItem>
                     )) || []}

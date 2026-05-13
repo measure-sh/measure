@@ -11,7 +11,8 @@ export type CodeBlockLanguage =
   | "json"
   | "jsonc"
   | "objective-c"
-  | "shellscript";
+  | "shellscript"
+  | "java";
 
 export const CODE_BLOCK_THEME_LIGHT = "vitesse-light";
 export const CODE_BLOCK_THEME_DARK = "vitesse-dark";
@@ -59,6 +60,7 @@ export function loadHighlighter(): Promise<HighlighterCore> {
           import("@shikijs/langs/jsonc"),
           import("@shikijs/langs/objective-c"),
           import("@shikijs/langs/shellscript"),
+          import("@shikijs/langs/java"),
         ],
         engine: createJavaScriptRegexEngine(),
       });
