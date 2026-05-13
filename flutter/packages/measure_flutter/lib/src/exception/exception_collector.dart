@@ -79,16 +79,14 @@ final class ExceptionCollector {
 
   Future<void> _addScreenshot(List<MsrAttachment> attachments) async {
     final screenshot = await screenshotCollector.capture();
-    final width = screenshot?.width;
-    final height = screenshot?.height;
-    if (screenshot == null || screenshot.bytes == null || width == null || height == null) {
+    if (screenshot == null || !screenshot.hasRawPixels) {
       return;
     }
 
     final webp = await methodChannel.encodeWebP(
       pixels: screenshot.bytes!,
-      width: width,
-      height: height,
+      width: screenshot.width!,
+      height: screenshot.height!,
     );
     if (webp == null) {
       logger.log(LogLevel.debug, 'ExceptionCollector: WebP encoding failed');
