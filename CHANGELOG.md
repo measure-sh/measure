@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Add highlights to stacktraces & common path by @anupcowkur in #3618
 - (**frontend**): Improve docs by @anupcowkur
 - (**frontend**): Update titles & descriptions for docs + website pages by @anupcowkur in #3616
 - (**frontend**): Update crashlytics alternative page description by @anupcowkur in #3608
