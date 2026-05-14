@@ -119,7 +119,7 @@ type AppFilter struct {
 	NetworkTypes []string `form:"network_types"`
 
 	// Crash indicates the filtering should
-	// only consider unhandled exception events.
+	// only consider fatal exception events.
 	Crash bool `form:"crash"`
 
 	// ANR indicates the filtering should only

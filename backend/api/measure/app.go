@@ -5644,7 +5644,7 @@ func GetAppJourney(c *gin.Context) {
 
 	switch j := journeyGraph.(type) {
 	case *journey.JourneyAndroid:
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "unhandled_exception_groups")
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "fatal_exception_groups")
 
 		if err := j.SetExceptionGroups(ctx, &af); err != nil {
 			fmt.Println(msg, err)
@@ -5723,7 +5723,7 @@ func GetAppJourney(c *gin.Context) {
 			nodes = append(nodes, node)
 		}
 	case *journey.JourneyiOS:
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "unhandled_exception_groups")
+		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "fatal_exception_groups")
 
 		if err := j.SetExceptionGroups(ctx, &af); err != nil {
 			fmt.Println(msg, err)
