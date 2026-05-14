@@ -4,10 +4,10 @@ import {
   ValidateInviteApiStatus,
   validateInvitesFromServer,
 } from "@/app/api/api_calls";
+import { fetchCurrentSession, type Session } from "@/app/query/hooks";
 import { queryClient } from "@/app/query/query_client";
 import { useMeasureStoreRegistry } from "@/app/stores/provider";
 import { resetAllStores } from "@/app/stores/reset_all";
-import type { Session } from "@/app/stores/session_store";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { posthog } from "posthog-js";
@@ -69,8 +69,7 @@ export default function Login({
   const registry = useMeasureStoreRegistry();
 
   const getSession = async () => {
-    await registry.sessionStore.getState().fetchSession();
-    const session = registry.sessionStore.getState().session;
+    const session = await fetchCurrentSession();
     if (session) {
       setSession(session);
       posthog.identify(session.user.id, {

@@ -2,8 +2,16 @@
 import { DateTime } from "luxon";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import React, { forwardRef, useEffect, useImperativeHandle } from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+} from "react";
 import {
+  App,
   AppsApiStatus,
   AppVersion,
   BugReportStatus,
@@ -16,10 +24,20 @@ import {
   SpanStatus,
 } from "../api/api_calls";
 import {
+  type AppsQueryResult,
+  useAppsQuery,
+  useFilterOptionsQuery,
+  useRootSpanNamesQuery,
+} from "../query/hooks";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  applyFilterOptions,
   AppVersionsInitialSelectionType,
   expandRangesToArray,
   type Filters,
   type InitConfig,
+  pickApp,
+  resolveRootSpanName,
   type URLFilters,
   urlFiltersKeyMap,
 } from "../stores/filters_store";
@@ -87,7 +105,144 @@ enum DateRange {
   Custom = "Custom Range",
 }
 
-const FiltersComponent = forwardRef<{ refresh: () => void }, FiltersProps>(
+function isStringKey(
+  key: string,
+): key is "appId" | "rootSpanName" | "startDate" | "endDate" | "freeText" {
+  return ["appId", "rootSpanName", "startDate", "endDate", "freeText"].includes(
+    key,
+  );
+}
+
+function deserializeUrlFilters(queryString: string): URLFilters {
+  const params = new URLSearchParams(queryString);
+  const result: URLFilters = {};
+
+  for (const [minifiedKey, value] of params.entries()) {
+    const originalKey = Object.entries(urlFiltersKeyMap).find(
+      ([_, v]) => v === minifiedKey,
+    )?.[0] as keyof URLFilters;
+    if (!originalKey) continue;
+
+    try {
+      switch (originalKey) {
+        case "versions":
+        case "osVersions":
+        case "countries":
+        case "networkProviders":
+        case "networkTypes":
+        case "networkGenerations":
+        case "locales":
+        case "deviceManufacturers":
+        case "deviceNames":
+          result[originalKey] = expandRangesToArray(value);
+          break;
+
+        case "udAttrMatchers":
+          result[originalKey] = value
+            .split("|")
+            .filter((part) => part)
+            .map((part) => {
+              const [key, type, op, val] = part
+                .split("~")
+                .map(decodeURIComponent);
+              return { key, type, op, value: val } as UdAttrMatcher;
+            })
+            .filter((m) => m.key && m.type && m.op && m.value);
+          break;
+
+        case "spanStatuses":
+          result[originalKey] = value
+            .split(",")
+            .filter((s): s is SpanStatus =>
+              Object.values(SpanStatus).includes(s as SpanStatus),
+            );
+          break;
+
+        case "bugReportStatuses":
+          result[originalKey] = value
+            .split(",")
+            .filter((s): s is BugReportStatus =>
+              Object.values(BugReportStatus).includes(s as BugReportStatus),
+            );
+          break;
+
+        case "httpMethods":
+          result[originalKey] = value
+            .split(",")
+            .filter((s): s is HttpMethod =>
+              Object.values(HttpMethod).includes(s as HttpMethod),
+            );
+          break;
+
+        case "sessionTypes":
+          result[originalKey] = value
+            .split(",")
+            .filter((s): s is SessionType =>
+              Object.values(SessionType).includes(s as SessionType),
+            );
+          break;
+
+        case "dateRange":
+          result[originalKey] = Object.values(DateRange).includes(
+            value as DateRange,
+          )
+            ? (value as DateRange)
+            : undefined;
+          break;
+
+        default:
+          if (isStringKey(originalKey)) {
+            result[originalKey] = value;
+          }
+          break;
+      }
+    } catch (error) {
+      console.warn(`Failed to parse ${originalKey}`, error);
+    }
+  }
+
+  return result;
+}
+
+function mapDateRangeToDate(dateRange: string) {
+  let today = DateTime.now();
+
+  switch (dateRange) {
+    case DateRange.Last15Mins:
+      return today.minus({ minutes: 15 });
+    case DateRange.Last30Mins:
+      return today.minus({ minutes: 30 });
+    case DateRange.LastHour:
+      return today.minus({ hours: 1 });
+    case DateRange.Last3Hours:
+      return today.minus({ hours: 3 });
+    case DateRange.Last6Hours:
+      return today.minus({ hours: 6 });
+    case DateRange.Last12Hours:
+      return today.minus({ hours: 12 });
+    case DateRange.Last24Hours:
+      return today.minus({ hours: 24 });
+    case DateRange.LastWeek:
+      return today.minus({ days: 7 });
+    case DateRange.Last15Days:
+      return today.minus({ days: 15 });
+    case DateRange.LastMonth:
+      return today.minus({ months: 1 });
+    case DateRange.Last3Months:
+      return today.minus({ months: 3 });
+    case DateRange.Last6Months:
+      return today.minus({ months: 6 });
+    case DateRange.LastYear:
+      return today.minus({ years: 1 });
+    case DateRange.Custom:
+      throw Error("Custom date range cannot be mapped to date");
+  }
+}
+
+const FiltersComponent = forwardRef<
+  { refresh: (appIdToSelect?: string) => Promise<void> },
+  FiltersProps
+>(
   (
     {
       teamId,
@@ -116,172 +271,32 @@ const FiltersComponent = forwardRef<{ refresh: () => void }, FiltersProps>(
     },
     ref,
   ) => {
-    function deserializeUrlFilters(queryString: string): URLFilters {
-      const params = new URLSearchParams(queryString);
-      const result: URLFilters = {};
-
-      for (const [minifiedKey, value] of params.entries()) {
-        const originalKey = Object.entries(urlFiltersKeyMap).find(
-          ([_, v]) => v === minifiedKey,
-        )?.[0] as keyof URLFilters;
-        if (!originalKey) continue;
-
-        try {
-          switch (originalKey) {
-            case "versions":
-            case "osVersions":
-            case "countries":
-            case "networkProviders":
-            case "networkTypes":
-            case "networkGenerations":
-            case "locales":
-            case "deviceManufacturers":
-            case "deviceNames":
-              result[originalKey] = expandRangesToArray(value);
-              break;
-
-            case "udAttrMatchers":
-              result[originalKey] = value
-                .split("|")
-                .filter((part) => part)
-                .map((part) => {
-                  const [key, type, op, val] = part
-                    .split("~")
-                    .map(decodeURIComponent);
-                  return { key, type, op, value: val } as UdAttrMatcher;
-                })
-                .filter((m) => m.key && m.type && m.op && m.value);
-              break;
-
-            case "spanStatuses":
-              result[originalKey] = value
-                .split(",")
-                .filter((s): s is SpanStatus =>
-                  Object.values(SpanStatus).includes(s as SpanStatus),
-                );
-              break;
-
-            case "bugReportStatuses":
-              result[originalKey] = value
-                .split(",")
-                .filter((s): s is BugReportStatus =>
-                  Object.values(BugReportStatus).includes(s as BugReportStatus),
-                );
-              break;
-
-            case "httpMethods":
-              result[originalKey] = value
-                .split(",")
-                .filter((s): s is HttpMethod =>
-                  Object.values(HttpMethod).includes(s as HttpMethod),
-                );
-              break;
-
-            case "sessionTypes":
-              result[originalKey] = value
-                .split(",")
-                .filter((s): s is SessionType =>
-                  Object.values(SessionType).includes(s as SessionType),
-                );
-              break;
-
-            case "dateRange":
-              result[originalKey] = Object.values(DateRange).includes(
-                value as DateRange,
-              )
-                ? (value as DateRange)
-                : undefined;
-              break;
-
-            default:
-              if (isStringKey(originalKey)) {
-                result[originalKey] = value;
-              }
-              break;
-          }
-        } catch (error) {
-          console.warn(`Failed to parse ${originalKey}`, error);
-        }
-      }
-
-      return result;
-    }
-
-    function isStringKey(
-      key: string,
-    ): key is "appId" | "rootSpanName" | "startDate" | "endDate" | "freeText" {
-      return [
-        "appId",
-        "rootSpanName",
-        "startDate",
-        "endDate",
-        "freeText",
-      ].includes(key);
-    }
-
-    function mapDateRangeToDate(dateRange: string) {
-      let today = DateTime.now();
-
-      switch (dateRange) {
-        case DateRange.Last15Mins:
-          return today.minus({ minutes: 15 });
-        case DateRange.Last30Mins:
-          return today.minus({ minutes: 30 });
-        case DateRange.LastHour:
-          return today.minus({ hours: 1 });
-        case DateRange.Last3Hours:
-          return today.minus({ hours: 3 });
-        case DateRange.Last6Hours:
-          return today.minus({ hours: 6 });
-        case DateRange.Last12Hours:
-          return today.minus({ hours: 12 });
-        case DateRange.Last24Hours:
-          return today.minus({ hours: 24 });
-        case DateRange.LastWeek:
-          return today.minus({ days: 7 });
-        case DateRange.Last15Days:
-          return today.minus({ days: 15 });
-        case DateRange.LastMonth:
-          return today.minus({ months: 1 });
-        case DateRange.Last3Months:
-          return today.minus({ months: 3 });
-        case DateRange.Last6Months:
-          return today.minus({ months: 6 });
-        case DateRange.LastYear:
-          return today.minus({ years: 1 });
-        case DateRange.Custom:
-          throw Error("Custom date range cannot be mapped to date");
-      }
-    }
-
-    // --- Read URL params ---
     const searchParams = useSearchParams();
     const pathName = usePathname();
 
-    const urlFilters = deserializeUrlFilters(searchParams.toString());
+    const urlFilters = useMemo(
+      () => deserializeUrlFilters(searchParams.toString()),
+      [searchParams],
+    );
 
-    // --- Build init config ---
-    const initConfig: InitConfig = {
-      urlFilters,
-      appId,
-      appVersionsInitialSelectionType,
-      filterSource,
-    };
+    const initConfig: InitConfig = useMemo(
+      () => ({
+        urlFilters,
+        appId,
+        appVersionsInitialSelectionType,
+        filterSource,
+      }),
+      [urlFilters, appId, appVersionsInitialSelectionType, filterSource],
+    );
 
-    // --- Connect to store ---
+    const queryClient = useQueryClient();
     const store = useFiltersStore();
+    const selectedApp = useFiltersStore((s) => s.selectedApp);
+    const currentTeamId = useFiltersStore((s) => s.currentTeamId);
 
-    // --- Sync filter config into the store ---
-    // Keeps store.config in sync with the parent's filterSource + show*
-    // flags. Declared FIRST so a cross-page mount runs setConfig before
-    // fetchApps: setConfig wipes per-page selections when the filterSource
-    // changes, and the subsequent selectApp.applyFilterOptions then sees
-    // that wiped state and applies defaults for the new source.
-    //
-    // Deps include all flags because a parent may flip one at runtime
-    // (e.g. the apps page toggling showNotOnboarded once apps load).
-    // computeFilters reads these from store.config to decide filters.ready,
-    // so the store has to see the new value the moment the parent flips it.
+    // computeFilters reads every show* flag plus filterSource, so the store
+    // has to see flips the moment the parent makes them (e.g. apps page
+    // toggling showNotOnboarded once apps load).
     useEffect(() => {
       store.setConfig({
         filterSource,
@@ -326,24 +341,11 @@ const FiltersComponent = forwardRef<{ refresh: () => void }, FiltersProps>(
       showFreeText,
     ]);
 
-    // --- Initialize dates, fetch apps ---
-    // Declared after the setConfig effect on purpose. On a cross-page
-    // mount the order matters:
-    //   1. setConfig wipes per-page selections (filterSource changed)
-    //   2. selectApp.applyFilterOptions then sees the wiped state and
-    //      installs defaults for the new source
-    // Reverse the order and applyFilterOptions would carry over the
-    // previous page's selections, then setConfig would wipe them —
-    // leaving the UI with empty dropdowns.
-    //
-    // On team change, fetchApps wipes team-scoped state but keeps
-    // config (per-page) and onboarding (per-app id), so the setConfig
-    // write from the effect above survives.
     useEffect(() => {
-      // Initialize dates: URL > existing store > defaults.
-      // The store survives navigation, so cross-page navigation skips this
-      // and reuses the user's previous selection. URL params win on refresh
-      // or deep links. First-ever load falls through to Last6Hours defaults.
+      // Date init priority: URL > preserved store (re-anchored to now()) >
+      // first-ever default. Non-custom ranges always recompute start/end
+      // from now() on mount so "Last Year" doesn't render stale data
+      // after navigation.
       if (urlFilters.dateRange) {
         const range = urlFilters.dateRange;
         const isCustom = range === DateRange.Custom;
@@ -359,22 +361,173 @@ const FiltersComponent = forwardRef<{ refresh: () => void }, FiltersProps>(
             ? (urlFilters.endDate ?? DateTime.now().toISO()!)
             : DateTime.now().toISO()!,
         );
-      } else if (!store.selectedDateRange) {
+      } else if (store.selectedDateRange) {
+        // Custom ranges keep the user's explicit start/end; everything
+        // else re-anchors to now().
+        if (store.selectedDateRange !== DateRange.Custom) {
+          store.setSelectedStartDate(
+            mapDateRangeToDate(store.selectedDateRange)!.toISO()!,
+          );
+          store.setSelectedEndDate(DateTime.now().toISO()!);
+        }
+      } else {
         const range = DateRange.Last6Hours;
         store.setSelectedDateRange(range);
         store.setSelectedStartDate(mapDateRangeToDate(range)!.toISO()!);
         store.setSelectedEndDate(DateTime.now().toISO()!);
       }
 
-      store.fetchApps(teamId, initConfig);
+      // Wipe team-scoped state before the new team's apps query lands so
+      // pages don't briefly render data for the previous team.
+      if (currentTeamId !== "" && currentTeamId !== teamId) {
+        store.resetForTeamChange(teamId);
+      } else if (currentTeamId === "") {
+        store.setCurrentTeamId(teamId);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [teamId]);
 
-    // --- Imperative handle for refresh ---
-    useImperativeHandle(ref, () => ({
-      refresh: (appIdToSelect?: string) => {
-        store.refresh(teamId, initConfig, appIdToSelect);
+    const appsQuery = useAppsQuery(teamId);
+
+    useEffect(() => {
+      if (appsQuery.status === "pending") {
+        store.setApps([], AppsApiStatus.Loading);
+        return;
+      }
+      if (appsQuery.status === "error") {
+        store.setApps([], AppsApiStatus.Error);
+        return;
+      }
+      store.setApps(appsQuery.data.data, appsQuery.data.status);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [appsQuery.status, appsQuery.data]);
+
+    useEffect(() => {
+      if (appsQuery.status !== "success") {
+        return;
+      }
+      if (appsQuery.data.status !== AppsApiStatus.Success) {
+        return;
+      }
+      const apps = appsQuery.data.data;
+      if (apps.length === 0) {
+        return;
+      }
+      const picked = pickApp(apps, initConfig, selectedApp);
+      if (!picked) {
+        return;
+      }
+      // Skip the setter when nothing changed — apps reference churns on
+      // every refetch even when the picked app is the same.
+      if (!selectedApp || selectedApp.id !== picked.id) {
+        store.setSelectedApp(picked);
+      } else if (selectedApp.onboarded !== picked.onboarded) {
+        // Same id, new onboarded flag (poller saw verification). Update
+        // in place without wiping selections.
+        store.setSelectedApp(picked);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [appsQuery.status, appsQuery.data, teamId]);
+
+    const filterOptionsQuery = useFilterOptionsQuery(selectedApp, filterSource);
+
+    useEffect(() => {
+      if (!selectedApp) {
+        return;
+      }
+      if (filterOptionsQuery.status === "pending") {
+        store.setFilterOptions(null, FiltersApiStatus.Loading);
+        return;
+      }
+      if (filterOptionsQuery.status === "error") {
+        store.setFilterOptions(null, FiltersApiStatus.Error);
+        return;
+      }
+      // Query resolved — inner status is Success, NoData, or NotOnboarded.
+      const { status, data } = filterOptionsQuery.data;
+      if (status === FiltersApiStatus.Success && data) {
+        const selections = applyFilterOptions(
+          data,
+          selectedApp,
+          initConfig,
+          store,
+        );
+        store.setFilterOptions(data, FiltersApiStatus.Success);
+        store.applySelections(selections);
+      } else {
+        store.setFilterOptions(null, status);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+      filterOptionsQuery.status,
+      filterOptionsQuery.data,
+      selectedApp?.id,
+      selectedApp?.onboarded,
+    ]);
+
+    const rootSpanNamesQuery = useRootSpanNamesQuery(selectedApp, filterSource);
+
+    useEffect(() => {
+      if (filterSource !== FilterSource.Spans) {
+        return;
+      }
+      if (!selectedApp) {
+        return;
+      }
+      if (rootSpanNamesQuery.status === "pending") {
+        store.setRootSpanNames(null, RootSpanNamesApiStatus.Loading);
+        return;
+      }
+      if (rootSpanNamesQuery.status === "error") {
+        store.setRootSpanNames(null, RootSpanNamesApiStatus.Error);
+        return;
+      }
+      const { status, data } = rootSpanNamesQuery.data;
+      if (status === RootSpanNamesApiStatus.Success && data) {
+        store.setRootSpanNames(data, RootSpanNamesApiStatus.Success);
+        store.setSelectedRootSpanName(
+          resolveRootSpanName(data, initConfig, selectedApp),
+        );
+      } else {
+        store.setRootSpanNames(null, status);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+      rootSpanNamesQuery.status,
+      rootSpanNamesQuery.data,
+      selectedApp?.id,
+      filterSource,
+    ]);
+
+    // Refetch apps + filter-option queries, then optionally focus a
+    // specific app once the fresh apps list lands.
+    const refresh = useCallback(
+      async (appIdToSelect?: string) => {
+        await queryClient.refetchQueries({
+          queryKey: ["filterApps", teamId],
+        });
+        if (appIdToSelect) {
+          const apps =
+            queryClient.getQueryData<AppsQueryResult>(["filterApps", teamId])
+              ?.data ?? [];
+          const app = apps.find((a) => a.id === appIdToSelect);
+          if (app) {
+            store.setSelectedApp(app);
+          }
+        }
+        await queryClient.refetchQueries({
+          queryKey: ["filterOptions", selectedApp?.id],
+        });
+        if (filterSource === FilterSource.Spans) {
+          await queryClient.refetchQueries({
+            queryKey: ["rootSpanNames", selectedApp?.id],
+          });
+        }
       },
-    }));
+      [teamId, selectedApp?.id, filterSource, store],
+    );
+
+    useImperativeHandle(ref, () => ({ refresh }), [refresh]);
 
     const skeletonDropdownCount = [
       showAppSelector,
@@ -449,9 +602,10 @@ const FiltersComponent = forwardRef<{ refresh: () => void }, FiltersProps>(
         type={DropdownSelectType.SingleString}
         items={store.apps.map((e) => e.name)}
         initialSelected={store.selectedApp?.name ?? ""}
-        onChangeSelected={(item) =>
-          store.selectApp(store.apps.find((e) => e.name === item)!, initConfig)
-        }
+        onChangeSelected={(item) => {
+          const app = store.apps.find((e) => e.name === item);
+          if (app) store.setSelectedApp(app);
+        }}
       />
     );
 
@@ -460,7 +614,6 @@ const FiltersComponent = forwardRef<{ refresh: () => void }, FiltersProps>(
         {store.appsApiStatus === AppsApiStatus.Loading &&
           filtersSkeleton(skeletonDropdownCount)}
 
-        {/* Error states for apps fetch */}
         {store.appsApiStatus === AppsApiStatus.Error && (
           <p className="font-body text-sm">
             Error fetching apps, please check if Team ID is valid or refresh
@@ -483,7 +636,6 @@ const FiltersComponent = forwardRef<{ refresh: () => void }, FiltersProps>(
             </p>
           ))}
 
-        {/* Error states for app success but filters fetch loading or failure */}
         {store.appsApiStatus === AppsApiStatus.Success &&
           store.filtersApiStatus !== FiltersApiStatus.Success && (
             <div className="flex flex-col">
@@ -522,7 +674,6 @@ const FiltersComponent = forwardRef<{ refresh: () => void }, FiltersProps>(
             </div>
           )}
 
-        {/* Error states for app success and filter success but traces loading or failure */}
         {store.appsApiStatus === AppsApiStatus.Success &&
           store.filtersApiStatus === FiltersApiStatus.Success &&
           filterSource === FilterSource.Spans &&
@@ -556,7 +707,6 @@ const FiltersComponent = forwardRef<{ refresh: () => void }, FiltersProps>(
             </div>
           )}
 
-        {/* Success states for app, trace and filters fetch */}
         {store.appsApiStatus === AppsApiStatus.Success &&
           ((filterSource === FilterSource.Spans &&
             store.rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
@@ -570,12 +720,10 @@ const FiltersComponent = forwardRef<{ refresh: () => void }, FiltersProps>(
                     type={DropdownSelectType.SingleString}
                     items={store.apps.map((e) => e.name)}
                     initialSelected={store.selectedApp!.name}
-                    onChangeSelected={(item) =>
-                      store.selectApp(
-                        store.apps.find((e) => e.name === item)!,
-                        initConfig,
-                      )
-                    }
+                    onChangeSelected={(item) => {
+                      const app = store.apps.find((e) => e.name === item);
+                      if (app) store.setSelectedApp(app);
+                    }}
                   />
                 )}
 

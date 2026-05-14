@@ -99,8 +99,10 @@ afterAll(() => {
 // --- Imports that transitively load api_client (must come after mocks) ---
 import Overview from "@/app/components/overview";
 import { createFiltersStore } from "@/app/stores/filters_store";
+import { createOnboardingStore } from "@/app/stores/onboarding_store";
 
 let filtersStore = createFiltersStore();
+let onboardingStore = createOnboardingStore();
 let testQueryClient: QueryClient;
 
 jest.mock("@/app/stores/provider", () => {
@@ -108,8 +110,10 @@ jest.mock("@/app/stores/provider", () => {
   return {
     __esModule: true,
     useFiltersStore: (selector?: any) =>
-      selector ? useStore(filtersStore, selector) : useStore(filtersStore),
-    useMeasureStoreRegistry: () => ({ filtersStore }),
+      useStore(filtersStore, selector ?? ((s: any) => s)),
+    useOnboardingStore: (selector?: any) =>
+      useStore(onboardingStore, selector ?? ((s: any) => s)),
+    useMeasureStoreRegistry: () => ({ filtersStore, onboardingStore }),
   };
 });
 
@@ -121,7 +125,7 @@ beforeEach(() => {
   testQueryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
-  filtersStore.getState().reset(true);
+  filtersStore.getState().reset();
   // Clear any URL params set by previous tests
   for (const key of [...mockSearchParams.keys()]) {
     mockSearchParams.delete(key);
@@ -419,9 +423,7 @@ describe("Overview page — filter interactions", () => {
       filtersRequests.length = 0;
 
       await act(async () => {
-        await filtersStore
-          .getState()
-          .selectApp(app2 as any, defaultInitConfig as any);
+        filtersStore.getState().setSelectedApp(app2);
       });
 
       await waitFor(
@@ -437,9 +439,7 @@ describe("Overview page — filter interactions", () => {
       metricsRequests.length = 0;
 
       await act(async () => {
-        await filtersStore
-          .getState()
-          .selectApp(app2 as any, defaultInitConfig as any);
+        filtersStore.getState().setSelectedApp(app2);
       });
 
       await waitFor(
@@ -457,9 +457,7 @@ describe("Overview page — filter interactions", () => {
       anrPlotRequests.length = 0;
 
       await act(async () => {
-        await filtersStore
-          .getState()
-          .selectApp(app2 as any, defaultInitConfig as any);
+        filtersStore.getState().setSelectedApp(app2);
       });
 
       await waitFor(
@@ -495,9 +493,7 @@ describe("Overview page — filter interactions", () => {
       expect(screen.getByText("99.1%")).toBeTruthy();
 
       await act(async () => {
-        await filtersStore
-          .getState()
-          .selectApp(app2 as any, defaultInitConfig as any);
+        filtersStore.getState().setSelectedApp(app2);
       });
 
       await waitFor(
@@ -530,9 +526,7 @@ describe("Overview page — filter interactions", () => {
       expect(filtersStore.getState().selectedVersions[0]?.name).toBe("3.1.0");
 
       await act(async () => {
-        await filtersStore
-          .getState()
-          .selectApp(app2 as any, defaultInitConfig as any);
+        filtersStore.getState().setSelectedApp(app2);
       });
 
       await waitFor(
@@ -553,9 +547,7 @@ describe("Overview page — filter interactions", () => {
       await renderAndWaitForData();
 
       await act(async () => {
-        await filtersStore
-          .getState()
-          .selectApp(app2 as any, defaultInitConfig as any);
+        filtersStore.getState().setSelectedApp(app2);
       });
       await waitFor(
         () => {
@@ -566,9 +558,7 @@ describe("Overview page — filter interactions", () => {
 
       metricsRequests.length = 0;
       await act(async () => {
-        await filtersStore
-          .getState()
-          .selectApp(app1 as any, defaultInitConfig as any);
+        filtersStore.getState().setSelectedApp(app1);
       });
       await waitFor(
         () => {
@@ -1041,9 +1031,7 @@ describe("Overview page — filter interactions", () => {
 
       // Switch to app-2 — versions should reset
       await act(async () => {
-        await filtersStore
-          .getState()
-          .selectApp(app2 as any, defaultInitConfig as any);
+        filtersStore.getState().setSelectedApp(app2);
       });
 
       await waitFor(
@@ -1439,7 +1427,7 @@ describe("Overview page — URL serialization and parsing", () => {
       );
 
       // Reset everything and re-render with the captured URL params
-      filtersStore.getState().reset(true);
+      filtersStore.getState().reset();
       testQueryClient.clear();
 
       for (const key of [...mockSearchParams.keys()]) {
@@ -1488,7 +1476,7 @@ describe("Overview page — URL serialization and parsing", () => {
       );
 
       // Reset and re-render
-      filtersStore.getState().reset(true);
+      filtersStore.getState().reset();
       testQueryClient.clear();
 
       for (const key of [...mockSearchParams.keys()]) {
@@ -1994,7 +1982,7 @@ describe("Overview page — team switch to no-apps team", () => {
     );
 
     // Reset the filtersStore (simulating what onTeamChanged does in the layout)
-    filtersStore.getState().reset(true);
+    filtersStore.getState().reset();
 
     // Phase 2: override MSW to return 404 for apps, unmount, re-render with new teamId
     server.use(

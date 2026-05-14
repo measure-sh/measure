@@ -24,7 +24,14 @@ let mockSelectedApp: MockApp | null = null;
 const mockMutateAsync = jest.fn();
 const mockToastPositive = jest.fn();
 const mockToastNegative = jest.fn();
-const mockRefresh = jest.fn();
+const mockRefetchQueries = jest.fn();
+const mockInvalidateQueries = jest.fn();
+const mockSetSelectedApp = jest.fn();
+const mockMarkAppOnboarded = jest.fn();
+const mockSetOnboardingStep = jest.fn();
+const mockSetOnboardingPlatform = jest.fn();
+const mockSetOnboardingFlutterPlatform = jest.fn();
+const mockMarkVerified = jest.fn();
 const mockPush = jest.fn();
 const mockFetchAppsFromServer = jest.fn();
 const mockFetchFiltersFromServer = jest.fn();
@@ -44,7 +51,34 @@ jest.mock("@/app/query/hooks", () => ({
   useAuthzAndMembersQuery: () => ({
     data: { can_create_app: mockCanCreateApp },
   }),
+  useAppsQuery: () => ({
+    // AppsApiStatus.Success = 1
+    data: { status: 1, data: mockApps },
+    status: "success",
+  }),
 }));
+
+jest.mock("@/app/query/query_client", () => ({
+  queryClient: {
+    refetchQueries: (...args: any[]) => mockRefetchQueries(...args),
+    invalidateQueries: (...args: any[]) => mockInvalidateQueries(...args),
+  },
+}));
+
+// Onboarding now reads queryClient via useQueryClient(); intercept the
+// context-provided client's methods so existing assertions on
+// mockRefetchQueries / mockInvalidateQueries keep working.
+jest.mock("@tanstack/react-query", () => {
+  const actual = jest.requireActual("@tanstack/react-query");
+  return {
+    ...actual,
+    useQueryClient: () => ({
+      refetchQueries: (...args: any[]) => mockRefetchQueries(...args),
+      invalidateQueries: (...args: any[]) => mockInvalidateQueries(...args),
+      getQueryData: () => undefined,
+    }),
+  };
+});
 
 // filters_store imports a wide surface of types/enums from api_calls, so
 // we spread the real module and only override the two functions the
@@ -66,34 +100,53 @@ jest.mock("@/app/utils/use_toast", () => ({
   toastNegative: (...args: any[]) => mockToastNegative(...args),
 }));
 
-// Use a real filtersStore instance so its onboarding state actions
-// (setOnboardingStep, setOnboardingPlatform, markAppOnboarded) and the
-// localStorage hydration are exercised end-to-end. We only need to
-// override apps/selectedApp at read time and refresh at call time.
-const { createFiltersStore } = jest.requireActual("@/app/stores/filters_store");
+// Use a real onboarding store so localStorage hydration and persistence
+// are exercised end-to-end. The filters store is fully mocked since the
+// component only consumes selectedApp + a couple of actions from it.
+const { createOnboardingStore } = jest.requireActual(
+  "@/app/stores/onboarding_store",
+);
 const { useStore } = jest.requireActual("zustand");
 
-let filtersStoreInstance: ReturnType<typeof createFiltersStore>;
+let onboardingStoreInstance: ReturnType<typeof createOnboardingStore>;
+
+// Cached filters store view — rebuilt only when the mock backing data
+// changes so the reference stays stable across renders. zustand's
+// useSyncExternalStore reads via Object.is, so the no-selector return
+// must keep the same identity until the underlying state actually
+// changes; otherwise the component would re-render in a loop.
+let cachedFiltersView: any = null;
+let cachedFiltersKey: string | null = null;
+function getFiltersView() {
+  const key = JSON.stringify({
+    apps: mockApps.map((a) => ({ id: a.id, onboarded: a.onboarded })),
+    selectedApp: mockSelectedApp?.id ?? null,
+  });
+  if (cachedFiltersKey !== key) {
+    cachedFiltersKey = key;
+    cachedFiltersView = {
+      apps: mockApps,
+      selectedApp: mockSelectedApp,
+      setSelectedApp: mockSetSelectedApp,
+      markAppOnboarded: mockMarkAppOnboarded,
+    };
+  }
+  return cachedFiltersView;
+}
 
 jest.mock("@/app/stores/provider", () => ({
-  useFiltersStore: (selector: any) => {
-    // Layer the per-test mock apps/selectedApp on top of the real store's
-    // state so onboarding-keyed reads (state.onboarding[appId]) flow
-    // through. useStore subscribes correctly so reactive updates work.
-    return useStore(filtersStoreInstance, (state: any) =>
-      selector({ ...state, apps: mockApps, selectedApp: mockSelectedApp }),
-    );
+  useFiltersStore: (selector?: any) => {
+    const view = getFiltersView();
+    return selector ? selector(view) : view;
   },
-  useMeasureStoreRegistry: () => ({
-    filtersStore: {
-      getState: () => ({
-        ...filtersStoreInstance.getState(),
-        // Override refresh — its real implementation would fire
-        // fetchAppsFromServer; we want a controllable mock instead.
-        refresh: mockRefresh,
-      }),
-    },
-  }),
+  useOnboardingStore: (selector?: any) => {
+    // Subscribe to the real store with an identity selector when no
+    // selector is passed (preserves snapshot identity); otherwise pass
+    // the user's selector through directly. Spy mocks wrap the real
+    // actions via jest.spyOn in beforeEach so call assertions still work.
+    return useStore(onboardingStoreInstance, selector ?? ((s: any) => s));
+  },
+  useMeasureStoreRegistry: () => ({}),
 }));
 
 jest.mock("next/navigation", () => ({
@@ -178,12 +231,21 @@ function makeApp(overrides: Partial<MockApp> = {}): MockApp {
   };
 }
 
+const renderQueryClient = new (require("@tanstack/react-query").QueryClient)({
+  defaultOptions: { queries: { retry: false, gcTime: 0 } },
+});
+const {
+  QueryClientProvider: RenderQCProvider,
+} = require("@tanstack/react-query");
+
 function renderOnboarding(props: Partial<{ teamId: string }> = {}) {
   return render(
-    <Onboarding
-      teamId={props.teamId ?? "team-1"}
-      initConfig={mockInitConfig}
-    />,
+    <RenderQCProvider client={renderQueryClient}>
+      <Onboarding
+        teamId={props.teamId ?? "team-1"}
+        initConfig={mockInitConfig}
+      />
+    </RenderQCProvider>,
   );
 }
 
@@ -199,9 +261,11 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockApps = [];
   mockSelectedApp = null;
+  cachedFiltersKey = null;
+  cachedFiltersView = null;
   mockIsPending = false;
   mockCanCreateApp = true;
-  mockRefresh.mockResolvedValue(undefined);
+  mockRefetchQueries.mockResolvedValue(undefined);
   mockFetchAppsFromServer.mockResolvedValue({ status: 1, data: [] });
   // FiltersApiStatus.Success = 1. Default the polling's filters probe to
   // Success so tests that drive the apps endpoint to onboarded=true reach
@@ -227,10 +291,39 @@ beforeEach(() => {
   if (typeof window !== "undefined") {
     window.localStorage.clear();
   }
-  // Reconstruct the filters store each test so its onboarding state
+  // Reconstruct the onboarding store each test so its onboarding state
   // re-reads localStorage fresh (any seed data each test sets up gets
-  // picked up via the synchronous hydration in createFiltersStore).
-  filtersStoreInstance = createFiltersStore();
+  // picked up via the synchronous hydration in createOnboardingStore).
+  onboardingStoreInstance = createOnboardingStore();
+  // Replace the real actions with wrappers that record calls AND defer
+  // to the real ones, so tests can assert with mockSet* spies while the
+  // store's localStorage persistence still runs end-to-end.
+  const realActions = {
+    setOnboardingStep: onboardingStoreInstance.getState().setOnboardingStep,
+    setOnboardingPlatform:
+      onboardingStoreInstance.getState().setOnboardingPlatform,
+    setOnboardingFlutterPlatform:
+      onboardingStoreInstance.getState().setOnboardingFlutterPlatform,
+    markVerified: onboardingStoreInstance.getState().markVerified,
+  };
+  onboardingStoreInstance.setState({
+    setOnboardingStep: (...args: any[]) => {
+      mockSetOnboardingStep(...args);
+      realActions.setOnboardingStep(...(args as [string, any]));
+    },
+    setOnboardingPlatform: (...args: any[]) => {
+      mockSetOnboardingPlatform(...args);
+      realActions.setOnboardingPlatform(...(args as [string, any]));
+    },
+    setOnboardingFlutterPlatform: (...args: any[]) => {
+      mockSetOnboardingFlutterPlatform(...args);
+      realActions.setOnboardingFlutterPlatform(...(args as [string, any]));
+    },
+    markVerified: (...args: any[]) => {
+      mockMarkVerified(...args);
+      realActions.markVerified(...(args as [string]));
+    },
+  } as any);
 });
 
 // ============================================================
@@ -371,17 +464,18 @@ describe("Onboarding — Step 1: Create app", () => {
     beforeEach(() => {
       const newApp = makeApp({ name: "My App", id: "app-99" });
       mockMutateAsync.mockResolvedValue(newApp);
-      // Simulate the filters store update that the real refresh action
-      // performs: a non-empty apps list with the new app selected. This
-      // is what flips apps.length > 0 in the next render so the component
-      // moves past the 'create' step.
-      mockRefresh.mockImplementation(async () => {
+      // refetch resolves immediately; the component then sets the new app
+      // as selected via setSelectedApp.
+      mockRefetchQueries.mockImplementation(async () => {
         mockApps = [newApp];
         mockSelectedApp = newApp;
       });
+      mockSetSelectedApp.mockImplementation((app: MockApp) => {
+        mockSelectedApp = app;
+      });
     });
 
-    it("refreshes the filters store with the new app id", async () => {
+    it("refetches the apps query and selects the new app", async () => {
       renderOnboarding({ teamId: "team-42" });
       fireEvent.change(screen.getByTestId("onboarding-app-name-input"), {
         target: { value: "My App" },
@@ -392,12 +486,13 @@ describe("Onboarding — Step 1: Create app", () => {
         );
       });
       await waitFor(() => {
-        expect(mockRefresh).toHaveBeenCalledWith(
-          "team-42",
-          mockInitConfig,
-          "app-99",
-        );
+        expect(mockRefetchQueries).toHaveBeenCalledWith({
+          queryKey: ["filterApps", "team-42"],
+        });
       });
+      expect(mockSetSelectedApp).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "app-99" }),
+      );
     });
 
     it("shows positive toast with the app name", async () => {
@@ -495,7 +590,7 @@ describe("Onboarding — Step 1: Create app", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("does not refresh the filters store on error", async () => {
+    it("does not refetch or select an app on error", async () => {
       renderOnboarding();
       fireEvent.change(screen.getByTestId("onboarding-app-name-input"), {
         target: { value: "My App" },
@@ -508,7 +603,8 @@ describe("Onboarding — Step 1: Create app", () => {
       await waitFor(() => {
         expect(mockToastNegative).toHaveBeenCalled();
       });
-      expect(mockRefresh).not.toHaveBeenCalled();
+      expect(mockRefetchQueries).not.toHaveBeenCalled();
+      expect(mockSetSelectedApp).not.toHaveBeenCalled();
     });
 
     it("does not advance to integrate step", async () => {
@@ -1162,7 +1258,9 @@ describe("Onboarding — Step 3: Verify", () => {
     it("clears localStorage when polling detects onboarded=true", async () => {
       // Seed the store at verify so the component renders the polling
       // state immediately on mount.
-      filtersStoreInstance.getState().setOnboardingStep("target-app", "verify");
+      onboardingStoreInstance
+        .getState()
+        .setOnboardingStep("target-app", "verify");
       mockFetchAppsFromServer.mockResolvedValue({
         status: 1,
         data: [makeApp({ id: "target-app", onboarded: true })],
@@ -1239,7 +1337,7 @@ describe("Onboarding — Persistence", () => {
           flutterPlatform: "Android",
         }),
       );
-      filtersStoreInstance = createFiltersStore();
+      onboardingStoreInstance = createOnboardingStore();
       renderOnboarding();
       expect(screen.getByTestId("tab-Flutter")).toHaveAttribute(
         "data-selected",
@@ -1256,7 +1354,7 @@ describe("Onboarding — Persistence", () => {
           flutterPlatform: "Android",
         }),
       );
-      filtersStoreInstance = createFiltersStore();
+      onboardingStoreInstance = createOnboardingStore();
       renderOnboarding();
       expect(screen.getByTestId("onboarding-step-verify")).toBeInTheDocument();
       // The integrate section header still renders (collapsed with a check),
@@ -1276,7 +1374,7 @@ describe("Onboarding — Persistence", () => {
           flutterPlatform: "iOS",
         }),
       );
-      filtersStoreInstance = createFiltersStore();
+      onboardingStoreInstance = createOnboardingStore();
       renderOnboarding();
       expect(
         screen.getByTestId("onboarding-flutter-platform-iOS"),

@@ -105,24 +105,29 @@ import BugReportsOverview from "@/app/[teamId]/bug_reports/page";
 import BugReport from "@/app/components/bug_report";
 import { queryClient } from "@/app/query/query_client";
 import { createFiltersStore } from "@/app/stores/filters_store";
+import { createOnboardingStore } from "@/app/stores/onboarding_store";
 import { QueryClientProvider } from "@tanstack/react-query";
 
 let filtersStore = createFiltersStore();
+let onboardingStore = createOnboardingStore();
 
 jest.mock("@/app/stores/provider", () => {
   const { useStore } = require("zustand");
   return {
     __esModule: true,
     useFiltersStore: (selector?: any) =>
-      selector ? useStore(filtersStore, selector) : useStore(filtersStore),
-    useMeasureStoreRegistry: () => ({ filtersStore }),
+      useStore(filtersStore, selector ?? ((s: any) => s)),
+    useOnboardingStore: (selector?: any) =>
+      useStore(onboardingStore, selector ?? ((s: any) => s)),
+    useMeasureStoreRegistry: () => ({ filtersStore, onboardingStore }),
   };
 });
 
 beforeEach(() => {
   filtersStore = createFiltersStore();
+  onboardingStore = createOnboardingStore();
   queryClient.clear();
-  filtersStore.getState().reset(true);
+  filtersStore.getState().reset();
   for (const key of [...mockSearchParams.keys()]) mockSearchParams.delete(key);
   const { apiClient } = require("@/app/api/api_client");
   apiClient.init({ replace: jest.fn(), push: jest.fn() });
@@ -2095,7 +2100,7 @@ describe("Bug reports — team switch to no-apps team", () => {
     );
 
     // Reset the filtersStore (simulating what onTeamChanged does in the layout)
-    filtersStore.getState().reset(true);
+    filtersStore.getState().reset();
 
     // Phase 2: override MSW to return 404 for apps, unmount, re-render with new teamId
     server.use(

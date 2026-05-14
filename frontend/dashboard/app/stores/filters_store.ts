@@ -7,9 +7,6 @@ import {
   BugReportStatus,
   buildShortFiltersPostBody,
   defaultFilters,
-  fetchAppsFromServer,
-  fetchFiltersFromServer,
-  fetchRootSpanNamesFromServer,
   Filters,
   FiltersApiStatus,
   FilterSource,
@@ -22,7 +19,6 @@ import {
   UdAttrMatcher,
   UserDefAttr,
 } from "../api/api_calls";
-import { createInFlightTracker } from "./utils/in_flight";
 
 export enum AppVersionsInitialSelectionType {
   Latest,
@@ -31,126 +27,6 @@ export enum AppVersionsInitialSelectionType {
 
 export { defaultFilters };
 export type { Filters };
-
-// --- Onboarding (per-app wizard state, persisted to localStorage) -----------
-
-export type OnboardingStep = "create" | "integrate" | "verify" | "verified";
-export type OnboardingPlatform = "Android" | "iOS" | "Flutter";
-// A Measure app is bound to a single native platform, but a Flutter codebase
-// often ships to both. The sub-selection picks which native side the user is
-// integrating against right now — they may onboard a second Measure app later
-// for the other side.
-export type OnboardingFlutterPlatform = "Android" | "iOS";
-
-export interface OnboardingAppState {
-  step: OnboardingStep;
-  platform: OnboardingPlatform;
-  flutterPlatform: OnboardingFlutterPlatform;
-}
-
-export const DEFAULT_ONBOARDING_STATE: OnboardingAppState = {
-  step: "integrate",
-  platform: "Android",
-  flutterPlatform: "Android",
-};
-
-const ONBOARDING_STORAGE_PREFIX = "measure_onboarding_";
-const VALID_ONBOARDING_STEPS: OnboardingStep[] = [
-  "create",
-  "integrate",
-  "verify",
-  "verified",
-];
-const VALID_ONBOARDING_PLATFORMS: OnboardingPlatform[] = [
-  "Android",
-  "iOS",
-  "Flutter",
-];
-const VALID_ONBOARDING_FLUTTER_PLATFORMS: OnboardingFlutterPlatform[] = [
-  "Android",
-  "iOS",
-];
-
-function onboardingStorageKey(appId: string): string {
-  return `${ONBOARDING_STORAGE_PREFIX}${appId}`;
-}
-
-function isOnboardingAppState(parsed: unknown): parsed is OnboardingAppState {
-  if (!parsed || typeof parsed !== "object") {
-    return false;
-  }
-  const candidate = parsed as Record<string, unknown>;
-  return (
-    VALID_ONBOARDING_STEPS.includes(candidate.step as OnboardingStep) &&
-    VALID_ONBOARDING_PLATFORMS.includes(
-      candidate.platform as OnboardingPlatform,
-    ) &&
-    VALID_ONBOARDING_FLUTTER_PLATFORMS.includes(
-      candidate.flutterPlatform as OnboardingFlutterPlatform,
-    )
-  );
-}
-
-function readOnboardingFromStorage(): Record<string, OnboardingAppState> {
-  const result: Record<string, OnboardingAppState> = {};
-  if (typeof window === "undefined") {
-    return result;
-  }
-  try {
-    for (let i = 0; i < window.localStorage.length; i++) {
-      const key = window.localStorage.key(i);
-      if (!key || !key.startsWith(ONBOARDING_STORAGE_PREFIX)) {
-        continue;
-      }
-      const raw = window.localStorage.getItem(key);
-      if (!raw) {
-        continue;
-      }
-      try {
-        const parsed = JSON.parse(raw);
-        if (isOnboardingAppState(parsed)) {
-          const appId = key.slice(ONBOARDING_STORAGE_PREFIX.length);
-          result[appId] = parsed;
-        }
-      } catch {
-        // skip malformed entries
-      }
-    }
-  } catch {
-    // localStorage may throw in private mode; degrade to empty state
-  }
-  return result;
-}
-
-function writeOnboardingToStorage(
-  appId: string,
-  state: OnboardingAppState,
-): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  try {
-    window.localStorage.setItem(
-      onboardingStorageKey(appId),
-      JSON.stringify(state),
-    );
-  } catch {
-    // best-effort: quota exceeded or private mode
-  }
-}
-
-function removeOnboardingFromStorage(appId: string): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  try {
-    window.localStorage.removeItem(onboardingStorageKey(appId));
-  } catch {
-    // best-effort
-  }
-}
-
-// --- Types ---
 
 export type FilterConfig = {
   filterSource: FilterSource;
@@ -204,7 +80,7 @@ export type InitConfig = {
   filterSource: FilterSource;
 };
 
-type FilterOptionsData = {
+export type FilterOptionsData = {
   versions: AppVersion[];
   osVersions: OsVersion[];
   countries: string[];
@@ -217,8 +93,6 @@ type FilterOptionsData = {
   userDefAttrs: UserDefAttr[];
   userDefAttrOps: Map<string, string[]>;
 };
-
-// --- Constants ---
 
 const allHttpMethods = [
   HttpMethod.GET,
@@ -244,8 +118,6 @@ const defaultSessionTypes = [
 ];
 const allSpanStatuses = [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error];
 const allBugReportStatuses = [BugReportStatus.Open, BugReportStatus.Closed];
-
-// --- URL serialization ---
 
 const urlFiltersKeyMap = {
   appId: "a",
@@ -430,24 +302,17 @@ function serializeUrlFilters(
   return params.toString();
 }
 
-// Exported for use in the Filters component's URL deserialization
 export { urlFiltersKeyMap };
 
-// --- State ---
-
 interface FiltersStoreState {
-  // Computed filters object (auto-updated on every state change)
   filters: Filters;
 
-  // Config (set by Filters component from its props)
   config: FilterConfig | null;
 
-  // API statuses
   appsApiStatus: AppsApiStatus;
   filtersApiStatus: FiltersApiStatus;
   rootSpanNamesApiStatus: RootSpanNamesApiStatus;
 
-  // Available option lists
   apps: App[];
   versions: AppVersion[];
   rootSpanNames: string[];
@@ -462,15 +327,15 @@ interface FiltersStoreState {
   userDefAttrs: UserDefAttr[];
   userDefAttrOps: Map<string, string[]>;
 
-  // Global selected values — same on every page for the current app
+  // Cross-page selections — preserved across sidebar navigation.
   selectedApp: App | null;
   selectedDateRange: string;
   selectedStartDate: string;
   selectedEndDate: string;
-  selectedVersions: AppVersion[];
 
-  // Filter selections — reset to defaults on page navigation, persisted
-  // within a page. App, versions and dates above are persisted across pages.
+  // Per-page selections — reset to URL filter (if present) or default on
+  // every Filters mount via applyFilterOptions.
+  selectedVersions: AppVersion[];
   selectedRootSpanName: string;
   selectedSessionTypes: SessionType[];
   selectedSpanStatuses: SpanStatus[];
@@ -487,48 +352,24 @@ interface FiltersStoreState {
   selectedUdAttrMatchers: UdAttrMatcher[];
   selectedFreeText: string;
 
-  // Team tracking
   currentTeamId: string;
-
-  // Cache
-  filterOptionsCache: Map<string, FilterOptionsData>;
-  rootSpanNamesCache: Map<string, string[]>;
-
-  // Onboarding wizard state per app id, hydrated from localStorage on
-  // store construction. Living on this store lets the poller update
-  // apps[].onboarded and onboarding[appId].step in one atomic set(),
-  // and lets selectApp's fast path read from the same source of truth
-  // that the poller writes to.
-  onboarding: Record<string, OnboardingAppState>;
 }
 
 interface FiltersStoreActions {
   setConfig: (config: FilterConfig) => void;
-  fetchApps: (teamId: string, initConfig: InitConfig) => Promise<void>;
-  selectApp: (
-    app: App,
-    initConfig: InitConfig,
-    forceRefresh?: boolean,
-  ) => Promise<void>;
-  refresh: (
-    teamId: string,
-    initConfig: InitConfig,
-    appIdToSelect?: string,
-  ) => Promise<void>;
 
-  // Onboarding actions
-  setOnboardingStep: (appId: string, step: OnboardingStep) => void;
-  setOnboardingPlatform: (appId: string, platform: OnboardingPlatform) => void;
-  setOnboardingFlutterPlatform: (
-    appId: string,
-    flutterPlatform: OnboardingFlutterPlatform,
+  setApps: (apps: App[], status: AppsApiStatus) => void;
+  setFilterOptions: (
+    data: FilterOptionsData | null,
+    status: FiltersApiStatus,
   ) => void;
-  clearOnboarding: (appId: string) => void;
-  // Patches the cached app's onboarded flag in-place AND advances the
-  // wizard to 'verified'. The single atomic call the poller dispatches
-  // when it observes the server-side flip.
-  markAppOnboarded: (appId: string) => void;
+  setRootSpanNames: (
+    rootSpanNames: string[] | null,
+    status: RootSpanNamesApiStatus,
+  ) => void;
+  setCurrentTeamId: (teamId: string) => void;
 
+  setSelectedApp: (app: App | null) => void;
   setSelectedRootSpanName: (name: string) => void;
   setSelectedDateRange: (range: string) => void;
   setSelectedStartDate: (date: string) => void;
@@ -549,7 +390,16 @@ interface FiltersStoreActions {
   setSelectedUdAttrMatchers: (matchers: UdAttrMatcher[]) => void;
   setSelectedFreeText: (text: string) => void;
 
-  reset: (clearCache?: boolean) => void;
+  applySelections: (patch: Partial<FiltersStoreState>) => void;
+
+  // Flips the in-memory app's onboarded flag without waiting for the apps
+  // query to refetch — so consumers see the verified state immediately.
+  markAppOnboarded: (appId: string) => void;
+
+  // Clears team-scoped state (apps, filter options, selections); keeps config.
+  resetForTeamChange: (newTeamId: string) => void;
+
+  reset: () => void;
 }
 
 const initialState: FiltersStoreState = {
@@ -595,15 +445,7 @@ const initialState: FiltersStoreState = {
   selectedUdAttrMatchers: [],
   selectedFreeText: "",
   currentTeamId: "",
-  filterOptionsCache: new Map(),
-  rootSpanNamesCache: new Map(),
-  // Overwritten in createFiltersStore by readOnboardingFromStorage() — kept
-  // empty here so the type matches. Reads are deferred until store
-  // construction so module-load doesn't touch localStorage.
-  onboarding: {},
 };
-
-// --- Derived state ---
 
 function computeFilters(state: FiltersStoreState): Filters {
   if (!state.config || !state.selectedApp) {
@@ -775,69 +617,34 @@ function computeFilters(state: FiltersStoreState): Filters {
   };
 }
 
-// --- Helpers ---
-
-function clearSelections(): Partial<FiltersStoreState> {
-  return {
-    selectedVersions: [],
-    selectedSessionTypes: [],
-    selectedOsVersions: [],
-    selectedCountries: [],
-    selectedNetworkProviders: [],
-    selectedNetworkTypes: [],
-    selectedNetworkGenerations: [],
-    selectedLocales: [],
-    selectedDeviceManufacturers: [],
-    selectedDeviceNames: [],
-    selectedFreeText: "",
-    selectedSpanStatuses: [],
-    selectedRootSpanName: "",
-    selectedBugReportStatuses: [],
-    selectedHttpMethods: allHttpMethods,
-    selectedUdAttrMatchers: [],
-  };
-}
-
 // Resolve filter selections for the current app and filter data.
-// Priority: URL params > existing selections > defaults.
-// App, versions and dates are handled by the caller.
-function applyFilterOptions(
+// Priority for every selection: URL params > defaults.
+export function applyFilterOptions(
   data: FilterOptionsData,
   app: App,
   initConfig: InitConfig,
-  currentState: FiltersStoreState,
+  _currentState: FiltersStoreState,
 ): Partial<FiltersStoreState> {
   const { urlFilters, appVersionsInitialSelectionType, filterSource } =
     initConfig;
-  const isUrlMatch = urlFilters.appId === app.id;
-  // Preserve current selections if any have been set before (i.e. this
-  // isn't the very first load for this app). All selections are shared
-  // across pages — only the UI visibility changes per page.
-  // We check selectedOsVersions as a proxy: it's populated on every
-  // successful filter load and cleared on app switch.
-  const hasExistingSelections = currentState.selectedOsVersions.length > 0;
+  // Pages that hide the app selector (e.g. crash/trace details) don't write
+  // `a=appId` into the URL, but they DO write filter selections. Treat URL
+  // filters as applicable when the URL has no appId at all — the indices
+  // are intended for the app the page is already pinned to. Reject only
+  // when the URL explicitly names a different app.
+  const isUrlMatch = !urlFilters.appId || urlFilters.appId === app.id;
 
-  // --- selectedVersions (global): URL > preserved > default ---
-  // `selectedVersions` carries across all pages for the current app. Only
-  // reset to the default on a fresh app (selectAppImpl does that before
-  // calling this function).
   let selectedVersions: AppVersion[];
   if (isUrlMatch && urlFilters.versions) {
     selectedVersions = urlFilters.versions
       .filter((index) => index >= 0 && index < data.versions.length)
       .map((index) => data.versions[index]);
     if (selectedVersions.length === 0) {
-      // URL indices were all invalid for this data — fall through to global preserve / default.
       selectedVersions =
-        currentState.selectedVersions.length > 0
-          ? currentState.selectedVersions
-          : appVersionsInitialSelectionType ===
-              AppVersionsInitialSelectionType.All
-            ? data.versions
-            : data.versions.slice(0, 1);
+        appVersionsInitialSelectionType === AppVersionsInitialSelectionType.All
+          ? data.versions
+          : data.versions.slice(0, 1);
     }
-  } else if (currentState.selectedVersions.length > 0) {
-    selectedVersions = currentState.selectedVersions;
   } else if (
     appVersionsInitialSelectionType === AppVersionsInitialSelectionType.All
   ) {
@@ -846,13 +653,10 @@ function applyFilterOptions(
     selectedVersions = data.versions.slice(0, 1);
   }
 
-  // --- Filter selection helpers ---
-
-  // Index-based lists (URL carries indices into `data.X`).
+  // Index-based lists (URL carries indices into `data.X`). URL > default.
   const resolveIndexList = <T>(
     urlValue: number[] | undefined,
     newAvailable: T[],
-    currentSelected: T[],
     defaultValue: T[],
   ): T[] => {
     if (isUrlMatch && urlValue !== undefined) {
@@ -863,62 +667,50 @@ function applyFilterOptions(
         return fromUrl;
       }
     }
-    if (hasExistingSelections) {
-      return currentSelected;
-    }
     return defaultValue;
   };
 
   const selectedOsVersions = resolveIndexList(
     urlFilters.osVersions,
     data.osVersions,
-    currentState.selectedOsVersions,
     data.osVersions,
   );
   const selectedCountries = resolveIndexList(
     urlFilters.countries,
     data.countries,
-    currentState.selectedCountries,
     data.countries,
   );
   const selectedNetworkProviders = resolveIndexList(
     urlFilters.networkProviders,
     data.networkProviders,
-    currentState.selectedNetworkProviders,
     data.networkProviders,
   );
   const selectedNetworkTypes = resolveIndexList(
     urlFilters.networkTypes,
     data.networkTypes,
-    currentState.selectedNetworkTypes,
     data.networkTypes,
   );
   const selectedNetworkGenerations = resolveIndexList(
     urlFilters.networkGenerations,
     data.networkGenerations,
-    currentState.selectedNetworkGenerations,
     data.networkGenerations,
   );
   const selectedLocales = resolveIndexList(
     urlFilters.locales,
     data.locales,
-    currentState.selectedLocales,
     data.locales,
   );
   const selectedDeviceManufacturers = resolveIndexList(
     urlFilters.deviceManufacturers,
     data.deviceManufacturers,
-    currentState.selectedDeviceManufacturers,
     data.deviceManufacturers,
   );
   const selectedDeviceNames = resolveIndexList(
     urlFilters.deviceNames,
     data.deviceNames,
-    currentState.selectedDeviceNames,
     data.deviceNames,
   );
 
-  // udAttrMatchers — URL validates; preserved carries over; default is [].
   const isMatcherValid = (m: UdAttrMatcher): boolean => {
     const attr = data.userDefAttrs.find((a) => a.key === m.key);
     if (!attr || attr.type !== m.type) {
@@ -931,15 +723,10 @@ function applyFilterOptions(
   let selectedUdAttrMatchers: UdAttrMatcher[];
   if (isUrlMatch && urlFilters.udAttrMatchers && data.userDefAttrs.length > 0) {
     selectedUdAttrMatchers = urlFilters.udAttrMatchers.filter(isMatcherValid);
-  } else if (hasExistingSelections) {
-    // Drop any matchers whose attr key no longer exists in the new data.
-    selectedUdAttrMatchers =
-      currentState.selectedUdAttrMatchers.filter(isMatcherValid);
   } else {
     selectedUdAttrMatchers = [];
   }
 
-  // Enum / string lists without indices.
   let selectedSpanStatuses: SpanStatus[];
   if (isUrlMatch && urlFilters.spanStatuses) {
     selectedSpanStatuses = urlFilters.spanStatuses
@@ -947,8 +734,6 @@ function applyFilterOptions(
         Object.values(SpanStatus).includes(s as SpanStatus),
       )
       .map((s: string) => s as SpanStatus);
-  } else if (hasExistingSelections) {
-    selectedSpanStatuses = currentState.selectedSpanStatuses;
   } else {
     selectedSpanStatuses =
       filterSource === FilterSource.Spans ? allSpanStatuses : [];
@@ -961,8 +746,6 @@ function applyFilterOptions(
         Object.values(BugReportStatus).includes(s as BugReportStatus),
       )
       .map((s: string) => s as BugReportStatus);
-  } else if (hasExistingSelections) {
-    selectedBugReportStatuses = currentState.selectedBugReportStatuses;
   } else {
     selectedBugReportStatuses = [BugReportStatus.Open];
   }
@@ -974,8 +757,6 @@ function applyFilterOptions(
         Object.values(HttpMethod).includes(s as HttpMethod),
       )
       .map((s: string) => s as HttpMethod);
-  } else if (hasExistingSelections) {
-    selectedHttpMethods = currentState.selectedHttpMethods;
   } else {
     selectedHttpMethods = allHttpMethods;
   }
@@ -987,8 +768,6 @@ function applyFilterOptions(
         Object.values(SessionType).includes(s as SessionType),
       )
       .map((s: string) => s as SessionType);
-  } else if (hasExistingSelections) {
-    selectedSessionTypes = currentState.selectedSessionTypes;
   } else {
     selectedSessionTypes = defaultSessionTypes;
   }
@@ -996,8 +775,6 @@ function applyFilterOptions(
   let selectedFreeText: string;
   if (isUrlMatch && urlFilters.freeText) {
     selectedFreeText = urlFilters.freeText;
-  } else if (hasExistingSelections) {
-    selectedFreeText = currentState.selectedFreeText;
   } else {
     selectedFreeText = "";
   }
@@ -1032,51 +809,8 @@ function applyFilterOptions(
   };
 }
 
-function parseFilterResponse(data: any): FilterOptionsData {
-  const versions =
-    data.versions !== null
-      ? data.versions.map(
-          (v: { name: string; code: string }) => new AppVersion(v.name, v.code),
-        )
-      : [];
-
-  const osVersions =
-    data.os_versions !== null
-      ? data.os_versions.map(
-          (v: { name: string; version: string }) =>
-            new OsVersion(v.name, v.version),
-        )
-      : [];
-
-  let userDefAttrs: UserDefAttr[] = [];
-  let userDefAttrOps = new Map<string, string[]>();
-  if (
-    data.ud_attrs !== null &&
-    data.ud_attrs.key_types !== null &&
-    data.ud_attrs.operator_types !== null
-  ) {
-    userDefAttrs = data.ud_attrs.key_types;
-    userDefAttrOps = new Map<string, string[]>(
-      Object.entries(data.ud_attrs.operator_types),
-    );
-  }
-
-  return {
-    versions,
-    osVersions,
-    countries: data.countries ?? [],
-    networkProviders: data.network_providers ?? [],
-    networkTypes: data.network_types ?? [],
-    networkGenerations: data.network_generations ?? [],
-    locales: data.locales ?? [],
-    deviceManufacturers: data.device_manufacturers ?? [],
-    deviceNames: data.device_names ?? [],
-    userDefAttrs,
-    userDefAttrOps,
-  };
-}
-
-function pickApp(
+// Priority: URL appId > prop appId > previously selected > first.
+export function pickApp(
   apps: App[],
   initConfig: InitConfig,
   currentSelectedApp: App | null,
@@ -1097,8 +831,6 @@ function pickApp(
     }
   }
 
-  // Preserve the user's app selection across page navigations. The store
-  // survives navigation, so the previously selected app is still here.
   if (currentSelectedApp) {
     const app = apps.find((e: App) => e.id === currentSelectedApp.id);
     if (app) {
@@ -1109,25 +841,32 @@ function pickApp(
   return apps[0];
 }
 
+export function resolveRootSpanName(
+  rootSpanNames: string[],
+  initConfig: InitConfig,
+  app: App,
+): string {
+  if (
+    initConfig.urlFilters.appId === app.id &&
+    initConfig.urlFilters.rootSpanName
+  ) {
+    const found = rootSpanNames.find(
+      (name) => name === initConfig.urlFilters.rootSpanName,
+    );
+    return found ?? rootSpanNames[0];
+  }
+  return rootSpanNames[0];
+}
+
 // Signature of the exact /shortFilters POST that saveListFiltersToServer
 // would send — computed by hashing the body that buildShortFiltersPostBody
-// produces. Used to decide whether a fresh POST is needed. Because the key
-// is a 1:1 mirror of the POST body, it automatically ignores every field
-// that doesn't affect the server-side filter (dates, `show*` config flags,
-// freeText, session types, span/bug-report statuses, http methods, etc.)
-// and stays correct as long as buildShortFiltersPostBody stays correct.
+// produces. Used as a TanStack cache key for the short-code POST so two
+// renders with the same body share the same in-flight promise.
 function filterShortCodeBodyKey(filters: Filters): string {
   const body = buildShortFiltersPostBody(filters);
-  // URL path (app id) is also part of the server request, so include it
-  // alongside the body — two different apps with the same body are still
-  // different short codes. `filters.app` is always set here (the wrapped
-  // `set` only invokes this when filters.ready is true, which requires an
-  // app selection), so the `?? null` fallback is purely defensive.
   /* v8 ignore next */
   return JSON.stringify({ app: filters.app?.id ?? null, body });
 }
-
-// --- Store ---
 
 export type FiltersStore = FiltersStoreState & FiltersStoreActions;
 
@@ -1142,12 +881,15 @@ export function createFiltersStore() {
 
         if (filters.ready) {
           const bodyKey = filterShortCodeBodyKey(filters);
-          // queryClient.fetchQuery deduplicates in-flight calls with the same
-          // key and caches results for staleTime (5 min). No manual Map needed.
+          // gcTime must be set explicitly here: queryClient.fetchQuery adds
+          // no React subscriber, so under the global gcTime: 0 the cache
+          // entry would be evicted the instant the promise resolves, and
+          // every subsequent set() would POST /shortFilters again.
           filters.filterShortCodePromise = queryClient.fetchQuery({
             queryKey: ["shortFilters", bodyKey],
             queryFn: () => saveListFiltersToServer(filters),
             staleTime: SHORT_CODE_STALE_TIME,
+            gcTime: SHORT_CODE_STALE_TIME,
           });
         }
 
@@ -1155,197 +897,18 @@ export function createFiltersStore() {
       });
     };
 
-    const fetchAppsTracker = createInFlightTracker();
-    const selectAppTracker = createInFlightTracker();
-
-    const selectAppImpl = async (
-      app: App,
-      initConfig: InitConfig,
-      forceRefresh?: boolean,
-    ) => {
-      const { filterSource } = initConfig;
-      const prevApp = get().selectedApp;
-
-      // Fast path: an app that has never received an event will return
-      // NotOnboarded for every filterSource. Skip the network round-trip
-      // (and the Loading flash that the parent renders as a skeleton)
-      // when navigating between data pages on an unonboarded app. Safe
-      // because the poller calls markAppOnboarded() on the same store
-      // when the server-side flag flips, so this branch will stop
-      // matching as soon as that happens.
-      if (!app.onboarded) {
-        set({
-          selectedApp: app,
-          filtersApiStatus: FiltersApiStatus.NotOnboarded,
-          ...clearSelections(),
-        });
-        return;
-      }
-
-      // App switch: the new app has its own filter data, so any prior
-      // selections are meaningless. Wipe them before applying defaults.
-      if (prevApp !== null && prevApp.id !== app.id) {
-        set({
-          selectedApp: app,
-          filtersApiStatus: FiltersApiStatus.Loading,
-          selectedVersions: [],
-          selectedOsVersions: [],
-        });
-      } else {
-        set({ selectedApp: app, filtersApiStatus: FiltersApiStatus.Loading });
-      }
-
-      const cacheKey = `${app.id}:${filterSource}`;
-      const cached = get().filterOptionsCache.get(cacheKey);
-
-      if (cached && !forceRefresh) {
-        const selections = applyFilterOptions(cached, app, initConfig, get());
-        set({
-          filtersApiStatus: FiltersApiStatus.Success,
-          ...selections,
-        });
-      } else {
-        const result = await fetchFiltersFromServer(app, filterSource);
-
-        switch (result.status) {
-          case FiltersApiStatus.NotOnboarded:
-            set({
-              filtersApiStatus: FiltersApiStatus.NotOnboarded,
-              ...clearSelections(),
-            });
-            break;
-          case FiltersApiStatus.NoData:
-            set({
-              filtersApiStatus: FiltersApiStatus.NoData,
-              ...clearSelections(),
-            });
-            break;
-          case FiltersApiStatus.Error:
-            set({
-              filtersApiStatus: FiltersApiStatus.Error,
-              ...clearSelections(),
-            });
-            break;
-          case FiltersApiStatus.Success: {
-            const filterOptions = parseFilterResponse(result.data);
-
-            const newCache = new Map(get().filterOptionsCache);
-            newCache.set(cacheKey, filterOptions);
-
-            const selections = applyFilterOptions(
-              filterOptions,
-              app,
-              initConfig,
-              get(),
-            );
-            set({
-              filtersApiStatus: FiltersApiStatus.Success,
-              filterOptionsCache: newCache,
-              ...selections,
-            });
-            break;
-          }
-        }
-      }
-
-      if (filterSource === FilterSource.Spans) {
-        const cachedSpanNames = get().rootSpanNamesCache.get(app.id);
-
-        if (cachedSpanNames && !forceRefresh) {
-          let selectedRootSpanName: string;
-          if (
-            initConfig.urlFilters.appId === app.id &&
-            initConfig.urlFilters.rootSpanName
-          ) {
-            const found = cachedSpanNames.find(
-              (name: string) => name === initConfig.urlFilters.rootSpanName,
-            );
-            selectedRootSpanName = found ?? cachedSpanNames[0];
-          } else {
-            selectedRootSpanName = cachedSpanNames[0];
-          }
-          set({
-            rootSpanNamesApiStatus: RootSpanNamesApiStatus.Success,
-            rootSpanNames: cachedSpanNames,
-            selectedRootSpanName,
-          });
-        } else {
-          set({ rootSpanNamesApiStatus: RootSpanNamesApiStatus.Loading });
-
-          const result = await fetchRootSpanNamesFromServer(app);
-
-          switch (result.status) {
-            case RootSpanNamesApiStatus.NoData:
-              set({ rootSpanNamesApiStatus: RootSpanNamesApiStatus.NoData });
-              break;
-            case RootSpanNamesApiStatus.Error:
-              set({ rootSpanNamesApiStatus: RootSpanNamesApiStatus.Error });
-              break;
-            case RootSpanNamesApiStatus.Success:
-              if (result.data.results !== null) {
-                const parsedRootSpanNames = result.data.results;
-
-                const newSpanCache = new Map(get().rootSpanNamesCache);
-                newSpanCache.set(app.id, parsedRootSpanNames);
-
-                let selectedRootSpanName: string;
-                if (
-                  initConfig.urlFilters.appId === app.id &&
-                  initConfig.urlFilters.rootSpanName
-                ) {
-                  const found = parsedRootSpanNames.find(
-                    (name: string) =>
-                      name === initConfig.urlFilters.rootSpanName,
-                  );
-                  selectedRootSpanName = found ?? parsedRootSpanNames[0];
-                } else {
-                  selectedRootSpanName = parsedRootSpanNames[0];
-                }
-
-                set({
-                  rootSpanNamesApiStatus: RootSpanNamesApiStatus.Success,
-                  rootSpanNames: parsedRootSpanNames,
-                  rootSpanNamesCache: newSpanCache,
-                  selectedRootSpanName,
-                });
-              }
-              break;
-          }
-        }
-      }
-    };
-
-    const selectApp = (
-      app: App,
-      initConfig: InitConfig,
-      forceRefresh?: boolean,
-    ): Promise<void> => {
-      if (forceRefresh) {
-        return selectAppImpl(app, initConfig, forceRefresh);
-      }
-      return selectAppTracker(`${app.id}:${initConfig.filterSource}`, () =>
-        selectAppImpl(app, initConfig, forceRefresh),
-      );
-    };
-
     return {
       ...initialState,
-      // Synchronous hydration: every render past this point — including
-      // the very first — already sees persisted onboarding state.
-      onboarding: readOnboardingFromStorage(),
 
       setConfig: (config: FilterConfig) => {
         const state = get();
         const oldConfig = state.config;
 
-        // Same source or first mount — just update config.
         if (!oldConfig || oldConfig.filterSource === config.filterSource) {
           set({ config });
           return;
         }
 
-        // Source changed — clear per-page selections so applyFilterOptions
-        // applies fresh defaults. App, versions and dates are preserved.
         set({
           config,
           selectedOsVersions: [],
@@ -1366,106 +929,52 @@ export function createFiltersStore() {
         });
       },
 
-      fetchApps: (teamId: string, initConfig: InitConfig) =>
-        fetchAppsTracker(teamId, async () => {
-          const teamChanged =
-            get().currentTeamId !== "" && get().currentTeamId !== teamId;
+      setApps: (apps, status) => set({ apps, appsApiStatus: status }),
 
-          if (teamChanged) {
-            fetchAppsTracker.clear();
-            selectAppTracker.clear();
-            // Reset team-scoped state (apps, filter options, selections,
-            // caches) but keep what isn't team-scoped: config is per-page,
-            // and onboarding is keyed by app id (globally unique).
-            set((state) => ({
-              ...initialState,
-              config: state.config,
-              onboarding: state.onboarding,
-              currentTeamId: teamId,
-            }));
-          }
-
-          if (!teamChanged && get().apps.length > 0) {
-            const app = pickApp(get().apps, initConfig, get().selectedApp);
-            if (app) {
-              await get().selectApp(app, initConfig);
-            }
-            return;
-          }
-
-          // Already determined NoApps for this team — skip the round-trip
-          // so cross-page navigation doesn't flash a Loading skeleton on
-          // its way back to the same NoApps render. Team change, the
-          // refresh() action, and a full page reload remain the explicit
-          // invalidation paths.
-          if (!teamChanged && get().appsApiStatus === AppsApiStatus.NoApps) {
-            return;
-          }
-
-          set({ appsApiStatus: AppsApiStatus.Loading, currentTeamId: teamId });
-
-          const result = await fetchAppsFromServer(teamId);
-
-          switch (result.status) {
-            case AppsApiStatus.NoApps:
-              set({ appsApiStatus: AppsApiStatus.NoApps });
-              break;
-            case AppsApiStatus.Error:
-              set({ appsApiStatus: AppsApiStatus.Error });
-              break;
-            case AppsApiStatus.Success:
-              set({ appsApiStatus: AppsApiStatus.Success, apps: result.data });
-              const app = pickApp(result.data, initConfig, get().selectedApp);
-              if (app) {
-                await get().selectApp(app, initConfig);
-              }
-              break;
-          }
-        }),
-
-      selectApp,
-
-      refresh: async (
-        teamId: string,
-        initConfig: InitConfig,
-        appIdToSelect?: string,
-      ) => {
+      setFilterOptions: (data, status) => {
+        if (data === null) {
+          set({ filtersApiStatus: status });
+          return;
+        }
         set({
-          filterOptionsCache: new Map(),
-          rootSpanNamesCache: new Map(),
-          apps: [],
+          filtersApiStatus: status,
+          versions: data.versions,
+          osVersions: data.osVersions,
+          countries: data.countries,
+          networkProviders: data.networkProviders,
+          networkTypes: data.networkTypes,
+          networkGenerations: data.networkGenerations,
+          locales: data.locales,
+          deviceManufacturers: data.deviceManufacturers,
+          deviceNames: data.deviceNames,
+          userDefAttrs: data.userDefAttrs,
+          userDefAttrOps: data.userDefAttrOps,
         });
+      },
 
-        set({ appsApiStatus: AppsApiStatus.Loading });
+      setRootSpanNames: (rootSpanNames, status) => {
+        if (rootSpanNames === null) {
+          set({ rootSpanNamesApiStatus: status });
+          return;
+        }
+        set({ rootSpanNamesApiStatus: status, rootSpanNames });
+      },
 
-        const result = await fetchAppsFromServer(teamId);
+      setCurrentTeamId: (teamId) => set({ currentTeamId: teamId }),
 
-        switch (result.status) {
-          case AppsApiStatus.NoApps:
-            set({ appsApiStatus: AppsApiStatus.NoApps });
-            break;
-          case AppsApiStatus.Error:
-            set({ appsApiStatus: AppsApiStatus.Error });
-            break;
-          case AppsApiStatus.Success:
-            set({ appsApiStatus: AppsApiStatus.Success, apps: result.data });
-
-            let app: App | undefined;
-            if (appIdToSelect !== undefined) {
-              app = result.data.find((e: App) => e.id === appIdToSelect);
-              if (app === undefined) {
-                throw Error(
-                  "Invalid app Id: " + appIdToSelect + " provided to refresh",
-                );
-              }
-            } else {
-              app = pickApp(result.data, initConfig, get().selectedApp);
-            }
-
-            if (app) {
-              await get().selectApp(app, initConfig, true);
-            }
-            break;
+      setSelectedApp: (app) => {
+        const prevApp = get().selectedApp;
+        // App switch: the new app has its own filter data, so any prior
+        // selections are meaningless. Wipe them before fresh defaults arrive.
+        if (prevApp !== null && app !== null && prevApp.id !== app.id) {
+          set({
+            selectedApp: app,
+            filtersApiStatus: FiltersApiStatus.Loading,
+            selectedVersions: [],
+            selectedOsVersions: [],
+          });
+        } else {
+          set({ selectedApp: app });
         }
       },
 
@@ -1498,64 +1007,9 @@ export function createFiltersStore() {
         set({ selectedUdAttrMatchers: matchers }),
       setSelectedFreeText: (text) => set({ selectedFreeText: text }),
 
-      // --- Onboarding actions -------------------------------------------
-
-      setOnboardingStep: (appId, step) => {
-        const current = get().onboarding[appId] ?? DEFAULT_ONBOARDING_STATE;
-        const next: OnboardingAppState = { ...current, step };
-        set((state) => ({
-          onboarding: { ...state.onboarding, [appId]: next },
-        }));
-        // 'verified' is terminal; 'create' never has a real app id; in
-        // both cases there's nothing meaningful to resume from on a refresh.
-        if (step === "verified" || step === "create") {
-          removeOnboardingFromStorage(appId);
-        } else {
-          writeOnboardingToStorage(appId, next);
-        }
-      },
-
-      setOnboardingPlatform: (appId, platform) => {
-        const current = get().onboarding[appId] ?? DEFAULT_ONBOARDING_STATE;
-        const next: OnboardingAppState = { ...current, platform };
-        set((state) => ({
-          onboarding: { ...state.onboarding, [appId]: next },
-        }));
-        if (next.step === "verified" || next.step === "create") {
-          removeOnboardingFromStorage(appId);
-        } else {
-          writeOnboardingToStorage(appId, next);
-        }
-      },
-
-      setOnboardingFlutterPlatform: (appId, flutterPlatform) => {
-        const current = get().onboarding[appId] ?? DEFAULT_ONBOARDING_STATE;
-        const next: OnboardingAppState = { ...current, flutterPlatform };
-        set((state) => ({
-          onboarding: { ...state.onboarding, [appId]: next },
-        }));
-        if (next.step === "verified" || next.step === "create") {
-          removeOnboardingFromStorage(appId);
-        } else {
-          writeOnboardingToStorage(appId, next);
-        }
-      },
-
-      clearOnboarding: (appId) => {
-        removeOnboardingFromStorage(appId);
-        set((state) => {
-          if (!(appId in state.onboarding)) {
-            return state;
-          }
-          const { [appId]: _, ...rest } = state.onboarding;
-          return { onboarding: rest };
-        });
-      },
+      applySelections: (patch) => set(patch),
 
       markAppOnboarded: (appId) => {
-        // Clear storage immediately; verified is the terminal step and
-        // there's nothing to persist for next session.
-        removeOnboardingFromStorage(appId);
         set((state) => {
           const apps = state.apps.map((a) =>
             a.id === appId ? { ...a, onboarded: true } : a,
@@ -1564,28 +1018,21 @@ export function createFiltersStore() {
             state.selectedApp?.id === appId
               ? { ...state.selectedApp, onboarded: true }
               : state.selectedApp;
-          const current = state.onboarding[appId] ?? DEFAULT_ONBOARDING_STATE;
-          return {
-            apps,
-            selectedApp,
-            onboarding: {
-              ...state.onboarding,
-              [appId]: { ...current, step: "verified" as OnboardingStep },
-            },
-          };
+          return { apps, selectedApp };
         });
       },
 
-      reset: (clearCache?: boolean) => {
-        fetchAppsTracker.clear();
-        selectAppTracker.clear();
+      resetForTeamChange: (newTeamId) => {
         set((state) => ({
           ...initialState,
-          filterOptionsCache: clearCache ? new Map() : state.filterOptionsCache,
-          rootSpanNamesCache: clearCache ? new Map() : state.rootSpanNamesCache,
-          // Onboarding state is keyed by app id, not by team/page —
-          // navigating teams or refreshing filters shouldn't drop it.
-          onboarding: state.onboarding,
+          config: state.config,
+          currentTeamId: newTeamId,
+        }));
+      },
+
+      reset: () => {
+        set((state) => ({
+          ...initialState,
         }));
       },
     };

@@ -1,55 +1,63 @@
-import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime"
-import posthog from "posthog-js"
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import posthog from "posthog-js";
 
 /**
- * ApiClient is a thin wrapper around fetch that handles:
- * - Cookie-based credentials
- * - Token refresh on 401 responses with retry of the original request
- * - Posthog metrics for API calls
- *
- * It does not manage auth state — that lives in useSessionStore.
- * It does not deduplicate, cache or track in-flight requests — those concerns
- * are owned by the store layer (see app/stores/utils/in_flight.ts).
+ * Thin fetch wrapper: cookie credentials, token refresh on 401, Posthog
+ * metrics. Caching and dedup are handled at the query layer, not here.
  */
 export class ApiClient {
-  private router: AppRouterInstance | null = null
+  private router: AppRouterInstance | null = null;
 
   /**
    * Stores the Next.js router so the client can navigate to /auth/login
    * when authentication fails.
    */
   public init(router: AppRouterInstance): void {
-    this.router = router
+    this.router = router;
   }
 
   /**
-   * Navigates the user to the login page. Used internally on auth failures.
+   * Falls back to `window.location.assign` when no router has been wired
+   * up (auth routes don't mount [teamId]/layout, which is the only caller
+   * of `init`). Short-circuits when already under /auth/ so the login
+   * page doesn't loop on itself.
    */
   public redirectToLogin(): void {
-    posthog.reset()
+    posthog.reset();
 
-    if (!this.router) {
-      throw new Error("Router is not initialized. Call `init` method first.")
+    if (
+      typeof window !== "undefined" &&
+      window.location.pathname.startsWith("/auth/")
+    ) {
+      return;
     }
-    this.router.replace("/auth/login")
+
+    if (this.router) {
+      this.router.replace("/auth/login");
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      window.location.assign("/auth/login");
+    }
   }
 
   /**
    * Refresh the access token using the refresh token cookie.
    */
   private async refreshToken(): Promise<Response> {
-    const refreshEndpoint = `/auth/refresh`
+    const refreshEndpoint = `/auth/refresh`;
 
     const config: RequestInit = {
       method: "POST",
       credentials: "include",
-    }
+    };
 
     try {
-      return await fetch(refreshEndpoint, config)
+      return await fetch(refreshEndpoint, config);
     } catch (error) {
-      console.error("Failed to refresh token:", error)
-      throw error
+      console.error("Failed to refresh token:", error);
+      throw error;
     }
   }
 
@@ -62,29 +70,29 @@ export class ApiClient {
     redirectToLogin: boolean = true,
   ): Promise<Response> {
     const getEndpoint = (res: string | Request | URL): string => {
-      let urlStr: string
+      let urlStr: string;
       if (res instanceof Request) {
-        urlStr = res.url
+        urlStr = res.url;
       } else if (res instanceof URL) {
-        urlStr = res.toString()
+        urlStr = res.toString();
       } else {
-        urlStr = res
+        urlStr = res;
       }
       try {
-        const url = new URL(urlStr)
-        return `${url.origin}${url.pathname}`
+        const url = new URL(urlStr);
+        return `${url.origin}${url.pathname}`;
       } catch {
-        return urlStr.split("?")[0]
+        return urlStr.split("?")[0];
       }
-    }
+    };
 
-    const endpoint = getEndpoint(resource)
+    const endpoint = getEndpoint(resource);
     const metricEndpoint = endpoint.replace(
       /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
       ":id",
-    )
+    );
 
-    const isRefreshRequest = endpoint === `/auth/refresh`
+    const isRefreshRequest = endpoint === `/auth/refresh`;
 
     const newConfig: RequestInit = {
       ...config,
@@ -92,13 +100,13 @@ export class ApiClient {
       headers: {
         ...(config.headers || {}),
       },
-    }
+    };
 
-    const method = (config.method || "GET").toUpperCase()
+    const method = (config.method || "GET").toUpperCase();
 
-    const start = performance.now()
-    let response = await fetch(resource, newConfig)
-    const latencyMs = Math.round(performance.now() - start)
+    const start = performance.now();
+    let response = await fetch(resource, newConfig);
+    const latencyMs = Math.round(performance.now() - start);
 
     if (!isRefreshRequest) {
       posthog.capture("api_call_completed", {
@@ -107,11 +115,11 @@ export class ApiClient {
         status_code: response.status,
         latency_ms: latencyMs,
         success: response.ok,
-      })
+      });
     }
 
     if (response.status === 401 && !isRefreshRequest) {
-      const refreshResponse = await this.refreshToken()
+      const refreshResponse = await this.refreshToken();
 
       if (refreshResponse.ok) {
         const retryConfig: RequestInit = {
@@ -120,11 +128,11 @@ export class ApiClient {
           headers: {
             ...(config.headers || {}),
           },
-        }
+        };
 
-        const retryStart = performance.now()
-        response = await fetch(resource, retryConfig)
-        const retryLatencyMs = Math.round(performance.now() - retryStart)
+        const retryStart = performance.now();
+        response = await fetch(resource, retryConfig);
+        const retryLatencyMs = Math.round(performance.now() - retryStart);
 
         posthog.capture("api_call_completed", {
           endpoint,
@@ -133,18 +141,18 @@ export class ApiClient {
           latency_ms: retryLatencyMs,
           success: response.ok,
           retried: true,
-        })
+        });
 
         if (response.status === 401 && redirectToLogin) {
-          this.redirectToLogin()
+          this.redirectToLogin();
         }
       } else if (refreshResponse.status === 401 && redirectToLogin) {
-        this.redirectToLogin()
+        this.redirectToLogin();
       }
     }
 
-    return response
+    return response;
   }
 }
 
-export const apiClient = new ApiClient()
+export const apiClient = new ApiClient();
