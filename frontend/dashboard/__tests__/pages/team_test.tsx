@@ -20,6 +20,11 @@ jest.mock("@/app/utils/use_toast", () => ({
   toastNegative: (...args: any[]) => mockToastNegative(...args),
 }));
 
+let mockIsCloud = false;
+jest.mock("@/app/utils/env_utils", () => ({
+  isCloud: () => mockIsCloud,
+}));
+
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
   useSearchParams: () => ({
@@ -566,6 +571,7 @@ describe("Team Page", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockIsCloud = false;
     useTeamsStore.setState({
       teamsApiStatus: "loading",
       teams: null,
@@ -1155,6 +1161,45 @@ describe("Team Page", () => {
         content.includes("Error fetching Slack Integration status"),
       ),
     ).toBeInTheDocument();
+  });
+
+  it("self-hosted mode points to the slack hosting guide when slack APIs fail", async () => {
+    mockIsCloud = false;
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      fetchTeamSlackStatusApiStatus: "error",
+      teamSlack: null,
+    });
+
+    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    await screen.findByText("Invite Team Members");
+
+    const guide = await screen.findByRole("link", { name: "guide" });
+    expect(guide).toHaveAttribute("href", "/docs/hosting/slack");
+  });
+
+  it("cloud mode hides the slack hosting guide on slack API failure", async () => {
+    mockIsCloud = true;
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      fetchTeamSlackStatusApiStatus: "error",
+      teamSlack: null,
+    });
+
+    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    await screen.findByText("Invite Team Members");
+
+    expect(
+      await screen.findByText((content) =>
+        content.includes("Error fetching Slack Integration status"),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "guide" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Follow our/)).not.toBeInTheDocument();
   });
 
   it("shows error toast when disabling slack integration fails", async () => {

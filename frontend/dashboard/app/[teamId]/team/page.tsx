@@ -35,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/app/components/table";
+import { isCloud } from "@/app/utils/env_utils";
 import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import { formatToCamelCase } from "@/app/utils/string_utils";
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
@@ -887,11 +888,20 @@ export default function TeamOverview({
           {(slackConnectUrlStatus === "error" ||
             slackStatusQueryStatus === "error") && (
             <p className="font-body text-sm">
-              Error fetching Slack Integration status. Follow our{" "}
-              <Link className={underlineLinkStyle} href="/docs/hosting/slack">
-                guide
-              </Link>{" "}
-              to set it up if you haven&apos;t done so.
+              Error fetching Slack Integration status.
+              {!isCloud() && (
+                <>
+                  {" "}
+                  Follow our{" "}
+                  <Link
+                    className={underlineLinkStyle}
+                    href="/docs/hosting/slack"
+                  >
+                    guide
+                  </Link>{" "}
+                  to set it up if you haven&apos;t done so.
+                </>
+              )}
             </p>
           )}
 
