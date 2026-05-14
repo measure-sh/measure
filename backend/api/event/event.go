@@ -360,7 +360,10 @@ type Exception struct {
 	Foreground   bool           `json:"foreground" binding:"required"`
 	BinaryImages []BinaryImage  `json:"binary_images,omitempty"`
 	Framework    string         `json:"framework"`
-	Error        *Error         `json:"error"`
+	// Error stores metadata for Apple & non-fatal errors
+	//
+	// Deprecated: Use Code, NumCode & Meta instead.
+	Error *Error `json:"error"`
 	// NumCode represents the numeric error code.
 	NumCode int32 `json:"num_code"`
 	// Code represents the string error code.
@@ -380,11 +383,17 @@ type Exception struct {
 // extended for other OS/platform apps as well.
 type Error struct {
 	// NumCode represents the numeric error code.
+	//
+	// Deprecated: Use Exception.NumCode instead
 	NumCode int `json:"numcode"`
 	// Code represents the string error code.
+	//
+	// Deprecated: Use Exception.Code instead
 	Code string `json:"code"`
 	// Meta represents arbitrary metadata
 	// associated with the error.
+	//
+	// Deprecated: Use Exception.Meta instead
 	Meta map[string]any `json:"meta"`
 }
 

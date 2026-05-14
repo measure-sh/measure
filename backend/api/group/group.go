@@ -339,7 +339,7 @@ func GetExceptionGroupsFromFingerprints(ctx context.Context, conn driver.Conn, a
 	}
 
 	groupsStmt := sqlf.
-		From("unhandled_exception_groups final").
+		From("fatal_exception_groups final").
 		Select("id").
 		Select("argMax(type, timestamp) as type").
 		Select("argMax(message, timestamp) as message").

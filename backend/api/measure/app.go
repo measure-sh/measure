@@ -421,7 +421,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 	var groupsBranches []*sqlf.Stmt
 
 	if queryANR {
-		s, errBranch := newGroupsBranch("anr_groups final", "anr", "''", "false")
+		s, errBranch := newGroupsBranch("anr_groups final", "anr", "'fatal'", "false")
 		if errBranch != nil {
 			err = errBranch
 			return
