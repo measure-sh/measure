@@ -319,9 +319,9 @@ export default function Usage({ params }: { params: { teamId: string } }) {
   };
 
   // Determine usage display status
-  const usageHasNoApps = usageStatus === "success" && usageData === null;
   const usageIsError = usageStatus === "error";
   const usageIsLoading = usageStatus === "pending";
+  const usageHasNoData = usageStatus === "success" && usageData === null;
   const usageIsSuccess = usageStatus === "success" && usageData !== null;
 
   return (
@@ -335,13 +335,12 @@ export default function Usage({ params }: { params: { teamId: string } }) {
           page to try again
         </p>
       )}
-      {usageHasNoApps && (
-        <p className="font-body text-sm">
-          Looks like you don&apos;t have any apps yet. Get started by{" "}
-          <Link className={underlineLinkStyle} href={`apps`}>
-            creating your first app!
-          </Link>
-        </p>
+      {usageHasNoData && (
+        <div className="w-full h-[36rem] flex items-center justify-center">
+          <p className="text-lg font-display text-center p-4">
+            No data yet. Send your first event!
+          </p>
+        </div>
       )}
 
       {/* Main UI */}

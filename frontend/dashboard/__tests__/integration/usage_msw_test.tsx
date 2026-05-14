@@ -187,7 +187,7 @@ describe("Usage Page (MSW integration)", () => {
       );
     });
 
-    it("shows no-apps message when usage returns 404", async () => {
+    it("shows the empty usage state when usage returns 404 (no onboarding push)", async () => {
       server.use(
         http.get("*/api/teams/:teamId/usage", () => {
           return new HttpResponse(null, { status: 404 });
@@ -196,10 +196,13 @@ describe("Usage Page (MSW integration)", () => {
       renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
       await waitFor(
         () => {
-          expect(screen.getByText(/don't have any apps yet/)).toBeTruthy();
+          expect(
+            screen.getByText("No data yet. Send your first event!"),
+          ).toBeTruthy();
         },
         { timeout: 5000 },
       );
+      expect(screen.queryByText(/don't have any apps yet/)).toBeNull();
     });
 
     it("does not render Billing section when isBillingEnabled is false", async () => {
@@ -876,9 +879,7 @@ describe("Usage — billing enabled", () => {
       );
 
       // Free card: Autumn-driven Data line, no overage suffix.
-      expect(
-        screen.getByText(/1\.50 GB of 5\.00 GB used/),
-      ).toBeTruthy();
+      expect(screen.getByText(/1\.50 GB of 5\.00 GB used/)).toBeTruthy();
       expect(screen.queryByText(/overage/)).toBeNull();
       // Removed bullet must not regress.
       expect(screen.queryByText(/No credit card needed/)).toBeNull();
