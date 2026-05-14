@@ -12,15 +12,20 @@ import {
   FiltersApiStatus,
   FilterSource,
 } from "../api/api_calls";
-import { useAuthzAndMembersQuery, useCreateAppMutation } from "../query/hooks";
+import {
+  useAppsQuery,
+  useAuthzAndMembersQuery,
+  useCreateAppMutation,
+} from "../query/hooks";
+import { useQueryClient } from "@tanstack/react-query";
+import { type InitConfig } from "../stores/filters_store";
 import {
   DEFAULT_ONBOARDING_STATE,
-  type InitConfig,
   type OnboardingFlutterPlatform,
   type OnboardingPlatform,
   type OnboardingStep,
-} from "../stores/filters_store";
-import { useFiltersStore, useMeasureStoreRegistry } from "../stores/provider";
+} from "../stores/onboarding_store";
+import { useFiltersStore, useOnboardingStore } from "../stores/provider";
 import type { CodeBlockLanguage } from "../utils/highlighter";
 import { underlineLinkStyle } from "../utils/shared_styles";
 import { toastNegative, toastPositive } from "../utils/use_toast";
@@ -49,9 +54,6 @@ interface Snippet {
   testId: string;
   language: CodeBlockLanguage;
 }
-
-// Shared snippet builders. The label and testId are parameterised so each
-// platform tab can position the same block in its own ordering.
 
 function androidGradleDepSnippet(label: string): Snippet {
   return {
@@ -283,25 +285,27 @@ function resolveApiUrl(): string {
 
 export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
   const router = useRouter();
-  const registry = useMeasureStoreRegistry();
-  const apps = useFiltersStore((state) => state.apps);
+  const queryClient = useQueryClient();
+  const filtersStore = useFiltersStore();
+  const onboardingStore = useOnboardingStore();
   const selectedApp = useFiltersStore((state) => state.selectedApp);
+
+  const appsQuery = useAppsQuery(teamId);
+  const apps: App[] =
+    appsQuery.data?.status === AppsApiStatus.Success ? appsQuery.data.data : [];
+
   const createApp = useCreateAppMutation();
   const { data: authzAndMembers } = useAuthzAndMembersQuery(teamId);
-  // Mirror the apps page: while authz is in flight, treat the user as
-  // unauthorized so the create form stays disabled until we know.
   const canCreateApp = authzAndMembers?.can_create_app === true;
 
-  // The store hydrates this from localStorage on construction, so the
-  // first render below already sees any persisted step/platform.
-  const persistedState = useFiltersStore((s) =>
+  const persistedState = useOnboardingStore((s) =>
     selectedApp ? s.onboarding[selectedApp.id] : undefined,
   );
 
   const [appName, setAppName] = useState("");
 
   // 'create' is a transient step that only applies before any app exists.
-  // Once an app is selected, the store's value (or default) drives the UI.
+  // Once an app is selected, the onboarding store (or default) drives the UI.
   const step: Step =
     apps.length === 0
       ? "create"
@@ -319,25 +323,22 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
 
   const setStep = (newStep: Step) => {
     if (selectedApp) {
-      registry.filtersStore
-        .getState()
-        .setOnboardingStep(selectedApp.id, newStep);
+      onboardingStore.setOnboardingStep(selectedApp.id, newStep);
     }
   };
 
   const setPlatform = (newPlatform: Platform) => {
     if (selectedApp) {
-      registry.filtersStore
-        .getState()
-        .setOnboardingPlatform(selectedApp.id, newPlatform);
+      onboardingStore.setOnboardingPlatform(selectedApp.id, newPlatform);
     }
   };
 
   const setFlutterPlatform = (newFlutterPlatform: FlutterPlatform) => {
     if (selectedApp) {
-      registry.filtersStore
-        .getState()
-        .setOnboardingFlutterPlatform(selectedApp.id, newFlutterPlatform);
+      onboardingStore.setOnboardingFlutterPlatform(
+        selectedApp.id,
+        newFlutterPlatform,
+      );
     }
   };
 
@@ -382,11 +383,15 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
       if (filtersResult.status !== FiltersApiStatus.Success) {
         return;
       }
-      // Single atomic write: the cached app's onboarded flag flips AND
-      // the wizard step advances to 'verified'. selectApp's fast path
-      // reads the same source of truth, so post-success navigation
-      // doesn't bounce back into NotOnboarded.
-      registry.filtersStore.getState().markAppOnboarded(targetAppId);
+      // Mark the wizard verified so the success card renders. We
+      // deliberately don't flip selectedApp.onboarded or refetch the apps
+      // query here — that would change the filter-options query key,
+      // which refetches successfully, which flips filtersApiStatus to
+      // Success, which unmounts Onboarding before the user gets to see
+      // the "Crash received" celebration. Fresh onboarded state lands
+      // naturally when the user clicks View Dashboard and the destination
+      // page mounts its own Filters.
+      onboardingStore.markVerified(targetAppId);
     };
 
     tick();
@@ -395,7 +400,7 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
       active = false;
       clearInterval(interval);
     };
-  }, [step, selectedApp?.id, teamId, registry]);
+  }, [step, selectedApp?.id, teamId, filtersStore, onboardingStore]);
 
   const handleCreateApp = async () => {
     const trimmed = appName.trim();
@@ -405,10 +410,11 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
     try {
       const app = await createApp.mutateAsync({ teamId, appName: trimmed });
       if (app) {
-        await registry.filtersStore
-          .getState()
-          .refresh(teamId, initConfig, app.id);
-        registry.filtersStore.getState().setOnboardingStep(app.id, "integrate");
+        await queryClient.refetchQueries({
+          queryKey: ["filterApps", teamId],
+        });
+        filtersStore.setSelectedApp(app);
+        onboardingStore.setOnboardingStep(app.id, "integrate");
       }
       setAppName("");
       toastPositive(`App ${app?.name} has been created`);

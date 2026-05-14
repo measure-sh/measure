@@ -127,7 +127,22 @@ import {
   updateSdkConfigFromServer,
   updateTeamSlackStatusFromServer,
 } from "@/app/api/api_calls";
+import {
+  App,
+  AppsApiStatus,
+  AppVersion,
+  fetchAppsFromServer,
+  fetchFiltersFromServer,
+  fetchRootSpanNamesFromServer,
+  FiltersApiStatus,
+  FilterSource,
+  OsVersion,
+  RootSpanNamesApiStatus,
+  UserDefAttr,
+} from "@/app/api/api_calls";
+import { apiClient } from "@/app/api/api_client";
 import { queryClient } from "@/app/query/query_client";
+import type { FilterOptionsData } from "@/app/stores/filters_store";
 import { useFiltersStore } from "@/app/stores/provider";
 import {
   Query,
@@ -135,6 +150,196 @@ import {
   useMutation,
   useQuery,
 } from "@tanstack/react-query";
+
+// ─── Filter options & session ────────────────────────────────────────────
+
+function parseFilterResponse(data: any): FilterOptionsData {
+  const versions =
+    data.versions !== null
+      ? data.versions.map(
+          (v: { name: string; code: string }) => new AppVersion(v.name, v.code),
+        )
+      : [];
+
+  const osVersions =
+    data.os_versions !== null
+      ? data.os_versions.map(
+          (v: { name: string; version: string }) =>
+            new OsVersion(v.name, v.version),
+        )
+      : [];
+
+  let userDefAttrs: UserDefAttr[] = [];
+  let userDefAttrOps = new Map<string, string[]>();
+  if (
+    data.ud_attrs !== null &&
+    data.ud_attrs.key_types !== null &&
+    data.ud_attrs.operator_types !== null
+  ) {
+    userDefAttrs = data.ud_attrs.key_types;
+    userDefAttrOps = new Map<string, string[]>(
+      Object.entries(data.ud_attrs.operator_types),
+    );
+  }
+
+  return {
+    versions,
+    osVersions,
+    countries: data.countries ?? [],
+    networkProviders: data.network_providers ?? [],
+    networkTypes: data.network_types ?? [],
+    networkGenerations: data.network_generations ?? [],
+    locales: data.locales ?? [],
+    deviceManufacturers: data.device_manufacturers ?? [],
+    deviceNames: data.device_names ?? [],
+    userDefAttrs,
+    userDefAttrOps,
+  };
+}
+
+export type AppsQueryResult = {
+  status: AppsApiStatus;
+  data: App[];
+};
+
+export function useAppsQuery(teamId: string | undefined) {
+  return useQuery<AppsQueryResult>({
+    queryKey: ["filterApps", teamId] as const,
+    queryFn: async () => {
+      const r = await fetchAppsFromServer(teamId!);
+      if (r.status === AppsApiStatus.Error) {
+        throw new Error("Failed to fetch apps");
+      }
+      return { status: r.status, data: (r.data as App[] | null) ?? [] };
+    },
+    enabled: !!teamId,
+  });
+}
+
+export type FilterOptionsQueryResult = {
+  status: FiltersApiStatus;
+  data: FilterOptionsData | null;
+};
+
+export function useFilterOptionsQuery(
+  app: App | null | undefined,
+  filterSource: FilterSource,
+) {
+  return useQuery<FilterOptionsQueryResult>({
+    queryKey: [
+      "filterOptions",
+      app?.id,
+      filterSource,
+      app?.onboarded ?? false,
+    ] as const,
+    queryFn: async () => {
+      // Fast path: never-onboarded apps return NotOnboarded for every
+      // filterSource. Skip the network round-trip.
+      if (!app!.onboarded) {
+        return { status: FiltersApiStatus.NotOnboarded, data: null };
+      }
+      const r = await fetchFiltersFromServer(app!, filterSource);
+      if (r.status === FiltersApiStatus.Error) {
+        throw new Error("Failed to fetch filters");
+      }
+      const parsed = r.data ? parseFilterResponse(r.data) : null;
+      return { status: r.status, data: parsed };
+    },
+    enabled: !!app,
+  });
+}
+
+export type RootSpanNamesQueryResult = {
+  status: RootSpanNamesApiStatus;
+  data: string[] | null;
+};
+
+export function useRootSpanNamesQuery(
+  app: App | null | undefined,
+  filterSource: FilterSource,
+) {
+  return useQuery<RootSpanNamesQueryResult>({
+    queryKey: ["rootSpanNames", app?.id] as const,
+    queryFn: async () => {
+      const r = await fetchRootSpanNamesFromServer(app!);
+      if (r.status === RootSpanNamesApiStatus.Error) {
+        throw new Error("Failed to fetch root span names");
+      }
+      return {
+        status: r.status,
+        data: (r.data?.results as string[] | null) ?? null,
+      };
+    },
+    enabled: !!app && filterSource === FilterSource.Spans,
+  });
+}
+
+export type SessionUser = {
+  id: string;
+  own_team_id: string;
+  name: string;
+  email: string;
+  avatar_url: string;
+  confirmed_at: string;
+  last_sign_in_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Session = { user: SessionUser };
+
+export async function fetchCurrentSession(): Promise<Session | null> {
+  try {
+    const res = await apiClient.fetch(`/api/auth/session`);
+    if (!res.ok) {
+      return null;
+    }
+    const data = await res.json();
+    if (!data.user) {
+      return null;
+    }
+    const user: SessionUser = {
+      id: data.user.id,
+      own_team_id: data.user.own_team_id,
+      name: data.user.name,
+      email: data.user.email,
+      avatar_url: data.user.avatar_url,
+      confirmed_at: data.user.confirmed_at,
+      last_sign_in_at: data.user.last_sign_in_at,
+      created_at: data.user.created_at,
+      updated_at: data.user.updated_at,
+    };
+    return { user };
+  } catch {
+    // apiClient may navigate on auth failure; treat any throw as "no session"
+    return null;
+  }
+}
+
+export function useSessionQuery() {
+  return useQuery<Session>({
+    queryKey: ["session"] as const,
+    queryFn: async () => {
+      const session = await fetchCurrentSession();
+      if (!session) {
+        throw new Error("No session");
+      }
+      return session;
+    },
+    // Session info doesn't change often; keep it warm to avoid extra
+    // /api/auth/session round-trips on every page navigation.
+    staleTime: 5 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+}
+
+export async function signOut(): Promise<void> {
+  await fetch(`/auth/logout`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  apiClient.redirectToLogin();
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────
 

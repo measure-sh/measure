@@ -78,7 +78,7 @@ describe("GitHub docs links have been replaced", () => {
       "utf-8",
     );
 
-    expect(content).toContain("href='/docs/hosting/slack'");
+    expect(content).toMatch(/href=['"]\/docs\/hosting\/slack['"]/);
   });
 
   it("team/page.tsx links to /docs/features/feature-slack-integration", () => {
@@ -87,8 +87,8 @@ describe("GitHub docs links have been replaced", () => {
       "utf-8",
     );
 
-    expect(content).toContain(
-      "href='/docs/features/feature-slack-integration'",
+    expect(content).toMatch(
+      /href=['"]\/docs\/features\/feature-slack-integration['"]/,
     );
   });
 

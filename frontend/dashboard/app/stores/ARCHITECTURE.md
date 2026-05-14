@@ -2,27 +2,27 @@
 
 ## Overview
 
-The app splits state into three categories:
+State splits three ways:
 
 - **Server data** → TanStack Query hooks in `app/query/hooks.ts`
-- **Shared client state** → Zustand stores in `app/stores/`
-- **Local UI state / side effects** → `useState`, `useEffect` in components
+- **Cross-component client state** → Zustand stores in `app/stores/`
+- **Local UI state** → `useState` / `useEffect` in the component that owns it
 
-### How to decide where new state belongs
+### Where does new state belong?
 
-1. **Does the server own this data?** (API response, database record) →
-   **TanStack Query**. The server is the source of truth; the client caches it.
-2. **Do multiple components need to read or write it, and is it client-owned?**
-   (user's filter selections, auth session, UI toggles shared across siblings)
-   → **Zustand**. The client is the source of truth; there is no server copy.
-3. **Neither?** → **`useState`** in the component.
+1. **Server owns the data** (API response, DB row, session, list of apps,
+   filter option lists) → **TanStack Query**.
+2. **Client owns the data, and more than one component reads or writes it**
+   (filter selections, onboarding wizard step) → **Zustand**.
+3. **One component owns it** (a dropdown's open flag, a search input's value
+   when only that component cares) → **`useState`**.
 
-Do not put server data in Zustand. Do not put single-component UI state in
-Zustand. Do not use TanStack Query for client-owned state.
+Server data never goes in Zustand. Single-component UI state never goes in
+Zustand. Client-owned state never goes in TanStack Query.
 
 ## TanStack Query — server data
 
-All API reads and writes go through hooks in `app/query/hooks.ts`.
+All API reads and writes live in `app/query/hooks.ts`.
 
 ### Query hooks (reads)
 
@@ -30,7 +30,7 @@ All API reads and writes go through hooks in `app/query/hooks.ts`.
 export function useMetricsQuery() {
   const filters = useFiltersStore((s) => s.filters)
   return useQuery({
-    queryKey: ["metrics", filters.serialisedFilters],
+    queryKey: ["metrics", filters.serialisedFilters] as const,
     queryFn: async () => {
       const result = await fetchMetricsFromServer(filters)
       if (result.status === MetricsApiStatus.Error) throw new Error("...")
@@ -41,14 +41,41 @@ export function useMetricsQuery() {
 }
 ```
 
-Key patterns:
-- **`queryKey`** includes all parameters that affect the result (filters,
-  pagination offset, entity IDs). Key change = automatic refetch.
-- **`enabled`** gates the fetch (e.g., `filters.ready`, `!!appId`).
-- **`placeholderData: keepPreviousData`** on paginated queries keeps old
-  data visible while the next page loads.
-- **NoData** is returned as `null` with `status: 'success'`.
-- **Error** throws, giving `status: 'error'` in the component.
+Patterns:
+- **`queryKey`** includes every parameter that changes the result (filter
+  serialisation, pagination offset, entity IDs). Key change → automatic
+  refetch.
+- **`enabled`** gates the fetch (e.g. `filters.ready`, `!!appId`).
+- **`placeholderData: keepPreviousData`** on paginated queries keeps the
+  previous page visible while the next page loads.
+- **NoData** is returned as `null` with `status: 'success'` so consumers can
+  branch on it without throwing.
+- **Error** throws inside `queryFn` so consumers see `status: 'error'`.
+
+### Filter-option queries
+
+The Filters component drives three query hooks itself; consumers never call
+these directly:
+
+| Hook | What it fetches |
+|------|-----------------|
+| `useAppsQuery(teamId)` | The apps list for a team. |
+| `useFilterOptionsQuery(app, filterSource)` | Available filter values (versions, OS, countries, …) for the selected app + source. Skips the round-trip and returns `NotOnboarded` when `app.onboarded === false`. |
+| `useRootSpanNamesQuery(app, filterSource)` | Trace names; only enabled when `filterSource === Spans`. |
+
+The Filters component subscribes to each of these and mirrors the result
+into `filtersStore` so all downstream consumers (the filter dropdowns
+themselves, `computeFilters` for the `all` flag, etc.) read from one place.
+
+### Session
+
+`useSessionQuery()` returns the current user. `fetchCurrentSession()` is a
+plain async version for callers that aren't components (e.g. the login
+page's pre-redirect check). `signOut()` posts `DELETE /auth/logout` then
+calls `apiClient.redirectToLogin()`.
+
+OAuth helpers live in `app/auth/oauth.ts` (`encodeOAuthState`,
+`signInWithGitHub`) — they're stateless, no hook needed.
 
 ### Mutation hooks (writes)
 
@@ -67,90 +94,134 @@ export function useChangeAppNameMutation() {
 }
 ```
 
-Key patterns:
-- **`onSuccess`** invalidates related query keys so stale data refetches.
-- Components use `mutation.mutate()` or `mutation.mutateAsync()`.
-- `mutation.isPending` / `mutation.isError` / `mutation.isSuccess` drive UI.
+- `onSuccess` invalidates affected query keys so dependent queries refetch.
+- Components call `mutation.mutate()` / `mutateAsync()` and key UI off
+  `isPending` / `isError` / `isSuccess`.
 
 ### Cache config
 
 In `app/query/query_client.ts`:
-- `staleTime: 30s` — data is fresh for 30 seconds, no refetch within window
-- `gcTime: 5min` — cached data kept 5 minutes after last subscriber unmounts
-- `refetchOnWindowFocus: false` — no ambient refetches
-- `retry: 0` — failed requests not retried
+
+| Option | Value | Why |
+|--------|-------|-----|
+| `staleTime` | `0` | Every mount triggers a fresh fetch. |
+| `gcTime` | `0` | Cache evicted on unmount. No stale-flash on remount, no cross-navigation caching. |
+| `refetchOnWindowFocus` | `false` | No ambient refetches. |
+| `retry` | `0` | Failed requests don't retry. |
+
+`useSessionQuery` overrides both `staleTime` and `gcTime` to 5 minutes — the
+session doesn't change often and we don't want to hit `/auth/session` on
+every page navigation.
+
+The filter-store's `/shortFilters` POST (see below) also passes an explicit
+`gcTime` because `queryClient.fetchQuery` has no React subscriber and would
+otherwise be GC'd the instant the promise resolves.
 
 ### Adding a new query or mutation
 
-1. Add the hook to `app/query/hooks.ts`
-2. Import and use it in the component
-3. For mutations, add `onSuccess` invalidation for affected query keys
+1. Add the hook to `app/query/hooks.ts`.
+2. Import and use in the component.
+3. For mutations, invalidate the relevant query keys in `onSuccess`.
 
-No store files, registry or provider changes needed.
+No changes to stores, provider, or registry.
 
-## Zustand — shared client state (3 stores)
+## Zustand — client-owned shared state (2 stores)
 
 ### filtersStore
 
-The single source of truth for filter selections. TanStack Query hooks read
-`filters.serialisedFilters` as part of their query key — when filters change,
-all dependent queries automatically refetch.
+Holds filter **selections** plus enough mirrored server data to render the
+dropdowns and derive the `all` flag for each filter. The Filters component
+is the only writer to the mirror state; pages only ever read.
 
-**Persisted across pages**: `selectedApp`, `selectedVersions`,
-`selectedDateRange`, `selectedStartDate`, `selectedEndDate`
+**Preserved across page navigation:** `selectedApp`, `selectedDateRange`,
+`selectedStartDate`, `selectedEndDate`. Dynamic date ranges (Last Year,
+Last 7 Days, etc.) re-anchor `startDate`/`endDate` to `now()` on every
+Filters mount so pages don't render data from a stale window.
 
-**Reset to defaults on page navigation**: all other filters (countries,
-OS versions, session types, etc.) via `setConfig()`.
+**Reset to defaults on every Filters mount** (via `applyFilterOptions`):
+versions, OS, countries, network providers/types/generations, locales,
+device manufacturers/names, session types, span statuses, bug report
+statuses, http methods, UD-attr matchers, free text, root span name. URL
+filters override defaults; without a URL filter the default is "everything
+selected" for index-based lists.
 
-**`setConfig(config)`**: Called by the Filters component on mount. Updates
-which filter controls are visible (`show*` flags). When the `filterSource`
-changes (different page), clears per-page selections so `applyFilterOptions`
-applies fresh defaults.
-
-**`applyFilterOptions(data, app, initConfig, state)`**: Resolves filter
-selections with priority: URL params > existing selections > defaults.
-Uses `selectedOsVersions.length > 0` as proxy for "has existing selections"
-to decide whether to preserve or apply defaults.
-
-#### FilterSource
+#### Filter source
 
 ```ts
 enum FilterSource { Events, Crashes, Anrs, Spans }
 ```
 
-Each page passes a `FilterSource` to the Filters component. This is sent as a
-query flag (`?crash=1`, `?anr=1`, `?span=1`) to `GET /api/apps/{id}/filters`
-so the backend returns filter options relevant to that data source.
+Each page passes a `FilterSource` to `<Filters>`. It's sent as a query flag
+(`?crash=1`, `?anr=1`, `?span=1`) to `GET /api/apps/{id}/filters` so the
+backend returns options relevant to that data source. `setConfig` wipes
+per-page selections when `filterSource` changes so the next
+`applyFilterOptions` installs fresh defaults.
 
-#### ShortCode cache
+#### serialisedFilters + filterShortCodePromise
 
-The wrapped `set` in `filters_store.ts` maintains a
-`Map<bodyKey, { promise, createdAt }>` with a 5-minute TTL.
+`computeFilters` produces a `Filters` object that includes:
 
-- **Cache hit** (same body key, < 5 min old) → reuse existing promise
-- **Cache miss** → fire new POST to `/shortFilters`, store promise
-- Backend cleans up short filter codes after 1 hour
+- **`serialisedFilters`** — URL-encoded query string used as the cache key
+  for every query hook that depends on filters.
+- **`filterShortCodePromise`** — a promise that resolves to the server-side
+  short code for the current filter combination. The store's wrapped `set`
+  kicks off a `POST /shortFilters` via `queryClient.fetchQuery` whenever the
+  body changes (deduped by hash of the body) and parks the promise on
+  `filters.filterShortCodePromise`. URL builders in `api_calls.ts` await
+  the promise instead of POSTing themselves — exactly one POST per filter
+  change regardless of how many parallel data fetchers run.
 
-### sessionStore
+  Because `queryClient.fetchQuery` adds no React subscriber, an explicit
+  `gcTime` keeps the cache entry alive past resolution. Without it the
+  global `gcTime: 0` would evict the entry immediately and every
+  subsequent `set()` would POST again.
 
-Auth session state. Fetches session from `/api/auth/session`, handles
-OAuth sign-in and sign-out. Used by layouts and auth pages.
+### onboardingStore
 
-### userJourneysStore
+Per-app onboarding wizard state (current step, native platform, Flutter
+sub-platform), persisted to `localStorage` under `measure_onboarding_<appId>`.
+Hydrates synchronously on creation so the very first render already sees
+the persisted step.
 
-Pure UI state: `plotType` (Paths/Exceptions) and `searchText`. No API calls.
+`markVerified(appId)` is the terminal transition; it clears the persisted
+entry because there's nothing meaningful to resume on a refresh once the
+flow is done.
 
-### Key files
+### Files
 
 | File | Purpose |
 |------|---------|
-| `provider.tsx` | Context, provider, hooks for 3 Zustand stores |
-| `registry.ts` | `MeasureStoreRegistry` type |
-| `reset_all.ts` | Clears TanStack Query cache + resets Zustand stores on logout |
-| `query_client.ts` | TanStack Query client singleton |
-| `hooks.ts` | All query and mutation hooks |
+| `provider.tsx` | React Context provider; exposes `useFiltersStore`, `useOnboardingStore`, `useMeasureStoreRegistry`. |
+| `registry.ts` | `MeasureStoreRegistry` type. |
+| `filters_store.ts` | `createFiltersStore`, `applyFilterOptions`, `pickApp`, `resolveRootSpanName`, URL serialization helpers. |
+| `onboarding_store.ts` | `createOnboardingStore`, onboarding types, localStorage helpers. |
+| `reset_all.ts` | Clears TanStack Query cache + resets both stores on logout. |
 
 ## Component patterns
+
+### Filters mount
+
+Pages render `<Filters>` with the `show*` flags appropriate to that page.
+Filters owns the apps / filter-options / root-span-names tanstack queries,
+mirrors their state into the store, runs `pickApp` to auto-select on first
+load, and runs `applyFilterOptions` when fresh option data arrives.
+
+### `queryClient` in components
+
+Components that need to invalidate or refetch should use the
+`useQueryClient()` hook, not the module-imported singleton. Both resolve to
+the same client in production, but tests inject their own; the hook makes
+that work transparently.
+
+```ts
+const queryClient = useQueryClient()
+// ...
+await queryClient.refetchQueries({ queryKey: ["filterApps", teamId] })
+```
+
+The singleton is still imported directly in two places that don't have a
+React context: the `filterShortCodePromise` machinery in `filters_store.ts`
+and `resetAllStores` in `reset_all.ts`.
 
 ### Paginated pages
 
@@ -179,9 +250,8 @@ useEffect(() => {
 const { data, status, isFetching } = useXQuery(offset)
 ```
 
-- Pagination offset is component-local `useState`, initialized from URL
-- `isFetching` drives loading bar and paginator button disable state
-- `keepPreviousData` means `status` stays `'success'` during page transitions
+`isFetching` drives loading bars and paginator-button disable state.
+`keepPreviousData` keeps `status` at `'success'` during page transitions.
 
 ### Plot components
 
@@ -191,28 +261,42 @@ const effectiveStatus = demo ? 'success' : status
 const effectivePlot = demo ? demoPlot : plot
 ```
 
-No `plotDataKey` matching — TanStack Query handles staleness via query keys.
+Demo mode bypasses the query and substitutes a fixture.
 
 ## Logout
 
 `resetAllStores(registry)` in `reset_all.ts`:
-1. Calls `queryClient.clear()` — removes all TanStack Query cached data
-2. Resets the 3 Zustand stores
+
+1. `queryClient.clear()` — wipes all TanStack Query cached data.
+2. `filtersStore.reset()` — back to initial selections.
+3. `onboardingStore.reset()` — clears in-memory wizard state. Persisted
+   `localStorage` entries are wiped per-step by the store's own actions,
+   not here.
 
 ## Testing
 
 - **Unit tests** (`__tests__/components/`, `__tests__/pages/`) — mock
-  `@/app/query/hooks` with `jest.fn()` returning `{ data, status, isFetching, error }`.
-  Mock `@/app/stores/provider` for `useFiltersStore`/`useSessionStore`.
-- **Integration tests** (`__tests__/integration/`) — do NOT mock
+  `@/app/query/hooks` with `jest.fn()` returning
+  `{ data, status, isFetching, error }`. Mock `@/app/stores/provider` to
+  expose `useFiltersStore` / `useOnboardingStore` over real stores you
+  construct in the test so action-based assertions run against real logic.
+- **Integration tests** (`__tests__/integration/`) — don't mock
   `@/app/query/hooks`. Let real hooks run with MSW intercepting API calls.
-  Wrap renders in `QueryClientProvider`. Only mock `@/app/stores/provider`
-  for `useFiltersStore`.
-- **Store tests** (`__tests__/stores/`) — test filtersStore and sessionStore
-  directly via factory functions.
+  Wrap renders in `QueryClientProvider` with a per-test client. Mock
+  `@/app/stores/provider` and feed it real store instances created in
+  `beforeEach`.
+- **Store tests** (`__tests__/stores/`) — call `createFiltersStore()` /
+  `createOnboardingStore()` directly and exercise actions and the pure
+  helpers (`applyFilterOptions`, `pickApp`, `resolveRootSpanName`).
+- **Query hook tests** (`__tests__/query/`) — `renderHook` with a fresh
+  `QueryClient`, mock the underlying `api_calls.ts` functions.
+
+When the mocked `useFiltersStore` / `useOnboardingStore` accepts an
+optional selector, call `useStore` unconditionally with
+`selector ?? ((s) => s)` — a `selector ? useStore(...) : useStore(...)`
+ternary trips the `react-hooks/rules-of-hooks` lint.
 
 ## Navigation
 
-Internal links MUST use `<Link>` from `next/link` (not raw `<a href>`).
-Raw anchors cause full page reloads that destroy React state and TanStack
-Query cache.
+Internal links MUST use `<Link>` from `next/link`. Raw `<a href>` causes
+a full page reload that destroys React state and the TanStack Query cache.

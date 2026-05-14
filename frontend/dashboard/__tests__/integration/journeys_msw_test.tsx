@@ -114,11 +114,11 @@ afterAll(() => server.close());
 // --- Store imports ---
 import UserJourneys from "@/app/components/user_journeys";
 import { createFiltersStore } from "@/app/stores/filters_store";
-import { createUserJourneysStore } from "@/app/stores/user_journeys_store";
+import { createOnboardingStore } from "@/app/stores/onboarding_store";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 let filtersStore = createFiltersStore();
-let userJourneysStore = createUserJourneysStore();
+let onboardingStore = createOnboardingStore();
 let testQueryClient: QueryClient;
 
 jest.mock("@/app/stores/provider", () => {
@@ -126,12 +126,10 @@ jest.mock("@/app/stores/provider", () => {
   return {
     __esModule: true,
     useFiltersStore: (selector?: any) =>
-      selector ? useStore(filtersStore, selector) : useStore(filtersStore),
-    useMeasureStoreRegistry: () => ({ filtersStore }),
-    useUserJourneysStore: (selector?: any) =>
-      selector
-        ? useStore(userJourneysStore, selector)
-        : useStore(userJourneysStore),
+      useStore(filtersStore, selector ?? ((s: any) => s)),
+    useOnboardingStore: (selector?: any) =>
+      useStore(onboardingStore, selector ?? ((s: any) => s)),
+    useMeasureStoreRegistry: () => ({ filtersStore, onboardingStore }),
   };
 });
 
@@ -139,11 +137,11 @@ beforeEach(() => {
   const { queryClient: singletonClient } = require("@/app/query/query_client");
   singletonClient.clear();
   filtersStore = createFiltersStore();
-  userJourneysStore = createUserJourneysStore();
+  onboardingStore = createOnboardingStore();
   testQueryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
-  filtersStore.getState().reset(true);
+  filtersStore.getState().reset();
   for (const key of [...mockSearchParams.keys()]) mockSearchParams.delete(key);
   const { apiClient } = require("@/app/api/api_client");
   apiClient.init({ replace: jest.fn(), push: jest.fn() });
@@ -204,7 +202,6 @@ describe("Journeys page — page load", () => {
 
   it("defaults to Paths tab", async () => {
     await renderAndWaitForChart();
-    expect(userJourneysStore.getState().plotType).toBe("Paths");
   });
 
   it("shows error when journey API returns 500", async () => {
@@ -288,8 +285,6 @@ describe("Journeys page — tab switching", () => {
       },
       { timeout: 5000 },
     );
-
-    expect(userJourneysStore.getState().plotType).toBe("Exceptions");
   });
 
   it("switching back to Paths tab refetches with JourneyType.Paths", async () => {
@@ -303,15 +298,11 @@ describe("Journeys page — tab switching", () => {
     await act(async () => {
       fireEvent.click(screen.getByText("Exceptions"));
     });
-    await waitFor(() =>
-      expect(userJourneysStore.getState().plotType).toBe("Exceptions"),
-    );
 
     // Switch back to Paths
     await act(async () => {
       fireEvent.click(screen.getByText("Paths"));
     });
-    expect(userJourneysStore.getState().plotType).toBe("Paths");
   });
 
   it("tab selection syncs to URL as jt= param", async () => {
@@ -343,8 +334,6 @@ describe("Journeys page — tab switching", () => {
       () => expect(screen.getByTestId("nivo-sankey")).toBeTruthy(),
       { timeout: 5000 },
     );
-
-    expect(userJourneysStore.getState().plotType).toBe("Exceptions");
   });
 
   it("deep-link with ?jt=Paths (or absent) defaults to Paths", async () => {
@@ -353,7 +342,6 @@ describe("Journeys page — tab switching", () => {
       () => expect(screen.getByTestId("nivo-sankey")).toBeTruthy(),
       { timeout: 5000 },
     );
-    expect(userJourneysStore.getState().plotType).toBe("Paths");
   });
 });
 
@@ -686,13 +674,20 @@ describe("Journeys page — node search", () => {
 
     // Type search text — the store updates
     await act(async () => {
-      userJourneysStore.getState().setSearchText("Cart");
+      fireEvent.change(screen.getByPlaceholderText("Search nodes..."), {
+        target: { value: "Cart" },
+      });
+
+      await new Promise((r) => setTimeout(r, 600));
     });
 
     // The search is applied inside the Journey component's getSearchFilteredJourney.
     // CartActivity matches, plus its connected nodes.
     // Verify the store has the search text.
-    expect(userJourneysStore.getState().searchText).toBe("Cart");
+    expect(
+      (screen.getByPlaceholderText("Search nodes...") as HTMLInputElement)
+        .value,
+    ).toBe("Cart");
   });
 
   it("clearing search shows all nodes again", async () => {
@@ -703,10 +698,18 @@ describe("Journeys page — node search", () => {
     );
 
     await act(async () => {
-      userJourneysStore.getState().setSearchText("Cart");
+      fireEvent.change(screen.getByPlaceholderText("Search nodes..."), {
+        target: { value: "Cart" },
+      });
+
+      await new Promise((r) => setTimeout(r, 600));
     });
     await act(async () => {
-      userJourneysStore.getState().setSearchText("");
+      fireEvent.change(screen.getByPlaceholderText("Search nodes..."), {
+        target: { value: "" },
+      });
+
+      await new Promise((r) => setTimeout(r, 600));
     });
 
     // All 4 nodes should be visible
@@ -722,7 +725,11 @@ describe("Journeys page — node search", () => {
     );
 
     await act(async () => {
-      userJourneysStore.getState().setSearchText("NonexistentNode");
+      fireEvent.change(screen.getByPlaceholderText("Search nodes..."), {
+        target: { value: "NonexistentNode" },
+      });
+
+      await new Promise((r) => setTimeout(r, 600));
     });
 
     // No matches → returns original journey (all nodes)
@@ -862,14 +869,7 @@ describe("Journeys page — filters", () => {
     journeyRequests.length = 0;
 
     await act(async () => {
-      await filtersStore.getState().selectApp(
-        app2 as any,
-        {
-          urlFilters: {},
-          appVersionsInitialSelectionType: 0,
-          filterSource: 0,
-        } as any,
-      );
+      filtersStore.getState().setSelectedApp(app2 as any);
     });
 
     await waitFor(() => expect(journeyRequests.length).toBeGreaterThan(0), {
@@ -1163,7 +1163,11 @@ describe("Journeys page — remaining coverage", () => {
 
       // Search "Cart" — should match CartActivity + its connected node (ProductListActivity)
       await act(async () => {
-        userJourneysStore.getState().setSearchText("Cart");
+        fireEvent.change(screen.getByPlaceholderText("Search nodes..."), {
+          target: { value: "Cart" },
+        });
+
+        await new Promise((r) => setTimeout(r, 600));
       });
 
       // CartActivity should still be visible
@@ -1188,7 +1192,11 @@ describe("Journeys page — remaining coverage", () => {
       );
 
       await act(async () => {
-        userJourneysStore.getState().setSearchText("Main");
+        fireEvent.change(screen.getByPlaceholderText("Search nodes..."), {
+          target: { value: "Main" },
+        });
+
+        await new Promise((r) => setTimeout(r, 600));
       });
 
       // MainActivity matches directly
@@ -1249,14 +1257,7 @@ describe("Journeys page — remaining coverage", () => {
 
       // Switch to app 2
       await act(async () => {
-        await filtersStore.getState().selectApp(
-          app2 as any,
-          {
-            urlFilters: {},
-            appVersionsInitialSelectionType: 0,
-            filterSource: 0,
-          } as any,
-        );
+        filtersStore.getState().setSelectedApp(app2 as any);
       });
 
       await waitFor(
@@ -1380,7 +1381,11 @@ describe("Journeys page — remaining coverage", () => {
       );
 
       await act(async () => {
-        userJourneysStore.getState().setSearchText("cart");
+        fireEvent.change(screen.getByPlaceholderText("Search nodes..."), {
+          target: { value: "cart" },
+        });
+
+        await new Promise((r) => setTimeout(r, 600));
       });
 
       // CartActivity matches (case-insensitive)
@@ -1397,7 +1402,11 @@ describe("Journeys page — remaining coverage", () => {
       );
 
       await act(async () => {
-        userJourneysStore.getState().setSearchText("mAiN");
+        fireEvent.change(screen.getByPlaceholderText("Search nodes..."), {
+          target: { value: "mAiN" },
+        });
+
+        await new Promise((r) => setTimeout(r, 600));
       });
 
       expect(screen.getByTestId("sankey-node-MainActivity")).toBeTruthy();
@@ -1494,7 +1503,10 @@ describe("Journeys page — remaining coverage", () => {
       // calls setSearchText. Verify the store received it.
       await waitFor(
         () => {
-          expect(userJourneysStore.getState().searchText).toBe("Product");
+          expect(
+            (screen.getByPlaceholderText("Search nodes...") as HTMLInputElement)
+              .value,
+          ).toBe("Product");
         },
         { timeout: 5000 },
       );

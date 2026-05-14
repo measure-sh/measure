@@ -93,9 +93,11 @@ afterAll(() => server.close());
 
 import Overview from "@/app/components/overview";
 import { createFiltersStore } from "@/app/stores/filters_store";
+import { createOnboardingStore } from "@/app/stores/onboarding_store";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 let filtersStore = createFiltersStore();
+let onboardingStore = createOnboardingStore();
 let testQueryClient: QueryClient;
 
 jest.mock("@/app/stores/provider", () => {
@@ -103,10 +105,10 @@ jest.mock("@/app/stores/provider", () => {
   return {
     __esModule: true,
     useFiltersStore: (selector?: any) =>
-      selector ? useStore(filtersStore, selector) : useStore(filtersStore),
-    useMeasureStoreRegistry: () => ({
-      filtersStore: filtersStore,
-          }),
+      useStore(filtersStore, selector ?? ((s: any) => s)),
+    useOnboardingStore: (selector?: any) =>
+      useStore(onboardingStore, selector ?? ((s: any) => s)),
+    useMeasureStoreRegistry: () => ({ filtersStore, onboardingStore }),
   };
 });
 
@@ -117,10 +119,13 @@ beforeEach(() => {
     window.localStorage.clear();
   }
   filtersStore = createFiltersStore();
+  onboardingStore = createOnboardingStore();
   testQueryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    defaultOptions: {
+      queries: { retry: false, gcTime: Infinity, staleTime: Infinity },
+    },
   });
-  filtersStore.getState().reset(true);
+  filtersStore.getState().reset();
   for (const key of [...mockSearchParams.keys()]) {
     mockSearchParams.delete(key);
   }
