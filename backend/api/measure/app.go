@@ -285,6 +285,17 @@ func (a App) GetExceptionGroupPlotInstances(ctx context.Context, fingerprint str
 
 // GetErrorGroupsWithFilter fetches error groups
 // of an app.
+// anrAllowed returns whether the ANR source should be queried given the
+// AppFilter. ANRs are never custom-captured, so CustomError=true forces ANR
+// off regardless of the requested value. Use this as the single source of
+// truth in every error-endpoint flow.
+func anrAllowed(af *filter.AppFilter, requested bool) bool {
+	if af.CustomError {
+		return false
+	}
+	return requested
+}
+
 // resolveErrorSources maps an AppFilter's severity flags onto the underlying
 // event sources for the unified error endpoints. Returns whether the ANR
 // branch is active and which exception.handled rows the exception branch
@@ -302,6 +313,7 @@ func resolveErrorSources(af *filter.AppFilter) (queryANR, wantHandledTrue, wantH
 		wantHandledTrue = true
 		wantHandledFalse = true
 	}
+	queryANR = anrAllowed(af, queryANR)
 	return
 }
 
@@ -320,7 +332,7 @@ func unionStmts(stmts []*sqlf.Stmt) *sqlf.Stmt {
 	return sqlf.New(strings.Join(parts, " UNION ALL "), args...)
 }
 
-func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ExceptionGroup, next, previous bool, err error) {
+func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ErrorGroup, next, previous bool, err error) {
 	queryANR := af.ANR
 	queryFatal := af.Severity == event.SeverityFatal || af.Crash
 	queryNonfatal := af.Severity == event.SeverityHandled || af.Severity == event.SeverityUnhandled || af.Error
@@ -328,6 +340,8 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 	if !queryANR && !queryFatal && !queryNonfatal {
 		return
 	}
+
+	queryANR = anrAllowed(af, queryANR)
 
 	applyGroupFilters := func(s *sqlf.Stmt) error {
 		s.Where("team_id = toUUID(?)", a.TeamId).
@@ -384,7 +398,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 		return nil
 	}
 
-	newGroupsBranch := func(table, sourceType string) (*sqlf.Stmt, error) {
+	newGroupsBranch := func(table, sourceType, severityExpr, isCustomExpr string) (*sqlf.Stmt, error) {
 		s := sqlf.
 			From(table).
 			Select("team_id").
@@ -398,14 +412,16 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 			Select("argMax(file_name, timestamp) as file_name").
 			Select("argMax(line_number, timestamp) as line_number").
 			Select("any(timestamp) as last_occurrence").
-			Select("'" + sourceType + "' as source_type")
+			Select("'" + sourceType + "' as source_type").
+			Select(severityExpr + " as severity").
+			Select(isCustomExpr + " as is_custom")
 		return s, applyGroupFilters(s)
 	}
 
 	var groupsBranches []*sqlf.Stmt
 
 	if queryANR {
-		s, errBranch := newGroupsBranch("anr_groups final", "anr")
+		s, errBranch := newGroupsBranch("anr_groups final", "anr", "''", "false")
 		if errBranch != nil {
 			err = errBranch
 			return
@@ -414,7 +430,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 	}
 
 	if queryFatal {
-		s, errBranch := newGroupsBranch("fatal_exception_groups final", "exception")
+		s, errBranch := newGroupsBranch("fatal_exception_groups final", "exception", "'fatal'", "argMax(is_custom, timestamp)")
 		if errBranch != nil {
 			err = errBranch
 			return
@@ -423,7 +439,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 	}
 
 	if queryNonfatal {
-		s, errBranch := newGroupsBranch("nonfatal_exception_groups final", "exception")
+		s, errBranch := newGroupsBranch("nonfatal_exception_groups final", "exception", "if(argMax(handled, timestamp), 'handled', 'unhandled')", "argMax(is_custom, timestamp)")
 		if errBranch != nil {
 			err = errBranch
 			return
@@ -491,6 +507,10 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 			s.Where("`exception.handled` = false")
 		}
 
+		if af.CustomError {
+			s.Where("`exception.is_custom` = true")
+		}
+
 		if af.HasVersions() {
 			s.Where("attribute.app_version in ?", af.Versions)
 			s.Where("attribute.app_build in ?", af.VersionCodes)
@@ -508,6 +528,9 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 		Select("g.app_id").
 		Select("g.id").
 		Select("g.type").
+		Select("g.source_type").
+		Select("g.severity").
+		Select("g.is_custom").
 		Select("g.message").
 		Select("g.method_name").
 		Select("g.file_name").
@@ -542,11 +565,17 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 	}
 
 	for rows.Next() {
-		var g group.ExceptionGroup
+		var (
+			g           group.ErrorGroup
+			severityStr string
+		)
 		if err = rows.Scan(
 			&g.AppID,
 			&g.ID,
 			&g.Type,
+			&g.ErrorType,
+			&severityStr,
+			&g.IsCustom,
 			&g.Message,
 			&g.MethodName,
 			&g.FileName,
@@ -557,6 +586,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 		); err != nil {
 			return
 		}
+		g.Severity = event.Severity(severityStr)
 
 		groups = append(groups, g)
 	}
@@ -656,6 +686,9 @@ func (a App) GetErrorPlotInstances(ctx context.Context, af *filter.AppFilter) (i
 			s.Where("exception.handled = true")
 		} else if !wantHandledTrue && wantHandledFalse {
 			s.Where("exception.handled = false")
+		}
+		if af.CustomError {
+			s.Where("exception.is_custom = true")
 		}
 		applyCommonFilters(s)
 		branches = append(branches, s)
@@ -785,6 +818,9 @@ func (a App) GetErrorGroupPlotInstances(ctx context.Context, fingerprint string,
 		} else if !wantHandledTrue && wantHandledFalse {
 			s.Where("exception.handled = false")
 		}
+		if af.CustomError {
+			s.Where("exception.is_custom = true")
+		}
 		applyCommonFilters(s)
 		branches = append(branches, s)
 	}
@@ -905,6 +941,9 @@ func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, fingerprin
 		} else if !wantHandledTrue && wantHandledFalse {
 			s.Where("exception.handled = false")
 		}
+		if af.CustomError {
+			s.Where("exception.is_custom = true")
+		}
 		applyCommonFilters(s)
 		branches = append(branches, s)
 	}
@@ -970,6 +1009,8 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 		queryFatal = true
 		queryNonfatal = true
 	}
+
+	queryANR = anrAllowed(af, queryANR)
 
 	applyCommonFilters := func(s *sqlf.Stmt) {
 		s.Where("team_id = toUUID(?)", a.TeamId).
@@ -1044,6 +1085,10 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 			} else if af.Severity == event.SeverityUnhandled {
 				stmt.Where("exception.handled = false")
 			}
+		}
+
+		if af.CustomError {
+			stmt.Where("exception.is_custom = true")
 		}
 
 		applyCommonFilters(stmt)
@@ -6997,12 +7042,6 @@ func GetErrorOverview(c *gin.Context) {
 	}
 
 	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "errors_list")
-
-	fmt.Println("severity", af.Severity)
-	fmt.Println("crash", af.Crash)
-	fmt.Println("anr", af.ANR)
-	fmt.Println("error", af.Error)
-	fmt.Println("is_custom", af.CustomError)
 
 	errGroups, next, previous, err := app.GetErrorGroupsWithFilter(ctx, &af)
 	if err != nil {

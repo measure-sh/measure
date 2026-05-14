@@ -358,6 +358,109 @@ func (h *TestHelper) SeedExceptionGroup(ctx context.Context, t *testing.T, teamI
 	}
 }
 
+// SeedNonfatalExceptionGroup inserts a row into nonfatal_exception_groups
+// with explicit handled and is_custom values. fingerprint must be exactly 32
+// characters.
+func (h *TestHelper) SeedNonfatalExceptionGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string, handled, isCustom bool) {
+	t.Helper()
+
+	query := `insert into
+		nonfatal_exception_groups (
+			team_id, app_id, id, app_version, type, message, method_name, file_name, line_number, handled, is_custom, os_versions, country_codes, network_providers, network_types, network_generations, device_locales, device_manufacturers, device_names, device_models, count, timestamp
+		)
+		select
+			toUUID(?),
+			toUUID(?),
+			?,
+			('v1', '1'),
+			'java.lang.RuntimeException',
+			'Test nonfatal',
+			'testMethod',
+			'TestFile.java',
+			42,
+			?,
+			?,
+			groupUniqArrayState(tuple('android', '33')),
+			groupUniqArrayState('US'),
+			groupUniqArrayState('Verizon'),
+			groupUniqArrayState('cellular'),
+			groupUniqArrayState('5g'),
+			groupUniqArrayState('en-US'),
+			groupUniqArrayState('Google'),
+			groupUniqArrayState('Pixel'),
+			groupUniqArrayState('Pixel 8'),
+			sumState(toUInt64(1)),
+			now64(3)`
+
+	if err := h.ChConn.Exec(ctx, query, []any{teamID, appID, fingerprint, handled, isCustom}...); err != nil {
+		t.Fatalf("seed nonfatal exception group: %v", err)
+	}
+}
+
+// SeedFatalExceptionGroupWithCustomFlag inserts a row into
+// fatal_exception_groups with explicit is_custom. fingerprint must be exactly
+// 32 characters.
+func (h *TestHelper) SeedFatalExceptionGroupWithCustomFlag(ctx context.Context, t *testing.T, teamID, appID, fingerprint string, isCustom bool) {
+	t.Helper()
+
+	query := `insert into
+		fatal_exception_groups (
+			team_id, app_id, id, app_version, type, message, method_name, file_name, line_number, handled, is_custom, os_versions, country_codes, network_providers, network_types, network_generations, device_locales, device_manufacturers, device_names, device_models, count, timestamp
+		)
+		select
+			toUUID(?),
+			toUUID(?),
+			?,
+			('v1', '1'),
+			'java.lang.RuntimeException',
+			'Test crash',
+			'testMethod',
+			'TestFile.java',
+			42,
+			false,
+			?,
+			groupUniqArrayState(tuple('android', '33')),
+			groupUniqArrayState('US'),
+			groupUniqArrayState('Verizon'),
+			groupUniqArrayState('cellular'),
+			groupUniqArrayState('5g'),
+			groupUniqArrayState('en-US'),
+			groupUniqArrayState('Google'),
+			groupUniqArrayState('Pixel'),
+			groupUniqArrayState('Pixel 8'),
+			sumState(toUInt64(1)),
+			now64(3)`
+
+	if err := h.ChConn.Exec(ctx, query, []any{teamID, appID, fingerprint, isCustom}...); err != nil {
+		t.Fatalf("seed fatal exception group with custom flag: %v", err)
+	}
+}
+
+// SeedIssueEventWithCustomFlag inserts an exception event with explicit
+// handled and exception.is_custom flags. Use this to test custom-error
+// filtering on read paths.
+func (h *TestHelper) SeedIssueEventWithCustomFlag(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, fingerprint string,
+	handled, isCustom bool,
+	ts time.Time,
+) {
+	t.Helper()
+	query := fmt.Sprintf(
+		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
+			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
+			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`, "+
+			"`exception.handled`, `exception.foreground`, `exception.fingerprint`, `exception.is_custom`) "+
+			`VALUES ('%s', 'exception', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1', %t, true, '%s', %t)`,
+		uuid.New().String(), uuid.New().String(), appID, teamID,
+		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String(),
+		handled, fingerprint, isCustom)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed issue event with custom flag: %v", err)
+	}
+}
+
 // SeedAnrGroup inserts a row into anr_groups so that ANR-alert group-info
 // lookups succeed. fingerprint must be exactly 32 characters.
 func (h *TestHelper) SeedAnrGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {

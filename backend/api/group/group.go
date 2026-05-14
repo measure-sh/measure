@@ -44,8 +44,8 @@ type ExceptionGroup struct {
 	FileName        string                 `json:"file_name" db:"file_name"`
 	LineNumber      int32                  `json:"line_number" db:"line_number"`
 	Handled         bool                   `json:"handled" db:"handled"`
-	IsCustom        bool                   `json:"is_custom" db:"is_custom"`
-	Fatal           bool                   `json:"fatal"`
+	IsCustom        bool                   `json:"-" db:"is_custom"`
+	Fatal           bool                   `json:"-"`
 	Count           uint64                 `json:"count"`
 	EventIDs        []uuid.UUID            `json:"event_ids,omitempty"`
 	EventExceptions []event.EventException `json:"exception_events,omitempty"`
@@ -68,6 +68,26 @@ type ANRGroup struct {
 	EventANRs   []event.EventANR `json:"anr_events,omitempty"`
 	Percentage  float64          `json:"percentage_contribution"`
 	UpdatedAt   time.Time        `json:"updated_at" db:"updated_at"`
+}
+
+// ErrorGroup is the unified response row for the errors-overview
+// endpoint. A single row may represent a fatal exception, a nonfatal
+// (handled or unhandled) exception, or an ANR — disambiguated by the
+// Type and Severity fields.
+type ErrorGroup struct {
+	AppID      uuid.UUID      `json:"app_id"`
+	ID         string         `json:"id"`
+	Type       string         `json:"type"`
+	ErrorType  string         `json:"error_type"`
+	Severity   event.Severity `json:"severity"`
+	IsCustom   bool           `json:"is_custom"`
+	Message    string         `json:"message"`
+	MethodName string         `json:"method_name"`
+	FileName   string         `json:"file_name"`
+	LineNumber int32          `json:"line_number"`
+	Count      uint64         `json:"count"`
+	Percentage float64        `json:"percentage_contribution"`
+	UpdatedAt  time.Time      `json:"updated_at"`
 }
 
 // unique deduplicates the source slice of
