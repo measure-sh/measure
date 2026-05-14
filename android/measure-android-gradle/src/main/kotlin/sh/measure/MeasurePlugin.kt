@@ -7,7 +7,10 @@ import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.Directory
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFile
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import sh.measure.asm.BytecodeTransformationPipelineBuilder
 import sh.measure.asm.BytecodeTransformer
@@ -103,6 +106,8 @@ class MeasurePlugin : Plugin<Project> {
                 it.appSizeOutputFileProperty.set(appSizeFileProvider(project, variant))
             }
 
+        val rnSourceMapProperty = project.objects.fileProperty()
+
         val uploadBuildProvider =
             project.tasks
                 .register(
@@ -114,6 +119,7 @@ class MeasurePlugin : Plugin<Project> {
                     getFlutterSymbolsDirPath(project)?.takeIf { path -> path.exists() }?.let { path ->
                         it.flutterSymbolsDirProperty.set(path)
                     }
+                    it.reactNativeSourceMapFileProperty.set(rnSourceMapProperty)
                     it.buildMetadataFileProperty.set(appSizeFileProvider(project, variant))
                     it.retriesProperty.set(DEFAULT_RETRIES)
                     it.usesService(httpClientProvider)
@@ -142,6 +148,7 @@ class MeasurePlugin : Plugin<Project> {
                 task.finalizedBy(aabSizeProvider, uploadBuildProvider)
             }
         }
+        wireReactNativeSourceMap(project, variant, rnSourceMapProperty)
     }
 
     private fun getFlutterExtension(project: Project): Any? = project.extensions.findByName("flutter")
@@ -168,6 +175,45 @@ class MeasurePlugin : Plugin<Project> {
     private fun buildUploadTaskName(variant: Variant) = "upload${variant.name.capitalize()}BuildToMeasure"
 
     private fun extractManifestDataTaskName(variant: Variant) = "extract${variant.name.capitalize()}ManifestData"
+
+    private fun wireReactNativeSourceMap(
+        project: Project,
+        variant: Variant,
+        rnSourceMapProperty: RegularFileProperty,
+    ) {
+        if (!project.plugins.hasPlugin("com.facebook.react")) return
+
+        val capName = variant.name.capitalize()
+        val candidateNames = setOf(
+            "createBundle${capName}JsAndAssets",
+            "bundle${capName}JsAndAssets",
+        )
+
+        project.tasks.matching { it.name in candidateNames }.configureEach { bundleTask ->
+            rnSourceMapProperty.set(readBundleTaskSourceMapPath(project, variant, bundleTask))
+        }
+    }
+
+    private fun readBundleTaskSourceMapPath(
+        project: Project,
+        variant: Variant,
+        bundleTask: org.gradle.api.Task,
+    ): Provider<RegularFile> = try {
+        val jsSourceMapsDir = bundleTask::class.java.getMethod("getJsSourceMapsDir")
+            .invoke(bundleTask) as DirectoryProperty
+        @Suppress("UNCHECKED_CAST")
+        val bundleAssetName = bundleTask::class.java.getMethod("getBundleAssetName")
+            .invoke(bundleTask) as Property<String>
+        jsSourceMapsDir.file(bundleAssetName.map { "$it.map" })
+    } catch (e: Exception) {
+        project.logger.warn(
+            "measure: could not read RN source-map config from $bundleTask, " +
+                "falling back to default path: ${e.message}",
+        )
+        project.layout.buildDirectory.file(
+            "generated/sourcemaps/react/${variant.name}/index.android.bundle.map",
+        )
+    }
 
     // Returns the path to the flutter symbols directory if it exists.
     // This function uses the flutter extension to get the source directory and then uses the
