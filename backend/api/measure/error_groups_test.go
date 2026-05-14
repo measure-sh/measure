@@ -81,7 +81,7 @@ func TestGetErrorGroupsWithFilterTypeAndSeverity(t *testing.T) {
 		{fpGroupFatal, "exception", event.SeverityFatal},
 		{fpGroupHandled, "exception", event.SeverityHandled},
 		{fpGroupUnhandled, "exception", event.SeverityUnhandled},
-		{fpGroupANR, "anr", ""},
+		{fpGroupANR, "anr", event.SeverityFatal},
 	}
 
 	for _, c := range cases {
@@ -136,7 +136,7 @@ func TestGetErrorGroupsWithFilterSeverityFiltering(t *testing.T) {
 			name:   "anr flag returns ANR only",
 			modify: func(af *filter.AppFilter) { af.ANR = true },
 			wantIDs: map[string]event.Severity{
-				fpGroupANR: "",
+				fpGroupANR: event.SeverityFatal,
 			},
 			wantType: map[string]string{fpGroupANR: "anr"},
 		},
