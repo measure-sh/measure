@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Hydrate teams cache on create to fix post-nav crash by @anupcowkur in #3622
 - (**frontend**): Iterate HTML tag strip to drain nested-tag residue by @anupcowkur in #3617
 - (**frontend**): Pin pricing calculator locale and widen slider ranges by @anupcowkur in #3596
 - (**frontend**): Restore social preview image on landing pages by @anupcowkur in #3594
