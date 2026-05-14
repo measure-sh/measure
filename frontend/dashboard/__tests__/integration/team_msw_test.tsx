@@ -11,7 +11,7 @@
  * control which actions are enabled.
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from '@jest/globals'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 
 // --- jsdom polyfills ---
@@ -77,6 +77,8 @@ afterAll(() => server.close())
 
 // --- Store/component imports ---
 import TeamOverview from '@/app/[teamId]/team/page'
+import { Team } from '@/app/api/api_calls'
+import { useCreateTeamMutation } from '@/app/query/hooks'
 import { queryClient } from '@/app/query/query_client'
 import { createSessionStore } from '@/app/stores/session_store'
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -1603,6 +1605,99 @@ describe('Team Page — create team dialog', () => {
         })
 
         expect(apiCalled).toBe(false)
+    })
+})
+
+// ====================================================================
+// CACHE HYDRATION CONTRACT (regression guard)
+// ====================================================================
+//
+// After useCreateTeamMutation succeeds, the ["teams"] query cache must
+// contain the new team synchronously inside onSuccess — not after an
+// async refetch. That synchronous write is what lets the navigation
+// fired by CreateTeam (router.push to the new team's page) find the
+// team in the cache on mount instead of resolving to null, which
+// crashes the team page on the eagerly-evaluated `team!.name`
+// references in dialog bodies and the rename input's defaultValue.
+//
+// Tests below use renderHook so useTeamsQuery has no observers. With
+// no observers, invalidateQueries does not trigger a background
+// refetch, which would otherwise race the assertion and mask whether
+// the synchronous cache write actually happened.
+describe('useCreateTeamMutation — cache hydration contract', () => {
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+
+    it('appends the new team to the existing ["teams"] cache on success', async () => {
+        server.use(
+            http.post('*/api/teams', async ({ request }) => {
+                const body = (await request.json()) as { name: string }
+                return HttpResponse.json({ id: 'team-new', name: body.name })
+            }),
+        )
+
+        queryClient.setQueryData<Team[]>(['teams'], [
+            { id: 'team-001', name: 'Test Team' },
+            { id: 'team-002', name: 'Other Team' },
+        ])
+
+        const { result } = renderHook(() => useCreateTeamMutation(), { wrapper })
+
+        await act(async () => {
+            await result.current.mutateAsync({ teamName: 'Brand New' })
+        })
+
+        expect(queryClient.getQueryData<Team[]>(['teams'])).toEqual([
+            { id: 'team-001', name: 'Test Team' },
+            { id: 'team-002', name: 'Other Team' },
+            { id: 'team-new', name: 'Brand New' },
+        ])
+    })
+
+    it('initializes the ["teams"] cache when no prior teams data exists', async () => {
+        server.use(
+            http.post('*/api/teams', async ({ request }) => {
+                const body = (await request.json()) as { name: string }
+                return HttpResponse.json({ id: 'team-new', name: body.name })
+            }),
+        )
+
+        expect(queryClient.getQueryData<Team[]>(['teams'])).toBeUndefined()
+
+        const { result } = renderHook(() => useCreateTeamMutation(), { wrapper })
+
+        await act(async () => {
+            await result.current.mutateAsync({ teamName: 'Solo' })
+        })
+
+        expect(queryClient.getQueryData<Team[]>(['teams'])).toEqual([
+            { id: 'team-new', name: 'Solo' },
+        ])
+    })
+
+    it('leaves the cache untouched when the mutation errors', async () => {
+        server.use(
+            http.post('*/api/teams', () => {
+                return HttpResponse.json({ error: 'duplicate' }, { status: 409 })
+            }),
+        )
+
+        const seed: Team[] = [
+            { id: 'team-001', name: 'Test Team' },
+            { id: 'team-002', name: 'Other Team' },
+        ]
+        queryClient.setQueryData<Team[]>(['teams'], seed)
+
+        const { result } = renderHook(() => useCreateTeamMutation(), { wrapper })
+
+        await act(async () => {
+            await expect(
+                result.current.mutateAsync({ teamName: 'Boom' }),
+            ).rejects.toThrow()
+        })
+
+        expect(queryClient.getQueryData<Team[]>(['teams'])).toEqual(seed)
     })
 })
 
