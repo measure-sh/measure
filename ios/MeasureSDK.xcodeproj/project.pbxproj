@@ -301,6 +301,9 @@
 		CFEC97EE2D9A76A5000CFB68 /* MockMeasureInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52BCF2362CB651C8003102DF /* MockMeasureInitializer.swift */; };
 		CFF2E6982F69246A003B5A66 /* Data+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFF2E6972F69246A003B5A66 /* Data+Extension.swift */; };
 		CFF5AE902ED5E912003BCA79 /* MeasureConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFF5AE8F2ED5E912003BCA79 /* MeasureConfigTests.swift */; };
+		CFF77E672FB6CEE600564FDA /* AttachmentProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFF77E662FB6CEE600564FDA /* AttachmentProcessorTests.swift */; };
+		CFF77E692FB6CEFF00564FDA /* SystemFileManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFF77E682FB6CEFF00564FDA /* SystemFileManagerTests.swift */; };
+		CFF77E6C2FB6CFE500564FDA /* WebPEncoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFF77E6A2FB6CFE500564FDA /* WebPEncoderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -672,6 +675,9 @@
 		CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureInternalTests.swift; sourceTree = "<group>"; };
 		CFF2E6972F69246A003B5A66 /* Data+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data+Extension.swift"; sourceTree = "<group>"; };
 		CFF5AE8F2ED5E912003BCA79 /* MeasureConfigTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureConfigTests.swift; sourceTree = "<group>"; };
+		CFF77E662FB6CEE600564FDA /* AttachmentProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentProcessorTests.swift; sourceTree = "<group>"; };
+		CFF77E682FB6CEFF00564FDA /* SystemFileManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemFileManagerTests.swift; sourceTree = "<group>"; };
+		CFF77E6A2FB6CFE500564FDA /* WebPEncoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPEncoderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -1130,10 +1136,11 @@
 		52B7F0F42D757F81001498BC /* Event */ = {
 			isa = PBXGroup;
 			children = (
+				CFF77E662FB6CEE600564FDA /* AttachmentProcessorTests.swift */,
 				6907519B2DC0F0B20085FDBA /* CrashReports */,
-				69C4496A2DACC7BE00E44CF4 /* InternalSignalCollectorTests.swift */,
 				52B7F0F22D757F81001498BC /* CustomEventCollectorTests.swift */,
 				52B7F0F32D757F81001498BC /* EventProcessorTests.swift */,
+				69C4496A2DACC7BE00E44CF4 /* InternalSignalCollectorTests.swift */,
 				CF4EA2D42EA243EB0020FC71 /* UserTriggeredEventCollectorTests.swift */,
 			);
 			path = Event;
@@ -1221,8 +1228,9 @@
 			isa = PBXGroup;
 			children = (
 				52B7F12A2D757F81001498BC /* LifecycleObserverTests.swift */,
-				52B7F12B2D757F81001498BC /* TimeProviderTests.swift */,
 				CFBF62702DB7B38100D5ADFB /* SwizzlingUtilityTests.swift */,
+				CFF77E682FB6CEFF00564FDA /* SystemFileManagerTests.swift */,
+				52B7F12B2D757F81001498BC /* TimeProviderTests.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -1245,6 +1253,7 @@
 				CF1BB3B52DBA39CA00588506 /* Lifecycle */,
 				52B7F1222D757F81001498BC /* Mocks */,
 				52B7F1272D757F81001498BC /* Performance */,
+				CFF77E6B2FB6CFE500564FDA /* Screenshots */,
 				CFD88D2D2DAB80C30095115E /* Tracing */,
 				52B7F12C2D757F81001498BC /* Utils */,
 			);
@@ -1446,6 +1455,14 @@
 				CFE803B22F7A4E7600B15B47 /* SdkDebugLogWriter.swift */,
 			);
 			path = Logger;
+			sourceTree = "<group>";
+		};
+		CFF77E6B2FB6CFE500564FDA /* Screenshots */ = {
+			isa = PBXGroup;
+			children = (
+				CFF77E6A2FB6CFE500564FDA /* WebPEncoderTests.swift */,
+			);
+			path = Screenshots;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1886,6 +1903,7 @@
 				CF1BB4F52DDEFCCB00588506 /* ShakeBugReportCollectorTests.swift in Sources */,
 				CFD88D792DAFDA530095115E /* MockSpanStore.swift in Sources */,
 				52B7F1372D757F81001498BC /* UserAttributeProcessorTests.swift in Sources */,
+				CFF77E672FB6CEE600564FDA /* AttachmentProcessorTests.swift in Sources */,
 				CF123F8B2FAA121C0053856F /* MsrObjCSpanBuilderTests.swift in Sources */,
 				CF123F8C2FAA121C0053856F /* MsrObjCSpanTests.swift in Sources */,
 				52B7F16A2D757F81001498BC /* MockSystemFileManager.swift in Sources */,
@@ -1902,6 +1920,7 @@
 				52B7F1562D757F81001498BC /* MockBatchStore.swift in Sources */,
 				52B7F1642D757F81001498BC /* MockRandomizer.swift in Sources */,
 				52B7F16C2D757F81001498BC /* MockUserDefaultStorage.swift in Sources */,
+				CFF77E692FB6CEFF00564FDA /* SystemFileManagerTests.swift in Sources */,
 				CFD88D772DAFD0A70095115E /* MsrSpanBuilderTests.swift in Sources */,
 				52B7F1542D757F81001498BC /* MockAttributeProcessor.swift in Sources */,
 				CF7CABB92F278BF900A9DC30 /* MockHttpClient.swift in Sources */,
@@ -1960,6 +1979,7 @@
 				52B7F1752D757F81001498BC /* SessionManagerTests.swift in Sources */,
 				52B7F13A2D757F81001498BC /* DataCleanupServiceTests.swift in Sources */,
 				52B7F15B2D757F81001498BC /* MockCrashDataPersistence.swift in Sources */,
+				CFF77E6C2FB6CFE500564FDA /* WebPEncoderTests.swift in Sources */,
 				CF12A6902E97B0A9001C8112 /* AttributeValueValidatorTests.swift in Sources */,
 				52B7F14D2D757F81001498BC /* Attributes+Extension.swift in Sources */,
 				CF7CAE582D95344100E15CDB /* HttpEventValidatorTests.swift in Sources */,

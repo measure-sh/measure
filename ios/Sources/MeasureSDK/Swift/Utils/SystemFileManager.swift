@@ -58,15 +58,7 @@ final class BaseSystemFileManager: SystemFileManager {
             logger.internalLog(level: .error, message: "SystemFileManager: Failed to create crash report directory.", error: error, data: nil)
             return nil
         }
-        let newCrashPath = crashDir.appendingPathComponent(crashDataFileName)
-        if !fileManager.fileExists(atPath: newCrashPath.path),
-           let oldCrashPath = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first?
-               .appendingPathComponent(cacheDirectoryName)
-               .appendingPathComponent(crashDataFileName),
-           fileManager.fileExists(atPath: oldCrashPath.path) {
-            try? fileManager.moveItem(at: oldCrashPath, to: newCrashPath)
-        }
-        return newCrashPath
+        return crashDir.appendingPathComponent(crashDataFileName)
     }
 
     func saveFile(data: Data, name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> URL? {
