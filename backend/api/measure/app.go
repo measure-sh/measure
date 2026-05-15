@@ -1079,8 +1079,6 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		Select("team_id").
 		Select("app_id").
 		Select("id").
-		Select("app_version.1 as app_version_scalar").
-		Select("app_version.2 as app_build_scalar").
 		Select("argMax(type, timestamp) as type").
 		Select("argMax(message, timestamp) as message").
 		Select("argMax(method_name, timestamp) as method_name").
@@ -1093,9 +1091,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		Where("timestamp <= toDateTime64(?, 3, 'UTC')", af.To).
 		GroupBy("team_id").
 		GroupBy("app_id").
-		GroupBy("id").
-		GroupBy("app_version_scalar").
-		GroupBy("app_build_scalar")
+		GroupBy("id")
 
 	if af.HasVersions() {
 		groupsStmt.Where("app_version.1 in ?", af.Versions)
@@ -1145,8 +1141,6 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		Select("team_id").
 		Select("app_id").
 		Select("anr.fingerprint as id").
-		Select("attribute.app_version").
-		Select("attribute.app_build").
 		Select("count() as event_count").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
@@ -1156,9 +1150,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		Where("`anr.fingerprint` != ''").
 		GroupBy("team_id").
 		GroupBy("app_id").
-		GroupBy("id").
-		GroupBy("attribute.app_version").
-		GroupBy("attribute.app_build")
+		GroupBy("id")
 
 	if af.HasVersions() {
 		countsStmt.Where("attribute.app_version in ?", af.Versions)
@@ -1179,7 +1171,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (
 		Select("c.event_count as event_count").
 		Select("round((event_count * 100.0) / sum(event_count) over (), 2) as contribution").
 		From("groups as g").
-		LeftJoin("counts as c", "c.team_id = g.team_id and c.app_id = g.app_id and c.id = g.id and c.attribute.app_version = g.app_version_scalar and c.attribute.app_build = g.app_build_scalar").
+		LeftJoin("counts as c", "c.team_id = g.team_id and c.app_id = g.app_id and c.id = g.id").
 		Where("c.event_count > 0").
 		OrderBy("event_count desc, g.last_occurrence desc, g.id")
 
