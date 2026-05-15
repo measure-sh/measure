@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"backend/api/config"
+	"backend/api/event"
 	"backend/api/pairs"
 	"backend/api/server"
 	"backend/libs/ambient"
@@ -118,12 +119,28 @@ type AppFilter struct {
 	NetworkTypes []string `form:"network_types"`
 
 	// Crash indicates the filtering should
-	// only consider unhandled exception events.
+	// only consider fatal exception events.
 	Crash bool `form:"crash"`
 
 	// ANR indicates the filtering should only
 	// consider ANR events.
 	ANR bool `form:"anr"`
+
+	// Error indicates the filtering should only
+	// consider error events.
+	Error bool `form:"error"`
+
+	// Severity indicates the type of the error
+	// whether:
+	//
+	// - fatal
+	// - unhandled
+	// - handled
+	Severity event.Severity `form:"severity"`
+
+	// CustomError indicates if the filtering should
+	// consider only custom errors.
+	CustomError bool `form:"custom"`
 
 	// BugReport indicates the filtering should
 	// only consider bug report events.
@@ -432,6 +449,12 @@ func (af *AppFilter) Validate() error {
 	if af.HasPlotTimeGroup() {
 		if _, ok := validPlotTimeGroups[af.PlotTimeGroup]; !ok {
 			return fmt.Errorf("`plot_time_group` must be one of: %s, %s, %s, %s", PlotTimeGroupMinutes, PlotTimeGroupHours, PlotTimeGroupDays, PlotTimeGroupMonths)
+		}
+	}
+
+	if af.Severity != "" {
+		if !af.Severity.IsValid() {
+			return fmt.Errorf("`severity` must be one of: %s, %s, %s", event.SeverityFatal, event.SeverityUnhandled, event.SeverityHandled)
 		}
 	}
 

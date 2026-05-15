@@ -365,7 +365,11 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
-	if err = chconn.Exec(ctx, "truncate table unhandled_exception_groups;"); err != nil {
+	if err = chconn.Exec(ctx, "truncate table fatal_exception_groups;"); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table nonfatal_exception_groups;"); err != nil {
 		return
 	}
 
@@ -475,10 +479,10 @@ func (j *janitor) resolveAppIds(ctx context.Context, conn *pgx.Conn, apps []stri
 	return
 }
 
-// rmIssueGroups removes unhandled exception and
-// ANR groups for apps in config.
+// rmIssueGroups removes exception and ANR groups for apps in config.
 func (j *janitor) rmIssueGroups(ctx context.Context) (err error) {
-	deleteUnhandledExceptionGroups := `delete from unhandled_exception_groups where app_id = @app_id;`
+	deleteFatalExceptionGroups := `delete from fatal_exception_groups where app_id = @app_id;`
+	deleteNonFatalExceptionGroups := `delete from nonfatal_exception_groups where app_id = @app_id;`
 	deleteAnrGroups := `delete from anr_groups where app_id = @app_id;`
 
 	dsn := j.config.Storage["clickhouse_dsn"]
@@ -503,7 +507,11 @@ func (j *janitor) rmIssueGroups(ctx context.Context) (err error) {
 	for i := range j.appIds {
 		namedAppId := clickhouse.Named("app_id", j.appIds[i])
 
-		if err := conn.Exec(ctx, deleteUnhandledExceptionGroups, namedAppId); err != nil {
+		if err := conn.Exec(ctx, deleteFatalExceptionGroups, namedAppId); err != nil {
+			return err
+		}
+
+		if err := conn.Exec(ctx, deleteNonFatalExceptionGroups, namedAppId); err != nil {
 			return err
 		}
 

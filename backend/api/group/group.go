@@ -23,6 +23,7 @@ type GroupType string
 const (
 	GroupTypeCrash GroupType = "crash"
 	GroupTypeANR   GroupType = "anr"
+	GroupTypeError GroupType = "error"
 )
 
 // IssueGroup interface represents
@@ -42,6 +43,9 @@ type ExceptionGroup struct {
 	MethodName      string                 `json:"method_name" db:"method_name"`
 	FileName        string                 `json:"file_name" db:"file_name"`
 	LineNumber      int32                  `json:"line_number" db:"line_number"`
+	Handled         bool                   `json:"handled" db:"handled"`
+	IsCustom        bool                   `json:"-" db:"is_custom"`
+	Fatal           bool                   `json:"-"`
 	Count           uint64                 `json:"count"`
 	EventIDs        []uuid.UUID            `json:"event_ids,omitempty"`
 	EventExceptions []event.EventException `json:"exception_events,omitempty"`
@@ -64,6 +68,26 @@ type ANRGroup struct {
 	EventANRs   []event.EventANR `json:"anr_events,omitempty"`
 	Percentage  float64          `json:"percentage_contribution"`
 	UpdatedAt   time.Time        `json:"updated_at" db:"updated_at"`
+}
+
+// ErrorGroup is the unified response row for the errors-overview
+// endpoint. A single row may represent a fatal exception, a nonfatal
+// (handled or unhandled) exception, or an ANR — disambiguated by the
+// Type and Severity fields.
+type ErrorGroup struct {
+	AppID      uuid.UUID      `json:"app_id"`
+	ID         string         `json:"id"`
+	Type       string         `json:"type"`
+	ErrorType  string         `json:"error_type"`
+	Severity   event.Severity `json:"severity"`
+	IsCustom   bool           `json:"is_custom"`
+	Message    string         `json:"message"`
+	MethodName string         `json:"method_name"`
+	FileName   string         `json:"file_name"`
+	LineNumber int32          `json:"line_number"`
+	Count      uint64         `json:"count"`
+	Percentage float64        `json:"percentage_contribution"`
+	UpdatedAt  time.Time      `json:"updated_at"`
 }
 
 // unique deduplicates the source slice of
@@ -113,8 +137,14 @@ func (e *ExceptionGroup) Insert(ctx context.Context, conn driver.Conn) (err erro
 		return err
 	}
 
+	var table = "nonfatal_exception_groups"
+
+	if e.Fatal {
+		table = "fatal_exception_groups"
+	}
+
 	stmt := sqlf.
-		New("insert into unhandled_exception_groups").
+		New("insert into "+table).
 		Clause("(").
 		Expr("team_id").
 		Expr("app_id").
@@ -125,6 +155,8 @@ func (e *ExceptionGroup) Insert(ctx context.Context, conn driver.Conn) (err erro
 		Expr("method_name").
 		Expr("file_name").
 		Expr("line_number").
+		Expr("handled").
+		Expr("is_custom").
 		Expr("os_versions").
 		Expr("country_codes").
 		Expr("network_providers").
@@ -147,6 +179,8 @@ func (e *ExceptionGroup) Insert(ctx context.Context, conn driver.Conn) (err erro
 		Expr("?", e.MethodName).
 		Expr("?", e.FileName).
 		Expr("?", e.LineNumber).
+		Expr("?", e.Handled).
+		Expr("?", e.IsCustom).
 		Expr("groupUniqArrayState(tuple(?, ?))", e.Attribute.OSName, e.Attribute.OSVersion).
 		Expr("groupUniqArrayState(?)", e.CountryCode).
 		Expr("groupUniqArrayState(?)", e.Attribute.NetworkProvider).
@@ -305,7 +339,7 @@ func GetExceptionGroupsFromFingerprints(ctx context.Context, conn driver.Conn, a
 	}
 
 	groupsStmt := sqlf.
-		From("unhandled_exception_groups final").
+		From("fatal_exception_groups final").
 		Select("id").
 		Select("argMax(type, timestamp) as type").
 		Select("argMax(message, timestamp) as message").
@@ -470,7 +504,7 @@ func GetANRGroupsFromFingerprints(ctx context.Context, conn driver.Conn, af *fil
 }
 
 // NewExceptionGroup constructs a new ExceptionGroup and returns a pointer to it.
-func NewExceptionGroup(appId uuid.UUID, countryCode string, attribute event.Attribute, fingerprint string, exceptionType, message, methodName, fileName string, lineNumber int32, timestamp time.Time) *ExceptionGroup {
+func NewExceptionGroup(appId uuid.UUID, countryCode string, attribute event.Attribute, fingerprint string, exceptionType, message, methodName, fileName string, lineNumber int32, handled, fatal, isCustom bool, timestamp time.Time) *ExceptionGroup {
 	return &ExceptionGroup{
 		AppID:       appId,
 		CountryCode: countryCode,
@@ -481,6 +515,9 @@ func NewExceptionGroup(appId uuid.UUID, countryCode string, attribute event.Attr
 		MethodName:  methodName,
 		FileName:    fileName,
 		LineNumber:  lineNumber,
+		Handled:     handled,
+		Fatal:       fatal,
+		IsCustom:    isCustom,
 		UpdatedAt:   timestamp,
 	}
 }

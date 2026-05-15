@@ -276,6 +276,27 @@ func makeTitle(t, m string) (typeMessage string) {
 	return
 }
 
+type Severity string
+
+const (
+	SeverityFatal     Severity = "fatal"
+	SeverityHandled   Severity = "handled"
+	SeverityUnhandled Severity = "unhandled"
+)
+
+func (s Severity) String() string {
+	return string(s)
+}
+
+func (s Severity) IsValid() bool {
+	switch s {
+	case SeverityFatal, SeverityHandled, SeverityUnhandled:
+		return true
+	default:
+		return false
+	}
+}
+
 // ExceptionUnitiOS represents iOS specific
 // structure to work with iOS exceptions.
 type ExceptionUnitiOS struct {
@@ -339,7 +360,21 @@ type Exception struct {
 	Foreground   bool           `json:"foreground" binding:"required"`
 	BinaryImages []BinaryImage  `json:"binary_images,omitempty"`
 	Framework    string         `json:"framework"`
-	Error        *Error         `json:"error"`
+	// Error stores metadata for Apple & non-fatal errors
+	//
+	// Deprecated: Use Code, NumCode & Meta instead.
+	Error *Error `json:"error"`
+	// NumCode represents the numeric error code.
+	NumCode int32 `json:"num_code"`
+	// Code represents the string error code.
+	Code string `json:"code"`
+	// Meta represents arbitrary metadata
+	// associated with the error.
+	Meta map[string]any `json:"meta"`
+	// IsCustom denotes if the error represents
+	// a user tracked error. For example: payment_failed
+	IsCustom bool     `json:"is_custom" binding:"required"`
+	Severity Severity `json:"severity" binding:"required"`
 }
 
 // Error represents a generic error object that occurred
@@ -348,12 +383,27 @@ type Exception struct {
 // extended for other OS/platform apps as well.
 type Error struct {
 	// NumCode represents the numeric error code.
+	//
+	// Deprecated: Use Exception.NumCode instead
 	NumCode int `json:"numcode"`
 	// Code represents the string error code.
+	//
+	// Deprecated: Use Exception.Code instead
 	Code string `json:"code"`
 	// Meta represents arbitrary metadata
 	// associated with the error.
+	//
+	// Deprecated: Use Exception.Meta instead
 	Meta map[string]any `json:"meta"`
+}
+
+// hasData returns true if the error has any data.
+func (e *Error) hasData() bool {
+	if e == nil {
+		return false
+	}
+
+	return e.Code != "" || e.NumCode != 0 || len(e.Meta) != 0
 }
 
 // BinaryImage represents each binary image
@@ -765,6 +815,27 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 				return fmt.Errorf("'exception.error.meta' JSON size (%d bytes) exceeds maximum allowed (%d bytes)", len(metaBytes), maxErrorMetaBytes)
 			}
 		}
+
+		// Validate Exception.Meta size if Meta is present in the exception
+		if e.Exception.Meta != nil {
+			metaBytes, err := json.Marshal(e.Exception.Meta)
+			if err != nil {
+				return fmt.Errorf("failed to marshal exception.meta for size validation: %w", err)
+			}
+			if len(metaBytes) > maxErrorMetaBytes {
+				return fmt.Errorf("'exception.meta' JSON size (%d bytes) exceeds maximum allowed (%d bytes)", len(metaBytes), maxErrorMetaBytes)
+			}
+		}
+
+		// Validate severity
+		if e.Exception.Severity != "" {
+			switch e.Exception.Severity {
+			case SeverityFatal, SeverityHandled, SeverityUnhandled:
+				return nil
+			default:
+				return fmt.Errorf(`%q must be one of (%s, %s, %s)`, `exception.severity`, SeverityFatal, SeverityHandled, SeverityUnhandled)
+			}
+		}
 	}
 
 	if e.IsAppExit() {
@@ -1105,10 +1176,10 @@ func (e EventField) IsException() bool {
 	return e.Type == TypeException
 }
 
-// IsUnhandledException returns true
-// for unhandled exception event.
-func (e EventField) IsUnhandledException() bool {
-	return e.Type == TypeException && !e.Exception.Handled
+// IsFatalException returns true for fatal
+// exception event.
+func (e EventField) IsFatalException() bool {
+	return e.IsException() && e.Exception.GetSeverity() == SeverityFatal
 }
 
 // IsCustom returns true for custom
@@ -1403,19 +1474,31 @@ func (e Exception) HasExceptions() bool {
 	return len(e.Exceptions) > 0
 }
 
-// HasError tells if the exception has an error.
+// HasError tells if the exception is an error.
+//
+// An exception may be an error if top-level fields
+// Code, NumCode, Meta is filled.
 // An AppleFamily Exception may optionally have
 // an associated Error.
 func (e Exception) HasError() bool {
-	if e.Error == nil {
-		return false
+	return e.Code != "" || e.NumCode != 0 || len(e.Meta) != 0 || (e.Error.hasData())
+}
+
+// GetMetaBytes returns the meta bytes of the exception.
+//
+// If the exception has a Meta field, it is marshaled
+// to JSON. If the exception has an Error field and
+// its Meta field is not nil, the Error's Meta field
+// is marshaled to JSON. Otherwise, an empty byte slice
+// is returned.
+func (e Exception) GetMetaBytes() (bytes []byte, err error) {
+	if e.Meta != nil {
+		return json.Marshal(e.Meta)
+	} else if e.Error != nil && e.Error.Meta != nil {
+		return json.Marshal(e.Error.Meta)
 	}
 
-	if e.Error.Code == "" && e.Error.NumCode == 0 && len(e.Error.Meta) == 0 {
-		return false
-	}
-
-	return true
+	return
 }
 
 // GetRelevantFrame finds and returns the first
@@ -1480,6 +1563,19 @@ func (e Exception) GetType() string {
 		// contains the type.
 		return e.Exceptions[0].Type
 	}
+}
+
+// GetSeverity provides the severity of
+// the exception.
+func (e Exception) GetSeverity() Severity {
+	if e.Severity == "" {
+		if e.Handled == false {
+			return SeverityFatal
+		} else if e.Handled == true {
+			return SeverityHandled
+		}
+	}
+	return e.Severity
 }
 
 // GetMessage provides the message of
