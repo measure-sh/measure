@@ -1,0 +1,118 @@
+name: Prepare iOS Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 0.9.0)'
+        required: true
+        type: string
+
+env:
+  XCODE_VERSION: '16.4'
+
+jobs:
+  prepare-release:
+    name: Prepare iOS SDK Release
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: .
+    permissions:
+      contents: write
+      pull-requests: write
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: 'main'
+          fetch-depth: 0
+          submodules: recursive
+          token: ${{ secrets.SDK_RELEASE }}
+
+      - name: Setup Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Switch to Xcode ${{ env.XCODE_VERSION }}
+        run: sudo xcode-select -switch /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      - name: Validate input version format
+        run: |
+          if ! [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-((alpha|beta)\.[0-9]+))?$ ]]; then
+            echo "Error: Version must match semantic versioning pattern:"
+            echo "  - x.y.z (e.g. 1.2.3)"
+            echo "  - x.y.z-alpha.N or x.y.z-beta.N"
+            echo "Got: ${{ inputs.version }}"
+            exit 1
+          fi
+
+      - name: Build Measure SDK
+        run: |
+          xcodebuild build \
+            -project ios/MeasureSDK.xcodeproj \
+            -scheme Measure \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2' \
+            ONLY_ACTIVE_ARCH=YES \
+            SKIP_TESTING=YES
+
+      - name: Run unit tests
+        run: |
+          xcodebuild test \
+            -project ios/MeasureSDK.xcodeproj \
+            -scheme MeasureSDKTests \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2' \
+            ONLY_ACTIVE_ARCH=YES \
+            -parallel-testing-enabled NO
+
+      - name: Update version in FrameworkInfo.swift
+        run: |
+          sed -i '' 's/static let version = ".*"/static let version = "${{ inputs.version }}"/' \
+            ios/Sources/MeasureSDK/Swift/FrameworkInfo.swift
+
+      - name: Update version in measure-sh.podspec
+        run: |
+          sed -E -i '' 's/(spec\.version[[:space:]]*=[[:space:]]*")[^"]*/\1${{ inputs.version }}/' \
+            measure-sh.podspec
+
+      - name: Update version in MeasureReactNative.podspec
+        run: |
+          sed -E -i '' 's/(s\.version[[:space:]]*=[[:space:]]*")[^"]*/\1${{ inputs.version }}/' \
+            react-native/MeasureReactNative.podspec
+
+      - name: Update version in docs
+        run: |
+          sed -E -i '' 's|(\.package\(url: "https://github\.com/measure-sh/measure\.git", branch: "ios-v)[^"]*|\1${{ inputs.version }}|g' \
+            docs/sdk-integration-guide.md
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: ios/cliff.toml
+          args: --output ios/CHANGELOG.md --tag ios-v${{ inputs.version }}
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.SDK_RELEASE }}
+          commit-message: "chore(ios): prepare sdk release ${{ inputs.version }}"
+          branch: ios-v${{ inputs.version }}
+          delete-branch: false
+          title: "chore(ios): prepare sdk release ${{ inputs.version }}"
+          body: |
+            This PR prepares the iOS SDK for release version ${{ inputs.version }}.
+
+            Changes:
+            - Updated version to ${{ inputs.version }} in FrameworkInfo.swift
+            - Updated version to ${{ inputs.version }} in measure-sh.podspec
+            - Updated version to ${{ inputs.version }} in MeasureReactNative.podspec
+            - Updated version in docs/sdk-integration-guide.md
+            - Generated changelog for version ${{ inputs.version }}
+          base: main
+          labels: ios
