@@ -23,6 +23,9 @@ final class BaseGestureTargetFinder: GestureTargetFinder {
             if className.contains("FlutterView") || className.contains("FlutterSemanticsScrollView") {
                 return (nil, nil, nil)
             }
+            if className.contains("androidx.compose") {
+                return (nil, nil, nil)
+            }
 
             if let targetData = searchSubviews(view: tappedView, tapPoint: tapPoint, window: window) {
                 if let target = targetData.target {
@@ -72,6 +75,10 @@ final class BaseGestureTargetFinder: GestureTargetFinder {
 
         if scrollableTypes.contains(where: { view.isKind(of: $0) }) {
             if String(describing: type(of: view)) == "FlutterSemanticsScrollView" {
+                return nil
+            }
+            
+            if String(describing: type(of: view)).contains("androidx.compose") {
                 return nil
             }
 

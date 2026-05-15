@@ -1,0 +1,49 @@
+name: KMP Checks
+
+on:
+  pull_request:
+    paths:
+      - 'kmp/**'
+      - '!docs/**'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'kmp/**'
+      - '!docs/**'
+
+env:
+  JAVA_VERSION: 17
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  kmp-checks:
+    name: KMP SDK checks
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: kmp/measure-kmp
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'gradle'
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v3
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Assemble
+        run: ./gradlew assemble --no-daemon --no-parallel --no-configuration-cache --stacktrace

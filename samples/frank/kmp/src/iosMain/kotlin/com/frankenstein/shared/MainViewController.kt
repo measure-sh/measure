@@ -2,4 +2,5 @@ package com.frankenstein.shared
 
 import androidx.compose.ui.window.ComposeUIViewController
 
-fun CmpViewController() = ComposeUIViewController { CmpScreen() }
+fun CmpViewController(onClose: () -> Unit) =
+    ComposeUIViewController { CmpScreen(onClose = onClose) }

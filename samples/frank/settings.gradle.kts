@@ -35,9 +35,9 @@ extensions.configure<ReactSettingsExtension> {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
-        // mavenLocal()
         google()
         mavenCentral()
+
 
         val storageUrl = System.getenv("FLUTTER_STORAGE_BASE_URL") ?: "https://storage.googleapis.com"
         maven(url = "$storageUrl/download.flutter.io")
@@ -60,9 +60,15 @@ val flutterSdkPath: String? = java.util.Properties().let { props ->
 }
 apply(from = "$flutterSdkPath/packages/flutter_tools/gradle/module_plugin_loader.gradle")
 
-includeBuild("../../android") {
-    name = "measure-android"
+includeBuild("../../android/measure-android") {
     dependencySubstitution {
         substitute(module("sh.measure:measure-android")).using(project(":measure"))
+    }
+}
+
+includeBuild("../../kmp/measure-kmp") {
+    name = "measure-kmp"
+    dependencySubstitution {
+        substitute(module("sh.measure:measure-kmp")).using(project(":"))
     }
 }

@@ -1,0 +1,69 @@
+name: Prepare Next KMP Version
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Next SNAPSHOT version (e.g., 0.2.0-SNAPSHOT)"
+        required: true
+        type: string
+
+jobs:
+  prepare-next:
+    name: Prepare Next Development Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: "main"
+          fetch-depth: 0
+          token: ${{ secrets.SDK_RELEASE }}
+
+      - name: Setup Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Validate input version format
+        run: |
+          if ! [[ ${{ inputs.version }} =~ ^[0-9]+\.[0-9]+\.[0-9]+-SNAPSHOT$ ]]; then
+            echo "Error: Version must match pattern x.y.z-SNAPSHOT (e.g. 1.2.3-SNAPSHOT)"
+            echo "Got: ${{ inputs.version }}"
+            exit 1
+          fi
+
+      - name: Update version in gradle.properties
+        run: |
+          sed -i "s/MEASURE_KMP_VERSION_NAME=.*/MEASURE_KMP_VERSION_NAME=${{ inputs.version }}/" kmp/measure-kmp/gradle.properties
+
+      - name: Verify changes
+        run: |
+          echo "Changes made:"
+          git diff --name-only
+          git diff
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.SDK_RELEASE }}
+          commit-message: "chore(kmp): prepare next development version ${{ inputs.version }}"
+          branch: prepare-next-kmp-${{ inputs.version }}
+          delete-branch: true
+          title: "chore(kmp): prepare next development version ${{ inputs.version }}"
+          body: |
+            This PR prepares the next development version of the KMP SDK.
+
+            **Changes:**
+            - Updated version to `${{ inputs.version }}` in gradle.properties
+
+            **Version:** ${{ inputs.version }}
+          base: main
+          labels: kmp
+          assignees: abhaysood
+          add-paths: |
+            kmp/measure-kmp/gradle.properties

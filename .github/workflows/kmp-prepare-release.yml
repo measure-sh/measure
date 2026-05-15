@@ -1,0 +1,75 @@
+name: Prepare KMP Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 0.1.0)'
+        required: true
+        type: string
+      next_version:
+        description: 'Next SNAPSHOT version (e.g., 0.2.0-SNAPSHOT)'
+        required: true
+        type: string
+
+jobs:
+  prepare-release:
+    name: Prepare KMP SDK Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: 'main'
+          fetch-depth: 0
+          token: ${{ secrets.SDK_RELEASE }}
+
+      - name: Setup Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Validate input version format
+        run: |
+          if ! [[ ${{ inputs.version }} =~ ^[0-9]+\.[0-9]+\.[0-9]+(-((alpha|beta)\.[0-9]+))?$ ]]; then
+            echo "Error: Version must match semantic versioning pattern:"
+            echo "  - x.y.z (e.g. 1.2.3)"
+            echo "Got: ${{ inputs.version }}"
+            exit 1
+          fi
+
+      - name: Update version in gradle.properties
+        run: |
+          sed -i "s/MEASURE_KMP_VERSION_NAME=.*/MEASURE_KMP_VERSION_NAME=${{ inputs.version }}/" kmp/measure-kmp/gradle.properties
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: kmp/measure-kmp/cliff.toml
+          args: --output kmp/CHANGELOG.md --tag kmp-v${{ inputs.version }}
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.SDK_RELEASE }}
+          commit-message: "chore(kmp): prepare sdk release ${{ inputs.version }}"
+          branch: kmp-v${{ inputs.version }}
+          delete-branch: false
+          title: "chore(kmp): prepare sdk release ${{ inputs.version }}"
+          body: |
+            This PR prepares the KMP SDK for release version ${{ inputs.version }}.
+
+            Changes:
+            - Updated version to ${{ inputs.version }} in gradle.properties
+            - Generated changelog for version ${{ inputs.version }}
+
+            <!-- release-meta
+            NEXT_VERSION=${{ inputs.next_version }}
+            -->
+          base: main
+          labels: kmp
+          assignees: abhaysood

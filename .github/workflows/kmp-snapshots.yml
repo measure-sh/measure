@@ -1,0 +1,61 @@
+name: Publish KMP SDK Snapshots
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'kmp/**'
+
+env:
+  JAVA_VERSION: 17
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  publish-snapshots:
+    name: Publish KMP SDK Snapshots
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kmp/measure-kmp
+    permissions:
+      contents: read
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: 'main'
+          fetch-depth: 1
+          submodules: recursive
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'gradle'
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v3
+
+      - name: Check if version is snapshot
+        id: check-snapshot
+        run: |
+          version=$(grep "MEASURE_KMP_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
+          if [[ "$version" == *"-SNAPSHOT" ]]; then
+            echo "is_snapshot=true" >> $GITHUB_OUTPUT
+            echo "version=$version" >> $GITHUB_OUTPUT
+          else
+            echo "is_snapshot=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Version $version is not a snapshot, skipping publish"
+          fi
+
+      - name: Publish Android snapshot to Central Portal
+        if: steps.check-snapshot.outputs.is_snapshot == 'true'
+        run: ./gradlew clean publishAndroidReleasePublicationToMavenCentralRepository publishKotlinMultiplatformPublicationToMavenCentralRepository --no-daemon --no-parallel --no-configuration-cache --stacktrace
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_ARTIFACT_SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_ARTIFACT_SIGNING_PASSWORD }}
