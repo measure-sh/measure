@@ -23,6 +23,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     private let configProvider: ConfigProvider
     private let bugReportConfig: BugReportConfig
     private let idProvider: IdProvider
+    private let systemFileManager: SystemFileManager
 
     private let imagesCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
@@ -47,13 +48,19 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     private var screenshotButtonTopToLabelConstraint: NSLayoutConstraint?
     private var galleryButtonTopToLabelConstraint: NSLayoutConstraint?
 
-    init(description: String?, attachments: [MsrAttachment] = [], configProvider: ConfigProvider, bugReportConfig: BugReportConfig, idProvider: IdProvider) {
+    init(description: String?,
+         attachments: [MsrAttachment] = [],
+         configProvider: ConfigProvider,
+         bugReportConfig: BugReportConfig,
+         idProvider: IdProvider,
+         systemFileManager: SystemFileManager) {
         self.textView.text = description
         placeholderLabel.isHidden = !textView.text.isEmpty
         self.attachments = attachments
         self.configProvider = configProvider
         self.bugReportConfig = bugReportConfig
         self.idProvider = idProvider
+        self.systemFileManager = systemFileManager
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -120,12 +127,12 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     @objc private func sentTapped() {
         guard !textView.text.isEmpty && !attachments.isEmpty else { return }
         self.dismiss(animated: true) { [weak self] in
-            guard let delegate = self?.delegate,
-                  let text = self?.textView.text,
+            guard let self,
+                  let delegate = self.delegate,
+                  let text = self.textView.text,
                   !text.isEmpty,
-                  let attachment = self?.attachments,
-                  !attachment.isEmpty else { return }
-            delegate.bugReportingViewControllerDidDismiss(text, attachments: attachment)
+                  !self.attachments.isEmpty else { return }
+            delegate.bugReportingViewControllerDidDismiss(text, attachments: self.attachments)
         }
     }
 
@@ -206,8 +213,8 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     @objc private func screenshotButtonTapped() {
         // Dismiss and notify delegate
         self.dismiss(animated: true) { [weak self] in
-            guard let self = self else { return }
-            self.delegate?.bugReportingViewControllerDidRequestScreenshot(textView.text, attachments: self.attachments)
+            guard let self = self, let delegate = delegate else { return }
+            delegate.bugReportingViewControllerDidRequestScreenshot(textView.text, attachments: self.attachments)
         }
     }
 
@@ -370,12 +377,20 @@ extension BugReportingViewController: UICollectionViewDataSource {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ImageCell", for: indexPath) as? BugReportImageCell else {
             return UICollectionViewCell()
         }
-        if let data = attachments[indexPath.item].bytes, let image = UIImage(data: data) {
+        var imageData = attachments[indexPath.item].bytes
+        if imageData == nil, let path = attachments[indexPath.item].path {
+            imageData = systemFileManager.retrieveFile(atPath: path)
+        }
+        if let data = imageData, let image = UIImage(data: data) {
             cell.configure(with: image, isDarkModeEnabled: false)
             cell.onDelete = { [weak self] in
-                self?.attachments.remove(at: indexPath.item)
+                guard let self = self else { return }
+                if let path = self.attachments[indexPath.item].path {
+                    self.systemFileManager.deleteFile(atPath: path)
+                }
+                self.attachments.remove(at: indexPath.item)
                 collectionView.reloadData()
-                self?.updateActionButtonsState()
+                self.updateActionButtonsState()
             }
         }
         return cell

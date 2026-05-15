@@ -39,8 +39,10 @@ final class AccelerometerShakeDetector: ShakeDetector {
             if gForce > Double(self.configProvider.shakeAccelerationThreshold),
                Date().timeIntervalSince(self.lastShakeTime) > Double(self.configProvider.shakeMinTimeIntervalMs) / 1000 {
                 self.lastShakeTime = Date()
-                DispatchQueue.main.async {
-                    self.listener?.onShake()
+                if let listener = listener {
+                    DispatchQueue.main.async {
+                        listener.onShake()
+                    }
                 }
             }
         }

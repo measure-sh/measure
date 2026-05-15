@@ -351,7 +351,8 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                            userPermissionManager: self.userPermissionManager)
         self.bugReportManager = bugReportManager ?? BaseBugReportManager(screenshotGenerator: self.screenshotGenerator,
                                                      configProvider: self.configProvider,
-                                                     idProvider: self.idProvider)
+                                                                         idProvider: self.idProvider,
+                                                                         systemFileManager: self.systemFileManager)
 
         self.bugReportCollector = bugReportCollector ?? BaseBugReportCollector(bugReportManager: self.bugReportManager,
                                                          signalProcessor: self.signalProcessor,

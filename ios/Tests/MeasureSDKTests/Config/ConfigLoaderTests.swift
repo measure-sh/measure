@@ -59,7 +59,8 @@ final class ConfigLoaderTests: XCTestCase {
     }
 
     func testLoadDynamicConfig_returnsDefault_whenInvalidJSON() {
-        mockFileManager.savedFiles["config/config.json"] = Data("{ invalid".utf8)
+        let configKey = "\(ConfigFileConstants.folderName)/\(ConfigFileConstants.dynamicConfigFolderName)/\(ConfigFileConstants.fileName)"
+        mockFileManager.savedFiles[configKey] = Data("{ invalid".utf8)
 
         let exp = expectation(description: "loaded")
 
@@ -75,7 +76,8 @@ final class ConfigLoaderTests: XCTestCase {
         let expected = BaseDynamicConfig()
         let data = try JSONEncoder().encode(expected)
 
-        mockFileManager.savedFiles["config/config.json"] = data
+        let configKey = "\(ConfigFileConstants.folderName)/\(ConfigFileConstants.dynamicConfigFolderName)/\(ConfigFileConstants.fileName)"
+        mockFileManager.savedFiles[configKey] = data
 
         // Cache NOT expired
         mockUserDefaults.configFetchTimestamp = 1000
@@ -116,7 +118,7 @@ final class ConfigLoaderTests: XCTestCase {
 
         configLoader.loadDynamicConfig { _ in }
 
-        let key = "\(ConfigFileConstants.folderName)/\(ConfigFileConstants.fileName)"
+        let key = "\(ConfigFileConstants.folderName)/\(ConfigFileConstants.dynamicConfigFolderName)/\(ConfigFileConstants.fileName)"
         let saved = try XCTUnwrap(mockFileManager.savedFiles[key])
         let decoded = try JSONDecoder().decode(BaseDynamicConfig.self, from: saved)
 
@@ -180,6 +182,37 @@ final class ConfigLoaderTests: XCTestCase {
         configLoader.loadDynamicConfig { _ in }
 
         XCTAssertNil(mockNetworkClient.lastETag)
+    }
+
+    // MARK: - Folder structure
+
+    func test_saveConfigToDisk_savesUnderDynamicConfigSubfolder() {
+        setupCacheExpired()
+        mockNetworkClient.stubConfig(.success(config: BaseDynamicConfig(), eTag: "etag", cacheControl: 3600))
+
+        configLoader.loadDynamicConfig { _ in }
+
+        let expectedKey = "\(ConfigFileConstants.folderName)/\(ConfigFileConstants.dynamicConfigFolderName)/\(ConfigFileConstants.fileName)"
+        XCTAssertNotNil(mockFileManager.savedFiles[expectedKey])
+    }
+
+    func test_loadConfigFromDisk_readsFromDynamicConfigSubfolder() throws {
+        let expected = BaseDynamicConfig()
+        let data = try JSONEncoder().encode(expected)
+        let configKey = "\(ConfigFileConstants.folderName)/\(ConfigFileConstants.dynamicConfigFolderName)/\(ConfigFileConstants.fileName)"
+        mockFileManager.savedFiles[configKey] = data
+        mockUserDefaults.configFetchTimestamp = 1000
+        mockUserDefaults.configCacheControl = 10_000
+        mockTimeProvider.current = 2000
+
+        let exp = expectation(description: "loaded")
+        configLoader.loadDynamicConfig { loaded in
+            let result = loaded as? BaseDynamicConfig
+            self.assertConfigsEqual(result, expected)
+            exp.fulfill()
+        }
+
+        wait(for: [exp], timeout: 1)
     }
 
     // MARK: - Helpers
