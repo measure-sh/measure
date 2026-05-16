@@ -77,11 +77,6 @@ export default function Login({
         name: session.user.name,
         plan: "free",
       });
-      window.Reo?.identify({
-        username: session.user.email,
-        type: "email",
-        firstname: session.user.name,
-      });
     }
     setLoading(false);
   };
