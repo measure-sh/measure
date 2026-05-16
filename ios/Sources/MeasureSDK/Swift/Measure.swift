@@ -715,7 +715,7 @@ extension Measure {
     }
 
     /// Returns the W3C traceparent header value for the given span. For use from Objective-C.
-    /// - Parameter span: The `MsrObjCSpan` to extract the traceparent header value from.
+    /// - Parameter objcSpan: The `MsrObjCSpan` to extract the traceparent header value from.
     /// - Returns: A W3C trace context compliant header value in the format: `{version}-{traceId}-{spanId}-{traceFlags}`
     ///
     /// In Swift, use `getTraceParentHeaderValue(span:)` which accepts the `Span` protocol directly.
