@@ -9,12 +9,14 @@ import { underlineLinkStyle } from "../utils/shared_styles";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "What Measure does with your data, how we collect it and how we store it. Open source so you can audit it yourself.",
+  description:
+    "What Measure does with your data, how we collect it and how we store it. Open source so you can audit it yourself.",
   alternates: { canonical: "/privacy-policy" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Privacy Policy",
-    description: "What Measure does with your data, how we collect it and how we store it. Open source so you can audit it yourself.",
+    description:
+      "What Measure does with your data, how we collect it and how we store it. Open source so you can audit it yourself.",
     url: "/privacy-policy",
   },
 };
@@ -29,9 +31,7 @@ export default function PrivacyPolicy() {
         <div className="max-w-6xl mx-auto px-4 py-8 font-body">
           {/* Header */}
           <h1 className="text-5xl font-display mb-2">Privacy Policy</h1>
-          <p className="text-muted-foreground mb-8">
-            Updated: September 10, 2025
-          </p>
+          <p className="text-muted-foreground mb-8">Updated: May 16, 2026</p>
 
           {/* Introduction */}
           <p className="mb-4 text-justify text-lg">
@@ -260,9 +260,9 @@ export default function PrivacyPolicy() {
           <p className="mb-4 text-justify text-lg">
             We use Cookies and similar tracking technologies to track the
             activity on our Service and store certain information. Tracking
-            technologies used are beacons, tags and scripts to collect and
-            track information and to improve and analyze our Service. The
-            technologies we use may include:
+            technologies used are beacons, tags and scripts to collect and track
+            information and to improve and analyze our Service. The technologies
+            we use may include:
           </p>
 
           <ul className="list-disc ml-6 mb-6 space-y-3 text-lg">
@@ -278,24 +278,16 @@ export default function PrivacyPolicy() {
             <li className="text-justify">
               <strong>Web Beacons.</strong> Certain sections of our Service and
               our emails may contain small electronic files known as web beacons
-              (also referred to as clear gifs, pixel tags and single-pixel
-              gifs) that permit the Company, for example, to count users who
-              have visited those pages or opened an email and for other related
+              (also referred to as clear gifs, pixel tags and single-pixel gifs)
+              that permit the Company, for example, to count users who have
+              visited those pages or opened an email and for other related
               website statistics (for example, recording the popularity of a
               certain section and verifying system and server integrity).
             </li>
           </ul>
 
           <p className="mb-4 text-justify text-lg">
-            Cookies can be &quot;Persistent&quot; or &quot;Session&quot;
-            Cookies. Persistent Cookies remain on your personal computer or
-            mobile device when you go offline, while Session Cookies are deleted
-            as soon as you close your web browser.
-          </p>
-
-          <p className="mb-4 text-justify text-lg">
-            We use both Session and Persistent Cookies for the purposes set out
-            below:
+            The Cookies we use fall into the following categories:
           </p>
 
           <div className="mb-6 space-y-4 text-lg">
@@ -303,41 +295,45 @@ export default function PrivacyPolicy() {
               <h4 className="font-semibold mb-2">
                 Necessary / Essential Cookies
               </h4>
-              <p className="mb-1">
-                <strong>Type:</strong> Session Cookies
-              </p>
-              <p className="mb-1">
-                <strong>Administered by:</strong> Us
-              </p>
               <p className="text-justify">
-                <strong>Purpose:</strong> These Cookies are essential to provide
-                you with services available through the Website and to enable
-                you to use some of its features. They help to authenticate users
-                and prevent fraudulent use of user accounts. Without these
-                Cookies, the services that you have asked for cannot be
-                provided, and we only use these Cookies to provide you with
-                those services.
+                These Cookies are essential to provide you with services
+                available through the Website and to enable you to use some of
+                its features. They help to authenticate users and prevent
+                fraudulent use of user accounts. Without these Cookies, the
+                services that you have asked for cannot be provided, and we only
+                use these Cookies to provide you with those services.
               </p>
             </div>
 
             <div>
-              <h4 className="font-semibold mb-2">Functionality Cookies</h4>
-              <p className="mb-1">
-                <strong>Type:</strong> Persistent Cookies
-              </p>
-              <p className="mb-1">
-                <strong>Administered by:</strong> Us
-              </p>
+              <h4 className="font-semibold mb-2">Analytics Cookies</h4>
               <p className="text-justify">
-                <strong>Purpose:</strong> These Cookies allow us to remember
-                choices you make when you use the Website, such as remembering
-                your login details or language preference. The purpose of these
-                Cookies is to provide you with a more personal experience and to
-                avoid you having to re-enter your preferences every time you use
-                the Website.
+                These Cookies help us understand how visitors use the Website —
+                which pages are visited and how the product is used — so that we
+                can improve it. They are only set if you accept analytics
+                cookies.
+              </p>
+            </div>
+
+            <div>
+              <h4 className="font-semibold mb-2">Marketing Cookies</h4>
+              <p className="text-justify">
+                These Cookies support our advertising. They let us measure how
+                our advertising campaigns perform and reach people who have
+                shown interest in Measure. They are only set if you accept
+                marketing cookies.
               </p>
             </div>
           </div>
+
+          <p className="mb-4 text-justify text-lg">
+            Analytics and Marketing Cookies are only set after you give consent
+            through our cookie banner. You can review or withdraw your consent
+            at any time using the &quot;Cookie Preferences&quot; link in the
+            Website footer. We use a third-party consent management platform to
+            display the cookie banner and to store a record of your consent
+            choices.
+          </p>
 
           {/* Use of Your Personal Data */}
           <h2 className="text-3xl font-display mt-12 mb-4">

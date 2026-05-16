@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { useConsentManager } from "@c15t/nextjs";
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { isCloud } from "../utils/env_utils";
-import { useCookieConsent } from "./cookie_consent";
 
 const createNoopPostHog = () =>
   ({
@@ -32,7 +32,8 @@ export function PostHogProvider({
   const apiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY;
   const host =
     process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
-  const { consent, hydrated } = useCookieConsent();
+  const { has } = useConsentManager();
+  const measurementGranted = has("measurement");
 
   const shouldInit = isCloud() && !!apiKey;
   const [initialized, setInitialized] = useState(false);
@@ -46,20 +47,23 @@ export function PostHogProvider({
         defaults: "2025-05-24",
         cookieless_mode: "on_reject",
       });
+      // Stay opted out until c15t resolves measurement consent below; with
+      // cookieless_mode "on_reject" this keeps capture cookieless meanwhile.
+      posthog.opt_out_capturing();
       setInitialized(true);
     }
   }, [shouldInit, initialized, apiKey, host, proxyPath]);
 
   useEffect(() => {
-    if (!shouldInit || !initialized || !hydrated) {
+    if (!shouldInit || !initialized) {
       return;
     }
-    if (consent === "granted") {
+    if (measurementGranted) {
       posthog.opt_in_capturing();
     } else {
       posthog.opt_out_capturing();
     }
-  }, [shouldInit, initialized, hydrated, consent]);
+  }, [shouldInit, initialized, measurementGranted]);
 
   const client = useMemo(
     () => (shouldInit ? posthog : createNoopPostHog()),
