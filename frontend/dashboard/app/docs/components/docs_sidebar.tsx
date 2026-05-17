@@ -229,7 +229,7 @@ export default function DocsAppSidebar() {
                     setIsSearchOpen(true);
                   }}
                 />
-                <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded pointer-events-none">
+                <kbd className="absolute right-3 top-1/2 -translate-y-1/2 font-sans text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded pointer-events-none">
                   &#8984;K
                 </kbd>
               </div>
