@@ -57,15 +57,13 @@ export default function DocPage({ params }: PageProps) {
   return (
     <>
       <article className="min-w-0 flex-1">
-        <div className="prose-custom">
-          <Markdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw, rehypeSlug]}
-            components={createMarkdownComponents(params.slug, doc.isIndex)}
-          >
-            {doc.content}
-          </Markdown>
-        </div>
+        <Markdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw, rehypeSlug]}
+          components={createMarkdownComponents(params.slug, doc.isIndex)}
+        >
+          {doc.content}
+        </Markdown>
         <DocsNavLinks currentSlug={`/docs/${params.slug.join("/")}`} />
       </article>
       <DocsToc entries={tocEntries} />
