@@ -146,7 +146,7 @@ export default function LandingHeader() {
               className="w-4 h-4 hidden dark:block group-hover:block"
               alt={"GitHub logo"}
             />
-            <span className="mt-0.5">1.2k</span>
+            <span className="mt-0.5">1.3k</span>
           </Link>
           <div className="px-1" />
           <Link
