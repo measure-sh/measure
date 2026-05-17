@@ -59,7 +59,6 @@ in later steps.
 Add the API URL & API Key to your application's `AndroidManifest.xml` file.
 
 ```xml
-
 <application>
     <meta-data android:name="sh.measure.android.API_KEY" android:value="YOUR_API_KEY"/>
     <meta-data android:name="sh.measure.android.API_URL" android:value="YOUR_API_URL"/>
