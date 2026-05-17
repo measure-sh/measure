@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Prevent occasional panic in apple symbolication (#3628) by @detj in #3628
+- (**backend**): Group crashes by fingerprint, ignore app version  (#3631) by @abhaysood in #3631
 - (**backend**): Journey api fails sometimes (#3586) by @detj in #3586
 - (**backend**): Preserve casing of app's unique id on onboard (#3542) by @detj in #3542
 - (**backend**): App versions may not appear properly sorted (#3540) by @detj in #3540
@@ -27,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Expand sidebar docs section when child is open by @anupcowkur in #3633
+- (**frontend**): Skip hosting guide on slack error for non cloud users by @anupcowkur
 - (**frontend**): Hydrate teams cache on create to fix post-nav crash by @anupcowkur in #3622
 - (**frontend**): Iterate HTML tag strip to drain nested-tag residue by @anupcowkur in #3617
 - (**frontend**): Pin pricing calculator locale and widen slider ranges by @anupcowkur in #3596
@@ -66,6 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Show non-blocking msg on no apps in usage by @anupcowkur in #3625
+- (**frontend**): Refactor filters by @anupcowkur
 - (**frontend**): Add highlights to stacktraces & common path by @anupcowkur in #3618
 - (**frontend**): Improve docs by @anupcowkur
 - (**frontend**): Update titles & descriptions for docs + website pages by @anupcowkur in #3616
@@ -107,6 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- Remove FAQ, data retention, contributing and versioning pages by @anupcowkur
 - Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3587
 - Update README.md [skip ci] by @allcontributors[bot]
 - Use screenshots in README by @anupcowkur in #3584
