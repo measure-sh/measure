@@ -119,7 +119,7 @@ export default function FeatureDemoCarousel() {
         />
       </div>
       <div className="py-2 md:py-4" />
-      <p className="text-lg leading-relaxed font-body md:w-5xl text-justify px-4">
+      <p className="text-lg font-body md:w-5xl text-justify px-4">
         {features[featureIndex].description}
       </p>
       <div className="py-2 md:py-4" />

@@ -40,7 +40,7 @@ export default function Pricing() {
         <h1 className="text-6xl font-display">Pricing</h1>
 
         <div className="py-8" />
-        <p className="text-lg leading-relaxed font-body md:w-6xl text-justify px-4">
+        <p className="text-lg font-body md:w-6xl text-justify px-4">
           Simple pricing based on the data used. No stressing over seat limits.
           No need to buy artificial bundles of crashes and spans - just track
           what you need to get to the root cause faster.

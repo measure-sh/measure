@@ -29,7 +29,7 @@ export default function ProductBugReports() {
           Bug Reports
         </h1>
         <div className="py-2" />
-        <p className="text-lg leading-relaxed font-body md:w-6xl text-justify px-4">
+        <p className="text-lg font-body md:w-6xl text-justify px-4">
           Empower your users to report issues directly from your app with a
           device shake or using your own custom button.
           <br />

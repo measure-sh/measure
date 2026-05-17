@@ -177,7 +177,7 @@ export function createMarkdownComponents(currentSlug: string[], isIndex = false)
       </h4>
     ),
     p: ({ children }) => (
-      <p className="font-body leading-7 mb-4">
+      <p className="font-body leading-relaxed mb-4">
         {children}
       </p>
     ),
@@ -226,7 +226,7 @@ export function createMarkdownComponents(currentSlug: string[], isIndex = false)
       </ol>
     ),
     li: ({ children }) => (
-      <li className="leading-7">
+      <li className="leading-relaxed">
         {children}
       </li>
     ),
@@ -284,13 +284,13 @@ export function createMarkdownComponents(currentSlug: string[], isIndex = false)
             <CodeBlock
               code={code}
               language={language}
-              className="font-code text-sm rounded-lg overflow-hidden my-4 [&_pre]:p-4 [&_pre]:overflow-x-auto"
+              className="font-code text-sm leading-relaxed rounded-lg overflow-hidden my-4 [&_pre]:p-4 [&_pre]:overflow-x-auto"
             />
           );
         }
       }
       return (
-        <pre className="font-code bg-muted rounded-lg p-4 my-4 overflow-x-auto text-sm">
+        <pre className="font-code bg-muted rounded-lg p-4 my-4 overflow-x-auto text-sm leading-relaxed">
           {children}
         </pre>
       );

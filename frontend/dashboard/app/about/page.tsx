@@ -111,11 +111,11 @@ export default function About() {
       <div className="flex flex-col items-center w-full">
         {/* Main description */}
         <div className="py-16" />
-        <h1 className="text-5xl font-display leading-relaxed md:w-6xl px-4">
+        <h1 className="text-5xl font-display md:w-6xl px-4">
           For mobile engineers, by mobile engineers
         </h1>
         <div className="py-4" />
-        <p className="text-lg leading-relaxed font-body md:w-6xl text-justify px-4">
+        <p className="text-lg font-body md:w-6xl text-justify px-4">
           We built Measure to solve the unique challenges mobile developers face
           in monitoring production apps.
           <br />
