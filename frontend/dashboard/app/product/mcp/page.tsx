@@ -27,7 +27,7 @@ export default function ProductMCP() {
         <div className="py-16" />
         <h1 className="text-6xl font-display w-full md:w-6xl px-4">MCP</h1>
         <div className="py-2" />
-        <p className="text-lg leading-relaxed font-body md:w-6xl text-justify px-4">
+        <p className="text-lg font-body md:w-6xl text-justify px-4">
           Connect Measure with your favorite coding agents through the Model
           Context Protocol.
           <br />

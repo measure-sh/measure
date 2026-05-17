@@ -29,7 +29,7 @@ export default function ProductUserJourneys() {
           User Journeys
         </h1>
         <div className="py-2" />
-        <p className="text-lg leading-relaxed font-body md:w-6xl text-justify px-4">
+        <p className="text-lg font-body md:w-6xl text-justify px-4">
           See the full picture of user behavior with beautiful flow diagrams
           that reveal the actual paths users take through your app.
           <br />

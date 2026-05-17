@@ -29,7 +29,7 @@ export default function ProductAdaptiveCapture() {
           Adaptive Capture
         </h1>
         <div className="py-2" />
-        <p className="text-lg leading-relaxed font-body md:w-6xl text-justify px-4">
+        <p className="text-lg font-body md:w-6xl text-justify px-4">
           Most monitoring data is never read but ends up inflating your costs
           💰. Adaptive Capture lets you capture what matters based on changing
           needs.

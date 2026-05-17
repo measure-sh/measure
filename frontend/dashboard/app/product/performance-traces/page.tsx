@@ -31,7 +31,7 @@ export default function ProductPerformanceTraces() {
           Performance Traces
         </h1>
         <div className="py-2" />
-        <p className="text-lg leading-relaxed font-body md:w-6xl text-justify px-4">
+        <p className="text-lg font-body md:w-6xl text-justify px-4">
           Measure exactly what matters for your app&apos;s user experience by
           instrumenting critical operations in your codebase.
           <br />

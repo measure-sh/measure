@@ -180,7 +180,7 @@ interface ExceptionsDetailsProps {
 }
 
 const stackTraceCodeBlockClassName =
-  "font-code text-sm leading-5.5 rounded-sm overflow-hidden [&_pre]:p-4 [&_pre]:overflow-x-auto";
+  "font-code text-sm leading-relaxed rounded-sm overflow-hidden [&_pre]:p-4 [&_pre]:overflow-x-auto";
 
 export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
   exceptionsType = ExceptionsType.Crash,

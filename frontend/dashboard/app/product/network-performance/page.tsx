@@ -29,7 +29,7 @@ export default function ProductNetworkPerformance() {
           Network Performance
         </h1>
         <div className="py-2" />
-        <p className="text-lg leading-relaxed font-body md:w-6xl text-justify px-4">
+        <p className="text-lg font-body md:w-6xl text-justify px-4">
           Monitor the health and performance of every network request your app
           makes. Instantly see HTTP status code distributions over time, giving
           you a clear picture of how your API layer is performing at a glance.

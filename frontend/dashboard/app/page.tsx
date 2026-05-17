@@ -110,7 +110,7 @@ export default function Home() {
       <div className="flex flex-col items-center w-full">
         {/* Hero */}
         <div className="py-24" />
-        <h1 className="text-4xl leading-relaxed font-display md:w-4xl text-center px-4">
+        <h1 className="text-4xl font-display md:w-4xl text-center px-4">
           Mobile apps <HandDrawnUnderline color="red">break</HandDrawnUnderline>
           , get to the{" "}
           <HandDrawnUnderline color="yellow">root cause</HandDrawnUnderline>{" "}
@@ -121,7 +121,7 @@ export default function Home() {
 
         {/* Main description */}
         <div className="py-8 md:py-14" />
-        <h2 className="text-xl leading-relaxed font-body md:w-4xl text-center px-4">
+        <h2 className="text-xl font-body md:w-4xl text-center px-4">
           Complete Mobile App Monitoring platform with Crash Reporting, ANR
           Tracking, Bug Reporting, Performance Tracing, Logging and more!
           <br />
@@ -269,7 +269,7 @@ export default function Home() {
             Collect what you need, Only when you need it
           </h2>
           <div className="py-4" />
-          <p className="text-lg leading-relaxed font-body text-justify max-w-4xl px-4">
+          <p className="text-lg font-body text-justify max-w-4xl px-4">
             Most monitoring data rots away in a warehouse and runs up your costs
             💰. Our{" "}
             <Link
@@ -293,7 +293,7 @@ export default function Home() {
             Intelligent debugging, Seamless integration
           </h2>
           <div className="py-4" />
-          <p className="text-lg leading-relaxed font-body text-justify max-w-4xl px-4">
+          <p className="text-lg font-body text-justify max-w-4xl px-4">
             Connect Measure with your favorite coding agents through our{" "}
             <Link href="/product/mcp" className={underlineLinkStyle}>
               MCP
@@ -371,7 +371,7 @@ export default function Home() {
             Built For Mobile Devs
           </h2>
           <div className="py-2" />
-          <p className="text-lg leading-relaxed font-body md:w-4xl text-justify px-4">
+          <p className="text-lg font-body md:w-4xl text-justify px-4">
             For us, Mobile is not an add-on to an observability product. It{" "}
             <b>is</b> the product. Measure is built by mobile engineers, for
             mobile engineers.
