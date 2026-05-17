@@ -16,8 +16,8 @@ const config: Config = {
         body: ['var(--font-work-sans)'],
         code: ['var(--font-fira-code)'],
       },
-      // text-5xl and up default to line-height 1; pair them with a
-      // tighter-but-safe value so wrapped headings don't collide.
+      // text-5xl and up ship with line-height 1, too tight when a heading
+      // wraps; these line-heights give wrapped lines room to breathe.
       fontSize: {
         '5xl': ['3rem', { lineHeight: '1.1' }],
         '6xl': ['3.75rem', { lineHeight: '1.1' }],
