@@ -39,15 +39,13 @@ export default function DocsIndexPage() {
   return (
     <>
       <article className="min-w-0 flex-1">
-        <div className="prose-custom">
-          <Markdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeSlug]}
-            components={createMarkdownComponents([], true)}
-          >
-            {doc.content}
-          </Markdown>
-        </div>
+        <Markdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeSlug]}
+          components={createMarkdownComponents([], true)}
+        >
+          {doc.content}
+        </Markdown>
         <DocsNavLinks currentSlug="/docs" />
       </article>
       <DocsToc entries={tocEntries} />
