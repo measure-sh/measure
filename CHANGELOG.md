@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Match cmd and K sizes in docs search by @anupcowkur
+- (**frontend**): Remove unused prose-custom class by @anupcowkur
 - (**frontend**): Expand sidebar docs section when child is open by @anupcowkur in #3633
 - (**frontend**): Skip hosting guide on slack error for non cloud users by @anupcowkur
 - (**frontend**): Hydrate teams cache on create to fix post-nav crash by @anupcowkur in #3622
@@ -70,6 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Improve line height comment by @anupcowkur in #3635
+- (**frontend**): Improve line heights by @anupcowkur
 - (**frontend**): Update header star count by @anupcowkur in #3634
 - (**frontend**): Show non-blocking msg on no apps in usage by @anupcowkur in #3625
 - (**frontend**): Refactor filters by @anupcowkur
@@ -114,6 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- Remove empty line in code snippet by @anupcowkur
 - Remove FAQ, data retention, contributing and versioning pages by @anupcowkur
 - Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3587
 - Update README.md [skip ci] by @allcontributors[bot]
