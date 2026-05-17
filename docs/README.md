@@ -10,17 +10,13 @@ description: "Measure documentation. SDK integration, features, self-hosting and
 * [**Integrate the SDK**](#integrate-the-sdk) — Set up the measure-sh SDK in your mobile app
 * [**Explore Features**](#explore-features) — Discover all available features
 * [**Configuration Options**](#configuration-options) — Customize SDK behavior
-* [**Data Retention**](#data-retention) — Techniques to manage data collection and storage costs
 * [**Performance Impact**](#performance-impact) — Assess the SDK's impact on app performance
 * [**SDK Upgrade Guides**](sdk-upgrade-guides/README.md) — Upgrade to the latest SDK versions for Android and iOS
 
 **Further Reading**
 
-* [**Self-Hosting Guide**](hosting/README.md) - Host measure-sh on your own
+* [**Self-Hosting Guide**](hosting/README.md) - Host measure-sh on your own infrastructure (best for small and hobby projects)
 * [**API Documentation**](api/README.md) - APIs that various Measure SDKs use
-* [**FAQs**](faqs.md) - Frequently asked questions
-* [**Versioning Guide**](versioning/README.md) - Understand how versions are tagged
-* [**Contribution Guide**](CONTRIBUTING.md) - Contribute to Measure
 
 # Integrate the SDK
 
@@ -71,12 +67,7 @@ available in two ways:
 
 Read more about [Configuration Options](features/configuration-options.md).
 
-# Data Retention
-
-To limit the time for which data is retained on the server. This helps balance data quality with storage costs. Read 
-the following pages for more information [Data Retention](features/feature-data-retention.md).
-
 # Performance Impact
 
 Read the [Performance Impact](features/performance-impact.md) documentation to understand how the SDK affects your app's
-performance and how to measure it.
+performance.
