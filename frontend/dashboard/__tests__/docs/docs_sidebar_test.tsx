@@ -164,6 +164,18 @@ describe('DocsAppSidebar', () => {
             expect(screen.getByText('Crash Reporting')).toBeInTheDocument()
         })
 
+        it('expands a collapsed parent when navigation activates a child', () => {
+            mockPathname = '/docs'
+            const { rerender } = render(<DocsAppSidebar />)
+            // Features starts collapsed — nothing under it is active
+            expect(screen.queryByText('Crash Reporting')).not.toBeInTheDocument()
+
+            // Client-side navigation: pathname changes, sidebar does not remount
+            mockPathname = '/docs/features/crash-reporting'
+            rerender(<DocsAppSidebar />)
+            expect(screen.getByText('Crash Reporting')).toBeInTheDocument()
+        })
+
         it('marks active child link', () => {
             mockPathname = '/docs/features/crash-reporting'
             render(<DocsAppSidebar />)

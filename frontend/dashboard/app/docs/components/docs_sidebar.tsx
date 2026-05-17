@@ -21,7 +21,7 @@ import { ChevronRight, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DocsSearch from "./docs_search";
 
 function NavSection({ item }: { item: NavItem }) {
@@ -61,6 +61,15 @@ function CollapsibleNavItem({
   defaultOpen: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  // Re-expand when client-side navigation makes a child the active page —
+  // the sidebar persists across docs routes, so the useState seed alone
+  // would stay stale.
+  useEffect(() => {
+    if (defaultOpen) {
+      setIsOpen(true);
+    }
+  }, [defaultOpen]);
 
   return (
     <SidebarMenuItem>
@@ -121,6 +130,15 @@ function CollapsibleSubItem({
   defaultOpen: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  // Re-expand when client-side navigation makes a child the active page —
+  // the sidebar persists across docs routes, so the useState seed alone
+  // would stay stale.
+  useEffect(() => {
+    if (defaultOpen) {
+      setIsOpen(true);
+    }
+  }, [defaultOpen]);
 
   return (
     <SidebarMenuSubItem>
