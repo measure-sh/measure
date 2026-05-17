@@ -406,6 +406,13 @@ Typically, there are 2 kinds of environment variables in the dashboard nextjs ap
     clickhouse_dsn = "clickhouse://..."
     ```
 
+## Versioning
+
+We use git tags and [semver](https://semver.org/) for versioning.
+
+- Platform releases (Backend + Dashboard) are tagged in the following format: `v1.0.0`
+- SDK releases are tagged with platform specific prefixes: `android-v1.0.0`, `android-gradle-plugin-v1.0.0`, `ios-v1.0.0` and so on
+
 ## Release process
 
 To trigger a release, create a signed git tag using [git-cliff](https://git-cliff.org/) and push the tag. Here's a one liner.

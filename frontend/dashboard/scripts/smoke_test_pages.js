@@ -96,11 +96,7 @@ const LEGAL_URLS = ["/privacy-policy", "/terms-of-service"];
 const DOCS_URLS = [
   "/docs",
   "/docs/sdk-integration-guide",
-  "/docs/faqs",
-  "/docs/versioning",
-  "/docs/CONTRIBUTING",
   "/docs/features/configuration-options",
-  "/docs/features/feature-data-retention",
   "/docs/features/performance-impact",
   "/docs/features/feature-session-timelines",
   "/docs/features/feature-crash-reporting",

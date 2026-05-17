@@ -469,6 +469,15 @@ if (require.main === module) {
 
   const effectiveDocsDir = contentDest;
 
+  // CONTRIBUTING.md stays in docs/ for the open-source repo (GitHub surfaces
+  // it from there) but is not part of the published docs site. Drop it from
+  // the build input so it produces no page, nav entry, search hit, or
+  // sitemap URL — every downstream step reads from content/docs/.
+  const excludedDoc = path.join(effectiveDocsDir, "CONTRIBUTING.md");
+  if (fs.existsSync(excludedDoc)) {
+    fs.rmSync(excludedDoc);
+  }
+
   // Copy assets to public/docs/assets/
   console.log("Copying assets to public/docs/assets/...");
   const assetsSource = path.join(effectiveDocsDir, "assets");
