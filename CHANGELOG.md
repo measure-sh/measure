@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Serve markdown for marketing & docs pages to agents by @anupcowkur in #3621
 - (**frontend**): Add onboarding flow by @anupcowkur in #3613
 - (**frontend**): Make dashboard header sticky on scroll by @anupcowkur in #3489
+- (**kmp**): Implement KMP sdk (#3503) by @abhaysood in #3503
 
 ### :bug: Bug fixes
 
