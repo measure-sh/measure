@@ -90,6 +90,27 @@ func (f Frame) String(frmwrk string) string {
 		}
 
 		return fmt.Sprintf(`%s%s`, codeInfo, fileInfo)
+	case FrameworkJS:
+		fileParts := []string{}
+		if f.FileName != "" {
+			fileParts = append(fileParts, f.FileName)
+		}
+		if f.LineNum != 0 {
+			fileParts = append(fileParts, strconv.Itoa(f.LineNum))
+		}
+		if f.ColNum != 0 {
+			fileParts = append(fileParts, strconv.Itoa(f.ColNum))
+		}
+		fileInfo := strings.Join(fileParts, ":")
+		if fileInfo != "" {
+			fileInfo = "(" + fileInfo + ")"
+		}
+		if f.MethodName != "" && fileInfo != "" {
+			return fmt.Sprintf("at %s %s", f.MethodName, fileInfo)
+		} else if f.MethodName != "" {
+			return fmt.Sprintf("at %s", f.MethodName)
+		}
+		return fmt.Sprintf("at %s", fileInfo)
 	case FrameworkApple:
 		binaryName := f.BinaryName
 		methodName := f.MethodName

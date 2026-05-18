@@ -1,0 +1,40 @@
+{
+    "handled": false,
+    "framework": "js",
+    "exceptions": [
+        {
+            "type": "TypeError",
+            "message": "Cannot read property 'foo' of undefined",
+            "thread_sequence": 0,
+            "frames": [
+                {
+                    "method_name": "render",
+                    "file_name": "App.js",
+                    "line_num": 42,
+                    "col_num": 10,
+                    "in_app": true
+                },
+                {
+                    "method_name": "ComponentA",
+                    "file_name": "ComponentA.js",
+                    "line_num": 10,
+                    "col_num": 5,
+                    "in_app": true
+                },
+                {
+                    "method_name": "callCallback",
+                    "file_name": "ReactFiberWorkLoop.js",
+                    "line_num": 1,
+                    "col_num": 14,
+                    "in_app": false
+                },
+                {
+                    "file_name": "ReactFiberWorkLoop.js",
+                    "line_num": 200,
+                    "col_num": 8,
+                    "in_app": false
+                }
+            ]
+        }
+    ]
+}

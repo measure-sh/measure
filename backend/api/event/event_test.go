@@ -152,6 +152,23 @@ func TestAppleExceptionStacktraceTwo(t *testing.T) {
 	}
 }
 
+func TestJSExceptionStacktraceOne(t *testing.T) {
+	exception, err := readException("./testdata/js_exception_one.json")
+	if err != nil {
+		panic(err)
+	}
+
+	expected, err := readStacktrace("./testdata/js_exception_stacktrace_one.txt")
+	if err != nil {
+		panic(err)
+	}
+	got := exception.Stacktrace()
+
+	if expected != got {
+		t.Errorf("Expected:\n%q\nGot:\n%q", expected, got)
+	}
+}
+
 func TestHasError(t *testing.T) {
 	// Empty exception
 	{

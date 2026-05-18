@@ -1,0 +1,5 @@
+TypeError: Cannot read property 'foo' of undefined
+at render (App.js:42:10)
+at ComponentA (ComponentA.js:10:5)
+at callCallback (ReactFiberWorkLoop.js:1:14)
+at (ReactFiberWorkLoop.js:200:8)
