@@ -1,0 +1,176 @@
+public final class sh/measure/kmp/Attachment {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun getName ()Ljava/lang/String;
+	public final fun getPath ()Ljava/lang/String;
+	public final fun getType ()Ljava/lang/String;
+}
+
+public final class sh/measure/kmp/Measure {
+	public static final field INSTANCE Lsh/measure/kmp/Measure;
+	public final fun clearUserId ()V
+	public final fun createSpanBuilder (Ljava/lang/String;)Lsh/measure/kmp/tracing/SpanBuilder;
+	public final fun getCurrentTime ()J
+	public final fun getSessionId ()Ljava/lang/String;
+	public final fun getTraceParentHeaderKey ()Ljava/lang/String;
+	public final fun getTraceParentHeaderValue (Lsh/measure/kmp/tracing/Span;)Ljava/lang/String;
+	public final fun launchBugReport (ZLjava/util/Map;)V
+	public static synthetic fun launchBugReport$default (Lsh/measure/kmp/Measure;ZLjava/util/Map;ILjava/lang/Object;)V
+	public final fun setUserId (Ljava/lang/String;)V
+	public final fun start ()V
+	public final fun startSpan (Ljava/lang/String;)Lsh/measure/kmp/tracing/Span;
+	public final fun startSpan (Ljava/lang/String;J)Lsh/measure/kmp/tracing/Span;
+	public final fun stop ()V
+	public final fun trackBugReport (Ljava/lang/String;Ljava/util/List;Ljava/util/Map;)V
+	public static synthetic fun trackBugReport$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/List;Ljava/util/Map;ILjava/lang/Object;)V
+	public final fun trackEvent (Ljava/lang/String;Ljava/util/Map;Ljava/lang/Long;)V
+	public static synthetic fun trackEvent$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;Ljava/lang/Long;ILjava/lang/Object;)V
+	public final fun trackHandledException (Ljava/lang/Throwable;Ljava/util/Map;)V
+	public static synthetic fun trackHandledException$default (Lsh/measure/kmp/Measure;Ljava/lang/Throwable;Ljava/util/Map;ILjava/lang/Object;)V
+	public final fun trackHttpEvent (Ljava/lang/String;Ljava/lang/String;JJLjava/lang/Integer;Ljava/lang/Exception;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public static synthetic fun trackHttpEvent$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/lang/String;JJLjava/lang/Integer;Ljava/lang/Exception;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
+	public final fun trackScreenView (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun trackScreenView$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+}
+
+public abstract interface class sh/measure/kmp/attributes/AttributeValue {
+	public abstract fun getValue ()Ljava/lang/Object;
+}
+
+public final class sh/measure/kmp/attributes/AttributesBuilder {
+	public fun <init> ()V
+	public final fun build ()Ljava/util/Map;
+	public final fun put (Ljava/lang/String;D)Lsh/measure/kmp/attributes/AttributesBuilder;
+	public final fun put (Ljava/lang/String;F)Lsh/measure/kmp/attributes/AttributesBuilder;
+	public final fun put (Ljava/lang/String;I)Lsh/measure/kmp/attributes/AttributesBuilder;
+	public final fun put (Ljava/lang/String;J)Lsh/measure/kmp/attributes/AttributesBuilder;
+	public final fun put (Ljava/lang/String;Ljava/lang/String;)Lsh/measure/kmp/attributes/AttributesBuilder;
+	public final fun put (Ljava/lang/String;Z)Lsh/measure/kmp/attributes/AttributesBuilder;
+}
+
+public final class sh/measure/kmp/attributes/BooleanAttr : sh/measure/kmp/attributes/AttributeValue {
+	public static final synthetic fun box-impl (Z)Lsh/measure/kmp/attributes/BooleanAttr;
+	public static fun constructor-impl (Z)Z
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (ZLjava/lang/Object;)Z
+	public static final fun equals-impl0 (ZZ)Z
+	public fun getValue ()Ljava/lang/Boolean;
+	public synthetic fun getValue ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Z)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Z)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Z
+}
+
+public final class sh/measure/kmp/attributes/DoubleAttr : sh/measure/kmp/attributes/AttributeValue {
+	public static final synthetic fun box-impl (D)Lsh/measure/kmp/attributes/DoubleAttr;
+	public static fun constructor-impl (D)D
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (DLjava/lang/Object;)Z
+	public static final fun equals-impl0 (DD)Z
+	public fun getValue ()Ljava/lang/Double;
+	public synthetic fun getValue ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public static fun hashCode-impl (D)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (D)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()D
+}
+
+public final class sh/measure/kmp/attributes/FloatAttr : sh/measure/kmp/attributes/AttributeValue {
+	public static final synthetic fun box-impl (F)Lsh/measure/kmp/attributes/FloatAttr;
+	public static fun constructor-impl (F)F
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (FLjava/lang/Object;)Z
+	public static final fun equals-impl0 (FF)Z
+	public fun getValue ()Ljava/lang/Float;
+	public synthetic fun getValue ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public static fun hashCode-impl (F)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (F)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()F
+}
+
+public final class sh/measure/kmp/attributes/IntAttr : sh/measure/kmp/attributes/AttributeValue {
+	public static final synthetic fun box-impl (I)Lsh/measure/kmp/attributes/IntAttr;
+	public static fun constructor-impl (I)I
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (ILjava/lang/Object;)Z
+	public static final fun equals-impl0 (II)Z
+	public fun getValue ()Ljava/lang/Integer;
+	public synthetic fun getValue ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public static fun hashCode-impl (I)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (I)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()I
+}
+
+public final class sh/measure/kmp/attributes/LongAttr : sh/measure/kmp/attributes/AttributeValue {
+	public static final synthetic fun box-impl (J)Lsh/measure/kmp/attributes/LongAttr;
+	public static fun constructor-impl (J)J
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (JLjava/lang/Object;)Z
+	public static final fun equals-impl0 (JJ)Z
+	public fun getValue ()Ljava/lang/Long;
+	public synthetic fun getValue ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public static fun hashCode-impl (J)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (J)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()J
+}
+
+public final class sh/measure/kmp/attributes/StringAttr : sh/measure/kmp/attributes/AttributeValue {
+	public static final synthetic fun box-impl (Ljava/lang/String;)Lsh/measure/kmp/attributes/StringAttr;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public synthetic fun getValue ()Ljava/lang/Object;
+	public fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public abstract interface class sh/measure/kmp/tracing/Span {
+	public abstract fun end ()Lsh/measure/kmp/tracing/Span;
+	public abstract fun end (J)Lsh/measure/kmp/tracing/Span;
+	public abstract fun getDuration ()J
+	public abstract fun getParentId ()Ljava/lang/String;
+	public abstract fun getSpanId ()Ljava/lang/String;
+	public abstract fun getTraceId ()Ljava/lang/String;
+	public abstract fun hasEnded ()Z
+	public abstract fun isSampled ()Z
+	public abstract fun removeAttribute (Ljava/lang/String;)Lsh/measure/kmp/tracing/Span;
+	public abstract fun setAttribute (Ljava/lang/String;D)Lsh/measure/kmp/tracing/Span;
+	public abstract fun setAttribute (Ljava/lang/String;I)Lsh/measure/kmp/tracing/Span;
+	public abstract fun setAttribute (Ljava/lang/String;J)Lsh/measure/kmp/tracing/Span;
+	public abstract fun setAttribute (Ljava/lang/String;Ljava/lang/String;)Lsh/measure/kmp/tracing/Span;
+	public abstract fun setAttribute (Ljava/lang/String;Z)Lsh/measure/kmp/tracing/Span;
+	public abstract fun setAttributes (Ljava/util/Map;)Lsh/measure/kmp/tracing/Span;
+	public abstract fun setCheckpoint (Ljava/lang/String;)Lsh/measure/kmp/tracing/Span;
+	public abstract fun setName (Ljava/lang/String;)Lsh/measure/kmp/tracing/Span;
+	public abstract fun setParent (Lsh/measure/kmp/tracing/Span;)Lsh/measure/kmp/tracing/Span;
+	public abstract fun setStatus (Lsh/measure/kmp/tracing/SpanStatus;)Lsh/measure/kmp/tracing/Span;
+}
+
+public abstract interface class sh/measure/kmp/tracing/SpanBuilder {
+	public abstract fun setParent (Lsh/measure/kmp/tracing/Span;)Lsh/measure/kmp/tracing/SpanBuilder;
+	public abstract fun startSpan ()Lsh/measure/kmp/tracing/Span;
+	public abstract fun startSpan (J)Lsh/measure/kmp/tracing/Span;
+}
+
+public final class sh/measure/kmp/tracing/SpanStatus : java/lang/Enum {
+	public static final field Error Lsh/measure/kmp/tracing/SpanStatus;
+	public static final field Ok Lsh/measure/kmp/tracing/SpanStatus;
+	public static final field Unset Lsh/measure/kmp/tracing/SpanStatus;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lsh/measure/kmp/tracing/SpanStatus;
+	public static fun values ()[Lsh/measure/kmp/tracing/SpanStatus;
+}
+

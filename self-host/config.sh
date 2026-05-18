@@ -287,17 +287,11 @@ POSTHOG_API_KEY=
 
 GTM_ID=
 
-##########
-# Leadsy #
-##########
+########
+# c15t #
+########
 
-LEADSY_ID=
-
-#######
-# Reo #
-#######
-
-REO_ID=
+NEXT_PUBLIC_C15T_BACKEND_URL=
 
 ###########
 # Billing #
@@ -439,17 +433,11 @@ POSTHOG_API_KEY=
 
 GTM_ID=
 
-##########
-# Leadsy #
-##########
+########
+# c15t #
+########
 
-LEADSY_ID=
-
-#######
-# Reo #
-#######
-
-REO_ID=
+NEXT_PUBLIC_C15T_BACKEND_URL=
 
 ###########
 # Billing #
@@ -890,12 +878,8 @@ ensure() {
     add_env_variable "GTM_ID" ""
   fi
 
-  if ! check_env_variable "LEADSY_ID"; then
-    add_env_variable "LEADSY_ID" ""
-  fi
-
-  if ! check_env_variable "REO_ID"; then
-    add_env_variable "REO_ID" ""
+  if ! check_env_variable "NEXT_PUBLIC_C15T_BACKEND_URL"; then
+    add_env_variable "NEXT_PUBLIC_C15T_BACKEND_URL" ""
   fi
 
   if ! check_env_variable "NEXT_PUBLIC_IS_CLOUD"; then

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "../utils/shadcn_utils";
 import { buttonVariants } from "./button_variants";
+import { CookiePreferencesLink } from "./cookie_preferences_link";
 
 export default function LandingFooter() {
   return (
@@ -260,6 +261,17 @@ export default function LandingFooter() {
           >
             Terms of Service
           </Link>
+          <CookiePreferencesLink>
+            <button
+              type="button"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Cookie Preferences
+            </button>
+          </CookiePreferencesLink>
         </div>
 
         <div className="flex flex-col items-center md:items-start gap-4">

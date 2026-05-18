@@ -24,12 +24,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
@@ -50,6 +53,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
+import android.widget.Toast
 import com.frankenstein.shared.CmpScreen
 import io.flutter.embedding.android.FlutterActivity
 import sh.measure.android.Measure
@@ -89,7 +94,7 @@ fun AppNavigation() {
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
-            if (currentScreen != Screen.HOME) {
+            if (currentScreen != Screen.HOME && currentScreen != Screen.CMP) {
                 TopAppBar(
                     title = { Text(currentScreen.title) },
                     navigationIcon = {
@@ -118,7 +123,7 @@ fun AppNavigation() {
                     },
                 )
                 Screen.NATIVE_ANDROID -> NativeAndroidScreen()
-                Screen.CMP -> CmpScreen()
+                Screen.CMP -> CmpScreen(onClose = { currentScreen = Screen.HOME })
                 Screen.FLUTTER -> {}
                 Screen.REACT_NATIVE -> {}
             }
@@ -203,6 +208,7 @@ fun HomeScreen(
     onNavigate: (Screen) -> Unit,
 ) {
     val screens = Screen.entries.filter { it != Screen.HOME }
+    var showCredentialsDialog by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -233,14 +239,26 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                         )
                     }
-                    Switch(
-                        checked = isMeasureRunning,
-                        onCheckedChange = onMeasureToggle,
-                        colors = SwitchDefaults.colors(
-                            checkedTrackColor = MaterialTheme.colorScheme.primary,
-                        ),
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { showCredentialsDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.Settings,
+                                contentDescription = "Configure credentials",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
+                        }
+                        Switch(
+                            checked = isMeasureRunning,
+                            onCheckedChange = onMeasureToggle,
+                            colors = SwitchDefaults.colors(
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                            ),
+                        )
+                    }
                 }
+            }
+            if (showCredentialsDialog) {
+                ConfigureCredentialsDialog(onDismiss = { showCredentialsDialog = false })
             }
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -284,4 +302,83 @@ fun HomeScreen(
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
         )
     }
+}
+
+@Composable
+fun ConfigureCredentialsDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val (initialUrl, initialKey) = remember {
+        val savedUrl = CredentialOverrides.getSavedApiUrl(context)
+        val savedKey = CredentialOverrides.getSavedApiKey(context)
+        if (savedUrl != null && savedKey != null) {
+            savedUrl to savedKey
+        } else {
+            val (manifestUrl, manifestKey) = CredentialOverrides.readManifestCredentials(context)
+            (manifestUrl ?: "") to (manifestKey ?: "")
+        }
+    }
+
+    var apiUrl by remember { mutableStateOf(initialUrl) }
+    var apiKey by remember { mutableStateOf(initialKey) }
+    var urlError by remember { mutableStateOf<String?>(null) }
+    var keyError by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Configure credentials") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = apiUrl,
+                    onValueChange = {
+                        apiUrl = it
+                        urlError = null
+                    },
+                    label = { Text("API URL") },
+                    isError = urlError != null,
+                    supportingText = { urlError?.let { Text(it) } },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = apiKey,
+                    onValueChange = {
+                        apiKey = it
+                        keyError = null
+                    },
+                    label = { Text("API key") },
+                    isError = keyError != null,
+                    supportingText = { keyError?.let { Text(it) } },
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val trimmedUrl = apiUrl.trim()
+                val trimmedKey = apiKey.trim()
+                if (trimmedUrl.isEmpty()) {
+                    urlError = "API URL cannot be empty"
+                    return@TextButton
+                }
+                if (!trimmedKey.startsWith("msrsh")) {
+                    keyError = "API Key must start with \"msrsh\""
+                    return@TextButton
+                }
+                CredentialOverrides.save(context, trimmedUrl, trimmedKey)
+                val applied = MeasureConfigurator.swapCredentials(trimmedUrl, trimmedKey)
+                val message = if (applied) {
+                    "Credentials saved and applied"
+                } else {
+                    "Saved, but failed to apply (SDK not initialized?)"
+                }
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                onDismiss()
+            }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }

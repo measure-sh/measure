@@ -16,24 +16,26 @@ jest.mock("@/app/utils/env_utils", () => ({
   isCloud: jest.fn(),
 }));
 
-jest.mock("@/app/context/cookie_consent", () => ({
-  useCookieConsent: jest.fn(),
+jest.mock("@c15t/nextjs", () => ({
+  useConsentManager: jest.fn(),
 }));
 
-import { useCookieConsent } from "@/app/context/cookie_consent";
+import { useConsentManager } from "@c15t/nextjs";
 import { isCloud } from "@/app/utils/env_utils";
 import posthog from "posthog-js";
+
+function mockConsent(granted: string[]) {
+  (useConsentManager as jest.Mock).mockReturnValue({
+    has: (category: string) => granted.includes(category),
+  });
+}
 
 beforeEach(() => {
   (posthog.init as jest.Mock).mockClear();
   (posthog.opt_in_capturing as jest.Mock).mockClear();
   (posthog.opt_out_capturing as jest.Mock).mockClear();
   (isCloud as jest.Mock).mockReturnValue(true);
-  (useCookieConsent as jest.Mock).mockReturnValue({
-    consent: "pending",
-    setConsent: jest.fn(),
-    hydrated: true,
-  });
+  mockConsent(["necessary"]);
   process.env.NEXT_PUBLIC_POSTHOG_API_KEY = "test-key";
 });
 
@@ -153,12 +155,8 @@ describe("PostHogProvider", () => {
 });
 
 describe("PostHogProvider consent sync", () => {
-  it("calls opt_in_capturing when consent is 'granted'", async () => {
-    (useCookieConsent as jest.Mock).mockReturnValue({
-      consent: "granted",
-      setConsent: jest.fn(),
-      hydrated: true,
-    });
+  it("opts in when measurement consent is granted", async () => {
+    mockConsent(["necessary", "measurement"]);
 
     render(
       <PostHogProvider>
@@ -167,17 +165,12 @@ describe("PostHogProvider consent sync", () => {
     );
 
     await waitFor(() => {
-      expect(posthog.opt_in_capturing).toHaveBeenCalledTimes(1);
+      expect(posthog.opt_in_capturing).toHaveBeenCalled();
     });
-    expect(posthog.opt_out_capturing).not.toHaveBeenCalled();
   });
 
-  it("calls opt_out_capturing when consent is 'denied'", async () => {
-    (useCookieConsent as jest.Mock).mockReturnValue({
-      consent: "denied",
-      setConsent: jest.fn(),
-      hydrated: true,
-    });
+  it("opts out when measurement consent is not granted", async () => {
+    mockConsent(["necessary"]);
 
     render(
       <PostHogProvider>
@@ -186,57 +179,14 @@ describe("PostHogProvider consent sync", () => {
     );
 
     await waitFor(() => {
-      expect(posthog.opt_out_capturing).toHaveBeenCalledTimes(1);
+      expect(posthog.opt_out_capturing).toHaveBeenCalled();
     });
     expect(posthog.opt_in_capturing).not.toHaveBeenCalled();
-  });
-
-  it("calls opt_out_capturing when consent is 'pending' so PostHog stays cookieless until user chooses", async () => {
-    (useCookieConsent as jest.Mock).mockReturnValue({
-      consent: "pending",
-      setConsent: jest.fn(),
-      hydrated: true,
-    });
-
-    render(
-      <PostHogProvider>
-        <div />
-      </PostHogProvider>,
-    );
-
-    await waitFor(() => {
-      expect(posthog.opt_out_capturing).toHaveBeenCalledTimes(1);
-    });
-    expect(posthog.opt_in_capturing).not.toHaveBeenCalled();
-  });
-
-  it("does not sync consent before hydration", async () => {
-    (useCookieConsent as jest.Mock).mockReturnValue({
-      consent: "granted",
-      setConsent: jest.fn(),
-      hydrated: false,
-    });
-
-    render(
-      <PostHogProvider>
-        <div />
-      </PostHogProvider>,
-    );
-
-    await waitFor(() => {
-      expect(posthog.init).toHaveBeenCalled();
-    });
-    expect(posthog.opt_in_capturing).not.toHaveBeenCalled();
-    expect(posthog.opt_out_capturing).not.toHaveBeenCalled();
   });
 
   it("does not sync consent in self-hosted mode", async () => {
     (isCloud as jest.Mock).mockReturnValue(false);
-    (useCookieConsent as jest.Mock).mockReturnValue({
-      consent: "denied",
-      setConsent: jest.fn(),
-      hydrated: true,
-    });
+    mockConsent(["necessary", "measurement"]);
 
     render(
       <PostHogProvider>

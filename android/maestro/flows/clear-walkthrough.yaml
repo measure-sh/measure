@@ -1,6 +1,0 @@
-# clear-data-walkthrough.yaml
-
-appId: sh.measure.sample
----
-- clearState 
-- runFlow: walkthrough.yaml

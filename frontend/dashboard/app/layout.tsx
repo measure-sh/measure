@@ -1,14 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Fira_Code, Josefin_Sans, Work_Sans } from "next/font/google";
 import { ClientProviders } from "./components/client_providers";
-import { ConditionalGoogleTagManager } from "./components/conditional_google_tag_manager";
-import { ConditionalLeadsy } from "./components/conditional_leadsy";
-import { ConditionalReo } from "./components/conditional_reo";
-import { CookieBanner } from "./components/cookie_banner";
+import { ConsentManager } from "./components/consent_manager";
 import { ThemeProvider } from "./components/theme_provider";
 import { Toaster } from "./components/toaster";
-import { CookieConsentProvider } from "./context/cookie_consent";
-import { PostHogProvider } from "./context/posthog";
 import "./globals.css";
 import { previewImage, sharedOpenGraph } from "./utils/metadata";
 
@@ -85,15 +80,9 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <CookieConsentProvider>
-              <ConditionalGoogleTagManager />
-              <ConditionalLeadsy />
-              <ConditionalReo />
-              <CookieBanner />
-              <PostHogProvider proxyPath="/yrtmlt">
-                <div className="bg-background text-foreground">{children}</div>
-              </PostHogProvider>
-            </CookieConsentProvider>
+            <ConsentManager>
+              <div className="bg-background text-foreground">{children}</div>
+            </ConsentManager>
             <Toaster />
           </ThemeProvider>
         </ClientProviders>
