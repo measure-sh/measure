@@ -22,6 +22,7 @@ export default {
         "frontend",
         "deps",
         "gradle",
+        "kmp",
       ],
     ],
     /**

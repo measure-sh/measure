@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: android
+        working-directory: android/measure-gradle-plugin
     permissions:
       contents: write
       actions: write
@@ -47,13 +47,13 @@ jobs:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
         run: |
-          ./gradlew :measure-android-gradle:publishPlugins
+          ./gradlew publishPlugins
 
       - name: Generate release notes
         uses: orhun/git-cliff-action@v4
         id: release-notes
         with:
-          config: android/measure-android-gradle/cliff.toml
+          config: android/measure-gradle-plugin/cliff.toml
           args: --latest --strip header
         env:
           GITHUB_REPO: ${{ github.repository }}

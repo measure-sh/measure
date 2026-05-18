@@ -180,7 +180,7 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                             statusCode: statusCode,
                             startTime: startTime,
                             endTime: endTime,
-                            failureReason: error.debugDescription,
+                            failureReason: error.map { String(describing: type(of: $0)) },
                             failureDescription: error?.localizedDescription,
                             requestHeaders: safeRequestHeaders,
                             responseHeaders: safeResponseHeaders,

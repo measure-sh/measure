@@ -39,6 +39,10 @@ import UIKit
         self.fonts = fonts
     }
 
+    /// Returns the default `BugReportConfig` for use from Objective-C / Kotlin cinterop callers,
+    /// which cannot reference Swift's `BugReportConfig.default` static let.
+    @objc public static func defaultConfig() -> BugReportConfig { .default }
+
     /// A default configuration with preset values for colors, text, dimensions, and fonts.
     ///
     /// This can be used when no customization is needed, or as a base to override specific settings.

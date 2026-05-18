@@ -2178,7 +2178,7 @@ SPEC CHECKSUMS:
   FlutterPluginRegistrant: 72d81e4ec9cd63715219d3c18bfa6212ba2ce6f6
   GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
-  hermes-engine: 83d3ad68b35a9b040db9975e1486b951c7b0ea34
+  hermes-engine: 0d3f5af9c6b6e59a5e181d0472f0332b0185d247
   image_picker_ios: 4f2f91b01abdb52842a8e277617df877e40f905b
   KSCrash: 8c4464fd5da7de520f2ce4a00fdf63f169a80f18
   measure-sh: cb4133b7169721eca11a96d473a1c904c94bf8e2
@@ -2195,7 +2195,7 @@ SPEC CHECKSUMS:
   React: 1ba7d364ade7d883a1ec055bfc3606f35fdee17b
   React-callinvoker: bc2a26f8d84fb01f003fc6de6c9337b64715f95b
   React-Core: bdaa87b276ca31877632a982ecf7c36f8c826414
-  React-Core-prebuilt: f5b83ff01897b2e87f3a530a7970186c5ebf3f37
+  React-Core-prebuilt: bb05481052cb422306f8e5fdabc039b02b438a16
   React-CoreModules: b24989f62d56390ae08ca4f65e6f38fe6802de42
   React-cxxreact: 1a2dfcbc18a6b610664dba152adf327f063a0d12
   React-debug: d196e6df0599d78360b3211367e28c5583054133
@@ -2256,7 +2256,7 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: 26bbf1e26768d08dd965a2b5e372e53f67b21fee
   ReactCodegen: d91185ae285197a0b1f97f432e936459494e71b1
   ReactCommon: 309419492d417c4cbb87af06f67735afa40ecb9d
-  ReactNativeDependencies: a5e4a5958f2ee4def1a14e2777c7f56db3d34703
+  ReactNativeDependencies: 2ae92dcff72f77096fdec77c230739694c7316bb
   Yoga: 846fbe6f595136be802ad81d05688ff748839764
 
 PODFILE CHECKSUM: c7c9bd3a3e54b1708e257a99c9a83abff487c638

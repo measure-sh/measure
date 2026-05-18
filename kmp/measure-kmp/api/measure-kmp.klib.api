@@ -1,0 +1,166 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, iosX64]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <sh.measure:measure-kmp>
+final enum class sh.measure.kmp.tracing/SpanStatus : kotlin/Enum<sh.measure.kmp.tracing/SpanStatus> { // sh.measure.kmp.tracing/SpanStatus|null[0]
+    enum entry Error // sh.measure.kmp.tracing/SpanStatus.Error|null[0]
+    enum entry Ok // sh.measure.kmp.tracing/SpanStatus.Ok|null[0]
+    enum entry Unset // sh.measure.kmp.tracing/SpanStatus.Unset|null[0]
+
+    final val entries // sh.measure.kmp.tracing/SpanStatus.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<sh.measure.kmp.tracing/SpanStatus> // sh.measure.kmp.tracing/SpanStatus.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): sh.measure.kmp.tracing/SpanStatus // sh.measure.kmp.tracing/SpanStatus.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<sh.measure.kmp.tracing/SpanStatus> // sh.measure.kmp.tracing/SpanStatus.values|values#static(){}[0]
+}
+
+abstract interface sh.measure.kmp.tracing/Span { // sh.measure.kmp.tracing/Span|null[0]
+    abstract val isSampled // sh.measure.kmp.tracing/Span.isSampled|{}isSampled[0]
+        abstract fun <get-isSampled>(): kotlin/Boolean // sh.measure.kmp.tracing/Span.isSampled.<get-isSampled>|<get-isSampled>(){}[0]
+    abstract val parentId // sh.measure.kmp.tracing/Span.parentId|{}parentId[0]
+        abstract fun <get-parentId>(): kotlin/String? // sh.measure.kmp.tracing/Span.parentId.<get-parentId>|<get-parentId>(){}[0]
+    abstract val spanId // sh.measure.kmp.tracing/Span.spanId|{}spanId[0]
+        abstract fun <get-spanId>(): kotlin/String // sh.measure.kmp.tracing/Span.spanId.<get-spanId>|<get-spanId>(){}[0]
+    abstract val traceId // sh.measure.kmp.tracing/Span.traceId|{}traceId[0]
+        abstract fun <get-traceId>(): kotlin/String // sh.measure.kmp.tracing/Span.traceId.<get-traceId>|<get-traceId>(){}[0]
+
+    abstract fun end(): sh.measure.kmp.tracing/Span // sh.measure.kmp.tracing/Span.end|end(){}[0]
+    abstract fun end(kotlin/Long): sh.measure.kmp.tracing/Span // sh.measure.kmp.tracing/Span.end|end(kotlin.Long){}[0]
+    abstract fun getDuration(): kotlin/Long // sh.measure.kmp.tracing/Span.getDuration|getDuration(){}[0]
+    abstract fun hasEnded(): kotlin/Boolean // sh.measure.kmp.tracing/Span.hasEnded|hasEnded(){}[0]
+    abstract fun removeAttribute(kotlin/String): sh.measure.kmp.tracing/Span // sh.measure.kmp.tracing/Span.removeAttribute|removeAttribute(kotlin.String){}[0]
+    abstract fun setAttribute(kotlin/String, kotlin/Boolean): sh.measure.kmp.tracing/Span // sh.measure.kmp.tracing/Span.setAttribute|setAttribute(kotlin.String;kotlin.Boolean){}[0]
+    abstract fun setAttribute(kotlin/String, kotlin/Double): sh.measure.kmp.tracing/Span // sh.measure.kmp.tracing/Span.setAttribute|setAttribute(kotlin.String;kotlin.Double){}[0]
+    abstract fun setAttribute(kotlin/String, kotlin/Int): sh.measure.kmp.tracing/Span // sh.measure.kmp.tracing/Span.setAttribute|setAttribute(kotlin.String;kotlin.Int){}[0]
+    abstract fun setAttribute(kotlin/String, kotlin/Long): sh.measure.kmp.tracing/Span // sh.measure.kmp.tracing/Span.setAttribute|setAttribute(kotlin.String;kotlin.Long){}[0]
+    abstract fun setAttribute(kotlin/String, kotlin/String): sh.measure.kmp.tracing/Span // sh.measure.kmp.tracing/Span.setAttribute|setAttribute(kotlin.String;kotlin.String){}[0]
+    abstract fun setAttributes(kotlin.collections/Map<kotlin/String, sh.measure.kmp.attributes/AttributeValue>): sh.measure.kmp.tracing/Span // sh.measure.kmp.tracing/Span.setAttributes|setAttributes(kotlin.collections.Map<kotlin.String,sh.measure.kmp.attributes.AttributeValue>){}[0]
+    abstract fun setCheckpoint(kotlin/String): sh.measure.kmp.tracing/Span // sh.measure.kmp.tracing/Span.setCheckpoint|setCheckpoint(kotlin.String){}[0]
+    abstract fun setName(kotlin/String): sh.measure.kmp.tracing/Span // sh.measure.kmp.tracing/Span.setName|setName(kotlin.String){}[0]
+    abstract fun setParent(sh.measure.kmp.tracing/Span): sh.measure.kmp.tracing/Span // sh.measure.kmp.tracing/Span.setParent|setParent(sh.measure.kmp.tracing.Span){}[0]
+    abstract fun setStatus(sh.measure.kmp.tracing/SpanStatus): sh.measure.kmp.tracing/Span // sh.measure.kmp.tracing/Span.setStatus|setStatus(sh.measure.kmp.tracing.SpanStatus){}[0]
+}
+
+abstract interface sh.measure.kmp.tracing/SpanBuilder { // sh.measure.kmp.tracing/SpanBuilder|null[0]
+    abstract fun setParent(sh.measure.kmp.tracing/Span): sh.measure.kmp.tracing/SpanBuilder // sh.measure.kmp.tracing/SpanBuilder.setParent|setParent(sh.measure.kmp.tracing.Span){}[0]
+    abstract fun startSpan(): sh.measure.kmp.tracing/Span // sh.measure.kmp.tracing/SpanBuilder.startSpan|startSpan(){}[0]
+    abstract fun startSpan(kotlin/Long): sh.measure.kmp.tracing/Span // sh.measure.kmp.tracing/SpanBuilder.startSpan|startSpan(kotlin.Long){}[0]
+}
+
+sealed interface sh.measure.kmp.attributes/AttributeValue { // sh.measure.kmp.attributes/AttributeValue|null[0]
+    abstract val value // sh.measure.kmp.attributes/AttributeValue.value|{}value[0]
+        abstract fun <get-value>(): kotlin/Any // sh.measure.kmp.attributes/AttributeValue.value.<get-value>|<get-value>(){}[0]
+}
+
+final class sh.measure.kmp.attributes/AttributesBuilder { // sh.measure.kmp.attributes/AttributesBuilder|null[0]
+    constructor <init>() // sh.measure.kmp.attributes/AttributesBuilder.<init>|<init>(){}[0]
+
+    final fun build(): kotlin.collections/MutableMap<kotlin/String, sh.measure.kmp.attributes/AttributeValue> // sh.measure.kmp.attributes/AttributesBuilder.build|build(){}[0]
+    final fun put(kotlin/String, kotlin/Boolean): sh.measure.kmp.attributes/AttributesBuilder // sh.measure.kmp.attributes/AttributesBuilder.put|put(kotlin.String;kotlin.Boolean){}[0]
+    final fun put(kotlin/String, kotlin/Double): sh.measure.kmp.attributes/AttributesBuilder // sh.measure.kmp.attributes/AttributesBuilder.put|put(kotlin.String;kotlin.Double){}[0]
+    final fun put(kotlin/String, kotlin/Float): sh.measure.kmp.attributes/AttributesBuilder // sh.measure.kmp.attributes/AttributesBuilder.put|put(kotlin.String;kotlin.Float){}[0]
+    final fun put(kotlin/String, kotlin/Int): sh.measure.kmp.attributes/AttributesBuilder // sh.measure.kmp.attributes/AttributesBuilder.put|put(kotlin.String;kotlin.Int){}[0]
+    final fun put(kotlin/String, kotlin/Long): sh.measure.kmp.attributes/AttributesBuilder // sh.measure.kmp.attributes/AttributesBuilder.put|put(kotlin.String;kotlin.Long){}[0]
+    final fun put(kotlin/String, kotlin/String): sh.measure.kmp.attributes/AttributesBuilder // sh.measure.kmp.attributes/AttributesBuilder.put|put(kotlin.String;kotlin.String){}[0]
+}
+
+final class sh.measure.kmp/Attachment { // sh.measure.kmp/Attachment|null[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlin/String) // sh.measure.kmp/Attachment.<init>|<init>(kotlin.String;kotlin.String;kotlin.String){}[0]
+
+    final val name // sh.measure.kmp/Attachment.name|{}name[0]
+        final fun <get-name>(): kotlin/String // sh.measure.kmp/Attachment.name.<get-name>|<get-name>(){}[0]
+    final val path // sh.measure.kmp/Attachment.path|{}path[0]
+        final fun <get-path>(): kotlin/String // sh.measure.kmp/Attachment.path.<get-path>|<get-path>(){}[0]
+    final val type // sh.measure.kmp/Attachment.type|{}type[0]
+        final fun <get-type>(): kotlin/String // sh.measure.kmp/Attachment.type.<get-type>|<get-type>(){}[0]
+}
+
+final value class sh.measure.kmp.attributes/BooleanAttr : sh.measure.kmp.attributes/AttributeValue { // sh.measure.kmp.attributes/BooleanAttr|null[0]
+    constructor <init>(kotlin/Boolean) // sh.measure.kmp.attributes/BooleanAttr.<init>|<init>(kotlin.Boolean){}[0]
+
+    final val value // sh.measure.kmp.attributes/BooleanAttr.value|{}value[0]
+        final fun <get-value>(): kotlin/Boolean // sh.measure.kmp.attributes/BooleanAttr.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // sh.measure.kmp.attributes/BooleanAttr.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // sh.measure.kmp.attributes/BooleanAttr.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // sh.measure.kmp.attributes/BooleanAttr.toString|toString(){}[0]
+}
+
+final value class sh.measure.kmp.attributes/DoubleAttr : sh.measure.kmp.attributes/AttributeValue { // sh.measure.kmp.attributes/DoubleAttr|null[0]
+    constructor <init>(kotlin/Double) // sh.measure.kmp.attributes/DoubleAttr.<init>|<init>(kotlin.Double){}[0]
+
+    final val value // sh.measure.kmp.attributes/DoubleAttr.value|{}value[0]
+        final fun <get-value>(): kotlin/Double // sh.measure.kmp.attributes/DoubleAttr.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // sh.measure.kmp.attributes/DoubleAttr.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // sh.measure.kmp.attributes/DoubleAttr.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // sh.measure.kmp.attributes/DoubleAttr.toString|toString(){}[0]
+}
+
+final value class sh.measure.kmp.attributes/FloatAttr : sh.measure.kmp.attributes/AttributeValue { // sh.measure.kmp.attributes/FloatAttr|null[0]
+    constructor <init>(kotlin/Float) // sh.measure.kmp.attributes/FloatAttr.<init>|<init>(kotlin.Float){}[0]
+
+    final val value // sh.measure.kmp.attributes/FloatAttr.value|{}value[0]
+        final fun <get-value>(): kotlin/Float // sh.measure.kmp.attributes/FloatAttr.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // sh.measure.kmp.attributes/FloatAttr.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // sh.measure.kmp.attributes/FloatAttr.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // sh.measure.kmp.attributes/FloatAttr.toString|toString(){}[0]
+}
+
+final value class sh.measure.kmp.attributes/IntAttr : sh.measure.kmp.attributes/AttributeValue { // sh.measure.kmp.attributes/IntAttr|null[0]
+    constructor <init>(kotlin/Int) // sh.measure.kmp.attributes/IntAttr.<init>|<init>(kotlin.Int){}[0]
+
+    final val value // sh.measure.kmp.attributes/IntAttr.value|{}value[0]
+        final fun <get-value>(): kotlin/Int // sh.measure.kmp.attributes/IntAttr.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // sh.measure.kmp.attributes/IntAttr.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // sh.measure.kmp.attributes/IntAttr.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // sh.measure.kmp.attributes/IntAttr.toString|toString(){}[0]
+}
+
+final value class sh.measure.kmp.attributes/LongAttr : sh.measure.kmp.attributes/AttributeValue { // sh.measure.kmp.attributes/LongAttr|null[0]
+    constructor <init>(kotlin/Long) // sh.measure.kmp.attributes/LongAttr.<init>|<init>(kotlin.Long){}[0]
+
+    final val value // sh.measure.kmp.attributes/LongAttr.value|{}value[0]
+        final fun <get-value>(): kotlin/Long // sh.measure.kmp.attributes/LongAttr.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // sh.measure.kmp.attributes/LongAttr.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // sh.measure.kmp.attributes/LongAttr.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // sh.measure.kmp.attributes/LongAttr.toString|toString(){}[0]
+}
+
+final value class sh.measure.kmp.attributes/StringAttr : sh.measure.kmp.attributes/AttributeValue { // sh.measure.kmp.attributes/StringAttr|null[0]
+    constructor <init>(kotlin/String) // sh.measure.kmp.attributes/StringAttr.<init>|<init>(kotlin.String){}[0]
+
+    final val value // sh.measure.kmp.attributes/StringAttr.value|{}value[0]
+        final fun <get-value>(): kotlin/String // sh.measure.kmp.attributes/StringAttr.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // sh.measure.kmp.attributes/StringAttr.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // sh.measure.kmp.attributes/StringAttr.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // sh.measure.kmp.attributes/StringAttr.toString|toString(){}[0]
+}
+
+final object sh.measure.kmp/Measure { // sh.measure.kmp/Measure|null[0]
+    final fun clearUserId() // sh.measure.kmp/Measure.clearUserId|clearUserId(){}[0]
+    final fun createSpanBuilder(kotlin/String): sh.measure.kmp.tracing/SpanBuilder? // sh.measure.kmp/Measure.createSpanBuilder|createSpanBuilder(kotlin.String){}[0]
+    final fun getCurrentTime(): kotlin/Long // sh.measure.kmp/Measure.getCurrentTime|getCurrentTime(){}[0]
+    final fun getSessionId(): kotlin/String? // sh.measure.kmp/Measure.getSessionId|getSessionId(){}[0]
+    final fun getTraceParentHeaderKey(): kotlin/String // sh.measure.kmp/Measure.getTraceParentHeaderKey|getTraceParentHeaderKey(){}[0]
+    final fun getTraceParentHeaderValue(sh.measure.kmp.tracing/Span): kotlin/String // sh.measure.kmp/Measure.getTraceParentHeaderValue|getTraceParentHeaderValue(sh.measure.kmp.tracing.Span){}[0]
+    final fun launchBugReport(kotlin/Boolean = ..., kotlin.collections/Map<kotlin/String, sh.measure.kmp.attributes/AttributeValue> = ...) // sh.measure.kmp/Measure.launchBugReport|launchBugReport(kotlin.Boolean;kotlin.collections.Map<kotlin.String,sh.measure.kmp.attributes.AttributeValue>){}[0]
+    final fun setUserId(kotlin/String) // sh.measure.kmp/Measure.setUserId|setUserId(kotlin.String){}[0]
+    final fun start() // sh.measure.kmp/Measure.start|start(){}[0]
+    final fun startSpan(kotlin/String): sh.measure.kmp.tracing/Span // sh.measure.kmp/Measure.startSpan|startSpan(kotlin.String){}[0]
+    final fun startSpan(kotlin/String, kotlin/Long): sh.measure.kmp.tracing/Span // sh.measure.kmp/Measure.startSpan|startSpan(kotlin.String;kotlin.Long){}[0]
+    final fun stop() // sh.measure.kmp/Measure.stop|stop(){}[0]
+    final fun trackBugReport(kotlin/String, kotlin.collections/List<sh.measure.kmp/Attachment> = ..., kotlin.collections/Map<kotlin/String, sh.measure.kmp.attributes/AttributeValue> = ...) // sh.measure.kmp/Measure.trackBugReport|trackBugReport(kotlin.String;kotlin.collections.List<sh.measure.kmp.Attachment>;kotlin.collections.Map<kotlin.String,sh.measure.kmp.attributes.AttributeValue>){}[0]
+    final fun trackEvent(kotlin/String, kotlin.collections/Map<kotlin/String, sh.measure.kmp.attributes/AttributeValue> = ..., kotlin/Long? = ...) // sh.measure.kmp/Measure.trackEvent|trackEvent(kotlin.String;kotlin.collections.Map<kotlin.String,sh.measure.kmp.attributes.AttributeValue>;kotlin.Long?){}[0]
+    final fun trackHandledException(kotlin/Throwable, kotlin.collections/Map<kotlin/String, sh.measure.kmp.attributes/AttributeValue> = ...) // sh.measure.kmp/Measure.trackHandledException|trackHandledException(kotlin.Throwable;kotlin.collections.Map<kotlin.String,sh.measure.kmp.attributes.AttributeValue>){}[0]
+    final fun trackHttpEvent(kotlin/String, kotlin/String, kotlin/Long, kotlin/Long, kotlin/Int? = ..., kotlin/Exception? = ..., kotlin.collections/Map<kotlin/String, kotlin/String>? = ..., kotlin.collections/Map<kotlin/String, kotlin/String>? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String = ...) // sh.measure.kmp/Measure.trackHttpEvent|trackHttpEvent(kotlin.String;kotlin.String;kotlin.Long;kotlin.Long;kotlin.Int?;kotlin.Exception?;kotlin.collections.Map<kotlin.String,kotlin.String>?;kotlin.collections.Map<kotlin.String,kotlin.String>?;kotlin.String?;kotlin.String?;kotlin.String){}[0]
+    final fun trackScreenView(kotlin/String, kotlin.collections/Map<kotlin/String, sh.measure.kmp.attributes/AttributeValue> = ...) // sh.measure.kmp/Measure.trackScreenView|trackScreenView(kotlin.String;kotlin.collections.Map<kotlin.String,sh.measure.kmp.attributes.AttributeValue>){}[0]
+}
