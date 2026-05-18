@@ -32,7 +32,7 @@ robolectric = "4.16"
 orchestrator = "1.6.1"
 androidx-baselineprofile = "1.4.1"
 androidx-profileinstaller = "1.4.1"
-kolinx-binary-compatibility-validator = "0.18.1"
+kolinx-binary-compatibility-validator = "0.18.0"
 mavenPublish = "0.34.0"
 
 [libraries]
