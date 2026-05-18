@@ -12,6 +12,10 @@ const Name = "name"
 // logcomment.
 const Crashes = "crashes"
 
+// Errors is the root key for `errors`
+// logcomment.
+const Errors = "errors"
+
 // Sessions is the root key for `sessions`
 // logcomment.
 const Sessions = "sessions"

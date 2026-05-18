@@ -113,6 +113,14 @@ func main() {
 		apps.GET(":id/anrGroups/:anrGroupId/plots/instances", measure.GetANRDetailPlotInstances)
 		apps.GET(":id/anrGroups/:anrGroupId/plots/distribution", measure.GetANRDetailAttributeDistribution)
 
+		// errors
+		apps.GET(":id/errorGroups", measure.GetErrorOverview)
+		apps.GET(":id/errorGroups/plots/instances", measure.GetErrorOverviewPlotInstances)
+		apps.GET(":id/errorGroups/:errorGroupId/errors", measure.GetErrorDetailErrors)
+		apps.GET(":id/errorGroups/:errorGroupId/path", measure.GetErrorGroupCommonPath)
+		apps.GET(":id/errorGroups/:errorGroupId/plots/instances", measure.GetErrorDetailPlotInstances)
+		apps.GET(":id/errorGroups/:errorGroupId/plots/distribution", measure.GetErrorDetailAttributeDistribution)
+
 		// sessions
 		apps.GET(":id/sessions", measure.GetSessionsOverview)
 		apps.GET(":id/sessions/:sessionId", measure.GetSession)

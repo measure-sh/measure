@@ -13,6 +13,9 @@ const (
 	// Type ElfDebug represents the "ELF"
 	// type of mapping symbolication.
 	TypeElfDebug
+	// TypeJsBundle represents the "javascript"
+	// bundle type of mapping symbolication.
+	TypeJsBundle
 )
 
 // MappingType represents the mapping
@@ -31,5 +34,7 @@ func (m MappingType) String() string {
 		return "dsym"
 	case TypeElfDebug:
 		return "elf_debug"
+	case TypeJsBundle:
+		return "jsbundle"
 	}
 }

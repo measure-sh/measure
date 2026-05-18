@@ -127,6 +127,26 @@ func seedIssueEvent(
 	th.SeedIssueEvent(ctx, t, teamID, appID, eventType, fingerprint, handled, ts)
 }
 
+func seedExceptionGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {
+	th.SeedExceptionGroup(ctx, t, teamID, appID, fingerprint)
+}
+
+func seedFatalExceptionGroupWithCustomFlag(ctx context.Context, t *testing.T, teamID, appID, fingerprint string, isCustom bool) {
+	th.SeedFatalExceptionGroupWithCustomFlag(ctx, t, teamID, appID, fingerprint, isCustom)
+}
+
+func seedNonfatalExceptionGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string, handled, isCustom bool) {
+	th.SeedNonfatalExceptionGroup(ctx, t, teamID, appID, fingerprint, handled, isCustom)
+}
+
+func seedIssueEventWithCustomFlag(ctx context.Context, t *testing.T, teamID, appID, fingerprint string, handled, isCustom bool, ts time.Time) {
+	th.SeedIssueEventWithCustomFlag(ctx, t, teamID, appID, fingerprint, handled, isCustom, ts)
+}
+
+func seedAnrGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {
+	th.SeedAnrGroup(ctx, t, teamID, appID, fingerprint)
+}
+
 func seedBugReport(ctx context.Context, t *testing.T, teamID, appID, eventID, description string, ts time.Time) {
 	th.SeedBugReport(ctx, t, teamID, appID, eventID, description, ts)
 }

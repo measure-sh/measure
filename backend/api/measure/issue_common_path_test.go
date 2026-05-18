@@ -523,22 +523,22 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 	})
 
 	// ------------------------------------------------------------------
-	// Row scanning: handled ANR with data
+	// Row scanning: ANR with data
 	// ------------------------------------------------------------------
 
-	t.Run("handled ANR shows Handled ANR prefix", func(t *testing.T) {
+	t.Run("ANR with data shows ANR prefix", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New()
 		appID := uuid.New()
-		fingerprint := "fp-handled-anr-data-1234567"
+		fingerprint := "fp-anr-data-12345678901234"
 		th.SeedAnrGroup(ctx, t, teamID.String(), appID.String(), fingerprint)
 
 		sessionID := uuid.New().String()
 		now := time.Now().UTC()
 		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "SettingsScreen", now.Add(-2*time.Second))
 		anrJSON := `[{"type":"ANR","message":"Input dispatching timed out","frames":[]}]`
-		seedIssueEventWithDataInSession(ctx, t, teamID.String(), appID.String(), sessionID, "anr", fingerprint, true, anrJSON, now)
+		seedIssueEventWithDataInSession(ctx, t, teamID.String(), appID.String(), sessionID, "anr", fingerprint, false, anrJSON, now)
 
 		data, err := GetIssueGroupCommonPath(ctx, teamID, appID, group.GroupTypeANR, fingerprint)
 		if err != nil {
@@ -556,13 +556,13 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 
 		found := false
 		for _, s := range result.Steps {
-			if strings.Contains(s.Description, "Handled ANR: ANR - Input dispatching timed out") {
+			if strings.Contains(s.Description, "ANR: ANR - Input dispatching timed out") {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Errorf("expected step with 'Handled ANR: ANR - Input dispatching timed out', got steps: %+v", result.Steps)
+			t.Errorf("expected step with 'ANR: ANR - Input dispatching timed out', got steps: %+v", result.Steps)
 		}
 	})
 

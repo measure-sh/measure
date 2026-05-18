@@ -11,3 +11,7 @@ const FrameworkJVM = "jvm"
 // FrameworkDart represents Dart context
 // in an app's collected data.
 const FrameworkDart = "dart"
+
+// FrameworkJS represents JavaScript context
+// in an app's collected data.
+const FrameworkJS = "js"

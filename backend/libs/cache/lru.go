@@ -19,7 +19,7 @@ type entry struct {
 	value any
 }
 
-// New initialized a new LRU cache
+// NewLRUCache initializes a new LRU cache
 // with given capacity.
 func NewLRUCache(cap int) *LRUCache {
 	return &LRUCache{

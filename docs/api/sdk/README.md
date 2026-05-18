@@ -15,6 +15,8 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [Request Headers](#request-headers)
     - [Response Body](#response-body)
     - [Request Body](#request-body)
+      - [JSON request body](#json-request-body)
+      - [Multipart request body](#multipart-request-body)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting)
   - [PUT `/builds`](#put-builds)
     - [Usage Notes](#usage-notes-1)
@@ -23,12 +25,12 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [Request Body](#request-body-1)
       - [Mappings](#mappings)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-1)
-- [GET `/config`](#get-config)
-  - [Usage Notes](#usage-notes-2)
-  - [Authorization \& Content Type](#authorization--content-type-1)
-  - [Response Body](#response-body-2)
-  - [Cache Headers](#cache-headers)
-  - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-2)
+  - [GET `/config`](#get-config)
+    - [Usage Notes](#usage-notes-2)
+    - [Authorization \& Content Type](#authorization--content-type-1)
+    - [Response Body](#response-body-2)
+    - [Cache Headers](#cache-headers)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-2)
 - [References](#references)
   - [Attributes](#attributes)
   - [User Defined Attributes](#user-defined-attributes)
@@ -61,7 +63,6 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [**`screen_view`**](#screen_view)
     - [**`custom`**](#custom)
     - [**`session_start`**](#session_start)
-
   - [Traces](#traces)
 
 ## Resources
@@ -301,9 +302,10 @@ to the returned URLs. For uploading the files, you can issue a standard http req
 
 - Putting `build_size` for the same `version_name`, `version_code` and `build_type` combination replaces the last size with the latest size.
 - Depending on the platform, `build_type` can be `aab`, `apk` for Android or `ipa` for iOS.
-- Depending on the platform, `mapping_type` can be `proguard` for Android or `dsym` for iOS.
+- Depending on the platform, `mapping_type` can be `proguard` for Android, `dsym` or `elf_debug` for iOS, or `jsbundle` for React Native.
 - `mappings` is optional. When `mappings` array is not present, only the build size information will be updated.
 - Each mapping file for iOS must be gzipped tarball of `dSYM` bundles ending with a `.tgz` file extension.
+- Each mapping file for React Native must be a gzipped tarball (`.tgz`) containing the minified JS bundle (`.js`) and its source map (`.js.map`).
 - For mapping filename, only provide the filename, not a path.
 - When `mappings` is present, the server returns a mappings array containing the pre-signed URL for uploading each mapping file.
 - Each pre-signed mapping file upload URL has an expiry set which is the same as the `expires_at` field.
@@ -389,6 +391,10 @@ Payload must contain the app version info, build info and optional build mapping
     {
       "type": "elf_debug",
       "filename": "app.symbols"
+    },
+    {
+      "type": "jsbundle",
+      "filename": "index.android.bundle.tgz"
     }
   ]
 }
@@ -408,7 +414,7 @@ Each mapping object has the following shape.
 
 | Field      | Type   | Optional | Comment                                                             |
 | ---------- | ------ | -------- | ------------------------------------------------------------------- |
-| `type`     | string | No       | Type of the mapping file. Either `dsym`, `proguard` or `elf_debug`. |
+| `type`     | string | No       | Type of the mapping file. Either `proguard`, `dsym`, `elf_debug`, or `jsbundle` (React Native). |
 | `filename` | string | No       | Filename of the mapping file.                                       |
 
 </details>
@@ -696,15 +702,20 @@ Each thread object contains further fields.
 
 Use the `exception` type for errors and crashes.
 
-| Field           | Type    | Optional | Comment                                                                                            |
-| --------------- | ------- | -------- | -------------------------------------------------------------------------------------------------- |
-| `handled`       | boolean | No       | `false` for crashes, `true` if exceptions are handled                                              |
-| `exceptions`    | array   | No       | Array of exception objects                                                                         |
-| `foreground`    | boolean | Yes      | `true` if the app was in the foreground at the time of the exception.                              |
-| `threads`       | array   | Yes      | Array of thread objects                                                                            |
-| `binary_images` | array   | Yes      | An optional array of all the `binary_image` needed for symbolication.                              |
-| `framework`     | string  | No       | Specifies the framework where the exception originated from. One of: `dart`, `jvm`, `apple`, `js`. |
-| `error`         | object  | Yes      | An optional object for tracking error(s). Applicable to Apple apps.                                |
+| Field           | Type    | Optional | Comment                                                                                                                                                             |
+| --------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `handled`       | boolean | No       | `false` for crashes, `true` if exceptions are handled. Prefer using `severity` for new integrations; `handled` is retained for backwards compatibility.             |
+| `severity`      | string  | Yes      | Severity level of the exception. One of: `fatal`, `handled`, `unhandled`. When omitted, severity is inferred from `handled`: `false` → `fatal`, `true` → `handled`. |
+| `exceptions`    | array   | No       | Array of exception objects                                                                                                                                          |
+| `foreground`    | boolean | Yes      | `true` if the app was in the foreground at the time of the exception.                                                                                               |
+| `threads`       | array   | Yes      | Array of thread objects                                                                                                                                             |
+| `binary_images` | array   | Yes      | An optional array of all the `binary_image` needed for symbolication.                                                                                               |
+| `framework`     | string  | No       | Specifies the framework where the exception originated from. One of: `dart`, `jvm`, `apple`, `js`.                                                                  |
+| `is_custom`     | boolean | Yes      | `true` for user-tracked errors (e.g. `payment_failed`). Defaults to `false`.                                                                                        |
+| `error`         | object  | Yes      | **Deprecated.** Use `num_code`, `code`, and `meta` directly on the exception instead. An optional object for tracking error(s). Applicable to Apple apps.           |
+| `num_code`      | integer | Yes      | Numeric code that describes the exception.                                                                                                                          |
+| `code`          | string  | Yes      | String code that describes the exception.                                                                                                                           |
+| `meta`          | object  | Yes      | Object containing arbitrary fields for the exception's metadata. Should not exceed `4096 bytes`.                                                                    |
 
 `exception` objects
 

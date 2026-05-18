@@ -9,6 +9,7 @@ import (
 	"backend/libs/ambient"
 	"backend/libs/chrono"
 	"backend/libs/inet"
+	"backend/libs/objstore"
 	"backend/libs/opsys"
 	"context"
 	"database/sql"
@@ -23,7 +24,10 @@ import (
 
 	"cloud.google.com/go/auth"
 	"cloud.google.com/go/auth/credentials"
+	"cloud.google.com/go/storage"
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -68,7 +72,7 @@ type eventreq struct {
 	// symbolicateSpans is a look up table to find
 	// the spans that need symbolication
 	symbolicateSpans map[string]int
-	// exceptionIds is a list of all unhandled exception
+	// exceptionIds is a list of all exception
 	// event ids
 	exceptionIds []int
 	// anrIds is a list of all ANR event IDs
@@ -193,9 +197,9 @@ func (e eventreq) remember(ctx context.Context) (err error) {
 	return server.Server.ChPool.Exec(asyncCtx, stmt.String(), stmt.Args()...)
 }
 
-// hasUnhandledExceptions returns true if event payload
-// contains unhandled exceptions.
-func (e eventreq) hasUnhandledExceptions() bool {
+// hasExceptions returns true if event payload
+// contains exceptions.
+func (e eventreq) hasExceptions() bool {
 	return len(e.exceptionIds) > 0
 }
 
@@ -235,10 +239,9 @@ func (e eventreq) getAppUniqueID() (appUniqueID string) {
 	return e.spans[0].Attributes.AppUniqueID
 }
 
-// getUnhandledExceptions returns unhandled exceptions
-// from the event payload.
-func (e eventreq) getUnhandledExceptions() (events []event.EventField) {
-	if !e.hasUnhandledExceptions() {
+// getExceptions returns exceptions from the event payload.
+func (e eventreq) getExceptions() (events []event.EventField) {
+	if !e.hasExceptions() {
 		return
 	}
 	for _, v := range e.exceptionIds {
@@ -258,10 +261,9 @@ func (e eventreq) getANRs() (events []event.EventField) {
 	return
 }
 
-// bucketUnhandledExceptions groups unhandled exceptions
-// based on similarity.
-func (e eventreq) bucketUnhandledExceptions(ctx context.Context) (err error) {
-	events := e.getUnhandledExceptions()
+// bucketExceptions groups exceptions based on similarity.
+func (e eventreq) bucketExceptions(ctx context.Context) (err error) {
+	events := e.getExceptions()
 
 	for i := range events {
 		if events[i].Exception.Fingerprint == "" {
@@ -280,6 +282,9 @@ func (e eventreq) bucketUnhandledExceptions(ctx context.Context) (err error) {
 			events[i].Exception.GetMethodName(),
 			events[i].Exception.GetFileName(),
 			events[i].Exception.GetLineNumber(),
+			events[i].Exception.Handled,
+			events[i].Exception.GetSeverity() == event.SeverityFatal,
+			events[i].Exception.IsCustom,
 			events[i].Timestamp,
 		)
 
@@ -327,6 +332,18 @@ func (e eventreq) bucketANRs(ctx context.Context) (err error) {
 // contains events that should be symbolicated.
 func (e eventreq) needsSymbolication() bool {
 	return len(e.symbolicateEvents) > 0 || len(e.symbolicateSpans) > 0
+}
+
+// needsJSSymbolication returns true if any of the events
+// flagged for symbolication contain JavaScript frames.
+func (e eventreq) needsJSSymbolication() bool {
+	for _, i := range e.symbolicateEvents {
+		ev := e.events[i]
+		if ev.IsException() && ev.Exception.HasJSFrames() {
+			return true
+		}
+	}
+	return false
 }
 
 // validate validates the integrity of each event
@@ -400,7 +417,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		exceptionThreads := "[]"
 		attachments := "[]"
 		binaryImages := "[]"
-		error := "{}"
+		errorMeta := "{}"
 
 		if e.events[i].IsANR() {
 			marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
@@ -442,12 +459,11 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			}
 
 			if e.events[i].Exception.HasError() {
-				marshalledError, err := json.Marshal(e.events[i].Exception.Error)
+				metaBytes, err := e.events[i].Exception.GetMetaBytes()
 				if err != nil {
 					return err
 				}
-
-				error = string(marshalledError)
+				errorMeta = string(metaBytes)
 			}
 		}
 
@@ -537,7 +553,11 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.foreground`, e.events[i].Exception.Foreground).
 				Set(`exception.binary_images`, binaryImages).
 				Set(`exception.framework`, e.events[i].Exception.GetFramework()).
-				Set(`exception.error`, error)
+				Set(`exception.num_code`, e.events[i].Exception.NumCode).
+				Set(`exception.code`, e.events[i].Exception.Code).
+				Set(`exception.meta`, errorMeta).
+				Set(`exception.severity`, e.events[i].Exception.GetSeverity()).
+				Set(`exception.is_custom`, e.events[i].Exception.IsCustom)
 		} else {
 			row.
 				Set(`exception.handled`, nil).
@@ -547,7 +567,11 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.foreground`, nil).
 				Set(`exception.binary_images`, nil).
 				Set(`exception.framework`, nil).
-				Set(`exception.error`, nil)
+				Set(`exception.num_code`, nil).
+				Set(`exception.code`, nil).
+				Set(`exception.meta`, nil).
+				Set(`exception.severity`, nil).
+				Set(`exception.is_custom`, nil)
 		}
 
 		// app exit
@@ -1160,7 +1184,8 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		if eventReq.events[i].NeedsSymbolication() {
 			eventReq.symbolicateEvents[eventReq.events[i].ID] = i
 		}
-		if eventReq.events[i].IsUnhandledException() {
+		if eventReq.events[i].IsException() {
+			fmt.Println("processing exception: ", eventReq.events[i].ID)
 			eventReq.exceptionIds = append(eventReq.exceptionIds, i)
 		}
 		if eventReq.events[i].IsANR() {
@@ -1211,72 +1236,100 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 
 	var symbolicationGroup errgroup.Group
 	symbolicationGroup.Go(func() error {
-		if eventReq.needsSymbolication() {
-			config := server.Server.Config
-			origin := config.SymbolicatorOrigin
-			osName := eventReq.osName
-			sources := []symbolicator.Source{}
-			var sentrySources []symbolicator.SentrySource
+		if !eventReq.needsSymbolication() {
+			return nil
+		}
 
-			switch opsys.ToFamily(osName) {
-			case opsys.Android:
+		config := server.Server.Config
+		origin := config.SymbolicatorOrigin
+		osName := eventReq.osName
+		sources := []symbolicator.Source{}
+		var sentrySources []symbolicator.SentrySource
+
+		switch opsys.ToFamily(osName) {
+		case opsys.Android:
+			if config.IsCloud() {
+				creds, err := getGCSCreds()
+				if err != nil {
+					fmt.Printf("failed to obtain credentials for GCS Android source: %v\n", err)
+				} else if tok, err := creds.Token(ingestCtx); err != nil {
+					fmt.Printf("failed to generate token for GCS Android source: %v\n", err)
+				} else {
+					sources = append(sources, symbolicator.NewGCSSourceAndroid("msr-symbols", config.SymbolsBucket, tok.Value))
+				}
+			} else {
+				sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+			}
+			if config.SymboloaderOrigin != "" {
 				if config.IsCloud() {
-					creds, err := getGCSCreds()
+					ts, err := idtoken.NewTokenSource(ingestCtx, config.SymboloaderOrigin)
 					if err != nil {
-						fmt.Printf("failed to obtain credentials for GCS Android source: %v\n", err)
-					} else if tok, err := creds.Token(ingestCtx); err != nil {
-						fmt.Printf("failed to generate token for GCS Android source: %v\n", err)
+						fmt.Printf("failed to create identity token source for symboloader: %v\n", err)
+					} else if tok, err := ts.Token(); err != nil {
+						fmt.Printf("failed to generate identity token for symboloader: %v\n", err)
 					} else {
-						sources = append(sources, symbolicator.NewGCSSourceAndroid("msr-symbols", config.SymbolsBucket, tok.Value))
+						sentrySources = append(sentrySources, symbolicator.NewSentrySource("msr-symbols-sentry", config.SymboloaderOrigin+"/symbols", tok.AccessToken))
 					}
 				} else {
-					sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
-				}
-				if config.SymboloaderOrigin != "" {
-					if config.IsCloud() {
-						ts, err := idtoken.NewTokenSource(ingestCtx, config.SymboloaderOrigin)
-						if err != nil {
-							fmt.Printf("failed to create identity token source for symboloader: %v\n", err)
-						} else if tok, err := ts.Token(); err != nil {
-							fmt.Printf("failed to generate identity token for symboloader: %v\n", err)
-						} else {
-							sentrySources = append(sentrySources, symbolicator.NewSentrySource("msr-symbols-sentry", config.SymboloaderOrigin+"/symbols", tok.AccessToken))
-						}
-					} else {
-						sentrySources = append(sentrySources, symbolicator.NewSentrySource("msr-symbols-sentry", config.SymboloaderOrigin+"/symbols", "measure"))
-					}
-				}
-			case opsys.AppleFamily:
-				if config.IsCloud() {
-					creds, err := getGCSCreds()
-					if err != nil {
-						fmt.Printf("failed to obtain credentials for GCS Apple source: %v\n", err)
-					} else if tok, err := creds.Token(ingestCtx); err != nil {
-						fmt.Printf("failed to generate token for GCS Apple source: %v\n", err)
-					} else {
-						sources = append(sources, symbolicator.NewGCSSourceApple("msr-symbols", config.SymbolsBucket, tok.Value))
-						if config.SystemSymbolsBucket != "" {
-							sources = append(sources, symbolicator.NewGCSSourceApple("msr-system-symbols", config.SystemSymbolsBucket, tok.Value))
-						}
-					}
-				} else {
-					sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
-					if config.SystemSymbolsBucket != "" {
-						sources = append(sources, symbolicator.NewS3SourceApple("msr-system-symbols", config.SystemSymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
-					}
+					sentrySources = append(sentrySources, symbolicator.NewSentrySource("msr-symbols-sentry", config.SymboloaderOrigin+"/symbols", "measure"))
 				}
 			}
-
-			symblctr := symbolicator.New(origin, osName, sources, sentrySources)
-
-			_, symbolicationSpan := ingestTracer.Start(ingestCtx, "symbolicate-events")
-			defer symbolicationSpan.End()
-
-			if err := symblctr.Symbolicate(ingestCtx, server.Server.PgPool, eventReq.appId, eventReq.events, eventReq.spans); err != nil {
-				fmt.Printf("failed to symbolicate batch %q containing %d events & %d spans: %v\n", eventReq.id, len(eventReq.events), len(eventReq.spans), err.Error())
-				return err
+		case opsys.AppleFamily:
+			if config.IsCloud() {
+				creds, err := getGCSCreds()
+				if err != nil {
+					fmt.Printf("failed to obtain credentials for GCS Apple source: %v\n", err)
+				} else if tok, err := creds.Token(ingestCtx); err != nil {
+					fmt.Printf("failed to generate token for GCS Apple source: %v\n", err)
+				} else {
+					sources = append(sources, symbolicator.NewGCSSourceApple("msr-symbols", config.SymbolsBucket, tok.Value))
+					if config.SystemSymbolsBucket != "" {
+						sources = append(sources, symbolicator.NewGCSSourceApple("msr-system-symbols", config.SystemSymbolsBucket, tok.Value))
+					}
+				}
+			} else {
+				sources = append(sources, symbolicator.NewS3SourceApple("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+				if config.SystemSymbolsBucket != "" {
+					sources = append(sources, symbolicator.NewS3SourceApple("msr-system-symbols", config.SystemSymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
+				}
 			}
 		}
+
+		symblctr := symbolicator.New(origin, osName, sources, sentrySources)
+
+		if eventReq.needsJSSymbolication() {
+			if config.IsCloud() {
+				gcsClient, gcsErr := objstore.CreateGCSClient(ingestCtx)
+				if gcsErr != nil {
+					fmt.Printf("failed to create GCS client for JS symbolication: %v\n", gcsErr)
+				} else {
+					symblctr.PresignURL = func(key string) (string, error) {
+						return objstore.CreateGCSGETPresignedURL(gcsClient, config.SymbolsBucket, key, &storage.SignedURLOptions{
+							Scheme:  storage.SigningSchemeV4,
+							Method:  "GET",
+							Expires: time.Now().Add(time.Hour),
+						})
+					}
+				}
+			} else {
+				s3Client := objstore.CreateS3Client(ingestCtx, config.SymbolsAccessKey, config.SymbolsSecretAccessKey, config.SymbolsBucketRegion, config.AWSEndpoint)
+				symblctr.PresignURL = func(key string) (string, error) {
+					return objstore.CreateS3GETPresignedURL(ingestCtx, s3Client, &s3.GetObjectInput{
+						Bucket: aws.String(config.SymbolsBucket),
+						Key:    aws.String(key),
+					}, s3.WithPresignExpires(time.Hour))
+				}
+			}
+		}
+
+		_, symbolicationSpan := ingestTracer.Start(ingestCtx, "symbolicate-events")
+		defer symbolicationSpan.End()
+
+		if err := symblctr.Symbolicate(ingestCtx, server.Server.PgPool, eventReq.appId, eventReq.events, eventReq.spans); err != nil {
+			fmt.Printf("failed to symbolicate batch %q containing %d events & %d spans: %v\n", eventReq.id, len(eventReq.events), len(eventReq.spans), err.Error())
+			return err
+		}
+
 		return nil
 	})
 
@@ -1312,10 +1365,10 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 
 	var bucketGroup errgroup.Group
 	bucketGroup.Go(func() error {
-		_, bucketUnhandledExceptionsSpan := ingestTracer.Start(ingestCtx, "bucket-unhandled-exceptions")
-		defer bucketUnhandledExceptionsSpan.End()
-		if err := eventReq.bucketUnhandledExceptions(ingestCtx); err != nil {
-			fmt.Println(`failed to bucket unhandled exceptions`, err)
+		_, bucketExceptionsSpan := ingestTracer.Start(ingestCtx, "bucket-exceptions")
+		defer bucketExceptionsSpan.End()
+		if err := eventReq.bucketExceptions(ingestCtx); err != nil {
+			fmt.Println(`failed to bucket exceptions`, err)
 			return err
 		}
 		return nil
@@ -1405,5 +1458,6 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 	trackBatchBytes(eventReq.teamId, eventReq.size)
 
 	ingestBatchAckCount.Add(ctx, 1)
+	fmt.Println("processed batch")
 	return nil
 }

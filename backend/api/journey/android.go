@@ -101,7 +101,7 @@ func (j *JourneyAndroid) computeIssues() {
 			if !ok {
 				continue
 			}
-			if issueEvent.IsUnhandledException() {
+			if issueEvent.IsFatalException() {
 				bag.exceptionIds.Add(issueEvent.ID)
 				bag.exceptionFingerprints = append(bag.exceptionFingerprints, issueEvent.Exception.Fingerprint)
 
@@ -464,7 +464,7 @@ func NewJourneyAndroid(events []event.EventField, opts *Options) (journey *Journ
 		activity := events[i].IsLifecycleActivity()
 		fragment := events[i].IsLifecycleFragment()
 		screenView := events[i].IsScreenView()
-		issue := i > 0 && events[i].IsUnhandledException() || events[i].IsANR()
+		issue := i > 0 && events[i].IsFatalException() || events[i].IsANR()
 
 		if activity {
 			node.Name = events[i].LifecycleActivity.ClassName

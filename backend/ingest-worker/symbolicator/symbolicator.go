@@ -32,6 +32,7 @@ const logRequest = false
 const logResponse = false
 
 var ErrJVMSymbolicationFailure = errors.New("symbolicator received JVM errors")
+var ErrJSSymbolicationFailure = errors.New("symbolicator received JS errors")
 
 // lineNoEntry represents a JVM stacktrace's
 // frame line number(s).
@@ -108,6 +109,14 @@ type appleSymbolicator struct {
 	response         *responseApple
 }
 
+// jsSymbolicator represents a JavaScript/React Native
+// symbolicator request.
+type jsSymbolicator struct {
+	request       *requestJS
+	response      *responseJS
+	stacktraceLUT []stacktraceEntry
+}
+
 // Symbolicator contains everything required
 // to perform de-obfuscation of data in various
 // events.
@@ -135,6 +144,13 @@ type Symbolicator struct {
 	// appleSymbolicator maintains state for
 	// an Apple crash report symbolication request.
 	appleSymbolicator *appleSymbolicator
+	// jsSymbolicator maintains state for
+	// a JavaScript/React Native symbolication request.
+	jsSymbolicator *jsSymbolicator
+	// PresignURL generates a pre-signed HTTP GET URL for
+	// a given symbol storage key. Required for JS
+	// symbolication. If nil, JS symbolication is skipped.
+	PresignURL func(key string) (string, error)
 	// jvmLambdaWorkaround determines if each of the
 	// JVM stacktrace class names should be matched
 	// and replaced during the rewrite stage of
@@ -185,6 +201,10 @@ func New(origin, operatingSys string, sources []Source, sentrySources []SentrySo
 		symbolicator.appleSymbolicator = &appleSymbolicator{}
 		symbolicator.nativeSymbolicator = &nativeSymbolicator{}
 	}
+
+	// JS symbolication is always initialized since React Native
+	// apps can run on both Android and iOS.
+	symbolicator.jsSymbolicator = &jsSymbolicator{}
 
 	return
 }
@@ -252,6 +272,14 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 				uuid := ev.Exception.BinaryImages[0].Uuid
 				arch := ev.Exception.BinaryImages[0].Arch
 				s.nativeSymbolicator.configureModule(mappings, baseAddr, uuid, arch)
+
+			case event.FrameworkJS:
+				s.jsSymbolicator.ensureRequestInitialized()
+				s.jsSymbolicator.parseExceptions(ev.Exception.Exceptions, i)
+				if configErr := s.jsSymbolicator.configureSources(mappings, s.PresignURL); configErr != nil {
+					fmt.Printf("error configuring JS sources for app %s: %v\n", appId, configErr)
+					continue
+				}
 			}
 		case event.TypeANR:
 			s.jvmSymbolicator.ensureRequestInitialized()
@@ -314,6 +342,12 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 	if s.nativeSymbolicator != nil {
 		if err := s.nativeSymbolicator.symbolicate(events, s.Origin, s.Sources); err != nil {
 			return fmt.Errorf("native symbolication failed: %w", err)
+		}
+	}
+
+	if s.jsSymbolicator != nil {
+		if err := s.jsSymbolicator.symbolicate(events, s.Origin); err != nil {
+			return fmt.Errorf("js symbolication failed: %w", err)
 		}
 	}
 
@@ -916,6 +950,126 @@ func (ns nativeSymbolicator) rewriteException(evs []event.EventField) {
 func (ns *nativeSymbolicator) ensureRequestInitialized() {
 	if ns.request == nil {
 		ns.request = NewRequestNative()
+	}
+}
+
+// ensureRequestInitialized initializes the
+// requestJS field if it is nil.
+func (js *jsSymbolicator) ensureRequestInitialized() {
+	if js.request == nil {
+		js.request = NewRequestJS()
+	}
+}
+
+// parseExceptions extracts exception frames for
+// JS symbolication and populates the stacktraceLUT.
+func (js *jsSymbolicator) parseExceptions(exceptions event.ExceptionUnits, index int) {
+	for j, excep := range exceptions {
+		frames := []frameJS{}
+		for k, frame := range excep.Frames {
+			frames = append(frames, frameJS{
+				Function: frame.MethodName,
+				Filename: frame.FileName,
+				AbsPath:  frame.FileName,
+				LineNo:   frame.LineNum,
+				ColumnNo: frame.ColNum,
+			})
+			js.stacktraceLUT = append(js.stacktraceLUT, stacktraceEntry{index, j, k, -1, -1, len(js.request.Stacktraces)})
+		}
+		js.request.Stacktraces = append(js.request.Stacktraces, stacktraceJS{
+			Frames: frames,
+		})
+	}
+}
+
+// configureSources adds an HTTP source for each jsbundle
+// mapping key by generating a pre-signed GET URL.
+// Skips silently if presign is nil.
+func (js *jsSymbolicator) configureSources(mappings map[string]symbol.MappingType, presign func(string) (string, error)) (err error) {
+	if presign == nil {
+		return
+	}
+
+	for key, mType := range mappings {
+		if mType != symbol.TypeJsBundle {
+			continue
+		}
+
+		url, urlErr := presign(key)
+		if urlErr != nil {
+			err = urlErr
+			return
+		}
+
+		js.request.Sources = append(js.request.Sources, NewHTTPSourceJS(key, url))
+	}
+
+	return
+}
+
+// symbolicate performs symbolication for
+// JavaScript/React Native exceptions.
+func (js *jsSymbolicator) symbolicate(events []event.EventField, origin string) (err error) {
+	if js.request == nil {
+		return
+	}
+
+	sr := &SymbolicatorRequest{}
+	if err = sr.prepareJSRequest(js, origin); err != nil {
+		return
+	}
+
+	var respBody []byte
+	if respBody, err = sr.makeRequest(); err != nil {
+		return
+	}
+
+	if err = json.Unmarshal(respBody, &js.response); err != nil {
+		return
+	}
+
+	if logResponse {
+		b, marshalErr := json.MarshalIndent(js.response, "", "  ")
+		if marshalErr != nil {
+			return marshalErr
+		}
+		fmt.Println(string(b))
+	}
+
+	js.rewriteException(events)
+
+	return
+}
+
+// rewriteException updates the original events with
+// symbolicated JS frame data.
+func (js jsSymbolicator) rewriteException(evs []event.EventField) {
+	stacktraces := js.response.Stacktraces
+
+	for _, entry := range js.stacktraceLUT {
+		i := entry[0]
+		j := entry[1]
+		k := entry[2]
+		n := entry[5]
+
+		if len(stacktraces) <= n {
+			continue
+		}
+
+		exceptions := evs[i].Exception.Exceptions
+		if len(exceptions) <= j {
+			continue
+		}
+
+		frames := stacktraces[n].Frames
+		if len(frames) <= k {
+			continue
+		}
+
+		exceptions[j].Frames[k].MethodName = frames[k].Function
+		exceptions[j].Frames[k].FileName = frames[k].Filename
+		exceptions[j].Frames[k].LineNum = frames[k].LineNo
+		exceptions[j].Frames[k].ColNum = frames[k].ColumnNo
 	}
 }
 

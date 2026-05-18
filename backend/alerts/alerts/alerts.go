@@ -1085,7 +1085,7 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 		if crashGroupRate >= prefs.ErrorSpikeMinRateThreshold {
 			var crashType, fileName, methodName, message string
 			groupInfoStmt := sqlf.
-				From("unhandled_exception_groups final").
+				From("fatal_exception_groups final").
 				Select("argMax(type, timestamp)").
 				Select("argMax(file_name, timestamp)").
 				Select("argMax(method_name, timestamp)").

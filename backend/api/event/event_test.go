@@ -152,6 +152,23 @@ func TestAppleExceptionStacktraceTwo(t *testing.T) {
 	}
 }
 
+func TestJSExceptionStacktraceOne(t *testing.T) {
+	exception, err := readException("./testdata/js_exception_one.json")
+	if err != nil {
+		panic(err)
+	}
+
+	expected, err := readStacktrace("./testdata/js_exception_stacktrace_one.txt")
+	if err != nil {
+		panic(err)
+	}
+	got := exception.Stacktrace()
+
+	if expected != got {
+		t.Errorf("Expected:\n%q\nGot:\n%q", expected, got)
+	}
+}
+
 func TestHasError(t *testing.T) {
 	// Empty exception
 	{
@@ -178,6 +195,17 @@ func TestHasError(t *testing.T) {
 			t.Errorf("Expected %v, but got %v", expected, got)
 		}
 	}
+	{
+		e := Exception{
+			Code: "ENOFILE",
+		}
+		expected := true
+		got := e.HasError()
+
+		if expected != got {
+			t.Errorf("Expected %v, but got %v", expected, got)
+		}
+	}
 
 	// Error has non-zero numeric code
 	{
@@ -185,6 +213,17 @@ func TestHasError(t *testing.T) {
 			Error: &Error{
 				NumCode: 47,
 			},
+		}
+		expected := true
+		got := e.HasError()
+
+		if expected != got {
+			t.Errorf("Expected %v, but got %v", expected, got)
+		}
+	}
+	{
+		e := Exception{
+			NumCode: 47,
 		}
 		expected := true
 		got := e.HasError()
@@ -201,6 +240,19 @@ func TestHasError(t *testing.T) {
 				Meta: map[string]any{
 					"foo": "bar",
 				},
+			},
+		}
+		expected := true
+		got := e.HasError()
+
+		if expected != got {
+			t.Errorf("Expected %v, but got %v", expected, got)
+		}
+	}
+	{
+		e := Exception{
+			Meta: map[string]any{
+				"foo": "bar",
 			},
 		}
 		expected := true
@@ -510,15 +562,17 @@ func TestGetMessage(t *testing.T) {
 
 func TestGetFramework(t *testing.T) {
 	t.Run("Provides framework if present", func(t *testing.T) {
-		exception := Exception{
-			Framework: FrameworkDart,
-		}
+		frameworks := []string{FrameworkDart, FrameworkJS}
+		for _, fw := range frameworks {
+			exception := Exception{
+				Framework: fw,
+			}
 
-		expected := FrameworkDart
-		got := exception.GetFramework()
+			got := exception.GetFramework()
 
-		if expected != got {
-			t.Errorf("Expected %v, but got %v", expected, got)
+			if fw != got {
+				t.Errorf("Expected %v, but got %v", fw, got)
+			}
 		}
 	})
 
@@ -662,6 +716,229 @@ func TestGetFramework(t *testing.T) {
 
 		if expected != got {
 			t.Errorf("Expected %v, but got %v", expected, got)
+		}
+	})
+}
+
+func TestGetSeverity(t *testing.T) {
+	t.Run("Returns SeverityFatal for unhandled exception with empty severity", func(t *testing.T) {
+		e := Exception{
+			Handled:  false,
+			Severity: "",
+		}
+		expected := SeverityFatal
+		got := e.GetSeverity()
+		if got != expected {
+			t.Errorf("Expected %v, but got %v", expected, got)
+		}
+	})
+
+	t.Run("Returns SeverityHandled for handled exception with empty severity", func(t *testing.T) {
+		e := Exception{
+			Handled:  true,
+			Severity: "",
+		}
+		expected := SeverityHandled
+		got := e.GetSeverity()
+		if got != expected {
+			t.Errorf("Expected %v, but got %v", expected, got)
+		}
+	})
+
+	t.Run("Returns e.Severity if it is not empty", func(t *testing.T) {
+		e := Exception{
+			Handled:  false,
+			Severity: SeverityUnhandled,
+		}
+		expected := SeverityUnhandled
+		got := e.GetSeverity()
+		if got != expected {
+			t.Errorf("Expected %v, but got %v", expected, got)
+		}
+	})
+}
+
+func TestIsFatalException(t *testing.T) {
+	t.Run("Returns true for an exception with SeverityFatal", func(t *testing.T) {
+		e := EventField{
+			Type: TypeException,
+			Exception: &Exception{
+				Severity: SeverityFatal,
+			},
+		}
+
+		if !e.IsFatalException() {
+			t.Errorf("Expected IsFatalException to be true, got false")
+		}
+	})
+
+	t.Run("Returns false for an exception with non-fatal severity", func(t *testing.T) {
+		e := EventField{
+			Type: TypeException,
+			Exception: &Exception{
+				Severity: SeverityHandled,
+			},
+		}
+
+		if e.IsFatalException() {
+			t.Errorf("Expected IsFatalException to be false, got true")
+		}
+	})
+
+	t.Run("Returns false if event is not an exception", func(t *testing.T) {
+		e := EventField{
+			Type: TypeANR,
+			ANR:  &ANR{},
+		}
+
+		if e.IsFatalException() {
+			t.Errorf("Expected IsFatalException to be false, got true")
+		}
+	})
+
+	t.Run("Returns true for an exception when unhandled and empty severity (implied fatal)", func(t *testing.T) {
+		e := EventField{
+			Type: TypeException,
+			Exception: &Exception{
+				Handled:  false,
+				Severity: "",
+			},
+		}
+
+		if !e.IsFatalException() {
+			t.Errorf("Expected IsFatalException to be true, got false")
+		}
+	})
+}
+
+func TestGetMetaBytes(t *testing.T) {
+	t.Run("Returns e.Meta as bytes if e.Meta is not nil", func(t *testing.T) {
+		e := Exception{
+			Meta: map[string]any{
+				"key1": "value1",
+			},
+			Error: &Error{
+				Meta: map[string]any{
+					"key2": "value2",
+				},
+			},
+		}
+
+		bytes, err := e.GetMetaBytes()
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		expected := `{"key1":"value1"}`
+		if string(bytes) != expected {
+			t.Errorf("Expected %s, got %s", expected, string(bytes))
+		}
+	})
+
+	t.Run("Returns e.Error.Meta as bytes if e.Meta is nil and e.Error.Meta is not nil", func(t *testing.T) {
+		e := Exception{
+			Error: &Error{
+				Meta: map[string]any{
+					"key2": "value2",
+				},
+			},
+		}
+
+		bytes, err := e.GetMetaBytes()
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		expected := `{"key2":"value2"}`
+		if string(bytes) != expected {
+			t.Errorf("Expected %s, got %s", expected, string(bytes))
+		}
+	})
+
+	t.Run("Returns nil bytes and nil err if both are nil", func(t *testing.T) {
+		e := Exception{}
+
+		bytes, err := e.GetMetaBytes()
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		if bytes != nil {
+			t.Errorf("Expected nil bytes, got %s", string(bytes))
+		}
+	})
+
+	t.Run("Returns error if marshaling fails", func(t *testing.T) {
+		e := Exception{
+			Meta: map[string]any{
+				"key": make(chan int),
+			},
+		}
+
+		_, err := e.GetMetaBytes()
+		if err == nil {
+			t.Errorf("Expected error during marshaling, got nil")
+		}
+	})
+}
+
+func TestHasJSFrames(t *testing.T) {
+	t.Run("Returns true for JS exception with frames", func(t *testing.T) {
+		e := Exception{
+			Framework: FrameworkJS,
+			Exceptions: ExceptionUnits{
+				{
+					Frames: Frames{
+						{MethodName: "render"},
+					},
+				},
+			},
+		}
+
+		if !e.HasJSFrames() {
+			t.Errorf("Expected HasJSFrames to return true, got false")
+		}
+	})
+
+	t.Run("Returns false for JS exception with no frames", func(t *testing.T) {
+		e := Exception{
+			Framework: FrameworkJS,
+			Exceptions: ExceptionUnits{
+				{
+					Frames: Frames{},
+				},
+			},
+		}
+
+		if e.HasJSFrames() {
+			t.Errorf("Expected HasJSFrames to return false, got true")
+		}
+	})
+
+	t.Run("Returns false for JS exception with no exception units", func(t *testing.T) {
+		e := Exception{
+			Framework: FrameworkJS,
+		}
+
+		if e.HasJSFrames() {
+			t.Errorf("Expected HasJSFrames to return false, got true")
+		}
+	})
+
+	t.Run("Returns false for non-JS framework with frames", func(t *testing.T) {
+		e := Exception{
+			Framework: FrameworkDart,
+			Exceptions: ExceptionUnits{
+				{
+					Frames: Frames{
+						{MethodName: "main"},
+					},
+				},
+			},
+		}
+
+		if e.HasJSFrames() {
+			t.Errorf("Expected HasJSFrames to return false for non-JS framework, got true")
 		}
 	})
 }

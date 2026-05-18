@@ -99,7 +99,7 @@ func (j *JourneyiOS) computeIssues() {
 			if !ok {
 				continue
 			}
-			if issueEvent.IsUnhandledException() {
+			if issueEvent.IsFatalException() {
 				bag.exceptionIds.Add(issueEvent.ID)
 				bag.exceptionFingerprints = append(bag.exceptionFingerprints, issueEvent.Exception.Fingerprint)
 
@@ -375,7 +375,7 @@ func NewJourneyiOS(events []event.EventField, opts *Options) (journey *JourneyiO
 		viewController := events[i].IsLifecycleViewController()
 		swiftUI := events[i].IsLifecycleSwiftUI()
 		screenView := events[i].IsScreenView()
-		issue := i > 0 && events[i].IsUnhandledException()
+		issue := i > 0 && events[i].IsFatalException()
 
 		if viewController {
 			node.Name = events[i].LifecycleViewController.ClassName
