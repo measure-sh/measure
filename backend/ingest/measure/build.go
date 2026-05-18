@@ -26,7 +26,7 @@ import (
 
 type Mapping struct {
 	ID        uuid.UUID         `json:"id"`
-	Type      string            `json:"type" binding:"required,oneof=proguard dsym elf_debug"`
+	Type      string            `json:"type" binding:"required,oneof=proguard dsym elf_debug jsbundle"`
 	Key       string            `json:"key,omitempty"`
 	Location  string            `json:"location,omitempty"`
 	Checksum  string            `json:"checksum,omitempty"`

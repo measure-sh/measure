@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -799,6 +800,10 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 					return fmt.Errorf(`%q must not be empty`, `exception.binary_images[0].base_addr`)
 				}
 			}
+		case FrameworkJS:
+			if len(e.Exception.Exceptions) < 1 {
+				return fmt.Errorf(`%q must contain at least one exception`, `exception`)
+			}
 		default:
 			return fmt.Errorf(`%q is not a valid framework for %q.`, f, `exception.framework`)
 		}
@@ -1338,7 +1343,7 @@ func (e EventField) NeedsSymbolication() (result bool) {
 
 	if e.Type == TypeException {
 		switch e.Exception.GetFramework() {
-		case FrameworkJVM:
+		case FrameworkJVM, FrameworkJS:
 			result = true
 		case FrameworkApple:
 			// some Apple exceptions may just contain
@@ -1416,7 +1421,7 @@ func (e EventField) HasAttachments() bool {
 func (e Exception) GetFramework() (f string) {
 	// if we have the framework, just use it
 	// no need to infer
-	// could be "dart"
+	// could be "dart" or "javascript"
 	if e.Framework != "" {
 		return e.Framework
 	}
@@ -1457,7 +1462,7 @@ func (e Exception) HasNoFrames() bool {
 			return true
 		}
 		return len(e.Exceptions[0].Frames) == 0
-	case FrameworkDart:
+	case FrameworkDart, FrameworkJS:
 		// For some cases, exceptions may not be present
 		if !e.HasExceptions() {
 			return true
@@ -1557,7 +1562,7 @@ func (e Exception) GetType() string {
 			return unknown
 		}
 		return e.Exceptions[0].Signal
-	case FrameworkDart:
+	case FrameworkDart, FrameworkJS:
 		// We do not look for the deepest exception
 		// as only the top most exception unit
 		// contains the type.
@@ -1590,7 +1595,7 @@ func (e Exception) GetMessage() string {
 		// iOS doesn't have a typical message to
 		// use for an exception
 		return ""
-	case FrameworkDart:
+	case FrameworkDart, FrameworkJS:
 		// We do not look for the deepest exception
 		// as only the top most exception unit
 		// contains the message.
@@ -1613,6 +1618,25 @@ func (e Exception) GetFileName() string {
 		return e.GetRelevantFrame().FileName
 	case FrameworkDart:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
+	case FrameworkJS:
+		input := e.Exceptions[0].Frames[0].FileName
+
+		// if input filename does not look like a URL,
+		// return the filename as it is.
+		if !strings.HasPrefix(input, "http") {
+			return input
+		}
+
+		// parse the seemingly URL looking filename
+		parsed, err := url.Parse(input)
+		if err != nil {
+			fmt.Printf("failed to parse URL to extract frame filename for javascript frame: %v\n", err)
+
+			// return original on failure
+			return input
+		}
+
+		return parsed.Path
 	}
 
 	return ""
@@ -1627,12 +1651,12 @@ func (e Exception) GetLineNumber() int32 {
 	}
 
 	switch e.GetFramework() {
-	case FrameworkJVM:
-		return int32(e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum)
-	case FrameworkDart:
+	case FrameworkJVM, FrameworkDart:
 		return int32(e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum)
 	case FrameworkApple:
 		return int32(e.GetRelevantFrame().LineNum)
+	case FrameworkJS:
+		return int32(e.Exceptions[0].Frames[0].LineNum)
 	}
 
 	return 0
@@ -1647,12 +1671,12 @@ func (e Exception) GetMethodName() string {
 	}
 
 	switch e.GetFramework() {
-	case FrameworkJVM:
+	case FrameworkJVM, FrameworkDart:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
 	case FrameworkApple:
 		return e.GetRelevantFrame().MethodName
-	case FrameworkDart:
-		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
+	case FrameworkJS:
+		return e.Exceptions[0].Frames[0].MethodName
 	}
 
 	return ""
@@ -1841,7 +1865,7 @@ func (e *Exception) ComputeFingerprint() (err error) {
 		if frame.FileName != "" {
 			input += sep + frame.FileName
 		}
-	case FrameworkDart:
+	case FrameworkDart, FrameworkJS:
 		// get the outermost exception
 		outermostException := e.Exceptions[0]
 

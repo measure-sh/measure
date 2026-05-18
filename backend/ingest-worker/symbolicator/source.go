@@ -41,6 +41,10 @@ type Source struct {
 	// BearerToken is the authorization token that can be
 	// used instead of `private_key` & `client_email`.
 	BearerToken string `json:"bearer_token,omitempty"`
+	// Url is the base URL for http type sources.
+	Url string `json:"url,omitempty"`
+	// Token is the authorization token for http type sources.
+	Token string `json:"token,omitempty"`
 	// Filters are a set of filters to reduce the
 	// number of unnecessary hits on a symbol server.
 	Filters struct {
@@ -153,4 +157,20 @@ func NewSentrySource(id, url, token string) SentrySource {
 		URL:   url,
 		Token: token,
 	}
+}
+
+// NewHTTPSourceJS creates an HTTP source for
+// JavaScript/React Native source map lookups.
+// url should be a pre-signed GET URL pointing
+// directly to the stored source map file.
+func NewHTTPSourceJS(id, url string) (source Source) {
+	source.ID = id
+	source.Type = "http"
+	source.Url = url
+	source.Filters.FileTypes = []string{"sourcemap"}
+	source.Filters.PathPatterns = []string{}
+	source.Layout.Type = "unified"
+	source.Layout.Casing = "lowercase"
+
+	return
 }

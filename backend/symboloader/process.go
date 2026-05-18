@@ -42,7 +42,7 @@ var processTracer = otel.Tracer("symboloader-process")
 
 type Mapping struct {
 	ID             uuid.UUID     `json:"id"`
-	Type           string        `json:"type" binding:"required,oneof=proguard dsym elf_debug"`
+	Type           string        `json:"type" binding:"required,oneof=proguard dsym elf_debug jsbundle"`
 	Key            string        `json:"key,omitempty"`
 	Location       string        `json:"location,omitempty"`
 	Checksum       string        `json:"checksum,omitempty"`
@@ -54,10 +54,14 @@ type Mapping struct {
 	UploadComplete bool          `json:"upload_complete,omitempty"`
 }
 
+// hasChecksum tells if the mapping has
+// a checksum.
 func (m Mapping) hasChecksum() bool {
 	return m.Checksum != ""
 }
 
+// extractDif prepares & extracts debug information
+// files for symbol files for all supported platforms.
 func (m *Mapping) extractDif() (err error) {
 	switch m.Type {
 	case symbol.TypeProguard.String():
@@ -151,6 +155,14 @@ func (m *Mapping) extractDif() (err error) {
 			Meta: false,
 		})
 
+	case symbol.TypeJsBundle.String():
+		reader := bytes.NewReader(m.File)
+		difs, errExtract := symbol.ExtractJsBundle(reader)
+		if errExtract != nil {
+			return errExtract
+		}
+		m.Difs = append(m.Difs, difs...)
+
 	default:
 		err = fmt.Errorf("failed to recognize mapping type %q", m.Type)
 	}
@@ -158,6 +170,8 @@ func (m *Mapping) extractDif() (err error) {
 	return
 }
 
+// upload uploads the debug information files to S3 like
+// remote object storage.
 func (b *Build) upload(ctx context.Context) (err error) {
 	config := server.Server.Config
 	var gcsClient *storage.Client
@@ -367,6 +381,47 @@ func (b *Build) upload(ctx context.Context) (err error) {
 					}
 				}
 			}
+		case symbol.TypeJsBundle.String():
+			mapping := b.Mappings[index]
+			if !mapping.ShouldUpload {
+				continue
+			}
+
+			metadata["mapping_type"] = symbol.TypeJsBundle.String()
+			metadata["original_file_name"] = mapping.Filename
+
+			for _, dif := range mapping.Difs {
+				if config.IsCloud() {
+					obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
+					writer := obj.NewWriter(ctx)
+					writer.Metadata = metadata
+
+					if _, err = io.Copy(writer, bytes.NewReader(dif.Data)); err != nil {
+						fmt.Printf("failed to upload build mapping key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)
+						return
+					}
+
+					if err = writer.Close(); err != nil {
+						fmt.Printf("failed to close storage writer key: %s bucket: %s: %v\n", dif.Key, config.SymbolsBucket, err)
+						return
+					}
+				} else {
+					putObjectInput := &s3.PutObjectInput{
+						Bucket:   aws.String(config.SymbolsBucket),
+						Key:      aws.String(dif.Key),
+						Body:     bytes.NewReader(dif.Data),
+						Metadata: metadata,
+					}
+					_, err = s3Client.PutObject(ctx, putObjectInput)
+					if err != nil {
+						return
+					}
+				}
+
+				b.Mappings[index].Key = dif.Key
+				b.Mappings[index].Location = buildLocation(dif.Key)
+				b.Mappings[index].UploadComplete = true
+			}
 		}
 	}
 
@@ -525,6 +580,7 @@ type GCSSymbolNotification struct {
 	Metadata map[string]string `json:"metadata"`
 }
 
+// validate validates the GCS event notification record.
 func (g GCSSymbolNotification) validate() (err error) {
 	if g.Name == "" {
 		err = errors.New("name is empty")
@@ -549,6 +605,7 @@ func (g GCSSymbolNotification) validate() (err error) {
 	return
 }
 
+// validate validates the S3 event notification record.
 func (nr S3EventNotificationRecord) validate() (err error) {
 	if nr.S3.Bucket.Name == "" {
 		err = errors.New("bucket name is empty")

@@ -10,9 +10,13 @@ const (
 	// TypeDsym represents the "dSYM"
 	// type of mapping symbolication.
 	TypeDsym
-	// Type ElfDebug represents the "ELF"
+	// TypeElfDebug represents the "ELF"
 	// type of mapping symbolication.
 	TypeElfDebug
+	// TypeJsBundle represents the "jsbundle"
+	// type of mapping symbolication for
+	// React Native / JavaScript apps.
+	TypeJsBundle
 )
 
 // MappingType represents the mapping
@@ -31,5 +35,7 @@ func (m MappingType) String() string {
 		return "dsym"
 	case TypeElfDebug:
 		return "elf_debug"
+	case TypeJsBundle:
+		return "jsbundle"
 	}
 }

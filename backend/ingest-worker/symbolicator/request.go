@@ -210,6 +210,37 @@ func (sr *SymbolicatorRequest) prepareJvmRequest(js *jvmSymbolicator, origin str
 	return
 }
 
+// prepareJSRequest prepares the JavaScript request
+// for symbolicator.
+func (sr *SymbolicatorRequest) prepareJSRequest(js *jsSymbolicator, origin string) (err error) {
+	var reqBody bytes.Buffer
+	url := origin + "/symbolicate-js"
+
+	reqBytes, errJSON := json.Marshal(js.request)
+	if errJSON != nil {
+		return errJSON
+	}
+	if _, err = reqBody.Write(reqBytes); err != nil {
+		return
+	}
+
+	if logRequest {
+		var dst bytes.Buffer
+		if err = json.Indent(&dst, reqBytes, "", "  "); err != nil {
+			return
+		}
+		fmt.Printf("js symbolicator request\n%s\n", dst.String())
+	}
+
+	sr.req, err = http.NewRequest("POST", url, &reqBody)
+	if err != nil {
+		return
+	}
+	sr.req.Header.Set("Content-Type", "application/json")
+
+	return
+}
+
 // prepareNativeRequest prepares the native request
 // for symbolicator.
 func (sr *SymbolicatorRequest) prepareNativeRequest(ns *nativeSymbolicator, origin string, sources []Source) (err error) {

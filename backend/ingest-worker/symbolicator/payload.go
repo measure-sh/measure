@@ -283,3 +283,53 @@ func NewRequestNative() *requestNative {
 		Modules:     []moduleNative{},
 	}
 }
+
+// frameJS represents a frame for JavaScript
+// symbolication, used for React Native.
+type frameJS struct {
+	Function string `json:"function"`
+	Filename string `json:"filename"`
+	AbsPath  string `json:"abs_path"`
+	LineNo   int    `json:"lineno"`
+	ColumnNo int    `json:"colno"`
+}
+
+// stacktraceJS represents a stacktrace
+// for JavaScript symbolication.
+type stacktraceJS struct {
+	Frames []frameJS `json:"frames"`
+}
+
+// requestJS represents the payload sent
+// to Sentry's Symbolicator for JavaScript
+// symbolication, used for React Native.
+type requestJS struct {
+	// Platform defines the platform which
+	// should be 'node'.
+	Platform string `json:"platform"`
+	// Sources is the list of symbol sources
+	// as defined by Sentry Symbolicator.
+	// https://getsentry.github.io/symbolicator/api/
+	Sources []Source `json:"sources"`
+	// Stacktraces form a list of all frames
+	// that need symbolication.
+	Stacktraces []stacktraceJS `json:"stacktraces"`
+}
+
+// responseJS represents the payload received
+// from Sentry's Symbolicator for JavaScript
+// symbolication.
+type responseJS struct {
+	Status      string         `json:"status"`
+	Stacktraces []stacktraceJS `json:"stacktraces"`
+}
+
+// NewRequestJS creates a new request payload
+// for symbolicating JavaScript/React Native events.
+func NewRequestJS() *requestJS {
+	return &requestJS{
+		Platform:    "node",
+		Sources:     []Source{},
+		Stacktraces: []stacktraceJS{},
+	}
+}

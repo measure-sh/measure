@@ -27,6 +27,7 @@ const (
 	TypeDsymDebug
 )
 
+
 // String provides the human recognizable
 // dSYM entity type.
 func (d DsymType) String() string {
@@ -163,6 +164,66 @@ func ExtractDsymEntities(file io.Reader, filter func(string) (DsymType, bool)) (
 	return
 }
 
+// ExtractJsBundle extracts JS source and sourcemap files
+// from a gzipped tarball, assigning each a stable unified
+// layout key derived from SHA1 of the filename.
+func ExtractJsBundle(r io.Reader) (difs []*Dif, err error) {
+	gzipReader, err := gzip.NewReader(r)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if closeErr := gzipReader.Close(); closeErr != nil {
+			fmt.Println("failed to close gzip reader while extracting JS bundle")
+		}
+	}()
+
+	tarReader := tar.NewReader(gzipReader)
+
+	for {
+		header, tarErr := tarReader.Next()
+		if tarErr == io.EOF {
+			break
+		}
+		if tarErr != nil {
+			err = tarErr
+			return
+		}
+
+		if header.Typeflag == tar.TypeDir {
+			continue
+		}
+
+		data, readErr := io.ReadAll(tarReader)
+		if readErr != nil {
+			err = readErr
+			return
+		}
+
+		parts := strings.Split(header.Name, "/")
+		filename := parts[len(parts)-1]
+
+		ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("measure.sh"))
+		fileId := uuid.NewSHA1(ns, []byte(filename))
+		base := BuildUnifiedLayout(fileId.String())
+
+		var key string
+		if strings.HasSuffix(filename, ".map") {
+			key = base + "/sourcemap"
+		} else {
+			key = base + "/debuginfo"
+		}
+
+		difs = append(difs, &Dif{
+			Data: data,
+			Key:  key,
+		})
+	}
+
+	return
+}
+
 // BuildUnifiedLayout creates a Sentry
 // compatible unified layout from a debug id.
 func BuildUnifiedLayout(id string) string {
@@ -224,6 +285,8 @@ func ParseMappingType(s string) MappingType {
 		return TypeDsym
 	case "elf_debug":
 		return TypeElfDebug
+	case "jsbundle":
+		return TypeJsBundle
 	default:
 		return TypeUnknown
 	}
