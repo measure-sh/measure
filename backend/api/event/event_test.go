@@ -545,15 +545,17 @@ func TestGetMessage(t *testing.T) {
 
 func TestGetFramework(t *testing.T) {
 	t.Run("Provides framework if present", func(t *testing.T) {
-		exception := Exception{
-			Framework: FrameworkDart,
-		}
+		frameworks := []string{FrameworkDart, FrameworkJS}
+		for _, fw := range frameworks {
+			exception := Exception{
+				Framework: fw,
+			}
 
-		expected := FrameworkDart
-		got := exception.GetFramework()
+			got := exception.GetFramework()
 
-		if expected != got {
-			t.Errorf("Expected %v, but got %v", expected, got)
+			if fw != got {
+				t.Errorf("Expected %v, but got %v", fw, got)
+			}
 		}
 	})
 
@@ -859,6 +861,67 @@ func TestGetMetaBytes(t *testing.T) {
 		_, err := e.GetMetaBytes()
 		if err == nil {
 			t.Errorf("Expected error during marshaling, got nil")
+		}
+	})
+}
+
+func TestHasJSFrames(t *testing.T) {
+	t.Run("Returns true for JS exception with frames", func(t *testing.T) {
+		e := Exception{
+			Framework: FrameworkJS,
+			Exceptions: ExceptionUnits{
+				{
+					Frames: Frames{
+						{MethodName: "render"},
+					},
+				},
+			},
+		}
+
+		if !e.HasJSFrames() {
+			t.Errorf("Expected HasJSFrames to return true, got false")
+		}
+	})
+
+	t.Run("Returns false for JS exception with no frames", func(t *testing.T) {
+		e := Exception{
+			Framework: FrameworkJS,
+			Exceptions: ExceptionUnits{
+				{
+					Frames: Frames{},
+				},
+			},
+		}
+
+		if e.HasJSFrames() {
+			t.Errorf("Expected HasJSFrames to return false, got true")
+		}
+	})
+
+	t.Run("Returns false for JS exception with no exception units", func(t *testing.T) {
+		e := Exception{
+			Framework: FrameworkJS,
+		}
+
+		if e.HasJSFrames() {
+			t.Errorf("Expected HasJSFrames to return false, got true")
+		}
+	})
+
+	t.Run("Returns false for non-JS framework with frames", func(t *testing.T) {
+		e := Exception{
+			Framework: FrameworkDart,
+			Exceptions: ExceptionUnits{
+				{
+					Frames: Frames{
+						{MethodName: "main"},
+					},
+				},
+			},
+		}
+
+		if e.HasJSFrames() {
+			t.Errorf("Expected HasJSFrames to return false for non-JS framework, got true")
 		}
 	})
 }

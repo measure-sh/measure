@@ -31,6 +31,17 @@ func CreateS3Client(ctx context.Context, accessKey, secretAccessKey, region, end
 	return
 }
 
+// CreateS3GETPresignedURL creates a pre-signed URL for fetching an object from S3.
+func CreateS3GETPresignedURL(ctx context.Context, client *s3.Client, params *s3.GetObjectInput, optFns ...func(*s3.PresignOptions)) (url string, err error) {
+	presigner := s3.NewPresignClient(client)
+	req, err := presigner.PresignGetObject(ctx, params, optFns...)
+	if err != nil {
+		return
+	}
+	url = req.URL
+	return
+}
+
 // CreateS3PUTPreSignedURL creates a pre-signed URL for uploading an object to S3.
 func CreateS3PUTPreSignedURL(ctx context.Context, client *s3.Client, params *s3.PutObjectInput, optFns ...func(*s3.PresignOptions)) (url string, err error) {
 	presigner := s3.NewPresignClient(client)

@@ -50,6 +50,21 @@ func TestNewGCSSourceApple(t *testing.T) {
 	}
 }
 
+func TestNewHTTPSourceJS(t *testing.T) {
+	source := NewHTTPSourceJS("my-id", "https://example.com/presigned-url")
+
+	{
+		bytes, _ := json.Marshal(source)
+
+		expected := `{"id":"my-id","type":"http","bucket":"","prefix":"","url":"https://example.com/presigned-url","filters":{"filetypes":["sourcemap"],"path_patterns":[]},"layout":{"type":"unified","casing":"lowercase"}}`
+		got := string(bytes)
+
+		if expected != got {
+			t.Errorf("Expected %v, but got %v", expected, got)
+		}
+	}
+}
+
 func TestNewSentrySource(t *testing.T) {
 	source := NewSentrySource("my-id", "http://symboloader:8083/symbols", "my-token")
 

@@ -1421,7 +1421,7 @@ func (e EventField) HasAttachments() bool {
 func (e Exception) GetFramework() (f string) {
 	// if we have the framework, just use it
 	// no need to infer
-	// could be "dart" or "javascript"
+	// could be "dart" or "js"
 	if e.Framework != "" {
 		return e.Framework
 	}
@@ -1477,6 +1477,13 @@ func (e Exception) HasNoFrames() bool {
 // contains exception units.
 func (e Exception) HasExceptions() bool {
 	return len(e.Exceptions) > 0
+}
+
+// HasJSFrames returns true if the exception
+// belongs to the JavaScript framework and contains
+// at least one frame.
+func (e Exception) HasJSFrames() bool {
+	return e.GetFramework() == FrameworkJS && !e.HasNoFrames()
 }
 
 // HasError tells if the exception is an error.
