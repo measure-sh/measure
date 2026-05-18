@@ -28,6 +28,8 @@ CREATE TABLE if not exists nonfatal_exception_groups
     `count` AggregateFunction(sum, UInt64) COMMENT 'count of exception instances' CODEC(ZSTD(3)),
     `timestamp` SimpleAggregateFunction(max, DateTime64(3, 'UTC')) COMMENT 'timestamp of the exception event' CODEC(DoubleDelta, ZSTD(3)),
     INDEX id_bloom_idx id TYPE bloom_filter(0.01) GRANULARITY 1,
+    INDEX handled_bloom_idx handled TYPE bloom_filter(0.01) GRANULARITY 1,
+    INDEX is_custom_bloom_idx is_custom TYPE bloom_filter(0.01) GRANULARITY 1,
     INDEX timestamp_minmax_idx timestamp TYPE minmax GRANULARITY 1
 )
 ENGINE = AggregatingMergeTree
