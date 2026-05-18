@@ -54,14 +54,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'yarn'
-          cache-dependency-path: |
-            react-native/yarn.lock
-            samples/frank/react_native/yarn.lock
       - name: Setup Yarn
         run: |
           corepack enable
           corepack prepare yarn@${{ env.YARN_VERSION }} --activate
+      - name: Get Yarn cache directory
+        id: yarn-cache-dir
+        run: echo "dir=$(yarn config get cacheFolder)" >> $GITHUB_OUTPUT
+      - name: Cache Yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.yarn-cache-dir.outputs.dir }}
+          key: yarn-${{ hashFiles('react-native/yarn.lock', 'samples/frank/react_native/yarn.lock') }}
+          restore-keys: yarn-
       - name: Build Measure React Native SDK
         run: |
           yarn install
@@ -131,14 +136,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'yarn'
-          cache-dependency-path: |
-            react-native/yarn.lock
-            samples/frank/react_native/yarn.lock
       - name: Setup Yarn
         run: |
           corepack enable
           corepack prepare yarn@${{ env.YARN_VERSION }} --activate
+      - name: Get Yarn cache directory
+        id: yarn-cache-dir
+        run: echo "dir=$(yarn config get cacheFolder)" >> $GITHUB_OUTPUT
+      - name: Cache Yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.yarn-cache-dir.outputs.dir }}
+          key: yarn-${{ hashFiles('react-native/yarn.lock', 'samples/frank/react_native/yarn.lock') }}
+          restore-keys: yarn-
       - name: Build Measure React Native SDK
         run: |
           yarn install
