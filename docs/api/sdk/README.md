@@ -301,9 +301,10 @@ to the returned URLs. For uploading the files, you can issue a standard http req
 
 - Putting `build_size` for the same `version_name`, `version_code` and `build_type` combination replaces the last size with the latest size.
 - Depending on the platform, `build_type` can be `aab`, `apk` for Android or `ipa` for iOS.
-- Depending on the platform, `mapping_type` can be `proguard` for Android or `dsym` for iOS.
+- Depending on the platform, `mapping_type` can be `proguard` for Android, `dsym` or `elf_debug` for iOS, or `jsbundle` for React Native.
 - `mappings` is optional. When `mappings` array is not present, only the build size information will be updated.
 - Each mapping file for iOS must be gzipped tarball of `dSYM` bundles ending with a `.tgz` file extension.
+- Each mapping file for React Native must be a gzipped tarball (`.tgz`) containing the minified JS bundle (`.js`) and its source map (`.js.map`).
 - For mapping filename, only provide the filename, not a path.
 - When `mappings` is present, the server returns a mappings array containing the pre-signed URL for uploading each mapping file.
 - Each pre-signed mapping file upload URL has an expiry set which is the same as the `expires_at` field.
@@ -389,6 +390,10 @@ Payload must contain the app version info, build info and optional build mapping
     {
       "type": "elf_debug",
       "filename": "app.symbols"
+    },
+    {
+      "type": "jsbundle",
+      "filename": "index.android.bundle.tgz"
     }
   ]
 }
@@ -408,7 +413,7 @@ Each mapping object has the following shape.
 
 | Field      | Type   | Optional | Comment                                                             |
 | ---------- | ------ | -------- | ------------------------------------------------------------------- |
-| `type`     | string | No       | Type of the mapping file. Either `dsym`, `proguard` or `elf_debug`. |
+| `type`     | string | No       | Type of the mapping file. Either `proguard`, `dsym`, `elf_debug`, or `jsbundle` (React Native). |
 | `filename` | string | No       | Filename of the mapping file.                                       |
 
 </details>
