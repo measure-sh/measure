@@ -54,6 +54,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'yarn'
+          cache-dependency-path: |
+            react-native/yarn.lock
+            samples/frank/react_native/yarn.lock
       - name: Setup Yarn
         run: |
           corepack enable
@@ -127,6 +131,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'yarn'
+          cache-dependency-path: |
+            react-native/yarn.lock
+            samples/frank/react_native/yarn.lock
       - name: Setup Yarn
         run: |
           corepack enable
