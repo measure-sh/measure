@@ -1,225 +1,198 @@
-"use client"
+"use client";
 
-import { Check, ChevronsUpDown, Circle, CircleCheck } from "lucide-react"
-import React, { useEffect, useState } from 'react'
-import { AppVersion, OsVersion } from '../api/api_calls'
+import { Check, ChevronsUpDown, Circle, CircleCheck } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { AppVersion } from "../api/api_calls";
 
-import { cn } from '../utils/shadcn_utils'
-import { Button } from './button'
+import { cn } from "../utils/shadcn_utils";
+import { Button } from "./button";
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
-} from './command'
-import { Popover, PopoverContent, PopoverTrigger } from './popover'
+} from "./command";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 
 export enum DropdownSelectType {
   SingleString,
   MultiString,
-  SingleAppVersion,
   MultiAppVersion,
-  SingleOsVersion,
-  MultiOsVersion
 }
 
 interface DropdownSelectProps {
-  type: DropdownSelectType
-  title: string
-  items: string[] | AppVersion[] | OsVersion[]
-  disabled?: boolean
-  initialSelected: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]
-  onChangeSelected?: (item: string | AppVersion | OsVersion | string[] | AppVersion[] | OsVersion[]) => void
+  type: DropdownSelectType;
+  title: string;
+  items: string[] | AppVersion[];
+  disabled?: boolean;
+  initialSelected: string | string[] | AppVersion[];
+  onChangeSelected?: (item: string | string[] | AppVersion[]) => void;
+  // Optional controlled open state, so the popover can be driven from outside.
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, initialSelected, onChangeSelected, disabled = false }) => {
-  const [open, setOpen] = useState(false)
-  const [selected, setSelected] = useState(initialSelected)
-  const [searchValue, setSearchValue] = useState("")
+const DropdownSelect: React.FC<DropdownSelectProps> = ({
+  title,
+  type,
+  items,
+  initialSelected,
+  onChangeSelected,
+  disabled = false,
+  open: controlledOpen,
+  onOpenChange,
+}) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (value: boolean) => {
+    setInternalOpen(value);
+    onOpenChange?.(value);
+  };
+  const [selected, setSelected] = useState(initialSelected);
+  const [searchValue, setSearchValue] = useState("");
 
   useEffect(() => {
     if (selected !== initialSelected) {
-      setSelected(initialSelected)
+      setSelected(initialSelected);
     }
-  }, [initialSelected])
+  }, [initialSelected]);
 
-  const selectSingleItem = (item: string | AppVersion | OsVersion) => {
-    setSelected(item)
-    setOpen(false)
-    onChangeSelected?.(item)
-  }
+  const selectSingleItem = (item: string) => {
+    setSelected(item);
+    setOpen(false);
+    onChangeSelected?.(item);
+  };
 
   const selectAll = () => {
-    setSelected(items)
-    onChangeSelected?.(items)
-  }
+    setSelected(items);
+    onChangeSelected?.(items);
+  };
 
   const clearAll = () => {
-    setSelected([])
-    onChangeSelected?.([])
-  }
+    setSelected([]);
+    onChangeSelected?.([]);
+  };
 
   const selectLatestAppVersion = () => {
     // find version with highest build number
-    let versions = items as AppVersion[]
+    let versions = items as AppVersion[];
     let latestVersion = versions.reduce((highest, current) =>
-      parseInt(current.code) > parseInt(highest.code) ? current : highest
-    )
+      parseInt(current.code) > parseInt(highest.code) ? current : highest,
+    );
 
-    setSelected([latestVersion])
-    onChangeSelected?.([latestVersion])
-  }
+    setSelected([latestVersion]);
+    onChangeSelected?.([latestVersion]);
+  };
 
   const toggleCheckboxStringItem = (item: string) => {
-    let curSelected = selected as string[]
-    let newSelected
+    let curSelected = selected as string[];
+    let newSelected;
     if (curSelected.includes(item)) {
-      newSelected = curSelected.filter(a => a != item)
+      newSelected = curSelected.filter((a) => a != item);
     } else {
-      newSelected = [item, ...curSelected]
+      newSelected = [item, ...curSelected];
     }
-    setSelected(newSelected)
-    onChangeSelected?.(newSelected)
-  }
-
-  const isOsVersionSelected = (item: OsVersion) => {
-    return (selected as OsVersion[]).some((i) => {
-      return item.displayName === i.displayName
-    })
-  }
-
-  const toggleCheckboxOsVersionItem = (item: OsVersion) => {
-    let curSelected = selected as OsVersion[]
-    let newSelected
-    if (isOsVersionSelected(item)) {
-      newSelected = curSelected.filter(a => a.displayName != item.displayName)
-    } else {
-      newSelected = [item, ...curSelected]
-    }
-    setSelected(newSelected)
-    onChangeSelected?.(newSelected)
-  }
+    setSelected(newSelected);
+    onChangeSelected?.(newSelected);
+  };
 
   const isAppVersionSelected = (item: AppVersion) => {
     return (selected as AppVersion[]).some((i) => {
-      return item.displayName === i.displayName
-    })
-  }
+      return item.displayName === i.displayName;
+    });
+  };
 
   const toggleCheckboxAppVersionItem = (item: AppVersion) => {
-    let curSelected = selected as AppVersion[]
-    let newSelected
+    let curSelected = selected as AppVersion[];
+    let newSelected;
     if (isAppVersionSelected(item)) {
       // If only one item is selected, do nothing
       if (curSelected.length === 1) {
-        return
+        return;
       }
-      newSelected = curSelected.filter(a => a.displayName != item.displayName)
+      newSelected = curSelected.filter(
+        (a) => a.displayName != item.displayName,
+      );
     } else {
-      newSelected = [item, ...curSelected]
+      newSelected = [item, ...curSelected];
     }
-    setSelected(newSelected)
-    onChangeSelected?.(newSelected)
-  }
+    setSelected(newSelected);
+    onChangeSelected?.(newSelected);
+  };
 
   // Helper to get display text for selected items
   const getDisplayText = () => {
     switch (type) {
       case DropdownSelectType.SingleString:
-        return selected as string
-      case DropdownSelectType.SingleAppVersion:
-        return (selected as AppVersion).displayName
-      case DropdownSelectType.SingleOsVersion:
-        return (selected as OsVersion).displayName
+        return selected as string;
       case DropdownSelectType.MultiString:
       case DropdownSelectType.MultiAppVersion:
-      case DropdownSelectType.MultiOsVersion:
-        return title
+        return title;
     }
-  }
+  };
 
   // Filter items based on search text
   const getFilteredItems = () => {
-    const searchLower = searchValue.toLowerCase()
+    const searchLower = searchValue.toLowerCase();
     switch (type) {
       case DropdownSelectType.SingleString:
       case DropdownSelectType.MultiString:
-        return (items as string[]).filter(item =>
-          item.toLowerCase().includes(searchLower)
-        )
-      case DropdownSelectType.SingleAppVersion:
+        return (items as string[]).filter((item) =>
+          item.toLowerCase().includes(searchLower),
+        );
       case DropdownSelectType.MultiAppVersion:
-        return (items as AppVersion[]).filter(item =>
-          item.displayName.toLowerCase().includes(searchLower)
-        )
-      case DropdownSelectType.SingleOsVersion:
-      case DropdownSelectType.MultiOsVersion:
-        return (items as OsVersion[]).filter(item =>
-          item.displayName.toLowerCase().includes(searchLower)
-        )
+        return (items as AppVersion[]).filter((item) =>
+          item.displayName.toLowerCase().includes(searchLower),
+        );
     }
-  }
+  };
 
-  const renderItemContent = (item: string | AppVersion | OsVersion) => {
+  const renderItemContent = (item: string | AppVersion) => {
     switch (type) {
       case DropdownSelectType.SingleString:
-        return item as string
+        return item as string;
       case DropdownSelectType.MultiString:
-        return item as string
-      case DropdownSelectType.SingleAppVersion:
+        return item as string;
       case DropdownSelectType.MultiAppVersion:
-        return (item as AppVersion).displayName
-      case DropdownSelectType.SingleOsVersion:
-      case DropdownSelectType.MultiOsVersion:
-        return (item as OsVersion).displayName
+        return (item as AppVersion).displayName;
     }
-  }
+  };
 
-  const isItemSelected = (item: string | AppVersion | OsVersion) => {
+  const isItemSelected = (item: string | AppVersion) => {
     switch (type) {
       case DropdownSelectType.SingleString:
-        return item === selected
+        return item === selected;
       case DropdownSelectType.MultiString:
-        return (selected as string[]).includes(item as string)
-      case DropdownSelectType.SingleAppVersion:
-        return (item as AppVersion).displayName === (selected as AppVersion).displayName
+        return (selected as string[]).includes(item as string);
       case DropdownSelectType.MultiAppVersion:
-        return isAppVersionSelected(item as AppVersion)
-      case DropdownSelectType.SingleOsVersion:
-        return (item as OsVersion).displayName === (selected as OsVersion).displayName
-      case DropdownSelectType.MultiOsVersion:
-        return isOsVersionSelected(item as OsVersion)
+        return isAppVersionSelected(item as AppVersion);
     }
-  }
+  };
 
-  const handleItemClick = (item: string | AppVersion | OsVersion) => {
+  const handleItemClick = (item: string | AppVersion) => {
     switch (type) {
       case DropdownSelectType.SingleString:
-      case DropdownSelectType.SingleAppVersion:
-      case DropdownSelectType.SingleOsVersion:
-        selectSingleItem(item)
-        break
+        selectSingleItem(item as string);
+        break;
       case DropdownSelectType.MultiString:
-        toggleCheckboxStringItem(item as string)
-        break
+        toggleCheckboxStringItem(item as string);
+        break;
       case DropdownSelectType.MultiAppVersion:
-        toggleCheckboxAppVersionItem(item as AppVersion)
-        break
-      case DropdownSelectType.MultiOsVersion:
-        toggleCheckboxOsVersionItem(item as OsVersion)
-        break
+        toggleCheckboxAppVersionItem(item as AppVersion);
+        break;
     }
-  }
+  };
 
   const isMultiSelect = () => {
-    return type === DropdownSelectType.MultiString ||
-      type === DropdownSelectType.MultiAppVersion ||
-      type === DropdownSelectType.MultiOsVersion
-  }
+    return (
+      type === DropdownSelectType.MultiString ||
+      type === DropdownSelectType.MultiAppVersion
+    );
+  };
 
   return (
-    <Popover open={open} onOpenChange={setOpen} >
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger disabled={disabled} asChild>
         <Button
           variant="outline"
@@ -246,9 +219,9 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                 className="text-xs flex-1"
                 tabIndex={0}
                 onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    selectAll()
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    selectAll();
                   }
                 }}
               >
@@ -262,9 +235,9 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                   className="text-xs flex-1"
                   tabIndex={0}
                   onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      selectLatestAppVersion()
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      selectLatestAppVersion();
                     }
                   }}
                 >
@@ -278,9 +251,9 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                   className="text-xs flex-1"
                   tabIndex={0}
                   onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      clearAll()
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      clearAll();
                     }
                   }}
                 >
@@ -290,7 +263,9 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
             </div>
           )}
           <CommandEmpty>
-            <div className="text-center py-2 text-sm text-gray-500">No results found</div>
+            <div className="text-center py-2 text-sm text-gray-500">
+              No results found
+            </div>
           </CommandEmpty>
           <CommandGroup className="max-h-72 overflow-auto">
             {getFilteredItems().map((item, index) => (
@@ -302,18 +277,24 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
                 )}
                 tabIndex={0}
                 onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    handleItemClick(item)
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleItemClick(item);
                   }
                 }}
               >
                 {isMultiSelect() && (
                   <span className="mr-2 flex items-center justify-center w-4 h-4">
-                    {isItemSelected(item) ? <CircleCheck className="h-4 w-4" /> : <Circle className="h-4 w-4 opacity-50" />}
+                    {isItemSelected(item) ? (
+                      <CircleCheck className="h-4 w-4" />
+                    ) : (
+                      <Circle className="h-4 w-4 opacity-50" />
+                    )}
                   </span>
                 )}
-                <span className="flex-1 truncate font-display text-sm">{renderItemContent(item)}</span>
+                <span className="flex-1 truncate font-display text-sm">
+                  {renderItemContent(item)}
+                </span>
                 {!isMultiSelect() && isItemSelected(item) && (
                   <Check className="h-4 w-4 ml-2" />
                 )}
@@ -323,7 +304,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({ title, type, items, ini
         </Command>
       </PopoverContent>
     </Popover>
-  )
-}
+  );
+};
 
-export default DropdownSelect
+export default DropdownSelect;

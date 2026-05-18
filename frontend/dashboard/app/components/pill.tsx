@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 interface PillProps {
-  title: string,
+  title: string;
 }
 
-const tooltipChars = 1000
+const tooltipChars = 1000;
 
 const Pill: React.FC<PillProps> = ({ title }) => {
   return (
@@ -16,11 +16,17 @@ const Pill: React.FC<PillProps> = ({ title }) => {
           {title}
         </p>
       </TooltipTrigger>
-      <TooltipContent side="bottom" align="start" className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent">
-        {title.length <= tooltipChars ? title : title.slice(0, tooltipChars) + "..."}
+      <TooltipContent
+        side="bottom"
+        align="start"
+        className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent"
+      >
+        {title.length <= tooltipChars
+          ? title
+          : title.slice(0, tooltipChars) + "..."}
       </TooltipContent>
     </Tooltip>
   );
 };
 
-export default Pill
+export default Pill;

@@ -264,7 +264,7 @@ describe("applyFilterOptions", () => {
       initConfig({ appId: "other-app", osVersions: [0] }),
       state(),
     );
-    expect(patch.selectedOsVersions).toEqual(data.osVersions);
+    expect(patch.selectedOsVersions).toEqual([]);
   });
 
   it("defaults every index-based selection when no URL filters", () => {
@@ -275,10 +275,10 @@ describe("applyFilterOptions", () => {
       deviceNames: ["Pixel 8"],
     });
     const patch = applyFilterOptions(data, app, initConfig({}), state());
-    expect(patch.selectedCountries).toEqual(["US", "IN"]);
-    expect(patch.selectedNetworkTypes).toEqual(["wifi", "4g"]);
-    expect(patch.selectedLocales).toEqual(["en-US"]);
-    expect(patch.selectedDeviceNames).toEqual(["Pixel 8"]);
+    expect(patch.selectedCountries).toEqual([]);
+    expect(patch.selectedNetworkTypes).toEqual([]);
+    expect(patch.selectedLocales).toEqual([]);
+    expect(patch.selectedDeviceNames).toEqual([]);
   });
 
   it("filters out invalid udAttrMatchers from the URL", () => {

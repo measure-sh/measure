@@ -1,4 +1,5 @@
 "use client";
+import { SlidersHorizontal } from "lucide-react";
 import { DateTime } from "luxon";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -9,6 +10,7 @@ import React, {
   useImperativeHandle,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import {
   App,
@@ -18,7 +20,6 @@ import {
   FiltersApiStatus,
   FilterSource,
   HttpMethod,
-  OsVersion,
   RootSpanNamesApiStatus,
   SessionType,
   SpanStatus,
@@ -33,6 +34,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   applyFilterOptions,
   AppVersionsInitialSelectionType,
+  defaultSessionTypes,
   expandRangesToArray,
   type Filters,
   type InitConfig,
@@ -48,11 +50,22 @@ import {
   formatIsoDateForDateTimeInputField,
   isValidTimestamp,
 } from "../utils/time_utils";
+import { Button } from "./button";
+import { CheckChipGroup } from "./check_chip";
 import DebounceTextInput from "./debounce_text_input";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./dialog";
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
+import FilterChip, { type FilterChipAction } from "./filter_chip";
 import { Input } from "./input";
 import Onboarding from "./onboarding";
-import Pill from "./pill";
 import { Skeleton } from "./skeleton";
 import UserDefAttrSelector, { UdAttrMatcher } from "./user_def_attr_selector";
 
@@ -88,6 +101,8 @@ interface FiltersProps {
 
 const defaultFreeTextPlaceholder = "Search anything...";
 
+const SEARCH_INPUT_ID = "free-text";
+
 enum DateRange {
   Last15Mins = "Last 15 Minutes",
   Last30Mins = "Last 30 Minutes",
@@ -112,6 +127,39 @@ function isStringKey(
     key,
   );
 }
+
+// A filter's selection as chip text. `label` is the compact form shown on the
+// chip — the criterion name, the first two values, then a "+ N more" count.
+// `tooltip` is the full, untruncated list, surfaced on hover.
+function chipLabels(
+  name: string,
+  items: string[],
+): { label: string; tooltip: string } {
+  const tooltip =
+    items.length === 0 ? `${name}: None` : `${name}: ${items.join(", ")}`;
+  const label =
+    items.length <= 2
+      ? tooltip
+      : `${name}: ${items.slice(0, 2).join(", ")} + ${items.length - 2} more`;
+  return { label, tooltip };
+}
+
+// True when two collections hold the same items regardless of order.
+function sameItems<T>(a: T[], b: readonly T[]): boolean {
+  return a.length === b.length && a.every((item) => b.includes(item));
+}
+
+// A chip's clear button — empties the filter so the chip disappears.
+const clearAction = (onClick: () => void): FilterChipAction => ({
+  kind: "clear",
+  onClick,
+});
+
+// A chip's reset button — restores the filter's non-empty default.
+const resetAction = (onClick: () => void): FilterChipAction => ({
+  kind: "reset",
+  onClick,
+});
 
 function deserializeUrlFilters(queryString: string): URLFilters {
   const params = new URLSearchParams(queryString);
@@ -237,6 +285,57 @@ function mapDateRangeToDate(dateRange: string) {
     case DateRange.Custom:
       throw Error("Custom date range cannot be mapped to date");
   }
+}
+
+// One labelled section inside the More filters modal. `rowKey` ids the section
+// so a filter chip can scroll it into view when the modal opens.
+function FilterRow({
+  rowKey,
+  title,
+  children,
+}: {
+  rowKey?: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      id={rowKey ? `filter-row-${rowKey}` : undefined}
+      className="border-b py-4 first:pt-1 last:border-b-0 last:pb-1 scroll-mt-1"
+    >
+      <p className="font-display text-sm font-medium mb-2">{title}</p>
+      {children}
+    </div>
+  );
+}
+
+// A multi-select string filter rendered as a row of check chips.
+function StringMultiRow({
+  rowKey,
+  title,
+  items,
+  selected,
+  onChange,
+  getLabel = (item) => item,
+}: {
+  rowKey?: string;
+  title: string;
+  items: string[];
+  selected: string[];
+  onChange: (selected: string[]) => void;
+  getLabel?: (item: string) => string;
+}) {
+  return (
+    <FilterRow rowKey={rowKey} title={title}>
+      <CheckChipGroup
+        items={items}
+        selected={selected}
+        getLabel={getLabel}
+        isEqual={(a, b) => a === b}
+        onChange={onChange}
+      />
+    </FilterRow>
+  );
 }
 
 const FiltersComponent = forwardRef<
@@ -529,71 +628,241 @@ const FiltersComponent = forwardRef<
 
     useImperativeHandle(ref, () => ({ refresh }), [refresh]);
 
-    const skeletonDropdownCount = [
-      showAppSelector,
-      showDates,
-      showAppVersions,
-      showSessionTypes,
-      filterSource === FilterSource.Spans,
-      filterSource === FilterSource.Spans,
-      showBugReportStatus,
-      showHttpMethods,
-      showOsVersions,
-      showCountries,
-      showNetworkProviders,
-      showNetworkTypes,
-      showNetworkGenerations,
-      showLocales,
-      showDeviceManufacturers,
-      showDeviceNames,
-    ].filter(Boolean).length;
+    const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
+    // Filter chip whose modal section should scroll into view once open.
+    const [scrollTarget, setScrollTarget] = useState<string | null>(null);
+    // Drives the inline app versions dropdown so its chip can open it too.
+    const [appVersionsOpen, setAppVersionsOpen] = useState(false);
 
-    const skeletonPillCount = [
-      showDates,
-      showAppVersions,
-      showSessionTypes,
-      filterSource === FilterSource.Spans,
-      filterSource === FilterSource.Spans,
-      showBugReportStatus,
-      showHttpMethods,
-      showOsVersions,
-      showCountries,
-      showNetworkProviders,
-      showNetworkTypes,
-      showNetworkGenerations,
-      showLocales,
-      showDeviceManufacturers,
-      showDeviceNames,
-    ].filter(Boolean).length;
+    // Open the More filters modal with one filter's section scrolled into view.
+    const openFilterModal = (rowKey: string) => {
+      setScrollTarget(rowKey);
+      setMoreFiltersOpen(true);
+    };
+
+    useEffect(() => {
+      if (!moreFiltersOpen || !scrollTarget) {
+        return;
+      }
+      const raf = requestAnimationFrame(() => {
+        document
+          .getElementById(`filter-row-${scrollTarget}`)
+          ?.scrollIntoView({ block: "start" });
+      });
+      return () => cancelAnimationFrame(raf);
+    }, [moreFiltersOpen, scrollTarget]);
+
+    // Filters that live behind the "More filters" modal. Config-only check
+    // (no loaded data) so the skeleton can reserve the trigger's slot.
+    const hasMoreFiltersConfig =
+      showSessionTypes ||
+      filterSource === FilterSource.Spans ||
+      showBugReportStatus ||
+      showHttpMethods ||
+      showOsVersions ||
+      showCountries ||
+      showNetworkProviders ||
+      showNetworkTypes ||
+      showNetworkGenerations ||
+      showLocales ||
+      showDeviceManufacturers ||
+      showDeviceNames ||
+      showUdAttrs;
+
+    // Dropdowns that stay inline: app, trace name, date range, app versions,
+    // plus the "More filters" trigger.
+    const skeletonMainRowCount =
+      [
+        showAppSelector,
+        filterSource === FilterSource.Spans,
+        showDates,
+        showAppVersions,
+      ].filter(Boolean).length + (hasMoreFiltersConfig ? 1 : 0);
+
+    // Same as hasMoreFiltersConfig but gated on loaded data — drives the real
+    // trigger so it never opens an empty modal.
+    const hasMoreFilters =
+      showSessionTypes ||
+      filterSource === FilterSource.Spans ||
+      showBugReportStatus ||
+      showHttpMethods ||
+      (showOsVersions && store.osVersions.length > 0) ||
+      (showCountries && store.countries.length > 0) ||
+      (showNetworkProviders && store.networkProviders.length > 0) ||
+      (showNetworkTypes && store.networkTypes.length > 0) ||
+      (showNetworkGenerations && store.networkGenerations.length > 0) ||
+      (showLocales && store.locales.length > 0) ||
+      (showDeviceManufacturers && store.deviceManufacturers.length > 0) ||
+      (showDeviceNames && store.deviceNames.length > 0) ||
+      (showUdAttrs && store.userDefAttrs.length > 0);
+
+    // Active filter chips: one per "More filters" criterion with a selection.
+    // Index-list filters default to none, so their chip clears (and vanishes);
+    // the rest reset to a default, and carry no action while already at it.
+    const filterChips: {
+      key: string;
+      label: string;
+      tooltip: string;
+      action?: FilterChipAction;
+    }[] = [];
+
+    if (showSessionTypes && store.selectedSessionTypes.length > 0) {
+      filterChips.push({
+        key: "sessionTypes",
+        ...chipLabels("Session Types", store.selectedSessionTypes),
+        action: sameItems(store.selectedSessionTypes, defaultSessionTypes)
+          ? undefined
+          : resetAction(() =>
+              store.setSelectedSessionTypes(defaultSessionTypes),
+            ),
+      });
+    }
+    if (
+      filterSource === FilterSource.Spans &&
+      store.selectedSpanStatuses.length > 0
+    ) {
+      filterChips.push({
+        key: "spanStatuses",
+        ...chipLabels("Span Status", store.selectedSpanStatuses),
+        action:
+          store.selectedSpanStatuses.length === Object.values(SpanStatus).length
+            ? undefined
+            : resetAction(() =>
+                store.setSelectedSpanStatuses(
+                  Object.values(SpanStatus) as SpanStatus[],
+                ),
+              ),
+      });
+    }
+    if (showBugReportStatus && store.selectedBugReportStatuses.length > 0) {
+      filterChips.push({
+        key: "bugReportStatuses",
+        ...chipLabels("Bug Report Status", store.selectedBugReportStatuses),
+        action:
+          store.selectedBugReportStatuses.length === 1 &&
+          store.selectedBugReportStatuses[0] === BugReportStatus.Open
+            ? undefined
+            : resetAction(() =>
+                store.setSelectedBugReportStatuses([BugReportStatus.Open]),
+              ),
+      });
+    }
+    if (showHttpMethods && store.selectedHttpMethods.length > 0) {
+      filterChips.push({
+        key: "httpMethods",
+        ...chipLabels(
+          "HTTP Method",
+          store.selectedHttpMethods.map((m) => m.toUpperCase()),
+        ),
+        action:
+          store.selectedHttpMethods.length === Object.values(HttpMethod).length
+            ? undefined
+            : resetAction(() =>
+                store.setSelectedHttpMethods(
+                  Object.values(HttpMethod) as HttpMethod[],
+                ),
+              ),
+      });
+    }
+    if (showOsVersions && store.selectedOsVersions.length > 0) {
+      filterChips.push({
+        key: "osVersions",
+        ...chipLabels(
+          "OS Versions",
+          store.selectedOsVersions.map((v) => v.displayName),
+        ),
+        action: clearAction(() => store.setSelectedOsVersions([])),
+      });
+    }
+    if (showCountries && store.selectedCountries.length > 0) {
+      filterChips.push({
+        key: "countries",
+        ...chipLabels("Country", store.selectedCountries),
+        action: clearAction(() => store.setSelectedCountries([])),
+      });
+    }
+    if (showNetworkProviders && store.selectedNetworkProviders.length > 0) {
+      filterChips.push({
+        key: "networkProviders",
+        ...chipLabels("Network Provider", store.selectedNetworkProviders),
+        action: clearAction(() => store.setSelectedNetworkProviders([])),
+      });
+    }
+    if (showNetworkTypes && store.selectedNetworkTypes.length > 0) {
+      filterChips.push({
+        key: "networkTypes",
+        ...chipLabels("Network type", store.selectedNetworkTypes),
+        action: clearAction(() => store.setSelectedNetworkTypes([])),
+      });
+    }
+    if (showNetworkGenerations && store.selectedNetworkGenerations.length > 0) {
+      filterChips.push({
+        key: "networkGenerations",
+        ...chipLabels("Network generation", store.selectedNetworkGenerations),
+        action: clearAction(() => store.setSelectedNetworkGenerations([])),
+      });
+    }
+    if (showLocales && store.selectedLocales.length > 0) {
+      filterChips.push({
+        key: "locales",
+        ...chipLabels("Locale", store.selectedLocales),
+        action: clearAction(() => store.setSelectedLocales([])),
+      });
+    }
+    if (
+      showDeviceManufacturers &&
+      store.selectedDeviceManufacturers.length > 0
+    ) {
+      filterChips.push({
+        key: "deviceManufacturers",
+        ...chipLabels("Device Manufacturer", store.selectedDeviceManufacturers),
+        action: clearAction(() => store.setSelectedDeviceManufacturers([])),
+      });
+    }
+    if (showDeviceNames && store.selectedDeviceNames.length > 0) {
+      filterChips.push({
+        key: "deviceNames",
+        ...chipLabels("Device Name", store.selectedDeviceNames),
+        action: clearAction(() => store.setSelectedDeviceNames([])),
+      });
+    }
+    if (showUdAttrs && store.selectedUdAttrMatchers.length > 0) {
+      filterChips.push({
+        key: "udAttrs",
+        ...chipLabels(
+          "User Defined Attributes",
+          store.selectedUdAttrMatchers.map(
+            (m) => `${m.key} ${m.op} ${m.value}`,
+          ),
+        ),
+        action: clearAction(() => store.setSelectedUdAttrMatchers([])),
+      });
+    }
+
+    // Search lives inline, not in the modal — its chip points back to that
+    // input instead of opening the modal.
+    const searchActive = showFreeText && store.selectedFreeText !== "";
+
+    // App versions: page default is the latest build, or every build.
+    const defaultAppVersions =
+      appVersionsInitialSelectionType === AppVersionsInitialSelectionType.All
+        ? store.versions
+        : store.versions.slice(0, 1);
+    const appVersionsChanged = !sameItems(
+      store.selectedVersions.map((v) => v.displayName),
+      defaultAppVersions.map((v) => v.displayName),
+    );
 
     const filtersSkeleton = (
       skeletonCount: number,
       leadingContent?: React.ReactNode,
     ) => (
-      <>
-        <div className="flex flex-wrap gap-8 items-center">
-          {leadingContent}
-          {Array.from({ length: skeletonCount }).map((_, i) => (
-            <Skeleton key={i} className="h-9 w-[150px]" />
-          ))}
-        </div>
-        {showFreeText && (
-          <>
-            <div className="py-4" />
-            <Skeleton className="h-9 w-full" />
-          </>
-        )}
-        {skeletonPillCount > 0 && (
-          <>
-            <div className="py-4" />
-            <div className="flex flex-wrap gap-2 items-center">
-              {Array.from({ length: skeletonPillCount }).map((_, i) => (
-                <Skeleton key={i} className="h-6 w-[120px] rounded-full" />
-              ))}
-            </div>
-          </>
-        )}
-      </>
+      <div className="flex flex-wrap gap-8 items-center">
+        {leadingContent}
+        {Array.from({ length: skeletonCount }).map((_, i) => (
+          <Skeleton key={i} className="h-9 w-[150px]" />
+        ))}
+      </div>
     );
 
     const appSelectorDropdown = (
@@ -609,10 +878,146 @@ const FiltersComponent = forwardRef<
       />
     );
 
+    const moreFiltersContent = (
+      <div className="max-h-[60vh] overflow-y-auto px-1">
+        {showSessionTypes && (
+          <StringMultiRow
+            rowKey="sessionTypes"
+            title="Session Types"
+            items={Object.values(SessionType)}
+            selected={store.selectedSessionTypes}
+            onChange={(items) =>
+              store.setSelectedSessionTypes(items as SessionType[])
+            }
+          />
+        )}
+        {filterSource === FilterSource.Spans && (
+          <StringMultiRow
+            rowKey="spanStatuses"
+            title="Span Status"
+            items={Object.values(SpanStatus)}
+            selected={store.selectedSpanStatuses}
+            onChange={(items) =>
+              store.setSelectedSpanStatuses(items as SpanStatus[])
+            }
+          />
+        )}
+        {showBugReportStatus && (
+          <StringMultiRow
+            rowKey="bugReportStatuses"
+            title="Bug Report Status"
+            items={Object.values(BugReportStatus)}
+            selected={store.selectedBugReportStatuses}
+            onChange={(items) =>
+              store.setSelectedBugReportStatuses(items as BugReportStatus[])
+            }
+          />
+        )}
+        {showHttpMethods && (
+          <StringMultiRow
+            rowKey="httpMethods"
+            title="HTTP Method"
+            items={Object.values(HttpMethod)}
+            selected={store.selectedHttpMethods}
+            getLabel={(item) => item.toUpperCase()}
+            onChange={(items) =>
+              store.setSelectedHttpMethods(items as HttpMethod[])
+            }
+          />
+        )}
+        {showOsVersions && store.osVersions.length > 0 && (
+          <FilterRow rowKey="osVersions" title="OS Versions">
+            <CheckChipGroup
+              items={store.osVersions}
+              selected={store.selectedOsVersions}
+              getLabel={(item) => item.displayName}
+              isEqual={(a, b) => a.displayName === b.displayName}
+              onChange={(items) => store.setSelectedOsVersions(items)}
+            />
+          </FilterRow>
+        )}
+        {showCountries && store.countries.length > 0 && (
+          <StringMultiRow
+            rowKey="countries"
+            title="Country"
+            items={store.countries}
+            selected={store.selectedCountries}
+            onChange={(items) => store.setSelectedCountries(items)}
+          />
+        )}
+        {showNetworkProviders && store.networkProviders.length > 0 && (
+          <StringMultiRow
+            rowKey="networkProviders"
+            title="Network Provider"
+            items={store.networkProviders}
+            selected={store.selectedNetworkProviders}
+            onChange={(items) => store.setSelectedNetworkProviders(items)}
+          />
+        )}
+        {showNetworkTypes && store.networkTypes.length > 0 && (
+          <StringMultiRow
+            rowKey="networkTypes"
+            title="Network type"
+            items={store.networkTypes}
+            selected={store.selectedNetworkTypes}
+            onChange={(items) => store.setSelectedNetworkTypes(items)}
+          />
+        )}
+        {showNetworkGenerations && store.networkGenerations.length > 0 && (
+          <StringMultiRow
+            rowKey="networkGenerations"
+            title="Network generation"
+            items={store.networkGenerations}
+            selected={store.selectedNetworkGenerations}
+            onChange={(items) => store.setSelectedNetworkGenerations(items)}
+          />
+        )}
+        {showLocales && store.locales.length > 0 && (
+          <StringMultiRow
+            rowKey="locales"
+            title="Locale"
+            items={store.locales}
+            selected={store.selectedLocales}
+            onChange={(items) => store.setSelectedLocales(items)}
+          />
+        )}
+        {showDeviceManufacturers && store.deviceManufacturers.length > 0 && (
+          <StringMultiRow
+            rowKey="deviceManufacturers"
+            title="Device Manufacturer"
+            items={store.deviceManufacturers}
+            selected={store.selectedDeviceManufacturers}
+            onChange={(items) => store.setSelectedDeviceManufacturers(items)}
+          />
+        )}
+        {showDeviceNames && store.deviceNames.length > 0 && (
+          <StringMultiRow
+            rowKey="deviceNames"
+            title="Device Name"
+            items={store.deviceNames}
+            selected={store.selectedDeviceNames}
+            onChange={(items) => store.setSelectedDeviceNames(items)}
+          />
+        )}
+        {showUdAttrs && store.userDefAttrs.length > 0 && (
+          <FilterRow rowKey="udAttrs" title="User Defined Attributes">
+            <UserDefAttrSelector
+              attrs={store.userDefAttrs}
+              ops={store.userDefAttrOps}
+              initialSelected={store.selectedUdAttrMatchers}
+              onChangeSelected={(udAttrMatchers) =>
+                store.setSelectedUdAttrMatchers(udAttrMatchers)
+              }
+            />
+          </FilterRow>
+        )}
+      </div>
+    );
+
     return (
       <div>
         {store.appsApiStatus === AppsApiStatus.Loading &&
-          filtersSkeleton(skeletonDropdownCount)}
+          filtersSkeleton(skeletonMainRowCount)}
 
         {store.appsApiStatus === AppsApiStatus.Error && (
           <p className="font-body text-sm">
@@ -641,7 +1046,7 @@ const FiltersComponent = forwardRef<
             <div className="flex flex-col">
               {showAppSelector &&
                 store.filtersApiStatus === FiltersApiStatus.Loading &&
-                filtersSkeleton(skeletonDropdownCount - 1, appSelectorDropdown)}
+                filtersSkeleton(skeletonMainRowCount - 1, appSelectorDropdown)}
               {showAppSelector &&
                 store.filtersApiStatus !== FiltersApiStatus.Loading && (
                   <div className="flex flex-wrap gap-8 items-center">
@@ -682,7 +1087,7 @@ const FiltersComponent = forwardRef<
               {showAppSelector &&
                 store.rootSpanNamesApiStatus ===
                   RootSpanNamesApiStatus.Loading &&
-                filtersSkeleton(skeletonDropdownCount - 1, appSelectorDropdown)}
+                filtersSkeleton(skeletonMainRowCount - 1, appSelectorDropdown)}
               {showAppSelector &&
                 store.rootSpanNamesApiStatus !==
                   RootSpanNamesApiStatus.Loading && (
@@ -835,165 +1240,26 @@ const FiltersComponent = forwardRef<
                     onChangeSelected={(items) =>
                       store.setSelectedVersions(items as AppVersion[])
                     }
+                    open={appVersionsOpen}
+                    onOpenChange={setAppVersionsOpen}
                   />
                 )}
-                {showSessionTypes && (
-                  <DropdownSelect
-                    title="Session Types"
-                    type={DropdownSelectType.MultiString}
-                    items={Object.values(SessionType)}
-                    initialSelected={store.selectedSessionTypes}
-                    onChangeSelected={(items) =>
-                      store.setSelectedSessionTypes(items as SessionType[])
-                    }
-                  />
-                )}
-                {filterSource === FilterSource.Spans && (
-                  <DropdownSelect
-                    type={DropdownSelectType.MultiString}
-                    title="Span Status"
-                    items={Object.values(SpanStatus)}
-                    initialSelected={store.selectedSpanStatuses}
-                    onChangeSelected={(items) =>
-                      store.setSelectedSpanStatuses(items as SpanStatus[])
-                    }
-                  />
-                )}
-                {showBugReportStatus && (
-                  <DropdownSelect
-                    type={DropdownSelectType.MultiString}
-                    title="Bug Report Status"
-                    items={Object.values(BugReportStatus)}
-                    initialSelected={store.selectedBugReportStatuses}
-                    onChangeSelected={(items) =>
-                      store.setSelectedBugReportStatuses(
-                        items as BugReportStatus[],
-                      )
-                    }
-                  />
-                )}
-                {showHttpMethods && (
-                  <DropdownSelect
-                    type={DropdownSelectType.MultiString}
-                    title="HTTP Method"
-                    items={Object.values(HttpMethod).map((m) =>
-                      m.toUpperCase(),
-                    )}
-                    initialSelected={store.selectedHttpMethods.map((m) =>
-                      m.toUpperCase(),
-                    )}
-                    onChangeSelected={(items) =>
-                      store.setSelectedHttpMethods(
-                        (items as string[]).map(
-                          (m) => m.toLowerCase() as HttpMethod,
-                        ),
-                      )
-                    }
-                  />
-                )}
-                {showOsVersions && store.osVersions.length > 0 && (
-                  <DropdownSelect
-                    type={DropdownSelectType.MultiOsVersion}
-                    title="OS Versions"
-                    items={store.osVersions}
-                    initialSelected={store.selectedOsVersions}
-                    onChangeSelected={(items) =>
-                      store.setSelectedOsVersions(items as OsVersion[])
-                    }
-                  />
-                )}
-                {showCountries && store.countries.length > 0 && (
-                  <DropdownSelect
-                    type={DropdownSelectType.MultiString}
-                    title="Country"
-                    items={store.countries}
-                    initialSelected={store.selectedCountries}
-                    onChangeSelected={(items) =>
-                      store.setSelectedCountries(items as string[])
-                    }
-                  />
-                )}
-                {showNetworkProviders && store.networkProviders.length > 0 && (
-                  <DropdownSelect
-                    type={DropdownSelectType.MultiString}
-                    title="Network Provider"
-                    items={store.networkProviders}
-                    initialSelected={store.selectedNetworkProviders}
-                    onChangeSelected={(items) =>
-                      store.setSelectedNetworkProviders(items as string[])
-                    }
-                  />
-                )}
-                {showNetworkTypes && store.networkTypes.length > 0 && (
-                  <DropdownSelect
-                    type={DropdownSelectType.MultiString}
-                    title="Network type"
-                    items={store.networkTypes}
-                    initialSelected={store.selectedNetworkTypes}
-                    onChangeSelected={(items) =>
-                      store.setSelectedNetworkTypes(items as string[])
-                    }
-                  />
-                )}
-                {showNetworkGenerations &&
-                  store.networkGenerations.length > 0 && (
-                    <DropdownSelect
-                      type={DropdownSelectType.MultiString}
-                      title="Network generation"
-                      items={store.networkGenerations}
-                      initialSelected={store.selectedNetworkGenerations}
-                      onChangeSelected={(items) =>
-                        store.setSelectedNetworkGenerations(items as string[])
-                      }
-                    />
-                  )}
-                {showLocales && store.locales.length > 0 && (
-                  <DropdownSelect
-                    type={DropdownSelectType.MultiString}
-                    title="Locale"
-                    items={store.locales}
-                    initialSelected={store.selectedLocales}
-                    onChangeSelected={(items) =>
-                      store.setSelectedLocales(items as string[])
-                    }
-                  />
-                )}
-                {showDeviceManufacturers &&
-                  store.deviceManufacturers.length > 0 && (
-                    <DropdownSelect
-                      type={DropdownSelectType.MultiString}
-                      title="Device Manufacturer"
-                      items={store.deviceManufacturers}
-                      initialSelected={store.selectedDeviceManufacturers}
-                      onChangeSelected={(items) =>
-                        store.setSelectedDeviceManufacturers(items as string[])
-                      }
-                    />
-                  )}
-                {showDeviceNames && store.deviceNames.length > 0 && (
-                  <DropdownSelect
-                    type={DropdownSelectType.MultiString}
-                    title="Device Name"
-                    items={store.deviceNames}
-                    initialSelected={store.selectedDeviceNames}
-                    onChangeSelected={(items) =>
-                      store.setSelectedDeviceNames(items as string[])
-                    }
-                  />
-                )}
-                {showUdAttrs && store.userDefAttrs.length > 0 && (
-                  <UserDefAttrSelector
-                    attrs={store.userDefAttrs}
-                    ops={store.userDefAttrOps}
-                    initialSelected={store.selectedUdAttrMatchers}
-                    onChangeSelected={(udAttrMatchers) =>
-                      store.setSelectedUdAttrMatchers(udAttrMatchers)
-                    }
-                  />
+                {hasMoreFilters && (
+                  <Button
+                    variant="outline"
+                    className="select-none"
+                    onClick={() => {
+                      setScrollTarget(null);
+                      setMoreFiltersOpen(true);
+                    }}
+                  >
+                    <SlidersHorizontal />
+                    More filters
+                  </Button>
                 )}
                 {showFreeText && (
                   <DebounceTextInput
-                    id="free-text"
+                    id={SEARCH_INPUT_ID}
                     placeholder={
                       freeTextPlaceholder
                         ? freeTextPlaceholder
@@ -1004,112 +1270,79 @@ const FiltersComponent = forwardRef<
                   />
                 )}
               </div>
-              <div className="py-4" />
-              <div className="flex flex-wrap gap-2 items-center">
-                {filterSource === FilterSource.Spans && (
-                  <Pill title={store.selectedRootSpanName} />
-                )}
-                {showDates && (
-                  <Pill
-                    title={`${formatDateToHumanReadableDateTime(store.selectedStartDate)} to ${formatDateToHumanReadableDateTime(store.selectedEndDate)}`}
-                  />
-                )}
-                {showAppVersions && store.selectedVersions.length > 0 && (
-                  <Pill
-                    title={Array.from(store.selectedVersions)
-                      .map((v) => v.displayName)
-                      .join(", ")}
-                  />
-                )}
-                {showSessionTypes && store.selectedSessionTypes.length > 0 && (
-                  <Pill
-                    title={Array.from(store.selectedSessionTypes).join(", ")}
-                  />
-                )}
-                {filterSource === FilterSource.Spans &&
-                  store.selectedSpanStatuses.length > 0 && (
-                    <Pill
-                      title={Array.from(store.selectedSpanStatuses).join(", ")}
-                    />
-                  )}
-                {showBugReportStatus &&
-                  store.selectedBugReportStatuses.length > 0 && (
-                    <Pill
-                      title={Array.from(store.selectedBugReportStatuses).join(
-                        ", ",
-                      )}
-                    />
-                  )}
-                {showHttpMethods && store.selectedHttpMethods.length > 0 && (
-                  <Pill
-                    title={Array.from(store.selectedHttpMethods)
-                      .map((m) => m.toUpperCase())
-                      .join(", ")}
-                  />
-                )}
-                {showOsVersions && store.selectedOsVersions.length > 0 && (
-                  <Pill
-                    title={Array.from(store.selectedOsVersions)
-                      .map((v) => v.displayName)
-                      .join(", ")}
-                  />
-                )}
-                {showCountries && store.selectedCountries.length > 0 && (
-                  <Pill
-                    title={Array.from(store.selectedCountries).join(", ")}
-                  />
-                )}
-                {showNetworkProviders &&
-                  store.selectedNetworkProviders.length > 0 && (
-                    <Pill
-                      title={Array.from(store.selectedNetworkProviders).join(
-                        ", ",
-                      )}
-                    />
-                  )}
-                {showNetworkTypes && store.selectedNetworkTypes.length > 0 && (
-                  <Pill
-                    title={Array.from(store.selectedNetworkTypes).join(", ")}
-                  />
-                )}
-                {showNetworkGenerations &&
-                  store.selectedNetworkGenerations.length > 0 && (
-                    <Pill
-                      title={Array.from(store.selectedNetworkGenerations).join(
-                        ", ",
-                      )}
-                    />
-                  )}
-                {showLocales && store.selectedLocales.length > 0 && (
-                  <Pill title={Array.from(store.selectedLocales).join(", ")} />
-                )}
-                {showDeviceManufacturers &&
-                  store.selectedDeviceManufacturers.length > 0 && (
-                    <Pill
-                      title={Array.from(store.selectedDeviceManufacturers).join(
-                        ", ",
-                      )}
-                    />
-                  )}
-                {showDeviceNames && store.selectedDeviceNames.length > 0 && (
-                  <Pill
-                    title={Array.from(store.selectedDeviceNames).join(", ")}
-                  />
-                )}
-                {showUdAttrs && store.selectedUdAttrMatchers.length > 0 && (
-                  <Pill
-                    title={store.selectedUdAttrMatchers
-                      .map(
-                        (matcher) =>
-                          `${matcher.key} (${matcher.type}) ${matcher.op} ${matcher.value}`,
-                      )
-                      .join(", ")}
-                  />
-                )}
-                {showFreeText && store.selectedFreeText !== "" && (
-                  <Pill title={"Search Text: " + store.selectedFreeText} />
-                )}
-              </div>
+
+              {(showAppVersions || filterChips.length > 0 || searchActive) && (
+                <>
+                  <div className="py-4" />
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {showAppVersions && (
+                      <FilterChip
+                        {...chipLabels(
+                          "App versions",
+                          store.selectedVersions.map((v) => v.displayName),
+                        )}
+                        onClick={() => setAppVersionsOpen(true)}
+                        action={
+                          appVersionsChanged
+                            ? resetAction(() =>
+                                store.setSelectedVersions(defaultAppVersions),
+                              )
+                            : undefined
+                        }
+                      />
+                    )}
+                    {filterChips.map((chip) => (
+                      <FilterChip
+                        key={chip.key}
+                        label={chip.label}
+                        tooltip={chip.tooltip}
+                        onClick={() => openFilterModal(chip.key)}
+                        action={chip.action}
+                      />
+                    ))}
+                    {searchActive && (
+                      <FilterChip
+                        label={`Search: ${store.selectedFreeText}`}
+                        onClick={() =>
+                          document.getElementById(SEARCH_INPUT_ID)?.focus()
+                        }
+                        action={clearAction(() =>
+                          store.setSelectedFreeText(""),
+                        )}
+                      />
+                    )}
+                  </div>
+                </>
+              )}
+
+              {hasMoreFilters && (
+                <Dialog
+                  open={moreFiltersOpen}
+                  onOpenChange={(open) => {
+                    setMoreFiltersOpen(open);
+                    if (!open) {
+                      setScrollTarget(null);
+                    }
+                  }}
+                >
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="font-display">
+                        More filters
+                      </DialogTitle>
+                      <DialogDescription className="font-body">
+                        Narrow down results with additional filters.
+                      </DialogDescription>
+                    </DialogHeader>
+                    {moreFiltersContent}
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline">Done</Button>
+                      </DialogClose>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
           )}
       </div>

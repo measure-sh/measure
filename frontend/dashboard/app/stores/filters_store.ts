@@ -109,7 +109,7 @@ const allSessionTypes = [
   SessionType.Background,
   SessionType.UserInteraction,
 ];
-const defaultSessionTypes = [
+export const defaultSessionTypes = [
   SessionType.Crashes,
   SessionType.ANRs,
   SessionType.BugReports,
@@ -653,11 +653,11 @@ export function applyFilterOptions(
     selectedVersions = data.versions.slice(0, 1);
   }
 
-  // Index-based lists (URL carries indices into `data.X`). URL > default.
+  // Index-based lists (URL carries indices into `data.X`). Uses the URL
+  // selection when present, otherwise defaults to none selected.
   const resolveIndexList = <T>(
     urlValue: number[] | undefined,
     newAvailable: T[],
-    defaultValue: T[],
   ): T[] => {
     if (isUrlMatch && urlValue !== undefined) {
       const fromUrl = urlValue
@@ -667,47 +667,36 @@ export function applyFilterOptions(
         return fromUrl;
       }
     }
-    return defaultValue;
+    return [];
   };
 
   const selectedOsVersions = resolveIndexList(
     urlFilters.osVersions,
     data.osVersions,
-    data.osVersions,
   );
   const selectedCountries = resolveIndexList(
     urlFilters.countries,
-    data.countries,
     data.countries,
   );
   const selectedNetworkProviders = resolveIndexList(
     urlFilters.networkProviders,
     data.networkProviders,
-    data.networkProviders,
   );
   const selectedNetworkTypes = resolveIndexList(
     urlFilters.networkTypes,
-    data.networkTypes,
     data.networkTypes,
   );
   const selectedNetworkGenerations = resolveIndexList(
     urlFilters.networkGenerations,
     data.networkGenerations,
-    data.networkGenerations,
   );
-  const selectedLocales = resolveIndexList(
-    urlFilters.locales,
-    data.locales,
-    data.locales,
-  );
+  const selectedLocales = resolveIndexList(urlFilters.locales, data.locales);
   const selectedDeviceManufacturers = resolveIndexList(
     urlFilters.deviceManufacturers,
-    data.deviceManufacturers,
     data.deviceManufacturers,
   );
   const selectedDeviceNames = resolveIndexList(
     urlFilters.deviceNames,
-    data.deviceNames,
     data.deviceNames,
   );
 
