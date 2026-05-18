@@ -118,6 +118,7 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
+          cache: 'gradle'
       - uses: subosito/flutter-action@f2c4f6686ca8e8d6e6d0f28410eeef506ed66aff
         with:
           channel: stable
@@ -149,6 +150,15 @@ jobs:
         run: |
           echo '${{ secrets.FRANK_APP_ENV }}' > samples/frank/.env
           cd samples/frank && ./setup-secrets.sh
+      - name: Restore Measure xcframework cache
+        id: xcframework-cache
+        uses: actions/cache@v4
+        with:
+          path: kmp/measure-kmp/build/xcframework/Measure.xcframework
+          key: xcframework-${{ hashFiles('ios/Sources/**', 'ios/MeasureSDK.xcodeproj/**', 'ios/Measure.xcworkspace/**', 'ios/Package.resolved') }}
+      - name: Build Measure xcframework
+        if: steps.xcframework-cache.outputs.cache-hit != 'true'
+        run: bash kmp/measure-kmp/Scripts/build-xcframework.sh
       - name: Cache CocoaPods
         uses: actions/cache@v4
         with:
