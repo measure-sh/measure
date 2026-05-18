@@ -142,9 +142,9 @@ export function ConsentManager({ children }: { children: React.ReactNode }) {
     >
       {/* legalLinks must be an explicit array — c15t 2.1.0 renders no links
           for the documented `undefined` default. URL comes from the provider's
-          `legalLinks` option above. */}
-      <ConsentBanner legalLinks={["privacyPolicy"]} />
-      <ConsentDialog legalLinks={["privacyPolicy"]} />
+          `legalLinks` option above. `hideBranding` removes the c15t watermark. */}
+      <ConsentBanner hideBranding legalLinks={["privacyPolicy"]} />
+      <ConsentDialog hideBranding legalLinks={["privacyPolicy"]} />
       <PostHogProvider proxyPath="/yrtmlt">{children}</PostHogProvider>
     </ConsentManagerProvider>
   );
