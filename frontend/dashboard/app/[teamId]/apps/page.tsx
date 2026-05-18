@@ -473,7 +473,7 @@ export default function Apps({ params }: { params: { teamId: string } }) {
           />
 
           <div className="font-body">
-            <div className="flex flex-col">
+            <div className="flex flex-col mt-8">
               {filters.app!.unique_identifier && filters.app!.os_name && (
                 <p className="font-display text-muted-foreground">
                   Unique Identifier

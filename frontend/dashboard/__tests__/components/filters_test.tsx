@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@testing-library/jest-dom";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, gcTime: 0 } },
@@ -114,6 +120,10 @@ import {
 import Filters, {
   AppVersionsInitialSelectionType,
 } from "@/app/components/filters";
+
+// jsdom has no scrollIntoView; the More filters modal calls it to bring a
+// chip's section into view when the modal is opened from a chip.
+Element.prototype.scrollIntoView = jest.fn();
 
 function makeApp(id: string, onboarded = true): App {
   return {
@@ -360,35 +370,14 @@ describe("Filters — filter options states", () => {
     });
   });
 
-  it("renders all filter dropdowns once filters load successfully", async () => {
+  it("renders the filter dropdowns and More filters trigger once filters load successfully", async () => {
     setFiltersSuccess();
     await renderFilters();
     await waitFor(() => {
       expect(screen.getByTestId("dropdown-App Name")).toBeInTheDocument();
       expect(screen.getByTestId("dropdown-Date Range")).toBeInTheDocument();
       expect(screen.getByTestId("dropdown-App versions")).toBeInTheDocument();
-      expect(screen.getByTestId("dropdown-OS Versions")).toBeInTheDocument();
-      expect(screen.getByTestId("dropdown-Country")).toBeInTheDocument();
-      expect(
-        screen.getByTestId("dropdown-Network Provider"),
-      ).toBeInTheDocument();
-      expect(screen.getByTestId("dropdown-Network type")).toBeInTheDocument();
-      expect(
-        screen.getByTestId("dropdown-Network generation"),
-      ).toBeInTheDocument();
-      expect(screen.getByTestId("dropdown-Locale")).toBeInTheDocument();
-      expect(
-        screen.getByTestId("dropdown-Device Manufacturer"),
-      ).toBeInTheDocument();
-      expect(screen.getByTestId("dropdown-Device Name")).toBeInTheDocument();
-    });
-  });
-
-  it("does NOT render the country dropdown when showCountries=false", async () => {
-    setFiltersSuccess();
-    await renderFilters({ showCountries: false });
-    await waitFor(() => {
-      expect(screen.queryByTestId("dropdown-Country")).not.toBeInTheDocument();
+      expect(screen.getByText("More filters")).toBeInTheDocument();
     });
   });
 });
@@ -601,6 +590,87 @@ describe("Filters — team change", () => {
     await renderFilters({ teamId: "team-7" });
     await waitFor(() => {
       expect(storeInstance.getState().currentTeamId).toBe("team-7");
+    });
+  });
+});
+
+describe("Filters — filter chips", () => {
+  beforeEach(() => {
+    setAppsSuccess([makeApp("a")]);
+    setFiltersSuccess();
+  });
+
+  it("renders a chip for an active filter selection", async () => {
+    await renderFilters();
+    await act(async () => {
+      storeInstance.getState().setSelectedCountries(["US", "IN"]);
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Country: US, IN")).toBeInTheDocument();
+    });
+  });
+
+  it("renders no chip for a filter left at its default", async () => {
+    await renderFilters();
+    // The always-on app versions chip confirms the filters have loaded.
+    await waitFor(() => {
+      expect(screen.getByText(/^App versions:/)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/^Country:/)).not.toBeInTheDocument();
+  });
+
+  it("always renders the app versions chip", async () => {
+    await renderFilters();
+    await waitFor(() => {
+      expect(screen.getByText(/^App versions:/)).toBeInTheDocument();
+    });
+  });
+
+  it("clears the filter when the chip's clear button is clicked", async () => {
+    await renderFilters();
+    await act(async () => {
+      storeInstance.getState().setSelectedCountries(["US", "IN"]);
+    });
+    fireEvent.click(await screen.findByLabelText("Clear Country"));
+    await waitFor(() => {
+      expect(storeInstance.getState().selectedCountries).toEqual([]);
+      expect(screen.queryByText("Country: US, IN")).not.toBeInTheDocument();
+    });
+  });
+
+  it("resets a changed filter to its default via the chip", async () => {
+    await renderFilters({ showSessionTypes: true });
+    const defaults = storeInstance.getState().selectedSessionTypes;
+    expect(defaults.length).toBeGreaterThan(1);
+    await act(async () => {
+      storeInstance.getState().setSelectedSessionTypes([defaults[0]]);
+    });
+    fireEvent.click(await screen.findByLabelText("Reset Session Types"));
+    await waitFor(() => {
+      expect(storeInstance.getState().selectedSessionTypes).toEqual(defaults);
+    });
+  });
+
+  it("opens the More filters modal from the trigger button", async () => {
+    await renderFilters();
+    fireEvent.click(await screen.findByText("More filters"));
+    await waitFor(() => {
+      expect(
+        screen.getByText("Narrow down results with additional filters."),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("opens the More filters modal when a chip is clicked", async () => {
+    await renderFilters();
+    await act(async () => {
+      storeInstance.getState().setSelectedCountries(["US", "IN"]);
+    });
+    fireEvent.click(await screen.findByText("Country: US, IN"));
+    await waitFor(() => {
+      expect(
+        screen.getByText("Narrow down results with additional filters."),
+      ).toBeInTheDocument();
     });
   });
 });

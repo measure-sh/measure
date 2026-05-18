@@ -1037,8 +1037,14 @@ describe("Overview page — filter interactions", () => {
       await waitFor(
         () => {
           expect(filtersStore.getState().selectedApp?.id).toBe("app-2");
-          // Selections should reset to defaults on app switch
-          expect(filtersStore.getState().filters.countries.all).toBe(true);
+          // The version picked for app-1 is cleared...
+          expect(
+            filtersStore
+              .getState()
+              .selectedVersions.some((v) => v.name === "3.0.1"),
+          ).toBe(false);
+          // ...and index filters are back to their defaults
+          expect(filtersStore.getState().selectedCountries).toEqual([]);
         },
         { timeout: 5000 },
       );
