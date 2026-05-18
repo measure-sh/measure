@@ -98,7 +98,7 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode.app
 
       - name: Build Measure iOS xcframework
-        run: ./kmp/measure-kmp/Scripts/build-xcframework.sh
+        run: ./Scripts/build-xcframework.sh
 
       - name: Assemble
         run: ./gradlew assemble --no-daemon --no-parallel --no-configuration-cache --stacktrace

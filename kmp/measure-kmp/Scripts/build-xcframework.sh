@@ -30,6 +30,16 @@ DERIVED_DATA="$OUTPUT_DIR/DerivedData"
 
 mkdir -p "$OUTPUT_DIR"
 
+# In CI the framework is pre-built and cached before xcodebuild starts.
+# The Xcode build phase still invokes this script, so we exit early when
+# in CI and the xcframework is already present. The cache key is derived
+# from ios/ sources, so a hit means the cached result is correct.
+# Local dev is unaffected: $CI is not set outside GitHub Actions.
+if [ -d "$XCFRAMEWORK" ] && [ "${CI:-}" = "true" ]; then
+  echo "Measure.xcframework already present in CI — skipping rebuild"
+  exit 0
+fi
+
 run_xcodebuild() {
   env -i \
     PATH="$PATH" \
