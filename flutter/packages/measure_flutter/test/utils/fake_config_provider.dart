@@ -6,6 +6,7 @@ class FakeConfigProvider implements ConfigProvider {
   List<String> _defaultHttpContentTypeAllowlist = [];
   List<String> _defaultHttpHeadersBlocklist = [];
   bool _enableLogging = false;
+  bool _enableDiagnosticMode = false;
   int _maxCheckpointNameLength = 64;
   int _maxCheckpointsPerSpan = 100;
   int _maxSpanNameLength = 64;
@@ -41,6 +42,9 @@ class FakeConfigProvider implements ConfigProvider {
 
   @override
   bool get enableLogging => _enableLogging;
+
+  @override
+  bool get enableDiagnosticMode => _enableDiagnosticMode;
 
   @override
   int get maxCheckpointNameLength => _maxCheckpointNameLength;
@@ -138,6 +142,8 @@ class FakeConfigProvider implements ConfigProvider {
   set defaultHttpHeadersBlocklist(List<String> value) => _defaultHttpHeadersBlocklist = value;
 
   set enableLogging(bool value) => _enableLogging = value;
+
+  set enableDiagnosticMode(bool value) => _enableDiagnosticMode = value;
 
   @override
   bool get autoStart => _autoStart;

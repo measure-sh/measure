@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:measure_flutter/src/bug_report/ui/delete_screenshot_button.dart';
+import 'package:measure_flutter/src/bug_report/ui/raw_rgba_image_provider.dart';
 import 'package:measure_flutter/src/events/msr_attachment.dart';
 
 class ScreenshotListItem extends StatefulWidget {
@@ -77,8 +78,15 @@ class _ScreenshotListItemState extends State<ScreenshotListItem> {
         frameBuilder: _buildFrameBuilder,
       );
     } else if (widget.screenshot.bytes != null) {
-      image = Image.memory(
-        widget.screenshot.bytes!,
+      final ImageProvider provider = widget.screenshot.hasRawPixels
+          ? RawRgbaImageProvider(
+              bytes: widget.screenshot.bytes!,
+              width: widget.screenshot.width!,
+              height: widget.screenshot.height!,
+            )
+          : MemoryImage(widget.screenshot.bytes!);
+      image = Image(
+        image: provider,
         fit: BoxFit.cover,
         frameBuilder: _buildFrameBuilder,
       );

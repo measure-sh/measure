@@ -1,3 +1,8 @@
+---
+title: "Identify Users with User ID"
+description: "Set a user ID to correlate sessions with users for debugging. Persisted across app launches. Recommended to avoid PII."
+---
+
 # Identify users
 
 Correlating sessions with users is critical for debugging certain issues. You can set a user ID which can then be used

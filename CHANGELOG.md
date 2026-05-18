@@ -10,10 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :sparkles: New features
 
 - (**backend**): Use autumn for metering and billing by @anupcowkur in #3534
+- (**frontend**): Serve markdown for marketing & docs pages to agents by @anupcowkur in #3621
+- (**frontend**): Add onboarding flow by @anupcowkur in #3613
 - (**frontend**): Make dashboard header sticky on scroll by @anupcowkur in #3489
 
 ### :bug: Bug fixes
 
+- (**backend**): Prevent occasional panic in apple symbolication (#3628) by @detj in #3628
+- (**backend**): Group crashes by fingerprint, ignore app version  (#3631) by @abhaysood in #3631
+- (**backend**): Journey api fails sometimes (#3586) by @detj in #3586
 - (**backend**): Preserve casing of app's unique id on onboard (#3542) by @detj in #3542
 - (**backend**): App versions may not appear properly sorted (#3540) by @detj in #3540
 - (**backend**): Semver version sort was not stable for ios (#3538) by @detj in #3538
@@ -24,6 +29,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Match cmd and K sizes in docs search by @anupcowkur
+- (**frontend**): Remove unused prose-custom class by @anupcowkur
+- (**frontend**): Expand sidebar docs section when child is open by @anupcowkur in #3633
+- (**frontend**): Skip hosting guide on slack error for non cloud users by @anupcowkur
+- (**frontend**): Hydrate teams cache on create to fix post-nav crash by @anupcowkur in #3622
+- (**frontend**): Iterate HTML tag strip to drain nested-tag residue by @anupcowkur in #3617
+- (**frontend**): Pin pricing calculator locale and widen slider ranges by @anupcowkur in #3596
+- (**frontend**): Restore social preview image on landing pages by @anupcowkur in #3594
 - (**frontend**): Block framing to prevent clickjacking by @anupcowkur in #3499
 - (**frontend**): Remove overflow-auto from inner main to fix scroll hitch by @anupcowkur in #3488
 - (**frontend**): Make journeys panel open only on nodes with issues by @anupcowkur in #3487
@@ -34,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Reduce iggy consumer poll interval (#3620) by @detj in #3620
 - (**backend**): Use UUID for autumn customer ids by @anupcowkur in #3546
 - (**backend**): Support symbolication of iOS system frameworks (#3495) by @detj in #3495
 - (**backend**): Switch to bearer token auth for reading gcs symbols (#3509) by @detj in #3509
@@ -58,6 +72,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Improve line height comment by @anupcowkur in #3635
+- (**frontend**): Improve line heights by @anupcowkur
+- (**frontend**): Update header star count by @anupcowkur in #3634
+- (**frontend**): Show non-blocking msg on no apps in usage by @anupcowkur in #3625
+- (**frontend**): Refactor filters by @anupcowkur
+- (**frontend**): Add highlights to stacktraces & common path by @anupcowkur in #3618
+- (**frontend**): Improve docs by @anupcowkur
+- (**frontend**): Update titles & descriptions for docs + website pages by @anupcowkur in #3616
+- (**frontend**): Update crashlytics alternative page description by @anupcowkur in #3608
+- (**frontend**): Drop "cloud" in pages by @anupcowkur in #3607
+- (**frontend**): Update pricing page copy and tests by @anupcowkur in #3606
+- (**frontend**): Use consitent formatting for self host by @anupcowkur in #3605
+- (**frontend**): Update landingp page by @anupcowkur in #3604
+- (**frontend**): Update why-measure page and tests by @anupcowkur in #3603
+- (**frontend**): Add crashlytics alternative page by @anupcowkur in #3602
+- (**frontend**): Update social preview image by @anupcowkur in #3595
+- (**frontend**): Add reo by @anupcowkur in #3592
+- (**frontend**): Remove emojis from description in landing + README by @anupcowkur in #3591
+- (**frontend**): Update website and README by @anupcowkur in #3558
 - (**frontend**): Integrate leadsy by @anupcowkur in #3551
 - (**frontend**): Manage cookie consent in a dedicated provider by @anupcowkur in #3550
 - (**frontend**): Unify "Data" line across plan cards by @anupcowkur in #3549
@@ -82,6 +115,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Add tests for user_def_attr_selector component by @anupcowkur in #3439
 - (**frontend**): Add tests for filters component by @anupcowkur in #3438
 - (**frontend**): Add api latency tracking posthog events by @anupcowkur in #3431
+
+### :books: Documentation
+
+- Remove empty line in code snippet by @anupcowkur
+- Remove FAQ, data retention, contributing and versioning pages by @anupcowkur
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3587
+- Update README.md [skip ci] by @allcontributors[bot]
+- Use screenshots in README by @anupcowkur in #3584
+- Add new contributors by @anupcowkur in #3582
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3580
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3579
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3578
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3577
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3576
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3575
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3574
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3573
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3572
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3571
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3570
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3569
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3568
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3567
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3566
+- Update README.md [skip ci] by @allcontributors[bot]
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3565
+- Update README.md [skip ci] by @allcontributors[bot]
 
 ## [0.10.0] - 2026-04-06
 

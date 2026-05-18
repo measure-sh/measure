@@ -3,12 +3,14 @@ import { Fira_Code, Josefin_Sans, Work_Sans } from "next/font/google";
 import { ClientProviders } from "./components/client_providers";
 import { ConditionalGoogleTagManager } from "./components/conditional_google_tag_manager";
 import { ConditionalLeadsy } from "./components/conditional_leadsy";
+import { ConditionalReo } from "./components/conditional_reo";
 import { CookieBanner } from "./components/cookie_banner";
 import { ThemeProvider } from "./components/theme_provider";
 import { Toaster } from "./components/toaster";
 import { CookieConsentProvider } from "./context/cookie_consent";
 import { PostHogProvider } from "./context/posthog";
 import "./globals.css";
+import { previewImage, sharedOpenGraph } from "./utils/metadata";
 
 const josefin_sans = Josefin_Sans({
   subsets: ["latin"],
@@ -32,11 +34,12 @@ const fira_code = Fira_Code({
 });
 
 const title = "Measure";
-const description = "Open source tool to monitor mobile apps";
-const siteName = "measure.sh";
-const previewImage = "https://measure.sh/images/social_preview.png";
+const description =
+  "Open source mobile app monitoring for crashes, ANRs, performance, bug reports, user journeys and more.";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://measure.sh"),
+
   title: {
     default: title,
     template: `%s | ${title}`,
@@ -45,20 +48,10 @@ export const metadata: Metadata = {
   description: description,
 
   openGraph: {
+    ...sharedOpenGraph,
     title: title,
     description: description,
     url: "/",
-    siteName: siteName,
-    images: [
-      {
-        url: previewImage,
-        width: 1200,
-        height: 630,
-        alt: "Measure preview image",
-      },
-    ],
-    locale: "en_US",
-    type: "website",
   },
 
   twitter: {
@@ -95,6 +88,7 @@ export default function RootLayout({
             <CookieConsentProvider>
               <ConditionalGoogleTagManager />
               <ConditionalLeadsy />
+              <ConditionalReo />
               <CookieBanner />
               <PostHogProvider proxyPath="/yrtmlt">
                 <div className="bg-background text-foreground">{children}</div>

@@ -357,12 +357,10 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun internalAddLog(platform: String, message: String, errorMessage: String?, promise: Promise) {
-        val throwable = errorMessage?.let { Exception(it) }
+    fun internalAddLog(platform: String, message: String, promise: Promise) {
         Measure.internalAddLog(
             platform = platform,
             message = message,
-            throwable = throwable
         )
         promise.resolve(null)
     }

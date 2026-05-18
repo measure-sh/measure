@@ -13,7 +13,12 @@ const rootDir = path.resolve(__dirname, "..");
 const docsSource = path.resolve(rootDir, "..", "..", "docs");
 const contentDest = path.join(rootDir, "content", "docs");
 const assetsDest = path.join(rootDir, "public", "docs", "assets");
-const searchIndexDest = path.join(rootDir, "public", "docs", "search-index.json");
+const searchIndexDest = path.join(
+  rootDir,
+  "public",
+  "docs",
+  "search-index.json",
+);
 const navDest = path.join(rootDir, "content", "docs_nav.json");
 
 function copyDirRecursive(src, dest) {
@@ -40,9 +45,60 @@ function stripHtmlComments(text) {
   return result.trim();
 }
 
+/**
+ * Strip leading YAML frontmatter (--- ... --- block at start of file).
+ */
+function stripFrontmatter(text) {
+  const match = text.match(/^---\s*\r?\n[\s\S]*?\r?\n---\s*(?:\r?\n|$)/);
+  return match ? text.slice(match[0].length) : text;
+}
+
 function extractTitle(content) {
-  const match = content.match(/^#\s+(.+)$/m);
+  const match = stripFrontmatter(content).match(/^#\s+(.+)$/m);
   return match ? stripHtmlComments(match[1]).trim() : "Documentation";
+}
+
+/**
+ * Strip HTML tags iteratively until the string stops changing. A single
+ * regex pass is incomplete because a nested input like `<scr<script>ipt>`
+ * leaves a partial tag behind after one replace — iterating to a fixed
+ * point removes any residue. The regex always consumes ≥3 chars per
+ * match, so the loop is guaranteed to terminate.
+ */
+function stripHtmlTags(input) {
+  let out = input;
+  for (let i = 0; i < 50; i++) {
+    const next = out.replace(/<[^>]+>/g, "");
+    if (next === out) {
+      return next;
+    }
+    out = next;
+  }
+  return out;
+}
+
+/**
+ * Reduce a markdown body to plain text suitable for full-text search.
+ * Strips fences, headings, raw HTML, images/links, emphasis markers,
+ * list/blockquote prefixes, table pipes and GFM callout markers
+ * (`[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`).
+ */
+function stripSearchContent(body) {
+  const withoutTags = stripHtmlTags(
+    stripHtmlComments(body)
+      .replace(/```[\s\S]*?```/g, "") // fenced code blocks
+      .replace(/^#{1,6}\s+.+$/gm, ""), // headings (indexed separately)
+  );
+  return withoutTags
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "") // images
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // markdown links → text
+    .replace(/\[!(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/gi, "") // GFM callouts
+    .replace(/[*_`~]/g, "") // emphasis/code markers
+    .replace(/^\s*[-*+]\s+/gm, "") // list bullets
+    .replace(/^\s*>\s?/gm, "") // blockquote markers
+    .replace(/\|/g, " ") // table pipes
+    .replace(/\s+/g, " ") // normalize whitespace
+    .trim();
 }
 
 function generateSearchIndex(docsDir) {
@@ -58,15 +114,7 @@ function generateSearchIndex(docsDir) {
       } else if (entry.isFile() && entry.name.endsWith(".md")) {
         const filePath = path.join(dir, entry.name);
         const content = fs.readFileSync(filePath, "utf-8");
-
-        // Strip frontmatter
-        let body = content;
-        if (body.startsWith("---")) {
-          const end = body.indexOf("---", 3);
-          if (end !== -1) {
-            body = body.slice(end + 3).trim();
-          }
-        }
+        const body = stripFrontmatter(content);
 
         const title = extractTitle(body);
         const headings = [];
@@ -76,12 +124,7 @@ function generateSearchIndex(docsDir) {
           headings.push(stripHtmlComments(match[1]).trim());
         }
 
-        const plainContent = stripHtmlComments(body)
-          .replace(/^#{1,6}\s+.+$/gm, "")
-          .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-          .replace(/[*_`~]/g, "")
-          .replace(/\n{2,}/g, "\n")
-          .trim();
+        const plainContent = stripSearchContent(body);
 
         let slug;
         if (entry.name === "README.md") {
@@ -129,7 +172,7 @@ function getTitleFromFile(docsDir, mdPath) {
   if (!fs.existsSync(filePath)) {
     return null;
   }
-  const content = fs.readFileSync(filePath, "utf-8");
+  const content = stripFrontmatter(fs.readFileSync(filePath, "utf-8"));
   const match = content.match(/^#\s+(.+)$/m);
   return match ? stripHtmlComments(match[1]).trim() : null;
 }
@@ -144,7 +187,7 @@ function parseDirectoryNav(docsDir, subDir) {
     return [];
   }
 
-  const readme = fs.readFileSync(readmePath, "utf-8");
+  const readme = stripFrontmatter(fs.readFileSync(readmePath, "utf-8"));
   const children = [];
   const seen = new Set();
 
@@ -153,7 +196,11 @@ function parseDirectoryNav(docsDir, subDir) {
 
   while ((match = linkRegex.exec(readme)) !== null) {
     const href = match[2];
-    if (href.startsWith("#") || href.startsWith("http") || href.startsWith("../")) {
+    if (
+      href.startsWith("#") ||
+      href.startsWith("http") ||
+      href.startsWith("../")
+    ) {
       continue;
     }
 
@@ -169,15 +216,22 @@ function parseDirectoryNav(docsDir, subDir) {
     if (cleanHref.endsWith("README.md")) {
       const nestedDir = fullPath.replace(/\/README\.md$/, "");
       const nestedChildren = parseDirectoryNav(docsDir, nestedDir);
-      const title = getTitleFromFile(docsDir, fullPath) || match[1].replace(/\*\*/g, "").trim();
+      const title =
+        getTitleFromFile(docsDir, fullPath) ||
+        match[1].replace(/\*\*/g, "").trim();
 
       if (nestedChildren.length > 0) {
-        children.push({ title, children: [{ title: "Overview", slug }, ...nestedChildren] });
+        children.push({
+          title,
+          children: [{ title: "Overview", slug }, ...nestedChildren],
+        });
       } else {
         children.push({ title, slug });
       }
     } else {
-      const title = getTitleFromFile(docsDir, fullPath) || match[1].replace(/\*\*/g, "").trim();
+      const title =
+        getTitleFromFile(docsDir, fullPath) ||
+        match[1].replace(/\*\*/g, "").trim();
       children.push({ title, slug });
     }
   }
@@ -193,19 +247,30 @@ function parseDirectoryNav(docsDir, subDir) {
       const slug = mdPathToSlug(fullPath);
       if (!seen.has(slug)) {
         seen.add(slug);
-        const title = getTitleFromFile(docsDir, fullPath) || entry.name.replace(/\.md$/, "");
+        const title =
+          getTitleFromFile(docsDir, fullPath) ||
+          entry.name.replace(/\.md$/, "");
         children.push({ title, slug });
       }
     }
-    if (entry.isDirectory() && fs.existsSync(path.join(dirPath, entry.name, "README.md"))) {
+    if (
+      entry.isDirectory() &&
+      fs.existsSync(path.join(dirPath, entry.name, "README.md"))
+    ) {
       const fullPath = `${subDir}/${entry.name}/README.md`;
       const slug = mdPathToSlug(fullPath);
       if (!seen.has(slug)) {
         seen.add(slug);
-        const nestedChildren = parseDirectoryNav(docsDir, `${subDir}/${entry.name}`);
+        const nestedChildren = parseDirectoryNav(
+          docsDir,
+          `${subDir}/${entry.name}`,
+        );
         const title = getTitleFromFile(docsDir, fullPath) || entry.name;
         if (nestedChildren.length > 0) {
-          children.push({ title, children: [{ title: "Overview", slug }, ...nestedChildren] });
+          children.push({
+            title,
+            children: [{ title: "Overview", slug }, ...nestedChildren],
+          });
         } else {
           children.push({ title, slug });
         }
@@ -226,7 +291,9 @@ function parseDirectoryNav(docsDir, subDir) {
  * - "Further Reading" section for directory-based groups
  */
 function generateDocsNav(docsDir) {
-  const readme = fs.readFileSync(path.join(docsDir, "README.md"), "utf-8");
+  const readme = stripFrontmatter(
+    fs.readFileSync(path.join(docsDir, "README.md"), "utf-8"),
+  );
   const lines = readme.split("\n");
   const nav = [];
   const preambleLinks = []; // .md links from before the first content section
@@ -262,12 +329,16 @@ function generateDocsNav(docsDir) {
     }
 
     // Indented bullet with link → child of current group
-    const indentedMatch = line.match(/^\s{2,}\*\s+\[\*?\*?([^\]]*?)\*?\*?\]\(([^)]+\.md)\)/);
+    const indentedMatch = line.match(
+      /^\s{2,}\*\s+\[\*?\*?([^\]]*?)\*?\*?\]\(([^)]+\.md)\)/,
+    );
     if (indentedMatch && currentBulletGroup) {
       const href = indentedMatch[2];
       if (!href.startsWith("#")) {
         const slug = mdPathToSlug(href);
-        const title = getTitleFromFile(docsDir, href) || indentedMatch[1].replace(/\*\*/g, "").trim();
+        const title =
+          getTitleFromFile(docsDir, href) ||
+          indentedMatch[1].replace(/\*\*/g, "").trim();
         currentBulletGroup.children.push({ title, slug });
       }
       continue;
@@ -284,7 +355,9 @@ function generateDocsNav(docsDir) {
     }
 
     // Bullet with link
-    const bulletMatch = line.match(/^\*\s+\[\*?\*?([^\]]*?)\*?\*?\]\(([^)]+\.md)\)/);
+    const bulletMatch = line.match(
+      /^\*\s+\[\*?\*?([^\]]*?)\*?\*?\]\(([^)]+\.md)\)/,
+    );
     if (bulletMatch) {
       const href = bulletMatch[2];
       if (href.startsWith("#")) {
@@ -296,24 +369,38 @@ function generateDocsNav(docsDir) {
 
       if (currentSection === "Explore Features" && featuresGroup) {
         const slug = mdPathToSlug(href);
-        const title = getTitleFromFile(docsDir, href) || bulletMatch[1].replace(/\*\*/g, "").trim();
+        const title =
+          getTitleFromFile(docsDir, href) ||
+          bulletMatch[1].replace(/\*\*/g, "").trim();
         featuresGroup.children.push({ title, slug });
-      } else if (currentSection === "Documentation" || currentSection === "Further Reading") {
+      } else if (
+        currentSection === "Documentation" ||
+        currentSection === "Further Reading"
+      ) {
         // Preamble/further reading links → collect for appending after body sections
         if (isDirectory) {
           const slug = mdPathToSlug(href);
-          const subDir = href.replace(/\/?README\.md$/, "").replace(/^\.\//, "");
+          const subDir = href
+            .replace(/\/?README\.md$/, "")
+            .replace(/^\.\//, "");
           const children = parseDirectoryNav(docsDir, subDir);
-          const title = getTitleFromFile(docsDir, href) || bulletMatch[1].replace(/\*\*/g, "").trim();
+          const title =
+            getTitleFromFile(docsDir, href) ||
+            bulletMatch[1].replace(/\*\*/g, "").trim();
 
           if (children.length > 0) {
-            preambleLinks.push({ title, children: [{ title: "Overview", slug }, ...children] });
+            preambleLinks.push({
+              title,
+              children: [{ title: "Overview", slug }, ...children],
+            });
           } else {
             preambleLinks.push({ title, slug });
           }
         } else {
           const slug = mdPathToSlug(href);
-          const title = getTitleFromFile(docsDir, href) || bulletMatch[1].replace(/\*\*/g, "").trim();
+          const title =
+            getTitleFromFile(docsDir, href) ||
+            bulletMatch[1].replace(/\*\*/g, "").trim();
           preambleLinks.push({ title, slug });
         }
       }
@@ -321,9 +408,18 @@ function generateDocsNav(docsDir) {
     }
 
     // Inline link in paragraph text (for sections like "Configuration Options")
-    if (currentSection && !["Explore Features", "Further Reading", "Documentation"].includes(currentSection)) {
+    if (
+      currentSection &&
+      !["Explore Features", "Further Reading", "Documentation"].includes(
+        currentSection,
+      )
+    ) {
       const inlineMatch = line.match(/\[([^\]]+)\]\(([^)]+\.md[^)]*)\)/);
-      if (inlineMatch && !inlineMatch[2].startsWith("#") && !processedSections.has(currentSection)) {
+      if (
+        inlineMatch &&
+        !inlineMatch[2].startsWith("#") &&
+        !processedSections.has(currentSection)
+      ) {
         processedSections.add(currentSection);
         const href = inlineMatch[2];
         const slug = mdPathToSlug(href);
@@ -342,6 +438,8 @@ function generateDocsNav(docsDir) {
 // Exports for testing
 module.exports = {
   stripHtmlComments,
+  stripFrontmatter,
+  stripSearchContent,
   extractTitle,
   mdPathToSlug,
   getTitleFromFile,
@@ -352,21 +450,33 @@ module.exports = {
 
 // Main — only runs when executed directly, not when required by tests
 if (require.main === module) {
-  // Determine docs source: use content/docs if already present (Docker), otherwise copy from monorepo root
-  const docsDir = fs.existsSync(contentDest) ? contentDest : null;
-
-  if (!docsDir) {
-    if (!fs.existsSync(docsSource)) {
-      console.error("Error: docs directory not found at", docsSource);
-      process.exit(1);
-    }
+  // Prefer the canonical monorepo docs source. Only fall back to the
+  // existing content/docs/ when the monorepo root isn't available (Docker
+  // builds, where the dashboard image is built with content/docs/
+  // pre-populated and the repo root is not mounted).
+  if (fs.existsSync(docsSource)) {
     console.log("Copying docs to content/docs/...");
+    if (fs.existsSync(contentDest)) {
+      fs.rmSync(contentDest, { recursive: true });
+    }
     copyDirRecursive(docsSource, contentDest);
-  } else {
+  } else if (fs.existsSync(contentDest)) {
     console.log("Using existing content/docs/ (Docker build)");
+  } else {
+    console.error("Error: docs directory not found at", docsSource);
+    process.exit(1);
   }
 
   const effectiveDocsDir = contentDest;
+
+  // CONTRIBUTING.md stays in docs/ for the open-source repo (GitHub surfaces
+  // it from there) but is not part of the published docs site. Drop it from
+  // the build input so it produces no page, nav entry, search hit, or
+  // sitemap URL — every downstream step reads from content/docs/.
+  const excludedDoc = path.join(effectiveDocsDir, "CONTRIBUTING.md");
+  if (fs.existsSync(excludedDoc)) {
+    fs.rmSync(excludedDoc);
+  }
 
   // Copy assets to public/docs/assets/
   console.log("Copying assets to public/docs/assets/...");
@@ -390,7 +500,9 @@ if (require.main === module) {
   const docsNavData = generateDocsNav(effectiveDocsDir);
   fs.mkdirSync(path.dirname(navDest), { recursive: true });
   fs.writeFileSync(navDest, JSON.stringify(docsNavData, null, 2));
-  console.log(`Sidebar nav generated with ${docsNavData.length} top-level items.`);
+  console.log(
+    `Sidebar nav generated with ${docsNavData.length} top-level items.`,
+  );
 
   console.log("Done!");
 }

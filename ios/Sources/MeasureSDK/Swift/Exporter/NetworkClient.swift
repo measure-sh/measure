@@ -122,6 +122,11 @@ final class BaseNetworkClient: NetworkClient {
             }
 
             fullEventDict.removeValue(forKey: "timestampInMillis")
+            if let userDefinedAttributeString = fullEventDict["user_defined_attribute"] as? String,
+               let attributeData = userDefinedAttributeString.data(using: .utf8),
+               let attributeDict = try? JSONSerialization.jsonObject(with: attributeData, options: []) as? [String: Any] {
+                fullEventDict["user_defined_attribute"] = attributeDict
+            }
             if let attachments = fullEventDict["attachments"] as? [[String: Any]] {
                 let cleanedAttachments = attachments.map { attachment in
                     let requiredKeys: Set<String> = ["id", "name", "type", "size"]

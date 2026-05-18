@@ -22,15 +22,20 @@ final class BaseBugReportManager: BugReportManager {
     private var isBugReporterOpen: Bool = false
     private let configProvider: ConfigProvider
     private let idProvider: IdProvider
+    private let systemFileManager: SystemFileManager
     private var bugReportConfig: BugReportConfig?
     private weak var bugReportCollector: BaseBugReportCollector?
     private var hasBugReportFlowStarted = false
     private var description: String?
 
-    init(screenshotGenerator: ScreenshotGenerator, configProvider: ConfigProvider, idProvider: IdProvider) {
+    init(screenshotGenerator: ScreenshotGenerator,
+         configProvider: ConfigProvider,
+         idProvider: IdProvider,
+         systemFileManager: SystemFileManager) {
         self.screenshotGenerator = screenshotGenerator
         self.configProvider = configProvider
         self.idProvider = idProvider
+        self.systemFileManager = systemFileManager
     }
 
     func setBugReportCollector(_ collector: BaseBugReportCollector) {
@@ -74,7 +79,8 @@ final class BaseBugReportManager: BugReportManager {
                                                attachments: self.localAttachments,
                                                configProvider: configProvider,
                                                bugReportConfig: bugReportConfig ?? BugReportConfig.default,
-                                               idProvider: idProvider)
+                                               idProvider: idProvider,
+                                               systemFileManager: systemFileManager)
         bugVC.modalPresentationStyle = .fullScreen
         bugVC.delegate = self
         self.bugReportingViewController = bugVC
@@ -89,7 +95,14 @@ final class BaseBugReportManager: BugReportManager {
         }
     }
 
-    private func clearState() {
+    private func clearState(_ shouldClearAttachments: Bool = true) {
+        if shouldClearAttachments {
+            self.localAttachments.forEach { attachment in
+                if let path = attachment.path {
+                    systemFileManager.deleteFile(atPath: path)
+                }
+            }
+        }
         self.localAttachments.removeAll()
         self.description = nil
         self.hasBugReportFlowStarted = false
@@ -100,10 +113,13 @@ extension BaseBugReportManager: BugReportingViewControllerDelegate {
     func bugReportingViewControllerDidDismiss(_ description: String?, attachments: [MsrAttachment]?) {
         self.bugReportingViewController = nil
         self.isBugReporterOpen = false
-        if let description = description, let attachments = attachments {
-            bugReportCollector?.trackBugReport(description: description, attachments: attachments, attributes: nil)
+        guard let description, let attachments, let bugReportCollector else {
+            clearState()
+            return
         }
-        clearState()
+
+        bugReportCollector.trackBugReport(description: description, attachments: attachments, attributes: nil)
+        clearState(false)
     }
 
     func bugReportingViewControllerDidRequestScreenshot(_ description: String?, attachments: [MsrAttachment]) {
@@ -117,12 +133,13 @@ extension BaseBugReportManager: BugReportingViewControllerDelegate {
             self.floatingButtonViewController = FloatingButtonViewController(screenshotGenerator: self.screenshotGenerator,
                                                                              bugReportConfig: bugReportConfig ?? BugReportConfig.default,
                                                                              attachments: self.localAttachments,
-                                                                             configProvider: configProvider)
+                                                                             configProvider: configProvider,
+                                                                             systemFileManager: systemFileManager)
             self.floatingButtonViewController?.delegate = self
 
-            if let window = UIWindow.keyWindow() {
+            if let window = UIWindow.keyWindow(), let view = self.floatingButtonViewController?.view {
                 self.floatingButtonViewController?.view.frame = window.bounds
-                window.addSubview(self.floatingButtonViewController!.view)
+                window.addSubview(view)
             }
         }
     }

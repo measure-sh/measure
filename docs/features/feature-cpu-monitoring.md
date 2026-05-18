@@ -1,6 +1,10 @@
+---
+title: "Mobile App CPU Monitoring"
+description: "Periodically capture CPU usage of Android, iOS and Flutter apps while they're in the foreground."
+---
+
 # CPU Monitoring
 
-- [**Introduction**](#introduction)
 - [**Android**](#android)
 - [**iOS**](#ios)
 - [**Flutter**](#flutter)
@@ -44,7 +48,7 @@ Measure SDK calculates CPU usage by retrieving task and thread information using
 
 - Retrieve Task-Level CPU Usage:
     - Uses task_info with `TASK_BASIC_INFO` to get overall CPU time for the process.
-    - This provides details such as total user time, system time, and memory usage.
+    - This provides details such as total user time, system time and memory usage.
 
 - Retrieve Thread-Level CPU Usage:
     - Uses task_threads to obtain a list of active threads within the process.
@@ -70,4 +74,4 @@ same methods as described above for Android and iOS.
 
 ## Data collected
 
-Checkout the data collected by Measure in [CPU Usage Event](../api/sdk/README.md#cpuusage) section.
+Checkout the data collected by Measure in [CPU Usage Event](../api/sdk/README.md#cpu_usage) section.

@@ -230,7 +230,7 @@ final class BaseExporterTests: XCTestCase {
 
         exporter.export()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        DispatchQueue.main.async {
             XCTAssertEqual(self.http.uploadedUrls.first?.absoluteString, "https://example.com/a1")
             exp.fulfill()
         }

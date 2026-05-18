@@ -1,6 +1,6 @@
 "use client";
 
-import { buttonVariants } from "@/app/components/button";
+import { buttonVariants } from "@/app/components/button_variants";
 import { Input } from "@/app/components/input";
 import {
   Sidebar,
@@ -21,7 +21,7 @@ import { ChevronRight, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DocsSearch from "./docs_search";
 
 function NavSection({ item }: { item: NavItem }) {
@@ -32,8 +32,15 @@ function NavSection({ item }: { item: NavItem }) {
   if (!hasChildren) {
     return (
       <SidebarMenuItem>
-        <SidebarMenuButton asChild isActive={item.slug === pathname} className="h-auto py-2">
-          <Link href={item.slug || "/docs"} className="font-body whitespace-normal">
+        <SidebarMenuButton
+          asChild
+          isActive={item.slug === pathname}
+          className="h-auto py-2"
+        >
+          <Link
+            href={item.slug || "/docs"}
+            className="font-body whitespace-normal"
+          >
             {item.title}
           </Link>
         </SidebarMenuButton>
@@ -55,6 +62,15 @@ function CollapsibleNavItem({
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
+  // Re-expand when client-side navigation makes a child the active page —
+  // the sidebar persists across docs routes, so the useState seed alone
+  // would stay stale.
+  useEffect(() => {
+    if (defaultOpen) {
+      setIsOpen(true);
+    }
+  }, [defaultOpen]);
+
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
@@ -63,10 +79,7 @@ function CollapsibleNavItem({
       >
         {item.title}
         <ChevronRight
-          className={cn(
-            "ml-auto transition-transform",
-            isOpen && "rotate-90"
-          )}
+          className={cn("ml-auto transition-transform", isOpen && "rotate-90")}
         />
       </SidebarMenuButton>
       {isOpen && (
@@ -87,17 +100,21 @@ function NavSubItem({ item }: { item: NavItem }) {
   if (hasChildren) {
     const isChildActive = hasChildActive(item, pathname);
     return (
-      <CollapsibleSubItem
-        item={item}
-        defaultOpen={isChildActive || false}
-      />
+      <CollapsibleSubItem item={item} defaultOpen={isChildActive || false} />
     );
   }
 
   return (
     <SidebarMenuSubItem>
-      <SidebarMenuSubButton asChild isActive={item.slug === pathname} className="h-auto py-1">
-        <Link href={item.slug || "/docs"} className="font-body whitespace-normal">
+      <SidebarMenuSubButton
+        asChild
+        isActive={item.slug === pathname}
+        className="h-auto py-1"
+      >
+        <Link
+          href={item.slug || "/docs"}
+          className="font-body whitespace-normal"
+        >
           {item.title}
         </Link>
       </SidebarMenuSubButton>
@@ -114,6 +131,15 @@ function CollapsibleSubItem({
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
+  // Re-expand when client-side navigation makes a child the active page —
+  // the sidebar persists across docs routes, so the useState seed alone
+  // would stay stale.
+  useEffect(() => {
+    if (defaultOpen) {
+      setIsOpen(true);
+    }
+  }, [defaultOpen]);
+
   return (
     <SidebarMenuSubItem>
       <SidebarMenuSubButton asChild className="h-auto py-1">
@@ -125,7 +151,7 @@ function CollapsibleSubItem({
           <ChevronRight
             className={cn(
               "ml-auto transition-transform",
-              isOpen && "rotate-90"
+              isOpen && "rotate-90",
             )}
           />
         </button>
@@ -164,7 +190,10 @@ export default function DocsAppSidebar() {
             <SidebarMenuItem>
               <div className="flex items-center justify-between my-2">
                 <Link
-                  className={cn(buttonVariants({ variant: "ghost" }), "group/logo py-2")}
+                  className={cn(
+                    buttonVariants({ variant: "ghost" }),
+                    "group/logo py-2",
+                  )}
                   href="/"
                 >
                   <Image
@@ -200,7 +229,9 @@ export default function DocsAppSidebar() {
                     setIsSearchOpen(true);
                   }}
                 />
-                <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded pointer-events-none">&#8984;K</kbd>
+                <kbd className="absolute right-3 top-1/2 -translate-y-1/2 font-sans text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded pointer-events-none">
+                  &#8984;K
+                </kbd>
               </div>
             </SidebarMenuItem>
           </SidebarMenu>

@@ -1,3 +1,8 @@
+---
+title: "In-App Bug Reports — Android SDK"
+description: "Let users report bugs from inside your Android app. Built-in or custom UI, screenshots, layout snapshots and shake to report."
+---
+
 # Bug Reports — Android
 
 Bug reports enable users to report issues directly from the app. Measure SDK provides two approaches to implement bug reporting.
@@ -103,11 +108,11 @@ Measure.trackBugReport(
 ```
 
 > [!IMPORTANT]
-> For privacy, screenshots can be masked with the same configuration provided during SDK initialization. See all the configuration options [here](configuration-options.md#screenshotmasklevel).
+> For privacy, screenshots can be masked with the same configuration provided during SDK initialization. See all the configuration options [here](configuration-options.md#screenshot-mask-level).
 
 #### Capture Layout Snapshot
 
-Capture a layout snapshot using `captureLayoutSnapshot`. This function must be called from the main thread. Read more about layout snapshots [here](../feature_layout_snapshots.md).
+Capture a layout snapshot using `captureLayoutSnapshot`. This function must be called from the main thread.
 
 ```kotlin
 private val attachments = mutableListOf<Attachment>()
@@ -163,10 +168,10 @@ Measure.trackBugReport(
 
 ## Add Attributes
 
-Attributes allow attaching additional contextual data to bug reports. This helps in adding relevant information about the user's state, app configuration, or other metadata that can help with debugging.
+Attributes allow attaching additional contextual data to bug reports. This helps in adding relevant information about the user's state, app configuration or other metadata that can help with debugging.
 
 - Attribute keys must be strings with a maximum length of 256 characters.
-- Attribute values must be one of the primitive types: `int`, `long`, `double`, `float`, or `boolean`.
+- Attribute values must be one of the primitive types: `int`, `long`, `double`, `float` or `boolean`.
 - String attribute values can have a maximum length of 256 characters.
 
 Add attributes when the Bug Report Activity is launched:

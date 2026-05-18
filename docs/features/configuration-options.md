@@ -1,3 +1,8 @@
+---
+title: "SDK Configuration Options"
+description: "Every Measure SDK configuration option. Tune data collection, masking, sampling and disk usage at init or remotely from the dashboard."
+---
+
 # Configuration Options
 
 Measure provides a number of configuration options to customize data collection and SDK behavior. These options are
@@ -15,13 +20,13 @@ available in two ways:
         * [**Android**](#android)
         * [**iOS**](#ios)
         * [**Flutter**](#flutter)
-    * [**trackActivityIntentData**](#trackActivityIntentData)
-    * [**enableLogging**](#enableLogging)
-    * [**autoStart**](#autoStart)
-    * [**requestHeadersProvider**](#requestHeadersProvider)
-    * [**maxDiskUsageInMb**](#maxDiskUsageInMb)
-    * [**enableFullCollectionMode**](#enableFullCollectionMode)
-    * [**enableDiagnosticMode**](#enableDiagnosticMode)
+    * [**trackActivityIntentData**](#trackactivityintentdata)
+    * [**enableLogging**](#enablelogging)
+    * [**autoStart**](#autostart)
+    * [**requestHeadersProvider**](#requestheadersprovider)
+    * [**maxDiskUsageInMb**](#maxdiskusageinmb)
+    * [**enableFullCollectionMode**](#enablefullcollectionmode)
+    * [**enableDiagnosticMode**](#enablediagnosticmode)
 * [**Remote Configuration Options**](#remote-configuration-options)
     * [**Crash Reporting**](#crash-reporting)
     * [**ANR Reporting**](#anr-reporting)
@@ -212,7 +217,7 @@ ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"api-key" apiUrl:@"
 ## `maxDiskUsageInMb`
 
 Allows setting the maximum disk usage for Measure SDK. This is useful to control the amount of disk space
-used by the SDK for storing session data, crash reports, and other collected information.
+used by the SDK for storing session data, crash reports and other collected information.
 
 All Measure SDKs store data to disk and upload it to the server in batches. While the app is in foreground, the data
 is synced periodically and usually the disk space used by the SDK is low. However, if the device is offline
@@ -254,7 +259,7 @@ Defaults to `false`.
 To pull all log files to your local machine:
 
 ```shell
-adb shell "run-as <your.package.name> tar czf - measure/sdk_debug_logs/" > sdk_debug_logs.tar.gz
+adb shell "run-as <your.package.name> tar czf - files/measure/sdk_debug_logs/" > sdk_debug_logs.tar.gz
 ```
 
 To delete all diagnostic log files:
@@ -340,7 +345,7 @@ the amount of data collected.
 
 ## Launch Metrics Sampling
 
-Launch metrics include Cold Launch, Warm Launch, and Hot Launch metrics shown on the Overview page on the dashboard. A
+Launch metrics include Cold Launch, Warm Launch and Hot Launch metrics shown on the Overview page on the dashboard. A
 sampling rate can be configured to control the number of sessions for whom these launch metrics are collected.
 
 By default, 0.01% (1 in 10000) of sessions will have launch metrics collected. You can adjust this percentage
@@ -349,7 +354,7 @@ from 0.001% to 100% to control the amount of data collected.
 ## Journey Sampling
 
 Journey events are used to construct the Journey view in the Measure dashboard. Journey events include Activity
-Lifecycle events, Fragment Lifecycle events, and Screen View events. A sampling rate can be configured to control
+Lifecycle events, Fragment Lifecycle events and Screen View events. A sampling rate can be configured to control
 the number of sessions for whom these Journey events are collected.
 
 By default, 0.01% (1 in 10000) of sessions will have Journey events collected. You can adjust this percentage from
@@ -426,7 +431,7 @@ information from leaking.
 > [!NOTE]
 > _The mask level configuration does not apply to SwiftUI screens._
 > Because of the way SwiftUI renders its views, all SwiftUI content is masked by default regardless of
-> the mask level setting. See [Screenshot Masking for SwiftUI](feature_screenshot_masking_swiftui.md)
+> the mask level setting. See [Screenshot Masking for SwiftUI](feature-screenshot-masking-swiftui.md)
 > for details on how to control masking for SwiftUI views using the `.msrMask()` and `.msrUnmask()`
 > modifiers.
 

@@ -688,7 +688,9 @@ func (as *appleSymbolicator) makeAppleCrashReport(event event.EventField) {
 		b.WriteString(fmt.Sprintf("Exception Type: %s\n", exception.Signal))
 
 		// write exception codes
-		b.WriteString(fmt.Sprintf("Exception Codes: #%d at 0x%s\n", exception.ThreadSequence, exception.Frames[exception.ThreadSequence].SymbolAddress))
+		if len(exception.Frames) > 0 {
+			b.WriteString(fmt.Sprintf("Exception Codes: #%d at 0x%s\n", exception.ThreadSequence, exception.Frames[0].SymbolAddress))
+		}
 
 		// write crashed thread
 		b.WriteString(fmt.Sprintf("Crashed Thread: %d\n", exception.ThreadSequence))

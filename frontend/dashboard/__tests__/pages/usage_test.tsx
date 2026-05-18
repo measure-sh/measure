@@ -416,17 +416,24 @@ describe("Usage Page", () => {
     expect(screen.getByText(/Error fetching usage data/)).toBeInTheDocument();
   });
 
-  it("shows NoApps message with link when no apps exist", async () => {
+  it("shows a neutral empty state when no apps exist (no onboarding push)", async () => {
     useUsageStore.setState({ fetchUsageApiStatus: 3 }); // NoApps
 
     await act(async () => {
       render(<Usage params={{ teamId: "team1" }} />);
     });
 
-    expect(screen.getByText(/don't have any apps yet/)).toBeInTheDocument();
-    const link = screen.getByText("creating your first app!");
-    expect(link).toBeInTheDocument();
-    expect(link.closest("a")).toHaveAttribute("href", "apps");
+    expect(
+      screen.getByText("No data yet. Send your first event!"),
+    ).toBeInTheDocument();
+    // Settings pages (team, notif prefs, usage, etc.) don't drive the
+    // user toward onboarding — only the apps page does that.
+    expect(
+      screen.queryByText(/don't have any apps yet/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("creating your first app!"),
+    ).not.toBeInTheDocument();
   });
 
   it("renders pie chart and month dropdown on success", async () => {

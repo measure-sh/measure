@@ -212,8 +212,8 @@ fun NativeAndroidScreen() {
             action = { Thread.sleep(10_000) },
         ),
         DemoItem(
-            title = "OkHttp Client",
-            description = "Send HTTP requests with tracing",
+            title = "HTTP Client",
+            description = "Send requests via OkHttp or HttpURLConnection",
             category = DemoCategory.MISC,
             action = { launchActivity(context, OkHttpActivity::class.java) },
         ),
@@ -233,6 +233,23 @@ fun NativeAndroidScreen() {
                 Measure.startSpan("screen.main", timestamp = startTime).setParent(rootSpan).end()
                 rootSpan.end()
                 Toast.makeText(context, "Span hierarchy created", Toast.LENGTH_SHORT).show()
+            },
+        ),
+        DemoItem(
+            title = "Track Custom Event",
+            description = "Fires a custom event with all attribute types",
+            category = DemoCategory.MISC,
+            action = {
+                val attributes = AttributesBuilder()
+                    .put("string_attr", "hello")
+                    .put("int_attr", 42)
+                    .put("long_attr", 9_000_000_000L)
+                    .put("double_attr", 3.141592653589793)
+                    .put("float_attr", 2.718f)
+                    .put("boolean_attr", true)
+                    .build()
+                Measure.trackEvent(name = "custom_event_all_attrs", attributes = attributes)
+                Toast.makeText(context, "Custom event tracked", Toast.LENGTH_SHORT).show()
             },
         ),
         DemoItem(

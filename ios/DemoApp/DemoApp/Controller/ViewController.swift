@@ -67,6 +67,7 @@ import Measure
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
+        Measure.trackEvent(name: "custom_user_event", attributes: ["name": .string("Adwin"), "age": .int(34)])
         do {
             let path = "/path/that/does/not/exist.txt"
             _ = try String(contentsOfFile: path, encoding: .utf8)

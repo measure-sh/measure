@@ -89,6 +89,66 @@ describe('rewriteHref', () => {
       expect(result).toBe('https://github.com/measure-sh/measure/blob/main/self-host/session-data/config.toml.example')
     })
   })
+
+  describe('README/index page links (isIndex=true)', () => {
+    it('resolves a sibling .md link relative to the directory itself', () => {
+      // sdk-upgrade-guides/README.md → [Android v0.16.0](android-v0.16.0.md)
+      expect(rewriteHref('android-v0.16.0.md', ['sdk-upgrade-guides'], true)).toBe(
+        '/docs/sdk-upgrade-guides/android-v0.16.0',
+      )
+    })
+
+    it('resolves a ./sibling.md link relative to the directory itself', () => {
+      // hosting/README.md → [Set up Slack Integration](./slack.md)
+      expect(rewriteHref('./slack.md', ['hosting'], true)).toBe(
+        '/docs/hosting/slack',
+      )
+    })
+
+    it('resolves a subdirectory README.md from a directory README', () => {
+      // api/README.md → [Browse API documentation](./dashboard/README.md)
+      expect(rewriteHref('./dashboard/README.md', ['api'], true)).toBe(
+        '/docs/api/dashboard',
+      )
+    })
+
+    it('resolves nested README.md from a nested directory README', () => {
+      // hosting/migration-guides/README.md → [v0.4.x](./v0.4.x/README.md)
+      expect(
+        rewriteHref('./v0.4.x/README.md', ['hosting', 'migration-guides'], true),
+      ).toBe('/docs/hosting/migration-guides/v0.4.x')
+    })
+
+    it('resolves ../sibling .md link from a directory README', () => {
+      // hosting/README.md → [Migration Guides](../hosting/migration-guides/README.md)
+      expect(
+        rewriteHref('../hosting/migration-guides/README.md', ['hosting'], true),
+      ).toBe('/docs/hosting/migration-guides')
+    })
+
+    it('resolves an anchor link from a directory README to a sibling page', () => {
+      // hosting/migration-guides/README.md → ../../hosting/README.md#upgrade-...
+      expect(
+        rewriteHref(
+          '../../hosting/README.md#upgrade-a-self-hosted-installation',
+          ['hosting', 'migration-guides'],
+          true,
+        ),
+      ).toBe('/docs/hosting#upgrade-a-self-hosted-installation')
+    })
+
+    it('escapes to GitHub when traversal exceeds docs tree from a README', () => {
+      // hosting/README.md → [symboloader](../../backend/symboloader/README.md)
+      const result = rewriteHref(
+        '../../backend/symboloader/README.md',
+        ['hosting'],
+        true,
+      )
+      expect(result).toBe(
+        'https://github.com/measure-sh/measure/blob/main/backend/symboloader/README.md',
+      )
+    })
+  })
 })
 
 // ─── rewriteImgSrc ──────────────────────────────────────────────────────────

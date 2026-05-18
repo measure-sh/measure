@@ -95,6 +95,9 @@ class ConfigProviderImpl implements ConfigProvider {
   bool get autoStart => _defaultConfig.autoStart;
 
   @override
+  bool get enableDiagnosticMode => _defaultConfig.enableDiagnosticMode;
+
+  @override
   List<String> get defaultHttpContentTypeAllowlist => _defaultConfig.defaultHttpContentTypeAllowlist;
 
   @override

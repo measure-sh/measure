@@ -11,6 +11,7 @@ import Foundation
 final class MockSystemFileManager: SystemFileManager {
     var crashFilePath: URL?
     var directoryPath: String?
+    var attachmentDirectoryPath: String?
     var dynamicConfigPath: String?
     var savedFiles: [String: Data] = [:]
     var sdkDebugLogsDirectory: URL?
@@ -37,6 +38,10 @@ final class MockSystemFileManager: SystemFileManager {
         return directoryPath
     }
 
+    func getAttachmentDirectoryPath() -> String? {
+        return attachmentDirectoryPath
+    }
+
     func getDynamicConfigPath() -> String? {
         return dynamicConfigPath
     }
@@ -49,15 +54,6 @@ final class MockSystemFileManager: SystemFileManager {
         savedFiles.removeValue(forKey: path)
         deletedPaths.append(path)
         sdkDebugLogFiles.removeAll { $0.path == path }
-    }
-
-    func cleanupOrphanedAttachmentFiles(validPaths: Set<String>) {
-        let allPaths = Array(savedFiles.keys)
-        for path in allPaths {
-            if !validPaths.contains(path) {
-                savedFiles.removeValue(forKey: path)
-            }
-        }
     }
 
     func getSdkDebugLogsDirectory() -> URL? {

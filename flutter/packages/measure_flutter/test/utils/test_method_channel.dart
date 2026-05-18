@@ -106,4 +106,11 @@ class TestMethodChannel implements MsrMethodChannel {
   }) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> internalAddLog({
+    required String platform,
+    required String message,
+    String? errorMessage,
+  }) async {}
 }

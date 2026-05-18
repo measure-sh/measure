@@ -1,3 +1,7 @@
+---
+description: "Track app-specific events like user actions with custom attributes and view them on the Session Timeline."
+---
+
 # Track Custom Events
 
 * [**Introduction**](#introduction)
@@ -9,7 +13,7 @@
 
 ## Introduction
 
-Custom events let you add your own context on top of the automatically collected events. They’re great for tracking things that matter to your app, like user actions, feature usage, feature flags, or any other domain-specific data. This helps you debug issues more effectively and analyze the real-world impact of your features.
+Custom events let you add your own context on top of the automatically collected events. They’re great for tracking things that matter to your app, like user actions, feature usage, feature flags or any other domain-specific data. This helps you debug issues more effectively and analyze the real-world impact of your features.
 
 > [!TIP]
 >
@@ -17,7 +21,7 @@ Custom events let you add your own context on top of the automatically collected
 
 ## Custom Events in Session Timeline
 
-Custom events are included in the [Session Timeline](feature-session-monitoring.md#session-timeline) along with other automatically collected events. The event and its attributes can be viewed in the timeline, making it easy to get context on what happened during a session.
+Custom events are included in the [Session Timeline](feature-session-timelines.md) along with other automatically collected events. The event and its attributes can be viewed in the timeline, making it easy to get context on what happened during a session.
 
 ## API Reference
 
@@ -58,7 +62,7 @@ A custom event can also contain attributes, which are key-value pairs.
 > [!NOTE]
 > - Attribute keys must be strings with a maximum length of `256` characters.
 > - Attribute keys must only contain alphabets, numbers, hyphens and underscores.
-> - Attribute values must be one of the primitive types: `int`, `long`, `double`, `float`, or `boolean`.
+> - Attribute values must be one of the primitive types: `int`, `long`, `double`, `float` or `boolean`.
 > - String attribute values can have a maximum length of `256` characters.
 
 #### Android

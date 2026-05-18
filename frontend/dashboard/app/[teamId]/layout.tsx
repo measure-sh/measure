@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import AppBreadcrumbs from "@/app/components/app_breadcrumbs"
-import { Separator } from "@/app/components/separator"
+import AppBreadcrumbs from "@/app/components/app_breadcrumbs";
+import { Separator } from "@/app/components/separator";
 import {
   Sidebar,
   SidebarContent,
@@ -16,18 +16,19 @@ import {
   SidebarMenuSubItem,
   SidebarProvider,
   SidebarTrigger,
-} from "@/app/components/sidebar"
-import { useTeamsQuery } from "@/app/query/hooks"
-import { usePathname, useRouter } from "next/navigation"
-import React, { useEffect, useMemo, useState } from "react"
-import { Team } from "../api/api_calls"
-import { Skeleton } from "../components/skeleton"
-import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher"
-import { ThemeToggle } from "../components/theme_toggle"
-import UsageThresholdBanner from "../components/usage_threshold_banner"
-import UserAvatar from "../components/user_avatar"
-import { useMeasureStoreRegistry } from "../stores/provider"
-import { isCloud } from "../utils/env_utils"
+} from "@/app/components/sidebar";
+import { signOut, useTeamsQuery } from "@/app/query/hooks";
+import { usePathname, useRouter } from "next/navigation";
+import React, { useEffect, useMemo, useState } from "react";
+import { Team } from "../api/api_calls";
+import { apiClient } from "../api/api_client";
+import { Skeleton } from "../components/skeleton";
+import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher";
+import { ThemeToggle } from "../components/theme_toggle";
+import UsageThresholdBanner from "../components/usage_threshold_banner";
+import UserAvatar from "../components/user_avatar";
+import { useMeasureStoreRegistry } from "../stores/provider";
+import { isCloud } from "../utils/env_utils";
 
 function buildInitNavData() {
   return {
@@ -137,72 +138,73 @@ function buildInitNavData() {
         ],
       },
     ],
-  }
+  };
 }
 
 export default function DashboardLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const registry = useMeasureStoreRegistry()
-  const { data: teams, status: teamsStatus } = useTeamsQuery()
-  const [navData, setNavData] = useState(buildInitNavData)
+  const registry = useMeasureStoreRegistry();
+  const { data: teams, status: teamsStatus } = useTeamsQuery();
+  const [navData, setNavData] = useState(buildInitNavData);
 
-  const pathName = usePathname()
-  const router = useRouter()
+  const pathName = usePathname();
+  const router = useRouter();
 
   const selectedTeam = useMemo(() => {
     if (!teams) {
-      return null
+      return null;
     }
-    const teamId = pathName.split("/")[1]
-    return teams.find((e) => e.id === teamId) ?? teams[0] ?? null
-  }, [teams, pathName])
+    const teamId = pathName.split("/")[1];
+    return teams.find((e) => e.id === teamId) ?? teams[0] ?? null;
+  }, [teams, pathName]);
 
   useEffect(() => {
-    registry.sessionStore.getState().init(router)
-  }, [])
+    apiClient.init(router);
+  }, []);
 
   useEffect(() => {
-    const updatedNavData = { ...navData }
+    const updatedNavData = { ...navData };
     updatedNavData.navMain.forEach((section) => {
       section.items.forEach((item) => {
-        item.isActive = pathName.includes(item.url)
-      })
-    })
-    setNavData(updatedNavData)
-  }, [pathName])
+        item.isActive = pathName.includes(item.url);
+      });
+    });
+    setNavData(updatedNavData);
+  }, [pathName]);
 
   const logoutUser = async () => {
-    await registry.sessionStore.getState().signOut()
-  }
+    await signOut();
+  };
 
   const onTeamChanged = (item: Team) => {
     // Reset the filters store before navigating so the new page doesn't
     // mount with stale filters.ready=true from the previous team. Without
     // this, Zustand's useSyncExternalStore triggers re-renders during the
     // React transition, aborting the in-flight RSC fetch and crashing.
-    registry.filtersStore.getState().reset(true)
-    const newPath = `/${item.id}/overview`
-    router.push(newPath)
-  }
+    registry.filtersStore.getState().reset();
+    const newPath = `/${item.id}/overview`;
+    router.push(newPath);
+  };
 
-  const teamsStatusToTeamsSwitcherStatus: Record<string, TeamsSwitcherStatus> = {
-    pending: TeamsSwitcherStatus.Loading,
-    success: TeamsSwitcherStatus.Success,
-    error: TeamsSwitcherStatus.Error,
-  }
+  const teamsStatusToTeamsSwitcherStatus: Record<string, TeamsSwitcherStatus> =
+    {
+      pending: TeamsSwitcherStatus.Loading,
+      success: TeamsSwitcherStatus.Success,
+      error: TeamsSwitcherStatus.Error,
+    };
 
   const handleNavClick = (url: string) => {
-    const updatedNavData = { ...navData }
+    const updatedNavData = { ...navData };
     updatedNavData.navMain.forEach((section) => {
       section.items.forEach((item) => {
-        item.isActive = item.url === url
-      })
-    })
-    setNavData(updatedNavData)
-  }
+        item.isActive = item.url === url;
+      });
+    });
+    setNavData(updatedNavData);
+  };
 
   return (
     <SidebarProvider>
@@ -226,7 +228,7 @@ export default function DashboardLayout({
         <SidebarContent>
           <SidebarGroup>
             <SidebarMenu className="gap-2">
-              {teamsStatus === 'pending' &&
+              {teamsStatus === "pending" &&
                 navData.navMain.map((section) => (
                   <SidebarMenuItem key={section.title}>
                     <Skeleton className="h-7 w-24 mb-2" />
@@ -240,14 +242,13 @@ export default function DashboardLayout({
                       ))}
                     </SidebarMenuSub>
                   </SidebarMenuItem>
-                ))
-              }
-              {teamsStatus === 'error' && (
+                ))}
+              {teamsStatus === "error" && (
                 <span className="ml-2 text-xs font-body">
                   Error fetching teams. Please refresh page to try again.
                 </span>
               )}
-              {teamsStatus === 'success' &&
+              {teamsStatus === "success" &&
                 navData.navMain.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <p className="text-lg font-display">{item.title}</p>
@@ -268,11 +269,11 @@ export default function DashboardLayout({
                                 className="font-body"
                                 onClick={(e) => {
                                   if (!item.external) {
-                                    e.preventDefault()
-                                    handleNavClick(item.url)
+                                    e.preventDefault();
+                                    handleNavClick(item.url);
                                     router.push(
                                       `/${selectedTeam?.id}/${item.url}`,
-                                    )
+                                    );
                                   }
                                 }}
                               >
@@ -291,7 +292,7 @@ export default function DashboardLayout({
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              {teamsStatus === 'pending' ? (
+              {teamsStatus === "pending" ? (
                 <div className="flex flex-row items-center w-full p-1 gap-2">
                   <Skeleton className="w-12 h-12 rounded-full shrink-0" />
                   <div className="flex flex-col gap-1 flex-1">
@@ -328,5 +329,5 @@ export default function DashboardLayout({
         </main>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

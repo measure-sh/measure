@@ -1,3 +1,8 @@
+---
+title: "Measure SDK Integration Guide"
+description: "Integrate the Measure SDK on Android, iOS or Flutter to track your app. Create an app in the dashboard, add the SDK and verify installation."
+---
+
 # Getting Started
 
 * [1. Create an App](#1-create-an-app)
@@ -54,7 +59,6 @@ in later steps.
 Add the API URL & API Key to your application's `AndroidManifest.xml` file.
 
 ```xml
-
 <application>
     <meta-data android:name="sh.measure.android.API_KEY" android:value="YOUR_API_KEY"/>
     <meta-data android:name="sh.measure.android.API_URL" android:value="YOUR_API_URL"/>
@@ -202,6 +206,16 @@ Measure.init(
 )
 ```
 
+### Enable Full Collection Mode
+
+The init snippet above sets `enableFullCollectionMode = true`, which forces all data to be sent to the server
+regardless of sampling. This makes it easy to verify the installation by confirming that events from your app
+are reaching the dashboard.
+
+> [!IMPORTANT]
+> Enabling full collection mode in production can lead to high costs. Disable or remove this flag for release
+> builds and rely on sampling instead. See [Configuration Options](features/configuration-options.md) for details.
+
 See the [troubleshooting](#troubleshoot) section if you face any issues.
 
 ## iOS
@@ -274,7 +288,7 @@ Add Measure as a dependency by adding `dependencies` value to your `Package.swif
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.10.0")
+    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.10.2")
 ]
 ```
 
@@ -317,6 +331,16 @@ func application(_ application: UIApplication,
   }
 
 ```
+
+### Enable Full Collection Mode
+
+The init snippet above sets `enableFullCollectionMode` to `true`, which forces all data to be sent to the
+server regardless of sampling. This makes it easy to verify the installation by confirming that events from
+your app are reaching the dashboard.
+
+> [!IMPORTANT]
+> Enabling full collection mode in production can lead to high costs. Disable or remove this flag for release
+> builds and rely on sampling instead. See [Configuration Options](features/configuration-options.md) for details.
 
 ## Flutter
 
@@ -389,6 +413,17 @@ This does the following:
 * Initializes the Measure SDK with the provided `config`.
 * Wraps your app with the `MeasureWidget` for gesture detection and layout snapshots.
 * Sets up the error handlers to track uncaught exceptions.
+
+### Enable Full Collection Mode
+
+The Flutter SDK depends on the native SDKs, so `enableFullCollectionMode` must be set to `true` in both the
+Android and iOS native SDK initializations (see the Android and iOS sections above). This forces all data to
+be sent to the server regardless of sampling, which makes it easy to verify the installation by confirming
+that events from your app are reaching the dashboard.
+
+> [!IMPORTANT]
+> Enabling full collection mode in production can lead to high costs. Disable or remove this flag for release
+> builds and rely on sampling instead. See [Configuration Options](features/configuration-options.md) for details.
 
 ### Flutter Android Setup
 
@@ -631,6 +666,22 @@ Enable diagnostic mode during SDK initialization. iOS provides an additional opt
 let config = BaseMeasureConfig(enableDiagnosticMode: true, enableDiagnosticModeGesture: true)
 Measure.initialize(with: clientInfo, config: config)
 ```
+
+</details>
+
+<details>
+    <summary>Flutter</summary>
+
+Enable diagnostic mode during SDK initialization.
+
+```dart
+await Measure.instance.init(
+  () => runApp(MeasureWidget(child: MyApp())),
+  config: const MeasureConfig(enableDiagnosticMode: true),
+);
+```
+
+On iOS, the `enableDiagnosticModeGesture` flag is set on the native `BaseMeasureConfig` in your `AppDelegate` (see the iOS section above), not on the Dart `MeasureConfig`.
 
 </details>
 

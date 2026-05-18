@@ -1,0 +1,251 @@
+# Docs page meta tags
+
+Title appears as `<title>X | Measure</title>` (the `| Measure` suffix is appended by the root layout).
+Source: frontmatter `description:` > first plain paragraph fallback.
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+URL:         https://measure.sh/docs
+Title:       Documentation
+Description: Measure documentation. SDK integration, features, self-hosting, and REST API reference for monitoring mobile apps.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/CONTRIBUTING
+Title:       Measure Contribution Guidelines
+Description: Contribute to Measure. Project workflow, local development setup, tests, commit messages, and release process.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/api
+Title:       Measure REST API Documentation
+Description: Measure's REST APIs for SDK ingestion and the Dashboard, designed around standard REST principles.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/api/dashboard
+Title:       Dashboard REST API Documentation
+Description: Reference for Measure's Dashboard REST API. Every endpoint, request body, response format, and status code.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/api/sdk
+Title:       SDK REST API Documentation
+Description: Reference for the Measure SDK ingestion REST API. Events, builds, config, attachments, traces, and authentication.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/faqs
+Title:       Frequently Asked Questions
+Description: Common gotchas with Measure — like why app launch metrics may show "No data".
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/configuration-options
+Title:       Configuration Options
+Description: Every Measure SDK configuration option. Tune data collection, masking, sampling, and disk usage at init or remotely from the dashboard.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-alerts
+Title:       Alerts
+Description: Receive crash and ANR spike alerts plus daily summaries of core app metrics over email and Slack.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-anr-reporting
+Title:       ANR Reporting
+Description: Capture ANRs (Application Not Responding errors) in Android apps with stack traces and optional UI snapshots.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-app-launch-metrics
+Title:       App Launch Metrics
+Description: Track cold, warm, and hot launch times for Android and iOS apps. Time to Initial Display and Time to Full Display.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-app-size-monitoring
+Title:       App Size Monitoring
+Description: Track your Android APK/AAB and iOS IPA size for every release to spot regressions before they ship.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-bug-report-android
+Title:       Bug Reports — Android
+Description: Let users report bugs from inside your Android app. Built-in or custom UI, screenshots, layout snapshots, and shake to report.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-bug-report-flutter
+Title:       Bug Reports — Flutter
+Description: Let users report bugs from inside your Flutter app. Built-in or custom UI, screenshots, attachments, i18n, and shake to report.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-bug-report-ios
+Title:       Bug Reports — iOS
+Description: Let users report bugs from inside your iOS app. Built-in or custom UI, screenshots, attachments, theming, and shake to report.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-cpu-monitoring
+Title:       CPU Monitoring
+Description: Periodically capture CPU usage of Android, iOS, and Flutter apps while they're in the foreground.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-crash-reporting
+Title:       Crash Reporting
+Description: Track crashes in Android, iOS, and Flutter apps. Crash-free rate, perceived crash rate, UI snapshots, crash grouping, and symbolicated stack traces.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-custom-events
+Title:       Track Custom Events
+Description: Track app-specific events with attributes — feature usage, flags, user actions — and view them on the session timeline.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-data-retention
+Title:       Data retention
+Description: Configure how long Measure retains data per app. 7–365 day window set when creating an app or changed in settings later.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-error-tracking
+Title:       Track errors
+Description: Track handled exceptions in your mobile app — issues that don't crash but still affect users. Android, iOS, and Flutter APIs.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-gesture-tracking
+Title:       Gesture Tracking
+Description: Automatically capture user gestures — taps, scrolls, long-presses — alongside SVG layout snapshots showing what was tapped.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-identify-users
+Title:       Identify users
+Description: Set a user ID to correlate sessions with users for debugging. Persisted across app launches; recommended to avoid PII.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-manually-start-stop-sdk
+Title:       Manually Start and Stop the SDK
+Description: Manually start and stop the Measure SDK to control when data collection happens. Defer with autoStart=false, then call start() and stop().
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-mcp
+Title:       MCP Server
+Description: Connect Measure to Claude Code, Codex, Cursor, Gemini, and other AI coding agents. Query crashes, traces, sessions, and bug reports from your editor.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-memory-monitoring
+Title:       Memory Monitoring
+Description: Periodically capture memory usage of Android, iOS, and Flutter apps to spot leaks and pressure across releases.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-navigation-lifecycle-tracking
+Title:       Navigation & Lifecycle Tracking
+Description: Automatic capture of Activity, Fragment, View Controller, SwiftUI, and Flutter lifecycle events plus screen views for navigation.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-network-connectivity-changes
+Title:       Network Connectivity Changes
+Description: Track when your app gains or loses network connectivity, switches between WiFi and cellular, or changes carrier.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-network-monitoring
+Title:       Network Monitoring
+Description: Monitor HTTP requests and responses from your mobile app. Status codes, latency, payload sizes, and per-endpoint metrics.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-performance-tracing
+Title:       Performance Tracing
+Description: Trace any operation in your mobile app — API calls, DB queries, custom user flows — with nested spans, attributes, and automatic screen load traces.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-screenshot-masking-swiftui
+Title:       Screenshot Masking for SwiftUI
+Description: Mask sensitive content in SwiftUI views when Measure captures screenshots. Per-view control with .msrMask() and .msrUnmask().
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-session-timelines
+Title:       Session Timeline
+Description: View every session as a chronological timeline of events, errors, screens, and gestures, with CPU and memory usage graphs.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/feature-slack-integration
+Title:       Slack Integration
+Description: Receive Measure crash alerts and daily summaries in Slack. Manage subscriptions, list channels, and stop alerts via slash commands.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/features/performance-impact
+Title:       Performance Impact
+Description: Benchmarks for the Measure SDK's impact on app startup and per-event overhead, plus comparison to Firebase initialization.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/hosting
+Title:       Self Hosting Guide
+Description: Self-host Measure to monitor crashes, ANRs, and performance for your mobile apps. Deploy on a Linux VM and configure OAuth, SMTP, and Slack.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/hosting/github-oauth
+Title:       Setup a GitHub OAuth Application
+Description: Set up a GitHub OAuth application for your self-hosted Measure instance. Register, configure credentials, and connect to Measure.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/hosting/google-oauth
+Title:       Setup a Google OAuth Application
+Description: Set up a Google OAuth application for your self-hosted Measure instance. Configure the consent screen, scopes, and redirect URIs.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/hosting/migration-guides
+Title:       Migration Guides
+Description: Migration guides for upgrading self-hosted Measure across versions that need extra configuration or data migration.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/hosting/migration-guides/v0.10.x
+Title:       Migration Guide for `v0.10.x`
+Description: Migration guide for self-hosted Measure v0.10.x. Adds a Google OAuth client secret, a dedicated ingest endpoint, and configuration migration.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/hosting/migration-guides/v0.4.x
+Title:       Migration Guide for `v0.4.x`
+Description: Migration guide for self-hosted Measure v0.4.x. Optional drop of old data and required data backfills.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/hosting/migration-guides/v0.6.x
+Title:       Migration Guide for `v0.6.x`
+Description: Migration guide for self-hosted Measure v0.6.x. Required data backfills for user-defined attributes.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/hosting/migration-guides/v0.8.x
+Title:       Migration Guide for `v0.8.x`
+Description: Migration guide for self-hosted Measure v0.8.x. Required data backfills for crashes and ANRs.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/hosting/migration-guides/v0.9.x
+Title:       Migration Guide for `v0.9.x`
+Description: Migration guide for self-hosted Measure v0.9.x. Configuration migration and database synchronization.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/hosting/slack
+Title:       Set up Slack integration
+Description: Set up Slack integration for your self-hosted Measure instance. Configure the Slack app with OAuth and slash commands for crash alerts.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/hosting/smtp-email
+Title:       Set up an SMTP email provider
+Description: Configure an SMTP email provider for your self-hosted Measure instance to send invites, alerts, and daily summary emails.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/sdk-integration-guide
+Title:       Getting Started
+Description: Integrate the Measure SDK on Android, iOS, or Flutter to track your app. Create an app in the dashboard, add the SDK, and verify installation.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/sdk-upgrade-guides
+Title:       SDK Upgrade Guides
+Description: Upgrade guides for major Measure SDK versions across Android, iOS, and Flutter. Breaking changes and migration steps.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/sdk-upgrade-guides/android-v0.16.0
+Title:       Upgrading to Android SDK v0.16.0
+Description: Upgrade the Measure Android SDK to v0.16.0. MeasureConfig moved to the dashboard, stricter span validation, and configurable session timelines.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/sdk-upgrade-guides/ios-v0.9.0
+Title:       Upgrading to iOS SDK v0.9.0
+Description: Upgrade the Measure iOS SDK to v0.9.0. MeasureConfig moved to the dashboard, stricter span validation, and configurable session timelines.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/sdk-upgrade-guides/measre_flutter-v0.4.0
+Title:       Upgrading to Measure Flutter SDK v0.4.0
+Description: Upgrade the Measure Flutter SDK to v0.4.0. Adds Layout Snapshots, requires manual native SDK init, and moves MeasureConfig options to the dashboard.
+Source:      frontmatter
+
+URL:         https://measure.sh/docs/versioning
+Title:       Versioning
+Description: How Measure versions its SDKs, backend, and dashboard with semver and platform-prefixed git tags.
+Source:      frontmatter

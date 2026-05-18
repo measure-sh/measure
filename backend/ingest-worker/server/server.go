@@ -405,7 +405,7 @@ func Init(config *ServerConfig) {
 		}
 		log.Println("iggy batch size:", batchSize)
 
-		pollInterval := 30 * time.Second
+		pollInterval := 1 * time.Second
 		ingestPollInterval := os.Getenv("INGEST_POLL_INTERVAL")
 		if ingestPollInterval != "" {
 			pollInterval, err = time.ParseDuration(ingestPollInterval)

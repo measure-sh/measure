@@ -7,6 +7,8 @@ abstract class IMeasureConfig {
 
   bool get autoStart;
 
+  bool get enableDiagnosticMode;
+
   Map<Type, String> get widgetFilter;
 }
 
@@ -23,6 +25,20 @@ class MeasureConfig implements IMeasureConfig {
   @override
   final bool autoStart;
 
+  /// Enables diagnostic mode which writes all SDK logs to a file. The log file can be attached
+  /// when reporting a bug to help with debugging SDK issues.
+  ///
+  /// Defaults to `false`.
+  ///
+  /// To pull all log files from an Android device:
+  /// ```
+  /// adb shell "run-as <your.package.name> tar czf - files/measure/sdk_debug_logs/" > sdk_debug_logs.tar.gz
+  /// ```
+  /// On iOS, set `enableDiagnosticModeGesture` on the native `MeasureConfig` (in your AppDelegate)
+  /// to trigger the share sheet via the double finger double tap gesture.
+  @override
+  final bool enableDiagnosticMode;
+
   @override
   final Map<Type, String> widgetFilter;
 
@@ -30,6 +46,7 @@ class MeasureConfig implements IMeasureConfig {
   const MeasureConfig({
     this.enableLogging = DefaultConfig.enableLogging,
     this.autoStart = DefaultConfig.autoStart,
+    this.enableDiagnosticMode = DefaultConfig.enableDiagnosticMode,
     this.widgetFilter = DefaultConfig.widgetFilter,
   });
 }

@@ -1,5 +1,6 @@
 class DefaultConfig {
   static const bool enableLogging = false;
+  static const bool enableDiagnosticMode = false;
   static const bool trackScreenshotOnCrash = false;
   static const bool autoInitializeNativeSDK = true;
   static const bool autoStart = true;

@@ -32,6 +32,7 @@ import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.httpurl.HttpUrlConnectionEventCollector
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.okhttp.OkHttpEventCollector
 import sh.measure.android.tracing.InternalTrace
@@ -675,9 +676,9 @@ object Measure {
      * An internal method that adds logs Measure logger.
      * This method is not intended for public usage.
      */
-    fun internalAddLog(platform: String, message: String, throwable: Throwable?) {
+    fun internalAddLog(platform: String, message: String) {
         if (isInitialized.get()) {
-            measure.internalAddLog(platform, message, throwable)
+            measure.internalAddLog(platform, message)
         }
     }
 
@@ -711,6 +712,14 @@ object Measure {
                 )
                 null
             }
+        }
+        return null
+    }
+
+    @JvmStatic
+    internal fun getHttpUrlConnectionEventCollector(): HttpUrlConnectionEventCollector? {
+        if (isInitialized.get()) {
+            return measure.httpUrlConnectionEventCollector
         }
         return null
     }

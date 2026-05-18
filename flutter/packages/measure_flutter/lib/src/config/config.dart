@@ -6,6 +6,7 @@ class Config implements InternalConfig, IMeasureConfig {
   const Config({
     this.enableLogging = DefaultConfig.enableLogging,
     this.autoStart = DefaultConfig.autoStart,
+    this.enableDiagnosticMode = DefaultConfig.enableDiagnosticMode,
     this.maxCheckpointNameLength = DefaultConfig.maxCheckpointNameLength,
     this.maxSpanNameLength = DefaultConfig.maxSpanNameLength,
     this.maxCheckpointsPerSpan = DefaultConfig.maxCheckpointsPerSpan,
@@ -24,6 +25,8 @@ class Config implements InternalConfig, IMeasureConfig {
   final bool enableLogging;
   @override
   final bool autoStart;
+  @override
+  final bool enableDiagnosticMode;
   @override
   final int maxCheckpointNameLength;
   @override

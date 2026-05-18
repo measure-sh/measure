@@ -15,6 +15,39 @@ export interface DocPage {
   slug: string[];
   content: string;
   title: string;
+  description: string;
+  isIndex: boolean;
+}
+
+/**
+ * Parse YAML frontmatter at the start of a markdown file. Only supports flat
+ * `key: value` lines (with optional surrounding "single" or "double" quotes) —
+ * enough for `title` and `description` fields, no nested structures.
+ */
+export function parseFrontmatter(content: string): {
+  frontmatter: Record<string, string>;
+  body: string;
+} {
+  const match = content.match(/^---\s*\r?\n([\s\S]*?)\r?\n---\s*(?:\r?\n|$)/);
+  if (!match) {
+    return { frontmatter: {}, body: content };
+  }
+  const frontmatter: Record<string, string> = {};
+  for (const line of match[1].split(/\r?\n/)) {
+    const kv = line.match(/^([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.*)$/);
+    if (!kv) {
+      continue;
+    }
+    let value = kv[2].trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1).replace(/\\"/g, '"').replace(/\\'/g, "'");
+    }
+    frontmatter[kv[1]] = value;
+  }
+  return { frontmatter, body: content.slice(match[0].length) };
 }
 
 /**
@@ -49,11 +82,105 @@ export function cleanContent(content: string): string {
 }
 
 /**
+ * Strip HTML tags iteratively until the string stops changing. A single
+ * regex pass is incomplete because a nested input like `<scr<script>ipt>`
+ * leaves a partial tag behind after one replace — iterating to a fixed
+ * point removes any residue. The regex always consumes ≥3 chars per
+ * match, so the loop is guaranteed to terminate.
+ */
+function stripHtmlTags(input: string): string {
+  let out = input;
+  for (let i = 0; i < 50; i++) {
+    const next = out.replace(/<[^>]+>/g, "");
+    if (next === out) {
+      return next;
+    }
+    out = next;
+  }
+  return out;
+}
+
+/**
+ * Reduce a markdown body to plain text suitable for full-text search.
+ * Strips fences, headings, raw HTML, images/links, emphasis markers,
+ * list/blockquote prefixes, table pipes and GFM callout markers
+ * (`[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`).
+ */
+export function stripSearchContent(content: string): string {
+  const withoutTags = stripHtmlTags(
+    cleanContent(content)
+      .replace(/```[\s\S]*?```/g, "")
+      .replace(/^#{1,6}\s+.+$/gm, ""),
+  );
+  return withoutTags
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/\[!(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/gi, "")
+    .replace(/[*_`~]/g, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*>\s?/gm, "")
+    .replace(/\|/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
  * Extract title from the first # heading in markdown content
  */
 export function extractTitle(content: string): string {
   const match = content.match(/^#\s+(.+)$/m);
   return match ? match[1].trim() : "Documentation";
+}
+
+/**
+ * Extract the first plain paragraph from markdown content, skipping
+ * the title, TOC lists, admonitions, headings, tables and code blocks.
+ * Returns an empty string when no suitable paragraph is found.
+ */
+export function extractDescription(content: string): string {
+  const afterTitle = content.replace(/^#\s+.+$/m, "");
+  const blocks = afterTitle.split(/\n\s*\n/);
+
+  for (const block of blocks) {
+    const trimmed = block.trim();
+    if (!trimmed) {
+      continue;
+    }
+    const firstChar = trimmed[0];
+    if (
+      firstChar === "#" ||
+      firstChar === "*" ||
+      firstChar === "-" ||
+      firstChar === "+" ||
+      firstChar === ">" ||
+      firstChar === "|" ||
+      firstChar === "<" ||
+      trimmed.startsWith("```")
+    ) {
+      continue;
+    }
+
+    const plain = trimmed
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/[*_`~]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!plain) {
+      continue;
+    }
+
+    if (plain.length > 160) {
+      const truncated = plain.slice(0, 157);
+      const lastSpace = truncated.lastIndexOf(" ");
+      const cut = lastSpace > 100 ? truncated.slice(0, lastSpace) : truncated;
+      return `${cut}…`;
+    }
+    return plain;
+  }
+
+  return "";
 }
 
 export function getDocBySlug(slug: string[]): DocPage | null {
@@ -64,13 +191,16 @@ export function getDocBySlug(slug: string[]): DocPage | null {
     return null;
   }
 
-  const content = fs.readFileSync(filePath, "utf-8");
-  const cleaned = cleanContent(content);
+  const raw = fs.readFileSync(filePath, "utf-8");
+  const { frontmatter, body } = parseFrontmatter(raw);
+  const cleaned = cleanContent(body);
 
   return {
     slug,
     content: cleaned,
-    title: extractTitle(cleaned),
+    title: frontmatter.title || extractTitle(cleaned),
+    description: frontmatter.description || extractDescription(cleaned),
+    isIndex: filePath.endsWith(`${path.sep}README.md`),
   };
 }
 
@@ -82,13 +212,16 @@ export function getDocIndex(): DocPage | null {
     return null;
   }
 
-  const content = fs.readFileSync(filePath, "utf-8");
-  const cleaned = cleanContent(content);
+  const raw = fs.readFileSync(filePath, "utf-8");
+  const { frontmatter, body } = parseFrontmatter(raw);
+  const cleaned = cleanContent(body);
 
   return {
     slug: [],
     content: cleaned,
-    title: extractTitle(cleaned),
+    title: frontmatter.title || extractTitle(cleaned),
+    description: frontmatter.description || extractDescription(cleaned),
+    isIndex: true,
   };
 }
 
@@ -188,9 +321,10 @@ export function generateSearchIndex(): SearchIndexEntry[] {
   const entries: SearchIndexEntry[] = [];
 
   function processFile(filePath: string, slug: string[]) {
-    const content = fs.readFileSync(filePath, "utf-8");
+    const raw = fs.readFileSync(filePath, "utf-8");
+    const { frontmatter, body: content } = parseFrontmatter(raw);
 
-    const title = extractTitle(content);
+    const title = frontmatter.title || extractTitle(content);
     const headings: string[] = [];
     const headingRegex = /^#{2,3}\s+(.+)$/gm;
     let match;
@@ -198,14 +332,7 @@ export function generateSearchIndex(): SearchIndexEntry[] {
       headings.push(match[1].trim());
     }
 
-    // Strip markdown syntax for plain text search content
-    const plainContent = content
-      .replace(/^#{1,6}\s+.+$/gm, "") // Remove headings (already captured)
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Links -> text
-      .replace(/[*_`~]/g, "") // Remove emphasis markers
-      .replace(/\n{2,}/g, "\n") // Collapse newlines
-      .trim()
-      .slice(0, 500); // Keep first 500 chars for search
+    const plainContent = stripSearchContent(content).slice(0, 500);
 
     entries.push({
       slug: slug.length === 0 ? "/" : `/${slug.join("/")}`,

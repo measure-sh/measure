@@ -1,3 +1,8 @@
+---
+title: "MCP Server for Mobile App Monitoring"
+description: "Connect Measure to Claude Code, Codex, Cursor, Gemini and other AI coding agents. Query crashes, traces, sessions and bug reports from your editor or AI agent workflows."
+---
+
 # MCP Server
 
 Measure exposes a [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server that lets AI-powered coding tools query your app's crash and error data directly.
@@ -27,12 +32,10 @@ Measure exposes a [Model Context Protocol](https://modelcontextprotocol.io) (MCP
   * [`get_alerts`](#get_alerts)
   * [`get_journey`](#get_journey)
   * [`update_bug_report_status`](#update_bug_report_status)
-* [**Authentication**](#authentication)
-* [**Self Hosted Setup**](#self-hosted-setup)
 
 ## What is MCP?
 
-The [Model Context Protocol](https://modelcontextprotocol.io) is an open standard that allows AI tools to interact with external data sources through a consistent interface. With Measure's MCP server, you can ask AI assistants to look up crashes, analyze error trends, and inspect stack traces without leaving your editor.
+The [Model Context Protocol](https://modelcontextprotocol.io) is an open standard that allows AI tools to interact with external data sources through a consistent interface. With Measure's MCP server, you can ask AI assistants to look up crashes, analyze error trends and inspect stack traces without leaving your editor.
 
 ## Connecting to MCP via Coding Agents
 
@@ -69,7 +72,7 @@ Get available filter options (versions, OS, countries, devices, etc.) for an app
 
 ### `get_metrics`
 
-Get app metrics including adoption, crash-free/ANR-free sessions, and launch performance (cold/warm/hot p95).
+Get app metrics including adoption, crash-free/ANR-free sessions and launch performance (cold/warm/hot p95).
 
 ### `get_errors`
 

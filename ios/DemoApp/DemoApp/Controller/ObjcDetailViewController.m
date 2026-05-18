@@ -11,6 +11,7 @@
 @interface ObjcDetailViewController () <UITableViewDelegate, UITableViewDataSource>
 
 @property (nonatomic, strong) NSArray *crashTypes;
+@property (nonatomic, strong) NSArray *httpEventTypes;
 
 @end
 
@@ -35,6 +36,8 @@
         @"Illegal Instruction (SIGILL)",
         @"Bus Error (SIGBUS)"
     ];
+
+    self.httpEventTypes = @[@"Track HTTP Event"];
     
     UITableView *tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStylePlain];
     tableView.delegate = self;
@@ -62,9 +65,9 @@
 
 - (UIView *)createTableHeaderView {
     // Create the header view
-    UIView *headerView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.bounds.size.width, 100)];
-    
-    NSArray *buttonTitles = @[@"SwiftUI Controller", @"Collection Controller"];
+    UIView *headerView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.bounds.size.width, 150)];
+
+    NSArray *buttonTitles = @[@"SwiftUI Controller", @"Collection Controller", @"Track Spans"];
     
     // Create two vertical stack views
     UIStackView *verticalStackView1 = [[UIStackView alloc] init];
@@ -124,9 +127,36 @@
         case 1:
             [self transitionToCollectionViewController];
             break;
+        case 2:
+            [self trackSpans];
+            break;
         default:
             break;
     }
+}
+
+- (void)trackSpans {
+    MsrObjCSpan *parentSpan = [Measure startSpanWithName:@"parent_span"];
+
+    MsrObjCSpanBuilder *childBuilder1 = [Measure createSpanBuilderWithName:@"child_span_1"];
+    [childBuilder1 setParent:parentSpan];
+    MsrObjCSpan *childSpan1 = [childBuilder1 startSpan];
+
+    MsrObjCSpanBuilder *childBuilder2 = [Measure createSpanBuilderWithName:@"child_span_2"];
+    [childBuilder2 setParent:parentSpan];
+    MsrObjCSpan *childSpan2 = [childBuilder2 startSpan];
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [childSpan1 setStatus:MsrSpanStatusOk];
+        [childSpan1 end];
+        [childSpan2 setStatus:MsrSpanStatusOk];
+        [childSpan2 end];
+    });
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [parentSpan setStatus:MsrSpanStatusOk];
+        [parentSpan end];
+    });
 }
 
 -(void)transitionToCollectionViewController {
@@ -142,21 +172,55 @@
 
 // MARK: - UITableViewDataSource
 
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    return 2;
+}
+
+- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
+    return section == 0 ? @"Crash Types" : @"HTTP Events";
+}
+
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return self.crashTypes.count;
+    return section == 0 ? self.crashTypes.count : self.httpEventTypes.count;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"cell" forIndexPath:indexPath];
-    cell.textLabel.text = self.crashTypes[indexPath.row];
+    NSArray *source = indexPath.section == 0 ? self.crashTypes : self.httpEventTypes;
+    cell.textLabel.text = source[indexPath.row];
+    cell.textLabel.textColor = indexPath.section == 0 ? [UIColor systemRedColor] : [UIColor systemBlueColor];
     return cell;
 }
 
 // MARK: - UITableViewDelegate
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    NSString *selectedCrashType = self.crashTypes[indexPath.row];
-    [self triggerCrashWithType:selectedCrashType];
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+    if (indexPath.section == 0) {
+        [self triggerCrashWithType:self.crashTypes[indexPath.row]];
+    } else {
+        [self triggerHttpEventWithType:self.httpEventTypes[indexPath.row]];
+    }
+}
+
+// MARK: - HTTP Tracking
+
+- (void)triggerHttpEventWithType:(NSString *)type {
+    if ([type isEqualToString:@"Track HTTP Event"]) {
+        UInt64 startTime = (UInt64)(CFAbsoluteTimeGetCurrent() * 1000);
+        UInt64 endTime = startTime + 150;
+        [Measure trackHttpEventObjcWithUrl:@"https://api.example.com/users"
+                                    method:@"get"
+                                 startTime:startTime
+                                   endTime:endTime
+                                    client:@"URLSession"
+                                statusCode:@200
+                                     error:nil
+                            requestHeaders:nil
+                           responseHeaders:@{@"Content-Type": @"application/json"}
+                               requestBody:nil
+                              responseBody:@"{\"id\":1,\"name\":\"Alice\"}"];
+    }
 }
 
 // MARK: - Crash Triggers

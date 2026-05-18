@@ -1,3 +1,8 @@
+---
+title: "Set Up Slack for Self-Hosted Measure"
+description: "Set up Slack integration for your self-hosted Measure instance. Configure the Slack app with OAuth and slash commands for crash alerts."
+---
+
 # Set up Slack integration <!-- omit in toc -->
 
 Use this guide to setup Slack integration to receive Measure alert notifications on Slack.

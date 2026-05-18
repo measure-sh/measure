@@ -19,7 +19,7 @@ This is the main load testing script. It simulates traffic from Measure SDKs by 
 #### Key Features:
 
 *   **Realistic Simulation**: The script virtualizes `session_id` and `event_id` on each run, ensuring that the backend processes them as unique entities. It also applies a random "clock skew" to event timestamps to simulate data coming from different devices with slightly out-of-sync clocks.
-*   **Staged Load Ramping**: The test is configured with stages to gradually ramp up the number of virtual users, sustain the load, and then ramp down. This helps in understanding how the system behaves under increasing stress.
+*   **Staged Load Ramping**: The test is configured with stages to gradually ramp up the number of virtual users, sustain the load and then ramp down. This helps in understanding how the system behaves under increasing stress.
 *   **Data Fixtures**: The script uses sample data from `fixtures/sample-app.ts` to simulate different payloads.
 *   **Batching**: Requests are sent in parallel batches to generate a higher load.
 

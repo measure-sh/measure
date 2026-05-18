@@ -1,3 +1,8 @@
+---
+title: "Android ANR Reporting"
+description: "Capture ANRs (Application Not Responding errors) in Android apps with stack traces and optional UI screenshots."
+---
+
 # ANR Reporting
 
 * [**Debugging ANRs**](#debugging-anrs)
@@ -64,7 +69,7 @@ Where:
 - **Total Sessions**: The total number of sessions recorded.
 - **ANR Sessions**: The number of sessions that experienced an ANR.
 
-## Get a UI Snapshot
+## Get a UI Screenshot
 
 A screenshot of the app is captured when an app crashes. This feature is enabled by default and can be
 remotely configured on the dashboard under the "Apps" section. The following configuration options are available:
@@ -75,7 +80,7 @@ remotely configured on the dashboard under the "Apps" section. The following con
 
 ## Data Collected
 
-Check out all the data collected for App Exit in the [App Exit Event](../../api/sdk/README.md#appexit) section.
+Check out all the data collected for App Exit in the [App Exit Event](../api/sdk/README.md#app_exit) section.
 
 ## How It Works
 

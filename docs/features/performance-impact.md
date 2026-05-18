@@ -1,3 +1,8 @@
+---
+title: "Measure SDK Performance Impact & Benchmarks"
+description: "Benchmarks for the Measure SDK's impact on app startup and per-event overhead, plus comparison to Firebase initialization."
+---
+
 # Performance Impact
 
 See the platform-specific sections below for details on the performance impact of the Measure SDK on your app.
@@ -83,9 +88,9 @@ key operations performed by the SDK can be found below:
 
 | Operation                 | p95       | Description                                                   |
 |---------------------------|-----------|---------------------------------------------------------------|
-| `trackEvent`              | 195 µs    | Includes event collection, attribute enrichment, and queueing |
+| `trackEvent`              | 195 µs    | Includes event collection, attribute enrichment and queueing |
 | `appendAttributes`        | 360 µs    | Dynamic attribute gathering (e.g., network, device state)     |
-| `trackBugReport`          | 120 µs    | Complete flow including screenshot, layout, and metadata      |
+| `trackBugReport`          | 120 µs    | Complete flow including screenshot, layout and metadata      |
 | `trackEventUserTriggered` | 32 µs     | User-triggered event tracking                                 |
 | `trackSpanTriggered`      | 96 µs     | When a trace event is emitted                                 |
 | `spanProcessorOnStart`    | 105 µs    | Span construction                                             |

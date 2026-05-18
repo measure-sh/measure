@@ -1,3 +1,8 @@
+---
+title: "Gesture Tracking with Layout Snapshots"
+description: "Automatically capture user gestures like taps, scrolls and long-presses alongside layout snapshots showing the UI that was acted on."
+---
+
 # Gesture Tracking
 
 * [**Overview**](#overview)
@@ -157,7 +162,7 @@ them into different gesture types:
 
 Gesture target detection identifies the UI element interacted with during a gesture. It first determines the view at the
 touch location and then searches its subviews to find the most relevant target. For scroll detection, it checks if the
-interacted element is a scrollable view like `UIScrollView`, `UIDatePicker`, or `UIPickerView`.
+interacted element is a scrollable view like `UIScrollView`, `UIDatePicker` or `UIPickerView`.
 
 ### Flutter
 
@@ -228,7 +233,7 @@ widgets, while for scrolls, it looks for scrollable widgets.
 ### Layout snapshots
 
 Layout snapshots capture your app's UI structure by traversing the widget tree from the root widget. The SDK collects
-key information about each widget—including its type, position, size, and hierarchy—to build a lightweight
+key information about each widget—including its type, position, size and hierarchy—to build a lightweight
 representation of your UI.
 
 The entire layout snapshot is generated in a single pass through the widget tree using the `visitChildElements` method.
@@ -254,8 +259,6 @@ TLDR;
 
 - On average, it takes **4 ms** to identify the clicked view in a view hierarchy with a depth of **1,500**.
 - For more common scenarios, a view hierarchy with a depth of **20** takes approximately **0.2 ms**.
-- You can find the benchmark tests
-  in [GestureTargetFinderTests](../../ios/Tests/MeasureSDKTests//GestureTargetFinderTests.swift).
 
 ### Flutter
 

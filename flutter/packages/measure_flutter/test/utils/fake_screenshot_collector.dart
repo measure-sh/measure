@@ -8,14 +8,12 @@ class FakeScreenshotCollector extends ScreenshotCollector {
   Future<MsrAttachment?> capture() async {
     // 1x1 raw RGBA pixel (red).
     final rgba = Uint8List.fromList(<int>[255, 0, 0, 255]);
-    return MsrAttachment(
-      name: "screenshot",
-      id: "test-id",
-      type: AttachmentType.screenshot,
-      size: rgba.length,
+    return MsrAttachment.fromRawPixels(
       bytes: rgba,
       width: 1,
       height: 1,
+      type: AttachmentType.screenshot,
+      uuid: "test-id",
     );
   }
 }

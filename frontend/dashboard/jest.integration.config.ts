@@ -38,6 +38,9 @@ export default async () => {
             '/node_modules/(?!(msw|@mswjs|rettime|until-async|@bundled-es-modules|@open-draft)/)',
             '^.+\\.module\\.(css|sass|scss)$',
         ],
+        // Skip Next.js build output so jest-haste-map doesn't see duplicate
+        // package.json from .next/standalone/ (output: "standalone" in next.config.js)
+        modulePathIgnorePatterns: ["<rootDir>/.next/"],
         // Only run integration tests
         testMatch: ['**/__tests__/integration/**/*.[jt]s?(x)'],
         // Polyfill Fetch API globals (Response, Request, etc.) after jsdom

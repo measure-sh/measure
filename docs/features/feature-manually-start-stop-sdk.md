@@ -1,3 +1,7 @@
+---
+description: "Manually start and stop the Measure mobile app monitoring SDK to control when data collection happens."
+---
+
 # Manually Start and Stop the SDK
 
 By default, initializing the SDK starts collection of events. To delay start to a different point in your app

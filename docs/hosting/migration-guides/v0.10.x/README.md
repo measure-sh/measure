@@ -1,3 +1,8 @@
+---
+title: "Self-Hosted Measure v0.10.x Migration Guide"
+description: "Migration guide for self-hosted Measure v0.10.x. Adds a Google OAuth client secret, a dedicated ingest endpoint and configuration migration."
+---
+
 # Migration Guide for `v0.10.x`
 
 Use this guide only when you are on less than `v0.10.0` and upgrading to `v0.10.x`.

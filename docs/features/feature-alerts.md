@@ -1,6 +1,11 @@
+---
+title: "Crash, ANR, Bug Report and Daily Summary Alert Notifications"
+description: "Receive crash spike, ANR spike, bug report alerts and daily summaries of core app metrics over email and Slack."
+---
+
 # Alerts
 
-Measure sends out alert notifications via email and slack on Crash & ANR spikes along with Daily Summaries of core app metrics.
+Measure sends out alert notifications via email and slack on Crash spikes, ANR spikes and on receiving Bug Reports. Measure also sends out daily dummaries of core app metrics.
 
 * [**Email Integration**](#email-integration)
   * [**Setting Up Email**](#setting-up-email)
@@ -14,7 +19,7 @@ Measure sends out alert notifications via email and slack on Crash & ANR spikes 
 Email integration allows you to receive alert notifications and daily summaries in your inbox.
 
 ### Setting up email
-If you are a self hosted user, please set up your email integration if you haven't done so using this [guide](/docs/hosting/smtp-email.md).
+If you are a self hosted user, please set up your email integration if you haven't done so using this [guide](../hosting/smtp-email.md).
 
 Once completed, all members in your team will receive emails for apps belonging to the same team.
 
@@ -27,7 +32,7 @@ Slack integration allows you to receive alert notifications and daily summaries 
 >
 > #### Self Hosted User
 >
-> If you are a self hosted user, please set up your slack integration if you haven't done so using this [guide](/docs/hosting/slack.md).
+> If you are a self hosted user, please set up your slack integration if you haven't done so using this [guide](../hosting/slack.md).
 
 Click `Add to Slack` button and authorize Measure Slack App for your workspace.
 

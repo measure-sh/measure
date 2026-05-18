@@ -53,7 +53,7 @@ struct BaseConfigLoader: ConfigLoader {
     private func loadConfigFromDisk() -> BaseDynamicConfig? {
         guard let data = fileManager.retrieveFile(
             name: ConfigFileConstants.fileName,
-            folderName: ConfigFileConstants.folderName,
+            folderName: "\(ConfigFileConstants.folderName)/\(ConfigFileConstants.dynamicConfigFolderName)",
             directory: ConfigFileConstants.directory
         ) else {
             return nil
@@ -71,7 +71,7 @@ struct BaseConfigLoader: ConfigLoader {
             let data = try encoder.encode(config)
             _ = fileManager.saveFile(data: data,
                                      name: ConfigFileConstants.fileName,
-                                     folderName: ConfigFileConstants.folderName,
+                                     folderName: "\(ConfigFileConstants.folderName)/\(ConfigFileConstants.dynamicConfigFolderName)",
                                      directory: ConfigFileConstants.directory)
         } catch {
             logger.internalLog(level: .error, message: "ConfigLoader: Failed to save Dynamic config to disk.", error: error, data: nil)

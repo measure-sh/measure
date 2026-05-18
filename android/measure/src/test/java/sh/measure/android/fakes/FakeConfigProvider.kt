@@ -71,10 +71,6 @@ internal class FakeConfigProvider : ConfigProvider {
 
     override fun shouldTrackHttpEvent(url: String): Boolean = shouldTrackHttpEventForUrl
 
-    override fun setMeasureUrl(url: String) {
-        // no-op
-    }
-
     var dynamicConfig: DynamicConfig? = null
         private set
 

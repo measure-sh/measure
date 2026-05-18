@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     const { userId, teamId, redirectUrl } = await req.json()
 
     if (!userId || !teamId || !redirectUrl) {
-      err = `Slack OAuth URL generation failure: userId, teamId, and redirectUrl are required`
+      err = `Slack OAuth URL generation failure: userId, teamId and redirectUrl are required`
       posthog.captureException(err, {
         source: 'slack_oauth_url_generation',
         user_id: userId,

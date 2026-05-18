@@ -1,3 +1,8 @@
+---
+title: "Dashboard REST API Reference"
+description: "Reference for Measure's Dashboard REST API. Every endpoint, request body, response format and status code."
+---
+
 # Dashboard REST API Documentation <!-- omit in toc -->
 
 Find all the endpoints, resources and detailed documentation for Measure Dashboard REST APIs.
@@ -407,7 +412,7 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
 
 - [**POST `/auth/github`**](#post-authgithub) - Sign in with Github.
 - [**POST `/auth/google`**](#post-authgoogle) - Sign in with Google.
-- [**POST `/auth/validateInvite`**](#post-validateInvite) - Validate invite.
+- [**POST `/auth/validateInvite`**](#post-authvalidateinvite) - Validate invite.
 - [**POST `/auth/refresh`**](#post-authrefresh) - Refresh session.
 - [**GET `/auth/session`**](#get-authsession) - Fetch session.
 - [**DELETE `/auth/signout`**](#delete-authsignout) - Sign out.
@@ -885,7 +890,7 @@ List of HTTP status codes for success and failures.
 - [**PATCH `/apps/:id/config`**](#patch-appsidconfig) - Update an app's config.
 - [**GET `/apps/:id/networkRequests/domains`**](#get-appsidnetworkrequestsdomains) - Fetch an app's unique network request domains.
 - [**GET `/apps/:id/networkRequests/paths`**](#get-appsidnetworkrequestspaths) - Fetch an app's network request paths for a domain.
-- [**GET `/apps/:id/networkRequests/trends`**](#get-appsidnetworkrequeststrends) - Fetch an app's network request trends by latency, error rate, and frequency.
+- [**GET `/apps/:id/networkRequests/trends`**](#get-appsidnetworkrequeststrends) - Fetch an app's network request trends by latency, error rate and frequency.
 - [**GET `/apps/:id/networkRequests/plots/overviewStatusCodes`**](#get-appsidnetworkrequestsplotsoverviewstatuscodes) - Fetch an app's overall network status distribution plot.
 - [**GET `/apps/:id/networkRequests/plots/endpointLatency`**](#get-appsidnetworkrequestsplotsendpointlatency) - Fetch a network endpoint's latency percentiles plot.
 - [**GET `/apps/:id/networkRequests/plots/endpointStatusCodes`**](#get-appsidnetworkrequestsplotsendpointstatuscodes) - Fetch a network endpoint's status distribution plot.
@@ -6822,7 +6827,7 @@ List of HTTP status codes for success and failures.
 
 ### GET `/apps/:id/networkRequests/trends`
 
-Fetch an app's network request trends showing top endpoints by latency, error rate, and frequency.
+Fetch an app's network request trends showing top endpoints by latency, error rate and frequency.
 
 #### Usage Notes
 
@@ -7458,12 +7463,12 @@ List of HTTP status codes for success and failures.
 - [**PATCH `/teams/:id/rename`**](#patch-teamsidrename) -  Rename a team.
 - [**GET `/teams/:id/members`**](#get-teamsidmembers) -  Fetch list of team members for a team.
 - [**DELETE `/teams/:id/members/:id`**](#delete-teamsidmembersid) -  Remove a member from a team.
-- [**PATCH `/teams/:id/members/:id/role`**](#patch-teamsidmembersid) -  Change role of a member of a team.
+- [**PATCH `/teams/:id/members/:id/role`**](#patch-teamsidmembersidrole) -  Change role of a member of a team.
 - [**GET `/teams/:id/authz`**](#get-teamsidauthz) -  Fetch authorization details of access token holder for a team.
 - [**GET `/teams/:id/usage`**](#get-teamsidusage) -  Fetch data usage details for a team.
 - [**GET `/teams/:id/slack`**](#get-teamsidslack) -  Fetch Slack details for a team.
 - [**PATCH `/teams/:id/slack/status`**](#patch-teamsidslackstatus) -  Update a team's Slack integration status to active or inactive.
-- [**POST `/teams/:id/slack/test`**](#patch-teamsidslacktest) -  Send test alerts to all registered Slack channels.
+- [**POST `/teams/:id/slack/test`**](#post-teamsidslacktest) -  Send test alerts to all registered Slack channels.
 
 ### POST `/teams`
 

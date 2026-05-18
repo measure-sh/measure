@@ -13,7 +13,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let apiKey = Bundle.main.object(forInfoDictionaryKey: "MeasureApiKey") as? String ?? ""
         let apiUrl = Bundle.main.object(forInfoDictionaryKey: "MeasureApiUrl") as? String ?? ""
         let clientInfo = ClientInfo(apiKey: apiKey, apiUrl: apiUrl)
-        let config = BaseMeasureConfig(enableLogging: true, enableFullCollectionMode: true)
+        let config = BaseMeasureConfig(
+            enableLogging: true,
+            enableFullCollectionMode: true,
+            enableDiagnosticMode: true,
+            enableDiagnosticModeGesture: true
+        )
         Measure.initialize(with: clientInfo, config: config)
 
         FirebaseApp.configure()

@@ -1,20 +1,69 @@
+import CodeBlock from "@/app/components/code_block";
+import type { CodeBlockLanguage } from "@/app/utils/highlighter";
 import { cn } from "@/app/utils/shadcn_utils";
 import { underlineLinkStyle } from "@/app/utils/shared_styles";
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import React from "react";
 import type { Components } from "react-markdown";
+
+// Map markdown fence aliases to the Shiki language names we load in highlighter.ts.
+const LANG_ALIASES: Record<string, CodeBlockLanguage> = {
+  sh: "shellscript",
+  shell: "shellscript",
+  bash: "shellscript",
+  objc: "objective-c",
+};
+
+const SUPPORTED_LANGUAGES: ReadonlySet<CodeBlockLanguage> = new Set<CodeBlockLanguage>([
+  "kotlin",
+  "xml",
+  "swift",
+  "dart",
+  "yaml",
+  "ruby",
+  "groovy",
+  "json",
+  "jsonc",
+  "objective-c",
+  "shellscript",
+]);
+
+function resolveLanguage(className: string | undefined): CodeBlockLanguage | null {
+  if (!className) {
+    return null;
+  }
+  const match = className.match(/(?:^|\s)language-(\S+)/);
+  if (!match) {
+    return null;
+  }
+  const raw = match[1].toLowerCase();
+  const mapped = (LANG_ALIASES[raw] ?? raw) as CodeBlockLanguage;
+  return SUPPORTED_LANGUAGES.has(mapped) ? mapped : null;
+}
 
 /**
  * Rewrite relative markdown links to /docs/... routes.
+ *
+ * `isIndex` indicates whether the current page is rendered from a README.md.
+ * For README pages, currentSlug already represents the directory the page lives
+ * in, so we resolve siblings relative to currentSlug directly. For file pages
+ * (e.g. /docs/features/feature-X) the directory is one level up.
  */
-export function rewriteHref(href: string, currentSlug: string[]): string {
+export function rewriteHref(href: string, currentSlug: string[], isIndex = false): string {
   if (!href || href.startsWith("#") || href.startsWith("http://") || href.startsWith("https://") || href.startsWith("mailto:")) {
     return href;
   }
 
+  const currentDir = isIndex
+    ? [...currentSlug]
+    : currentSlug.length > 0
+      ? currentSlug.slice(0, -1)
+      : [];
+
   // Relative .md link
   if (href.includes(".md")) {
     const [pathPart, anchor] = href.split("#");
-    const currentDir = currentSlug.length > 0 ? currentSlug.slice(0, -1) : [];
     const segments = pathPart.split("/");
     const resolved: string[] = [...currentDir];
 
@@ -25,7 +74,7 @@ export function rewriteHref(href: string, currentSlug: string[]): string {
       if (seg === "..") {
         if (resolved.length === 0) {
           const remainingSegments = segments.slice(segments.indexOf(seg));
-          const githubPath = resolveGitHubPath(currentSlug, remainingSegments);
+          const githubPath = resolveGitHubPath(currentDir, remainingSegments);
           return `https://github.com/measure-sh/measure/blob/main/${githubPath}`;
         }
         resolved.pop();
@@ -48,7 +97,7 @@ export function rewriteHref(href: string, currentSlug: string[]): string {
   // Relative path with ../ that escapes the docs tree — link to GitHub
   if (href.includes("..")) {
     const segments = href.replace(/^\.\//, "").split("/");
-    const resolved = [...(currentSlug.length > 0 ? currentSlug.slice(0, -1) : [])];
+    const resolved = [...currentDir];
     for (const seg of segments) {
       if (seg === "." || seg === "") {
         continue;
@@ -56,7 +105,7 @@ export function rewriteHref(href: string, currentSlug: string[]): string {
       if (seg === "..") {
         if (resolved.length === 0) {
           const remainingSegments = segments.slice(segments.indexOf(seg));
-          const githubPath = resolveGitHubPath(currentSlug, remainingSegments);
+          const githubPath = resolveGitHubPath(currentDir, remainingSegments);
           return `https://github.com/measure-sh/measure/blob/main/${githubPath}`;
         }
         resolved.pop();
@@ -69,8 +118,8 @@ export function rewriteHref(href: string, currentSlug: string[]): string {
   return href;
 }
 
-function resolveGitHubPath(currentSlug: string[], segments: string[]): string {
-  const repoPath = ["docs", ...currentSlug.slice(0, -1)];
+function resolveGitHubPath(currentDir: string[], segments: string[]): string {
+  const repoPath = ["docs", ...currentDir];
   for (const seg of segments) {
     if (seg === "..") {
       repoPath.pop();
@@ -95,7 +144,7 @@ export function rewriteImgSrc(src: string): string {
   return src;
 }
 
-export function createMarkdownComponents(currentSlug: string[]): Components {
+export function createMarkdownComponents(currentSlug: string[], isIndex = false): Components {
   return {
     h1: ({ children, id }) => (
       <h1 id={id} className="font-display text-3xl font-bold mt-12 mb-6 scroll-mt-24">
@@ -128,12 +177,12 @@ export function createMarkdownComponents(currentSlug: string[]): Components {
       </h4>
     ),
     p: ({ children }) => (
-      <p className="font-body leading-7 mb-4">
+      <p className="font-body leading-relaxed mb-4">
         {children}
       </p>
     ),
     a: ({ href, children, node, ...props }) => {
-      const rewritten = rewriteHref(href || "", currentSlug);
+      const rewritten = rewriteHref(href || "", currentSlug, isIndex);
       const isExternal = rewritten.startsWith("http://") || rewritten.startsWith("https://") || rewritten.startsWith("mailto:");
 
       if (isExternal) {
@@ -177,7 +226,7 @@ export function createMarkdownComponents(currentSlug: string[]): Components {
       </ol>
     ),
     li: ({ children }) => (
-      <li className="leading-7">
+      <li className="leading-relaxed">
         {children}
       </li>
     ),
@@ -218,11 +267,34 @@ export function createMarkdownComponents(currentSlug: string[]): Components {
         </blockquote>
       );
     },
-    pre: ({ children }) => (
-      <pre className="font-code bg-muted rounded-lg p-4 my-4 overflow-x-auto text-sm">
-        {children}
-      </pre>
-    ),
+    pre: ({ children }) => {
+      // react-markdown wraps fenced code in <pre><code class="language-X">…</code></pre>.
+      // When we recognize the language, render a syntax-highlighted CodeBlock and let it
+      // own the outer <pre> (Shiki emits its own <pre><code>).
+      const childArray = React.Children.toArray(children);
+      if (childArray.length === 1 && React.isValidElement(childArray[0])) {
+        const child = childArray[0] as React.ReactElement<{
+          children?: React.ReactNode;
+          className?: string;
+        }>;
+        const language = resolveLanguage(child.props.className);
+        if (language) {
+          const code = extractTextContent(child.props.children).replace(/\n$/, "");
+          return (
+            <CodeBlock
+              code={code}
+              language={language}
+              className="font-code text-sm leading-relaxed rounded-lg overflow-hidden my-4 [&_pre]:p-4 [&_pre]:overflow-x-auto"
+            />
+          );
+        }
+      }
+      return (
+        <pre className="font-code bg-muted rounded-lg p-4 my-4 overflow-x-auto text-sm leading-relaxed">
+          {children}
+        </pre>
+      );
+    },
     code: ({ children, className }) => {
       if (!className) {
         return (
@@ -261,13 +333,17 @@ export function createMarkdownComponents(currentSlug: string[]): Components {
     ),
     hr: () => <hr className="my-10 border-border" />,
     details: ({ children }) => (
-      <details className="my-4 border border-border rounded-lg">
+      <details className="group my-4 border border-border rounded-lg [&>*:not(summary)]:px-4 [&>*:not(summary):last-child]:pb-4">
         {children}
       </details>
     ),
     summary: ({ children }) => (
-      <summary className="cursor-pointer font-semibold p-4 hover:bg-muted/50 rounded-lg">
-        {children}
+      <summary className="cursor-pointer font-semibold p-4 hover:bg-muted/50 rounded-lg flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
+        <ChevronRight
+          className="w-4 h-4 shrink-0 transition-transform group-open:rotate-90"
+          aria-hidden="true"
+        />
+        <span>{children}</span>
       </summary>
     ),
     strong: ({ children }) => (

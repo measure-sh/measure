@@ -60,7 +60,10 @@ import sh.measure.android.Measure
 import sh.measure.android.tracing.Span
 import sh.measure.android.tracing.SpanStatus
 import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 
 class OkHttpActivity : ComponentActivity() {
     private val okHttpClient by lazy {
@@ -90,9 +93,21 @@ class OkHttpActivity : ComponentActivity() {
         onResult: (String) -> Unit,
     ) {
         val url = "$BASE_URL${config.path}"
-        onResult("Sending ${config.method} $url...")
+        onResult("Sending ${config.method} $url via ${config.client.label}...")
 
         val span = Measure.startSpan("http")
+        when (config.client) {
+            HttpClient.OK_HTTP -> sendViaOkHttp(url, config, span, onResult)
+            HttpClient.URL_CONNECTION -> sendViaUrlConnection(url, config, span, onResult)
+        }
+    }
+
+    private fun sendViaOkHttp(
+        url: String,
+        config: RequestConfig,
+        span: Span,
+        onResult: (String) -> Unit,
+    ) {
         val requestBuilder = Request.Builder()
             .url(url)
             .header(Measure.getTraceParentHeaderKey(), Measure.getTraceParentHeaderValue(span))
@@ -108,10 +123,58 @@ class OkHttpActivity : ComponentActivity() {
             requestBuilder.get()
         }
 
-        executeRequest(requestBuilder.build(), span, onResult)
+        executeOkHttpRequest(requestBuilder.build(), span, onResult)
     }
 
-    private fun executeRequest(request: Request, span: Span, onResult: (String) -> Unit) {
+    private fun sendViaUrlConnection(
+        url: String,
+        config: RequestConfig,
+        span: Span,
+        onResult: (String) -> Unit,
+    ) {
+        // HttpURLConnection blocks on connect/read, so run off the main thread.
+        thread(name = "frank-urlconn") {
+            try {
+                val conn = URL(url).openConnection() as HttpURLConnection
+                try {
+                    conn.requestMethod = config.method
+                    conn.connectTimeout = TIMEOUT_MS
+                    conn.readTimeout = TIMEOUT_MS
+                    conn.setRequestProperty(
+                        Measure.getTraceParentHeaderKey(),
+                        Measure.getTraceParentHeaderValue(span),
+                    )
+                    if (config.headerKey.isNotBlank()) {
+                        conn.setRequestProperty(config.headerKey, config.headerValue)
+                    }
+                    if (config.method == "POST") {
+                        conn.doOutput = true
+                        conn.setRequestProperty("Content-Type", "application/json")
+                        val payload = if (config.includeBody) REQUEST_BODY else ""
+                        conn.outputStream.use { it.write(payload.toByteArray()) }
+                    }
+
+                    val code = conn.responseCode
+                    val body = (conn.errorStream ?: conn.inputStream)
+                        .bufferedReader().use { it.readText() }
+                    if (code in 200..299) {
+                        span.setStatus(SpanStatus.Ok).end()
+                    } else {
+                        span.setStatus(SpanStatus.Error).end()
+                    }
+                    runOnUiThread { onResult("Status: $code\n\n$body") }
+                } finally {
+                    conn.disconnect()
+                }
+            } catch (e: IOException) {
+                Log.e(TAG, "urlconn failure", e)
+                span.setStatus(SpanStatus.Error).end()
+                runOnUiThread { onResult("Failed\n\n${e.message}") }
+            }
+        }
+    }
+
+    private fun executeOkHttpRequest(request: Request, span: Span, onResult: (String) -> Unit) {
         try {
             okHttpClient.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
@@ -142,6 +205,7 @@ class OkHttpActivity : ComponentActivity() {
     companion object {
         private const val TAG = "OkHttpActivity"
         private const val BASE_URL = "https://postman-echo.com"
+        private const val TIMEOUT_MS = 10_000
         private const val REQUEST_BODY =
             """{"user":"test@example.com","action":"login","timestamp":1234567890}"""
 
@@ -157,12 +221,18 @@ class OkHttpActivity : ComponentActivity() {
     }
 }
 
+private enum class HttpClient(val label: String) {
+    OK_HTTP("OkHttp"),
+    URL_CONNECTION("HttpURLConnection"),
+}
+
 private data class RequestConfig(
     val path: String,
     val method: String,
     val headerKey: String,
     val headerValue: String,
     val includeBody: Boolean,
+    val client: HttpClient,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -176,6 +246,7 @@ private fun OkHttpScreen(
     var headerKey by remember { mutableStateOf("") }
     var headerValue by remember { mutableStateOf("") }
     var includeBody by remember { mutableStateOf(false) }
+    var client by remember { mutableStateOf(HttpClient.OK_HTTP) }
     var response by remember { mutableStateOf("Ready") }
     var isLoading by remember { mutableStateOf(false) }
 
@@ -207,6 +278,7 @@ private fun OkHttpScreen(
                         headerKey = headerKey,
                         headerValue = headerValue,
                         includeBody = includeBody,
+                        client = client,
                     )
                     onSendRequest(config) { result ->
                         response = result
@@ -248,6 +320,23 @@ private fun OkHttpScreen(
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Client chips
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        HttpClient.values().forEach { c ->
+                            FilterChip(
+                                selected = client == c,
+                                onClick = { client = c },
+                                label = { Text(c.label) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // Method chips

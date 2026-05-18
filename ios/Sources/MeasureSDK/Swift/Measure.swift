@@ -107,10 +107,10 @@ import UIKit
                                           attachments: attachments)
     }
 
-    func internalAddLog(platform: String, message: String, error: Error?) {
+    func internalAddLog(platform: String, message: String) {
         guard let measureInternal = measureInternal else { return }
 
-        measureInternal.internalAddLog(platform: platform, message: message, error: error)
+        measureInternal.internalAddLog(platform: platform, message: message)
     }
 
     func internalTrackSpan(name: String, // swiftlint:disable:this function_parameter_count
@@ -200,6 +200,26 @@ import UIKit
         return measureInternal.getTraceParentHeaderKey()
     }
 
+    func startSpanObjC(name: String) -> MsrObjCSpan {
+        guard let measureInternal = self.measureInternal else { return .invalid }
+        return measureInternal.startSpanObjC(name: name)
+    }
+
+    func startSpanObjC(name: String, timestamp: Int64) -> MsrObjCSpan {
+        guard let measureInternal = self.measureInternal else { return .invalid }
+        return measureInternal.startSpanObjC(name: name, timestamp: timestamp)
+    }
+
+    func createSpanBuilderObjC(name: String) -> MsrObjCSpanBuilder? {
+        guard let measureInternal = self.measureInternal else { return nil }
+        return measureInternal.createSpanBuilderObjC(name: name)
+    }
+
+    func getTraceParentHeaderValue(objcSpan: MsrObjCSpan) -> String {
+        guard let measureInternal = self.measureInternal else { return "" }
+        return measureInternal.getTraceParentHeaderValue(for: objcSpan)
+    }
+
     func launchBugReport(takeScreenshot: Bool = true,
                          bugReportConfig: BugReportConfig = .default,
                          attributes: [String: AttributeValue]? = nil) {
@@ -276,7 +296,7 @@ import UIKit
 
     func internalGetAttachmentDirectory() -> String? {
         guard let measureInternal = self.measureInternal else { return nil }
-        return measureInternal.getDocumentDirectoryPath()
+        return measureInternal.getAttachmentDirectoryPath()
     }
 
     func internalEncodeWebP(pixels: Data, width: Int, height: Int, completion: @escaping (Data?) -> Void) {
@@ -452,9 +472,8 @@ extension Measure {
     /// - Parameters:
     ///   - platform: The platform sending the log. `react-native` for React native project or `flutter` for Flutter project.
     ///   - message: Message to log
-    ///   - error: Error object to log
-    public static func internalAddLog(platform: String, message: String, error: Error?) {
-        Measure.shared.internalAddLog(platform: platform, message: message, error: error)
+    public static func internalAddLog(platform: String, message: String) {
+        Measure.shared.internalAddLog(platform: platform, message: message)
     }
 
     /// An internal method to track spans from cross-platform frameworks
@@ -659,8 +678,50 @@ extension Measure {
     /// Returns the W3C traceparent header key/name.
     /// - Returns: The standardized header key 'traceparent' that should be used when adding
     /// distributed tracing context to HTTP requests
-    public static func getTraceParentHeaderKey() -> String {
+    @objc public static func getTraceParentHeaderKey() -> String {
         Measure.shared.getTraceParentHeaderKey()
+    }
+
+    /// Starts a new performance tracing span with the specified name. For use from Objective-C.
+    /// - Parameter name: The name to identify this span.
+    /// - Returns: A new span if the SDK is initialized, or a no-op span if not initialized.
+    ///
+    /// In Swift, use `startSpan(name:)` which returns the `Span` protocol directly.
+    @objc(startSpanWithName:)
+    public static func startSpanObjC(name: String) -> MsrObjCSpan {
+        Measure.shared.startSpanObjC(name: name)
+    }
+
+    /// Starts a new performance tracing span with the specified name and start timestamp. For use from Objective-C.
+    /// - Parameters:
+    ///   - name: The name to identify this span.
+    ///   - timestamp: The milliseconds since epoch when the span started. Obtain via `getCurrentTime()`.
+    /// - Returns: A new span if the SDK is initialized, or a no-op span if not initialized.
+    ///
+    /// In Swift, use `startSpan(name:timestamp:)` which returns the `Span` protocol directly.
+    @objc(startSpanWithName:timestamp:)
+    public static func startSpanObjC(name: String, timestamp: Int64) -> MsrObjCSpan {
+        Measure.shared.startSpanObjC(name: name, timestamp: timestamp)
+    }
+
+    /// Creates a configurable span builder for deferred span creation. For use from Objective-C.
+    /// - Parameter name: The name to identify this span.
+    /// - Returns: A builder instance if the SDK is initialized, or nil if not initialized.
+    ///
+    /// In Swift, use `createSpanBuilder(name:)` which returns the `SpanBuilder` protocol directly.
+    @objc(createSpanBuilderWithName:)
+    public static func createSpanBuilderObjC(name: String) -> MsrObjCSpanBuilder? {
+        Measure.shared.createSpanBuilderObjC(name: name)
+    }
+
+    /// Returns the W3C traceparent header value for the given span. For use from Objective-C.
+    /// - Parameter span: The `MsrObjCSpan` to extract the traceparent header value from.
+    /// - Returns: A W3C trace context compliant header value in the format: `{version}-{traceId}-{spanId}-{traceFlags}`
+    ///
+    /// In Swift, use `getTraceParentHeaderValue(span:)` which accepts the `Span` protocol directly.
+    @objc(getTraceParentHeaderValueForSpan:)
+    public static func getTraceParentHeaderValue(objcSpan: MsrObjCSpan) -> String {
+        Measure.shared.getTraceParentHeaderValue(objcSpan: objcSpan)
     }
 
     /// Takes a screenshot and launches the bug report flow.
@@ -871,6 +932,55 @@ extension Measure {
                                              endTime: endTime,
                                              client: client,
                                              statusCode: statusCode,
+                                             error: error,
+                                             requestHeaders: requestHeaders,
+                                             responseHeaders: responseHeaders,
+                                             requestBody: requestBody,
+                                             responseBody: responseBody)
+    }
+
+    /// Tracks a HTTP event. Note that if you're using the Measure gradle plugin,
+    /// OkHttp events will be automatically tracked. This method is useful if you
+    /// use any other HTTP client.
+    ///
+    /// Usage notes:
+    /// - **This api is intended for Objective-C use only. For swift, use the `trackHttpEvent` api instead.**
+    /// - Always set the `statusCode` in case of a response or `error` in case the request failed.
+    /// - Use a time source that provides monotonic time (like `CFAbsoluteTimeGetCurrent()` or a custom one based on `mach_absolute_time()`) for start and end time to avoid clock skew issues.
+    /// - Use `requestHeaders`, `responseHeaders`, `requestBody` and `responseBody` only when
+    /// required as they can increase the amount of data to be stored and sent considerably.
+    /// - Request body is only tracked if the request headers contain the `Content-Type` header set to `application/json`.
+    /// Similarly, response body is only tracked if the response headers contain the `Content-Type` header set to `application/json`.
+    ///
+    /// - Parameters:
+    ///   - url: The URL to which the request was made
+    ///   - method: The HTTP method used for the request
+    ///   - startTime: The time when the HTTP request started (recommended to use a monotonic time source)
+    ///   - endTime: The time when the HTTP request ended (recommended to use a monotonic time source)
+    ///   - client: The name of the HTTP client used, optional (defaults to "unknown")
+    ///   - statusCode: The HTTP status code of the response received
+    ///   - error: The error if the request fails.
+    ///   - requestHeaders: The HTTP headers in the request
+    ///   - responseHeaders: The HTTP headers in the response
+    ///   - requestBody: An optional request body
+    ///   - responseBody: An optional response body
+    @objc public static func trackHttpEventObjc(url: String,
+                                                method: String,
+                                                startTime: UInt64,
+                                                endTime: UInt64,
+                                                client: String,
+                                                statusCode: NSNumber?,
+                                                error: Error?,
+                                                requestHeaders: [String: String]?,
+                                                responseHeaders: [String: String]?,
+                                                requestBody: String?,
+                                                responseBody: String?) {
+        return Measure.shared.trackHttpEvent(url: url,
+                                             method: method,
+                                             startTime: startTime,
+                                             endTime: endTime,
+                                             client: client,
+                                             statusCode: statusCode?.intValue,
                                              error: error,
                                              requestHeaders: requestHeaders,
                                              responseHeaders: responseHeaders,
