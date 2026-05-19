@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Intelligently sort app versions (#3642) by @detj in #3642
 - (**backend**): Prevent occasional panic in apple symbolication (#3628) by @detj in #3628
 - (**backend**): Group crashes by fingerprint, ignore app version  (#3631) by @abhaysood in #3631
 - (**backend**): Journey api fails sometimes (#3586) by @detj in #3586
