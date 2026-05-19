@@ -2,6 +2,7 @@
   "name": "@measuresh/react-native",
   "platforms": ["android", "ios"],
   "android": {
+    "name": "measuresh_react-native",
     "modulesClassNames": ["sh.measure.rn.MeasurePackage"]
   },
   "ios": {
