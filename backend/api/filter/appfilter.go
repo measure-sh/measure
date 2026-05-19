@@ -14,7 +14,6 @@ import (
 	"backend/api/server"
 	"backend/libs/ambient"
 	"backend/libs/logcomment"
-	"backend/libs/opsys"
 	"backend/libs/text"
 	"backend/libs/udattr"
 
@@ -923,18 +922,8 @@ func (af AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes 
 		v.Add(version, code)
 	}
 
-	// attempt to sort versions depending on
-	// app os requirements and conventions
-	switch opsys.ToFamily(af.AppOSName) {
-	case opsys.AppleFamily:
-		if !v.IsValidSemver() {
-			break
-		}
-
-		if err = v.SemverSortByVersionDesc(); err != nil {
-			return
-		}
-	}
+	// intelligently sort versions
+	v.Sort()
 
 	versions = v.Versions()
 	versionCodes = v.Codes()
