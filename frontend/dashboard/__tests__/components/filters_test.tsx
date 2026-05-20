@@ -714,21 +714,30 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
     setFiltersSuccess();
   });
 
-  it("renders both ANRs and Errors pills when both error types are selected (the default)", async () => {
+  it("renders both ANRs and Errors pills when both error types are selected", async () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
     });
+    // Default is error only; opt ANR in for this test.
+    await act(async () => {
+      storeInstance.getState().setSelectedErrorTypes(["error", "anr"]);
+    });
     await waitFor(() => {
       expect(screen.getByText("ANRs")).toBeInTheDocument();
     });
-    expect(screen.getByText("Errors")).toBeInTheDocument();
+    // Errors pill includes the default Fatal severity.
+    expect(screen.getByText("Errors - Fatal")).toBeInTheDocument();
   });
 
   it("hides the ANRs pill when 'anr' is not in selectedErrorTypes", async () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
+    });
+    // Start with both selected so we can observe ANRs disappearing.
+    await act(async () => {
+      storeInstance.getState().setSelectedErrorTypes(["error", "anr"]);
     });
     await waitFor(() => {
       expect(screen.getByText("ANRs")).toBeInTheDocument();
@@ -739,7 +748,7 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
     await waitFor(() => {
       expect(screen.queryByText("ANRs")).not.toBeInTheDocument();
     });
-    expect(screen.getByText("Errors")).toBeInTheDocument();
+    expect(screen.getByText("Errors - Fatal")).toBeInTheDocument();
   });
 
   it("hides the Errors pill when 'error' is not in selectedErrorTypes", async () => {
@@ -748,13 +757,13 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
       showErrorType: true,
     });
     await waitFor(() => {
-      expect(screen.getByText("Errors")).toBeInTheDocument();
+      expect(screen.getByText("Errors - Fatal")).toBeInTheDocument();
     });
     await act(async () => {
       storeInstance.getState().setSelectedErrorTypes(["anr"]);
     });
     await waitFor(() => {
-      expect(screen.queryByText("Errors")).not.toBeInTheDocument();
+      expect(screen.queryByText(/^Errors/)).not.toBeInTheDocument();
     });
     expect(screen.getByText("ANRs")).toBeInTheDocument();
   });
@@ -773,6 +782,10 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
       filterSource: FilterSource.Errors,
       showErrorType: true,
     });
+    // Clear the default Fatal severity so the pill has no subfilters.
+    await act(async () => {
+      storeInstance.getState().setSelectedSeverities([]);
+    });
     await waitFor(() => {
       expect(screen.getByText("Errors")).toBeInTheDocument();
     });
@@ -785,6 +798,7 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
       showErrorType: true,
     });
     await act(async () => {
+      storeInstance.getState().setSelectedSeverities([]);
       storeInstance.getState().setCustomErrorsOnly(true);
     });
     await waitFor(() => {
@@ -825,6 +839,10 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
+    });
+    // Opt ANR in first; default is error only.
+    await act(async () => {
+      storeInstance.getState().setSelectedErrorTypes(["error", "anr"]);
     });
     fireEvent.click(await screen.findByLabelText("Clear ANRs"));
     await waitFor(() => {

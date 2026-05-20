@@ -462,15 +462,17 @@ describe("Errors filter behaviour", () => {
     );
   }
 
-  it("default request includes both error and anr in type", async () => {
+  it("default request includes only error in type", async () => {
     const { errorGroupsRequests } = setupRequestCapture();
     await renderAndWaitForData();
     expect(errorGroupsRequests.length).toBeGreaterThan(0);
     const lastUrl = errorGroupsRequests[errorGroupsRequests.length - 1].url;
-    expect(lastUrl).toContain("type=error%2Canr");
+    expect(lastUrl).toContain("type=error");
+    expect(lastUrl).not.toContain("type=anr");
+    expect(lastUrl).not.toContain("type=error%2Canr");
   });
 
-  it("Type=Error only causes type=error in requests", async () => {
+  it("Type=Error+ANR causes type=error,anr in requests", async () => {
     const { errorGroupsRequests, errorGroupsPlotRequests } =
       setupRequestCapture();
     await renderAndWaitForData();
@@ -478,7 +480,7 @@ describe("Errors filter behaviour", () => {
     errorGroupsPlotRequests.length = 0;
 
     await act(async () => {
-      filtersStore.getState().setSelectedErrorTypes(["error"]);
+      filtersStore.getState().setSelectedErrorTypes(["error", "anr"]);
     });
 
     await waitFor(
@@ -489,9 +491,7 @@ describe("Errors filter behaviour", () => {
     );
 
     const lastUrl = errorGroupsRequests[errorGroupsRequests.length - 1].url;
-    expect(lastUrl).toContain("type=error");
-    expect(lastUrl).not.toContain("type=anr");
-    expect(lastUrl).not.toContain("type=error%2Canr");
+    expect(lastUrl).toContain("type=error%2Canr");
   });
 
   it("Type=ANR only causes type=anr in requests and no severity/custom", async () => {
@@ -579,13 +579,24 @@ describe("Errors filter pills", () => {
 
   it("renders ANRs pill when ANR is in selected types", async () => {
     await renderAndWaitForData();
-    // Default state already has both "error" and "anr" → both pills visible
-    expect(screen.getByText("ANRs")).toBeTruthy();
+    // Default is error only; opt ANR in.
+    await act(async () => {
+      filtersStore.getState().setSelectedErrorTypes(["error", "anr"]);
+    });
+    await waitFor(() => {
+      expect(screen.getByText("ANRs")).toBeTruthy();
+    });
   });
 
   it('renders Errors pill labelled simply "Errors" when no severity/custom', async () => {
     await renderAndWaitForData();
-    expect(screen.getByText("Errors")).toBeTruthy();
+    // Clear the default Fatal severity so the pill has no subfilters.
+    await act(async () => {
+      filtersStore.getState().setSelectedSeverities([]);
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Errors")).toBeTruthy();
+    });
   });
 
   it("Errors pill folds Custom + severity into concatenated label", async () => {
@@ -608,8 +619,13 @@ describe("Errors filter pills", () => {
 
   it("clicking ANRs pill X removes 'anr' from selected types", async () => {
     await renderAndWaitForData();
-    // The X button is rendered with aria-label="Clear ANRs"
-    const clearButton = screen.getByRole("button", { name: "Clear ANRs" });
+    // Default is error only; opt ANR in so the pill is present to click.
+    await act(async () => {
+      filtersStore.getState().setSelectedErrorTypes(["error", "anr"]);
+    });
+    const clearButton = await screen.findByRole("button", {
+      name: "Clear ANRs",
+    });
 
     await act(async () => {
       fireEvent.click(clearButton);
