@@ -230,7 +230,7 @@ describe("Alerts Overview (MSW integration)", () => {
       const links = screen.getAllByRole("link", { name: /ID: alert-001/ });
       expect(links.length).toBeGreaterThan(0);
       expect(links[0].getAttribute("href")).toBe(
-        "/test-team/crashes/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-001",
+        "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-001",
       );
     });
 
@@ -239,7 +239,7 @@ describe("Alerts Overview (MSW integration)", () => {
       const links = screen.getAllByRole("link", { name: /ID: alert-002/ });
       expect(links.length).toBeGreaterThan(0);
       expect(links[0].getAttribute("href")).toBe(
-        "/test-team/anrs/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/anr-group-001",
+        "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/anr-group-001",
       );
     });
 
@@ -249,7 +249,7 @@ describe("Alerts Overview (MSW integration)", () => {
       const dataRow = rows[1]; // first data row (index 0 is header)
       fireEvent.keyDown(dataRow, { key: "Enter" });
       expect(mockRouterPush).toHaveBeenCalledWith(
-        "/test-team/crashes/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-001",
+        "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-001",
       );
     });
 
@@ -259,7 +259,7 @@ describe("Alerts Overview (MSW integration)", () => {
       const dataRow = rows[1];
       fireEvent.keyDown(dataRow, { key: " " });
       expect(mockRouterPush).toHaveBeenCalledWith(
-        "/test-team/crashes/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-001",
+        "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-001",
       );
     });
 
@@ -269,7 +269,7 @@ describe("Alerts Overview (MSW integration)", () => {
       const dataRow = rows[2]; // second data row
       fireEvent.keyDown(dataRow, { key: "Enter" });
       expect(mockRouterPush).toHaveBeenCalledWith(
-        "/test-team/anrs/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/anr-group-001",
+        "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/anr-group-001",
       );
     });
   });
@@ -319,7 +319,7 @@ describe("Alerts Overview (MSW integration)", () => {
             entity_id: "crash-group-page2",
             type: "crash_spike",
             message: "Page 2 alert: OutOfMemoryError spike",
-            url: "/test-team/crashes/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-page2",
+            url: "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-page2",
             created_at: "2026-04-08T12:00:00Z",
             updated_at: "2026-04-08T12:00:00Z",
           },
@@ -399,7 +399,7 @@ describe("Alerts Overview (MSW integration)", () => {
             entity_id: "crash-group-page2",
             type: "crash_spike",
             message: "Deep-linked page 2 alert",
-            url: "/test-team/crashes/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-page2",
+            url: "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-page2",
             created_at: "2026-04-08T12:00:00Z",
             updated_at: "2026-04-08T12:00:00Z",
           },
@@ -500,7 +500,7 @@ describe("Alerts Overview (MSW integration)", () => {
             entity_id: "crash-group-page2",
             type: "crash_spike",
             message: "Page 2 alert",
-            url: "/test-team/crashes/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-page2",
+            url: "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-page2",
             created_at: "2026-04-08T12:00:00Z",
             updated_at: "2026-04-08T12:00:00Z",
           },

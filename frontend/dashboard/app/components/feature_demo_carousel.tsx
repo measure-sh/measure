@@ -11,10 +11,10 @@ const TraceDetails = dynamic(() => import("./trace_details"), { ssr: false });
 const SessionTimeline = dynamic(() => import("./session_timeline"), {
   ssr: false,
 });
-const ExceptionsDetails = dynamic(
+const ErrorsDetails = dynamic(
   () =>
-    import("./exceptions_details").then(
-      (mod) => mod.ExceptionsDetails as unknown as React.ComponentType<any>,
+    import("./errors_details").then(
+      (mod) => mod.ErrorsDetails as unknown as React.ComponentType<any>,
     ),
   { ssr: false },
 );
@@ -132,10 +132,10 @@ export default function FeatureDemoCarousel() {
             key={`demo-session-timeline`}
           />,
           <Overview demo={true} hideDemoTitle={false} key={`demo-overview`} />,
-          <ExceptionsDetails
+          <ErrorsDetails
             demo={true}
             hideDemoTitle={false}
-            key={`demo-exceptions`}
+            key={`demo-errors`}
           />,
           <TraceDetails demo={true} hideDemoTitle={false} key={`demo-trace`} />,
           <BugReport

@@ -11,13 +11,12 @@ import {
   CreateAppApiStatus,
   CreateTeamApiStatus,
   DowngradeToFreeApiStatus,
-  ExceptionGroupCommonPathApiStatus,
-  ExceptionsDetailsApiStatus,
-  ExceptionsDetailsPlotApiStatus,
-  ExceptionsDistributionPlotApiStatus,
-  ExceptionsOverviewApiStatus,
-  ExceptionsOverviewPlotApiStatus,
-  ExceptionsType,
+  ErrorGroupCommonPathApiStatus,
+  ErrorsDetailsApiStatus,
+  ErrorsDetailsPlotApiStatus,
+  ErrorsDistributionPlotApiStatus,
+  ErrorsOverviewApiStatus,
+  ErrorsOverviewPlotApiStatus,
   FetchAppRetentionApiStatus,
   FetchAppThresholdPrefsApiStatus,
   FetchBillingInfoApiStatus,
@@ -49,7 +48,7 @@ import {
   SessionTimelineApiStatus,
   SessionTimelinesOverviewApiStatus,
   SessionTimelinesOverviewPlotApiStatus,
-  SessionsVsExceptionsPlotApiStatus,
+  SessionsVsErrorsPlotApiStatus,
   SpanMetricsPlotApiStatus,
   SpansApiStatus,
   Team,
@@ -84,12 +83,12 @@ import {
   fetchBugReportsOverviewPlotFromServer,
   fetchCheckoutSessionFromServer,
   fetchCustomerPortalUrlFromServer,
-  fetchExceptionGroupCommonPathFromServer,
-  fetchExceptionsDetailsFromServer,
-  fetchExceptionsDetailsPlotFromServer,
-  fetchExceptionsDistributionPlotFromServer,
-  fetchExceptionsOverviewFromServer,
-  fetchExceptionsOverviewPlotFromServer,
+  fetchErrorGroupCommonPathFromServer,
+  fetchErrorsDetailsFromServer,
+  fetchErrorsDetailsPlotFromServer,
+  fetchErrorsDistributionPlotFromServer,
+  fetchErrorsOverviewFromServer,
+  fetchErrorsOverviewPlotFromServer,
   fetchJourneyFromServer,
   fetchMetricsFromServer,
   fetchNetworkDomainsFromServer,
@@ -106,7 +105,7 @@ import {
   fetchSessionTimelineFromServer,
   fetchSessionTimelinesOverviewFromServer,
   fetchSessionTimelinesOverviewPlotFromServer,
-  fetchSessionsVsExceptionsPlotFromServer,
+  fetchSessionsVsErrorsPlotFromServer,
   fetchSpanMetricsPlotFromServer,
   fetchSpansFromServer,
   fetchTeamSlackConnectUrlFromServer,
@@ -503,7 +502,6 @@ export function useAppThresholdPrefsQuery(appId: string | undefined) {
 
 export function useJourneyQuery(
   journeyType: JourneyType,
-  exceptionsGroupId: string | null,
   bidirectional: boolean,
 ) {
   const filters = useFiltersStore((s) => s.filters);
@@ -511,17 +509,11 @@ export function useJourneyQuery(
     queryKey: [
       "journey",
       journeyType,
-      exceptionsGroupId,
       bidirectional,
       filters.serialisedFilters,
     ] as const,
     queryFn: async () => {
-      const result = await fetchJourneyFromServer(
-        journeyType,
-        exceptionsGroupId,
-        bidirectional,
-        filters,
-      );
+      const result = await fetchJourneyFromServer(bidirectional, filters);
       if (result.status === JourneyApiStatus.Error) {
         throw new Error("Failed to fetch journey");
       }
@@ -727,31 +719,6 @@ export function useNetworkTrendsQuery(active: boolean) {
 
 // ─── Plot: Overview ──────────────────────────────────────────────────────
 
-export function useExceptionsOverviewPlotQuery(exceptionsType: ExceptionsType) {
-  const filters = useFiltersStore((s) => s.filters);
-  return useQuery({
-    queryKey: [
-      "exceptionsOverviewPlot",
-      exceptionsType,
-      filters.serialisedFilters,
-    ] as const,
-    queryFn: async () => {
-      const result = await fetchExceptionsOverviewPlotFromServer(
-        exceptionsType,
-        filters,
-      );
-      if (result.status === ExceptionsOverviewPlotApiStatus.Error) {
-        throw new Error("Failed to fetch exceptions plot");
-      }
-      if (result.status === ExceptionsOverviewPlotApiStatus.NoData) {
-        return null;
-      }
-      return mapPlotData(result.data);
-    },
-    enabled: filters.ready,
-  });
-}
-
 export function useBugReportsOverviewPlotQuery() {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
@@ -791,83 +758,21 @@ export function useSessionTimelinesOverviewPlotQuery() {
   });
 }
 
-export function useSessionsVsExceptionsPlotQuery() {
+export function useSessionsVsErrorsPlotQuery() {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
-    queryKey: ["sessionsVsExceptionsPlot", filters.serialisedFilters] as const,
+    queryKey: ["sessionsVsErrorsPlot", filters.serialisedFilters] as const,
     queryFn: async () => {
-      const result = await fetchSessionsVsExceptionsPlotFromServer(filters);
-      if (result.status === SessionsVsExceptionsPlotApiStatus.Error) {
-        throw new Error("Failed to fetch sessions vs exceptions plot");
+      const result = await fetchSessionsVsErrorsPlotFromServer(filters);
+      if (result.status === SessionsVsErrorsPlotApiStatus.Error) {
+        throw new Error("Failed to fetch sessions vs errors plot");
       }
-      if (result.status === SessionsVsExceptionsPlotApiStatus.NoData) {
+      if (result.status === SessionsVsErrorsPlotApiStatus.NoData) {
         return null;
       }
       return result.data;
     },
     enabled: filters.ready,
-  });
-}
-
-// ─── Plot: Exception Details ─────────────────────────────────────────────
-
-export function useExceptionsDetailsPlotQuery(
-  exceptionsType: ExceptionsType,
-  exceptionsGroupId: string,
-) {
-  const filters = useFiltersStore((s) => s.filters);
-  return useQuery({
-    queryKey: [
-      "exceptionsDetailsPlot",
-      exceptionsType,
-      exceptionsGroupId,
-      filters.serialisedFilters,
-    ] as const,
-    queryFn: async () => {
-      const result = await fetchExceptionsDetailsPlotFromServer(
-        exceptionsType,
-        exceptionsGroupId,
-        filters,
-      );
-      if (result.status === ExceptionsDetailsPlotApiStatus.Error) {
-        throw new Error("Failed to fetch exceptions details plot");
-      }
-      if (result.status === ExceptionsDetailsPlotApiStatus.NoData) {
-        return null;
-      }
-      return mapPlotData(result.data);
-    },
-    enabled: filters.ready && exceptionsGroupId !== "",
-  });
-}
-
-export function useExceptionsDistributionPlotQuery(
-  exceptionsType: ExceptionsType,
-  exceptionsGroupId: string,
-) {
-  const filters = useFiltersStore((s) => s.filters);
-  return useQuery({
-    queryKey: [
-      "exceptionsDistributionPlot",
-      exceptionsType,
-      exceptionsGroupId,
-      filters.serialisedFilters,
-    ] as const,
-    queryFn: async () => {
-      const result = await fetchExceptionsDistributionPlotFromServer(
-        exceptionsType,
-        exceptionsGroupId,
-        filters,
-      );
-      if (result.status === ExceptionsDistributionPlotApiStatus.Error) {
-        throw new Error("Failed to fetch distribution plot");
-      }
-      if (result.status === ExceptionsDistributionPlotApiStatus.NoData) {
-        return null;
-      }
-      return parseDistributionPlot(result.data);
-    },
-    enabled: filters.ready && exceptionsGroupId !== "",
   });
 }
 
@@ -949,39 +854,6 @@ export function useBugReportsOverviewQuery(paginationOffset: number) {
   });
 }
 
-// ─── Paginated: Exceptions Overview ──────────────────────────────────────
-
-const EXCEPTIONS_OVERVIEW_LIMIT = 5;
-
-export function useExceptionsOverviewQuery(
-  exceptionsType: ExceptionsType,
-  paginationOffset: number,
-) {
-  const filters = useFiltersStore((s) => s.filters);
-  return useQuery({
-    queryKey: [
-      "exceptionsOverview",
-      exceptionsType,
-      filters.serialisedFilters,
-      paginationOffset,
-    ] as const,
-    placeholderData: keepPreviousData,
-    queryFn: async () => {
-      const result = await fetchExceptionsOverviewFromServer(
-        exceptionsType,
-        filters,
-        EXCEPTIONS_OVERVIEW_LIMIT,
-        paginationOffset,
-      );
-      if (result.status === ExceptionsOverviewApiStatus.Error) {
-        throw new Error("Failed to fetch exceptions overview");
-      }
-      return result.data;
-    },
-    enabled: filters.ready,
-  });
-}
-
 // ─── Paginated: Traces ───────────────────────────────────────────────────
 
 const TRACES_LIMIT = 5;
@@ -1034,67 +906,147 @@ export function useSessionTimelinesOverviewQuery(paginationOffset: number) {
   });
 }
 
-// ─── Paginated: Crash/ANR Details ────────────────────────────────────────
+// ─── Errors (unified Crashes + ANRs) ─────────────────────────────────────
 
-const EXCEPTIONS_DETAILS_LIMIT = 1;
+const ERRORS_OVERVIEW_LIMIT = 5;
+const ERRORS_DETAILS_LIMIT = 1;
 
-export function useCrashDetailsQuery(
-  exceptionsGroupId: string,
-  paginationOffset: number,
-) {
+export function useErrorsOverviewQuery(paginationOffset: number) {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
     queryKey: [
-      "crashDetails",
-      exceptionsGroupId,
+      "errorsOverview",
       filters.serialisedFilters,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
     queryFn: async () => {
-      const result = await fetchExceptionsDetailsFromServer(
-        ExceptionsType.Crash,
-        exceptionsGroupId,
+      const result = await fetchErrorsOverviewFromServer(
         filters,
-        EXCEPTIONS_DETAILS_LIMIT,
+        ERRORS_OVERVIEW_LIMIT,
         paginationOffset,
       );
-      if (result.status === ExceptionsDetailsApiStatus.Error) {
-        throw new Error("Failed to fetch crash details");
+      if (result.status === ErrorsOverviewApiStatus.Error) {
+        throw new Error("Failed to fetch errors overview");
       }
       return result.data;
     },
-    enabled: filters.ready && exceptionsGroupId !== "",
+    enabled: filters.ready,
   });
 }
 
-export function useAnrDetailsQuery(
-  exceptionsGroupId: string,
+export function useErrorsOverviewPlotQuery() {
+  const filters = useFiltersStore((s) => s.filters);
+  return useQuery({
+    queryKey: ["errorsOverviewPlot", filters.serialisedFilters] as const,
+    queryFn: async () => {
+      const result = await fetchErrorsOverviewPlotFromServer(filters);
+      if (result.status === ErrorsOverviewPlotApiStatus.Error) {
+        throw new Error("Failed to fetch errors plot");
+      }
+      if (result.status === ErrorsOverviewPlotApiStatus.NoData) {
+        return null;
+      }
+      return mapPlotData(result.data);
+    },
+    enabled: filters.ready,
+  });
+}
+
+export function useErrorsDetailsQuery(
+  errorGroupId: string,
   paginationOffset: number,
 ) {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
     queryKey: [
-      "anrDetails",
-      exceptionsGroupId,
+      "errorsDetails",
+      errorGroupId,
       filters.serialisedFilters,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
     queryFn: async () => {
-      const result = await fetchExceptionsDetailsFromServer(
-        ExceptionsType.Anr,
-        exceptionsGroupId,
-        filters,
-        EXCEPTIONS_DETAILS_LIMIT,
+      const result = await fetchErrorsDetailsFromServer(
+        errorGroupId,
         paginationOffset,
+        filters,
+        ERRORS_DETAILS_LIMIT,
       );
-      if (result.status === ExceptionsDetailsApiStatus.Error) {
-        throw new Error("Failed to fetch ANR details");
+      if (result.status === ErrorsDetailsApiStatus.Error) {
+        throw new Error("Failed to fetch error details");
       }
       return result.data;
     },
-    enabled: filters.ready && exceptionsGroupId !== "",
+    enabled: filters.ready && errorGroupId !== "",
+  });
+}
+
+export function useErrorsDetailsPlotQuery(errorGroupId: string) {
+  const filters = useFiltersStore((s) => s.filters);
+  return useQuery({
+    queryKey: [
+      "errorsDetailsPlot",
+      errorGroupId,
+      filters.serialisedFilters,
+    ] as const,
+    queryFn: async () => {
+      const result = await fetchErrorsDetailsPlotFromServer(
+        errorGroupId,
+        filters,
+      );
+      if (result.status === ErrorsDetailsPlotApiStatus.Error) {
+        throw new Error("Failed to fetch error details plot");
+      }
+      if (result.status === ErrorsDetailsPlotApiStatus.NoData) {
+        return null;
+      }
+      return mapPlotData(result.data);
+    },
+    enabled: filters.ready && errorGroupId !== "",
+  });
+}
+
+export function useErrorsDistributionPlotQuery(errorGroupId: string) {
+  const filters = useFiltersStore((s) => s.filters);
+  return useQuery({
+    queryKey: [
+      "errorsDistributionPlot",
+      errorGroupId,
+      filters.serialisedFilters,
+    ] as const,
+    queryFn: async () => {
+      const result = await fetchErrorsDistributionPlotFromServer(
+        errorGroupId,
+        filters,
+      );
+      if (result.status === ErrorsDistributionPlotApiStatus.Error) {
+        throw new Error("Failed to fetch error distribution plot");
+      }
+      if (result.status === ErrorsDistributionPlotApiStatus.NoData) {
+        return null;
+      }
+      return parseDistributionPlot(result.data);
+    },
+    enabled: filters.ready && errorGroupId !== "",
+  });
+}
+
+export function useErrorGroupCommonPathQuery(errorGroupId: string) {
+  const filters = useFiltersStore((s) => s.filters);
+  return useQuery<ExceptionGroupCommonPath>({
+    queryKey: ["errorGroupCommonPath", filters.app?.id, errorGroupId] as const,
+    queryFn: async () => {
+      const result = await fetchErrorGroupCommonPathFromServer(
+        errorGroupId,
+        filters,
+      );
+      if (result.status === ErrorGroupCommonPathApiStatus.Error) {
+        throw new Error("Failed to fetch error group common path");
+      }
+      return result.data as ExceptionGroupCommonPath;
+    },
+    enabled: !!filters.app && !!errorGroupId,
   });
 }
 
@@ -1142,30 +1094,6 @@ export function useSessionTimelineQuery(appId: string, sessionId: string) {
       return result.data;
     },
     enabled: !!appId && !!sessionId,
-  });
-}
-
-// ─── Exception Group Common Path ────────────────────────────────────────
-
-export function useExceptionGroupCommonPathQuery(
-  type: ExceptionsType,
-  appId: string,
-  groupId: string,
-) {
-  return useQuery<ExceptionGroupCommonPath>({
-    queryKey: ["exceptionGroupCommonPath", type, appId, groupId] as const,
-    queryFn: async () => {
-      const result = await fetchExceptionGroupCommonPathFromServer(
-        type,
-        appId,
-        groupId,
-      );
-      if (result.status === ExceptionGroupCommonPathApiStatus.Error) {
-        throw new Error("Failed to fetch common path");
-      }
-      return result.data as ExceptionGroupCommonPath;
-    },
-    enabled: !!appId && !!groupId,
   });
 }
 

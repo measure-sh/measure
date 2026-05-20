@@ -639,7 +639,7 @@ describe("Journeys page — exceptions panel", () => {
       const crashLink = screen
         .getByText(/NullPointerException at ProductList/)
         .closest("a");
-      expect(crashLink?.getAttribute("href")).toContain("/test-team/crashes/");
+      expect(crashLink?.getAttribute("href")).toContain("/test-team/errors/");
       expect(crashLink?.getAttribute("href")).toContain("/crash-001/");
     });
   });
@@ -1113,7 +1113,7 @@ describe("Journeys page — remaining coverage", () => {
       );
     });
 
-    it("ANR links point to /anrs/ detail page", async () => {
+    it("ANR links point to /errors/ detail page", async () => {
       renderWithProviders(<UserJourneys params={{ teamId: "test-team" }} />);
       await waitFor(
         () => expect(screen.getByTestId("nivo-sankey")).toBeTruthy(),
@@ -1136,7 +1136,7 @@ describe("Journeys page — remaining coverage", () => {
 
       await waitFor(() => {
         const anrLink = screen.getByText(/ANR in CartActivity/).closest("a");
-        expect(anrLink?.getAttribute("href")).toContain("/test-team/anrs/");
+        expect(anrLink?.getAttribute("href")).toContain("/test-team/errors/");
         expect(anrLink?.getAttribute("href")).toContain("/anr-001/");
       });
     });

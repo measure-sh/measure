@@ -251,7 +251,7 @@ export default function SessionTimelineEventDetails({
           ) : (
             <Link
               key={eventDetails.id}
-              href={`/${teamId}/${eventType === "exception" ? "crashes" : "anrs"}/${appId}/${eventDetails.group_id}/${eventDetails.type + "@" + eventDetails.file_name}`}
+              href={`/${teamId}/errors/${appId}/${eventDetails.group_id}/${eventDetails.type + "@" + eventDetails.file_name}`}
               className={linkStyle}
             >
               {label}

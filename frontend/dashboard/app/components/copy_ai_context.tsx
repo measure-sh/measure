@@ -1,50 +1,75 @@
-import React from 'react'
-import { emptyAnrExceptionsDetailsResponse, emptyCrashExceptionsDetailsResponse, ExceptionsType } from '../api/api_calls'
-import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
-import { toastPositive } from '../utils/use_toast'
-import { Button } from './button'
-import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip'
+import React from "react";
+import { emptyErrorGroupDetails } from "../api/api_calls";
+import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
+import { toastPositive } from "../utils/use_toast";
+import { Button } from "./button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
+
+type ErrorEvent = (typeof emptyErrorGroupDetails)["results"][number];
 
 interface CopyAiContextProps {
-  appName: string,
-  exceptionsType: ExceptionsType
-  exceptionsDetails: typeof emptyCrashExceptionsDetailsResponse | typeof emptyAnrExceptionsDetailsResponse
+  appName: string;
+  errorEvent: ErrorEvent;
 }
 
-const CopyAiContext: React.FC<CopyAiContextProps> = ({ appName, exceptionsType, exceptionsDetails }) => {
-  const formatExceptionDetails = () => {
-    let formatted = ""
+const CopyAiContext: React.FC<CopyAiContextProps> = ({
+  appName,
+  errorEvent,
+}) => {
+  const formatErrorDetails = () => {
+    let formatted = "";
 
-    formatted = formatted + "App Name: " + appName + "\n"
-    formatted = formatted + "App version: " + exceptionsDetails.results[0].attribute.app_version + "\n"
-    formatted = formatted + "Date & time: " + formatDateToHumanReadableDateTime(exceptionsDetails.results[0].timestamp) + "\n"
-    formatted = formatted + "Platform: " + exceptionsDetails.results[0].attribute.platform + "\n"
-    formatted = formatted + "Device: " + exceptionsDetails.results[0].attribute.device_manufacturer + exceptionsDetails.results[0].attribute.device_model + "\n"
-    formatted = formatted + "Network type: " + exceptionsDetails.results[0].attribute.network_type + "\n"
+    formatted = formatted + "App Name: " + appName + "\n";
+    formatted =
+      formatted + "App version: " + errorEvent.attribute.app_version + "\n";
+    formatted =
+      formatted +
+      "Date & time: " +
+      formatDateToHumanReadableDateTime(errorEvent.timestamp) +
+      "\n";
+    formatted = formatted + "Platform: " + errorEvent.attribute.platform + "\n";
+    formatted =
+      formatted +
+      "Device: " +
+      errorEvent.attribute.device_manufacturer +
+      errorEvent.attribute.device_model +
+      "\n";
+    formatted =
+      formatted + "Network type: " + errorEvent.attribute.network_type + "\n";
 
-    formatted = formatted + "\nSTACK TRACES:\n"
-    const crashResult = (exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse).results[0]
-    const anrResult = (exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse).results[0]
-    let stacktrace = exceptionsType === ExceptionsType.Crash ? crashResult.exception?.stacktrace ?? '' : anrResult.anr?.stacktrace ?? ''
-    let indentedStackTrace = stacktrace.split("\n").map(line => "    " + line).join("\n")
+    formatted = formatted + "\nSTACK TRACES:\n";
+    const stacktrace = errorEvent.exception
+      ? (errorEvent.exception.stacktrace ?? "")
+      : (errorEvent.anr?.stacktrace ?? "");
+    const indentedStackTrace = stacktrace
+      .split("\n")
+      .map((line) => "    " + line)
+      .join("\n");
 
-    formatted = formatted + "Thread: " + exceptionsDetails.results[0].attribute.thread_name + "\nStacktrace:\n" + indentedStackTrace + "\n\n"
+    formatted =
+      formatted +
+      "Thread: " +
+      errorEvent.attribute.thread_name +
+      "\nStacktrace:\n" +
+      indentedStackTrace +
+      "\n\n";
 
-    if (exceptionsDetails.results[0].threads) {
-      exceptionsDetails.results[0].threads.forEach((e) => {
-        formatted = formatted + "Thread: " + e.name + "\n"
-        formatted = formatted + "Stacktrace:\n    " + e.frames.join("\n    ")
-        formatted = formatted + "\n\n"
-      })
+    if (errorEvent.threads) {
+      errorEvent.threads.forEach((e) => {
+        formatted = formatted + "Thread: " + e.name + "\n";
+        formatted = formatted + "Stacktrace:\n    " + e.frames.join("\n    ");
+        formatted = formatted + "\n\n";
+      });
     }
 
-    return formatted
-  }
+    return formatted;
+  };
 
   const llmContext =
-    "I am trying to fix an exception in my app. The details are as follows: \n\n"
-    + formatExceptionDetails() + "\n\n"
-    + "Please help me debug this."
+    "I am trying to fix an error in my app. The details are as follows: \n\n" +
+    formatErrorDetails() +
+    "\n\n" +
+    "Please help me debug this.";
 
   return (
     <Tooltip>
@@ -52,17 +77,22 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({ appName, exceptionsType, 
         <Button
           variant="outline"
           onClick={() => {
-            navigator.clipboard.writeText(llmContext)
-            toastPositive("AI context copied to clipboard")
+            navigator.clipboard.writeText(llmContext);
+            toastPositive("AI context copied to clipboard");
           }}
-        >Copy AI Context
+        >
+          Copy AI Context
         </Button>
       </TooltipTrigger>
-      <TooltipContent side="bottom" align="start" className="font-display text-sm text-white fill-bg-neutral-800 bg-neutral-800">
-        Copy full exception context for easy pasting in your favorite LLM
+      <TooltipContent
+        side="bottom"
+        align="start"
+        className="font-display text-sm text-white fill-bg-neutral-800 bg-neutral-800"
+      >
+        Copy full error context for easy pasting in your favorite LLM
       </TooltipContent>
     </Tooltip>
-  )
-}
+  );
+};
 
-export default CopyAiContext
+export default CopyAiContext;

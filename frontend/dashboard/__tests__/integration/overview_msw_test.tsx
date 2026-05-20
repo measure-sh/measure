@@ -229,10 +229,7 @@ describe("Overview page (MSW integration)", () => {
       http.get("*/api/apps/:appId/sessions/plots/instances", () => {
         return new HttpResponse(null, { status: 500 });
       }),
-      http.get("*/api/apps/:appId/crashGroups/plots/instances", () => {
-        return new HttpResponse(null, { status: 500 });
-      }),
-      http.get("*/api/apps/:appId/anrGroups/plots/instances", () => {
+      http.get("*/api/apps/:appId/errorGroups/plots/instances", () => {
         return new HttpResponse(null, { status: 500 });
       }),
     );
@@ -365,16 +362,18 @@ describe("Overview page — filter interactions", () => {
         return HttpResponse.json(makeSessionPlotFixture());
       }),
       http.get(
-        "*/api/apps/:appId/crashGroups/plots/instances",
+        "*/api/apps/:appId/errorGroups/plots/instances",
         ({ request }) => {
-          crashPlotRequests.push({ url: request.url });
+          const url = new URL(request.url);
+          const typeParam = url.searchParams.get("type") ?? "";
+          if (typeParam.includes("anr")) {
+            anrPlotRequests.push({ url: request.url });
+          } else {
+            crashPlotRequests.push({ url: request.url });
+          }
           return HttpResponse.json([]);
         },
       ),
-      http.get("*/api/apps/:appId/anrGroups/plots/instances", ({ request }) => {
-        anrPlotRequests.push({ url: request.url });
-        return HttpResponse.json([]);
-      }),
       http.get("*/api/apps/:appId/filters", ({ request, params }) => {
         filtersRequests.push({
           url: request.url,
@@ -1632,17 +1631,26 @@ describe("Overview page — rendered values", () => {
 
     it("chart does NOT show ANRs series when all ANR values are zero", async () => {
       server.use(
-        http.get("*/api/apps/:appId/anrGroups/plots/instances", () => {
-          return HttpResponse.json([
-            {
-              id: "3.1.0",
-              data: [
-                { datetime: "2026-04-01T00:00:00Z", instances: 0 },
-                { datetime: "2026-04-02T00:00:00Z", instances: 0 },
-              ],
-            },
-          ]);
-        }),
+        http.get(
+          "*/api/apps/:appId/errorGroups/plots/instances",
+          ({ request }) => {
+            const url = new URL(request.url);
+            const typeParam = url.searchParams.get("type") ?? "";
+            if (typeParam.includes("anr")) {
+              return HttpResponse.json([
+                {
+                  id: "3.1.0",
+                  data: [
+                    { datetime: "2026-04-01T00:00:00Z", instances: 0 },
+                    { datetime: "2026-04-02T00:00:00Z", instances: 0 },
+                  ],
+                },
+              ]);
+            }
+            // Default crash/error response
+            return HttpResponse.json([]);
+          },
+        ),
       );
 
       await renderAndWaitForData();
@@ -1767,10 +1775,7 @@ describe("Overview page — error edge cases", () => {
 
   it("crashes plot error + ANR plot error but sessions plot success → chart shows error", async () => {
     server.use(
-      http.get("*/api/apps/:appId/crashGroups/plots/instances", () => {
-        return new HttpResponse(null, { status: 500 });
-      }),
-      http.get("*/api/apps/:appId/anrGroups/plots/instances", () => {
+      http.get("*/api/apps/:appId/errorGroups/plots/instances", () => {
         return new HttpResponse(null, { status: 500 });
       }),
     );
@@ -1790,10 +1795,7 @@ describe("Overview page — error edge cases", () => {
       http.get("*/api/apps/:appId/sessions/plots/instances", () => {
         return HttpResponse.json(null);
       }),
-      http.get("*/api/apps/:appId/crashGroups/plots/instances", () => {
-        return HttpResponse.json(null);
-      }),
-      http.get("*/api/apps/:appId/anrGroups/plots/instances", () => {
+      http.get("*/api/apps/:appId/errorGroups/plots/instances", () => {
         return HttpResponse.json(null);
       }),
     );
@@ -2364,22 +2366,20 @@ describe("Overview page — data shape edge cases", () => {
           },
         ]);
       }),
-      http.get("*/api/apps/:appId/crashGroups/plots/instances", () => {
-        return HttpResponse.json([
-          {
-            id: "3.1.0",
-            data: [{ datetime: "2026-04-01T00:00:00Z", instances: 5 }],
-          },
-        ]);
-      }),
-      http.get("*/api/apps/:appId/anrGroups/plots/instances", () => {
-        return HttpResponse.json([
-          {
-            id: "3.1.0",
-            data: [{ datetime: "2026-04-01T00:00:00Z", instances: 1 }],
-          },
-        ]);
-      }),
+      http.get(
+        "*/api/apps/:appId/errorGroups/plots/instances",
+        ({ request }) => {
+          const url = new URL(request.url);
+          const typeParam = url.searchParams.get("type") ?? "";
+          const instances = typeParam.includes("anr") ? 1 : 5;
+          return HttpResponse.json([
+            {
+              id: "3.1.0",
+              data: [{ datetime: "2026-04-01T00:00:00Z", instances }],
+            },
+          ]);
+        },
+      ),
     );
 
     renderWithProviders(<Overview params={{ teamId: "test-team" }} />);
@@ -2421,10 +2421,7 @@ describe("Overview page — data shape edge cases", () => {
           },
         ]);
       }),
-      http.get("*/api/apps/:appId/crashGroups/plots/instances", () => {
-        return HttpResponse.json([{ id: "3.1.0", data: twoDates }]);
-      }),
-      http.get("*/api/apps/:appId/anrGroups/plots/instances", () => {
+      http.get("*/api/apps/:appId/errorGroups/plots/instances", () => {
         return HttpResponse.json([{ id: "3.1.0", data: twoDates }]);
       }),
     );

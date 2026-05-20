@@ -369,13 +369,13 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
       }
       // The apps endpoint flips `onboarded` as soon as the SDK reports a
       // crash, but the filters aggregation pipeline runs separately and
-      // may still be catching up. Probe the Crashes filter endpoint and
+      // may still be catching up. Probe the Errors filter endpoint and
       // only advance the wizard once it returns Success — otherwise the
-      // destination /crashes page would land on a NoData state until the
+      // destination /errors page would land on a NoData state until the
       // user refreshes.
       const filtersResult = await fetchFiltersFromServer(
         fresh,
-        FilterSource.Crashes,
+        FilterSource.Errors,
       );
       if (!active) {
         return;

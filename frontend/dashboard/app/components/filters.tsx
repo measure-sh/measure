@@ -52,6 +52,7 @@ import {
 } from "../utils/time_utils";
 import { Button } from "./button";
 import { CheckChipGroup } from "./check_chip";
+import { Checkbox } from "./checkbox";
 import DebounceTextInput from "./debounce_text_input";
 import {
   Dialog,
@@ -96,12 +97,41 @@ interface FiltersProps {
   showHttpMethods: boolean;
   showUdAttrs: boolean;
   showFreeText: boolean;
+  showErrorType?: boolean;
+  showSeverity?: boolean;
+  showCustomErrors?: boolean;
   freeTextPlaceholder?: string;
 }
 
 const defaultFreeTextPlaceholder = "Search anything...";
 
 const SEARCH_INPUT_ID = "free-text";
+
+// Errors-only Type filter: store holds lowercase values; the dropdown shows
+// capitalized labels.
+const ERROR_TYPE_DISPLAY_ITEMS: string[] = ["Error", "ANR"];
+const ERROR_TYPE_DISPLAY_TO_STORE: Record<string, string> = {
+  Error: "error",
+  ANR: "anr",
+};
+const ERROR_TYPE_STORE_TO_DISPLAY: Record<string, string> = {
+  error: "Error",
+  anr: "ANR",
+};
+
+// Errors-only Severity filter: store holds lowercase values; the dropdown
+// shows capitalized labels.
+const SEVERITY_DISPLAY_ITEMS: string[] = ["Fatal", "Unhandled", "Handled"];
+const SEVERITY_DISPLAY_TO_STORE: Record<string, string> = {
+  Fatal: "fatal",
+  Unhandled: "unhandled",
+  Handled: "handled",
+};
+const SEVERITY_STORE_TO_DISPLAY: Record<string, string> = {
+  fatal: "Fatal",
+  unhandled: "Unhandled",
+  handled: "Handled",
+};
 
 enum DateRange {
   Last15Mins = "Last 15 Minutes",
@@ -161,7 +191,7 @@ const resetAction = (onClick: () => void): FilterChipAction => ({
   onClick,
 });
 
-function deserializeUrlFilters(queryString: string): URLFilters {
+export function deserializeUrlFilters(queryString: string): URLFilters {
   const params = new URLSearchParams(queryString);
   const result: URLFilters = {};
 
@@ -228,6 +258,15 @@ function deserializeUrlFilters(queryString: string): URLFilters {
             .filter((s): s is SessionType =>
               Object.values(SessionType).includes(s as SessionType),
             );
+          break;
+
+        case "errorTypes":
+        case "severities":
+          result[originalKey] = value.split(",").filter((s) => s);
+          break;
+
+        case "customErrorsOnly":
+          result[originalKey] = value === "1";
           break;
 
         case "dateRange":
@@ -366,6 +405,9 @@ const FiltersComponent = forwardRef<
       showHttpMethods,
       showUdAttrs,
       showFreeText,
+      showErrorType = false,
+      showSeverity = false,
+      showCustomErrors = false,
       freeTextPlaceholder,
     },
     ref,
@@ -669,14 +711,30 @@ const FiltersComponent = forwardRef<
       showDeviceNames ||
       showUdAttrs;
 
+    // Errors-only controls live on the main row alongside the standard
+    // inline dropdowns. Severity and Custom errors only render when the
+    // user hasn't unchecked Error in the Type multi-select.
+    const isErrorsSource = filterSource === FilterSource.Errors;
+    const onlyAnrSelected =
+      store.selectedErrorTypes.length === 1 &&
+      store.selectedErrorTypes[0] === "anr";
+    const showErrorTypeControl = isErrorsSource && showErrorType;
+    const showSeverityControl =
+      isErrorsSource && showSeverity && !onlyAnrSelected;
+    const showCustomErrorsControl =
+      isErrorsSource && showCustomErrors && !onlyAnrSelected;
+
     // Dropdowns that stay inline: app, trace name, date range, app versions,
-    // plus the "More filters" trigger.
+    // the Errors-only controls, plus the "More filters" trigger.
     const skeletonMainRowCount =
       [
         showAppSelector,
         filterSource === FilterSource.Spans,
         showDates,
         showAppVersions,
+        showErrorTypeControl,
+        showSeverityControl,
+        showCustomErrorsControl,
       ].filter(Boolean).length + (hasMoreFiltersConfig ? 1 : 0);
 
     // Same as hasMoreFiltersConfig but gated on loaded data — drives the real
@@ -842,6 +900,27 @@ const FiltersComponent = forwardRef<
     // Search lives inline, not in the modal — its chip points back to that
     // input instead of opening the modal.
     const searchActive = showFreeText && store.selectedFreeText !== "";
+
+    // Errors-only active filter pills mirror the multi-select state. The
+    // Errors pill folds Custom + severity subfilters into a single label.
+    const showAnrsPill =
+      isErrorsSource && store.selectedErrorTypes.includes("anr");
+    const showErrorsPill =
+      isErrorsSource && store.selectedErrorTypes.includes("error");
+    const errorsPillSubfilters: string[] = [];
+    if (store.customErrorsOnly) {
+      errorsPillSubfilters.push("Custom");
+    }
+    for (const severity of store.selectedSeverities) {
+      const display = SEVERITY_STORE_TO_DISPLAY[severity];
+      if (display) {
+        errorsPillSubfilters.push(display);
+      }
+    }
+    const errorsPillLabel =
+      errorsPillSubfilters.length > 0
+        ? `Errors - ${errorsPillSubfilters.join(", ")}`
+        : "Errors";
 
     // App versions: page default is the latest build, or every build.
     const defaultAppVersions =
@@ -1064,11 +1143,7 @@ const FiltersComponent = forwardRef<
                 store.filtersApiStatus === FiltersApiStatus.NoData && (
                   <p className="font-body text-sm">
                     No{" "}
-                    {filterSource === FilterSource.Crashes
-                      ? "crashes"
-                      : filterSource === FilterSource.Anrs
-                        ? "ANRs"
-                        : "data"}{" "}
+                    {filterSource === FilterSource.Errors ? "errors" : "data"}{" "}
                     received for this app yet
                   </p>
                 )}
@@ -1244,6 +1319,53 @@ const FiltersComponent = forwardRef<
                     onOpenChange={setAppVersionsOpen}
                   />
                 )}
+                {showErrorTypeControl && (
+                  <DropdownSelect
+                    title="Type"
+                    type={DropdownSelectType.MultiString}
+                    items={ERROR_TYPE_DISPLAY_ITEMS}
+                    initialSelected={store.selectedErrorTypes.map(
+                      (t) => ERROR_TYPE_STORE_TO_DISPLAY[t] ?? t,
+                    )}
+                    onChangeSelected={(items) => {
+                      const display = items as string[];
+                      store.setSelectedErrorTypes(
+                        display
+                          .map((d) => ERROR_TYPE_DISPLAY_TO_STORE[d])
+                          .filter((v): v is string => v !== undefined),
+                      );
+                    }}
+                  />
+                )}
+                {showSeverityControl && (
+                  <DropdownSelect
+                    title="Severity"
+                    type={DropdownSelectType.MultiString}
+                    items={SEVERITY_DISPLAY_ITEMS}
+                    initialSelected={store.selectedSeverities.map(
+                      (s) => SEVERITY_STORE_TO_DISPLAY[s] ?? s,
+                    )}
+                    onChangeSelected={(items) => {
+                      const display = items as string[];
+                      store.setSelectedSeverities(
+                        display
+                          .map((d) => SEVERITY_DISPLAY_TO_STORE[d])
+                          .filter((v): v is string => v !== undefined),
+                      );
+                    }}
+                  />
+                )}
+                {showCustomErrorsControl && (
+                  <label className="flex items-center gap-2 cursor-pointer select-none font-display text-sm">
+                    <Checkbox
+                      checked={store.customErrorsOnly}
+                      onCheckedChange={(checked) =>
+                        store.setCustomErrorsOnly(checked === true)
+                      }
+                    />
+                    Custom errors only
+                  </label>
+                )}
                 {hasMoreFilters && (
                   <Button
                     variant="outline"
@@ -1271,7 +1393,11 @@ const FiltersComponent = forwardRef<
                 )}
               </div>
 
-              {(showAppVersions || filterChips.length > 0 || searchActive) && (
+              {(showAppVersions ||
+                filterChips.length > 0 ||
+                searchActive ||
+                showAnrsPill ||
+                showErrorsPill) && (
                 <>
                   <div className="py-4" />
                   <div className="flex flex-wrap gap-2 items-center">
@@ -1300,6 +1426,32 @@ const FiltersComponent = forwardRef<
                         action={chip.action}
                       />
                     ))}
+                    {showAnrsPill && (
+                      <FilterChip
+                        label="ANRs"
+                        onClick={() => {}}
+                        action={clearAction(() =>
+                          store.setSelectedErrorTypes(
+                            store.selectedErrorTypes.filter((t) => t !== "anr"),
+                          ),
+                        )}
+                      />
+                    )}
+                    {showErrorsPill && (
+                      <FilterChip
+                        label={errorsPillLabel}
+                        onClick={() => {}}
+                        action={clearAction(() => {
+                          store.setSelectedErrorTypes(
+                            store.selectedErrorTypes.filter(
+                              (t) => t !== "error",
+                            ),
+                          );
+                          store.setSelectedSeverities([]);
+                          store.setCustomErrorsOnly(false);
+                        })}
+                      />
+                    )}
                     {searchActive && (
                       <FilterChip
                         label={`Search: ${store.selectedFreeText}`}
