@@ -78,7 +78,7 @@ class MeasureModule: NSObject, RCTBridgeModule {
                    resolver resolve: @escaping RCTPromiseResolveBlock,
                    rejecter reject: @escaping RCTPromiseRejectBlock) {
         let attrDict = attributes as? [String: Any?] ?? [:]
-        let checkpointDict = checkpoints as? [String: Int64] ?? [:]
+        let checkpointDict = (checkpoints as? [String: NSNumber] ?? [:]).mapValues { $0.int64Value }
         let userAttrs = userDefinedAttrs.transformAttributes()
         
         Measure.internalTrackSpan(
