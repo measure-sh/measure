@@ -1,16 +1,10 @@
 "use client";
 
-import {
-  emptyAnrExceptionsDetailsResponse,
-  emptyCrashExceptionsDetailsResponse,
-  ExceptionsType,
-  FilterSource,
-} from "@/app/api/api_calls";
+import { emptyErrorGroupDetails, FilterSource } from "@/app/api/api_calls";
 import Paginator from "@/app/components/paginator";
 import {
   paginationOffsetUrlKey,
-  useAnrDetailsQuery,
-  useCrashDetailsQuery,
+  useErrorsDetailsQuery,
 } from "@/app/query/hooks";
 import { useFiltersStore } from "@/app/stores/provider";
 import { DateTime } from "luxon";
@@ -29,13 +23,13 @@ import {
 import { buttonVariants } from "./button_variants";
 import CodeBlock from "./code_block";
 import CopyAiContext from "./copy_ai_context";
-import ExceptionGroupCommonPath from "./exception_group_common_path";
-import ExceptionsDetailsPlot from "./exceptions_details_plot";
-import ExceptionsDistributionPlot from "./exceptions_distribution_plot";
+import ErrorGroupCommonPath from "./error_group_common_path";
+import ErrorsDetailsPlot from "./errors_details_plot";
+import ErrorsDistributionPlot from "./errors_distribution_plot";
 import Filters, { AppVersionsInitialSelectionType } from "./filters";
 import { Skeleton, SkeletonPlot } from "./skeleton";
 
-const demoExceptionDetails = {
+const demoErrorDetails = {
   meta: { next: false, previous: false },
   results: [
     {
@@ -83,6 +77,11 @@ const demoExceptionDetails = {
           "java.lang.IllegalStateException: Payment method must be specified\n\tat MaterialButton.onClick(CheckoutActivity.kt:102)\n\tat android.view.View.performClick(View.java:6294)\n\tat android.view.View$PerformClick.run(View.java:24774)\n\tat android.os.Handler.handleCallback(Handler.java:790)\n\tat android.os.Handler.dispatchMessage(Handler.java:99)\n\tat android.os.Looper.loop(Looper.java:164)\n\tat android.app.ActivityThread.main(ActivityThread.java:6518)\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:438)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:807)\nCaused by: java.lang.IllegalStateException: This is a new exception\n\tat java.lang.reflect.Method.invoke(Method.java:-2)\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:438)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:807)\nCaused by: java.lang.reflect.InvocationTargetException\n\tat com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:448)\n\tat com.android.internal.os.ZygoteInit.main(ZygoteInit.java:807)",
         message: "Payment method must be specified",
       },
+      anr: null,
+      severity: "",
+      num_code: 0,
+      code: "",
+      meta: null,
       attachments: [
         {
           id: "85082bcc-8242-4ac3-a03d-17436c87fdb6",
@@ -169,12 +168,11 @@ const demoExceptionDetails = {
   ],
 } as any;
 
-interface ExceptionsDetailsProps {
-  exceptionsType?: ExceptionsType;
+interface ErrorsDetailsProps {
   teamId?: string;
   appId?: string;
-  exceptionsGroupId?: string;
-  exceptionsGroupName?: string;
+  errorGroupId?: string;
+  errorGroupName?: string;
   demo?: boolean;
   hideDemoTitle?: boolean;
 }
@@ -182,12 +180,11 @@ interface ExceptionsDetailsProps {
 const stackTraceCodeBlockClassName =
   "font-code text-sm leading-relaxed rounded-sm overflow-hidden [&_pre]:p-4 [&_pre]:overflow-x-auto";
 
-export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
-  exceptionsType = ExceptionsType.Crash,
+export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
   teamId = "demo-team",
   appId = "demo-app",
-  exceptionsGroupId = "demo-exception-group",
-  exceptionsGroupName = "java.lang.IllegalStateException@CheckoutActivity.kt",
+  errorGroupId = "demo-error-group",
+  errorGroupName = "java.lang.IllegalStateException@CheckoutActivity.kt",
   demo = false,
   hideDemoTitle = false,
 }) => {
@@ -231,24 +228,15 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
     );
   }, [paginationOffset, filters.ready, filters.serialisedFilters]);
 
-  // Both hooks must be called unconditionally (rules of hooks)
-  const crashQuery = useCrashDetailsQuery(exceptionsGroupId!, paginationOffset);
-  const anrQuery = useAnrDetailsQuery(exceptionsGroupId!, paginationOffset);
   const {
     data: queryData,
     status,
     isFetching,
-  } = exceptionsType === ExceptionsType.Crash ? crashQuery : anrQuery;
+  } = useErrorsDetailsQuery(errorGroupId!, paginationOffset);
 
-  const emptyDefault =
-    exceptionsType === ExceptionsType.Crash
-      ? emptyCrashExceptionsDetailsResponse
-      : emptyAnrExceptionsDetailsResponse;
-  const exceptionsDetails = (
-    demo ? demoExceptionDetails : (queryData ?? emptyDefault)
-  ) as
-    | typeof emptyCrashExceptionsDetailsResponse
-    | typeof emptyAnrExceptionsDetailsResponse;
+  const errorsDetails = (
+    demo ? demoErrorDetails : (queryData ?? emptyErrorGroupDetails)
+  ) as typeof emptyErrorGroupDetails;
   const effectiveStatus = demo ? ("success" as const) : status;
   const effectiveFetching = demo ? false : isFetching;
 
@@ -261,11 +249,15 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
     setImageErrors((prev) => new Set(prev).add(key));
   };
 
+  const firstResult = errorsDetails.results?.[0];
+  const stacktrace =
+    firstResult?.exception?.stacktrace ?? firstResult?.anr?.stacktrace ?? "";
+
   return (
     <div className="flex flex-col items-start">
       {demo && !hideDemoTitle && (
         <p className="font-display font-normal text-4xl max-w-6xl text-center">
-          Crash Details
+          Error Details
         </p>
       )}
       <div className="py-4" />
@@ -274,11 +266,7 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
         <Filters
           teamId={teamId}
           appId={appId}
-          filterSource={
-            exceptionsType === ExceptionsType.Crash
-              ? FilterSource.Crashes
-              : FilterSource.Anrs
-          }
+          filterSource={FilterSource.Errors}
           appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
           showNoData={true}
           showNotOnboarded={true}
@@ -298,6 +286,9 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
           showHttpMethods={false}
           showUdAttrs={true}
           showFreeText={false}
+          showErrorType={true}
+          showSeverity={true}
+          showCustomErrors={true}
         />
       )}
 
@@ -337,22 +328,13 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
       {(demo || filters.ready) && (
         <div className="w-full">
           <div className="flex flex-col md:flex-row w-full">
-            <ExceptionsDetailsPlot
-              exceptionsType={exceptionsType}
-              exceptionsGroupId={exceptionsGroupId}
-              demo={demo}
-            />
-            <ExceptionsDistributionPlot
-              exceptionsType={exceptionsType}
-              exceptionsGroupId={exceptionsGroupId}
-              demo={demo}
-            />
+            <ErrorsDetailsPlot errorGroupId={errorGroupId!} demo={demo} />
+            <ErrorsDistributionPlot errorGroupId={errorGroupId!} demo={demo} />
           </div>
 
           <div className="py-8" />
-          <ExceptionGroupCommonPath
-            type={exceptionsType}
-            groupId={exceptionsGroupId}
+          <ErrorGroupCommonPath
+            groupId={errorGroupId!}
             appId={demo ? "demo-app-id" : filters.app!.id}
             demo={demo}
           />
@@ -360,10 +342,8 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
 
           {effectiveStatus === "error" && (
             <p className="font-body text-sm">
-              Error fetching list of{" "}
-              {exceptionsType === ExceptionsType.Crash ? "crashes" : "ANRs"},
-              please change filters, refresh page or select a different app to
-              try again
+              Error fetching list of errors, please change filters, refresh page
+              or select a different app to try again
             </p>
           )}
 
@@ -374,10 +354,10 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
                 <div className="grow" />
                 <Paginator
                   prevEnabled={
-                    effectiveFetching ? false : exceptionsDetails.meta.previous
+                    effectiveFetching ? false : errorsDetails.meta.previous
                   }
                   nextEnabled={
-                    effectiveFetching ? false : exceptionsDetails.meta.next
+                    effectiveFetching ? false : errorsDetails.meta.next
                   }
                   displayText=""
                   onNext={nextPage}
@@ -397,41 +377,33 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
                 </div>
               )}
 
-              {exceptionsDetails.results?.length > 0 && (
+              {firstResult && (
                 <div
                   className={`${effectiveFetching ? "invisible" : "visible"}`}
                 >
-                  <p className="font-display text-xl">
-                    {" "}
-                    Id: {exceptionsDetails.results[0].id}
-                  </p>
+                  <p className="font-display text-xl"> Id: {firstResult.id}</p>
                   <p className="font-body">
                     {" "}
                     Date & time:{" "}
-                    {formatDateToHumanReadableDateTime(
-                      exceptionsDetails.results[0].timestamp,
-                    )}
+                    {formatDateToHumanReadableDateTime(firstResult.timestamp)}
                   </p>
                   <p className="font-body">
                     {" "}
                     Device:{" "}
-                    {exceptionsDetails.results[0].attribute
-                      .device_manufacturer +
-                      exceptionsDetails.results[0].attribute.device_model}
+                    {firstResult.attribute.device_manufacturer +
+                      firstResult.attribute.device_model}
                   </p>
                   <p className="font-body">
                     {" "}
-                    App version:{" "}
-                    {exceptionsDetails.results[0].attribute.app_version}
+                    App version: {firstResult.attribute.app_version}
                   </p>
                   <p className="font-body">
                     {" "}
-                    Network type:{" "}
-                    {exceptionsDetails.results[0].attribute.network_type}
+                    Network type: {firstResult.attribute.network_type}
                   </p>
-                  {exceptionsDetails.results[0].attachments?.length > 0 && (
+                  {firstResult.attachments?.length > 0 && (
                     <div className="flex mt-8 flex-wrap gap-8 items-center">
-                      {exceptionsDetails.results[0].attachments
+                      {firstResult.attachments
                         .filter(
                           (attachment) => !imageErrors.has(attachment.key),
                         )
@@ -462,8 +434,8 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
                       </div>
                     ) : (
                       <Link
-                        key={exceptionsDetails.results[0].id}
-                        href={`/${teamId}/session_timelines/${appId}/${exceptionsDetails.results[0].session_id}`}
+                        key={firstResult.id}
+                        href={`/${teamId}/session_timelines/${appId}/${firstResult.session_id}`}
                         className={cn(
                           buttonVariants({ variant: "outline" }),
                           "justify-center w-fit",
@@ -472,13 +444,14 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
                         View Session Timeline
                       </Link>
                     )}
-                    <div className="px-2" />
                     {!demo && (
-                      <CopyAiContext
-                        appName={filters.app!.name}
-                        exceptionsType={exceptionsType}
-                        exceptionsDetails={exceptionsDetails}
-                      />
+                      <>
+                        <div className="px-2" />
+                        <CopyAiContext
+                          appName={filters.app!.name}
+                          errorEvent={firstResult}
+                        />
+                      </>
                     )}
                   </div>
                   <div className="py-4" />
@@ -486,64 +459,26 @@ export const ExceptionsDetails: React.FC<ExceptionsDetailsProps> = ({
                     type="single"
                     collapsible
                     defaultValue={
-                      exceptionsType === ExceptionsType.Crash
-                        ? "Thread: " +
-                          exceptionsDetails.results[0].attribute.thread_name
-                        : exceptionsType === ExceptionsType.Anr
-                          ? "Thread: " +
-                            exceptionsDetails.results[0].attribute.thread_name
-                          : undefined
+                      "Thread: " + firstResult.attribute.thread_name
                     }
                   >
-                    {exceptionsType === ExceptionsType.Crash && (
+                    {stacktrace && (
                       <AccordionItem
-                        value={
-                          "Thread: " +
-                          exceptionsDetails.results[0].attribute.thread_name
-                        }
+                        value={"Thread: " + firstResult.attribute.thread_name}
                       >
                         <AccordionTrigger className="font-display">
-                          {"Thread: " +
-                            exceptionsDetails.results[0].attribute.thread_name}
+                          {"Thread: " + firstResult.attribute.thread_name}
                         </AccordionTrigger>
                         <AccordionContent>
                           <CodeBlock
                             language="java"
                             className={stackTraceCodeBlockClassName}
-                            code={
-                              (
-                                exceptionsDetails as typeof emptyCrashExceptionsDetailsResponse
-                              ).results[0].exception.stacktrace
-                            }
+                            code={stacktrace}
                           />
                         </AccordionContent>
                       </AccordionItem>
                     )}
-                    {exceptionsType === ExceptionsType.Anr && (
-                      <AccordionItem
-                        value={
-                          "Thread: " +
-                          exceptionsDetails.results[0].attribute.thread_name
-                        }
-                      >
-                        <AccordionTrigger className="font-display">
-                          {"Thread: " +
-                            exceptionsDetails.results[0].attribute.thread_name}
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <CodeBlock
-                            language="java"
-                            className={stackTraceCodeBlockClassName}
-                            code={
-                              (
-                                exceptionsDetails as typeof emptyAnrExceptionsDetailsResponse
-                              ).results[0].anr.stacktrace
-                            }
-                          />
-                        </AccordionContent>
-                      </AccordionItem>
-                    )}
-                    {exceptionsDetails.results[0].threads?.map((e, index) => (
+                    {firstResult.threads?.map((e, index) => (
                       <AccordionItem
                         value={`${e.name}-${index}`}
                         key={`${e.name}-${index}`}

@@ -119,6 +119,7 @@ import {
 } from "@/app/api/api_calls";
 import Filters, {
   AppVersionsInitialSelectionType,
+  deserializeUrlFilters,
 } from "@/app/components/filters";
 
 // jsdom has no scrollIntoView; the More filters modal calls it to bring a
@@ -594,6 +595,239 @@ describe("Filters — team change", () => {
   });
 });
 
+describe("Filters — Errors filter source: Type/Severity/Custom controls", () => {
+  beforeEach(() => {
+    setAppsSuccess([makeApp("a")]);
+    setFiltersSuccess();
+  });
+
+  it("renders Type, Severity and Custom errors when all three show flags are on", async () => {
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
+      showSeverity: true,
+      showCustomErrors: true,
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("dropdown-Type")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("dropdown-Severity")).toBeInTheDocument();
+    expect(screen.getByText("Custom errors only")).toBeInTheDocument();
+  });
+
+  it("hides all three new controls when none of the show flags are passed", async () => {
+    await renderFilters({ filterSource: FilterSource.Errors });
+    await waitFor(() => {
+      expect(screen.getByTestId("dropdown-App Name")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("dropdown-Type")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("dropdown-Severity")).not.toBeInTheDocument();
+    expect(screen.queryByText("Custom errors only")).not.toBeInTheDocument();
+  });
+
+  it("does NOT render the new controls when filterSource is not Errors", async () => {
+    await renderFilters({
+      filterSource: FilterSource.Events,
+      showErrorType: true,
+      showSeverity: true,
+      showCustomErrors: true,
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("dropdown-App Name")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("dropdown-Type")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("dropdown-Severity")).not.toBeInTheDocument();
+    expect(screen.queryByText("Custom errors only")).not.toBeInTheDocument();
+  });
+
+  it("hides Severity and Custom checkbox when only 'anr' is in selectedErrorTypes (Type stays visible)", async () => {
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
+      showSeverity: true,
+      showCustomErrors: true,
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("dropdown-Type")).toBeInTheDocument();
+    });
+    await act(async () => {
+      storeInstance.getState().setSelectedErrorTypes(["anr"]);
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("dropdown-Severity")).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText("Custom errors only")).not.toBeInTheDocument();
+    expect(screen.getByTestId("dropdown-Type")).toBeInTheDocument();
+  });
+
+  it("shows all three controls when only 'error' is in selectedErrorTypes", async () => {
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
+      showSeverity: true,
+      showCustomErrors: true,
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("dropdown-Type")).toBeInTheDocument();
+    });
+    await act(async () => {
+      storeInstance.getState().setSelectedErrorTypes(["error"]);
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("dropdown-Severity")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Custom errors only")).toBeInTheDocument();
+    expect(screen.getByTestId("dropdown-Type")).toBeInTheDocument();
+  });
+
+  it("preserves severity/custom in the store when the user removes 'error' from selectedErrorTypes", async () => {
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
+      showSeverity: true,
+      showCustomErrors: true,
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("dropdown-Type")).toBeInTheDocument();
+    });
+    // Seed both error types with severity and custom set.
+    await act(async () => {
+      storeInstance.getState().setSelectedErrorTypes(["error", "anr"]);
+      storeInstance.getState().setSelectedSeverities(["fatal"]);
+      storeInstance.getState().setCustomErrorsOnly(true);
+    });
+    // Now drop 'error' (leave only 'anr') — controls hide but state stays.
+    await act(async () => {
+      storeInstance.getState().setSelectedErrorTypes(["anr"]);
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("dropdown-Severity")).not.toBeInTheDocument();
+    });
+    expect(storeInstance.getState().selectedSeverities).toEqual(["fatal"]);
+    expect(storeInstance.getState().customErrorsOnly).toBe(true);
+  });
+});
+
+describe("Filters — Errors filter source: ANRs and Errors pills", () => {
+  beforeEach(() => {
+    setAppsSuccess([makeApp("a")]);
+    setFiltersSuccess();
+  });
+
+  it("renders both ANRs and Errors pills when both error types are selected (the default)", async () => {
+    await renderFilters({ filterSource: FilterSource.Errors });
+    await waitFor(() => {
+      expect(screen.getByText("ANRs")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Errors")).toBeInTheDocument();
+  });
+
+  it("hides the ANRs pill when 'anr' is not in selectedErrorTypes", async () => {
+    await renderFilters({ filterSource: FilterSource.Errors });
+    await waitFor(() => {
+      expect(screen.getByText("ANRs")).toBeInTheDocument();
+    });
+    await act(async () => {
+      storeInstance.getState().setSelectedErrorTypes(["error"]);
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("ANRs")).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("Errors")).toBeInTheDocument();
+  });
+
+  it("hides the Errors pill when 'error' is not in selectedErrorTypes", async () => {
+    await renderFilters({ filterSource: FilterSource.Errors });
+    await waitFor(() => {
+      expect(screen.getByText("Errors")).toBeInTheDocument();
+    });
+    await act(async () => {
+      storeInstance.getState().setSelectedErrorTypes(["anr"]);
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("Errors")).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("ANRs")).toBeInTheDocument();
+  });
+
+  it("does not render either pill when filterSource is not Errors", async () => {
+    await renderFilters({ filterSource: FilterSource.Events });
+    await waitFor(() => {
+      expect(screen.getByTestId("dropdown-App Name")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("ANRs")).not.toBeInTheDocument();
+    expect(screen.queryByText("Errors")).not.toBeInTheDocument();
+  });
+
+  it("renders the Errors pill with only 'Errors' when no severities or custom flag are set", async () => {
+    await renderFilters({ filterSource: FilterSource.Errors });
+    await waitFor(() => {
+      expect(screen.getByText("Errors")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/^Errors - /)).not.toBeInTheDocument();
+  });
+
+  it("renders 'Errors - Custom' when only customErrorsOnly is set", async () => {
+    await renderFilters({ filterSource: FilterSource.Errors });
+    await act(async () => {
+      storeInstance.getState().setCustomErrorsOnly(true);
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Errors - Custom")).toBeInTheDocument();
+    });
+  });
+
+  it("renders 'Errors - Custom, Fatal, Handled' when both custom and multiple severities are set", async () => {
+    await renderFilters({ filterSource: FilterSource.Errors });
+    await act(async () => {
+      storeInstance.getState().setCustomErrorsOnly(true);
+      storeInstance.getState().setSelectedSeverities(["fatal", "handled"]);
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByText("Errors - Custom, Fatal, Handled"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("renders just the severity names in the Errors pill when custom is off", async () => {
+    await renderFilters({ filterSource: FilterSource.Errors });
+    await act(async () => {
+      storeInstance.getState().setSelectedSeverities(["fatal"]);
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Errors - Fatal")).toBeInTheDocument();
+    });
+  });
+
+  it("removes 'anr' from selectedErrorTypes when the X on ANRs pill is clicked", async () => {
+    await renderFilters({ filterSource: FilterSource.Errors });
+    fireEvent.click(await screen.findByLabelText("Clear ANRs"));
+    await waitFor(() => {
+      expect(storeInstance.getState().selectedErrorTypes).not.toContain("anr");
+    });
+  });
+
+  it("clears errors + severities + customErrorsOnly when X on Errors pill is clicked", async () => {
+    await renderFilters({ filterSource: FilterSource.Errors });
+    await act(async () => {
+      storeInstance.getState().setSelectedSeverities(["fatal"]);
+      storeInstance.getState().setCustomErrorsOnly(true);
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Errors - Custom, Fatal")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByLabelText("Clear Errors - Custom, Fatal"));
+    await waitFor(() => {
+      expect(storeInstance.getState().selectedErrorTypes).not.toContain(
+        "error",
+      );
+    });
+    expect(storeInstance.getState().selectedSeverities).toEqual([]);
+    expect(storeInstance.getState().customErrorsOnly).toBe(false);
+  });
+});
+
 describe("Filters — filter chips", () => {
   beforeEach(() => {
     setAppsSuccess([makeApp("a")]);
@@ -672,5 +906,46 @@ describe("Filters — filter chips", () => {
         screen.getByText("Narrow down results with additional filters."),
       ).toBeInTheDocument();
     });
+  });
+});
+
+describe("deserializeUrlFilters — Errors filter source URL keys", () => {
+  it("parses et (errorTypes) as a comma-separated string array", () => {
+    const result = deserializeUrlFilters("et=error,anr");
+    expect(result.errorTypes).toEqual(["error", "anr"]);
+  });
+
+  it("parses a single errorTypes value", () => {
+    const result = deserializeUrlFilters("et=anr");
+    expect(result.errorTypes).toEqual(["anr"]);
+  });
+
+  it("parses sv (severities) as a comma-separated string array", () => {
+    const result = deserializeUrlFilters("sv=fatal,handled");
+    expect(result.severities).toEqual(["fatal", "handled"]);
+  });
+
+  it("parses co=1 as customErrorsOnly true", () => {
+    const result = deserializeUrlFilters("co=1");
+    expect(result.customErrorsOnly).toBe(true);
+  });
+
+  it("parses co=0 as customErrorsOnly false", () => {
+    const result = deserializeUrlFilters("co=0");
+    expect(result.customErrorsOnly).toBe(false);
+  });
+
+  it("round-trips all three keys together", () => {
+    const result = deserializeUrlFilters("et=error&sv=fatal,unhandled&co=1");
+    expect(result.errorTypes).toEqual(["error"]);
+    expect(result.severities).toEqual(["fatal", "unhandled"]);
+    expect(result.customErrorsOnly).toBe(true);
+  });
+
+  it("omits absent keys", () => {
+    const result = deserializeUrlFilters("");
+    expect(result.errorTypes).toBeUndefined();
+    expect(result.severities).toBeUndefined();
+    expect(result.customErrorsOnly).toBeUndefined();
   });
 });

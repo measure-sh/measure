@@ -52,7 +52,7 @@ function makeApp(id: string, overrides: Partial<App> = {}): App {
 }
 
 const baseConfig = {
-  filterSource: FilterSource.Crashes,
+  filterSource: FilterSource.Errors,
   showNoData: false,
   showNotOnboarded: false,
   showAppSelector: true,
@@ -97,7 +97,7 @@ function initConfig(urlFilters: any = {}, appId?: string): InitConfig {
     urlFilters,
     appId,
     appVersionsInitialSelectionType: AppVersionsInitialSelectionType.Latest,
-    filterSource: FilterSource.Crashes,
+    filterSource: FilterSource.Errors,
   };
 }
 
@@ -529,14 +529,14 @@ describe("filtersStore actions", () => {
     const store = createFiltersStore();
     store
       .getState()
-      .setConfig({ ...baseConfig, filterSource: FilterSource.Crashes });
+      .setConfig({ ...baseConfig, filterSource: FilterSource.Errors });
     store.getState().setSelectedCountries(["US"]);
     store.getState().setSelectedSessionTypes([SessionType.Crashes]);
     store.getState().setSelectedFreeText("oom");
 
     store
       .getState()
-      .setConfig({ ...baseConfig, filterSource: FilterSource.Anrs });
+      .setConfig({ ...baseConfig, filterSource: FilterSource.Events });
 
     expect(store.getState().selectedCountries).toEqual([]);
     expect(store.getState().selectedSessionTypes).toEqual([]);
@@ -685,5 +685,233 @@ describe("computed filters object", () => {
     store.getState().setSelectedApp(makeApp("a"));
     store.getState().setFilterOptions(null, FiltersApiStatus.NoData);
     expect(store.getState().filters.ready).toBe(true);
+  });
+});
+
+// ========================================================================
+// Errors-source filters: selectedErrorTypes / selectedSeverities /
+// customErrorsOnly — default state, setters, and URL (de)serialization.
+// ========================================================================
+describe("errors-source filter state", () => {
+  it("defaults selectedErrorTypes to ['error','anr']", () => {
+    const store = createFiltersStore();
+    expect(store.getState().selectedErrorTypes).toEqual(["error", "anr"]);
+  });
+
+  it("defaults selectedSeverities to []", () => {
+    const store = createFiltersStore();
+    expect(store.getState().selectedSeverities).toEqual([]);
+  });
+
+  it("defaults customErrorsOnly to false", () => {
+    const store = createFiltersStore();
+    expect(store.getState().customErrorsOnly).toBe(false);
+  });
+
+  it("setSelectedErrorTypes updates the field", () => {
+    const store = createFiltersStore();
+    store.getState().setSelectedErrorTypes(["error"]);
+    expect(store.getState().selectedErrorTypes).toEqual(["error"]);
+  });
+
+  it("setSelectedSeverities updates the field", () => {
+    const store = createFiltersStore();
+    store.getState().setSelectedSeverities(["fatal", "handled"]);
+    expect(store.getState().selectedSeverities).toEqual(["fatal", "handled"]);
+  });
+
+  it("setCustomErrorsOnly updates the field", () => {
+    const store = createFiltersStore();
+    store.getState().setCustomErrorsOnly(true);
+    expect(store.getState().customErrorsOnly).toBe(true);
+  });
+
+  it("setting selectedErrorTypes back to default still updates", () => {
+    const store = createFiltersStore();
+    store.getState().setSelectedErrorTypes([]);
+    expect(store.getState().selectedErrorTypes).toEqual([]);
+    store.getState().setSelectedErrorTypes(["error", "anr"]);
+    expect(store.getState().selectedErrorTypes).toEqual(["error", "anr"]);
+  });
+
+  it("setConfig from Events -> Errors restores Errors defaults", () => {
+    const store = createFiltersStore();
+    store
+      .getState()
+      .setConfig({ ...baseConfig, filterSource: FilterSource.Events });
+    store.getState().setSelectedErrorTypes(["error"]);
+    store.getState().setSelectedSeverities(["fatal"]);
+    store.getState().setCustomErrorsOnly(true);
+
+    store
+      .getState()
+      .setConfig({ ...baseConfig, filterSource: FilterSource.Errors });
+
+    expect(store.getState().selectedErrorTypes).toEqual(["error", "anr"]);
+    expect(store.getState().selectedSeverities).toEqual([]);
+    expect(store.getState().customErrorsOnly).toBe(false);
+  });
+
+  function readyErrorsStore() {
+    const store = createFiltersStore();
+    store
+      .getState()
+      .setConfig({ ...baseConfig, filterSource: FilterSource.Errors });
+    store.getState().setApps([makeApp("a")], AppsApiStatus.Success);
+    store.getState().setSelectedApp(makeApp("a"));
+    store.getState().setFilterOptions(
+      {
+        versions: [new AppVersion("1.0", "100")],
+        osVersions: [],
+        countries: [],
+        networkProviders: [],
+        networkTypes: [],
+        networkGenerations: [],
+        locales: [],
+        deviceManufacturers: [],
+        deviceNames: [],
+        userDefAttrs: [],
+        userDefAttrOps: new Map(),
+      },
+      FiltersApiStatus.Success,
+    );
+    return store;
+  }
+
+  it("serialises et=<comma-joined> when selectedErrorTypes is non-empty on Errors source", () => {
+    const store = readyErrorsStore();
+    store.getState().setSelectedErrorTypes(["error", "anr"]);
+    const params = new URLSearchParams(
+      store.getState().filters.serialisedFilters ?? "",
+    );
+    expect(params.get("et")).toBe("error,anr");
+  });
+
+  it("does NOT emit et when on Events source", () => {
+    const store = createFiltersStore();
+    store
+      .getState()
+      .setConfig({ ...baseConfig, filterSource: FilterSource.Events });
+    store.getState().setApps([makeApp("a")], AppsApiStatus.Success);
+    store.getState().setSelectedApp(makeApp("a"));
+    store.getState().setFilterOptions(
+      {
+        versions: [new AppVersion("1.0", "100")],
+        osVersions: [],
+        countries: [],
+        networkProviders: [],
+        networkTypes: [],
+        networkGenerations: [],
+        locales: [],
+        deviceManufacturers: [],
+        deviceNames: [],
+        userDefAttrs: [],
+        userDefAttrOps: new Map(),
+      },
+      FiltersApiStatus.Success,
+    );
+    store.getState().setSelectedErrorTypes(["error", "anr"]);
+    const params = new URLSearchParams(
+      store.getState().filters.serialisedFilters ?? "",
+    );
+    expect(params.get("et")).toBeNull();
+  });
+
+  it("serialises sv=<comma-joined> when selectedSeverities is non-empty on Errors source", () => {
+    const store = readyErrorsStore();
+    store.getState().setSelectedSeverities(["fatal", "handled"]);
+    const params = new URLSearchParams(
+      store.getState().filters.serialisedFilters ?? "",
+    );
+    expect(params.get("sv")).toBe("fatal,handled");
+  });
+
+  it("omits sv when selectedSeverities is empty", () => {
+    const store = readyErrorsStore();
+    store.getState().setSelectedSeverities([]);
+    const params = new URLSearchParams(
+      store.getState().filters.serialisedFilters ?? "",
+    );
+    expect(params.get("sv")).toBeNull();
+  });
+
+  it("serialises co=1 when customErrorsOnly is true on Errors source", () => {
+    const store = readyErrorsStore();
+    store.getState().setCustomErrorsOnly(true);
+    const params = new URLSearchParams(
+      store.getState().filters.serialisedFilters ?? "",
+    );
+    expect(params.get("co")).toBe("1");
+  });
+
+  it("omits co when customErrorsOnly is false", () => {
+    const store = readyErrorsStore();
+    store.getState().setCustomErrorsOnly(false);
+    const params = new URLSearchParams(
+      store.getState().filters.serialisedFilters ?? "",
+    );
+    expect(params.get("co")).toBeNull();
+  });
+
+  it("applyFilterOptions reads urlFilters.errorTypes back into the store", () => {
+    const store = createFiltersStore();
+    const cfg: InitConfig = {
+      urlFilters: { errorTypes: ["error"] },
+      appVersionsInitialSelectionType: AppVersionsInitialSelectionType.Latest,
+      filterSource: FilterSource.Errors,
+    };
+    const data = emptyOptions();
+    const patch = applyFilterOptions(data, makeApp("a"), cfg, store.getState());
+    expect(patch.selectedErrorTypes).toEqual(["error"]);
+  });
+
+  it("applyFilterOptions reads urlFilters.severities back into the store", () => {
+    const store = createFiltersStore();
+    const cfg: InitConfig = {
+      urlFilters: { severities: ["fatal", "handled"] },
+      appVersionsInitialSelectionType: AppVersionsInitialSelectionType.Latest,
+      filterSource: FilterSource.Errors,
+    };
+    const patch = applyFilterOptions(
+      emptyOptions(),
+      makeApp("a"),
+      cfg,
+      store.getState(),
+    );
+    expect(patch.selectedSeverities).toEqual(["fatal", "handled"]);
+  });
+
+  it("applyFilterOptions reads urlFilters.customErrorsOnly back into the store", () => {
+    const store = createFiltersStore();
+    const cfg: InitConfig = {
+      urlFilters: { customErrorsOnly: true },
+      appVersionsInitialSelectionType: AppVersionsInitialSelectionType.Latest,
+      filterSource: FilterSource.Errors,
+    };
+    const patch = applyFilterOptions(
+      emptyOptions(),
+      makeApp("a"),
+      cfg,
+      store.getState(),
+    );
+    expect(patch.customErrorsOnly).toBe(true);
+  });
+
+  it("applyFilterOptions defaults errorTypes back to ['error','anr'] when URL omits it", () => {
+    const store = createFiltersStore();
+    const cfg: InitConfig = {
+      urlFilters: {},
+      appVersionsInitialSelectionType: AppVersionsInitialSelectionType.Latest,
+      filterSource: FilterSource.Errors,
+    };
+    const patch = applyFilterOptions(
+      emptyOptions(),
+      makeApp("a"),
+      cfg,
+      store.getState(),
+    );
+    expect(patch.selectedErrorTypes).toEqual(["error", "anr"]);
+    expect(patch.selectedSeverities).toEqual([]);
+    expect(patch.customErrorsOnly).toBe(false);
   });
 });

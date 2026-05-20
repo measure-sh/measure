@@ -149,7 +149,6 @@ export default function UserJourneys({
                 teamId={params.teamId}
                 bidirectional={false}
                 journeyType={JourneyType.Paths}
-                exceptionsGroupId={null}
                 searchText={searchText}
                 demo={demo}
               />
@@ -159,7 +158,6 @@ export default function UserJourneys({
                 teamId={params.teamId}
                 bidirectional={false}
                 journeyType={JourneyType.Exceptions}
-                exceptionsGroupId={null}
                 searchText={searchText}
                 demo={demo}
               />

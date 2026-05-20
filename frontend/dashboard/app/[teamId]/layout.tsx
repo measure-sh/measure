@@ -60,14 +60,8 @@ function buildInitNavData() {
         title: "Issues",
         items: [
           {
-            title: "Crashes",
-            url: "crashes",
-            isActive: false,
-            external: false,
-          },
-          {
-            title: "ANRs",
-            url: "anrs",
+            title: "Errors",
+            url: "errors",
             isActive: false,
             external: false,
           },

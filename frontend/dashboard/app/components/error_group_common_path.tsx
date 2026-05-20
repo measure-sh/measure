@@ -1,17 +1,16 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { ExceptionsType } from "../api/api_calls";
 import {
   type ExceptionGroupCommonPath,
-  useExceptionGroupCommonPathQuery,
+  useErrorGroupCommonPathQuery,
 } from "../query/hooks";
 import BetaBadge from "./beta_badge";
 import CodeBlock from "./code_block";
 import { Skeleton } from "./skeleton";
 import { Slider } from "./slider";
 
-const demoExceptionGroupCommonPath: ExceptionGroupCommonPath = {
+const demoErrorGroupCommonPath: ExceptionGroupCommonPath = {
   sessions_analyzed: 50,
   steps: [
     {
@@ -63,42 +62,36 @@ const demoExceptionGroupCommonPath: ExceptionGroupCommonPath = {
   ],
 };
 
-interface ExceptionGroupCommonPathProps {
-  type: ExceptionsType;
+interface ErrorGroupCommonPathProps {
   appId: string;
   groupId: string;
   demo?: boolean;
 }
 
-const ExceptionGroupCommonPath: React.FC<ExceptionGroupCommonPathProps> = ({
-  type,
+const ErrorGroupCommonPath: React.FC<ErrorGroupCommonPathProps> = ({
   appId,
   groupId,
   demo = false,
 }) => {
   const { data: queryCommonPath, status: queryStatus } =
-    useExceptionGroupCommonPathQuery(
-      type,
-      demo ? "" : appId,
-      demo ? "" : groupId,
-    );
+    useErrorGroupCommonPathQuery(demo ? "" : groupId);
 
   const [confidenceThreshold, setConfidenceThreshold] = useState<number>(80);
 
   const commonPathStatus = demo ? "success" : queryStatus;
-  const exceptionsGroupCommonPath = demo
-    ? demoExceptionGroupCommonPath
+  const errorGroupCommonPath = demo
+    ? demoErrorGroupCommonPath
     : queryCommonPath;
 
   // Filter steps based on confidence threshold
   const filteredSteps = useMemo(() => {
-    if (!exceptionsGroupCommonPath?.steps) {
+    if (!errorGroupCommonPath?.steps) {
       return [];
     }
-    return exceptionsGroupCommonPath.steps.filter(
+    return errorGroupCommonPath.steps.filter(
       (step) => step.confidence_pct >= confidenceThreshold,
     );
-  }, [exceptionsGroupCommonPath, confidenceThreshold]);
+  }, [errorGroupCommonPath, confidenceThreshold]);
 
   return (
     <div className="flex flex-col font-body w-full">
@@ -128,10 +121,9 @@ const ExceptionGroupCommonPath: React.FC<ExceptionGroupCommonPathProps> = ({
                 analyzed sessions
               </label>
               <span className="text-xs">
-                Analyzed from latest{" "}
-                {exceptionsGroupCommonPath?.sessions_analyzed} sessions |{" "}
-                {filteredSteps.length} of{" "}
-                {exceptionsGroupCommonPath?.steps.length} steps
+                Analyzed from latest {errorGroupCommonPath?.sessions_analyzed}{" "}
+                sessions | {filteredSteps.length} of{" "}
+                {errorGroupCommonPath?.steps.length} steps
               </span>
             </div>
             <Slider
@@ -175,4 +167,4 @@ const ExceptionGroupCommonPath: React.FC<ExceptionGroupCommonPathProps> = ({
   );
 };
 
-export default ExceptionGroupCommonPath;
+export default ErrorGroupCommonPath;

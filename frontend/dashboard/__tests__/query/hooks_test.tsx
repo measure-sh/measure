@@ -5,6 +5,12 @@ import React from "react";
 
 import {
   AppsApiStatus,
+  ErrorGroupCommonPathApiStatus,
+  ErrorsDetailsApiStatus,
+  ErrorsDetailsPlotApiStatus,
+  ErrorsDistributionPlotApiStatus,
+  ErrorsOverviewApiStatus,
+  ErrorsOverviewPlotApiStatus,
   FiltersApiStatus,
   FilterSource,
   RootSpanNamesApiStatus,
@@ -17,8 +23,26 @@ jest.mock("@/app/api/api_calls", () => {
     fetchAppsFromServer: jest.fn(),
     fetchFiltersFromServer: jest.fn(),
     fetchRootSpanNamesFromServer: jest.fn(),
+    fetchErrorsOverviewFromServer: jest.fn(),
+    fetchErrorsOverviewPlotFromServer: jest.fn(),
+    fetchErrorsDetailsFromServer: jest.fn(),
+    fetchErrorsDetailsPlotFromServer: jest.fn(),
+    fetchErrorsDistributionPlotFromServer: jest.fn(),
+    fetchErrorGroupCommonPathFromServer: jest.fn(),
   };
 });
+
+// useErrorsOverviewQuery + siblings read `filters` from useFiltersStore. Stub
+// the provider's hook so each test can stage the filters slice it wants the
+// hook under test to see.
+let mockFiltersState: any = { ready: false, app: null };
+jest.mock("@/app/stores/provider", () => ({
+  __esModule: true,
+  useFiltersStore: (selector?: any) =>
+    selector
+      ? selector({ filters: mockFiltersState })
+      : { filters: mockFiltersState },
+}));
 
 jest.mock("@/app/api/api_client", () => ({
   apiClient: {
@@ -30,6 +54,12 @@ jest.mock("@/app/api/api_client", () => ({
 
 import {
   fetchAppsFromServer,
+  fetchErrorGroupCommonPathFromServer,
+  fetchErrorsDetailsFromServer,
+  fetchErrorsDetailsPlotFromServer,
+  fetchErrorsDistributionPlotFromServer,
+  fetchErrorsOverviewFromServer,
+  fetchErrorsOverviewPlotFromServer,
   fetchFiltersFromServer,
   fetchRootSpanNamesFromServer,
 } from "@/app/api/api_calls";
@@ -38,6 +68,12 @@ import {
   fetchCurrentSession,
   signOut,
   useAppsQuery,
+  useErrorGroupCommonPathQuery,
+  useErrorsDetailsPlotQuery,
+  useErrorsDetailsQuery,
+  useErrorsDistributionPlotQuery,
+  useErrorsOverviewPlotQuery,
+  useErrorsOverviewQuery,
   useFilterOptionsQuery,
   useRootSpanNamesQuery,
   useSessionQuery,
@@ -46,6 +82,16 @@ import {
 const mockFetchApps = fetchAppsFromServer as jest.Mock;
 const mockFetchFilters = fetchFiltersFromServer as jest.Mock;
 const mockFetchRootSpanNames = fetchRootSpanNamesFromServer as jest.Mock;
+const mockFetchErrorsOverview = fetchErrorsOverviewFromServer as jest.Mock;
+const mockFetchErrorsOverviewPlot =
+  fetchErrorsOverviewPlotFromServer as jest.Mock;
+const mockFetchErrorsDetails = fetchErrorsDetailsFromServer as jest.Mock;
+const mockFetchErrorsDetailsPlot =
+  fetchErrorsDetailsPlotFromServer as jest.Mock;
+const mockFetchErrorsDistributionPlot =
+  fetchErrorsDistributionPlotFromServer as jest.Mock;
+const mockFetchErrorGroupCommonPath =
+  fetchErrorGroupCommonPathFromServer as jest.Mock;
 const mockApiClientFetch = apiClient.fetch as jest.Mock;
 const mockRedirectToLogin = apiClient.redirectToLogin as jest.Mock;
 
@@ -64,7 +110,16 @@ function makeWrapper() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockFiltersState = { ready: false, app: null };
 });
+
+function readyFilters() {
+  return {
+    ready: true,
+    app: { id: "app-1", onboarded: true },
+    serialisedFilters: "v=0",
+  };
+}
 
 describe("useAppsQuery", () => {
   it("does not fetch when teamId is undefined", () => {
@@ -133,7 +188,7 @@ describe("useFilterOptionsQuery", () => {
   it("does not fetch when app is null", () => {
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useFilterOptionsQuery(null, FilterSource.Crashes),
+      () => useFilterOptionsQuery(null, FilterSource.Errors),
       { wrapper },
     );
     expect(result.current.fetchStatus).toBe("idle");
@@ -143,7 +198,7 @@ describe("useFilterOptionsQuery", () => {
   it("returns NotOnboarded without hitting the network for never-onboarded apps", async () => {
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useFilterOptionsQuery(notOnboardedApp, FilterSource.Crashes),
+      () => useFilterOptionsQuery(notOnboardedApp, FilterSource.Errors),
       { wrapper },
     );
 
@@ -175,7 +230,7 @@ describe("useFilterOptionsQuery", () => {
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useFilterOptionsQuery(onboardedApp, FilterSource.Crashes),
+      () => useFilterOptionsQuery(onboardedApp, FilterSource.Errors),
       { wrapper },
     );
 
@@ -183,7 +238,7 @@ describe("useFilterOptionsQuery", () => {
 
     expect(mockFetchFilters).toHaveBeenCalledWith(
       onboardedApp,
-      FilterSource.Crashes,
+      FilterSource.Errors,
     );
     expect(result.current.data?.status).toBe(FiltersApiStatus.Success);
     expect(result.current.data?.data?.countries).toEqual(["US"]);
@@ -199,7 +254,7 @@ describe("useFilterOptionsQuery", () => {
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useFilterOptionsQuery(onboardedApp, FilterSource.Crashes),
+      () => useFilterOptionsQuery(onboardedApp, FilterSource.Errors),
       { wrapper },
     );
 
@@ -218,7 +273,7 @@ describe("useFilterOptionsQuery", () => {
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useFilterOptionsQuery(onboardedApp, FilterSource.Crashes),
+      () => useFilterOptionsQuery(onboardedApp, FilterSource.Errors),
       { wrapper },
     );
 
@@ -245,7 +300,7 @@ describe("useFilterOptionsQuery", () => {
     const { wrapper } = makeWrapper();
     const { rerender, result } = renderHook(
       ({ app }: { app: any }) =>
-        useFilterOptionsQuery(app, FilterSource.Crashes),
+        useFilterOptionsQuery(app, FilterSource.Errors),
       {
         wrapper,
         initialProps: { app: notOnboardedApp },
@@ -272,7 +327,7 @@ describe("useRootSpanNamesQuery", () => {
   it("is disabled when filterSource is not Spans", () => {
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
-      () => useRootSpanNamesQuery(app, FilterSource.Crashes),
+      () => useRootSpanNamesQuery(app, FilterSource.Errors),
       { wrapper },
     );
     expect(result.current.fetchStatus).toBe("idle");
@@ -421,5 +476,392 @@ describe("signOut", () => {
       }),
     );
     expect(mockRedirectToLogin).toHaveBeenCalled();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Errors (unified Crashes + ANRs): one describe per hook, each covering
+// the disabled / pending / success / error paths.
+// ─────────────────────────────────────────────────────────────────────────
+
+describe("useErrorsOverviewQuery", () => {
+  it("is disabled when filters.ready is false", () => {
+    mockFiltersState = { ready: false };
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsOverviewQuery(0), { wrapper });
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchErrorsOverview).not.toHaveBeenCalled();
+  });
+
+  it("returns success with data once the fetch resolves", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchErrorsOverview.mockResolvedValueOnce({
+      status: ErrorsOverviewApiStatus.Success,
+      data: { results: [{ id: "g1" }] },
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsOverviewQuery(0), { wrapper });
+
+    expect(result.current.status).toBe("pending");
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
+    expect(mockFetchErrorsOverview).toHaveBeenCalledWith(
+      mockFiltersState,
+      5,
+      0,
+    );
+    expect((result.current.data as any).results[0].id).toBe("g1");
+  });
+
+  it("throws on Error status", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchErrorsOverview.mockResolvedValueOnce({
+      status: ErrorsOverviewApiStatus.Error,
+      data: null,
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsOverviewQuery(0), { wrapper });
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect((result.current.error as Error).message).toMatch(
+      /Failed to fetch errors overview/,
+    );
+  });
+});
+
+describe("useErrorsOverviewPlotQuery", () => {
+  it("is disabled when filters.ready is false", () => {
+    mockFiltersState = { ready: false };
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsOverviewPlotQuery(), {
+      wrapper,
+    });
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchErrorsOverviewPlot).not.toHaveBeenCalled();
+  });
+
+  it("returns mapped data on success", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchErrorsOverviewPlot.mockResolvedValueOnce({
+      status: ErrorsOverviewPlotApiStatus.Success,
+      data: [{ id: "android", data: [{ datetime: "x", instances: 1 }] }],
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsOverviewPlotQuery(), {
+      wrapper,
+    });
+
+    expect(result.current.status).toBe("pending");
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    expect(result.current.data).toEqual([
+      { id: "android", data: [{ x: "x", y: 1 }] },
+    ]);
+  });
+
+  it("returns null on NoData", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchErrorsOverviewPlot.mockResolvedValueOnce({
+      status: ErrorsOverviewPlotApiStatus.NoData,
+      data: null,
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsOverviewPlotQuery(), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    expect(result.current.data).toBeNull();
+  });
+
+  it("throws on Error", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchErrorsOverviewPlot.mockResolvedValueOnce({
+      status: ErrorsOverviewPlotApiStatus.Error,
+      data: null,
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsOverviewPlotQuery(), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+  });
+});
+
+describe("useErrorsDetailsQuery", () => {
+  it("is disabled when filters.ready is false", () => {
+    mockFiltersState = { ready: false };
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsDetailsQuery("group-1", 0), {
+      wrapper,
+    });
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchErrorsDetails).not.toHaveBeenCalled();
+  });
+
+  it("is disabled when errorGroupId is empty", () => {
+    mockFiltersState = readyFilters();
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsDetailsQuery("", 0), {
+      wrapper,
+    });
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchErrorsDetails).not.toHaveBeenCalled();
+  });
+
+  it("returns success with data once the fetch resolves", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchErrorsDetails.mockResolvedValueOnce({
+      status: ErrorsDetailsApiStatus.Success,
+      data: { results: [{ id: "e1" }] },
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsDetailsQuery("group-1", 3), {
+      wrapper,
+    });
+
+    expect(result.current.status).toBe("pending");
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
+    expect(mockFetchErrorsDetails).toHaveBeenCalledWith(
+      "group-1",
+      3,
+      mockFiltersState,
+      1,
+    );
+  });
+
+  it("throws on Error status", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchErrorsDetails.mockResolvedValueOnce({
+      status: ErrorsDetailsApiStatus.Error,
+      data: null,
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsDetailsQuery("group-1", 0), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+  });
+});
+
+describe("useErrorsDetailsPlotQuery", () => {
+  it("is disabled when filters.ready is false", () => {
+    mockFiltersState = { ready: false };
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsDetailsPlotQuery("group-1"), {
+      wrapper,
+    });
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchErrorsDetailsPlot).not.toHaveBeenCalled();
+  });
+
+  it("is disabled when errorGroupId is empty", () => {
+    mockFiltersState = readyFilters();
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsDetailsPlotQuery(""), {
+      wrapper,
+    });
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchErrorsDetailsPlot).not.toHaveBeenCalled();
+  });
+
+  it("returns mapped data on success", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchErrorsDetailsPlot.mockResolvedValueOnce({
+      status: ErrorsDetailsPlotApiStatus.Success,
+      data: [{ id: "ios", data: [{ datetime: "y", instances: 2 }] }],
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsDetailsPlotQuery("group-1"), {
+      wrapper,
+    });
+
+    expect(result.current.status).toBe("pending");
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    expect(result.current.data).toEqual([
+      { id: "ios", data: [{ x: "y", y: 2 }] },
+    ]);
+  });
+
+  it("returns null on NoData", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchErrorsDetailsPlot.mockResolvedValueOnce({
+      status: ErrorsDetailsPlotApiStatus.NoData,
+      data: null,
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsDetailsPlotQuery("group-1"), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    expect(result.current.data).toBeNull();
+  });
+
+  it("throws on Error", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchErrorsDetailsPlot.mockResolvedValueOnce({
+      status: ErrorsDetailsPlotApiStatus.Error,
+      data: null,
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsDetailsPlotQuery("group-1"), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+  });
+});
+
+describe("useErrorsDistributionPlotQuery", () => {
+  it("is disabled when filters.ready is false", () => {
+    mockFiltersState = { ready: false };
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useErrorsDistributionPlotQuery("group-1"),
+      { wrapper },
+    );
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchErrorsDistributionPlot).not.toHaveBeenCalled();
+  });
+
+  it("is disabled when errorGroupId is empty", () => {
+    mockFiltersState = readyFilters();
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorsDistributionPlotQuery(""), {
+      wrapper,
+    });
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchErrorsDistributionPlot).not.toHaveBeenCalled();
+  });
+
+  it("returns parsed distribution data on success", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchErrorsDistributionPlot.mockResolvedValueOnce({
+      status: ErrorsDistributionPlotApiStatus.Success,
+      data: {
+        os_version: { "android 13": 5 },
+        country: { US: 3 },
+      },
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useErrorsDistributionPlotQuery("group-1"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    expect(result.current.data).toMatchObject({
+      plot: expect.any(Array),
+      plotKeys: expect.any(Array),
+    });
+  });
+
+  it("returns null on NoData", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchErrorsDistributionPlot.mockResolvedValueOnce({
+      status: ErrorsDistributionPlotApiStatus.NoData,
+      data: null,
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useErrorsDistributionPlotQuery("group-1"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    expect(result.current.data).toBeNull();
+  });
+
+  it("throws on Error", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchErrorsDistributionPlot.mockResolvedValueOnce({
+      status: ErrorsDistributionPlotApiStatus.Error,
+      data: null,
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useErrorsDistributionPlotQuery("group-1"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+  });
+});
+
+describe("useErrorGroupCommonPathQuery", () => {
+  it("is disabled when filters.app is missing", () => {
+    mockFiltersState = { ready: true, app: null };
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useErrorGroupCommonPathQuery("group-1"),
+      { wrapper },
+    );
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchErrorGroupCommonPath).not.toHaveBeenCalled();
+  });
+
+  it("is disabled when errorGroupId is empty", () => {
+    mockFiltersState = readyFilters();
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useErrorGroupCommonPathQuery(""), {
+      wrapper,
+    });
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchErrorGroupCommonPath).not.toHaveBeenCalled();
+  });
+
+  it("returns success with data", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchErrorGroupCommonPath.mockResolvedValueOnce({
+      status: ErrorGroupCommonPathApiStatus.Success,
+      data: { sessions_analyzed: 7, steps: [] },
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useErrorGroupCommonPathQuery("group-1"),
+      { wrapper },
+    );
+
+    expect(result.current.status).toBe("pending");
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
+    expect(mockFetchErrorGroupCommonPath).toHaveBeenCalledWith(
+      "group-1",
+      mockFiltersState,
+    );
+    expect(result.current.data?.sessions_analyzed).toBe(7);
+  });
+
+  it("throws on Error", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchErrorGroupCommonPath.mockResolvedValueOnce({
+      status: ErrorGroupCommonPathApiStatus.Error,
+      data: null,
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useErrorGroupCommonPathQuery("group-1"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
   });
 });

@@ -2,14 +2,12 @@ import {
   formatUserInputDateToServerFormat,
   getPlotTimeGroupForRange,
   getTimeZoneForServer,
-} from "../utils/time_utils"
-import { apiClient } from "./api_client"
+} from "../utils/time_utils";
+import { apiClient } from "./api_client";
 
 export enum JourneyType {
   Paths,
   Exceptions,
-  CrashDetails,
-  AnrDetails
 }
 
 export enum ValidateInviteApiStatus {
@@ -82,12 +80,11 @@ export enum SaveFiltersApiStatus {
 
 export enum FilterSource {
   Events,
-  Crashes,
-  Anrs,
   Spans,
+  Errors,
 }
 
-export enum SessionsVsExceptionsPlotApiStatus {
+export enum SessionsVsErrorsPlotApiStatus {
   Loading,
   Success,
   Error,
@@ -117,26 +114,6 @@ export enum SessionTimelinesOverviewApiStatus {
   Cancelled,
 }
 
-export enum ExceptionsType {
-  Crash,
-  Anr,
-}
-
-export enum ExceptionsOverviewApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum ExceptionsOverviewPlotApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
 export enum SessionTimelinesOverviewPlotApiStatus {
   Loading,
   Success,
@@ -145,28 +122,44 @@ export enum SessionTimelinesOverviewPlotApiStatus {
   Cancelled,
 }
 
-export enum ExceptionsDetailsApiStatus {
+export enum ErrorsOverviewApiStatus {
   Loading,
   Success,
   Error,
   Cancelled,
 }
 
-export enum ExceptionGroupCommonPathApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum ExceptionsDetailsPlotApiStatus {
+export enum ErrorsOverviewPlotApiStatus {
   Loading,
   Success,
   Error,
   NoData,
   Cancelled,
 }
-export enum ExceptionsDistributionPlotApiStatus {
+
+export enum ErrorsDetailsApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum ErrorGroupCommonPathApiStatus {
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
+export enum ErrorsDetailsPlotApiStatus {
+  Loading,
+  Success,
+  Error,
+  NoData,
+  Cancelled,
+}
+
+export enum ErrorsDistributionPlotApiStatus {
   Loading,
   Success,
   Error,
@@ -518,7 +511,7 @@ export enum SessionType {
   BugReports = "Bug Report Sessions",
   UserInteraction = "User Interaction Sessions",
   Foreground = "Foreground Sessions",
-  Background = "Background Sessions"
+  Background = "Background Sessions",
 }
 
 export enum SpanStatus {
@@ -541,39 +534,39 @@ export enum HttpMethod {
 }
 
 export type Team = {
-  id: string
-  name: string
-}
+  id: string;
+  name: string;
+};
 
 export type PendingInvite = {
-  id: string
-  invited_by_user_id: string
-  invited_by_email: string
-  invited_to_team_id: string
-  role: string
-  email: string
-  created_at: string
-  updated_at: string
-  valid_until: string
-}
+  id: string;
+  invited_by_user_id: string;
+  invited_by_email: string;
+  invited_to_team_id: string;
+  role: string;
+  email: string;
+  created_at: string;
+  updated_at: string;
+  valid_until: string;
+};
 
 export type App = {
-  id: string
-  team_id: string
-  name: string
+  id: string;
+  team_id: string;
+  name: string;
   api_key: {
-    created_at: string
-    key: string
-    last_seen: string | null
-    revoked: boolean
-  }
-  onboarded: boolean
-  created_at: string
-  updated_at: string
-  os_name: string | null
-  onboarded_at: string | null
-  unique_identifier: string | null
-}
+    created_at: string;
+    key: string;
+    last_seen: string | null;
+    revoked: boolean;
+  };
+  onboarded: boolean;
+  created_at: string;
+  updated_at: string;
+  os_name: string | null;
+  onboarded_at: string | null;
+  unique_identifier: string | null;
+};
 
 export const emptyJourney = {
   links: [
@@ -605,7 +598,7 @@ export const emptyJourney = {
     },
   ],
   totalIssues: 0,
-}
+};
 
 export const emptyMetrics = {
   adoption: {
@@ -658,7 +651,7 @@ export const emptyMetrics = {
     p95: 0,
     delta_nan: false,
   },
-}
+};
 
 export const emptySessionTimelinesOverviewResponse = {
   meta: {
@@ -666,24 +659,24 @@ export const emptySessionTimelinesOverviewResponse = {
     previous: false,
   },
   results: [] as {
-    session_id: string
-    app_id: string
-    first_event_time: string
-    last_event_time: string
-    duration: string
-    matched_free_text: string
+    session_id: string;
+    app_id: string;
+    first_event_time: string;
+    last_event_time: string;
+    duration: string;
+    matched_free_text: string;
     attribute: {
-      app_version: string
-      app_build: string
-      user_id: string
-      device_name: string
-      device_model: string
-      device_manufacturer: string
-      os_name: string
-      os_version: string
-    }
+      app_version: string;
+      app_build: string;
+      user_id: string;
+      device_name: string;
+      device_model: string;
+      device_manufacturer: string;
+      os_name: string;
+      os_version: string;
+    };
   }[],
-}
+};
 
 export const emptySpansResponse = {
   meta: {
@@ -691,27 +684,30 @@ export const emptySpansResponse = {
     previous: false,
   },
   results: [] as {
-    app_id: string
-    span_name: string
-    span_id: string
-    trace_id: string
-    status: number
-    start_time: string
-    end_time: string
-    duration: number
-    app_version: string
-    app_build: string
-    os_name: string
-    os_version: string
-    device_manufacturer: string
-    device_model: string
+    app_id: string;
+    span_name: string;
+    span_id: string;
+    trace_id: string;
+    status: number;
+    start_time: string;
+    end_time: string;
+    duration: number;
+    app_version: string;
+    app_build: string;
+    os_name: string;
+    os_version: string;
+    device_manufacturer: string;
+    device_model: string;
   }[],
-}
+};
 
-const emptyExceptionGroup = {
+export const emptyErrorGroup = {
   id: "",
   app_id: "",
   type: "",
+  error_type: "",
+  severity: "",
+  is_custom: false,
   message: "",
   method_name: "",
   file_name: "",
@@ -719,22 +715,21 @@ const emptyExceptionGroup = {
   count: 0,
   percentage_contribution: 0,
   updated_at: "",
-}
+};
 
-export const emptyExceptionsOverviewResponse = {
+export const emptyErrorsOverviewResponse = {
   meta: {
     next: false,
     previous: false,
   },
-  results: [] as (typeof emptyExceptionGroup)[],
-}
+  results: [] as (typeof emptyErrorGroup)[],
+};
 
-const emptyCrashGroupDetails = {
+const emptyErrorGroupDetailsItem = {
   id: "",
   session_id: "",
   timestamp: "",
   type: "",
-  thread_name: "",
   attribute: {
     installation_id: "",
     app_version: "",
@@ -755,8 +750,12 @@ const emptyCrashGroupDetails = {
     device_height_px: 0,
     device_density: 0.0,
     device_locale: "",
+    device_low_power_mode: false,
+    device_thermal_throttling_enabled: false,
+    device_cpu_arch: "",
     os_name: "",
     os_version: "",
+    os_page_size: 0,
     network_type: "",
     network_provider: "",
     network_generation: "",
@@ -764,69 +763,16 @@ const emptyCrashGroupDetails = {
   exception: {
     title: "",
     stacktrace: "",
-  },
-  attachments: [
-    {
-      id: "",
-      name: "",
-      type: "",
-      key: "",
-      location: "",
-    },
-  ],
-  threads: [
-    {
-      name: "",
-      frames: [""],
-    },
-  ],
-  attributes: {},
-}
-
-export const emptyCrashExceptionsDetailsResponse = {
-  meta: {
-    next: true,
-    previous: false,
-  },
-  results: [] as (typeof emptyCrashGroupDetails)[],
-}
-
-const emptyAnrGroupDetails = {
-  id: "",
-  session_id: "",
-  timestamp: "",
-  type: "",
-  thread_name: "",
-  attribute: {
-    installation_id: "",
-    app_version: "",
-    app_build: "",
-    app_unique_id: "",
-    measure_sdk_version: "",
-    platform: "",
-    thread_name: "",
-    user_id: "",
-    device_name: "",
-    device_model: "",
-    device_manufacturer: "",
-    device_type: "",
-    device_is_foldable: false,
-    device_is_physical: false,
-    device_density_dpi: 0,
-    device_width_px: 0,
-    device_height_px: 0,
-    device_density: 0.0,
-    device_locale: "",
-    os_name: "",
-    os_version: "",
-    network_type: "",
-    network_provider: "",
-    network_generation: "",
-  },
+    message: "",
+  } as { title: string; stacktrace: string; message: string } | null,
   anr: {
     title: "",
     stacktrace: "",
-  },
+  } as { title: string; stacktrace: string } | null,
+  severity: "",
+  num_code: 0,
+  code: "",
+  meta: null as Record<string, unknown> | null,
   attachments: [
     {
       id: "",
@@ -842,16 +788,15 @@ const emptyAnrGroupDetails = {
       frames: [""],
     },
   ],
-  attributes: {},
-}
+};
 
-export const emptyAnrExceptionsDetailsResponse = {
+export const emptyErrorGroupDetails = {
   meta: {
     next: true,
     previous: false,
   },
-  results: [] as (typeof emptyAnrGroupDetails)[],
-}
+  results: [] as (typeof emptyErrorGroupDetailsItem)[],
+};
 
 export const defaultAuthzAndMembers = {
   can_invite_roles: ["viewer"],
@@ -878,14 +823,14 @@ export const defaultAuthzAndMembers = {
       },
     },
   ],
-}
+};
 
 export const defaultAppThresholdPrefs = {
   error_good_threshold: 95,
   error_caution_threshold: 85,
   error_spike_min_count_threshold: 100,
   error_spike_min_rate_threshold: 0.5,
-}
+};
 
 export const emptySessionTimeline = {
   app_id: "2b7ddad4-40a6-42a7-9e21-a90577e08263",
@@ -1027,7 +972,7 @@ export const emptySessionTimeline = {
       duration: 52,
     },
   ],
-}
+};
 
 export const emptyTrace = {
   app_id: "",
@@ -1061,18 +1006,18 @@ export const emptyTrace = {
       ],
     },
   ],
-}
+};
 
 export const emptyNotifPrefs = {
   error_spike: true,
   app_hang_spike: true,
   bug_report: true,
   daily_summary: true,
-}
+};
 
 export const emptyAppRetention = {
   retention: 30,
-}
+};
 
 export const emptyUsage = [
   {
@@ -1088,7 +1033,7 @@ export const emptyUsage = [
       },
     ],
   },
-]
+];
 
 export const emptyBugReportsOverviewResponse = {
   meta: {
@@ -1096,47 +1041,47 @@ export const emptyBugReportsOverviewResponse = {
     previous: false,
   },
   results: [] as {
-    session_id: string
-    app_id: string
-    event_id: string
-    status: number
-    description: string
-    timestamp: string
+    session_id: string;
+    app_id: string;
+    event_id: string;
+    status: number;
+    description: string;
+    timestamp: string;
     attribute: {
-      installation_id: string
-      app_version: string
-      app_build: string
-      app_unique_id: string
-      measure_sdk_version: string
-      platform: string
-      thread_name: string
-      user_id: string
-      device_name: string
-      device_model: string
-      device_manufacturer: string
-      device_type: string
-      device_is_foldable: boolean
-      device_is_physical: boolean
-      device_density_dpi: number
-      device_width_px: number
-      device_height_px: number
-      device_density: number
-      device_locale: string
-      device_low_power_mode: boolean
-      device_thermal_throttling_enabled: boolean
-      device_cpu_arch: string
-      os_name: string
-      os_version: string
-      os_page_size: number
-      network_type: string
-      network_provider: string
-      network_generation: string
-    }
-    user_defined_attribute: null
-    attachments: null
-    matched_free_text: string
+      installation_id: string;
+      app_version: string;
+      app_build: string;
+      app_unique_id: string;
+      measure_sdk_version: string;
+      platform: string;
+      thread_name: string;
+      user_id: string;
+      device_name: string;
+      device_model: string;
+      device_manufacturer: string;
+      device_type: string;
+      device_is_foldable: boolean;
+      device_is_physical: boolean;
+      device_density_dpi: number;
+      device_width_px: number;
+      device_height_px: number;
+      device_density: number;
+      device_locale: string;
+      device_low_power_mode: boolean;
+      device_thermal_throttling_enabled: boolean;
+      device_cpu_arch: string;
+      os_name: string;
+      os_version: string;
+      os_page_size: number;
+      network_type: string;
+      network_provider: string;
+      network_generation: string;
+    };
+    user_defined_attribute: null;
+    attachments: null;
+    matched_free_text: string;
   }[],
-}
+};
 
 export const emptyBugReport = {
   session_id: "",
@@ -1185,7 +1130,7 @@ export const emptyBugReport = {
       location: "",
     },
   ],
-}
+};
 
 export const emptyAlertsOverviewResponse = {
   meta: {
@@ -1193,99 +1138,111 @@ export const emptyAlertsOverviewResponse = {
     previous: false,
   },
   results: [] as {
-    id: string
-    team_id: string
-    app_id: string
-    entity_id: string
-    type: string
-    message: string
-    url: string
-    created_at: string
-    updated_at: string
+    id: string;
+    team_id: string;
+    app_id: string;
+    entity_id: string;
+    type: string;
+    message: string;
+    url: string;
+    created_at: string;
+    updated_at: string;
   }[],
-}
+};
 
 export type SdkConfig = {
-  trace_sampling_rate: number
-  crash_timeline_duration: number
-  crash_take_screenshot: boolean
-  anr_timeline_duration: number
-  anr_take_screenshot: boolean
-  bug_report_timeline_duration: number
-  launch_sampling_rate: number
-  journey_sampling_rate: number
-  http_sampling_rate: number
-  http_disable_event_for_urls: string[]
-  http_track_request_for_urls: string[]
-  http_track_response_for_urls: string[]
-  http_blocked_headers: string[]
-  screenshot_mask_level: string
-}
+  trace_sampling_rate: number;
+  crash_timeline_duration: number;
+  crash_take_screenshot: boolean;
+  anr_timeline_duration: number;
+  anr_take_screenshot: boolean;
+  bug_report_timeline_duration: number;
+  launch_sampling_rate: number;
+  journey_sampling_rate: number;
+  http_sampling_rate: number;
+  http_disable_event_for_urls: string[];
+  http_track_request_for_urls: string[];
+  http_track_response_for_urls: string[];
+  http_blocked_headers: string[];
+  screenshot_mask_level: string;
+};
 export class AppVersion {
-  name: string
-  code: string
-  displayName: string
+  name: string;
+  code: string;
+  displayName: string;
 
   constructor(name: string, code: string) {
-    this.name = name
-    this.code = code
-    this.displayName = this.name + " (" + this.code + ")"
+    this.name = name;
+    this.code = code;
+    this.displayName = this.name + " (" + this.code + ")";
   }
 }
 
 export class OsVersion {
-  name: string
-  version: string
-  displayName: string
+  name: string;
+  version: string;
+  displayName: string;
 
   constructor(name: string, version: string) {
-    this.name = name
-    this.version = version
-    this.displayName = (name === 'android' ? 'Android API Level' : name === "ios" ? "iOS" : name === "ipados" ? "iPadOS" : name) + " " + this.version
+    this.name = name;
+    this.version = version;
+    this.displayName =
+      (name === "android"
+        ? "Android API Level"
+        : name === "ios"
+          ? "iOS"
+          : name === "ipados"
+            ? "iPadOS"
+            : name) +
+      " " +
+      this.version;
   }
 }
 
 export type UserDefAttr = {
-  key: string
-  type: string
-}
+  key: string;
+  type: string;
+};
 
 export type UdAttrMatcher = {
-  key: string
-  type: string
-  op: string
-  value: string | number | boolean
-}
+  key: string;
+  type: string;
+  op: string;
+  value: string | number | boolean;
+};
 
 export type Filters = {
-  ready: boolean
-  loading: boolean
-  app: App | null
-  rootSpanName: string
-  startDate: string
-  endDate: string
-  versions: { selected: AppVersion[], all: boolean }
-  sessionTypes: { selected: SessionType[], all: boolean }
-  spanStatuses: { selected: SpanStatus[], all: boolean }
-  bugReportStatuses: { selected: BugReportStatus[], all: boolean }
-  httpMethods: { selected: HttpMethod[], all: boolean }
-  osVersions: { selected: OsVersion[], all: boolean }
-  countries: { selected: string[], all: boolean }
-  networkProviders: { selected: string[], all: boolean }
-  networkTypes: { selected: string[], all: boolean }
-  networkGenerations: { selected: string[], all: boolean }
-  locales: { selected: string[], all: boolean }
-  deviceManufacturers: { selected: string[], all: boolean }
-  deviceNames: { selected: string[], all: boolean }
-  udAttrMatchers: UdAttrMatcher[]
-  freeText: string
-  serialisedFilters: string | null
+  ready: boolean;
+  loading: boolean;
+  app: App | null;
+  rootSpanName: string;
+  startDate: string;
+  endDate: string;
+  versions: { selected: AppVersion[]; all: boolean };
+  sessionTypes: { selected: SessionType[]; all: boolean };
+  spanStatuses: { selected: SpanStatus[]; all: boolean };
+  bugReportStatuses: { selected: BugReportStatus[]; all: boolean };
+  httpMethods: { selected: HttpMethod[]; all: boolean };
+  osVersions: { selected: OsVersion[]; all: boolean };
+  countries: { selected: string[]; all: boolean };
+  networkProviders: { selected: string[]; all: boolean };
+  networkTypes: { selected: string[]; all: boolean };
+  networkGenerations: { selected: string[]; all: boolean };
+  locales: { selected: string[]; all: boolean };
+  deviceManufacturers: { selected: string[]; all: boolean };
+  deviceNames: { selected: string[]; all: boolean };
+  udAttrMatchers: UdAttrMatcher[];
+  freeText: string;
+  selectedErrorTypes: string[];
+  selectedSeverities: string[];
+  customErrorsOnly: boolean;
+  serialisedFilters: string | null;
   // Resolves to the server-side filter_short_code for this filter combination.
   // Set by the filters store when filters change. URL builders await this
   // instead of POSTing /shortFilters themselves, so there is exactly one POST
   // per filter change regardless of how many parallel data fetchers run.
-  filterShortCodePromise: Promise<string | null>
-}
+  filterShortCodePromise: Promise<string | null>;
+};
 
 export const defaultFilters: Filters = {
   ready: false,
@@ -1309,9 +1266,12 @@ export const defaultFilters: Filters = {
   deviceNames: { selected: [], all: false },
   udAttrMatchers: [],
   freeText: "",
+  selectedErrorTypes: [],
+  selectedSeverities: [],
+  customErrorsOnly: false,
   serialisedFilters: null,
   filterShortCodePromise: Promise.resolve(null),
-}
+};
 
 /**
  * Builds the body that `saveListFiltersToServer` would POST to /shortFilters,
@@ -1322,7 +1282,9 @@ export const defaultFilters: Filters = {
  * the result to decide when to kick off a fresh POST — so any change to
  * this function's output must equivalently change that hash.
  */
-export const buildShortFiltersPostBody = (filters: Filters): { filters: any } | null => {
+export const buildShortFiltersPostBody = (
+  filters: Filters,
+): { filters: any } | null => {
   if (
     filters.versions.selected.length === 0 &&
     filters.osVersions.selected.length === 0 &&
@@ -1335,23 +1297,35 @@ export const buildShortFiltersPostBody = (filters: Filters): { filters: any } | 
     filters.deviceNames.selected.length === 0 &&
     filters.udAttrMatchers.length === 0
   ) {
-    return null
+    return null;
   }
 
   // we always include app versions regardless of whether all are selected for more efficient filtering on backend
   const bodyFilters: any = {
     versions: filters.versions.selected.map((v) => v.name),
     version_codes: filters.versions.selected.map((v) => v.code),
-    os_names: filters.osVersions.all ? [] : filters.osVersions.selected.map((v) => v.name),
-    os_versions: filters.osVersions.all ? [] : filters.osVersions.selected.map((v) => v.version),
+    os_names: filters.osVersions.all
+      ? []
+      : filters.osVersions.selected.map((v) => v.name),
+    os_versions: filters.osVersions.all
+      ? []
+      : filters.osVersions.selected.map((v) => v.version),
     countries: filters.countries.all ? [] : filters.countries.selected,
-    network_providers: filters.networkProviders.all ? [] : filters.networkProviders.selected,
-    network_types: filters.networkTypes.all ? [] : filters.networkTypes.selected,
-    network_generations: filters.networkGenerations.all ? [] : filters.networkGenerations.selected,
+    network_providers: filters.networkProviders.all
+      ? []
+      : filters.networkProviders.selected,
+    network_types: filters.networkTypes.all
+      ? []
+      : filters.networkTypes.selected,
+    network_generations: filters.networkGenerations.all
+      ? []
+      : filters.networkGenerations.selected,
     locales: filters.locales.all ? [] : filters.locales.selected,
-    device_manufacturers: filters.deviceManufacturers.all ? [] : filters.deviceManufacturers.selected,
+    device_manufacturers: filters.deviceManufacturers.all
+      ? []
+      : filters.deviceManufacturers.selected,
     device_names: filters.deviceNames.all ? [] : filters.deviceNames.selected,
-  }
+  };
 
   if (filters.udAttrMatchers.length > 0) {
     bodyFilters.ud_expression = JSON.stringify({
@@ -1363,11 +1337,11 @@ export const buildShortFiltersPostBody = (filters: Filters): { filters: any } | 
           value: String(matcher.value),
         },
       })),
-    })
+    });
   }
 
-  return { filters: bodyFilters }
-}
+  return { filters: bodyFilters };
+};
 
 /**
  * POSTs the current filter combination to the server and returns the
@@ -1375,30 +1349,32 @@ export const buildShortFiltersPostBody = (filters: Filters): { filters: any } | 
  * the filters store; URL builders read the resulting promise via
  * `filters.filterShortCodePromise` rather than calling this directly.
  */
-export const saveListFiltersToServer = async (filters: Filters): Promise<string | null> => {
-  const body = buildShortFiltersPostBody(filters)
+export const saveListFiltersToServer = async (
+  filters: Filters,
+): Promise<string | null> => {
+  const body = buildShortFiltersPostBody(filters);
   if (body === null) {
-    return null
+    return null;
   }
 
-  const url = `/api/apps/${filters.app!.id}/shortFilters`
+  const url = `/api/apps/${filters.app!.id}/shortFilters`;
 
   try {
     const res = await apiClient.fetch(url, {
       method: "POST",
       body: JSON.stringify(body),
-    })
+    });
 
     if (!res.ok) {
-      return null
+      return null;
     }
 
-    const data = await res.json()
-    return data.filter_short_code
+    const data = await res.json();
+    return data.filter_short_code;
   } catch {
-    return null
+    return null;
   }
-}
+};
 
 async function applyGenericFiltersToUrl(
   url: string,
@@ -1408,26 +1384,26 @@ async function applyGenericFiltersToUrl(
 ) {
   const serverFormattedStartDate = formatUserInputDateToServerFormat(
     filters.startDate,
-  )
+  );
   const serverFormattedEndDate = formatUserInputDateToServerFormat(
     filters.endDate,
-  )
-  const timezone = getTimeZoneForServer()
+  );
+  const timezone = getTimeZoneForServer();
 
-  const u = new URL(url, window.location.origin)
-  const searchParams = new URLSearchParams()
+  const u = new URL(url, window.location.origin);
+  const searchParams = new URLSearchParams();
 
-  searchParams.append("from", serverFormattedStartDate)
-  searchParams.append("to", serverFormattedEndDate)
-  searchParams.append("timezone", timezone)
+  searchParams.append("from", serverFormattedStartDate);
+  searchParams.append("to", serverFormattedEndDate);
+  searchParams.append("timezone", timezone);
 
   // The filters store has already kicked off the /shortFilters POST when
   // filters changed and stored the promise on the filters object — just await
   // it here. No POST happens in this function.
-  const filterShortCode = await filters.filterShortCodePromise
+  const filterShortCode = await filters.filterShortCodePromise;
 
   if (filterShortCode !== null) {
-    searchParams.append("filter_short_code", filterShortCode)
+    searchParams.append("filter_short_code", filterShortCode);
   }
 
   // Append session types if needed
@@ -1435,152 +1411,164 @@ async function applyGenericFiltersToUrl(
     filters.sessionTypes.selected.forEach((v) => {
       switch (v) {
         case SessionType.Crashes:
-          searchParams.append("crash", "1")
+          searchParams.append("crash", "1");
           break;
         case SessionType.ANRs:
-          searchParams.append("anr", "1")
+          searchParams.append("anr", "1");
           break;
         case SessionType.BugReports:
-          searchParams.append("bug_report", "1")
+          searchParams.append("bug_report", "1");
           break;
         case SessionType.UserInteraction:
-          searchParams.append("user_interaction", "1")
+          searchParams.append("user_interaction", "1");
           break;
         case SessionType.Foreground:
-          searchParams.append("foreground", "1")
+          searchParams.append("foreground", "1");
           break;
         case SessionType.Background:
-          searchParams.append("background", "1")
+          searchParams.append("background", "1");
           break;
       }
-    })
+    });
   }
 
   // Append span name if needed
   if (filters.rootSpanName !== "") {
-    searchParams.append("span_name", encodeURIComponent(filters.rootSpanName))
+    searchParams.append("span_name", encodeURIComponent(filters.rootSpanName));
   }
 
   // Append span statuses if needed
   if (!filters.spanStatuses.all && filters.spanStatuses.selected.length > 0) {
     filters.spanStatuses.selected.forEach((v) => {
       if (v === SpanStatus.Unset) {
-        searchParams.append("span_statuses", "0")
+        searchParams.append("span_statuses", "0");
       } else if (v === SpanStatus.Ok) {
-        searchParams.append("span_statuses", "1")
+        searchParams.append("span_statuses", "1");
       } else if (v === SpanStatus.Error) {
-        searchParams.append("span_statuses", "2")
+        searchParams.append("span_statuses", "2");
       }
-    })
+    });
   }
 
   // Append bug report statuses if needed
-  if (!filters.bugReportStatuses.all && filters.bugReportStatuses.selected.length > 0) {
+  if (
+    !filters.bugReportStatuses.all &&
+    filters.bugReportStatuses.selected.length > 0
+  ) {
     filters.bugReportStatuses.selected.forEach((v) => {
       if (v === BugReportStatus.Open) {
-        searchParams.append("bug_report_statuses", "0")
+        searchParams.append("bug_report_statuses", "0");
       } else if (v === BugReportStatus.Closed) {
-        searchParams.append("bug_report_statuses", "1")
+        searchParams.append("bug_report_statuses", "1");
       }
-    })
+    });
   }
 
   // Append free text if present
   if (filters.freeText !== "") {
-    searchParams.append("free_text", filters.freeText)
+    searchParams.append("free_text", filters.freeText);
   }
 
   // Append limit if present
   if (limit !== null) {
-    searchParams.append("limit", String(limit))
+    searchParams.append("limit", String(limit));
   }
 
   // Append offset if present
   if (offset !== null) {
-    searchParams.append("offset", String(offset))
+    searchParams.append("offset", String(offset));
   }
 
-  u.search = searchParams.toString()
+  u.search = searchParams.toString();
 
-  return u.toString()
+  return u.toString();
 }
 
 function appendPlotTimeGroupToUrl(url: string, filters: Filters): string {
-  const u = new URL(url, window.location.origin)
-  u.searchParams.set("plot_time_group", getPlotTimeGroupForRange(filters.startDate, filters.endDate))
-  return u.toString()
+  const u = new URL(url, window.location.origin);
+  u.searchParams.set(
+    "plot_time_group",
+    getPlotTimeGroupForRange(filters.startDate, filters.endDate),
+  );
+  return u.toString();
 }
 
 function appendSessionTypesToUrl(url: string, filters: Filters): string {
-  const u = new URL(url, window.location.origin)
+  const u = new URL(url, window.location.origin);
   if (!filters.sessionTypes.all && filters.sessionTypes.selected.length > 0) {
     filters.sessionTypes.selected.forEach((v) => {
       switch (v) {
         case SessionType.Crashes:
-          u.searchParams.append("crash", "1")
-          break
+          u.searchParams.append("crash", "1");
+          break;
         case SessionType.ANRs:
-          u.searchParams.append("anr", "1")
-          break
+          u.searchParams.append("anr", "1");
+          break;
         case SessionType.BugReports:
-          u.searchParams.append("bug_report", "1")
-          break
+          u.searchParams.append("bug_report", "1");
+          break;
         case SessionType.UserInteraction:
-          u.searchParams.append("user_interaction", "1")
-          break
+          u.searchParams.append("user_interaction", "1");
+          break;
         case SessionType.Foreground:
-          u.searchParams.append("foreground", "1")
-          break
+          u.searchParams.append("foreground", "1");
+          break;
         case SessionType.Background:
-          u.searchParams.append("background", "1")
-          break
+          u.searchParams.append("background", "1");
+          break;
       }
-    })
+    });
   }
-  return u.toString()
+  return u.toString();
 }
 
 function appendSpanFiltersToUrl(url: string, filters: Filters): string {
-  const u = new URL(url, window.location.origin)
+  const u = new URL(url, window.location.origin);
   if (filters.rootSpanName !== "") {
-    u.searchParams.append("span_name", encodeURIComponent(filters.rootSpanName))
+    u.searchParams.append(
+      "span_name",
+      encodeURIComponent(filters.rootSpanName),
+    );
   }
   if (!filters.spanStatuses.all && filters.spanStatuses.selected.length > 0) {
     filters.spanStatuses.selected.forEach((v) => {
       if (v === SpanStatus.Unset) {
-        u.searchParams.append("span_statuses", "0")
+        u.searchParams.append("span_statuses", "0");
       } else if (v === SpanStatus.Ok) {
-        u.searchParams.append("span_statuses", "1")
+        u.searchParams.append("span_statuses", "1");
       } else if (v === SpanStatus.Error) {
-        u.searchParams.append("span_statuses", "2")
+        u.searchParams.append("span_statuses", "2");
       }
-    })
+    });
   }
-  return u.toString()
+  return u.toString();
 }
 
 function appendBugReportStatusesToUrl(url: string, filters: Filters): string {
-  const u = new URL(url, window.location.origin)
-  if (!filters.bugReportStatuses.all && filters.bugReportStatuses.selected.length > 0) {
+  const u = new URL(url, window.location.origin);
+  if (
+    !filters.bugReportStatuses.all &&
+    filters.bugReportStatuses.selected.length > 0
+  ) {
     filters.bugReportStatuses.selected.forEach((v) => {
       if (v === BugReportStatus.Open) {
-        u.searchParams.append("bug_report_statuses", "0")
+        u.searchParams.append("bug_report_statuses", "0");
       } else if (v === BugReportStatus.Closed) {
-        u.searchParams.append("bug_report_statuses", "1")
+        u.searchParams.append("bug_report_statuses", "1");
       }
-    })
+    });
   }
-  return u.toString()
+  return u.toString();
 }
 
 function appendHttpMethodsToUrl(url: string, filters: Filters): string {
-  const u = new URL(url, window.location.origin)
+  const u = new URL(url, window.location.origin);
   if (!filters.httpMethods.all && filters.httpMethods.selected.length > 0) {
     filters.httpMethods.selected.forEach((v) => {
-      u.searchParams.append("http_methods", v)
-    })
+      u.searchParams.append("http_methods", v);
+    });
   }
-  return u.toString()
+  return u.toString();
 }
 
 export const validateInvitesFromServer = async (inviteId: string) => {
@@ -1588,234 +1576,234 @@ export const validateInvitesFromServer = async (inviteId: string) => {
     const res = await apiClient.fetch(`/api/auth/validateInvite`, {
       method: "POST",
       body: JSON.stringify({ invite_id: inviteId }),
-    })
+    });
 
     if (!res.ok) {
-      console.log("Validate invite failed with status:", res.status)
-      return { status: ValidateInviteApiStatus.Error }
+      console.log("Validate invite failed with status:", res.status);
+      return { status: ValidateInviteApiStatus.Error };
     }
 
-    console.log("Validate invite succeeded")
-    return { status: ValidateInviteApiStatus.Success }
+    console.log("Validate invite succeeded");
+    return { status: ValidateInviteApiStatus.Success };
   } catch {
-    console.log("Validate invite cancelled due to exception")
-    return { status: ValidateInviteApiStatus.Cancelled }
+    console.log("Validate invite cancelled due to exception");
+    return { status: ValidateInviteApiStatus.Cancelled };
   }
-}
+};
 
 export const fetchTeamsFromServer = async () => {
   try {
-    const res = await apiClient.fetch(`/api/teams`)
+    const res = await apiClient.fetch(`/api/teams`);
 
     if (!res.ok) {
-      return { status: TeamsApiStatus.Error, data: null }
+      return { status: TeamsApiStatus.Error, data: null };
     }
 
-    const data: [{ id: string; name: string }] = await res.json()
+    const data: [{ id: string; name: string }] = await res.json();
 
-    return { status: TeamsApiStatus.Success, data: data }
+    return { status: TeamsApiStatus.Success, data: data };
   } catch {
-    return { status: TeamsApiStatus.Cancelled, data: null }
+    return { status: TeamsApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchAppsFromServer = async (teamId: string) => {
   try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/apps`)
+    const res = await apiClient.fetch(`/api/teams/${teamId}/apps`);
 
     if (!res.ok && res.status == 404) {
-      return { status: AppsApiStatus.NoApps, data: null }
+      return { status: AppsApiStatus.NoApps, data: null };
     }
 
     if (!res.ok) {
-      return { status: AppsApiStatus.Error, data: null }
+      return { status: AppsApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
-    return { status: AppsApiStatus.Success, data: data }
+    const data = await res.json();
+    return { status: AppsApiStatus.Success, data: data };
   } catch {
-    return { status: AppsApiStatus.Cancelled, data: null }
+    return { status: AppsApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchRootSpanNamesFromServer = async (selectedApp: App) => {
   try {
     const res = await apiClient.fetch(
       `/api/apps/${selectedApp.id}/spans/roots/names`,
-    )
+    );
 
     if (!res.ok) {
-      return { status: RootSpanNamesApiStatus.Error, data: null }
+      return { status: RootSpanNamesApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
     if (data.results === null) {
-      return { status: RootSpanNamesApiStatus.NoData, data: null }
+      return { status: RootSpanNamesApiStatus.NoData, data: null };
     }
 
-    return { status: RootSpanNamesApiStatus.Success, data: data }
+    return { status: RootSpanNamesApiStatus.Success, data: data };
   } catch {
-    return { status: RootSpanNamesApiStatus.Cancelled, data: null }
+    return { status: RootSpanNamesApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchSpansFromServer = async (
   filters: Filters,
   limit: number,
   offset: number,
 ) => {
-  var url = `/api/apps/${filters.app!.id}/spans?`
+  var url = `/api/apps/${filters.app!.id}/spans?`;
 
-  url = await applyGenericFiltersToUrl(url, filters, limit, offset)
-  url = appendSpanFiltersToUrl(url, filters)
+  url = await applyGenericFiltersToUrl(url, filters, limit, offset);
+  url = appendSpanFiltersToUrl(url, filters);
 
   try {
-    const res = await apiClient.fetch(url)
+    const res = await apiClient.fetch(url);
 
     if (!res.ok) {
-      return { status: SpansApiStatus.Error, data: null }
+      return { status: SpansApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: SpansApiStatus.Success, data: data }
+    return { status: SpansApiStatus.Success, data: data };
   } catch {
-    return { status: SpansApiStatus.Cancelled, data: null }
+    return { status: SpansApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchSpanMetricsPlotFromServer = async (filters: Filters) => {
-  var url = `/api/apps/${filters.app!.id}/spans/plots/metrics?`
+  var url = `/api/apps/${filters.app!.id}/spans/plots/metrics?`;
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null)
-  url = appendSpanFiltersToUrl(url, filters)
-  url = appendPlotTimeGroupToUrl(url, filters)
+  url = await applyGenericFiltersToUrl(url, filters, null, null);
+  url = appendSpanFiltersToUrl(url, filters);
+  url = appendPlotTimeGroupToUrl(url, filters);
 
   try {
-    const res = await apiClient.fetch(url)
+    const res = await apiClient.fetch(url);
 
     if (!res.ok) {
-      return { status: SpanMetricsPlotApiStatus.Error, data: null }
+      return { status: SpanMetricsPlotApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
     if (data === null) {
-      return { status: SpanMetricsPlotApiStatus.NoData, data: null }
+      return { status: SpanMetricsPlotApiStatus.NoData, data: null };
     }
 
-    return { status: SpanMetricsPlotApiStatus.Success, data: data }
+    return { status: SpanMetricsPlotApiStatus.Success, data: data };
   } catch {
-    return { status: SpanMetricsPlotApiStatus.Cancelled, data: null }
+    return { status: SpanMetricsPlotApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchTraceFromServer = async (appId: string, traceId: string) => {
   try {
-    const res = await apiClient.fetch(
-      `/api/apps/${appId}/traces/${traceId}`,
-    )
+    const res = await apiClient.fetch(`/api/apps/${appId}/traces/${traceId}`);
     if (!res.ok) {
-      return { status: TraceApiStatus.Error, data: null }
+      return { status: TraceApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: TraceApiStatus.Success, data: data }
+    return { status: TraceApiStatus.Success, data: data };
   } catch {
-    return { status: TraceApiStatus.Cancelled, data: null }
+    return { status: TraceApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchFiltersFromServer = async (
   selectedApp: App,
   filterSource: FilterSource,
 ) => {
-  let url = `/api/apps/${selectedApp.id}/filters`
+  let url = `/api/apps/${selectedApp.id}/filters`;
 
   // fetch the user defined attributes
-  url += "?ud_attr_keys=1"
+  url += "?ud_attr_keys=1";
 
-  // if filter is for Crashes, Anrs or Spans we append a query param indicating it
-  if (filterSource === FilterSource.Crashes) {
-    url += "&crash=1"
-  } else if (filterSource === FilterSource.Anrs) {
-    url += "&anr=1"
-  } else if (filterSource === FilterSource.Spans) {
-    url += "&span=1"
+  // if filter is for Spans or Errors we append a query param indicating it
+  if (filterSource === FilterSource.Spans) {
+    url += "&span=1";
+  } else if (filterSource === FilterSource.Errors) {
+    url += "&crash=1&anr=1";
   }
 
   try {
-    const res = await apiClient.fetch(url)
+    const res = await apiClient.fetch(url);
 
     if (!res.ok) {
-      return { status: FiltersApiStatus.Error, data: null }
+      return { status: FiltersApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
     if (data.versions === null) {
       if (!selectedApp.onboarded) {
-        return { status: FiltersApiStatus.NotOnboarded, data: null }
+        return { status: FiltersApiStatus.NotOnboarded, data: null };
       } else {
-        return { status: FiltersApiStatus.NoData, data: null }
+        return { status: FiltersApiStatus.NoData, data: null };
       }
     }
 
-    return { status: FiltersApiStatus.Success, data: data }
+    return { status: FiltersApiStatus.Success, data: data };
   } catch {
-    return { status: FiltersApiStatus.Cancelled, data: null }
+    return { status: FiltersApiStatus.Cancelled, data: null };
   }
-}
+};
 
-export const fetchSessionsVsExceptionsPlotFromServer = async (
-  filters: Filters,
-) => {
+export const fetchSessionsVsErrorsPlotFromServer = async (filters: Filters) => {
   // Fetch all three datasets in parallel
   const [sessionsRes, crashesRes, anrsRes] = await Promise.all([
     fetchSessionTimelinesOverviewPlotFromServer(filters),
-    fetchExceptionsOverviewPlotFromServer(ExceptionsType.Crash, filters),
-    fetchExceptionsOverviewPlotFromServer(ExceptionsType.Anr, filters),
-  ])
+    fetchErrorsOverviewPlotFromServer({
+      ...filters,
+      selectedErrorTypes: ["error"],
+    }),
+    fetchErrorsOverviewPlotFromServer({
+      ...filters,
+      selectedErrorTypes: ["anr"],
+    }),
+  ]);
 
   // Handle error/no data
   if (
     sessionsRes.status !== SessionTimelinesOverviewPlotApiStatus.Success &&
     sessionsRes.status !== SessionTimelinesOverviewPlotApiStatus.NoData
   ) {
-    return { status: SessionsVsExceptionsPlotApiStatus.Error, data: null }
+    return { status: SessionsVsErrorsPlotApiStatus.Error, data: null };
   }
   if (
-    crashesRes.status !== ExceptionsOverviewPlotApiStatus.Success &&
-    crashesRes.status !== ExceptionsOverviewPlotApiStatus.NoData
+    crashesRes.status !== ErrorsOverviewPlotApiStatus.Success &&
+    crashesRes.status !== ErrorsOverviewPlotApiStatus.NoData
   ) {
-    return { status: SessionsVsExceptionsPlotApiStatus.Error, data: null }
+    return { status: SessionsVsErrorsPlotApiStatus.Error, data: null };
   }
   if (
-    anrsRes.status !== ExceptionsOverviewPlotApiStatus.Success &&
-    anrsRes.status !== ExceptionsOverviewPlotApiStatus.NoData
+    anrsRes.status !== ErrorsOverviewPlotApiStatus.Success &&
+    anrsRes.status !== ErrorsOverviewPlotApiStatus.NoData
   ) {
-    return { status: SessionsVsExceptionsPlotApiStatus.Error, data: null }
+    return { status: SessionsVsErrorsPlotApiStatus.Error, data: null };
   }
 
   // Helper to flatten and merge all series of a type into a map of date -> count
   function mergeSeries(seriesArr: any[], valueKey: string = "instances") {
-    const dateMap: Record<string, number> = {}
+    const dateMap: Record<string, number> = {};
     for (const series of seriesArr || []) {
       for (const point of series.data || []) {
-        const date = point.datetime || point.x
-        const value = point[valueKey] ?? point.y ?? 0
-        dateMap[date] = (dateMap[date] || 0) + value
+        const date = point.datetime || point.x;
+        const value = point[valueKey] ?? point.y ?? 0;
+        dateMap[date] = (dateMap[date] || 0) + value;
       }
     }
-    return dateMap
+    return dateMap;
   }
 
   // Merge all series for each type
-  const sessionsMap = mergeSeries(sessionsRes.data || [])
-  const crashesMap = mergeSeries(crashesRes.data || [])
-  const anrsMap = mergeSeries(anrsRes.data || [])
+  const sessionsMap = mergeSeries(sessionsRes.data || []);
+  const crashesMap = mergeSeries(crashesRes.data || []);
+  const anrsMap = mergeSeries(anrsRes.data || []);
 
   // Get all unique dates
   const allDates = Array.from(
@@ -1824,7 +1812,7 @@ export const fetchSessionsVsExceptionsPlotFromServer = async (
       ...Object.keys(crashesMap),
       ...Object.keys(anrsMap),
     ]),
-  ).sort()
+  ).sort();
 
   // Build the final series arrays
   function buildSeries(id: string, map: Record<string, number>) {
@@ -1835,337 +1823,302 @@ export const fetchSessionsVsExceptionsPlotFromServer = async (
         x: date,
         y: map[date] || 0,
       })),
-    }
+    };
   }
 
   const result = [
     buildSeries("Sessions", sessionsMap),
     buildSeries("Crashes", crashesMap),
     buildSeries("ANRs", anrsMap),
-  ]
+  ];
 
   // If all are empty, return NoData
   if (result.every((series) => series.data.every((point) => point.y === 0))) {
-    return { status: SessionsVsExceptionsPlotApiStatus.NoData, data: null }
+    return { status: SessionsVsErrorsPlotApiStatus.NoData, data: null };
   }
 
   // Remove ANRs if all y values are 0
   const filteredResult = result.filter((series) => {
     if (series.id === "ANRs") {
-      return series.data.some((point) => point.y !== 0)
+      return series.data.some((point) => point.y !== 0);
     }
-    return true
-  })
+    return true;
+  });
 
   return {
-    status: SessionsVsExceptionsPlotApiStatus.Success,
+    status: SessionsVsErrorsPlotApiStatus.Success,
     data: filteredResult,
-  }
-}
+  };
+};
 
 export const fetchJourneyFromServer = async (
-  journeyType: JourneyType,
-  exceptionsGroupdId: string | null,
   bidirectional: boolean,
   filters: Filters,
 ) => {
-  // Must pass in exceptionsGroupdId if journey type is crash or anr details
-  if (
-    (journeyType === JourneyType.CrashDetails ||
-      journeyType === JourneyType.AnrDetails) &&
-    exceptionsGroupdId === undefined
-  ) {
-    return { status: JourneyApiStatus.Error, data: null }
-  }
-
-  let url = ""
-  if (journeyType === JourneyType.CrashDetails) {
-    url = `/api/apps/${filters.app!.id}/crashGroups/${exceptionsGroupdId}/plots/journey?`
-  } else if (journeyType === JourneyType.AnrDetails) {
-    url = `api/apps/${filters.app!.id}/anrGroups/${exceptionsGroupdId}/plots/journey?`
-  } else {
-    url = `/api/apps/${filters.app!.id}/journey?`
-  }
+  let url = `/api/apps/${filters.app!.id}/journey?`;
 
   // Append bidirectional value
-  url = url + `bigraph=${bidirectional ? "1&" : "0&"}`
+  url = url + `bigraph=${bidirectional ? "1&" : "0&"}`;
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null)
+  url = await applyGenericFiltersToUrl(url, filters, null, null);
 
   try {
-    const res = await apiClient.fetch(url)
+    const res = await apiClient.fetch(url);
 
     if (!res.ok) {
-      return { status: JourneyApiStatus.Error, data: null }
+      return { status: JourneyApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: JourneyApiStatus.Success, data: data }
+    return { status: JourneyApiStatus.Success, data: data };
   } catch {
-    return { status: JourneyApiStatus.Cancelled, data: null }
+    return { status: JourneyApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchMetricsFromServer = async (filters: Filters) => {
-  let url = `/api/apps/${filters.app!.id}/metrics?`
+  let url = `/api/apps/${filters.app!.id}/metrics?`;
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null)
+  url = await applyGenericFiltersToUrl(url, filters, null, null);
 
   try {
-    const res = await apiClient.fetch(url)
+    const res = await apiClient.fetch(url);
 
     if (!res.ok) {
-      return { status: MetricsApiStatus.Error, data: null }
+      return { status: MetricsApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: MetricsApiStatus.Success, data: data }
+    return { status: MetricsApiStatus.Success, data: data };
   } catch {
-    return { status: MetricsApiStatus.Cancelled, data: null }
+    return { status: MetricsApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchSessionTimelinesOverviewFromServer = async (
   filters: Filters,
   limit: number,
   offset: number,
 ) => {
-  var url = `/api/apps/${filters.app!.id}/sessions?`
+  var url = `/api/apps/${filters.app!.id}/sessions?`;
 
-  url = await applyGenericFiltersToUrl(
-    url,
-    filters,
-    limit,
-    offset,
-  )
-  url = appendSessionTypesToUrl(url, filters)
+  url = await applyGenericFiltersToUrl(url, filters, limit, offset);
+  url = appendSessionTypesToUrl(url, filters);
 
   try {
-    const res = await apiClient.fetch(url)
+    const res = await apiClient.fetch(url);
 
     if (!res.ok) {
-      return { status: SessionTimelinesOverviewApiStatus.Error, data: null }
+      return { status: SessionTimelinesOverviewApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: SessionTimelinesOverviewApiStatus.Success, data: data }
+    return { status: SessionTimelinesOverviewApiStatus.Success, data: data };
   } catch {
-    return { status: SessionTimelinesOverviewApiStatus.Cancelled, data: null }
+    return { status: SessionTimelinesOverviewApiStatus.Cancelled, data: null };
   }
-}
+};
 
-export const fetchSessionTimelinesOverviewPlotFromServer = async (filters: Filters) => {
-  var url = `/api/apps/${filters.app!.id}/sessions/plots/instances?`
+export const fetchSessionTimelinesOverviewPlotFromServer = async (
+  filters: Filters,
+) => {
+  var url = `/api/apps/${filters.app!.id}/sessions/plots/instances?`;
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null)
-  url = appendSessionTypesToUrl(url, filters)
-  url = appendPlotTimeGroupToUrl(url, filters)
+  url = await applyGenericFiltersToUrl(url, filters, null, null);
+  url = appendSessionTypesToUrl(url, filters);
+  url = appendPlotTimeGroupToUrl(url, filters);
 
   try {
-    const res = await apiClient.fetch(url)
+    const res = await apiClient.fetch(url);
 
     if (!res.ok) {
-      return { status: SessionTimelinesOverviewPlotApiStatus.Error, data: null }
+      return {
+        status: SessionTimelinesOverviewPlotApiStatus.Error,
+        data: null,
+      };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
     if (data === null) {
-      return { status: SessionTimelinesOverviewPlotApiStatus.NoData, data: null }
+      return {
+        status: SessionTimelinesOverviewPlotApiStatus.NoData,
+        data: null,
+      };
     }
 
-    return { status: SessionTimelinesOverviewPlotApiStatus.Success, data: data }
+    return {
+      status: SessionTimelinesOverviewPlotApiStatus.Success,
+      data: data,
+    };
   } catch {
-    return { status: SessionTimelinesOverviewPlotApiStatus.Cancelled, data: null }
+    return {
+      status: SessionTimelinesOverviewPlotApiStatus.Cancelled,
+      data: null,
+    };
   }
+};
+
+function appendErrorFiltersToUrl(url: string, filters: Filters): string {
+  const u = new URL(url, window.location.origin);
+  if (filters.selectedErrorTypes.length > 0) {
+    u.searchParams.append("type", filters.selectedErrorTypes.join(","));
+  }
+  if (filters.selectedSeverities.length > 0) {
+    u.searchParams.append("severity", filters.selectedSeverities.join(","));
+  }
+  if (filters.customErrorsOnly) {
+    u.searchParams.append("custom", "true");
+  }
+  return u.toString();
 }
 
-export const fetchExceptionsOverviewFromServer = async (
-  exceptionsType: ExceptionsType,
+export const fetchErrorsOverviewFromServer = async (
   filters: Filters,
   limit: number,
   offset: number,
 ) => {
-  var url = ""
-  if (exceptionsType === ExceptionsType.Crash) {
-    url = `/api/apps/${filters.app!.id}/crashGroups?`
-  } else {
-    url = `/api/apps/${filters.app!.id}/anrGroups?`
-  }
+  var url = `/api/apps/${filters.app!.id}/errorGroups?`;
 
-  url = await applyGenericFiltersToUrl(url, filters, limit, offset)
+  url = await applyGenericFiltersToUrl(url, filters, limit, offset);
+  url = appendErrorFiltersToUrl(url, filters);
 
   try {
-    const res = await apiClient.fetch(url)
+    const res = await apiClient.fetch(url);
 
     if (!res.ok) {
-      return { status: ExceptionsOverviewApiStatus.Error, data: null }
+      return { status: ErrorsOverviewApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: ExceptionsOverviewApiStatus.Success, data: data }
+    return { status: ErrorsOverviewApiStatus.Success, data: data };
   } catch {
-    return { status: ExceptionsOverviewApiStatus.Cancelled, data: null }
+    return { status: ErrorsOverviewApiStatus.Cancelled, data: null };
   }
-}
+};
 
-export const fetchExceptionsDetailsFromServer = async (
-  exceptionsType: ExceptionsType,
-  exceptionsGroupdId: string,
-  filters: Filters,
-  limit: number,
-  offset: number,
-) => {
-  var url = ""
-  if (exceptionsType === ExceptionsType.Crash) {
-    url = `/api/apps/${filters.app!.id}/crashGroups/${exceptionsGroupdId}/crashes?`
-  } else {
-    url = `/api/apps/${filters.app!.id}/anrGroups/${exceptionsGroupdId}/anrs?`
-  }
+export const fetchErrorsOverviewPlotFromServer = async (filters: Filters) => {
+  var url = `/api/apps/${filters.app!.id}/errorGroups/plots/instances?`;
 
-  url = await applyGenericFiltersToUrl(
-    url,
-    filters,
-    limit,
-    offset,
-  )
+  url = await applyGenericFiltersToUrl(url, filters, null, null);
+  url = appendPlotTimeGroupToUrl(url, filters);
+  url = appendErrorFiltersToUrl(url, filters);
 
   try {
-    const res = await apiClient.fetch(url)
+    const res = await apiClient.fetch(url);
 
     if (!res.ok) {
-      return { status: ExceptionsDetailsApiStatus.Error, data: null }
+      return { status: ErrorsOverviewPlotApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
-
-    return { status: ExceptionsDetailsApiStatus.Success, data: data }
-  } catch {
-    return { status: ExceptionsDetailsApiStatus.Cancelled, data: null }
-  }
-}
-
-export const fetchExceptionGroupCommonPathFromServer = async (
-  type: ExceptionsType,
-  appId: string,
-  groupId: string
-) => {
-  var url = ""
-  if (type === ExceptionsType.Crash) {
-    url = `/api/apps/${appId}/crashGroups/${groupId}/path`
-  } else {
-    url = `/api/apps/${appId}/anrGroups/${groupId}/path`
-  }
-
-  try {
-    const res = await apiClient.fetch(url)
-    console.log("Fetching exception group common path from:", url)
-
-    if (!res.ok) {
-      return { status: ExceptionGroupCommonPathApiStatus.Error, data: null }
-    }
-
-    const data = await res.json()
-
-    return { status: ExceptionGroupCommonPathApiStatus.Success, data: data }
-  } catch {
-    return { status: ExceptionGroupCommonPathApiStatus.Cancelled, data: null }
-  }
-}
-
-export const fetchExceptionsOverviewPlotFromServer = async (
-  exceptionsType: ExceptionsType,
-  filters: Filters,
-) => {
-  var url = ""
-  if (exceptionsType === ExceptionsType.Crash) {
-    url = `/api/apps/${filters.app!.id}/crashGroups/plots/instances?`
-  } else {
-    url = `/api/apps/${filters.app!.id}/anrGroups/plots/instances?`
-  }
-
-  url = await applyGenericFiltersToUrl(url, filters, null, null)
-  url = appendPlotTimeGroupToUrl(url, filters)
-
-  try {
-    const res = await apiClient.fetch(url)
-
-    if (!res.ok) {
-      return { status: ExceptionsOverviewPlotApiStatus.Error, data: null }
-    }
-
-    const data = await res.json()
+    const data = await res.json();
 
     if (data === null) {
-      return { status: ExceptionsOverviewPlotApiStatus.NoData, data: null }
+      return { status: ErrorsOverviewPlotApiStatus.NoData, data: null };
     }
 
-    return { status: ExceptionsOverviewPlotApiStatus.Success, data: data }
+    return { status: ErrorsOverviewPlotApiStatus.Success, data: data };
   } catch {
-    return { status: ExceptionsOverviewPlotApiStatus.Cancelled, data: null }
+    return { status: ErrorsOverviewPlotApiStatus.Cancelled, data: null };
   }
-}
+};
 
-export const fetchExceptionsDetailsPlotFromServer = async (
-  exceptionsType: ExceptionsType,
-  exceptionsGroupdId: string,
+export const fetchErrorsDetailsFromServer = async (
+  errorGroupId: string,
+  paginationOffset: number,
   filters: Filters,
+  limit: number = 1,
 ) => {
-  var url = ""
-  if (exceptionsType === ExceptionsType.Crash) {
-    url = `/api/apps/${filters.app!.id}/crashGroups/${exceptionsGroupdId}/plots/instances?`
-  } else {
-    url = `/api/apps/${filters.app!.id}/anrGroups/${exceptionsGroupdId}/plots/instances?`
-  }
+  var url = `/api/apps/${filters.app!.id}/errorGroups/${errorGroupId}/errors?`;
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null)
-  url = appendPlotTimeGroupToUrl(url, filters)
+  url = await applyGenericFiltersToUrl(url, filters, limit, paginationOffset);
+  url = appendErrorFiltersToUrl(url, filters);
 
   try {
-    const res = await apiClient.fetch(url)
+    const res = await apiClient.fetch(url);
 
     if (!res.ok) {
-      return { status: ExceptionsDetailsPlotApiStatus.Error, data: null }
+      return { status: ErrorsDetailsApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
+
+    return { status: ErrorsDetailsApiStatus.Success, data: data };
+  } catch {
+    return { status: ErrorsDetailsApiStatus.Cancelled, data: null };
+  }
+};
+
+export const fetchErrorGroupCommonPathFromServer = async (
+  errorGroupId: string,
+  filters: Filters,
+) => {
+  const url = `/api/apps/${filters.app!.id}/errorGroups/${errorGroupId}/path`;
+
+  try {
+    const res = await apiClient.fetch(url);
+
+    if (!res.ok) {
+      return { status: ErrorGroupCommonPathApiStatus.Error, data: null };
+    }
+
+    const data = await res.json();
+
+    return { status: ErrorGroupCommonPathApiStatus.Success, data: data };
+  } catch {
+    return { status: ErrorGroupCommonPathApiStatus.Cancelled, data: null };
+  }
+};
+
+export const fetchErrorsDetailsPlotFromServer = async (
+  errorGroupId: string,
+  filters: Filters,
+) => {
+  var url = `/api/apps/${filters.app!.id}/errorGroups/${errorGroupId}/plots/instances?`;
+
+  url = await applyGenericFiltersToUrl(url, filters, null, null);
+  url = appendPlotTimeGroupToUrl(url, filters);
+
+  try {
+    const res = await apiClient.fetch(url);
+
+    if (!res.ok) {
+      return { status: ErrorsDetailsPlotApiStatus.Error, data: null };
+    }
+
+    const data = await res.json();
 
     if (data === null) {
-      return { status: ExceptionsDetailsPlotApiStatus.NoData, data: null }
+      return { status: ErrorsDetailsPlotApiStatus.NoData, data: null };
     }
 
-    return { status: ExceptionsDetailsPlotApiStatus.Success, data: data }
+    return { status: ErrorsDetailsPlotApiStatus.Success, data: data };
   } catch {
-    return { status: ExceptionsDetailsPlotApiStatus.Cancelled, data: null }
+    return { status: ErrorsDetailsPlotApiStatus.Cancelled, data: null };
   }
-}
+};
 
-export const fetchExceptionsDistributionPlotFromServer = async (
-  exceptionsType: ExceptionsType,
-  exceptionsGroupdId: string,
+export const fetchErrorsDistributionPlotFromServer = async (
+  errorGroupId: string,
   filters: Filters,
 ) => {
-  var url = ""
-  if (exceptionsType === ExceptionsType.Crash) {
-    url = `/api/apps/${filters.app!.id}/crashGroups/${exceptionsGroupdId}/plots/distribution?`
-  } else {
-    url = `/api/apps/${filters.app!.id}/anrGroups/${exceptionsGroupdId}/plots/distribution?`
-  }
+  var url = `/api/apps/${filters.app!.id}/errorGroups/${errorGroupId}/plots/distribution?`;
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null)
+  url = await applyGenericFiltersToUrl(url, filters, null, null);
+  url = appendErrorFiltersToUrl(url, filters);
 
   try {
-    const res = await apiClient.fetch(url)
+    const res = await apiClient.fetch(url);
 
     if (!res.ok) {
-      return { status: ExceptionsDistributionPlotApiStatus.Error, data: null }
+      return { status: ErrorsDistributionPlotApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
     if (
       data === null ||
@@ -2176,32 +2129,32 @@ export const fetchExceptionsDistributionPlotFromServer = async (
           Object.keys(value).length === 0,
       )
     ) {
-      return { status: ExceptionsDistributionPlotApiStatus.NoData, data: null }
+      return { status: ErrorsDistributionPlotApiStatus.NoData, data: null };
     }
 
-    return { status: ExceptionsDistributionPlotApiStatus.Success, data: data }
+    return { status: ErrorsDistributionPlotApiStatus.Success, data: data };
   } catch {
     return {
-      status: ExceptionsDistributionPlotApiStatus.Cancelled,
+      status: ErrorsDistributionPlotApiStatus.Cancelled,
       data: null,
-    }
+    };
   }
-}
+};
 
 export const fetchAuthzAndMembersFromServer = async (teamId: string) => {
   try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/authz`)
+    const res = await apiClient.fetch(`/api/teams/${teamId}/authz`);
     if (!res.ok) {
-      return { status: AuthzAndMembersApiStatus.Error, data: null }
+      return { status: AuthzAndMembersApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: AuthzAndMembersApiStatus.Success, data: data }
+    return { status: AuthzAndMembersApiStatus.Success, data: data };
   } catch {
-    return { status: AuthzAndMembersApiStatus.Cancelled, data: null }
+    return { status: AuthzAndMembersApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchSessionTimelineFromServer = async (
   appId: string,
@@ -2210,18 +2163,18 @@ export const fetchSessionTimelineFromServer = async (
   try {
     const res = await apiClient.fetch(
       `/api/apps/${appId}/sessions/${sessionId}`,
-    )
+    );
     if (!res.ok) {
-      return { status: SessionTimelineApiStatus.Error, data: null }
+      return { status: SessionTimelineApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: SessionTimelineApiStatus.Success, data: data }
+    return { status: SessionTimelineApiStatus.Success, data: data };
   } catch {
-    return { status: SessionTimelineApiStatus.Cancelled, data: null }
+    return { status: SessionTimelineApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const changeTeamNameFromServer = async (
   teamId: string,
@@ -2230,65 +2183,59 @@ export const changeTeamNameFromServer = async (
   const opts = {
     method: "PATCH",
     body: JSON.stringify({ name: newTeamName }),
-  }
+  };
 
   try {
-    const res = await apiClient.fetch(
-      `/api/teams/${teamId}/rename`,
-      opts,
-    )
+    const res = await apiClient.fetch(`/api/teams/${teamId}/rename`, opts);
     if (!res.ok) {
-      return { status: TeamNameChangeApiStatus.Error }
+      return { status: TeamNameChangeApiStatus.Error };
     }
 
-    return { status: TeamNameChangeApiStatus.Success }
+    return { status: TeamNameChangeApiStatus.Success };
   } catch {
-    return { status: TeamNameChangeApiStatus.Cancelled }
+    return { status: TeamNameChangeApiStatus.Cancelled };
   }
-}
+};
 
 export const createTeamFromServer = async (teamName: string) => {
   const opts = {
     method: "POST",
     body: JSON.stringify({ name: teamName }),
-  }
+  };
 
   try {
-    const res = await apiClient.fetch(`/api/teams`, opts)
-    const data = await res.json()
+    const res = await apiClient.fetch(`/api/teams`, opts);
+    const data = await res.json();
 
     if (!res.ok) {
-      return { status: CreateTeamApiStatus.Error, error: data.error }
+      return { status: CreateTeamApiStatus.Error, error: data.error };
     }
 
-    return { status: CreateTeamApiStatus.Success, data: data }
+    return { status: CreateTeamApiStatus.Success, data: data };
   } catch {
-    return { status: CreateTeamApiStatus.Cancelled }
+    return { status: CreateTeamApiStatus.Cancelled };
   }
-}
+};
 
 export const createAppFromServer = async (teamId: string, appName: string) => {
   const opts = {
     method: "POST",
     body: JSON.stringify({ name: appName }),
-  }
+  };
 
   try {
-    const res = await apiClient.fetch(
-      `/api/teams/${teamId}/apps`,
-      opts,
-    )
-    const data = await res.json()
+    const res = await apiClient.fetch(`/api/teams/${teamId}/apps`, opts);
+    const data = await res.json();
 
     if (!res.ok) {
-      return { status: CreateAppApiStatus.Error, error: data.error }
+      return { status: CreateAppApiStatus.Error, error: data.error };
     }
 
-    return { status: CreateAppApiStatus.Success, data: data }
+    return { status: CreateAppApiStatus.Success, data: data };
   } catch {
-    return { status: CreateAppApiStatus.Cancelled }
+    return { status: CreateAppApiStatus.Cancelled };
   }
-}
+};
 
 export const changeRoleFromServer = async (
   teamId: string,
@@ -2298,39 +2245,39 @@ export const changeRoleFromServer = async (
   const opts = {
     method: "PATCH",
     body: JSON.stringify({ role: newRole.toLocaleLowerCase() }),
-  }
+  };
 
   try {
     const res = await apiClient.fetch(
       `/api/teams/${teamId}/members/${memberId}/role`,
       opts,
-    )
-    const data = await res.json()
+    );
+    const data = await res.json();
 
     if (!res.ok) {
-      return { status: RoleChangeApiStatus.Error, error: data.error }
+      return { status: RoleChangeApiStatus.Error, error: data.error };
     }
 
-    return { status: RoleChangeApiStatus.Success }
+    return { status: RoleChangeApiStatus.Success };
   } catch {
-    return { status: RoleChangeApiStatus.Cancelled }
+    return { status: RoleChangeApiStatus.Cancelled };
   }
-}
+};
 
 export const fetchPendingInvitesFromServer = async (teamId: string) => {
   try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/invites`)
-    const data = await res.json()
+    const res = await apiClient.fetch(`/api/teams/${teamId}/invites`);
+    const data = await res.json();
 
     if (!res.ok) {
-      return { status: PendingInvitesApiStatus.Error, error: data.error }
+      return { status: PendingInvitesApiStatus.Error, error: data.error };
     }
 
-    return { status: PendingInvitesApiStatus.Success, data: data }
+    return { status: PendingInvitesApiStatus.Success, data: data };
   } catch {
-    return { status: PendingInvitesApiStatus.Cancelled, data: null }
+    return { status: PendingInvitesApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const resendPendingInviteFromServer = async (
   teamId: string,
@@ -2338,24 +2285,24 @@ export const resendPendingInviteFromServer = async (
 ) => {
   const opts = {
     method: "PATCH",
-  }
+  };
 
   try {
     const res = await apiClient.fetch(
       `/api/teams/${teamId}/invite/${inviteId}`,
       opts,
-    )
-    const data = await res.json()
+    );
+    const data = await res.json();
 
     if (!res.ok) {
-      return { status: ResendPendingInviteApiStatus.Error, error: data.error }
+      return { status: ResendPendingInviteApiStatus.Error, error: data.error };
     }
 
-    return { status: ResendPendingInviteApiStatus.Success }
+    return { status: ResendPendingInviteApiStatus.Success };
   } catch {
-    return { status: ResendPendingInviteApiStatus.Cancelled }
+    return { status: ResendPendingInviteApiStatus.Cancelled };
   }
-}
+};
 
 export const removePendingInviteFromServer = async (
   teamId: string,
@@ -2363,55 +2310,52 @@ export const removePendingInviteFromServer = async (
 ) => {
   const opts = {
     method: "DELETE",
-  }
+  };
 
   try {
     const res = await apiClient.fetch(
       `/api/teams/${teamId}/invite/${inviteId}`,
       opts,
-    )
-    const data = await res.json()
+    );
+    const data = await res.json();
 
     if (!res.ok) {
-      return { status: RemovePendingInviteApiStatus.Error, error: data.error }
+      return { status: RemovePendingInviteApiStatus.Error, error: data.error };
     }
 
-    return { status: RemovePendingInviteApiStatus.Success }
+    return { status: RemovePendingInviteApiStatus.Success };
   } catch {
-    return { status: RemovePendingInviteApiStatus.Cancelled }
+    return { status: RemovePendingInviteApiStatus.Cancelled };
   }
-}
+};
 
 export const inviteMemberFromServer = async (
   teamId: string,
   email: string,
   role: string,
 ) => {
-  const lowerCaseRole = role.toLocaleLowerCase()
+  const lowerCaseRole = role.toLocaleLowerCase();
   const opts = {
     method: "POST",
     headers: {
       "Content-Type": `application/json`,
     },
     body: JSON.stringify([{ email: email, role: lowerCaseRole }]),
-  }
+  };
 
   try {
-    const res = await apiClient.fetch(
-      `/api/teams/${teamId}/invite`,
-      opts,
-    )
-    const data = await res.json()
+    const res = await apiClient.fetch(`/api/teams/${teamId}/invite`, opts);
+    const data = await res.json();
 
     if (!res.ok) {
-      return { status: InviteMemberApiStatus.Error, error: data.error }
+      return { status: InviteMemberApiStatus.Error, error: data.error };
     }
 
-    return { status: InviteMemberApiStatus.Success }
+    return { status: InviteMemberApiStatus.Success };
   } catch {
-    return { status: InviteMemberApiStatus.Cancelled }
+    return { status: InviteMemberApiStatus.Cancelled };
   }
-}
+};
 
 export const removeMemberFromServer = async (
   teamId: string,
@@ -2419,26 +2363,30 @@ export const removeMemberFromServer = async (
 ) => {
   const opts = {
     method: "DELETE",
-  }
+  };
 
   try {
     const res = await apiClient.fetch(
       `/api/teams/${teamId}/members/${memberId}`,
       opts,
-    )
-    const data = await res.json()
+    );
+    const data = await res.json();
 
     if (!res.ok) {
-      return { status: RemoveMemberApiStatus.Error, error: data.error }
+      return { status: RemoveMemberApiStatus.Error, error: data.error };
     }
 
-    return { status: RemoveMemberApiStatus.Success }
+    return { status: RemoveMemberApiStatus.Success };
   } catch {
-    return { status: RemoveMemberApiStatus.Cancelled }
+    return { status: RemoveMemberApiStatus.Cancelled };
   }
-}
+};
 
-export const fetchTeamSlackConnectUrlFromServer = async (userId: string, teamId: string, redirectUrl: string) => {
+export const fetchTeamSlackConnectUrlFromServer = async (
+  userId: string,
+  teamId: string,
+  redirectUrl: string,
+) => {
   try {
     const res = await apiClient.fetch(`/auth/slack/url`, {
       method: "POST",
@@ -2446,48 +2394,55 @@ export const fetchTeamSlackConnectUrlFromServer = async (userId: string, teamId:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ userId, teamId, redirectUrl }),
-    })
-    const data = await res.json()
+    });
+    const data = await res.json();
 
     if (!res.ok) {
-      return { status: FetchTeamSlackConnectUrlApiStatus.Error, error: data.error }
+      return {
+        status: FetchTeamSlackConnectUrlApiStatus.Error,
+        error: data.error,
+      };
     }
 
-    return { status: FetchTeamSlackConnectUrlApiStatus.Success, data: data }
+    return { status: FetchTeamSlackConnectUrlApiStatus.Success, data: data };
   } catch {
-    return { status: FetchTeamSlackConnectUrlApiStatus.Cancelled, data: null }
+    return { status: FetchTeamSlackConnectUrlApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchTeamSlackStatusFromServer = async (teamId: string) => {
   try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/slack`)
-    const data = await res.json()
+    const res = await apiClient.fetch(`/api/teams/${teamId}/slack`);
+    const data = await res.json();
 
     if (!res.ok) {
-      return { status: FetchTeamSlackStatusApiStatus.Error, error: data.error }
+      return { status: FetchTeamSlackStatusApiStatus.Error, error: data.error };
     }
 
-    return { status: FetchTeamSlackStatusApiStatus.Success, data: data }
+    return { status: FetchTeamSlackStatusApiStatus.Success, data: data };
   } catch {
-    return { status: FetchTeamSlackStatusApiStatus.Cancelled, data: null }
+    return { status: FetchTeamSlackStatusApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchAppThresholdPrefsFromServer = async (appId: string) => {
   try {
-    const res = await apiClient.fetch(`/api/apps/${appId}/thresholdPrefs`)
-    const data = await res.json()
+    const res = await apiClient.fetch(`/api/apps/${appId}/thresholdPrefs`);
+    const data = await res.json();
 
     if (!res.ok) {
-      return { status: FetchAppThresholdPrefsApiStatus.Error, error: data.error, data: null }
+      return {
+        status: FetchAppThresholdPrefsApiStatus.Error,
+        error: data.error,
+        data: null,
+      };
     }
 
-    return { status: FetchAppThresholdPrefsApiStatus.Success, data: data }
+    return { status: FetchAppThresholdPrefsApiStatus.Success, data: data };
   } catch {
-    return { status: FetchAppThresholdPrefsApiStatus.Cancelled, data: null }
+    return { status: FetchAppThresholdPrefsApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const updateAppThresholdPrefsFromServer = async (
   appId: string,
@@ -2496,24 +2451,27 @@ export const updateAppThresholdPrefsFromServer = async (
   const opts = {
     method: "PATCH",
     body: JSON.stringify(prefs),
-  }
+  };
 
   try {
     const res = await apiClient.fetch(
       `/api/apps/${appId}/thresholdPrefs`,
       opts,
-    )
-    const data = await res.json()
+    );
+    const data = await res.json();
 
     if (!res.ok) {
-      return { status: UpdateAppThresholdPrefsApiStatus.Error, error: data.error }
+      return {
+        status: UpdateAppThresholdPrefsApiStatus.Error,
+        error: data.error,
+      };
     }
 
-    return { status: UpdateAppThresholdPrefsApiStatus.Success }
+    return { status: UpdateAppThresholdPrefsApiStatus.Success };
   } catch {
-    return { status: UpdateAppThresholdPrefsApiStatus.Cancelled }
+    return { status: UpdateAppThresholdPrefsApiStatus.Cancelled };
   }
-}
+};
 
 export const updateTeamSlackStatusFromServer = async (
   teamId: string,
@@ -2522,64 +2480,62 @@ export const updateTeamSlackStatusFromServer = async (
   const opts = {
     method: "PATCH",
     body: JSON.stringify({ is_active: slackStatus }),
-  }
+  };
 
   try {
     const res = await apiClient.fetch(
       `/api/teams/${teamId}/slack/status`,
       opts,
-    )
-    const data = await res.json()
+    );
+    const data = await res.json();
 
     if (!res.ok) {
-      return { status: UpdateTeamSlackStatusApiStatus.Error, error: data.error }
+      return {
+        status: UpdateTeamSlackStatusApiStatus.Error,
+        error: data.error,
+      };
     }
 
-    return { status: UpdateTeamSlackStatusApiStatus.Success }
+    return { status: UpdateTeamSlackStatusApiStatus.Success };
   } catch {
-    return { status: UpdateTeamSlackStatusApiStatus.Cancelled }
+    return { status: UpdateTeamSlackStatusApiStatus.Cancelled };
   }
-}
+};
 
-export const sendTestSlackAlertFromServer = async (
-  teamId: string,
-) => {
+export const sendTestSlackAlertFromServer = async (teamId: string) => {
   const opts = {
-    method: "POST"
-  }
+    method: "POST",
+  };
 
   try {
-    const res = await apiClient.fetch(
-      `/api/teams/${teamId}/slack/test`,
-      opts,
-    )
-    const data = await res.json()
+    const res = await apiClient.fetch(`/api/teams/${teamId}/slack/test`, opts);
+    const data = await res.json();
 
     if (!res.ok) {
-      return { status: TestSlackAlertApiStatus.Error, error: data.error }
+      return { status: TestSlackAlertApiStatus.Error, error: data.error };
     }
 
-    return { status: TestSlackAlertApiStatus.Success }
+    return { status: TestSlackAlertApiStatus.Success };
   } catch {
-    return { status: TestSlackAlertApiStatus.Cancelled }
+    return { status: TestSlackAlertApiStatus.Cancelled };
   }
-}
+};
 
 export const fetchNotifPrefsFromServer = async () => {
   try {
-    const res = await apiClient.fetch(`/api/prefs/notifPrefs`)
+    const res = await apiClient.fetch(`/api/prefs/notifPrefs`);
 
     if (!res.ok) {
-      return { status: FetchNotifPrefsApiStatus.Error, data: null }
+      return { status: FetchNotifPrefsApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: FetchNotifPrefsApiStatus.Success, data: data }
+    return { status: FetchNotifPrefsApiStatus.Success, data: data };
   } catch {
-    return { status: FetchNotifPrefsApiStatus.Cancelled, data: null }
+    return { status: FetchNotifPrefsApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const updateNotifPrefsFromServer = async (
   notifPrefs: typeof emptyNotifPrefs,
@@ -2587,40 +2543,37 @@ export const updateNotifPrefsFromServer = async (
   const opts = {
     method: "PATCH",
     body: JSON.stringify(notifPrefs),
-  }
+  };
 
   try {
-    const res = await apiClient.fetch(
-      `/api/prefs/notifPrefs`,
-      opts,
-    )
-    const data = await res.json()
+    const res = await apiClient.fetch(`/api/prefs/notifPrefs`, opts);
+    const data = await res.json();
 
     if (!res.ok) {
-      return { status: UpdateNotifPrefsApiStatus.Error, error: data.error }
+      return { status: UpdateNotifPrefsApiStatus.Error, error: data.error };
     }
 
-    return { status: UpdateNotifPrefsApiStatus.Success }
+    return { status: UpdateNotifPrefsApiStatus.Success };
   } catch {
-    return { status: UpdateNotifPrefsApiStatus.Cancelled }
+    return { status: UpdateNotifPrefsApiStatus.Cancelled };
   }
-}
+};
 
 export const fetchAppRetentionFromServer = async (appId: string) => {
   try {
-    const res = await apiClient.fetch(`/api/apps/${appId}/retention`)
+    const res = await apiClient.fetch(`/api/apps/${appId}/retention`);
 
     if (!res.ok) {
-      return { status: FetchAppRetentionApiStatus.Error, data: null }
+      return { status: FetchAppRetentionApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: FetchAppRetentionApiStatus.Success, data: data }
+    return { status: FetchAppRetentionApiStatus.Success, data: data };
   } catch {
-    return { status: FetchAppRetentionApiStatus.Cancelled, data: null }
+    return { status: FetchAppRetentionApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const updateAppRetentionFromServer = async (
   appdId: string,
@@ -2629,24 +2582,21 @@ export const updateAppRetentionFromServer = async (
   const opts = {
     method: "PATCH",
     body: JSON.stringify(appRetention),
-  }
+  };
 
   try {
-    const res = await apiClient.fetch(
-      `/api/apps/${appdId}/retention`,
-      opts,
-    )
-    const data = await res.json()
+    const res = await apiClient.fetch(`/api/apps/${appdId}/retention`, opts);
+    const data = await res.json();
 
     if (!res.ok) {
-      return { status: UpdateAppRetentionApiStatus.Error, error: data.error }
+      return { status: UpdateAppRetentionApiStatus.Error, error: data.error };
     }
 
-    return { status: UpdateAppRetentionApiStatus.Success }
+    return { status: UpdateAppRetentionApiStatus.Success };
   } catch {
-    return { status: UpdateAppRetentionApiStatus.Cancelled }
+    return { status: UpdateAppRetentionApiStatus.Cancelled };
   }
-}
+};
 
 export const changeAppNameFromServer = async (
   appId: string,
@@ -2655,215 +2605,221 @@ export const changeAppNameFromServer = async (
   const opts = {
     method: "PATCH",
     body: JSON.stringify({ name: newAppName }),
-  }
+  };
 
   try {
-    const res = await apiClient.fetch(
-      `/api/apps/${appId}/rename`,
-      opts,
-    )
+    const res = await apiClient.fetch(`/api/apps/${appId}/rename`, opts);
     if (!res.ok) {
-      return { status: AppNameChangeApiStatus.Error }
+      return { status: AppNameChangeApiStatus.Error };
     }
 
-    return { status: AppNameChangeApiStatus.Success }
+    return { status: AppNameChangeApiStatus.Success };
   } catch {
-    return { status: AppNameChangeApiStatus.Cancelled }
+    return { status: AppNameChangeApiStatus.Cancelled };
   }
-}
+};
 
 export const changeAppApiKeyFromServer = async (appId: string) => {
   const opts = {
     method: "PATCH",
-  }
+  };
 
   try {
-    const res = await apiClient.fetch(`/api/apps/${appId}/apiKey`, opts)
+    const res = await apiClient.fetch(`/api/apps/${appId}/apiKey`, opts);
     if (!res.ok) {
-      return { status: AppApiKeyChangeApiStatus.Error }
+      return { status: AppApiKeyChangeApiStatus.Error };
     }
 
-    return { status: AppApiKeyChangeApiStatus.Success }
+    return { status: AppApiKeyChangeApiStatus.Success };
   } catch {
-    return { status: AppApiKeyChangeApiStatus.Cancelled }
+    return { status: AppApiKeyChangeApiStatus.Cancelled };
   }
-}
+};
 
 export const fetchBillingInfoFromServer = async (teamId: string) => {
   try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/billing/info`)
+    const res = await apiClient.fetch(`/api/teams/${teamId}/billing/info`);
 
     if (!res.ok) {
-      return { status: FetchBillingInfoApiStatus.Error, data: null }
+      return { status: FetchBillingInfoApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: FetchBillingInfoApiStatus.Success, data: data }
+    return { status: FetchBillingInfoApiStatus.Success, data: data };
   } catch {
-    return { status: FetchBillingInfoApiStatus.Cancelled, data: null }
+    return { status: FetchBillingInfoApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchUsageFromServer = async (teamId: string) => {
   try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/usage`)
+    const res = await apiClient.fetch(`/api/teams/${teamId}/usage`);
 
     if (!res.ok && res.status == 404) {
-      return { status: FetchUsageApiStatus.NoApps, data: null }
+      return { status: FetchUsageApiStatus.NoApps, data: null };
     }
 
     if (!res.ok) {
-      return { status: FetchUsageApiStatus.Error, data: null }
+      return { status: FetchUsageApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: FetchUsageApiStatus.Success, data: data }
+    return { status: FetchUsageApiStatus.Success, data: data };
   } catch {
-    return { status: FetchUsageApiStatus.Cancelled, data: null }
+    return { status: FetchUsageApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchCheckoutSessionFromServer = async (
   teamId: string,
-  successUrl: string
+  successUrl: string,
 ) => {
   try {
     const res = await apiClient.fetch(`/api/teams/${teamId}/billing/checkout`, {
-      method: 'PATCH',
+      method: "PATCH",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         success_url: successUrl,
       }),
-    })
+    });
 
     if (!res.ok) {
-      return { status: FetchCheckoutSessionApiStatus.Error, data: null }
+      return { status: FetchCheckoutSessionApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: FetchCheckoutSessionApiStatus.Success, data: data }
+    return { status: FetchCheckoutSessionApiStatus.Success, data: data };
   } catch {
-    return { status: FetchCheckoutSessionApiStatus.Cancelled, data: null }
+    return { status: FetchCheckoutSessionApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const downgradeToFreeFromServer = async (teamId: string) => {
   try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/billing/downgrade`, {
-      method: 'PATCH',
-    })
+    const res = await apiClient.fetch(
+      `/api/teams/${teamId}/billing/downgrade`,
+      {
+        method: "PATCH",
+      },
+    );
 
     if (!res.ok) {
-      return { status: DowngradeToFreeApiStatus.Error, data: null }
+      return { status: DowngradeToFreeApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: DowngradeToFreeApiStatus.Success, data: data }
+    return { status: DowngradeToFreeApiStatus.Success, data: data };
   } catch {
-    return { status: DowngradeToFreeApiStatus.Cancelled, data: null }
+    return { status: DowngradeToFreeApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const undoDowngradeFromServer = async (teamId: string) => {
   try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/billing/undo-downgrade`, {
-      method: 'PATCH',
-    })
+    const res = await apiClient.fetch(
+      `/api/teams/${teamId}/billing/undo-downgrade`,
+      {
+        method: "PATCH",
+      },
+    );
 
     if (!res.ok) {
-      return { status: UndoDowngradeApiStatus.Error, data: null }
+      return { status: UndoDowngradeApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: UndoDowngradeApiStatus.Success, data: data }
+    return { status: UndoDowngradeApiStatus.Success, data: data };
   } catch {
-    return { status: UndoDowngradeApiStatus.Cancelled, data: null }
+    return { status: UndoDowngradeApiStatus.Cancelled, data: null };
   }
-}
+};
 
-export const fetchCustomerPortalUrlFromServer = async (teamId: string, returnUrl: string) => {
+export const fetchCustomerPortalUrlFromServer = async (
+  teamId: string,
+  returnUrl: string,
+) => {
   try {
     const res = await apiClient.fetch(`/api/teams/${teamId}/billing/portal`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         return_url: returnUrl,
       }),
-    })
+    });
 
     if (!res.ok) {
-      return { status: FetchCustomerPortalUrlApiStatus.Error, data: null }
+      return { status: FetchCustomerPortalUrlApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: FetchCustomerPortalUrlApiStatus.Success, data: data }
+    return { status: FetchCustomerPortalUrlApiStatus.Success, data: data };
   } catch {
-    return { status: FetchCustomerPortalUrlApiStatus.Cancelled, data: null }
+    return { status: FetchCustomerPortalUrlApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchBugReportsOverviewFromServer = async (
   filters: Filters,
   limit: number,
   offset: number,
 ) => {
-  var url = `/api/apps/${filters.app!.id}/bugReports?`
+  var url = `/api/apps/${filters.app!.id}/bugReports?`;
 
-  url = await applyGenericFiltersToUrl(url, filters, limit, offset)
-  url = appendBugReportStatusesToUrl(url, filters)
+  url = await applyGenericFiltersToUrl(url, filters, limit, offset);
+  url = appendBugReportStatusesToUrl(url, filters);
 
   try {
-    const res = await apiClient.fetch(url)
+    const res = await apiClient.fetch(url);
 
     if (!res.ok) {
-      return { status: BugReportsOverviewApiStatus.Error, data: null }
+      return { status: BugReportsOverviewApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: BugReportsOverviewApiStatus.Success, data: data }
+    return { status: BugReportsOverviewApiStatus.Success, data: data };
   } catch {
-    return { status: BugReportsOverviewApiStatus.Cancelled, data: null }
+    return { status: BugReportsOverviewApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchBugReportsOverviewPlotFromServer = async (
   filters: Filters,
 ) => {
-  var url = `/api/apps/${filters.app!.id}/bugReports/plots/instances?`
+  var url = `/api/apps/${filters.app!.id}/bugReports/plots/instances?`;
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null)
-  url = appendBugReportStatusesToUrl(url, filters)
-  url = appendPlotTimeGroupToUrl(url, filters)
+  url = await applyGenericFiltersToUrl(url, filters, null, null);
+  url = appendBugReportStatusesToUrl(url, filters);
+  url = appendPlotTimeGroupToUrl(url, filters);
 
   try {
-    const res = await apiClient.fetch(url)
+    const res = await apiClient.fetch(url);
 
     if (!res.ok) {
-      return { status: BugReportsOverviewPlotApiStatus.Error, data: null }
+      return { status: BugReportsOverviewPlotApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
     if (data === null) {
-      return { status: BugReportsOverviewPlotApiStatus.NoData, data: null }
+      return { status: BugReportsOverviewPlotApiStatus.NoData, data: null };
     }
 
-    return { status: BugReportsOverviewPlotApiStatus.Success, data: data }
+    return { status: BugReportsOverviewPlotApiStatus.Success, data: data };
   } catch {
-    return { status: BugReportsOverviewPlotApiStatus.Cancelled, data: null }
+    return { status: BugReportsOverviewPlotApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchBugReportFromServer = async (
   appId: string,
@@ -2872,18 +2828,18 @@ export const fetchBugReportFromServer = async (
   try {
     const res = await apiClient.fetch(
       `/api/apps/${appId}/bugReports/${bugReportId}`,
-    )
+    );
     if (!res.ok) {
-      return { status: BugReportApiStatus.Error, data: null }
+      return { status: BugReportApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: BugReportApiStatus.Success, data: data }
+    return { status: BugReportApiStatus.Success, data: data };
   } catch {
-    return { status: BugReportApiStatus.Cancelled, data: null }
+    return { status: BugReportApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const updateBugReportStatusFromServer = async (
   appId: string,
@@ -2893,240 +2849,292 @@ export const updateBugReportStatusFromServer = async (
   const opts = {
     method: "PATCH",
     body: JSON.stringify({ status: Number(status) }),
-  }
+  };
 
   try {
     const res = await apiClient.fetch(
       `/api/apps/${appId}/bugReports/${bugReportId}`,
       opts,
-    )
-    const data = await res.json()
+    );
+    const data = await res.json();
 
     if (!res.ok) {
       return {
         status: UpdateBugReportStatusApiStatus.Error,
         error: data.error,
-      }
+      };
     }
 
-    return { status: UpdateBugReportStatusApiStatus.Success }
+    return { status: UpdateBugReportStatusApiStatus.Success };
   } catch {
-    return { status: UpdateBugReportStatusApiStatus.Cancelled }
+    return { status: UpdateBugReportStatusApiStatus.Cancelled };
   }
-}
+};
 
 export const fetchAlertsOverviewFromServer = async (
   filters: Filters,
   limit: number,
   offset: number,
 ) => {
-  var url = `/api/apps/${filters.app!.id}/alerts?`
+  var url = `/api/apps/${filters.app!.id}/alerts?`;
 
-  url = await applyGenericFiltersToUrl(url, filters, limit, offset)
+  url = await applyGenericFiltersToUrl(url, filters, limit, offset);
 
   try {
-    const res = await apiClient.fetch(url)
+    const res = await apiClient.fetch(url);
 
     if (!res.ok) {
-      return { status: AlertsOverviewApiStatus.Error, data: null }
+      return { status: AlertsOverviewApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return { status: AlertsOverviewApiStatus.Success, data: data }
+    return { status: AlertsOverviewApiStatus.Success, data: data };
   } catch {
-    return { status: AlertsOverviewApiStatus.Cancelled, data: null }
+    return { status: AlertsOverviewApiStatus.Cancelled, data: null };
   }
-}
+};
 
 export const fetchSdkConfigFromServer = async (appId: String) => {
-  const url = `/api/apps/${appId}/config`
+  const url = `/api/apps/${appId}/config`;
 
   try {
-    const res = await apiClient.fetch(url)
+    const res = await apiClient.fetch(url);
     if (!res.ok) {
-      return { status: SdkConfigApiStatus.Error, data: null }
+      return { status: SdkConfigApiStatus.Error, data: null };
     }
-    const data = await res.json()
-    return { status: SdkConfigApiStatus.Success, data: data }
+    const data = await res.json();
+    return { status: SdkConfigApiStatus.Success, data: data };
   } catch {
-    return { status: SdkConfigApiStatus.Cancelled, data: null }
+    return { status: SdkConfigApiStatus.Cancelled, data: null };
   }
-}
+};
 
-export const updateSdkConfigFromServer = async (appId: string, config: Partial<SdkConfig>) => {
-  const url = `/api/apps/${appId}/config`
+export const updateSdkConfigFromServer = async (
+  appId: string,
+  config: Partial<SdkConfig>,
+) => {
+  const url = `/api/apps/${appId}/config`;
 
   const opts = {
     method: "PATCH",
     body: JSON.stringify(config),
-  }
+  };
 
   try {
-    const res = await apiClient.fetch(url, opts)
-    const data = await res.json()
+    const res = await apiClient.fetch(url, opts);
+    const data = await res.json();
 
     if (!res.ok) {
       return {
         status: UpdateSdkConfigApiStatus.Error,
         data: null,
         error: data?.error,
-      }
+      };
     }
 
     return {
       status: UpdateSdkConfigApiStatus.Success,
       data,
-    }
+    };
   } catch {
     return {
       status: UpdateSdkConfigApiStatus.Cancelled,
       data: null,
-    }
+    };
   }
-}
+};
 
-export const fetchNetworkDomainsFromServer = async (selectedApp: App, filters: Filters) => {
+export const fetchNetworkDomainsFromServer = async (
+  selectedApp: App,
+  filters: Filters,
+) => {
   try {
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(filters.startDate)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(filters.endDate)
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(
+      filters.startDate,
+    );
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(
+      filters.endDate,
+    );
 
     const res = await apiClient.fetch(
       `/api/apps/${selectedApp.id}/networkRequests/domains?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`,
-    )
+    );
 
     if (!res.ok) {
-      return { status: NetworkDomainsApiStatus.Error, data: null }
+      return { status: NetworkDomainsApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
     if (data.results === null || data.results.length === 0) {
-      return { status: NetworkDomainsApiStatus.NoData, data: null }
+      return { status: NetworkDomainsApiStatus.NoData, data: null };
     }
 
-    return { status: NetworkDomainsApiStatus.Success, data: data }
+    return { status: NetworkDomainsApiStatus.Success, data: data };
   } catch {
-    return { status: NetworkDomainsApiStatus.Cancelled, data: null }
+    return { status: NetworkDomainsApiStatus.Cancelled, data: null };
   }
-}
+};
 
-export const fetchNetworkPathsFromServer = async (selectedApp: App, domain: string, search: string, filters: Filters) => {
+export const fetchNetworkPathsFromServer = async (
+  selectedApp: App,
+  domain: string,
+  search: string,
+  filters: Filters,
+) => {
   try {
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(filters.startDate)
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(filters.endDate)
+    const serverFormattedStartDate = formatUserInputDateToServerFormat(
+      filters.startDate,
+    );
+    const serverFormattedEndDate = formatUserInputDateToServerFormat(
+      filters.endDate,
+    );
 
     const res = await apiClient.fetch(
       `/api/apps/${selectedApp.id}/networkRequests/paths?domain=${encodeURIComponent(domain)}&search=${encodeURIComponent(search)}&from=${encodeURIComponent(serverFormattedStartDate)}&to=${encodeURIComponent(serverFormattedEndDate)}`,
-    )
+    );
 
     if (!res.ok) {
-      return { status: NetworkPathsApiStatus.Error, data: null }
+      return { status: NetworkPathsApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
     if (data.results === null || data.results.length === 0) {
-      return { status: NetworkPathsApiStatus.NoData, data: null }
+      return { status: NetworkPathsApiStatus.NoData, data: null };
     }
 
-    return { status: NetworkPathsApiStatus.Success, data: data }
+    return { status: NetworkPathsApiStatus.Success, data: data };
   } catch {
-    return { status: NetworkPathsApiStatus.Cancelled, data: null }
+    return { status: NetworkPathsApiStatus.Cancelled, data: null };
   }
-}
+};
 
-export const fetchNetworkEndpointLatencyPlotFromServer = async (filters: Filters, domain: string, path: string) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/endpointLatency?`
+export const fetchNetworkEndpointLatencyPlotFromServer = async (
+  filters: Filters,
+  domain: string,
+  path: string,
+) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/endpointLatency?`;
 
-  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
-  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters)
-  apiUrl = appendHttpMethodsToUrl(apiUrl, filters)
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
+  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters);
+  apiUrl = appendHttpMethodsToUrl(apiUrl, filters);
 
-  const u = new URL(apiUrl, window.location.origin)
-  u.searchParams.append("domain", domain)
-  u.searchParams.append("path", path)
-  apiUrl = u.toString()
+  const u = new URL(apiUrl, window.location.origin);
+  u.searchParams.append("domain", domain);
+  u.searchParams.append("path", path);
+  apiUrl = u.toString();
 
   try {
-    const res = await apiClient.fetch(apiUrl)
+    const res = await apiClient.fetch(apiUrl);
 
     if (!res.ok) {
-      return { status: NetworkEndpointLatencyPlotApiStatus.Error, data: null }
+      return { status: NetworkEndpointLatencyPlotApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
     if (data === null) {
-      return { status: NetworkEndpointLatencyPlotApiStatus.NoData, data: null }
+      return { status: NetworkEndpointLatencyPlotApiStatus.NoData, data: null };
     }
 
-    return { status: NetworkEndpointLatencyPlotApiStatus.Success, data: data }
+    return { status: NetworkEndpointLatencyPlotApiStatus.Success, data: data };
   } catch {
-    return { status: NetworkEndpointLatencyPlotApiStatus.Cancelled, data: null }
+    return {
+      status: NetworkEndpointLatencyPlotApiStatus.Cancelled,
+      data: null,
+    };
   }
-}
+};
 
-export const fetchNetworkEndpointStatusCodesPlotFromServer = async (filters: Filters, domain: string, path: string) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/endpointStatusCodes?`
+export const fetchNetworkEndpointStatusCodesPlotFromServer = async (
+  filters: Filters,
+  domain: string,
+  path: string,
+) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/endpointStatusCodes?`;
 
-  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
-  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters)
-  apiUrl = appendHttpMethodsToUrl(apiUrl, filters)
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
+  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters);
+  apiUrl = appendHttpMethodsToUrl(apiUrl, filters);
 
-  const u = new URL(apiUrl, window.location.origin)
-  u.searchParams.append("domain", domain)
-  u.searchParams.append("path", path)
-  apiUrl = u.toString()
+  const u = new URL(apiUrl, window.location.origin);
+  u.searchParams.append("domain", domain);
+  u.searchParams.append("path", path);
+  apiUrl = u.toString();
 
   try {
-    const res = await apiClient.fetch(apiUrl)
+    const res = await apiClient.fetch(apiUrl);
 
     if (!res.ok) {
-      return { status: NetworkEndpointStatusCodesPlotApiStatus.Error, data: null }
+      return {
+        status: NetworkEndpointStatusCodesPlotApiStatus.Error,
+        data: null,
+      };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
     if (data === null) {
-      return { status: NetworkEndpointStatusCodesPlotApiStatus.NoData, data: null }
+      return {
+        status: NetworkEndpointStatusCodesPlotApiStatus.NoData,
+        data: null,
+      };
     }
 
-    return { status: NetworkEndpointStatusCodesPlotApiStatus.Success, data: data }
+    return {
+      status: NetworkEndpointStatusCodesPlotApiStatus.Success,
+      data: data,
+    };
   } catch {
-    return { status: NetworkEndpointStatusCodesPlotApiStatus.Cancelled, data: null }
+    return {
+      status: NetworkEndpointStatusCodesPlotApiStatus.Cancelled,
+      data: null,
+    };
   }
-}
+};
 
-export const fetchNetworkEndpointTimelinePlotFromServer = async (filters: Filters, domain: string, path: string) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/endpointTimeline?`
+export const fetchNetworkEndpointTimelinePlotFromServer = async (
+  filters: Filters,
+  domain: string,
+  path: string,
+) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/endpointTimeline?`;
 
-  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
-  apiUrl = appendHttpMethodsToUrl(apiUrl, filters)
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
+  apiUrl = appendHttpMethodsToUrl(apiUrl, filters);
 
-  const u = new URL(apiUrl, window.location.origin)
-  u.searchParams.append("domain", domain)
-  u.searchParams.append("path", path)
-  apiUrl = u.toString()
+  const u = new URL(apiUrl, window.location.origin);
+  u.searchParams.append("domain", domain);
+  u.searchParams.append("path", path);
+  apiUrl = u.toString();
 
   try {
-    const res = await apiClient.fetch(apiUrl)
+    const res = await apiClient.fetch(apiUrl);
 
     if (!res.ok) {
-      return { status: NetworkEndpointTimelinePlotApiStatus.Error, data: null }
+      return { status: NetworkEndpointTimelinePlotApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
     if (data === null || !data.points || data.points.length === 0) {
-      return { status: NetworkEndpointTimelinePlotApiStatus.NoData, data: null }
+      return {
+        status: NetworkEndpointTimelinePlotApiStatus.NoData,
+        data: null,
+      };
     }
 
-    return { status: NetworkEndpointTimelinePlotApiStatus.Success, data: data }
+    return { status: NetworkEndpointTimelinePlotApiStatus.Success, data: data };
   } catch {
-    return { status: NetworkEndpointTimelinePlotApiStatus.Cancelled, data: null }
+    return {
+      status: NetworkEndpointTimelinePlotApiStatus.Cancelled,
+      data: null,
+    };
   }
-}
+};
 
 export const fetchNetworkTrendsFromServer = async (
   filters: Filters,
@@ -3156,52 +3164,69 @@ export const fetchNetworkTrendsFromServer = async (
   }
 };
 
-export const fetchNetworkTimelinePlotFromServer = async (filters: Filters, timelineLimit: number) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/overviewTimeline?`
+export const fetchNetworkTimelinePlotFromServer = async (
+  filters: Filters,
+  timelineLimit: number,
+) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/overviewTimeline?`;
 
-  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
-  apiUrl += `&timeline_limit=${timelineLimit}`
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
+  apiUrl += `&timeline_limit=${timelineLimit}`;
 
   try {
-    const res = await apiClient.fetch(apiUrl)
+    const res = await apiClient.fetch(apiUrl);
 
     if (!res.ok) {
-      return { status: NetworkTimelinePlotApiStatus.Error, data: null }
+      return { status: NetworkTimelinePlotApiStatus.Error, data: null };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
     if (data === null || !data.points || data.points.length === 0) {
-      return { status: NetworkTimelinePlotApiStatus.NoData, data: null }
+      return { status: NetworkTimelinePlotApiStatus.NoData, data: null };
     }
 
-    return { status: NetworkTimelinePlotApiStatus.Success, data: data }
+    return { status: NetworkTimelinePlotApiStatus.Success, data: data };
   } catch {
-    return { status: NetworkTimelinePlotApiStatus.Cancelled, data: null }
+    return { status: NetworkTimelinePlotApiStatus.Cancelled, data: null };
   }
-}
+};
 
-export const fetchNetworkOverviewStatusCodesPlotFromServer = async (filters: Filters) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/overviewStatusCodes?`
+export const fetchNetworkOverviewStatusCodesPlotFromServer = async (
+  filters: Filters,
+) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/overviewStatusCodes?`;
 
-  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null)
-  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters)
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
+  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters);
 
   try {
-    const res = await apiClient.fetch(apiUrl)
+    const res = await apiClient.fetch(apiUrl);
 
     if (!res.ok) {
-      return { status: NetworkOverviewStatusCodesPlotApiStatus.Error, data: null }
+      return {
+        status: NetworkOverviewStatusCodesPlotApiStatus.Error,
+        data: null,
+      };
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
     if (data === null || (Array.isArray(data) && data.length === 0)) {
-      return { status: NetworkOverviewStatusCodesPlotApiStatus.NoData, data: null }
+      return {
+        status: NetworkOverviewStatusCodesPlotApiStatus.NoData,
+        data: null,
+      };
     }
 
-    return { status: NetworkOverviewStatusCodesPlotApiStatus.Success, data: data }
+    return {
+      status: NetworkOverviewStatusCodesPlotApiStatus.Success,
+      data: data,
+    };
   } catch {
-    return { status: NetworkOverviewStatusCodesPlotApiStatus.Cancelled, data: null }
+    return {
+      status: NetworkOverviewStatusCodesPlotApiStatus.Cancelled,
+      data: null,
+    };
   }
-}
+};
