@@ -2127,7 +2127,7 @@ describe("fetchErrorsDetailsPlotFromServer", () => {
     );
   });
 
-  it("does NOT append type/severity/custom (per-group plot takes versions only)", async () => {
+  it("appends type/severity/custom when set on the filters", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
     await fetchErrorsDetailsPlotFromServer(
       "group-1",
@@ -2141,9 +2141,9 @@ describe("fetchErrorsDetailsPlotFromServer", () => {
       ),
     );
     const url = lastFetchUrl();
-    expect(url).not.toContain("type=");
-    expect(url).not.toContain("severity=");
-    expect(url).not.toContain("custom=");
+    expect(url).toContain("type=error%2Canr");
+    expect(url).toContain("severity=fatal");
+    expect(url).toContain("custom=true");
   });
 
   it("returns Success on 200", async () => {

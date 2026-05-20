@@ -2082,6 +2082,7 @@ export const fetchErrorsDetailsPlotFromServer = async (
 
   url = await applyGenericFiltersToUrl(url, filters, null, null);
   url = appendPlotTimeGroupToUrl(url, filters);
+  url = appendErrorFiltersToUrl(url, filters);
 
   try {
     const res = await apiClient.fetch(url);
