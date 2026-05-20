@@ -182,6 +182,29 @@ final class MeasureInternalTests: XCTestCase {
         XCTAssertFalse(logger.logs.contains(where: { $0.contains("Event processed") }), "trackError should not proceed if not started")
     }
 
+    func testApplicationWillEnterForeground_triggersExport() {
+        let exporter = mockMeasureInitializer.exporter as! MockExporter // swiftlint:disable:this force_cast
+        let before = exporter.exportCallCount
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+        XCTAssertEqual(exporter.exportCallCount, before + 1, "exporter.export() should be called once when the app enters the foreground")
+    }
+
+    func testApplicationWillEnterForeground_triggersExportWhenStarted() {
+        measureInternal.start()
+        let exporter = mockMeasureInitializer.exporter as! MockExporter // swiftlint:disable:this force_cast
+        let before = exporter.exportCallCount
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+        XCTAssertEqual(exporter.exportCallCount, before + 1, "exporter.export() should be called once when the app enters the foreground after SDK is started")
+    }
+
+    func testApplicationWillEnterForeground_triggersExportOnEachTransition() {
+        let exporter = mockMeasureInitializer.exporter as! MockExporter // swiftlint:disable:this force_cast
+        let before = exporter.exportCallCount
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+        XCTAssertEqual(exporter.exportCallCount, before + 2, "exporter.export() should be called once per foreground transition")
+    }
+
     func testEncodeWebP_completesOnMainThreadWithEncodedBytes() {
         // Use a synchronous dispatch queue + a config-provider with a known quality.
         // Verifies the orchestrator (a) ran the codec, (b) hopped back to main
