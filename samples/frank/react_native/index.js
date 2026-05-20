@@ -58,7 +58,7 @@ const triggerUIFreeze = () => {
 // -- Bug report actions --
 
 const launchBugReport = () => {
-  Measure.launchBugReport(true, {source: 'manual'}, {screen: 'RNDemos'});
+  Measure.launchBugReport({takeScreenshot: true, bugReportConfig: {source: 'manual'}, attributes: {screen: 'RNDemos'}});
 };
 
 const trackBugReport = async () => {
@@ -66,11 +66,11 @@ const trackBugReport = async () => {
     const screenshot = await Measure.captureScreenshot();
     const layoutSnapshot = await Measure.captureLayoutSnapshot();
     const attachments = [screenshot, layoutSnapshot].filter(a => a !== null);
-    await Measure.trackBugReport(
-      'Bug report from React Native demos',
+    await Measure.trackBugReport({
+      description: 'Bug report from React Native demos',
       attachments,
-      {source: 'rn_demo', screen: 'RNDemos'},
-    );
+      attributes: {source: 'rn_demo', screen: 'RNDemos'},
+    });
   } catch (err) {
     console.error('Failed to send bug report:', err);
   }
@@ -119,14 +119,17 @@ const trackHttpManually = () => {
 // -- Misc actions --
 
 const trackCustomEvent = () => {
-  Measure.trackEvent('button_click', {
-    screen: 'RNDemos',
-    action: 'Track Custom Event',
+  Measure.trackEvent({
+    name: 'button_click',
+    attributes: {
+      screen: 'RNDemos',
+      action: 'Track Custom Event',
+    },
   });
 };
 
 const createSpan = () => {
-  const span = Measure.startSpan('load-data');
+  const span = Measure.startSpan({name: 'load-data'});
   span.setCheckpoint('on-start');
   span.setAttribute('is_premium', false);
   span.setStatus(2); // SpanStatus.Error
@@ -138,7 +141,7 @@ const createSpan = () => {
 };
 
 const setUserId = () => {
-  Measure.setUserId('user-131351');
+  Measure.setUserId({userId: 'user-131351'});
 };
 
 const clearUserId = () => {
@@ -155,18 +158,18 @@ const ReactNativeScreen = () => {
 
   useEffect(() => {
     return () => {
-      Measure.onShake(null);
+      Measure.onShake({handler: null});
     };
   }, []);
 
   const toggleShake = enabled => {
     setShakeEnabled(enabled);
     if (enabled) {
-      Measure.onShake(() => {
-        Measure.launchBugReport(true, {source: 'shake'}, {screen: 'RNDemos'});
-      });
+      Measure.onShake({handler: () => {
+        Measure.launchBugReport({takeScreenshot: true, bugReportConfig: {source: 'shake'}, attributes: {screen: 'RNDemos'}});
+      }});
     } else {
-      Measure.onShake(null);
+      Measure.onShake({handler: null});
     }
   };
 
@@ -464,12 +467,12 @@ const styles = StyleSheet.create({
   },
 });
 
-const measureReady = Measure.init(
-  new MeasureConfig({
+const measureReady = Measure.init({
+  config: new MeasureConfig({
     enableLogging: true,
     enableFullCollectionMode: true,
     enableDiagnosticMode: true,
   }),
-);
+});
 
 AppRegistry.registerComponent('FrankensteinRN', () => ReactNativeScreen);
