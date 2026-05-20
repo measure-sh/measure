@@ -3745,8 +3745,7 @@ Fetch an app's sessions by applying various optional filters.
   - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
   - `versions` (_optional_) - List of comma separated app version identifier strings to return only matching sessions.
   - `version_codes` (_optional_) - List of comma separated app version codes to return only matching sessions.
-  - `crash` (_optional_) - Boolean true/false to control if only sessions containing at least 1 crash should be fetched.
-  - `anr` (_optional_) - Boolean true/false to control if only sessions containing at least 1 ANR should be fetched.
+  - `type` (_optional_) - Comma-separated list of event source types to filter sessions by. Accepted values: any combination of `error`, `anr`. `error` returns sessions with at least one exception event; `anr` returns sessions with at least one ANR. When omitted, all sessions are returned.
   - `bug_report` (_optional_) - Boolean true/false to control if only sessions containing at least 1 bug report should be fetched.
   - `background` (_optional_) - Boolean true/false to control if only background sessions should be fetched.
   - `foreground` (_optional_) - Boolean true/false to control if only foreground sessions should be fetched.
@@ -4023,8 +4022,7 @@ Fetch an app's sessions instances plot by applying various optional filters.
   - `plot_time_group` (_optional_) - Time bucket used for plot aggregation. Accepted values: `minutes`, `hours`, `days`, `months`. Defaults to `days`.
   - `versions` (_optional_) - List of comma separated app version identifier strings to return only matching sessions.
   - `version_codes` (_optional_) - List of comma separated app version codes to return only matching sessions.
-  - `crash` (_optional_) - Boolean true/false to control if only sessions containing at least 1 crash should be fetched.
-  - `anr` (_optional_) - Boolean true/false to control if only sessions containing at least 1 ANR should be fetched.
+  - `type` (_optional_) - Comma-separated list of event source types to filter sessions by. Accepted values: any combination of `error`, `anr`. `error` returns sessions with at least one exception event; `anr` returns sessions with at least one ANR. When omitted, all sessions are returned.
   - `bug_report` (_optional_) - Boolean true/false to control if only sessions containing at least 1 bug report should be fetched.
   - `background` (_optional_) - Boolean true/false to control if only background sessions should be fetched.
   - `foreground` (_optional_) - Boolean true/false to control if only foreground sessions should be fetched.

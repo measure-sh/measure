@@ -120,10 +120,14 @@ type AppFilter struct {
 
 	// Crash indicates the filtering should
 	// only consider fatal exception events.
+	//
+	// Deprecated: Use ErrorType instead.
 	Crash bool `form:"crash"`
 
 	// ANR indicates the filtering should only
 	// consider ANR events.
+	//
+	// Deprecated: Use ErrorType instead.
 	ANR bool `form:"anr"`
 
 	// Severity is the raw comma-separated severity filter value.

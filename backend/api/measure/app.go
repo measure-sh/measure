@@ -2698,11 +2698,11 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 		orExprs := []string{}
 		andExprs := []string{}
 
-		if af.Crash {
+		if slices.Contains(af.ErrorTypes, event.ErrorTypeError) {
 			orExprs = append(orExprs, "crash_count >= 1")
 		}
 
-		if af.ANR {
+		if slices.Contains(af.ErrorTypes, event.ErrorTypeANR) {
 			orExprs = append(orExprs, "anr_count >= 1")
 		}
 
@@ -2948,11 +2948,11 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 		orExprs := []string{}
 		andExprs := []string{}
 
-		if af.Crash {
+		if slices.Contains(af.ErrorTypes, event.ErrorTypeError) {
 			orExprs = append(orExprs, "crash_count >= 1")
 		}
 
-		if af.ANR {
+		if slices.Contains(af.ErrorTypes, event.ErrorTypeANR) {
 			orExprs = append(orExprs, "anr_count >= 1")
 		}
 
