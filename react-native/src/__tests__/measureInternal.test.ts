@@ -172,7 +172,7 @@ describe('MeasureInternal.init with autoStart', () => {
     const initializer = makeMockInitializer();
     const sdk = new MeasureInternal(initializer);
 
-    await sdk.init({ autoStart: true } as any);
+    await sdk.init({ config: { autoStart: true } as any });
 
     expect(initializer.customEventCollector.register).toHaveBeenCalledTimes(1);
     expect(measureBridge.enableNativeModule).toHaveBeenCalledTimes(1);
@@ -183,7 +183,7 @@ describe('MeasureInternal.init with autoStart', () => {
     const initializer = makeMockInitializer();
     const sdk = new MeasureInternal(initializer);
 
-    await sdk.init({ autoStart: false } as any);
+    await sdk.init({ config: { autoStart: false } as any });
 
     expect(initializer.customEventCollector.register).not.toHaveBeenCalled();
     expect(measureBridge.enableNativeModule).not.toHaveBeenCalled();

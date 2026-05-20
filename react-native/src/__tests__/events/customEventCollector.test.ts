@@ -39,13 +39,13 @@ describe('CustomEventCollector', () => {
 
   it('does nothing when disabled', async () => {
     collector.unregister();
-    await collector.trackCustomEvent('test');
+    await collector.trackCustomEvent({ name: 'test' });
     expect(signalProcessor.trackEvent).not.toHaveBeenCalled();
     expect(logger.log).not.toHaveBeenCalled();
   });
 
   it('logs error if name is empty', async () => {
-    await collector.trackCustomEvent('');
+    await collector.trackCustomEvent({ name: '' });
     expect(logger.log).toHaveBeenCalledWith(
       'error',
       'Invalid event: name is empty'
@@ -54,7 +54,7 @@ describe('CustomEventCollector', () => {
   });
 
   it('logs error if name is too long', async () => {
-    await collector.trackCustomEvent('toolongnamehere');
+    await collector.trackCustomEvent({ name: 'toolongnamehere' });
     expect(logger.log).toHaveBeenCalledWith(
       'error',
       'Invalid event(toolongnamehere): exceeds maximum length of 10 characters'
@@ -63,7 +63,7 @@ describe('CustomEventCollector', () => {
   });
 
   it('logs error if name fails regex', async () => {
-    await collector.trackCustomEvent('bad-name!');
+    await collector.trackCustomEvent({ name: 'bad-name!' });
     expect(logger.log).toHaveBeenCalledWith(
       'error',
       'Invalid event(bad-name!) format'
@@ -110,7 +110,7 @@ describe('CustomEventCollector', () => {
   it('logs error if signalProcessor.trackEvent throws', async () => {
     signalProcessor.trackEvent.mockRejectedValueOnce(new Error('boom'));
 
-    await collector.trackCustomEvent('event2');
+    await collector.trackCustomEvent({ name: 'event2' });
 
     expect(logger.log).toHaveBeenCalledWith(
       'error',
