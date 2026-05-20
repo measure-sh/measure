@@ -73,7 +73,7 @@ func CrashAlertURL(siteOrigin, teamId, appId, fingerprint, crashType, fileName s
 	if fileName != "" {
 		suffix = "@" + fileName
 	}
-	return fmt.Sprintf("%s/%s/crashes/%s/%s/%s%s", siteOrigin, teamId, appId, fingerprint, crashType, suffix)
+	return fmt.Sprintf("%s/%s/errors/%s/%s/%s%s", siteOrigin, teamId, appId, fingerprint, crashType, suffix)
 }
 
 // AnrAlertURL builds the dashboard URL for an ANR spike alert.
@@ -83,7 +83,7 @@ func AnrAlertURL(siteOrigin, teamId, appId, fingerprint, anrType, fileName strin
 	if fileName != "" {
 		suffix = "@" + fileName
 	}
-	return fmt.Sprintf("%s/%s/anrs/%s/%s/%s%s", siteOrigin, teamId, appId, fingerprint, anrType, suffix)
+	return fmt.Sprintf("%s/%s/errors/%s/%s/%s%s", siteOrigin, teamId, appId, fingerprint, anrType, suffix)
 }
 
 // CrashSpikeAlertEmail builds the crash spike alert email.
