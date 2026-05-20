@@ -715,7 +715,10 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
   });
 
   it("renders both ANRs and Errors pills when both error types are selected (the default)", async () => {
-    await renderFilters({ filterSource: FilterSource.Errors });
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
+    });
     await waitFor(() => {
       expect(screen.getByText("ANRs")).toBeInTheDocument();
     });
@@ -723,7 +726,10 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
   });
 
   it("hides the ANRs pill when 'anr' is not in selectedErrorTypes", async () => {
-    await renderFilters({ filterSource: FilterSource.Errors });
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
+    });
     await waitFor(() => {
       expect(screen.getByText("ANRs")).toBeInTheDocument();
     });
@@ -737,7 +743,10 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
   });
 
   it("hides the Errors pill when 'error' is not in selectedErrorTypes", async () => {
-    await renderFilters({ filterSource: FilterSource.Errors });
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
+    });
     await waitFor(() => {
       expect(screen.getByText("Errors")).toBeInTheDocument();
     });
@@ -760,7 +769,10 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
   });
 
   it("renders the Errors pill with only 'Errors' when no severities or custom flag are set", async () => {
-    await renderFilters({ filterSource: FilterSource.Errors });
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
+    });
     await waitFor(() => {
       expect(screen.getByText("Errors")).toBeInTheDocument();
     });
@@ -768,7 +780,10 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
   });
 
   it("renders 'Errors - Custom' when only customErrorsOnly is set", async () => {
-    await renderFilters({ filterSource: FilterSource.Errors });
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
+    });
     await act(async () => {
       storeInstance.getState().setCustomErrorsOnly(true);
     });
@@ -778,7 +793,10 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
   });
 
   it("renders 'Errors - Custom, Fatal, Handled' when both custom and multiple severities are set", async () => {
-    await renderFilters({ filterSource: FilterSource.Errors });
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
+    });
     await act(async () => {
       storeInstance.getState().setCustomErrorsOnly(true);
       storeInstance.getState().setSelectedSeverities(["fatal", "handled"]);
@@ -791,7 +809,10 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
   });
 
   it("renders just the severity names in the Errors pill when custom is off", async () => {
-    await renderFilters({ filterSource: FilterSource.Errors });
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
+    });
     await act(async () => {
       storeInstance.getState().setSelectedSeverities(["fatal"]);
     });
@@ -801,7 +822,10 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
   });
 
   it("removes 'anr' from selectedErrorTypes when the X on ANRs pill is clicked", async () => {
-    await renderFilters({ filterSource: FilterSource.Errors });
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
+    });
     fireEvent.click(await screen.findByLabelText("Clear ANRs"));
     await waitFor(() => {
       expect(storeInstance.getState().selectedErrorTypes).not.toContain("anr");
@@ -809,7 +833,10 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
   });
 
   it("clears errors + severities + customErrorsOnly when X on Errors pill is clicked", async () => {
-    await renderFilters({ filterSource: FilterSource.Errors });
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
+    });
     await act(async () => {
       storeInstance.getState().setSelectedSeverities(["fatal"]);
       storeInstance.getState().setCustomErrorsOnly(true);
@@ -825,6 +852,15 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
     });
     expect(storeInstance.getState().selectedSeverities).toEqual([]);
     expect(storeInstance.getState().customErrorsOnly).toBe(false);
+  });
+
+  it("hides both pills on Errors filter source when showErrorType is false (e.g. error detail page)", async () => {
+    await renderFilters({ filterSource: FilterSource.Errors });
+    await waitFor(() => {
+      expect(screen.getByTestId("dropdown-App Name")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("ANRs")).not.toBeInTheDocument();
+    expect(screen.queryByText("Errors")).not.toBeInTheDocument();
   });
 });
 
