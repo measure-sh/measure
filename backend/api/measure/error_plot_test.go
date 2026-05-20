@@ -61,12 +61,15 @@ func TestGetErrorPlotInstancesRoutesBySeverity(t *testing.T) {
 		modify    func(af *filter.AppFilter)
 		wantTotal uint64
 	}{
-		{"crash flag returns only the unhandled exception", func(af *filter.AppFilter) { af.Crash = true }, 1},
-		{"severity=fatal returns only the unhandled exception", func(af *filter.AppFilter) { af.Severity = event.SeverityFatal }, 1},
-		{"severity=unhandled returns only the unhandled exception", func(af *filter.AppFilter) { af.Severity = event.SeverityUnhandled }, 1},
-		{"severity=handled returns only the handled exception", func(af *filter.AppFilter) { af.Severity = event.SeverityHandled }, 1},
-		{"error flag returns both exception events", func(af *filter.AppFilter) { af.Error = true }, 2},
-		{"anr flag returns only the ANR", func(af *filter.AppFilter) { af.ANR = true }, 1},
+		{"type=error with severity=fatal returns only the unhandled exception", func(af *filter.AppFilter) {
+			af.ErrorTypes = []event.ErrorType{event.ErrorTypeError}
+			af.Severities = []event.Severity{event.SeverityFatal}
+		}, 1},
+		{"severity=fatal returns only the unhandled exception", func(af *filter.AppFilter) { af.Severities = []event.Severity{event.SeverityFatal} }, 1},
+		{"severity=unhandled returns only the unhandled exception", func(af *filter.AppFilter) { af.Severities = []event.Severity{event.SeverityUnhandled} }, 1},
+		{"severity=handled returns only the handled exception", func(af *filter.AppFilter) { af.Severities = []event.Severity{event.SeverityHandled} }, 1},
+		{"type=error returns both exception events", func(af *filter.AppFilter) { af.ErrorTypes = []event.ErrorType{event.ErrorTypeError} }, 2},
+		{"type=anr returns only the ANR", func(af *filter.AppFilter) { af.ErrorTypes = []event.ErrorType{event.ErrorTypeANR} }, 1},
 		{"no flags defaults to all sources", func(af *filter.AppFilter) {}, 3},
 	}
 
@@ -131,16 +134,22 @@ func TestGetErrorGroupPlotInstancesRoutesBySeverity(t *testing.T) {
 		modify      func(af *filter.AppFilter)
 		wantTotal   uint64
 	}{
-		{"crash flag, unhandled fingerprint", fpErrUnhandled, func(af *filter.AppFilter) { af.Crash = true }, 1},
-		{"crash flag, handled fingerprint returns nothing", fpErrHandled, func(af *filter.AppFilter) { af.Crash = true }, 0},
-		{"severity=fatal, unhandled fingerprint", fpErrUnhandled, func(af *filter.AppFilter) { af.Severity = event.SeverityFatal }, 1},
-		{"severity=unhandled, unhandled fingerprint", fpErrUnhandled, func(af *filter.AppFilter) { af.Severity = event.SeverityUnhandled }, 1},
-		{"severity=handled, handled fingerprint", fpErrHandled, func(af *filter.AppFilter) { af.Severity = event.SeverityHandled }, 1},
-		{"severity=handled, unhandled fingerprint returns nothing", fpErrUnhandled, func(af *filter.AppFilter) { af.Severity = event.SeverityHandled }, 0},
-		{"error flag, handled fingerprint", fpErrHandled, func(af *filter.AppFilter) { af.Error = true }, 1},
-		{"error flag, unhandled fingerprint", fpErrUnhandled, func(af *filter.AppFilter) { af.Error = true }, 1},
-		{"anr flag, ANR fingerprint", fpErrANR, func(af *filter.AppFilter) { af.ANR = true }, 1},
-		{"anr flag, exception fingerprint returns nothing", fpErrUnhandled, func(af *filter.AppFilter) { af.ANR = true }, 0},
+		{"type=error+severity=fatal, unhandled fingerprint", fpErrUnhandled, func(af *filter.AppFilter) {
+			af.ErrorTypes = []event.ErrorType{event.ErrorTypeError}
+			af.Severities = []event.Severity{event.SeverityFatal}
+		}, 1},
+		{"type=error+severity=fatal, handled fingerprint returns nothing", fpErrHandled, func(af *filter.AppFilter) {
+			af.ErrorTypes = []event.ErrorType{event.ErrorTypeError}
+			af.Severities = []event.Severity{event.SeverityFatal}
+		}, 0},
+		{"severity=fatal, unhandled fingerprint", fpErrUnhandled, func(af *filter.AppFilter) { af.Severities = []event.Severity{event.SeverityFatal} }, 1},
+		{"severity=unhandled, unhandled fingerprint", fpErrUnhandled, func(af *filter.AppFilter) { af.Severities = []event.Severity{event.SeverityUnhandled} }, 1},
+		{"severity=handled, handled fingerprint", fpErrHandled, func(af *filter.AppFilter) { af.Severities = []event.Severity{event.SeverityHandled} }, 1},
+		{"severity=handled, unhandled fingerprint returns nothing", fpErrUnhandled, func(af *filter.AppFilter) { af.Severities = []event.Severity{event.SeverityHandled} }, 0},
+		{"type=error, handled fingerprint", fpErrHandled, func(af *filter.AppFilter) { af.ErrorTypes = []event.ErrorType{event.ErrorTypeError} }, 1},
+		{"type=error, unhandled fingerprint", fpErrUnhandled, func(af *filter.AppFilter) { af.ErrorTypes = []event.ErrorType{event.ErrorTypeError} }, 1},
+		{"type=anr, ANR fingerprint", fpErrANR, func(af *filter.AppFilter) { af.ErrorTypes = []event.ErrorType{event.ErrorTypeANR} }, 1},
+		{"type=anr, exception fingerprint returns nothing", fpErrUnhandled, func(af *filter.AppFilter) { af.ErrorTypes = []event.ErrorType{event.ErrorTypeANR} }, 0},
 		{"no flags default, ANR fingerprint", fpErrANR, func(af *filter.AppFilter) {}, 1},
 		{"no flags default, unhandled exception fingerprint", fpErrUnhandled, func(af *filter.AppFilter) {}, 1},
 		{"no flags default, handled exception fingerprint", fpErrHandled, func(af *filter.AppFilter) {}, 1},

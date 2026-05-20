@@ -125,17 +125,19 @@ type AppFilter struct {
 	// consider ANR events.
 	ANR bool `form:"anr"`
 
-	// Error indicates the filtering should only
-	// consider error events.
-	Error bool `form:"error"`
+	// Severity is the raw comma-separated severity filter value.
+	// Valid values: any combination of "fatal", "unhandled", "handled".
+	Severity string `form:"severity"`
 
-	// Severity indicates the type of the error
-	// whether:
-	//
-	// - fatal
-	// - unhandled
-	// - handled
-	Severity event.Severity `form:"severity"`
+	// Severities holds the parsed severity values, populated in Expand.
+	Severities []event.Severity
+
+	// ErrorType is the raw comma-separated error type filter value.
+	// Valid values: any combination of "error", "anr".
+	ErrorType string `form:"type"`
+
+	// ErrorTypes holds the parsed error type values, populated in Expand.
+	ErrorTypes []event.ErrorType
 
 	// CustomError indicates if the filtering should
 	// consider only custom errors.
@@ -377,6 +379,18 @@ func (af *AppFilter) Expand(ctx context.Context) (err error) {
 		af.NetworkGenerations = text.SplitTrimEmpty(af.NetworkGenerations[0], ",")
 	}
 
+	if af.Severity != "" {
+		for _, s := range text.SplitTrimEmpty(af.Severity, ",") {
+			af.Severities = append(af.Severities, event.Severity(s))
+		}
+	}
+
+	if af.ErrorType != "" {
+		for _, t := range text.SplitTrimEmpty(af.ErrorType, ",") {
+			af.ErrorTypes = append(af.ErrorTypes, event.ErrorType(t))
+		}
+	}
+
 	if len(af.UDExpressionRaw) > 0 {
 		af.UDExpressionRaw = strings.TrimSpace(af.UDExpressionRaw)
 	}
@@ -451,9 +465,15 @@ func (af *AppFilter) Validate() error {
 		}
 	}
 
-	if af.Severity != "" {
-		if !af.Severity.IsValid() {
-			return fmt.Errorf("`severity` must be one of: %s, %s, %s", event.SeverityFatal, event.SeverityUnhandled, event.SeverityHandled)
+	for _, s := range af.Severities {
+		if !s.IsValid() {
+			return fmt.Errorf("`severity` must be any combination of: %s, %s, %s", event.SeverityFatal, event.SeverityUnhandled, event.SeverityHandled)
+		}
+	}
+
+	for _, t := range af.ErrorTypes {
+		if !t.IsValid() {
+			return fmt.Errorf("`type` must be any combination of: %s, %s", event.ErrorTypeError, event.ErrorTypeANR)
 		}
 	}
 

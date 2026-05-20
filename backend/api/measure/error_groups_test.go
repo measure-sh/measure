@@ -59,11 +59,7 @@ func TestGetErrorGroupsWithFilterTypeAndSeverity(t *testing.T) {
 	seedAllErrorSources(f, t, ts)
 
 	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "", "")
-	// GetErrorGroupsWithFilter returns empty when no severity flag is set;
-	// enable all three branches explicitly.
-	af.Crash = true
-	af.Error = true
-	af.ANR = true
+	af.ErrorTypes = []event.ErrorType{event.ErrorTypeError, event.ErrorTypeANR}
 
 	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, af)
 	if err != nil {
@@ -109,46 +105,116 @@ func TestGetErrorGroupsWithFilterSeverityFiltering(t *testing.T) {
 		wantType map[string]string
 	}{
 		{
-			name:     "crash flag returns fatal only",
-			modify:   func(af *filter.AppFilter) { af.Crash = true },
+			name: "type=error with severity=fatal returns fatal only",
+			modify: func(af *filter.AppFilter) {
+				af.ErrorTypes = []event.ErrorType{event.ErrorTypeError}
+				af.Severities = []event.Severity{event.SeverityFatal}
+			},
 			wantIDs:  map[string]event.Severity{fpGroupFatal: event.SeverityFatal},
 			wantType: map[string]string{fpGroupFatal: "exception"},
 		},
 		{
 			name:     "severity=fatal returns fatal only",
-			modify:   func(af *filter.AppFilter) { af.Severity = event.SeverityFatal },
+			modify:   func(af *filter.AppFilter) { af.Severities = []event.Severity{event.SeverityFatal} },
 			wantIDs:  map[string]event.Severity{fpGroupFatal: event.SeverityFatal},
 			wantType: map[string]string{fpGroupFatal: "exception"},
 		},
 		{
 			name:     "severity=handled returns handled nonfatal only",
-			modify:   func(af *filter.AppFilter) { af.Severity = event.SeverityHandled },
+			modify:   func(af *filter.AppFilter) { af.Severities = []event.Severity{event.SeverityHandled} },
 			wantIDs:  map[string]event.Severity{fpGroupHandled: event.SeverityHandled},
 			wantType: map[string]string{fpGroupHandled: "exception"},
 		},
 		{
 			name:     "severity=unhandled returns unhandled nonfatal only",
-			modify:   func(af *filter.AppFilter) { af.Severity = event.SeverityUnhandled },
+			modify:   func(af *filter.AppFilter) { af.Severities = []event.Severity{event.SeverityUnhandled} },
 			wantIDs:  map[string]event.Severity{fpGroupUnhandled: event.SeverityUnhandled},
 			wantType: map[string]string{fpGroupUnhandled: "exception"},
 		},
 		{
-			name:   "anr flag returns ANR only",
-			modify: func(af *filter.AppFilter) { af.ANR = true },
+			name:   "type=anr returns ANR only",
+			modify: func(af *filter.AppFilter) { af.ErrorTypes = []event.ErrorType{event.ErrorTypeANR} },
 			wantIDs: map[string]event.Severity{
 				fpGroupANR: event.SeverityFatal,
 			},
 			wantType: map[string]string{fpGroupANR: "anr"},
 		},
 		{
-			name:   "error flag returns both nonfatal severities",
-			modify: func(af *filter.AppFilter) { af.Error = true },
+			name: "type=error with nonfatal severities returns both nonfatal",
+			modify: func(af *filter.AppFilter) {
+				af.ErrorTypes = []event.ErrorType{event.ErrorTypeError}
+				af.Severities = []event.Severity{event.SeverityHandled, event.SeverityUnhandled}
+			},
 			wantIDs: map[string]event.Severity{
 				fpGroupHandled:   event.SeverityHandled,
 				fpGroupUnhandled: event.SeverityUnhandled,
 			},
 			wantType: map[string]string{
 				fpGroupHandled:   "exception",
+				fpGroupUnhandled: "exception",
+			},
+		},
+		{
+			// ANR is unaffected by severity — must appear alongside fatal exception.
+			name: "type=error,anr with severity=fatal returns fatal exception and ANR",
+			modify: func(af *filter.AppFilter) {
+				af.ErrorTypes = []event.ErrorType{event.ErrorTypeError, event.ErrorTypeANR}
+				af.Severities = []event.Severity{event.SeverityFatal}
+			},
+			wantIDs: map[string]event.Severity{
+				fpGroupFatal: event.SeverityFatal,
+				fpGroupANR:   event.SeverityFatal,
+			},
+			wantType: map[string]string{
+				fpGroupFatal: "exception",
+				fpGroupANR:   "anr",
+			},
+		},
+		{
+			// ANR must appear alongside handled exception when severity=handled.
+			name: "type=error,anr with severity=handled returns handled exception and ANR",
+			modify: func(af *filter.AppFilter) {
+				af.ErrorTypes = []event.ErrorType{event.ErrorTypeError, event.ErrorTypeANR}
+				af.Severities = []event.Severity{event.SeverityHandled}
+			},
+			wantIDs: map[string]event.Severity{
+				fpGroupHandled: event.SeverityHandled,
+				fpGroupANR:     event.SeverityFatal,
+			},
+			wantType: map[string]string{
+				fpGroupHandled: "exception",
+				fpGroupANR:     "anr",
+			},
+		},
+		{
+			name: "type=error,anr with severity=fatal,handled returns fatal, handled exception and ANR",
+			modify: func(af *filter.AppFilter) {
+				af.ErrorTypes = []event.ErrorType{event.ErrorTypeError, event.ErrorTypeANR}
+				af.Severities = []event.Severity{event.SeverityFatal, event.SeverityHandled}
+			},
+			wantIDs: map[string]event.Severity{
+				fpGroupFatal:   event.SeverityFatal,
+				fpGroupHandled: event.SeverityHandled,
+				fpGroupANR:     event.SeverityFatal,
+			},
+			wantType: map[string]string{
+				fpGroupFatal:   "exception",
+				fpGroupHandled: "exception",
+				fpGroupANR:     "anr",
+			},
+		},
+		{
+			name: "type=error with severity=fatal,unhandled returns fatal and unhandled exception",
+			modify: func(af *filter.AppFilter) {
+				af.ErrorTypes = []event.ErrorType{event.ErrorTypeError}
+				af.Severities = []event.Severity{event.SeverityFatal, event.SeverityUnhandled}
+			},
+			wantIDs: map[string]event.Severity{
+				fpGroupFatal:     event.SeverityFatal,
+				fpGroupUnhandled: event.SeverityUnhandled,
+			},
+			wantType: map[string]string{
+				fpGroupFatal:     "exception",
 				fpGroupUnhandled: "exception",
 			},
 		},
@@ -230,9 +296,7 @@ func TestGetErrorGroupsWithFilterCustomErrorFilter(t *testing.T) {
 	seedCustomMix(f, t, ts)
 
 	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "", "")
-	af.Crash = true
-	af.Error = true
-	af.ANR = true
+	af.ErrorTypes = []event.ErrorType{event.ErrorTypeError, event.ErrorTypeANR}
 	af.CustomError = true
 
 	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, af)
@@ -266,9 +330,7 @@ func TestGetErrorGroupsWithFilterIsCustomPopulated(t *testing.T) {
 	seedCustomMix(f, t, ts)
 
 	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "", "")
-	af.Crash = true
-	af.Error = true
-	af.ANR = true
+	af.ErrorTypes = []event.ErrorType{event.ErrorTypeError, event.ErrorTypeANR}
 
 	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, af)
 	if err != nil {
