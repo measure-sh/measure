@@ -1998,7 +1998,7 @@ describe("fetchErrorsDetailsFromServer", () => {
     expect(r.data).toEqual({ results: [{ id: "e1" }] });
   });
 
-  it("appends type/severity/custom when set", async () => {
+  it("does NOT append type/severity/custom (single-group endpoint, filters don't apply)", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
     await fetchErrorsDetailsFromServer(
       "group-1",
@@ -2013,9 +2013,9 @@ describe("fetchErrorsDetailsFromServer", () => {
       ),
     );
     const params = lastFetchParams();
-    expect(params.get("type")).toBe("anr");
-    expect(params.get("severity")).toBe("handled");
-    expect(params.get("custom")).toBe("true");
+    expect(params.get("type")).toBeNull();
+    expect(params.get("severity")).toBeNull();
+    expect(params.get("custom")).toBeNull();
     expect(params.get("offset")).toBe("10");
   });
 
@@ -2126,7 +2126,7 @@ describe("fetchErrorsDetailsPlotFromServer", () => {
     );
   });
 
-  it("appends type/severity/custom when set on the filters", async () => {
+  it("does NOT append type/severity/custom (single-group endpoint, filters don't apply)", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
     await fetchErrorsDetailsPlotFromServer(
       "group-1",
@@ -2140,9 +2140,9 @@ describe("fetchErrorsDetailsPlotFromServer", () => {
       ),
     );
     const url = lastFetchUrl();
-    expect(url).toContain("type=error%2Canr");
-    expect(url).toContain("severity=fatal");
-    expect(url).toContain("custom=true");
+    expect(url).not.toContain("type=");
+    expect(url).not.toContain("severity=");
+    expect(url).not.toContain("custom=");
   });
 
   it("returns Success on 200", async () => {
@@ -2195,7 +2195,7 @@ describe("fetchErrorsDistributionPlotFromServer", () => {
     );
   });
 
-  it("appends type/severity/custom when set", async () => {
+  it("does NOT append type/severity/custom (single-group endpoint, filters don't apply)", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ os_version: { "android 13": 5 } }),
     );
@@ -2211,9 +2211,9 @@ describe("fetchErrorsDistributionPlotFromServer", () => {
       ),
     );
     const params = lastFetchParams();
-    expect(params.get("type")).toBe("error");
-    expect(params.get("severity")).toBe("fatal,handled");
-    expect(params.get("custom")).toBe("true");
+    expect(params.get("type")).toBeNull();
+    expect(params.get("severity")).toBeNull();
+    expect(params.get("custom")).toBeNull();
   });
 
   it("returns Success on non-empty body", async () => {

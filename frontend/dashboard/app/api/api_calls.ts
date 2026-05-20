@@ -2036,7 +2036,6 @@ export const fetchErrorsDetailsFromServer = async (
   var url = `/api/apps/${filters.app!.id}/errorGroups/${errorGroupId}/errors?`;
 
   url = await applyGenericFiltersToUrl(url, filters, limit, paginationOffset);
-  url = appendErrorFiltersToUrl(url, filters);
 
   try {
     const res = await apiClient.fetch(url);
@@ -2082,7 +2081,6 @@ export const fetchErrorsDetailsPlotFromServer = async (
 
   url = await applyGenericFiltersToUrl(url, filters, null, null);
   url = appendPlotTimeGroupToUrl(url, filters);
-  url = appendErrorFiltersToUrl(url, filters);
 
   try {
     const res = await apiClient.fetch(url);
@@ -2110,7 +2108,6 @@ export const fetchErrorsDistributionPlotFromServer = async (
   var url = `/api/apps/${filters.app!.id}/errorGroups/${errorGroupId}/plots/distribution?`;
 
   url = await applyGenericFiltersToUrl(url, filters, null, null);
-  url = appendErrorFiltersToUrl(url, filters);
 
   try {
     const res = await apiClient.fetch(url);

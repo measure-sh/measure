@@ -286,9 +286,6 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
           showHttpMethods={false}
           showUdAttrs={true}
           showFreeText={false}
-          showErrorType={true}
-          showSeverity={true}
-          showCustomErrors={true}
         />
       )}
 
