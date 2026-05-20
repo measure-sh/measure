@@ -7,9 +7,11 @@ import {
   useErrorsOverviewQuery,
 } from "@/app/query/hooks";
 import { useFiltersStore } from "@/app/stores/provider";
+import { cn } from "@/app/utils/shadcn_utils";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
+import { Badge } from "./badge";
 import ErrorsOverviewPlot from "./errors_overview_plot";
 import Filters, { AppVersionsInitialSelectionType } from "./filters";
 import LoadingBar from "./loading_bar";
@@ -22,6 +24,24 @@ import {
   TableHeader,
   TableRow,
 } from "./table";
+
+const severityBadgeClasses: Record<string, string> = {
+  fatal:
+    "border-red-300 text-red-700 bg-red-50 dark:border-red-900 dark:text-red-400 dark:bg-red-950/40",
+  unhandled:
+    "border-amber-300 text-amber-700 bg-amber-50 dark:border-amber-900 dark:text-amber-400 dark:bg-amber-950/40",
+  handled:
+    "border-emerald-300 text-emerald-700 bg-emerald-50 dark:border-emerald-900 dark:text-emerald-400 dark:bg-emerald-950/40",
+};
+
+const typeBadgeClasses: Record<string, string> = {
+  exception:
+    "border-sky-300 text-sky-700 bg-sky-50 dark:border-sky-900 dark:text-sky-400 dark:bg-sky-950/40",
+  anr: "border-violet-300 text-violet-700 bg-violet-50 dark:border-violet-900 dark:text-violet-400 dark:bg-violet-950/40",
+};
+
+const capitalize = (s: string) =>
+  s ? s.charAt(0).toUpperCase() + s.slice(1) : "";
 
 const PAGINATION_LIMIT = 5;
 
@@ -153,6 +173,8 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                   {
                     id,
                     type,
+                    error_type,
+                    severity,
                     message,
                     method_name,
                     file_name,
@@ -214,6 +236,30 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                           <p className="text-xs truncate text-muted-foreground select-none">
                             {`${type}${message ? `:${message}` : ""}`}
                           </p>
+                          <div className="flex flex-wrap gap-1.5 pt-2">
+                            {error_type && (
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-xs",
+                                  typeBadgeClasses[error_type] || "",
+                                )}
+                              >
+                                {error_type === "anr" ? "ANR" : "Error"}
+                              </Badge>
+                            )}
+                            {severity && (
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-xs",
+                                  severityBadgeClasses[severity] || "",
+                                )}
+                              >
+                                {capitalize(severity)}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="w-[20%] text-center truncate select-none relative p-0">
