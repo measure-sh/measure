@@ -105,7 +105,7 @@ const allHttpMethods = [
   HttpMethod.DELETE,
 ];
 const allSessionTypes = [
-  SessionType.Crashes,
+  SessionType.Errors,
   SessionType.ANRs,
   SessionType.BugReports,
   SessionType.Foreground,
@@ -113,7 +113,7 @@ const allSessionTypes = [
   SessionType.UserInteraction,
 ];
 export const defaultSessionTypes = [
-  SessionType.Crashes,
+  SessionType.Errors,
   SessionType.ANRs,
   SessionType.BugReports,
   SessionType.Foreground,

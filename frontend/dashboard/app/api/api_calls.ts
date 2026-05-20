@@ -506,7 +506,7 @@ export enum NetworkTimelinePlotApiStatus {
 }
 
 export enum SessionType {
-  Crashes = "Crash Sessions",
+  Errors = "Error Sessions",
   ANRs = "ANR Sessions",
   BugReports = "Bug Report Sessions",
   UserInteraction = "User Interaction Sessions",
@@ -1406,31 +1406,11 @@ async function applyGenericFiltersToUrl(
     searchParams.append("filter_short_code", filterShortCode);
   }
 
-  // Append session types if needed
-  if (!filters.sessionTypes.all && filters.sessionTypes.selected.length > 0) {
-    filters.sessionTypes.selected.forEach((v) => {
-      switch (v) {
-        case SessionType.Crashes:
-          searchParams.append("crash", "1");
-          break;
-        case SessionType.ANRs:
-          searchParams.append("anr", "1");
-          break;
-        case SessionType.BugReports:
-          searchParams.append("bug_report", "1");
-          break;
-        case SessionType.UserInteraction:
-          searchParams.append("user_interaction", "1");
-          break;
-        case SessionType.Foreground:
-          searchParams.append("foreground", "1");
-          break;
-        case SessionType.Background:
-          searchParams.append("background", "1");
-          break;
-      }
-    });
-  }
+  // Session-type filtering is intentionally NOT applied here. Callers that
+  // want it must invoke appendSessionTypesToUrl() explicitly after this fn.
+  // This keeps the URL builders composable and prevents session-type params
+  // leaking onto endpoints that don't filter by session content (e.g.
+  // /errorGroups, which uses its own `type` param for selectedErrorTypes).
 
   // Append span name if needed
   if (filters.rootSpanName !== "") {
@@ -1496,13 +1476,14 @@ function appendPlotTimeGroupToUrl(url: string, filters: Filters): string {
 function appendSessionTypesToUrl(url: string, filters: Filters): string {
   const u = new URL(url, window.location.origin);
   if (!filters.sessionTypes.all && filters.sessionTypes.selected.length > 0) {
+    const types: string[] = [];
     filters.sessionTypes.selected.forEach((v) => {
       switch (v) {
-        case SessionType.Crashes:
-          u.searchParams.append("crash", "1");
+        case SessionType.Errors:
+          types.push("error");
           break;
         case SessionType.ANRs:
-          u.searchParams.append("anr", "1");
+          types.push("anr");
           break;
         case SessionType.BugReports:
           u.searchParams.append("bug_report", "1");
@@ -1518,6 +1499,9 @@ function appendSessionTypesToUrl(url: string, filters: Filters): string {
           break;
       }
     });
+    if (types.length > 0) {
+      u.searchParams.append("type", types.join(","));
+    }
   }
   return u.toString();
 }

@@ -720,14 +720,14 @@ describe("Session Timelines Overview (MSW integration)", () => {
     });
 
     // --- Session type filter (URL param, not shortFilters body) ---
-    it("session type change adds crash/anr params to data-fetch URL", async () => {
+    it("session type change adds type=error,anr param to data-fetch URL", async () => {
       await renderAndWaitForData();
       sessionRequests.length = 0;
       await act(async () => {
         filtersStore
           .getState()
           .setSelectedSessionTypes([
-            "Crash Sessions" as any,
+            "Error Sessions" as any,
             "ANR Sessions" as any,
           ]);
       });
@@ -735,8 +735,7 @@ describe("Session Timelines Overview (MSW integration)", () => {
         timeout: 5000,
       });
       const url = sessionRequests[sessionRequests.length - 1].url;
-      expect(url).toContain("crash=1");
-      expect(url).toContain("anr=1");
+      expect(url).toContain("type=error%2Canr");
     });
 
     // --- Free text filter (URL param) ---
@@ -1344,8 +1343,8 @@ describe("Session Timelines Overview — additional coverage", () => {
   // ================================================================
   describe("session type params — each type individually", () => {
     it.each([
-      ["Crash Sessions", "crash=1"],
-      ["ANR Sessions", "anr=1"],
+      ["Error Sessions", "type=error"],
+      ["ANR Sessions", "type=anr"],
       ["Bug Report Sessions", "bug_report=1"],
       ["User Interaction Sessions", "user_interaction=1"],
       ["Foreground Sessions", "foreground=1"],
@@ -1377,7 +1376,7 @@ describe("Session Timelines Overview — additional coverage", () => {
         filtersStore
           .getState()
           .setSelectedSessionTypes([
-            "Crash Sessions",
+            "Error Sessions",
             "ANR Sessions",
             "Bug Report Sessions",
             "User Interaction Sessions",
@@ -1391,8 +1390,8 @@ describe("Session Timelines Overview — additional coverage", () => {
       });
       const url = sessionRequests[sessionRequests.length - 1].url;
       // When all are selected, sessionTypes.all = true → no params added
-      expect(url).not.toContain("crash=1");
-      expect(url).not.toContain("anr=1");
+      expect(url).not.toContain("type=");
+      expect(url).not.toContain("bug_report=1");
     });
   });
 
@@ -1933,7 +1932,7 @@ describe("Session Timelines Overview — additional coverage", () => {
       await act(async () => {
         filtersStore
           .getState()
-          .setSelectedSessionTypes(["Crash Sessions" as any]);
+          .setSelectedSessionTypes(["Error Sessions" as any]);
         filtersStore.getState().setSelectedFreeText("NullPointerException");
       });
 
@@ -1941,7 +1940,7 @@ describe("Session Timelines Overview — additional coverage", () => {
         timeout: 5000,
       });
       const url = sessionRequests[sessionRequests.length - 1].url;
-      expect(url).toContain("crash=1");
+      expect(url).toContain("type=error");
       expect(url).toContain("free_text=NullPointerException");
     });
   });
