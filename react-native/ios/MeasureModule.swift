@@ -13,6 +13,24 @@ class MeasureModule: NSObject, RCTBridgeModule {
     }
     
     @objc
+    func start(_ resolve: @escaping RCTPromiseResolveBlock,
+               rejecter reject: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            Measure.start()
+            resolve("Started successfully")
+        }
+    }
+
+    @objc
+    func stop(_ resolve: @escaping RCTPromiseResolveBlock,
+              rejecter reject: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            Measure.stop()
+            resolve("Stopped successfully")
+        }
+    }
+
+    @objc
     func trackEvent(_ data: NSDictionary,
                     type: NSString,
                     timestamp: NSNumber,

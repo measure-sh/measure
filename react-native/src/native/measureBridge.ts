@@ -42,6 +42,20 @@ function getShakeEmitter() {
   return ShakeEmitter;
 }
 
+export function start(): Promise<void> {
+  if (!MeasureModule.start) {
+    return Promise.resolve();
+  }
+  return Promise.resolve(MeasureModule.start());
+}
+
+export function stop(): Promise<void> {
+  if (!MeasureModule.stop) {
+    return Promise.resolve();
+  }
+  return Promise.resolve(MeasureModule.stop());
+}
+
 export function trackEvent(
   data: Record<string, any>,
   type: string,

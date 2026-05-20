@@ -7,6 +7,8 @@ import {
   getSessionId as getNativeSessionId,
   enableNativeModule,
   disableNativeModule,
+  start as nativeStart,
+  stop as nativeStop,
 } from './native/measureBridge';
 import type { Span } from './tracing/span';
 import type { SpanBuilder } from './tracing/spanBuilder';
@@ -70,33 +72,36 @@ export class MeasureInternal {
       this.started = true;
       this.registerCollectors();
       enableNativeModule();
+      nativeStart();
     }
   }
 
-  start(): void {
+  start(): Promise<void> {
     if (this.started) {
       this.measureInitializer.logger.internalLog(
         'warning',
         'Measure.start() called but Measure is already started.'
       );
-      return;
+      return Promise.resolve();
     }
     this.started = true;
     this.registerCollectors();
     enableNativeModule();
+    return nativeStart();
   }
 
-  stop(): void {
+  stop(): Promise<void> {
     if (!this.started) {
       this.measureInitializer.logger.internalLog(
         'warning',
         'Measure.stop() called but Measure is not started.'
       );
-      return;
+      return Promise.resolve();
     }
     this.started = false;
     this.unregisterCollectors();
     disableNativeModule();
+    return nativeStop();
   }
 
   trackEvent = (

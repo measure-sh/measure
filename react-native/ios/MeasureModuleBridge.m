@@ -3,6 +3,10 @@
 
 @interface RCT_EXTERN_MODULE(MeasureModule, NSObject)
 
+RCT_EXTERN_METHOD(start:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(stop:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(trackEvent:(NSDictionary *)data
                   type:(NSString *)type
                   timestamp:(nonnull NSNumber *)timestamp

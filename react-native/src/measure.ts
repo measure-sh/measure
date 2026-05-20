@@ -71,10 +71,10 @@ export const Measure = {
   /**
    * Start the Measure SDK manually (if `autoStart` is false).
    */
-  start(): void {
+  start(): Promise<void> {
     if (!_measureInternal) {
       console.warn('Measure is not initialized. Call init() first.');
-      return;
+      return Promise.resolve();
     }
     return _measureInternal.start();
   },
@@ -82,10 +82,10 @@ export const Measure = {
   /**
    * Stop the Measure SDK.
    */
-  stop(): void {
+  stop(): Promise<void> {
     if (!_measureInternal) {
       console.warn('Measure is not initialized. Call init() first.');
-      return;
+      return Promise.resolve();
     }
     return _measureInternal.stop();
   },
