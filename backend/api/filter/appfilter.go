@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -917,12 +918,16 @@ func (af AppFilter) getAppVersions(ctx context.Context) (versions, versionCodes 
 
 	defer stmt.Close()
 
-	if af.Crash && !af.Span {
-		stmt.Where("exception=true")
-	}
-
-	if af.ANR && !af.Span {
-		stmt.Where("anr=true")
+	if !af.Span && len(af.ErrorTypes) > 0 {
+		includeError := slices.Contains(af.ErrorTypes, event.ErrorTypeError)
+		includeANR := slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
+		if includeError && includeANR {
+			stmt.Where("(exception=true OR anr=true)")
+		} else if includeError {
+			stmt.Where("exception=true")
+		} else if includeANR {
+			stmt.Where("anr=true")
+		}
 	}
 
 	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -981,12 +986,16 @@ func (af AppFilter) getOSVersions(ctx context.Context) (osNames, osVersions []st
 
 	defer stmt.Close()
 
-	if af.Crash && !af.Span {
-		stmt.Where("exception=true")
-	}
-
-	if af.ANR && !af.Span {
-		stmt.Where("anr=true")
+	if !af.Span && len(af.ErrorTypes) > 0 {
+		includeError := slices.Contains(af.ErrorTypes, event.ErrorTypeError)
+		includeANR := slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
+		if includeError && includeANR {
+			stmt.Where("(exception=true OR anr=true)")
+		} else if includeError {
+			stmt.Where("exception=true")
+		} else if includeANR {
+			stmt.Where("anr=true")
+		}
 	}
 
 	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -1035,12 +1044,16 @@ func (af AppFilter) getCountries(ctx context.Context) (countries []string, err e
 
 	defer stmt.Close()
 
-	if af.Crash && !af.Span {
-		stmt.Where("exception=true")
-	}
-
-	if af.ANR && !af.Span {
-		stmt.Where("anr=true")
+	if !af.Span && len(af.ErrorTypes) > 0 {
+		includeError := slices.Contains(af.ErrorTypes, event.ErrorTypeError)
+		includeANR := slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
+		if includeError && includeANR {
+			stmt.Where("(exception=true OR anr=true)")
+		} else if includeError {
+			stmt.Where("exception=true")
+		} else if includeANR {
+			stmt.Where("anr=true")
+		}
 	}
 
 	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -1087,12 +1100,16 @@ func (af AppFilter) getNetworkProviders(ctx context.Context) (networkProviders [
 
 	defer stmt.Close()
 
-	if af.Crash && !af.Span {
-		stmt.Where("exception=true")
-	}
-
-	if af.ANR && !af.Span {
-		stmt.Where("anr=true")
+	if !af.Span && len(af.ErrorTypes) > 0 {
+		includeError := slices.Contains(af.ErrorTypes, event.ErrorTypeError)
+		includeANR := slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
+		if includeError && includeANR {
+			stmt.Where("(exception=true OR anr=true)")
+		} else if includeError {
+			stmt.Where("exception=true")
+		} else if includeANR {
+			stmt.Where("anr=true")
+		}
 	}
 
 	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -1139,12 +1156,16 @@ func (af AppFilter) getNetworkTypes(ctx context.Context) (networkTypes []string,
 
 	defer stmt.Close()
 
-	if af.Crash && !af.Span {
-		stmt.Where("exception=true")
-	}
-
-	if af.ANR && !af.Span {
-		stmt.Where("anr=true")
+	if !af.Span && len(af.ErrorTypes) > 0 {
+		includeError := slices.Contains(af.ErrorTypes, event.ErrorTypeError)
+		includeANR := slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
+		if includeError && includeANR {
+			stmt.Where("(exception=true OR anr=true)")
+		} else if includeError {
+			stmt.Where("exception=true")
+		} else if includeANR {
+			stmt.Where("anr=true")
+		}
 	}
 
 	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -1191,12 +1212,16 @@ func (af AppFilter) getNetworkGenerations(ctx context.Context) (networkGeneratio
 
 	defer stmt.Close()
 
-	if af.Crash && !af.Span {
-		stmt.Where("exception=true")
-	}
-
-	if af.ANR && !af.Span {
-		stmt.Where("anr=true")
+	if !af.Span && len(af.ErrorTypes) > 0 {
+		includeError := slices.Contains(af.ErrorTypes, event.ErrorTypeError)
+		includeANR := slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
+		if includeError && includeANR {
+			stmt.Where("(exception=true OR anr=true)")
+		} else if includeError {
+			stmt.Where("exception=true")
+		} else if includeANR {
+			stmt.Where("anr=true")
+		}
 	}
 
 	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -1246,12 +1271,16 @@ func (af AppFilter) getDeviceLocales(ctx context.Context) (deviceLocales []strin
 
 	defer stmt.Close()
 
-	if af.Crash && !af.Span {
-		stmt.Where("exception=true")
-	}
-
-	if af.ANR && !af.Span {
-		stmt.Where("anr=true")
+	if !af.Span && len(af.ErrorTypes) > 0 {
+		includeError := slices.Contains(af.ErrorTypes, event.ErrorTypeError)
+		includeANR := slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
+		if includeError && includeANR {
+			stmt.Where("(exception=true OR anr=true)")
+		} else if includeError {
+			stmt.Where("exception=true")
+		} else if includeANR {
+			stmt.Where("anr=true")
+		}
 	}
 
 	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -1298,12 +1327,16 @@ func (af AppFilter) getDeviceManufacturers(ctx context.Context) (deviceManufactu
 
 	defer stmt.Close()
 
-	if af.Crash && !af.Span {
-		stmt.Where("exception=true")
-	}
-
-	if af.ANR && !af.Span {
-		stmt.Where("anr=true")
+	if !af.Span && len(af.ErrorTypes) > 0 {
+		includeError := slices.Contains(af.ErrorTypes, event.ErrorTypeError)
+		includeANR := slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
+		if includeError && includeANR {
+			stmt.Where("(exception=true OR anr=true)")
+		} else if includeError {
+			stmt.Where("exception=true")
+		} else if includeANR {
+			stmt.Where("anr=true")
+		}
 	}
 
 	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
@@ -1350,12 +1383,16 @@ func (af AppFilter) getDeviceNames(ctx context.Context) (deviceNames []string, e
 
 	defer stmt.Close()
 
-	if af.Crash && !af.Span {
-		stmt.Where("exception=true")
-	}
-
-	if af.ANR && !af.Span {
-		stmt.Where("anr=true")
+	if !af.Span && len(af.ErrorTypes) > 0 {
+		includeError := slices.Contains(af.ErrorTypes, event.ErrorTypeError)
+		includeANR := slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
+		if includeError && includeANR {
+			stmt.Where("(exception=true OR anr=true)")
+		} else if includeError {
+			stmt.Where("exception=true")
+		} else if includeANR {
+			stmt.Where("anr=true")
+		}
 	}
 
 	rows, err := server.Server.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
