@@ -425,12 +425,11 @@ describe("fetchFiltersFromServer", () => {
   const onboardedApp = { id: "app-1", onboarded: true } as any;
   const notOnboardedApp = { id: "app-1", onboarded: false } as any;
 
-  it("appends crash=1 and anr=1 for Errors filterSource", async () => {
+  it("appends type=error,anr for Errors filterSource", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ versions: [] }));
     await fetchFiltersFromServer(onboardedApp, FilterSource.Errors);
     const url = lastFetchUrl();
-    expect(url).toContain("crash=1");
-    expect(url).toContain("anr=1");
+    expect(url).toContain("type=error,anr");
   });
 
   it("appends span=1 for Spans filterSource", async () => {

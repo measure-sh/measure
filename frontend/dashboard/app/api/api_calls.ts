@@ -1727,7 +1727,7 @@ export const fetchFiltersFromServer = async (
   if (filterSource === FilterSource.Spans) {
     url += "&span=1";
   } else if (filterSource === FilterSource.Errors) {
-    url += "&crash=1&anr=1";
+    url += "&type=error,anr";
   }
 
   try {
