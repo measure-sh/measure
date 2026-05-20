@@ -1014,11 +1014,14 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 	queryANR = anrAllowed(af, queryANR)
 
 	applyCommonFilters := func(s *sqlf.Stmt) {
-		s.Where("team_id = toUUID(?)", a.TeamId).
-			Where("app_id = toUUID(?)", a.ID).
-			Where("attribute.app_version in ?", af.Versions).
-			Where("attribute.app_build in ?", af.VersionCodes).
-			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		s.Where("team_id = toUUID(?)", a.TeamId)
+		s.Where("app_id = toUUID(?)", a.ID)
+		s.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+
+		if af.HasVersions() {
+			s.Where("attribute.app_version in ?", af.Versions)
+			s.Where("attribute.app_build in ?", af.VersionCodes)
+		}
 
 		if af.HasOSVersions() {
 			s.Where("attribute.os_name in ?", af.OsNames)
@@ -1106,6 +1109,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 			var exceptions string
 			var threads string
 			var meta string
+			var severity string
 			var attachments string
 			if err = rows.Scan(
 				&e.ID,
@@ -1123,11 +1127,12 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 				&e.NumCode,
 				&e.Code,
 				&meta,
-				&e.Severity,
+				&severity,
 				&attachments,
 			); err != nil {
 				return
 			}
+			e.Severity = event.Severity(severity)
 
 			if err = json.Unmarshal([]byte(exceptions), &e.Exception.Exceptions); err != nil {
 				return
@@ -1145,7 +1150,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 			}
 
 			e.ComputeView()
-			events = append(events, e)
+			events = append(events, &e)
 		}
 	}
 
@@ -1208,7 +1213,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 			}
 
 			e.ComputeView()
-			events = append(events, e)
+			events = append(events, &e)
 		}
 	}
 
