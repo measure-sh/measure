@@ -1178,10 +1178,11 @@ Fetch an app's filters.
 #### Usage Notes
 
 - App's UUID must be passed in the URI
-- Pass `crash=1` as query string parameter to only return filters for crashes
-- Pass `anr=1` as query string parameter to only return filters for ANRs
+- Pass `type=error` to only return filters relevant to exception events (fatal + nonfatal)
+- Pass `type=anr` to only return filters relevant to ANR events
+- Pass `type=error,anr` to return filters relevant to both exceptions and ANRs
 - Pass `ud_attr_keys=1` as query string parameter to return user defined attribute keys
-- If no query string parameters are passed, the API computes filters from all events
+- If `type` is omitted, filters are computed from all events
 
 #### Authorization & Content Type
 

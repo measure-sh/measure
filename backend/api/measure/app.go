@@ -6006,6 +6006,15 @@ func GetAppFilters(c *gin.Context) {
 		return
 	}
 
+	if err := af.Expand(ctx); err != nil {
+		msg := "failed to expand app filter"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
 	if err := af.Validate(); err != nil {
 		msg := "app filters request validation failed"
 		fmt.Println(msg, err)
