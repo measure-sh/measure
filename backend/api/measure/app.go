@@ -283,8 +283,6 @@ func (a App) GetExceptionGroupPlotInstances(ctx context.Context, fingerprint str
 	return
 }
 
-// GetErrorGroupsWithFilter fetches error groups
-// of an app.
 // anrAllowed returns whether the ANR source should be queried given the
 // AppFilter. ANRs are never custom-captured, so CustomError=true forces ANR
 // off regardless of the requested value. Use this as the single source of
@@ -301,18 +299,22 @@ func anrAllowed(af *filter.AppFilter, requested bool) bool {
 // branch is active and which exception.handled rows the exception branch
 // should match. When no severity flag is set, all sources are included.
 func resolveErrorSources(af *filter.AppFilter) (queryANR, wantHandledTrue, wantHandledFalse bool) {
-	queryANR = af.ANR
-	wantHandledTrue = af.Severity == event.SeverityHandled || af.Error
-	wantHandledFalse = af.Severity == event.SeverityFatal ||
-		af.Severity == event.SeverityUnhandled ||
-		af.Crash ||
-		af.Error
+	includeANR := (len(af.ErrorTypes) == 0 && len(af.Severities) == 0) || slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
+	includeError := len(af.ErrorTypes) == 0 || slices.Contains(af.ErrorTypes, event.ErrorTypeError)
 
-	if !queryANR && !wantHandledTrue && !wantHandledFalse {
+	if includeANR {
 		queryANR = true
-		wantHandledTrue = true
-		wantHandledFalse = true
 	}
+
+	if includeError {
+		hasFatal := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityFatal)
+		hasUnhandled := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityUnhandled)
+		hasHandled := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityHandled)
+
+		wantHandledTrue = hasHandled
+		wantHandledFalse = hasFatal || hasUnhandled
+	}
+
 	queryANR = anrAllowed(af, queryANR)
 	return
 }
@@ -333,9 +335,16 @@ func unionStmts(stmts []*sqlf.Stmt) *sqlf.Stmt {
 }
 
 func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter) (groups []group.ErrorGroup, next, previous bool, err error) {
-	queryANR := af.ANR
-	queryFatal := af.Severity == event.SeverityFatal || af.Crash
-	queryNonfatal := af.Severity == event.SeverityHandled || af.Severity == event.SeverityUnhandled || af.Error
+	includeANR := (len(af.ErrorTypes) == 0 && len(af.Severities) == 0) || slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
+	includeError := len(af.ErrorTypes) == 0 || slices.Contains(af.ErrorTypes, event.ErrorTypeError)
+
+	hasFatal := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityFatal)
+	hasUnhandled := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityUnhandled)
+	hasHandled := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityHandled)
+
+	queryANR := includeANR
+	queryFatal := includeError && hasFatal
+	queryNonfatal := includeError && (hasHandled || hasUnhandled)
 
 	if !queryANR && !queryFatal && !queryNonfatal {
 		return
@@ -440,6 +449,11 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 			err = errBranch
 			return
 		}
+		if hasHandled && !hasUnhandled {
+			s.Where("handled = true")
+		} else if !hasHandled && hasUnhandled {
+			s.Where("handled = false")
+		}
 		groupsBranches = append(groupsBranches, s)
 	}
 
@@ -489,9 +503,9 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 			GroupBy("app_id").
 			GroupBy("id")
 
-		if af.Severity == event.SeverityHandled {
+		if !queryFatal && hasHandled && !hasUnhandled {
 			s.Where("`exception.handled` = true")
-		} else if af.Severity == event.SeverityUnhandled {
+		} else if !queryFatal && !hasHandled && hasUnhandled {
 			s.Where("`exception.handled` = false")
 		}
 
@@ -986,17 +1000,16 @@ func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, fingerprin
 // the filter's severity flags. When no severity flag is set, all
 // sources are queried.
 func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *filter.AppFilter) (events []any, next, previous bool, err error) {
-	queryANR := af.ANR
-	queryFatal := af.Severity == event.SeverityFatal || af.Crash
-	queryNonfatal := af.Severity == event.SeverityHandled ||
-		af.Severity == event.SeverityUnhandled ||
-		af.Error
+	includeANR := (len(af.ErrorTypes) == 0 && len(af.Severities) == 0) || slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
+	includeError := len(af.ErrorTypes) == 0 || slices.Contains(af.ErrorTypes, event.ErrorTypeError)
 
-	if !queryANR && !queryFatal && !queryNonfatal {
-		queryANR = true
-		queryFatal = true
-		queryNonfatal = true
-	}
+	hasFatal := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityFatal)
+	hasUnhandled := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityUnhandled)
+	hasHandled := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityHandled)
+
+	queryANR := includeANR
+	queryFatal := includeError && hasFatal
+	queryNonfatal := includeError && (hasHandled || hasUnhandled)
 
 	queryANR = anrAllowed(af, queryANR)
 
@@ -1068,9 +1081,9 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 		if queryFatal && !queryNonfatal {
 			stmt.Where("exception.handled = false")
 		} else if queryNonfatal && !queryFatal {
-			if af.Severity == event.SeverityHandled {
+			if hasHandled && !hasUnhandled {
 				stmt.Where("exception.handled = true")
-			} else if af.Severity == event.SeverityUnhandled {
+			} else if hasUnhandled && !hasHandled {
 				stmt.Where("exception.handled = false")
 			}
 		}
