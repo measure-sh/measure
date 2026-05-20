@@ -54,7 +54,7 @@ export default function TracesScreen() {
     }
 
     try {
-      const builder = Measure.createSpanBuilder('ParentSpan_Demo');
+      const builder = Measure.createSpanBuilder({ name: 'ParentSpan_Demo' });
       
       if (!builder) {
         Alert.alert('Initialization Error', 'Measure SDK may not be initialized or tracing is disabled.');
@@ -103,7 +103,7 @@ export default function TracesScreen() {
     try {
       const childName = 'ChildSpan_Demo_Task';
 
-      const builder = Measure.createSpanBuilder(childName);
+      const builder = Measure.createSpanBuilder({ name: childName });
       if (!builder) {
         Alert.alert('Initialization Error', 'Measure SDK may not be initialized.');
         return;

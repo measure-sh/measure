@@ -45,15 +45,18 @@ const simulateInfiniteLoop = () => {
 };
 
 const trackCustomEvent = () => {
-  Measure.trackEvent('button_click', {
-    screen: 'Home',
-    action: 'Track Custom Event',
-    timestamped: true,
+  Measure.trackEvent({
+    name: 'button_click',
+    attributes: {
+      screen: 'Home',
+      action: 'Track Custom Event',
+      timestamped: true,
+    },
   });
 };
 
 const setUserIdExample = () => {
-  Measure.setUserId('sample_user_123');
+  Measure.setUserId({ userId: 'sample_user_123' });
 };
 
 const clearUserIdExample = () => {
@@ -79,11 +82,11 @@ const trackHttpEventManually = () => {
 };
 
 const trackBugReport = () => {
-  Measure.launchBugReport(
-    true,
-    { theme: 'light' },
-    { userId: '123', screen: 'Home' }
-  );
+  Measure.launchBugReport({
+    takeScreenshot: true,
+    bugReportConfig: { theme: 'light' },
+    attributes: { userId: '123', screen: 'Home' },
+  });
 };
 
 const trackManualBugReport = async () => {
@@ -95,11 +98,11 @@ const trackManualBugReport = async () => {
       (attachment) => attachment !== null
     );
 
-    await Measure.trackBugReport(
-      'Manual bug report triggered from example app',
+    await Measure.trackBugReport({
+      description: 'Manual bug report triggered from example app',
       attachments,
-      { source: 'example_app', screen: 'Home' }
-    );
+      attributes: { source: 'example_app', screen: 'Home' },
+    });
 
     console.log('Manual bug report with screenshot sent!');
   } catch (err) {

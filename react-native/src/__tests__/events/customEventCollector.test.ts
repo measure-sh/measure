@@ -75,7 +75,7 @@ describe('CustomEventCollector', () => {
     (validateAttributes as jest.Mock).mockReturnValueOnce(false);
     const attrs = { good: 'ok', bad: { nested: true } } as any;
 
-    await collector.trackCustomEvent('event1', attrs, 111);
+    await collector.trackCustomEvent({ name: 'event1', attributes: attrs, timestamp: 111 });
 
     expect(signalProcessor.trackEvent).not.toHaveBeenCalled();
     expect(logger.log).toHaveBeenCalledWith(
@@ -87,7 +87,7 @@ describe('CustomEventCollector', () => {
   it('tracks valid custom event successfully', async () => {
     const attrs = { key1: { type: 'string', value: 'abc' } } as any;
 
-    await collector.trackCustomEvent('validEvent', attrs);
+    await collector.trackCustomEvent({ name: 'validEvent', attributes: attrs });
 
     expect(signalProcessor.trackEvent).toHaveBeenCalledWith(
       { name: 'validEvent' },

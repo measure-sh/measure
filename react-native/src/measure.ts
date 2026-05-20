@@ -47,7 +47,7 @@ export const Measure = {
    * Measure.init(client, measureConfig);
    *
    */
-  init(config: MeasureConfig | null): Promise<any> {
+  init({ config }: { config: MeasureConfig | null }): Promise<any> {
     if (_initializationPromise) {
       console.warn('Measure SDK is already initialized or being initialized.');
       return _initializationPromise;
@@ -59,7 +59,7 @@ export const Measure = {
       _measureInitializer = new MeasureInitializer(config);
       _measureInternal = new MeasureInternal(_measureInitializer);
 
-      await _measureInternal.init(config);
+      await _measureInternal.init({ config });
     })().catch((error) => {
       _initializationPromise = null;
       throw error;
@@ -95,35 +95,38 @@ export const Measure = {
    *
    * Event names should be clear and consistent to aid in dashboard searches.
    *
-   * @param name - The name of the event (max 64 characters).
-   * @param attributes - Optional key-value pairs providing additional context.
-   * @param timestamp - Optional timestamp in milliseconds (defaults to current time).
+   * @param params.name - The name of the event (max 64 characters).
+   * @param params.attributes - Optional key-value pairs providing additional context.
+   * @param params.timestamp - Optional timestamp in milliseconds (defaults to current time).
    *
    * @example
    * ```ts
    * import { Measure } from '@measure/react-native';
    *
-   * Measure.trackEvent("user_signup", {
-   *   user_name: "Alice",
-   *   premium_user: true,
-   *   signup_age: 23,
+   * Measure.trackEvent({
+   *   name: "user_signup",
+   *   attributes: {
+   *     user_name: "Alice",
+   *     premium_user: true,
+   *     signup_age: 23,
+   *   },
    * }).catch((err) => {
    *   console.error("Failed to track event:", err);
    * });
    * ```
    */
-  trackEvent(
-    name: string,
-    attributes?: Record<string, ValidAttributeValue>,
-    timestamp?: number
-  ): Promise<void> {
+  trackEvent(params: {
+    name: string;
+    attributes?: Record<string, ValidAttributeValue>;
+    timestamp?: number;
+  }): Promise<void> {
     if (!_measureInternal) {
       return Promise.reject(
         new Error('Measure is not initialized. Call init() first.')
       );
     }
 
-    return _measureInternal.trackEvent(name, attributes, timestamp);
+    return _measureInternal.trackEvent(params);
   },
 
   /**
@@ -132,30 +135,33 @@ export const Measure = {
    * This method should be used if your app uses a custom navigation system
    * and you want to manually record screen view events.
    *
-   * @param screenName - The name of the screen being viewed.
-   * @param attributes - Optional key-value pairs providing additional context.
+   * @param params.screenName - The name of the screen being viewed.
+   * @param params.attributes - Optional key-value pairs providing additional context.
    *
    * @example
    * ```ts
    * import { Measure } from '@measure/react-native';
    *
-   * Measure.trackScreenView("Home", {
-   *   user_name: "Alice",
-   *   premium_user: true,
+   * Measure.trackScreenView({
+   *   screenName: "Home",
+   *   attributes: {
+   *     user_name: "Alice",
+   *     premium_user: true,
+   *   },
    * });
    * ```
    */
-  trackScreenView(
-    screenName: string,
-    attributes?: Record<string, ValidAttributeValue>
-  ): Promise<void> {
+  trackScreenView(params: {
+    screenName: string;
+    attributes?: Record<string, ValidAttributeValue>;
+  }): Promise<void> {
     if (!_measureInternal) {
       return Promise.reject(
         new Error('Measure is not initialized. Call init() first.')
       );
     }
 
-    return _measureInternal.trackScreenView(screenName, attributes);
+    return _measureInternal.trackScreenView(params);
   },
 
   /**
@@ -179,25 +185,25 @@ export const Measure = {
    * @param name - The name to identify this span.
    * @returns A new Span instance if the SDK is initialized, or an invalid no-op span if not initialized.
    */
-  startSpan(name: string): Span {
+  startSpan({ name }: { name: string }): Span {
     if (!_measureInternal) {
       return new InvalidSpan();
     }
-    return _measureInternal.startSpan(name);
+    return _measureInternal.startSpan({ name });
   },
 
   /**
    * Starts a new performance tracing span with the specified name and start timestamp.
    *
-   * @param name - The name to identify this span.
-   * @param timestampMs - The milliseconds since epoch when the span started.
+   * @param params.name - The name to identify this span.
+   * @param params.timestampMs - The milliseconds since epoch when the span started.
    * @returns A new Span instance if the SDK is initialized, or an invalid no-op span if not initialized.
    */
-  startSpanWithTimestamp(name: string, timestampMs: number): Span {
+  startSpanWithTimestamp(params: { name: string; timestampMs: number }): Span {
     if (!_measureInternal) {
       return new InvalidSpan();
     }
-    return _measureInternal.startSpan(name, timestampMs);
+    return _measureInternal.startSpan(params);
   },
 
   /**
@@ -206,11 +212,11 @@ export const Measure = {
    * @param name - The name to identify this span.
    * @returns A SpanBuilder instance to configure the span if the SDK is initialized, or undefined if not.
    */
-  createSpanBuilder(name: string): SpanBuilder | undefined {
+  createSpanBuilder({ name }: { name: string }): SpanBuilder | undefined {
     if (!_measureInternal) {
       return undefined;
     }
-    return _measureInternal.createSpan(name);
+    return _measureInternal.createSpan({ name });
   },
 
   /**
@@ -219,11 +225,11 @@ export const Measure = {
    * @param span - The span to extract the traceparent header value from.
    * @returns A W3C trace context compliant header value (e.g., '00-traceId-spanId-01').
    */
-  getTraceParentHeaderValue(span: Span): string {
+  getTraceParentHeaderValue({ span }: { span: Span }): string {
     if (!_measureInternal) {
       return '';
     }
-    return _measureInternal.getTraceParentHeaderValue(span);
+    return _measureInternal.getTraceParentHeaderValue({ span });
   },
 
   /**
@@ -248,7 +254,7 @@ export const Measure = {
    *
    * @param userId - A non-empty string identifier.
    */
-  setUserId(userId: string): void {
+  setUserId({ userId }: { userId: string }): void {
     if (!_measureInternal) {
       console.warn('Measure is not initialized. Call init() first.');
       return;
@@ -259,7 +265,7 @@ export const Measure = {
       return;
     }
 
-    _measureInternal.setUserId(userId);
+    _measureInternal.setUserId({ userId });
   },
 
   /**
@@ -317,30 +323,26 @@ export const Measure = {
    * This can be used to allow users or QA testers to report issues directly
    * from within the app, optionally including a screenshot and additional attributes.
    *
-   * @param takeScreenshot - Set to false to disable screenshot capture. Defaults to true.
-   * @param bugReportConfig - Optional configuration for customizing the bug report UI.
-   * @param attributes - Optional metadata key-value pairs describing the context of the report.
+   * @param params.takeScreenshot - Set to false to disable screenshot capture. Defaults to true.
+   * @param params.bugReportConfig - Optional configuration for customizing the bug report UI.
+   * @param params.attributes - Optional metadata key-value pairs describing the context of the report.
    *
    * @example
    * ```ts
-   * Measure.launchBugReport(true, { theme: "dark" }, { userId: "123", screen: "Home" });
+   * Measure.launchBugReport({ takeScreenshot: true, bugReportConfig: { theme: "dark" }, attributes: { userId: "123", screen: "Home" } });
    * ```
    */
-  launchBugReport(
-    takeScreenshot: boolean = true,
-    bugReportConfig: Record<string, any> = {},
-    attributes: Record<string, ValidAttributeValue> = {}
-  ): Promise<void> {
+  launchBugReport(params: {
+    takeScreenshot?: boolean;
+    bugReportConfig?: Record<string, any>;
+    attributes?: Record<string, ValidAttributeValue>;
+  } = {}): Promise<void> {
     if (!_measureInternal) {
       return Promise.reject(
         new Error('Measure is not initialized. Call init() first.')
       );
     }
-    return _measureInternal.launchBugReport(
-      takeScreenshot,
-      bugReportConfig,
-      attributes
-    );
+    return _measureInternal.launchBugReport(params);
   },
 
   /**
@@ -364,13 +366,13 @@ export const Measure = {
    * });
    * ```
    */
-  onShake(handler?: (() => void) | null): void {
+  onShake({ handler }: { handler?: (() => void) | null }): void {
     if (!_measureInternal) {
       console.warn('Measure is not initialized. Call init() first.');
       return;
     }
 
-    _measureInternal.onShake(handler);
+    _measureInternal.onShake({ handler });
   },
 
   /**
@@ -430,37 +432,33 @@ export const Measure = {
    * Attachments may include screenshots, layout snapshots, or any files
    * captured via the Measure attachment APIs.
    *
-   * @param description - A human-readable description of the bug (max 4000 chars).
-   * @param attachments - Optional list of MsrAttachment objects (max 5).
-   * @param attributes - Optional metadata describing the bug context.
+   * @param params.description - A human-readable description of the bug (max 4000 chars).
+   * @param params.attachments - Optional list of MsrAttachment objects (max 5).
+   * @param params.attributes - Optional metadata describing the bug context.
    *
    * @example
    * ```ts
    * const screenshot = await Measure.captureScreenshot();
    *
-   * Measure.trackBugReport(
-   *   "Something broke on the Home screen",
-   *   screenshot ? [screenshot] : [],
-   *   { userId: "123", screen: "Home" }
-   * );
+   * Measure.trackBugReport({
+   *   description: "Something broke on the Home screen",
+   *   attachments: screenshot ? [screenshot] : [],
+   *   attributes: { userId: "123", screen: "Home" },
+   * });
    * ```
    */
-  trackBugReport(
-    description: string,
-    attachments: MsrAttachment[] = [],
-    attributes: Record<string, ValidAttributeValue> = {}
-  ): Promise<void> {
+  trackBugReport(params: {
+    description: string;
+    attachments?: MsrAttachment[];
+    attributes?: Record<string, ValidAttributeValue>;
+  }): Promise<void> {
     if (!_measureInternal) {
       return Promise.reject(
         new Error('Measure is not initialized. Call init() first.')
       );
     }
 
-    return _measureInternal.trackBugReport(
-      description,
-      attachments,
-      attributes
-    );
+    return _measureInternal.trackBugReport(params);
   },
 
   /**

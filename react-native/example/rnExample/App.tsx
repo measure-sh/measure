@@ -41,12 +41,12 @@ const App = (): React.JSX.Element => {
         enableDiagnosticMode: true,
       });
 
-    await Measure.init(measureConfig);
+    await Measure.init({ config: measureConfig });
 
-    Measure.onShake(() => {
+    Measure.onShake({ handler: () => {
       console.log('Shake detected — launching bug report flow!');
-      Measure.launchBugReport(true, {source: 'shake'}, {screen: 'Home'});
-    });
+      Measure.launchBugReport({takeScreenshot: true, bugReportConfig: {source: 'shake'}, attributes: {screen: 'Home'}});
+    }});
   };
 
   useEffect(() => {
@@ -62,10 +62,13 @@ const App = (): React.JSX.Element => {
   };
 
   const trackCustomEvent = () => {
-    Measure.trackEvent('button_click', {
-      screen: 'Home',
-      action: 'Track Custom Event',
-      timestamped: true,
+    Measure.trackEvent({
+      name: 'button_click',
+      attributes: {
+        screen: 'Home',
+        action: 'Track Custom Event',
+        timestamped: true,
+      },
     });
   };
 
@@ -96,7 +99,7 @@ const App = (): React.JSX.Element => {
   /** === Simulation Helpers === */
   const launchBugReport = () => {
     console.log('Launching bug report flow manually');
-    Measure.launchBugReport(true, {source: 'manual'}, {screen: 'Home'});
+    Measure.launchBugReport({takeScreenshot: true, bugReportConfig: {source: 'manual'}, attributes: {screen: 'Home'}});
   };
 
   const trackManualBugReport = async () => {
@@ -108,11 +111,11 @@ const App = (): React.JSX.Element => {
         attachment => attachment !== null,
       );
 
-      await Measure.trackBugReport(
-        'Manual bug report triggered from example app',
+      await Measure.trackBugReport({
+        description: 'Manual bug report triggered from example app',
         attachments,
-        {source: 'example_app', screen: 'Home'},
-      );
+        attributes: {source: 'example_app', screen: 'Home'},
+      });
 
       console.log('Manual bug report with attachments sent!');
     } catch (err) {

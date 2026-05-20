@@ -7,10 +7,10 @@ import type { Logger } from "../utils/logger";
 export interface ISpanCollector {
     register(): void;
     unregister(): void;
-    getTraceParentHeaderValue(span: Span): string;
+    getTraceParentHeaderValue(params: { span: Span }): string;
     getTraceParentHeaderKey(): string;
-    createSpan(name: string): SpanBuilder | undefined;
-    startSpan(name: string, timestampMs?: number): Span;
+    createSpan(params: { name: string }): SpanBuilder | undefined;
+    startSpan(params: { name: string; timestampMs?: number }): Span;
 }
 
 /**
@@ -35,7 +35,7 @@ export class SpanCollector implements ISpanCollector {
         this.isEnabled = false;
     }
 
-    getTraceParentHeaderValue(span: Span): string {
+    getTraceParentHeaderValue({ span }: { span: Span }): string {
         return this.tracer.getTraceParentHeaderValue(span);
     }
 
@@ -43,7 +43,7 @@ export class SpanCollector implements ISpanCollector {
         return this.tracer.getTraceParentHeaderKey();
     }
 
-    createSpan(name: string): SpanBuilder | undefined {
+    createSpan({ name }: { name: string }): SpanBuilder | undefined {
         if (!this.isEnabled) {
             this.logger.internalLog('warning', 'Measure SDK is stopped. createSpan() will be ignored.');
             return undefined;
@@ -51,7 +51,7 @@ export class SpanCollector implements ISpanCollector {
         return this.tracer.spanBuilder(name);
     }
 
-    startSpan(name: string, timestampMs?: number): Span {
+    startSpan({ name, timestampMs }: { name: string; timestampMs?: number }): Span {
         if (!this.isEnabled) {
             this.logger.internalLog('warning', 'Measure SDK is stopped. startSpan() will be ignored.');
             return new InvalidSpan();

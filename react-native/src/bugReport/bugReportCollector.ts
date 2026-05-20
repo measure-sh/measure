@@ -7,17 +7,17 @@ export interface IBugReportCollector {
   register(): void;
   unregister(): void;
 
-  launchBugReport(
-    takeScreenshot?: boolean,
-    bugReportConfig?: Record<string, any>,
-    attributes?: Record<string, ValidAttributeValue>
-  ): Promise<void>;
+  launchBugReport(params?: {
+    takeScreenshot?: boolean;
+    bugReportConfig?: Record<string, any>;
+    attributes?: Record<string, ValidAttributeValue>;
+  }): Promise<void>;
 
-  trackBugReport(
-    description: string,
-    attachments?: MsrAttachment[],
-    attributes?: Record<string, ValidAttributeValue>
-  ): Promise<void>;
+  trackBugReport(params: {
+    description: string;
+    attachments?: MsrAttachment[];
+    attributes?: Record<string, ValidAttributeValue>;
+  }): Promise<void>;
 }
 
 export class BugReportCollector implements IBugReportCollector {
@@ -46,11 +46,15 @@ export class BugReportCollector implements IBugReportCollector {
     this.logger.internalLog('info', '[BugReportCollector] Unregistered.');
   }
 
-  async trackBugReport(
-    description: string,
-    attachments: MsrAttachment[] = [],
-    attributes: Record<string, ValidAttributeValue> = {}
-  ): Promise<void> {
+  async trackBugReport({
+    description,
+    attachments = [],
+    attributes = {},
+  }: {
+    description: string;
+    attachments?: MsrAttachment[];
+    attributes?: Record<string, ValidAttributeValue>;
+  }): Promise<void> {
     if (!this.isRegistered) {
       this.logger.internalLog('warning', 'Measure SDK is stopped. trackBugReport() will be ignored.');
       return;
@@ -70,11 +74,15 @@ export class BugReportCollector implements IBugReportCollector {
     }
   }
 
-  async launchBugReport(
-    takeScreenshot: boolean = true,
-    bugReportConfig: Record<string, any> = {},
-    attributes: Record<string, ValidAttributeValue> = {}
-  ): Promise<void> {
+  async launchBugReport({
+    takeScreenshot = true,
+    bugReportConfig = {},
+    attributes = {},
+  }: {
+    takeScreenshot?: boolean;
+    bugReportConfig?: Record<string, any>;
+    attributes?: Record<string, ValidAttributeValue>;
+  } = {}): Promise<void> {
     if (!this.isRegistered) {
       this.logger.internalLog('warning', 'Measure SDK is stopped. launchBugReport() will be ignored.');
       return;
