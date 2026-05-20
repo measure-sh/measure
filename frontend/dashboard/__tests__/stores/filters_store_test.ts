@@ -347,11 +347,11 @@ describe("applyFilterOptions", () => {
     const patch = applyFilterOptions(
       emptyOptions(),
       app,
-      initConfig({ sessionTypes: [SessionType.Crashes, SessionType.ANRs] }),
+      initConfig({ sessionTypes: [SessionType.Errors, SessionType.ANRs] }),
       state(),
     );
     expect(patch.selectedSessionTypes).toEqual([
-      SessionType.Crashes,
+      SessionType.Errors,
       SessionType.ANRs,
     ]);
   });
@@ -531,7 +531,7 @@ describe("filtersStore actions", () => {
       .getState()
       .setConfig({ ...baseConfig, filterSource: FilterSource.Errors });
     store.getState().setSelectedCountries(["US"]);
-    store.getState().setSelectedSessionTypes([SessionType.Crashes]);
+    store.getState().setSelectedSessionTypes([SessionType.Errors]);
     store.getState().setSelectedFreeText("oom");
 
     store

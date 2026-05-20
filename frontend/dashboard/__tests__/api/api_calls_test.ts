@@ -1103,13 +1103,13 @@ describe("billing endpoints", () => {
 // http methods) by passing filters with non-default values.
 // ========================================================================
 describe("applyGenericFiltersToUrl filter branches", () => {
-  it("appends session type flags for each selected type", async () => {
+  it("does NOT append session-type flags (only endpoints that opt-in via appendSessionTypesToUrl do)", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
     const filters = makeFilters({
       sessionTypes: {
         all: false,
         selected: [
-          "Crash Sessions",
+          "Error Sessions",
           "ANR Sessions",
           "Bug Report Sessions",
           "User Interaction Sessions",
@@ -1120,12 +1120,11 @@ describe("applyGenericFiltersToUrl filter branches", () => {
     });
     await fetchMetricsFromServer(filters);
     const url = lastFetchUrl();
-    expect(url).toContain("crash=1");
-    expect(url).toContain("anr=1");
-    expect(url).toContain("bug_report=1");
-    expect(url).toContain("user_interaction=1");
-    expect(url).toContain("foreground=1");
-    expect(url).toContain("background=1");
+    expect(url).not.toContain("type=");
+    expect(url).not.toContain("bug_report=");
+    expect(url).not.toContain("user_interaction=");
+    expect(url).not.toContain("foreground=");
+    expect(url).not.toContain("background=");
   });
 
   it("appends rootSpanName when non-empty", async () => {
@@ -1620,7 +1619,7 @@ describe("additional branch coverage", () => {
         sessionTypes: {
           all: false,
           selected: [
-            "Crash Sessions",
+            "Error Sessions",
             "ANR Sessions",
             "Bug Report Sessions",
             "User Interaction Sessions",
@@ -1633,9 +1632,8 @@ describe("additional branch coverage", () => {
       0,
     );
     const url = lastFetchUrl();
-    // appendSessionTypesToUrl path — each type becomes its own param
-    expect(url).toContain("crash=1");
-    expect(url).toContain("anr=1");
+    // appendSessionTypesToUrl path — errors/anrs combine into type=...
+    expect(url).toContain("type=error%2Canr");
     expect(url).toContain("bug_report=1");
     expect(url).toContain("user_interaction=1");
     expect(url).toContain("foreground=1");
