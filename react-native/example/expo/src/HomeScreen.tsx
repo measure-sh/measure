@@ -50,7 +50,6 @@ const trackCustomEvent = () => {
     action: 'Track Custom Event',
     timestamped: true,
   });
-  console.log('Custom event tracked: button_click');
 };
 
 const setUserIdExample = () => {
@@ -77,12 +76,6 @@ const trackHttpEventManually = () => {
     requestBody: null,
     responseBody: '{"result": "success"}',
   })
-    .then(() => {
-      console.log('Manual HTTP event tracked successfully');
-    })
-    .catch((err) => {
-      console.error('Failed to track manual HTTP event:', err);
-    });
 };
 
 const trackBugReport = () => {

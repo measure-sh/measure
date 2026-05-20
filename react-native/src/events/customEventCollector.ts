@@ -63,6 +63,7 @@ export class CustomEventCollector implements ICustomEventCollector {
     timestamp?: number
   ): Promise<void> {
     if (!this.enabled) {
+      this.logger.internalLog('warning', 'Measure SDK is stopped. trackEvent() will be ignored.');
       return;
     }
 

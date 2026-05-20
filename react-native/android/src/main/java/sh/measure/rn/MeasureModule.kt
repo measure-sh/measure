@@ -23,6 +23,26 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
     override fun getName(): String = ModuleConstants.MODULE_NAME
 
     @ReactMethod
+    fun start(promise: Promise) {
+        try {
+            Measure.start()
+            promise.resolve("Started successfully")
+        } catch (e: Exception) {
+            promise.reject("START_ERROR", "Failed to start", e)
+        }
+    }
+
+    @ReactMethod
+    fun stop(promise: Promise) {
+        try {
+            Measure.stop()
+            promise.resolve("Stopped successfully")
+        } catch (e: Exception) {
+            promise.reject("STOP_ERROR", "Failed to stop", e)
+        }
+    }
+
+    @ReactMethod
     fun trackEvent(
         data: ReadableMap,
         type: String,

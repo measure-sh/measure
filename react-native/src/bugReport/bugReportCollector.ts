@@ -51,6 +51,11 @@ export class BugReportCollector implements IBugReportCollector {
     attachments: MsrAttachment[] = [],
     attributes: Record<string, ValidAttributeValue> = {}
   ): Promise<void> {
+    if (!this.isRegistered) {
+      this.logger.internalLog('warning', 'Measure SDK is stopped. trackBugReport() will be ignored.');
+      return;
+    }
+
     try {
       this.logger.internalLog('info', '[BugReportCollector] Tracking bug report...', {
         description,
@@ -70,6 +75,11 @@ export class BugReportCollector implements IBugReportCollector {
     bugReportConfig: Record<string, any> = {},
     attributes: Record<string, ValidAttributeValue> = {}
   ): Promise<void> {
+    if (!this.isRegistered) {
+      this.logger.internalLog('warning', 'Measure SDK is stopped. launchBugReport() will be ignored.');
+      return;
+    }
+
     this.logger.internalLog('info', '[BugReportCollector] Launching native bug report UI...', {
       takeScreenshot,
       bugReportConfig,

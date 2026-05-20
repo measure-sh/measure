@@ -86,6 +86,7 @@ export class UserTriggeredEventCollector implements IUserTriggeredEventCollector
     attributes?: Record<string, ValidAttributeValue>
   ): Promise<void> {
     if (!this.enabled) {
+      this.logger.internalLog('warning', 'Measure SDK is stopped. trackScreenView() will be ignored.');
       return;
     }
 
@@ -139,7 +140,10 @@ export class UserTriggeredEventCollector implements IUserTriggeredEventCollector
   requestBody?: string | null;
   responseBody?: string | null;
 }): Promise<void> {
-  if (!this.enabled) return;
+  if (!this.enabled) {
+    this.logger.internalLog('warning', 'Measure SDK is stopped. trackHttpEvent() will be ignored.');
+    return;
+  }
 
   const {
     url,
