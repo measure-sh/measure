@@ -995,9 +995,13 @@ const FiltersComponent = forwardRef<
     // Errors-only active filter pills mirror the multi-select state. The
     // Errors pill folds Custom + severity subfilters into a single label.
     const showAnrsPill =
-      isErrorsSource && store.selectedErrorTypes.includes("anr");
+      isErrorsSource &&
+      showErrorType &&
+      store.selectedErrorTypes.includes("anr");
     const showErrorsPill =
-      isErrorsSource && store.selectedErrorTypes.includes("error");
+      isErrorsSource &&
+      showErrorType &&
+      store.selectedErrorTypes.includes("error");
     const errorsPillSubfilters: string[] = [];
     if (store.customErrorsOnly) {
       errorsPillSubfilters.push("Custom");
