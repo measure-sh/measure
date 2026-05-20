@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Expand severity & error types in app filter (#3663) by @detj in #3663
 - (**backend**): Use multi-value error types for session filtering (#3661) by @detj in #3661
 - (**backend**): Refactor app filters to use multi-value error types (#3660) by @detj in #3660
 - (**backend**): Support muli-value for error & severity filtering (#3659) by @detj in #3659
