@@ -56,7 +56,6 @@ import { Checkbox } from "./checkbox";
 import DebounceTextInput from "./debounce_text_input";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -676,6 +675,98 @@ const FiltersComponent = forwardRef<
     // Drives the inline app versions dropdown so its chip can open it too.
     const [appVersionsOpen, setAppVersionsOpen] = useState(false);
 
+    // Pending snapshot of every store field driven by a control inside the More
+    // filters modal. Initialized when the modal opens, written to by modal
+    // controls, and only committed back to the store on Save. Cancel/dismiss
+    // discards it. Keeping it local means in-progress edits don't ripple to the
+    // store, the chips, the data tables, or other consumers until the user
+    // confirms.
+    type PendingModalFilters = {
+      selectedSessionTypes: SessionType[];
+      selectedSpanStatuses: SpanStatus[];
+      selectedBugReportStatuses: BugReportStatus[];
+      selectedHttpMethods: HttpMethod[];
+      selectedOsVersions: typeof store.selectedOsVersions;
+      selectedCountries: string[];
+      selectedNetworkProviders: string[];
+      selectedNetworkTypes: string[];
+      selectedNetworkGenerations: string[];
+      selectedLocales: string[];
+      selectedDeviceManufacturers: string[];
+      selectedDeviceNames: string[];
+      selectedUdAttrMatchers: UdAttrMatcher[];
+    };
+    const [pendingModalFilters, setPendingModalFilters] =
+      useState<PendingModalFilters>(() => ({
+        selectedSessionTypes: store.selectedSessionTypes,
+        selectedSpanStatuses: store.selectedSpanStatuses,
+        selectedBugReportStatuses: store.selectedBugReportStatuses,
+        selectedHttpMethods: store.selectedHttpMethods,
+        selectedOsVersions: store.selectedOsVersions,
+        selectedCountries: store.selectedCountries,
+        selectedNetworkProviders: store.selectedNetworkProviders,
+        selectedNetworkTypes: store.selectedNetworkTypes,
+        selectedNetworkGenerations: store.selectedNetworkGenerations,
+        selectedLocales: store.selectedLocales,
+        selectedDeviceManufacturers: store.selectedDeviceManufacturers,
+        selectedDeviceNames: store.selectedDeviceNames,
+        selectedUdAttrMatchers: store.selectedUdAttrMatchers,
+      }));
+
+    // Each time the modal opens, copy current store values into the pending
+    // snapshot so the modal starts from the committed state. Closing without
+    // saving leaves the snapshot stale, but the next open re-syncs it.
+    useEffect(() => {
+      if (!moreFiltersOpen) {
+        return;
+      }
+      setPendingModalFilters({
+        selectedSessionTypes: store.selectedSessionTypes,
+        selectedSpanStatuses: store.selectedSpanStatuses,
+        selectedBugReportStatuses: store.selectedBugReportStatuses,
+        selectedHttpMethods: store.selectedHttpMethods,
+        selectedOsVersions: store.selectedOsVersions,
+        selectedCountries: store.selectedCountries,
+        selectedNetworkProviders: store.selectedNetworkProviders,
+        selectedNetworkTypes: store.selectedNetworkTypes,
+        selectedNetworkGenerations: store.selectedNetworkGenerations,
+        selectedLocales: store.selectedLocales,
+        selectedDeviceManufacturers: store.selectedDeviceManufacturers,
+        selectedDeviceNames: store.selectedDeviceNames,
+        selectedUdAttrMatchers: store.selectedUdAttrMatchers,
+      });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [moreFiltersOpen]);
+
+    // Commit the pending snapshot to the store and close the modal.
+    const saveMoreFilters = () => {
+      store.setSelectedSessionTypes(pendingModalFilters.selectedSessionTypes);
+      store.setSelectedSpanStatuses(pendingModalFilters.selectedSpanStatuses);
+      store.setSelectedBugReportStatuses(
+        pendingModalFilters.selectedBugReportStatuses,
+      );
+      store.setSelectedHttpMethods(pendingModalFilters.selectedHttpMethods);
+      store.setSelectedOsVersions(pendingModalFilters.selectedOsVersions);
+      store.setSelectedCountries(pendingModalFilters.selectedCountries);
+      store.setSelectedNetworkProviders(
+        pendingModalFilters.selectedNetworkProviders,
+      );
+      store.setSelectedNetworkTypes(pendingModalFilters.selectedNetworkTypes);
+      store.setSelectedNetworkGenerations(
+        pendingModalFilters.selectedNetworkGenerations,
+      );
+      store.setSelectedLocales(pendingModalFilters.selectedLocales);
+      store.setSelectedDeviceManufacturers(
+        pendingModalFilters.selectedDeviceManufacturers,
+      );
+      store.setSelectedDeviceNames(pendingModalFilters.selectedDeviceNames);
+      store.setSelectedUdAttrMatchers(
+        pendingModalFilters.selectedUdAttrMatchers,
+      );
+      setMoreFiltersOpen(false);
+      setScrollTarget(null);
+    };
+
     // Open the More filters modal with one filter's section scrolled into view.
     const openFilterModal = (rowKey: string) => {
       setScrollTarget(rowKey);
@@ -964,9 +1055,12 @@ const FiltersComponent = forwardRef<
             rowKey="sessionTypes"
             title="Session Types"
             items={Object.values(SessionType)}
-            selected={store.selectedSessionTypes}
+            selected={pendingModalFilters.selectedSessionTypes}
             onChange={(items) =>
-              store.setSelectedSessionTypes(items as SessionType[])
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedSessionTypes: items as SessionType[],
+              }))
             }
           />
         )}
@@ -975,9 +1069,12 @@ const FiltersComponent = forwardRef<
             rowKey="spanStatuses"
             title="Span Status"
             items={Object.values(SpanStatus)}
-            selected={store.selectedSpanStatuses}
+            selected={pendingModalFilters.selectedSpanStatuses}
             onChange={(items) =>
-              store.setSelectedSpanStatuses(items as SpanStatus[])
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedSpanStatuses: items as SpanStatus[],
+              }))
             }
           />
         )}
@@ -986,9 +1083,12 @@ const FiltersComponent = forwardRef<
             rowKey="bugReportStatuses"
             title="Bug Report Status"
             items={Object.values(BugReportStatus)}
-            selected={store.selectedBugReportStatuses}
+            selected={pendingModalFilters.selectedBugReportStatuses}
             onChange={(items) =>
-              store.setSelectedBugReportStatuses(items as BugReportStatus[])
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedBugReportStatuses: items as BugReportStatus[],
+              }))
             }
           />
         )}
@@ -997,10 +1097,13 @@ const FiltersComponent = forwardRef<
             rowKey="httpMethods"
             title="HTTP Method"
             items={Object.values(HttpMethod)}
-            selected={store.selectedHttpMethods}
+            selected={pendingModalFilters.selectedHttpMethods}
             getLabel={(item) => item.toUpperCase()}
             onChange={(items) =>
-              store.setSelectedHttpMethods(items as HttpMethod[])
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedHttpMethods: items as HttpMethod[],
+              }))
             }
           />
         )}
@@ -1008,10 +1111,15 @@ const FiltersComponent = forwardRef<
           <FilterRow rowKey="osVersions" title="OS Versions">
             <CheckChipGroup
               items={store.osVersions}
-              selected={store.selectedOsVersions}
+              selected={pendingModalFilters.selectedOsVersions}
               getLabel={(item) => item.displayName}
               isEqual={(a, b) => a.displayName === b.displayName}
-              onChange={(items) => store.setSelectedOsVersions(items)}
+              onChange={(items) =>
+                setPendingModalFilters((p) => ({
+                  ...p,
+                  selectedOsVersions: items,
+                }))
+              }
             />
           </FilterRow>
         )}
@@ -1020,8 +1128,13 @@ const FiltersComponent = forwardRef<
             rowKey="countries"
             title="Country"
             items={store.countries}
-            selected={store.selectedCountries}
-            onChange={(items) => store.setSelectedCountries(items)}
+            selected={pendingModalFilters.selectedCountries}
+            onChange={(items) =>
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedCountries: items,
+              }))
+            }
           />
         )}
         {showNetworkProviders && store.networkProviders.length > 0 && (
@@ -1029,8 +1142,13 @@ const FiltersComponent = forwardRef<
             rowKey="networkProviders"
             title="Network Provider"
             items={store.networkProviders}
-            selected={store.selectedNetworkProviders}
-            onChange={(items) => store.setSelectedNetworkProviders(items)}
+            selected={pendingModalFilters.selectedNetworkProviders}
+            onChange={(items) =>
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedNetworkProviders: items,
+              }))
+            }
           />
         )}
         {showNetworkTypes && store.networkTypes.length > 0 && (
@@ -1038,8 +1156,13 @@ const FiltersComponent = forwardRef<
             rowKey="networkTypes"
             title="Network type"
             items={store.networkTypes}
-            selected={store.selectedNetworkTypes}
-            onChange={(items) => store.setSelectedNetworkTypes(items)}
+            selected={pendingModalFilters.selectedNetworkTypes}
+            onChange={(items) =>
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedNetworkTypes: items,
+              }))
+            }
           />
         )}
         {showNetworkGenerations && store.networkGenerations.length > 0 && (
@@ -1047,8 +1170,13 @@ const FiltersComponent = forwardRef<
             rowKey="networkGenerations"
             title="Network generation"
             items={store.networkGenerations}
-            selected={store.selectedNetworkGenerations}
-            onChange={(items) => store.setSelectedNetworkGenerations(items)}
+            selected={pendingModalFilters.selectedNetworkGenerations}
+            onChange={(items) =>
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedNetworkGenerations: items,
+              }))
+            }
           />
         )}
         {showLocales && store.locales.length > 0 && (
@@ -1056,8 +1184,10 @@ const FiltersComponent = forwardRef<
             rowKey="locales"
             title="Locale"
             items={store.locales}
-            selected={store.selectedLocales}
-            onChange={(items) => store.setSelectedLocales(items)}
+            selected={pendingModalFilters.selectedLocales}
+            onChange={(items) =>
+              setPendingModalFilters((p) => ({ ...p, selectedLocales: items }))
+            }
           />
         )}
         {showDeviceManufacturers && store.deviceManufacturers.length > 0 && (
@@ -1065,8 +1195,13 @@ const FiltersComponent = forwardRef<
             rowKey="deviceManufacturers"
             title="Device Manufacturer"
             items={store.deviceManufacturers}
-            selected={store.selectedDeviceManufacturers}
-            onChange={(items) => store.setSelectedDeviceManufacturers(items)}
+            selected={pendingModalFilters.selectedDeviceManufacturers}
+            onChange={(items) =>
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedDeviceManufacturers: items,
+              }))
+            }
           />
         )}
         {showDeviceNames && store.deviceNames.length > 0 && (
@@ -1074,8 +1209,13 @@ const FiltersComponent = forwardRef<
             rowKey="deviceNames"
             title="Device Name"
             items={store.deviceNames}
-            selected={store.selectedDeviceNames}
-            onChange={(items) => store.setSelectedDeviceNames(items)}
+            selected={pendingModalFilters.selectedDeviceNames}
+            onChange={(items) =>
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedDeviceNames: items,
+              }))
+            }
           />
         )}
         {showUdAttrs && store.userDefAttrs.length > 0 && (
@@ -1083,9 +1223,12 @@ const FiltersComponent = forwardRef<
             <UserDefAttrSelector
               attrs={store.userDefAttrs}
               ops={store.userDefAttrOps}
-              initialSelected={store.selectedUdAttrMatchers}
+              initialSelected={pendingModalFilters.selectedUdAttrMatchers}
               onChangeSelected={(udAttrMatchers) =>
-                store.setSelectedUdAttrMatchers(udAttrMatchers)
+                setPendingModalFilters((p) => ({
+                  ...p,
+                  selectedUdAttrMatchers: udAttrMatchers,
+                }))
               }
             />
           </FilterRow>
@@ -1488,9 +1631,9 @@ const FiltersComponent = forwardRef<
                     </DialogHeader>
                     {moreFiltersContent}
                     <DialogFooter>
-                      <DialogClose asChild>
-                        <Button variant="outline">Done</Button>
-                      </DialogClose>
+                      <Button variant="outline" onClick={saveMoreFilters}>
+                        Save
+                      </Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>

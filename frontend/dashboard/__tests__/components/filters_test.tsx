@@ -909,6 +909,133 @@ describe("Filters — filter chips", () => {
   });
 });
 
+describe("Filters — More filters modal pending changes", () => {
+  beforeEach(() => {
+    setAppsSuccess([makeApp("a")]);
+    setFiltersSuccess();
+  });
+
+  it("renames the modal commit button from 'Done' to 'Save'", async () => {
+    await renderFilters();
+    fireEvent.click(await screen.findByText("More filters"));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByRole("button", { name: "Cancel" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Done" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does NOT update the store when a modal control is toggled before Save", async () => {
+    await renderFilters();
+    fireEvent.click(await screen.findByText("More filters"));
+    const before = storeInstance.getState().selectedCountries.slice();
+    const usChip = await screen.findByRole("checkbox", { name: "US" });
+    fireEvent.click(usChip);
+    // No commit yet — store stays at its committed value.
+    expect(storeInstance.getState().selectedCountries).toEqual(before);
+    // And the chip reflects the pending toggle (selected).
+    expect(usChip).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("commits the pending selections to the store and closes the modal on Save", async () => {
+    await renderFilters();
+    fireEvent.click(await screen.findByText("More filters"));
+    fireEvent.click(await screen.findByRole("checkbox", { name: "US" }));
+    fireEvent.click(await screen.findByRole("checkbox", { name: "IN" }));
+    expect(storeInstance.getState().selectedCountries).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => {
+      expect(storeInstance.getState().selectedCountries.sort()).toEqual([
+        "IN",
+        "US",
+      ]);
+    });
+    await waitFor(() => {
+      expect(
+        screen.queryByText("Narrow down results with additional filters."),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("commits OS version toggles to the store on Save", async () => {
+    await renderFilters();
+    fireEvent.click(await screen.findByText("More filters"));
+    fireEvent.click(
+      await screen.findByRole("checkbox", { name: "Android API Level 13" }),
+    );
+    expect(storeInstance.getState().selectedOsVersions).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => {
+      expect(
+        storeInstance.getState().selectedOsVersions.map((v: any) => v.version),
+      ).toEqual(["13"]);
+    });
+  });
+
+  it("re-opens with committed store values after a dismiss (discards stale pending state)", async () => {
+    await renderFilters();
+    fireEvent.click(await screen.findByText("More filters"));
+    fireEvent.click(await screen.findByRole("checkbox", { name: "US" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => {
+      expect(
+        screen.queryByText("Narrow down results with additional filters."),
+      ).not.toBeInTheDocument();
+    });
+    // Reopen — the chip should reflect the store (still unselected), not the
+    // previously-pending selection.
+    fireEvent.click(await screen.findByText("More filters"));
+    const usChipAfter = await screen.findByRole("checkbox", { name: "US" });
+    expect(usChipAfter).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("re-opens with the freshly-committed values after a Save", async () => {
+    await renderFilters();
+    fireEvent.click(await screen.findByText("More filters"));
+    fireEvent.click(await screen.findByRole("checkbox", { name: "US" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => {
+      expect(storeInstance.getState().selectedCountries).toEqual(["US"]);
+    });
+    fireEvent.click(await screen.findByText("More filters"));
+    const usChipAfter = await screen.findByRole("checkbox", { name: "US" });
+    expect(usChipAfter).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("discards pending changes when the modal is dismissed via the X close button", async () => {
+    await renderFilters();
+    fireEvent.click(await screen.findByText("More filters"));
+    fireEvent.click(await screen.findByRole("checkbox", { name: "US" }));
+    // Radix renders an additional unlabelled close button (the X icon) with
+    // the screen-reader-only label "Close".
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => {
+      expect(
+        screen.queryByText("Narrow down results with additional filters."),
+      ).not.toBeInTheDocument();
+    });
+    expect(storeInstance.getState().selectedCountries).toEqual([]);
+  });
+
+  it("does not update the main-row chip while pending changes are unsaved", async () => {
+    await renderFilters();
+    // Confirm no Country chip exists yet (no selection committed).
+    expect(screen.queryByText(/^Country:/)).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByText("More filters"));
+    fireEvent.click(await screen.findByRole("checkbox", { name: "US" }));
+    // Still no chip — selection is pending, not committed.
+    expect(screen.queryByText(/^Country:/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => {
+      expect(screen.getByText("Country: US")).toBeInTheDocument();
+    });
+  });
+});
+
 describe("deserializeUrlFilters — Errors filter source URL keys", () => {
   it("parses et (errorTypes) as a comma-separated string array", () => {
     const result = deserializeUrlFilters("et=error,anr");
