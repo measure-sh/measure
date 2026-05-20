@@ -51,7 +51,7 @@ export class MeasureInternal {
     this.measureInitializer.bugReportCollector.unregister();
   }
 
-  async init(config: MeasureConfig | null): Promise<void> {
+  async init({ config }: { config: MeasureConfig | null }): Promise<void> {
     this.measureInitializer.configLoader
       .loadDynamicConfig()
       .then((dynamicConfig) => {
@@ -104,42 +104,38 @@ export class MeasureInternal {
     return nativeStop();
   }
 
-  trackEvent = (
-    name: string,
-    attributes?: Record<string, ValidAttributeValue>,
-    timestamp?: number
-  ): Promise<void> =>
-    this.measureInitializer.customEventCollector.trackCustomEvent(
-      name,
-      attributes ?? {},
-      timestamp
-    );
+  trackEvent = ({
+    name,
+    attributes,
+    timestamp,
+  }: {
+    name: string;
+    attributes?: Record<string, ValidAttributeValue>;
+    timestamp?: number;
+  }): Promise<void> =>
+    this.measureInitializer.customEventCollector.trackCustomEvent({ name, attributes, timestamp });
 
   getCurrentTime(): number {
     return this.measureInitializer.timeProvider.now();
   }
 
-  trackScreenView = (
-    screenName: string,
-    attributes?: Record<string, ValidAttributeValue>
-  ): Promise<void> =>
-    this.measureInitializer.userTriggeredEventCollector.trackScreenView(
-      screenName,
-      attributes ?? {}
-    );
+  trackScreenView = ({
+    screenName,
+    attributes,
+  }: {
+    screenName: string;
+    attributes?: Record<string, ValidAttributeValue>;
+  }): Promise<void> =>
+    this.measureInitializer.userTriggeredEventCollector.trackScreenView({ screenName, attributes });
 
-  launchBugReport = (
-    takeScreenshot: boolean = true,
-    bugReportConfig: Record<string, any> = {},
-    attributes: Record<string, ValidAttributeValue> = {}
-  ): Promise<void> =>
-    this.measureInitializer.bugReportCollector.launchBugReport(
-      takeScreenshot,
-      bugReportConfig,
-      attributes
-    );
+  launchBugReport = (params: {
+    takeScreenshot?: boolean;
+    bugReportConfig?: Record<string, any>;
+    attributes?: Record<string, ValidAttributeValue>;
+  } = {}): Promise<void> =>
+    this.measureInitializer.bugReportCollector.launchBugReport(params);
 
-  onShake(handler?: (() => void) | null): void {
+  onShake({ handler }: { handler?: (() => void) | null }): void {
     this.shakeHandler = handler;
     const enable = !!this.shakeHandler;
     setShakeListener(enable, this.shakeHandler ?? undefined);
@@ -158,25 +154,23 @@ export class MeasureInternal {
     return this.measureInitializer.layoutSnapshotCollector.capture();
   }
 
-  createSpan(name: string): SpanBuilder | undefined {
-    return this.measureInitializer.spanCollector.createSpan(name);
+  createSpan({ name }: { name: string }): SpanBuilder | undefined {
+    return this.measureInitializer.spanCollector.createSpan({ name });
   }
 
-  startSpan(name: string, timestampMs?: number): Span {
-    return this.measureInitializer.spanCollector.startSpan(name, timestampMs);
+  startSpan({ name, timestampMs }: { name: string; timestampMs?: number }): Span {
+    return this.measureInitializer.spanCollector.startSpan({ name, timestampMs });
   }
 
-  getTraceParentHeaderValue(span: Span): string {
-    return this.measureInitializer.spanCollector.getTraceParentHeaderValue(
-      span
-    );
+  getTraceParentHeaderValue({ span }: { span: Span }): string {
+    return this.measureInitializer.spanCollector.getTraceParentHeaderValue({ span });
   }
 
   getTraceParentHeaderKey(): string {
     return this.measureInitializer.spanCollector.getTraceParentHeaderKey();
   }
 
-  setUserId(userId: string): void {
+  setUserId({ userId }: { userId: string }): void {
     return this.measureInitializer.nativeApiProcessor.setUserId(userId);
   }
 
@@ -202,16 +196,12 @@ export class MeasureInternal {
     );
   }
 
-  trackBugReport(
-    description: string,
-    attachments: MsrAttachment[] = [],
-    attributes: Record<string, ValidAttributeValue> = {}
-  ): Promise<void> {
-    return this.measureInitializer.bugReportCollector.trackBugReport(
-      description,
-      attachments,
-      attributes
-    );
+  trackBugReport(params: {
+    description: string;
+    attachments?: MsrAttachment[];
+    attributes?: Record<string, ValidAttributeValue>;
+  }): Promise<void> {
+    return this.measureInitializer.bugReportCollector.trackBugReport(params);
   }
 
   getSessionId(): Promise<string | null> {

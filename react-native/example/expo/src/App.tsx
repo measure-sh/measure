@@ -22,17 +22,17 @@ export default function App() {
     try {
       const measureConfig = new MeasureConfig({
         enableLogging: true,
-        autoStart: true,
+        autoStart: false,
         enableFullCollectionMode: false,
         enableDiagnosticMode: true,
       });
 
-      await Measure.init(measureConfig);
+      await Measure.init({ config: measureConfig });
 
-      Measure.onShake(() => {
+      Measure.onShake({ handler: () => {
         console.log('Shake detected — launching bug report flow!');
-        Measure.launchBugReport(true, { source: 'shake' }, { screen: 'Home' });
-      });
+        Measure.launchBugReport({ takeScreenshot: true, bugReportConfig: { source: 'shake' }, attributes: { screen: 'Home' } });
+      }});
     } catch (error) {
       console.error('Failed to initialize Measure:', error);
     }

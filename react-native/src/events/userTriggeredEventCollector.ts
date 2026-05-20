@@ -22,15 +22,15 @@ export interface IUserTriggeredEventCollector {
   /**
    * Tracks a screen view event with optional attributes.
    *
-   * @param screenName - The name of the screen being viewed.
-   * @param attributes - Optional key-value pairs providing context.
-   * @param timestamp - Optional timestamp in milliseconds (defaults to now).
+   * @param params.screenName - The name of the screen being viewed.
+   * @param params.attributes - Optional key-value pairs providing context.
+   * @param params.timestamp - Optional timestamp in milliseconds (defaults to now).
    */
-  trackScreenView(
-    screenName: string,
-    attributes?: Record<string, ValidAttributeValue>,
-    timestamp?: number
-  ): Promise<void>;
+  trackScreenView(params: {
+    screenName: string;
+    attributes?: Record<string, ValidAttributeValue>;
+    timestamp?: number;
+  }): Promise<void>;
 
   /**
    * Returns whether the collector is currently enabled.
@@ -81,10 +81,13 @@ export class UserTriggeredEventCollector implements IUserTriggeredEventCollector
     this.enabled = false;
   }
 
-  async trackScreenView(
-    screenName: string,
-    attributes?: Record<string, ValidAttributeValue>
-  ): Promise<void> {
+  async trackScreenView({
+    screenName,
+    attributes,
+  }: {
+    screenName: string;
+    attributes?: Record<string, ValidAttributeValue>;
+  }): Promise<void> {
     if (!this.enabled) {
       this.logger.internalLog('warning', 'Measure SDK is stopped. trackScreenView() will be ignored.');
       return;

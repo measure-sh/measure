@@ -37,9 +37,12 @@ export default function ComponentScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      Measure.trackScreenView('ComponentScreen', {
-        screen: 'ComponentScreen',
-        timestamped: true,
+      Measure.trackScreenView({
+        screenName: 'ComponentScreen',
+        attributes: {
+          screen: 'ComponentScreen',
+          timestamped: true,
+        },
       }).catch(err =>
         console.error('Failed to track screen view:', err)
       );

@@ -20,15 +20,15 @@ export interface ICustomEventCollector {
 
   /**
    * Tracks a custom user-triggered event.
-   * @param name The name of the custom event.
-   * @param attributes Optional map of custom attributes.
-   * @param timestamp Optional custom timestamp.
+   * @param params.name The name of the custom event.
+   * @param params.attributes Optional map of custom attributes.
+   * @param params.timestamp Optional custom timestamp.
    */
-  trackCustomEvent(
-    name: string,
-    attributes?: Record<string, ValidAttributeValue>,
-    timestamp?: number
-  ): Promise<void>;
+  trackCustomEvent(params: {
+    name: string;
+    attributes?: Record<string, ValidAttributeValue>;
+    timestamp?: number;
+  }): Promise<void>;
 }
 export class CustomEventCollector implements ICustomEventCollector {
   private logger: Logger;
@@ -57,11 +57,15 @@ export class CustomEventCollector implements ICustomEventCollector {
     this.enabled = false;
   }
 
-  async trackCustomEvent(
-    name: string,
-    attributes?: Record<string, ValidAttributeValue>,
-    timestamp?: number
-  ): Promise<void> {
+  async trackCustomEvent({
+    name,
+    attributes,
+    timestamp,
+  }: {
+    name: string;
+    attributes?: Record<string, ValidAttributeValue>;
+    timestamp?: number;
+  }): Promise<void> {
     if (!this.enabled) {
       this.logger.internalLog('warning', 'Measure SDK is stopped. trackEvent() will be ignored.');
       return;
