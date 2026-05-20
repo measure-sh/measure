@@ -18,7 +18,7 @@ describe('CustomEventCollector', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    logger = { log: jest.fn() };
+    logger = { log: jest.fn(), internalLog: jest.fn() };
     timeProvider = { now: jest.fn(() => 123456789) };
     configProvider = {
       maxEventNameLength: 10,

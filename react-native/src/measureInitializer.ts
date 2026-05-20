@@ -127,7 +127,7 @@ export class MeasureInitializer implements IMeasureInitializer {
       this.spanProcessor,
       this.traceSampler
     );
-    this.spanCollector = new SpanCollector(this.tracer);
+    this.spanCollector = new SpanCollector(this.tracer, this.logger);
     this.nativeApiProcessor = new NativeApiProcessor({
       logger: this.logger,
     });
