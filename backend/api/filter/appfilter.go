@@ -336,6 +336,18 @@ func (af *AppFilter) Expand(ctx context.Context) (err error) {
 			af.UDExpressionRaw = filters.UDExpressionRaw
 		}
 
+		if af.Severity != "" {
+			for _, s := range text.SplitTrimEmpty(af.Severity, ",") {
+				af.Severities = append(af.Severities, event.Severity(s))
+			}
+		}
+
+		if af.ErrorType != "" {
+			for _, t := range text.SplitTrimEmpty(af.ErrorType, ",") {
+				af.ErrorTypes = append(af.ErrorTypes, event.ErrorType(t))
+			}
+		}
+
 		return
 	}
 
