@@ -1,5 +1,7 @@
 export const NativeModules = {
   MeasureModule: {
+    start: jest.fn(() => Promise.resolve()),
+    stop: jest.fn(() => Promise.resolve()),
     trackEvent: jest.fn(() => Promise.resolve()),
     trackSpan: jest.fn(() => Promise.resolve()),
     setUserId: jest.fn(() => Promise.resolve()),
