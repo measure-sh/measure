@@ -470,7 +470,7 @@ const initialState: FiltersStoreState = {
   selectedDeviceNames: [],
   selectedUdAttrMatchers: [],
   selectedFreeText: "",
-  selectedErrorTypes: ["error"],
+  selectedErrorTypes: ["error", "anr"],
   selectedSeverities: ["fatal"],
   customErrorsOnly: false,
   currentTeamId: "",
@@ -807,7 +807,7 @@ export function applyFilterOptions(
   if (isUrlMatch && urlFilters.errorTypes) {
     selectedErrorTypes = urlFilters.errorTypes;
   } else {
-    selectedErrorTypes = ["error"];
+    selectedErrorTypes = ["error", "anr"];
   }
 
   let selectedSeverities: string[];
