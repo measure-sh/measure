@@ -662,6 +662,9 @@ const FiltersComponent = forwardRef<
     const [scrollTarget, setScrollTarget] = useState<string | null>(null);
     // Drives the inline app versions dropdown so its chip can open it too.
     const [appVersionsOpen, setAppVersionsOpen] = useState(false);
+    // Drives the Errors type popover so the combined error-types pill can
+    // open it on click.
+    const [errorsTypeOpen, setErrorsTypeOpen] = useState(false);
 
     // Pending snapshot of every store field driven by a control inside the More
     // filters modal. Initialized when the modal opens, written to by modal
@@ -1481,6 +1484,8 @@ const FiltersComponent = forwardRef<
                       store.setCustomErrorsOnly(custom)
                     }
                     showCustomToggle={showCustomErrors}
+                    open={errorsTypeOpen}
+                    onOpenChange={setErrorsTypeOpen}
                   />
                 )}
                 {showSeverityControl && (
@@ -1573,7 +1578,7 @@ const FiltersComponent = forwardRef<
                     ))}
                     {showErrorTypesPill && (
                       <Pill
-                        onClick={() => {}}
+                        onClick={() => setErrorsTypeOpen(true)}
                         action={
                           errorTypesAtDefaults
                             ? undefined
