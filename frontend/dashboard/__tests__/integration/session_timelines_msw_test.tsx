@@ -720,14 +720,14 @@ describe("Session Timelines Overview (MSW integration)", () => {
     });
 
     // --- Session type filter (URL param, not shortFilters body) ---
-    it("session type change adds type=error,anr param to data-fetch URL", async () => {
+    it("session type change adds type=error,anr + severity to data-fetch URL", async () => {
       await renderAndWaitForData();
       sessionRequests.length = 0;
       await act(async () => {
         filtersStore
           .getState()
           .setSelectedSessionTypes([
-            "Error Sessions" as any,
+            "Fatal Error Sessions" as any,
             "ANR Sessions" as any,
           ]);
       });
@@ -736,6 +736,7 @@ describe("Session Timelines Overview (MSW integration)", () => {
       });
       const url = sessionRequests[sessionRequests.length - 1].url;
       expect(url).toContain("type=error%2Canr");
+      expect(url).toContain("severity=fatal");
     });
 
     // --- Free text filter (URL param) ---
@@ -1343,15 +1344,17 @@ describe("Session Timelines Overview — additional coverage", () => {
   // ================================================================
   describe("session type params — each type individually", () => {
     it.each([
-      ["Error Sessions", "type=error"],
-      ["ANR Sessions", "type=anr"],
-      ["Bug Report Sessions", "bug_report=1"],
-      ["User Interaction Sessions", "user_interaction=1"],
-      ["Foreground Sessions", "foreground=1"],
-      ["Background Sessions", "background=1"],
+      ["Fatal Error Sessions", "type=error", "severity=fatal"],
+      ["Unhandled Error Sessions", "type=error", "severity=unhandled"],
+      ["Handled Error Sessions", "type=error", "severity=handled"],
+      ["ANR Sessions", "type=anr", undefined],
+      ["Bug Report Sessions", "bug_report=1", undefined],
+      ["User Interaction Sessions", "user_interaction=1", undefined],
+      ["Foreground Sessions", "foreground=1", undefined],
+      ["Background Sessions", "background=1", undefined],
     ])(
       'selecting "%s" adds %s to data-fetch URL',
-      async (sessionType, expectedParam) => {
+      async (sessionType, expectedType, expectedSeverity) => {
         await renderAndWaitForData();
         sessionRequests.length = 0;
 
@@ -1362,9 +1365,11 @@ describe("Session Timelines Overview — additional coverage", () => {
         await waitFor(() => expect(sessionRequests.length).toBeGreaterThan(0), {
           timeout: 5000,
         });
-        expect(sessionRequests[sessionRequests.length - 1].url).toContain(
-          expectedParam,
-        );
+        const url = sessionRequests[sessionRequests.length - 1].url;
+        expect(url).toContain(expectedType);
+        if (expectedSeverity) {
+          expect(url).toContain(expectedSeverity);
+        }
       },
     );
 
@@ -1376,7 +1381,9 @@ describe("Session Timelines Overview — additional coverage", () => {
         filtersStore
           .getState()
           .setSelectedSessionTypes([
-            "Error Sessions",
+            "Fatal Error Sessions",
+            "Unhandled Error Sessions",
+            "Handled Error Sessions",
             "ANR Sessions",
             "Bug Report Sessions",
             "User Interaction Sessions",
@@ -1932,7 +1939,7 @@ describe("Session Timelines Overview — additional coverage", () => {
       await act(async () => {
         filtersStore
           .getState()
-          .setSelectedSessionTypes(["Error Sessions" as any]);
+          .setSelectedSessionTypes(["Fatal Error Sessions" as any]);
         filtersStore.getState().setSelectedFreeText("NullPointerException");
       });
 
@@ -1941,6 +1948,7 @@ describe("Session Timelines Overview — additional coverage", () => {
       });
       const url = sessionRequests[sessionRequests.length - 1].url;
       expect(url).toContain("type=error");
+      expect(url).toContain("severity=fatal");
       expect(url).toContain("free_text=NullPointerException");
     });
   });

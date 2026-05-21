@@ -506,7 +506,9 @@ export enum NetworkTimelinePlotApiStatus {
 }
 
 export enum SessionType {
-  Errors = "Error Sessions",
+  FatalErrors = "Fatal Error Sessions",
+  UnhandledErrors = "Unhandled Error Sessions",
+  HandledErrors = "Handled Error Sessions",
   ANRs = "ANR Sessions",
   BugReports = "Bug Report Sessions",
   UserInteraction = "User Interaction Sessions",
@@ -1476,14 +1478,27 @@ function appendPlotTimeGroupToUrl(url: string, filters: Filters): string {
 function appendSessionTypesToUrl(url: string, filters: Filters): string {
   const u = new URL(url, window.location.origin);
   if (!filters.sessionTypes.all && filters.sessionTypes.selected.length > 0) {
-    const types: string[] = [];
+    // The three error severities all imply type=error; we collect the
+    // severities separately so the URL emits e.g. type=error,anr and
+    // severity=fatal,handled — matching the errors-endpoint contract.
+    const types = new Set<string>();
+    const severities = new Set<string>();
     filters.sessionTypes.selected.forEach((v) => {
       switch (v) {
-        case SessionType.Errors:
-          types.push("error");
+        case SessionType.FatalErrors:
+          types.add("error");
+          severities.add("fatal");
+          break;
+        case SessionType.UnhandledErrors:
+          types.add("error");
+          severities.add("unhandled");
+          break;
+        case SessionType.HandledErrors:
+          types.add("error");
+          severities.add("handled");
           break;
         case SessionType.ANRs:
-          types.push("anr");
+          types.add("anr");
           break;
         case SessionType.BugReports:
           u.searchParams.append("bug_report", "1");
@@ -1499,8 +1514,11 @@ function appendSessionTypesToUrl(url: string, filters: Filters): string {
           break;
       }
     });
-    if (types.length > 0) {
-      u.searchParams.append("type", types.join(","));
+    if (types.size > 0) {
+      u.searchParams.append("type", Array.from(types).join(","));
+    }
+    if (severities.size > 0) {
+      u.searchParams.append("severity", Array.from(severities).join(","));
     }
   }
   return u.toString();
