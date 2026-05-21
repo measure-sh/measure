@@ -52,7 +52,6 @@ import {
 } from "../utils/time_utils";
 import { Button } from "./button";
 import { CheckChipGroup } from "./check_chip";
-import { Checkbox } from "./checkbox";
 import DebounceTextInput from "./debounce_text_input";
 import {
   Dialog,
@@ -63,6 +62,7 @@ import {
   DialogTitle,
 } from "./dialog";
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
+import ErrorsTypeFilter from "./errors_type_filter";
 import FilterChip, { type FilterChipAction } from "./filter_chip";
 import { Input } from "./input";
 import Onboarding from "./onboarding";
@@ -105,18 +105,6 @@ interface FiltersProps {
 const defaultFreeTextPlaceholder = "Search anything...";
 
 const SEARCH_INPUT_ID = "free-text";
-
-// Errors-only Type filter: store holds lowercase values; the dropdown shows
-// capitalized labels.
-const ERROR_TYPE_DISPLAY_ITEMS: string[] = ["Error", "ANR"];
-const ERROR_TYPE_DISPLAY_TO_STORE: Record<string, string> = {
-  Error: "error",
-  ANR: "anr",
-};
-const ERROR_TYPE_STORE_TO_DISPLAY: Record<string, string> = {
-  error: "Error",
-  anr: "ANR",
-};
 
 // Errors-only Severity filter: store holds lowercase values; the dropdown
 // shows capitalized labels.
@@ -803,8 +791,8 @@ const FiltersComponent = forwardRef<
       showUdAttrs;
 
     // Errors-only controls live on the main row alongside the standard
-    // inline dropdowns. Severity and Custom errors only render when the
-    // user hasn't unchecked Error in the Type multi-select.
+    // inline dropdowns. Severity is hidden when the user has unchecked Error
+    // in the Type multi-select. Custom only lives inside the Type popover.
     const isErrorsSource = filterSource === FilterSource.Errors;
     const onlyAnrSelected =
       store.selectedErrorTypes.length === 1 &&
@@ -812,8 +800,6 @@ const FiltersComponent = forwardRef<
     const showErrorTypeControl = isErrorsSource && showErrorType;
     const showSeverityControl =
       isErrorsSource && showSeverity && !onlyAnrSelected;
-    const showCustomErrorsControl =
-      isErrorsSource && showCustomErrors && !onlyAnrSelected;
 
     // Dropdowns that stay inline: app, trace name, date range, app versions,
     // the Errors-only controls, plus the "More filters" trigger.
@@ -825,7 +811,6 @@ const FiltersComponent = forwardRef<
         showAppVersions,
         showErrorTypeControl,
         showSeverityControl,
-        showCustomErrorsControl,
       ].filter(Boolean).length + (hasMoreFiltersConfig ? 1 : 0);
 
     // Same as hasMoreFiltersConfig but gated on loaded data — drives the real
@@ -1467,21 +1452,16 @@ const FiltersComponent = forwardRef<
                   />
                 )}
                 {showErrorTypeControl && (
-                  <DropdownSelect
-                    title="Type"
-                    type={DropdownSelectType.MultiString}
-                    items={ERROR_TYPE_DISPLAY_ITEMS}
-                    initialSelected={store.selectedErrorTypes.map(
-                      (t) => ERROR_TYPE_STORE_TO_DISPLAY[t] ?? t,
-                    )}
-                    onChangeSelected={(items) => {
-                      const display = items as string[];
-                      store.setSelectedErrorTypes(
-                        display
-                          .map((d) => ERROR_TYPE_DISPLAY_TO_STORE[d])
-                          .filter((v): v is string => v !== undefined),
-                      );
-                    }}
+                  <ErrorsTypeFilter
+                    selectedErrorTypes={store.selectedErrorTypes}
+                    customErrorsOnly={store.customErrorsOnly}
+                    onChangeErrorTypes={(types) =>
+                      store.setSelectedErrorTypes(types)
+                    }
+                    onChangeCustomErrorsOnly={(custom) =>
+                      store.setCustomErrorsOnly(custom)
+                    }
+                    showCustomToggle={showCustomErrors}
                   />
                 )}
                 {showSeverityControl && (
@@ -1501,17 +1481,6 @@ const FiltersComponent = forwardRef<
                       );
                     }}
                   />
-                )}
-                {showCustomErrorsControl && (
-                  <label className="flex items-center gap-2 cursor-pointer select-none font-display text-sm">
-                    <Checkbox
-                      checked={store.customErrorsOnly}
-                      onCheckedChange={(checked) =>
-                        store.setCustomErrorsOnly(checked === true)
-                      }
-                    />
-                    Custom errors only
-                  </label>
                 )}
                 {hasMoreFilters && (
                   <Button
