@@ -3070,12 +3070,13 @@ Fetch an app's error overview. Returns fatal exceptions, handled exceptions, and
   - `network_generations` (_optional_) - List of comma separated network generations.
   - `type` (_optional_) - Comma-separated list of error source types to include. Accepted values: any combination of `error`, `anr`. When omitted, all sources are returned.
   - `severity` (_optional_) - Comma-separated list of severity levels to filter by. Accepted values: any combination of `fatal`, `unhandled`, `handled`. Applies only to exception events (`type=error`); ANRs are unaffected.
-  - `custom` (_optional_) - `true` to restrict to custom-tracked errors.
+  - `custom` (_optional_) - `true` to restrict exception results to custom-tracked only. ANRs are unaffected by this flag — they are included whenever their source is in scope (i.e. `type` is omitted or includes `anr`).
   - `limit` (_optional_) - Number of items to return. Defaults to 10, max 1000.
   - `offset` (_optional_) - Number of items to skip. Defaults to 0.
   - `filter_short_code` (_optional_) - Code representing combination of filters.
   - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 - When neither `type` nor `severity` is set, all sources (fatal exceptions, nonfatal exceptions, ANRs) are returned.
+- `custom=true` filters exceptions to custom-tracked only and does not suppress ANRs. To exclude ANRs explicitly, use `type=error`.
 
 #### Authorization & Content Type
 
@@ -3202,7 +3203,7 @@ Fetch an app's error overview instances plot aggregated by date range & version.
   - `version_codes` (_optional_) - List of comma separated version codes.
   - `type` (_optional_) - Comma-separated list of error source types to include. Accepted values: any combination of `error`, `anr`. When omitted, all sources are returned.
   - `severity` (_optional_) - Comma-separated list of severity levels to filter by. Accepted values: any combination of `fatal`, `unhandled`, `handled`. Applies only to exception events (`type=error`); ANRs are unaffected.
-  - `custom` (_optional_) - `true` to restrict to custom-tracked errors.
+  - `custom` (_optional_) - `true` to restrict exception results to custom-tracked only. ANRs are unaffected by this flag — they are included whenever their source is in scope (i.e. `type` is omitted or includes `anr`).
   - `filter_short_code` (_optional_) - Code representing combination of filters.
   - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 - Both `from` and `to` **MUST** be present when specifying date range.
@@ -3308,7 +3309,7 @@ Fetch an error group's individual error events.
   - `network_generations` (_optional_) - List of comma separated network generations.
   - `type` (_optional_) - Comma-separated list of error source types to include. Accepted values: any combination of `error`, `anr`. When omitted, all sources are returned.
   - `severity` (_optional_) - Comma-separated list of severity levels to filter by. Accepted values: any combination of `fatal`, `unhandled`, `handled`. Applies only to exception events (`type=error`); ANRs are unaffected.
-  - `custom` (_optional_) - `true` to restrict to custom-tracked errors.
+  - `custom` (_optional_) - `true` to restrict exception results to custom-tracked only. ANRs are unaffected by this flag — they are included whenever their source is in scope (i.e. `type` is omitted or includes `anr`).
   - `limit` (_optional_) - Number of items to return. Defaults to 10, max 1000.
   - `offset` (_optional_) - Number of items to skip. Defaults to 0.
   - `filter_short_code` (_optional_) - Code representing combination of filters.
@@ -3544,7 +3545,7 @@ Fetch an app's error detail instances aggregated by date range & version.
   - `version_codes` (_optional_) - List of comma separated version codes.
   - `type` (_optional_) - Comma-separated list of error source types to include. Accepted values: any combination of `error`, `anr`. When omitted, all sources are returned.
   - `severity` (_optional_) - Comma-separated list of severity levels to filter by. Accepted values: any combination of `fatal`, `unhandled`, `handled`. Applies only to exception events (`type=error`); ANRs are unaffected.
-  - `custom` (_optional_) - `true` to restrict to custom-tracked errors.
+  - `custom` (_optional_) - `true` to restrict exception results to custom-tracked only. ANRs are unaffected by this flag — they are included whenever their source is in scope (i.e. `type` is omitted or includes `anr`).
   - `filter_short_code` (_optional_) - Code representing combination of filters.
   - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 - Both `from` and `to` **MUST** be present when specifying date range.
@@ -3648,7 +3649,7 @@ Fetch an error group's attribute distribution — occurrence counts broken down 
   - `network_generations` (_optional_) - List of comma separated network generations.
   - `type` (_optional_) - Comma-separated list of error source types to include. Accepted values: any combination of `error`, `anr`. When omitted, all sources are returned.
   - `severity` (_optional_) - Comma-separated list of severity levels to filter by. Accepted values: any combination of `fatal`, `unhandled`, `handled`. Applies only to exception events (`type=error`); ANRs are unaffected.
-  - `custom` (_optional_) - `true` to restrict to custom-tracked errors.
+  - `custom` (_optional_) - `true` to restrict exception results to custom-tracked only. ANRs are unaffected by this flag — they are included whenever their source is in scope (i.e. `type` is omitted or includes `anr`).
   - `filter_short_code` (_optional_) - Code representing combination of filters.
   - `ud_expression` (_optional_) - Expression in JSON to filter using user defined attributes.
 

@@ -265,8 +265,8 @@ const (
 
 // seedCustomMix seeds two custom-captured exceptions (one fatal, one handled
 // nonfatal), two native exceptions (one fatal, one unhandled nonfatal), and
-// one ANR. ANRs are never custom — they exist to confirm CustomError=true
-// excludes them.
+// one ANR. ANRs are never custom — they exist to verify is_custom is false
+// on ANR rows and that type=error+custom=1 still excludes them.
 func seedCustomMix(f plotFixture, t *testing.T, ts time.Time) {
 	t.Helper()
 	teamID, appID := f.teamIDStr(), f.appIDStr()
@@ -287,9 +287,10 @@ func seedCustomMix(f plotFixture, t *testing.T, ts time.Time) {
 	seedIssueEvent(f.ctx, t, teamID, appID, "anr", fpGroupCustomANRish, false, ts)
 }
 
-// TestGetErrorGroupsWithFilterCustomErrorFilter confirms that ?custom=true
-// restricts the result to custom-captured exceptions (excludes native
-// exceptions and all ANRs) and that the is_custom field is populated.
+// TestGetErrorGroupsWithFilterCustomErrorFilter confirms that ?custom=true with
+// type=error,anr returns custom exceptions AND ANRs (ANRs are always included
+// when explicitly requested), while native exceptions are excluded.
+// is_custom is true for custom exceptions and false for ANRs.
 func TestGetErrorGroupsWithFilterCustomErrorFilter(t *testing.T) {
 	f := newPlotFixture(t)
 	ts := time.Now().UTC()
@@ -304,19 +305,24 @@ func TestGetErrorGroupsWithFilterCustomErrorFilter(t *testing.T) {
 		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
 	}
 
-	wantIDs := map[string]bool{
+	// ANRs are included because type=error,anr explicitly requests them;
+	// is_custom is false for ANR rows since ANRs are never custom-captured.
+	wantIsCustom := map[string]bool{
 		fpGroupCustomFatal:   true,
 		fpGroupCustomHandled: true,
+		fpGroupCustomANRish:  false,
 	}
-	if len(groups) != len(wantIDs) {
-		t.Fatalf("got %d rows, want %d (custom only): %+v", len(groups), len(wantIDs), groups)
+	if len(groups) != len(wantIsCustom) {
+		t.Fatalf("got %d rows, want %d: %+v", len(groups), len(wantIsCustom), groups)
 	}
 	for _, g := range groups {
-		if !wantIDs[g.ID] {
-			t.Errorf("unexpected row %s in custom-only result", g.ID)
+		want, ok := wantIsCustom[g.ID]
+		if !ok {
+			t.Errorf("unexpected row %s in result", g.ID)
+			continue
 		}
-		if !g.IsCustom {
-			t.Errorf("row %s: is_custom = false, want true", g.ID)
+		if g.IsCustom != want {
+			t.Errorf("row %s: is_custom = %t, want %t", g.ID, g.IsCustom, want)
 		}
 	}
 }
@@ -360,7 +366,8 @@ func TestGetErrorGroupsWithFilterIsCustomPopulated(t *testing.T) {
 }
 
 // TestGetErrorPlotInstancesCustomErrorFilter confirms the overview plot
-// honors ?custom=true on the exception branch.
+// honors ?custom=true: custom exceptions and ANRs (no explicit type = include
+// all) are counted, while native exceptions are excluded.
 func TestGetErrorPlotInstancesCustomErrorFilter(t *testing.T) {
 	f := newPlotFixture(t)
 	ts := time.Now().UTC()
@@ -373,7 +380,8 @@ func TestGetErrorPlotInstancesCustomErrorFilter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetErrorPlotInstances: %v", err)
 	}
-	if got := sumIssueInstances(items); got != 2 {
-		t.Fatalf("instances = %d, want 2 (two custom exception events), items=%+v", got, items)
+	// 2 custom exception events + 1 ANR event (type omitted → ANRs included).
+	if got := sumIssueInstances(items); got != 3 {
+		t.Fatalf("instances = %d, want 3 (two custom exceptions + one ANR), items=%+v", got, items)
 	}
 }
