@@ -284,11 +284,13 @@ func (a App) GetExceptionGroupPlotInstances(ctx context.Context, fingerprint str
 }
 
 // anrAllowed returns whether the ANR source should be queried given the
-// AppFilter. ANRs are never custom-captured, so CustomError=true forces ANR
-// off regardless of the requested value. Use this as the single source of
-// truth in every error-endpoint flow.
+// AppFilter. ANRs are never custom-captured, so when custom=1 and the caller
+// explicitly asked for error-only (type=error), ANRs are suppressed. When
+// type is absent or includes anr, the requested value is respected.
+// Use this as the single source of truth in every error-endpoint flow.
 func anrAllowed(af *filter.AppFilter, requested bool) bool {
-	if af.CustomError {
+	explicitErrorOnly := len(af.ErrorTypes) > 0 && !slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
+	if af.CustomError && explicitErrorOnly {
 		return false
 	}
 	return requested
