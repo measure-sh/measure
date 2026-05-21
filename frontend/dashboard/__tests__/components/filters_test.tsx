@@ -744,10 +744,7 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
       filterSource: FilterSource.Errors,
       showErrorType: true,
     });
-    // Default is error only; opt ANR in for this test.
-    await act(async () => {
-      storeInstance.getState().setSelectedErrorTypes(["error", "anr"]);
-    });
+    // Defaults already include both error and anr.
     await waitFor(() => {
       expect(screen.getByText("ANRs")).toBeInTheDocument();
     });

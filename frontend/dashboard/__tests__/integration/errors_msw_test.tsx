@@ -462,17 +462,15 @@ describe("Errors filter behaviour", () => {
     );
   }
 
-  it("default request includes only error in type", async () => {
+  it("default request includes both error and anr in type", async () => {
     const { errorGroupsRequests } = setupRequestCapture();
     await renderAndWaitForData();
     expect(errorGroupsRequests.length).toBeGreaterThan(0);
     const lastUrl = errorGroupsRequests[errorGroupsRequests.length - 1].url;
-    expect(lastUrl).toContain("type=error");
-    expect(lastUrl).not.toContain("type=anr");
-    expect(lastUrl).not.toContain("type=error%2Canr");
+    expect(lastUrl).toContain("type=error%2Canr");
   });
 
-  it("Type=Error+ANR causes type=error,anr in requests", async () => {
+  it("Type=Error only causes type=error in requests", async () => {
     const { errorGroupsRequests, errorGroupsPlotRequests } =
       setupRequestCapture();
     await renderAndWaitForData();
@@ -480,7 +478,7 @@ describe("Errors filter behaviour", () => {
     errorGroupsPlotRequests.length = 0;
 
     await act(async () => {
-      filtersStore.getState().setSelectedErrorTypes(["error", "anr"]);
+      filtersStore.getState().setSelectedErrorTypes(["error"]);
     });
 
     await waitFor(
@@ -491,7 +489,9 @@ describe("Errors filter behaviour", () => {
     );
 
     const lastUrl = errorGroupsRequests[errorGroupsRequests.length - 1].url;
-    expect(lastUrl).toContain("type=error%2Canr");
+    expect(lastUrl).toContain("type=error");
+    expect(lastUrl).not.toContain("type=anr");
+    expect(lastUrl).not.toContain("type=error%2Canr");
   });
 
   it("Type=ANR only causes type=anr in requests and no severity/custom", async () => {
@@ -619,10 +619,7 @@ describe("Errors filter pills", () => {
 
   it("clicking ANRs pill X removes 'anr' from selected types", async () => {
     await renderAndWaitForData();
-    // Default is error only; opt ANR in so the pill is present to click.
-    await act(async () => {
-      filtersStore.getState().setSelectedErrorTypes(["error", "anr"]);
-    });
+    // Defaults already include both error and anr.
     const clearButton = await screen.findByRole("button", {
       name: "Clear ANRs",
     });

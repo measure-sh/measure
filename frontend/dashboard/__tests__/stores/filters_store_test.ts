@@ -693,9 +693,9 @@ describe("computed filters object", () => {
 // customErrorsOnly — default state, setters, and URL (de)serialization.
 // ========================================================================
 describe("errors-source filter state", () => {
-  it("defaults selectedErrorTypes to ['error']", () => {
+  it("defaults selectedErrorTypes to ['error', 'anr']", () => {
     const store = createFiltersStore();
-    expect(store.getState().selectedErrorTypes).toEqual(["error"]);
+    expect(store.getState().selectedErrorTypes).toEqual(["error", "anr"]);
   });
 
   it("defaults selectedSeverities to ['fatal']", () => {
@@ -897,7 +897,7 @@ describe("errors-source filter state", () => {
     expect(patch.customErrorsOnly).toBe(true);
   });
 
-  it("applyFilterOptions defaults errorTypes back to ['error'] when URL omits it", () => {
+  it("applyFilterOptions defaults errorTypes back to ['error', 'anr'] when URL omits it", () => {
     const store = createFiltersStore();
     const cfg: InitConfig = {
       urlFilters: {},
@@ -910,7 +910,7 @@ describe("errors-source filter state", () => {
       cfg,
       store.getState(),
     );
-    expect(patch.selectedErrorTypes).toEqual(["error"]);
+    expect(patch.selectedErrorTypes).toEqual(["error", "anr"]);
     expect(patch.selectedSeverities).toEqual(["fatal"]);
     expect(patch.customErrorsOnly).toBe(false);
   });
