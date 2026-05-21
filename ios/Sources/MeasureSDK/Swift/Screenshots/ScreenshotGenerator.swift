@@ -26,12 +26,11 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
     private let attachmentProcessor: AttachmentProcessor
     private let userPermissionManager: UserPermissionManager
 
-    /// Class name fragments that trigger masking via name matching.
+    /// Class name fragments that trigger masking via name matching at all mask levels.
     /// Used for SwiftUI backing views that don't appear as known UIView
     /// subclasses. _UIHostingView blanket-masks all SwiftUI content by
     /// default — use .msrUnmask() to opt specific views out.
     private let maskedClassNameFragments: [String] = [
-        "RCTParagraphTextView",
         "_UIHostingView"
     ]
 
@@ -67,8 +66,10 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
             }
 
             SignPost.trace(subcategory: "Attachment", label: "generateScreenshot") {
-                let typesToMask = self.typesToMask(for: self.configProvider.screenshotMaskLevel)
-                let result = self.findSensitiveFrames(in: window, rootView: window, types: typesToMask)
+                let level = self.configProvider.screenshotMaskLevel
+                let typesToMask = self.typesToMask(for: level)
+                let fragmentsToMask = self.classNameFragmentsToMask(for: level)
+                let result = self.findSensitiveFrames(in: window, rootView: window, types: typesToMask, fragments: fragmentsToMask)
 
                 // Subtract exempt frames from sensitive frames
                 var sensitiveFrames = result.sensitive
@@ -126,7 +127,7 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
         }
     }
 
-    private func findSensitiveFrames(in view: UIView, rootView: UIView, types: [UIView.Type]) -> (sensitive: [CGRect], exempt: [CGRect]) {
+    private func findSensitiveFrames(in view: UIView, rootView: UIView, types: [UIView.Type], fragments: [String]) -> (sensitive: [CGRect], exempt: [CGRect]) {
         var sensitive: [CGRect] = []
         var exempt: [CGRect] = []
 
@@ -140,7 +141,7 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
             // Fall through to class-based and fragment-based checks
             let className = String(describing: type(of: view))
             let matchesType = types.contains { view.isKind(of: $0) }
-            let matchesFragment = maskedClassNameFragments.contains { className.contains($0) }
+            let matchesFragment = fragments.contains { className.contains($0) }
 
             if matchesType || matchesFragment {
                 sensitive.append(view.convert(view.bounds, to: rootView))
@@ -157,7 +158,7 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
         }
 
         for subview in view.subviews {
-            let result = findSensitiveFrames(in: subview, rootView: rootView, types: types)
+            let result = findSensitiveFrames(in: subview, rootView: rootView, types: types, fragments: fragments)
             sensitive.append(contentsOf: result.sensitive)
             exempt.append(contentsOf: result.exempt)
         }
@@ -174,6 +175,15 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
             for frame in sensitiveFrames {
                 context.cgContext.fill(frame)
             }
+        }
+    }
+
+    private func classNameFragmentsToMask(for level: ScreenshotMaskLevel) -> [String] {
+        switch level {
+        case .allTextAndMedia, .allText, .allTextExceptClickable:
+            return maskedClassNameFragments + ["RCTParagraphTextView"]
+        case .sensitiveFieldsOnly:
+            return maskedClassNameFragments
         }
     }
 
