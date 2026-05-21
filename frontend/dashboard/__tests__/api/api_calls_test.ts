@@ -1109,7 +1109,9 @@ describe("applyGenericFiltersToUrl filter branches", () => {
       sessionTypes: {
         all: false,
         selected: [
-          "Error Sessions",
+          "Fatal Error Sessions",
+          "Unhandled Error Sessions",
+          "Handled Error Sessions",
           "ANR Sessions",
           "Bug Report Sessions",
           "User Interaction Sessions",
@@ -1121,6 +1123,7 @@ describe("applyGenericFiltersToUrl filter branches", () => {
     await fetchMetricsFromServer(filters);
     const url = lastFetchUrl();
     expect(url).not.toContain("type=");
+    expect(url).not.toContain("severity=");
     expect(url).not.toContain("bug_report=");
     expect(url).not.toContain("user_interaction=");
     expect(url).not.toContain("foreground=");
@@ -1619,7 +1622,9 @@ describe("additional branch coverage", () => {
         sessionTypes: {
           all: false,
           selected: [
-            "Error Sessions",
+            "Fatal Error Sessions",
+            "Unhandled Error Sessions",
+            "Handled Error Sessions",
             "ANR Sessions",
             "Bug Report Sessions",
             "User Interaction Sessions",
@@ -1632,8 +1637,10 @@ describe("additional branch coverage", () => {
       0,
     );
     const url = lastFetchUrl();
-    // appendSessionTypesToUrl path — errors/anrs combine into type=...
+    // appendSessionTypesToUrl path — error severities flatten into type=error
+    // + severity=fatal,unhandled,handled, anr stays as a separate type entry.
     expect(url).toContain("type=error%2Canr");
+    expect(url).toContain("severity=fatal%2Cunhandled%2Chandled");
     expect(url).toContain("bug_report=1");
     expect(url).toContain("user_interaction=1");
     expect(url).toContain("foreground=1");
