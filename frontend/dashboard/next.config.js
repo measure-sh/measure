@@ -37,6 +37,22 @@ const nextConfig = {
       },
     ],
   },
+  // /crashes and /anrs were consolidated into /errors. Catch any stale links
+  // from old emails or bookmarks and forward them to the new path.
+  async redirects() {
+    return [
+      {
+        source: "/:teamId/crashes/:rest*",
+        destination: "/:teamId/errors/:rest*",
+        permanent: true,
+      },
+      {
+        source: "/:teamId/anrs/:rest*",
+        destination: "/:teamId/errors/:rest*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       // deny framing on every route to prevent clickjacking
