@@ -27,6 +27,7 @@ import ErrorGroupCommonPath from "./error_group_common_path";
 import ErrorsDetailsPlot from "./errors_details_plot";
 import ErrorsDistributionPlot from "./errors_distribution_plot";
 import Filters, { AppVersionsInitialSelectionType } from "./filters";
+import Pill, { PillType } from "./pill";
 import { Skeleton, SkeletonPlot } from "./skeleton";
 
 const demoErrorDetails = {
@@ -379,25 +380,32 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
                   className={`${effectiveFetching ? "invisible" : "visible"}`}
                 >
                   <p className="font-display text-xl"> Id: {firstResult.id}</p>
-                  <p className="font-body">
-                    {" "}
-                    Date & time:{" "}
-                    {formatDateToHumanReadableDateTime(firstResult.timestamp)}
-                  </p>
-                  <p className="font-body">
-                    {" "}
-                    Device:{" "}
-                    {firstResult.attribute.device_manufacturer +
-                      firstResult.attribute.device_model}
-                  </p>
-                  <p className="font-body">
-                    {" "}
-                    App version: {firstResult.attribute.app_version}
-                  </p>
-                  <p className="font-body">
-                    {" "}
-                    Network type: {firstResult.attribute.network_type}
-                  </p>
+                  <div className="flex flex-wrap gap-2 py-2 items-center">
+                    <Pill
+                      type={firstResult.anr ? PillType.Anr : PillType.Error}
+                    />
+                    {firstResult.severity === "fatal" && (
+                      <Pill type={PillType.Fatal} />
+                    )}
+                    {firstResult.severity === "unhandled" && (
+                      <Pill type={PillType.Unhandled} />
+                    )}
+                    {firstResult.severity === "handled" && (
+                      <Pill type={PillType.Handled} />
+                    )}
+                    <Pill
+                      tooltip
+                    >{`Time: ${formatDateToHumanReadableDateTime(firstResult.timestamp)}`}</Pill>
+                    <Pill
+                      tooltip
+                    >{`App version: ${firstResult.attribute.app_version}`}</Pill>
+                    <Pill
+                      tooltip
+                    >{`Device: ${firstResult.attribute.device_manufacturer + firstResult.attribute.device_model}`}</Pill>
+                    <Pill
+                      tooltip
+                    >{`Network type: ${firstResult.attribute.network_type}`}</Pill>
+                  </div>
                   {firstResult.attachments?.length > 0 && (
                     <div className="flex mt-8 flex-wrap gap-8 items-center">
                       {firstResult.attachments

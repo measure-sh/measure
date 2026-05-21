@@ -5,13 +5,13 @@ import {
   FilterSource,
   emptyBugReportsOverviewResponse,
 } from "@/app/api/api_calls";
-import { Badge } from "@/app/components/badge";
 import BugReportsOverviewPlot from "@/app/components/bug_reports_overview_plot";
 import Filters, {
   AppVersionsInitialSelectionType,
 } from "@/app/components/filters";
 import LoadingBar from "@/app/components/loading_bar";
 import Paginator from "@/app/components/paginator";
+import Pill, { PillType } from "@/app/components/pill";
 import { SkeletonListPage } from "@/app/components/skeleton";
 import {
   Table,
@@ -25,7 +25,6 @@ import {
   paginationOffsetUrlKey,
   useBugReportsOverviewQuery,
 } from "@/app/query/hooks";
-import { cn } from "@/app/utils/shadcn_utils";
 import {
   formatDateToHumanReadableDate,
   formatDateToHumanReadableTime,
@@ -35,11 +34,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 const PAGINATION_LIMIT = 5;
-
-const bugReportStatusBadgeClasses: Record<number, string> = {
-  0: "border-green-300 text-green-700 bg-green-50 dark:border-green-900 dark:text-green-400 dark:bg-green-950/40",
-  1: "border-indigo-300 text-indigo-700 bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:bg-indigo-950/40",
-};
 
 export default function BugReportsOverview({
   params,
@@ -257,15 +251,13 @@ export default function BugReportsOverview({
                           style={{ display: "block" }}
                         />
                         <div className="pointer-events-none p-4 items-center flex justify-center">
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-xs select-none",
-                              bugReportStatusBadgeClasses[status] || "",
-                            )}
-                          >
-                            {status === 0 ? "Open" : "Closed"}
-                          </Badge>
+                          <Pill
+                            type={
+                              status === 0
+                                ? PillType.OpenStatus
+                                : PillType.ClosedStatus
+                            }
+                          />
                         </div>
                       </TableCell>
                     </TableRow>
