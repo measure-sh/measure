@@ -63,7 +63,7 @@ import {
 } from "./dialog";
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
 import ErrorsTypeFilter from "./errors_type_filter";
-import FilterChip, { type FilterChipAction } from "./filter_chip";
+import Pill, { type PillAction } from "./pill";
 import { Input } from "./input";
 import Onboarding from "./onboarding";
 import { Skeleton } from "./skeleton";
@@ -167,14 +167,14 @@ function sameItems<T>(a: T[], b: readonly T[]): boolean {
 }
 
 // A chip's clear button — empties the filter so the chip disappears.
-const clearAction = (onClick: () => void): FilterChipAction => ({
-  kind: "clear",
+const clearAction = (onClick: () => void): PillAction => ({
+  icon: "clear",
   onClick,
 });
 
 // A chip's reset button — restores the filter's non-empty default.
-const resetAction = (onClick: () => void): FilterChipAction => ({
-  kind: "reset",
+const resetAction = (onClick: () => void): PillAction => ({
+  icon: "reset",
   onClick,
 });
 
@@ -837,7 +837,7 @@ const FiltersComponent = forwardRef<
       key: string;
       label: string;
       tooltip: string;
-      action?: FilterChipAction;
+      action?: PillAction;
     }[] = [];
 
     if (showSessionTypes && store.selectedSessionTypes.length > 0) {
@@ -1535,52 +1535,65 @@ const FiltersComponent = forwardRef<
                 <>
                   <div className="py-4" />
                   <div className="flex flex-wrap gap-2 items-center">
-                    {showAppVersions && (
-                      <FilterChip
-                        {...chipLabels(
+                    {showAppVersions &&
+                      (() => {
+                        const { label, tooltip } = chipLabels(
                           "App versions",
                           store.selectedVersions.map((v) => v.displayName),
-                        )}
-                        onClick={() => setAppVersionsOpen(true)}
-                        action={
-                          appVersionsChanged
-                            ? resetAction(() =>
-                                store.setSelectedVersions(defaultAppVersions),
-                              )
-                            : undefined
-                        }
-                      />
-                    )}
+                        );
+                        return (
+                          <Pill
+                            onClick={() => setAppVersionsOpen(true)}
+                            tooltip={tooltip !== label ? tooltip : undefined}
+                            action={
+                              appVersionsChanged
+                                ? resetAction(() =>
+                                    store.setSelectedVersions(
+                                      defaultAppVersions,
+                                    ),
+                                  )
+                                : undefined
+                            }
+                          >
+                            {label}
+                          </Pill>
+                        );
+                      })()}
                     {filterChips.map((chip) => (
-                      <FilterChip
+                      <Pill
                         key={chip.key}
-                        label={chip.label}
-                        tooltip={chip.tooltip}
                         onClick={() => openFilterModal(chip.key)}
+                        tooltip={
+                          chip.tooltip !== chip.label ? chip.tooltip : undefined
+                        }
                         action={chip.action}
-                      />
+                      >
+                        {chip.label}
+                      </Pill>
                     ))}
                     {showErrorTypesPill && (
-                      <FilterChip
-                        label={errorTypesPillLabel}
+                      <Pill
                         onClick={() => {}}
                         action={
                           errorTypesAtDefaults
                             ? undefined
                             : resetAction(resetErrorTypesPill)
                         }
-                      />
+                      >
+                        {errorTypesPillLabel}
+                      </Pill>
                     )}
                     {searchActive && (
-                      <FilterChip
-                        label={`Search: ${store.selectedFreeText}`}
+                      <Pill
                         onClick={() =>
                           document.getElementById(SEARCH_INPUT_ID)?.focus()
                         }
                         action={clearAction(() =>
                           store.setSelectedFreeText(""),
                         )}
-                      />
+                      >
+                        {`Search: ${store.selectedFreeText}`}
+                      </Pill>
                     )}
                   </div>
                 </>

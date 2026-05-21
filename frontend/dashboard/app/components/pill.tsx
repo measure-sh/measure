@@ -1,31 +1,221 @@
 "use client";
 
+import { RotateCcw, X } from "lucide-react";
+import * as React from "react";
+import { cn } from "@/app/utils/shadcn_utils";
+import { Badge, badgeVariants } from "./badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
-interface PillProps {
-  title: string;
+export enum PillType {
+  // Default — neutral capsule used for free-form context chips
+  // (Time, Device, App version, etc.) and filter chips.
+  Neutral = "neutral",
+  // Errors — type
+  Error = "error",
+  Anr = "anr",
+  // Errors — severity
+  Fatal = "fatal",
+  Unhandled = "unhandled",
+  Handled = "handled",
+  // Bug report — status
+  OpenStatus = "open",
+  ClosedStatus = "closed",
+  // Trace / span — status
+  StatusUnset = "status-unset",
+  StatusOkay = "status-okay",
+  StatusError = "status-error",
 }
+
+// Action button shown on the right half of the pill. "clear" empties the
+// underlying filter and removes the pill; "reset" restores a non-empty
+// default (and the pill stays visible).
+export type PillAction = {
+  icon: "clear" | "reset";
+  onClick: () => void;
+};
+
+interface PillProps {
+  children?: React.ReactNode;
+  type?: PillType;
+  // true → tooltip with the pill's own text. string → tooltip with that text.
+  // Omit or false → no tooltip.
+  tooltip?: boolean | string;
+  // Click handler for the body. When set, the body becomes a button.
+  onClick?: () => void;
+  // Optional action button (X for clear, ↺ for reset). Pair with onClick to
+  // make a two-zone interactive pill.
+  action?: PillAction;
+  className?: string;
+}
+
+// Typed defaults: each PillType carries its display label (when no children
+// are passed) and its colour tint.
+const pillDefaults: Record<PillType, { label?: string; tint: string }> = {
+  [PillType.Neutral]: { tint: "" },
+  [PillType.Error]: {
+    label: "Error",
+    tint: "border-sky-300 text-sky-700 bg-sky-50 dark:border-sky-900 dark:text-sky-400 dark:bg-sky-950/40",
+  },
+  [PillType.Anr]: {
+    label: "ANR",
+    tint: "border-violet-300 text-violet-700 bg-violet-50 dark:border-violet-900 dark:text-violet-400 dark:bg-violet-950/40",
+  },
+  [PillType.Fatal]: {
+    label: "Fatal",
+    tint: "border-red-300 text-red-700 bg-red-50 dark:border-red-900 dark:text-red-400 dark:bg-red-950/40",
+  },
+  [PillType.Unhandled]: {
+    label: "Unhandled",
+    tint: "border-amber-300 text-amber-700 bg-amber-50 dark:border-amber-900 dark:text-amber-400 dark:bg-amber-950/40",
+  },
+  [PillType.Handled]: {
+    label: "Handled",
+    tint: "border-emerald-300 text-emerald-700 bg-emerald-50 dark:border-emerald-900 dark:text-emerald-400 dark:bg-emerald-950/40",
+  },
+  [PillType.OpenStatus]: {
+    label: "Open",
+    tint: "border-green-300 text-green-700 bg-green-50 dark:border-green-900 dark:text-green-400 dark:bg-green-950/40",
+  },
+  [PillType.ClosedStatus]: {
+    label: "Closed",
+    tint: "border-indigo-300 text-indigo-700 bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:bg-indigo-950/40",
+  },
+  [PillType.StatusUnset]: { label: "Unset", tint: "" },
+  [PillType.StatusOkay]: {
+    label: "Okay",
+    tint: "border-green-300 text-green-700 bg-green-50 dark:border-green-900 dark:text-green-400 dark:bg-green-950/40",
+  },
+  [PillType.StatusError]: {
+    label: "Error",
+    tint: "border-red-300 text-red-700 bg-red-50 dark:border-red-900 dark:text-red-400 dark:bg-red-950/40",
+  },
+};
 
 const tooltipChars = 1000;
 
-const Pill: React.FC<PillProps> = ({ title }) => {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <p className="px-2 py-1 max-w-72 whitespace-nowrap text-ellipsis overflow-hidden font-display text-xs border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:border-input dark:hover:bg-input/50 rounded-full outline-hidden transition ease-in-out transition-colors duration-100 select-none">
-          {title}
-        </p>
-      </TooltipTrigger>
-      <TooltipContent
-        side="bottom"
-        align="start"
-        className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent"
+const interactiveZone =
+  "outline-none transition-colors duration-100 hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset";
+
+const Pill: React.FC<PillProps> = ({
+  children,
+  type = PillType.Neutral,
+  tooltip,
+  onClick,
+  action,
+  className,
+}) => {
+  const defaults = pillDefaults[type];
+  const body = children ?? defaults.label;
+  if (body === undefined || body === null || body === "") {
+    return null;
+  }
+
+  // Resolve the tooltip text. true uses the body when it's a string; explicit
+  // strings always win.
+  const tooltipText =
+    typeof tooltip === "string"
+      ? tooltip
+      : tooltip === true && typeof body === "string"
+        ? body
+        : undefined;
+  const trimmedTooltip =
+    tooltipText && tooltipText.length > tooltipChars
+      ? tooltipText.slice(0, tooltipChars) + "..."
+      : tooltipText;
+
+  // Wraps any element in a tooltip when one was requested.
+  const wrapTip = (
+    node: React.ReactElement,
+    explicitContent?: string,
+  ): React.ReactElement => {
+    const content = explicitContent ?? trimmedTooltip;
+    if (!content) {
+      return node;
+    }
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{node}</TooltipTrigger>
+        <TooltipContent
+          side="bottom"
+          align="start"
+          className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent"
+        >
+          {content}
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
+
+  // Two-zone interactive pill: clickable body + clear/reset action button.
+  // Outer span carries the badge shell with padding zeroed out so the inner
+  // halves own their padding and fill the capsule edge-to-edge on hover.
+  if (action) {
+    const ariaPrefix = action.icon === "reset" ? "Reset" : "Clear";
+    const ariaBody = typeof body === "string" ? body.split(":")[0] : "";
+    return (
+      <span
+        className={cn(
+          badgeVariants({ variant: "outline" }),
+          "p-0 items-stretch",
+          defaults.tint,
+          className,
+        )}
       >
-        {title.length <= tooltipChars
-          ? title
-          : title.slice(0, tooltipChars) + "..."}
-      </TooltipContent>
-    </Tooltip>
+        {wrapTip(
+          <button
+            type="button"
+            onClick={onClick}
+            className={cn("rounded-l-full px-2 py-1", interactiveZone)}
+          >
+            {body}
+          </button>,
+        )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label={`${ariaPrefix} ${ariaBody}`.trim()}
+              onClick={action.onClick}
+              className={cn(
+                "inline-flex items-center justify-center rounded-r-full pr-2 pl-1",
+                interactiveZone,
+              )}
+            >
+              {action.icon === "reset" ? (
+                <RotateCcw className="h-3 w-3" />
+              ) : (
+                <X className="h-3 w-3" />
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent className="bg-accent text-accent-foreground fill-accent">
+            {action.icon === "reset" ? "Reset to defaults" : "Clear"}
+          </TooltipContent>
+        </Tooltip>
+      </span>
+    );
+  }
+
+  // Single interactive pill: clickable body, no separate action.
+  if (onClick) {
+    return wrapTip(
+      <Badge
+        asChild
+        variant="outline"
+        className={cn(defaults.tint, interactiveZone, className)}
+      >
+        <button type="button" onClick={onClick}>
+          {body}
+        </button>
+      </Badge>,
+    );
+  }
+
+  // Static pill: just a Badge.
+  return wrapTip(
+    <Badge variant="outline" className={cn(defaults.tint, className)}>
+      {body}
+    </Badge>,
   );
 };
 

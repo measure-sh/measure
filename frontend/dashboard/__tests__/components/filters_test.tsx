@@ -73,11 +73,6 @@ jest.mock("@/app/components/errors_type_filter", () => ({
   ),
 }));
 
-jest.mock("@/app/components/pill", () => ({
-  __esModule: true,
-  default: ({ title }: any) => <span data-testid="pill">{title}</span>,
-}));
-
 jest.mock("@/app/components/skeleton", () => ({
   Skeleton: ({ className, ...props }: any) => (
     <div data-testid="skeleton-mock" className={className} {...props} />

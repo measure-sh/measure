@@ -11,7 +11,7 @@ import {
 } from "@/app/utils/time_utils";
 import { DateTime } from "luxon";
 import Link from "next/link";
-import Pill from "./pill";
+import Pill, { PillType } from "./pill";
 
 const demoTimelineLastEventTime = DateTime.now().toUTC();
 const demoTrace = {
@@ -174,20 +174,39 @@ export default function TraceDetails({
       {displayStatus === "success" && (
         <div className="w-full">
           <div className="flex flex-wrap gap-2 py-2 pb-8 items-center">
+            {(() => {
+              const rootSpan = displayTrace.spans?.find(
+                (s: any) => s.parent_id === "",
+              );
+              if (!rootSpan) {
+                return null;
+              }
+              return (
+                <Pill
+                  type={
+                    rootSpan.status === 1
+                      ? PillType.StatusOkay
+                      : rootSpan.status === 2
+                        ? PillType.StatusError
+                        : PillType.StatusUnset
+                  }
+                />
+              );
+            })()}
             <Pill
-              title={`User ID: ${displayTrace.user_id !== "" ? displayTrace.user_id : "N/A"}`}
-            />
+              tooltip
+            >{`User ID: ${displayTrace.user_id !== "" ? displayTrace.user_id : "N/A"}`}</Pill>
             <Pill
-              title={`Start Time: ${formatDateToHumanReadableDateTime(displayTrace.start_time)}`}
-            />
+              tooltip
+            >{`Start Time: ${formatDateToHumanReadableDateTime(displayTrace.start_time)}`}</Pill>
             <Pill
-              title={`Duration: ${formatMillisToHumanReadable(displayTrace.duration)}`}
-            />
+              tooltip
+            >{`Duration: ${formatMillisToHumanReadable(displayTrace.duration)}`}</Pill>
             <Pill
-              title={`Device: ${displayTrace.device_manufacturer + displayTrace.device_model}`}
-            />
-            <Pill title={`App version: ${displayTrace.app_version}`} />
-            <Pill title={`Network type: ${displayTrace.network_type}`} />
+              tooltip
+            >{`Device: ${displayTrace.device_manufacturer + displayTrace.device_model}`}</Pill>
+            <Pill tooltip>{`App version: ${displayTrace.app_version}`}</Pill>
+            <Pill tooltip>{`Network type: ${displayTrace.network_type}`}</Pill>
           </div>
           <TraceViz inputTrace={displayTrace} />
           <div className="py-4" />
