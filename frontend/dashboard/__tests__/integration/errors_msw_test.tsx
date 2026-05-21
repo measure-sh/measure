@@ -562,9 +562,9 @@ describe("Errors filter behaviour", () => {
 });
 
 // ====================================================================
-// PILLS — Errors / ANRs labels and clear behaviour
+// PILLS — Combined error-types pill: label and reset behaviour
 // ====================================================================
-describe("Errors filter pills", () => {
+describe("Errors filter pill", () => {
   async function renderAndWaitForData() {
     renderWithProviders(
       <ErrorsOverviewPage params={{ teamId: "test-team" }} />,
@@ -577,94 +577,74 @@ describe("Errors filter pills", () => {
     );
   }
 
-  it("renders ANRs pill when ANR is in selected types", async () => {
+  it("renders 'ANRs, Fatal Errors' at default state", async () => {
     await renderAndWaitForData();
-    // Default is error only; opt ANR in.
-    await act(async () => {
-      filtersStore.getState().setSelectedErrorTypes(["error", "anr"]);
-    });
     await waitFor(() => {
-      expect(screen.getByText("ANRs")).toBeTruthy();
+      expect(screen.getByText("ANRs, Fatal Errors")).toBeTruthy();
     });
   });
 
-  it('renders Errors pill labelled simply "Errors" when no severity/custom', async () => {
+  it("renders only the Errors portion when ANR is deselected", async () => {
     await renderAndWaitForData();
-    // Clear the default Fatal severity so the pill has no subfilters.
+    await act(async () => {
+      filtersStore.getState().setSelectedErrorTypes(["error"]);
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Fatal Errors")).toBeTruthy();
+    });
+  });
+
+  it("renders 'ANRs, Errors' alone when ANR is selected and no severity/custom", async () => {
+    await renderAndWaitForData();
     await act(async () => {
       filtersStore.getState().setSelectedSeverities([]);
     });
     await waitFor(() => {
-      expect(screen.getByText("Errors")).toBeTruthy();
+      expect(screen.getByText("ANRs, Errors")).toBeTruthy();
     });
   });
 
-  it("Errors pill folds Custom + severity into concatenated label", async () => {
+  it("renders 'ANRs, Custom Errors only - Fatal, Handled' for custom + multiple severities", async () => {
     await renderAndWaitForData();
     await act(async () => {
       filtersStore.getState().setSelectedSeverities(["fatal", "handled"]);
       filtersStore.getState().setCustomErrorsOnly(true);
     });
-
     await waitFor(
       () => {
-        // Order is: Custom first, then severities (Fatal, Handled)
         expect(
-          screen.getByText("Errors - Custom, Fatal, Handled"),
+          screen.getByText("ANRs, Custom Errors only - Fatal, Handled"),
         ).toBeTruthy();
       },
       { timeout: 5000 },
     );
   });
 
-  it("clicking ANRs pill X removes 'anr' from selected types", async () => {
+  it("clicking the reset button restores defaults (error + anr, fatal, custom off)", async () => {
     await renderAndWaitForData();
-    // Defaults already include both error and anr.
-    const clearButton = await screen.findByRole("button", {
-      name: "Clear ANRs",
-    });
-
+    // Diverge from defaults so reset has work to do.
     await act(async () => {
-      fireEvent.click(clearButton);
-    });
-
-    await waitFor(
-      () => {
-        expect(filtersStore.getState().selectedErrorTypes).not.toContain("anr");
-      },
-      { timeout: 5000 },
-    );
-    // Errors should still be selected
-    expect(filtersStore.getState().selectedErrorTypes).toContain("error");
-  });
-
-  it("clicking Errors pill X removes 'error' and clears severity + custom", async () => {
-    await renderAndWaitForData();
-
-    // Seed severities and custom so we can verify they get cleared
-    await act(async () => {
-      filtersStore.getState().setSelectedSeverities(["fatal"]);
+      filtersStore.getState().setSelectedErrorTypes(["error"]);
+      filtersStore.getState().setSelectedSeverities(["unhandled"]);
       filtersStore.getState().setCustomErrorsOnly(true);
     });
     await waitFor(() => {
-      expect(filtersStore.getState().selectedSeverities).toEqual(["fatal"]);
+      expect(screen.getByText("Custom Errors only - Unhandled")).toBeTruthy();
     });
 
-    // The errors pill's aria-label is split on ":" — for "Errors - Custom, Fatal"
-    // it has no colon, so the full label appears in aria-label.
-    const clearButton = screen.getByRole("button", {
-      name: /^Clear Errors - /,
+    const resetButton = screen.getByRole("button", {
+      name: "Reset Custom Errors only - Unhandled",
     });
 
     await act(async () => {
-      fireEvent.click(clearButton);
+      fireEvent.click(resetButton);
     });
 
     await waitFor(
       () => {
         const state = filtersStore.getState();
-        expect(state.selectedErrorTypes).not.toContain("error");
-        expect(state.selectedSeverities).toEqual([]);
+        expect(state.selectedErrorTypes).toEqual(["error", "anr"]);
+        expect(state.selectedSeverities).toEqual(["fatal"]);
         expect(state.customErrorsOnly).toBe(false);
       },
       { timeout: 5000 },
