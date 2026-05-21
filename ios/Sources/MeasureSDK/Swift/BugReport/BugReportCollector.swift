@@ -66,7 +66,7 @@ final class BaseBugReportCollector: BugReportCollector {
                                                attributes: nil,
                                                sessionId: nil,
                                                attachments: attachments,
-                                               userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(userDefinedAttributes),
+                                               userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes),
                                                threadName: nil,
                                                needsReporting: true)
             sessionManager.markCurrentSessionAsCrashed()
