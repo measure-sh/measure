@@ -189,6 +189,20 @@ class MeasureInternalTest {
     }
 
     @Test
+    fun `onAppForeground triggers flush`() {
+        val initializer = mockMeasureInitializer()
+        val manifest = ManifestMetadata("https://api.measure.sh", "msrsh_123")
+        whenever(initializer.manifestReader.load()).thenReturn(manifest)
+        val measureInternal = MeasureInternal(initializer)
+        measureInternal.init()
+        measureInternal.start()
+
+        measureInternal.onAppForeground()
+
+        verify(initializer.exporter).flush()
+    }
+
+    @Test
     fun `init with null manifest does not initialize`() {
         val initializer = mockMeasureInitializer()
         whenever(initializer.manifestReader.load()).thenReturn(null)
