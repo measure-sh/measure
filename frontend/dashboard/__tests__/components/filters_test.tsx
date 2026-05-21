@@ -63,6 +63,16 @@ jest.mock("@/app/components/dropdown_select", () => ({
   },
 }));
 
+jest.mock("@/app/components/errors_type_filter", () => ({
+  __esModule: true,
+  default: ({ showCustomToggle }: any) => (
+    <div
+      data-testid="errors-type-filter"
+      data-show-custom={String(!!showCustomToggle)}
+    />
+  ),
+}));
+
 jest.mock("@/app/components/pill", () => ({
   __esModule: true,
   default: ({ title }: any) => <span data-testid="pill">{title}</span>,
@@ -601,7 +611,7 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
     setFiltersSuccess();
   });
 
-  it("renders Type, Severity and Custom errors when all three show flags are on", async () => {
+  it("renders Type (with Custom toggle) and Severity when all three show flags are on", async () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
@@ -609,23 +619,41 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
       showCustomErrors: true,
     });
     await waitFor(() => {
-      expect(screen.getByTestId("dropdown-Type")).toBeInTheDocument();
+      expect(screen.getByTestId("errors-type-filter")).toBeInTheDocument();
     });
+    expect(screen.getByTestId("errors-type-filter")).toHaveAttribute(
+      "data-show-custom",
+      "true",
+    );
     expect(screen.getByTestId("dropdown-Severity")).toBeInTheDocument();
-    expect(screen.getByText("Custom errors only")).toBeInTheDocument();
   });
 
-  it("hides all three new controls when none of the show flags are passed", async () => {
+  it("renders Type without the nested Custom toggle when showCustomErrors is off", async () => {
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
+      showSeverity: true,
+      showCustomErrors: false,
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("errors-type-filter")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("errors-type-filter")).toHaveAttribute(
+      "data-show-custom",
+      "false",
+    );
+  });
+
+  it("hides all errors-only controls when none of the show flags are passed", async () => {
     await renderFilters({ filterSource: FilterSource.Errors });
     await waitFor(() => {
       expect(screen.getByTestId("dropdown-App Name")).toBeInTheDocument();
     });
-    expect(screen.queryByTestId("dropdown-Type")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("errors-type-filter")).not.toBeInTheDocument();
     expect(screen.queryByTestId("dropdown-Severity")).not.toBeInTheDocument();
-    expect(screen.queryByText("Custom errors only")).not.toBeInTheDocument();
   });
 
-  it("does NOT render the new controls when filterSource is not Errors", async () => {
+  it("does NOT render the errors-only controls when filterSource is not Errors", async () => {
     await renderFilters({
       filterSource: FilterSource.Events,
       showErrorType: true,
@@ -635,12 +663,11 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
     await waitFor(() => {
       expect(screen.getByTestId("dropdown-App Name")).toBeInTheDocument();
     });
-    expect(screen.queryByTestId("dropdown-Type")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("errors-type-filter")).not.toBeInTheDocument();
     expect(screen.queryByTestId("dropdown-Severity")).not.toBeInTheDocument();
-    expect(screen.queryByText("Custom errors only")).not.toBeInTheDocument();
   });
 
-  it("hides Severity and Custom checkbox when only 'anr' is in selectedErrorTypes (Type stays visible)", async () => {
+  it("hides Severity when only 'anr' is in selectedErrorTypes (Type stays visible)", async () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
@@ -648,7 +675,7 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
       showCustomErrors: true,
     });
     await waitFor(() => {
-      expect(screen.getByTestId("dropdown-Type")).toBeInTheDocument();
+      expect(screen.getByTestId("errors-type-filter")).toBeInTheDocument();
     });
     await act(async () => {
       storeInstance.getState().setSelectedErrorTypes(["anr"]);
@@ -656,11 +683,10 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
     await waitFor(() => {
       expect(screen.queryByTestId("dropdown-Severity")).not.toBeInTheDocument();
     });
-    expect(screen.queryByText("Custom errors only")).not.toBeInTheDocument();
-    expect(screen.getByTestId("dropdown-Type")).toBeInTheDocument();
+    expect(screen.getByTestId("errors-type-filter")).toBeInTheDocument();
   });
 
-  it("shows all three controls when only 'error' is in selectedErrorTypes", async () => {
+  it("shows Type and Severity when only 'error' is in selectedErrorTypes", async () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
@@ -668,7 +694,7 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
       showCustomErrors: true,
     });
     await waitFor(() => {
-      expect(screen.getByTestId("dropdown-Type")).toBeInTheDocument();
+      expect(screen.getByTestId("errors-type-filter")).toBeInTheDocument();
     });
     await act(async () => {
       storeInstance.getState().setSelectedErrorTypes(["error"]);
@@ -676,8 +702,7 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
     await waitFor(() => {
       expect(screen.getByTestId("dropdown-Severity")).toBeInTheDocument();
     });
-    expect(screen.getByText("Custom errors only")).toBeInTheDocument();
-    expect(screen.getByTestId("dropdown-Type")).toBeInTheDocument();
+    expect(screen.getByTestId("errors-type-filter")).toBeInTheDocument();
   });
 
   it("preserves severity/custom in the store when the user removes 'error' from selectedErrorTypes", async () => {
@@ -688,7 +713,7 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
       showCustomErrors: true,
     });
     await waitFor(() => {
-      expect(screen.getByTestId("dropdown-Type")).toBeInTheDocument();
+      expect(screen.getByTestId("errors-type-filter")).toBeInTheDocument();
     });
     // Seed both error types with severity and custom set.
     await act(async () => {
@@ -696,7 +721,7 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
       storeInstance.getState().setSelectedSeverities(["fatal"]);
       storeInstance.getState().setCustomErrorsOnly(true);
     });
-    // Now drop 'error' (leave only 'anr') — controls hide but state stays.
+    // Now drop 'error' (leave only 'anr') — Severity hides but state stays.
     await act(async () => {
       storeInstance.getState().setSelectedErrorTypes(["anr"]);
     });
