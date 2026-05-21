@@ -733,88 +733,115 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
   });
 });
 
-describe("Filters — Errors filter source: ANRs and Errors pills", () => {
+describe("Filters — Errors filter source: combined error-types pill", () => {
   beforeEach(() => {
     setAppsSuccess([makeApp("a")]);
     setFiltersSuccess();
   });
 
-  it("renders both ANRs and Errors pills when both error types are selected", async () => {
+  it("renders a single pill 'ANRs, Fatal Errors' at default state", async () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
     });
-    // Defaults already include both error and anr.
     await waitFor(() => {
-      expect(screen.getByText("ANRs")).toBeInTheDocument();
+      expect(screen.getByText("ANRs, Fatal Errors")).toBeInTheDocument();
     });
-    // Errors pill includes the default Fatal severity.
-    expect(screen.getByText("Errors - Fatal")).toBeInTheDocument();
   });
 
-  it("hides the ANRs pill when 'anr' is not in selectedErrorTypes", async () => {
+  it("omits the reset button at default state", async () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
     });
-    // Start with both selected so we can observe ANRs disappearing.
-    await act(async () => {
-      storeInstance.getState().setSelectedErrorTypes(["error", "anr"]);
-    });
     await waitFor(() => {
-      expect(screen.getByText("ANRs")).toBeInTheDocument();
+      expect(screen.getByText("ANRs, Fatal Errors")).toBeInTheDocument();
     });
-    await act(async () => {
-      storeInstance.getState().setSelectedErrorTypes(["error"]);
-    });
-    await waitFor(() => {
-      expect(screen.queryByText("ANRs")).not.toBeInTheDocument();
-    });
-    expect(screen.getByText("Errors - Fatal")).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Reset ANRs, Fatal Errors"),
+    ).not.toBeInTheDocument();
   });
 
-  it("hides the Errors pill when 'error' is not in selectedErrorTypes", async () => {
+  it("shows the reset button when state diverges from defaults", async () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
     });
+    await act(async () => {
+      storeInstance.getState().setSelectedSeverities(["unhandled"]);
+    });
     await waitFor(() => {
-      expect(screen.getByText("Errors - Fatal")).toBeInTheDocument();
+      expect(
+        screen.getByLabelText("Reset ANRs, Unhandled Errors"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("renders only 'ANRs' when 'error' is not selected", async () => {
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
     });
     await act(async () => {
       storeInstance.getState().setSelectedErrorTypes(["anr"]);
     });
     await waitFor(() => {
-      expect(screen.queryByText(/^Errors/)).not.toBeInTheDocument();
+      expect(screen.getByText("ANRs")).toBeInTheDocument();
     });
-    expect(screen.getByText("ANRs")).toBeInTheDocument();
+    expect(screen.queryByText(/Errors/)).not.toBeInTheDocument();
   });
 
-  it("does not render either pill when filterSource is not Errors", async () => {
-    await renderFilters({ filterSource: FilterSource.Events });
-    await waitFor(() => {
-      expect(screen.getByTestId("dropdown-App Name")).toBeInTheDocument();
-    });
-    expect(screen.queryByText("ANRs")).not.toBeInTheDocument();
-    expect(screen.queryByText("Errors")).not.toBeInTheDocument();
-  });
-
-  it("renders the Errors pill with only 'Errors' when no severities or custom flag are set", async () => {
+  it("renders only the Errors portion when 'anr' is not selected", async () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
     });
-    // Clear the default Fatal severity so the pill has no subfilters.
     await act(async () => {
+      storeInstance.getState().setSelectedErrorTypes(["error"]);
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Fatal Errors")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/ANRs/)).not.toBeInTheDocument();
+  });
+
+  it("hides the pill on Errors filter source when neither type is selected", async () => {
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
+    });
+    await act(async () => {
+      storeInstance.getState().setSelectedErrorTypes([]);
+    });
+    await waitFor(() => {
+      expect(screen.queryByText(/Errors/)).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText("ANRs")).not.toBeInTheDocument();
+  });
+
+  it("does not render the pill when filterSource is not Errors", async () => {
+    await renderFilters({ filterSource: FilterSource.Events });
+    await waitFor(() => {
+      expect(screen.getByTestId("dropdown-App Name")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/ANRs|Errors/)).not.toBeInTheDocument();
+  });
+
+  it("renders 'Errors' alone when no severities or custom flag are set and only error is selected", async () => {
+    await renderFilters({
+      filterSource: FilterSource.Errors,
+      showErrorType: true,
+    });
+    await act(async () => {
+      storeInstance.getState().setSelectedErrorTypes(["error"]);
       storeInstance.getState().setSelectedSeverities([]);
     });
     await waitFor(() => {
       expect(screen.getByText("Errors")).toBeInTheDocument();
     });
-    expect(screen.queryByText(/^Errors - /)).not.toBeInTheDocument();
   });
 
-  it("renders 'Errors - Custom' when only customErrorsOnly is set", async () => {
+  it("renders 'ANRs, Custom Errors only' when only customErrorsOnly is set", async () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
@@ -824,11 +851,11 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
       storeInstance.getState().setCustomErrorsOnly(true);
     });
     await waitFor(() => {
-      expect(screen.getByText("Errors - Custom")).toBeInTheDocument();
+      expect(screen.getByText("ANRs, Custom Errors only")).toBeInTheDocument();
     });
   });
 
-  it("renders 'Errors - Custom, Fatal, Handled' when both custom and multiple severities are set", async () => {
+  it("renders 'ANRs, Custom Errors only - Fatal, Handled' for custom + multiple severities", async () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
@@ -839,68 +866,76 @@ describe("Filters — Errors filter source: ANRs and Errors pills", () => {
     });
     await waitFor(() => {
       expect(
-        screen.getByText("Errors - Custom, Fatal, Handled"),
+        screen.getByText("ANRs, Custom Errors only - Fatal, Handled"),
       ).toBeInTheDocument();
     });
   });
 
-  it("renders just the severity names in the Errors pill when custom is off", async () => {
+  it("renders 'ANRs, Errors - Fatal, Unhandled, Handled' for multiple severities without custom", async () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
     });
     await act(async () => {
-      storeInstance.getState().setSelectedSeverities(["fatal"]);
+      storeInstance
+        .getState()
+        .setSelectedSeverities(["fatal", "unhandled", "handled"]);
     });
     await waitFor(() => {
-      expect(screen.getByText("Errors - Fatal")).toBeInTheDocument();
+      expect(
+        screen.getByText("ANRs, Errors - Fatal, Unhandled, Handled"),
+      ).toBeInTheDocument();
     });
   });
 
-  it("removes 'anr' from selectedErrorTypes when the X on ANRs pill is clicked", async () => {
+  it("uses adjective form '<Sev> Errors' for a single severity without custom", async () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
     });
-    // Opt ANR in first; default is error only.
     await act(async () => {
-      storeInstance.getState().setSelectedErrorTypes(["error", "anr"]);
+      storeInstance.getState().setSelectedSeverities(["unhandled"]);
     });
-    fireEvent.click(await screen.findByLabelText("Clear ANRs"));
     await waitFor(() => {
-      expect(storeInstance.getState().selectedErrorTypes).not.toContain("anr");
+      expect(screen.getByText("ANRs, Unhandled Errors")).toBeInTheDocument();
     });
   });
 
-  it("clears errors + severities + customErrorsOnly when X on Errors pill is clicked", async () => {
+  it("resets to defaults (error + anr, fatal, custom off) when the reset button is clicked", async () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
     });
+    // Diverge from defaults so reset has something to do.
     await act(async () => {
-      storeInstance.getState().setSelectedSeverities(["fatal"]);
+      storeInstance.getState().setSelectedErrorTypes(["error"]);
+      storeInstance.getState().setSelectedSeverities(["unhandled"]);
       storeInstance.getState().setCustomErrorsOnly(true);
     });
     await waitFor(() => {
-      expect(screen.getByText("Errors - Custom, Fatal")).toBeInTheDocument();
+      expect(
+        screen.getByText("Custom Errors only - Unhandled"),
+      ).toBeInTheDocument();
     });
-    fireEvent.click(screen.getByLabelText("Clear Errors - Custom, Fatal"));
+    fireEvent.click(
+      screen.getByLabelText("Reset Custom Errors only - Unhandled"),
+    );
     await waitFor(() => {
-      expect(storeInstance.getState().selectedErrorTypes).not.toContain(
+      expect(storeInstance.getState().selectedErrorTypes).toEqual([
         "error",
-      );
+        "anr",
+      ]);
     });
-    expect(storeInstance.getState().selectedSeverities).toEqual([]);
+    expect(storeInstance.getState().selectedSeverities).toEqual(["fatal"]);
     expect(storeInstance.getState().customErrorsOnly).toBe(false);
   });
 
-  it("hides both pills on Errors filter source when showErrorType is false (e.g. error detail page)", async () => {
+  it("hides the pill on Errors filter source when showErrorType is false (e.g. error detail page)", async () => {
     await renderFilters({ filterSource: FilterSource.Errors });
     await waitFor(() => {
       expect(screen.getByTestId("dropdown-App Name")).toBeInTheDocument();
     });
-    expect(screen.queryByText("ANRs")).not.toBeInTheDocument();
-    expect(screen.queryByText("Errors")).not.toBeInTheDocument();
+    expect(screen.queryByText(/ANRs|Errors/)).not.toBeInTheDocument();
   });
 });
 

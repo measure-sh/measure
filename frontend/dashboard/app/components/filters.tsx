@@ -977,30 +977,49 @@ const FiltersComponent = forwardRef<
     // input instead of opening the modal.
     const searchActive = showFreeText && store.selectedFreeText !== "";
 
-    // Errors-only active filter pills mirror the multi-select state. The
-    // Errors pill folds Custom + severity subfilters into a single label.
-    const showAnrsPill =
-      isErrorsSource &&
-      showErrorType &&
-      store.selectedErrorTypes.includes("anr");
-    const showErrorsPill =
-      isErrorsSource &&
-      showErrorType &&
-      store.selectedErrorTypes.includes("error");
-    const errorsPillSubfilters: string[] = [];
-    if (store.customErrorsOnly) {
-      errorsPillSubfilters.push("Custom");
+    // Combined error-types pill mirrors the multi-select state: one chip
+    // summarising both ANRs and Errors. "ANRs" is added when 'anr' is in the
+    // selection; the Errors portion folds in custom + severity. With a single
+    // severity and no custom flag the form reads "<Severity> Errors"; with
+    // multiple severities or the custom flag set it switches to the dash
+    // form "Errors - Sev1, Sev2" / "Custom Errors only - Sev1, Sev2".
+    const anrSelected = store.selectedErrorTypes.includes("anr");
+    const errorSelected = store.selectedErrorTypes.includes("error");
+    const showErrorTypesPill =
+      isErrorsSource && showErrorType && (anrSelected || errorSelected);
+    const errorTypesPillParts: string[] = [];
+    if (anrSelected) {
+      errorTypesPillParts.push("ANRs");
     }
-    for (const severity of store.selectedSeverities) {
-      const display = SEVERITY_STORE_TO_DISPLAY[severity];
-      if (display) {
-        errorsPillSubfilters.push(display);
+    if (errorSelected) {
+      const severityDisplays = store.selectedSeverities
+        .map((s) => SEVERITY_STORE_TO_DISPLAY[s])
+        .filter((d): d is string => Boolean(d));
+      let errorLabel: string;
+      if (store.customErrorsOnly) {
+        errorLabel =
+          severityDisplays.length === 0
+            ? "Custom Errors only"
+            : `Custom Errors only - ${severityDisplays.join(", ")}`;
+      } else if (severityDisplays.length === 1) {
+        errorLabel = `${severityDisplays[0]} Errors`;
+      } else if (severityDisplays.length === 0) {
+        errorLabel = "Errors";
+      } else {
+        errorLabel = `Errors - ${severityDisplays.join(", ")}`;
       }
+      errorTypesPillParts.push(errorLabel);
     }
-    const errorsPillLabel =
-      errorsPillSubfilters.length > 0
-        ? `Errors - ${errorsPillSubfilters.join(", ")}`
-        : "Errors";
+    const errorTypesPillLabel = errorTypesPillParts.join(", ");
+    const errorTypesAtDefaults =
+      sameItems(store.selectedErrorTypes, ["error", "anr"]) &&
+      sameItems(store.selectedSeverities, ["fatal"]) &&
+      !store.customErrorsOnly;
+    const resetErrorTypesPill = () => {
+      store.setSelectedErrorTypes(["error", "anr"]);
+      store.setSelectedSeverities(["fatal"]);
+      store.setCustomErrorsOnly(false);
+    };
 
     // App versions: page default is the latest build, or every build.
     const defaultAppVersions =
@@ -1512,8 +1531,7 @@ const FiltersComponent = forwardRef<
               {(showAppVersions ||
                 filterChips.length > 0 ||
                 searchActive ||
-                showAnrsPill ||
-                showErrorsPill) && (
+                showErrorTypesPill) && (
                 <>
                   <div className="py-4" />
                   <div className="flex flex-wrap gap-2 items-center">
@@ -1542,30 +1560,15 @@ const FiltersComponent = forwardRef<
                         action={chip.action}
                       />
                     ))}
-                    {showAnrsPill && (
+                    {showErrorTypesPill && (
                       <FilterChip
-                        label="ANRs"
+                        label={errorTypesPillLabel}
                         onClick={() => {}}
-                        action={clearAction(() =>
-                          store.setSelectedErrorTypes(
-                            store.selectedErrorTypes.filter((t) => t !== "anr"),
-                          ),
-                        )}
-                      />
-                    )}
-                    {showErrorsPill && (
-                      <FilterChip
-                        label={errorsPillLabel}
-                        onClick={() => {}}
-                        action={clearAction(() => {
-                          store.setSelectedErrorTypes(
-                            store.selectedErrorTypes.filter(
-                              (t) => t !== "error",
-                            ),
-                          );
-                          store.setSelectedSeverities([]);
-                          store.setCustomErrorsOnly(false);
-                        })}
+                        action={
+                          errorTypesAtDefaults
+                            ? undefined
+                            : resetAction(resetErrorTypesPill)
+                        }
                       />
                     )}
                     {searchActive && (
