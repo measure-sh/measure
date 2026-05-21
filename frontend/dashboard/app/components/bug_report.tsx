@@ -1,6 +1,7 @@
 "use client";
 
 import { UpdateBugReportStatusApiStatus } from "@/app/api/api_calls";
+import { Badge } from "@/app/components/badge";
 import { Button } from "@/app/components/button";
 import { buttonVariants } from "@/app/components/button_variants";
 import { Skeleton } from "@/app/components/skeleton";
@@ -16,6 +17,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { FormEventHandler, useState } from "react";
 import Pill from "./pill";
+
+const bugReportStatusBadgeClasses: Record<number, string> = {
+  0: "border-green-300 text-green-700 bg-green-50 dark:border-green-900 dark:text-green-400 dark:bg-green-950/40",
+  1: "border-indigo-300 text-indigo-700 bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:bg-indigo-950/40",
+};
 
 const demoBugReport = {
   session_id: "81f06f23-4291-4590-a5df-c96d57d3c692",
@@ -194,11 +200,15 @@ export default function BugReport({
       {displayBugReportApiStatus === "success" && displayBugReport && (
         <div>
           <div className="flex flex-wrap gap-2 py-2 pb-12 items-center">
-            <p
-              className={`w-fit px-2 py-1 rounded-full border text-xs font-body ${displayBugReport.status === 0 ? "border-green-600 dark:border-green-500 text-green-600 dark:text-green-500 bg-green-50 dark:bg-background" : "border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-background"}`}
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-xs",
+                bugReportStatusBadgeClasses[displayBugReport.status] || "",
+              )}
             >
               {displayBugReport.status === 0 ? "Open" : "Closed"}
-            </p>
+            </Badge>
             <Pill
               title={`User ID: ${displayBugReport.attribute.user_id !== "" ? displayBugReport.attribute.user_id : "N/A"}`}
             />
