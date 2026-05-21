@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Allow anr source when custom filter is active (#3671) by @detj in #3671
 - (**backend**): Resolve issues in error event retrieval (#3664) by @detj in #3664
 - (**backend**): Intelligently sort app versions (#3642) by @detj in #3642
 - (**backend**): Prevent occasional panic in apple symbolication (#3628) by @detj in #3628
