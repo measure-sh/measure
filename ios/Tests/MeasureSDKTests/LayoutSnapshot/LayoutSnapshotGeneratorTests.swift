@@ -14,7 +14,6 @@ final class BaseLayoutSnapshotGeneratorTests: XCTestCase {
     private var mockConfigProvider: MockConfigProvider!
     private var mockTimeProvider: MockTimeProvider!
     private var mockAttachmentProcessor: MockAttachmentProcessor!
-    private var mockSvgGenerator: MockSvgGenerator!
     private var mockDispatchQueue: MockMeasureDispatchQueue!
 
     override func setUp() {
@@ -23,7 +22,6 @@ final class BaseLayoutSnapshotGeneratorTests: XCTestCase {
         mockConfigProvider = MockConfigProvider()
         mockTimeProvider = MockTimeProvider()
         mockAttachmentProcessor = MockAttachmentProcessor()
-        mockSvgGenerator = MockSvgGenerator()
         mockDispatchQueue = MockMeasureDispatchQueue()
 
         sut = BaseLayoutSnapshotGenerator(
@@ -31,7 +29,6 @@ final class BaseLayoutSnapshotGeneratorTests: XCTestCase {
             configProvider: mockConfigProvider,
             timeProvider: mockTimeProvider,
             attachmentProcessor: mockAttachmentProcessor,
-            svgGenerator: mockSvgGenerator,
             measureDispatchQueue: mockDispatchQueue
         )
     }
@@ -39,116 +36,6 @@ final class BaseLayoutSnapshotGeneratorTests: XCTestCase {
     override func tearDown() {
         sut = nil
         super.tearDown()
-    }
-
-    func test_generateSvg_debounce_returnsNilWhenCalledWithinDebounceInterval() {
-        mockConfigProvider = MockConfigProvider(layoutSnapshotDebounceInterval: 750)
-        mockTimeProvider.current = 1000
-        mockSvgGenerator.generatedData = Data()
-        mockAttachmentProcessor.attachment = makeMockAttachment()
-        recreateSut()
-
-        var firstResult: MsrAttachment?
-        var secondResult: MsrAttachment? = makeMockAttachment()
-
-        sut.generate(window: makeWindow(), touchPoint: .zero) { firstResult = $0 }
-
-        mockTimeProvider.current = 1500
-        sut.generate(window: makeWindow(), touchPoint: .zero) { secondResult = $0 }
-
-        XCTAssertNotNil(firstResult)
-        XCTAssertNil(secondResult)
-    }
-
-    func test_generateSvg_debounce_succeedsAfterDebounceIntervalPasses() {
-        mockConfigProvider = MockConfigProvider(layoutSnapshotDebounceInterval: 750)
-        mockTimeProvider.current = 1000
-        mockSvgGenerator.generatedData = Data()
-        mockAttachmentProcessor.attachment = makeMockAttachment()
-        recreateSut()
-
-        var firstResult: MsrAttachment?
-        var secondResult: MsrAttachment?
-
-        sut.generate(window: makeWindow(), touchPoint: .zero) { firstResult = $0 }
-
-        mockTimeProvider.current = 2000
-        sut.generate(window: makeWindow(), touchPoint: .zero) { secondResult = $0 }
-
-        XCTAssertNotNil(firstResult)
-        XCTAssertNotNil(secondResult)
-    }
-
-    func test_generateSvg_returnsNilWhenSvgGeneratorReturnsNil() {
-        mockSvgGenerator.generatedData = nil
-        var result: MsrAttachment? = makeMockAttachment()
-
-        sut.generate(window: makeWindow(), touchPoint: .zero) { result = $0 }
-
-        XCTAssertNil(result)
-    }
-
-    func test_generateSvg_returnsAttachmentOnSuccess() {
-        let expected = makeMockAttachment()
-        mockSvgGenerator.generatedData = Data()
-        mockAttachmentProcessor.attachment = expected
-        mockTimeProvider.current = 1000
-
-        var result: MsrAttachment?
-        sut.generate(window: makeWindow(), touchPoint: .zero) { result = $0 }
-
-        XCTAssertEqual(result?.id, expected.id)
-    }
-
-    func test_generateSvg_marksHitTestedViewAsTarget() {
-        let window = makeWindow() // single instance
-        let targetView = UIView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
-        window.addSubview(targetView)
-        mockSvgGenerator.generatedData = Data()
-        mockAttachmentProcessor.attachment = makeMockAttachment()
-        mockTimeProvider.current = 1000
-
-        sut.generate(window: window, touchPoint: CGPoint(x: 50, y: 50)) { _ in }
-
-        let frames = mockSvgGenerator.frames ?? []
-        let targetFrames = frames.filter { $0.isTarget }
-        XCTAssertEqual(targetFrames.count, 1)
-    }
-
-    func test_generateForViewController_returnsNilWhenViewIsNil() {
-        let vc = ViewControllerWithNilView()
-        var result: MsrAttachment? = makeMockAttachment()
-
-        sut.generate(for: vc) { result = $0 }
-
-        XCTAssertNil(result)
-    }
-
-    func test_generateForViewController_noViewIsHighlighted() {
-        let vc = UIViewController()
-        vc.loadViewIfNeeded()
-        let subview = UIView(frame: CGRect(x: 0, y: 0, width: 50, height: 50))
-        vc.view.addSubview(subview)
-        mockSvgGenerator.generatedData = Data()
-        mockAttachmentProcessor.attachment = makeMockAttachment()
-
-        sut.generate(for: vc) { _ in }
-
-        let frames = mockSvgGenerator.frames ?? []
-        XCTAssertTrue(frames.allSatisfy { !$0.isTarget })
-    }
-
-    func test_generateForViewController_returnsAttachmentOnSuccess() {
-        let vc = UIViewController()
-        vc.loadViewIfNeeded()
-        let expected = makeMockAttachment()
-        mockSvgGenerator.generatedData = Data()
-        mockAttachmentProcessor.attachment = expected
-
-        var result: MsrAttachment?
-        sut.generate(for: vc) { result = $0 }
-
-        XCTAssertEqual(result?.id, expected.id)
     }
 
     func test_generateJson_returnsAttachmentWithCorrectType() {
@@ -317,7 +204,7 @@ private extension BaseLayoutSnapshotGeneratorTests {
         return window
     }
 
-    func makeMockAttachment(type: AttachmentType = .layoutSnapshot) -> MsrAttachment {
+    func makeMockAttachment(type: AttachmentType = .layoutSnapshotJson) -> MsrAttachment {
         MsrAttachment(name: "test", type: type, size: 0, id: UUID().uuidString, bytes: nil, path: "/path")
     }
 
@@ -326,7 +213,6 @@ private extension BaseLayoutSnapshotGeneratorTests {
                                           configProvider: mockConfigProvider,
                                           timeProvider: mockTimeProvider,
                                           attachmentProcessor: attachmentProcessor ?? mockAttachmentProcessor,
-                                          svgGenerator: mockSvgGenerator,
                                           measureDispatchQueue: mockDispatchQueue)
     }
 
@@ -396,14 +282,5 @@ private extension BaseLayoutSnapshotGeneratorTests {
     }
 }
 
-/// Stub to simulate FloatingBarHostingView without importing private API
 private class FloatingBarHostingViewStub: UIView {}
 private class FloatingBarContainerViewStub: UIView {}
-
-/// Simulates a UIViewController whose view property returns nil
-private class ViewControllerWithNilView: UIViewController {
-    override var view: UIView! {
-        get { return nil }
-        set {}
-    }
-}

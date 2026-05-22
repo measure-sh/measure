@@ -263,17 +263,6 @@ import UIKit
         }
     }
 
-    @objc func captureLayoutSnapshot(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
-        guard let measureInternal = self.measureInternal else {
-            completion(nil)
-            return
-        }
-
-        measureInternal.captureLayoutSnapshot(for: viewController) { msrAttachment in
-            completion(msrAttachment)
-        }
-    }
-
     func trackError(_ error: Error, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool = false) {
         guard let measureInternal = self.measureInternal else { return }
         return measureInternal.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
@@ -769,7 +758,7 @@ extension Measure {
     /// Tracks a custom bug report.
     ///
     /// For a pre-built UI experience to collect bug reports, see `launchBugReportActivity()`.
-    /// Attachments can contain screenshots, layout snapshots or images from the gallery.
+    /// Attachments can contain screenshots or images from the gallery.
     ///
     /// - Parameters:
     ///   - description: Description of the bug. Max characters: 4000.
@@ -786,7 +775,7 @@ extension Measure {
     /// Tracks a custom bug report
     ///
     /// For a pre-built UI experience to collect bug reports, see `launchBugReportActivity()`.
-    /// Attachments can contain screenshots, layout snapshots or images from the gallery.
+    /// Attachments can contain screenshots or images from the gallery.
     ///
     /// Note:
     /// This method is primarily intended for Objective-C use.
@@ -816,23 +805,6 @@ extension Measure {
     @objc public static func captureScreenshot(for viewController: UIViewController,
                                                completion: @escaping (MsrAttachment?) -> Void) {
         Measure.shared.captureScreenshot(for: viewController, completion: completion)
-    }
-
-    /// Asynchronously captures a layout snapshot of the given view controller's view hierarchy.
-    /// This method must be called on the main thread.
-    ///
-    /// The snapshot includes information about the visible UI elements such as their position,
-    /// size, and hierarchy. Unlike full screenshots, layout snapshots are lightweight and more
-    /// storage-efficient, making them ideal for debugging and UI analysis.
-    ///
-    /// - Important: This method must be invoked from the main thread to avoid UI inconsistencies.
-    ///
-    /// - Parameters:
-    ///   - viewController: The `UIViewController` whose layout should be captured.
-    ///   - completion: A closure called with an optional `MsrAttachment` containing the layout snapshot data.
-    @objc public static func captureLayoutSnapshot(for viewController: UIViewController,
-                                                   completion: @escaping (MsrAttachment?) -> Void) {
-        Measure.shared.captureLayoutSnapshot(for: viewController, completion: completion)
     }
 
     /// Tracks a handled Swift error (`Error`) and records it as part of the monitoring system.

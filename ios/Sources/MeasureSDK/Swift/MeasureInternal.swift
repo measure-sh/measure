@@ -144,9 +144,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var screenshotGenerator: ScreenshotGenerator {
         return measureInitializer.screenshotGenerator
     }
-    private var layoutSnapshotGenerator: LayoutSnapshotGenerator {
-        return measureInitializer.layoutSnapshotGenerator
-    }
     private var spanProcessor: SpanProcessor {
         return measureInitializer.spanProcessor
     }
@@ -378,12 +375,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
 
     func captureScreenshot(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
         screenshotGenerator.generate(viewController: viewController) { attachment in
-            completion(attachment)
-        }
-    }
-
-    func captureLayoutSnapshot(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
-        layoutSnapshotGenerator.generate(for: viewController) { attachment in
             completion(attachment)
         }
     }
