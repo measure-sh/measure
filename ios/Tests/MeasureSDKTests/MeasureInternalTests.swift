@@ -171,12 +171,6 @@ final class MeasureInternalTests: XCTestCase {
         }
         XCTAssertNil(screenshotAttachment, "captureScreenshot should not create an attachment if not started")
 
-        var layoutAttachment: MsrAttachment?
-        measureInternal.captureLayoutSnapshot(for: viewController) { attachment in
-            layoutAttachment = attachment
-        }
-        XCTAssertNil(layoutAttachment, "captureLayoutSnapshot should not create an attachment if not started")
-
         // Test `trackError`
         measureInternal.trackError(NSError(domain: "Test", code: 1), attributes: [:], collectStackTraces: false)
         XCTAssertFalse(logger.logs.contains(where: { $0.contains("Event processed") }), "trackError should not proceed if not started")

@@ -57,7 +57,6 @@ protocol MeasureInitializer {
     var attachmentProcessor: AttachmentProcessor { get }
     var layoutSnapshotGenerator: LayoutSnapshotGenerator { get }
     var userPermissionManager: UserPermissionManager { get }
-    var svgGenerator: SvgGenerator { get }
     var httpEventValidator: HttpEventValidator { get }
     var randomizer: Randomizer { get }
     var spanProcessor: SpanProcessor { get }
@@ -130,7 +129,6 @@ protocol MeasureInitializer {
 /// - `batchStore`: `BatchStore` object that manages `Batch` related operations
 /// - `dataCleanupService`: `DataCleanupService` object responsible for clearing stale data
 /// - `attachmentProcessor`: `AttachmentProcessor` object responsible for generating and managing screenshots.
-/// - `svgGenerator`: `SvgGenerator` object responsible for generating layout snapshot svg.
 /// - `layoutSnapshotGenerator`: `LayoutSnapshotGenerator` object responsible for generating a layout snapshot.
 /// - `userPermissionManager`: `UserPermissionManager` object managing user permissions.
 /// - `httpEventValidator`: `HttpEventValidator` object that lets you check if a http event should be tracked or not.
@@ -194,7 +192,6 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let attachmentProcessor: AttachmentProcessor
     let layoutSnapshotGenerator: LayoutSnapshotGenerator
     let userPermissionManager: UserPermissionManager
-    let svgGenerator: SvgGenerator
     let httpEventValidator: HttpEventValidator
     let randomizer: Randomizer
     let spanProcessor: SpanProcessor
@@ -293,12 +290,10 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                            fileManager: systemFileManager,
                                                            idProvider: idProvider)
         self.userPermissionManager = BaseUserPermissionManager()
-        self.svgGenerator = BaseSvgGenerator()
         self.layoutSnapshotGenerator = BaseLayoutSnapshotGenerator(logger: logger,
                                                                    configProvider: configProvider,
                                                                    timeProvider: timeProvider,
                                                                    attachmentProcessor: attachmentProcessor,
-                                                                   svgGenerator: svgGenerator,
                                                                    measureDispatchQueue: measureDispatchQueue)
         self.exporter = BaseExporter(logger: logger,
                                      idProvider: idProvider,

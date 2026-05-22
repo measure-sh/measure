@@ -74,7 +74,6 @@
 		526D18632D5A1913009A2E90 /* NetworkInterceptorProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17E02D5A1913009A2E90 /* NetworkInterceptorProtocol.swift */; };
 		526D18642D5A1913009A2E90 /* URLSessionTaskInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17E12D5A1913009A2E90 /* URLSessionTaskInterceptor.swift */; };
 		526D18652D5A1913009A2E90 /* URLSessionTaskSwizzler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17E22D5A1913009A2E90 /* URLSessionTaskSwizzler.swift */; };
-		526D18662D5A1913009A2E90 /* BaseSvgGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17E42D5A1913009A2E90 /* BaseSvgGenerator.swift */; };
 		526D18672D5A1913009A2E90 /* LayoutSnapshotGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17E52D5A1913009A2E90 /* LayoutSnapshotGenerator.swift */; };
 		526D18682D5A1913009A2E90 /* LifecycleCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17E72D5A1913009A2E90 /* LifecycleCollector.swift */; };
 		526D18692D5A1913009A2E90 /* LifecycleEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17E82D5A1913009A2E90 /* LifecycleEvents.swift */; };
@@ -152,7 +151,6 @@
 		52B7F1642D757F81001498BC /* MockRandomizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1182D757F81001498BC /* MockRandomizer.swift */; };
 		52B7F1652D757F81001498BC /* MockScreenshotGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1192D757F81001498BC /* MockScreenshotGenerator.swift */; };
 		52B7F1662D757F81001498BC /* MockSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F11A2D757F81001498BC /* MockSessionManager.swift */; };
-		52B7F1672D757F81001498BC /* MockSvgGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F11B2D757F81001498BC /* MockSvgGenerator.swift */; };
 		52B7F1682D757F81001498BC /* MockSysCtl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F11C2D757F81001498BC /* MockSysCtl.swift */; };
 		52B7F1692D757F81001498BC /* MockSystemCrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F11D2D757F81001498BC /* MockSystemCrashReporter.swift */; };
 		52B7F16A2D757F81001498BC /* MockSystemFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F11E2D757F81001498BC /* MockSystemFileManager.swift */; };
@@ -448,7 +446,6 @@
 		526D17E02D5A1913009A2E90 /* NetworkInterceptorProtocol.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NetworkInterceptorProtocol.swift; sourceTree = "<group>"; };
 		526D17E12D5A1913009A2E90 /* URLSessionTaskInterceptor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = URLSessionTaskInterceptor.swift; sourceTree = "<group>"; };
 		526D17E22D5A1913009A2E90 /* URLSessionTaskSwizzler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = URLSessionTaskSwizzler.swift; sourceTree = "<group>"; };
-		526D17E42D5A1913009A2E90 /* BaseSvgGenerator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BaseSvgGenerator.swift; sourceTree = "<group>"; };
 		526D17E52D5A1913009A2E90 /* LayoutSnapshotGenerator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LayoutSnapshotGenerator.swift; sourceTree = "<group>"; };
 		526D17E72D5A1913009A2E90 /* LifecycleCollector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LifecycleCollector.swift; sourceTree = "<group>"; };
 		526D17E82D5A1913009A2E90 /* LifecycleEvents.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LifecycleEvents.swift; sourceTree = "<group>"; };
@@ -526,7 +523,6 @@
 		52B7F1182D757F81001498BC /* MockRandomizer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockRandomizer.swift; sourceTree = "<group>"; };
 		52B7F1192D757F81001498BC /* MockScreenshotGenerator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockScreenshotGenerator.swift; sourceTree = "<group>"; };
 		52B7F11A2D757F81001498BC /* MockSessionManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockSessionManager.swift; sourceTree = "<group>"; };
-		52B7F11B2D757F81001498BC /* MockSvgGenerator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockSvgGenerator.swift; sourceTree = "<group>"; };
 		52B7F11C2D757F81001498BC /* MockSysCtl.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockSysCtl.swift; sourceTree = "<group>"; };
 		52B7F11D2D757F81001498BC /* MockSystemCrashReporter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockSystemCrashReporter.swift; sourceTree = "<group>"; };
 		52B7F11E2D757F81001498BC /* MockSystemFileManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockSystemFileManager.swift; sourceTree = "<group>"; };
@@ -922,7 +918,6 @@
 		526D17E62D5A1913009A2E90 /* LayoutInspector */ = {
 			isa = PBXGroup;
 			children = (
-				526D17E42D5A1913009A2E90 /* BaseSvgGenerator.swift */,
 				526D17E52D5A1913009A2E90 /* LayoutSnapshotGenerator.swift */,
 			);
 			path = LayoutInspector;
@@ -1203,7 +1198,6 @@
 				CF11CCD72F1B996B00EF68E9 /* MockSignalStore.swift */,
 				CFD88D302DAB8CA60095115E /* MockSpanProcessor.swift */,
 				CFD88D782DAFDA530095115E /* MockSpanStore.swift */,
-				52B7F11B2D757F81001498BC /* MockSvgGenerator.swift */,
 				52B7F11C2D757F81001498BC /* MockSysCtl.swift */,
 				52B7F11D2D757F81001498BC /* MockSystemCrashReporter.swift */,
 				52B7F11E2D757F81001498BC /* MockSystemFileManager.swift */,
@@ -1707,7 +1701,6 @@
 				526D183E2D5A1913009A2E90 /* SessionStore.swift in Sources */,
 				526D188B2D5A1913009A2E90 /* TimeProvider.swift in Sources */,
 				526D18732D5A1913009A2E90 /* CpuUsageData.swift in Sources */,
-				526D18662D5A1913009A2E90 /* BaseSvgGenerator.swift in Sources */,
 				CF7CAE552D952FA600E15CDB /* HttpEventValidator.swift in Sources */,
 				526D18582D5A1913009A2E90 /* HttpModels.swift in Sources */,
 				526D18702D5A1913009A2E90 /* NetworkChangeDetector.swift in Sources */,
@@ -1914,7 +1907,6 @@
 				CF1BB5022DDF362900588506 /* AccelerometerShakeDetectorTests.swift in Sources */,
 				52B7F13C2D757F81001498BC /* SessionStoreTests.swift in Sources */,
 				52B7F1712D757F81001498BC /* MemoryUsageCollectorTests.swift in Sources */,
-				52B7F1672D757F81001498BC /* MockSvgGenerator.swift in Sources */,
 				CF1BB5042DDF669800588506 /* BugReportCollectorTests.swift in Sources */,
 				52B7F15C2D757F81001498BC /* MockExporter.swift in Sources */,
 				52B7F1562D757F81001498BC /* MockBatchStore.swift in Sources */,

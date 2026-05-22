@@ -8,8 +8,6 @@
 import UIKit
 
 protocol LayoutSnapshotGenerator {
-    func generate(window: UIWindow, touchPoint: CGPoint, completion: @escaping (MsrAttachment?) -> Void)
-    func generate(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void)
     func generate(for window: UIWindow, touchPoint: CGPoint, completion: @escaping (MsrAttachment?) -> Void)
 }
 
@@ -19,7 +17,6 @@ final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
     private let timeProvider: TimeProvider
     private var lastSnapshotTime: Number = 0
     private let attachmentProcessor: AttachmentProcessor
-    private let svgGenerator: SvgGenerator
     private let measureDispatchQueue: MeasureDispatchQueue
     // Since iOS 26, overlay views are added on top of the view hierarchy as part of the Liquid Glass UI.
     // These views obstruct the layout snapshot traversal and are ignored.
@@ -30,45 +27,12 @@ final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
          configProvider: ConfigProvider,
          timeProvider: TimeProvider,
          attachmentProcessor: AttachmentProcessor,
-         svgGenerator: SvgGenerator,
          measureDispatchQueue: MeasureDispatchQueue) {
         self.logger = logger
         self.configProvider = configProvider
         self.timeProvider = timeProvider
         self.attachmentProcessor = attachmentProcessor
-        self.svgGenerator = svgGenerator
         self.measureDispatchQueue = measureDispatchQueue
-    }
-
-    func generate(window: UIWindow, touchPoint: CGPoint, completion: @escaping (MsrAttachment?) -> Void) {
-        SignPost.trace(subcategory: "Attachment", label: "generateLayoutSnapshot") {
-            let currentTime = timeProvider.now()
-            guard currentTime - lastSnapshotTime > configProvider.layoutSnapshotDebounceInterval else {
-                logger.log(level: .debug, message: "LayoutSnapshotGenerator: Debounced duplicate snapshot request.", error: nil, data: nil)
-                completion(nil)
-                return
-            }
-
-            lastSnapshotTime = currentTime
-
-            let targetView = window.hitTest(touchPoint, with: nil)
-            let frames = collectSvgFrames(in: window, rootView: window, targetView: targetView)
-
-            generateSvg(frames: frames, rootSize: window.frame.size, completion: completion)
-        }
-    }
-
-    func generate(for viewController: UIViewController, completion: @escaping (MsrAttachment?) -> Void) {
-        SignPost.trace(subcategory: "Attachment", label: "generateLayoutSnapshot") {
-            guard let rootView = viewController.view else {
-                completion(nil)
-                return
-            }
-
-            let frames = collectSvgFrames(in: rootView, rootView: rootView, targetView: nil)
-
-            generateSvg(frames: frames, rootSize: rootView.frame.size, completion: completion)
-        }
     }
 
     func generate(for window: UIWindow, touchPoint: CGPoint, completion: @escaping (MsrAttachment?) -> Void) {
@@ -149,36 +113,5 @@ final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
         }
 
         return String(describing: type(of: view))
-    }
-
-    private func collectSvgFrames(in view: UIView, rootView: UIView, targetView: UIView?) -> [SvgFrame] {
-        var frames: [SvgFrame] = []
-
-        let frameInRootView = view.convert(view.bounds, to: rootView)
-        let isTarget = (targetView != nil && view === targetView)
-        frames.append(SvgFrame(frame: frameInRootView, isTarget: isTarget))
-
-        for subview in view.subviews {
-            frames.append(contentsOf: collectSvgFrames(in: subview, rootView: rootView, targetView: targetView))
-        }
-
-        return frames
-    }
-
-    private func generateSvg(frames: [SvgFrame], rootSize: CGSize, completion: @escaping (MsrAttachment?) -> Void) {
-        measureDispatchQueue.submit { [weak self] in
-            guard let self = self,
-                  let layoutSnapshot = self.svgGenerator.generate(for: frames, rootSize: rootSize) else {
-                completion(nil)
-                return
-            }
-
-            let attachment = attachmentProcessor.getAttachmentObject(
-                for: layoutSnapshot,
-                storageType: .data,
-                attachmentType: .layoutSnapshot
-            )
-            completion(attachment)
-        }
     }
 }

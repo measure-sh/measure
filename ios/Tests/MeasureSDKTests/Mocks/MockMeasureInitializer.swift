@@ -59,7 +59,6 @@ final class MockMeasureInitializer: MeasureInitializer {
     let attachmentProcessor: AttachmentProcessor
     let layoutSnapshotGenerator: LayoutSnapshotGenerator
     let userPermissionManager: UserPermissionManager
-    let svgGenerator: SvgGenerator
     let httpEventValidator: HttpEventValidator
     let randomizer: Randomizer
     let spanProcessor: SpanProcessor
@@ -116,7 +115,6 @@ final class MockMeasureInitializer: MeasureInitializer {
          userTriggeredEventCollector: UserTriggeredEventCollector? = nil,
          dataCleanupService: DataCleanupService? = nil,
          userPermissionManager: UserPermissionManager? = nil,
-         svgGenerator: SvgGenerator? = nil,
          layoutSnapshotGenerator: LayoutSnapshotGenerator? = nil,
          httpEventValidator: HttpEventValidator? = nil,
          httpEventCollector: HttpEventCollector? = nil,
@@ -209,12 +207,10 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                            fileManager: self.systemFileManager,
                                                            idProvider: self.idProvider)
         self.userPermissionManager = userPermissionManager ?? BaseUserPermissionManager()
-        self.svgGenerator = svgGenerator ?? BaseSvgGenerator()
         self.layoutSnapshotGenerator = layoutSnapshotGenerator ?? BaseLayoutSnapshotGenerator(logger: self.logger,
                                                                                               configProvider: self.configProvider,
                                                                                               timeProvider: self.timeProvider,
                                                                                               attachmentProcessor: self.attachmentProcessor,
-                                                                                              svgGenerator: self.svgGenerator,
                                                                                               measureDispatchQueue: self.measureDispatchQueue)
         self.attributeValueValidator = attributeValueValidator ?? BaseAttributeValueValidator(configProvider: self.configProvider,
                                                                    logger: self.logger)
