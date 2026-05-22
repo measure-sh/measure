@@ -18,15 +18,6 @@ export const NativeModules = {
         id: 'mock-screenshot-id',
       })
     ),
-    captureLayoutSnapshot: jest.fn(() =>
-      Promise.resolve({
-        name: 'layout.json',
-        type: 'layout_snapshot',
-        path: '/tmp/layout.json',
-        size: 512,
-        id: 'mock-snapshot-id',
-      })
-    ),
     trackBugReport: jest.fn(() => Promise.resolve()),
     getSessionId: jest.fn(() => Promise.resolve('mock-session-id')),
     getDynamicConfig: jest.fn(() => Promise.resolve({})),

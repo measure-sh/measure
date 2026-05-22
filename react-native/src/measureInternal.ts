@@ -150,10 +150,6 @@ export class MeasureInternal {
     return this.measureInitializer.screenshotCollector.capture();
   }
 
-  async captureLayoutSnapshot(): Promise<MsrAttachment | null> {
-    return this.measureInitializer.layoutSnapshotCollector.capture();
-  }
-
   createSpan({ name }: { name: string }): SpanBuilder | undefined {
     return this.measureInitializer.spanCollector.createSpan({ name });
   }

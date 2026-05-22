@@ -105,9 +105,8 @@ const App = (): React.JSX.Element => {
   const trackManualBugReport = async () => {
     try {
       const screenshot = await Measure.captureScreenshot();
-      const layoutSnapshot = await Measure.captureLayoutSnapshot();
 
-      const attachments = [screenshot, layoutSnapshot].filter(
+      const attachments = [screenshot].filter(
         attachment => attachment !== null,
       );
 

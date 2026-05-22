@@ -1,4 +1,4 @@
-export type AttachmentType = 'screenshot' | 'layout_snapshot';
+export type AttachmentType = 'screenshot';
 
 export interface MsrAttachment {
   name: string;

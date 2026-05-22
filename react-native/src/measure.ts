@@ -399,31 +399,6 @@ export const Measure = {
   },
 
   /**
-   * Captures a layout snapshot of the current UI hierarchy.
-   *
-   * A layout snapshot is a lightweight representation of the visible UI,
-   * including information such as element positions, sizes, and the view hierarchy.
-   * Unlike screenshots, layout snapshots do not include pixel data and are more
-   * storage-efficient, making them ideal for debugging UI issues and visual analysis.
-   *
-   * This method must be called after Measure has been initialized.
-   * The snapshot is captured asynchronously and returned as an `MsrAttachment`.
-   * If the capture fails, `null` is returned.
-   *
-   * @returns A Promise resolving to an `MsrAttachment` containing the layout snapshot data,
-   *          or `null` if the snapshot could not be captured.
-   */
-  captureLayoutSnapshot(): Promise<MsrAttachment | null> {
-    if (!_measureInternal) {
-      return Promise.reject(
-        new Error('Measure is not initialized. Call init() first.')
-      );
-    }
-
-    return _measureInternal.captureLayoutSnapshot();
-  },
-
-  /**
    * Tracks a custom bug report.
    *
    * This method allows programmatic bug report tracking without showing
