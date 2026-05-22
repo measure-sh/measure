@@ -272,17 +272,12 @@ private struct NativeIOSScreen: View {
             Measure.launchBugReport(takeScreenshot: true)
         case .trackBugReport:
             guard let vc = holder.viewController else { return }
-            Measure.captureScreenshot(for: vc) { screenshot in
-                Measure.captureLayoutSnapshot(for: vc) { layout in
-                    var attachments: [MsrAttachment] = []
-                    if let s = screenshot { attachments.append(s) }
-                    if let l = layout { attachments.append(l) }
+                Measure.captureScreenshot(for: vc) { screenshot in
                     Measure.trackBugReport(
                         description: "Bug report from native iOS demos",
-                        attachments: attachments
+                        attachments: [screenshot].compactMap { $0 }
                     )
                 }
-            }
         case .shakeToReport:
             break // handled by toggle
 
