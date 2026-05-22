@@ -130,6 +130,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.sessionManager.onAppForeground()
         if (isStarted) {
             resumeCollectorsOnForeground()
+            measure.exporter.flush()
         }
     }
 
