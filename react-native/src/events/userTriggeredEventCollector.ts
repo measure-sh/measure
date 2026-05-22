@@ -170,7 +170,7 @@ export class UserTriggeredEventCollector implements IUserTriggeredEventCollector
   try {
     await trackHttpEvent(
       url,
-      method,
+      method.toLowerCase(),
       startTime,
       endTime,
       statusCode,
