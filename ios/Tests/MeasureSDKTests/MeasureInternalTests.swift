@@ -199,6 +199,31 @@ final class MeasureInternalTests: XCTestCase {
         XCTAssertEqual(exporter.exportCallCount, before + 2, "exporter.export() should be called once per foreground transition")
     }
 
+    func testApplicationWillEnterForeground_doesNotTriggerExport_whenConfigNotLoaded() {
+        let mockConfigLoader = MockConfigLoader(autoSetConfigLoaded: false)
+        let initializer = MockMeasureInitializer(
+            configLoader: mockConfigLoader,
+            configProvider: MockConfigProvider()
+        )
+        let sut = MeasureInternal(initializer)
+        let exporter = initializer.exporter as! MockExporter // swiftlint:disable:this force_cast
+        let before = exporter.exportCallCount
+
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+
+        XCTAssertEqual(exporter.exportCallCount, before, "export() should not be called when config has not been loaded")
+        _ = sut
+    }
+
+    func testApplicationWillEnterForeground_triggersExport_whenConfigIsLoaded() {
+        let exporter = mockMeasureInitializer.exporter as! MockExporter // swiftlint:disable:this force_cast
+        let before = exporter.exportCallCount
+
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+
+        XCTAssertEqual(exporter.exportCallCount, before + 1, "export() should be called when config has been loaded")
+    }
+
     func testEncodeWebP_completesOnMainThreadWithEncodedBytes() {
         // Use a synchronous dispatch queue + a config-provider with a known quality.
         // Verifies the orchestrator (a) ran the codec, (b) hopped back to main
