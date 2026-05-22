@@ -404,8 +404,7 @@ export const Measure = {
    * This method allows programmatic bug report tracking without showing
    * the default Measure bug report UI.
    *
-   * Attachments may include screenshots, layout snapshots, or any files
-   * captured via the Measure attachment APIs.
+   * Attachments may include screenshots or images from the gallery.
    *
    * @param params.description - A human-readable description of the bug (max 4000 chars).
    * @param params.attachments - Optional list of MsrAttachment objects (max 5).
