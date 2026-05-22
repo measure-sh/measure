@@ -484,7 +484,9 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.sessionManager.applicationWillEnterForeground()
         self.lifecycleCollector.applicationWillEnterForeground()
         self.registedCollectors()
-        self.exporter.export()
+        if self.configLoader.isConfigLoaded {
+            self.exporter.export()
+        }
     }
 
     private func applicationWillTerminate() {

@@ -9,11 +9,18 @@ import Foundation
 
 /// A protocol that defines the methods for loading configuration data either a cache or a network source.
 protocol ConfigLoader {
+    var isConfigLoaded: Bool { get }
     func loadDynamicConfig(onLoaded: @escaping (DynamicConfig) -> Void)
 }
 
 /// A base implementation of the `ConfigLoader` protocol.
 struct BaseConfigLoader: ConfigLoader {
+    private final class ConfigState {
+        var isConfigLoaded: Bool = false
+    }
+
+    private let state = ConfigState()
+    var isConfigLoaded: Bool { state.isConfigLoaded }
     private let userDefaultStorage: UserDefaultStorage
     private let fileManager: SystemFileManager
     private let networkClient: NetworkClient
@@ -46,6 +53,7 @@ struct BaseConfigLoader: ConfigLoader {
 
     func loadDynamicConfig(onLoaded: @escaping (DynamicConfig) -> Void) {
         let cachedConfig = loadConfigFromDisk()
+        state.isConfigLoaded = true
         onLoaded(cachedConfig ?? BaseDynamicConfig())
         refreshConfigFromServer()
     }
