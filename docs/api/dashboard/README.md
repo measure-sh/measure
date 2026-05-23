@@ -3334,6 +3334,10 @@ The required headers must be present in each request.
 
 #### Response Body
 
+- Each result is either an exception event or an ANR event, distinguished by the `type` field (`"exception"` or `"anr"`).
+- Exception events include `exception`, `severity`, `num_code`, `code`, and `meta` fields. `severity` is `"fatal"`, `"unhandled"`, or `"handled"`.
+- ANR events include an `anr` field instead of `exception`. `severity` is always `"fatal"` for ANRs.
+
 - Response
 
   <details>
@@ -3386,7 +3390,6 @@ The required headers must be present in each request.
           "stacktrace": "java.lang.NullPointerException: Attempt to invoke virtual method\n\tat com.example.MainActivity.onClick(MainActivity.kt:42)",
           "message": "Attempt to invoke virtual method on a null object reference"
         },
-        "anr": null,
         "severity": "fatal",
         "num_code": 0,
         "code": "",
@@ -3406,6 +3409,58 @@ The required headers must be present in each request.
             "frames": [
               "com.example.MainActivity.onClick(MainActivity.kt:42)",
               "android.view.View.performClick(View.java:7448)"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+        "session_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+        "timestamp": "2025-06-13T15:22:11.104Z",
+        "type": "anr",
+        "attribute": {
+          "installation_id": "d4e5f6a7-b8c9-0123-abcd-ef4567890123",
+          "app_version": "1.0.0",
+          "app_build": "100",
+          "app_unique_id": "com.example.app",
+          "measure_sdk_version": "0.8.0",
+          "platform": "android",
+          "thread_name": "main",
+          "user_id": "user-456",
+          "device_name": "Pixel 7",
+          "device_model": "panther",
+          "device_manufacturer": "Google",
+          "device_type": "phone",
+          "device_is_foldable": false,
+          "device_is_physical": true,
+          "device_density_dpi": 420,
+          "device_width_px": 1080,
+          "device_height_px": 2400,
+          "device_density": 2.625,
+          "device_locale": "en-US",
+          "device_low_power_mode": false,
+          "device_thermal_throttling_enabled": false,
+          "device_cpu_arch": "arm64-v8a",
+          "os_name": "android",
+          "os_version": "13",
+          "os_page_size": 4,
+          "network_type": "wifi",
+          "network_provider": "Comcast",
+          "network_generation": ""
+        },
+        "anr": {
+          "title": "android.app.RemoteServiceException",
+          "stacktrace": "android.app.RemoteServiceException: Input dispatching timed out\n\tat com.example.MainActivity.onResume(MainActivity.kt:88)",
+          "message": "Input dispatching timed out"
+        },
+        "severity": "fatal",
+        "attachments": [],
+        "threads": [
+          {
+            "name": "main",
+            "frames": [
+              "com.example.MainActivity.onResume(MainActivity.kt:88)",
+              "android.app.Activity.performResume(Activity.java:8121)"
             ]
           }
         ]

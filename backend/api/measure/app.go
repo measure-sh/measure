@@ -1247,6 +1247,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 				return
 			}
 
+			e.Severity = event.SeverityFatal
 			e.ComputeView()
 			events = append(events, &e)
 		}
