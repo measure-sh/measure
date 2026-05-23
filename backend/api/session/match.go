@@ -13,7 +13,7 @@ func ExtractMatches(
 	needle, userId, sessionId string,
 	types, customTypeNames, logStrings,
 	viewClassnames, subviewClassnames, exceptionErrors []string,
-	unhandledExceptions, handledExceptions, anrs []map[string]string,
+	fatalExceptions, unhandledExceptions, handledExceptions, anrs []map[string]string,
 	clickTargets, longclickTargets, scrollTargets [][]string,
 ) (matched string) {
 	if needle == "" {
@@ -72,33 +72,49 @@ func ExtractMatches(
 		}
 	}
 
+	// fatal exceptions
+	for i := range fatalExceptions {
+		length := len(buff)
+
+		if strings.Contains(strings.ToLower(fatalExceptions[i]["type"]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("CrashType: %s", fatalExceptions[i]["type"]))
+		}
+		if strings.Contains(strings.ToLower(fatalExceptions[i]["message"]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("CrashMessage: %s", fatalExceptions[i]["message"]))
+		}
+		if strings.Contains(strings.ToLower(fatalExceptions[i]["file_name"]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("CrashFile: %s", fatalExceptions[i]["file_name"]))
+		}
+		if strings.Contains(strings.ToLower(fatalExceptions[i]["class_name"]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("CrashClass: %s", fatalExceptions[i]["class_name"]))
+		}
+		if strings.Contains(strings.ToLower(fatalExceptions[i]["method_name"]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("CrashMethod: %s", fatalExceptions[i]["method_name"]))
+		}
+
+		if len(buff)-length > 2 {
+			break
+		}
+	}
+
 	// unhandled exceptions
 	for i := range unhandledExceptions {
 		length := len(buff)
 
-		// type
 		if strings.Contains(strings.ToLower(unhandledExceptions[i]["type"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("CrashType: %s", unhandledExceptions[i]["type"]))
+			buff = append(buff, fmt.Sprintf("UnhandledType: %s", unhandledExceptions[i]["type"]))
 		}
-
-		// message
 		if strings.Contains(strings.ToLower(unhandledExceptions[i]["message"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("CrashMessage: %s", unhandledExceptions[i]["message"]))
+			buff = append(buff, fmt.Sprintf("UnhandledMessage: %s", unhandledExceptions[i]["message"]))
 		}
-
-		// file name
 		if strings.Contains(strings.ToLower(unhandledExceptions[i]["file_name"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("CrashFile: %s", unhandledExceptions[i]["file_name"]))
+			buff = append(buff, fmt.Sprintf("UnhandledFile: %s", unhandledExceptions[i]["file_name"]))
 		}
-
-		// class name
 		if strings.Contains(strings.ToLower(unhandledExceptions[i]["class_name"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("CrashClass: %s", unhandledExceptions[i]["class_name"]))
+			buff = append(buff, fmt.Sprintf("UnhandledClass: %s", unhandledExceptions[i]["class_name"]))
 		}
-
-		// method name
 		if strings.Contains(strings.ToLower(unhandledExceptions[i]["method_name"]), strings.ToLower(needle)) {
-			buff = append(buff, fmt.Sprintf("CrashMethod: %s", unhandledExceptions[i]["method_name"]))
+			buff = append(buff, fmt.Sprintf("UnhandledMethod: %s", unhandledExceptions[i]["method_name"]))
 		}
 
 		if len(buff)-length > 2 {

@@ -296,6 +296,39 @@ func anrAllowed(af *filter.AppFilter, requested bool) bool {
 	return requested
 }
 
+// sessionErrorOrExprs returns the OR-clauses for exception/ANR filtering on
+// the sessions table. Returns nil when both type and severity are absent
+// (show-all behaviour). When type is absent, both error and ANR sources are
+// in scope (same as type=error,anr). ANRs are unaffected by severity.
+func sessionErrorOrExprs(af *filter.AppFilter) []string {
+	if len(af.ErrorTypes) == 0 && len(af.Severities) == 0 {
+		return nil
+	}
+
+	includeError := len(af.ErrorTypes) == 0 || slices.Contains(af.ErrorTypes, event.ErrorTypeError)
+	includeANR := len(af.ErrorTypes) == 0 || slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
+
+	var orExprs []string
+	if includeError {
+		hasFatal := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityFatal)
+		hasUnhandled := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityUnhandled)
+		hasHandled := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityHandled)
+		if hasFatal {
+			orExprs = append(orExprs, "fatal_exception_count >= 1")
+		}
+		if hasUnhandled {
+			orExprs = append(orExprs, "unhandled_exception_count >= 1")
+		}
+		if hasHandled {
+			orExprs = append(orExprs, "handled_exception_count >= 1")
+		}
+	}
+	if includeANR {
+		orExprs = append(orExprs, "anr_count >= 1")
+	}
+	return orExprs
+}
+
 // resolveErrorSources maps an AppFilter's severity flags onto the underlying
 // event sources for the unified error endpoints. Returns whether the ANR
 // branch is active and which exception.handled rows the exception branch
@@ -2681,6 +2714,7 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 			Select("groupUniqArrayArray(unique_strings) as unique_strings").
 			Select("groupUniqArrayArray(unique_view_classnames) as unique_view_classnames").
 			Select("groupUniqArrayArray(unique_subview_classnames) as unique_subview_classnames").
+			Select("groupUniqArrayArray(unique_fatal_exceptions) as unique_fatal_exceptions").
 			Select("groupUniqArrayArray(unique_unhandled_exceptions) as unique_unhandled_exceptions").
 			Select("groupUniqArrayArray(unique_handled_exceptions) as unique_handled_exceptions").
 			Select("groupUniqArrayArray(unique_errors) as unique_errors").
@@ -2705,13 +2739,7 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 		orExprs := []string{}
 		andExprs := []string{}
 
-		if slices.Contains(af.ErrorTypes, event.ErrorTypeError) {
-			orExprs = append(orExprs, "crash_count >= 1")
-		}
-
-		if slices.Contains(af.ErrorTypes, event.ErrorTypeANR) {
-			orExprs = append(orExprs, "anr_count >= 1")
-		}
+		orExprs = append(orExprs, sessionErrorOrExprs(af)...)
 
 		if af.BugReport {
 			orExprs = append(orExprs, "bug_report_count >= 1")
@@ -2866,9 +2894,11 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 				Clause("or").
 				Clause("arrayExists(x -> x ilike ?, unique_subview_classnames)", partial).
 				Clause("or").
-				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_unhandled_exceptions)", slices.Repeat([]any{partial}, 5)...).
+				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_fatal_exceptions)", slices.Repeat([]any{partial}, 5)...).
 				Clause("or").
 				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_handled_exceptions)", slices.Repeat([]any{partial}, 5)...).
+				Clause("or").
+				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_unhandled_exceptions)", slices.Repeat([]any{partial}, 5)...).
 				Clause("or").
 				Clause("arrayExists(x -> x ilike ?, unique_errors)", partial).
 				Clause("or").
@@ -2931,6 +2961,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 			Select("groupUniqArrayArray(unique_strings) as unique_strings").
 			Select("groupUniqArrayArray(unique_view_classnames) as unique_view_classnames").
 			Select("groupUniqArrayArray(unique_subview_classnames) as unique_subview_classnames").
+			Select("groupUniqArrayArray(unique_fatal_exceptions) as unique_fatal_exceptions").
 			Select("groupUniqArrayArray(unique_unhandled_exceptions) as unique_unhandled_exceptions").
 			Select("groupUniqArrayArray(unique_handled_exceptions) as unique_handled_exceptions").
 			Select("groupUniqArrayArray(unique_errors) as unique_errors").
@@ -2955,13 +2986,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 		orExprs := []string{}
 		andExprs := []string{}
 
-		if slices.Contains(af.ErrorTypes, event.ErrorTypeError) {
-			orExprs = append(orExprs, "crash_count >= 1")
-		}
-
-		if slices.Contains(af.ErrorTypes, event.ErrorTypeANR) {
-			orExprs = append(orExprs, "anr_count >= 1")
-		}
+		orExprs = append(orExprs, sessionErrorOrExprs(af)...)
 
 		if af.BugReport {
 			orExprs = append(orExprs, "bug_report_count >= 1")
@@ -3146,9 +3171,11 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 				Clause("or").
 				Clause("arrayExists(x -> x ilike ?, unique_subview_classnames)", partial).
 				Clause("or").
-				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_unhandled_exceptions)", slices.Repeat([]any{partial}, 5)...).
+				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_fatal_exceptions)", slices.Repeat([]any{partial}, 5)...).
 				Clause("or").
 				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_handled_exceptions)", slices.Repeat([]any{partial}, 5)...).
+				Clause("or").
+				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_unhandled_exceptions)", slices.Repeat([]any{partial}, 5)...).
 				Clause("or").
 				Clause("arrayExists(x -> x ilike ?, unique_errors)", partial).
 				Clause("or").
@@ -3167,6 +3194,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 			Select("unique_strings").
 			Select("unique_view_classnames").
 			Select("unique_subview_classnames").
+			Select("unique_fatal_exceptions").
 			Select("unique_unhandled_exceptions").
 			Select("unique_handled_exceptions").
 			Select("unique_errors").
@@ -3186,6 +3214,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 	for rows.Next() {
 		var uniqueUserIds, uniqueTypes, uniqueCustomTypeNames,
 			uniqueStrings, uniqueViewClassnames, uniqueSubviewClassnames, uniqueErrors []string
+		uniqueFatalExceptions := []map[string]string{}
 		uniqueUnhandledExceptions := []map[string]string{}
 		uniqueHandledExceptions := []map[string]string{}
 		uniqueANRs := []map[string]string{}
@@ -3220,6 +3249,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 				&uniqueStrings,
 				&uniqueViewClassnames,
 				&uniqueSubviewClassnames,
+				&uniqueFatalExceptions,
 				&uniqueUnhandledExceptions,
 				&uniqueHandledExceptions,
 				&uniqueErrors,
@@ -3273,6 +3303,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 			uniqueViewClassnames,
 			uniqueSubviewClassnames,
 			uniqueErrors,
+			uniqueFatalExceptions,
 			uniqueUnhandledExceptions,
 			uniqueHandledExceptions,
 			uniqueANRs,
@@ -4756,6 +4787,11 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`gesture_scroll.end_x`,
 		`gesture_scroll.end_y`,
 		`gesture_scroll.direction`,
+		`exception.num_code`,
+		`exception.code`,
+		`exception.meta`,
+		`exception.is_custom`,
+		`exception.severity`,
 		`exception.handled`,
 		`exception.fingerprint`,
 		`exception.foreground`,
@@ -4944,6 +4980,8 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		var hotLaunchDuration uint32
 
 		var exceptionError string
+		var exceptionMeta string
+		var exceptionSeverity string
 		var lifecycleViewController event.LifecycleViewController
 		var lifecycleSwiftUI event.LifecycleSwiftUI
 		var memoryUsageAbs event.MemoryUsageAbs
@@ -5021,6 +5059,11 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			&gestureScroll.Direction,
 
 			// excpetion
+			&exception.NumCode,
+			&exception.Code,
+			&exceptionMeta,
+			&exception.IsCustom,
+			&exceptionSeverity,
 			&exception.Handled,
 			&exception.Fingerprint,
 			&exception.Foreground,
@@ -5205,16 +5248,30 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			ev.ANR = &anr
 			session.Events = append(session.Events, ev)
 		case event.TypeException:
-			if err := json.Unmarshal([]byte(exceptionExceptions), &exception.Exceptions); err != nil {
-				return nil, err
+			exception.Severity = event.Severity(exceptionSeverity)
+
+			if exceptionExceptions != "" {
+				if err := json.Unmarshal([]byte(exceptionExceptions), &exception.Exceptions); err != nil {
+					return nil, err
+				}
 			}
 
-			if err := json.Unmarshal([]byte(exceptionThreads), &exception.Threads); err != nil {
-				return nil, err
+			if exceptionThreads != "" {
+				if err := json.Unmarshal([]byte(exceptionThreads), &exception.Threads); err != nil {
+					return nil, err
+				}
 			}
 
-			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
-				return nil, err
+			if attachments != "" {
+				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
+					return nil, err
+				}
+			}
+
+			if exceptionMeta != "" {
+				if err := json.Unmarshal([]byte(exceptionMeta), &exception.Meta); err != nil {
+					return nil, err
+				}
 			}
 
 			// for now, only unmarshal exception.error for Apple
@@ -5222,7 +5279,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			// to other OSes on a "need to" basis.
 			switch opsys.ToFamily(a.OSName) {
 			case opsys.AppleFamily:
-				fmt.Println("exceptionError", exceptionError)
 				if exceptionError != "" {
 					if err := json.Unmarshal([]byte(exceptionError), &exception.Error); err != nil {
 						return nil, err

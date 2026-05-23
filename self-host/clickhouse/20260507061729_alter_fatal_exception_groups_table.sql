@@ -5,7 +5,7 @@ alter table fatal_exception_groups
     modify comment 'fatal exception groups';
 
 -- migrate:down
-alter table if exists fatal_exception_groups
+alter table fatal_exception_groups
     drop column if exists is_custom,
     drop column if exists handled,
     modify comment 'unhandled exception groups';
