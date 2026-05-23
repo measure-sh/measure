@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Set severity as fatal for anr events (#3687) by @detj in #3687
 - (**backend**): Expand session filtering & storage for exception severities (#3685) by @detj in #3685
 - (**backend**): Expand severity & error types in app filter (#3663) by @detj in #3663
 - (**backend**): Use multi-value error types for session filtering (#3661) by @detj in #3661
