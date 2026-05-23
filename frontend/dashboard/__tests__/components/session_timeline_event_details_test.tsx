@@ -160,23 +160,36 @@ describe("SessionTimelineEventDetails", () => {
   });
 
   describe("Details links", () => {
-    it("renders crash details link for unhandled exceptions", () => {
+    it("renders error details link for fatal errors", () => {
       renderDetails({
-        eventType: "exception",
+        eventType: "error",
         eventDetails: {
           id: "ex-1",
           group_id: "grp-1",
           type: "NPE",
           file_name: "Main.java",
-          user_triggered: false,
-          handled: false,
+          severity: "fatal",
         },
       });
-      const link = screen.getByText("View Crash Details");
+      const link = screen.getByText("View Error Details");
       expect(link.closest("a")).toHaveAttribute(
         "href",
         "/team-1/errors/app-1/grp-1/NPE@Main.java",
       );
+    });
+
+    it("does not render error details link for non-fatal errors", () => {
+      renderDetails({
+        eventType: "error",
+        eventDetails: {
+          id: "ex-2",
+          group_id: "grp-2",
+          type: "NPE",
+          file_name: "Main.java",
+          severity: "handled",
+        },
+      });
+      expect(screen.queryByText("View Error Details")).not.toBeInTheDocument();
     });
 
     it("renders ANR details link", () => {
@@ -280,21 +293,20 @@ describe("SessionTimelineEventDetails", () => {
   });
 
   describe("Demo mode details links", () => {
-    it("renders non-clickable crash details label in demo mode", () => {
+    it("renders non-clickable error details label in demo mode", () => {
       renderDetails({
         demo: true,
-        eventType: "exception",
+        eventType: "error",
         eventDetails: {
           id: "ex-1",
           group_id: "grp-1",
           type: "NPE",
           file_name: "Main.java",
-          user_triggered: false,
-          handled: false,
+          severity: "fatal",
         },
       });
-      expect(screen.getByText("View Crash Details")).toBeInTheDocument();
-      expect(screen.getByText("View Crash Details").closest("a")).toBeNull();
+      expect(screen.getByText("View Error Details")).toBeInTheDocument();
+      expect(screen.getByText("View Error Details").closest("a")).toBeNull();
     });
 
     it("renders non-clickable bug report label in demo mode", () => {
@@ -315,11 +327,11 @@ describe("SessionTimelineEventDetails", () => {
   });
 
   describe("Attachments", () => {
-    it("renders image attachments for crash events", () => {
+    it("renders image attachments for fatal error events", () => {
       renderDetails({
-        eventType: "exception",
+        eventType: "error",
         eventDetails: {
-          user_triggered: false,
+          severity: "fatal",
           attachments: [
             {
               key: "img-1",

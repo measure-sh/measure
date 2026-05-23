@@ -86,8 +86,10 @@ describe("SessionTimelineEventCell", () => {
 
   describe("Pill label", () => {
     it.each([
-      ["exception", { type: "NPE", user_triggered: false }, "Crash"],
-      ["exception", { type: "NPE", user_triggered: true }, "Exception"],
+      ["error", { type: "NPE", severity: "fatal" }, "Fatal Error"],
+      ["error", { type: "NPE", severity: "unhandled" }, "Unhandled Error"],
+      ["error", { type: "NPE", severity: "handled" }, "Handled Error"],
+      ["error", { type: "NPE" }, "Error"],
       ["anr", { type: "SomeAnrType" }, "ANR"],
       ["bug_report", { description: "Bug" }, "Bug Report"],
       ["gesture_click", { target: "Button" }, "Click"],
@@ -135,8 +137,9 @@ describe("SessionTimelineEventCell", () => {
     // The pill carries the colour now (not a dot). We assert one Tailwind
     // class per bucket as a smoke test that the colour helper still maps.
     it.each([
-      ["exception", { type: "NPE", user_triggered: false }, "bg-red-50"],
-      ["exception", { type: "NPE", user_triggered: true }, "bg-orange-50"],
+      ["error", { type: "NPE", severity: "fatal" }, "bg-red-50"],
+      ["error", { type: "NPE", severity: "unhandled" }, "bg-amber-50"],
+      ["error", { type: "NPE", severity: "handled" }, "bg-emerald-50"],
       ["anr", { type: "ANR" }, "bg-red-50"],
       ["bug_report", { description: "Bug" }, "bg-red-50"],
       ["gesture_click", { target: "Button" }, "bg-emerald-50"],
@@ -153,12 +156,13 @@ describe("SessionTimelineEventCell", () => {
   });
 
   describe("Title content", () => {
-    it("shows type and message for exceptions", () => {
+    it("shows type and message for errors", () => {
       renderCell({
-        eventType: "exception",
+        eventType: "error",
         eventDetails: {
           type: "NullPointerException",
           message: "object is null",
+          severity: "fatal",
         },
       });
       expect(
@@ -168,8 +172,12 @@ describe("SessionTimelineEventCell", () => {
 
     it("shows type alone when message is empty", () => {
       renderCell({
-        eventType: "exception",
-        eventDetails: { type: "NullPointerException", message: "" },
+        eventType: "error",
+        eventDetails: {
+          type: "NullPointerException",
+          message: "",
+          severity: "fatal",
+        },
       });
       expect(screen.getByText("NullPointerException")).toBeInTheDocument();
     });
