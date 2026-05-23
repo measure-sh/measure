@@ -62,10 +62,12 @@ describe("SessionTimelineEventDetails", () => {
       renderDetails({
         eventDetails: { method: "GET", url: "https://api.example.com" },
       });
-      expect(screen.getByText("method")).toBeInTheDocument();
-      expect(screen.getByText("GET")).toBeInTheDocument();
-      expect(screen.getByText("url")).toBeInTheDocument();
-      expect(screen.getByText("https://api.example.com")).toBeInTheDocument();
+      // Body renders as a single JSON CodeBlock; assert via textContent.
+      const text = document.body.textContent ?? "";
+      expect(text).toContain("method");
+      expect(text).toContain("GET");
+      expect(text).toContain("url");
+      expect(text).toContain("https://api.example.com");
     });
 
     it("skips empty string values", () => {
@@ -99,16 +101,16 @@ describe("SessionTimelineEventDetails", () => {
       renderDetails({
         eventDetails: { timestamp: "2024-01-01T00:00:00Z" },
       });
-      expect(
-        screen.getByText("formatted:2024-01-01T00:00:00Z"),
-      ).toBeInTheDocument();
+      expect(document.body.textContent ?? "").toContain(
+        "formatted:2024-01-01T00:00:00Z",
+      );
     });
 
     it("formats duration values", () => {
       renderDetails({
         eventDetails: { duration: "1500" },
       });
-      expect(screen.getByText("1500ms")).toBeInTheDocument();
+      expect(document.body.textContent ?? "").toContain("1500ms");
     });
 
     it("renders stacktrace in preformatted style", () => {
@@ -149,10 +151,11 @@ describe("SessionTimelineEventDetails", () => {
           user_defined_attribute: { user_id: "abc123", plan: "premium" },
         },
       });
-      expect(screen.getByText("user_id")).toBeInTheDocument();
-      expect(screen.getByText("abc123")).toBeInTheDocument();
-      expect(screen.getByText("plan")).toBeInTheDocument();
-      expect(screen.getByText("premium")).toBeInTheDocument();
+      const text = document.body.textContent ?? "";
+      expect(text).toContain("user_id");
+      expect(text).toContain("abc123");
+      expect(text).toContain("plan");
+      expect(text).toContain("premium");
     });
   });
 
@@ -258,10 +261,11 @@ describe("SessionTimelineEventDetails", () => {
           error: { numcode: 500, code: "INTERNAL", meta: null },
         },
       });
-      expect(screen.getByText("numcode")).toBeInTheDocument();
-      expect(screen.getByText("500")).toBeInTheDocument();
-      expect(screen.getByText("code")).toBeInTheDocument();
-      expect(screen.getByText("INTERNAL")).toBeInTheDocument();
+      const text = document.body.textContent ?? "";
+      expect(text).toContain("numcode");
+      expect(text).toContain("500");
+      expect(text).toContain("code");
+      expect(text).toContain("INTERNAL");
     });
 
     it("renders error meta object as JSON", () => {

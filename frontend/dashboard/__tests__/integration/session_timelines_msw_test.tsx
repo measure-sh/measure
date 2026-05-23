@@ -1142,7 +1142,7 @@ describe("Session Timeline Detail (MSW integration)", () => {
       );
     });
 
-    it("clicking an event cell selects it and shows its details in the right panel", async () => {
+    it("clicking an event cell expands it inline and shows its details", async () => {
       server.use(
         http.get("*/api/apps/:appId/sessions/:sessionId", () => {
           return HttpResponse.json(makeSessionTimelineDetailFixture());
@@ -1164,45 +1164,43 @@ describe("Session Timeline Detail (MSW integration)", () => {
         { timeout: 5000 },
       );
 
-      // The fixture has a lifecycle_activity event which renders as
-      // "Activity Created: MainActivity" via SessionTimelineEventCell
+      // The fixture has a lifecycle_activity event; the pill carries
+      // "Activity" and the cell title is the formatted "Created: MainActivity".
       await waitFor(
         () => {
-          expect(
-            screen.getByText(/Activity Created: MainActivity/),
-          ).toBeTruthy();
+          expect(screen.getByText(/Created: MainActivity/)).toBeTruthy();
         },
         { timeout: 5000 },
       );
 
-      // The fixture also has a trace event: "Trace start: activity.onCreate"
+      // The fixture also has a trace event; the pill carries "Trace" and
+      // the title is just the trace_name.
       await waitFor(
         () => {
-          expect(
-            screen.getByText(/Trace start: activity\.onCreate/),
-          ).toBeTruthy();
+          expect(screen.getByText(/activity\.onCreate/)).toBeTruthy();
         },
         { timeout: 5000 },
       );
 
-      // Click the trace event cell (second event in sorted order)
+      // Click the trace event cell to expand it.
       const traceEventButton = screen
-        .getByText(/Trace start: activity\.onCreate/)
+        .getByText(/activity\.onCreate/)
         .closest("button");
       expect(traceEventButton).toBeTruthy();
       await act(async () => {
         fireEvent.click(traceEventButton!);
       });
 
-      // The right panel (SessionTimelineEventDetails) should now show
-      // details for the trace event, which includes trace_id and trace_name
+      // The inline detail panel renders the event as a single JSON CodeBlock,
+      // so assert via textContent rather than discrete elements.
       await waitFor(() => {
-        expect(screen.getByText("trace_id")).toBeTruthy();
-        expect(screen.getByText("trace-001")).toBeTruthy();
+        const text = document.body.textContent ?? "";
+        expect(text).toContain("trace_id");
+        expect(text).toContain("trace-001");
       });
     });
 
-    it("clicking a different event cell switches the detail panel", async () => {
+    it("clicking a different event cell switches the inline details", async () => {
       server.use(
         http.get("*/api/apps/:appId/sessions/:sessionId", () => {
           return HttpResponse.json(makeSessionTimelineDetailFixture());
@@ -1226,42 +1224,40 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       await waitFor(
         () => {
-          expect(
-            screen.getByText(/Activity Created: MainActivity/),
-          ).toBeTruthy();
-          expect(
-            screen.getByText(/Trace start: activity\.onCreate/),
-          ).toBeTruthy();
+          expect(screen.getByText(/Created: MainActivity/)).toBeTruthy();
+          expect(screen.getByText(/activity\.onCreate/)).toBeTruthy();
         },
         { timeout: 5000 },
       );
 
-      // Click the lifecycle_activity event first
+      // Click the lifecycle_activity event first.
       const activityButton = screen
-        .getByText(/Activity Created: MainActivity/)
+        .getByText(/Created: MainActivity/)
         .closest("button");
       await act(async () => {
         fireEvent.click(activityButton!);
       });
 
-      // Detail panel should show lifecycle_activity details
+      // Inline details for lifecycle_activity should now be rendered.
       await waitFor(() => {
-        expect(screen.getByText("event_type")).toBeTruthy();
-        expect(screen.getByText("lifecycle_activity")).toBeTruthy();
+        const text = document.body.textContent ?? "";
+        expect(text).toContain("event_type");
+        expect(text).toContain("lifecycle_activity");
       });
 
-      // Now click the trace event
+      // Now click the trace event. Expansion is independent, so the trace
+      // event simply opens alongside.
       const traceButton = screen
-        .getByText(/Trace start: activity\.onCreate/)
+        .getByText(/activity\.onCreate/)
         .closest("button");
       await act(async () => {
         fireEvent.click(traceButton!);
       });
 
-      // Detail panel should switch to show trace details
       await waitFor(() => {
-        expect(screen.getByText("trace_id")).toBeTruthy();
-        expect(screen.getByText("trace-001")).toBeTruthy();
+        const text = document.body.textContent ?? "";
+        expect(text).toContain("trace_id");
+        expect(text).toContain("trace-001");
       });
     });
 
