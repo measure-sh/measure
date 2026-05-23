@@ -3746,7 +3746,8 @@ Fetch an app's sessions by applying various optional filters.
   - `to` (_optional_) - ISO8601 timestamp to include sessions before this time.
   - `versions` (_optional_) - List of comma separated app version identifier strings to return only matching sessions.
   - `version_codes` (_optional_) - List of comma separated app version codes to return only matching sessions.
-  - `type` (_optional_) - Comma-separated list of event source types to filter sessions by. Accepted values: any combination of `error`, `anr`. `error` returns sessions with at least one exception event; `anr` returns sessions with at least one ANR. When omitted, all sessions are returned.
+  - `type` (_optional_) - Comma-separated list of event source types to filter sessions. Accepted values: any combination of `error`, `anr`. `error` matches sessions with at least one exception event (fatal, unhandled, or handled); `anr` matches sessions with at least one ANR. When both `type` and `severity` are absent, all sessions are returned. When `type` is absent but `severity` is set, behaves as `type=error,anr`.
+  - `severity` (_optional_) - Comma-separated list of exception severities to further narrow results. Accepted values: any combination of `fatal`, `unhandled`, `handled`. `fatal` matches sessions with at least one crash; `unhandled` matches sessions with at least one non-fatal unhandled exception; `handled` matches sessions with at least one non-fatal handled exception. Severity filters only exceptions — ANR sessions are never filtered by severity. When `type` is absent or includes `anr`, ANR sessions are always included regardless of `severity`.
   - `bug_report` (_optional_) - Boolean true/false to control if only sessions containing at least 1 bug report should be fetched.
   - `background` (_optional_) - Boolean true/false to control if only background sessions should be fetched.
   - `foreground` (_optional_) - Boolean true/false to control if only foreground sessions should be fetched.
@@ -3758,13 +3759,14 @@ Fetch an app's sessions by applying various optional filters.
   - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching sessions.
   - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching sessions.
   - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching sessions.
-  - `free_text` (_optional_) - A sequence of characters used to filter sessions matching various criteria like user_id, even type, exception message and so on.
+  - `free_text` (_optional_) - A keyword to search across session data. Matched against user ID, session ID, event types, custom type names, log strings, view and subview classnames, exception details (type, message, file, class, method) for fatal, unhandled, and handled exceptions, error codes, ANR details, and gesture target names.
   - `offset` (_optional_) - Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
   - `limit` (_optional_) - Number of items to return. Used for pagination. Should be used along with `offset`.
   - `filter_short_code` (_optional_) - Code representing combination of filters.
   - `ud_expression` (_optional_) - JSON string expression to filter using user defined attributes.
 - For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
 - Pass `limit` and `offset` values to paginate results
+- When `free_text` is set, each result's `matched_free_text` field contains a space-separated string of match labels, e.g. `"CrashType: NullPointerException CrashMessage: something went wrong"`
 
 #### Authorization & Content Type
 
@@ -3784,6 +3786,11 @@ The required headers must be present in each request.
 </details>
 
 #### Response Body
+
+- `meta.next` / `meta.previous` — booleans indicating whether more pages exist in the respective direction.
+- `events` — always `null` in list responses; populated only on the single-session detail endpoint.
+- `duration` — session duration in milliseconds.
+- `matched_free_text` — present only when `free_text` is supplied. Space-separated string of match labels showing which parts of the session matched the keyword, e.g. `"CrashType: NullPointerException CrashMessage: something went wrong"`. Empty string when no `free_text` filter is applied.
 
 - Response
 
@@ -3831,7 +3838,7 @@ The required headers must be present in each request.
         "first_event_time": "2024-10-26T05:52:43.104Z",
         "last_event_time": "2024-10-26T05:53:58.596Z",
         "duration": 75492,
-        "matched_free_text": ""
+        "matched_free_text": "CrashType: NullPointerException CrashMessage: something went wrong"
       },
       {
         "session_id": "2cc9ffd2-9f9d-40a7-9f55-d802a460507a",
@@ -4023,7 +4030,8 @@ Fetch an app's sessions instances plot by applying various optional filters.
   - `plot_time_group` (_optional_) - Time bucket used for plot aggregation. Accepted values: `minutes`, `hours`, `days`, `months`. Defaults to `days`.
   - `versions` (_optional_) - List of comma separated app version identifier strings to return only matching sessions.
   - `version_codes` (_optional_) - List of comma separated app version codes to return only matching sessions.
-  - `type` (_optional_) - Comma-separated list of event source types to filter sessions by. Accepted values: any combination of `error`, `anr`. `error` returns sessions with at least one exception event; `anr` returns sessions with at least one ANR. When omitted, all sessions are returned.
+  - `type` (_optional_) - Comma-separated list of event source types to filter sessions. Accepted values: any combination of `error`, `anr`. `error` matches sessions with at least one exception event (fatal, unhandled, or handled); `anr` matches sessions with at least one ANR. When both `type` and `severity` are absent, all sessions are returned. When `type` is absent but `severity` is set, behaves as `type=error,anr`.
+  - `severity` (_optional_) - Comma-separated list of exception severities to further narrow results. Accepted values: any combination of `fatal`, `unhandled`, `handled`. `fatal` matches sessions with at least one crash; `unhandled` matches sessions with at least one non-fatal unhandled exception; `handled` matches sessions with at least one non-fatal handled exception. Severity filters only exceptions — ANR sessions are never filtered by severity. When `type` is absent or includes `anr`, ANR sessions are always included regardless of `severity`.
   - `bug_report` (_optional_) - Boolean true/false to control if only sessions containing at least 1 bug report should be fetched.
   - `background` (_optional_) - Boolean true/false to control if only background sessions should be fetched.
   - `foreground` (_optional_) - Boolean true/false to control if only foreground sessions should be fetched.
@@ -4035,7 +4043,7 @@ Fetch an app's sessions instances plot by applying various optional filters.
   - `network_providers` (_optional_) - List of comma separated network provider identifier strings to return only matching sessions.
   - `network_types` (_optional_) - List of comma separated network type identifier strings to return only matching sessions.
   - `network_generations` (_optional_) - List of comma separated network generation identifier strings to return only matching sessions.
-  - `free_text` (_optional_) - A sequence of characters used to filter sessions matching various criteria.
+  - `free_text` (_optional_) - A keyword to search across session data. Matched against user ID, session ID, event types, custom type names, log strings, view and subview classnames, exception details (type, message, file, class, method) for fatal, unhandled, and handled exceptions, error codes, ANR details, and gesture target names.
   - `filter_short_code` (_optional_) - Code representing combination of filters.
   - `ud_expression` (_optional_) - JSON string expression to filter using user defined attributes.
 - For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
