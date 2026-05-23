@@ -17,13 +17,17 @@ type Exception struct {
 	UDAttribute   *udattr.UDAttribute `json:"user_defined_attribute"`
 	UserTriggered bool                `json:"user_triggered"`
 	GroupId       string              `json:"group_id"`
+	Severity      string              `json:"severity"`
+	IsCustom      bool                `json:"is_custom"`
+	NumCode       int32               `json:"num_code"`
+	Code          string              `json:"code"`
+	Meta          map[string]any      `json:"meta"`
 	Type          string              `json:"type"`
 	Message       string              `json:"message"`
 	MethodName    string              `json:"method_name"`
 	FileName      string              `json:"file_name"`
 	LineNumber    int32               `json:"line_number"`
 	ThreadName    string              `json:"thread_name"`
-	Handled       bool                `json:"handled"`
 	Stacktrace    string              `json:"stacktrace"`
 	Foreground    bool                `json:"foreground"`
 	Error         *event.Error        `json:"error"`
@@ -47,6 +51,7 @@ func (e Exception) GetTimestamp() time.Time {
 // for session timeline.
 type ANR struct {
 	EventType   string              `json:"event_type"`
+	Severity    string              `json:"severity"`
 	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
 	GroupId     string              `json:"group_id"`
 	Type        string              `json:"type"`
@@ -76,24 +81,33 @@ func (a ANR) GetTimestamp() time.Time {
 // ComputeExceptions computes exceptions
 // for session timeline.
 func ComputeExceptions(ctx context.Context, appId *uuid.UUID, events []event.EventField) (result []ThreadGrouper, err error) {
-	for _, event := range events {
+	for _, e := range events {
+		eventType := e.Type
+		if eventType == event.TypeException {
+			eventType = "error"
+		}
+
 		exceptions := Exception{
-			event.Type,
-			&event.UserDefinedAttribute,
-			event.UserTriggered,
-			event.Exception.Fingerprint,
-			event.Exception.GetType(),
-			event.Exception.GetMessage(),
-			event.Exception.GetMethodName(),
-			event.Exception.GetFileName(),
-			event.Exception.GetLineNumber(),
-			event.Attribute.ThreadName,
-			event.Exception.Handled,
-			event.Exception.Stacktrace(),
-			event.Exception.Foreground,
-			event.Exception.Error,
-			event.Timestamp,
-			event.Attachments,
+			eventType,
+			&e.UserDefinedAttribute,
+			e.UserTriggered,
+			e.Exception.Fingerprint,
+			e.Exception.GetSeverity().String(),
+			e.Exception.IsCustom,
+			e.Exception.NumCode,
+			e.Exception.Code,
+			e.Exception.Meta,
+			e.Exception.GetType(),
+			e.Exception.GetMessage(),
+			e.Exception.GetMethodName(),
+			e.Exception.GetFileName(),
+			e.Exception.GetLineNumber(),
+			e.Attribute.ThreadName,
+			e.Exception.Stacktrace(),
+			e.Exception.Foreground,
+			e.Exception.Error,
+			e.Timestamp,
+			e.Attachments,
 		}
 		result = append(result, exceptions)
 	}
@@ -104,21 +118,22 @@ func ComputeExceptions(ctx context.Context, appId *uuid.UUID, events []event.Eve
 // ComputeANR computes anrs
 // for session timeline.
 func ComputeANRs(ctx context.Context, appId *uuid.UUID, events []event.EventField) (result []ThreadGrouper, err error) {
-	for _, event := range events {
+	for _, e := range events {
 		anrs := ANR{
-			event.Type,
-			&event.UserDefinedAttribute,
-			event.ANR.Fingerprint,
-			event.ANR.GetType(),
-			event.ANR.GetMessage(),
-			event.ANR.GetMethodName(),
-			event.ANR.GetFileName(),
-			event.ANR.GetLineNumber(),
-			event.Attribute.ThreadName,
-			event.ANR.Stacktrace(),
-			event.ANR.Foreground,
-			event.Timestamp,
-			event.Attachments,
+			e.Type,
+			event.SeverityFatal.String(),
+			&e.UserDefinedAttribute,
+			e.ANR.Fingerprint,
+			e.ANR.GetType(),
+			e.ANR.GetMessage(),
+			e.ANR.GetMethodName(),
+			e.ANR.GetFileName(),
+			e.ANR.GetLineNumber(),
+			e.Attribute.ThreadName,
+			e.ANR.Stacktrace(),
+			e.ANR.Foreground,
+			e.Timestamp,
+			e.Attachments,
 		}
 		result = append(result, anrs)
 	}
