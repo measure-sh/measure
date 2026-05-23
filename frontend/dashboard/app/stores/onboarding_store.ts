@@ -1,23 +1,28 @@
 import { createStore } from "zustand/vanilla";
 
 export type OnboardingStep = "create" | "integrate" | "verify" | "verified";
-export type OnboardingPlatform = "Android" | "iOS" | "Flutter";
-// A Measure app is bound to a single native platform, but a Flutter codebase
-// often ships to both. The sub-selection picks which native side the user is
-// integrating against right now — they may onboard a second Measure app later
-// for the other side.
+export type OnboardingPlatform = "Android" | "iOS" | "Flutter" | "React Native";
+// A Measure app is bound to a single native platform, but cross-platform
+// codebases (Flutter, React Native) often ship to both. The sub-selection
+// picks which native side the user is integrating against right now — they
+// may onboard a second Measure app later for the other side. Each cross-
+// platform keeps its own sub-selection so switching between them doesn't
+// clobber the other's choice.
 export type OnboardingFlutterPlatform = "Android" | "iOS";
+export type OnboardingReactNativePlatform = "Android" | "iOS";
 
 export interface OnboardingAppState {
   step: OnboardingStep;
   platform: OnboardingPlatform;
   flutterPlatform: OnboardingFlutterPlatform;
+  reactNativePlatform: OnboardingReactNativePlatform;
 }
 
 export const DEFAULT_ONBOARDING_STATE: OnboardingAppState = {
   step: "integrate",
   platform: "Android",
   flutterPlatform: "Android",
+  reactNativePlatform: "Android",
 };
 
 const ONBOARDING_STORAGE_PREFIX = "measure_onboarding_";
@@ -31,11 +36,14 @@ const VALID_ONBOARDING_PLATFORMS: OnboardingPlatform[] = [
   "Android",
   "iOS",
   "Flutter",
+  "React Native",
 ];
 const VALID_ONBOARDING_FLUTTER_PLATFORMS: OnboardingFlutterPlatform[] = [
   "Android",
   "iOS",
 ];
+const VALID_ONBOARDING_REACT_NATIVE_PLATFORMS: OnboardingReactNativePlatform[] =
+  ["Android", "iOS"];
 
 function onboardingStorageKey(appId: string): string {
   return `${ONBOARDING_STORAGE_PREFIX}${appId}`;
@@ -53,6 +61,9 @@ function isOnboardingAppState(parsed: unknown): parsed is OnboardingAppState {
     ) &&
     VALID_ONBOARDING_FLUTTER_PLATFORMS.includes(
       candidate.flutterPlatform as OnboardingFlutterPlatform,
+    ) &&
+    VALID_ONBOARDING_REACT_NATIVE_PLATFORMS.includes(
+      candidate.reactNativePlatform as OnboardingReactNativePlatform,
     )
   );
 }
@@ -127,6 +138,10 @@ interface OnboardingStoreActions {
     appId: string,
     flutterPlatform: OnboardingFlutterPlatform,
   ) => void;
+  setOnboardingReactNativePlatform: (
+    appId: string,
+    reactNativePlatform: OnboardingReactNativePlatform,
+  ) => void;
   clearOnboarding: (appId: string) => void;
   // Advances the wizard to 'verified' for the given app id and clears any
   // persisted state. 'verified' is terminal so there's nothing to resume
@@ -174,6 +189,19 @@ export function createOnboardingStore() {
     setOnboardingFlutterPlatform: (appId, flutterPlatform) => {
       const current = get().onboarding[appId] ?? DEFAULT_ONBOARDING_STATE;
       const next: OnboardingAppState = { ...current, flutterPlatform };
+      set((state) => ({
+        onboarding: { ...state.onboarding, [appId]: next },
+      }));
+      if (next.step === "verified" || next.step === "create") {
+        removeOnboardingFromStorage(appId);
+      } else {
+        writeOnboardingToStorage(appId, next);
+      }
+    },
+
+    setOnboardingReactNativePlatform: (appId, reactNativePlatform) => {
+      const current = get().onboarding[appId] ?? DEFAULT_ONBOARDING_STATE;
+      const next: OnboardingAppState = { ...current, reactNativePlatform };
       set((state) => ({
         onboarding: { ...state.onboarding, [appId]: next },
       }));
