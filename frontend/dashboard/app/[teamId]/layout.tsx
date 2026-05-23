@@ -103,6 +103,17 @@ function buildInitNavData() {
         ],
       },
       {
+        title: "Open Source",
+        items: [
+          {
+            title: "GitHub Stars",
+            url: "github_stars",
+            isActive: false,
+            external: false,
+          },
+        ],
+      },
+      {
         title: "Settings",
         items: [
           {

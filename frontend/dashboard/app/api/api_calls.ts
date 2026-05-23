@@ -3205,3 +3205,31 @@ export const fetchNetworkOverviewStatusCodesPlotFromServer = async (filters: Fil
     return { status: NetworkOverviewStatusCodesPlotApiStatus.Cancelled, data: null }
   }
 }
+
+export enum GitHubStarsDailyApiStatus {
+  Loading = 'loading',
+  Success = 'success',
+  Error = 'error',
+  NoData = 'no_data',
+  Cancelled = 'cancelled',
+}
+
+export const fetchGitHubStarsDailyFromServer = async () => {
+  try {
+    const res = await apiClient.fetch(`/api/github/stars/daily`)
+
+    if (!res.ok) {
+      return { status: GitHubStarsDailyApiStatus.Error, data: null }
+    }
+
+    const data = await res.json()
+
+    if (data === null) {
+      return { status: GitHubStarsDailyApiStatus.NoData, data: null }
+    }
+
+    return { status: GitHubStarsDailyApiStatus.Success, data: data }
+  } catch {
+    return { status: GitHubStarsDailyApiStatus.Cancelled, data: null }
+  }
+}

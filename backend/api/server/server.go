@@ -97,6 +97,7 @@ type ServerConfig struct {
 	CloudEnv                   bool
 	IngestEnforceTimeWindow    bool
 	BillingEnabled             bool
+	GitHubToken                string
 }
 
 // IsCloud is true if the service is
@@ -329,6 +330,11 @@ func NewConfig() *ServerConfig {
 	endpoint := os.Getenv("AWS_ENDPOINT_URL")
 	enforceIngestTimeWindow := os.Getenv("INGEST_ENFORCE_TIME_WINDOW") != ""
 
+	gitHubToken := os.Getenv("GITHUB_TOKEN")
+	if gitHubToken == "" {
+		log.Println("GITHUB_TOKEN env var is not set, GitHub API calls may be rate-limited")
+	}
+
 	return &ServerConfig{
 		PG: PostgresConfig{
 			DSN: postgresDSN,
@@ -375,6 +381,7 @@ func NewConfig() *ServerConfig {
 		CloudEnv:                   cloudEnv,
 		IngestEnforceTimeWindow:    enforceIngestTimeWindow,
 		BillingEnabled:             billingEnabled,
+		GitHubToken:                gitHubToken,
 	}
 }
 

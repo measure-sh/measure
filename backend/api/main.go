@@ -47,6 +47,10 @@ func main() {
 		}
 	}()
 
+	// Root context cancelled on shutdown to stop background tasks.
+	rootCtx, rootCancel := context.WithCancel(context.Background())
+	defer rootCancel()
+
 	r := gin.Default()
 
 	closeTracer := config.InitTracing()
@@ -214,6 +218,12 @@ func main() {
 		autumn.POST("/webhook", measure.HandleAutumnWebhook)
 	}
 
+	// GitHub stats
+	github := r.Group("/github", measure.ValidateAccessToken())
+	{
+		github.GET("/stars/daily", measure.GetGitHubStarsDailyPlot)
+	}
+
 	// MCP OAuth 2.0 Authorization Server endpoints
 	r.GET("/.well-known/oauth-authorization-server", measure.MCPOAuthMetadata)
 	r.POST("/oauth/register", measure.MCPRegisterClient)
@@ -244,11 +254,15 @@ func main() {
 		}
 	}()
 
+	// Start background tasks
+	measure.ScheduleGitHubStarsCollection(rootCtx, config.GitHubToken)
+
 	// Listen for shutdown signals
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	fmt.Println("Shutting down API service...")
+	rootCancel()
 
 	shutdownTimeout := 9 * time.Second
 	if gin.Mode() == gin.DebugMode {

@@ -18,6 +18,7 @@ import {
   ExceptionsOverviewApiStatus,
   ExceptionsOverviewPlotApiStatus,
   ExceptionsType,
+  GitHubStarsDailyApiStatus,
   FetchAppRetentionApiStatus,
   FetchAppThresholdPrefsApiStatus,
   FetchBillingInfoApiStatus,
@@ -96,6 +97,7 @@ import {
   fetchNetworkEndpointLatencyPlotFromServer,
   fetchNetworkEndpointStatusCodesPlotFromServer,
   fetchNetworkEndpointTimelinePlotFromServer,
+  fetchGitHubStarsDailyFromServer,
   fetchNetworkOverviewStatusCodesPlotFromServer,
   fetchNetworkPathsFromServer,
   fetchNetworkTimelinePlotFromServer,
@@ -1764,4 +1766,23 @@ export async function fetchCustomerPortalUrl(
     default:
       return { error: "Request was cancelled." };
   }
+}
+
+export function useGitHubStarsDailyQuery() {
+  return useQuery({
+    queryKey: ["githubStarsDaily"] as const,
+    queryFn: async () => {
+      const result = await fetchGitHubStarsDailyFromServer()
+      if (result.status === GitHubStarsDailyApiStatus.Error) {
+        throw new Error("Failed to fetch GitHub stars data")
+      }
+      if (result.status === GitHubStarsDailyApiStatus.NoData) {
+        return null
+      }
+      return (result.data as any[]).map((series: any) => ({
+        id: series.id,
+        data: series.data.map((d: any) => ({ x: d.datetime, y: d.stars })),
+      }))
+    },
+  })
 }
