@@ -131,6 +131,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**backend**): Update dashboard api docs (#3686) by @detj in #3686
 - Remove empty line in code snippet by @anupcowkur
 - Remove FAQ, data retention, contributing and versioning pages by @anupcowkur
 - Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3587
