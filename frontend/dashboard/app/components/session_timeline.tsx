@@ -1,7 +1,7 @@
 "use client";
 
 import { ResponsiveLineCanvas } from "@nivo/line";
-import { DateTime, Duration } from "luxon";
+import { DateTime } from "luxon";
 import React, { useEffect, useRef, useState } from "react";
 import { emptySessionTimeline } from "../api/api_calls";
 import { kilobytesToMegabytes } from "../utils/number_utils";
@@ -13,11 +13,8 @@ import {
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
 
 import { useTheme } from "next-themes";
-import { useScrollStop } from "../utils/scroll_utils";
 import Pill from "./pill";
 import SessionTimelineEventCell from "./session_timeline_event_cell";
-import SessionTimelineEventDetails from "./session_timeline_event_details";
-import SessionTimelineSeekBar from "./session_timeline_seekbar";
 
 const demoTimelineLastEventTime = DateTime.now().toUTC();
 const demoTimeline: typeof emptySessionTimeline = {
@@ -415,6 +412,25 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
       ? DateTime.fromISO(events[events.length - 1].timestamp)
       : null;
 
+  // Metric samples (CPU/memory) can end before the last event, leaving the
+  // plot area empty on the right. Carry the last known value forward so the
+  // line visually extends to the chart's right edge.
+  function padDataToLastEventTime<Y>(
+    data: { x: string; y: Y }[],
+  ): { x: string; y: Y }[] {
+    if (data.length === 0 || events.length === 0) {
+      return data;
+    }
+    const lastEventChartX = formatTimestampToChartFormat(
+      events[events.length - 1].timestamp,
+    );
+    const last = data[data.length - 1];
+    if (last.x === lastEventChartX) {
+      return data;
+    }
+    return [...data, { x: lastEventChartX, y: last.y }];
+  }
+
   function isWithinEventTimeRange(timestamp: string): boolean {
     // If no events, consider it as within range
     if (firstEventTime == null || lastEventTime == null) {
@@ -544,6 +560,16 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
         ]
       : null;
 
+  for (const series of cpuData ?? []) {
+    series.data = padDataToLastEventTime(series.data);
+  }
+  for (const series of memoryData ?? []) {
+    series.data = padDataToLastEventTime(series.data);
+  }
+  for (const series of memoryAbsData ?? []) {
+    series.data = padDataToLastEventTime(series.data);
+  }
+
   function roundUpToNiceMemoryValue(memory: number): number {
     if (memory < 1000) {
       return Math.ceil(memory / 100) * 100;
@@ -635,122 +661,35 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
 
   const memoryAbsDataLookup = createMemoryAbsDataLookup();
 
-  const seekBarIndicatorOffset = 90;
-  const [seekBarValue, setSeekBarValue] = useState(0);
+  const stickyRef = useRef<HTMLDivElement | null>(null);
   const eventRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const graphContainerRef = useRef<HTMLDivElement | null>(null);
-  const eventListContainerRef = useRef<HTMLDivElement | null>(null);
 
   const [selectedThreads, setSelectedThreads] = useState(threads);
   const [selectedEventTypes, setSelectedEventTypes] = useState(eventTypes);
   const [filteredEvents, setFilteredEvents] = useState(events);
-  const [selectedEventIndex, setSelectedEventIndex] = useState(0);
-  const [isSeeking, setIsSeeking] = useState(false);
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+  const [indicatorTimestamp, setIndicatorTimestamp] = useState<string | null>(
+    events.length > 0 ? events[0].timestamp : null,
+  );
 
-  const findClosestFilteredEventIndex = (timestamp: DateTime) => {
-    return filteredEvents.reduce(
-      (prevIndex, currentEvent, currentIndex, arr) => {
-        const closestDiff = Math.abs(
-          DateTime.fromISO(filteredEvents[prevIndex].timestamp)
-            .diff(timestamp)
-            .toMillis(),
-        );
-        const currentDiff = Math.abs(
-          DateTime.fromISO(currentEvent.timestamp).diff(timestamp).toMillis(),
-        );
+  function eventKey(e: {
+    eventType: string;
+    timestamp: string;
+    thread: string;
+  }) {
+    return `${e.eventType}|${e.thread}|${e.timestamp}`;
+  }
 
-        return currentDiff < closestDiff ? currentIndex : prevIndex;
-      },
-      0,
-    );
-  };
-
-  const scrollToEvent = (seekBarValue: number) => {
-    // If no events, no need to scroll
-    if (firstEventTime === null || lastEventTime === null) {
-      return;
-    }
-    const duration = lastEventTime.diff(firstEventTime);
-    const resultTimestamp = firstEventTime.plus(
-      Duration.fromMillis((duration.toMillis() * seekBarValue) / 100),
-    );
-
-    const eventIndexToScrollTo = findClosestFilteredEventIndex(resultTimestamp);
-    const eventToScrollTo = eventRefs.current[eventIndexToScrollTo];
-
-    if (eventToScrollTo && eventListContainerRef.current) {
-      eventListContainerRef.current.scrollTo({
-        top:
-          eventToScrollTo.offsetTop - eventListContainerRef.current.offsetTop,
-        behavior: "smooth",
-      });
-      setSelectedEventIndex(eventIndexToScrollTo);
-    }
-  };
-
-  const handleSeekbarMove = (value: number) => {
-    setIsSeeking(true);
-    setSeekBarValue(value);
-    scrollToEvent(value);
-  };
-
-  const selectEventAndMoveSeekBar = (eventIndex: number) => {
-    setSelectedEventIndex(eventIndex);
-
-    // If no events, no need to move seek bar
-    if (
-      !graphContainerRef.current ||
-      firstEventTime === null ||
-      lastEventTime === null
-    ) {
-      return;
-    }
-
-    const duration = lastEventTime.diff(firstEventTime);
-    const eventTime = DateTime.fromISO(filteredEvents[eventIndex].timestamp);
-    const elapsedTime = eventTime.diff(firstEventTime);
-    const percentage = elapsedTime.toMillis() / duration.toMillis();
-    const scrollPercentage = Math.max(0, Math.min(percentage, 1));
-
-    setSeekBarValue(scrollPercentage * 100);
-  };
-
-  const handleEventsScroll = () => {
-    if (
-      isSeeking ||
-      !eventListContainerRef.current ||
-      eventRefs.current.length === 0 ||
-      !graphContainerRef.current
-    ) {
-      return;
-    }
-
-    // Get the scroll position and the container's height and top offset
-    const containerScrollTop = eventListContainerRef.current.scrollTop;
-    const containerHeight = eventListContainerRef.current.clientHeight;
-    const containerOffsetTop = eventListContainerRef.current.offsetTop;
-
-    // Calculate the middle of the visible container
-    const containerMiddle = containerScrollTop + containerHeight / 2;
-
-    // Find the event that is closest to the middle of the visible container
-    let closestEventIndex = 0;
-    let closestEventDistance = Infinity;
-
-    eventRefs.current.forEach((eventRef, index) => {
-      if (eventRef) {
-        const eventOffsetTop = eventRef.offsetTop;
-        const distanceFromMiddle = Math.abs(
-          containerMiddle - (eventOffsetTop - containerOffsetTop),
-        );
-        if (distanceFromMiddle < closestEventDistance) {
-          closestEventDistance = distanceFromMiddle;
-          closestEventIndex = index;
-        }
+  const toggleExpansion = (key: string) => {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
       }
+      return next;
     });
-
-    selectEventAndMoveSeekBar(closestEventIndex);
   };
 
   useEffect(() => {
@@ -761,12 +700,97 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           selectedEventTypes.includes(e.eventType),
       ),
     );
-    setSelectedEventIndex(0);
   }, [selectedThreads, selectedEventTypes]);
 
-  useScrollStop(eventListContainerRef, () => {
-    setIsSeeking(false);
-  });
+  useEffect(() => {
+    if (filteredEvents.length === 0) {
+      setIndicatorTimestamp(null);
+      return;
+    }
+
+    let rafId: number | null = null;
+
+    const updateIndicator = () => {
+      rafId = null;
+      const stickyBottom =
+        stickyRef.current?.getBoundingClientRect().bottom ?? 0;
+      const refs = eventRefs.current;
+      for (let i = 0; i < refs.length; i++) {
+        const el = refs[i];
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.bottom >= stickyBottom - 1) {
+          setIndicatorTimestamp(filteredEvents[i].timestamp);
+          return;
+        }
+      }
+      setIndicatorTimestamp(
+        filteredEvents[filteredEvents.length - 1].timestamp,
+      );
+    };
+
+    const onScroll = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(updateIndicator);
+    };
+
+    updateIndicator();
+    window.addEventListener("scroll", onScroll, {
+      passive: true,
+      capture: true,
+    });
+    window.addEventListener("resize", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll, { capture: true });
+      window.removeEventListener("resize", onScroll);
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+    };
+  }, [filteredEvents, expandedKeys]);
+
+  const indicatorPercent =
+    indicatorTimestamp && firstEventTime && lastEventTime
+      ? Math.max(
+          0,
+          Math.min(
+            1,
+            DateTime.fromISO(indicatorTimestamp)
+              .diff(firstEventTime)
+              .toMillis() /
+              Math.max(1, lastEventTime.diff(firstEventTime).toMillis()),
+          ),
+        )
+      : null;
+
+  const chartMargin = { top: 10, right: 16, bottom: 28, left: 64 };
+  const indicatorStyle: React.CSSProperties | null =
+    indicatorPercent === null
+      ? null
+      : {
+          top: `${chartMargin.top}px`,
+          bottom: `${chartMargin.bottom}px`,
+          left: `calc(${chartMargin.left}px + (100% - ${chartMargin.left + chartMargin.right}px) * ${indicatorPercent})`,
+        };
+
+  const xScaleMin =
+    events.length > 0
+      ? DateTime.fromISO(events[0].timestamp).toLocal().toJSDate()
+      : ("auto" as const);
+  const xScaleMax =
+    events.length > 0
+      ? DateTime.fromISO(events[events.length - 1].timestamp)
+          .toLocal()
+          .toJSDate()
+      : ("auto" as const);
+
+  const renderIndicator = () =>
+    indicatorStyle && (
+      <div
+        className="absolute pointer-events-none border-l-2 border-dashed border-foreground/70 z-[1]"
+        style={indicatorStyle}
+      />
+    );
 
   return (
     <div className={`flex flex-col w-full font-body`}>
@@ -778,7 +802,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           <div className="py-2" />
         </>
       )}
-      <div className="flex flex-wrap gap-2 py-2 pb-8 items-center">
+      <div className="flex flex-wrap gap-2 py-2 pb-4 items-center">
         <Pill
           tooltip
         >{`User ID: ${sessionTimeline.attribute.user_id !== "" ? sessionTimeline.attribute.user_id : "N/A"}`}</Pill>
@@ -795,282 +819,52 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           tooltip
         >{`Network type: ${sessionTimeline.attribute.network_type}`}</Pill>
       </div>
-      {/* Graphs container */}
-      {(cpuData != null || memoryData != null || memoryAbsData != null) && (
-        <div className="relative" ref={graphContainerRef}>
-          {/* Memory line */}
-          {memoryData != null && (
-            <div className="select-none w-full h-[200px]">
-              <ResponsiveLineCanvas
-                data={memoryData}
-                curve="monotoneX"
-                theme={canvasChartTheme}
-                crosshairType="cross"
-                margin={{ top: 40, right: 0, bottom: 80, left: 90 }}
-                xFormat="time:%Y-%m-%d %H:%M:%S:%L %p"
-                xScale={{
-                  format: "%Y-%m-%d %I:%M:%S:%L %p",
-                  precision: "millisecond",
-                  type: "time",
-                  min:
-                    events.length > 0
-                      ? DateTime.fromISO(events[0].timestamp)
-                          .toLocal()
-                          .toJSDate()
-                      : "auto",
-                  max:
-                    events.length > 0
-                      ? DateTime.fromISO(events[events.length - 1].timestamp)
-                          .toLocal()
-                          .toJSDate()
-                      : "auto",
-                  useUTC: false,
-                }}
-                yScale={{
-                  type: "linear",
-                  min: 0,
-                  max: maxMemoryDataValue,
-                }}
-                axisTop={null}
-                axisRight={null}
-                axisBottom={{
-                  format: "%-I:%M:%S %p",
-                  legendPosition: "middle",
-                  tickRotation: 70,
-                }}
-                axisLeft={{
-                  tickSize: 1,
-                  tickPadding: 5,
-                  tickValues: 5,
-                  legend: "Memory in MB",
-                  legendOffset: -80,
-                  legendPosition: "middle",
-                }}
-                colors={{ datum: "serieColor" }}
-                pointSize={6}
-                pointBorderWidth={1.5}
-                pointColor={
-                  theme === "dark"
-                    ? "rgba(0, 0, 0, 255)"
-                    : "rgba(255, 255, 255, 255)"
-                }
-                pointBorderColor={{
-                  from: "serieColor",
-                  modifiers: [["darker", 0.3]],
-                }}
-                enableGridX={false}
-                enableGridY={false}
-                tooltip={({ point }) => {
-                  if (!memoryDataLookup) return null;
 
-                  const formattedTimestamp = point.data.xFormatted;
-                  const allMemoryData =
-                    memoryDataLookup.get(formattedTimestamp) || {};
-
-                  return (
-                    <div className="bg-accent text-accent-foreground flex flex-col p-4 text-xs rounded-md">
-                      <p>
-                        Time:{" "}
-                        {formatChartFormatTimestampToHumanReadable(
-                          point.data.xFormatted.toString(),
-                        )}
-                      </p>
-                      <div className="py-1" />
-                      {Object.entries(allMemoryData).map(
-                        ([seriesName, value]) => (
-                          <div
-                            key={seriesName}
-                            className="flex flex-row items-center gap-2 mt-2"
-                          >
-                            <div
-                              className="w-2 h-2 rounded-full"
-                              style={{
-                                backgroundColor: memoryData.find(
-                                  (it) => it.id === seriesName,
-                                )!.serieColor,
-                              }}
-                            />
-                            <p>
-                              {seriesName}: {value as string} MB
-                            </p>
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  );
-                }}
-              />
-            </div>
-          )}
-          {/* Memory Absolute line */}
-          {memoryAbsData != null && (
-            <div className="select-none w-full h-[200px]">
-              <ResponsiveLineCanvas
-                data={memoryAbsData}
-                curve="monotoneX"
-                theme={canvasChartTheme}
-                crosshairType="cross"
-                margin={{ top: 40, right: 0, bottom: 80, left: 90 }}
-                xFormat="time:%Y-%m-%d %H:%M:%S:%L %p"
-                xScale={{
-                  format: "%Y-%m-%d %I:%M:%S:%L %p",
-                  precision: "millisecond",
-                  type: "time",
-                  min:
-                    events.length > 0
-                      ? DateTime.fromISO(events[0].timestamp)
-                          .toLocal()
-                          .toJSDate()
-                      : "auto",
-                  max:
-                    events.length > 0
-                      ? DateTime.fromISO(events[events.length - 1].timestamp)
-                          .toLocal()
-                          .toJSDate()
-                      : "auto",
-                  useUTC: false,
-                }}
-                yScale={{
-                  type: "linear",
-                  min: 0,
-                  max: maxMemoryAbsDataValue,
-                }}
-                axisTop={null}
-                axisRight={null}
-                axisBottom={{
-                  format: "%-I:%M:%S %p",
-                  legendPosition: "middle",
-                  tickRotation: 70,
-                }}
-                axisLeft={{
-                  tickSize: 1,
-                  tickPadding: 5,
-                  tickValues: 5,
-                  legend: "Memory in MB",
-                  legendOffset: -80,
-                  legendPosition: "middle",
-                }}
-                colors={{ datum: "serieColor" }}
-                pointSize={6}
-                pointBorderWidth={1.5}
-                pointColor={
-                  theme === "dark"
-                    ? "rgba(0, 0, 0, 255)"
-                    : "rgba(255, 255, 255, 255)"
-                }
-                pointBorderColor={{
-                  from: "serieColor",
-                  modifiers: [["darker", 0.3]],
-                }}
-                enableGridX={false}
-                enableGridY={false}
-                tooltip={({ point }) => {
-                  if (!memoryAbsDataLookup) return null;
-
-                  const formattedTimestamp = point.data.xFormatted;
-                  const allMemoryData =
-                    memoryAbsDataLookup.get(formattedTimestamp) || {};
-
-                  return (
-                    <div className="bg-accent text-accent-foreground flex flex-col p-4 text-xs rounded-md">
-                      <p>
-                        Time:{" "}
-                        {formatChartFormatTimestampToHumanReadable(
-                          point.data.xFormatted.toString(),
-                        )}
-                      </p>
-                      <div className="py-1" />
-                      {Object.entries(allMemoryData).map(
-                        ([seriesName, value]) => (
-                          <div
-                            key={seriesName}
-                            className="flex flex-row items-center gap-2 mt-2"
-                          >
-                            <div
-                              className="w-2 h-2 rounded-full"
-                              style={{
-                                backgroundColor: memoryAbsData.find(
-                                  (it) => it.id === seriesName,
-                                )!.serieColor,
-                              }}
-                            />
-                            <p>
-                              {seriesName}: {value as string} MB
-                            </p>
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  );
-                }}
-              />
-            </div>
-          )}
-          {/* CPU line */}
-          {cpuData != null && (
-            <div className="select-none w-full h-[200px]">
-              <ResponsiveLineCanvas
-                data={cpuData}
-                curve="monotoneX"
-                theme={canvasChartTheme}
-                crosshairType="cross"
-                margin={{ top: 40, right: 0, bottom: 80, left: 90 }}
-                xFormat="time:%Y-%m-%d %I:%M:%S:%L %p"
-                xScale={{
-                  format: "%Y-%m-%d %I:%M:%S:%L %p",
-                  precision: "millisecond",
-                  type: "time",
-                  min:
-                    events.length > 0
-                      ? DateTime.fromISO(events[0].timestamp)
-                          .toLocal()
-                          .toJSDate()
-                      : "auto",
-                  max:
-                    events.length > 0
-                      ? DateTime.fromISO(events[events.length - 1].timestamp)
-                          .toLocal()
-                          .toJSDate()
-                      : "auto",
-                  useUTC: false,
-                }}
-                yScale={{
-                  type: "linear",
-                  min: 0,
-                  max: 100,
-                }}
-                yFormat=" >-.2f"
-                axisTop={null}
-                axisRight={null}
-                axisBottom={{
-                  format: "%-I:%M:%S %p",
-                  legendPosition: "middle",
-                  tickRotation: 70,
-                }}
-                axisLeft={{
-                  tickSize: 1,
-                  tickPadding: 5,
-                  tickValues: 5,
-                  legend: "% CPU Usage",
-                  legendOffset: -80,
-                  legendPosition: "middle",
-                }}
-                colors={{ scheme: theme === "dark" ? "tableau10" : "nivo" }}
-                pointSize={6}
-                pointBorderWidth={1.5}
-                pointColor={
-                  theme === "dark"
-                    ? "rgba(0, 0, 0, 255)"
-                    : "rgba(255, 255, 255, 255)"
-                }
-                pointBorderColor={{
-                  from: "serieColor",
-                  modifiers: [["darker", 0.3]],
-                }}
-                enableGridX={false}
-                enableGridY={false}
-                tooltip={({ point }) => {
-                  return (
+      {/* Sticky region: charts + filters stay pinned at the top while events scroll.
+          top-16 matches the parent layout's sticky header height ([teamId]/layout.tsx). */}
+      <div ref={stickyRef} className="sticky top-16 z-40 bg-background">
+        {(cpuData != null || memoryData != null || memoryAbsData != null) && (
+          <div className="flex flex-col pt-2">
+            {cpuData != null && (
+              <div className="relative select-none w-full h-24">
+                <ResponsiveLineCanvas
+                  data={cpuData}
+                  curve="monotoneX"
+                  theme={canvasChartTheme}
+                  crosshairType="cross"
+                  margin={chartMargin}
+                  xFormat="time:%Y-%m-%d %I:%M:%S:%L %p"
+                  xScale={{
+                    format: "%Y-%m-%d %I:%M:%S:%L %p",
+                    precision: "millisecond",
+                    type: "time",
+                    min: xScaleMin,
+                    max: xScaleMax,
+                    useUTC: false,
+                  }}
+                  yScale={{ type: "linear", min: 0, max: 100 }}
+                  yFormat=" >-.2f"
+                  axisTop={null}
+                  axisRight={null}
+                  axisBottom={{
+                    format: "%-I:%M:%S",
+                    legendPosition: "middle",
+                    tickRotation: 0,
+                    tickValues: 4,
+                  }}
+                  axisLeft={{
+                    tickSize: 1,
+                    tickPadding: 5,
+                    tickValues: 3,
+                    legend: "% CPU",
+                    legendOffset: -52,
+                    legendPosition: "middle",
+                  }}
+                  colors={{ scheme: theme === "dark" ? "tableau10" : "nivo" }}
+                  pointSize={0}
+                  enableGridX={false}
+                  enableGridY={false}
+                  tooltip={({ point }) => (
                     <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
                       <p>
                         Time:{" "}
@@ -1086,80 +880,218 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                         <p>Cpu Usage: {point.data.yFormatted.toString()}%</p>
                       </div>
                     </div>
-                  );
-                }}
+                  )}
+                />
+                {renderIndicator()}
+              </div>
+            )}
+            {memoryData != null && (
+              <div className="relative select-none w-full h-24">
+                <ResponsiveLineCanvas
+                  data={memoryData}
+                  curve="monotoneX"
+                  theme={canvasChartTheme}
+                  crosshairType="cross"
+                  margin={chartMargin}
+                  xFormat="time:%Y-%m-%d %H:%M:%S:%L %p"
+                  xScale={{
+                    format: "%Y-%m-%d %I:%M:%S:%L %p",
+                    precision: "millisecond",
+                    type: "time",
+                    min: xScaleMin,
+                    max: xScaleMax,
+                    useUTC: false,
+                  }}
+                  yScale={{ type: "linear", min: 0, max: maxMemoryDataValue }}
+                  axisTop={null}
+                  axisRight={null}
+                  axisBottom={{
+                    format: "%-I:%M:%S",
+                    legendPosition: "middle",
+                    tickRotation: 0,
+                    tickValues: 4,
+                  }}
+                  axisLeft={{
+                    tickSize: 1,
+                    tickPadding: 5,
+                    tickValues: 3,
+                    legend: "Memory MB",
+                    legendOffset: -52,
+                    legendPosition: "middle",
+                  }}
+                  colors={{ datum: "serieColor" }}
+                  pointSize={0}
+                  enableGridX={false}
+                  enableGridY={false}
+                  tooltip={({ point }) => {
+                    if (!memoryDataLookup) return null;
+                    const allMemoryData =
+                      memoryDataLookup.get(point.data.xFormatted) || {};
+                    return (
+                      <div className="bg-accent text-accent-foreground flex flex-col p-4 text-xs rounded-md">
+                        <p>
+                          Time:{" "}
+                          {formatChartFormatTimestampToHumanReadable(
+                            point.data.xFormatted.toString(),
+                          )}
+                        </p>
+                        <div className="py-1" />
+                        {Object.entries(allMemoryData).map(
+                          ([seriesName, value]) => (
+                            <div
+                              key={seriesName}
+                              className="flex flex-row items-center gap-2 mt-2"
+                            >
+                              <div
+                                className="w-2 h-2 rounded-full"
+                                style={{
+                                  backgroundColor: memoryData.find(
+                                    (it) => it.id === seriesName,
+                                  )!.serieColor,
+                                }}
+                              />
+                              <p>
+                                {seriesName}: {value as string} MB
+                              </p>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    );
+                  }}
+                />
+                {renderIndicator()}
+              </div>
+            )}
+            {memoryAbsData != null && (
+              <div className="relative select-none w-full h-24">
+                <ResponsiveLineCanvas
+                  data={memoryAbsData}
+                  curve="monotoneX"
+                  theme={canvasChartTheme}
+                  crosshairType="cross"
+                  margin={chartMargin}
+                  xFormat="time:%Y-%m-%d %H:%M:%S:%L %p"
+                  xScale={{
+                    format: "%Y-%m-%d %I:%M:%S:%L %p",
+                    precision: "millisecond",
+                    type: "time",
+                    min: xScaleMin,
+                    max: xScaleMax,
+                    useUTC: false,
+                  }}
+                  yScale={{
+                    type: "linear",
+                    min: 0,
+                    max: maxMemoryAbsDataValue,
+                  }}
+                  axisTop={null}
+                  axisRight={null}
+                  axisBottom={{
+                    format: "%-I:%M:%S",
+                    legendPosition: "middle",
+                    tickRotation: 0,
+                    tickValues: 4,
+                  }}
+                  axisLeft={{
+                    tickSize: 1,
+                    tickPadding: 5,
+                    tickValues: 3,
+                    legend: "Memory MB",
+                    legendOffset: -52,
+                    legendPosition: "middle",
+                  }}
+                  colors={{ datum: "serieColor" }}
+                  pointSize={0}
+                  enableGridX={false}
+                  enableGridY={false}
+                  tooltip={({ point }) => {
+                    if (!memoryAbsDataLookup) return null;
+                    const allMemoryData =
+                      memoryAbsDataLookup.get(point.data.xFormatted) || {};
+                    return (
+                      <div className="bg-accent text-accent-foreground flex flex-col p-4 text-xs rounded-md">
+                        <p>
+                          Time:{" "}
+                          {formatChartFormatTimestampToHumanReadable(
+                            point.data.xFormatted.toString(),
+                          )}
+                        </p>
+                        <div className="py-1" />
+                        {Object.entries(allMemoryData).map(
+                          ([seriesName, value]) => (
+                            <div
+                              key={seriesName}
+                              className="flex flex-row items-center gap-2 mt-2"
+                            >
+                              <div
+                                className="w-2 h-2 rounded-full"
+                                style={{
+                                  backgroundColor: memoryAbsData.find(
+                                    (it) => it.id === seriesName,
+                                  )!.serieColor,
+                                }}
+                              />
+                              <p>
+                                {seriesName}: {value as string} MB
+                              </p>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    );
+                  }}
+                />
+                {renderIndicator()}
+              </div>
+            )}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-4 items-center py-3">
+          <DropdownSelect
+            type={DropdownSelectType.MultiString}
+            title="Threads"
+            items={threads}
+            initialSelected={selectedThreads}
+            onChangeSelected={(items) => setSelectedThreads(items as string[])}
+          />
+          <DropdownSelect
+            type={DropdownSelectType.MultiString}
+            title="Event types"
+            items={eventTypes}
+            initialSelected={selectedEventTypes}
+            onChangeSelected={(items) =>
+              setSelectedEventTypes(items as string[])
+            }
+          />
+        </div>
+      </div>
+
+      {/* Events list — natural page-level scroll, no fixed height. */}
+      <div className="flex flex-col w-full">
+        {filteredEvents.map((e, index) => {
+          const key = eventKey(e);
+          return (
+            <div
+              key={key}
+              ref={(el) => {
+                eventRefs.current[index] = el;
+              }}
+            >
+              <SessionTimelineEventCell
+                teamId={teamId}
+                appId={appId}
+                demo={demo}
+                eventType={e.eventType}
+                eventDetails={e.details}
+                timestamp={e.timestamp}
+                threadName={e.thread}
+                expanded={expandedKeys.has(key)}
+                onToggle={() => toggleExpansion(key)}
               />
             </div>
-          )}
-          {/* Vertical Seekbar */}
-          <div
-            className="w-full py-2"
-            style={{ paddingLeft: `${seekBarIndicatorOffset}px` }}
-          >
-            <SessionTimelineSeekBar
-              value={seekBarValue}
-              onChange={handleSeekbarMove}
-            />
-          </div>
-        </div>
-      )}
-      {/* Event filters */}
-      <div className="flex flex-wrap gap-8 items-center mt-4">
-        <DropdownSelect
-          type={DropdownSelectType.MultiString}
-          title="Threads"
-          items={threads}
-          initialSelected={selectedThreads}
-          onChangeSelected={(items) => setSelectedThreads(items as string[])}
-        />
-        <DropdownSelect
-          type={DropdownSelectType.MultiString}
-          title="Event types"
-          items={eventTypes}
-          initialSelected={selectedEventTypes}
-          onChangeSelected={(items) => setSelectedEventTypes(items as string[])}
-        />
-      </div>
-      {/* Events*/}
-      <div className="flex flex-row mt-4 border border-border rounded-md w-full h-[600px]">
-        <div
-          className="h-full w-2/3 overflow-auto divide-y"
-          ref={eventListContainerRef}
-          onScroll={handleEventsScroll}
-        >
-          {filteredEvents.length > 0 &&
-            filteredEvents.map((e, index) => (
-              <div
-                key={index}
-                className={""}
-                ref={(el) => {
-                  eventRefs.current[index] = el;
-                }}
-              >
-                <SessionTimelineEventCell
-                  eventType={e.eventType}
-                  eventDetails={e.details}
-                  timestamp={e.timestamp}
-                  threadName={e.thread}
-                  index={index}
-                  selected={index === selectedEventIndex}
-                  onClick={(index) => selectEventAndMoveSeekBar(index)}
-                />
-              </div>
-            ))}
-        </div>
-        <div className="w-0.5 h-full bg-border" />
-        <div className="h-full w-1/3">
-          {filteredEvents.length > 0 && (
-            <SessionTimelineEventDetails
-              demo={demo}
-              teamId={teamId}
-              appId={appId}
-              eventType={filteredEvents[selectedEventIndex].eventType}
-              eventDetails={filteredEvents[selectedEventIndex].details}
-            />
-          )}
-        </div>
+          );
+        })}
       </div>
     </div>
   );
