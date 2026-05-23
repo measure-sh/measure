@@ -23,6 +23,7 @@ type EventANR struct {
 	Attribute   Attribute      `json:"attribute"`
 	ANR         ANR            `json:"-"`
 	ANRView     ANRView        `json:"anr"`
+	Severity    Severity       `json:"severity"`
 	Attachments []Attachment   `json:"attachments"`
 	Threads     []ThreadView   `json:"threads"`
 }
