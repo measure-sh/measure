@@ -34,6 +34,13 @@ const PATTERNS = {
   flutter: /measure_flutter:\s*\^(\d+\.\d+\.\d+)/,
 };
 
+// TODO: replace with a regex pattern once the React Native section lands in
+// docs/sdk-integration-guide.md. Until then we ship a hardcoded value so the
+// onboarding UI has something to render.
+const HARDCODED_VERSIONS = {
+  reactNative: "0.1.0",
+};
+
 function findSource() {
   // Prefer the canonical repo-root docs/ source. Fall back to content/docs/
   // for Docker builds where the monorepo root is not present.
@@ -49,7 +56,7 @@ function findSource() {
 }
 
 function extract(content) {
-  const out = {};
+  const out = { ...HARDCODED_VERSIONS };
   for (const [key, pattern] of Object.entries(PATTERNS)) {
     const match = content.match(pattern);
     if (!match) {
@@ -70,6 +77,7 @@ export const SDK_VERSIONS = {
   androidSdk: ${JSON.stringify(versions.androidSdk)},
   iosSdk: ${JSON.stringify(versions.iosSdk)},
   flutter: ${JSON.stringify(versions.flutter)},
+  reactNative: ${JSON.stringify(versions.reactNative)},
 } as const
 `;
 }
@@ -90,4 +98,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { extract, generate, PATTERNS };
+module.exports = { extract, generate, PATTERNS, HARDCODED_VERSIONS };
