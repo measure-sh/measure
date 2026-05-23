@@ -117,7 +117,7 @@ final class BaseCrashReportingManager: CrashReportManager {
         do {
             let reportDict = try crashReporter.loadCrashReport()
             let formatter  = CrashDataFormatter(reportDict, sysCtl: sysCtl)
-            let exception  = formatter.getException()
+            let exception  = formatter.getException(severity: .fatal)
 
             let timestamp = (reportDict["report"] as? [String: Any])?["timestamp"] as? TimeInterval
             let date = timestamp.map { Date(timeIntervalSince1970: $0) } ?? Date()

@@ -604,13 +604,12 @@ final class CrashDataFormatterTests: XCTestCase {
         XCTAssertEqual(sut.getException().foreground, true)
     }
 
-    func test_getException_passesMsrErrorThrough() {
+    func test_getException_passesNumCodeAndCodeThrough() {
         let sut = makeFormatter()
-        let msrError = MsrError(numcode: 100, code: "Error", meta: nil)
-        let result = sut.getException(false, error: msrError)
-        XCTAssertNotNil(result.error)
-        XCTAssertEqual(result.error?.numcode, 100)
-        XCTAssertEqual(result.error?.code, "Error")
+        let result = sut.getException(false, numCode: 100, code: "Error", meta: nil)
+        XCTAssertEqual(result.numCode, 100)
+        XCTAssertEqual(result.code, "Error")
+        XCTAssertNil(result.meta)
     }
 
     func test_getException_setsFrameworkToApple() {

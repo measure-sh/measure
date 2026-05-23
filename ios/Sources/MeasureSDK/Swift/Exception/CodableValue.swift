@@ -1,24 +1,12 @@
 //
-//  Error.swift
-//  Measure
+//  CodableValue.swift
+//  MeasureSDK
 //
-//  Created by Adwin Ross on 17/06/25.
+//  Created by Adwin Ross on 23/05/26.
 //
 
 import Foundation
 
-struct MsrError: Codable {
-    /// Numeric code that describes the error
-    let numcode: Int64?
-
-    /// String code that describes the error
-    let code: String?
-
-    /// Object containing arbitrary fields for error's metdata
-    let meta: [String: CodableValue]?
-}
-
-/// CodableValue is a simple wrapper for heterogenous dictionary values
 enum CodableValue: Codable {
     case string(String)
     case int(Int64)
