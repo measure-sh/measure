@@ -150,7 +150,7 @@ export default function SessionTimelineEventDetails({
       eventDetails.attachments.length > 0
     ) {
       if (
-        (eventType === "exception" && eventDetails.user_triggered === false) ||
+        (eventType === "error" && eventDetails.severity === "fatal") ||
         eventType === "anr" ||
         eventType === "gesture_click" ||
         eventType === "gesture_long_click" ||
@@ -198,12 +198,10 @@ export default function SessionTimelineEventDetails({
       "justify-center w-fit",
     );
     if (
-      (eventType === "exception" &&
-        eventDetails.user_triggered === false &&
-        eventDetails.handled === false) ||
+      (eventType === "error" && eventDetails.severity === "fatal") ||
       eventType === "anr"
     ) {
-      const label = `View ${eventType === "exception" ? "Crash" : "ANR"} Details`;
+      const label = `View ${eventType === "error" ? "Error" : "ANR"} Details`;
       return (
         <div>
           {demo ? (

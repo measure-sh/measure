@@ -30,17 +30,19 @@ export default function SessionTimelineEventCell({
   onToggle,
 }: SessionTimelineEventCellProps) {
   function getPillColorClasses(): string {
-    if (
-      (eventType === "exception" || eventType === "anr") &&
-      eventDetails.user_triggered === true
-    ) {
-      return "border-orange-300 text-orange-700 bg-orange-50 dark:border-orange-900 dark:text-orange-400 dark:bg-orange-950/40";
+    // Errors get coloured by severity so the timeline visually mirrors the
+    // errors-list badges: red = fatal, amber = unhandled, emerald = handled.
+    // ANRs and bug reports stay red.
+    if (eventType === "error") {
+      if (eventDetails.severity === "unhandled") {
+        return "border-amber-300 text-amber-700 bg-amber-50 dark:border-amber-900 dark:text-amber-400 dark:bg-amber-950/40";
+      }
+      if (eventDetails.severity === "handled") {
+        return "border-emerald-300 text-emerald-700 bg-emerald-50 dark:border-emerald-900 dark:text-emerald-400 dark:bg-emerald-950/40";
+      }
+      return "border-red-300 text-red-700 bg-red-50 dark:border-red-900 dark:text-red-400 dark:bg-red-950/40";
     }
-    if (
-      eventType === "exception" ||
-      eventType === "anr" ||
-      eventType === "bug_report"
-    ) {
+    if (eventType === "anr" || eventType === "bug_report") {
       return "border-red-300 text-red-700 bg-red-50 dark:border-red-900 dark:text-red-400 dark:bg-red-950/40";
     }
     if (eventType.includes("gesture")) {
@@ -62,8 +64,11 @@ export default function SessionTimelineEventCell({
   }
 
   function getPillLabel(): string {
-    if (eventType === "exception") {
-      return eventDetails.user_triggered === true ? "Exception" : "Crash";
+    if (eventType === "error") {
+      if (eventDetails.severity === "fatal") return "Fatal Error";
+      if (eventDetails.severity === "unhandled") return "Unhandled Error";
+      if (eventDetails.severity === "handled") return "Handled Error";
+      return "Error";
     }
     if (eventType === "anr") return "ANR";
     if (eventType === "bug_report") return "Bug Report";
@@ -91,7 +96,7 @@ export default function SessionTimelineEventCell({
   }
 
   function getTitle(): string {
-    if (eventType === "exception" || eventType === "anr") {
+    if (eventType === "error" || eventType === "anr") {
       return `${eventDetails.type}${eventDetails.message ? `: ${eventDetails.message}` : ""}`;
     }
     if (eventType === "bug_report") {
@@ -157,7 +162,7 @@ export default function SessionTimelineEventCell({
       return false;
     }
     const isImageEligible =
-      (eventType === "exception" && eventDetails.user_triggered === false) ||
+      (eventType === "error" && eventDetails.severity === "fatal") ||
       eventType === "anr" ||
       eventType === "bug_report" ||
       eventType.includes("gesture");

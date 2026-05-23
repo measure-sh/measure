@@ -248,7 +248,8 @@ const demoTimeline: typeof emptySessionTimeline = {
         ],
       },
       {
-        event_type: "exception",
+        event_type: "error",
+        severity: "fatal",
         user_defined_attribute: null,
         user_triggered: false,
         group_id: "9b71282275e88a68b38fe69a1bda0ea7",
