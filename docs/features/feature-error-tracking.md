@@ -88,12 +88,3 @@ try {
   Measure.trackHandledError(e, stackTrace);
 }
 ```
-
-#### React Native
-
-In React Native, the SDK automatically captures:
-
-- **Unhandled JavaScript exceptions** — via React Native's global `ErrorUtils` handler.
-- **Unhandled Promise rejections** — via Hermes' built-in rejection tracker (or a polyfill for other JS engines).
-
-// TODO: add doc for trackError api

@@ -76,9 +76,9 @@ Measure.instance.stop();
 ```typescript
 import { Measure, MeasureConfig } from '@measuresh/react-native';
 
-await Measure.init(new MeasureConfig({
+await Measure.init({ config: new MeasureConfig({
   autoStart: false, // delay starting of collection
-}));
+}) });
 
 // Start collecting
 Measure.start();

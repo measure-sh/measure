@@ -135,23 +135,26 @@ To track a custom event:
 ```typescript
 import { Measure } from '@measuresh/react-native';
 
-Measure.trackEvent("event_name");
+Measure.trackEvent({ name: "event_name" });
 ```
 
 To include attributes:
 
 ```typescript
-Measure.trackEvent("event_name", {
-  is_premium_user: true,
-  screen: "Home",
-  retry_count: 2,
+Measure.trackEvent({
+  name: "event_name",
+  attributes: {
+    is_premium_user: true,
+    screen: "Home",
+    retry_count: 2,
+  },
 });
 ```
 
-To record a custom event with a specific timestamp, pass the timestamp in milliseconds since epoch as a third argument.
+To record a custom event with a specific timestamp, pass the timestamp in milliseconds since epoch.
 Use `Measure.getCurrentTime()` to get an accurate timestamp from a monotonic clock.
 
 ```typescript
 const timestamp = Measure.getCurrentTime();
-Measure.trackEvent("event_name", {}, timestamp);
+Measure.trackEvent({ name: "event_name", timestamp });
 ```

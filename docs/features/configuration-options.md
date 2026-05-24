@@ -105,7 +105,7 @@ const config = new MeasureConfig({
   enableDiagnosticMode: false,
 });
 
-await Measure.init(config);
+await Measure.init({ config });
 ```
 
 ## `trackActivityIntentData`

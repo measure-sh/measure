@@ -506,7 +506,7 @@ const measureConfig = new MeasureConfig({
   enableFullCollectionMode: true,
 });
 
-await Measure.init(measureConfig);
+await Measure.init({ config: measureConfig });
 ```
 
 ### React Native Android Setup
@@ -517,6 +517,12 @@ The React Native SDK depends on the native Android SDK, so you need to follow al
 1. [Add API Key & API URL to Android Manifest](#add-the-api-key--api-url)
 2. [Add Android Gradle Plugin](#add-the-gradle-plugin)
 3. [Initialize the native Android SDK](#initialize-the-sdk)
+
+After installing the dependencies, rebuild the app to link the native module:
+
+```sh
+npx react-native run-android
+```
 
 ### React Native iOS Setup
 
@@ -607,7 +613,7 @@ Android and iOS native SDK initializations. In your JS initialization:
 
 ```typescript
 const config = new MeasureConfig({ enableFullCollectionMode: true });
-await Measure.init(config);
+await Measure.init({ config });
 ```
 
 </details>
@@ -731,7 +737,7 @@ Enable logging during SDK initialization.
 
 ```typescript
 const config = new MeasureConfig({ enableLogging: true });
-await Measure.init(config);
+await Measure.init({ config });
 ```
 
 </details>
@@ -805,7 +811,7 @@ Enable diagnostic mode during SDK initialization.
 
 ```typescript
 const config = new MeasureConfig({ enableDiagnosticMode: true });
-await Measure.init(config);
+await Measure.init({ config });
 ```
 
 On iOS, the `enableDiagnosticModeGesture` flag is set on the native `BaseMeasureConfig` in your `AppDelegate` (see the iOS section above), not on the Dart `MeasureConfig`.

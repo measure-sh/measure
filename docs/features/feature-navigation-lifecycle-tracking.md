@@ -160,7 +160,7 @@ function App() {
       onStateChange={(state) => {
         const currentRoute = state?.routes[state.index];
         if (currentRoute?.name) {
-          Measure.trackScreenView(currentRoute.name);
+          Measure.trackScreenView({ screenName: currentRoute.name });
         }
       }}
     >
@@ -243,13 +243,13 @@ Measure.instance.trackScreenView("Home");
 ```typescript
 import { Measure } from '@measuresh/react-native';
 
-Measure.trackScreenView("Home");
+Measure.trackScreenView({ screenName: "Home" });
 ```
 
 You can also include attributes to provide additional context:
 
 ```typescript
-Measure.trackScreenView("TrackOrder", { order_id: "12345" });
+Measure.trackScreenView({ screenName: "TrackOrder", attributes: { order_id: "12345" } });
 ```
 
 ## Data collected

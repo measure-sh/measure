@@ -4,7 +4,7 @@ description: "Let users report bugs from inside your react native app. Built-in 
 ---
 
 # Bug Reports — React Native
-// TODO: update the formatting of this doc to match flutter
+
 Bug reports enable users to report issues directly from the app. Measure SDK provides two approaches to implement bug reporting.
 
 * [Session Timeline](#session-timeline)
@@ -12,7 +12,6 @@ Bug reports enable users to report issues directly from the app. Measure SDK pro
 * [Custom Experience](#custom-experience)
     * [Attachments](#attachments)
         * [Capture Screenshot](#capture-screenshot)
-        * [Capture Layout Snapshot](#capture-layout-snapshot)
     * [Limits](#limits)
 * [Add Attributes](#add-attributes)
 * [Shake to Report Bug](#shake-to-report-bug)
@@ -27,6 +26,11 @@ minutes before the bug report was submitted. This provides rich context to help 
 Launch the default bug report interface using `Measure.launchBugReport`. A screenshot is automatically taken when this
 method is called and added to the bug report. Users can choose to remove the screenshot if they wish.
 
+|  Platform   | Dark Mode                                    | Light Mode                                     |
+|-------------|----------------------------------------------|------------------------------------------------|
+| iOS         | ![Dark Mode](../assets/ios-bug-report-dark.png) | ![Light Mode](../assets/ios-bug-report-light.png) |
+| Android     | ![Dark Mode](../assets/android-bug-report-dark.png) | ![Light Mode](../assets/android-bug-report-light.png) |
+
 ```typescript
 import { Measure } from '@measuresh/react-native';
 
@@ -36,7 +40,7 @@ Measure.launchBugReport();
 To disable taking a screenshot:
 
 ```typescript
-Measure.launchBugReport(false);
+Measure.launchBugReport({ takeScreenshot: false });
 ```
 
 ## Custom Experience
@@ -45,7 +49,7 @@ You can build a custom experience to match the look and feel of your app. Once t
 call `Measure.trackBugReport`.
 
 ```typescript
-Measure.trackBugReport("Items from cart disappear after reopening the app");
+Measure.trackBugReport({ description: "Items from cart disappear after reopening the app" });
 ```
 
 ### Attachments
@@ -61,10 +65,10 @@ Capture a screenshot using `captureScreenshot`. The screenshot is automatically 
 const screenshot = await Measure.captureScreenshot();
 
 if (screenshot) {
-  await Measure.trackBugReport(
-    "Items from cart disappear after reopening the app",
-    [screenshot]
-  );
+  await Measure.trackBugReport({
+    description: "Items from cart disappear after reopening the app",
+    attachments: [screenshot],
+  });
 }
 ```
 
@@ -72,39 +76,6 @@ if (screenshot) {
 > For privacy, screenshots can be masked with the same configuration provided during SDK initialization. See all the
 > configuration options [here](configuration-options.md#screenshotmasklevel).
 
-#### Capture Layout Snapshot
-
-Capture a lightweight layout snapshot using `captureLayoutSnapshot`. Layout snapshots do not contain pixel data
-and are more storage-efficient than screenshots.
-
-```typescript
-const snapshot = await Measure.captureLayoutSnapshot();
-
-if (snapshot) {
-  await Measure.trackBugReport(
-    "Items from cart disappear after reopening the app",
-    [snapshot]
-  );
-}
-```
-
-#### Combining Attachments
-
-You can attach multiple items (up to 5) to a single bug report:
-
-```typescript
-const [screenshot, snapshot] = await Promise.all([
-  Measure.captureScreenshot(),
-  Measure.captureLayoutSnapshot(),
-]);
-
-const attachments = [screenshot, snapshot].filter(Boolean);
-
-await Measure.trackBugReport(
-  "Something looks wrong on this screen",
-  attachments
-);
-```
 
 ### Limits
 
@@ -122,17 +93,16 @@ Attributes allow attaching additional contextual data to bug reports.
 Pass attributes when launching the built-in experience:
 
 ```typescript
-Measure.launchBugReport(true, {}, { is_premium: true, screen: "Cart" });
+Measure.launchBugReport({ takeScreenshot: true, attributes: { is_premium: true, screen: "Cart" } });
 ```
 
 or when calling `trackBugReport`:
 
 ```typescript
-Measure.trackBugReport(
-  "Items from cart disappear",
-  [],
-  { is_premium: true, screen: "Cart" }
-);
+Measure.trackBugReport({
+  description: "Items from cart disappear",
+  attributes: { is_premium: true, screen: "Cart" },
+});
 ```
 
 ## Shake to Report Bug
@@ -143,15 +113,15 @@ quickly reporting issues without navigating through the app.
 ```typescript
 import { Measure } from '@measuresh/react-native';
 
-Measure.onShake(() => {
+Measure.onShake({ handler: () => {
   Measure.launchBugReport();
-});
+} });
 ```
 
 To disable the shake listener:
 
 ```typescript
-Measure.onShake(null);
+Measure.onShake({ handler: null });
 ```
 
 > [!NOTE]

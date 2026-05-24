@@ -65,7 +65,7 @@ To set a user ID.
 ```typescript
 import { Measure } from '@measuresh/react-native';
 
-Measure.setUserId("user-id");
+Measure.setUserId({ userId: "user-id" });
 ```
 
 To clear a user ID.

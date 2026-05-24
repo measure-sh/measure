@@ -127,9 +127,6 @@ FlutterError (setState() called after dispose(): _MyHomePageState#12345(ticker: 
 In React Native, JS exceptions are grouped based on the error message and the stack trace. Crashes with the same
 message and the same function name and file name from the _first frame_ of the stack trace are grouped together.
 
-// TODO: add example here
-```
-```
 
 ## API Reference
 
@@ -173,9 +170,6 @@ When obfuscating your Flutter app using --obfuscate and --split-debug-info optio
   with `flutter build ipa`, run the `upload_dsyms.sh` script using the IPA path and the path to the dSYM folder
   (typically under _/build/ios/Release-iphoneos/_)
 
-#### React Native
-
-// TODO: add doc
 
 ## Data Collected
 
