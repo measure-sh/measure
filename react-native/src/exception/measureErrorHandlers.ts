@@ -42,7 +42,8 @@ export function setupErrorHandlers(options: Options): void {
  */
 function captureException(error: unknown, isFatal: boolean, timeProvider: TimeProvider, logger: Logger, signalProcessor: ISignalProcessor): void {
   try {
-    const exceptionPayload = buildExceptionPayload(error, false);
+    const severity = isFatal ? 'fatal' : 'unhandled';
+    const exceptionPayload = buildExceptionPayload(error, false, severity);
 
     logger.log(
       isFatal ? "fatal" : "error",
