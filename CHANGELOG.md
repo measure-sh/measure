@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Make layout snapshots visible in light mode by @anupcowkur in #3710
 - (**frontend**): Add missing hover accent color to error type filter by @anupcowkur
 - (**frontend**): Hide errors/anrs pills on error detail page by @anupcowkur
 - (**frontend**): Drop type/severity/custom filters on error details by @anupcowkur
