@@ -67,7 +67,7 @@ final class BaseExceptionGenerator: ExceptionGenerator {
         }
 
         let formatter = CrashDataFormatter(report.value, sysCtl: sysCtl)
-        let result = formatter.getException(true, severity: .handled, numCode: numCode, code: code, meta: meta)
+        let result = formatter.getException(severity: .handled, numCode: numCode, code: code, meta: meta)
         store.deleteReport(with: Int64(truncating: reportID))
         crashDataPersistence.clearCrashData()
 

@@ -27,8 +27,7 @@ final class CrashDataFormatter {
         self.isLp64 = resolveIsLp64(binaryImageDicts: binaryImageDicts)
     }
 
-    func getException(_ handled: Bool = false,
-                      severity: ExceptionSeverity? = nil,
+    func getException(severity: ExceptionSeverity? = nil,
                       numCode: Int64? = nil,
                       code: String? = nil,
                       meta: [String: CodableValue]? = nil) -> Exception {
