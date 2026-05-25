@@ -253,7 +253,8 @@ storage costs if done at scale in production.
 > [!WARNING]
 > These files only contain Measure SDK logs, not your app's logs. This option should only be enabled in debug builds.
 
-_Applies only to Android._
+Available on all platforms. The log file location and the `adb` commands shown below are specific to
+Android.
 
 Enables diagnostic mode which writes all internal SDK logs to a file on disk. The log file can be
 attached when reporting a bug to help with debugging SDK issues.
