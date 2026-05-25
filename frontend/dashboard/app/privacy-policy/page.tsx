@@ -3,6 +3,7 @@ import Link from "next/link";
 import { buttonVariants } from "../components/button_variants";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
+import TrackCtaLink from "../components/analytics/track_cta_link";
 import { sharedOpenGraph } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 import { underlineLinkStyle } from "../utils/shared_styles";
@@ -628,7 +629,9 @@ export default function PrivacyPolicy() {
         </div>
 
         <div className="py-8" />
-        <Link
+        <TrackCtaLink
+          location="privacy_policy"
+          destination="signup"
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -636,7 +639,7 @@ export default function PrivacyPolicy() {
           )}
         >
           Get To The Root Cause
-        </Link>
+        </TrackCtaLink>
         <div className="py-16" />
       </div>
       <LandingFooter />

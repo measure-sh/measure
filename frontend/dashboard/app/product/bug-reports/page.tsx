@@ -1,20 +1,22 @@
 import { buttonVariants } from "@/app/components/button_variants";
+import TrackCtaLink from "@/app/components/analytics/track_cta_link";
 import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
-import Link from "next/link";
 import LandingFooter from "../../components/landing_footer";
 import LandingHeader from "../../components/landing_header";
 import BugReportDemo from "./bug_report_demo";
 
 export const metadata: Metadata = {
   title: "In-App Bug Reporting for Mobile Apps",
-  description: "Capture bug reports with a device shake or SDK call. Get the full session context, device state and network info so you can get to the root cause.",
+  description:
+    "Capture bug reports with a device shake or SDK call. Get the full session context, device state and network info so you can get to the root cause.",
   alternates: { canonical: "/product/bug-reports" },
   openGraph: {
     ...sharedOpenGraph,
     title: "In-App Bug Reporting for Mobile Apps",
-    description: "Capture bug reports with a device shake or SDK call. Get the full session context, device state and network info so you can get to the root cause.",
+    description:
+      "Capture bug reports with a device shake or SDK call. Get the full session context, device state and network info so you can get to the root cause.",
     url: "/product/bug-reports",
   },
 };
@@ -63,7 +65,9 @@ export default function ProductBugReports() {
         </div>
 
         {/* CTA */}
-        <Link
+        <TrackCtaLink
+          location="product_bug_reports"
+          destination="signup"
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -71,7 +75,7 @@ export default function ProductBugReports() {
           )}
         >
           Get To The Root Cause
-        </Link>
+        </TrackCtaLink>
         <div className="py-16" />
       </div>
       <LandingFooter />

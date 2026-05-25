@@ -3,6 +3,7 @@ import Link from "next/link";
 import { buttonVariants } from "../components/button_variants";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
+import TrackCtaLink from "../components/analytics/track_cta_link";
 import { sharedOpenGraph } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 import { underlineLinkStyle } from "../utils/shared_styles";
@@ -449,11 +450,11 @@ export default function TermsOfService() {
             kind, express or implied: (i) as to the operation or availability of
             the Service, or the information, content and materials or products
             included thereon; (ii) that the Service will be uninterrupted or
-            error-free; (iii) as to the accuracy, reliability or currency of
-            any information or content provided through the Service; or (iv)
-            that the Service, its servers, the content or e-mails sent from or
-            on behalf of the Company are free of viruses, scripts, trojan
-            horses, worms, malware, timebombs or other harmful components.
+            error-free; (iii) as to the accuracy, reliability or currency of any
+            information or content provided through the Service; or (iv) that
+            the Service, its servers, the content or e-mails sent from or on
+            behalf of the Company are free of viruses, scripts, trojan horses,
+            worms, malware, timebombs or other harmful components.
           </p>
           <p className="mb-8 text-justify text-lg">
             Some jurisdictions do not allow the exclusion of certain types of
@@ -599,7 +600,9 @@ export default function TermsOfService() {
         </div>
 
         <div className="py-8" />
-        <Link
+        <TrackCtaLink
+          location="terms_of_service"
+          destination="signup"
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -607,7 +610,7 @@ export default function TermsOfService() {
           )}
         >
           Get To The Root Cause
-        </Link>
+        </TrackCtaLink>
         <div className="py-16" />
       </div>
       <LandingFooter />

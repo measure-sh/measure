@@ -1,20 +1,22 @@
 import { buttonVariants } from "@/app/components/button_variants";
+import TrackCtaLink from "@/app/components/analytics/track_cta_link";
 import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
-import Link from "next/link";
 import LandingFooter from "../../components/landing_footer";
 import LandingHeader from "../../components/landing_header";
 import SessionTimelineDemo from "./session_timeline_demo";
 
 export const metadata: Metadata = {
   title: "Mobile Session Timelines & Replay",
-  description: "See every click, navigation, network call, log, error and CPU/memory signal stitched into a single mobile session timeline to diagnose issues faster.",
+  description:
+    "See every click, navigation, network call, log, error and CPU/memory signal stitched into a single mobile session timeline to diagnose issues faster.",
   alternates: { canonical: "/product/session-timelines" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Mobile Session Timelines & Replay | Measure",
-    description: "See every click, navigation, network call, log, error and CPU/memory signal stitched into a single mobile session timeline to diagnose issues faster.",
+    description:
+      "See every click, navigation, network call, log, error and CPU/memory signal stitched into a single mobile session timeline to diagnose issues faster.",
     url: "/product/session-timelines",
   },
 };
@@ -56,7 +58,9 @@ export default function ProductSessionTimelines() {
         </div>
 
         {/* CTA */}
-        <Link
+        <TrackCtaLink
+          location="product_session_timelines"
+          destination="signup"
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -64,7 +68,7 @@ export default function ProductSessionTimelines() {
           )}
         >
           Get To The Root Cause
-        </Link>
+        </TrackCtaLink>
         <div className="py-16" />
       </div>
       <LandingFooter />

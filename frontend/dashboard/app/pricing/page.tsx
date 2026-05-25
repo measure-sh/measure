@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Card } from "../components/card";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
+import PricingViewed from "./pricing_viewed";
 import { sharedOpenGraph } from "../utils/metadata";
 import {
   FREE_GB,
@@ -33,6 +34,7 @@ export const metadata: Metadata = {
 export default function Pricing() {
   return (
     <main className="flex flex-col items-center justify-between">
+      <PricingViewed />
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
         {/* Header */}

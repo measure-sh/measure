@@ -1,0 +1,234 @@
+package measure
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log"
+	"time"
+
+	"backend/api/server"
+	"backend/autumn"
+	"backend/libs/ga4"
+	"backend/libs/posthog"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/leporo/sqlf"
+)
+
+// Monthly price in USD by autumn plan ID. Used to compute annualized value
+// for paid conversion events. Update when prices change or new paid plans
+// are added.
+var planMonthlyUSD = map[string]float64{
+	autumnPlanPro: 50,
+}
+
+// TeamOwner holds the contact and tracking identifiers of the owning user
+// of a team.
+type TeamOwner struct {
+	UserID     string
+	Email      string
+	GAClientID string
+	GCLID      string
+}
+
+// GetTeamOwner returns the team's owning user's id, email, ga_client_id and
+// gclid. Attribution is LEFT-joined from user_attribution so users without a
+// captured ga_client_id/gclid still return with empty strings for those
+// fields. When the team has multiple owner-role members, the earliest-joined
+// owner is returned. found=false (with no error) when no owner-role member
+// exists.
+func GetTeamOwner(ctx context.Context, teamID uuid.UUID) (owner TeamOwner, found bool, err error) {
+	stmt := sqlf.PostgreSQL.
+		Select("u.id").
+		Select("u.email").
+		Select("ua.ga_client_id").
+		Select("ua.gclid").
+		From("users u").
+		Join("team_membership tm", "tm.user_id = u.id").
+		LeftJoin("user_attribution ua", "ua.user_id = u.id").
+		Where("tm.team_id = ?", teamID).
+		Where("tm.role = ?", "owner").
+		OrderBy("tm.created_at ASC").
+		Limit(1)
+	defer stmt.Close()
+
+	var userID uuid.UUID
+	var email string
+	var gaClientIDVal, gclidVal *string
+	err = server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).
+		Scan(&userID, &email, &gaClientIDVal, &gclidVal)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return TeamOwner{}, false, nil
+		}
+		return TeamOwner{}, false, err
+	}
+	owner.UserID = userID.String()
+	owner.Email = email
+	if gaClientIDVal != nil {
+		owner.GAClientID = *gaClientIDVal
+	}
+	if gclidVal != nil {
+		owner.GCLID = *gclidVal
+	}
+	return owner, true, nil
+}
+
+// lookupOwnerForAnalytics is the convenience wrapper used by the billing
+// webhook to fetch the team owner once and fire several analytics events
+// against the same result. Returns ok=false (logged) on a DB error or when
+// no owner row exists, so the caller can early-return.
+func lookupOwnerForAnalytics(ctx context.Context, teamID uuid.UUID) (TeamOwner, bool) {
+	owner, found, err := GetTeamOwner(ctx, teamID)
+	if err != nil {
+		log.Printf("analytics: lookup team owner for team %s failed: %v", teamID, err)
+		return TeamOwner{}, false
+	}
+	if !found {
+		log.Printf("analytics: no owner for team %s, skipping events", teamID)
+		return TeamOwner{}, false
+	}
+	return owner, true
+}
+
+// fireSignupEvent fires the GA4 `signup` event for a newly created user.
+// gaClientID is passed explicitly (rather than looked up from the
+// user_attribution row we just wrote) to avoid a needless round-trip.
+// Best-effort: ga4.Send silently skips when gaClientID is empty.
+func fireSignupEvent(ctx context.Context, user *User, method, gaClientID string) {
+	if user == nil || user.Email == nil {
+		return
+	}
+	ga4.Send(ctx, gaClientID, *user.Email, "signup", map[string]any{
+		"value":    10,
+		"currency": "USD",
+		"method":   method,
+	})
+}
+
+// fireTeamCreatedEvent fires the PostHog `team_created` event after a team
+// is successfully created during signup or via the dashboard.
+func fireTeamCreatedEvent(ctx context.Context, user *User, team *Team) {
+	if user == nil || user.ID == nil || team == nil || team.ID == nil {
+		return
+	}
+	teamID := team.ID.String()
+	teamName := ""
+	if team.Name != nil {
+		teamName = *team.Name
+	}
+	posthog.Capture(*user.ID, "team_created", map[string]any{
+		"schema_version": "v1",
+		"team_id":        teamID,
+		"team_name":      teamName,
+	}, map[string]string{"team": teamID})
+}
+
+// fireMCPQueryEvent fires the PostHog `mcp_query_made` event after a
+// successful MCP tool invocation. Called from the mcpAddTool wrapper.
+func fireMCPQueryEvent(ctx context.Context, userID, toolName string, duration time.Duration) {
+	posthog.Capture(userID, "mcp_query_made", map[string]any{
+		"schema_version": "v1",
+		"tool_name":      toolName,
+		"duration_ms":    duration.Milliseconds(),
+		"feature_area":   "mcp",
+		"entry_point":    "mcp",
+	}, nil)
+}
+
+// subscriptionCompositeID returns a stable identifier for a plan transition
+// used as transaction_id (GA4) and subscription_id (PostHog). Autumn webhook
+// retries reproduce the same composite, so downstream systems dedupe naturally.
+func subscriptionCompositeID(data autumn.CustomerProductsUpdatedData) string {
+	return fmt.Sprintf("%s:%s:%d", data.Customer.ID, data.UpdatedProduct.ID, data.UpdatedProduct.StartedAt)
+}
+
+// firePaidConversionEvent fires the GA4 `paid_conversion` event after a
+// successful new/upgrade plan transition.
+//
+// The transaction_id is composed from autumn customer ID + plan + started_at
+// so Autumn webhook retries deduplicate naturally on the GA4 side without us
+// maintaining a local dedup table.
+func firePaidConversionEvent(ctx context.Context, owner TeamOwner, data autumn.CustomerProductsUpdatedData) {
+	planID := data.UpdatedProduct.ID
+	if planID == autumnPlanFree {
+		return
+	}
+	monthlyUSD, ok := planMonthlyUSD[planID]
+	if !ok {
+		log.Printf("ga4: no price map entry for plan %q, skipping paid_conversion", planID)
+		return
+	}
+	value := monthlyUSD * 12
+	ga4.Send(ctx, owner.GAClientID, owner.Email, "paid_conversion", map[string]any{
+		"value":          value,
+		"currency":       "USD",
+		"transaction_id": subscriptionCompositeID(data),
+	})
+}
+
+// firePurchaseEvent fires the PostHog `purchase` event for a paid transition.
+// Skips when no price-map entry exists for the plan (e.g. Enterprise).
+func firePurchaseEvent(ctx context.Context, teamID uuid.UUID, owner TeamOwner, data autumn.CustomerProductsUpdatedData) {
+	planID := data.UpdatedProduct.ID
+	if planID == autumnPlanFree {
+		return
+	}
+	monthlyUSD, ok := planMonthlyUSD[planID]
+	if !ok {
+		log.Printf("posthog: no price map entry for plan %q, skipping purchase", planID)
+		return
+	}
+	posthog.Capture(owner.UserID, "purchase", map[string]any{
+		"schema_version":  "v1",
+		"revenue":         monthlyUSD * 12,
+		"currency":        "USD",
+		"product":         planID,
+		"subscription_id": subscriptionCompositeID(data),
+		"contract_length": "monthly",
+	}, map[string]string{"team": teamID.String()})
+}
+
+// fireSubscriptionUpgradedEvent fires the PostHog `subscription_upgraded`
+// event on any upgrade scenario.
+func fireSubscriptionUpgradedEvent(ctx context.Context, teamID uuid.UUID, owner TeamOwner, data autumn.CustomerProductsUpdatedData) {
+	planID := data.UpdatedProduct.ID
+	if planID == autumnPlanFree {
+		return
+	}
+	monthlyUSD, ok := planMonthlyUSD[planID]
+	if !ok {
+		log.Printf("posthog: no price map entry for plan %q, skipping subscription_upgraded", planID)
+		return
+	}
+	posthog.Capture(owner.UserID, "subscription_upgraded", map[string]any{
+		"schema_version":  "v1",
+		"product":         planID,
+		"revenue":         monthlyUSD * 12,
+		"currency":        "USD",
+		"subscription_id": subscriptionCompositeID(data),
+	}, map[string]string{"team": teamID.String()})
+}
+
+// fireSubscriptionDowngradedEvent fires the PostHog `subscription_downgraded`
+// event on a downgrade or expiry scenario.
+func fireSubscriptionDowngradedEvent(ctx context.Context, teamID uuid.UUID, owner TeamOwner, data autumn.CustomerProductsUpdatedData) {
+	posthog.Capture(owner.UserID, "subscription_downgraded", map[string]any{
+		"schema_version":  "v1",
+		"product":         data.UpdatedProduct.ID,
+		"subscription_id": subscriptionCompositeID(data),
+	}, map[string]string{"team": teamID.String()})
+}
+
+// fireSubscriptionCancelledEvent fires the PostHog `subscription_cancelled`
+// event when Autumn reports the cancel actually took effect (i.e. Pro is no
+// longer active).
+func fireSubscriptionCancelledEvent(ctx context.Context, teamID uuid.UUID, owner TeamOwner, data autumn.CustomerProductsUpdatedData) {
+	posthog.Capture(owner.UserID, "subscription_cancelled", map[string]any{
+		"schema_version":  "v1",
+		"product":         data.UpdatedProduct.ID,
+		"subscription_id": subscriptionCompositeID(data),
+	}, map[string]string{"team": teamID.String()})
+}

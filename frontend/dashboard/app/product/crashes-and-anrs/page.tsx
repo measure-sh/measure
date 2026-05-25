@@ -1,20 +1,22 @@
 import { buttonVariants } from "@/app/components/button_variants";
+import TrackCtaLink from "@/app/components/analytics/track_cta_link";
 import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
-import Link from "next/link";
 import LandingFooter from "../../components/landing_footer";
 import LandingHeader from "../../components/landing_header";
 import ExceptionsDemo from "./exceptions_demo";
 
 export const metadata: Metadata = {
   title: "Mobile Crash Reporting & ANR Tracking",
-  description: "Open source mobile Crash Reporting and ANR Tracking. Full stack traces, reproduction steps and session timelines — a Firebase Crashlytics alternative.",
+  description:
+    "Open source mobile Crash Reporting and ANR Tracking. Full stack traces, reproduction steps and session timelines — a Firebase Crashlytics alternative.",
   alternates: { canonical: "/product/crashes-and-anrs" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Mobile Crash Reporting & ANR Tracking",
-    description: "Open source mobile Crash Reporting and ANR Tracking. Full stack traces, reproduction steps and session timelines — a Firebase Crashlytics alternative.",
+    description:
+      "Open source mobile Crash Reporting and ANR Tracking. Full stack traces, reproduction steps and session timelines — a Firebase Crashlytics alternative.",
     url: "/product/crashes-and-anrs",
   },
 };
@@ -32,8 +34,8 @@ export default function ProductCrashesAndANRs() {
         <p className="text-lg font-body md:w-6xl text-justify px-4">
           Get instant visibility into every exception with detailed crash
           reports that include full stack traces, device information, OS
-          versions and intelligent analysis of the sequence of user actions
-          that led to the failure.
+          versions and intelligent analysis of the sequence of user actions that
+          led to the failure.
           <br />
           <br />
           Our Common Path feature reconstructs the user journey before each
@@ -58,7 +60,9 @@ export default function ProductCrashesAndANRs() {
         </div>
 
         {/* CTA */}
-        <Link
+        <TrackCtaLink
+          location="product_crashes_and_anrs"
+          destination="signup"
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -66,7 +70,7 @@ export default function ProductCrashesAndANRs() {
           )}
         >
           Get To The Root Cause
-        </Link>
+        </TrackCtaLink>
         <div className="py-16" />
       </div>
       <LandingFooter />

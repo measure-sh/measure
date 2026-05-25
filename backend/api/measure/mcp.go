@@ -76,6 +76,8 @@ type mcpOAuthStatePayload struct {
 	RedirectURI   string `json:"redirect_uri"`
 	CodeChallenge string `json:"code_challenge"`
 	Provider      string `json:"provider"`
+	GAClientID    string `json:"ga_client_id,omitempty"`
+	GCLID         string `json:"gclid,omitempty"`
 }
 
 // mcpTokenInfo holds the validated token metadata returned by mcpValidateToken.
@@ -196,7 +198,7 @@ func mcpRegisterClient(ctx context.Context, clientName string, redirectURIs []st
 
 // mcpAuthorize validates the client, stores OAuth state in Valkey, and returns
 // the provider OAuth redirect URL.
-func mcpAuthorize(ctx context.Context, provider, clientID, redirectURI, mcpState, codeChallenge string) (providerURL string, err error) {
+func mcpAuthorize(ctx context.Context, provider, clientID, redirectURI, mcpState, codeChallenge, gaClientID, gclid string) (providerURL string, err error) {
 	pgPool := server.Server.PgPool
 	vk := server.Server.VK
 	siteOrigin := server.Server.Config.SiteOrigin
@@ -233,6 +235,8 @@ func mcpAuthorize(ctx context.Context, provider, clientID, redirectURI, mcpState
 		RedirectURI:   redirectURI,
 		CodeChallenge: codeChallenge,
 		Provider:      provider,
+		GAClientID:    gaClientID,
+		GCLID:         gclid,
 	}
 	if storeErr := mcpStoreMCPStateInValkey(ctx, vk, oauthState, payload); storeErr != nil {
 		return "", &mcpHTTPError{http.StatusInternalServerError, "failed to store state"}
@@ -333,7 +337,7 @@ func mcpCallback(ctx context.Context, code, state string) (redirectURL string, e
 		return "", &mcpHTTPError{http.StatusBadRequest, "unsupported provider in state"}
 	}
 
-	msrUser, fcErr := mcpFindOrCreateUser(ctx, userName, userEmail)
+	msrUser, fcErr := mcpFindOrCreateUser(ctx, userName, userEmail, providerName, statePayload.GAClientID, statePayload.GCLID)
 	if fcErr != nil {
 		return "", &mcpHTTPError{http.StatusInternalServerError, "failed to find or create user"}
 	}
@@ -471,7 +475,7 @@ func mcpStoreMCPStateInValkey(ctx context.Context, vk valkey.Client, state strin
 
 // mcpFindOrCreateUser finds an existing Measure user by email or creates a new
 // one (including a default team) via the same logic used by SigninGitHub.
-func mcpFindOrCreateUser(ctx context.Context, name, email string) (mcpUserInfo, error) {
+func mcpFindOrCreateUser(ctx context.Context, name, email, provider, gaClientID, gclid string) (mcpUserInfo, error) {
 	msrUser, err := FindUserByEmail(ctx, email)
 	if err != nil {
 		return mcpUserInfo{}, fmt.Errorf("failed to find user: %w", err)
@@ -483,6 +487,12 @@ func mcpFindOrCreateUser(ctx context.Context, name, email string) (mcpUserInfo, 
 		if err := msrUser.save(ctx, nil); err != nil {
 			return mcpUserInfo{}, fmt.Errorf("%s: %w", msg, err)
 		}
+
+		if err := SaveUserAttribution(ctx, *msrUser.ID, gaClientID, gclid); err != nil {
+			fmt.Println("mcp: failed to save user attribution:", err)
+		}
+
+		fireSignupEvent(ctx, msrUser, provider, gaClientID)
 
 		if err := createNotifPref(uuid.MustParse(*msrUser.ID)); err != nil {
 			fmt.Println("mcp: failed to create notif prefs:", err)
@@ -504,6 +514,8 @@ func mcpFindOrCreateUser(ctx context.Context, name, email string) (mcpUserInfo, 
 		if err := tx.Commit(ctx); err != nil {
 			return mcpUserInfo{}, fmt.Errorf("%s: %w", msg, err)
 		}
+
+		fireTeamCreatedEvent(ctx, msrUser, team)
 
 		if err := addNewUserToInvitedTeams(ctx, *msrUser.ID, email); err != nil {
 			fmt.Println("mcp: failed to add user to invited teams:", err)
@@ -662,6 +674,8 @@ func MCPAuthorize(c *gin.Context) {
 	mcpState := c.Query("state")
 	codeChallenge := c.Query("code_challenge")
 	provider := c.Query("provider")
+	gaClientID := c.Query("ga_client_id")
+	gclid := c.Query("gclid")
 
 	if responseType != "code" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "unsupported response_type"})
@@ -685,7 +699,7 @@ func MCPAuthorize(c *gin.Context) {
 		return
 	}
 
-	providerURL, err := mcpAuthorize(ctx, provider, clientID, redirectURI, mcpState, codeChallenge)
+	providerURL, err := mcpAuthorize(ctx, provider, clientID, redirectURI, mcpState, codeChallenge, gaClientID, gclid)
 	if err != nil {
 		herr := err.(*mcpHTTPError)
 		c.AbortWithStatusJSON(herr.Status, gin.H{"error": herr.Message})
@@ -848,6 +862,28 @@ func NewMCPHandler() http.Handler {
 	return newMCPServer()
 }
 
+// mcpAddTool registers a tool with the MCP server and instruments successful
+// invocations with an `mcp_query_made` PostHog event. Same signature as
+// mcpsdk.AddTool, so call sites only differ in the function name.
+func mcpAddTool[I, O any](
+	s *mcpsdk.Server,
+	tool *mcpsdk.Tool,
+	handler func(context.Context, *mcpsdk.CallToolRequest, I) (*mcpsdk.CallToolResult, O, error),
+) {
+	toolName := tool.Name
+	wrapped := func(ctx context.Context, req *mcpsdk.CallToolRequest, in I) (*mcpsdk.CallToolResult, O, error) {
+		start := time.Now()
+		result, out, err := handler(ctx, req, in)
+		if err == nil {
+			if userID, ok := mcpUserIDFromContext(ctx); ok {
+				fireMCPQueryEvent(ctx, userID, toolName, time.Since(start))
+			}
+		}
+		return result, out, err
+	}
+	mcpsdk.AddTool(s, tool, wrapped)
+}
+
 // --------------------------------------------------------------------------
 // MCP server setup
 // --------------------------------------------------------------------------
@@ -861,7 +897,7 @@ func newMCPServer() http.Handler {
 	)
 
 	// list_apps
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "list_apps",
 		Description: "List all apps the authenticated user has access to",
 	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpListAppsInput) (*mcpsdk.CallToolResult, any, error) {
@@ -869,7 +905,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_filters
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_filters",
 		Description: "Get available filter options (versions, OS, countries, devices, etc.) for an app",
 		InputSchema: mcpMustInferSchema[mcpGetFiltersInput](),
@@ -878,7 +914,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_metrics
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_metrics",
 		Description: "Get app metrics including adoption, crash-free/ANR-free sessions, and launch performance (cold/warm/hot p95). Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferSchema[mcpGetMetricsInput](),
@@ -887,7 +923,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_errors
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_errors",
 		Description: "Get crash or ANR error groups for an app. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferErrorToolSchema[mcpGetErrorsInput](),
@@ -896,7 +932,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_error
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_error",
 		Description: "Get individual crash or ANR events for a specific error group. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferErrorToolSchema[mcpGetErrorInput](),
@@ -905,7 +941,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_errors_over_time
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_errors_over_time",
 		Description: "Get time-series of crash or ANR occurrences across all error groups. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferErrorToolSchema[mcpGetErrorsOverTimeInput](),
@@ -914,7 +950,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_error_over_time
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_error_over_time",
 		Description: "Get time-series of occurrences for a specific error group. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferErrorToolSchema[mcpGetErrorOverTimeInput](),
@@ -923,7 +959,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_error_distribution
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_error_distribution",
 		Description: "Get attribute distribution (OS, device, version, country) for a specific error group. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferErrorToolSchema[mcpGetErrorDistributionInput](),
@@ -932,7 +968,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_sessions
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_sessions",
 		Description: "Get sessions for an app, ordered by most recent first. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferSchema[mcpGetSessionsInput](),
@@ -941,7 +977,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_sessions_over_time
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_sessions_over_time",
 		Description: "Get time-series of session counts. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferSchema[mcpGetSessionsOverTimeInput](),
@@ -950,7 +986,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_session
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_session",
 		Description: "Get full session with all events",
 		InputSchema: mcpMustInferSchema[mcpGetSessionInput](),
@@ -959,7 +995,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_bug_reports
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_bug_reports",
 		Description: "Get bug reports for an app, ordered by most recent first. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferSchema[mcpGetBugReportsInput](),
@@ -968,7 +1004,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_bug_reports_over_time
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_bug_reports_over_time",
 		Description: "Get time-series of bug report counts. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferSchema[mcpGetBugReportsOverTimeInput](),
@@ -977,7 +1013,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_bug_report
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_bug_report",
 		Description: "Get a single bug report with full details",
 		InputSchema: mcpMustInferSchema[mcpGetBugReportInput](),
@@ -986,7 +1022,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// update_bug_report_status
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "update_bug_report_status",
 		Description: "Update the status of a bug report (open or closed)",
 		InputSchema: mcpMustInferSchema[mcpUpdateBugReportStatusInput](),
@@ -995,7 +1031,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_root_span_names
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_root_span_names",
 		Description: "Get all root span names for an app",
 		InputSchema: mcpMustInferSchema[mcpGetRootSpanNamesInput](),
@@ -1004,7 +1040,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_span_instances
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_span_instances",
 		Description: "Get span instances for a root span name. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferSchema[mcpGetSpanInstancesInput](),
@@ -1013,7 +1049,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_span_metrics_over_time
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_span_metrics_over_time",
 		Description: "Get p50/p90/p95/p99 duration metrics over time for a span name. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferSchema[mcpGetSpanMetricsOverTimeInput](),
@@ -1022,7 +1058,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_trace
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_trace",
 		Description: "Get full trace with all child spans",
 		InputSchema: mcpMustInferSchema[mcpGetTraceInput](),
@@ -1031,7 +1067,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_alerts
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_alerts",
 		Description: "Get alerts for an app, ordered by most recent first",
 		InputSchema: mcpMustInferSchema[mcpGetAlertsInput](),
@@ -1040,7 +1076,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_journey
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_journey",
 		Description: "Get user navigation journey graph with session counts between screens. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferSchema[mcpGetJourneyInput](),
@@ -1049,7 +1085,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_error_common_path
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_error_common_path",
 		Description: "Get the most common user navigation path leading to a specific crash or ANR",
 		InputSchema: mcpMustInferErrorToolSchema[mcpGetErrorCommonPathInput](),
@@ -1058,7 +1094,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_network_unique_domains
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_network_unique_domains",
 		Description: "Get all unique domains observed in HTTP requests for an app",
 		InputSchema: mcpMustInferSchema[mcpGetUniqueDomainsInput](),
@@ -1067,7 +1103,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_network_paths_for_domain
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_network_paths_for_domain",
 		Description: "Get all unique URL paths for a domain from HTTP requests, with optional search query",
 		InputSchema: mcpMustInferSchema[mcpGetPathsForDomainInput](),
@@ -1076,7 +1112,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_network_metrics_trends
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_network_metrics_trends",
 		Description: "Get top network endpoints by latency, error rate, and frequency for domain and path pattern",
 		InputSchema: mcpMustInferSchema[mcpGetNetworkTrendsInput](),
@@ -1085,7 +1121,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_network_status_codes_over_time
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_network_status_codes_over_time",
 		Description: "Get HTTP status code distribution over time across all network requests",
 		InputSchema: mcpMustInferSchema[mcpGetAppHttpStatusCodesOverTimeInput](),
@@ -1094,7 +1130,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_network_endpoint_latency_over_time
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_network_endpoint_latency_over_time",
 		Description: "Get latency percentiles (p50/p90/p95/p99) over time for a specific endpoint",
 		InputSchema: mcpMustInferSchema[mcpGetHttpEndpointLatencyOverTimeInput](),
@@ -1103,7 +1139,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_network_endpoint_status_codes_over_time
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_network_endpoint_status_codes_over_time",
 		Description: "Get HTTP status code distribution over time for a specific endpoint ",
 		InputSchema: mcpMustInferSchema[mcpGetHttpEndpointStatusCodesOverTimeInput](),
@@ -1112,7 +1148,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_network_requests_timeline
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_network_requests_timeline",
 		Description: "Get HTTP requests timeline showing when top endpoints are typically called during a session",
 		InputSchema: mcpMustInferSchema[mcpGetNetworkTimelineInput](),
@@ -1121,7 +1157,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_network_endpoint_timeline
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_network_endpoint_timeline",
 		Description: "Get HTTP requests timeline for a specific endpoint showing when it is typically called during a session. Only works for known path patterns.",
 		InputSchema: mcpMustInferSchema[mcpGetNetworkEndpointTimelineInput](),

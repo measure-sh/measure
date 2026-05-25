@@ -12,6 +12,8 @@ import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
+import TrackCtaLink from "../components/analytics/track_cta_link";
+import TrackGithubLink from "../components/analytics/track_github_link";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
 export const metadata: Metadata = {
@@ -169,13 +171,13 @@ export default function CrashlyticsAlternatives() {
                 <br />
                 <br />
                 Measure is{" "}
-                <Link
+                <TrackGithubLink
                   href="https://github.com/measure-sh/measure"
                   target="_blank"
                   className={underlineLinkStyle}
                 >
                   fully open source
-                </Link>
+                </TrackGithubLink>
                 . Read the SDK, read the backend, file issues, contribute fixes.
                 Your data is yours, the pipeline is auditable and you can be
                 part of the community and help make it better.
@@ -239,15 +241,15 @@ export default function CrashlyticsAlternatives() {
                 default and every trade-off is shaped by mobile devs solving
                 real production issues. The roadmap and issue tracker are public
                 on{" "}
-                <Link
+                <TrackGithubLink
                   href="https://github.com/measure-sh/measure"
                   target="_blank"
                   className={underlineLinkStyle}
                 >
                   GitHub
-                </Link>
-                . If something is missing, you can file it, see where it sits
-                or send a pull request.
+                </TrackGithubLink>
+                . If something is missing, you can file it, see where it sits or
+                send a pull request.
               </p>
             </div>
             <div className="flex items-center justify-center w-full md:w-64 flex-shrink-0">
@@ -258,7 +260,9 @@ export default function CrashlyticsAlternatives() {
 
         {/* CTA */}
         <div className="mt-24" />
-        <Link
+        <TrackCtaLink
+          location="crashlytics_alternatives"
+          destination="signup"
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -266,7 +270,7 @@ export default function CrashlyticsAlternatives() {
           )}
         >
           Get To The Root Cause
-        </Link>
+        </TrackCtaLink>
         <div className="py-16" />
       </div>
 

@@ -306,11 +306,24 @@ describe("Login Page", () => {
       render(<Login searchParams={{}} />);
     });
 
-    expect(mockPosthogIdentify).toHaveBeenCalledWith("user-1", {
-      email: "test@example.com",
-      name: "Test User",
-      plan: "free",
-    });
+    expect(mockPosthogIdentify).toHaveBeenCalledWith(
+      "user-1",
+      {
+        email: "test@example.com",
+        name: "Test User",
+      },
+      {
+        first_touch_utm_source: undefined,
+        first_touch_utm_medium: undefined,
+        first_touch_utm_campaign: undefined,
+        last_touch_utm_source: undefined,
+        last_touch_utm_medium: undefined,
+        referrer_domain: undefined,
+        signup_acquisition_source: "direct",
+        signup_is_inbound: true,
+        email_domain: "example.com",
+      },
+    );
   });
 
   it("does not validate invite in MCP mode", () => {

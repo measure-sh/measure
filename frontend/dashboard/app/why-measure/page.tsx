@@ -11,16 +11,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
+import TrackCtaLink from "../components/analytics/track_cta_link";
+import TrackGithubLink from "../components/analytics/track_github_link";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
 export const metadata: Metadata = {
   title: "Mobile-First App Monitoring",
-  description: "Mobile is the product, not an add-on to a backend observability tool. Why we built Measure for mobile engineering teams.",
+  description:
+    "Mobile is the product, not an add-on to a backend observability tool. Why we built Measure for mobile engineering teams.",
   alternates: { canonical: "/why-measure" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Mobile-First App Monitoring | Measure",
-    description: "Mobile is the product, not an add-on to a backend observability tool. Why we built Measure for mobile engineering teams.",
+    description:
+      "Mobile is the product, not an add-on to a backend observability tool. Why we built Measure for mobile engineering teams.",
     url: "/why-measure",
   },
 };
@@ -101,13 +105,13 @@ export default function WhyMeasure() {
               <h2 className="text-3xl font-display mb-4">Open Source</h2>
               <p className="text-justify text-lg">
                 Measure is{" "}
-                <Link
+                <TrackGithubLink
                   href="https://github.com/measure-sh/measure"
                   target="_blank"
                   className={underlineLinkStyle}
                 >
                   fully open source.{" "}
-                </Link>
+                </TrackGithubLink>
                 This means our code is open to scrutiny and community
                 contributions which we strongly believe leads to a better
                 product.
@@ -163,7 +167,9 @@ export default function WhyMeasure() {
 
         {/* CTA */}
         <div className="mt-24" />
-        <Link
+        <TrackCtaLink
+          location="why_measure"
+          destination="signup"
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -171,7 +177,7 @@ export default function WhyMeasure() {
           )}
         >
           Get To The Root Cause
-        </Link>
+        </TrackCtaLink>
         <div className="py-16" />
       </div>
 

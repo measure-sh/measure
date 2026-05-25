@@ -126,23 +126,30 @@ func QueueEmailForTeam(ctx context.Context, pool *pgxpool.Pool, tx pgx.Tx, teamI
 	if err != nil {
 		return fmt.Errorf("failed to fetch team members: %w", err)
 	}
-	defer memberRows.Close()
 
+	// Drain rows before issuing further queries on the same tx — pgx
+	// reports "conn busy" if another query starts while a rowset is open.
+	var emails []string
 	for memberRows.Next() {
 		var to string
 		if err := memberRows.Scan(&to); err != nil {
+			memberRows.Close()
 			return fmt.Errorf("failed to scan team member email: %w", err)
 		}
+		emails = append(emails, to)
+	}
+	if err := memberRows.Err(); err != nil {
+		memberRows.Close()
+		return fmt.Errorf("failed to iterate team members: %w", err)
+	}
+	memberRows.Close()
 
+	for _, to := range emails {
 		pendingEmail := info
 		pendingEmail.To = to
 		if err := QueueEmail(ctx, pool, tx, teamID, appID, pendingEmail); err != nil {
 			return fmt.Errorf("failed to queue email for team member %s: %w", to, err)
 		}
-	}
-
-	if err := memberRows.Err(); err != nil {
-		return fmt.Errorf("failed to iterate team members: %w", err)
 	}
 
 	return nil

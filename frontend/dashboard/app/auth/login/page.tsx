@@ -12,6 +12,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { posthog } from "posthog-js";
 import { useEffect, useState } from "react";
+import { determineAcquisitionSource } from "@/app/utils/analytics/acquisition";
+import { getStoredGCLID } from "@/app/utils/analytics/attribution";
+import { getUTMState } from "@/app/utils/analytics/utm";
 import GitHubSignIn from "./github-sign-in";
 import GoogleSignIn from "./google-sign-in";
 import Messages from "./messages";
@@ -72,11 +75,35 @@ export default function Login({
     const session = await fetchCurrentSession();
     if (session) {
       setSession(session);
-      posthog.identify(session.user.id, {
-        email: session.user.email,
-        name: session.user.name,
-        plan: "free",
+      const utm = getUTMState();
+      const acquisition = determineAcquisitionSource({
+        utm_source: utm?.first_touch_utm_source,
+        utm_medium: utm?.first_touch_utm_medium,
+        utm_campaign: utm?.first_touch_utm_campaign,
+        referrer_domain: utm?.referrer_domain,
+        gclid: getStoredGCLID(),
       });
+      const email = session.user.email ?? "";
+      const atIdx = email.indexOf("@");
+      const emailDomain = atIdx >= 0 ? email.slice(atIdx + 1) : undefined;
+      posthog.identify(
+        session.user.id,
+        {
+          email,
+          name: session.user.name,
+        },
+        {
+          first_touch_utm_source: utm?.first_touch_utm_source,
+          first_touch_utm_medium: utm?.first_touch_utm_medium,
+          first_touch_utm_campaign: utm?.first_touch_utm_campaign,
+          last_touch_utm_source: utm?.last_touch_utm_source,
+          last_touch_utm_medium: utm?.last_touch_utm_medium,
+          referrer_domain: utm?.referrer_domain,
+          signup_acquisition_source: acquisition.source,
+          signup_is_inbound: acquisition.is_inbound,
+          email_domain: emailDomain,
+        },
+      );
     }
     setLoading(false);
   };

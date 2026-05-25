@@ -14,6 +14,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import { cn } from "../utils/shadcn_utils";
 import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
+import { track } from "../utils/analytics/track";
 import {
   Accordion,
   AccordionContent,
@@ -253,6 +254,31 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
   const firstResult = errorsDetails.results?.[0];
   const stacktrace =
     firstResult?.exception?.stacktrace ?? firstResult?.anr?.stacktrace ?? "";
+
+  const entryPoint = searchParams.get("from") ?? "direct";
+
+  // Fire `error_investigated` once per error group, after the first result
+  // loads. Ref keyed by errorGroupId covers within-route navigation between
+  // groups without a remount, mirroring the session_investigated pattern.
+  const investigatedGroupRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (demo || !firstResult || !errorGroupId) {
+      return;
+    }
+    if (investigatedGroupRef.current === errorGroupId) {
+      return;
+    }
+    investigatedGroupRef.current = errorGroupId;
+    track("error_investigated", {
+      team_id: teamId,
+      app_id: appId,
+      app_platform: firstResult.attribute?.os_name,
+      type: firstResult.anr ? "anr" : "crash",
+      severity: firstResult.severity,
+      feature_area: "errors",
+      entry_point: entryPoint,
+    });
+  }, [demo, errorGroupId, firstResult, teamId, appId, entryPoint]);
 
   return (
     <div className="flex flex-col items-start">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cn } from "../utils/shadcn_utils";
 import { buttonVariants } from "./button_variants";
 import { CookiePreferencesLink } from "./cookie_preferences_link";
+import TrackGithubLink from "./analytics/track_github_link";
 
 export default function LandingFooter() {
   return (
@@ -30,7 +31,7 @@ export default function LandingFooter() {
             &copy; {new Date().getFullYear()} Measure, Inc. All rights reserved.
           </p>
           <div className="py-4" />
-          <Link
+          <TrackGithubLink
             target="_blank"
             href="https://github.com/measure-sh/measure"
             className={cn(buttonVariants({ variant: "outline" }), "group px-2")}
@@ -50,7 +51,7 @@ export default function LandingFooter() {
               alt={"GitHub logo"}
             />
             <span className="mt-0.5">Star us on Github</span>
-          </Link>
+          </TrackGithubLink>
         </div>
 
         <div className="flex flex-col items-center md:items-start gap-4">
@@ -185,7 +186,7 @@ export default function LandingFooter() {
           >
             Blog
           </Link>
-          <Link
+          <TrackGithubLink
             href="https://github.com/measure-sh/measure"
             target="_blank"
             className={cn(
@@ -194,7 +195,7 @@ export default function LandingFooter() {
             )}
           >
             GitHub
-          </Link>
+          </TrackGithubLink>
         </div>
 
         <div className="flex flex-col items-center md:items-start gap-4">
