@@ -68,7 +68,7 @@ Where:
 - **Total Sessions**: The total number of sessions recorded.
 - **ANR Sessions**: The number of sessions that experienced an ANR.
 
-## Get a UI Screenshot
+## Get a UI Snapshot
 
 A screenshot of the app is captured when an app crashes. This feature is enabled by default and can be
 remotely configured on the dashboard under the "Apps" section. The following configuration options are available:
