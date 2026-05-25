@@ -62,7 +62,7 @@ describe("SessionTimelineEventDetails", () => {
       renderDetails({
         eventDetails: { method: "GET", url: "https://api.example.com" },
       });
-      // Body renders as a single JSON CodeBlock; assert via textContent.
+      // Each field renders as its own attribute row (label + value).
       const text = document.body.textContent ?? "";
       expect(text).toContain("method");
       expect(text).toContain("GET");
@@ -120,6 +120,22 @@ describe("SessionTimelineEventDetails", () => {
         },
       });
       expect(screen.getByText(/at Main\.run/)).toBeInTheDocument();
+    });
+
+    it("labels the stacktrace block with a STACKTRACE attribute key", () => {
+      renderDetails({
+        eventDetails: {
+          stacktrace: "at Main.run(Main.java:10)",
+        },
+      });
+      expect(screen.getByText("STACKTRACE")).toBeInTheDocument();
+    });
+
+    it("does not render a STACKTRACE label when no stacktrace is present", () => {
+      renderDetails({
+        eventDetails: { method: "GET" },
+      });
+      expect(screen.queryByText("STACKTRACE")).not.toBeInTheDocument();
     });
 
     it("renders headers as JSON", () => {
