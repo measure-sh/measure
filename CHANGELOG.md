@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Add unified errors API & react native symbolication support (#3623) by @detj in #3623
 - (**backend**): Use autumn for metering and billing by @anupcowkur in #3534
+- (**frontend**): Update trace ui by @anupcowkur
 - (**frontend**): Consolidate crashes and ANRs into Errors page by @anupcowkur
 - (**frontend**): Update filters ui by @anupcowkur in #3653
 - (**frontend**): Serve markdown for marketing & docs pages to agents by @anupcowkur in #3621
@@ -92,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Update session timeline attrs ui to match trace panel attrs by @anupcowkur in #3693
 - (**frontend**): Update disclaimer text style for cross paltform onboarding by @anupcowkur in #3691
 - (**frontend**): Extract RN sdk version for onboarding by @anupcowkur
 - (**frontend**): Disable text selection on pills by @anupcowkur
