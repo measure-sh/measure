@@ -95,7 +95,7 @@ You can add attachments to bug reports in the following ways:
 Capture a screenshot using `captureScreenshot`. This function must be called from the main thread.
 
 ```kotlin
-private val attachments = mutableListOf<Attachment>()
+private val attachments = mutableListOf<MsrAttachment>()
 
 Measure.captureScreenshot(activity, onComplete = { attachment ->
     attachments.add(attachment)
@@ -115,7 +115,7 @@ Measure.trackBugReport(
 Capture a layout snapshot using `captureLayoutSnapshot`. This function must be called from the main thread.
 
 ```kotlin
-private val attachments = mutableListOf<Attachment>()
+private val attachments = mutableListOf<MsrAttachment>()
 
 Measure.captureLayoutSnapshot(activity, onComplete = { attachment ->
     attachments.add(attachment)
@@ -134,7 +134,7 @@ To add images selected by a user from the gallery, use `imageUriToAttachment` to
 Ensure the Uri has the `FLAG_GRANT_READ_URI_PERMISSION` permission granted, as shown in the example below.
 
 ```kotlin
-private val attachments = mutableListOf<Attachment>()
+private val attachments = mutableListOf<MsrAttachment>()
 
 registerForActivityResult(
     ActivityResultContracts.GetContent()
