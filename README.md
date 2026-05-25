@@ -85,7 +85,7 @@ We would love for you to contribute to Measure by opening issues, sending PRs, â
 
 1. [**SDK Integration Guide**](https://measure.sh/docs/sdk-integration-guide) - Integrate Android or iOS SDK and start measuring in no time
 2. [**Explore Features**](https://measure.sh/docs/features/feature-session-timelines) - Learn about the features available in Measure and how to use them
-3. [**Contribution Guide**](https://measure.sh/docs/CONTRIBUTING) - Contribute to Measure
+3. [**Contribution Guide**](/docs/CONTRIBUTING.md) - Contribute to Measure
 
 ## Platforms
 
