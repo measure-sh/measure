@@ -282,7 +282,7 @@ func (e eventreq) bucketExceptions(ctx context.Context) (err error) {
 			events[i].Exception.GetMethodName(),
 			events[i].Exception.GetFileName(),
 			events[i].Exception.GetLineNumber(),
-			events[i].Exception.Handled,
+			events[i].Exception.GetSeverity() == event.SeverityHandled,
 			events[i].Exception.GetSeverity() == event.SeverityFatal,
 			events[i].Exception.IsCustom,
 			events[i].Timestamp,
