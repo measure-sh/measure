@@ -40,8 +40,7 @@ final class CrashDataFormatter {
         let otherThreads    = otherThreadDicts.map { parseThread($0) }
 
         guard let crashedThread else {
-            return Exception(handled: handled,
-                             exceptions: [exceptionDetail],
+            return Exception(exceptions: [exceptionDetail],
                              foreground: parseForeground(),
                              threads: nil,
                              binaryImages: nil,
@@ -56,8 +55,7 @@ final class CrashDataFormatter {
         let allThreads   = [crashedThread] + otherThreads
         let binaryImages = parseBinaryImages(threads: allThreads)
 
-        return Exception(handled: handled,
-                         exceptions: [exceptionDetail],
+        return Exception(exceptions: [exceptionDetail],
                          foreground: parseForeground(),
                          threads: otherThreads,
                          binaryImages: binaryImages,

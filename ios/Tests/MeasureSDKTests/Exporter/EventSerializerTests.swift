@@ -209,7 +209,6 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
         )
 
         let exception = Exception(
-            handled: false,
             exceptions: [exceptionDetail],
             foreground: true,
             threads: [ThreadDetail(name: "main", frames: [stackFrame], sequence: 1)],
@@ -247,7 +246,6 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
             if let exceptionDict = jsonDict?["exception"] as? [String: Any] {
-                XCTAssertEqual(exceptionDict["handled"] as? Bool, false)
                 XCTAssertEqual(exceptionDict["foreground"] as? Bool, true)
 
                 if let exceptionDetails = exceptionDict["exceptions"] as? [[String: Any]],
@@ -311,6 +309,63 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             } else {
                 XCTFail("Exception data is not present in the serialized event.")
             }
+        } catch {
+            XCTFail("Invalid JSON object: \(error.localizedDescription)")
+        }
+    }
+
+    func testEventEntity_ExceptionSerializes() {
+        let exceptionDetail = ExceptionDetail(
+            type: "NSError",
+            message: "Something went wrong",
+            frames: nil,
+            signal: nil,
+            threadName: "main",
+            threadSequence: 0,
+            osBuildNumber: nil
+        )
+
+        let exception = Exception(
+            exceptions: [exceptionDetail],
+            foreground: nil,
+            threads: nil,
+            binaryImages: nil,
+            framework: "apple",
+            severity: .fatal,
+            isCustom: true,
+            numCode: 42,
+            code: "NSPOSIXErrorDomain",
+            meta: nil
+        )
+
+        let event = Event(
+            id: "new-fields-test",
+            sessionId: "sessionId",
+            timestamp: "2024-10-22T10:03:00Z",
+            timestampInMillis: 123456792,
+            type: .exception,
+            data: exception,
+            attachments: [],
+            attributes: TestDataGenerator.generateAttributes(),
+            userTriggered: false
+        )
+
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: EventEntity(event, needsReporting: true)) else {
+            XCTFail("getSerialisedEvent cannot be nil")
+            return
+        }
+
+        do {
+            let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+            guard let exceptionDict = jsonDict?["exception"] as? [String: Any] else {
+                XCTFail("Exception data is not present in the serialized event.")
+                return
+            }
+            XCTAssertEqual(exceptionDict["severity"] as? String, "fatal")
+            XCTAssertEqual(exceptionDict["is_custom"] as? Bool, true)
+            XCTAssertEqual(exceptionDict["num_code"] as? Int, 42)
+            XCTAssertEqual(exceptionDict["code"] as? String, "NSPOSIXErrorDomain")
+            XCTAssertNil(exceptionDict["handled"], "handled key must not be present in the serialized output")
         } catch {
             XCTFail("Invalid JSON object: \(error.localizedDescription)")
         }

@@ -1124,9 +1124,9 @@
 		52B7F0F12D757F81001498BC /* CrashReporter */ = {
 			isa = PBXGroup;
 			children = (
-				CFE1DD4C2F62C668003BD29B /* CrashReports */,
 				CFE1DD512F62E201003BD29B /* CrashDataFormatterTests.swift */,
 				CFE1DD532F62EC6C003BD29B /* CrashReportManagerTests.swift */,
+				CFE1DD4C2F62C668003BD29B /* CrashReports */,
 			);
 			path = CrashReporter;
 			sourceTree = "<group>";
