@@ -165,6 +165,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :books: Documentation
 
 - (**backend**): Update dashboard api docs (#3686) by @detj in #3686
+- Update self hosting guidance by @anupcowkur in #3700
 - Fix RN title mistake by @anupcowkur
 - Remove empty line in code snippet by @anupcowkur
 - Remove FAQ, data retention, contributing and versioning pages by @anupcowkur
