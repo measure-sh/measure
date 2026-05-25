@@ -37,13 +37,13 @@ Launch the default bug report interface using `Measure.launchBugReportActivity`.
 Usage:
 
 ```kotlin
-Measure.launchBugReportActivity(activity)
+Measure.launchBugReportActivity()
 ```
 
 To disable taking a screenshot when this method is called, pass in a parameter:
 
 ```kotlin
-Measure.launchBugReportActivity(activity, takeScreenshot = false)
+Measure.launchBugReportActivity(takeScreenshot = false)
 ```
 
 ### Theming
@@ -97,7 +97,7 @@ Capture a screenshot using `captureScreenshot`. This function must be called fro
 ```kotlin
 private val attachments = mutableListOf<Attachment>()
 
-Measure.captureScreenshot(activity, onCaptured = { attachment ->
+Measure.captureScreenshot(activity, onComplete = { attachment ->
     attachments.add(attachment)
 })
 
@@ -117,7 +117,7 @@ Capture a layout snapshot using `captureLayoutSnapshot`. This function must be c
 ```kotlin
 private val attachments = mutableListOf<Attachment>()
 
-Measure.captureLayoutSnapshot(activity, onCaptured = { attachment ->
+Measure.captureLayoutSnapshot(activity, onComplete = { attachment ->
     attachments.add(attachment)
 })
 
