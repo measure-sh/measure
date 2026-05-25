@@ -63,16 +63,6 @@ jest.mock("@/app/components/dropdown_select", () => ({
   },
 }));
 
-jest.mock("@/app/components/errors_type_filter", () => ({
-  __esModule: true,
-  default: ({ showCustomToggle }: any) => (
-    <div
-      data-testid="errors-type-filter"
-      data-show-custom={String(!!showCustomToggle)}
-    />
-  ),
-}));
-
 jest.mock("@/app/components/skeleton", () => ({
   Skeleton: ({ className, ...props }: any) => (
     <div data-testid="skeleton-mock" className={className} {...props} />
@@ -125,6 +115,7 @@ import {
 import Filters, {
   AppVersionsInitialSelectionType,
   deserializeUrlFilters,
+  ErrorsTypeFilter,
 } from "@/app/components/filters";
 
 // jsdom has no scrollIntoView; the More filters modal calls it to bring a
@@ -606,7 +597,7 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
     setFiltersSuccess();
   });
 
-  it("renders Type (with Custom toggle) and Severity when all three show flags are on", async () => {
+  it("renders Type and Severity when all three show flags are on", async () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
@@ -614,16 +605,12 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
       showCustomErrors: true,
     });
     await waitFor(() => {
-      expect(screen.getByTestId("errors-type-filter")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Type" })).toBeInTheDocument();
     });
-    expect(screen.getByTestId("errors-type-filter")).toHaveAttribute(
-      "data-show-custom",
-      "true",
-    );
     expect(screen.getByTestId("dropdown-Severity")).toBeInTheDocument();
   });
 
-  it("renders Type without the nested Custom toggle when showCustomErrors is off", async () => {
+  it("renders Type when showCustomErrors is off", async () => {
     await renderFilters({
       filterSource: FilterSource.Errors,
       showErrorType: true,
@@ -631,12 +618,8 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
       showCustomErrors: false,
     });
     await waitFor(() => {
-      expect(screen.getByTestId("errors-type-filter")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Type" })).toBeInTheDocument();
     });
-    expect(screen.getByTestId("errors-type-filter")).toHaveAttribute(
-      "data-show-custom",
-      "false",
-    );
   });
 
   it("hides all errors-only controls when none of the show flags are passed", async () => {
@@ -644,7 +627,9 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
     await waitFor(() => {
       expect(screen.getByTestId("dropdown-App Name")).toBeInTheDocument();
     });
-    expect(screen.queryByTestId("errors-type-filter")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Type" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId("dropdown-Severity")).not.toBeInTheDocument();
   });
 
@@ -658,7 +643,9 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
     await waitFor(() => {
       expect(screen.getByTestId("dropdown-App Name")).toBeInTheDocument();
     });
-    expect(screen.queryByTestId("errors-type-filter")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Type" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId("dropdown-Severity")).not.toBeInTheDocument();
   });
 
@@ -670,7 +657,7 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
       showCustomErrors: true,
     });
     await waitFor(() => {
-      expect(screen.getByTestId("errors-type-filter")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Type" })).toBeInTheDocument();
     });
     await act(async () => {
       storeInstance.getState().setSelectedErrorTypes(["anr"]);
@@ -678,7 +665,7 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
     await waitFor(() => {
       expect(screen.queryByTestId("dropdown-Severity")).not.toBeInTheDocument();
     });
-    expect(screen.getByTestId("errors-type-filter")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Type" })).toBeInTheDocument();
   });
 
   it("shows Type and Severity when only 'error' is in selectedErrorTypes", async () => {
@@ -689,7 +676,7 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
       showCustomErrors: true,
     });
     await waitFor(() => {
-      expect(screen.getByTestId("errors-type-filter")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Type" })).toBeInTheDocument();
     });
     await act(async () => {
       storeInstance.getState().setSelectedErrorTypes(["error"]);
@@ -697,7 +684,7 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
     await waitFor(() => {
       expect(screen.getByTestId("dropdown-Severity")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("errors-type-filter")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Type" })).toBeInTheDocument();
   });
 
   it("preserves severity/custom in the store when the user removes 'error' from selectedErrorTypes", async () => {
@@ -708,7 +695,7 @@ describe("Filters — Errors filter source: Type/Severity/Custom controls", () =
       showCustomErrors: true,
     });
     await waitFor(() => {
-      expect(screen.getByTestId("errors-type-filter")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Type" })).toBeInTheDocument();
     });
     // Seed both error types with severity and custom set.
     await act(async () => {
@@ -1180,5 +1167,159 @@ describe("deserializeUrlFilters — Errors filter source URL keys", () => {
     expect(result.errorTypes).toBeUndefined();
     expect(result.severities).toBeUndefined();
     expect(result.customErrorsOnly).toBeUndefined();
+  });
+});
+
+describe("ErrorsTypeFilter", () => {
+  type Handlers = {
+    onChangeErrorTypes: jest.Mock<(types: string[]) => void>;
+    onChangeCustomErrorsOnly: jest.Mock<(custom: boolean) => void>;
+  };
+
+  function renderErrorsTypeFilter(
+    overrides: Partial<{
+      selectedErrorTypes: string[];
+      customErrorsOnly: boolean;
+      showCustomToggle: boolean;
+      open: boolean;
+    }> = {},
+  ): Handlers {
+    const handlers: Handlers = {
+      onChangeErrorTypes: jest.fn() as Handlers["onChangeErrorTypes"],
+      onChangeCustomErrorsOnly:
+        jest.fn() as Handlers["onChangeCustomErrorsOnly"],
+    };
+    render(
+      <ErrorsTypeFilter
+        selectedErrorTypes={overrides.selectedErrorTypes ?? ["error"]}
+        customErrorsOnly={overrides.customErrorsOnly ?? false}
+        showCustomToggle={overrides.showCustomToggle ?? true}
+        onChangeErrorTypes={handlers.onChangeErrorTypes}
+        onChangeCustomErrorsOnly={handlers.onChangeCustomErrorsOnly}
+        open={overrides.open ?? true}
+      />,
+    );
+    return handlers;
+  }
+
+  function getControl(label: string): HTMLElement {
+    const text = screen.getByText(label);
+    const wrapper = text.closest('[role="checkbox"], label');
+    if (!wrapper) {
+      throw new Error(`No checkbox/label wrapper found for "${label}"`);
+    }
+    if (wrapper.getAttribute("role") === "checkbox") {
+      return wrapper as HTMLElement;
+    }
+    const input = wrapper.querySelector('button[role="switch"]');
+    if (!input) {
+      throw new Error(`No switch control found in label "${label}"`);
+    }
+    return input as HTMLElement;
+  }
+
+  it("renders Type trigger and Error, ANR entries", () => {
+    renderErrorsTypeFilter();
+    expect(screen.getByText("Type")).toBeInTheDocument();
+    expect(screen.getByText("Error")).toBeInTheDocument();
+    expect(screen.getByText("ANR")).toBeInTheDocument();
+  });
+
+  it("renders Custom inline on the Error row with a Switch when showCustomToggle is true", () => {
+    renderErrorsTypeFilter();
+    const custom = screen.getByText("Custom Only");
+    expect(custom).toBeInTheDocument();
+    const switchEl = custom
+      .closest("label")
+      ?.querySelector('button[role="switch"]');
+    expect(switchEl).not.toBeNull();
+  });
+
+  it("renders Error and ANR as multi-select items (matching DropdownSelect)", () => {
+    renderErrorsTypeFilter();
+    expect(getControl("Error")).toHaveAttribute("role", "checkbox");
+    expect(getControl("ANR")).toHaveAttribute("role", "checkbox");
+  });
+
+  it("hides Custom when showCustomToggle is false", () => {
+    renderErrorsTypeFilter({ showCustomToggle: false });
+    expect(screen.queryByText("Custom Only")).not.toBeInTheDocument();
+  });
+
+  it("disables the Custom switch when Error is unchecked", () => {
+    renderErrorsTypeFilter({ selectedErrorTypes: ["anr"] });
+    expect(getControl("Custom Only")).toBeDisabled();
+  });
+
+  it("enables the Custom switch when Error is checked", () => {
+    renderErrorsTypeFilter({ selectedErrorTypes: ["error"] });
+    expect(getControl("Custom Only")).not.toBeDisabled();
+  });
+
+  it("reflects checked state for Error, ANR, and Custom from props", () => {
+    renderErrorsTypeFilter({
+      selectedErrorTypes: ["error", "anr"],
+      customErrorsOnly: true,
+    });
+    expect(getControl("Error")).toHaveAttribute("aria-checked", "true");
+    expect(getControl("ANR")).toHaveAttribute("aria-checked", "true");
+    expect(getControl("Custom Only")).toHaveAttribute("data-state", "checked");
+  });
+
+  it("adds 'error' to the list when Error is checked", () => {
+    const h = renderErrorsTypeFilter({ selectedErrorTypes: ["anr"] });
+    fireEvent.click(getControl("Error"));
+    expect(h.onChangeErrorTypes).toHaveBeenCalledWith(["anr", "error"]);
+  });
+
+  it("removes 'error' from the list when Error is unchecked", () => {
+    const h = renderErrorsTypeFilter({
+      selectedErrorTypes: ["error", "anr"],
+    });
+    fireEvent.click(getControl("Error"));
+    expect(h.onChangeErrorTypes).toHaveBeenCalledWith(["anr"]);
+  });
+
+  it("clears Custom when Error is unchecked (Custom is scoped to Error)", () => {
+    const h = renderErrorsTypeFilter({
+      selectedErrorTypes: ["error", "anr"],
+      customErrorsOnly: true,
+    });
+    fireEvent.click(getControl("Error"));
+    expect(h.onChangeErrorTypes).toHaveBeenCalledWith(["anr"]);
+    expect(h.onChangeCustomErrorsOnly).toHaveBeenCalledWith(false);
+  });
+
+  it("does NOT clear Custom when Error is unchecked if Custom was already off", () => {
+    const h = renderErrorsTypeFilter({
+      selectedErrorTypes: ["error", "anr"],
+      customErrorsOnly: false,
+    });
+    fireEvent.click(getControl("Error"));
+    expect(h.onChangeErrorTypes).toHaveBeenCalledWith(["anr"]);
+    expect(h.onChangeCustomErrorsOnly).not.toHaveBeenCalled();
+  });
+
+  it("adds 'anr' to the list when ANR is checked", () => {
+    const h = renderErrorsTypeFilter({ selectedErrorTypes: ["error"] });
+    fireEvent.click(getControl("ANR"));
+    expect(h.onChangeErrorTypes).toHaveBeenCalledWith(["error", "anr"]);
+  });
+
+  it("removes 'anr' from the list when ANR is unchecked", () => {
+    const h = renderErrorsTypeFilter({
+      selectedErrorTypes: ["error", "anr"],
+    });
+    fireEvent.click(getControl("ANR"));
+    expect(h.onChangeErrorTypes).toHaveBeenCalledWith(["error"]);
+  });
+
+  it("forwards Custom Switch changes through onChangeCustomErrorsOnly", () => {
+    const h = renderErrorsTypeFilter({
+      selectedErrorTypes: ["error"],
+      customErrorsOnly: false,
+    });
+    fireEvent.click(getControl("Custom Only"));
+    expect(h.onChangeCustomErrorsOnly).toHaveBeenCalledWith(true);
   });
 });
