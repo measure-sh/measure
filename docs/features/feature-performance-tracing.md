@@ -115,13 +115,13 @@ try {
 ```typescript
 import { Measure } from '@measuresh/react-native';
 
-const onboardingSpan = Measure.startSpan("onboarding-flow");
+const onboardingSpan = Measure.startSpan({ name: "onboarding-flow" });
 try {
-  const signupSpan = Measure.startSpan("signup").setParent(onboardingSpan);
+  const signupSpan = Measure.startSpan({ name: "signup" }).setParent(onboardingSpan);
   await userSignup();
   signupSpan.end();
 
-  const tutorialSpan = Measure.startSpan("tutorial").setParent(onboardingSpan);
+  const tutorialSpan = Measure.startSpan({ name: "tutorial" }).setParent(onboardingSpan);
   await showTutorial();
   tutorialSpan.end();
 } catch (e) {
@@ -203,7 +203,7 @@ final span = Measure.instance.startSpan("span-name");
   <summary>React Native</summary>
 
 ```typescript
-const span = Measure.startSpan("span-name");
+const span = Measure.startSpan({ name: "span-name" });
 ```
 
 </details>
@@ -248,7 +248,7 @@ final span = Measure.instance.startSpan("span-name", timestamp: Measure.instance
   <summary>React Native</summary>
 
 ```typescript
-const span = Measure.startSpanWithTimestamp("span-name", Measure.getCurrentTime());
+const span = Measure.startSpanWithTimestamp({ name: "span-name", timestampMs: Measure.getCurrentTime() });
 ```
 
 </details>
@@ -291,7 +291,7 @@ span.setStatus(SpanStatus.ok).end();
   <summary>React Native</summary>
 
 ```typescript
-const span = Measure.startSpan("span-name");
+const span = Measure.startSpan({ name: "span-name" });
 span.end();
 ```
 
@@ -342,7 +342,7 @@ span.setStatus(SpanStatus.ok).end(timestamp: Measure.instance.getCurrentTime());
   <summary>React Native</summary>
 
 ```typescript
-const span = Measure.startSpan("span-name");
+const span = Measure.startSpan({ name: "span-name" });
 span.end(Measure.getCurrentTime());
 ```
 
@@ -386,8 +386,8 @@ final childSpan = Measure.instance.startSpan("child-span").setParent(parentSpan)
   <summary>React Native</summary>
 
 ```typescript
-const parentSpan = Measure.startSpan("parent-span");
-const childSpan = Measure.startSpan("child-span").setParent(parentSpan);
+const parentSpan = Measure.startSpan({ name: "parent-span" });
+const childSpan = Measure.startSpan({ name: "child-span" }).setParent(parentSpan);
 ```
 
 </details>
@@ -441,7 +441,7 @@ span.setAttributeBool("key", true);
   <summary>React Native</summary>
 
 ```typescript
-const span = Measure.startSpan("span-name");
+const span = Measure.startSpan({ name: "span-name" });
 span.setAttribute("key", "value");
 span.setAttribute("count", 10);
 span.setAttribute("enabled", true);
@@ -488,7 +488,7 @@ span.setAttributes(attributes);
   <summary>React Native</summary>
 
 ```typescript
-const span = Measure.startSpan("span-name");
+const span = Measure.startSpan({ name: "span-name" });
 span.setAttributes({ key: "value", key2: 42, enabled: true });
 ```
 
@@ -532,7 +532,7 @@ span.removeAttribute("key");
   <summary>React Native</summary>
 
 ```typescript
-const span = Measure.startSpan("span-name");
+const span = Measure.startSpan({ name: "span-name" });
 span.removeAttribute("key");
 ```
 
@@ -576,7 +576,7 @@ span.setName("updated-name").end();
   <summary>React Native</summary>
 
 ```typescript
-const span = Measure.startSpan("span-name");
+const span = Measure.startSpan({ name: "span-name" });
 span.setName("updated-name").end();
 ```
 
@@ -617,7 +617,7 @@ final span = Measure.instance.startSpan("span-name").setCheckpoint("checkpoint-n
   <summary>React Native</summary>
 
 ```typescript
-const span = Measure.startSpan("span-name").setCheckpoint("checkpoint-name");
+const span = Measure.startSpan({ name: "span-name" }).setCheckpoint("checkpoint-name");
 ```
 
 </details>
@@ -661,7 +661,7 @@ final span = spanBuilder.startSpan();
     <summary>React Native</summary>
 
 ```typescript
-const spanBuilder = Measure.createSpanBuilder("span-name");
+const spanBuilder = Measure.createSpanBuilder({ name: "span-name" });
 const span = spanBuilder?.startSpan();
 ```
 
@@ -731,9 +731,9 @@ final value = Measure.instance.getTraceParentHeaderValue(span);
     <summary>React Native</summary>
 
 ```typescript
-const span = Measure.startSpan("http");
+const span = Measure.startSpan({ name: "http" });
 const key = Measure.getTraceParentHeaderKey();
-const value = Measure.getTraceParentHeaderValue(span);
+const value = Measure.getTraceParentHeaderValue({ span });
 ```
 
 </details>
@@ -847,10 +847,10 @@ class TraceHeaderInterceptor extends Interceptor {
 import { Measure } from '@measuresh/react-native';
 
 async function trackedFetch(url: string, options?: RequestInit) {
-  const span = Measure.startSpan("http");
+  const span = Measure.startSpan({ name: "http" });
   const headers: Record<string, string> = {
     ...(options?.headers as Record<string, string>),
-    [Measure.getTraceParentHeaderKey()]: Measure.getTraceParentHeaderValue(span),
+    [Measure.getTraceParentHeaderKey()]: Measure.getTraceParentHeaderValue({ span }),
   };
 
   try {
