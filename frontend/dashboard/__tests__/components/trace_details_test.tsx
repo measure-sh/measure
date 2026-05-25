@@ -60,10 +60,13 @@ jest.mock("@/app/components/skeleton", () => ({
   ),
 }));
 
-jest.mock("@/app/components/trace_viz", () => ({
+jest.mock("@/app/components/trace/waterfall", () => ({
   __esModule: true,
-  default: ({ inputTrace }: any) => (
-    <div data-testid="trace-viz">{inputTrace.trace_id}</div>
+  default: ({ inputTrace, sessionTimelineNode }: any) => (
+    <div data-testid="trace-waterfall">
+      {inputTrace.trace_id}
+      {sessionTimelineNode}
+    </div>
   ),
 }));
 
@@ -111,7 +114,7 @@ jest.mock("luxon", () => ({
   },
 }));
 
-import TraceDetails from "@/app/components/trace_details";
+import TraceDetails from "@/app/components/trace/details";
 
 function mockTraceDataObj() {
   return {
@@ -216,7 +219,7 @@ describe("TraceDetails", () => {
       });
     });
 
-    it("renders TraceViz component", async () => {
+    it("renders TraceWaterfall component", async () => {
       await act(async () => {
         render(
           <TraceDetails
@@ -225,7 +228,7 @@ describe("TraceDetails", () => {
         );
       });
       await waitFor(() => {
-        expect(screen.getByTestId("trace-viz")).toBeInTheDocument();
+        expect(screen.getByTestId("trace-waterfall")).toBeInTheDocument();
       });
     });
 
