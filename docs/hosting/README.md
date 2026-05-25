@@ -5,7 +5,11 @@ description: "Self-host Measure to monitor crashes, ANRs and performance for you
 
 # Self Hosting Guide <!-- omit in toc -->
 
-This guide helps you to self-host measure.sh on your own infrastructure (best for small and hobby projects).
+This guide helps you to self-host measure.sh on your own infrastructure. We recommend self hosting for small scale and hobby projects. 
+
+Self hosting incorrectly at scale can lead to data loss, security issues and downtime. Our self host install script is designed for single machine setups.
+
+For distributed, secure and scalable hosting, we recommend our [hosted cloud](https://measure.sh).
 
 ## Contents <!-- omit in toc -->
 

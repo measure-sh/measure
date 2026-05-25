@@ -15,7 +15,7 @@ description: "Measure documentation. SDK integration, features, self-hosting and
 
 **Further Reading**
 
-* [**Self-Hosting Guide**](hosting/README.md) - Host measure-sh on your own infrastructure (best for small and hobby projects)
+* [**Self-Hosting Guide**](hosting/README.md) - Host measure-sh on your own infrastructure
 * [**API Documentation**](api/README.md) - APIs that various Measure SDKs use
 
 # Integrate the SDK
