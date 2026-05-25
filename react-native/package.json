@@ -13,9 +13,13 @@
     },
     "./package.json": "./package.json"
   },
+  "bin": {
+    "measure-upload-sourcemap": "./scripts/uploadSourcemap.js"
+  },
   "files": [
     "src",
     "lib",
+    "scripts",
     "android",
     "ios",
     "cpp",
