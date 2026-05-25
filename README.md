@@ -17,7 +17,7 @@ Complete Mobile App Monitoring platform with Crash Reporting, ANR Tracking, Bug 
 
 ## Quick start
 
-Sign up to [Measure Cloud](https://measure.sh) or [self host](https://measure.sh/docs/hosting) on your own servers (best for small apps and hobby projects). Once you've logged in, check out our [SDK integration](https://measure.sh/docs/sdk-integration-guide) docs.
+Sign up to [Measure Cloud](https://measure.sh) or [self host](https://measure.sh/docs/hosting) on your own servers. Once you've logged in, check out our [SDK integration](https://measure.sh/docs/sdk-integration-guide) docs.
 
 ## Features
 
