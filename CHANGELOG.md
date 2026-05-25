@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Add unified errors API & react native symbolication support (#3623) by @detj in #3623
 - (**backend**): Use autumn for metering and billing by @anupcowkur in #3534
+- (**frontend**): Consolidate crashes and ANRs into Errors page by @anupcowkur
 - (**frontend**): Update filters ui by @anupcowkur in #3653
 - (**frontend**): Serve markdown for marketing & docs pages to agents by @anupcowkur in #3621
 - (**frontend**): Add onboarding flow by @anupcowkur in #3613
@@ -35,6 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Add missing hover accent color to error type filter by @anupcowkur
+- (**frontend**): Hide errors/anrs pills on error detail page by @anupcowkur
+- (**frontend**): Drop type/severity/custom filters on error details by @anupcowkur
+- (**frontend**): Use type=error,anr on filters endpoint for Errors by @anupcowkur
+- (**frontend**): Forward error filters to group plot endpoint by @anupcowkur
 - (**frontend**): Match cmd and K sizes in docs search by @anupcowkur
 - (**frontend**): Remove unused prose-custom class by @anupcowkur
 - (**frontend**): Expand sidebar docs section when child is open by @anupcowkur in #3633
@@ -53,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Updates alerts to use new error page route by @anupcowkur
+- (**backend**): Update usage of handled (#3689) by @detj in #3689
 - (**backend**): Set severity as fatal for anr events (#3687) by @detj in #3687
 - (**backend**): Expand session filtering & storage for exception severities (#3685) by @detj in #3685
 - (**backend**): Expand severity & error types in app filter (#3663) by @detj in #3663
@@ -84,6 +92,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Update disclaimer text style for cross paltform onboarding by @anupcowkur in #3691
+- (**frontend**): Extract RN sdk version for onboarding by @anupcowkur
+- (**frontend**): Disable text selection on pills by @anupcowkur
+- (**frontend**): Label session timeline events by severity by @anupcowkur
+- (**frontend**): Update session timeline UI by @anupcowkur
+- (**frontend**): Add RN steps to onboarding by @anupcowkur
+- (**frontend**): Split error sessions by severity in timeline filter by @anupcowkur
+- (**frontend**): Redirect /crashes and /anrs to /errors by @anupcowkur
+- (**frontend**): Open type popover from errors-types pill click by @anupcowkur
+- (**frontend**): Consolidate chips into one Pill component by @anupcowkur
+- (**frontend**): Update bug report status badge by @anupcowkur
+- (**frontend**): Combine anr+error pills, default to both types by @anupcowkur
+- (**frontend**): Set error page default to ANRs + Fatal errors by @anupcowkur
+- (**frontend**): Nest custom only inside type filter popover by @anupcowkur
+- (**frontend**): Set errors page defaults to fata errors only by @anupcowkur
+- (**frontend**): Add badges to errors list by @anupcowkur
+- (**frontend**): Apply more filters only on save by @anupcowkur
 - (**frontend**): Hide c15t branding by @anupcowkur in #3641
 - (**frontend**): Use c15t cookie banner by @anupcowkur in #3640
 - (**frontend**): Improve line height comment by @anupcowkur in #3635
@@ -130,9 +155,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Add tests for filters component by @anupcowkur in #3438
 - (**frontend**): Add api latency tracking posthog events by @anupcowkur in #3431
 
+### :recycle: Refactor
+
+- (**frontend**): Inline errors_type_filter into filters by @anupcowkur
+- (**frontend**): Switch session filter to type=error,anr by @anupcowkur
+
 ### :books: Documentation
 
 - (**backend**): Update dashboard api docs (#3686) by @detj in #3686
+- Fix RN title mistake by @anupcowkur
 - Remove empty line in code snippet by @anupcowkur
 - Remove FAQ, data retention, contributing and versioning pages by @anupcowkur
 - Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3587
