@@ -463,7 +463,7 @@ on every click to help visualize user interactions. To enable these features, si
 Read more about adding custom widget names in the layout snapshots
 in [Gesture Tracking & Layout Snapshots](features/feature-gesture-tracking.md#flutter). 
 
-## React Native (Coming Soon) {#react-native}
+## React Native (Coming Soon)
 
 The React Native SDK currently supports Android and iOS targets. It depends on the native Android and iOS SDKs,
 so all the minimum requirements for Android and iOS apply to the React Native SDK as well.
