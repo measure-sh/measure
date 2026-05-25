@@ -7,10 +7,10 @@ description: "Capture ANRs (Application Not Responding errors) in Android apps w
 
 * [**Debugging ANRs**](#debugging-anrs)
 * [**Metrics**](#metrics)
-* [**Get a UI Snapshot**](#get-a-ui-snapshot)
+* [**Get a UI Screenshot**](#get-a-ui-screenshot)
 * [**How It Works**](#how-it-works)
 
-ANRs (Application Not Responding errors) are automatically tracked. Optionally, the SDK can also capture a snapshot of your app’s UI at the moment the crash occurred.
+ANRs (Application Not Responding errors) are automatically tracked. Optionally, the SDK can also capture a screenshot of your app’s UI at the moment the crash occurred.
 
 ## Debugging ANRs
 
@@ -68,7 +68,7 @@ Where:
 - **Total Sessions**: The total number of sessions recorded.
 - **ANR Sessions**: The number of sessions that experienced an ANR.
 
-## Get a UI Snapshot
+## Get a UI Screenshot
 
 A screenshot of the app is captured when an app crashes. This feature is enabled by default and can be
 remotely configured on the dashboard under the "Apps" section. The following configuration options are available:
