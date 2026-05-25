@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 
-const TraceDetails = dynamic(() => import("../../components/trace_details"), {
+const TraceDetails = dynamic(() => import("../../components/trace/details"), {
   ssr: false,
 });
 

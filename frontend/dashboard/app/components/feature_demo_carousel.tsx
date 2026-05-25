@@ -7,7 +7,7 @@ import TabSelect, { TabSize } from "./tab_select";
 const BugReport = dynamic(() => import("./bug_report"), { ssr: false });
 const UserJourneys = dynamic(() => import("./user_journeys"), { ssr: false });
 const Overview = dynamic(() => import("./overview"), { ssr: false });
-const TraceDetails = dynamic(() => import("./trace_details"), { ssr: false });
+const TraceDetails = dynamic(() => import("./trace/details"), { ssr: false });
 const SessionTimeline = dynamic(() => import("./session_timeline"), {
   ssr: false,
 });

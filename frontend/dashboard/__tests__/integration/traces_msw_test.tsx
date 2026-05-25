@@ -7,7 +7,7 @@
  * span_statuses filters.
  *
  * Detail: single trace with pills (User ID, Start Time, Duration,
- * Device, App version, Network type), TraceViz timeline visualization,
+ * Device, App version, Network type), TraceWaterfall timeline visualization,
  * and "View Session Timeline" link.
  */
 import {
@@ -94,7 +94,7 @@ afterAll(() => server.close());
 
 // --- Store/component imports ---
 import TracesOverview from "@/app/[teamId]/traces/page";
-import TraceDetails from "@/app/components/trace_details";
+import TraceDetails from "@/app/components/trace/details";
 import { queryClient } from "@/app/query/query_client";
 import { createFiltersStore } from "@/app/stores/filters_store";
 import { createOnboardingStore } from "@/app/stores/onboarding_store";
@@ -1226,9 +1226,9 @@ describe("Trace Detail (MSW integration)", () => {
   });
 
   // ================================================================
-  // TRACE VIZ — RENDERING
+  // TRACE WATERFALL — RENDERING
   // ================================================================
-  describe("TraceViz rendering", () => {
+  describe("TraceWaterfall rendering", () => {
     // Helper: find span bar buttons (absolute positioned, top-6 class)
     function getSpanBarButtons() {
       return Array.from(document.querySelectorAll("button")).filter(
@@ -1280,25 +1280,36 @@ describe("Trace Detail (MSW integration)", () => {
   });
 
   // ================================================================
-  // TRACE VIZ — PANEL CONTENT
+  // TRACE WATERFALL — SIDEBAR CONTENT
+  //
+  // The sidebar is hidden by default. Clicking a span row opens it with
+  // that span selected. The X button closes it (clears selection).
   // ================================================================
-  describe("TraceViz panel content", () => {
-    function getSpanBarButtons() {
-      return Array.from(document.querySelectorAll("button")).filter(
-        (b) =>
-          b.className.includes("absolute") && b.className.includes("top-6"),
+  describe("TraceWaterfall sidebar content", () => {
+    function getSpanRows() {
+      return Array.from(
+        document.querySelectorAll('[data-testid^="span-bar-row-"]'),
       );
     }
 
-    it("panel shows all core span fields when root span is clicked", async () => {
-      await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
-
-      // Click root span bar (first one)
+    async function selectRow(index: number) {
       await act(async () => {
-        fireEvent.click(spanBarButtons[0]);
+        fireEvent.click(getSpanRows()[index]);
       });
+    }
 
+    async function switchToCheckpointsTab() {
+      // "Checkpoints" appears both as the tab button and as a section
+      // heading inside the tab. The tab button is the only <button> with
+      // that accessible name.
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Checkpoints" }));
+      });
+    }
+
+    it("sidebar shows all core span fields after selecting the root span", async () => {
+      await renderDetail();
+      await selectRow(0);
       await waitFor(() => {
         expect(screen.getByText("Span Name")).toBeTruthy();
         expect(screen.getByText("Span Id")).toBeTruthy();
@@ -1311,163 +1322,112 @@ describe("Trace Detail (MSW integration)", () => {
       });
     });
 
-    it("panel shows span name value for root span", async () => {
+    it("sidebar shows span name value for root span", async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
-
-      await act(async () => {
-        fireEvent.click(spanBarButtons[0]);
-      });
+      await selectRow(0);
       await waitFor(() => {
-        // Root span name from fixture
         const vals = screen.getAllByText(/checkout_full_display/);
-        expect(vals.length).toBeGreaterThanOrEqual(2); // one in left panel + one in detail panel
+        // row + sidebar title + sidebar Span Name value
+        expect(vals.length).toBeGreaterThanOrEqual(2);
       });
     });
 
-    it("panel shows span_id value", async () => {
+    it("sidebar shows span_id value", async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
-
-      await act(async () => {
-        fireEvent.click(spanBarButtons[0]);
-      });
+      await selectRow(0);
       await waitFor(() => {
         expect(screen.getByText(/span-root/)).toBeTruthy();
       });
     });
 
-    it('panel shows "--" for parent_id on root span', async () => {
+    it('sidebar shows "--" for parent_id on root span', async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
-
-      // Root span has parent_id: ''
-      await act(async () => {
-        fireEvent.click(spanBarButtons[0]);
-      });
+      await selectRow(0);
       await waitFor(() => {
         expect(screen.getByText("--")).toBeTruthy();
       });
     });
 
-    it("panel shows actual parent_id for child span", async () => {
+    it("sidebar shows actual parent_id for child span", async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
-
-      // Child span has parent_id: 'span-root'
-      await act(async () => {
-        fireEvent.click(spanBarButtons[1]);
-      });
+      await selectRow(1);
       await waitFor(() => {
         expect(screen.getByText(/span-root/)).toBeTruthy();
       });
     });
 
-    it("panel shows thread name", async () => {
+    it("sidebar shows thread name", async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
-
-      await act(async () => {
-        fireEvent.click(spanBarButtons[0]);
-      });
+      await selectRow(0);
       await waitFor(() => {
-        expect(screen.getByText(/main/)).toBeTruthy();
+        // appears in row thread col + sidebar header + Thread Name field
+        expect(screen.getAllByText(/main/).length).toBeGreaterThanOrEqual(2);
       });
     });
 
-    it('panel shows child span thread name "okhttp"', async () => {
+    it('sidebar shows child span thread name "okhttp"', async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
-
-      await act(async () => {
-        fireEvent.click(spanBarButtons[1]);
-      });
+      await selectRow(1);
       await waitFor(() => {
-        expect(screen.getByText(/okhttp/)).toBeTruthy();
+        expect(screen.getAllByText(/okhttp/).length).toBeGreaterThanOrEqual(2);
       });
     });
 
-    it('panel shows Span Status "Unset" for status 0', async () => {
+    it('sidebar shows Span Status "Unset" for status 0', async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
-
-      // Root span has status: 0
-      await act(async () => {
-        fireEvent.click(spanBarButtons[0]);
-      });
+      await selectRow(0);
       await waitFor(() => {
-        // "Unset" appears as span status in the panel (and maybe in overview if rendered)
         const statusTexts = screen.getAllByText("Unset");
         expect(statusTexts.length).toBeGreaterThanOrEqual(1);
       });
     });
 
-    it('panel shows Span Status "Okay" for status 1', async () => {
+    it('sidebar shows Span Status "Okay" for status 1', async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
-
-      // Child span has status: 1
-      await act(async () => {
-        fireEvent.click(spanBarButtons[1]);
-      });
+      await selectRow(1);
       await waitFor(() => {
         const statusTexts = screen.getAllByText("Okay");
         expect(statusTexts.length).toBeGreaterThanOrEqual(1);
       });
     });
 
-    it("panel shows user_defined_attributes for child span", async () => {
+    it("sidebar shows user_defined_attributes for child span", async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
-
-      await act(async () => {
-        fireEvent.click(spanBarButtons[1]);
-      });
+      await selectRow(1);
       await waitFor(() => {
         expect(screen.getByText("endpoint")).toBeTruthy();
         expect(screen.getByText("/api/payments")).toBeTruthy();
       });
     });
 
-    it('panel shows "Checkpoints: []" for span with no checkpoints', async () => {
+    it('Checkpoints tab shows "Checkpoints: []" for span with no checkpoints', async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
-
-      // Root span has checkpoints: null
-      await act(async () => {
-        fireEvent.click(spanBarButtons[0]);
-      });
+      await selectRow(0); // root has checkpoints: null
+      await switchToCheckpointsTab();
       await waitFor(() => {
-        expect(screen.getByText("Checkpoints")).toBeTruthy();
+        // Section heading inside the tab
+        expect(
+          screen.getAllByText("Checkpoints").length,
+        ).toBeGreaterThanOrEqual(1);
         expect(screen.getByText(": []")).toBeTruthy();
       });
     });
 
-    it("panel shows checkpoint names for span with checkpoints", async () => {
+    it("Checkpoints tab shows checkpoint names for span with checkpoints", async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
-
-      // Child span has 2 checkpoints
-      await act(async () => {
-        fireEvent.click(spanBarButtons[1]);
-      });
+      await selectRow(1);
+      await switchToCheckpointsTab();
       await waitFor(() => {
-        expect(screen.getByText("Checkpoints")).toBeTruthy();
         expect(screen.getByText("request_sent")).toBeTruthy();
         expect(screen.getByText("response_received")).toBeTruthy();
       });
     });
 
-    it("checkpoint shows formatted timestamp in panel", async () => {
+    it("Checkpoints tab shows formatted checkpoint timestamps", async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
-
-      await act(async () => {
-        fireEvent.click(spanBarButtons[1]);
-      });
+      await selectRow(1);
+      await switchToCheckpointsTab();
       await waitFor(() => {
-        // Checkpoint timestamps are formatted with formatDateToHumanReadableDateTime
-        // "Time" label appears for each checkpoint
         const timeLabels = screen.getAllByText("Time");
         expect(timeLabels.length).toBeGreaterThanOrEqual(1);
       });
@@ -1475,319 +1435,777 @@ describe("Trace Detail (MSW integration)", () => {
   });
 
   // ================================================================
-  // TRACE VIZ — SPAN BAR CLICK ACTIONS
+  // TRACE WATERFALL — ROW SELECTION
+  //
+  // Sidebar is hidden by default. Clicking a span row opens it with that
+  // span selected. Other (non-selected) rows drop to opacity-50 while
+  // selection is active. The X icon clears selection and hides the
+  // sidebar.
   // ================================================================
-  describe("TraceViz span bar click actions", () => {
-    function getSpanBarButtons() {
-      return Array.from(document.querySelectorAll("button")).filter(
-        (b) =>
-          b.className.includes("absolute") && b.className.includes("top-6"),
+  describe("TraceWaterfall row selection", () => {
+    function getSpanRows() {
+      return Array.from(
+        document.querySelectorAll('[data-testid^="span-bar-row-"]'),
       );
     }
 
-    it("clicking span bar opens panel", async () => {
+    it("sidebar is hidden by default", async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
-
-      // Panel should be closed initially
-      const panelBefore = Array.from(
-        document.querySelectorAll('[class*="translate"]'),
-      ).find((el) => el.className.includes("-translate-x-full"));
-      expect(panelBefore).toBeTruthy();
-
-      // Click a span bar
-      await act(async () => {
-        fireEvent.click(spanBarButtons[0]);
-      });
+      // Wait for data to render (one of the span names appears in the row)
       await waitFor(() => {
-        const panelAfter = Array.from(
-          document.querySelectorAll('[class*="translate"]'),
-        ).find((el) => el.className.includes("translate-x-0"));
-        expect(panelAfter).toBeTruthy();
+        expect(getSpanRows().length).toBe(2);
       });
+      // Sidebar contents (e.g. "Span Name" field key) absent
+      expect(screen.queryByText("Span Name")).toBeNull();
     });
 
-    it("clicking same span bar again deselects and closes panel", async () => {
+    it("clicking a row opens the sidebar with that span selected", async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
+      await waitFor(() => expect(getSpanRows().length).toBe(2));
+      expect(screen.queryByText("Span Name")).toBeNull();
 
-      // Open panel
       await act(async () => {
-        fireEvent.click(spanBarButtons[0]);
+        fireEvent.click(getSpanRows()[0]); // root
       });
       await waitFor(() => {
         expect(screen.getByText("Span Name")).toBeTruthy();
-      });
-
-      // Click same span bar again → panel closes
-      await act(async () => {
-        fireEvent.click(spanBarButtons[0]);
-      });
-      await waitFor(() => {
-        const closedPanel = Array.from(
-          document.querySelectorAll('[class*="translate"]'),
-        ).find((el) => el.className.includes("-translate-x-full"));
-        expect(closedPanel).toBeTruthy();
+        // Root parent_id renders as "--"
+        expect(screen.getByText("--")).toBeTruthy();
       });
     });
 
-    it("clicking different span bar switches panel content", async () => {
+    it("clicking a different row updates the sidebar in place", async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
+      await waitFor(() => expect(getSpanRows().length).toBe(2));
 
-      // Click root span
       await act(async () => {
-        fireEvent.click(spanBarButtons[0]);
+        fireEvent.click(getSpanRows()[0]);
+      });
+      await waitFor(() => expect(screen.getByText("--")).toBeTruthy());
+
+      await act(async () => {
+        fireEvent.click(getSpanRows()[1]);
       });
       await waitFor(() => {
-        expect(screen.getByText("--")).toBeTruthy(); // root has no parent
-      });
-
-      // Click child span — panel should switch to show child's data
-      await act(async () => {
-        fireEvent.click(spanBarButtons[1]);
-      });
-      await waitFor(() => {
-        expect(screen.getByText("endpoint")).toBeTruthy(); // child has user_defined_attributes
-        expect(screen.queryByText("--")).toBeNull(); // no longer showing root's "--" parent
+        expect(screen.getByText("endpoint")).toBeTruthy();
+        expect(screen.queryByText("--")).toBeNull();
       });
     });
 
-    it("selected span bar gets bg-primary class", async () => {
+    it("non-selected rows drop to opacity-50 while a span is selected", async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
+      await waitFor(() => expect(getSpanRows().length).toBe(2));
 
-      // Before click — should not have bg-primary
-      expect(spanBarButtons[0].className).not.toContain("bg-primary");
+      // Nothing selected → no dimming yet
+      expect(getSpanRows()[0].className).not.toContain("opacity-50");
+      expect(getSpanRows()[1].className).not.toContain("opacity-50");
 
-      // Click to select
       await act(async () => {
-        fireEvent.click(spanBarButtons[0]);
+        fireEvent.click(getSpanRows()[0]); // select root
       });
       await waitFor(() => {
-        // Re-query because React re-renders
-        const updatedButtons = getSpanBarButtons();
-        expect(updatedButtons[0].className).toContain("bg-primary");
+        const rows = getSpanRows();
+        expect(rows[0].className).not.toContain("opacity-50");
+        expect(rows[1].className).toContain("opacity-50");
       });
     });
 
-    it("close button hides panel", async () => {
+    it("close button clears selection and hides the sidebar", async () => {
       await renderDetail();
-      const spanBarButtons = getSpanBarButtons();
+      await waitFor(() => expect(getSpanRows().length).toBe(2));
 
       await act(async () => {
-        fireEvent.click(spanBarButtons[0]);
+        fireEvent.click(getSpanRows()[0]);
+      });
+      await waitFor(() => expect(screen.getByText("Span Name")).toBeTruthy());
+
+      const closeBtn = document.querySelector(
+        'button[aria-label="Close"]',
+      ) as HTMLButtonElement | null;
+      expect(closeBtn).toBeTruthy();
+      await act(async () => {
+        fireEvent.click(closeBtn!);
       });
       await waitFor(() => {
+        expect(screen.queryByText("Span Name")).toBeNull();
+      });
+      // No row dimmed once selection is cleared
+      expect(getSpanRows()[1].className).not.toContain("opacity-50");
+    });
+  });
+
+  // ================================================================
+  // TRACE WATERFALL — CHECKPOINT TICKS
+  //
+  // Checkpoints render as ticks overlaid on the span bar (Honeycomb's
+  // span-event-circle pattern). Clicking a tick bubbles to the parent
+  // row's select handler, so the parent span becomes the active selection.
+  // ================================================================
+  describe("TraceWaterfall checkpoint ticks", () => {
+    function getCheckpointTicks() {
+      return Array.from(
+        document.querySelectorAll('[data-testid^="span-checkpoint-"]'),
+      );
+    }
+
+    it("renders one tick per checkpoint on the bar", async () => {
+      await renderDetail();
+      await waitFor(() => {
+        // child span has 2 checkpoints
+        expect(getCheckpointTicks().length).toBe(2);
+      });
+    });
+
+    it("clicking a checkpoint opens the sidebar with its parent span", async () => {
+      await renderDetail();
+      await waitFor(() => expect(getCheckpointTicks().length).toBe(2));
+      // Sidebar hidden initially
+      expect(screen.queryByText("Span Name")).toBeNull();
+
+      await act(async () => {
+        fireEvent.click(getCheckpointTicks()[0]);
+      });
+      await waitFor(() => {
+        // Sidebar now visible, showing the child span (the checkpoint's parent)
         expect(screen.getByText("Span Name")).toBeTruthy();
-      });
-
-      const closeButton = screen.getByText("Close");
-      await act(async () => {
-        fireEvent.click(closeButton);
-      });
-      await waitFor(() => {
-        const closedPanel = Array.from(
-          document.querySelectorAll('[class*="translate"]'),
-        ).find((el) => el.className.includes("-translate-x-full"));
-        expect(closedPanel).toBeTruthy();
+        // Child span's parent_id is "span-root", appears in the sidebar
+        expect(screen.getAllByText(/span-root/).length).toBeGreaterThanOrEqual(
+          1,
+        );
       });
     });
   });
 
   // ================================================================
-  // TRACE VIZ — CHECKPOINT CLICK ACTIONS
+  // TRACE WATERFALL — EXPAND / COLLAPSE
   // ================================================================
-  describe("TraceViz checkpoint click actions", () => {
-    function getSpanBarButtons() {
-      return Array.from(document.querySelectorAll("button")).filter(
-        (b) =>
-          b.className.includes("absolute") && b.className.includes("top-6"),
+  describe("TraceWaterfall expand/collapse", () => {
+    function getSpanRows() {
+      return Array.from(
+        document.querySelectorAll('[data-testid^="span-bar-row-"]'),
       );
     }
 
-    function getCheckpointDots() {
-      return Array.from(document.querySelectorAll("button")).filter(
-        (b) =>
-          b.className.includes("rounded-full") && b.className.includes("w-0.5"),
-      );
-    }
-
-    it("clicking checkpoint dot opens panel with that checkpoint selected", async () => {
-      await renderDetail();
-      const checkpointDots = getCheckpointDots();
-      expect(checkpointDots.length).toBe(2); // fixture has 2 checkpoints
-
-      // Click first checkpoint dot
-      await act(async () => {
-        fireEvent.click(checkpointDots[0]);
-      });
-      await waitFor(() => {
-        // Panel should open showing the parent span and checkpoint details
-        expect(screen.getByText("Span Name")).toBeTruthy();
-        expect(screen.getByText("request_sent")).toBeTruthy();
-      });
-    });
-
-    it("clicking same checkpoint dot again deselects both span and checkpoint", async () => {
-      await renderDetail();
-      const checkpointDots = getCheckpointDots();
-
-      // Click checkpoint to open
-      await act(async () => {
-        fireEvent.click(checkpointDots[0]);
-      });
-      await waitFor(() => {
-        expect(screen.getByText("Span Name")).toBeTruthy();
-      });
-
-      // Click same checkpoint again → closes panel
-      await act(async () => {
-        fireEvent.click(checkpointDots[0]);
-      });
-      await waitFor(() => {
-        const closedPanel = Array.from(
-          document.querySelectorAll('[class*="translate"]'),
-        ).find((el) => el.className.includes("-translate-x-full"));
-        expect(closedPanel).toBeTruthy();
-      });
-    });
-
-    it("clicking different checkpoint switches selected checkpoint", async () => {
-      await renderDetail();
-      const checkpointDots = getCheckpointDots();
-
-      // Click first checkpoint
-      await act(async () => {
-        fireEvent.click(checkpointDots[0]);
-      });
-      await waitFor(() => {
-        expect(screen.getByText("request_sent")).toBeTruthy();
-      });
-
-      // First checkpoint button in panel should have bg-background (selected)
-      // Click second checkpoint dot
-      await act(async () => {
-        fireEvent.click(checkpointDots[1]);
-      });
-      await waitFor(() => {
-        expect(screen.getByText("response_received")).toBeTruthy();
-      });
-    });
-
-    it("selected checkpoint dot gets bg-primary class", async () => {
-      await renderDetail();
-      const checkpointDots = getCheckpointDots();
-
-      expect(checkpointDots[0].className).not.toContain("bg-primary");
-
-      await act(async () => {
-        fireEvent.click(checkpointDots[0]);
-      });
-      await waitFor(() => {
-        const updatedDots = getCheckpointDots();
-        expect(updatedDots[0].className).toContain("bg-primary");
-      });
-    });
-  });
-
-  // ================================================================
-  // TRACE VIZ — EXPAND / COLLAPSE
-  // ================================================================
-  describe("TraceViz expand/collapse", () => {
-    function getSpanNameButtons() {
-      return Array.from(document.querySelectorAll("button")).filter(
-        (b) =>
-          b.className.includes("flex") &&
-          b.className.includes("flex-row") &&
-          b.className.includes("items-center") &&
-          b.className.includes("h-12"),
-      );
-    }
-
-    function getSpanBarButtons() {
-      return Array.from(document.querySelectorAll("button")).filter(
-        (b) =>
-          b.className.includes("absolute") && b.className.includes("top-6"),
+    function getCountBadge(name: string) {
+      return (
+        screen.queryByRole("button", { name: `Expand ${name}` }) ??
+        screen.queryByRole("button", { name: `Collapse ${name}` })
       );
     }
 
     it("initially both spans are visible (expanded)", async () => {
       await renderDetail();
-      // Both span names visible in left panel
-      const nameButtons = getSpanNameButtons();
-      expect(nameButtons.length).toBe(2); // root + child
-
-      // Both span bars visible
-      const barButtons = getSpanBarButtons();
-      expect(barButtons.length).toBe(2);
+      await waitFor(() => {
+        expect(getSpanRows().length).toBe(2);
+      });
     });
 
-    it("collapsing root span hides child span", async () => {
+    it("clicking the count box collapses the subtree", async () => {
       await renderDetail();
-      const nameButtons = getSpanNameButtons();
-      expect(nameButtons.length).toBe(2);
+      const badge = getCountBadge("checkout_full_display");
+      expect(badge).toBeTruthy();
 
-      // Click root span name to collapse
       await act(async () => {
-        fireEvent.click(nameButtons[0]);
+        fireEvent.click(badge!);
       });
       await waitFor(() => {
-        // Only root should be visible now
-        const updatedNameButtons = getSpanNameButtons();
-        expect(updatedNameButtons.length).toBe(1);
+        expect(getSpanRows().length).toBe(1);
       });
-
-      // Span bars should also be reduced to 1
-      const barButtons = getSpanBarButtons();
-      expect(barButtons.length).toBe(1);
     });
 
-    it("re-expanding root span shows child span again", async () => {
+    it("clicking the count box again re-expands the subtree", async () => {
       await renderDetail();
-      const nameButtons = getSpanNameButtons();
 
-      // Collapse
       await act(async () => {
-        fireEvent.click(nameButtons[0]);
+        fireEvent.click(getCountBadge("checkout_full_display")!);
       });
       await waitFor(() => {
-        expect(getSpanNameButtons().length).toBe(1);
+        expect(getSpanRows().length).toBe(1);
       });
 
-      // Expand again
-      const collapsedButtons = getSpanNameButtons();
       await act(async () => {
-        fireEvent.click(collapsedButtons[0]);
+        fireEvent.click(getCountBadge("checkout_full_display")!);
       });
       await waitFor(() => {
-        expect(getSpanNameButtons().length).toBe(2);
+        expect(getSpanRows().length).toBe(2);
       });
-
-      // Both bars visible again
-      expect(getSpanBarButtons().length).toBe(2);
     });
 
-    it("expanded span with children shows ˅ indicator", async () => {
+    it("count box uses Collapse aria-label when expanded", async () => {
       await renderDetail();
-      // ˅ is U+02C5 — shown when expanded + has children
-      expect(screen.getByText("\u02c5")).toBeTruthy();
+      await waitFor(() => {
+        expect(
+          screen.queryByRole("button", {
+            name: "Collapse checkout_full_display",
+          }),
+        ).toBeTruthy();
+      });
     });
 
-    it("collapsed span shows ˃ indicator", async () => {
+    it("count box switches to Expand aria-label after collapsing", async () => {
       await renderDetail();
-      const nameButtons = getSpanNameButtons();
-
-      // Collapse root
+      const badge = screen.queryByRole("button", {
+        name: "Collapse checkout_full_display",
+      });
       await act(async () => {
-        fireEvent.click(nameButtons[0]);
+        fireEvent.click(badge!);
       });
       await waitFor(() => {
-        // ˃ is U+02C3 — shown when collapsed + has children
-        expect(screen.getByText("\u02c3")).toBeTruthy();
+        expect(
+          screen.queryByRole("button", {
+            name: "Expand checkout_full_display",
+          }),
+        ).toBeTruthy();
+        expect(
+          screen.queryByRole("button", {
+            name: "Collapse checkout_full_display",
+          }),
+        ).toBeNull();
       });
-      // ˅ should no longer be present
-      expect(screen.queryByText("\u02c5")).toBeNull();
+    });
+  });
+
+  // ================================================================
+  // TRACE WATERFALL — EXPAND ANCESTORS ON NAVIGATION
+  //
+  // If the user collapses a subtree, then navigates (search/error/click)
+  // to a span living inside it, the parent chain should re-expand so the
+  // selected row is visible.
+  // ================================================================
+  describe("TraceWaterfall — expand ancestors on navigation", () => {
+    function getSpanRows() {
+      return Array.from(
+        document.querySelectorAll('[data-testid^="span-bar-row-"]'),
+      );
+    }
+
+    function threeLevelFixture() {
+      const base = makeTraceDetailFixture();
+      base.spans = [
+        {
+          ...base.spans[0],
+          span_id: "root",
+          span_name: "root_span",
+          parent_id: "",
+        },
+        {
+          ...base.spans[1],
+          span_id: "mid",
+          span_name: "middle_span",
+          parent_id: "root",
+        },
+        {
+          ...base.spans[1],
+          span_id: "leaf",
+          span_name: "leaf_span",
+          parent_id: "mid",
+          user_defined_attributes: null,
+          checkpoints: null,
+        },
+      ];
+      return base;
+    }
+
+    beforeEach(() => {
+      server.use(
+        http.get("*/api/apps/:appId/traces/:traceId", () =>
+          HttpResponse.json(threeLevelFixture()),
+        ),
+      );
+    });
+
+    it("re-expands collapsed ancestors when Next match selects an inner span", async () => {
+      await renderDetail();
+      await waitFor(() => expect(getSpanRows().length).toBe(3));
+
+      // Collapse the middle span — leaf disappears from the visible rows.
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Collapse middle_span" }),
+        );
+      });
+      await waitFor(() => expect(getSpanRows().length).toBe(2));
+
+      // Search for the deepest span (only match) and click Next.
+      await act(async () => {
+        fireEvent.change(screen.getByPlaceholderText(/Search spans/), {
+          target: { value: "leaf" },
+        });
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Next match"));
+      });
+
+      // mid re-expands → 3 rows visible again, and the leaf row exists.
+      await waitFor(() => {
+        expect(getSpanRows().length).toBe(3);
+        expect(
+          document.querySelector('[data-testid="span-bar-row-leaf"]'),
+        ).toBeTruthy();
+      });
+    });
+  });
+
+  // ================================================================
+  // TRACE WATERFALL — TOOLBAR / SEARCH
+  // ================================================================
+  describe("TraceWaterfall toolbar — search navigation", () => {
+    function getSpanRows() {
+      return Array.from(
+        document.querySelectorAll('[data-testid^="span-bar-row-"]'),
+      );
+    }
+
+    it("typing a query shows the match counter", async () => {
+      await renderDetail();
+      const input = screen.getByPlaceholderText(/Search spans/);
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "fetch" } });
+      });
+      await waitFor(() => expect(screen.getByText("1 / 1")).toBeTruthy());
+    });
+
+    it("Next match selects the matched span and opens the sidebar", async () => {
+      await renderDetail();
+      const input = screen.getByPlaceholderText(/Search spans/);
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "fetch" } });
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Next match"));
+      });
+      await waitFor(() => {
+        expect(screen.getByText("Span Name")).toBeTruthy();
+        // The child span's attribute key shows in the sidebar.
+        expect(screen.getByText("endpoint")).toBeTruthy();
+      });
+    });
+
+    it("matched rows get the amber tint highlight", async () => {
+      await renderDetail();
+      await waitFor(() => expect(getSpanRows().length).toBe(2));
+      await act(async () => {
+        fireEvent.change(screen.getByPlaceholderText(/Search spans/), {
+          target: { value: "checkout" },
+        });
+      });
+      const rootRow = document.querySelector(
+        '[data-testid="span-bar-row-span-root"]',
+      );
+      expect(rootRow?.className).toContain("bg-amber-50");
+    });
+
+    it("Clear (X) button empties the search and removes the counter", async () => {
+      await renderDetail();
+      await act(async () => {
+        fireEvent.change(screen.getByPlaceholderText(/Search spans/), {
+          target: { value: "fetch" },
+        });
+      });
+      await waitFor(() =>
+        expect(screen.queryByLabelText("Clear search")).toBeTruthy(),
+      );
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Clear search"));
+      });
+      await waitFor(() => {
+        expect(screen.queryByLabelText("Clear search")).toBeNull();
+      });
+    });
+  });
+
+  // ================================================================
+  // TRACE WATERFALL — SHOW ERRORS FLOW
+  // ================================================================
+  describe("TraceWaterfall — show errors flow", () => {
+    function getSpanRows() {
+      return Array.from(
+        document.querySelectorAll('[data-testid^="span-bar-row-"]'),
+      );
+    }
+
+    function fixtureWithError() {
+      const base = makeTraceDetailFixture();
+      base.spans[1].status = 2; // mark api_fetch_payments as an error
+      return base;
+    }
+
+    beforeEach(() => {
+      server.use(
+        http.get("*/api/apps/:appId/traces/:traceId", () =>
+          HttpResponse.json(fixtureWithError()),
+        ),
+      );
+    });
+
+    it("toggle reveals the error banner with the count", async () => {
+      await renderDetail();
+      expect(screen.queryByTestId("trace-error-banner")).toBeNull();
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Show errors"));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId("trace-error-banner")).toBeTruthy();
+        expect(screen.getByText("1 error span")).toBeTruthy();
+      });
+    });
+
+    it("dims non-error rows when the toggle is on", async () => {
+      await renderDetail();
+      await waitFor(() => expect(getSpanRows().length).toBe(2));
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Show errors"));
+      });
+      await waitFor(() => {
+        const rows = getSpanRows();
+        // span-root is status=0 (non-error), should be dimmed
+        const root = rows.find(
+          (r) => r.getAttribute("data-testid") === "span-bar-row-span-root",
+        );
+        const child = rows.find(
+          (r) => r.getAttribute("data-testid") === "span-bar-row-span-child-1",
+        );
+        expect(root?.className).toContain("opacity-30");
+        expect(child?.className).not.toContain("opacity-30");
+      });
+    });
+
+    it("Next error selects and opens the error span in the sidebar", async () => {
+      await renderDetail();
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Show errors"));
+      });
+      await waitFor(() =>
+        expect(screen.getByTestId("trace-error-banner")).toBeTruthy(),
+      );
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Next error"));
+      });
+      await waitFor(() => {
+        expect(screen.getByText("Span Name")).toBeTruthy();
+        expect(screen.getByText("endpoint")).toBeTruthy();
+      });
+    });
+
+    it("disables and clears the search input while show errors is on", async () => {
+      await renderDetail();
+      const input = screen.getByPlaceholderText(/Search spans/);
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "fetch" } });
+      });
+      expect((input as HTMLInputElement).value).toBe("fetch");
+
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Show errors"));
+      });
+      await waitFor(() => {
+        expect((input as HTMLInputElement).value).toBe("");
+        expect((input as HTMLInputElement).disabled).toBe(true);
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Show errors"));
+      });
+      await waitFor(() => {
+        expect((input as HTMLInputElement).disabled).toBe(false);
+      });
+    });
+
+    it("toggle off hides the banner and clears dimming", async () => {
+      await renderDetail();
+      const sw = screen.getByLabelText("Show errors");
+      await act(async () => fireEvent.click(sw));
+      await waitFor(() =>
+        expect(screen.getByTestId("trace-error-banner")).toBeTruthy(),
+      );
+      await act(async () => fireEvent.click(sw));
+      await waitFor(() => {
+        expect(screen.queryByTestId("trace-error-banner")).toBeNull();
+        const root = document.querySelector(
+          '[data-testid="span-bar-row-span-root"]',
+        );
+        expect(root?.className).not.toContain("opacity-30");
+        expect(root?.className).not.toContain("opacity-50");
+      });
+    });
+  });
+
+  // ================================================================
+  // TRACE WATERFALL — BRUSH-TO-ZOOM + ZOOM BANNER
+  // ================================================================
+  describe("TraceWaterfall — brush-to-zoom + zoom banner", () => {
+    function getWaterfall(): HTMLElement {
+      return document.querySelector(
+        '[data-testid="trace-waterfall"]',
+      ) as HTMLElement;
+    }
+
+    function mockRect(el: Element, width = 1000) {
+      el.getBoundingClientRect = () => ({
+        width,
+        left: 0,
+        right: width,
+        top: 0,
+        bottom: 100,
+        height: 100,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      });
+    }
+
+    function brush(waterfall: HTMLElement, fromX: number, toX: number) {
+      mockRect(waterfall);
+      fireEvent.mouseDown(waterfall, { clientX: fromX, button: 0 });
+      act(() => {
+        window.dispatchEvent(
+          new MouseEvent("mousemove", { clientX: toX, bubbles: true }),
+        );
+      });
+      act(() => {
+        window.dispatchEvent(
+          new MouseEvent("mouseup", { clientX: toX, bubbles: true }),
+        );
+      });
+      // The hook installs a one-shot capture listener to swallow the trailing
+      // click the browser synthesizes after mouseup. Dispatch it explicitly
+      // so it doesn't swallow the next real click we fire from the test.
+      act(() => {
+        window.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+    }
+
+    it("dragging across the timeline shows a brush overlay mid-gesture", async () => {
+      await renderDetail();
+      const waterfall = getWaterfall();
+      mockRect(waterfall);
+      fireEvent.mouseDown(waterfall, { clientX: 600, button: 0 });
+      await act(async () => {
+        window.dispatchEvent(
+          new MouseEvent("mousemove", { clientX: 800, bubbles: true }),
+        );
+      });
+      expect(screen.queryByTestId("trace-brush-overlay")).toBeTruthy();
+      // clean up the gesture so it doesn't leak into other assertions
+      await act(async () => {
+        window.dispatchEvent(
+          new MouseEvent("mouseup", { clientX: 800, bubbles: true }),
+        );
+      });
+    });
+
+    it("releasing past the threshold commits a zoom and shows the zoom banner", async () => {
+      await renderDetail();
+      brush(getWaterfall(), 600, 850);
+      await waitFor(() => {
+        expect(screen.getByText(/^Zoomed:/)).toBeTruthy();
+        expect(screen.getByLabelText("Reset zoom")).toBeTruthy();
+      });
+    });
+
+    it("Reset zoom hides the banner and restores the full window", async () => {
+      await renderDetail();
+      brush(getWaterfall(), 600, 850);
+      await waitFor(() =>
+        expect(screen.getByLabelText("Reset zoom")).toBeTruthy(),
+      );
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText("Reset zoom"));
+      });
+      await waitFor(() => {
+        expect(screen.queryByText(/^Zoomed:/)).toBeNull();
+      });
+    });
+
+    it("a sub-threshold drag does not commit a zoom", async () => {
+      await renderDetail();
+      brush(getWaterfall(), 600, 602);
+      // No banner appears.
+      expect(screen.queryByText(/^Zoomed:/)).toBeNull();
+    });
+  });
+
+  // ================================================================
+  // TRACE WATERFALL — COLUMN RESIZER
+  // ================================================================
+  describe("TraceWaterfall — column resizer", () => {
+    beforeEach(() => {
+      // jsdom doesn't implement pointer capture; stub it.
+      Element.prototype.setPointerCapture = jest.fn();
+      Element.prototype.releasePointerCapture = jest.fn();
+    });
+
+    function mockWaterfallWidth(width = 1000) {
+      const waterfall = document.querySelector(
+        '[data-testid="trace-waterfall"]',
+      ) as HTMLElement;
+      waterfall.getBoundingClientRect = () => ({
+        width,
+        left: 0,
+        right: width,
+        top: 0,
+        bottom: 100,
+        height: 100,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      });
+      return waterfall;
+    }
+
+    async function drag(testId: string, toClientX: number) {
+      fireEvent.pointerDown(screen.getByTestId(testId), {
+        clientX: 0,
+        pointerId: 1,
+        button: 0,
+      });
+      await act(async () => {
+        window.dispatchEvent(
+          new MouseEvent("pointermove", { clientX: toClientX, bubbles: true }),
+        );
+      });
+      await act(async () => {
+        window.dispatchEvent(
+          new MouseEvent("pointerup", { clientX: toClientX, bubbles: true }),
+        );
+      });
+    }
+
+    it("starts at the default span / thread fractions (no persistence)", async () => {
+      await renderDetail();
+      const waterfall = document.querySelector(
+        '[data-testid="trace-waterfall"]',
+      ) as HTMLElement;
+      // Defaults: span = 30%, thread = leftCol(45%) - span(30%) = 15%.
+      expect(waterfall.style.getPropertyValue("--span-col-width")).toBe("30%");
+      expect(waterfall.style.getPropertyValue("--thread-col-width")).toBe(
+        "15%",
+      );
+    });
+
+    it("renders both resizer handles in the header", async () => {
+      await renderDetail();
+      expect(screen.getByTestId("trace-column-resizer-span")).toBeTruthy();
+      expect(screen.getByTestId("trace-column-resizer")).toBeTruthy();
+    });
+
+    it("dragging the Thread↔Timeline resizer widens the thread column", async () => {
+      await renderDetail();
+      const waterfall = mockWaterfallWidth();
+      await drag("trace-column-resizer", 650);
+      // leftCol 0.65 - span 0.30 = thread 0.35 → "35%"; span unchanged.
+      await waitFor(() => {
+        expect(waterfall.style.getPropertyValue("--span-col-width")).toBe(
+          "30%",
+        );
+        expect(waterfall.style.getPropertyValue("--thread-col-width")).toBe(
+          "35%",
+        );
+      });
+    });
+
+    it("dragging the Span↔Thread resizer widens the span column", async () => {
+      await renderDetail();
+      const waterfall = mockWaterfallWidth();
+      await drag("trace-column-resizer-span", 380);
+      // span 0.38, thread = leftCol(0.45) - span(0.38) = 0.07 → "7%".
+      await waitFor(() => {
+        expect(waterfall.style.getPropertyValue("--span-col-width")).toBe(
+          "38%",
+        );
+        expect(waterfall.style.getPropertyValue("--thread-col-width")).toBe(
+          "7%",
+        );
+      });
+    });
+
+    it("Span↔Thread resizer is clamped so Thread keeps its minimum width", async () => {
+      await renderDetail();
+      const waterfall = mockWaterfallWidth();
+      // Try to drag past the left-col boundary (which would crush Thread).
+      await drag("trace-column-resizer-span", 900);
+      // Clamped to leftCol(0.45) - THREAD_MIN(0.05) = 0.40.
+      await waitFor(() => {
+        expect(waterfall.style.getPropertyValue("--span-col-width")).toBe(
+          "40%",
+        );
+      });
+    });
+  });
+
+  // ================================================================
+  // TRACE WATERFALL — KEYBOARD NAVIGATION ON SPAN ROWS
+  // ================================================================
+  describe("TraceWaterfall — span row keyboard navigation", () => {
+    function getSpanRows() {
+      return Array.from(
+        document.querySelectorAll('[data-testid^="span-bar-row-"]'),
+      );
+    }
+
+    it("Enter on a span row opens the sidebar with that span", async () => {
+      await renderDetail();
+      await waitFor(() => expect(getSpanRows().length).toBe(2));
+      await act(async () => {
+        fireEvent.keyDown(getSpanRows()[1], { key: "Enter" });
+      });
+      await waitFor(() => {
+        expect(screen.getByText("Span Name")).toBeTruthy();
+        expect(screen.getByText("endpoint")).toBeTruthy();
+      });
+    });
+
+    it("Space on a span row opens the sidebar with that span", async () => {
+      await renderDetail();
+      await waitFor(() => expect(getSpanRows().length).toBe(2));
+      await act(async () => {
+        fireEvent.keyDown(getSpanRows()[0], { key: " " });
+      });
+      await waitFor(() => {
+        expect(screen.getByText("Span Name")).toBeTruthy();
+        expect(screen.getByText("--")).toBeTruthy(); // root parent_id
+      });
+    });
+
+    it("other keys do not open the sidebar", async () => {
+      await renderDetail();
+      await waitFor(() => expect(getSpanRows().length).toBe(2));
+      await act(async () => {
+        fireEvent.keyDown(getSpanRows()[0], { key: "a" });
+      });
+      expect(screen.queryByText("Span Name")).toBeNull();
+    });
+  });
+
+  // ================================================================
+  // TRACE WATERFALL — HOVER SYNC ACROSS COLUMNS
+  // ================================================================
+  describe("TraceWaterfall — hover sync across columns", () => {
+    function getSpanRows() {
+      return Array.from(
+        document.querySelectorAll('[data-testid^="span-bar-row-"]'),
+      );
+    }
+
+    function countHoveredCells() {
+      return document.querySelectorAll(".bg-muted\\/50").length;
+    }
+
+    it("hovering one row applies the hover background to all five cells of that row", async () => {
+      await renderDetail();
+      await waitFor(() => expect(getSpanRows().length).toBe(2));
+      expect(countHoveredCells()).toBe(0);
+
+      await act(async () => {
+        fireEvent.mouseEnter(getSpanRows()[0]);
+      });
+      // Span + Spacer-A + Thread + Spacer-B + Timeline cells for the hovered row.
+      expect(countHoveredCells()).toBe(5);
+
+      await act(async () => {
+        fireEvent.mouseLeave(getSpanRows()[0]);
+      });
+      expect(countHoveredCells()).toBe(0);
     });
   });
 
