@@ -229,10 +229,10 @@ Widget build(BuildContext context) {
 }
 ```
 
-To manually track screen views in a Flutter application, you can use the `trackScreenView` method from the Measure SDK:
+To manually track screen views in a Flutter application, you can use the `trackScreenViewEvent` method from the Measure SDK:
 
 ```dart
-Measure.instance.trackScreenView("Home");
+Measure.instance.trackScreenViewEvent(name: "Home");
 ```
 
 > [!Note]
@@ -251,17 +251,3 @@ You can also include attributes to provide additional context:
 ```typescript
 Measure.trackScreenView({ screenName: "TrackOrder", attributes: { order_id: "12345" } });
 ```
-
-## Data collected
-
-Check the following sections for the data collected by Measure for each lifecycle event:
-
-- [App Lifecycle Event](../api/sdk/README.md#lifecycle_app) — for application foregrounded and backgrounded.
-- [Activity Lifecycle Event](../api/sdk/README.md#lifecycle_activity) — for `Activity` lifecycle events.
-- [Fragment Lifecycle Event](../api/sdk/README.md#lifecycle_fragment) — for `Fragment` lifecycle events.
-- [View Controller Lifecycle Event](https://github.com/measure-sh/measure/blob/main/docs/api/sdk/README.md#lifecycle_view_controller) —
-  for `UIViewController` lifecycle events.
-- [SwiftUI Lifecycle Event](https://github.com/measure-sh/measure/blob/main/docs/api/sdk/README.md#lifecycle_swift_ui) —
-  for
-  `SwiftUI` lifecycle events.
-- [Screen View Event](../api/sdk/README.md#screen_view) — for screen view events.

@@ -8,7 +8,6 @@ description: "Track when your app gains or loses network connectivity, switches 
 * [**Android**](#android)
 * [**iOS**](#ios)]
 * [**Flutter**](#flutter)
-* [**Data collected**](#data-collected)
 
 Measure SDK captures changes to network connection state of the device. This includes changes to the type of network
 connection (WiFi, Mobile, etc.), the network provider (Airtel, T-Mobile, etc.) and the network generation (2G, 3G, 4G,
@@ -49,8 +48,4 @@ same methods as described above for Android and iOS.
 
 Network changes are collected for React Native apps based on the platform the app is running on (Android or iOS). The SDK uses the
 same methods as described above for Android and iOS.
-
-## Data collected
-
-Checkout the data collected by Measure for each network change in the [Network Event](../api/sdk/README.md#network_change) section.
 

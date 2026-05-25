@@ -7,11 +7,10 @@ description: "Capture ANRs (Application Not Responding errors) in Android apps w
 
 * [**Debugging ANRs**](#debugging-anrs)
 * [**Metrics**](#metrics)
-* [**Get a UI Snapshot**](#get-a-ui-snapshot)
-* [**Data Collected**](#data-collected)
+* [**Get a UI Screenshot**](#get-a-ui-screenshot)
 * [**How It Works**](#how-it-works)
 
-ANRs (Application Not Responding errors) are automatically tracked. Optionally, the SDK can also capture a snapshot of your app’s UI at the moment the crash occurred.
+ANRs (Application Not Responding errors) are automatically tracked. Optionally, the SDK can also capture a screenshot of your app’s UI at the moment the crash occurred.
 
 ## Debugging ANRs
 
@@ -77,10 +76,6 @@ remotely configured on the dashboard under the "Apps" section. The following con
 - `Capture Screenshot on ANR` — Enables or disables the automatic screenshot capture on crash. It is enabled by default.
 - `Mask Sensitive Information` — Masks sensitive information in the screenshot by blurring text fields and
   password fields. It is disabled by default.
-
-## Data Collected
-
-Check out all the data collected for App Exit in the [App Exit Event](../api/sdk/README.md#app_exit) section.
 
 ## How It Works
 

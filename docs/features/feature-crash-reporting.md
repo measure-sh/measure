@@ -14,7 +14,6 @@ Crashes are automatically tracked, optionally with a snapshot of the app's UI at
 * [**Crash Grouping**](#crash-grouping)
 * [**API Reference**](#api-reference)
   * [**Symbolicate Stacktrace**](#symbolicate-stacktrace)
-* [**Data Collected**](#data-collected)
 * [**How It Works**](#how-it-works)
 
 > [!NOTE]  
@@ -169,11 +168,6 @@ When obfuscating your Flutter app using --obfuscate and --split-debug-info optio
 * **iOS** — You need to upload the dSYM files as described in the iOS section above. After building
   with `flutter build ipa`, run the `upload_dsyms.sh` script using the IPA path and the path to the dSYM folder
   (typically under _/build/ios/Release-iphoneos/_)
-
-
-## Data Collected
-
-Check out the data collected by Measure for each crash in the [Exception Event](../api/sdk/README.md#exception) section.
 
 ## How It Works
 

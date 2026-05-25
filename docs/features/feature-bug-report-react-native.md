@@ -74,7 +74,7 @@ if (screenshot) {
 
 > [!IMPORTANT]
 > For privacy, screenshots can be masked with the same configuration provided during SDK initialization. See all the
-> configuration options [here](configuration-options.md#screenshotmasklevel).
+> configuration options [here](configuration-options.md#screenshot-mask-level).
 
 
 ### Limits

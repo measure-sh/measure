@@ -7,7 +7,6 @@ description: "Track cold, warm and hot launch times for Android and iOS apps wit
 
 * [**Introduction**](#introduction)
 * [**Sampling**](#sampling)
-* [**Data Collected**](#data-collected)
 * [**How It Works**](#how-it-works)
     * [**Android**](#android)
     * [**iOS**](#ios)
@@ -28,10 +27,6 @@ You can easily track these metrics in the dashboard, allowing you to monitor the
 
 See [Configuration Options](configuration-options.md)  for details on how to configure sampling for launch 
 metrics.
-
-## Data Collected
-
-Check out the data collected by Measure for [Cold Launch](../api/sdk/README.md#cold_launch), [Warm Launch](../api/sdk/README.md#warm_launch) and [Hot Launch](../api/sdk/README.md#hot_launch) respectively.
 
 ## How It Works
 

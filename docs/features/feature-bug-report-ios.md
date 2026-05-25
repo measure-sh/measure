@@ -83,30 +83,25 @@ You can build a custom bug reporting UI and use the SDK to track bug reports pro
 ### Example Usage
 
 ```swift
-let screenshot = Measure.captureScreenshot(for: viewController)
-let layoutSnapshot = Measure.captureLayoutSnapshot(from: viewController)
-Measure.trackBugReport(
-    description: "Items from cart disappear after reopening the app",
-    attachments: [screenshot, layoutSnapshot].compactMap { $0 },
-    attributes: ["is_premium": .bool(true)]
-)
+Measure.captureScreenshot(for: viewController) { screenshot in
+    Measure.trackBugReport(
+        description: "Items from cart disappear after reopening the app",
+        attachments: [screenshot].compactMap { $0 },
+        attributes: ["is_premium": .bool(true)]
+    )
+}
 ```
 
 ### Attachments
 
-Bug reports can include up to 5 attachments (screenshots or layout snapshots).
+Bug reports can include up to 5 attachments such as screenshots.
 
 ### Example Usage
 
 ```swift
-if let screenshot = Measure.captureScreenshot(for: viewController) {
+Measure.captureScreenshot(for: viewController) { screenshot in
+    guard let screenshot else { return }
     Measure.trackBugReport(description: "Bug description", attachments: [screenshot], attributes: nil)
-}
-```
-
-```swift
-if let snapshot = Measure.captureLayoutSnapshot(from: viewController) {
-    Measure.trackBugReport(description: "Bug description", attachments: [snapshot], attributes: nil)
 }
 ```
 

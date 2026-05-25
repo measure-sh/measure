@@ -326,8 +326,12 @@ func application(_ application: UIApplication,
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"<apiKey>" apiUrl:@"<apiUrl>"];
     BaseMeasureConfig *config = [[BaseMeasureConfig alloc] initWithEnableLogging:YES
-                                                           autoStart:true
-                                                           requestHeadersProvider:nil];
+                                                           autoStart:YES
+                                                           requestHeadersProvider:NULL
+                                                           maxDiskUsageInMb:50
+                                                           enableFullCollectionMode:YES
+                                                           enableDiagnosticMode:NO
+                                                           enableDiagnosticModeGesture:NO];
     [Measure initializeWith:clientInfo config:config];
     return YES;
   }

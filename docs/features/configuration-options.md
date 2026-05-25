@@ -84,8 +84,7 @@ Future<void> main() async {
     config: const MeasureConfig(
       enableLogging: true,
       autoStart: true,
-      maxDiskUsageInMb: 50,
-      enableFullCollectionMode: false,
+      enableDiagnosticMode: false,
     ),
   );
 }
@@ -215,19 +214,14 @@ Measure.initialize(with: clientInfo, config: BaseMeasureConfig(requestHeadersPro
 
 // add below snippet while initializing the SDK.
 ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"api-key" apiUrl:@"api-url"];
-    BaseMeasureConfig *config = [[BaseMeasureConfig alloc] initWithEnableLogging:YES
-                                                samplingRateForErrorFreeSessions:1.0
-                                                               traceSamplingRate:1.0
-                                                                trackHttpHeaders:YES
-                                                                   trackHttpBody:NO
-                                                            httpHeadersBlocklist:@[@"Authorization", @"Cookie"]
-                                                                httpUrlBlocklist:@[@"https://sensitive.example.com"]
-                                                                httpUrlAllowlist:@[@"https://api.example.com"]
-                                                                       autoStart:YES
-                                                     trackViewControllerLoadTime:YES
-                                                             screenshotMaskLevel:ScreenshotMaskLevelObjcAllText
-                                                          requestHeadersProvider:[RequestHeaderProvider new]];
-    [Measure initializeWith:clientInfo config:config]
+BaseMeasureConfig *config = [[BaseMeasureConfig alloc] initWithEnableLogging:YES
+                                                                   autoStart:YES
+                                                      requestHeadersProvider:NULL
+                                                            maxDiskUsageInMb:nil
+                                                    enableFullCollectionMode:NO
+                                                        enableDiagnosticMode:NO
+                                                 enableDiagnosticModeGesture:NO];
+[Measure initializeWith:clientInfo config:config];
 ```
 
 </details>
@@ -256,34 +250,39 @@ storage costs if done at scale in production.
 
 ## `enableDiagnosticMode`
 
+Enables diagnostic mode, which writes all internal Measure SDK logs to files on disk. These files can
+be attached when reporting a bug to help us debug SDK issues. Defaults to `false`.
+
 > [!WARNING]
-> These files only contain Measure SDK logs, not your app's logs. This option should only be enabled in debug builds.
+> These files contain only Measure SDK logs, not your app's logs. Enable this option in debug builds
+> only.
 
-_Applies only to Android._
+The log file location and the steps to retrieve them differ per platform. The
+[Enable Diagnostic Mode](../sdk-integration-guide.md#enable-diagnostic-mode) section of the
+integration guide has the full step-by-step workflow.
 
-Enables diagnostic mode which writes all internal SDK logs to a file on disk. The log file can be
-attached when reporting a bug to help with debugging SDK issues.
+#### Android
 
-Log files are stored in the app's internal storage at `files/measure/sdk_debug_logs/`. Each file is
-named with a unique ID and contains a header line with the SDK version and timestamp, followed by all
-SDK log entries.
-
-Only the 5 most recent files are kept, rest are cleaned up automatically.
-
-Defaults to `false`.
-
-#### Pulling log files via adb
-
-To pull all log files to your local machine:
+To pull all log files from the device to your machine:
 
 ```shell
 adb shell "run-as <your.package.name> tar czf - files/measure/sdk_debug_logs/" > sdk_debug_logs.tar.gz
 ```
 
-To delete all diagnostic log files:
+To delete all log files:
 
 ```shell
 adb shell run-as <your.package.name> rm -rf files/measure/sdk_debug_logs/
+```
+
+#### iOS
+
+Enable the `enableDiagnosticMode` and `enableDiagnosticModeGesture` options to `true` to enable a two-finger double tap gesture 
+for sharing logs via the share sheet.
+
+```swift
+let config = BaseMeasureConfig(enableDiagnosticMode: true, enableDiagnosticModeGesture: true)
+Measure.initialize(with: clientInfo, config: config)
 ```
 
 # Remote Configuration Options
