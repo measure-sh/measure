@@ -229,10 +229,10 @@ Widget build(BuildContext context) {
 }
 ```
 
-To manually track screen views in a Flutter application, you can use the `trackScreenView` method from the Measure SDK:
+To manually track screen views in a Flutter application, you can use the `trackScreenViewEvent` method from the Measure SDK:
 
 ```dart
-Measure.instance.trackScreenView("Home");
+Measure.instance.trackScreenViewEvent(name: "Home");
 ```
 
 > [!Note]
