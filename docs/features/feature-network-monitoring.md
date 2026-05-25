@@ -74,7 +74,7 @@ Future<http.Response> _trackRequest(
     [Object? body]
     ) async {
   final measure = Measure.instance;
-  final startTime = measure.getTimestamp();
+  final startTime = measure.getCurrentTime();
 
   try {
     final response = await request();
@@ -84,7 +84,7 @@ Future<http.Response> _trackRequest(
       method: method,
       statusCode: response.statusCode,
       startTime: startTime,
-      endTime: measure.getTimestamp(),
+      endTime: measure.getCurrentTime(),
       requestHeaders: headers,
       responseHeaders: response.headers,
       requestBody: body?.toString(),
@@ -98,7 +98,7 @@ Future<http.Response> _trackRequest(
       url: uri.toString(),
       method: method,
       startTime: startTime,
-      endTime: measure.getTimestamp(),
+      endTime: measure.getCurrentTime(),
       failureReason: e.runtimeType.toString(),
       failureDescription: e.toString(),
       requestHeaders: headers,
