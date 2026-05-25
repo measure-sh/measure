@@ -136,6 +136,10 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                         data: nil
                     )
                 }
+                let isFatal = (data["severity"] as? String) == "fatal"
+                if isFatal {
+                    sessionManager.markCurrentSessionAsCrashed()
+                }
                 let exceptionData = try extractExceptionData(data: data)
                 signalProcessor.track(
                     data: exceptionData,
@@ -147,7 +151,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
                     needsReporting: true,
-                    synchronous: false
+                    synchronous: isFatal
                 )
 
             case EventType.screenView.rawValue:
