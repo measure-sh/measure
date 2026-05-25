@@ -32,13 +32,7 @@ const PATTERNS = {
   androidSdk: /measure-android:(\d+\.\d+\.\d+)/,
   iosSdk: /branch:\s*["']ios-v(\d+\.\d+\.\d+)["']/,
   flutter: /measure_flutter:\s*\^(\d+\.\d+\.\d+)/,
-};
-
-// TODO: replace with a regex pattern once the React Native section lands in
-// docs/sdk-integration-guide.md. Until then we ship a hardcoded value so the
-// onboarding UI has something to render.
-const HARDCODED_VERSIONS = {
-  reactNative: "0.1.0",
+  reactNative: /@measuresh\/react-native@(\d+\.\d+\.\d+)/,
 };
 
 function findSource() {
@@ -56,7 +50,7 @@ function findSource() {
 }
 
 function extract(content) {
-  const out = { ...HARDCODED_VERSIONS };
+  const out = {};
   for (const [key, pattern] of Object.entries(PATTERNS)) {
     const match = content.match(pattern);
     if (!match) {
@@ -98,4 +92,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { extract, generate, PATTERNS, HARDCODED_VERSIONS };
+module.exports = { extract, generate, PATTERNS };
