@@ -156,7 +156,7 @@ const Pill: React.FC<PillProps> = ({
       <span
         className={cn(
           badgeVariants({ variant: "outline" }),
-          "p-0 items-stretch",
+          "p-0 items-stretch select-none",
           defaults.tint,
           className,
         )}
@@ -202,7 +202,7 @@ const Pill: React.FC<PillProps> = ({
       <Badge
         asChild
         variant="outline"
-        className={cn(defaults.tint, interactiveZone, className)}
+        className={cn("select-none", defaults.tint, interactiveZone, className)}
       >
         <button type="button" onClick={onClick}>
           {body}
@@ -213,7 +213,10 @@ const Pill: React.FC<PillProps> = ({
 
   // Static pill: just a Badge.
   return wrapTip(
-    <Badge variant="outline" className={cn(defaults.tint, className)}>
+    <Badge
+      variant="outline"
+      className={cn("select-none", defaults.tint, className)}
+    >
       {body}
     </Badge>,
   );
