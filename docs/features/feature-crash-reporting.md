@@ -122,6 +122,12 @@ FlutterError (setState() called after dispose(): _MyHomePageState#12345(ticker: 
   ...
 ```
 
+### React Native
+
+In React Native, JS exceptions are grouped based on the error message and the stack trace. Crashes with the same
+message and the same function name and file name from the _first frame_ of the stack trace are grouped together.
+
+
 ## API Reference
 
 ### Symbolicate Stacktrace
@@ -164,6 +170,7 @@ When obfuscating your Flutter app using --obfuscate and --split-debug-info optio
   with `flutter build ipa`, run the `upload_dsyms.sh` script using the IPA path and the path to the dSYM folder
   (typically under _/build/ios/Release-iphoneos/_)
 
+
 ## Data Collected
 
 Check out the data collected by Measure for each crash in the [Exception Event](../api/sdk/README.md#exception) section.
@@ -185,3 +192,11 @@ and `PlatformDispatcher.instance.onError` callbacks. Any errors are forwarded to
 on [stack_trace](https://pub.dev/packages/stack_trace) to parse the stack trace and send it as an `exception` event. 
 
 All crashes captured by the native Android or iOS SDK are also tracked for Flutter apps.
+
+### React Native
+
+When the SDK is initialized, it automatically installs a global error handler via React Native's `ErrorUtils`
+and sets up an unhandled Promise rejection tracker. Any unhandled JS exceptions and promise rejections are captured
+and sent as `exception` events.
+
+All crashes captured by the underlying native Android or iOS SDKs are also tracked for React Native apps.

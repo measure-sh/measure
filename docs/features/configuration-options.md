@@ -20,6 +20,7 @@ available in two ways:
         * [**Android**](#android)
         * [**iOS**](#ios)
         * [**Flutter**](#flutter)
+        * [**React Native**](#react-native)
     * [**trackActivityIntentData**](#trackactivityintentdata)
     * [**enableLogging**](#enablelogging)
     * [**autoStart**](#autostart)
@@ -88,6 +89,23 @@ Future<void> main() async {
     ),
   );
 }
+```
+
+#### React Native
+
+For React Native, options can be set in the `MeasureConfig` object which is passed to the `Measure.init` method. Example:
+
+```typescript
+import { Measure, MeasureConfig } from '@measuresh/react-native';
+
+const config = new MeasureConfig({
+  enableLogging: true,
+  autoStart: true,
+  enableFullCollectionMode: false,
+  enableDiagnosticMode: false,
+});
+
+await Measure.init({ config });
 ```
 
 ## `trackActivityIntentData`

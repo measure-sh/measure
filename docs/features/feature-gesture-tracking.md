@@ -244,6 +244,11 @@ To include custom widgets or additional widget types in your snapshots, use
 the [measure_build](../../flutter/packages/measure_build/README.md) package to generate a comprehensive list of all
 widget types used in your app.
 
+### React Native
+
+Gesture detection for React Native apps are based on the platform the app is running on (Android or iOS). The SDK uses the same methods as described above for Android and iOS.
+
+
 ## Benchmark results
 
 ### Android

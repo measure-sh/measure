@@ -109,6 +109,31 @@ try {
 </details>
 
 
+<details>
+    <summary>React Native</summary>
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const onboardingSpan = Measure.startSpan("onboarding-flow");
+try {
+  const signupSpan = Measure.startSpan("signup").setParent(onboardingSpan);
+  await userSignup();
+  signupSpan.end();
+
+  const tutorialSpan = Measure.startSpan("tutorial").setParent(onboardingSpan);
+  await showTutorial();
+  tutorialSpan.end();
+} catch (e) {
+  onboardingSpan.setAttribute("error", true);
+} finally {
+  onboardingSpan.end();
+}
+```
+
+</details>
+
+
 This will result in a trace like the following:
 
 ```
@@ -174,6 +199,15 @@ final span = Measure.instance.startSpan("span-name");
 
 </details>
 
+<details>
+  <summary>React Native</summary>
+
+```typescript
+const span = Measure.startSpan("span-name");
+```
+
+</details>
+
 A span can also be started by providing the start time, this is useful in cases where a certain
 operation has already started but there wasn't any way to access the Measure APIs in that part of the code.
 
@@ -210,6 +244,15 @@ final span = Measure.instance.startSpan("span-name", timestamp: Measure.instance
 
 </details>
 
+<details>
+  <summary>React Native</summary>
+
+```typescript
+const span = Measure.startSpanWithTimestamp("span-name", Measure.getCurrentTime());
+```
+
+</details>
+
 ### End a Span
 
 A span can be ended using the `end` function. Status is mandatory to set when ending a span.
@@ -240,6 +283,16 @@ span.setStatus(.ok).end()
 ```dart
 final span = Measure.instance.startSpan("span-name");
 span.setStatus(SpanStatus.ok).end();
+```
+
+</details>
+
+<details>
+  <summary>React Native</summary>
+
+```typescript
+const span = Measure.startSpan("span-name");
+span.end();
 ```
 
 </details>
@@ -285,6 +338,16 @@ span.setStatus(SpanStatus.ok).end(timestamp: Measure.instance.getCurrentTime());
 
 </details>
 
+<details>
+  <summary>React Native</summary>
+
+```typescript
+const span = Measure.startSpan("span-name");
+span.end(Measure.getCurrentTime());
+```
+
+</details>
+
 ### Set Parent Span
 
 To set a parent span, use the `setParent` method.
@@ -315,6 +378,16 @@ let childSpan: Span = Measure.startSpan(name: "child-span").setParent(parentSpan
 ```dart
 final parentSpan = Measure.instance.startSpan("parent-span");
 final childSpan = Measure.instance.startSpan("child-span").setParent(parentSpan);
+```
+
+</details>
+
+<details>
+  <summary>React Native</summary>
+
+```typescript
+const parentSpan = Measure.startSpan("parent-span");
+const childSpan = Measure.startSpan("child-span").setParent(parentSpan);
 ```
 
 </details>
@@ -364,6 +437,17 @@ span.setAttributeBool("key", true);
 
 </details>
 
+<details>
+  <summary>React Native</summary>
+
+```typescript
+const span = Measure.startSpan("span-name");
+span.setAttribute("key", "value");
+span.setAttribute("count", 10);
+span.setAttribute("enabled", true);
+```
+
+</details>
 
 To add multiple attributes at once use `setAttributes`.
 
@@ -400,6 +484,15 @@ span.setAttributes(attributes);
 
 </details>
 
+<details>
+  <summary>React Native</summary>
+
+```typescript
+const span = Measure.startSpan("span-name");
+span.setAttributes({ key: "value", key2: 42, enabled: true });
+```
+
+</details>
 
 ### Remove Attribute
 
@@ -430,6 +523,16 @@ span.removeAttribute("key")
 
 ```dart
 final span = Measure.instance.startSpan("span-name");
+span.removeAttribute("key");
+```
+
+</details>
+
+<details>
+  <summary>React Native</summary>
+
+```typescript
+const span = Measure.startSpan("span-name");
 span.removeAttribute("key");
 ```
 
@@ -469,6 +572,16 @@ span.setName("updated-name").end();
 
 </details>
 
+<details>
+  <summary>React Native</summary>
+
+```typescript
+const span = Measure.startSpan("span-name");
+span.setName("updated-name").end();
+```
+
+</details>
+
 ### Add Checkpoint
 
 To add a checkpoint use `setCheckpoint`.
@@ -496,6 +609,15 @@ let span: Span = Measure.startSpan(name: "span-name").setCheckpoint("checkpoint-
 
 ```dart
 final span = Measure.instance.startSpan("span-name").setCheckpoint("checkpoint-name");
+```
+
+</details>
+
+<details>
+  <summary>React Native</summary>
+
+```typescript
+const span = Measure.startSpan("span-name").setCheckpoint("checkpoint-name");
 ```
 
 </details>
@@ -531,6 +653,16 @@ let span: Span = spanBuilder.startSpan()
 ```dart
 final spanBuilder = Measure.instance.createSpanBuilder("span-name");
 final span = spanBuilder.startSpan();
+```
+
+</details>
+
+<details>
+    <summary>React Native</summary>
+
+```typescript
+const spanBuilder = Measure.createSpanBuilder("span-name");
+const span = spanBuilder?.startSpan();
 ```
 
 </details>
@@ -591,6 +723,17 @@ let value = Measure.getTraceParentHeaderValue(span: span)
 final span = Measure.instance.startSpan("http");
 final key = Measure.instance.getTraceParentHeaderKey();
 final value = Measure.instance.getTraceParentHeaderValue(span);
+```
+
+</details>
+
+<details>
+    <summary>React Native</summary>
+
+```typescript
+const span = Measure.startSpan("http");
+const key = Measure.getTraceParentHeaderKey();
+const value = Measure.getTraceParentHeaderValue(span);
 ```
 
 </details>
@@ -694,6 +837,29 @@ class TraceHeaderInterceptor extends Interceptor {
     final span = err.requestOptions.extra['trace_span'];
     span?.end();
     super.onError(err, handler);
+  }
+}
+```
+
+### Distributed Tracing with React Native fetch
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+async function trackedFetch(url: string, options?: RequestInit) {
+  const span = Measure.startSpan("http");
+  const headers: Record<string, string> = {
+    ...(options?.headers as Record<string, string>),
+    [Measure.getTraceParentHeaderKey()]: Measure.getTraceParentHeaderValue(span),
+  };
+
+  try {
+    const response = await fetch(url, { ...options, headers });
+    span.end();
+    return response;
+  } catch (error) {
+    span.setAttribute("error", true).end();
+    throw error;
   }
 }
 ```

@@ -10,6 +10,7 @@ description: "Track app-specific events like user actions with custom attributes
     * [**Track a Custom Event**](#track-a-custom-event)
     * [**Custom Event Attributes**](#custom-event-attributes)
     * [**Custom Event with Timestamp**](#custom-event-with-timestamp)
+    * [**React Native**](#react-native)
 
 ## Introduction
 
@@ -125,4 +126,35 @@ Using ObjC:
 
 ```dart
 Measure.instance.trackEvent(name: "event_name", timestamp: 1734443973879);
+```
+
+## React Native
+
+To track a custom event:
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.trackEvent({ name: "event_name" });
+```
+
+To include attributes:
+
+```typescript
+Measure.trackEvent({
+  name: "event_name",
+  attributes: {
+    is_premium_user: true,
+    screen: "Home",
+    retry_count: 2,
+  },
+});
+```
+
+To record a custom event with a specific timestamp, pass the timestamp in milliseconds since epoch.
+Use `Measure.getCurrentTime()` to get an accurate timestamp from a monotonic clock.
+
+```typescript
+const timestamp = Measure.getCurrentTime();
+Measure.trackEvent({ name: "event_name", timestamp });
 ```
