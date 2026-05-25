@@ -11,7 +11,6 @@ description: "Monitor HTTP requests and responses from your mobile app. Status c
 * [**Request timeline**](#request-timeline)
 * [**Searching for endpoints**](#searching-for-endpoints)
 * [**How are endpoint patterns generated**](#how-are-endpoint-patterns-generated)
-* [**Data collected**](#data-collected)
 
 Measure SDK can capture network requests, responses and failures along with useful metrics to help understand how APIs
 are performing in production from an end user perspective.
@@ -269,7 +268,3 @@ For example, `/api/users/550e8400-e29b-41d4-a716-446655440000/orders/12345` beco
 For these, Measure looks at the variety of values seen in each position of a path. If a segment has many distinct
 values (e.g. `/api/products/abc`, `/api/products/xyz`, ...), it is automatically replaced with `*` to form
 `/api/products/*`.
-
-## Data collected
-
-Checkout the data collected by Measure for each HTTP request in the [HTTP Event](../api/sdk/README.md#http) section.
