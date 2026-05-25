@@ -372,7 +372,7 @@ type Thread struct {
 type Threads []Thread
 
 type ANR struct {
-	Handled     bool           `json:"handled" binding:"required"`
+	Handled     bool           `json:"handled"`
 	Exceptions  ExceptionUnits `json:"exceptions" binding:"required"`
 	Threads     Threads        `json:"threads" binding:"required"`
 	Fingerprint string         `json:"fingerprint"`
@@ -380,7 +380,7 @@ type ANR struct {
 }
 
 type Exception struct {
-	Handled      bool           `json:"handled" binding:"required"`
+	Handled      bool           `json:"handled"`
 	Exceptions   ExceptionUnits `json:"exceptions" binding:"required"`
 	Threads      Threads        `json:"threads" binding:"required"`
 	Fingerprint  string         `json:"fingerprint"`
