@@ -67,11 +67,11 @@ try {
 ```swift
 let onboardingSpan: Span = Measure.startSpan(name: "onboarding-flow")
 do {
-    let signupSpan = Measure.startSpan("signup").setParent(parentSpan)
+    let signupSpan = Measure.startSpan(name: "signup").setParent(onboardingSpan)
     userSignup()
     signupSpan.end()
 
-    let tutorialSpan = Measure.startSpan("tutorial").setParent(parentSpan)
+    let tutorialSpan = Measure.startSpan(name: "tutorial").setParent(onboardingSpan)
     showTutorial()
     tutorialSpan.end(status: .ok)
 } catch {
@@ -478,7 +478,7 @@ span.setAttributes(attributes)
 
 ```dart
 final span = Measure.instance.startSpan("span-name");
-final attributes = AttributesBuilder().put("key", "value").put("key2", 42).build();
+final attributes = AttributeBuilder().add("key", "value").add("key2", 42).build();
 span.setAttributes(attributes);
 ```
 
