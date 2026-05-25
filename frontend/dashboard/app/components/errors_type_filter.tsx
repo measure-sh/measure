@@ -67,7 +67,7 @@ const ErrorsTypeFilter: React.FC<ErrorsTypeFilterProps> = ({
       </PopoverTrigger>
       <PopoverContent className="p-2 w-64" align="start">
         <div className="flex flex-col">
-          <div className="flex items-center px-2 py-2 rounded hover:bg-accent">
+          <div className="flex items-center px-2 py-2 rounded hover:bg-accent hover:text-accent-foreground">
             <button
               type="button"
               role="checkbox"
@@ -106,7 +106,7 @@ const ErrorsTypeFilter: React.FC<ErrorsTypeFilterProps> = ({
             role="checkbox"
             aria-checked={anrChecked}
             onClick={() => toggleAnr(!anrChecked)}
-            className="flex items-center gap-2 cursor-pointer select-none font-display text-sm px-2 py-2 rounded hover:bg-accent text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex items-center gap-2 cursor-pointer select-none font-display text-sm px-2 py-2 rounded hover:bg-accent hover:text-accent-foreground text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <span className="flex items-center justify-center w-4 h-4">
               {anrChecked ? (
