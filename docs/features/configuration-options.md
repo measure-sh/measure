@@ -215,19 +215,14 @@ Measure.initialize(with: clientInfo, config: BaseMeasureConfig(requestHeadersPro
 
 // add below snippet while initializing the SDK.
 ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"api-key" apiUrl:@"api-url"];
-    BaseMeasureConfig *config = [[BaseMeasureConfig alloc] initWithEnableLogging:YES
-                                                samplingRateForErrorFreeSessions:1.0
-                                                               traceSamplingRate:1.0
-                                                                trackHttpHeaders:YES
-                                                                   trackHttpBody:NO
-                                                            httpHeadersBlocklist:@[@"Authorization", @"Cookie"]
-                                                                httpUrlBlocklist:@[@"https://sensitive.example.com"]
-                                                                httpUrlAllowlist:@[@"https://api.example.com"]
-                                                                       autoStart:YES
-                                                     trackViewControllerLoadTime:YES
-                                                             screenshotMaskLevel:ScreenshotMaskLevelObjcAllText
-                                                          requestHeadersProvider:[RequestHeaderProvider new]];
-    [Measure initializeWith:clientInfo config:config]
+BaseMeasureConfig *config = [[BaseMeasureConfig alloc] initWithEnableLogging:YES
+                                                                   autoStart:YES
+                                                      requestHeadersProvider:[RequestHeaderProvider new]
+                                                            maxDiskUsageInMb:nil
+                                                    enableFullCollectionMode:NO
+                                                        enableDiagnosticMode:NO
+                                                 enableDiagnosticModeGesture:NO];
+[Measure initializeWith:clientInfo config:config];
 ```
 
 </details>
