@@ -39,6 +39,10 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
   - [Event Types](#event-types)
     - [**`anr`**](#anr)
     - [**`exception`**](#exception)
+      - [All Error Types Illustrated](#all-error-types-illustrated)
+    - [Error Fields SDK Compatibility Matrix](#error-fields-sdk-compatibility-matrix)
+      - [Older SDKs (without React Native)](#older-sdks-without-react-native)
+      - [Newer SDKs (with React Native)](#newer-sdks-with-react-native)
     - [**`string`**](#string)
     - [**`gesture_long_click`**](#gesture_long_click)
     - [**`gesture_scroll`**](#gesture_scroll)
@@ -772,7 +776,7 @@ Each binary_image object contains further fields.
 | `end_addr`   | string  | Yes      | End address - upper memory boundary of the binary. Only applies to Apple apps              |
 | `base_addr`  | string  | Yes      | Base address - base address of symbols, only applies to Dart exceptions                    |
 | `system`     | boolean | Yes      | Binary marker - indicates a system binary, only applies to Apple apps                      |
-| `name`       | string  | Yes      | Name of the app, framework or libary binary, only applies to Apple apps                    |
+| `name`       | string  | Yes      | Name of the app, framework or library binary, only applies to Apple apps                   |
 | `arch`       | string  | No       | CPU architecture the binary is compiled for                                                |
 | `uuid`       | string  | No       | Unique fingerprint for the binary's build                                                  |
 | `path`       | string  | Yes      | Full path to where the binary was located at runtime, only applies to Apple apps           |
@@ -783,11 +787,91 @@ Each binary_image object contains further fields.
 
 The error object contains further fields. Applicable for Apple apps. Should not exceed `4096 bytes`.
 
-| Field     | Type    | Optional | Comment                                                |
-| --------- | ------- | -------- | ------------------------------------------------------ |
-| `numcode` | integer | Yes      | Numeric code that describes the error                  |
-| `code`    | string  | Yes      | String code that describes the error                   |
-| `meta`    | object  | Yes      | Object containing arbitrary fields for error's metdata |
+| Field     | Type    | Optional | Comment                                                 |
+| --------- | ------- | -------- | ------------------------------------------------------- |
+| `numcode` | integer | Yes      | Numeric code that describes the error                   |
+| `code`    | string  | Yes      | String code that describes the error                    |
+| `meta`    | object  | Yes      | Object containing arbitrary fields for error's metadata |
+
+##### All Error Types Illustrated
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {
+  'background':'#1e1e2e',
+  'primaryTextColor':'#cdd6f4',
+  'lineColor':'#cdd6f4',
+  'fontFamily':'monospace'
+}}}%%
+flowchart TB
+    subgraph Fatal["Fatal"]
+        direction TB
+        F1["`**Legacy**
+        Unhandled exception
+        handled: 0`"]
+        F2["`Fatal exception
+        severity: fatal`"]
+        F1 --> F2
+    end
+
+    subgraph NonFatal["Non Fatal"]
+        direction TB
+        N1["`**Legacy**
+        Handled exception
+        handled: 1`"]
+        N2["`Handled exception
+        severity: handled`"]
+        N3["`Unhandled exception
+        severity: unhandled
+        _New_`"]
+        N1 --> N2
+    end
+
+    subgraph ANR["ANR"]
+        direction TB
+        A1["ANR"]
+        A2["ANR"]
+        A1 --> A2
+    end
+
+    classDef fatal fill:#f38ba8,stroke:#f38ba8,color:#1e1e2e
+    classDef nonFatalLegacy fill:#f9e2af,stroke:#f9e2af,color:#1e1e2e
+    classDef nonFatalNew fill:#fab387,stroke:#fab387,color:#1e1e2e
+    classDef anr fill:#89b4fa,stroke:#89b4fa,color:#1e1e2e
+
+    class F1,F2 fatal
+    class N1,N2 nonFatalLegacy
+    class N3 nonFatalNew
+    class A1,A2 anr
+
+    style Fatal fill:#f38ba822,stroke:#f38ba8,color:#1e1e2e
+    style NonFatal fill:#f9e2af22,stroke:#f9e2af,color:#1e1e2e
+    style ANR fill:#89b4fa22,stroke:#89b4fa,color:#1e1e2e
+```
+
+#### Error Fields SDK Compatibility Matrix
+
+Use this matrix when testing to assert all field permutations are correctly sent across SDK versions and platforms.
+
+##### Older SDKs (without React Native)
+
+| Field               | Android | iOS |
+| ------------------- | ------- | --- |
+| `exception.handled` | ✓       | ✓   |
+| `exception.error`   | —       | ✓   |
+| `anr.handled`       | ✓       | N/A |
+
+##### Newer SDKs (with React Native)
+
+| Field                 | Android | iOS |
+| --------------------- | ------- | --- |
+| `exception.handled`   | ✗       | ✗   |
+| `exception.severity`  | ✓       | ✓   |
+| `exception.is_custom` | ✓       | ✓   |
+| `exception.num_code`  | ✓       | ✓   |
+| `exception.code`      | ✓       | ✓   |
+| `exception.meta`      | ✓       | ✓   |
+| `exception.error`     | —       | ✗   |
+| `anr.handled`         | ✗       | ✗   |
 
 #### **`string`**
 
