@@ -302,7 +302,7 @@ operation has already ended
 but there wasn't any way to access the Measure APIs in that part of the code.
 
 > [!IMPORTANT]
-> To set the end time, use `Measure.getTimestamp`, which returns epoch time calculated using a
+> To set the end time, use `Measure.getCurrentTime`, which returns epoch time calculated using a
 > monotonic clock.
 > Passing in `System.currentTimeInMillis` can lead to issues with corrupted span timings due to
 > clock skew issues.
@@ -312,7 +312,7 @@ but there wasn't any way to access the Measure APIs in that part of the code.
 
 ```kotlin
 val span: Span = Measure.startSpan("span-name")
-span.end(Status.Ok, timestamp = Measure.getTimestamp())
+span.setStatus(SpanStatus.Ok).end(timestamp = Measure.getCurrentTime())
 ```
 
 </details>
