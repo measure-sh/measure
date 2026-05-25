@@ -484,6 +484,10 @@ func mcpFindOrCreateUser(ctx context.Context, name, email string) (mcpUserInfo, 
 			return mcpUserInfo{}, fmt.Errorf("%s: %w", msg, err)
 		}
 
+		if err := createNotifPref(uuid.MustParse(*msrUser.ID)); err != nil {
+			fmt.Println("mcp: failed to create notif prefs:", err)
+		}
+
 		userName := msrUser.firstName()
 		teamName := fmt.Sprintf("%s's team", userName)
 		team := &Team{Name: &teamName}
