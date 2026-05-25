@@ -12,8 +12,31 @@ import { buttonVariants } from "./button_variants";
 import CodeBlock from "./code_block";
 import LayoutSnapshot from "./layout_snapshot";
 
-const codeBlockClassName =
-  "font-code text-sm leading-relaxed rounded-sm overflow-hidden [&_pre]:p-4 [&_pre]:overflow-x-auto";
+// Text size matches the attribute rows so the stacktrace doesn't visually
+// dominate the rest of the event detail.
+const stacktraceClassName =
+  "font-code text-xs leading-relaxed rounded-sm overflow-hidden [&_pre]:p-4 [&_pre]:overflow-x-auto";
+
+function renderAttributeRow(key: string, value: unknown): ReactNode {
+  const isObject = typeof value === "object" && value !== null;
+  return (
+    <div
+      key={key}
+      className="flex flex-col gap-0.5 px-3 py-2 border-b border-border/40 last:border-b-0"
+    >
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground select-none">
+        {key}
+      </p>
+      {isObject ? (
+        <pre className="text-xs font-code whitespace-pre-wrap break-words m-0">
+          {JSON.stringify(value, null, 2)}
+        </pre>
+      ) : (
+        <p className="text-xs break-words font-code">{String(value)}</p>
+      )}
+    </div>
+  );
+}
 
 type SessionTimelineEventDetailsProps = {
   teamId: string;
@@ -37,16 +60,16 @@ export default function SessionTimelineEventDetails({
   };
 
   function getBodyFromEventDetails(): ReactNode {
-    // Pulled out so the stacktrace renders as a Java CodeBlock — keeping it
-    // inside the JSON body turns newlines into literal `\n` which makes the
-    // frames unreadable.
+    // Pulled out so the stacktrace renders as a syntax-highlighted Java
+    // CodeBlock — keeping it inline with the attribute rows would lose
+    // newlines and make frames unreadable.
     const stacktrace =
       typeof eventDetails.stacktrace === "string" &&
       eventDetails.stacktrace !== ""
         ? eventDetails.stacktrace
         : null;
 
-    const cleaned: Record<string, unknown> = {};
+    const entries: Array<[string, unknown]> = [];
     Object.entries(eventDetails).forEach(([key, value]) => {
       if (key === "stacktrace") {
         return;
@@ -76,7 +99,7 @@ export default function SessionTimelineEventDetails({
         return;
       }
       if (typeof value === "object") {
-        cleaned[key] = value;
+        entries.push([key, value]);
         return;
       }
       let display: string | number | boolean = value as
@@ -88,26 +111,25 @@ export default function SessionTimelineEventDetails({
       } else if (key === "duration") {
         display = formatMillisToHumanReadable(parseInt(value.toString()));
       }
-      cleaned[key] = display;
+      entries.push([key, display]);
     });
 
-    const jsonString = JSON.stringify(cleaned, null, 2);
-
     return (
-      <>
-        <CodeBlock
-          language="json"
-          className={codeBlockClassName}
-          code={jsonString}
-        />
+      <div className="flex flex-col">
+        {entries.map(([k, v]) => renderAttributeRow(k, v))}
         {stacktrace && (
-          <CodeBlock
-            language="java"
-            className={codeBlockClassName}
-            code={stacktrace}
-          />
+          <div className="flex flex-col gap-0.5 px-3 py-2 border-b border-border/40 last:border-b-0">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground select-none">
+              STACKTRACE
+            </p>
+            <CodeBlock
+              language="java"
+              className={stacktraceClassName}
+              code={stacktrace}
+            />
+          </div>
         )}
-      </>
+      </div>
     );
   }
 

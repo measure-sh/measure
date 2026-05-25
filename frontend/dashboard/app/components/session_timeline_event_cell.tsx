@@ -178,11 +178,11 @@ export default function SessionTimelineEventCell({
   const snapshot = hasSnapshot();
 
   return (
-    <div className="border-b border-border">
+    <div className="border-b border-border group">
       <button
         type="button"
         onClick={onToggle}
-        className="w-full text-left px-3 py-4 font-display outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-ring/50 focus-visible:ring-[2px] focus-visible:ring-inset"
+        className="w-full text-left px-3 py-4 font-display outline-none transition-colors group-hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-ring/50 focus-visible:ring-[2px] focus-visible:ring-inset"
       >
         <div className="flex flex-row items-center gap-3">
           <Pill className={`${getPillColorClasses()} shrink-0 w-28`}>
@@ -211,7 +211,7 @@ export default function SessionTimelineEventCell({
         </div>
       </button>
       {expanded && (
-        <div className="px-3 pt-1 pb-3">
+        <div className="px-3 pt-1 pb-3 transition-colors group-hover:bg-muted/50">
           <SessionTimelineEventDetails
             teamId={teamId}
             appId={appId}
