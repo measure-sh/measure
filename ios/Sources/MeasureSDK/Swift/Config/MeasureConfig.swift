@@ -32,7 +32,8 @@ protocol MeasureConfig {
     /// **Note** that enabling this flag can significantly increase the cost and should typically only be enabled for debug mode.
     let enableFullCollectionMode: Bool
 
-    /// Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API. This is useful only for self-hosted clients who may require additional headers for requests in their infrastructure.
+    /// Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
+    /// This is useful only for self-hosted clients who may require additional headers for requests in their infrastructure.
     let requestHeadersProvider: MsrRequestHeadersProvider?
 
     /// Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use.
@@ -69,9 +70,11 @@ protocol MeasureConfig {
     ///   - autoStart: Set this to false to delay starting the SDK, by default initializing the SDK also starts tracking.
     ///   - requestHeadersProvider: Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
     ///   - maxDiskUsageInMb: Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use. Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`.
-    ///   - enableFullCollectionMode: Override all sampling configs and track all events and traces. **Note** that enabling this flag can significantly increase the cost and should typically only be enabled for debug mode.
+    ///   - enableFullCollectionMode: Override all sampling configs and track all events and traces.
+///       **Note** that enabling this flag can significantly increase the cost and should typically only be enabled for debug mode.
     ///   - enableDiagnosticMode: Enables diagnostic mode which writes all SDK logs to a file. The log file can be attached when reporting a bug to help with debugging SDK issues. Defaults to `false`.
-    ///   - enableDiagnosticModeGesture: Enable double finger double tap gesture to export SDK logs via share sheet. This functionality is only available if `enableDiagnosticMode` is set to `true`. Defaults to `false`.
+    ///   - enableDiagnosticModeGesture: Enable double finger double tap gesture to export SDK logs via share sheet.
+///       This functionality is only available if `enableDiagnosticMode` is set to `true`. Defaults to `false`.
     public init(enableLogging: Bool? = nil,
                 autoStart: Bool? = nil,
                 requestHeadersProvider: MsrRequestHeadersProvider? = nil,
@@ -110,9 +113,11 @@ protocol MeasureConfig {
     ///   - autoStart: Set this to false to delay starting the SDK, by default initializing the SDK also starts tracking.
     ///   - requestHeadersProvider: Allows configuring custom HTTP headers for requests made by the Measure SDK to the Measure API.
     ///   - maxDiskUsageInMb: Configures the maximum disk usage in megabytes that the Measure SDK is allowed to use. Defaults to `50MB`. Allowed values are between `20MB` and `1500MB`.
-    ///   - enableFullCollectionMode: Override all sampling configs and track all events and traces. **Note** that enabling this flag can significantly increase the cost and should typically only be enabled for debug mode.
+    ///   - enableFullCollectionMode: Override all sampling configs and track all events and traces.
+    ///    **Note** that enabling this flag can significantly increase the cost and should typically only be enabled for debug mode.
     ///   - enableDiagnosticMode: Enables diagnostic mode which writes all SDK logs to a file. The log file can be attached when reporting a bug to help with debugging SDK issues. Defaults to `false`.
-    ///   - enableDiagnosticModeGesture: Enable double finger double tap gesture to export SDK logs via share sheet. This functionality is only available if `enableDiagnosticMode` is set to `true`. Defaults to `false`.
+    ///   - enableDiagnosticModeGesture: Enable double finger double tap gesture to export SDK logs via share sheet.
+    ///   This functionality is only available if `enableDiagnosticMode` is set to `true`. Defaults to `false`.
     @objc public convenience init(enableLogging: Bool,
                                   autoStart: Bool,
                                   requestHeadersProvider: MsrRequestHeadersProvider?,

@@ -136,26 +136,26 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
     }
     
     init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let values = try decoder.container(keyedBy: CodingKeys.self)
     
-        maxEventsInBatch = try c.decodeIfPresent(Number.self, forKey: .maxEventsInBatch) ?? DefaultConfig.maxEventsInBatch
-        crashTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .crashTimelineDurationSeconds) ?? DefaultConfig.crashTimelineDurationSeconds
-        anrTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .anrTimelineDurationSeconds) ?? DefaultConfig.anrTimelineDurationSeconds
-        bugReportTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .bugReportTimelineDurationSeconds) ?? DefaultConfig.bugReportTimelineDurationSeconds
-        traceSamplingRate = try c.decodeIfPresent(Float.self, forKey: .traceSamplingRate) ?? DefaultConfig.traceSamplingRate
-        journeySamplingRate = try c.decodeIfPresent(Float.self, forKey: .journeySamplingRate) ?? DefaultConfig.journeySamplingRate
-        screenshotMaskLevel = try c.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
-        cpuUsageInterval = try c.decodeIfPresent(Number.self, forKey: .cpuUsageInterval) ?? DefaultConfig.cpuUsageInterval
-        memoryUsageInterval = try c.decodeIfPresent(Number.self, forKey: .memoryUsageInterval) ?? DefaultConfig.memoryUsageInterval
-        crashTakeScreenshot = try c.decodeIfPresent(Bool.self, forKey: .crashTakeScreenshot) ?? DefaultConfig.crashTakeScreenshot
-        anrTakeScreenshot = try c.decodeIfPresent(Bool.self, forKey: .anrTakeScreenshot) ?? DefaultConfig.anrTakeScreenshot
-        launchSamplingRate = try c.decodeIfPresent(Float.self, forKey: .launchSamplingRate) ?? DefaultConfig.launchSamplingRate
-        gestureClickTakeSnapshot = try c.decodeIfPresent(Bool.self, forKey: .gestureClickTakeSnapshot) ?? DefaultConfig.gestureClickTakeSnapshot
-        httpSamplingRate = try c.decodeIfPresent(Float.self, forKey: .httpSamplingRate) ?? DefaultConfig.httpSamplingRate
-        httpDisableEventForUrls = try c.decodeIfPresent([String].self, forKey: .httpDisableEventForUrls) ?? DefaultConfig.httpDisableEventForUrls
-        httpTrackRequestForUrls = try c.decodeIfPresent([String].self, forKey: .httpTrackRequestForUrls) ?? DefaultConfig.httpTrackRequestForUrls
-        httpTrackResponseForUrls = try c.decodeIfPresent([String].self, forKey: .httpTrackResponseForUrls) ?? DefaultConfig.httpTrackResponseForUrls
-        httpBlockedHeaders = try c.decodeIfPresent([String].self, forKey: .httpBlockedHeaders) ?? DefaultConfig.httpBlockedHeaders
+        maxEventsInBatch = try values.decodeIfPresent(Number.self, forKey: .maxEventsInBatch) ?? DefaultConfig.maxEventsInBatch
+        crashTimelineDurationSeconds = try values.decodeIfPresent(Number.self, forKey: .crashTimelineDurationSeconds) ?? DefaultConfig.crashTimelineDurationSeconds
+        anrTimelineDurationSeconds = try values.decodeIfPresent(Number.self, forKey: .anrTimelineDurationSeconds) ?? DefaultConfig.anrTimelineDurationSeconds
+        bugReportTimelineDurationSeconds = try values.decodeIfPresent(Number.self, forKey: .bugReportTimelineDurationSeconds) ?? DefaultConfig.bugReportTimelineDurationSeconds
+        traceSamplingRate = try values.decodeIfPresent(Float.self, forKey: .traceSamplingRate) ?? DefaultConfig.traceSamplingRate
+        journeySamplingRate = try values.decodeIfPresent(Float.self, forKey: .journeySamplingRate) ?? DefaultConfig.journeySamplingRate
+        screenshotMaskLevel = try values.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
+        cpuUsageInterval = try values.decodeIfPresent(Number.self, forKey: .cpuUsageInterval) ?? DefaultConfig.cpuUsageInterval
+        memoryUsageInterval = try values.decodeIfPresent(Number.self, forKey: .memoryUsageInterval) ?? DefaultConfig.memoryUsageInterval
+        crashTakeScreenshot = try values.decodeIfPresent(Bool.self, forKey: .crashTakeScreenshot) ?? DefaultConfig.crashTakeScreenshot
+        anrTakeScreenshot = try values.decodeIfPresent(Bool.self, forKey: .anrTakeScreenshot) ?? DefaultConfig.anrTakeScreenshot
+        launchSamplingRate = try values.decodeIfPresent(Float.self, forKey: .launchSamplingRate) ?? DefaultConfig.launchSamplingRate
+        gestureClickTakeSnapshot = try values.decodeIfPresent(Bool.self, forKey: .gestureClickTakeSnapshot) ?? DefaultConfig.gestureClickTakeSnapshot
+        httpSamplingRate = try values.decodeIfPresent(Float.self, forKey: .httpSamplingRate) ?? DefaultConfig.httpSamplingRate
+        httpDisableEventForUrls = try values.decodeIfPresent([String].self, forKey: .httpDisableEventForUrls) ?? DefaultConfig.httpDisableEventForUrls
+        httpTrackRequestForUrls = try values.decodeIfPresent([String].self, forKey: .httpTrackRequestForUrls) ?? DefaultConfig.httpTrackRequestForUrls
+        httpTrackResponseForUrls = try values.decodeIfPresent([String].self, forKey: .httpTrackResponseForUrls) ?? DefaultConfig.httpTrackResponseForUrls
+        httpBlockedHeaders = try values.decodeIfPresent([String].self, forKey: .httpBlockedHeaders) ?? DefaultConfig.httpBlockedHeaders
     }
 
     private enum CodingKeys: String, CodingKey {

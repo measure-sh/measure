@@ -75,7 +75,10 @@ final class BaseAttributeValueValidator: AttributeValueValidator {
             let trimmedPairs = Array(validAttributes.prefix(maxAllowed))
             let trimmedAttributes = Dictionary(uniqueKeysWithValues: trimmedPairs)
 
-            logger.log(level: .warning, message: "AttributeValueValidator: Event(\(name)) exceeded max attributes. Dropped \(validAttributes.count - trimmedAttributes.count) attributes.", error: nil, data: nil)
+            logger.log(level: .warning,
+                       message: "AttributeValueValidator: Event(\(name)) exceeded max attributes. Dropped \(validAttributes.count - trimmedAttributes.count) attributes.",
+                       error: nil,
+                       data: nil)
             return trimmedAttributes
         }
 

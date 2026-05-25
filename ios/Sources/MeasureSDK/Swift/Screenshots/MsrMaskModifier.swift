@@ -30,7 +30,6 @@ private struct MsrRedactUIView: UIViewRepresentable {
     }
 }
 
-
 private struct MsrMaskModifier: ViewModifier {
     @available(iOS 13.0, *)
     func body(content: Content) -> some View {

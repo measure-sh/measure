@@ -16,28 +16,28 @@ import UIKit
 /// - Note: It is recommended to initialize the SDK as early as possible during the application startup to ensure
 /// that exceptions and other events are captured promptly.
 ///
-@objc public final class Measure: NSObject {
-    @objc static let shared: Measure = {
-        let instance = Measure()
+@objc public final class MeasureManager: NSObject {
+    @objc static let shared: MeasureManager = {
+        let instance = MeasureManager()
         return instance
     }()
     private var measureInitializerLock = NSLock()
     private var measureLifecycleLock = NSLock()
     private var measureInternal: MeasureInternal?
     var meaureInitializerInternal: MeasureInitializer?
-
+    
     // Private initializer to ensure the singleton pattern
     private override init() {
         super.init()
     }
-
+    
     @objc func initialize(with client: ClientInfo, config: BaseMeasureConfig? = nil) {
         measureInitializerLock.lock()
         defer { measureInitializerLock.unlock() }
-
+        
         // Ensure initialization is done only once
         guard measureInternal == nil else { return }
-
+        
         SignPost.trace(subcategory: "MeasureLifecycle", label: "measureInitialisation") {
             if let meaureInitializer = self.meaureInitializerInternal {
                 measureInternal = MeasureInternal(meaureInitializer)
@@ -53,33 +53,36 @@ import UIKit
             }
         }
     }
-
+    
     @objc func getSessionId() -> String? {
         guard let sessionId = measureInternal?.sessionManager.sessionId else { return nil }
-
+        
         return sessionId
     }
-
+    
     @objc func start() {
         SignPost.trace(subcategory: "MeasureLifecycle", label: "measureStart") {
             measureLifecycleLock.lock()
             defer { measureLifecycleLock.unlock() }
-
+            
             guard let measureInternal = self.measureInternal else { return }
             measureInternal.start()
         }
     }
-
+    
     @objc func stop() {
         SignPost.trace(subcategory: "MeasureLifecycle", label: "measureStop") {
             measureLifecycleLock.lock()
             defer { measureLifecycleLock.unlock() }
-
+            
             guard let measureInternal = self.measureInternal else { return }
             measureInternal.stop()
         }
     }
+}
 
+// MARK: - Event Tracking
+extension MeasureManager {
     func trackEvent(name: String, attributes: [String: AttributeValue], timestamp: Int64?) {
         guard let measureInternal = measureInternal else { return }
 
@@ -329,7 +332,7 @@ import UIKit
 
 // MARK: - Static Convenience API
 
-extension Measure {
+extension MeasureManager {
     /// Initializes the Measure SDK. The SDK must be initialized before using any of the other methods.
     ///
     /// It is recommended to initialize the SDK as early as possible in the application startup so that exceptions and other events can be captured as early as possible.
@@ -364,7 +367,7 @@ extension Measure {
     ///   [Measure initializeWith:clientInfo config:config];
     ///   ```
     @objc public static func initialize(with client: ClientInfo, config: BaseMeasureConfig? = nil) {
-        Measure.shared.initialize(with: client, config: config)
+        MeasureManager.shared.initialize(with: client, config: config)
     }
 
     /// Starts tracking.
@@ -382,7 +385,7 @@ extension Measure {
     ///   [Measure start];
     ///   ```
     @objc public static func start() {
-        Measure.shared.start()
+        MeasureManager.shared.start()
     }
 
     /// Stops tracking.
@@ -400,7 +403,7 @@ extension Measure {
     ///   [Measure stop];
     ///   ```
     @objc public static func stop() {
-        Measure.shared.stop()
+        MeasureManager.shared.stop()
     }
 
     /// Returns the session ID for the current session, or nil if the SDK has not been initialized.
@@ -409,7 +412,7 @@ extension Measure {
     /// A single session can continue across multiple app background and foreground events; brief interruptions will not cause a new session to be created.
     /// - Returns: The session ID if the SDK is initialized, or nil otherwise.
     @objc public static func getSessionId() -> String? {
-        Measure.shared.getSessionId()
+        MeasureManager.shared.getSessionId()
     }
 
     /// An internal method to track events from cross-platform frameworks
@@ -446,7 +449,7 @@ extension Measure {
                                           sessionId: String?,
                                           threadName: String?,
                                           attachments: [MsrAttachment]) {
-        Measure.shared.internalTrackEvent(data: &data,
+        MeasureManager.shared.internalTrackEvent(data: &data,
                                           type: type,
                                           timestamp: timestamp,
                                           attributes: attributes,
@@ -462,7 +465,7 @@ extension Measure {
     ///   - platform: The platform sending the log. `react-native` for React native project or `flutter` for Flutter project.
     ///   - message: Message to log
     public static func internalAddLog(platform: String, message: String) {
-        Measure.shared.internalAddLog(platform: platform, message: message)
+        MeasureManager.shared.internalAddLog(platform: platform, message: message)
     }
 
     /// An internal method to track spans from cross-platform frameworks
@@ -499,7 +502,7 @@ extension Measure {
                                          checkpoints: [String: Int64],
                                          hasEnded: Bool,
                                          isSampled: Bool) {
-        Measure.shared.internalTrackSpan(name: name,
+        MeasureManager.shared.internalTrackSpan(name: name,
                                          traceId: traceId,
                                          spanId: spanId,
                                          parentId: parentId,
@@ -526,7 +529,7 @@ extension Measure {
     ///   - timestamp: Optional timestamp for the event, defaults to current time
     ///
     public static func trackEvent(name: String, attributes: [String: AttributeValue], timestamp: Int64? = nil) {
-        Measure.shared.trackEvent(name: name, attributes: attributes, timestamp: timestamp)
+        MeasureManager.shared.trackEvent(name: name, attributes: attributes, timestamp: timestamp)
     }
 
     /// Tracks an event with optional timestamp.
@@ -543,7 +546,7 @@ extension Measure {
     ///   - attributes: Key-value pairs providing additional context
     ///   - timestamp: Optional timestamp for the event, defaults to current time
     @objc public static func trackEvent(_ name: String, attributes: [String: Any], timestamp: NSNumber? = nil) {
-        Measure.shared.trackEvent(name, attributes: attributes, timestamp: timestamp)
+        MeasureManager.shared.trackEvent(name, attributes: attributes, timestamp: timestamp)
     }
 
     /// Call when a screen is viewed by the user.
@@ -561,7 +564,7 @@ extension Measure {
     ///   - screenName: The name of the screen being viewed.
     ///   - attributes: Optional key-value pairs providing additional context to the event.
     public static func trackScreenView(_ screenName: String, attributes: [String: AttributeValue]?) {
-        Measure.shared.trackScreenView(screenName, attributes: attributes)
+        MeasureManager.shared.trackScreenView(screenName, attributes: attributes)
     }
 
     /// Call when a screen is viewed by the user.
@@ -579,7 +582,7 @@ extension Measure {
     ///   - screenName: The name of the screen being viewed.
     ///   - attributes: Optional key-value pairs providing additional context to the event.
     @objc public static func trackScreenView(_ screenName: String, attributes: [String: Any]?) {
-        Measure.shared.trackScreenView(screenName, attributes: attributes)
+        MeasureManager.shared.trackScreenView(screenName, attributes: attributes)
     }
 
     /// Sets the user ID for the current user.
@@ -601,7 +604,7 @@ extension Measure {
     ///
     /// - Parameter userId: userId string.
     @objc public static func setUserId(_ userId: String) {
-        Measure.shared.setUserId(userId)
+        MeasureManager.shared.setUserId(userId)
     }
 
     /// Clears the user ID, if previously set by `setUserId`.
@@ -615,20 +618,20 @@ extension Measure {
     /// [Measure clearUserId]
     /// ```
     @objc public static func clearUserId() {
-        Measure.shared.clearUserId()
+        MeasureManager.shared.clearUserId()
     }
 
     /// Returns the current time in milliseconds since epoch.
     /// - Returns: The current time in milliseconds since epoch.
     @objc public static func getCurrentTime() -> Int64 {
-        Measure.shared.getCurrentTime()
+        MeasureManager.shared.getCurrentTime()
     }
 
     /// Starts a new performance tracing span with the specified name.
     /// - Parameter name: The name to identify this span. Follow the naming convention guide for consistent naming practices.
     /// - Returns: A new span instance if the SDK is initialized, or an invalid no-op span if not initialized
     public static func startSpan(name: String) -> Span {
-        Measure.shared.startSpan(name: name)
+        MeasureManager.shared.startSpan(name: name)
     }
 
     /// Starts a new performance tracing span with the specified name and start timestamp.
@@ -640,7 +643,7 @@ extension Measure {
     /// Note: Use this method when you need to trace an operation that has already started and you have
     /// captured its start time using `getCurrentTime()`.
     public static func startSpan(name: String, timestamp: Int64) -> Span {
-        Measure.shared.startSpan(name: name, timestamp: timestamp)
+        MeasureManager.shared.startSpan(name: name, timestamp: timestamp)
     }
 
     /// Creates a configurable span builder for deferred span creation.
@@ -649,7 +652,7 @@ extension Measure {
     ///
     /// Note: Use this method when you need to create a span without immediately starting it.
     public static func createSpanBuilder(name: String) -> SpanBuilder? {
-        Measure.shared.createSpanBuilder(name: name)
+        MeasureManager.shared.createSpanBuilder(name: name)
     }
 
     /// Returns the W3C traceparent header value for the given span.
@@ -661,14 +664,14 @@ extension Measure {
     /// Note: Use this value in the `traceparent` HTTP header when making API calls to enable
     /// distributed tracing between your mobile app and backend services.
     public static func getTraceParentHeaderValue(span: Span) -> String {
-        Measure.shared.getTraceParentHeaderValue(span: span)
+        MeasureManager.shared.getTraceParentHeaderValue(span: span)
     }
 
     /// Returns the W3C traceparent header key/name.
     /// - Returns: The standardized header key 'traceparent' that should be used when adding
     /// distributed tracing context to HTTP requests
     @objc public static func getTraceParentHeaderKey() -> String {
-        Measure.shared.getTraceParentHeaderKey()
+        MeasureManager.shared.getTraceParentHeaderKey()
     }
 
     /// Starts a new performance tracing span with the specified name. For use from Objective-C.
@@ -678,7 +681,7 @@ extension Measure {
     /// In Swift, use `startSpan(name:)` which returns the `Span` protocol directly.
     @objc(startSpanWithName:)
     public static func startSpanObjC(name: String) -> MsrObjCSpan {
-        Measure.shared.startSpanObjC(name: name)
+        MeasureManager.shared.startSpanObjC(name: name)
     }
 
     /// Starts a new performance tracing span with the specified name and start timestamp. For use from Objective-C.
@@ -690,7 +693,7 @@ extension Measure {
     /// In Swift, use `startSpan(name:timestamp:)` which returns the `Span` protocol directly.
     @objc(startSpanWithName:timestamp:)
     public static func startSpanObjC(name: String, timestamp: Int64) -> MsrObjCSpan {
-        Measure.shared.startSpanObjC(name: name, timestamp: timestamp)
+        MeasureManager.shared.startSpanObjC(name: name, timestamp: timestamp)
     }
 
     /// Creates a configurable span builder for deferred span creation. For use from Objective-C.
@@ -700,7 +703,7 @@ extension Measure {
     /// In Swift, use `createSpanBuilder(name:)` which returns the `SpanBuilder` protocol directly.
     @objc(createSpanBuilderWithName:)
     public static func createSpanBuilderObjC(name: String) -> MsrObjCSpanBuilder? {
-        Measure.shared.createSpanBuilderObjC(name: name)
+        MeasureManager.shared.createSpanBuilderObjC(name: name)
     }
 
     /// Returns the W3C traceparent header value for the given span. For use from Objective-C.
@@ -710,7 +713,7 @@ extension Measure {
     /// In Swift, use `getTraceParentHeaderValue(span:)` which accepts the `Span` protocol directly.
     @objc(getTraceParentHeaderValueForSpan:)
     public static func getTraceParentHeaderValue(objcSpan: MsrObjCSpan) -> String {
-        Measure.shared.getTraceParentHeaderValue(objcSpan: objcSpan)
+        MeasureManager.shared.getTraceParentHeaderValue(objcSpan: objcSpan)
     }
 
     /// Takes a screenshot and launches the bug report flow.
@@ -721,7 +724,7 @@ extension Measure {
     public static func launchBugReport(takeScreenshot: Bool = true,
                                        bugReportConfig: BugReportConfig = .default,
                                        attributes: [String: AttributeValue]? = nil) {
-        Measure.shared.launchBugReport(takeScreenshot: takeScreenshot,
+        MeasureManager.shared.launchBugReport(takeScreenshot: takeScreenshot,
                                        bugReportConfig: bugReportConfig,
                                        attributes: attributes)
     }
@@ -738,7 +741,7 @@ extension Measure {
     @objc public static func launchBugReport(takeScreenshot: Bool = true,
                                              bugReportConfig: BugReportConfig = .default,
                                              attributes: [String: Any]? = nil) {
-        Measure.shared.launchBugReport(takeScreenshot: takeScreenshot,
+        MeasureManager.shared.launchBugReport(takeScreenshot: takeScreenshot,
                                        bugReportConfig: bugReportConfig,
                                        attributes: attributes)
     }
@@ -752,7 +755,7 @@ extension Measure {
     ///
     /// - Parameter handler: Closure to call when shake is detected.
     @objc public static func onShake(_ handler: (() -> Void)?) {
-        Measure.shared.onShake(handler)
+        MeasureManager.shared.onShake(handler)
     }
 
     /// Tracks a custom bug report.
@@ -767,7 +770,7 @@ extension Measure {
     public static func trackBugReport(description: String,
                                       attachments: [MsrAttachment] = [],
                                       attributes: [String: AttributeValue]? = nil) {
-        Measure.shared.trackBugReport(description: description,
+        MeasureManager.shared.trackBugReport(description: description,
                                       attachments: attachments,
                                       attributes: attributes)
     }
@@ -787,7 +790,7 @@ extension Measure {
     @objc public static func trackBugReport(description: String,
                                             attachments: [MsrAttachment] = [],
                                             attributes: [String: Any]? = nil) {
-        Measure.shared.trackBugReport(description: description,
+        MeasureManager.shared.trackBugReport(description: description,
                                       attachments: attachments,
                                       attributes: attributes)
     }
@@ -804,7 +807,7 @@ extension Measure {
     ///   - completion: A closure that returns an optional `MsrAttachment` containing the redacted screenshot data. Returns `nil` if the capture fails.
     @objc public static func captureScreenshot(for viewController: UIViewController,
                                                completion: @escaping (MsrAttachment?) -> Void) {
-        Measure.shared.captureScreenshot(for: viewController, completion: completion)
+        MeasureManager.shared.captureScreenshot(for: viewController, completion: completion)
     }
 
     /// Tracks a handled Swift error (`Error`) and records it as part of the monitoring system.
@@ -813,7 +816,7 @@ extension Measure {
     ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. request ID, user action, component).
     ///   - collectStackTraces: If `true`, captures the current stack trace to aid in debugging.
     public static func trackError(_ error: Error, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool = false) {
-        Measure.shared.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
+        MeasureManager.shared.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
     }
 
     /// Tracks a handled Objective-C style error (`NSError`) for backward compatibility or bridging scenarios.
@@ -822,7 +825,7 @@ extension Measure {
     ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. file path, HTTP status, method name).
     ///   - collectStackTraces: If `true`, captures the current stack trace to aid in debugging.
     @objc public static func trackError(_ error: NSError, attributes: [String: Any]? = nil, collectStackTraces: Bool = false) {
-        Measure.shared.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
+        MeasureManager.shared.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
     }
 
     /// Tracks a handled NSException and records it as part of the monitoring system.
@@ -831,7 +834,7 @@ extension Measure {
     ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. request ID, user action, component).
     ///   - collectStackTraces: If `true`, captures the current stack trace to aid in debugging.
     public static func trackException(_ exception: NSException, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool = false) {
-        Measure.shared.trackException(exception, attributes: attributes, collectStackTraces: collectStackTraces)
+        MeasureManager.shared.trackException(exception, attributes: attributes, collectStackTraces: collectStackTraces)
     }
 
     /// Tracks a handled NSException and records it as part of the monitoring system.
@@ -840,7 +843,7 @@ extension Measure {
     ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. request ID, user action, component).
     ///   - collectStackTraces: If `true`, captures the current stack trace to aid in debugging.
     @objc public static func trackException(_ exception: NSException, attributes: [String: Any]? = nil, collectStackTraces: Bool = false) {
-        Measure.shared.trackException(exception, attributes: attributes, collectStackTraces: collectStackTraces)
+        MeasureManager.shared.trackException(exception, attributes: attributes, collectStackTraces: collectStackTraces)
     }
 
     /// An internal method get the directory path wheere attachments are stored, used by cross-platform frameworks
@@ -848,7 +851,7 @@ extension Measure {
     ///
     /// This method is not intended for public usage and can change in future versions.
     public static func internalGetAttachmentDirectory() -> String? {
-        return Measure.shared.internalGetAttachmentDirectory()
+        return MeasureManager.shared.internalGetAttachmentDirectory()
     }
 
     /// Encodes pixels to WebP asynchronously.
@@ -856,11 +859,11 @@ extension Measure {
     /// Internal API for Flutter only; not for public use. The `pixels`
     /// be encoded using Flutter's ImageByteFormat.rawRgba.
     public static func internalEncodeWebP(pixels: Data, width: Int, height: Int, completion: @escaping (Data?) -> Void) {
-        Measure.shared.internalEncodeWebP(pixels: pixels, width: width, height: height, completion: completion)
+        MeasureManager.shared.internalEncodeWebP(pixels: pixels, width: width, height: height, completion: completion)
     }
 
     public static func internalGetDynamicConfigPath() -> String? {
-        return Measure.shared.internalGetDynamicConfigPath()
+        return MeasureManager.shared.internalGetDynamicConfigPath()
     }
 
     /// Tracks a HTTP event. Note that if you're using the Measure gradle plugin,
@@ -898,7 +901,7 @@ extension Measure {
                                       responseHeaders: [String: String]? = nil,
                                       requestBody: String? = nil,
                                       responseBody: String? = nil) {
-        return Measure.shared.trackHttpEvent(url: url,
+        return MeasureManager.shared.trackHttpEvent(url: url,
                                              method: method,
                                              startTime: startTime,
                                              endTime: endTime,
@@ -947,7 +950,7 @@ extension Measure {
                                                 responseHeaders: [String: String]?,
                                                 requestBody: String?,
                                                 responseBody: String?) {
-        return Measure.shared.trackHttpEvent(url: url,
+        return MeasureManager.shared.trackHttpEvent(url: url,
                                              method: method,
                                              startTime: startTime,
                                              endTime: endTime,

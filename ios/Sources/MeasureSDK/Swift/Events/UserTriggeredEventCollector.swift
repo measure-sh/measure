@@ -12,6 +12,7 @@ protocol UserTriggeredEventCollector {
     func trackError(_ error: Error, attributes: [String: AttributeValue]?, collectStackTraces: Bool)
     func trackError(_ error: NSError, attributes: [String: AttributeValue]?, collectStackTraces: Bool)
     func trackException(_ exception: NSException, attributes: [String: AttributeValue]?, collectStackTraces: Bool)
+    // swiftlint:disable:next function_parameter_count
     func trackHttpEvent(url: String,
                         method: String,
                         startTime: UInt64,
@@ -22,7 +23,7 @@ protocol UserTriggeredEventCollector {
                         requestHeaders: [String: String]?,
                         responseHeaders: [String: String]?,
                         requestBody: String?,
-                        responseBody: String?)
+                        responseBody: String?) 
     func enable()
     func disable()
 }

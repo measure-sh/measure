@@ -1,0 +1,8 @@
+included:
+  - Sources/MeasureSDK
+
+excluded:
+  - Tests
+  - Pods
+  - .build
+  - DerivedData

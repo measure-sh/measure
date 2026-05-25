@@ -8,8 +8,6 @@
 
 public import Foundation
 public import CoreData
-
-
 public typealias SessionObCoreDataPropertiesSet = NSSet
 
 extension SessionOb {

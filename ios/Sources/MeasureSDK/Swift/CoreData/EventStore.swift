@@ -27,18 +27,21 @@ protocol EventStore {
 final class BaseEventStore: EventStore {
     private let coreDataManager: CoreDataManager
     private let logger: Logger
-
+    
     init(coreDataManager: CoreDataManager, logger: Logger) {
         self.coreDataManager = coreDataManager
         self.logger = logger
     }
+}
 
+// MARK: - Insert
+extension BaseEventStore {
     func insertEvent(event: EventEntity) {
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return
         }
-
+        
         context.performAndWait {
             let eventOb = EventOb(context: context)
             eventOb.id = event.id
@@ -68,7 +71,7 @@ final class BaseEventStore: EventStore {
             eventOb.screenView = event.screenView
             eventOb.bugReport = event.bugReport
             eventOb.needsReporting = event.needsReporting
-
+            
             if let attachments = event.attachments {
                 for attachment in attachments {
                     let attachmentOb = AttachmentOb(context: context)
@@ -82,7 +85,7 @@ final class BaseEventStore: EventStore {
                     attachmentOb.eventRel = eventOb
                 }
             }
-
+            
             do {
                 try context.saveIfNeeded()
             } catch {
@@ -90,20 +93,23 @@ final class BaseEventStore: EventStore {
             }
         }
     }
+}
 
+// MARK: - Fetch
+extension BaseEventStore {
     func getEvents(eventIds: [String]) -> [EventEntity]? {
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return nil
         }
-
+        
         var result: [EventEntity]?
-
+        
         context.performAndWait {
             let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
             fetchRequest.fetchLimit = eventIds.count
             fetchRequest.predicate = NSPredicate(format: "id IN %@", eventIds)
-
+            
             do {
                 let events = try context.fetch(fetchRequest)
                 result = events.compactMap { $0.toEntity() }
@@ -112,22 +118,22 @@ final class BaseEventStore: EventStore {
                 result = nil
             }
         }
-
+        
         return result
     }
-
+    
     func getEventsForSessions(sessions: [String]) -> [EventEntity]? {
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return nil
         }
-
+        
         var result: [EventEntity]?
-
+        
         context.performAndWait {
             let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessions)
-
+            
             do {
                 let events = try context.fetch(fetchRequest)
                 result = events.compactMap { $0.toEntity() }
@@ -136,36 +142,36 @@ final class BaseEventStore: EventStore {
                 result = nil
             }
         }
-
+        
         return result
     }
-
+    
     func getUnBatchedEvents(eventCount: Number, ascending: Bool, sessionId: String?) -> [String] {
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return []
         }
-
+        
         var eventIds: [String] = []
-
+        
         context.performAndWait {
             let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
             fetchRequest.fetchLimit = Int(eventCount)
             fetchRequest.sortDescriptors = [
                 NSSortDescriptor(key: "timestampInMillis", ascending: ascending)
             ]
-
+            
             var predicates: [NSPredicate] = [
                 NSPredicate(format: "batchId == nil"),
                 NSPredicate(format: "needsReporting == %@", NSNumber(value: true))
             ]
-
+            
             if let sessionId = sessionId {
                 predicates.append(NSPredicate(format: "sessionId == %@", sessionId))
             }
-
+            
             fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
-
+            
             do {
                 let events = try context.fetch(fetchRequest)
                 eventIds = events.compactMap { $0.id }
@@ -173,97 +179,10 @@ final class BaseEventStore: EventStore {
                 logger.internalLog(level: .error, message: "EventStore: Failed to fetch unbatched events.", error: error, data: nil)
             }
         }
-
+        
         return eventIds
     }
-
-    func deleteEvents(eventIds: [String]) {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
-            return
-        }
-
-        context.performAndWait {
-            let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "id IN %@", eventIds)
-
-            do {
-                let events = try context.fetch(fetchRequest)
-                events.forEach { context.delete($0) }
-                try context.saveIfNeeded()
-            } catch {
-                logger.internalLog(level: .error, message: "EventStore: Failed to delete events by IDs.", error: error, data: nil)
-            }
-        }
-    }
-
-    func deleteEvents(sessionIds: [String]) {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
-            return
-        }
-
-        context.performAndWait {
-            let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
-
-            do {
-                let events = try context.fetch(fetchRequest)
-                events.forEach { context.delete($0) }
-                try context.saveIfNeeded()
-            } catch {
-                logger.internalLog(level: .error, message: "EventStore: Failed to delete events by session IDs.", error: error, data: nil)
-            }
-        }
-    }
-
-    func updateBatchId(_ batchId: String, for events: [String]) {
-        guard !events.isEmpty else { return }
-
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
-            return
-        }
-
-        context.performAndWait {
-            let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "id IN %@", events)
-
-            do {
-                let fetchedEvents = try context.fetch(fetchRequest)
-                fetchedEvents.forEach { $0.batchId = batchId }
-                try context.saveIfNeeded()
-            } catch {
-                logger.internalLog(level: .error, message: "EventStore: Failed to update batchId for events.", error: error, data: nil)
-            }
-        }
-    }
-
-    func updateNeedsReportingForJourneyEvents(sessionId: String, needsReporting: Bool) {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
-            return
-        }
-
-        context.performAndWait {
-            let journeyEventTypes = DefaultConfig.journeyEvents.map { $0.rawValue }
-
-            let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
-            fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-                NSPredicate(format: "sessionId == %@", sessionId),
-                NSPredicate(format: "type IN %@", journeyEventTypes)
-            ])
-
-            do {
-                let events = try context.fetch(fetchRequest)
-                events.forEach { $0.needsReporting = needsReporting }
-                try context.saveIfNeeded()
-            } catch {
-                logger.internalLog(level: .error, message: "EventStore: Failed to update needsReporting for journey events.", error: error, data: nil)
-            }
-        }
-    }
-
+    
     func getEventsCount() -> Int {
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
@@ -388,7 +307,101 @@ final class BaseEventStore: EventStore {
 
         return result
     }
+
 }
+
+// MARK: - Delete
+extension BaseEventStore {
+    func deleteEvents(eventIds: [String]) {
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
+            return
+        }
+        
+        context.performAndWait {
+            let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "id IN %@", eventIds)
+            
+            do {
+                let events = try context.fetch(fetchRequest)
+                events.forEach { context.delete($0) }
+                try context.saveIfNeeded()
+            } catch {
+                logger.internalLog(level: .error, message: "EventStore: Failed to delete events by IDs.", error: error, data: nil)
+            }
+        }
+    }
+    
+    func deleteEvents(sessionIds: [String]) {
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
+            return
+        }
+        
+        context.performAndWait {
+            let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "sessionId IN %@", sessionIds)
+            
+            do {
+                let events = try context.fetch(fetchRequest)
+                events.forEach { context.delete($0) }
+                try context.saveIfNeeded()
+            } catch {
+                logger.internalLog(level: .error, message: "EventStore: Failed to delete events by session IDs.", error: error, data: nil)
+            }
+        }
+    }
+}
+    
+// MARK: - Update
+extension BaseEventStore {
+        func updateBatchId(_ batchId: String, for events: [String]) {
+            guard !events.isEmpty else { return }
+            
+            guard let context = coreDataManager.backgroundContext else {
+                logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
+                return
+            }
+            
+            context.performAndWait {
+                let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
+                fetchRequest.predicate = NSPredicate(format: "id IN %@", events)
+                
+                do {
+                    let fetchedEvents = try context.fetch(fetchRequest)
+                    fetchedEvents.forEach { $0.batchId = batchId }
+                    try context.saveIfNeeded()
+                } catch {
+                    logger.internalLog(level: .error, message: "EventStore: Failed to update batchId for events.", error: error, data: nil)
+                }
+            }
+        }
+        
+        func updateNeedsReportingForJourneyEvents(sessionId: String, needsReporting: Bool) {
+            guard let context = coreDataManager.backgroundContext else {
+                logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
+                return
+            }
+            
+            context.performAndWait {
+                let journeyEventTypes = DefaultConfig.journeyEvents.map { $0.rawValue }
+                
+                let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
+                fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                    NSPredicate(format: "sessionId == %@", sessionId),
+                    NSPredicate(format: "type IN %@", journeyEventTypes)
+                ])
+                
+                do {
+                    let events = try context.fetch(fetchRequest)
+                    events.forEach { $0.needsReporting = needsReporting }
+                    try context.saveIfNeeded()
+                } catch {
+                    logger.internalLog(level: .error, message: "EventStore: Failed to update needsReporting for journey events.", error: error, data: nil)
+                }
+            }
+        }
+    }
 
 extension EventOb {
     func toEntity() -> EventEntity? {

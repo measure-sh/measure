@@ -26,8 +26,8 @@ enum ElementType: String, Codable {
 struct SnapshotNode: Codable {
     let label: String
     let type: ElementType
-    let x: Double
-    let y: Double
+    let x: Double // swiftlint:disable:this identifier_name
+    let y: Double // swiftlint:disable:this identifier_name
     let width: Double
     let height: Double
     let highlighted: Bool
@@ -36,8 +36,8 @@ struct SnapshotNode: Codable {
 
     init(label: String,
          type: ElementType = .container,
-         x: Double,
-         y: Double,
+         x: Double, // swiftlint:disable:this identifier_name
+         y: Double, // swiftlint:disable:this identifier_name
          width: Double,
          height: Double,
          highlighted: Bool = false,

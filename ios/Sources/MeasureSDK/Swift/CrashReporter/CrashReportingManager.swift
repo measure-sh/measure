@@ -19,7 +19,6 @@ protocol CrashReportManager {
 
 final class BaseCrashReportingManager: CrashReportManager {
     private static let kotlinCrashMarker = "msr_kmp_kotlin_crash"
-    
     private var crashReporter: SystemCrashReporter
     private let logger: Logger
     private let signalProcessor: SignalProcessor

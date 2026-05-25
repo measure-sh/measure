@@ -46,6 +46,6 @@ struct DefaultConfig {
         "Set-Cookie",
         "Proxy-Authorization",
         "WWW-Authenticate",
-        "X-Api-Key",
+        "X-Api-Key"
     ]
 }

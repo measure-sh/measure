@@ -53,10 +53,10 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
     private let attributeProcessors: [AttributeProcessor]
     private let signalSampler: SignalSampler
     private let configProvider: ConfigProvider
-
+    
     private var isEnabled = AtomicBool(false)
     var isForeground: Bool
-
+    
     init(logger: Logger,
          timeProvider: TimeProvider,
          signalProcessor: SignalProcessor,
@@ -73,21 +73,26 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
         self.configProvider = configProvider
         self.isForeground = true
     }
+}
 
+extension BaseInternalSignalCollector {
     // Enables the collector
     func enable() {
         isEnabled.setTrueIfFalse {
             logger.log(level: .info, message: "InternalEventCollector enabled.", error: nil, data: nil)
         }
     }
-
+    
     // Disables the collector
     func disable() {
         isEnabled.setFalseIfTrue {
             logger.log(level: .info, message: "InternalEventCollector disabled.", error: nil, data: nil)
         }
     }
+}
 
+  // MARK: - Event Tracking
+extension BaseInternalSignalCollector {
     // Tracks an event.
     //
     // swiftlint:disable:next function_parameter_count function_body_length cyclomatic_complexity
@@ -103,10 +108,10 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
         attachments: [MsrAttachment]
     ) {
         guard isEnabled.get() else { return }
-
+        
         let evaluatedAttributes = Attributes(threadName: threadName)
         let serializedUserDefinedAttributes = EventSerializer.serializeUserDefinedAttribute(userDefinedAttrs)
-
+        
         do {
             switch type {
             case EventType.custom.rawValue:
@@ -123,7 +128,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     needsReporting: false,
                     synchronous: false
                 )
-
+                
             case EventType.exception.rawValue:
                 // Adding foreground property to the exception data here
                 if data.keys.contains("foreground") {
@@ -149,7 +154,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     needsReporting: true,
                     synchronous: false
                 )
-
+                
             case EventType.screenView.rawValue:
                 let screenViewData = try extractScreenViewData(data: data)
                 signalProcessor.track(
@@ -164,7 +169,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     needsReporting: signalSampler.shouldTrackJourneyForSession(sessionId: sessionId ?? sessionManager.sessionId),
                     synchronous: false
                 )
-
+                
             case EventType.http.rawValue:
                 let httpData = try extractHttpData(data: data)
                 signalProcessor.track(
@@ -179,7 +184,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     needsReporting: signalSampler.shouldSampleHttpEvent(),
                     synchronous: false
                 )
-
+                
             case EventType.bugReport.rawValue:
                 let bugReportData = try extractBugReportData(data: data)
                 sessionManager.markCurrentSessionAsCrashed()
@@ -254,7 +259,9 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
             )
         }
     }
-
+}
+// MARK: - Span Tracking
+extension BaseInternalSignalCollector {
     // Tracks a span.
     //
     // Spans from cross platform frameworks do not contain session ID and
@@ -276,10 +283,10 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
         isSampled: Bool
     ) {
         guard isEnabled.get() else { return }
-
+        
         // get session
         let sessionId = sessionManager.sessionId
-
+        
         // apply attributes
         let parsedAttributes = Attributes(dict: attributes)
         for attributeProcessor in attributeProcessors {
@@ -287,7 +294,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
         }
         
         let spanIsSampled = configProvider.enableFullCollectionMode || isSampled
-
+        
         // deserialize checkpoints
         let parsedCheckpoints: [Checkpoint] = checkpoints.compactMap { entry in
             return Checkpoint(
@@ -295,7 +302,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                 timestamp: timeProvider.iso8601Timestamp(timeInMillis: entry.value)
             )
         }
-
+        
         let spanData = SpanData(
             name: name,
             traceId: traceId,
@@ -312,45 +319,47 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
             hasEnded: hasEnded,
             isSampled: spanIsSampled
         )
-
+        
         signalProcessor.trackSpan(spanData)
     }
-
+}
+  // MARK: - Data Extraction
+extension BaseInternalSignalCollector {
     func extractCustomEventData(data: [String: Any?]) throws -> CustomEventData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(CustomEventData.self, from: jsonData)
     }
-
+    
     func extractExceptionData(data: [String: Any?]) throws -> Exception {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [.prettyPrinted])
         return try JSONDecoder().decode(Exception.self, from: jsonData)
     }
-
+    
     func extractScreenViewData(data: [String: Any?]) throws -> ScreenViewData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(ScreenViewData.self, from: jsonData)
     }
-
+    
     func extractHttpData(data: [String: Any?]) throws -> HttpData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(HttpData.self, from: jsonData)
     }
-
+    
     func extractBugReportData(data: [String: Any?]) throws -> BugReportData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(BugReportData.self, from: jsonData)
     }
-
+    
     func extractClickData(data: [String: Any?]) throws -> ClickData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(ClickData.self, from: jsonData)
     }
-
+    
     func extractLongClickData(data: [String: Any?]) throws -> LongClickData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(LongClickData.self, from: jsonData)
     }
-
+    
     func extractScrollData(data: [String: Any?]) throws -> ScrollData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(ScrollData.self, from: jsonData)

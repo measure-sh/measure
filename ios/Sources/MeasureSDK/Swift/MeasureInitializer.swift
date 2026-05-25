@@ -143,7 +143,7 @@ protocol MeasureInitializer {
 /// - `measureDispatchQueue`: `MeasureDispatchQueue` object to run tasks on a serial queue.
 /// - `attributeValueValidator`: `AttributeValueValidator` object to validate user defined attributes
 /// - `signalSampler`: `SignalSampler` object that is responsible for managing event sampling.
-///
+
 final class BaseMeasureInitializer: MeasureInitializer {
     let configLoader: ConfigLoader
     let configProvider: ConfigProvider
@@ -211,8 +211,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let signalSampler: SignalSampler
     let attributeTransformer: AttributeTransformer
 
-    init(config: MeasureConfig, // swiftlint:disable:this function_body_length
-         client: Client) {
+    init(config: MeasureConfig,
+         client: Client) { // swiftlint:disable:this function_body_length
         let defaultConfig = Config(enableLogging: config.enableLogging,
                                    autoStart: config.autoStart,
                                    enableFullCollectionMode: config.enableFullCollectionMode,

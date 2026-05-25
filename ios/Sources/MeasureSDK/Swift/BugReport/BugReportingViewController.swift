@@ -24,7 +24,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     private let bugReportConfig: BugReportConfig
     private let idProvider: IdProvider
     private let systemFileManager: SystemFileManager
-
+    
     private let imagesCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
@@ -36,10 +36,10 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     }()
     private let maxAttachmentsLabel = UILabel()
     private var attachments: [MsrAttachment]
-
+    
     private let screenshotButton = UIButton(type: .system)
     private let galleryButton = UIButton(type: .system)
-
+    
     private var screenshotButtonBottomConstraint: NSLayoutConstraint?
     private var galleryButtonBottomConstraint: NSLayoutConstraint?
     private var textViewHeightConstraint: NSLayoutConstraint?
@@ -47,7 +47,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     private var galleryButtonTopToCollectionConstraint: NSLayoutConstraint?
     private var screenshotButtonTopToLabelConstraint: NSLayoutConstraint?
     private var galleryButtonTopToLabelConstraint: NSLayoutConstraint?
-
+    
     init(description: String?,
          attachments: [MsrAttachment] = [],
          configProvider: ConfigProvider,
@@ -63,31 +63,31 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
         self.systemFileManager = systemFileManager
         super.init(nibName: nil, bundle: nil)
     }
-
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = bugReportConfig.colors.background
-
+        
         setupNavBar()
         setupTextView()
         setupImagesCollectionView()
         setupMaxAttachmentsLabel()
         setupActionButtons()
         setupConstraints()
-
+        
         imagesCollectionView.reloadData()
         updateConstraints(for: view.bounds.size)
     }
-
+    
     private func setupNavBar() {
         navBar.backgroundColor = bugReportConfig.colors.background
         navBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(navBar)
-
+        
         // Cancel button with cross icon
         if #available(iOS 13.0, *) {
             cancelButton.setImage(UIImage(systemName: "xmark"), for: .normal)
@@ -99,14 +99,14 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
         cancelButton.translatesAutoresizingMaskIntoConstraints = false
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         navBar.addSubview(cancelButton)
-
+        
         // Title
         titleLabel.text = bugReportConfig.text.reportBugTitle
         titleLabel.textColor = bugReportConfig.colors.text
         titleLabel.font = bugReportConfig.fonts.title
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         navBar.addSubview(titleLabel)
-
+        
         // Send button
         sendButton.setTitle(bugReportConfig.text.sendButton, for: .normal)
         sendButton.titleLabel?.font = bugReportConfig.fonts.button
@@ -116,14 +116,14 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
         sendButton.setTitleColor(sendButton.isEnabled ? bugReportConfig.colors.text : bugReportConfig.colors.placeholder, for: .normal)
         navBar.addSubview(sendButton)
     }
-
+    
     @objc private func cancelTapped() {
         self.dismiss(animated: true) {
             guard let delegate = self.delegate else { return }
             delegate.bugReportingViewControllerDidDismiss(nil, attachments: nil)
         }
     }
-
+    
     @objc private func sentTapped() {
         guard !textView.text.isEmpty && !attachments.isEmpty else { return }
         self.dismiss(animated: true) { [weak self] in
@@ -135,7 +135,10 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
             delegate.bugReportingViewControllerDidDismiss(text, attachments: self.attachments)
         }
     }
+}
 
+// MARK: - View Setup
+extension BugReportingViewController {
     private func setupTextView() {
         textView.backgroundColor = .clear
         textView.textColor = bugReportConfig.colors.text

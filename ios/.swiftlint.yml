@@ -1,12 +1,17 @@
-opt_in_rules: # some rules are only opt-in
-  - empty_count
-  # Find all the available rules by running:
-  # swiftlint rules
-included: # paths to include during linting. `--path` is ignored if present.
-  - Sources
+
+included:
+  - Sources/MeasureSDK
+
+excluded:
   - Tests
+  - Pods
+  - .build
+  - DerivedData
   - DemoApp
   - TestApp
+  
+opt_in_rules: # some rules are only opt-in
+  - empty_count
 analyzer_rules: # Rules run by `swiftlint analyze` (experimental)
   - explicit_self
 # configurable rules can be customized from this configuration file
@@ -43,4 +48,21 @@ identifier_name:
     - id
     - URL
     - GlobalAPIKey
+  allowed_symbols: ["_"] # these are allowed in identifier names
 reporter: "xcode" # reporter type (xcode, json, csv, checkstyle, junit, html, emoji, sonarqube, markdown)
+disabled_rules:
+  - trailing_whitespace
+  
+vertical_whitespace:
+  - max_empty_lines: 2 # Allows up to 2 consecutive blank lines
+
+function_body_length:
+  warning: 60
+  
+function_parameter_count:
+  warning: 10
+  
+cyclomatic_complexity:
+  warning: 15
+  ignores_case_statements: true
+

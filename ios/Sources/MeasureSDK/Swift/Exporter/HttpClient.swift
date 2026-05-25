@@ -82,9 +82,15 @@ final class BaseHttpClient: HttpClient {
         let task = session.dataTask(with: request) { data, urlResponse, error in
             response = self.handleRequestCompletion(data: data, urlResponse: urlResponse, error: error) { newUrl in
                 // Handle recursive redirect for file upload
-                self.uploadFileWithRedirects(url: newUrl, method: method, contentType: contentType, contentEncoding: contentEncoding, headers: headers, fileData: fileData, redirectCount: redirectCount + 1)
+                self.uploadFileWithRedirects(url: newUrl,
+                                             method: method,
+                                             contentType: contentType,
+                                             contentEncoding: contentEncoding,
+                                             headers: headers,
+                                             fileData: fileData,
+                                             redirectCount: redirectCount + 1)
             }
-            semaphore.signal()  
+            semaphore.signal()
         }
 
         task.resume()
@@ -108,7 +114,6 @@ final class BaseHttpClient: HttpClient {
             return self.processResponse(data: data, urlResponse: urlResponse)
         }
     }
-
 
     private func isRedirect(_ statusCode: Int) -> Bool {
         return statusCode == 307 || statusCode == 308
@@ -158,7 +163,6 @@ final class BaseHttpClient: HttpClient {
 
         return request
     }
-
 
     private func processResponse(data: Data?, urlResponse: URLResponse?) -> HttpResponse {
         guard let httpResponse = urlResponse as? HTTPURLResponse else {

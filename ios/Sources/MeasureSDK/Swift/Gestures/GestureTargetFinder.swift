@@ -7,7 +7,7 @@
 
 import UIKit
 
-typealias TargetFinderTuple = (target: String?, targetId: String?, targetFrame: CGRect?)
+typealias TargetFinderTuple = (target: String?, targetId: String?, targetFrame: CGRect?) // swiftlint:disable:this large_tuple
 
 protocol GestureTargetFinder {
     func findClickable(x: CGFloat, y: CGFloat, window: UIWindow) -> TargetFinderTuple  // swiftlint:disable:this identifier_name

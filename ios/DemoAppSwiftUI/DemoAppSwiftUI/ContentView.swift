@@ -42,7 +42,7 @@ struct ContentView: View {
                     }
 
                     Button("bug report") {
-                        Measure.launchBugReport(takeScreenshot: true)
+                        MeasureManager.launchBugReport(takeScreenshot: true)
                     }
                     // Button 3: Modal Navigation using .sheet
                     Button("Present Modal with .sheet") {
@@ -57,7 +57,7 @@ struct ContentView: View {
                     .cornerRadius(8)
 
                     Button("Launch Bug Report") {
-                        Measure.launchBugReport(takeScreenshot: true)
+                        MeasureManager.launchBugReport(takeScreenshot: true)
                     }
                     // Button 4: Full-Screen Cover
                     Button("Present Full Screen") {

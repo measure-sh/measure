@@ -87,7 +87,6 @@ final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
                             children: children)
     }
 
-
     private func resolveElementType(for view: UIView) -> ElementType {
         switch view {
         case is UIButton: return .button

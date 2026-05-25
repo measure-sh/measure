@@ -30,7 +30,7 @@ final class BaseExporter: Exporter {
     private var backgroundTaskId: UIBackgroundTaskIdentifier = .invalid
     private static let maxBatchPayloadSizeBytes = 10 * 1024 * 1024
     private static let estimatedEventSizeBytes = 1024
-
+    
     init(
         logger: Logger,
         idProvider: IdProvider,
@@ -60,33 +60,34 @@ final class BaseExporter: Exporter {
         self.configProvider = configProvider
         self.systemFileManager = systemFileManager
     }
-
+    
     func export() {
         var started = false
         isExporting.setTrueIfFalse { started = true }
-
+        
         guard started else {
             logger.internalLog(level: .debug, message: "Exporter: export already in progress, skipping", error: nil, data: nil)
             return
         }
-
+        
         logger.internalLog(level: .debug, message: "Exporter: starting export", error: nil, data: nil)
-
+        
         startBackgroundTask()
-
+        
         dispatchQueue.async { [weak self] in
             guard let self else { return }
-
+            
             self.exportEvents()
             self.exportAttachments()
-
+            
             self.isExporting.set(false)
             self.endBackgroundTask()
-
+            
             self.logger.internalLog(level: .debug, message: "Exporter: export finished", error: nil, data: nil)
         }
     }
-
+}
+extension BaseExporter {
     private func startBackgroundTask() {
         guard backgroundTaskId == .invalid else { return }
 

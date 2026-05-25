@@ -9,7 +9,6 @@
 import Foundation
 import CoreData
 
-
 typealias AttachmentObCoreDataPropertiesSet = NSSet
 
 extension AttachmentOb {
@@ -20,7 +19,7 @@ extension AttachmentOb {
 
     @NSManaged var attachmentSize: Int64
     @NSManaged var bytes: Data?
-    @NSManaged var expires_at: String?
+    @NSManaged var expires_at: String? // swiftlint:disable:this identifier_name
     @NSManaged var headers: Data?
     @NSManaged var id: String?
     @NSManaged var name: String?

@@ -48,8 +48,8 @@ final class BaseHttpEventValidator: HttpEventValidator {
 
         var trimmedString: String? = String(data: trimmedData, encoding: .utf8)
         if trimmedString == nil {
-            for i in (0..<min(4, trimmedData.count)).reversed() {
-                let validData = trimmedData.prefix(trimmedData.count - i)
+            for bytesToTrim in (0..<min(4, trimmedData.count)).reversed() {
+                let validData = trimmedData.prefix(trimmedData.count - bytesToTrim)
                 if let str = String(data: validData, encoding: .utf8) {
                     trimmedString = str
                     break

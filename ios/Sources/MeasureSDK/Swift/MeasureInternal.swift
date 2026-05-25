@@ -169,24 +169,8 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     init(_ measureInitializer: MeasureInitializer) {
         self.measureInitializer = measureInitializer
         self.lifecycleObserver = LifecycleObserver()
-        self.launchTracker.setOnAppLaunchCallback {
-            self.lifecycleCollector.applicationDidLaunch()
-        }
-        if configProvider.enableDiagnosticMode {
-            let logWriter = SdkDebugLogWriter(fileManager: systemFileManager,
-                                             sdkVersion: FrameworkInfo.version,
-                                             fileId: "\(timeProvider.now())",
-                                             timeProvider: timeProvider,
-                                             measureDispatchQueue: measureDispatchQueue)
-            logWriter.start()
-            logger.setLogCallback { logLevel, message, error in
-                logWriter.writeLog(level: logLevel, message: message, error: error)
-            }
-
-            if configProvider.enableDiagnosticModeGesture {
-                enableDoubleTapGesture()
-            }
-        }
+        setupLaunchTracker()
+        setupDiagnosticMode()
         self.sessionManager.start()
         self.lifecycleObserver.applicationDidEnterBackground = applicationDidEnterBackground
         self.lifecycleObserver.applicationWillEnterForeground = applicationWillEnterForeground
@@ -232,7 +216,31 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             self.exporter.export()
         }
     }
+    
+    private func setupLaunchTracker() {
+        self.launchTracker.setOnAppLaunchCallback {
+            self.lifecycleCollector.applicationDidLaunch()
+        }
+    }
+    
+    private func setupDiagnosticMode() {
+        if configProvider.enableDiagnosticMode {
+            let logWriter = SdkDebugLogWriter(fileManager: systemFileManager,
+                                             sdkVersion: FrameworkInfo.version,
+                                             fileId: "\(timeProvider.now())",
+                                             timeProvider: timeProvider,
+                                             measureDispatchQueue: measureDispatchQueue)
+            logWriter.start()
+            logger.setLogCallback { logLevel, message, error in
+                logWriter.writeLog(level: logLevel, message: message, error: error)
+            }
 
+            if configProvider.enableDiagnosticModeGesture {
+                enableDoubleTapGesture()
+            }
+        }
+    }
+    
     private func enableDoubleTapGesture() {
         DispatchQueue.main.async {
             guard let window = UIWindow.keyWindow() else { return }
@@ -264,7 +272,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         let activityVC = UIActivityViewController(activityItems: files, applicationActivities: nil)
         rootViewController.present(activityVC, animated: true)
     }
-
 
     func start() {
         guard !isStarted else { return }
@@ -536,7 +543,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.appLaunchCollector.enable()
     }
 
-
     private func trackSessionStart(_ sessionId: String, timestamp: Number) {
         self.signalProcessor.track(data: SessionStartData(),
                                    timestamp: timestamp,
@@ -549,4 +555,4 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
                                    needsReporting: true,
                                    synchronous: false)
     }
-}
+} // swiftlint:disable file_length

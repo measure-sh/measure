@@ -49,10 +49,11 @@ final class BaseSystemCrashReporter: SystemCrashReporter {
             .mainThreadDeadlock,
             .memoryTermination
         ]
-        config.crashNotifyCallback = { _ in
+        let crashCallback: @convention(c) (UnsafePointer<ExceptionHandlingPlan>, UnsafePointer<ReportWriter>) -> Void = { _, _ in
             CrashDataWriter.shared.writeCrashData()
         }
-
+        config.isWritingReportCallback = crashCallback
+        
         crashDataPersistence.prepareCrashFile()
 
         do {

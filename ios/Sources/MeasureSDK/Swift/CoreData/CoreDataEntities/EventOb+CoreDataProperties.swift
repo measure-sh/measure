@@ -9,7 +9,6 @@
 import Foundation
 import CoreData
 
-
 typealias EventObCoreDataPropertiesSet = NSSet
 
 extension EventOb {

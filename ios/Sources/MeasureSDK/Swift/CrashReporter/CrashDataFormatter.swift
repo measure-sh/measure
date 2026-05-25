@@ -14,11 +14,11 @@ final class CrashDataFormatter {
     private var isLp64 = true
     private var executableName: String?
 
-    private var crashDict: [String: Any]     { report["crash"]          as? [String: Any]    ?? [:] }
-    private var errorDict: [String: Any]     { crashDict["error"]       as? [String: Any]    ?? [:] }
-    private var threadDicts: [[String: Any]] { crashDict["threads"]     as? [[String: Any]]  ?? [] }
+    private var crashDict: [String: Any] { report["crash"] as? [String: Any] ?? [:] }
+    private var errorDict: [String: Any] { crashDict["error"] as? [String: Any] ?? [:] }
+    private var threadDicts: [[String: Any]] { crashDict["threads"] as? [[String: Any]] ?? [] }
     private var binaryImageDicts: [[String: Any]] { report["binary_images"] as? [[String: Any]] ?? [] }
-    private var systemDict: [String: Any]    { report["system"]         as? [String: Any]    ?? [:] }
+    private var systemDict: [String: Any] { report["system"] as? [String: Any] ?? [:] }
 
     init(_ report: [String: Any], sysCtl: SysCtl) {
         self.report = report
@@ -59,26 +59,26 @@ final class CrashDataFormatter {
 
     func parseExceptionDetail(crashedThread: ThreadDetail?) -> ExceptionDetail {
         return ExceptionDetail(
-            type:           parseExceptionName(),
-            message:        parseExceptionReason(),
-            frames:         crashedThread?.frames,
-            signal:         parseSignalName(),
-            threadName:     crashedThread?.name,
+            type: parseExceptionName(),
+            message: parseExceptionReason(),
+            frames: crashedThread?.frames,
+            signal: parseSignalName(),
+            threadName: crashedThread?.name,
             threadSequence: crashedThread?.sequence ?? 0,
-            osBuildNumber:  sysCtl.getOsBuildNumber()
+            osBuildNumber: sysCtl.getOsBuildNumber()
         )
     }
 
     func parseExceptionName() -> String {
-        if let ns   = errorDict["nsexception"]   as? [String: Any], let n = ns["name"]             as? String { return n }
-        if let mach = errorDict["mach"]          as? [String: Any], let n = mach["exception_name"] as? String { return n }
-        if let sig  = errorDict["signal"]        as? [String: Any], let n = sig["name"]            as? String { return n }
+        if let nsexception   = errorDict["nsexception"] as? [String: Any], let name = nsexception["name"]             as? String { return name }
+        if let mach = errorDict["mach"] as? [String: Any], let name = mach["exception_name"] as? String { return name }
+        if let sig  = errorDict["signal"] as? [String: Any], let name = sig["name"] as? String { return name }
         return ""
     }
 
     func parseExceptionReason() -> String {
-        if let ns  = errorDict["nsexception"]   as? [String: Any], let r = ns["reason"]   as? String { return r }
-        if let cpp = errorDict["cpp_exception"] as? [String: Any], let r = cpp["reason"]  as? String { return r }
+        if let ns_exception  = errorDict["nsexception"] as? [String: Any], let reason = ns_exception["reason"] as? String { return reason }
+        if let cpp = errorDict["cpp_exception"] as? [String: Any], let reason = cpp["reason"] as? String { return reason }
         if let mach = errorDict["mach"] as? [String: Any], let codeName = mach["code_name"] as? String {
             let subcode = (mach["subcode"] as? Int).map { ", subcode: \($0)" } ?? ""
             return codeName + subcode
@@ -97,9 +97,9 @@ final class CrashDataFormatter {
     }
 
     func parseThread(_ dict: [String: Any]) -> ThreadDetail {
-        let index   = dict["index"]   as? Int  ?? 0
+        let index   = dict["index"] as? Int  ?? 0
         let crashed = dict["crashed"] as? Bool ?? (dict["crashed"] as? Int == 1)
-        let name    = dict["name"]    as? String
+        let name    = dict["name"] as? String
                    ?? (crashed ? "Thread \(index) Crashed" : "Thread \(index)")
         let frames  = parseFrames(dict)
         return ThreadDetail(name: name, frames: frames, sequence: Number(index))
@@ -107,8 +107,8 @@ final class CrashDataFormatter {
 
     func parseFrames(_ threadDict: [String: Any]) -> [StackFrame] {
         guard
-            let bt       = threadDict["backtrace"] as? [String: Any],
-            let contents = bt["contents"]          as? [[String: Any]]
+            let backtrace = threadDict["backtrace"] as? [String: Any],
+            let contents = backtrace["contents"] as? [[String: Any]]
         else { return [] }
 
         return contents.enumerated().map { idx, frame in
@@ -118,9 +118,9 @@ final class CrashDataFormatter {
 
     func parseFrame(_ frame: [String: Any], index: Int) -> StackFrame {
         let instrAddr = frame["instruction_addr"] as? UInt64
-        let objAddr   = frame["object_addr"]      as? UInt64
-        let symAddr   = frame["symbol_addr"]      as? UInt64
-        let objName   = frame["object_name"]      as? String
+        let objAddr   = frame["object_addr"] as? UInt64
+        let symAddr   = frame["symbol_addr"] as? UInt64
+        let objName   = frame["object_name"] as? String
         let offset: Int? = (instrAddr != nil && symAddr != nil)
                 ? Int(instrAddr! - symAddr!)
                 : nil
@@ -220,8 +220,8 @@ final class CrashDataFormatter {
     }
 
     private func isAppBinary(name: String?) -> Bool {
-        guard let n = name else { return false }
-        let short = URL(fileURLWithPath: n).lastPathComponent
+        guard let binaryName = name else { return false }
+        let short = URL(fileURLWithPath: binaryName).lastPathComponent
         let exec  = executableName ?? ""
         return short == exec
             || short.hasSuffix(".debug.dylib")

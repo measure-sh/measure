@@ -90,7 +90,7 @@ final class BaseNetworkClient: NetworkClient {
                 let config = try decoder.decode(BaseDynamicConfig.self, from: data)
 
                 // default 5 minutes if backend forgets
-                let cacheControl = 300//config.cacheControlSeconds ?? 300
+                let cacheControl = 300// config.cacheControlSeconds ?? 300
 
                 return .success(
                     config: config,

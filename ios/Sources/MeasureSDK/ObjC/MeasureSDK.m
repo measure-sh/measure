@@ -33,7 +33,7 @@
                                            enableDiagnosticModeGesture:config.enableDiagnosticModeGesture];
     }
 
-    [Measure initializeWith:client config:swiftConfig];
+    [MeasureManager initializeWith:client config:swiftConfig];
 }
 
 @end
