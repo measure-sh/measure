@@ -14,6 +14,7 @@ import (
 	"backend/api/server"
 	"backend/libs/concur"
 	"backend/libs/inet"
+	"backend/libs/posthog"
 
 	"github.com/gin-gonic/gin"
 
@@ -266,4 +267,8 @@ func main() {
 	// Wait for all background tasks
 	fmt.Println("Waiting for background tasks...")
 	concur.GlobalWg.Wait()
+
+	// Flush PostHog after background tasks settle so any events they enqueue
+	// during shutdown still get delivered.
+	posthog.Close()
 }

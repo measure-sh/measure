@@ -1,20 +1,22 @@
 import { buttonVariants } from "@/app/components/button_variants";
+import TrackCtaLink from "@/app/components/analytics/track_cta_link";
 import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
-import Link from "next/link";
 import LandingFooter from "../../components/landing_footer";
 import LandingHeader from "../../components/landing_header";
 import UserJourneysDemo from "./user_journeys_demo";
 
 export const metadata: Metadata = {
   title: "User Journey Tracking for Mobile Apps",
-  description: "Understand how users actually move through your mobile app. Track popular paths, find friction and prioritize the flows that matter most.",
+  description:
+    "Understand how users actually move through your mobile app. Track popular paths, find friction and prioritize the flows that matter most.",
   alternates: { canonical: "/product/user-journeys" },
   openGraph: {
     ...sharedOpenGraph,
     title: "User Journey Tracking for Mobile Apps",
-    description: "Understand how users actually move through your mobile app. Track popular paths, find friction and prioritize the flows that matter most.",
+    description:
+      "Understand how users actually move through your mobile app. Track popular paths, find friction and prioritize the flows that matter most.",
     url: "/product/user-journeys",
   },
 };
@@ -65,7 +67,9 @@ export default function ProductUserJourneys() {
         </div>
 
         {/* CTA */}
-        <Link
+        <TrackCtaLink
+          location="product_user_journeys"
+          destination="signup"
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -73,7 +77,7 @@ export default function ProductUserJourneys() {
           )}
         >
           Get To The Root Cause
-        </Link>
+        </TrackCtaLink>
         <div className="py-16" />
       </div>
       <LandingFooter />

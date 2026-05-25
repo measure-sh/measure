@@ -19,6 +19,7 @@ import {
 } from "@/app/components/sidebar";
 import { signOut, useTeamsQuery } from "@/app/query/hooks";
 import { usePathname, useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import React, { useEffect, useMemo, useState } from "react";
 import { Team } from "../api/api_calls";
 import { apiClient } from "../api/api_client";
@@ -158,6 +159,15 @@ export default function DashboardLayout({
   useEffect(() => {
     apiClient.init(router);
   }, []);
+
+  // Group subsequent events by team so PostHog can attribute engagement to
+  // a team, not just an individual user.
+  useEffect(() => {
+    if (!selectedTeam) {
+      return;
+    }
+    posthog.group("team", selectedTeam.id, { name: selectedTeam.name });
+  }, [selectedTeam?.id, selectedTeam?.name]);
 
   useEffect(() => {
     const updatedNavData = { ...navData };

@@ -44,7 +44,12 @@ if (typeof globalThis.ResizeObserver === "undefined") {
 
 jest.mock("posthog-js", () => ({
   __esModule: true,
-  default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
+  default: {
+    reset: jest.fn(),
+    capture: jest.fn(),
+    init: jest.fn(),
+    group: jest.fn(),
+  },
 }));
 
 const mockRouterReplace = jest.fn();
@@ -55,6 +60,7 @@ jest.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
   useSearchParams: () => mockSearchParams,
   usePathname: () => "/test-team/apps",
+  useParams: () => ({ teamId: "test-team" }),
 }));
 
 jest.mock("next/link", () => ({

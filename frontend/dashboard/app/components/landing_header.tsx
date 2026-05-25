@@ -7,6 +7,8 @@ import { useScrollDirection } from "../utils/scroll_utils";
 import { cn } from "../utils/shadcn_utils";
 import { buttonVariants } from "./button_variants";
 import { ThemeToggle } from "./theme_toggle";
+import TrackCtaLink from "./analytics/track_cta_link";
+import TrackGithubLink from "./analytics/track_github_link";
 
 // Hook to detect if we're on a small screen
 function useIsSmallScreen() {
@@ -127,7 +129,7 @@ export default function LandingHeader() {
         <div className="hidden md:flex md:flex-row items-center justify-center">
           <ThemeToggle />
           <div className="px-2" />
-          <Link
+          <TrackGithubLink
             target="_blank"
             href="https://github.com/measure-sh/measure"
             className={cn(buttonVariants({ variant: "ghost" }), "group px-2")}
@@ -147,21 +149,25 @@ export default function LandingHeader() {
               alt={"GitHub logo"}
             />
             <span className="mt-0.5">1.3k</span>
-          </Link>
+          </TrackGithubLink>
           <div className="px-1" />
-          <Link
+          <TrackCtaLink
+            location="header"
+            destination="signup"
             href="/auth/login"
             className={cn(buttonVariants({ variant: "ghost" }), "px-4")}
           >
             Sign In
-          </Link>
+          </TrackCtaLink>
           <div className="px-1" />
-          <Link
+          <TrackCtaLink
+            location="header"
+            destination="signup"
             href="/auth/login"
             className={cn(buttonVariants({ variant: "default" }))}
           >
             Get Started
-          </Link>
+          </TrackCtaLink>
         </div>
       </div>
 
@@ -215,7 +221,7 @@ export default function LandingHeader() {
         <div className="py-2" />
         <ThemeToggle />
         <div className="py-1" />
-        <Link
+        <TrackGithubLink
           target="_blank"
           href="https://github.com/measure-sh/measure"
           className={cn(buttonVariants({ variant: "ghost" }))}
@@ -235,23 +241,27 @@ export default function LandingHeader() {
             alt={"GitHub logo"}
           />
           <span className="mt-0.5">1.1k</span>
-        </Link>
+        </TrackGithubLink>
         <div className="py-1" />
-        <Link
+        <TrackCtaLink
+          location="header"
+          destination="signup"
           href="/auth/login"
           className={cn(buttonVariants({ variant: "ghost" }))}
           onClick={() => setIsMenuOpen(false)}
         >
           Sign In
-        </Link>
+        </TrackCtaLink>
         <div className="py-1" />
-        <Link
+        <TrackCtaLink
+          location="header"
+          destination="signup"
           href="/auth/login"
           className={cn(buttonVariants({ variant: "default" }))}
           onClick={() => setIsMenuOpen(false)}
         >
           Get Started
-        </Link>
+        </TrackCtaLink>
       </div>
     </header>
   );

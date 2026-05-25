@@ -670,10 +670,26 @@ func handleProductsUpdated(ctx context.Context, data autumn.CustomerProductsUpda
 		if data.Scenario == autumn.ScenarioNew && data.UpdatedProduct.ID == autumnPlanFree {
 			return
 		}
-		applyPlanTransition(ctx, teamID, notifyUpgrade)
+		if err := applyPlanTransition(ctx, teamID, notifyUpgrade); err != nil {
+			return
+		}
+		owner, ok := lookupOwnerForAnalytics(ctx, teamID)
+		if !ok {
+			return
+		}
+		firePaidConversionEvent(ctx, owner, data)
+		firePurchaseEvent(ctx, teamID, owner, data)
+		if data.Scenario == autumn.ScenarioUpgrade {
+			fireSubscriptionUpgradedEvent(ctx, teamID, owner, data)
+		}
 
 	case autumn.ScenarioDowngrade, autumn.ScenarioExpired:
 		applyPlanTransition(ctx, teamID, notifyDowngrade)
+		owner, ok := lookupOwnerForAnalytics(ctx, teamID)
+		if !ok {
+			return
+		}
+		fireSubscriptionDowngradedEvent(ctx, teamID, owner, data)
 
 	case autumn.ScenarioCancel:
 		// Normally fires from our backend's cancel_end_of_cycle action — Pro
@@ -687,6 +703,11 @@ func handleProductsUpdated(ctx context.Context, data autumn.CustomerProductsUpda
 			return
 		}
 		applyPlanTransition(ctx, teamID, notifyDowngrade)
+		owner, ok := lookupOwnerForAnalytics(ctx, teamID)
+		if !ok {
+			return
+		}
+		fireSubscriptionCancelledEvent(ctx, teamID, owner, data)
 
 	case autumn.ScenarioRenew, autumn.ScenarioPastDue:
 		// No-op. renew = uncancel or cycle-boundary renewal (plan unchanged);
@@ -712,31 +733,37 @@ func proIsStillActive(c autumn.Customer, cancelledProductID string) bool {
 // fails, the whole webhook ack stays 200 (Svix won't retry) but we don't
 // leave the database in a half-applied state — the next plan event will
 // reconcile retention, and the missed email is a soft failure.
-func applyPlanTransition(ctx context.Context, teamID uuid.UUID, notify func(ctx context.Context, tx pgx.Tx, teamID uuid.UUID) error) {
+//
+// Returns the underlying error so callers can gate downstream side effects
+// (e.g. analytics events) on a successful transition. The error is already
+// logged here; callers should not log it again.
+func applyPlanTransition(ctx context.Context, teamID uuid.UUID, notify func(ctx context.Context, tx pgx.Tx, teamID uuid.UUID) error) error {
 	retention, err := GetPlanRetentionDays(ctx, teamID)
 	if err != nil {
 		log.Printf("webhook: resolve retention for team %s failed: %v", teamID, err)
-		return
+		return err
 	}
 
 	tx, err := server.Server.PgPool.Begin(ctx)
 	if err != nil {
 		log.Printf("webhook: begin tx for team %s failed: %v", teamID, err)
-		return
+		return err
 	}
 	defer tx.Rollback(ctx)
 
 	if err := resetAppsRetention(ctx, nil, tx, teamID, retention); err != nil {
 		log.Printf("webhook: reset retention for team %s failed: %v", teamID, err)
-		return
+		return err
 	}
 	if err := notify(ctx, tx, teamID); err != nil {
 		log.Printf("webhook: notify for team %s failed: %v", teamID, err)
-		return
+		return err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		log.Printf("webhook: commit for team %s failed: %v", teamID, err)
+		return err
 	}
+	return nil
 }
 
 func handleLimitReached(ctx context.Context, data autumn.BalancesLimitReachedData) {

@@ -11,6 +11,8 @@ import LandingFooter from "./components/landing_footer";
 import LandingHeader from "./components/landing_header";
 import LandingHeroAnimation from "./components/landing_hero_animation";
 import MCPDemo from "./components/mcp_demo";
+import TrackCtaLink from "./components/analytics/track_cta_link";
+import TrackGithubLink from "./components/analytics/track_github_link";
 import { sharedOpenGraph } from "./utils/metadata";
 import { cn } from "./utils/shadcn_utils";
 import { underlineLinkStyle } from "./utils/shared_styles";
@@ -132,7 +134,9 @@ export default function Home() {
 
         {/* CTA 1 */}
         <div className="py-4 md:py-12" />
-        <Link
+        <TrackCtaLink
+          location="hero"
+          destination="signup"
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -140,7 +144,7 @@ export default function Home() {
           )}
         >
           Get To The Root Cause
-        </Link>
+        </TrackCtaLink>
 
         {/* Trusted By */}
         <div className="py-16" />
@@ -381,7 +385,7 @@ export default function Home() {
             <div className="flex flex-col items-center justify-center w-full md:w-1/2 h-32 border-r md:border-r-0 border-l border-t border-border">
               <p className="text-4xl font-body text-center">Open Source</p>
               <div className="py-1" />
-              <Link
+              <TrackGithubLink
                 target="_blank"
                 href="https://github.com/measure-sh/measure"
                 className={cn(
@@ -404,7 +408,7 @@ export default function Home() {
                   alt={"GitHub logo"}
                 />
                 <span className="mt-0.5">Star us on Github</span>
-              </Link>
+              </TrackGithubLink>
             </div>
             <div className="flex flex-col items-center justify-center w-full md:w-1/2 h-32 border-l border-t border-r border-border">
               <p className="text-4xl font-body text-center">Simple Pricing</p>
@@ -477,7 +481,9 @@ export default function Home() {
 
         {/* CTA 2 */}
         <div className="py-8 md:py-12" />
-        <Link
+        <TrackCtaLink
+          location="landing_bottom"
+          destination="signup"
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -485,7 +491,7 @@ export default function Home() {
           )}
         >
           Get To The Root Cause
-        </Link>
+        </TrackCtaLink>
         <div className="py-12 md:py-18" />
       </div>
       <LandingFooter />

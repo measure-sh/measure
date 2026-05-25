@@ -1449,6 +1449,8 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		if err := tx.Commit(ingestCtx); err != nil {
 			return fmt.Errorf("failed to commit app onboard transaction: %w", err)
 		}
+
+		fireFirstIngestionEvents(ingestCtx, *app.ID, app.TeamId, osName)
 	}
 
 	// Track usage with Autumn as the very last step. Must come after

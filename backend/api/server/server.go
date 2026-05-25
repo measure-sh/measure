@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"backend/autumn"
+	"backend/libs/ga4"
 	"backend/libs/inet"
+	"backend/libs/posthog"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -60,43 +62,47 @@ type RedisConfig struct {
 }
 
 type ServerConfig struct {
-	PG                         PostgresConfig
-	CH                         ClickhouseConfig
-	RD                         RedisConfig
-	ServiceAccountEmail        string
-	SymbolsBucket              string
-	SymbolsBucketRegion        string
-	SymbolsAccessKey           string
-	SymbolsSecretAccessKey     string
-	AttachmentsBucket          string
-	AttachmentsBucketRegion    string
-	AttachmentsAccessKey       string
-	AttachmentsSecretAccessKey string
-	AWSEndpoint                string
-	AttachmentOrigin           string
-	SiteOrigin                 string
-	APIOrigin                  string
-	SymbolicatorOrigin         string
-	OAuthGitHubKey             string
-	OAuthGitHubSecret          string
-	OAuthGoogleKey             string
-	OAuthGoogleSecret          string
-	AccessTokenSecret          []byte
-	RefreshTokenSecret         []byte
-	SmtpHost                   string
-	SmtpPort                   string
-	SmtpUser                   string
-	SmtpPassword               string
-	EmailDomain                string
-	TxEmailAddress             string
-	SlackClientID              string
-	SlackClientSecret          string
-	AutumnSecretKey            string
-	AutumnWebhookSecret        string
-	OtelServiceName            string
-	CloudEnv                   bool
-	IngestEnforceTimeWindow    bool
-	BillingEnabled             bool
+	PG                           PostgresConfig
+	CH                           ClickhouseConfig
+	RD                           RedisConfig
+	ServiceAccountEmail          string
+	SymbolsBucket                string
+	SymbolsBucketRegion          string
+	SymbolsAccessKey             string
+	SymbolsSecretAccessKey       string
+	AttachmentsBucket            string
+	AttachmentsBucketRegion      string
+	AttachmentsAccessKey         string
+	AttachmentsSecretAccessKey   string
+	AWSEndpoint                  string
+	AttachmentOrigin             string
+	SiteOrigin                   string
+	APIOrigin                    string
+	SymbolicatorOrigin           string
+	OAuthGitHubKey               string
+	OAuthGitHubSecret            string
+	OAuthGoogleKey               string
+	OAuthGoogleSecret            string
+	AccessTokenSecret            []byte
+	RefreshTokenSecret           []byte
+	SmtpHost                     string
+	SmtpPort                     string
+	SmtpUser                     string
+	SmtpPassword                 string
+	EmailDomain                  string
+	TxEmailAddress               string
+	SlackClientID                string
+	SlackClientSecret            string
+	AutumnSecretKey              string
+	AutumnWebhookSecret          string
+	GA4MeasurementID             string
+	GA4MeasurementProtocolSecret string
+	PostHogAPIKey                string
+	PostHogHost                  string
+	OtelServiceName              string
+	CloudEnv                     bool
+	IngestEnforceTimeWindow      bool
+	BillingEnabled               bool
 }
 
 // IsCloud is true if the service is
@@ -321,6 +327,30 @@ func NewConfig() *ServerConfig {
 		SecretKey: autumnSecretKey,
 	})
 
+	ga4MeasurementID := os.Getenv("GA4_MEASUREMENT_ID")
+	if ga4MeasurementID == "" {
+		log.Println("GA4_MEASUREMENT_ID env var is not set, GA4 conversion events will not be sent")
+	}
+
+	ga4MeasurementProtocolSecret := os.Getenv("GA4_MEASUREMENT_PROTOCOL_SECRET")
+	if ga4MeasurementProtocolSecret == "" {
+		log.Println("GA4_MEASUREMENT_PROTOCOL_SECRET env var is not set, GA4 conversion events will not be sent")
+	}
+
+	ga4.Init(ga4MeasurementID, ga4MeasurementProtocolSecret)
+
+	posthogAPIKey := os.Getenv("POSTHOG_API_KEY")
+	if posthogAPIKey == "" {
+		log.Println("POSTHOG_API_KEY env var is not set, PostHog events will not be sent")
+	}
+
+	posthogHost := os.Getenv("POSTHOG_HOST")
+	if posthogHost == "" {
+		log.Println("POSTHOG_HOST env var is not set, PostHog SDK default endpoint will be used")
+	}
+
+	posthog.Init(posthogAPIKey, posthogHost)
+
 	otelServiceName := os.Getenv("OTEL_SERVICE_NAME")
 	if otelServiceName == "" {
 		log.Println("OTEL_SERVICE_NAME env var is not set, o11y will not work")
@@ -341,40 +371,44 @@ func NewConfig() *ServerConfig {
 			Host: redisHost,
 			Port: redisPort,
 		},
-		ServiceAccountEmail:        serviceAccountEmail,
-		SymbolsBucket:              symbolsBucket,
-		SymbolsBucketRegion:        symbolsBucketRegion,
-		SymbolsAccessKey:           symbolsAccessKey,
-		SymbolsSecretAccessKey:     symbolsSecretAccessKey,
-		AttachmentsBucket:          attachmentsBucket,
-		AttachmentsBucketRegion:    attachmentsBucketRegion,
-		AttachmentsAccessKey:       attachmentsAccessKey,
-		AttachmentsSecretAccessKey: attachmentsSecretAccessKey,
-		AWSEndpoint:                endpoint,
-		AttachmentOrigin:           attachmentOrigin,
-		SiteOrigin:                 siteOrigin,
-		APIOrigin:                  apiOrigin,
-		SymbolicatorOrigin:         symbolicatorOrigin,
-		OAuthGitHubKey:             oauthGitHubKey,
-		OAuthGitHubSecret:          oauthGitHubSecret,
-		OAuthGoogleKey:             oauthGoogleKey,
-		OAuthGoogleSecret:          oauthGoogleSecret,
-		AccessTokenSecret:          []byte(atSecret),
-		RefreshTokenSecret:         []byte(rtSecret),
-		SmtpHost:                   smtpHost,
-		SmtpPort:                   smtpPort,
-		SmtpUser:                   smtpUser,
-		SmtpPassword:               smtpPassword,
-		EmailDomain:                emailDomain,
-		TxEmailAddress:             txEmailAddress,
-		SlackClientID:              slackClientID,
-		SlackClientSecret:          slackClientSecret,
-		AutumnSecretKey:            autumnSecretKey,
-		AutumnWebhookSecret:        autumnWebhookSecret,
-		OtelServiceName:            otelServiceName,
-		CloudEnv:                   cloudEnv,
-		IngestEnforceTimeWindow:    enforceIngestTimeWindow,
-		BillingEnabled:             billingEnabled,
+		ServiceAccountEmail:          serviceAccountEmail,
+		SymbolsBucket:                symbolsBucket,
+		SymbolsBucketRegion:          symbolsBucketRegion,
+		SymbolsAccessKey:             symbolsAccessKey,
+		SymbolsSecretAccessKey:       symbolsSecretAccessKey,
+		AttachmentsBucket:            attachmentsBucket,
+		AttachmentsBucketRegion:      attachmentsBucketRegion,
+		AttachmentsAccessKey:         attachmentsAccessKey,
+		AttachmentsSecretAccessKey:   attachmentsSecretAccessKey,
+		AWSEndpoint:                  endpoint,
+		AttachmentOrigin:             attachmentOrigin,
+		SiteOrigin:                   siteOrigin,
+		APIOrigin:                    apiOrigin,
+		SymbolicatorOrigin:           symbolicatorOrigin,
+		OAuthGitHubKey:               oauthGitHubKey,
+		OAuthGitHubSecret:            oauthGitHubSecret,
+		OAuthGoogleKey:               oauthGoogleKey,
+		OAuthGoogleSecret:            oauthGoogleSecret,
+		AccessTokenSecret:            []byte(atSecret),
+		RefreshTokenSecret:           []byte(rtSecret),
+		SmtpHost:                     smtpHost,
+		SmtpPort:                     smtpPort,
+		SmtpUser:                     smtpUser,
+		SmtpPassword:                 smtpPassword,
+		EmailDomain:                  emailDomain,
+		TxEmailAddress:               txEmailAddress,
+		SlackClientID:                slackClientID,
+		SlackClientSecret:            slackClientSecret,
+		AutumnSecretKey:              autumnSecretKey,
+		AutumnWebhookSecret:          autumnWebhookSecret,
+		GA4MeasurementID:             ga4MeasurementID,
+		GA4MeasurementProtocolSecret: ga4MeasurementProtocolSecret,
+		PostHogAPIKey:                posthogAPIKey,
+		PostHogHost:                  posthogHost,
+		OtelServiceName:              otelServiceName,
+		CloudEnv:                     cloudEnv,
+		IngestEnforceTimeWindow:      enforceIngestTimeWindow,
+		BillingEnabled:               billingEnabled,
 	}
 }
 

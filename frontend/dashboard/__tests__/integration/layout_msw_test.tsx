@@ -60,7 +60,12 @@ if (typeof window.matchMedia === "undefined") {
 
 jest.mock("posthog-js", () => ({
   __esModule: true,
-  default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
+  default: {
+    reset: jest.fn(),
+    capture: jest.fn(),
+    init: jest.fn(),
+    group: jest.fn(),
+  },
 }));
 
 const mockRouterReplace = jest.fn();
@@ -71,6 +76,7 @@ jest.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => mockUsePathname(),
+  useParams: () => ({ teamId: "team-001" }),
 }));
 
 jest.mock("next/link", () => ({

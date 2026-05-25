@@ -14,6 +14,7 @@ import (
 	"backend/ingest-worker/measure"
 	"backend/ingest-worker/server"
 	"backend/libs/inet"
+	"backend/libs/posthog"
 
 	"github.com/gin-gonic/gin"
 
@@ -121,4 +122,6 @@ func main() {
 		fmt.Printf("Failed to gracefully shutdown server: %v\n", err)
 	}
 
+	// Flush PostHog after the HTTP server stops accepting requests.
+	posthog.Close()
 }

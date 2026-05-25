@@ -1,8 +1,8 @@
 import { buttonVariants } from "@/app/components/button_variants";
+import TrackCtaLink from "@/app/components/analytics/track_cta_link";
 import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
-import Link from "next/link";
 import LandingFooter from "../../components/landing_footer";
 import LandingHeader from "../../components/landing_header";
 import TraceDemo from "./trace_demo";
@@ -64,7 +64,9 @@ export default function ProductPerformanceTraces() {
         </div>
 
         {/* CTA */}
-        <Link
+        <TrackCtaLink
+          location="product_performance_traces"
+          destination="signup"
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -72,7 +74,7 @@ export default function ProductPerformanceTraces() {
           )}
         >
           Get To The Root Cause
-        </Link>
+        </TrackCtaLink>
         <div className="py-16" />
       </div>
       <LandingFooter />

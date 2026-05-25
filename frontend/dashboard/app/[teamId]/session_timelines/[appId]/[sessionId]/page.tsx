@@ -3,6 +3,9 @@
 import SessionTimeline from "@/app/components/session_timeline";
 import { Skeleton } from "@/app/components/skeleton";
 import { useSessionTimelineQuery } from "@/app/query/hooks";
+import { track } from "@/app/utils/analytics/track";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 export default function Session({
   params,
@@ -13,6 +16,36 @@ export default function Session({
     params.appId,
     params.sessionId,
   );
+  const searchParams = useSearchParams();
+  const entryPoint = searchParams.get("from") ?? "direct";
+
+  // Fire `session_investigated` once per session view, after the session
+  // data has loaded so `app_platform` is populated. Ref keyed by sessionId
+  // covers within-route navigation (session A → session B without remount).
+  const investigatedSessionRef = useRef<string | null>(null);
+  useEffect(() => {
+    const osName = sessionTimeline?.attribute?.os_name;
+    if (!osName) {
+      return;
+    }
+    if (investigatedSessionRef.current === params.sessionId) {
+      return;
+    }
+    investigatedSessionRef.current = params.sessionId;
+    track("session_investigated", {
+      team_id: params.teamId,
+      app_id: params.appId,
+      app_platform: osName,
+      feature_area: "sessions",
+      entry_point: entryPoint,
+    });
+  }, [
+    params.teamId,
+    params.appId,
+    params.sessionId,
+    sessionTimeline?.attribute?.os_name,
+    entryPoint,
+  ]);
 
   return (
     <div className="flex flex-col items-start">

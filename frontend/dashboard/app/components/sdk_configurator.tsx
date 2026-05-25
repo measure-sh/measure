@@ -1,430 +1,663 @@
-"use client"
+"use client";
 
-import { SdkConfig } from "@/app/api/api_calls"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/app/components/accordion"
-import { Button } from "@/app/components/button"
-import DropdownSelect, { DropdownSelectType } from "@/app/components/dropdown_select"
-import SdkConfigNumericInput from "@/app/components/sdk_config_numeric_input"
-import { Switch } from "@/app/components/switch"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/app/components/tooltip"
-import { useSaveSdkConfigMutation } from "@/app/query/hooks"
-import { toastNegative, toastPositive } from "@/app/utils/use_toast"
-import { Info } from "lucide-react"
-import Link from "next/link"
-import { useEffect, useState } from 'react'
-import { underlineLinkStyle } from "../utils/shared_styles"
-import DangerConfirmationDialog from "./danger_confirmation_dialog"
-import { Textarea } from "./textarea"
+import { SdkConfig } from "@/app/api/api_calls";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/app/components/accordion";
+import { Button } from "@/app/components/button";
+import DropdownSelect, {
+  DropdownSelectType,
+} from "@/app/components/dropdown_select";
+import SdkConfigNumericInput from "@/app/components/sdk_config_numeric_input";
+import { Switch } from "@/app/components/switch";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/app/components/tooltip";
+import { useSaveSdkConfigMutation } from "@/app/query/hooks";
+import { track } from "@/app/utils/analytics/track";
+import { toastNegative, toastPositive } from "@/app/utils/use_toast";
+import { Info } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { underlineLinkStyle } from "../utils/shared_styles";
+import DangerConfirmationDialog from "./danger_confirmation_dialog";
+import { Textarea } from "./textarea";
 
 interface SdkConfiguratorProps {
-  appId: string
-  appName: string
-  initialConfig: SdkConfig
-  currentUserCanChangeAppSettings: boolean
-  osName?: string | null
+  appId: string;
+  appName: string;
+  initialConfig: SdkConfig;
+  currentUserCanChangeAppSettings: boolean;
+  osName?: string | null;
 }
 
-type SectionSaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+type SectionSaveStatus = "idle" | "saving" | "saved" | "error";
 
-const accordionContentStyle = 'p-4'
+const accordionContentStyle = "p-4";
 
-export default function SdkConfigurator({ appId, appName, initialConfig, currentUserCanChangeAppSettings, osName }: SdkConfiguratorProps) {
+export default function SdkConfigurator({
+  appId,
+  appName,
+  initialConfig,
+  currentUserCanChangeAppSettings,
+  osName,
+}: SdkConfiguratorProps) {
   // Local editable state
-  const [sdkConfig, setSdkConfigState] = useState<SdkConfig | null>(null)
-  const [originalSdkConfig, setOriginalSdkConfig] = useState<SdkConfig | null>(null)
+  const [sdkConfig, setSdkConfigState] = useState<SdkConfig | null>(null);
+  const [originalSdkConfig, setOriginalSdkConfig] = useState<SdkConfig | null>(
+    null,
+  );
 
   // Per-section save status tracking
-  const [sectionStatuses, setSectionStatuses] = useState<Record<string, SectionSaveStatus>>({
-    crashes: 'idle',
-    anrs: 'idle',
-    bugReports: 'idle',
-    traces: 'idle',
-    launch: 'idle',
-    journey: 'idle',
-    http: 'idle',
-    masking: 'idle',
-  })
+  const [sectionStatuses, setSectionStatuses] = useState<
+    Record<string, SectionSaveStatus>
+  >({
+    crashes: "idle",
+    anrs: "idle",
+    bugReports: "idle",
+    traces: "idle",
+    launch: "idle",
+    journey: "idle",
+    http: "idle",
+    masking: "idle",
+  });
 
   // TanStack Query mutation
-  const saveSdkConfigMutation = useSaveSdkConfigMutation()
+  const saveSdkConfigMutation = useSaveSdkConfigMutation();
+  const routeParams = useParams<{ teamId: string }>();
 
   // Track changes per section
-  const [crashesChanged, setCrashesChanged] = useState(false)
-  const [anrsChanged, setAnrsChanged] = useState(false)
-  const [bugReportsChanged, setBugReportsChanged] = useState(false)
-  const [tracesChanged, setTracesChanged] = useState(false)
-  const [launchMetricsChanged, setLaunchMetricsChanged] = useState(false)
-  const [journeyChanged, setJourneyChanged] = useState(false)
-  const [httpChanged, setHttpChanged] = useState(false)
-  const [screenshotMaskingChanged, setScreenshotMaskingChanged] = useState(false)
+  const [crashesChanged, setCrashesChanged] = useState(false);
+  const [anrsChanged, setAnrsChanged] = useState(false);
+  const [bugReportsChanged, setBugReportsChanged] = useState(false);
+  const [tracesChanged, setTracesChanged] = useState(false);
+  const [launchMetricsChanged, setLaunchMetricsChanged] = useState(false);
+  const [journeyChanged, setJourneyChanged] = useState(false);
+  const [httpChanged, setHttpChanged] = useState(false);
+  const [screenshotMaskingChanged, setScreenshotMaskingChanged] =
+    useState(false);
 
   // Confirmation dialog states
-  const [crashesConfirmOpen, setCrashesConfirmOpen] = useState(false)
-  const [anrsConfirmOpen, setAnrsConfirmOpen] = useState(false)
-  const [bugReportsConfirmOpen, setBugReportsConfirmOpen] = useState(false)
-  const [tracesConfirmOpen, setTracesConfirmOpen] = useState(false)
-  const [launchConfirmOpen, setLaunchConfirmOpen] = useState(false)
-  const [journeyConfirmOpen, setJourneyConfirmOpen] = useState(false)
-  const [httpConfirmOpen, setHttpConfirmOpen] = useState(false)
-  const [maskingConfirmOpen, setMaskingConfirmOpen] = useState(false)
+  const [crashesConfirmOpen, setCrashesConfirmOpen] = useState(false);
+  const [anrsConfirmOpen, setAnrsConfirmOpen] = useState(false);
+  const [bugReportsConfirmOpen, setBugReportsConfirmOpen] = useState(false);
+  const [tracesConfirmOpen, setTracesConfirmOpen] = useState(false);
+  const [launchConfirmOpen, setLaunchConfirmOpen] = useState(false);
+  const [journeyConfirmOpen, setJourneyConfirmOpen] = useState(false);
+  const [httpConfirmOpen, setHttpConfirmOpen] = useState(false);
+  const [maskingConfirmOpen, setMaskingConfirmOpen] = useState(false);
 
   // Sync initialConfig prop into local state on mount / when it changes
   useEffect(() => {
-    setSdkConfigState(initialConfig)
-    setOriginalSdkConfig(initialConfig)
-  }, [initialConfig])
+    setSdkConfigState(initialConfig);
+    setOriginalSdkConfig(initialConfig);
+  }, [initialConfig]);
 
   const updateSdkConfig = (updates: Partial<SdkConfig>) => {
     if (!sdkConfig) {
-      return
+      return;
     }
-    setSdkConfigState({ ...sdkConfig, ...updates })
-  }
+    setSdkConfigState({ ...sdkConfig, ...updates });
+  };
 
   // Track changes per section
   useEffect(() => {
     if (!sdkConfig || !originalSdkConfig) {
-      return
+      return;
     }
     setCrashesChanged(
-      sdkConfig.crash_take_screenshot !== originalSdkConfig.crash_take_screenshot ||
-      sdkConfig.crash_timeline_duration !== originalSdkConfig.crash_timeline_duration
-    )
-  }, [sdkConfig?.crash_take_screenshot, sdkConfig?.crash_timeline_duration,
-  originalSdkConfig?.crash_take_screenshot, originalSdkConfig?.crash_timeline_duration])
+      sdkConfig.crash_take_screenshot !==
+        originalSdkConfig.crash_take_screenshot ||
+        sdkConfig.crash_timeline_duration !==
+          originalSdkConfig.crash_timeline_duration,
+    );
+  }, [
+    sdkConfig?.crash_take_screenshot,
+    sdkConfig?.crash_timeline_duration,
+    originalSdkConfig?.crash_take_screenshot,
+    originalSdkConfig?.crash_timeline_duration,
+  ]);
 
   useEffect(() => {
     if (!sdkConfig || !originalSdkConfig) {
-      return
+      return;
     }
     setAnrsChanged(
       sdkConfig.anr_take_screenshot !== originalSdkConfig.anr_take_screenshot ||
-      sdkConfig.anr_timeline_duration !== originalSdkConfig.anr_timeline_duration
-    )
-  }, [sdkConfig?.anr_take_screenshot, sdkConfig?.anr_timeline_duration,
-  originalSdkConfig?.anr_take_screenshot, originalSdkConfig?.anr_timeline_duration])
+        sdkConfig.anr_timeline_duration !==
+          originalSdkConfig.anr_timeline_duration,
+    );
+  }, [
+    sdkConfig?.anr_take_screenshot,
+    sdkConfig?.anr_timeline_duration,
+    originalSdkConfig?.anr_take_screenshot,
+    originalSdkConfig?.anr_timeline_duration,
+  ]);
 
   useEffect(() => {
     if (!sdkConfig || !originalSdkConfig) {
-      return
+      return;
     }
     setBugReportsChanged(
-      sdkConfig.bug_report_timeline_duration !== originalSdkConfig.bug_report_timeline_duration
-    )
-  }, [sdkConfig?.bug_report_timeline_duration, originalSdkConfig?.bug_report_timeline_duration])
+      sdkConfig.bug_report_timeline_duration !==
+        originalSdkConfig.bug_report_timeline_duration,
+    );
+  }, [
+    sdkConfig?.bug_report_timeline_duration,
+    originalSdkConfig?.bug_report_timeline_duration,
+  ]);
 
   useEffect(() => {
     if (!sdkConfig || !originalSdkConfig) {
-      return
+      return;
     }
-    setTracesChanged(sdkConfig.trace_sampling_rate !== originalSdkConfig.trace_sampling_rate)
-  }, [sdkConfig?.trace_sampling_rate, originalSdkConfig?.trace_sampling_rate])
+    setTracesChanged(
+      sdkConfig.trace_sampling_rate !== originalSdkConfig.trace_sampling_rate,
+    );
+  }, [sdkConfig?.trace_sampling_rate, originalSdkConfig?.trace_sampling_rate]);
 
   useEffect(() => {
     if (!sdkConfig || !originalSdkConfig) {
-      return
+      return;
     }
     setLaunchMetricsChanged(
-      sdkConfig.launch_sampling_rate !== originalSdkConfig.launch_sampling_rate
-    )
-  }, [sdkConfig?.launch_sampling_rate, originalSdkConfig?.launch_sampling_rate])
+      sdkConfig.launch_sampling_rate !== originalSdkConfig.launch_sampling_rate,
+    );
+  }, [
+    sdkConfig?.launch_sampling_rate,
+    originalSdkConfig?.launch_sampling_rate,
+  ]);
 
   useEffect(() => {
     if (!sdkConfig || !originalSdkConfig) {
-      return
+      return;
     }
-    setJourneyChanged(sdkConfig.journey_sampling_rate !== originalSdkConfig.journey_sampling_rate)
-  }, [sdkConfig?.journey_sampling_rate, originalSdkConfig?.journey_sampling_rate])
+    setJourneyChanged(
+      sdkConfig.journey_sampling_rate !==
+        originalSdkConfig.journey_sampling_rate,
+    );
+  }, [
+    sdkConfig?.journey_sampling_rate,
+    originalSdkConfig?.journey_sampling_rate,
+  ]);
 
   useEffect(() => {
     if (!sdkConfig || !originalSdkConfig) {
-      return
+      return;
     }
     setHttpChanged(
       sdkConfig.http_sampling_rate !== originalSdkConfig.http_sampling_rate ||
-      JSON.stringify(sdkConfig.http_disable_event_for_urls) !== JSON.stringify(originalSdkConfig.http_disable_event_for_urls) ||
-      JSON.stringify(sdkConfig.http_track_request_for_urls) !== JSON.stringify(originalSdkConfig.http_track_request_for_urls) ||
-      JSON.stringify(sdkConfig.http_track_response_for_urls) !== JSON.stringify(originalSdkConfig.http_track_response_for_urls) ||
-      JSON.stringify(sdkConfig.http_blocked_headers) !== JSON.stringify(originalSdkConfig.http_blocked_headers)
-    )
-  }, [sdkConfig?.http_sampling_rate, sdkConfig?.http_disable_event_for_urls, sdkConfig?.http_track_request_for_urls,
-  sdkConfig?.http_track_response_for_urls, sdkConfig?.http_blocked_headers,
-  originalSdkConfig?.http_sampling_rate, originalSdkConfig?.http_disable_event_for_urls,
-  originalSdkConfig?.http_track_request_for_urls, originalSdkConfig?.http_track_response_for_urls,
-  originalSdkConfig?.http_blocked_headers])
+        JSON.stringify(sdkConfig.http_disable_event_for_urls) !==
+          JSON.stringify(originalSdkConfig.http_disable_event_for_urls) ||
+        JSON.stringify(sdkConfig.http_track_request_for_urls) !==
+          JSON.stringify(originalSdkConfig.http_track_request_for_urls) ||
+        JSON.stringify(sdkConfig.http_track_response_for_urls) !==
+          JSON.stringify(originalSdkConfig.http_track_response_for_urls) ||
+        JSON.stringify(sdkConfig.http_blocked_headers) !==
+          JSON.stringify(originalSdkConfig.http_blocked_headers),
+    );
+  }, [
+    sdkConfig?.http_sampling_rate,
+    sdkConfig?.http_disable_event_for_urls,
+    sdkConfig?.http_track_request_for_urls,
+    sdkConfig?.http_track_response_for_urls,
+    sdkConfig?.http_blocked_headers,
+    originalSdkConfig?.http_sampling_rate,
+    originalSdkConfig?.http_disable_event_for_urls,
+    originalSdkConfig?.http_track_request_for_urls,
+    originalSdkConfig?.http_track_response_for_urls,
+    originalSdkConfig?.http_blocked_headers,
+  ]);
 
   useEffect(() => {
     if (!sdkConfig || !originalSdkConfig) {
-      return
+      return;
     }
-    setScreenshotMaskingChanged(sdkConfig.screenshot_mask_level !== originalSdkConfig.screenshot_mask_level)
-  }, [sdkConfig?.screenshot_mask_level, originalSdkConfig?.screenshot_mask_level])
+    setScreenshotMaskingChanged(
+      sdkConfig.screenshot_mask_level !==
+        originalSdkConfig.screenshot_mask_level,
+    );
+  }, [
+    sdkConfig?.screenshot_mask_level,
+    originalSdkConfig?.screenshot_mask_level,
+  ]);
 
   if (!sdkConfig || !originalSdkConfig) {
-    return null
+    return null;
   }
 
   const setSectionStatus = (section: string, status: SectionSaveStatus) => {
-    setSectionStatuses(prev => ({ ...prev, [section]: status }))
-  }
+    setSectionStatuses((prev) => ({ ...prev, [section]: status }));
+  };
 
-  const saveSection = (sectionKey: string, configToSave: Partial<SdkConfig>) => {
-    setSectionStatus(sectionKey, 'saving')
+  const saveSection = (
+    sectionKey: string,
+    configToSave: Partial<SdkConfig>,
+  ) => {
+    setSectionStatus(sectionKey, "saving");
     saveSdkConfigMutation.mutate(
       { appId, config: configToSave },
       {
         onSuccess: () => {
-          setSectionStatus(sectionKey, 'saved')
-          setOriginalSdkConfig(prev => prev ? { ...prev, ...configToSave } : prev)
-          toastPositive("Configuration saved")
+          setSectionStatus(sectionKey, "saved");
+          setOriginalSdkConfig((prev) =>
+            prev ? { ...prev, ...configToSave } : prev,
+          );
+          toastPositive("Configuration saved");
+          track("sampling_adjusted", {
+            team_id: routeParams?.teamId,
+            app_id: appId,
+            app_platform: osName,
+            feature_area: "sampling",
+            entry_point: "direct",
+            section: sectionKey,
+          });
         },
         onError: () => {
-          setSectionStatus(sectionKey, 'error')
-          toastNegative("Error saving configuration")
+          setSectionStatus(sectionKey, "error");
+          toastNegative("Error saving configuration");
         },
-      }
-    )
-  }
+      },
+    );
+  };
 
   const handleSaveCrashes = () => {
-    saveSection('crashes', {
+    saveSection("crashes", {
       crash_take_screenshot: sdkConfig.crash_take_screenshot,
       crash_timeline_duration: sdkConfig.crash_timeline_duration,
-    })
-  }
+    });
+  };
   const handleSaveAnrs = () => {
-    saveSection('anrs', {
+    saveSection("anrs", {
       anr_take_screenshot: sdkConfig.anr_take_screenshot,
       anr_timeline_duration: sdkConfig.anr_timeline_duration,
-    })
-  }
+    });
+  };
   const handleSaveBugReports = () => {
-    saveSection('bugReports', {
+    saveSection("bugReports", {
       bug_report_timeline_duration: sdkConfig.bug_report_timeline_duration,
-    })
-  }
+    });
+  };
   const handleSaveTraces = () => {
-    saveSection('traces', {
+    saveSection("traces", {
       trace_sampling_rate: sdkConfig.trace_sampling_rate,
-    })
-  }
+    });
+  };
   const handleSaveLaunch = () => {
-    saveSection('launch', {
+    saveSection("launch", {
       launch_sampling_rate: sdkConfig.launch_sampling_rate,
-    })
-  }
+    });
+  };
   const handleSaveJourney = () => {
-    saveSection('journey', {
+    saveSection("journey", {
       journey_sampling_rate: sdkConfig.journey_sampling_rate,
-    })
-  }
+    });
+  };
   const handleSaveHttp = () => {
-    saveSection('http', {
+    saveSection("http", {
       http_sampling_rate: sdkConfig.http_sampling_rate,
-      http_disable_event_for_urls: sdkConfig.http_disable_event_for_urls.filter(url => url.trim() !== ""),
-      http_track_request_for_urls: sdkConfig.http_track_request_for_urls.filter(url => url.trim() !== ""),
-      http_track_response_for_urls: sdkConfig.http_track_response_for_urls.filter(url => url.trim() !== ""),
-      http_blocked_headers: sdkConfig.http_blocked_headers.filter(header => header.trim() !== ""),
-    })
-  }
+      http_disable_event_for_urls: sdkConfig.http_disable_event_for_urls.filter(
+        (url) => url.trim() !== "",
+      ),
+      http_track_request_for_urls: sdkConfig.http_track_request_for_urls.filter(
+        (url) => url.trim() !== "",
+      ),
+      http_track_response_for_urls:
+        sdkConfig.http_track_response_for_urls.filter(
+          (url) => url.trim() !== "",
+        ),
+      http_blocked_headers: sdkConfig.http_blocked_headers.filter(
+        (header) => header.trim() !== "",
+      ),
+    });
+  };
   const handleSaveMasking = () => {
-    saveSection('masking', {
+    saveSection("masking", {
       screenshot_mask_level: sdkConfig.screenshot_mask_level,
-    })
-  }
+    });
+  };
 
   const arrayToInput = (arr: string[]): string => {
-    if (!arr || arr.length === 0) return ''
-    return arr.join('\n')
-  }
+    if (!arr || arr.length === 0) return "";
+    return arr.join("\n");
+  };
 
   const inputToArray = (str: string): string[] => {
-    if (!str || str.trim() === '') return []
-    return str.split('\n').map(line => line.trim())
-  }
+    if (!str || str.trim() === "") return [];
+    return str.split("\n").map((line) => line.trim());
+  };
 
   // Convert mask level to display format, must be in sync with displayToMaskLevel.
   const maskLevelToDisplay = (maskLevel: string): string => {
     const map: { [key: string]: string } = {
-      'all_text_and_media': 'All text and media',
-      'all_text': 'All text',
-      'all_text_except_clickable': 'All text except clickable',
-      'sensitive_fields_only': 'Sensitive fields only',
-    }
-    return map[maskLevel]
-  }
+      all_text_and_media: "All text and media",
+      all_text: "All text",
+      all_text_except_clickable: "All text except clickable",
+      sensitive_fields_only: "Sensitive fields only",
+    };
+    return map[maskLevel];
+  };
 
   // Convert display format to mask level, must be in sync with maskLevelToDisplay.
   const displayToMaskLevel = (display: string): string => {
     const map: { [key: string]: string } = {
-      'All text and media': 'all_text_and_media',
-      'All text': 'all_text',
-      'All text except clickable': 'all_text_except_clickable',
-      'Sensitive fields only': 'sensitive_fields_only',
-    }
-    return map[display] || 'sensitive_fields_only'
-  }
+      "All text and media": "all_text_and_media",
+      "All text": "all_text",
+      "All text except clickable": "all_text_except_clickable",
+      "Sensitive fields only": "sensitive_fields_only",
+    };
+    return map[display] || "sensitive_fields_only";
+  };
 
-  const getUrlPlaceholder = () => [
-    "https://api.example.com/v1/public/*",
-    "https://example.com/*/health",
-  ].join('\n')
+  const getUrlPlaceholder = () =>
+    [
+      "https://api.example.com/v1/public/*",
+      "https://example.com/*/health",
+    ].join("\n");
 
-  const getHeaderPlaceholder = () => [
-    "X-User-ID",
-    "X-API-Key",
-  ].join('\n')
+  const getHeaderPlaceholder = () => ["X-User-ID", "X-API-Key"].join("\n");
 
   // Helper to check if ANR should be shown
-  const shouldShowAnr = osName === null || osName === undefined || osName.toLowerCase() === 'android'
+  const shouldShowAnr =
+    osName === null ||
+    osName === undefined ||
+    osName.toLowerCase() === "android";
 
   // Confirmation dialog body generators
   const getCrashesConfirmBody = () => {
     return (
       <div className="font-body">
-        <p>Are you sure you want to update <span className="font-display font-bold">Crash settings</span> for app <span className="font-display font-bold">{appName}</span>?</p>
+        <p>
+          Are you sure you want to update{" "}
+          <span className="font-display font-bold">Crash settings</span> for app{" "}
+          <span className="font-display font-bold">{appName}</span>?
+        </p>
         <p className="mt-4">The following changes will be applied:</p>
         <ul className="mt-2 space-y-1 list-disc list-inside">
-          {sdkConfig.crash_take_screenshot !== originalSdkConfig.crash_take_screenshot && (
-            <li>Screenshot with crash <span className="font-display font-bold">{sdkConfig.crash_take_screenshot ? 'Enabled' : 'Disabled'}</span></li>
+          {sdkConfig.crash_take_screenshot !==
+            originalSdkConfig.crash_take_screenshot && (
+            <li>
+              Screenshot with crash{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.crash_take_screenshot ? "Enabled" : "Disabled"}
+              </span>
+            </li>
           )}
-          {sdkConfig.crash_timeline_duration !== originalSdkConfig.crash_timeline_duration && (
-            <li>Session Timeline duration: <span className="font-display font-bold">{originalSdkConfig.crash_timeline_duration} seconds</span> → <span className="font-display font-bold">{sdkConfig.crash_timeline_duration} seconds</span></li>
+          {sdkConfig.crash_timeline_duration !==
+            originalSdkConfig.crash_timeline_duration && (
+            <li>
+              Session Timeline duration:{" "}
+              <span className="font-display font-bold">
+                {originalSdkConfig.crash_timeline_duration} seconds
+              </span>{" "}
+              →{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.crash_timeline_duration} seconds
+              </span>
+            </li>
           )}
         </ul>
         <p className="mt-4">These changes will apply to all new crashes.</p>
       </div>
-    )
-  }
+    );
+  };
 
   const getAnrsConfirmBody = () => {
     return (
       <div className="font-body">
-        <p>Are you sure you want to update <span className="font-display font-bold">ANR settings</span> for app <span className="font-display font-bold">{appName}</span>?</p>
+        <p>
+          Are you sure you want to update{" "}
+          <span className="font-display font-bold">ANR settings</span> for app{" "}
+          <span className="font-display font-bold">{appName}</span>?
+        </p>
         <p className="mt-4">The following changes will be applied:</p>
         <ul className="mt-2 space-y-1 list-disc list-inside">
-          {sdkConfig.anr_take_screenshot !== originalSdkConfig.anr_take_screenshot && (
-            <li>Screenshot with ANR: <span className="font-display font-bold">{sdkConfig.anr_take_screenshot ? 'Enabled' : 'Disabled'}</span></li>
+          {sdkConfig.anr_take_screenshot !==
+            originalSdkConfig.anr_take_screenshot && (
+            <li>
+              Screenshot with ANR:{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.anr_take_screenshot ? "Enabled" : "Disabled"}
+              </span>
+            </li>
           )}
-          {sdkConfig.anr_timeline_duration !== originalSdkConfig.anr_timeline_duration && (
-            <li>Session timeline duration: <span className="font-display font-bold">{originalSdkConfig.anr_timeline_duration} seconds</span> → <span className="font-display font-bold">{sdkConfig.anr_timeline_duration} seconds</span></li>
+          {sdkConfig.anr_timeline_duration !==
+            originalSdkConfig.anr_timeline_duration && (
+            <li>
+              Session timeline duration:{" "}
+              <span className="font-display font-bold">
+                {originalSdkConfig.anr_timeline_duration} seconds
+              </span>{" "}
+              →{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.anr_timeline_duration} seconds
+              </span>
+            </li>
           )}
         </ul>
         <p className="mt-4">These changes will apply to all new ANRs.</p>
       </div>
-    )
-  }
+    );
+  };
 
   const getBugReportsConfirmBody = () => {
     return (
       <div className="font-body">
-        <p>Are you sure you want to update <span className="font-display font-bold">Bug Report settings</span> for app <span className="font-display font-bold">{appName}</span>?</p>
+        <p>
+          Are you sure you want to update{" "}
+          <span className="font-display font-bold">Bug Report settings</span>{" "}
+          for app <span className="font-display font-bold">{appName}</span>?
+        </p>
         <p className="mt-4">The following changes will be applied:</p>
         <ul className="mt-2 space-y-1 list-disc list-inside">
-          <li>Session timeline duration: <span className="font-display font-bold">{originalSdkConfig.bug_report_timeline_duration} seconds</span> → <span className="font-display font-bold">{sdkConfig.bug_report_timeline_duration} seconds</span></li>
+          <li>
+            Session timeline duration:{" "}
+            <span className="font-display font-bold">
+              {originalSdkConfig.bug_report_timeline_duration} seconds
+            </span>{" "}
+            →{" "}
+            <span className="font-display font-bold">
+              {sdkConfig.bug_report_timeline_duration} seconds
+            </span>
+          </li>
         </ul>
         <p className="mt-4">These changes will apply to all new bug reports.</p>
       </div>
-    )
-  }
+    );
+  };
 
   const getTracesConfirmBody = () => {
     return (
       <div className="font-body">
-        <p>Are you sure you want to update <span className="font-display font-bold">Trace settings</span> for app <span className="font-display font-bold">{appName}</span>?</p>
+        <p>
+          Are you sure you want to update{" "}
+          <span className="font-display font-bold">Trace settings</span> for app{" "}
+          <span className="font-display font-bold">{appName}</span>?
+        </p>
         <p className="mt-4">The following changes will be applied:</p>
         <ul className="mt-2 space-y-1 list-disc list-inside">
-          <li>Sampling rate: <span className="font-display font-bold">{originalSdkConfig.trace_sampling_rate}%</span> → <span className="font-display font-bold">{sdkConfig.trace_sampling_rate}%</span></li>
+          <li>
+            Sampling rate:{" "}
+            <span className="font-display font-bold">
+              {originalSdkConfig.trace_sampling_rate}%
+            </span>{" "}
+            →{" "}
+            <span className="font-display font-bold">
+              {sdkConfig.trace_sampling_rate}%
+            </span>
+          </li>
         </ul>
         <p className="mt-4">These changes will apply to all new traces.</p>
       </div>
-    )
-  }
+    );
+  };
 
   const getLaunchConfirmBody = () => {
     return (
       <div className="font-body">
-        <p>Are you sure you want to update <span className="font-display font-bold">Launch Metrics settings</span> for app <span className="font-display font-bold">{appName}</span>?</p>
+        <p>
+          Are you sure you want to update{" "}
+          <span className="font-display font-bold">
+            Launch Metrics settings
+          </span>{" "}
+          for app <span className="font-display font-bold">{appName}</span>?
+        </p>
         <p className="mt-4">The following changes will be applied:</p>
         <ul className="mt-2 space-y-1 list-disc list-inside">
-          <li>Sampling rate: <span className="font-display font-bold">{originalSdkConfig.launch_sampling_rate}%</span> → <span className="font-display font-bold">{sdkConfig.launch_sampling_rate}%</span></li>
+          <li>
+            Sampling rate:{" "}
+            <span className="font-display font-bold">
+              {originalSdkConfig.launch_sampling_rate}%
+            </span>{" "}
+            →{" "}
+            <span className="font-display font-bold">
+              {sdkConfig.launch_sampling_rate}%
+            </span>
+          </li>
         </ul>
         <p className="mt-4">These changes will apply to all new launches.</p>
       </div>
-    )
-  }
+    );
+  };
 
   const getJourneysConfirmBody = () => {
     return (
       <div className="font-body">
-        <p>Are you sure you want to update <span className="font-display font-bold">User Journey settings</span> for app <span className="font-display font-bold">{appName}</span>?</p>
+        <p>
+          Are you sure you want to update{" "}
+          <span className="font-display font-bold">User Journey settings</span>{" "}
+          for app <span className="font-display font-bold">{appName}</span>?
+        </p>
         <p className="mt-4">The following changes will be applied:</p>
         <ul className="mt-2 space-y-1 list-disc list-inside">
-          <li>Sampling rate: <span className="font-display font-bold">{originalSdkConfig.journey_sampling_rate}%</span> → <span className="font-display font-bold">{sdkConfig.journey_sampling_rate}%</span></li>
+          <li>
+            Sampling rate:{" "}
+            <span className="font-display font-bold">
+              {originalSdkConfig.journey_sampling_rate}%
+            </span>{" "}
+            →{" "}
+            <span className="font-display font-bold">
+              {sdkConfig.journey_sampling_rate}%
+            </span>
+          </li>
         </ul>
         <p className="mt-4">These changes will apply to all new sessions.</p>
       </div>
-    )
-  }
+    );
+  };
 
   const getHttpConfirmBody = () => {
     return (
       <div className="font-body">
-        <p>Are you sure you want to update <span className="font-display font-bold">HTTP collection settings</span> for app <span className="font-display font-bold">{appName}</span>?</p>
+        <p>
+          Are you sure you want to update{" "}
+          <span className="font-display font-bold">
+            HTTP collection settings
+          </span>{" "}
+          for app <span className="font-display font-bold">{appName}</span>?
+        </p>
         <p className="mt-4">The following configurations will be updated:</p>
         <ul className="mt-2 space-y-1 list-disc list-inside">
-          {sdkConfig.http_sampling_rate !== originalSdkConfig.http_sampling_rate && (
-            <li>Sampling rate: <span className="font-display font-bold">{originalSdkConfig.http_sampling_rate} %</span> → <span className="font-display font-bold">{sdkConfig.http_sampling_rate} %</span></li>
+          {sdkConfig.http_sampling_rate !==
+            originalSdkConfig.http_sampling_rate && (
+            <li>
+              Sampling rate:{" "}
+              <span className="font-display font-bold">
+                {originalSdkConfig.http_sampling_rate} %
+              </span>{" "}
+              →{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.http_sampling_rate} %
+              </span>
+            </li>
           )}
-          {JSON.stringify(sdkConfig.http_disable_event_for_urls) !== JSON.stringify(originalSdkConfig.http_disable_event_for_urls) && (
+          {JSON.stringify(sdkConfig.http_disable_event_for_urls) !==
+            JSON.stringify(originalSdkConfig.http_disable_event_for_urls) && (
             <li>Disabled HTTP events for URLs</li>
           )}
-          {JSON.stringify(sdkConfig.http_track_request_for_urls) !== JSON.stringify(originalSdkConfig.http_track_request_for_urls) && (
+          {JSON.stringify(sdkConfig.http_track_request_for_urls) !==
+            JSON.stringify(originalSdkConfig.http_track_request_for_urls) && (
             <li>Collect request for URLs</li>
           )}
-          {JSON.stringify(sdkConfig.http_track_response_for_urls) !== JSON.stringify(originalSdkConfig.http_track_response_for_urls) && (
+          {JSON.stringify(sdkConfig.http_track_response_for_urls) !==
+            JSON.stringify(originalSdkConfig.http_track_response_for_urls) && (
             <li>Collect response for URLs</li>
           )}
-          {JSON.stringify(sdkConfig.http_blocked_headers) !== JSON.stringify(originalSdkConfig.http_blocked_headers) && (
+          {JSON.stringify(sdkConfig.http_blocked_headers) !==
+            JSON.stringify(originalSdkConfig.http_blocked_headers) && (
             <li>Blocked headers</li>
           )}
         </ul>
-        <p className="mt-4">These changes will apply to all new HTTP requests.</p>
+        <p className="mt-4">
+          These changes will apply to all new HTTP requests.
+        </p>
       </div>
-    )
-  }
+    );
+  };
 
   const getMaskingConfirmBody = () => {
     return (
       <div className="font-body">
-        <p>Are you sure you want to update <span className="font-display font-bold">Screenshot Masking settings</span> for app <span className="font-display font-bold">{appName}</span>?</p>
+        <p>
+          Are you sure you want to update{" "}
+          <span className="font-display font-bold">
+            Screenshot Masking settings
+          </span>{" "}
+          for app <span className="font-display font-bold">{appName}</span>?
+        </p>
         <p className="mt-4">The following changes will be applied:</p>
         <ul className="mt-2 space-y-1 list-disc list-inside">
-          <li>Mask level: <span className="font-display font-bold">{maskLevelToDisplay(originalSdkConfig.screenshot_mask_level)}</span> → <span className="font-display font-bold">{maskLevelToDisplay(sdkConfig.screenshot_mask_level)}</span></li>
+          <li>
+            Mask level:{" "}
+            <span className="font-display font-bold">
+              {maskLevelToDisplay(originalSdkConfig.screenshot_mask_level)}
+            </span>{" "}
+            →{" "}
+            <span className="font-display font-bold">
+              {maskLevelToDisplay(sdkConfig.screenshot_mask_level)}
+            </span>
+          </li>
         </ul>
         <p className="mt-4">These changes will apply to all new screenshots.</p>
       </div>
-    )
-  }
+    );
+  };
 
   const preventSpaceKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === ' ') {
-      e.preventDefault()
+    if (e.key === " ") {
+      e.preventDefault();
     }
-  }
+  };
 
   return (
     <div className="w-full">
-      <p className="max-w-6xl font-display text-xl">Configure Data Collection</p>
+      <p className="max-w-6xl font-display text-xl">
+        Configure Data Collection
+      </p>
       <p className="mt-2 font-body text-xs text-muted-foreground">
-        See the <Link href="/docs/features/configuration-options" className={underlineLinkStyle}>docs</Link> to learn more
+        See the{" "}
+        <Link
+          href="/docs/features/configuration-options"
+          className={underlineLinkStyle}
+        >
+          docs
+        </Link>{" "}
+        to learn more
       </p>
 
       <div className="mt-6">
         <Accordion type="single" collapsible className="w-full">
           {/* Crashes Accordion */}
           <AccordionItem value="crashes" className="mt-2">
-            <AccordionTrigger className="font-body text-base">Crashes</AccordionTrigger>
+            <AccordionTrigger className="font-body text-base">
+              Crashes
+            </AccordionTrigger>
             <AccordionContent className={accordionContentStyle}>
               <div className="mt-2 space-y-4">
                 <div className="flex flex-col gap-2 min-h-[2.5rem] sm:flex-row sm:items-center sm:gap-0">
@@ -433,28 +666,38 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="crash-screenshot-switch"
                     className="sm:ml-4"
                     checked={sdkConfig.crash_take_screenshot}
-                    onCheckedChange={(checked) => updateSdkConfig({ crash_take_screenshot: checked })}
+                    onCheckedChange={(checked) =>
+                      updateSdkConfig({ crash_take_screenshot: checked })
+                    }
                     disabled={!currentUserCanChangeAppSettings}
                   />
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-body text-sm">Collect session timeline of</span>
+                  <span className="font-body text-sm">
+                    Collect session timeline of
+                  </span>
                   <SdkConfigNumericInput
                     testId="crash-timeline-duration-input"
                     value={sdkConfig.crash_timeline_duration}
                     minValue={0}
                     maxValue={3600}
-                    onChange={(val) => updateSdkConfig({ crash_timeline_duration: val })}
+                    onChange={(val) =>
+                      updateSdkConfig({ crash_timeline_duration: val })
+                    }
                     disabled={!currentUserCanChangeAppSettings}
                   />
-                  <span className="font-body text-sm">seconds with every crash</span>
+                  <span className="font-body text-sm">
+                    seconds with every crash
+                  </span>
                 </div>
                 <div className="flex justify-end mt-2">
                   <Button
                     data-testid="crashes-save-button"
                     variant="outline"
-                    disabled={!currentUserCanChangeAppSettings || !crashesChanged}
-                    loading={sectionStatuses.crashes === 'saving'}
+                    disabled={
+                      !currentUserCanChangeAppSettings || !crashesChanged
+                    }
+                    loading={sectionStatuses.crashes === "saving"}
                     onClick={() => setCrashesConfirmOpen(true)}
                   >
                     Save
@@ -467,7 +710,9 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
           {/* ANRs Accordion */}
           {shouldShowAnr && (
             <AccordionItem value="anrs" className="mt-2">
-              <AccordionTrigger className="font-body text-base">ANRs</AccordionTrigger>
+              <AccordionTrigger className="font-body text-base">
+                ANRs
+              </AccordionTrigger>
               <AccordionContent className={accordionContentStyle}>
                 <div className="mt-2 space-y-4">
                   <div className="flex flex-col gap-2 min-h-[2.5rem] sm:flex-row sm:items-center sm:gap-0">
@@ -476,28 +721,38 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                       data-testid="anr-screenshot-switch"
                       className="sm:ml-4"
                       checked={sdkConfig.anr_take_screenshot}
-                      onCheckedChange={(checked) => updateSdkConfig({ anr_take_screenshot: checked })}
+                      onCheckedChange={(checked) =>
+                        updateSdkConfig({ anr_take_screenshot: checked })
+                      }
                       disabled={!currentUserCanChangeAppSettings}
                     />
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-body text-sm">Collect session timeline of</span>
+                    <span className="font-body text-sm">
+                      Collect session timeline of
+                    </span>
                     <SdkConfigNumericInput
                       testId="anr-timeline-duration-input"
                       value={sdkConfig.anr_timeline_duration}
                       minValue={0}
                       maxValue={3600}
-                      onChange={(val) => updateSdkConfig({ anr_timeline_duration: val })}
+                      onChange={(val) =>
+                        updateSdkConfig({ anr_timeline_duration: val })
+                      }
                       disabled={!currentUserCanChangeAppSettings}
                     />
-                    <span className="font-body text-sm">seconds with every ANR</span>
+                    <span className="font-body text-sm">
+                      seconds with every ANR
+                    </span>
                   </div>
                   <div className="flex justify-end mt-2">
                     <Button
                       data-testid="anrs-save-button"
                       variant="outline"
-                      disabled={!currentUserCanChangeAppSettings || !anrsChanged}
-                      loading={sectionStatuses.anrs === 'saving'}
+                      disabled={
+                        !currentUserCanChangeAppSettings || !anrsChanged
+                      }
+                      loading={sectionStatuses.anrs === "saving"}
                       onClick={() => setAnrsConfirmOpen(true)}
                     >
                       Save
@@ -510,27 +765,37 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
 
           {/* Bug Reports Accordion */}
           <AccordionItem value="bug_reports" className="mt-2">
-            <AccordionTrigger className="font-body text-base">Bug Reports</AccordionTrigger>
+            <AccordionTrigger className="font-body text-base">
+              Bug Reports
+            </AccordionTrigger>
             <AccordionContent className={accordionContentStyle}>
               <div className="mt-2 space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-body text-sm">Collect session timeline of</span>
+                  <span className="font-body text-sm">
+                    Collect session timeline of
+                  </span>
                   <SdkConfigNumericInput
                     testId="bug-report-timeline-duration-input"
                     value={sdkConfig.bug_report_timeline_duration}
                     minValue={0}
                     maxValue={3600}
-                    onChange={(val) => updateSdkConfig({ bug_report_timeline_duration: val })}
+                    onChange={(val) =>
+                      updateSdkConfig({ bug_report_timeline_duration: val })
+                    }
                     disabled={!currentUserCanChangeAppSettings}
                   />
-                  <span className="font-body text-sm">seconds with every Bug Report</span>
+                  <span className="font-body text-sm">
+                    seconds with every Bug Report
+                  </span>
                 </div>
                 <div className="flex justify-end mt-2">
                   <Button
                     data-testid="bug-reports-save-button"
                     variant="outline"
-                    disabled={!currentUserCanChangeAppSettings || !bugReportsChanged}
-                    loading={sectionStatuses.bugReports === 'saving'}
+                    disabled={
+                      !currentUserCanChangeAppSettings || !bugReportsChanged
+                    }
+                    loading={sectionStatuses.bugReports === "saving"}
                     onClick={() => setBugReportsConfirmOpen(true)}
                   >
                     Save
@@ -542,7 +807,9 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
 
           {/* Traces Accordion */}
           <AccordionItem value="traces" className="mt-2">
-            <AccordionTrigger className="font-body text-base">Traces</AccordionTrigger>
+            <AccordionTrigger className="font-body text-base">
+              Traces
+            </AccordionTrigger>
             <AccordionContent className={accordionContentStyle}>
               <div className="mt-2 space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
@@ -554,7 +821,9 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     maxValue={100}
                     step={0.01}
                     type="float"
-                    onChange={(value) => updateSdkConfig({ trace_sampling_rate: value })}
+                    onChange={(value) =>
+                      updateSdkConfig({ trace_sampling_rate: value })
+                    }
                     disabled={!currentUserCanChangeAppSettings}
                   />
                   <span className="font-body text-sm">% sampling rate</span>
@@ -563,8 +832,10 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                   <Button
                     data-testid="traces-save-button"
                     variant="outline"
-                    disabled={!currentUserCanChangeAppSettings || !tracesChanged}
-                    loading={sectionStatuses.traces === 'saving'}
+                    disabled={
+                      !currentUserCanChangeAppSettings || !tracesChanged
+                    }
+                    loading={sectionStatuses.traces === "saving"}
                     onClick={() => setTracesConfirmOpen(true)}
                   >
                     Save
@@ -576,11 +847,15 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
 
           {/* Launch Metrics Accordion */}
           <AccordionItem value="launch" className="mt-2">
-            <AccordionTrigger className="font-body text-base">Launch Metrics</AccordionTrigger>
+            <AccordionTrigger className="font-body text-base">
+              Launch Metrics
+            </AccordionTrigger>
             <AccordionContent className={accordionContentStyle}>
               <div className="mt-2 space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-body text-sm">Collect cold, warm and hot launch metrics at</span>
+                  <span className="font-body text-sm">
+                    Collect cold, warm and hot launch metrics at
+                  </span>
                   <SdkConfigNumericInput
                     testId="launch-sampling-rate-input"
                     value={sdkConfig.launch_sampling_rate}
@@ -588,7 +863,9 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     maxValue={100}
                     step={0.01}
                     type="float"
-                    onChange={(value) => updateSdkConfig({ launch_sampling_rate: value })}
+                    onChange={(value) =>
+                      updateSdkConfig({ launch_sampling_rate: value })
+                    }
                     disabled={!currentUserCanChangeAppSettings}
                   />
                   <span className="font-body text-sm">% sampling rate</span>
@@ -597,8 +874,10 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                   <Button
                     data-testid="launch-save-button"
                     variant="outline"
-                    disabled={!currentUserCanChangeAppSettings || !launchMetricsChanged}
-                    loading={sectionStatuses.launch === 'saving'}
+                    disabled={
+                      !currentUserCanChangeAppSettings || !launchMetricsChanged
+                    }
+                    loading={sectionStatuses.launch === "saving"}
                     onClick={() => setLaunchConfirmOpen(true)}
                   >
                     Save
@@ -610,11 +889,15 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
 
           {/* User Journeys Accordion */}
           <AccordionItem value="journeys" className="mt-2">
-            <AccordionTrigger className="font-body text-base">User Journeys</AccordionTrigger>
+            <AccordionTrigger className="font-body text-base">
+              User Journeys
+            </AccordionTrigger>
             <AccordionContent className={accordionContentStyle}>
               <div className="mt-2 space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-body text-sm">Collect user journeys for</span>
+                  <span className="font-body text-sm">
+                    Collect user journeys for
+                  </span>
                   <SdkConfigNumericInput
                     testId="journey-sampling-rate-input"
                     value={sdkConfig.journey_sampling_rate}
@@ -622,7 +905,9 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     maxValue={100}
                     step={0.01}
                     type="float"
-                    onChange={(value) => updateSdkConfig({ journey_sampling_rate: value })}
+                    onChange={(value) =>
+                      updateSdkConfig({ journey_sampling_rate: value })
+                    }
                     disabled={!currentUserCanChangeAppSettings}
                   />
                   <span className="font-body text-sm">% sessions</span>
@@ -632,8 +917,10 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="journey-save-button"
                     variant="outline"
                     className="border border-black font-display select-none"
-                    disabled={!currentUserCanChangeAppSettings || !journeyChanged}
-                    loading={sectionStatuses.journey === 'saving'}
+                    disabled={
+                      !currentUserCanChangeAppSettings || !journeyChanged
+                    }
+                    loading={sectionStatuses.journey === "saving"}
                     onClick={() => setJourneyConfirmOpen(true)}
                   >
                     Save
@@ -645,12 +932,16 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
 
           {/* HTTP Accordion */}
           <AccordionItem value="http" className="mt-2">
-            <AccordionTrigger className="font-body text-base">HTTP</AccordionTrigger>
+            <AccordionTrigger className="font-body text-base">
+              HTTP
+            </AccordionTrigger>
             <AccordionContent className={accordionContentStyle}>
               <div className="mt-2 space-y-4">
                 {/* HTTP events sampling rate */}
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-body text-sm">Collect HTTP events at</span>
+                  <span className="font-body text-sm">
+                    Collect HTTP events at
+                  </span>
                   <SdkConfigNumericInput
                     testId="http-sampling-rate-input"
                     value={sdkConfig.http_sampling_rate}
@@ -658,7 +949,9 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     maxValue={100}
                     step={0.01}
                     type="float"
-                    onChange={(value) => updateSdkConfig({ http_sampling_rate: value })}
+                    onChange={(value) =>
+                      updateSdkConfig({ http_sampling_rate: value })
+                    }
                     disabled={!currentUserCanChangeAppSettings}
                   />
                   <span className="font-body text-sm">% sampling rate</span>
@@ -671,8 +964,14 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                       <TooltipTrigger asChild>
                         <Info className="h-4 w-4 -mt-0.5" />
                       </TooltipTrigger>
-                      <TooltipContent side="bottom" align="start" className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent">
-                        HTTP events will not be collected for URLs matching these patterns. Supports exact match and wildcards (*). Enter one pattern per line.
+                      <TooltipContent
+                        side="bottom"
+                        align="start"
+                        className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent"
+                      >
+                        HTTP events will not be collected for URLs matching
+                        these patterns. Supports exact match and wildcards (*).
+                        Enter one pattern per line.
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -680,7 +979,13 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="http-disable-urls-textarea"
                     rows={4}
                     value={arrayToInput(sdkConfig.http_disable_event_for_urls)}
-                    onChange={(e) => updateSdkConfig({ http_disable_event_for_urls: inputToArray(e.target.value) })}
+                    onChange={(e) =>
+                      updateSdkConfig({
+                        http_disable_event_for_urls: inputToArray(
+                          e.target.value,
+                        ),
+                      })
+                    }
                     onKeyDown={preventSpaceKey}
                     placeholder={getUrlPlaceholder()}
                     disabled={!currentUserCanChangeAppSettings}
@@ -695,8 +1000,14 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                       <TooltipTrigger asChild>
                         <Info className="h-4 w-4 -mt-0.5" />
                       </TooltipTrigger>
-                      <TooltipContent side="bottom" align="start" className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent">
-                        Full HTTP request (body and headers) will be captured for URLs matching these patterns. Supports exact match and wildcards (*). Enter one pattern per line.
+                      <TooltipContent
+                        side="bottom"
+                        align="start"
+                        className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent"
+                      >
+                        Full HTTP request (body and headers) will be captured
+                        for URLs matching these patterns. Supports exact match
+                        and wildcards (*). Enter one pattern per line.
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -704,7 +1015,13 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="http-track-request-urls-textarea"
                     rows={4}
                     value={arrayToInput(sdkConfig.http_track_request_for_urls)}
-                    onChange={(e) => updateSdkConfig({ http_track_request_for_urls: inputToArray(e.target.value) })}
+                    onChange={(e) =>
+                      updateSdkConfig({
+                        http_track_request_for_urls: inputToArray(
+                          e.target.value,
+                        ),
+                      })
+                    }
                     onKeyDown={preventSpaceKey}
                     placeholder={getUrlPlaceholder()}
                     disabled={!currentUserCanChangeAppSettings}
@@ -719,8 +1036,14 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                       <TooltipTrigger asChild>
                         <Info className="h-4 w-4 -mt-0.5" />
                       </TooltipTrigger>
-                      <TooltipContent side="bottom" align="start" className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent">
-                        Full HTTP response (body and headers) will be captured for URLs matching these patterns. Supports exact match and wildcards (*). Enter one pattern per line.
+                      <TooltipContent
+                        side="bottom"
+                        align="start"
+                        className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent"
+                      >
+                        Full HTTP response (body and headers) will be captured
+                        for URLs matching these patterns. Supports exact match
+                        and wildcards (*). Enter one pattern per line.
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -728,7 +1051,13 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="http-track-response-urls-textarea"
                     rows={4}
                     value={arrayToInput(sdkConfig.http_track_response_for_urls)}
-                    onChange={(e) => updateSdkConfig({ http_track_response_for_urls: inputToArray(e.target.value) })}
+                    onChange={(e) =>
+                      updateSdkConfig({
+                        http_track_response_for_urls: inputToArray(
+                          e.target.value,
+                        ),
+                      })
+                    }
                     onKeyDown={preventSpaceKey}
                     placeholder={getUrlPlaceholder()}
                     disabled={!currentUserCanChangeAppSettings}
@@ -743,8 +1072,15 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                       <TooltipTrigger asChild>
                         <Info className="h-4 w-4 -mt-0.5" />
                       </TooltipTrigger>
-                      <TooltipContent side="bottom" align="start" className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent">
-                        Headers that will never be captured in HTTP requests or responses. Note that common sensitive headers like Authorization, Cookies, etc are never collected by default. Enter one header name per line.
+                      <TooltipContent
+                        side="bottom"
+                        align="start"
+                        className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent"
+                      >
+                        Headers that will never be captured in HTTP requests or
+                        responses. Note that common sensitive headers like
+                        Authorization, Cookies, etc are never collected by
+                        default. Enter one header name per line.
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -752,7 +1088,11 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="http-blocked-headers-textarea"
                     rows={4}
                     value={arrayToInput(sdkConfig.http_blocked_headers)}
-                    onChange={(e) => updateSdkConfig({ http_blocked_headers: inputToArray(e.target.value) })}
+                    onChange={(e) =>
+                      updateSdkConfig({
+                        http_blocked_headers: inputToArray(e.target.value),
+                      })
+                    }
                     onKeyDown={preventSpaceKey}
                     placeholder={getHeaderPlaceholder()}
                     disabled={!currentUserCanChangeAppSettings}
@@ -764,7 +1104,7 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                     data-testid="http-save-button"
                     variant="outline"
                     disabled={!currentUserCanChangeAppSettings || !httpChanged}
-                    loading={sectionStatuses.http === 'saving'}
+                    loading={sectionStatuses.http === "saving"}
                     onClick={() => setHttpConfirmOpen(true)}
                   >
                     Save
@@ -776,7 +1116,9 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
 
           {/* Screenshot Masking Accordion */}
           <AccordionItem value="masking" className="mt-2">
-            <AccordionTrigger className="font-body text-base">Screenshot Masking</AccordionTrigger>
+            <AccordionTrigger className="font-body text-base">
+              Screenshot Masking
+            </AccordionTrigger>
             <AccordionContent className={accordionContentStyle}>
               <div className="mt-2 space-y-4">
                 <div className="flex flex-col gap-2 min-h-[2.5rem] sm:flex-row sm:items-center sm:gap-0">
@@ -786,9 +1128,22 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                       data-testid="screenshot-mask-level-dropdown"
                       type={DropdownSelectType.SingleString}
                       title=""
-                      items={['All text and media', 'All text', 'All text except clickable', 'Sensitive fields only']}
-                      initialSelected={maskLevelToDisplay(sdkConfig.screenshot_mask_level)}
-                      onChangeSelected={(item) => updateSdkConfig({ screenshot_mask_level: displayToMaskLevel(item as string) })}
+                      items={[
+                        "All text and media",
+                        "All text",
+                        "All text except clickable",
+                        "Sensitive fields only",
+                      ]}
+                      initialSelected={maskLevelToDisplay(
+                        sdkConfig.screenshot_mask_level,
+                      )}
+                      onChangeSelected={(item) =>
+                        updateSdkConfig({
+                          screenshot_mask_level: displayToMaskLevel(
+                            item as string,
+                          ),
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -796,8 +1151,11 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
                   <Button
                     data-testid="masking-save-button"
                     variant="outline"
-                    disabled={!currentUserCanChangeAppSettings || !screenshotMaskingChanged}
-                    loading={sectionStatuses.masking === 'saving'}
+                    disabled={
+                      !currentUserCanChangeAppSettings ||
+                      !screenshotMaskingChanged
+                    }
+                    loading={sectionStatuses.masking === "saving"}
                     onClick={() => setMaskingConfirmOpen(true)}
                   >
                     Save
@@ -816,8 +1174,8 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         affirmativeText="Yes, I'm sure"
         cancelText="Cancel"
         onAffirmativeAction={() => {
-          setCrashesConfirmOpen(false)
-          handleSaveCrashes()
+          setCrashesConfirmOpen(false);
+          handleSaveCrashes();
         }}
         onCancelAction={() => setCrashesConfirmOpen(false)}
       />
@@ -829,8 +1187,8 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
           affirmativeText="Yes, I'm sure"
           cancelText="Cancel"
           onAffirmativeAction={() => {
-            setAnrsConfirmOpen(false)
-            handleSaveAnrs()
+            setAnrsConfirmOpen(false);
+            handleSaveAnrs();
           }}
           onCancelAction={() => setAnrsConfirmOpen(false)}
         />
@@ -842,8 +1200,8 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         affirmativeText="Yes, I'm sure"
         cancelText="Cancel"
         onAffirmativeAction={() => {
-          setBugReportsConfirmOpen(false)
-          handleSaveBugReports()
+          setBugReportsConfirmOpen(false);
+          handleSaveBugReports();
         }}
         onCancelAction={() => setBugReportsConfirmOpen(false)}
       />
@@ -854,8 +1212,8 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         affirmativeText="Yes, I'm sure"
         cancelText="Cancel"
         onAffirmativeAction={() => {
-          setTracesConfirmOpen(false)
-          handleSaveTraces()
+          setTracesConfirmOpen(false);
+          handleSaveTraces();
         }}
         onCancelAction={() => setTracesConfirmOpen(false)}
       />
@@ -866,8 +1224,8 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         affirmativeText="Yes, I'm sure"
         cancelText="Cancel"
         onAffirmativeAction={() => {
-          setLaunchConfirmOpen(false)
-          handleSaveLaunch()
+          setLaunchConfirmOpen(false);
+          handleSaveLaunch();
         }}
         onCancelAction={() => setLaunchConfirmOpen(false)}
       />
@@ -878,8 +1236,8 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         affirmativeText="Yes, I'm sure"
         cancelText="Cancel"
         onAffirmativeAction={() => {
-          setJourneyConfirmOpen(false)
-          handleSaveJourney()
+          setJourneyConfirmOpen(false);
+          handleSaveJourney();
         }}
         onCancelAction={() => setJourneyConfirmOpen(false)}
       />
@@ -890,8 +1248,8 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         affirmativeText="Yes, I'm sure"
         cancelText="Cancel"
         onAffirmativeAction={() => {
-          setHttpConfirmOpen(false)
-          handleSaveHttp()
+          setHttpConfirmOpen(false);
+          handleSaveHttp();
         }}
         onCancelAction={() => setHttpConfirmOpen(false)}
       />
@@ -902,11 +1260,11 @@ export default function SdkConfigurator({ appId, appName, initialConfig, current
         affirmativeText="Yes, I'm sure"
         cancelText="Cancel"
         onAffirmativeAction={() => {
-          setMaskingConfirmOpen(false)
-          handleSaveMasking()
+          setMaskingConfirmOpen(false);
+          handleSaveMasking();
         }}
         onCancelAction={() => setMaskingConfirmOpen(false)}
       />
     </div>
-  )
+  );
 }
