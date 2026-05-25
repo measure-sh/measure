@@ -412,10 +412,10 @@ Payload must contain the app version info, build info and optional build mapping
 
 Each mapping object has the following shape.
 
-| Field      | Type   | Optional | Comment                                                             |
-| ---------- | ------ | -------- | ------------------------------------------------------------------- |
+| Field      | Type   | Optional | Comment                                                                                         |
+| ---------- | ------ | -------- | ----------------------------------------------------------------------------------------------- |
 | `type`     | string | No       | Type of the mapping file. Either `proguard`, `dsym`, `elf_debug`, or `jsbundle` (React Native). |
-| `filename` | string | No       | Filename of the mapping file.                                       |
+| `filename` | string | No       | Filename of the mapping file.                                                                   |
 
 </details>
 
@@ -443,7 +443,7 @@ List of HTTP status codes for success and failures.
 Fetches the latest SDK configuration for the app.
 
 | Config                       | Description                                                                                                                                          |
-|------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | max_events_in_batch          | Maximum number of events and spans in a batch                                                                                                        |
 | crash_timeline_duration      | The duration of session timeline collected with crashes                                                                                              |
 | anr_timeline_duration        | The duration of session timeline collected with ANRs                                                                                                 |
@@ -527,7 +527,7 @@ List of HTTP status codes for success and failures.
 <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                             |
-|-----------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `200 Ok`                    | Successfully retrieved a config                                                                                         |
 | `304 Not Modified`          | The config has not changed, the body will be empty.                                                                     |
 | `400 Bad Request`           | Request body is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
@@ -674,7 +674,7 @@ Use the `anr` type for [Application Not Responding](https://developer.android.co
 
 | Field        | Type    | Optional | Comment                                                         |
 | ------------ | ------- | -------- | --------------------------------------------------------------- |
-| `handled`    | boolean | No       | `false` for crashes, `true` if exceptions are handled           |
+| `handled`    | boolean | Yes      | Do not use. Retained only for backwards compatibility           |
 | `exceptions` | array   | No       | Array of exception objects                                      |
 | `foreground` | boolean | No       | `true` if the app was in the foreground at the time of the ANR. |
 | `threads`    | array   | Yes      | Array of thread objects                                         |
@@ -704,7 +704,7 @@ Use the `exception` type for errors and crashes.
 
 | Field           | Type    | Optional | Comment                                                                                                                                                             |
 | --------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `handled`       | boolean | No       | `false` for crashes, `true` if exceptions are handled. Prefer using `severity` for new integrations; `handled` is retained for backwards compatibility.             |
+| `handled`       | boolean | Yes      | Do not use. Prefer using `severity` for new integrations; `handled` is retained for backwards compatibility.                                                        |
 | `severity`      | string  | Yes      | Severity level of the exception. One of: `fatal`, `handled`, `unhandled`. When omitted, severity is inferred from `handled`: `false` → `fatal`, `true` → `handled`. |
 | `exceptions`    | array   | No       | Array of exception objects                                                                                                                                          |
 | `foreground`    | boolean | Yes      | `true` if the app was in the foreground at the time of the exception.                                                                                               |
@@ -778,6 +778,8 @@ Each binary_image object contains further fields.
 | `path`       | string  | Yes      | Full path to where the binary was located at runtime, only applies to Apple apps           |
 
 `error` object.
+
+**Deprecated. Use `num_code`, `code`, and `meta` directly on exception instead.**
 
 The error object contains further fields. Applicable for Apple apps. Should not exceed `4096 bytes`.
 
