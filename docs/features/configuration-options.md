@@ -84,8 +84,7 @@ Future<void> main() async {
     config: const MeasureConfig(
       enableLogging: true,
       autoStart: true,
-      maxDiskUsageInMb: 50,
-      enableFullCollectionMode: false,
+      enableDiagnosticMode: false,
     ),
   );
 }
