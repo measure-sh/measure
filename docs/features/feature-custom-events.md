@@ -92,10 +92,10 @@ Using ObjC:
 #### Flutter
 
 ```dart
-final attributes = AttributesBuilder()
-  .putBool("is_premium_user", true);
+final attributes = AttributeBuilder()
+  .add("is_premium_user", true)
   .build();
-Measure.instance.trackEvent(name: "event_name", attribites: attributes);
+Measure.instance.trackEvent(name: "event_name", attributes: attributes);
 ```
 
 ### Custom Event with Timestamp
