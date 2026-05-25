@@ -483,13 +483,13 @@ so all the minimum requirements for Android and iOS apply to the React Native SD
 Add the following dependency to your project:
 
 ```sh
-npm install @measuresh/react-native
+npm install @measuresh/react-native@0.0.1
 ```
 
 or with yarn:
 
 ```sh
-yarn add @measuresh/react-native
+yarn add @measuresh/react-native@0.0.1
 ```
 
 ### Initialize the SDK
