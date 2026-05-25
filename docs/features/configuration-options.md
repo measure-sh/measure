@@ -251,8 +251,7 @@ storage costs if done at scale in production.
 ## `enableDiagnosticMode`
 
 Enables diagnostic mode, which writes all internal Measure SDK logs to files on disk. These files can
-be attached when reporting a bug to help us debug SDK issues. Available on all platforms. Defaults to
-`false`.
+be attached when reporting a bug to help us debug SDK issues. Defaults to `false`.
 
 > [!WARNING]
 > These files contain only Measure SDK logs, not your app's logs. Enable this option in debug builds
@@ -264,11 +263,7 @@ integration guide has the full step-by-step workflow.
 
 #### Android
 
-Log files are stored in the app's internal storage at `files/measure/sdk_debug_logs/`. Each file is
-named with a unique ID and contains a header line with the SDK version and timestamp, followed by all
-SDK log entries. Only the 5 most recent files are kept; older files are cleaned up automatically.
-
-To pull all log files to your machine:
+To pull all log files from the device to your machine:
 
 ```shell
 adb shell "run-as <your.package.name> tar czf - files/measure/sdk_debug_logs/" > sdk_debug_logs.tar.gz
@@ -282,22 +277,13 @@ adb shell run-as <your.package.name> rm -rf files/measure/sdk_debug_logs/
 
 #### iOS
 
-Log files are stored in the app's Application Support directory under `measure/sdk_debug_logs/`. To
-export them from a device, also set `enableDiagnosticModeGesture` to `true` on the native
-`BaseMeasureConfig`. With the gesture enabled, a two-finger double tap opens the system share sheet
-with the log files attached. This gesture is available on iOS only.
+Enable the `enableDiagnosticMode` and `enableDiagnosticModeGesture` options to `true` to enable a two-finger double tap gesture 
+for sharing logs via the share sheet.
 
 ```swift
 let config = BaseMeasureConfig(enableDiagnosticMode: true, enableDiagnosticModeGesture: true)
 Measure.initialize(with: clientInfo, config: config)
 ```
-
-#### Flutter & React Native
-
-Set `enableDiagnosticMode` in the cross-platform config. Since these SDKs build on the native Android
-and iOS SDKs, the log file locations and retrieval steps match the Android and iOS sections above. On
-iOS, set `enableDiagnosticModeGesture` on the native `BaseMeasureConfig` to export the logs via the
-share sheet.
 
 # Remote Configuration Options
 
