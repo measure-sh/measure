@@ -327,8 +327,8 @@ func application(_ application: UIApplication,
     ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"<apiKey>" apiUrl:@"<apiUrl>"];
     BaseMeasureConfig *config = [[BaseMeasureConfig alloc] initWithEnableLogging:YES
                                                            autoStart:YES
-                                                           requestHeadersProvider:nil
-                                                           maxDiskUsageInMb:nil
+                                                           requestHeadersProvider:NULL
+                                                           maxDiskUsageInMb:50
                                                            enableFullCollectionMode:YES
                                                            enableDiagnosticMode:NO
                                                            enableDiagnosticModeGesture:NO];

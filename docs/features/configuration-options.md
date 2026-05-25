@@ -216,7 +216,7 @@ Measure.initialize(with: clientInfo, config: BaseMeasureConfig(requestHeadersPro
 ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"api-key" apiUrl:@"api-url"];
 BaseMeasureConfig *config = [[BaseMeasureConfig alloc] initWithEnableLogging:YES
                                                                    autoStart:YES
-                                                      requestHeadersProvider:[RequestHeaderProvider new]
+                                                      requestHeadersProvider:NULL
                                                             maxDiskUsageInMb:nil
                                                     enableFullCollectionMode:NO
                                                         enableDiagnosticMode:NO
