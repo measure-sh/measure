@@ -11,11 +11,11 @@ import Foundation
 final class MockExceptionGenerator: ExceptionGenerator {
     var exception: Exception?
 
-    func generate(_ error: NSError, collectStackTraces: Bool) -> Exception? {
+    func generate(_ error: NSError) -> Exception? {
         return exception
     }
 
-    func generate(_ exception: NSException, collectStackTraces: Bool) -> Exception? {
+    func generate(_ exception: NSException) -> Exception? {
         return self.exception
     }
 }
