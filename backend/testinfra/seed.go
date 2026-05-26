@@ -288,6 +288,32 @@ func (h *TestHelper) SeedIssueEventWithDataInSession(
 	}
 }
 
+// SeedIssueEventWithSeverity inserts an exception event with an explicit
+// exception.severity column value, mimicking new-SDK ingestion. The handled
+// bool is set consistently with severity ("handled" → true, others → false).
+// Use this to test the new-data path of severity-aware queries.
+func (h *TestHelper) SeedIssueEventWithSeverity(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, fingerprint, severity string,
+	ts time.Time,
+) {
+	t.Helper()
+	handled := severity == "handled"
+	query := fmt.Sprintf(
+		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
+			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
+			"`attribute.app_unique_id`, `attribute.os_name`, `attribute.measure_sdk_version`, "+
+			"`exception.handled`, `exception.foreground`, `exception.fingerprint`, `exception.severity`) "+
+			`VALUES ('%s', 'exception', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1', %t, true, '%s', '%s')`,
+		uuid.New().String(), uuid.New().String(), appID, teamID,
+		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String(),
+		handled, fingerprint, severity)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed issue event with severity (%s): %v", severity, err)
+	}
+}
+
 // SeedNavigationEventInSession inserts a navigation event with a known
 // session_id and destination screen name.
 func (h *TestHelper) SeedNavigationEventInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, destination string, ts time.Time) {

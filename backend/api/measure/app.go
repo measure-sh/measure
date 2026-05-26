@@ -354,6 +354,38 @@ func resolveErrorSources(af *filter.AppFilter) (queryANR, wantHandledTrue, wantH
 	return
 }
 
+// applyExceptionSeverityFilter adds a WHERE clause to s restricting events to
+// those matching severities. Bridges new data (exception.severity populated)
+// and legacy data (exception.severity = '', falls back to exception.handled).
+// Legacy mapping: handled=false matches both fatal and unhandled
+// (indistinguishable in legacy data); handled=true matches handled.
+//
+// No-op when severities is empty.
+func applyExceptionSeverityFilter(s *sqlf.Stmt, severities []event.Severity) {
+	if len(severities) == 0 {
+		return
+	}
+	hasFatal := slices.Contains(severities, event.SeverityFatal)
+	hasHandled := slices.Contains(severities, event.SeverityHandled)
+	hasUnhandled := slices.Contains(severities, event.SeverityUnhandled)
+
+	wantLegacyFalse := hasFatal || hasUnhandled
+	var legacyClause string
+	if wantLegacyFalse && hasHandled {
+		legacyClause = "`exception.severity` = ''"
+	} else if wantLegacyFalse {
+		legacyClause = "`exception.severity` = '' AND `exception.handled` = false"
+	} else if hasHandled {
+		legacyClause = "`exception.severity` = '' AND `exception.handled` = true"
+	}
+
+	if legacyClause != "" {
+		s.Where("(`exception.severity` IN (?) OR ("+legacyClause+"))", severities)
+	} else {
+		s.Where("`exception.severity`").In(severities)
+	}
+}
+
 // unionStmts combines one or more sqlf statements with UNION ALL.
 // Returns the single statement unchanged when len == 1.
 func unionStmts(stmts []*sqlf.Stmt) *sqlf.Stmt {
@@ -538,11 +570,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 			GroupBy("app_id").
 			GroupBy("id")
 
-		if !queryFatal && hasHandled && !hasUnhandled {
-			s.Where("`exception.handled` = true")
-		} else if !queryFatal && !hasHandled && hasUnhandled {
-			s.Where("`exception.handled` = false")
-		}
+		applyExceptionSeverityFilter(s, af.Severities)
 
 		if af.CustomError {
 			s.Where("`exception.is_custom` = true")
@@ -719,13 +747,9 @@ func (a App) GetErrorPlotInstances(ctx context.Context, af *filter.AppFilter) (i
 
 	if wantHandledTrue || wantHandledFalse {
 		s := newBranch().Where("type = ?", event.TypeException)
-		if wantHandledTrue && !wantHandledFalse {
-			s.Where("exception.handled = true")
-		} else if !wantHandledTrue && wantHandledFalse {
-			s.Where("exception.handled = false")
-		}
+		applyExceptionSeverityFilter(s, af.Severities)
 		if af.CustomError {
-			s.Where("exception.is_custom = true")
+			s.Where("`exception.is_custom` = true")
 		}
 		applyCommonFilters(s)
 		branches = append(branches, s)
@@ -849,14 +873,10 @@ func (a App) GetErrorGroupPlotInstances(ctx context.Context, fingerprint string,
 	if wantHandledTrue || wantHandledFalse {
 		s := newBranch().
 			Where("type = ?", event.TypeException).
-			Where("exception.fingerprint = ?", fingerprint)
-		if wantHandledTrue && !wantHandledFalse {
-			s.Where("exception.handled = true")
-		} else if !wantHandledTrue && wantHandledFalse {
-			s.Where("exception.handled = false")
-		}
+			Where("`exception.fingerprint` = ?", fingerprint)
+		applyExceptionSeverityFilter(s, af.Severities)
 		if af.CustomError {
-			s.Where("exception.is_custom = true")
+			s.Where("`exception.is_custom` = true")
 		}
 		applyCommonFilters(s)
 		branches = append(branches, s)
@@ -972,14 +992,10 @@ func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, fingerprin
 	if wantHandledTrue || wantHandledFalse {
 		s := newBranch().
 			Where("type = ?", event.TypeException).
-			Where("exception.fingerprint = ?", fingerprint)
-		if wantHandledTrue && !wantHandledFalse {
-			s.Where("exception.handled = true")
-		} else if !wantHandledTrue && wantHandledFalse {
-			s.Where("exception.handled = false")
-		}
+			Where("`exception.fingerprint` = ?", fingerprint)
+		applyExceptionSeverityFilter(s, af.Severities)
 		if af.CustomError {
-			s.Where("exception.is_custom = true")
+			s.Where("`exception.is_custom` = true")
 		}
 		applyCommonFilters(s)
 		branches = append(branches, s)
@@ -1116,18 +1132,10 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 			Where("type = ?", event.TypeException).
 			Where("exception.fingerprint = ?", fingerprint)
 
-		if queryFatal && !queryNonfatal {
-			stmt.Where("exception.handled = false")
-		} else if queryNonfatal && !queryFatal {
-			if hasHandled && !hasUnhandled {
-				stmt.Where("exception.handled = true")
-			} else if hasUnhandled && !hasHandled {
-				stmt.Where("exception.handled = false")
-			}
-		}
+		applyExceptionSeverityFilter(stmt, af.Severities)
 
 		if af.CustomError {
-			stmt.Where("exception.is_custom = true")
+			stmt.Where("`exception.is_custom` = true")
 		}
 
 		applyCommonFilters(stmt)
