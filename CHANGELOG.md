@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Set correct severity for error details (#3725) by @detj in #3725
 - (**backend**): Unify severity filter across errorGroups endpoints (#3723) by @detj in #3723
 - (**backend**): Handled exceptions were incorrectly grouped (#3708) by @detj in #3708
 - (**backend**): Add missing notif pref creation step for new user in mcp auth by @anupcowkur in #3705
