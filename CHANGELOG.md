@@ -64,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add analytics events by @anupcowkur in #3724
 - (**backend**): Updates alerts to use new error page route by @anupcowkur
 - (**backend**): Update usage of handled (#3689) by @detj in #3689
 - (**backend**): Set severity as fatal for anr events (#3687) by @detj in #3687
