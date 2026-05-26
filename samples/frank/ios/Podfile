@@ -59,6 +59,12 @@ target 'FrankensteinApp' do
         exit 0
       fi
 
+      PROJECT_ID=$(/usr/libexec/PlistBuddy -c "Print :PROJECT_ID" "$PLIST" 2>/dev/null || true)
+      if [[ "$PROJECT_ID" == "frank-sample-placeholder" ]]; then
+        echo "warning: placeholder Firebase config, skipping dSYM upload"
+        exit 0
+      fi
+
       "${PODS_ROOT}/FirebaseCrashlytics/upload-symbols" \
         -gsp "$PLIST" \
         -p ios \
