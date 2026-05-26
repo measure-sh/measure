@@ -1,0 +1,39 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build and upload Frankenstein to TestFlight"
+  lane :beta do
+    setup_ci
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_API_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_API_ISSUER_ID"),
+      key_filepath: ENV.fetch("ASC_API_KEY_PATH"),
+      in_house: false
+    )
+
+    match(
+      type: "appstore",
+      readonly: true,
+      api_key: api_key
+    )
+
+    build_app(
+      workspace: "FrankensteinApp.xcworkspace",
+      scheme: "FrankensteinApp",
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: {
+        signingStyle: "manual",
+        provisioningProfiles: {
+          "sh.frankenstein.ios" => "match AppStore sh.frankenstein.ios"
+        }
+      }
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true
+    )
+  end
+end
