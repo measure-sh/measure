@@ -211,7 +211,11 @@ SDK are picked up on the next Xcode build without needing to `pod update`.
 
 ## CI/CD
 
-CI is handled by `.github/workflows/frank.yml`. It triggers on PRs and pushes to `main` when changes are made to `samples/frank/`, `android/`, `ios/`, `flutter/` or `react-native/`. Each run builds both debug and release for Android and a release archive for iOS. On merge to `main`, it also publishes to Firebase App Distribution (`measure-devs` group). Android uses the `wzieba/Firebase-Distribution-Github-Action` while iOS uses the Firebase CLI directly (since the GitHub Action requires a Linux runner).
+CI is handled by `.github/workflows/frank.yml`. It triggers on PRs and pushes to `main` when changes are made to `samples/frank/`, `android/`, `ios/`, `flutter/` or `react-native/`. Each run builds both debug and release for Android and a release build for iOS. On merge to `main`, it publishes the Android APKs to Firebase App Distribution (`measure-devs` group) via the `wzieba/Firebase-Distribution-Github-Action`, and uploads the iOS build to TestFlight via the `beta` fastlane lane (`ios/fastlane/Fastfile`).
+
+### iOS code signing
+
+The iOS release build is signed with [fastlane match](https://docs.fastlane.tools/actions/match/). A single shared Apple Distribution certificate and App Store provisioning profile live encrypted in the private `measure-sh/ios-signing` repo, and CI installs them read-only on every run, so no certificate is generated per build (the previous setup minted one per run and exhausted the Apple certificate cap). To rotate the identity or add an app identifier, run `bundle exec fastlane match appstore` from `samples/frank/ios` locally.
 
 ### CI Secrets
 
@@ -221,9 +225,11 @@ CI is handled by `.github/workflows/frank.yml`. It triggers on PRs and pushes to
 | `FRANK_APP_GOOGLE_SERVICES_JSON` | Android `google-services.json` content |
 | `FRANK_APP_GOOGLE_SERVICE_INFO_PLIST_RELEASE` | iOS release `GoogleService-Info.plist` content |
 | `FRANK_APP_FIREBASE_SERVICE_ACCOUNT` | Service account JSON for Firebase App Distribution |
-| `FRANK_APP_IOS_CERTIFICATE_P12_RELEASE` | Base64-encoded p12 distribution certificate |
-| `FRANK_APP_IOS_CERTIFICATE_PASSWORD_RELEASE` | Password for the release p12 certificate |
-| `FRANK_APP_IOS_PROVISIONING_PROFILE_RELEASE` | Base64-encoded ad-hoc provisioning profile |
+| `FRANK_APP_MATCH_PASSWORD` | Passphrase that decrypts the fastlane match storage repo (`measure-sh/ios-signing`) |
+| `FRANK_APP_MATCH_GIT_BASIC_AUTHORIZATION` | Base64 of `x-access-token:<PAT>` granting CI read access to `measure-sh/ios-signing` |
+| `FRANK_APP_ASC_API_KEY_ID` | App Store Connect API key ID (used by match and the TestFlight upload) |
+| `FRANK_APP_ASC_API_PRIVATE_KEY` | App Store Connect API key (`.p8` contents) |
+| `FRANK_APP_ASC_API_ISSUER_ID` | App Store Connect API issuer ID |
 
 ## Project Structure
 

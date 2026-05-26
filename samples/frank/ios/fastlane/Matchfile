@@ -1,0 +1,6 @@
+git_url("https://github.com/measure-sh/ios-signing")
+storage_mode("git")
+
+type("appstore")
+app_identifier(["sh.frankenstein.ios"])
+readonly(true)

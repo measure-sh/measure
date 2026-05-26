@@ -225,28 +225,20 @@ jobs:
             -destination 'generic/platform=iOS' \
             -parallelizeTargets \
             CODE_SIGNING_ALLOWED=NO
-      - name: Archive release
+      - name: Setup Ruby
         if: github.ref == 'refs/heads/main'
-        run: |
-          xcodebuild archive \
-            -workspace samples/frank/ios/FrankensteinApp.xcworkspace \
-            -scheme FrankensteinApp \
-            -configuration Release \
-            -archivePath $RUNNER_TEMP/FrankensteinApp-Release.xcarchive \
-            -destination 'generic/platform=iOS' \
-            -parallelizeTargets \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_API_KEY_PATH" \
-            -authenticationKeyID "${{ secrets.FRANK_APP_ASC_API_KEY_ID }}" \
-            -authenticationKeyIssuerID "${{ secrets.FRANK_APP_ASC_API_ISSUER_ID }}"
-      - name: Export and upload to TestFlight
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: samples/frank/ios
+      - name: Build and upload to TestFlight
         if: github.ref == 'refs/heads/main'
-        run: |
-          xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/FrankensteinApp-Release.xcarchive \
-            -exportOptionsPlist samples/frank/ios/ExportOptions-Release.plist \
-            -exportPath $RUNNER_TEMP/frank-release-ipa \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_API_KEY_PATH" \
-            -authenticationKeyID "${{ secrets.FRANK_APP_ASC_API_KEY_ID }}" \
-            -authenticationKeyIssuerID "${{ secrets.FRANK_APP_ASC_API_ISSUER_ID }}"
+        working-directory: samples/frank/ios
+        run: bundle exec fastlane beta
+        env:
+          ASC_API_KEY_PATH: ${{ env.ASC_API_KEY_PATH }}
+          ASC_API_KEY_ID: ${{ secrets.FRANK_APP_ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.FRANK_APP_ASC_API_ISSUER_ID }}
+          MATCH_PASSWORD: ${{ secrets.FRANK_APP_MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.FRANK_APP_MATCH_GIT_BASIC_AUTHORIZATION }}

@@ -1,1 +1,9 @@
 Generated.xcconfig
+
+# fastlane / build artifacts
+*.ipa
+*.dSYM.zip
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/test_output
+fastlane/README.md
