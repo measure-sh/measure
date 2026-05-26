@@ -34,7 +34,9 @@
         @"Segmentation Fault (SIGSEGV)",
         @"Abnormal Termination (SIGABRT)",
         @"Illegal Instruction (SIGILL)",
-        @"Bus Error (SIGBUS)"
+        @"Bus Error (SIGBUS)",
+        @"Track Handled NSException",
+        @"Track Handled NSError"
     ];
 
     self.httpEventTypes = @[@"Track HTTP Event"];
@@ -276,6 +278,20 @@
     } else if ([type isEqualToString:@"Bus Error (SIGBUS)"]) {
         int *invalidAddress = (int *)0x1;
         *invalidAddress = 0;
+    } else if ([type isEqualToString:@"Track Handled NSException"]) {
+        NSException *exception = [NSException exceptionWithName:@"NamedException"
+                                                         reason:@"Something happened"
+                                                       userInfo:nil];
+        [Measure trackException:exception
+                     attributes:@{@"swiftui": @YES, @"lat": @64.0f, @"long": @14.0f, @"string": @"string"}];
+    } else if ([type isEqualToString:@"Track Handled NSError"]) {
+        NSError *error = nil;
+        [NSString stringWithContentsOfFile:@"/path/that/does/not/exist.txt"
+                                  encoding:NSUTF8StringEncoding
+                                     error:&error];
+        if (error) {
+            [Measure trackError:error attributes:nil];
+        }
     } else {
         NSLog(@"Unknown crash type.");
     }

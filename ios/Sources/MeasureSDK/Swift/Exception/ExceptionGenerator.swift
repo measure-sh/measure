@@ -13,8 +13,8 @@ import KSCrash
 import Foundation
 
 protocol ExceptionGenerator {
-    func generate(_ error: NSError, collectStackTraces: Bool) -> Exception?
-    func generate(_ exception: NSException, collectStackTraces: Bool) -> Exception?
+    func generate(_ error: NSError) -> Exception?
+    func generate(_ exception: NSException) -> Exception?
 }
 
 final class BaseExceptionGenerator: ExceptionGenerator {
@@ -28,36 +28,33 @@ final class BaseExceptionGenerator: ExceptionGenerator {
         self.sysCtl = sysCtl
     }
 
-    func generate(_ error: NSError, collectStackTraces: Bool) -> Exception? {
+    func generate(_ error: NSError) -> Exception? {
         let nsException = NSException(name: NSExceptionName(rawValue: error.domain),
                                       reason: error.localizedDescription,
                                       userInfo: error.userInfo)
         return generateException(nsException,
-                                 collectStackTraces: collectStackTraces,
                                  numCode: Int64(error.code),
                                  code: error.domain,
                                  meta: convertToCodableValue(error.userInfo))
     }
 
-    func generate(_ exception: NSException, collectStackTraces: Bool) -> Exception? {
+    func generate(_ exception: NSException) -> Exception? {
         let userInfo = exception.userInfo?.reduce(into: [String: Any]()) { result, pair in
             if let key = pair.key as? String {
                 result[key] = pair.value
             }
         }
         return generateException(exception,
-                                 collectStackTraces: collectStackTraces,
                                  numCode: nil,
                                  code: "\(exception.name.rawValue), \(exception.reason ?? "")",
                                  meta: userInfo.map { convertToCodableValue($0) })
     }
 
     private func generateException(_ exception: NSException,
-                                   collectStackTraces: Bool,
                                    numCode: Int64?,
                                    code: String?,
                                    meta: [String: CodableValue]?) -> Exception? {
-        KSCrash.shared.report(exception, logAllThreads: collectStackTraces)
+        KSCrash.shared.report(exception, logAllThreads: true)
 
         guard let store = KSCrash.shared.reportStore,
               let reportID = store.reportIDs.last,
@@ -67,7 +64,8 @@ final class BaseExceptionGenerator: ExceptionGenerator {
         }
 
         let formatter = CrashDataFormatter(report.value, sysCtl: sysCtl)
-        let result = formatter.getException(severity: .handled, numCode: numCode, code: code, meta: meta)
+        var result = formatter.getException(severity: .handled, numCode: numCode, code: code, meta: meta)
+        result.foreground = crashDataPersistence.isForeground
         store.deleteReport(with: Int64(truncating: reportID))
         crashDataPersistence.clearCrashData()
 

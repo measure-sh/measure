@@ -397,30 +397,30 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         trackBugReport(description: description, attachments: attachments, attributes: transformedAttributes)
     }
 
-    func trackError(_ error: Error, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool) {
+    func trackError(_ error: Error, attributes: [String: AttributeValue]? = nil) {
         guard isStarted else { return }
 
-        userTriggeredEventCollector.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
+        userTriggeredEventCollector.trackError(error, attributes: attributes)
     }
 
-    func trackError(_ error: NSError, attributes: [String: Any]? = nil, collectStackTraces: Bool) {
+    func trackError(_ error: NSError, attributes: [String: Any]? = nil) {
         guard isStarted else { return }
 
         let transformedAttributes = attributeTransformer.transformAttributes(attributes)
-        userTriggeredEventCollector.trackError(error, attributes: transformedAttributes, collectStackTraces: collectStackTraces)
+        userTriggeredEventCollector.trackError(error, attributes: transformedAttributes)
     }
 
-    func trackException(_ exception: NSException, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool) {
+    func trackException(_ exception: NSException, attributes: [String: AttributeValue]? = nil) {
         guard isStarted else { return }
 
-        userTriggeredEventCollector.trackException(exception, attributes: attributes, collectStackTraces: collectStackTraces)
+        userTriggeredEventCollector.trackException(exception, attributes: attributes)
     }
 
-    func trackException(_ exception: NSException, attributes: [String: Any]? = nil, collectStackTraces: Bool) {
+    func trackException(_ exception: NSException, attributes: [String: Any]? = nil) {
         guard isStarted else { return }
 
         let transformedAttributes = attributeTransformer.transformAttributes(attributes)
-        userTriggeredEventCollector.trackException(exception, attributes: transformedAttributes, collectStackTraces: collectStackTraces)
+        userTriggeredEventCollector.trackException(exception, attributes: transformedAttributes)
     }
 
     func getAttachmentDirectoryPath() -> String? {
