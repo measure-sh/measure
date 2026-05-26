@@ -35,6 +35,10 @@ Copy the example env file and fill in the Measure SDK keys:
 cp .env.example .env
 ```
 
+Get the `API Key` and `API URL` by creating an app in the Measure
+dashboard. See [Create an App](https://measure.sh/docs/sdk-integration-guide#1-create-an-app)
+in the integration guide.
+
 Then run the setup script:
 
 ```bash
@@ -46,30 +50,8 @@ This reads the `.env` file and generates:
 * `ios/MeasureDebug.xcconfig` — Measure API keys for the iOS debug build
 * `ios/MeasureRelease.xcconfig` — Measure API keys for the iOS release build
 
-#### 2. Set up Firebase
 
-Firebase config files are not checked in. Download them from the
-[Firebase Console](https://console.firebase.google.com/) for the project and
-place them at the following paths:
-
-**Android:**
-```
-android/app/google-services.json
-```
-
-The file should contain clients for both `sh.frankenstein.android` and
-`sh.frankenstein.android.debug` package names.
-
-**iOS:**
-```
-ios/FrankensteinApp/Firebase/Debug/GoogleService-Info.plist
-ios/FrankensteinApp/Firebase/Release/GoogleService-Info.plist
-```
-
-The iOS build has a script phase that copies the correct plist based on the
-build configuration (Debug/Release).
-
-#### 3. Build Measure React Native SDK
+#### 2. Build Measure React Native SDK
 
 The React Native SDK is linked from local source (`link:../../../react-native`)
 but the JS entry point is a build artifact (`lib/module/index.js`). Build it
@@ -82,7 +64,7 @@ npx bob build --target module
 cd ../samples/frank
 ```
 
-#### 4. Set up Flutter module
+#### 3. Set up Flutter module
 
 ```bash
 cd flutter
@@ -93,7 +75,7 @@ cd ..
 This generates the `.android/` and `.ios/` integration directories required by
 the Gradle and CocoaPods build systems.
 
-#### 5. Set up React Native module
+#### 4. Set up React Native module
 
 ```bash
 cd react_native
@@ -101,7 +83,7 @@ yarn install
 cd ..
 ```
 
-#### 6. Set up iOS dependencies
+#### 5. Set up iOS dependencies
 
 ```bash
 cd ios
@@ -126,6 +108,16 @@ The Gradle build handles Flutter and KMP module integration automatically.
 ### iOS
 
 Open `ios/FrankensteinApp.xcworkspace` in Xcode and build the `FrankensteinApp` scheme.
+
+## Firebase (optional)
+
+Firebase is **not required** to build or run the sample. Placeholder config
+files are checked in so it works out of the box.
+
+Maintainers wanting real Crashlytics/App Distribution should download the real
+`google-services.json` and `GoogleService-Info.plist` from the
+[Firebase Console](https://console.firebase.google.com/) and drop them in over
+the placeholders (don't commit them).
 
 ## How SDKs are linked
 

@@ -86,8 +86,11 @@ jobs:
       - name: Generate Flutter module files
         run: flutter pub get
         working-directory: samples/frank/flutter
-      - name: Create google-services.json
-        run: echo '${{ secrets.FRANK_APP_GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+      - name: Override google-services.json with real Firebase config
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.FRANK_APP_GOOGLE_SERVICES_JSON }}
+        if: ${{ env.GOOGLE_SERVICES_JSON != '' }}
+        run: echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
       - name: Setup Measure config
         run: |
           echo '${{ secrets.FRANK_APP_ENV }}' > .env
@@ -168,10 +171,11 @@ jobs:
       - name: Generate Flutter module files
         run: flutter pub get
         working-directory: samples/frank/flutter
-      - name: Create GoogleService-Info.plist
-        run: |
-          mkdir -p samples/frank/ios/FrankensteinApp/Firebase/Release
-          echo '${{ secrets.FRANK_APP_GOOGLE_SERVICE_INFO_PLIST_RELEASE }}' > samples/frank/ios/FrankensteinApp/Firebase/Release/GoogleService-Info.plist
+      - name: Override GoogleService-Info.plist with real Firebase config
+        env:
+          GOOGLE_SERVICE_INFO_PLIST_RELEASE: ${{ secrets.FRANK_APP_GOOGLE_SERVICE_INFO_PLIST_RELEASE }}
+        if: ${{ env.GOOGLE_SERVICE_INFO_PLIST_RELEASE != '' }}
+        run: echo "$GOOGLE_SERVICE_INFO_PLIST_RELEASE" > samples/frank/ios/FrankensteinApp/Firebase/Release/GoogleService-Info.plist
       - name: Setup Measure config
         run: |
           echo '${{ secrets.FRANK_APP_ENV }}' > samples/frank/.env
