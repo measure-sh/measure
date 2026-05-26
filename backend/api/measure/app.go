@@ -1127,7 +1127,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 			Select("exception.num_code as num_code").
 			Select("exception.code as code").
 			Select("exception.meta as meta").
-			Select("exception.severity as severity").
+			Select("if(exception.severity = '', if(exception.handled, 'handled', 'fatal'), exception.severity) as severity").
 			Select("attachments").
 			Where("type = ?", event.TypeException).
 			Where("exception.fingerprint = ?", fingerprint)
