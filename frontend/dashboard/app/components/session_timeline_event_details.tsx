@@ -172,7 +172,7 @@ export default function SessionTimelineEventDetails({
       eventDetails.attachments.length > 0
     ) {
       if (
-        (eventType === "error" && eventDetails.severity === "fatal") ||
+        eventType === "error" ||
         eventType === "anr" ||
         eventType === "gesture_click" ||
         eventType === "gesture_long_click" ||
@@ -219,10 +219,7 @@ export default function SessionTimelineEventDetails({
       buttonVariants({ variant: "secondary" }),
       "justify-center w-fit",
     );
-    if (
-      (eventType === "error" && eventDetails.severity === "fatal") ||
-      eventType === "anr"
-    ) {
+    if (eventType === "error" || eventType === "anr") {
       const label = `View ${eventType === "error" ? "Error" : "ANR"} Details`;
       return (
         <div>

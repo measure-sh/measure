@@ -194,7 +194,7 @@ describe("SessionTimelineEventDetails", () => {
       );
     });
 
-    it("does not render error details link for non-fatal errors", () => {
+    it("renders error details link for handled errors", () => {
       renderDetails({
         eventType: "error",
         eventDetails: {
@@ -205,7 +205,29 @@ describe("SessionTimelineEventDetails", () => {
           severity: "handled",
         },
       });
-      expect(screen.queryByText("View Error Details")).not.toBeInTheDocument();
+      const link = screen.getByText("View Error Details");
+      expect(link.closest("a")).toHaveAttribute(
+        "href",
+        "/team-1/errors/app-1/grp-2/NPE@Main.java",
+      );
+    });
+
+    it("renders error details link for unhandled errors", () => {
+      renderDetails({
+        eventType: "error",
+        eventDetails: {
+          id: "ex-3",
+          group_id: "grp-3",
+          type: "NPE",
+          file_name: "Main.java",
+          severity: "unhandled",
+        },
+      });
+      const link = screen.getByText("View Error Details");
+      expect(link.closest("a")).toHaveAttribute(
+        "href",
+        "/team-1/errors/app-1/grp-3/NPE@Main.java",
+      );
     });
 
     it("renders ANR details link", () => {
@@ -351,6 +373,40 @@ describe("SessionTimelineEventDetails", () => {
           attachments: [
             {
               key: "img-1",
+              location: "https://example.com/screenshot.png",
+              type: "layout_snapshot",
+            },
+          ],
+        },
+      });
+      expect(screen.getByAltText("Screenshot 0")).toBeInTheDocument();
+    });
+
+    it("renders image attachments for handled error events", () => {
+      renderDetails({
+        eventType: "error",
+        eventDetails: {
+          severity: "handled",
+          attachments: [
+            {
+              key: "img-2",
+              location: "https://example.com/screenshot.png",
+              type: "layout_snapshot",
+            },
+          ],
+        },
+      });
+      expect(screen.getByAltText("Screenshot 0")).toBeInTheDocument();
+    });
+
+    it("renders image attachments for unhandled error events", () => {
+      renderDetails({
+        eventType: "error",
+        eventDetails: {
+          severity: "unhandled",
+          attachments: [
+            {
+              key: "img-3",
               location: "https://example.com/screenshot.png",
               type: "layout_snapshot",
             },
