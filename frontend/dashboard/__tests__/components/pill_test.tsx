@@ -43,10 +43,10 @@ describe("Pill", () => {
       expect(badge!.className).toMatch(/border-amber-300/);
     });
 
-    it("renders 'Handled' label with emerald tint for PillType.Handled", () => {
+    it("renders 'Handled' label with yellow tint for PillType.Handled", () => {
       render(<Pill type={PillType.Handled} />);
       const badge = findBadge("Handled");
-      expect(badge!.className).toMatch(/border-emerald-300/);
+      expect(badge!.className).toMatch(/border-yellow-300/);
     });
 
     it("renders 'Open' label with green tint for PillType.OpenStatus", () => {

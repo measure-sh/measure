@@ -70,7 +70,7 @@ const pillDefaults: Record<PillType, { label?: string; tint: string }> = {
   },
   [PillType.Handled]: {
     label: "Handled",
-    tint: "border-emerald-300 text-emerald-700 bg-emerald-50 dark:border-emerald-900 dark:text-emerald-400 dark:bg-emerald-950/40",
+    tint: "border-yellow-300 text-yellow-700 bg-yellow-50 dark:border-yellow-900 dark:text-yellow-400 dark:bg-yellow-950/40",
   },
   [PillType.OpenStatus]: {
     label: "Open",
