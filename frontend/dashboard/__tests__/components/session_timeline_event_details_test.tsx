@@ -173,6 +173,15 @@ describe("SessionTimelineEventDetails", () => {
       expect(text).toContain("plan");
       expect(text).toContain("premium");
     });
+
+    it("skips an empty user_defined_attribute object", () => {
+      renderDetails({
+        eventDetails: { name: "test", user_defined_attribute: {} },
+      });
+      expect(
+        screen.queryByText("user_defined_attribute"),
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe("Details links", () => {

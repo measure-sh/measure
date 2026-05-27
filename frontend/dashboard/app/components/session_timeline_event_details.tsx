@@ -98,6 +98,14 @@ export default function SessionTimelineEventDetails({
       ) {
         return;
       }
+      if (
+        key === "user_defined_attribute" &&
+        typeof value === "object" &&
+        value !== null &&
+        Object.keys(value as Record<string, unknown>).length === 0
+      ) {
+        return;
+      }
       if (typeof value === "object") {
         entries.push([key, value]);
         return;
