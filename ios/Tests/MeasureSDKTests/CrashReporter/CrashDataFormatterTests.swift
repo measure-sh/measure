@@ -195,6 +195,13 @@ final class CrashDataFormatterTests: XCTestCase {
         XCTAssertTrue(result.name.contains("Crashed"))
     }
 
+    func test_parseThread_doesNotAppendCrashedSuffixWhenIsHandled() {
+        let sut = makeFormatter()
+        let result = sut.parseThread(makeThreadDict(index: 2, crashed: true), isHandled: true)
+        XCTAssertEqual(result.name, "Thread 2")
+        XCTAssertFalse(result.name.contains("Crashed"))
+    }
+
     func test_parseThread_returnsEmptyFramesWhenBacktraceMissing() {
         let sut = makeFormatter()
         var dict = makeThreadDict()

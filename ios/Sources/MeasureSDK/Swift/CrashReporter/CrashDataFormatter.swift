@@ -34,9 +34,10 @@ final class CrashDataFormatter {
         let crashedThreadDict = threadDicts.first { $0["crashed"] as? Bool == true || $0["crashed"] as? Int == 1 }
         let otherThreadDicts  = threadDicts.filter { $0["crashed"] as? Bool != true && $0["crashed"] as? Int != 1 }
 
-        let crashedThread   = crashedThreadDict.map { parseThread($0) }
+        let isHandled       = severity == .handled
+        let crashedThread   = crashedThreadDict.map { parseThread($0, isHandled: isHandled) }
         let exceptionDetail = parseExceptionDetail(crashedThread: crashedThread)
-        let otherThreads    = otherThreadDicts.map { parseThread($0) }
+        let otherThreads    = otherThreadDicts.map { parseThread($0, isHandled: isHandled) }
 
         guard let crashedThread else {
             return Exception(exceptions: [exceptionDetail],
@@ -105,11 +106,11 @@ final class CrashDataFormatter {
             ?? (stats["application_in_foreground"] as? Int).map { $0 != 0 }
     }
 
-    func parseThread(_ dict: [String: Any]) -> ThreadDetail {
+    func parseThread(_ dict: [String: Any], isHandled: Bool = false) -> ThreadDetail {
         let index   = dict["index"]   as? Int  ?? 0
         let crashed = dict["crashed"] as? Bool ?? (dict["crashed"] as? Int == 1)
         let name    = dict["name"]    as? String
-                   ?? (crashed ? "Thread \(index) Crashed" : "Thread \(index)")
+                   ?? (crashed && !isHandled ? "Thread \(index) Crashed" : "Thread \(index)")
         let frames  = parseFrames(dict)
         return ThreadDetail(name: name, frames: frames, sequence: Number(index))
     }

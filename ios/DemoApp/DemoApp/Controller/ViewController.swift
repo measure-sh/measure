@@ -333,17 +333,21 @@ import Measure
             func recurse() { recurse() }
             recurse()
         case "Track Handled NSException":
-            let exception = NSException(name: NSExceptionName(rawValue: "NamedException"),
-                                        reason: "Something happened",
-                                        userInfo: nil)
-            Measure.trackException(exception,
-                                   attributes: ["swiftui": .boolean(true), "lat": .float(64.0), "long": .float(14.0), "string": .string("string")])
+            DispatchQueue(label: "sh.measure.dempapp.background").async {
+                let exception = NSException(name: NSExceptionName(rawValue: "NamedException"),
+                                            reason: "Something happened",
+                                            userInfo: nil)
+                Measure.trackException(exception,
+                                       attributes: ["swiftui": .boolean(true), "lat": .float(64.0), "long": .float(14.0), "string": .string("string")])
+            }
         case "Track Handled NSError":
-            do {
-                let path = "/path/that/does/not/exist.txt"
-                _ = try String(contentsOfFile: path, encoding: .utf8)
-            } catch {
-                Measure.trackError(error)
+            DispatchQueue(label: "sh.measure.dempapp.background").async {
+                do {
+                    let path = "/path/that/does/not/exist.txt"
+                    _ = try String(contentsOfFile: path, encoding: .utf8)
+                } catch {
+                    Measure.trackError(error)
+                }
             }
         default:
             fatalError("Triggered crash: \(type)")
