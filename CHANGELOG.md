@@ -65,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Send user defined attributes in error details (#3738) by @detj in #3738
 - (**backend**): Updates posthog versions in dashborard and backend by @anupcowkur in #3737
 - (**backend**): Add analytics events by @anupcowkur in #3724
 - (**backend**): Updates alerts to use new error page route by @anupcowkur
