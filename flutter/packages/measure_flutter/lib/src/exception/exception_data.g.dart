@@ -11,7 +11,7 @@ ExceptionData _$ExceptionDataFromJson(Map<String, dynamic> json) =>
       exceptions: (json['exceptions'] as List<dynamic>)
           .map((e) => ExceptionUnit.fromJson(e as Map<String, dynamic>))
           .toList(),
-      handled: json['handled'] as bool,
+      severity: $enumDecode(_$ExceptionSeverityEnumMap, json['severity']),
       threads: (json['threads'] as List<dynamic>)
           .map((e) => MeasureThread.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -20,17 +20,25 @@ ExceptionData _$ExceptionDataFromJson(Map<String, dynamic> json) =>
           .map((e) => BinaryImage.fromJson(e as Map<String, dynamic>))
           .toList(),
       framework: json['framework'] as String,
+      isCustom: json['is_custom'] as bool?,
     );
 
 Map<String, dynamic> _$ExceptionDataToJson(ExceptionData instance) =>
     <String, dynamic>{
       'exceptions': instance.exceptions.map((e) => e.toJson()).toList(),
-      'handled': instance.handled,
+      'severity': _$ExceptionSeverityEnumMap[instance.severity]!,
       'threads': instance.threads.map((e) => e.toJson()).toList(),
       'foreground': instance.foreground,
+      'is_custom': instance.isCustom,
       'binary_images': instance.binaryImages.map((e) => e.toJson()).toList(),
       'framework': instance.framework,
     };
+
+const _$ExceptionSeverityEnumMap = {
+  ExceptionSeverity.fatal: 'fatal',
+  ExceptionSeverity.handled: 'handled',
+  ExceptionSeverity.unhandled: 'unhandled',
+};
 
 MeasureThread _$MeasureThreadFromJson(Map<String, dynamic> json) =>
     MeasureThread(

@@ -5,6 +5,7 @@ import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/config/config_provider.dart';
 import 'package:measure_flutter/src/exception/exception_data.dart';
 import 'package:measure_flutter/src/exception/exception_factory.dart';
+import 'package:measure_flutter/src/exception/exception_severity.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
@@ -45,11 +46,12 @@ final class ExceptionCollector {
 
   Future<void> trackError(
     FlutterErrorDetails details, {
-    required bool handled,
+    required ExceptionSeverity severity,
     required Map<String, AttributeValue> attributes,
   }) async {
     if (!_enabled) return;
-    final ExceptionData? exceptionData = ExceptionFactory.from(details, handled);
+    final ExceptionData? exceptionData =
+        ExceptionFactory.from(details, severity);
     if (exceptionData == null) {
       logger.log(LogLevel.error, "Failed to parse exception");
       return;
@@ -57,7 +59,8 @@ final class ExceptionCollector {
 
     final attachments = <MsrAttachment>[];
 
-    if (configProvider.crashTakeScreenshot && !handled) {
+    if (configProvider.crashTakeScreenshot &&
+        severity != ExceptionSeverity.handled) {
       await _addScreenshot(attachments);
     }
 

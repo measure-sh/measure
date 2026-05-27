@@ -5,6 +5,7 @@ import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/exception/exception_data.dart';
 import 'package:measure_flutter/src/exception/exception_framework.dart';
+import 'package:measure_flutter/src/exception/exception_severity.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 
 import '../utils/fake_config_provider.dart';
@@ -101,7 +102,7 @@ void main() {
             ],
           ),
         ],
-        handled: false,
+        severity: ExceptionSeverity.unhandled,
         threads: [],
         foreground: true,
         binaryImages: [],
@@ -111,7 +112,7 @@ void main() {
       collector.register();
       await collector.trackError(
         FlutterErrorDetails(exception: error, stack: stackTrace),
-        handled: false,
+        severity: ExceptionSeverity.unhandled,
         attributes: {},
       );
 
@@ -152,7 +153,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
             ],
           ),
         ],
-        handled: false,
+        severity: ExceptionSeverity.unhandled,
         threads: [],
         foreground: true,
         binaryImages: [
@@ -168,7 +169,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
       collector.register();
       await collector.trackError(
         FlutterErrorDetails(exception: error, stack: stackTrace),
-        handled: false,
+        severity: ExceptionSeverity.unhandled,
         attributes: {},
       );
 
@@ -225,7 +226,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
             ],
           ),
         ],
-        handled: false,
+        severity: ExceptionSeverity.unhandled,
         threads: [],
         foreground: true,
         binaryImages: [],
@@ -235,7 +236,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
       collector.register();
       await collector.trackError(
         FlutterErrorDetails(exception: error, stack: stackTrace),
-        handled: false,
+        severity: ExceptionSeverity.unhandled,
         attributes: {},
       );
 
@@ -246,6 +247,29 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
         signalProcessor.trackedExceptions[0].toJson(),
         exceptionData.toJson(),
         reason: 'Exception data does not match',
+      );
+    });
+
+    test('does not take screenshot for handled severity', () async {
+      configProvider.crashTakeScreenshot = true;
+
+      final error = Object();
+      final stackTrace = StackTrace.fromString([
+        '#0      _MyAppState._throwException (package:measure_flutter_example/main.dart:84:5)',
+      ].join('\n'));
+
+      collector.register();
+      await collector.trackError(
+        FlutterErrorDetails(exception: error, stack: stackTrace),
+        severity: ExceptionSeverity.handled,
+        attributes: {},
+      );
+
+      expect(signalProcessor.trackedEvents.length, 1);
+      expect(signalProcessor.trackedEvents.first.attachments?.length, 0);
+      expect(
+        signalProcessor.trackedExceptions[0].severity,
+        ExceptionSeverity.handled,
       );
     });
 
@@ -261,7 +285,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
       collector.register();
       await collector.trackError(
         FlutterErrorDetails(exception: error, stack: stackTrace),
-        handled: false,
+        severity: ExceptionSeverity.unhandled,
         attributes: attributes,
       );
 
