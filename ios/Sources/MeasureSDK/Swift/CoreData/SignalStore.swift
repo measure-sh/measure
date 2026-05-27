@@ -35,7 +35,8 @@ final class BaseSignalStore: SignalStore {
         let eventEntity = EventEntity(event, needsReporting: needsReporting)
 
         var isCrashEvent = false
-        if let exception = event.exception, exception.severity == .fatal {
+        if let exception = event.exception,
+           exception.severity == .fatal || exception.severity == .unhandled {
             isCrashEvent = true
         }
         let isBugReportEvent = event.type == .bugReport
