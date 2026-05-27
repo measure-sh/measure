@@ -18,6 +18,8 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
+
+    includeBuild("../../android/measure-gradle-plugin")
 }
 
 plugins {
