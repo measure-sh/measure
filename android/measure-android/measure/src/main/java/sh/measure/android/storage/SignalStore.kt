@@ -76,14 +76,18 @@ internal class SignalStoreImpl(
                 )
                 return
             }
-            val isCrashEvent =
-                eventEntity.type == EventType.EXCEPTION &&
-                    (event.data as ExceptionData).severity == ExceptionSeverity.Fatal
+            val severity = (event.data as? ExceptionData)
+                ?.takeIf { eventEntity.type == EventType.EXCEPTION }
+                ?.severity
+            val isFatalError = severity == ExceptionSeverity.Fatal
+            val isUnhandledError = severity == ExceptionSeverity.Unhandled
             val isAnrEvent = eventEntity.type == EventType.ANR
             val isBugReportEvent = eventEntity.type == EventType.BUG_REPORT
+            val collectTimeline =
+                isFatalError || isUnhandledError || isAnrEvent || isBugReportEvent
 
             when {
-                isCrashEvent || isAnrEvent || isBugReportEvent -> {
+                collectTimeline -> {
                     val success = database.insertEvent(eventEntity)
                     flush()
                     if (!success) {
@@ -103,11 +107,11 @@ internal class SignalStoreImpl(
                 }
             }
 
-            if (isCrashEvent || isAnrEvent || isBugReportEvent) {
+            if (collectTimeline) {
                 val timelineDuration = when {
-                    isCrashEvent -> configProvider.crashTimelineDurationSeconds
                     isAnrEvent -> configProvider.anrTimelineDurationSeconds
-                    else -> configProvider.bugReportTimelineDurationSeconds
+                    isBugReportEvent -> configProvider.bugReportTimelineDurationSeconds
+                    else -> configProvider.crashTimelineDurationSeconds
                 }
 
                 database.markTimelineForReporting(

@@ -477,6 +477,27 @@ internal class SignalStoreTest {
     }
 
     @Test
+    fun `marks timeline for reporting when unhandled exception event is stored`() {
+        // given
+        val crashTimelineDuration = 30
+        configProvider.crashTimelineDurationSeconds = crashTimelineDuration
+        val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Unhandled)
+        val event = exceptionData.toEvent(type = EventType.EXCEPTION)
+        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
+        `when`(database.insertEvent(any())).thenReturn(true)
+
+        // when
+        signalStore.store(event)
+
+        // then
+        verify(database).markTimelineForReporting(
+            event.timestamp,
+            crashTimelineDuration,
+            event.sessionId,
+        )
+    }
+
+    @Test
     fun `marks timeline for reporting when ANR event is stored`() {
         // given
         val anrTimelineDuration = 30
@@ -667,6 +688,21 @@ internal class SignalStoreTest {
     fun `stores unhandled exception event immediately without queuing`() {
         // given
         val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Fatal)
+        val event = exceptionData.toEvent(type = EventType.EXCEPTION)
+        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
+        `when`(database.insertEvent(any())).thenReturn(true)
+
+        // when
+        signalStore.store(event)
+
+        // then - event should be immediately inserted
+        verify(database).insertEvent(any())
+    }
+
+    @Test
+    fun `stores unhandled exception event immediately without queuing when severity is unhandled`() {
+        // given
+        val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Unhandled)
         val event = exceptionData.toEvent(type = EventType.EXCEPTION)
         `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
         `when`(database.insertEvent(any())).thenReturn(true)
