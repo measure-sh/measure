@@ -15,6 +15,7 @@ import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.NoopLogger
 
@@ -75,7 +76,7 @@ class AnrCollectorTest {
 
         assertEquals(EventType.ANR, typeCaptor.firstValue)
         assertEquals(expectedAnrError.timestamp, timestampCaptor.firstValue)
-        assertEquals(false, dataCaptor.firstValue.handled)
+        assertEquals(ExceptionSeverity.Fatal, dataCaptor.firstValue.severity)
         assertEquals(processInfo.isForegroundProcess(), dataCaptor.firstValue.foreground)
     }
 }

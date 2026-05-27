@@ -15,6 +15,7 @@ import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.ExceptionFactory
+import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.exceptions.ExceptionUnit
 import sh.measure.android.exceptions.Frame
 import sh.measure.android.gestures.ClickData
@@ -50,18 +51,18 @@ internal object TestData {
 
     fun getExceptionData(
         exception: Exception = IllegalArgumentException("Test exception"),
-        handled: Boolean = true,
+        severity: ExceptionSeverity = ExceptionSeverity.Handled,
         thread: Thread = Thread.currentThread(),
         foreground: Boolean = true,
     ): ExceptionData = ExceptionFactory.createMeasureException(
         exception,
-        handled,
+        severity,
         thread,
         foreground,
     )
 
     fun getUnObfuscatedFlutterExceptionData(
-        handled: Boolean = false,
+        severity: ExceptionSeverity = ExceptionSeverity.Fatal,
         foreground: Boolean = true,
     ): ExceptionData = ExceptionData(
         exceptions = listOf(
@@ -99,13 +100,13 @@ internal object TestData {
                 ),
             ),
         ),
-        handled = handled,
+        severity = severity,
         threads = listOf(),
         foreground = foreground,
     )
 
     fun getObfuscatedFlutterExceptionData(
-        handled: Boolean = false,
+        severity: ExceptionSeverity = ExceptionSeverity.Fatal,
         foreground: Boolean = true,
     ): ExceptionData = ExceptionData(
         exceptions = listOf(
@@ -126,7 +127,7 @@ internal object TestData {
                 ),
             ),
         ),
-        handled = handled,
+        severity = severity,
         threads = listOf(),
         foreground = foreground,
     )

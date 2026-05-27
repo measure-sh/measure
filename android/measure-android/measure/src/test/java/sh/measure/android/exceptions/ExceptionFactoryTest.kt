@@ -1,7 +1,6 @@
 package sh.measure.android.exceptions
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -15,7 +14,7 @@ class ExceptionFactoryTest {
         // When
         val measureException = ExceptionFactory.createMeasureException(
             exception,
-            handled = true,
+            severity = ExceptionSeverity.Handled,
             thread = thread,
             foreground = true,
         )
@@ -40,7 +39,7 @@ class ExceptionFactoryTest {
         // When
         val measureException = ExceptionFactory.createMeasureException(
             exception,
-            handled = true,
+            severity = ExceptionSeverity.Handled,
             thread = thread,
             foreground = true,
         )
@@ -61,38 +60,27 @@ class ExceptionFactoryTest {
     }
 
     @Test
-    fun `ExceptionFactory sets handled to true when the exception is handled`() {
+    fun `ExceptionFactory sets the severity passed to it`() {
         // Given
         val exception = IllegalArgumentException("Test exception")
         val thread = Thread.currentThread()
 
         // When
-        val measureException = ExceptionFactory.createMeasureException(
+        val handledException = ExceptionFactory.createMeasureException(
             exception,
-            handled = true,
+            severity = ExceptionSeverity.Handled,
+            thread = thread,
+            foreground = true,
+        )
+        val fatalException = ExceptionFactory.createMeasureException(
+            exception,
+            severity = ExceptionSeverity.Fatal,
             thread = thread,
             foreground = true,
         )
 
         // Then
-        assertTrue(measureException.handled)
-    }
-
-    @Test
-    fun `ExceptionFactory sets handled to false when the exception is unhandled`() {
-        // Given
-        val exception = IllegalArgumentException("Test exception")
-        val thread = Thread.currentThread()
-
-        // When
-        val measureException = ExceptionFactory.createMeasureException(
-            exception,
-            handled = false,
-            thread = thread,
-            foreground = true,
-        )
-
-        // Then
-        assertFalse(measureException.handled)
+        assertEquals(ExceptionSeverity.Handled, handledException.severity)
+        assertEquals(ExceptionSeverity.Fatal, fatalException.severity)
     }
 }

@@ -40,7 +40,7 @@ internal class UnhandledExceptionCollector(
             signalProcessor.trackCrash(
                 data = ExceptionFactory.createMeasureException(
                     throwable,
-                    handled = false,
+                    severity = ExceptionSeverity.Fatal,
                     thread = thread,
                     foreground = processInfo.isForegroundProcess(),
                 ),

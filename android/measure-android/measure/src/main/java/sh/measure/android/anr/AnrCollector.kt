@@ -7,6 +7,7 @@ import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.ExceptionFactory
+import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.mainHandler
 import sh.measure.android.utils.ProcessInfoProvider
 
@@ -47,7 +48,7 @@ internal class AnrCollector(
 
     private fun toMeasureException(anr: AnrError): ExceptionData = ExceptionFactory.createMeasureException(
         throwable = anr,
-        handled = false,
+        severity = ExceptionSeverity.Fatal,
         thread = anr.thread,
         foreground = processInfo.isForegroundProcess(),
     )

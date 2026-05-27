@@ -18,14 +18,19 @@ internal data class ExceptionData(
     val threads: List<MeasureThread>,
 
     /**
-     * Whether the exception was handled or not.
+     * The severity of the exception.
      */
-    val handled: Boolean,
+    val severity: ExceptionSeverity,
 
     /**
      * Whether the app was in the foreground or not when the exception occurred.
      */
     val foreground: Boolean,
+
+    /**
+     * Marks this exception as a custom error.
+     */
+    val is_custom: Boolean? = null,
 
     /**
      * The list of binary images loaded in the process.

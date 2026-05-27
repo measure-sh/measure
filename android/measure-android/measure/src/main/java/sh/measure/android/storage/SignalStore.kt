@@ -6,6 +6,7 @@ import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.okhttp.HttpData
@@ -76,7 +77,8 @@ internal class SignalStoreImpl(
                 return
             }
             val isCrashEvent =
-                eventEntity.type == EventType.EXCEPTION && !(event.data as ExceptionData).handled
+                eventEntity.type == EventType.EXCEPTION &&
+                    (event.data as ExceptionData).severity == ExceptionSeverity.Fatal
             val isAnrEvent = eventEntity.type == EventType.ANR
             val isBugReportEvent = eventEntity.type == EventType.BUG_REPORT
 
