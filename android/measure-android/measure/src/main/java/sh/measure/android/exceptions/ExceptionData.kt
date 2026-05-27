@@ -33,6 +33,21 @@ internal data class ExceptionData(
     val is_custom: Boolean? = null,
 
     /**
+     * A numeric code that describes the exception.
+     */
+    val num_code: Long? = null,
+
+    /**
+     * A string code that describes the exception.
+     */
+    val code: String? = null,
+
+    /**
+     * Arbitrary key-value metadata associated with the exception.
+     */
+    val meta: Map<String, String>? = null,
+
+    /**
      * The list of binary images loaded in the process.
      */
     val binary_images: List<BinaryImage> = listOf(),
