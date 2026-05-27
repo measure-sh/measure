@@ -416,6 +416,56 @@ describe("Errors Detail (MSW integration)", () => {
       screen.getAllByText(/ANR in sh\.measure\.demo/).length,
     ).toBeGreaterThanOrEqual(1);
   });
+
+  it("renders num_code, code, and user_defined_attribute rows above threads when present", async () => {
+    server.use(
+      http.get("*/api/apps/:appId/errorGroups/:groupId/errors", () => {
+        return HttpResponse.json(
+          makeExceptionInstanceFixture({
+            num_code: 137,
+            code: "OUT_OF_MEMORY",
+            user_defined_attribute: {
+              user_tier: "premium",
+              account_age_days: 142,
+            },
+          }),
+        );
+      }),
+    );
+
+    renderWithProviders(
+      <ErrorDetailsPage
+        params={{
+          teamId: "test-team",
+          appId: makeAppFixture().id,
+          errorGroupId: "crash-group-001",
+          errorGroupName: "test",
+        }}
+      />,
+    );
+
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Id: instance-001/)).toBeTruthy();
+      },
+      { timeout: 5000 },
+    );
+
+    expect(screen.getByText("num_code")).toBeTruthy();
+    expect(screen.getByText("137")).toBeTruthy();
+    expect(screen.getByText("code")).toBeTruthy();
+    expect(screen.getByText("OUT_OF_MEMORY")).toBeTruthy();
+    expect(screen.getByText("user_defined_attribute")).toBeTruthy();
+    expect(screen.getByText(/user_tier/)).toBeTruthy();
+    expect(screen.getByText(/premium/)).toBeTruthy();
+  });
+
+  it("omits num_code, code, and user_defined_attribute rows when default/empty", async () => {
+    await renderDetailAndWait();
+    expect(screen.queryByText("num_code")).toBeNull();
+    expect(screen.queryByText("code")).toBeNull();
+    expect(screen.queryByText("user_defined_attribute")).toBeNull();
+  });
 });
 
 // ====================================================================

@@ -11,7 +11,7 @@ import { DateTime } from "luxon";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { useEffect, useRef, useState } from "react";
+import React, { ReactNode, useEffect, useRef, useState } from "react";
 import { cn } from "../utils/shadcn_utils";
 import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
 import { track } from "../utils/analytics/track";
@@ -182,6 +182,27 @@ interface ErrorsDetailsProps {
 const stackTraceCodeBlockClassName =
   "font-code text-sm leading-relaxed rounded-sm overflow-hidden [&_pre]:p-4 [&_pre]:overflow-x-auto";
 
+function renderAttributeRow(key: string, value: unknown): ReactNode {
+  const isObject = typeof value === "object" && value !== null;
+  return (
+    <div
+      key={key}
+      className="flex flex-col gap-0.5 px-3 py-2 border-b border-border/40 last:border-b-0"
+    >
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground select-none">
+        {key}
+      </p>
+      {isObject ? (
+        <pre className="text-xs font-code whitespace-pre-wrap break-words m-0">
+          {JSON.stringify(value, null, 2)}
+        </pre>
+      ) : (
+        <p className="text-xs break-words font-code">{String(value)}</p>
+      )}
+    </div>
+  );
+}
+
 export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
   teamId = "demo-team",
   appId = "demo-app",
@@ -254,6 +275,28 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
   const firstResult = errorsDetails.results?.[0];
   const stacktrace =
     firstResult?.exception?.stacktrace ?? firstResult?.anr?.stacktrace ?? "";
+
+  const extraAttributeRows: Array<[string, unknown]> = [];
+  if (firstResult) {
+    if (
+      typeof firstResult.num_code === "number" &&
+      firstResult.num_code !== 0
+    ) {
+      extraAttributeRows.push(["num_code", firstResult.num_code]);
+    }
+    if (typeof firstResult.code === "string" && firstResult.code !== "") {
+      extraAttributeRows.push(["code", firstResult.code]);
+    }
+    if (
+      firstResult.user_defined_attribute &&
+      Object.keys(firstResult.user_defined_attribute).length > 0
+    ) {
+      extraAttributeRows.push([
+        "user_defined_attribute",
+        firstResult.user_defined_attribute,
+      ]);
+    }
+  }
 
   const entryPoint = searchParams.get("from") ?? "direct";
 
@@ -486,6 +529,16 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
                     )}
                   </div>
                   <div className="py-4" />
+                  {extraAttributeRows.length > 0 && (
+                    <>
+                      <div className="flex flex-col">
+                        {extraAttributeRows.map(([k, v]) =>
+                          renderAttributeRow(k, v),
+                        )}
+                      </div>
+                      <div className="py-4" />
+                    </>
+                  )}
                   <Accordion
                     type="single"
                     collapsible
