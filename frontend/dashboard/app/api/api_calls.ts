@@ -775,6 +775,7 @@ const emptyErrorGroupDetailsItem = {
   num_code: 0,
   code: "",
   meta: null as Record<string, unknown> | null,
+  user_defined_attribute: null as Record<string, unknown> | null,
   attachments: [
     {
       id: "",
