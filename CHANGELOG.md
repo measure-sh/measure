@@ -103,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Show code, num_code, user_def_attribute in error details if present by @anupcowkur in #3745
 - (**frontend**): Use yellow tint for handled error pills by @anupcowkur in #3735
 - (**frontend**): Show details btn & images for non fatal errors in timelines by @anupcowkur in #3734
 - (**frontend**): Update session timeline attrs ui to match trace panel attrs by @anupcowkur in #3693
