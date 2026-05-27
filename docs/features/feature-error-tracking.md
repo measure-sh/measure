@@ -68,13 +68,13 @@ You can optionally include attributes and enable stack trace collection.
 Measure.trackError(error, attributes: [
     "screen": .string("Login"),
     "retryCount": .int(2)
-], collectStackTraces: true)
+])
 ```
 
 You can track handled NSError objects from Objective-C code as well using `trackError` method.
 
 ```objc
-[Measure trackError:error attributes:@{ @"screen": @"Login", @"retryCount": 2 } collectStackTraces:YES];
+[Measure trackError:error attributes:@{ @"screen": @"Login", @"retryCount": 2 }];
 ```
 
 #### Flutter

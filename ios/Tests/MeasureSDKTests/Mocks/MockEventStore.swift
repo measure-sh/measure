@@ -11,6 +11,7 @@ import Foundation
 final class MockEventStore: EventStore {
     private var events: [String: EventEntity] = [:]
     private let lock = NSLock()
+    private(set) var lastMarkTimelineDurationSeconds: Int64?
 
     func insertEvent(event: EventEntity) {
         lock.lock()
@@ -126,6 +127,7 @@ final class MockEventStore: EventStore {
     ) {
         lock.lock()
         defer { lock.unlock() }
+        lastMarkTimelineDurationSeconds = durationSeconds
 
         let start = eventTimestampMillis
         let end = eventTimestampMillis + (durationSeconds * 1000)

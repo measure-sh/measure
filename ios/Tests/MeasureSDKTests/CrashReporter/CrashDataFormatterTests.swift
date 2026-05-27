@@ -195,6 +195,13 @@ final class CrashDataFormatterTests: XCTestCase {
         XCTAssertTrue(result.name.contains("Crashed"))
     }
 
+    func test_parseThread_doesNotAppendCrashedSuffixWhenIsHandled() {
+        let sut = makeFormatter()
+        let result = sut.parseThread(makeThreadDict(index: 2, crashed: true), isHandled: true)
+        XCTAssertEqual(result.name, "Thread 2")
+        XCTAssertFalse(result.name.contains("Crashed"))
+    }
+
     func test_parseThread_returnsEmptyFramesWhenBacktraceMissing() {
         let sut = makeFormatter()
         var dict = makeThreadDict()
@@ -545,18 +552,6 @@ final class CrashDataFormatterTests: XCTestCase {
         XCTAssertEqual(parsed?.first?.path, fullPath)
     }
 
-    func test_getException_setsHandledFlag() {
-        let sut = makeFormatter()
-        let result = sut.getException(true)
-        XCTAssertTrue(result.handled)
-    }
-
-    func test_getException_setsFalseHandledFlag() {
-        let sut = makeFormatter()
-        let result = sut.getException(false)
-        XCTAssertFalse(result.handled)
-    }
-
     func test_getException_putsCrashedThreadFramesInExceptionDetail() {
         let frame = makeFrame()
         let crashedThread = makeThreadDict(index: 0, crashed: true, frames: [frame])
@@ -604,17 +599,33 @@ final class CrashDataFormatterTests: XCTestCase {
         XCTAssertEqual(sut.getException().foreground, true)
     }
 
-    func test_getException_passesMsrErrorThrough() {
+    func test_getException_passesNumCodeAndCodeThrough() {
         let sut = makeFormatter()
-        let msrError = MsrError(numcode: 100, code: "Error", meta: nil)
-        let result = sut.getException(false, error: msrError)
-        XCTAssertNotNil(result.error)
-        XCTAssertEqual(result.error?.numcode, 100)
-        XCTAssertEqual(result.error?.code, "Error")
+        let result = sut.getException(numCode: 100, code: "Error")
+        XCTAssertEqual(result.numCode, 100)
+        XCTAssertEqual(result.code, "Error")
     }
 
-    func test_getException_setsFrameworkToApple() {
+    func test_getException_passesMetaThrough() throws {
         let sut = makeFormatter()
-        XCTAssertEqual(sut.getException().framework, Framework.apple)
+        let meta: [String: CodableValue] = ["key": .string("value"), "count": .int(42)]
+        let result = sut.getException(meta: meta)
+        XCTAssertNotNil(result.meta)
+        guard let returnedMeta = result.meta else { return }
+        if case .string(let str) = returnedMeta["key"] {
+            XCTAssertEqual(str, "value")
+        } else {
+            XCTFail("Expected string value for meta key 'key'")
+        }
+        if case .int(let count) = returnedMeta["count"] {
+            XCTAssertEqual(count, 42)
+        } else {
+            XCTFail("Expected int value for meta key 'count'")
+        }
+    }
+
+    func test_getException_severityIsNilByDefault() {
+        let sut = makeFormatter()
+        XCTAssertNil(sut.getException().severity)
     }
 }
