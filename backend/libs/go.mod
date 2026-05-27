@@ -15,7 +15,7 @@ require (
 	github.com/klauspost/compress v1.18.5
 	github.com/leporo/sqlf v1.4.0
 	github.com/oschwald/maxminddb-golang v1.13.1
-	github.com/posthog/posthog-go v1.12.6
+	github.com/posthog/posthog-go v1.13.0
 	go.opentelemetry.io/otel v1.43.0
 	go.opentelemetry.io/otel/trace v1.43.0
 )
