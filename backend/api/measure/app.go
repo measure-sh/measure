@@ -356,7 +356,7 @@ func resolveErrorSources(af *filter.AppFilter) (queryANR, wantHandledTrue, wantH
 
 // applyExceptionSeverityFilter adds a WHERE clause to s restricting events to
 // those matching severities. Bridges new data (exception.severity populated)
-// and legacy data (exception.severity = '', falls back to exception.handled).
+// and legacy data (exception.severity = ”, falls back to exception.handled).
 // Legacy mapping: handled=false matches both fatal and unhandled
 // (indistinguishable in legacy data); handled=true matches handled.
 //
@@ -1269,9 +1269,9 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 
 	tsOf := func(v any) time.Time {
 		switch x := v.(type) {
-		case event.EventException:
+		case *event.EventException:
 			return time.Time(x.Timestamp)
-		case event.EventANR:
+		case *event.EventANR:
 			return time.Time(x.Timestamp)
 		}
 		return time.Time{}
@@ -7385,16 +7385,18 @@ func GetErrorDetailErrors(c *gin.Context) {
 	for i := range errorEvents {
 		var atts []event.Attachment
 		switch ev := errorEvents[i].(type) {
-		case event.EventException:
+		case *event.EventException:
 			atts = ev.Attachments
-		case event.EventANR:
+		case *event.EventANR:
 			atts = ev.Attachments
 		}
 		for j := range atts {
 			if err := atts[j].PreSignURL(ctx); err != nil {
 				msg := `failed to generate URLs for attachment`
 				fmt.Println(msg, err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": msg,
+				})
 				return
 			}
 		}
