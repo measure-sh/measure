@@ -58,7 +58,6 @@ actual object Measure {
         IosMeasure.trackException(
             throwable.asNSException(appendCausedBy = true),
             attributes.toNative(),
-            collectStackTraces = false,
         )
     }
 
