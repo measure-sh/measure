@@ -13,13 +13,13 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.gradle.api.DefaultTask
-import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
@@ -93,9 +93,8 @@ abstract class BuildUploadTask : DefaultTask() {
     @get:InputFile
     abstract val mappingFileProperty: RegularFileProperty
 
-    @get:Optional
-    @get:InputDirectory
-    abstract val flutterSymbolsDirProperty: DirectoryProperty
+    @get:InputFiles
+    abstract val flutterSymbolsFiles: ConfigurableFileCollection
 
     @get:InputFile
     abstract val manifestFileProperty: RegularFileProperty
@@ -114,13 +113,13 @@ abstract class BuildUploadTask : DefaultTask() {
         val manifestFile = manifestFileProperty.get().asFile
         val mappingFile = mappingFileProperty.getOrNull()?.asFile
         val buildMetadataFile = buildMetadataFileProperty.get().asFile
-        val flutterSymbolsDir = flutterSymbolsDirProperty.getOrNull()?.asFile
+        val flutterSymbols = flutterSymbolsFiles.files
 
         val manifestData = readManifestData(manifestFile)
         val (buildSize, buildType) = readBuildMetadata(buildMetadataFile)
 
         val client = httpClientProvider.get().client
-        val mappings = collectMappingInfo(mappingFile, flutterSymbolsDir)
+        val mappings = collectMappingInfo(mappingFile, flutterSymbols)
         val buildsRequest = createBuildsRequest(manifestData, buildSize, buildType, mappings)
 
         sendBuildsRequest(
@@ -129,13 +128,13 @@ abstract class BuildUploadTask : DefaultTask() {
             buildsRequest,
             mappings,
             mappingFile,
-            flutterSymbolsDir,
+            flutterSymbols,
         )
     }
 
     private fun collectMappingInfo(
         mappingFile: File?,
-        flutterSymbolsDir: File?,
+        flutterSymbols: Set<File>,
     ): List<MappingInfo> {
         val mappings = mutableListOf<MappingInfo>()
 
@@ -146,10 +145,9 @@ abstract class BuildUploadTask : DefaultTask() {
             logger.warn("measure: mapping file not found, symbolication will not work")
         }
 
-        flutterSymbolsDir?.let { symbolsDir ->
-            val symbolsFiles = symbolsDir.listFiles { file -> file.extension == "symbols" }
-            logger.info("measure: ${symbolsFiles.size} flutter symbol files found at ${symbolsDir.absolutePath}")
-            symbolsFiles?.forEach { symbolsFile ->
+        if (flutterSymbols.isNotEmpty()) {
+            logger.info("measure: ${flutterSymbols.size} flutter symbol files found")
+            flutterSymbols.forEach { symbolsFile ->
                 mappings.add(MappingInfo(type = TYPE_FLUTTER_SYMBOLS, filename = symbolsFile.name))
             }
         }
@@ -178,11 +176,11 @@ abstract class BuildUploadTask : DefaultTask() {
         buildsRequest: BuildsApiRequest,
         mappings: List<MappingInfo>,
         mappingFile: File?,
-        flutterSymbolsDir: File?,
+        flutterSymbols: Set<File>,
     ) {
         val buildsResponse = callBuildsApi(client, manifestData, buildsRequest)
         if (buildsResponse != null && mappings.isNotEmpty()) {
-            uploadMappingFiles(client, buildsResponse, mappingFile, flutterSymbolsDir)
+            uploadMappingFiles(client, buildsResponse, mappingFile, flutterSymbols)
         }
     }
 
@@ -228,15 +226,12 @@ abstract class BuildUploadTask : DefaultTask() {
         client: okhttp3.OkHttpClient,
         buildsResponse: BuildsApiResponse,
         mappingFile: File?,
-        flutterSymbolsDir: File?,
+        flutterSymbols: Set<File>,
     ) {
         buildsResponse.mappings.forEach { mapping ->
             val file = when (mapping.type) {
                 TYPE_PROGUARD -> mappingFile
-                TYPE_FLUTTER_SYMBOLS -> {
-                    flutterSymbolsDir?.listFiles { f -> f.extension == "symbols" && f.name == mapping.filename }
-                        ?.firstOrNull()
-                }
+                TYPE_FLUTTER_SYMBOLS -> flutterSymbols.firstOrNull { it.name == mapping.filename }
                 else -> null
             }
 

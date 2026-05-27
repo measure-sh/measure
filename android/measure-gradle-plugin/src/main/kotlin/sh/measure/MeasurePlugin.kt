@@ -111,8 +111,10 @@ class MeasurePlugin : Plugin<Project> {
                 ) {
                     it.manifestFileProperty.set(manifestDataFileProvider(project, variant))
                     it.mappingFileProperty.set(variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE))
-                    getFlutterSymbolsDirPath(project)?.takeIf { path -> path.exists() }?.let { path ->
-                        it.flutterSymbolsDirProperty.set(path)
+                    getFlutterSymbolsDirPath(project)?.let { dir ->
+                        it.flutterSymbolsFiles.from(
+                            project.fileTree(dir) { tree -> tree.include("**/*.symbols") },
+                        )
                     }
                     it.buildMetadataFileProperty.set(appSizeFileProvider(project, variant))
                     it.retriesProperty.set(DEFAULT_RETRIES)
@@ -196,7 +198,8 @@ class MeasurePlugin : Plugin<Project> {
                         ?: continue
                 val flutterSourceDir = flutterProject.file(source)
                 if (!File(flutterSourceDir, "pubspec.yaml").exists()) continue
-                return File(flutterSourceDir, splitDebugInfoPath)
+                val symbolsDir = File(splitDebugInfoPath)
+                return if (symbolsDir.isAbsolute) symbolsDir else File(flutterSourceDir, splitDebugInfoPath)
             } catch (e: Exception) {
                 project.logger.error("measure: Error accessing Flutter source directory: ${e.message}")
             }

@@ -66,7 +66,7 @@ class BuildUploadTaskTest {
         task.manifestFileProperty.set(manifestDataFile)
         task.mappingFileProperty.set(mappingFile)
         task.buildMetadataFileProperty.set(appSizeFile)
-        task.flutterSymbolsDirProperty.set(project.file(flutterSymbolsDir))
+        task.flutterSymbolsFiles.from(project.fileTree(flutterSymbolsDir) { it.include("*.symbols") })
         task.requestHeadersProperty.set(customHeaders)
     }
 
@@ -129,6 +129,26 @@ class BuildUploadTaskTest {
         assertEquals(2, buildsRequest.mappings.size)
         assertTrue(buildsRequest.mappings.any { it.type == "proguard" && it.filename == "mapping.txt" })
         assertTrue(buildsRequest.mappings.any { it.type == "elf_debug" && it.filename == "app.android-arm64.symbols" })
+    }
+
+    @Test
+    fun `tolerates a non-existent flutter symbols directory`() {
+        task.flutterSymbolsFiles.setFrom()
+        val missingDir = temporaryFolder.root.resolve("does-not-exist")
+        task.flutterSymbolsFiles.from(project.fileTree(missingDir) { it.include("*.symbols") })
+
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200).setBody("""{"ok": "uploaded build info"}""")
+        )
+        task.upload()
+        val recordedRequest = mockWebServer.takeRequest()
+
+        val requestBody = recordedRequest.body.readUtf8()
+        val buildsRequest = Json.decodeFromString(BuildsApiRequest.serializer(), requestBody)
+
+        assertEquals(1, buildsRequest.mappings.size)
+        assertEquals("proguard", buildsRequest.mappings[0].type)
+        assertTrue(buildsRequest.mappings.none { it.type == "elf_debug" })
     }
 
     @Test
