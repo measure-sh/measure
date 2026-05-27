@@ -39,7 +39,9 @@ import Measure
                       "Illegal Instruction (SIGILL)",
                       "Bus Error (SIGBUS)",
                       "Track Handled NSException",
-                      "Track Handled NSError"]
+                      "Track Handled NSError",
+                      "Track Swift Error (main thread)",
+                      "Track NSException (main thread)"]
 
     let httpEventTypes = ["GET – 200 OK (JSON)",
                           "POST – 201 Created (JSON body)",
@@ -349,6 +351,18 @@ import Measure
                     Measure.trackError(error)
                 }
             }
+        case "Track Swift Error (main thread)":
+            do {
+                let path = "/path/that/does/not/exist.txt"
+                _ = try String(contentsOfFile: path, encoding: .utf8)
+            } catch {
+                Measure.trackError(error)
+            }
+        case "Track NSException (main thread)":
+            let exception = NSException(name: NSExceptionName(rawValue: "NamedException"),
+                                        reason: "Something happened on main thread",
+                                        userInfo: ["key": "value"])
+            Measure.trackException(exception, attributes: ["source": .string("swift-main-thread")])
         default:
             fatalError("Triggered crash: \(type)")
         }

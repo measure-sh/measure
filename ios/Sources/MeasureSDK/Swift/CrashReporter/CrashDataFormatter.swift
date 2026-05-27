@@ -30,12 +30,14 @@ final class CrashDataFormatter {
     func getException(severity: ExceptionSeverity? = nil,
                       numCode: Int64? = nil,
                       code: String? = nil,
-                      meta: [String: CodableValue]? = nil) -> Exception {
+                      meta: [String: CodableValue]? = nil,
+                      framesToStrip: Int = 0) -> Exception {
         let crashedThreadDict = threadDicts.first { $0["crashed"] as? Bool == true || $0["crashed"] as? Int == 1 }
         let otherThreadDicts  = threadDicts.filter { $0["crashed"] as? Bool != true && $0["crashed"] as? Int != 1 }
 
-        let isHandled       = severity == .handled
-        let crashedThread   = crashedThreadDict.map { parseThread($0, isHandled: isHandled) }
+        let isHandled              = severity == .handled
+        let effectiveFramesToStrip = hasMeasureBinaryImage() ? 0 : framesToStrip
+        let crashedThread   = crashedThreadDict.map { parseThread($0, isHandled: isHandled, framesToStrip: effectiveFramesToStrip) }
         let exceptionDetail = parseExceptionDetail(crashedThread: crashedThread)
         let otherThreads    = otherThreadDicts.map { parseThread($0, isHandled: isHandled) }
 
@@ -106,20 +108,24 @@ final class CrashDataFormatter {
             ?? (stats["application_in_foreground"] as? Int).map { $0 != 0 }
     }
 
-    func parseThread(_ dict: [String: Any], isHandled: Bool = false) -> ThreadDetail {
+    func parseThread(_ dict: [String: Any], isHandled: Bool = false, framesToStrip: Int = 0) -> ThreadDetail {
         let index   = dict["index"]   as? Int  ?? 0
         let crashed = dict["crashed"] as? Bool ?? (dict["crashed"] as? Int == 1)
         let name    = dict["name"]    as? String
                    ?? (crashed && !isHandled ? "Thread \(index) Crashed" : "Thread \(index)")
-        let frames  = parseFrames(dict)
+        let frames  = parseFrames(dict, framesToStrip: framesToStrip)
         return ThreadDetail(name: name, frames: frames, sequence: Number(index))
     }
 
-    func parseFrames(_ threadDict: [String: Any]) -> [StackFrame] {
+    func parseFrames(_ threadDict: [String: Any], framesToStrip: Int = 0) -> [StackFrame] {
         guard
             let bt       = threadDict["backtrace"] as? [String: Any],
-            let contents = bt["contents"]          as? [[String: Any]]
+            var contents = bt["contents"]          as? [[String: Any]]
         else { return [] }
+
+        if framesToStrip > 0 {
+            contents = Array(contents.dropFirst(min(framesToStrip, contents.count)))
+        }
 
         return contents.enumerated().map { idx, frame in
             parseFrame(frame, index: idx)
@@ -227,6 +233,10 @@ final class CrashDataFormatter {
         case CPU_TYPE_POWERPC: return "powerpc"
         default:               return "???"
         }
+    }
+
+    private func hasMeasureBinaryImage() -> Bool {
+        return binaryImageDicts.contains { ($0["name"] as? String)?.hasPrefix("Measure") == true }
     }
 
     private func isAppBinary(name: String?) -> Bool {

@@ -400,27 +400,27 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     func trackError(_ error: Error, attributes: [String: AttributeValue]? = nil) {
         guard isStarted else { return }
 
-        userTriggeredEventCollector.trackError(error, attributes: attributes)
+        userTriggeredEventCollector.trackError(error, attributes: attributes, framesToStrip: swiftErrorFramesToStrip)
     }
 
     func trackError(_ error: NSError, attributes: [String: Any]? = nil) {
         guard isStarted else { return }
 
         let transformedAttributes = attributeTransformer.transformAttributes(attributes)
-        userTriggeredEventCollector.trackError(error, attributes: transformedAttributes)
+        userTriggeredEventCollector.trackError(error, attributes: transformedAttributes, framesToStrip: objcErrorFramesToStrip)
     }
 
     func trackException(_ exception: NSException, attributes: [String: AttributeValue]? = nil) {
         guard isStarted else { return }
 
-        userTriggeredEventCollector.trackException(exception, attributes: attributes)
+        userTriggeredEventCollector.trackException(exception, attributes: attributes, framesToStrip: swiftErrorFramesToStrip)
     }
 
     func trackException(_ exception: NSException, attributes: [String: Any]? = nil) {
         guard isStarted else { return }
 
         let transformedAttributes = attributeTransformer.transformAttributes(attributes)
-        userTriggeredEventCollector.trackException(exception, attributes: transformedAttributes)
+        userTriggeredEventCollector.trackException(exception, attributes: transformedAttributes, framesToStrip: objcErrorFramesToStrip)
     }
 
     func getAttachmentDirectoryPath() -> String? {
