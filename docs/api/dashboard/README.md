@@ -3335,8 +3335,8 @@ The required headers must be present in each request.
 #### Response Body
 
 - Each result is either an exception event or an ANR event, distinguished by the `type` field (`"exception"` or `"anr"`).
-- Exception events include `exception`, `severity`, `num_code`, `code`, and `meta` fields. `severity` is `"fatal"`, `"unhandled"`, or `"handled"`.
-- ANR events include an `anr` field instead of `exception`. `severity` is always `"fatal"` for ANRs.
+- Exception events include `exception`, `severity`, `num_code`, `code`, `meta`, and `user_defined_attribute` fields. `severity` is `"fatal"`, `"unhandled"`, or `"handled"`.
+- ANR events include an `anr` field instead of `exception`. `severity` is always `"fatal"` for ANRs. ANR events do not include `user_defined_attribute`.
 
 - Response
 
@@ -3394,6 +3394,10 @@ The required headers must be present in each request.
         "num_code": 0,
         "code": "",
         "meta": null,
+        "user_defined_attribute": {
+          "username": "alice",
+          "paid_user": true
+        },
         "attachments": [
           {
             "id": "e5f6a7b8-c9d0-1234-abcd-ef5678901234",
