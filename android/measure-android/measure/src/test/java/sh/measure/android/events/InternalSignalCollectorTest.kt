@@ -23,6 +23,7 @@ import sh.measure.android.MsrAttachment
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.BugReportData
+import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeSessionManager
@@ -294,7 +295,7 @@ class InternalSignalCollectorTest {
 
     @Test
     fun `trackEvent tracks un-obfuscated flutter exception event`() {
-        val exceptionData = TestData.getUnObfuscatedFlutterExceptionData(handled = false)
+        val exceptionData = TestData.getUnObfuscatedFlutterExceptionData(severity = ExceptionSeverity.Fatal)
         val jsonElement = jsonSerializer.encodeToJsonElement(exceptionData)
         val data = jsonToMap(jsonElement.jsonObject)
         val type = EventType.EXCEPTION
@@ -331,7 +332,7 @@ class InternalSignalCollectorTest {
 
     @Test
     fun `trackEvent tracks obfuscated flutter exception event`() {
-        val exceptionData = TestData.getObfuscatedFlutterExceptionData(handled = false)
+        val exceptionData = TestData.getObfuscatedFlutterExceptionData(severity = ExceptionSeverity.Fatal)
         val jsonElement = jsonSerializer.encodeToJsonElement(exceptionData)
         val data = jsonToMap(jsonElement.jsonObject)
         val type = EventType.EXCEPTION
@@ -368,7 +369,7 @@ class InternalSignalCollectorTest {
 
     @Test
     fun `trackEvent tracks handled flutter exception event`() {
-        val exceptionData = TestData.getUnObfuscatedFlutterExceptionData(handled = true)
+        val exceptionData = TestData.getUnObfuscatedFlutterExceptionData(severity = ExceptionSeverity.Handled)
         val jsonElement = jsonSerializer.encodeToJsonElement(exceptionData)
         val data = jsonToMap(jsonElement.jsonObject)
         val type = EventType.EXCEPTION

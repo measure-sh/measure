@@ -7,6 +7,7 @@ import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.gestures.ClickData
 import sh.measure.android.gestures.LongClickData
 import sh.measure.android.gestures.ScrollData
@@ -81,7 +82,7 @@ internal class InternalSignalCollector(
                         )
                     }
                     val extractedData = extractExceptionEventData(data)
-                    if (!extractedData.handled) {
+                    if (extractedData.severity == ExceptionSeverity.Fatal) {
                         // ignoring session ID and user triggered properties
                         // this should be safe as handled exceptions are not tracked in
                         // a separate session and are not user triggered.

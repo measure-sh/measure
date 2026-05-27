@@ -10,6 +10,7 @@ import org.junit.Assert.fail
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.storage.DatabaseImpl
 import sh.measure.android.storage.SessionsTable
@@ -80,7 +81,7 @@ class SessionTestRobot {
             data = ExceptionData(
                 exceptions = emptyList(),
                 threads = emptyList(),
-                handled = false,
+                severity = ExceptionSeverity.Fatal,
                 foreground = true,
             ),
             timestamp = 987654321L,

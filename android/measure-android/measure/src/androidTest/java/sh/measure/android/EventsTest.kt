@@ -19,6 +19,7 @@ import sh.measure.android.config.DynamicConfig
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.lifecycle.ActivityLifecycleType
 import sh.measure.android.lifecycle.AppLifecycleType
 import java.util.concurrent.TimeUnit
@@ -445,7 +446,7 @@ class EventsTest {
             data = ExceptionData(
                 exceptions = emptyList(),
                 threads = emptyList(),
-                handled = false,
+                severity = ExceptionSeverity.Fatal,
                 foreground = true,
             ),
             timestamp = 987654321L,
@@ -459,7 +460,7 @@ class EventsTest {
             data = ExceptionData(
                 exceptions = emptyList(),
                 threads = emptyList(),
-                handled = false,
+                severity = ExceptionSeverity.Fatal,
                 foreground = true,
             ),
             timestamp = 987654321L,
