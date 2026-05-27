@@ -139,7 +139,7 @@ describe("SessionTimelineEventCell", () => {
     it.each([
       ["error", { type: "NPE", severity: "fatal" }, "bg-red-50"],
       ["error", { type: "NPE", severity: "unhandled" }, "bg-amber-50"],
-      ["error", { type: "NPE", severity: "handled" }, "bg-emerald-50"],
+      ["error", { type: "NPE", severity: "handled" }, "bg-yellow-50"],
       ["anr", { type: "ANR" }, "bg-red-50"],
       ["bug_report", { description: "Bug" }, "bg-red-50"],
       ["gesture_click", { target: "Button" }, "bg-emerald-50"],

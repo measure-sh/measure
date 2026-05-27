@@ -31,14 +31,14 @@ export default function SessionTimelineEventCell({
 }: SessionTimelineEventCellProps) {
   function getPillColorClasses(): string {
     // Errors get coloured by severity so the timeline visually mirrors the
-    // errors-list badges: red = fatal, amber = unhandled, emerald = handled.
+    // errors-list badges: red = fatal, amber = unhandled, yellow = handled.
     // ANRs and bug reports stay red.
     if (eventType === "error") {
       if (eventDetails.severity === "unhandled") {
         return "border-amber-300 text-amber-700 bg-amber-50 dark:border-amber-900 dark:text-amber-400 dark:bg-amber-950/40";
       }
       if (eventDetails.severity === "handled") {
-        return "border-emerald-300 text-emerald-700 bg-emerald-50 dark:border-emerald-900 dark:text-emerald-400 dark:bg-emerald-950/40";
+        return "border-yellow-300 text-yellow-700 bg-yellow-50 dark:border-yellow-900 dark:text-yellow-400 dark:bg-yellow-950/40";
       }
       return "border-red-300 text-red-700 bg-red-50 dark:border-red-900 dark:text-red-400 dark:bg-red-950/40";
     }
