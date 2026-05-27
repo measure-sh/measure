@@ -1129,6 +1129,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 			Select("exception.meta as meta").
 			Select("if(exception.severity = '', if(exception.handled, 'handled', 'fatal'), exception.severity) as severity").
 			Select("attachments").
+			Select("user_defined_attribute").
 			Where("type = ?", event.TypeException).
 			Where("exception.fingerprint = ?", fingerprint)
 
@@ -1154,6 +1155,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 			var meta string
 			var severity string
 			var attachments string
+			var userDefAttr map[string][]any
 			if err = rows.Scan(
 				&e.ID,
 				&e.Type,
@@ -1172,10 +1174,14 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 				&meta,
 				&severity,
 				&attachments,
+				&userDefAttr,
 			); err != nil {
 				return
 			}
 			e.Severity = event.Severity(severity)
+			if len(userDefAttr) > 0 {
+				e.UserDefinedAttribute.Scan(userDefAttr)
+			}
 
 			if err = json.Unmarshal([]byte(exceptions), &e.Exception.Exceptions); err != nil {
 				return

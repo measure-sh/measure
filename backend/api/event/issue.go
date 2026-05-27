@@ -6,6 +6,7 @@ import (
 	"text/tabwriter"
 
 	"backend/libs/chrono"
+	"backend/libs/udattr"
 
 	"github.com/google/uuid"
 )
@@ -46,8 +47,9 @@ type EventException struct {
 	Code          string         `json:"code"`
 	Meta          map[string]any `json:"meta"`
 	Severity      Severity       `json:"severity"`
-	Attachments   []Attachment   `json:"attachments"`
-	Threads       []ThreadView   `json:"threads"`
+	Attachments          []Attachment       `json:"attachments"`
+	Threads              []ThreadView       `json:"threads"`
+	UserDefinedAttribute udattr.UDAttribute `json:"user_defined_attribute"`
 }
 
 type ExceptionView struct {
