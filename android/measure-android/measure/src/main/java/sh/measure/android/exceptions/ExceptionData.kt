@@ -20,7 +20,7 @@ internal data class ExceptionData(
     /**
      * The severity of the exception.
      */
-    val severity: ExceptionSeverity,
+    val severity: ExceptionSeverity? = null,
 
     /**
      * Whether the app was in the foreground or not when the exception occurred.

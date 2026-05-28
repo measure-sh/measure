@@ -460,7 +460,6 @@ class EventsTest {
             data = ExceptionData(
                 exceptions = emptyList(),
                 threads = emptyList(),
-                severity = ExceptionSeverity.Fatal,
                 foreground = true,
             ),
             timestamp = 987654321L,
