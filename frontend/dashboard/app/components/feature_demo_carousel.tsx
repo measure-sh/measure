@@ -164,6 +164,9 @@ export default function FeatureDemoCarousel() {
             }`}
           >
             <div className="w-[250%] h-[250%] md:w-[125%] md:h-[125%] origin-top-left transform scale-[0.4] md:scale-[0.8]">
+              {/* Scroll container for the demos. Its top padding is cancelled
+                  by SessionTimeline's demo sticky offset (-top-12) so the
+                  charts pin flush to the top — keep the two in sync. */}
               <div className="w-full h-full px-8 py-12 overflow-y-auto">
                 {DemoComponent}
               </div>

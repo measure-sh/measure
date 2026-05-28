@@ -7,7 +7,7 @@ import { DateTime } from "luxon";
 import { useTheme } from "next-themes";
 import React from "react";
 import { numberToKMB } from "../utils/number_utils";
-import { chartTheme } from "../utils/shared_styles";
+import { chartTheme, useChartColor } from "../utils/shared_styles";
 import {
   formatPlotTooltipDate,
   getPlotTimeGroupForRange,
@@ -137,6 +137,7 @@ const SessionsVsErrorsPlot: React.FC<SessionsVsErrorsPlotProps> = ({
   const filters = useFiltersStore((state) => state.filters);
   const { data: queryPlot, status } = useSessionsVsErrorsPlotQuery();
   const { theme } = useTheme();
+  const chartColor = useChartColor();
   const plotTimeGroup = getPlotTimeGroupForRange(
     filters.startDate,
     filters.endDate,
@@ -146,18 +147,11 @@ const SessionsVsErrorsPlot: React.FC<SessionsVsErrorsPlotProps> = ({
   const effectiveStatus = demo ? "success" : status;
   const plot = demo ? demoPlot : queryPlot;
 
-  const colorMap =
-    theme === "dark"
-      ? {
-          Sessions: "oklch(0.6042 0.1238 244.6)",
-          Crashes: "oklch(0.6014 0.199 26.6)",
-          ANRs: "oklch(0.6664 0.1851 51.88)",
-        }
-      : ({
-          Sessions: "oklch(90.1% 0.058 230.902)",
-          Crashes: "oklch(80.8% 0.114 19.571)",
-          ANRs: "oklch(89.2% 0.058 10.001)",
-        } as const);
+  const colorMap = {
+    Sessions: chartColor.blue,
+    Crashes: chartColor.red,
+    ANRs: chartColor.amber,
+  } as const;
 
   const labelMap = {
     Sessions: "Sessions",
@@ -183,7 +177,7 @@ const SessionsVsErrorsPlot: React.FC<SessionsVsErrorsPlotProps> = ({
           curve="monotoneX"
           theme={chartTheme}
           enableArea={true}
-          areaOpacity={0.1}
+          areaOpacity={0.05}
           colors={({ id }) => colorMap[id as keyof typeof colorMap] || "#888"}
           margin={{ top: 40, right: 40, bottom: 80, left: 40 }}
           xFormat={timeConfig.xFormat}
@@ -231,7 +225,7 @@ const SessionsVsErrorsPlot: React.FC<SessionsVsErrorsPlotProps> = ({
             const pointsById: Record<string, (typeof slice.points)[number]> =
               Object.fromEntries(slice.points.map((p) => [p.serieId, p]));
             return (
-              <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
+              <div className="bg-background text-foreground border shadow-md flex flex-col p-2 text-xs rounded-md">
                 <p className="p-2">
                   Date:{" "}
                   {formatPlotTooltipDate(

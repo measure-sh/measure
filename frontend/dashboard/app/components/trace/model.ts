@@ -54,29 +54,30 @@ export interface PreparedSpan extends Omit<Span, "checkpoints"> {
   checkpoints: PreparedCheckpoint[] | null;
 }
 
+export type ChartColorName =
+  | "blue"
+  | "green"
+  | "amber"
+  | "violet"
+  | "pink"
+  | "teal"
+  | "red"
+  | "yellow";
+
 export interface ThreadColor {
+  name: ChartColorName;
   bg: string;
   border: string;
-  text: string;
 }
 
 const THREAD_COLORS: ThreadColor[] = [
-  { bg: "bg-sky-500", border: "border-sky-500", text: "text-sky-700" },
-  {
-    bg: "bg-emerald-500",
-    border: "border-emerald-500",
-    text: "text-emerald-700",
-  },
-  { bg: "bg-violet-500", border: "border-violet-500", text: "text-violet-700" },
-  { bg: "bg-amber-500", border: "border-amber-500", text: "text-amber-700" },
-  { bg: "bg-pink-500", border: "border-pink-500", text: "text-pink-700" },
-  { bg: "bg-cyan-500", border: "border-cyan-500", text: "text-cyan-700" },
-  {
-    bg: "bg-fuchsia-500",
-    border: "border-fuchsia-500",
-    text: "text-fuchsia-700",
-  },
-  { bg: "bg-teal-500", border: "border-teal-500", text: "text-teal-700" },
+  { name: "green", bg: "bg-chart-green", border: "border-chart-green" },
+  { name: "violet", bg: "bg-chart-violet", border: "border-chart-violet" },
+  { name: "amber", bg: "bg-chart-amber", border: "border-chart-amber" },
+  { name: "pink", bg: "bg-chart-pink", border: "border-chart-pink" },
+  { name: "blue", bg: "bg-chart-blue", border: "border-chart-blue" },
+  { name: "yellow", bg: "bg-chart-yellow", border: "border-chart-yellow" },
+  { name: "teal", bg: "bg-chart-teal", border: "border-chart-teal" },
 ];
 
 function hashString(s: string): number {
@@ -88,9 +89,9 @@ function hashString(s: string): number {
 }
 
 export const ERROR_PALETTE: ThreadColor = {
-  bg: "bg-red-500",
-  border: "border-red-500",
-  text: "text-red-700",
+  name: "red",
+  bg: "bg-chart-red",
+  border: "border-chart-red",
 };
 
 export function getSpanColor(spanName: string): ThreadColor {

@@ -5,6 +5,7 @@ import { DateTime } from "luxon";
 import React, { useEffect, useRef, useState } from "react";
 import { emptySessionTimeline } from "../api/api_calls";
 import { kilobytesToMegabytes } from "../utils/number_utils";
+import { useChartColor, useChartColors } from "../utils/shared_styles";
 import {
   formatChartFormatTimestampToHumanReadable,
   formatMillisToHumanReadable,
@@ -325,6 +326,8 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
   hideDemoTitle = false,
 }) => {
   const { theme } = useTheme();
+  const chartColor = useChartColor();
+  const chartColors = useChartColors();
 
   // Since we use canvas charts here, we can't use CSS variables and have to hardcode colors based on theme.
   // These colors should be the same as --foreground for each theme in globals.css
@@ -464,7 +467,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
       ? [
           {
             id: "Java Free Heap",
-            serieColor: theme === "dark" ? "#bb8d5f" : "#e8c1a0",
+            serieColor: chartColor.violet,
             data: sessionTimeline.memory_usage
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -474,7 +477,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           },
           {
             id: "Java Max Heap",
-            serieColor: theme === "dark" ? "#e16615" : "#f47560",
+            serieColor: chartColor.red,
             data: sessionTimeline.memory_usage
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -484,7 +487,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           },
           {
             id: "Java Total Heap",
-            serieColor: theme === "dark" ? "#dca100" : "#f1e15b",
+            serieColor: chartColor.yellow,
             data: sessionTimeline.memory_usage
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -494,7 +497,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           },
           {
             id: "Native Free Heap",
-            serieColor: theme === "dark" ? "#cf8321" : "#e8a838",
+            serieColor: chartColor.amber,
             data: sessionTimeline.memory_usage
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -504,7 +507,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           },
           {
             id: "Native Total Heap",
-            serieColor: theme === "dark" ? "#01956f" : "#61cdbb",
+            serieColor: chartColor.teal,
             data: sessionTimeline.memory_usage
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -514,7 +517,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           },
           {
             id: "RSS",
-            serieColor: theme === "dark" ? "#33a293" : "#97e3d5",
+            serieColor: chartColor.green,
             data: sessionTimeline.memory_usage
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -524,7 +527,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           },
           {
             id: "Total PSS",
-            serieColor: theme === "dark" ? "#d4007a" : "#f7c6c7",
+            serieColor: chartColor.pink,
             data: sessionTimeline.memory_usage
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -540,7 +543,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
       ? [
           {
             id: "Max Memory",
-            serieColor: theme === "dark" ? "#bb8d5f" : "#e8c1a0",
+            serieColor: chartColor.violet,
             data: sessionTimeline.memory_usage_absolute
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -550,7 +553,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           },
           {
             id: "Used Memory",
-            serieColor: theme === "dark" ? "#e16615" : "#f47560",
+            serieColor: chartColor.red,
             data: sessionTimeline.memory_usage_absolute
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -821,9 +824,15 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
         >{`Network type: ${sessionTimeline.attribute.network_type}`}</Pill>
       </div>
 
-      {/* Sticky region: charts + filters stay pinned at the top while events scroll.
-          top-16 matches the parent layout's sticky header height ([teamId]/layout.tsx). */}
-      <div ref={stickyRef} className="sticky top-16 z-40 bg-background">
+      {/* Sticky region: charts + filters stay pinned while events scroll. The
+          offset differs by scroll context: the real page (demo=false) pins
+          below the app header (top-16), while demos pin inside a padded
+          scroll container, so -top-12 cancels its top padding to keep the
+          charts flush with the top. */}
+      <div
+        ref={stickyRef}
+        className={`sticky ${demo ? "-top-12" : "top-16"} z-40 bg-background`}
+      >
         {(cpuData != null || memoryData != null || memoryAbsData != null) && (
           <div className="flex flex-col pt-2">
             {cpuData != null && (
@@ -861,12 +870,12 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                     legendOffset: -52,
                     legendPosition: "middle",
                   }}
-                  colors={{ scheme: theme === "dark" ? "tableau10" : "nivo" }}
+                  colors={chartColors}
                   pointSize={0}
                   enableGridX={false}
                   enableGridY={false}
                   tooltip={({ point }) => (
-                    <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
+                    <div className="bg-background text-foreground border shadow-md flex flex-col p-2 text-xs rounded-md">
                       <p>
                         Time:{" "}
                         {formatChartFormatTimestampToHumanReadable(
@@ -929,7 +938,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                     const allMemoryData =
                       memoryDataLookup.get(point.data.xFormatted) || {};
                     return (
-                      <div className="bg-accent text-accent-foreground flex flex-col p-4 text-xs rounded-md">
+                      <div className="bg-background text-foreground border shadow-md flex flex-col p-4 text-xs rounded-md">
                         <p>
                           Time:{" "}
                           {formatChartFormatTimestampToHumanReadable(
@@ -1011,7 +1020,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                     const allMemoryData =
                       memoryAbsDataLookup.get(point.data.xFormatted) || {};
                     return (
-                      <div className="bg-accent text-accent-foreground flex flex-col p-4 text-xs rounded-md">
+                      <div className="bg-background text-foreground border shadow-md flex flex-col p-4 text-xs rounded-md">
                         <p>
                           Time:{" "}
                           {formatChartFormatTimestampToHumanReadable(

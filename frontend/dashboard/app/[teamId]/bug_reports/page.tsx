@@ -86,7 +86,7 @@ export default function BugReportsOverview({
     setPaginationOffset((o) => Math.max(0, o - PAGINATION_LIMIT));
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
+    <div className="flex flex-col items-start">
       <div className="py-4" />
 
       <Filters

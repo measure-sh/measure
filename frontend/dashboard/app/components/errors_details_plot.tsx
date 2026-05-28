@@ -7,7 +7,7 @@ import { DateTime } from "luxon";
 import { useTheme } from "next-themes";
 import React from "react";
 import { numberToKMB } from "../utils/number_utils";
-import { chartTheme } from "../utils/shared_styles";
+import { chartTheme, useChartColors } from "../utils/shared_styles";
 import {
   formatPlotTooltipDate,
   getPlotTimeGroupForRange,
@@ -99,6 +99,7 @@ const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
   const filters = useFiltersStore((state) => state.filters);
   const { data: queryPlot, status } = useErrorsDetailsPlotQuery(errorGroupId);
   const { theme } = useTheme();
+  const chartColors = useChartColors();
   const plotTimeGroup = getPlotTimeGroupForRange(
     filters.startDate,
     filters.endDate,
@@ -131,7 +132,7 @@ const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
           theme={chartTheme}
           enableArea={true}
           areaOpacity={0.1}
-          colors={{ scheme: theme === "dark" ? "tableau10" : "nivo" }}
+          colors={chartColors}
           margin={{ top: 40, right: 60, bottom: 180, left: 50 }}
           xFormat={timeConfig.xFormat}
           xScale={{
@@ -181,7 +182,7 @@ const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
           enableSlices="x"
           sliceTooltip={({ slice }) => {
             return (
-              <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
+              <div className="bg-background text-foreground border shadow-md flex flex-col p-2 text-xs rounded-md">
                 <p className="p-2">
                   Date:{" "}
                   {formatPlotTooltipDate(

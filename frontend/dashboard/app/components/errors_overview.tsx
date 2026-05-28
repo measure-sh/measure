@@ -77,7 +77,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
     setPaginationOffset((o) => Math.max(0, o - PAGINATION_LIMIT));
 
   return (
-    <div className="flex flex-col selection:bg-yellow-200/75 items-start">
+    <div className="flex flex-col items-start">
       <div className="py-4" />
 
       <Filters
@@ -213,11 +213,11 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                                 : "unknown_method") +
                               "()"}
                           </p>
-                          <div className="py-1" />
-                          <p className="text-xs truncate text-muted-foreground select-none">
+
+                          <p className="text-xs truncate text-muted-foreground mt-0.5 select-none">
                             {`${type}${message ? `:${message}` : ""}`}
                           </p>
-                          <div className="flex flex-wrap gap-1.5 pt-2">
+                          <div className="flex flex-wrap gap-1.5 pt-3">
                             {error_type === "anr" && (
                               <Pill type={PillType.Anr} />
                             )}

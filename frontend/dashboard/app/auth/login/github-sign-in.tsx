@@ -59,14 +59,14 @@ export default function GitHubSignIn({
         src="/images/github_logo_black.svg"
         width={24}
         height={24}
-        className="w-4 h-4 dark:hidden group-hover:hidden"
+        className="w-4 h-4 dark:hidden"
         alt={"GitHub logo"}
       />
       <Image
         src="/images/github_logo_white.svg"
         width={24}
         height={24}
-        className="w-4 h-4 hidden dark:block group-hover:block"
+        className="w-4 h-4 hidden dark:block"
         alt={"GitHub logo"}
       />
       <span> Sign in with GitHub</span>

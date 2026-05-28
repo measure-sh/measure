@@ -5,7 +5,7 @@ import { useFiltersStore } from "@/app/stores/provider";
 import { ResponsiveLine } from "@nivo/line";
 import { useTheme } from "next-themes";
 import React from "react";
-import { chartTheme } from "../utils/shared_styles";
+import { chartTheme, useChartColors } from "../utils/shared_styles";
 import {
   formatPlotTooltipDate,
   getPlotTimeGroupForRange,
@@ -17,6 +17,7 @@ const ErrorsOverviewPlot: React.FC = () => {
   const filters = useFiltersStore((state) => state.filters);
   const { data: plot, status } = useErrorsOverviewPlotQuery();
   const { theme } = useTheme();
+  const chartColors = useChartColors();
   const plotTimeGroup = getPlotTimeGroupForRange(
     filters.startDate,
     filters.endDate,
@@ -42,7 +43,7 @@ const ErrorsOverviewPlot: React.FC = () => {
           theme={chartTheme}
           enableArea={true}
           areaOpacity={0.1}
-          colors={{ scheme: theme === "dark" ? "dark2" : "nivo" }}
+          colors={chartColors}
           margin={{ top: 40, right: 40, bottom: 140, left: 100 }}
           xFormat={timeConfig.xFormat}
           xScale={{
@@ -91,7 +92,7 @@ const ErrorsOverviewPlot: React.FC = () => {
           enableSlices="x"
           sliceTooltip={({ slice }) => {
             return (
-              <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
+              <div className="bg-background text-foreground border shadow-md flex flex-col p-2 text-xs rounded-md">
                 <p className="p-2">
                   Date:{" "}
                   {formatPlotTooltipDate(

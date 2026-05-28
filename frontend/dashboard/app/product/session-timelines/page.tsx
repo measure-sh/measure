@@ -51,6 +51,9 @@ export default function ProductSessionTimelines() {
           {/* Mobile: Scale 0.4 (40%) -> requires Width 250% (100/0.4) */}
           {/* Desktop: Scale 0.8 (80%) -> requires Width 125% (100/0.8) */}
           <div className="w-[250%] h-[250%] md:w-[125%] md:h-[125%] origin-top-left transform scale-[0.4] md:scale-[0.8]">
+            {/* Scroll container for the demo. Its top padding is cancelled by
+                SessionTimeline's demo sticky offset (-top-12) so the charts pin
+                flush to the top — keep the two in sync. */}
             <div className="w-full h-full px-8 py-12 overflow-y-auto">
               <SessionTimelineDemo />
             </div>

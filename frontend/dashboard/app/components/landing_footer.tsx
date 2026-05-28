@@ -40,14 +40,14 @@ export default function LandingFooter() {
               src="/images/github_logo_black.svg"
               width={24}
               height={24}
-              className="w-4 h-4 dark:hidden group-hover:hidden"
+              className="w-4 h-4 dark:hidden"
               alt={"GitHub logo"}
             />
             <Image
               src="/images/github_logo_white.svg"
               width={24}
               height={24}
-              className="w-4 h-4 hidden dark:block group-hover:block"
+              className="w-4 h-4 hidden dark:block"
               alt={"GitHub logo"}
             />
             <span className="mt-0.5">Star us on Github</span>
@@ -287,14 +287,14 @@ export default function LandingFooter() {
               alt="LinkedIn Logo"
               width={22}
               height={22}
-              className="dark:hidden group-hover:hidden"
+              className="dark:hidden"
             />
             <Image
               src={"/images/linkedin_logo_white.png"}
               alt="LinkedIn Logo"
               width={22}
               height={22}
-              className="hidden dark:block group-hover:block"
+              className="hidden dark:block"
             />
           </Link>
           <Link
@@ -310,14 +310,14 @@ export default function LandingFooter() {
               alt="X Logo"
               width={20}
               height={20}
-              className="dark:hidden group-hover:hidden"
+              className="dark:hidden"
             />
             <Image
               src={"/images/x_logo_white.png"}
               alt="X Logo"
               width={20}
               height={20}
-              className="hidden dark:block group-hover:block"
+              className="hidden dark:block"
             />
           </Link>
         </div>

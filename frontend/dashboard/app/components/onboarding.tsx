@@ -735,7 +735,7 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
                   className="flex flex-col gap-2 mt-2"
                   data-testid={`onboarding-${crossPlatform.testIdSlug}-platform-select`}
                 >
-                  <p className="font-body border border-amber-300 text-amber-700 bg-amber-50 dark:border-amber-900 dark:text-amber-400 dark:bg-amber-950/40 p-4 rounded-md">
+                  <p className="font-body border border-amber-200 text-amber-700 bg-amber-50 dark:border-amber-950 dark:text-amber-400 dark:bg-amber-950/40 p-4 rounded-md">
                     Cross platform apps need to have a unique API key for each
                     platform they target. To integrate on another platform, you
                     will create a new app on Measure with a different API key.

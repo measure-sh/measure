@@ -178,10 +178,13 @@ export const SpanCell = React.forwardRef<HTMLDivElement, SpanCellProps>(
             className={cn(
               "shrink-0 inline-flex items-center justify-center text-[10px] font-display rounded-[3px] border mr-1.5 transition-colors",
               isCollapsed
-                ? cn(color.bg, "text-white border-transparent")
-                : cn(color.border, color.text, "bg-transparent"),
+                ? cn(color.bg, "border-transparent text-primary-foreground")
+                : cn(color.border, "bg-transparent text-foreground"),
             )}
-            style={{ minWidth: BADGE_SIZE_PX, height: BADGE_HEIGHT_PX }}
+            style={{
+              minWidth: BADGE_SIZE_PX,
+              height: BADGE_HEIGHT_PX,
+            }}
             aria-label={
               isCollapsed
                 ? `Expand ${span.span_name}`
@@ -323,7 +326,7 @@ export const TimelineCell: React.FC<TimelineCellProps> = ({
               data-testid="span-bar"
             >
               {labelInside && (
-                <span className="px-1.5 text-[10px] text-white font-display whitespace-nowrap pointer-events-none">
+                <span className="px-1.5 text-[10px] font-display whitespace-nowrap pointer-events-none text-primary-foreground">
                   {durationText}
                 </span>
               )}
@@ -355,7 +358,7 @@ export const TimelineCell: React.FC<TimelineCellProps> = ({
               return (
                 <div
                   key={cp.name + idx}
-                  className="absolute w-0.75 h-0.75 rounded-full bg-white pointer-events-none"
+                  className="absolute w-0.75 h-0.75 rounded-full pointer-events-none bg-primary-foreground"
                   style={{
                     left: `${cpPercent}%`,
                     top: "calc(50% + 5px)",

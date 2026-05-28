@@ -407,6 +407,42 @@ export function makeJourneyWithExceptionsFixture() {
   };
 }
 
+// A node with BOTH a crash and an ANR — exercises the exceptions panel's
+// Crashes/ANRs tab switching (each tab shows only its own issue type).
+export function makeJourneyWithMixedIssuesFixture() {
+  return {
+    nodes: [
+      {
+        id: "sh.measure.demo.HomeActivity",
+        issues: { crashes: [], anrs: [] },
+      },
+      {
+        id: "sh.measure.demo.CheckoutActivity",
+        issues: {
+          crashes: [
+            {
+              id: "crash-100",
+              title: "IllegalStateException at Checkout",
+              count: 75,
+            },
+          ],
+          anrs: [
+            { id: "anr-100", title: "ANR in CheckoutActivity", count: 12 },
+          ],
+        },
+      },
+    ],
+    links: [
+      {
+        source: "sh.measure.demo.HomeActivity",
+        target: "sh.measure.demo.CheckoutActivity",
+        value: 800,
+      },
+    ],
+    totalIssues: 87,
+  };
+}
+
 // --- Exceptions Overview (GET /apps/:appId/crashGroups or /anrGroups) ---
 // Go struct: assembled in handler, backend/api/measure/app.go
 

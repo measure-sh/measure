@@ -27,7 +27,11 @@ import {
   PRICE_PER_GB_MONTH,
   PRO_RETENTION_DAYS,
 } from "@/app/utils/pricing_constants";
-import { chartTheme, underlineLinkStyle } from "@/app/utils/shared_styles";
+import {
+  chartTheme,
+  underlineLinkStyle,
+  useChartColors,
+} from "@/app/utils/shared_styles";
 import { ResponsivePie } from "@nivo/pie";
 
 import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialog";
@@ -102,6 +106,7 @@ function parseUsageForMonth(usage: any[], month: string): AppMonthlyUsage[] {
 
 export default function Usage({ params }: { params: { teamId: string } }) {
   const { theme } = useTheme();
+  const chartColors = useChartColors();
 
   // UI-only local state
   const [isUpgrading, setIsUpgrading] = useState(false);
@@ -375,16 +380,21 @@ export default function Usage({ params }: { params: { teamId: string } }) {
               padAngle={0.7}
               cornerRadius={3}
               activeOuterRadiusOffset={8}
-              colors={{ scheme: theme === "dark" ? "tableau10" : "nivo" }}
+              colors={chartColors}
               arcLinkLabelsSkipAngle={10}
               arcLinkLabelsThickness={2}
               arcLinkLabelsColor={{ from: "color" }}
               tooltip={({ datum: { id, label, value, color } }) => {
                 return (
-                  <div className="bg-accent text-accent-foreground flex flex-col py-2 px-4 font-display rounded-md">
+                  <div className="bg-background text-foreground border shadow-md flex flex-col py-2 px-4 font-display rounded-md">
                     <p
                       className="text-sm font-semibold"
-                      style={{ color: color }}
+                      style={{
+                        color:
+                          theme === "dark"
+                            ? color
+                            : `color-mix(in oklch, ${color} 80%, black)`,
+                      }}
                     >
                       {label}
                     </p>

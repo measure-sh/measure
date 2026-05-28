@@ -916,7 +916,6 @@ export default function SdkConfigurator({
                   <Button
                     data-testid="journey-save-button"
                     variant="outline"
-                    className="border border-black font-display select-none"
                     disabled={
                       !currentUserCanChangeAppSettings || !journeyChanged
                     }
@@ -967,7 +966,7 @@ export default function SdkConfigurator({
                       <TooltipContent
                         side="bottom"
                         align="start"
-                        className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent"
+                        className="font-display max-w-96 text-sm"
                       >
                         HTTP events will not be collected for URLs matching
                         these patterns. Supports exact match and wildcards (*).
@@ -1003,7 +1002,7 @@ export default function SdkConfigurator({
                       <TooltipContent
                         side="bottom"
                         align="start"
-                        className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent"
+                        className="font-display max-w-96 text-sm"
                       >
                         Full HTTP request (body and headers) will be captured
                         for URLs matching these patterns. Supports exact match
@@ -1039,7 +1038,7 @@ export default function SdkConfigurator({
                       <TooltipContent
                         side="bottom"
                         align="start"
-                        className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent"
+                        className="font-display max-w-96 text-sm"
                       >
                         Full HTTP response (body and headers) will be captured
                         for URLs matching these patterns. Supports exact match
@@ -1075,7 +1074,7 @@ export default function SdkConfigurator({
                       <TooltipContent
                         side="bottom"
                         align="start"
-                        className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent"
+                        className="font-display max-w-96 text-sm"
                       >
                         Headers that will never be captured in HTTP requests or
                         responses. Note that common sensitive headers like

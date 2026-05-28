@@ -255,7 +255,7 @@ export default function SessionTimelinesOverview({
                               attribute.device_model}
                           </p>
                           {matched_free_text !== "" && (
-                            <p className="p-1 mt-2 text-xs truncate border border-border bg-accent rounded-md ">
+                            <p className="p-1 mt-2 text-xs truncate border border-border bg-secondary rounded-md ">
                               {"Matched " + matched_free_text}
                             </p>
                           )}
