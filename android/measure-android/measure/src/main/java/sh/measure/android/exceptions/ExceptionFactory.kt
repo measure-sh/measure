@@ -9,7 +9,7 @@ internal object ExceptionFactory {
      */
     fun createMeasureException(
         throwable: Throwable,
-        severity: ExceptionSeverity,
+        severity: ExceptionSeverity? = null,
         thread: Thread,
         foreground: Boolean,
         framework: String? = ExceptionFramework.JVM,
