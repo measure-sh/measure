@@ -5,6 +5,7 @@ import 'package:measure_flutter/src/bug_report/shake_detector.dart';
 import 'package:measure_flutter/src/config/config_loader.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
+import 'package:measure_flutter/src/exception/exception_severity.dart';
 import 'package:measure_flutter/src/gestures/click_data.dart';
 import 'package:measure_flutter/src/gestures/gesture_collector.dart';
 import 'package:measure_flutter/src/gestures/long_click_data.dart';
@@ -104,10 +105,10 @@ final class MeasureInternal {
 
   Future<void> trackError(
     FlutterErrorDetails details, {
-    required bool handled,
+    required ExceptionSeverity severity,
     Map<String, AttributeValue> attributes = const {},
   }) {
-    return _exceptionCollector.trackError(details, handled: handled, attributes: attributes);
+    return _exceptionCollector.trackError(details, severity: severity, attributes: attributes);
   }
 
   void triggerNativeCrash() {

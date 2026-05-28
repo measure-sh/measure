@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:measure_flutter/src/exception/exception_severity.dart';
 import 'package:measure_flutter/src/serialization/json_serializable.dart';
 
 part 'exception_data.g.dart';
@@ -9,14 +10,18 @@ class ExceptionData implements JsonSerialized {
   /// A list of exceptions that were thrown. Multiple exceptions represent "chained" exceptions.
   final List<ExceptionUnit> exceptions;
 
-  /// Whether the exception was handled or not.
-  final bool handled;
+  /// The severity of the exception.
+  final ExceptionSeverity severity;
 
   /// The stacktrace of all the threads at the time of the exception.
   final List<MeasureThread> threads;
 
   /// Whether the app was in the foreground or not when the exception occurred.
   final bool foreground;
+
+  /// `true` for user-tracked errors. Reserved for future use, currently always null.
+  @JsonKey(name: "is_custom")
+  final bool? isCustom;
 
   @JsonKey(name: "binary_images")
   final List<BinaryImage> binaryImages;
@@ -26,11 +31,12 @@ class ExceptionData implements JsonSerialized {
 
   ExceptionData({
     required this.exceptions,
-    required this.handled,
+    required this.severity,
     required this.threads,
     required this.foreground,
     required this.binaryImages,
     required this.framework,
+    this.isCustom,
   });
 
   @override
@@ -45,18 +51,20 @@ class ExceptionData implements JsonSerialized {
       other is ExceptionData &&
           runtimeType == other.runtimeType &&
           exceptions == other.exceptions &&
-          handled == other.handled &&
+          severity == other.severity &&
           threads == other.threads &&
           foreground == other.foreground &&
+          isCustom == other.isCustom &&
           binaryImages == other.binaryImages &&
           framework == other.framework;
 
   @override
   int get hashCode =>
       exceptions.hashCode ^
-      handled.hashCode ^
+      severity.hashCode ^
       threads.hashCode ^
       foreground.hashCode ^
+      isCustom.hashCode ^
       binaryImages.hashCode ^
       framework.hashCode;
 }

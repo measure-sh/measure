@@ -119,10 +119,6 @@ class _FlutterDemoScreenState extends State<FlutterDemoScreen>
     }
   }
 
-  void _throwChainedException() {
-    throw _CustomException('Chained: root cause').toString();
-  }
-
   void _noMethodChannel() async {
     await const MethodChannel('non_existent_channel')
         .invokeMethod('non_existent_method');
@@ -196,6 +192,18 @@ class _FlutterDemoScreenState extends State<FlutterDemoScreen>
   }
 
   // -- Misc --
+
+  void _trackHandledError() {
+    try {
+      throw _CustomException('Handled error caught by the app');
+    } catch (error, stack) {
+      Measure.instance.trackHandledError(
+        error,
+        stack,
+        attributes: AttributeBuilder().add('order_id', 'order-12345').build(),
+      );
+    }
+  }
 
   void _trackCustomEvent() {
     final attrs = AttributeBuilder()
@@ -403,6 +411,12 @@ class _FlutterDemoScreenState extends State<FlutterDemoScreen>
         ),
 
         // Misc
+        _DemoItem(
+          title: 'Handled Error',
+          description: 'Reports a caught exception via trackHandledError',
+          category: _DemoCategory.misc,
+          action: _trackHandledError,
+        ),
         _DemoItem(
           title: 'Custom Event',
           description: 'Tracks an event with attributes',

@@ -92,6 +92,7 @@ import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:measure_flutter/src/exception/exception_severity.dart';
 import 'package:measure_flutter/src/gestures/click_data.dart';
 import 'package:measure_flutter/src/gestures/long_click_data.dart';
 import 'package:measure_flutter/src/gestures/scroll_data.dart';
@@ -547,7 +548,8 @@ class Measure implements MeasureApi {
   }) {
     if (_isInitialized) {
       final details = FlutterErrorDetails(exception: error, stack: stack);
-      return _measure.trackError(details, handled: true, attributes: attributes);
+      return _measure.trackError(details,
+          severity: ExceptionSeverity.handled, attributes: attributes);
     }
     return Future.value();
   }
@@ -1044,7 +1046,7 @@ class Measure implements MeasureApi {
   Future<void> _initFlutterOnError() async {
     final originalHandler = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) async {
-      await _measure.trackError(details, handled: false);
+      await _measure.trackError(details, severity: ExceptionSeverity.unhandled);
       if (originalHandler != null) {
         originalHandler(details);
       }
@@ -1057,7 +1059,7 @@ class Measure implements MeasureApi {
         exception: exception,
         stack: stackTrace,
       );
-      _measure.trackError(details, handled: false);
+      _measure.trackError(details, severity: ExceptionSeverity.unhandled);
       return false;
     };
   }
