@@ -34,12 +34,12 @@ export interface ThreadDetail {
 
 export interface ExceptionPayload {
   handled: boolean;
-  severity?: 'fatal' | 'handled' | 'unhandled';
+  severity: 'fatal' | 'handled' | 'unhandled';
   exceptions: ExceptionDetail[];
-  foreground?: boolean;
+  foreground: boolean;
   threads?: ThreadDetail[];
-  framework?: string;
-  is_custom?: boolean;
+  framework: string;
+  is_custom: boolean;
   num_code?: number;
   code?: string;
   meta?: Record<string, unknown>;
@@ -57,7 +57,7 @@ export function buildExceptionPayload(
 
   const frames: StackFrame[] = parsed.stacktrace.map((frame, idx) => ({
     binary_name: undefined,
-    in_app: false,
+    in_app: true,
     method_name: frame.function,
     file_name: frame.file,
     line_num: frame.line ?? undefined,
@@ -74,18 +74,13 @@ export function buildExceptionPayload(
     os_build_number: undefined,
   };
 
-  const thread: ThreadDetail = {
-    name: "main",
-    frames,
-    sequence: 0,
-  };
-
   return {
     handled,
     severity,
     exceptions: [exceptionDetail],
     foreground: true,
-    threads: [thread],
+    threads: [],
     framework: "js",
+    is_custom: false,
   };
 }

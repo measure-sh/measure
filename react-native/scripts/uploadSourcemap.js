@@ -196,7 +196,7 @@ async function main() {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'measure-'));
   const bundleBasename = path.basename(bundlePath);
   const sourcemapBasename = path.basename(sourcemapPath);
-  const tgzBasename = bundleBasename.replace(/\.js$/, '.tgz');
+  const tgzBasename = bundleBasename.replace(/\.[^.]+$/, '.tgz');
   const tgzPath = path.join(tmpDir, tgzBasename);
   const stagingDir = path.join(tmpDir, 'staging');
 

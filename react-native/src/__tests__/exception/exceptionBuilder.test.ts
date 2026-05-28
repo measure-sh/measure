@@ -6,7 +6,7 @@ describe("buildExceptionPayload", () => {
     err.stack = `Error: Something went wrong
     at myFunc (/src/index.js:12:34)`;
 
-    const payload = buildExceptionPayload(err, true);
+    const payload = buildExceptionPayload(err, true, 'handled');
 
     expect(payload.exceptions).toBeDefined();
     expect(payload.exceptions.length).toBeGreaterThan(0);
@@ -20,13 +20,13 @@ describe("buildExceptionPayload", () => {
       file_name: "/src/index.js",
       line_num: 12,
       col_num: 34,
-      in_app: false,
+      in_app: true,
     });
     expect(payload.framework).toBe("js");
   });
 
   it("handles non-Error inputs", () => {
-    const payload = buildExceptionPayload("plain string error", false);
+    const payload = buildExceptionPayload("plain string error", false, 'unhandled');
 
     expect(payload.exceptions).toBeDefined();
     expect(payload.exceptions.length).toBeGreaterThan(0);

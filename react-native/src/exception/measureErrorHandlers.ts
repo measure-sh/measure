@@ -40,7 +40,7 @@ export function setupErrorHandlers(options: Options): void {
 /**
  * Common function to capture, log and forward exceptions
  */
-function captureException(error: unknown, isFatal: boolean, timeProvider: TimeProvider, logger: Logger, signalProcessor: ISignalProcessor): void {
+async function captureException(error: unknown, isFatal: boolean, timeProvider: TimeProvider, logger: Logger, signalProcessor: ISignalProcessor): Promise<void> {
   try {
     const severity = isFatal ? 'fatal' : 'unhandled';
     const exceptionPayload = buildExceptionPayload(error, false, severity);
@@ -52,13 +52,11 @@ function captureException(error: unknown, isFatal: boolean, timeProvider: TimePr
       exceptionPayload
     );
 
-    signalProcessor.trackEvent(
+    await signalProcessor.trackEvent(
       exceptionPayload,
       "exception",
       timeProvider.now(),
-    ).catch((err) => {
-      logger.log("error", "Failed to send exception to native", err);
-    });
+    );
   } catch (e) {
     logger.log("error", "Failed to process exception", e);
   }
@@ -79,8 +77,11 @@ function setupGlobalErrorHandler(timeProvider: TimeProvider, logger: Logger, sig
 
   defaultErrorHandler = errorUtils.getGlobalHandler();
 
-  errorUtils.setGlobalHandler((error: any, isFatal?: boolean) => {
-    captureException(error, !!isFatal, timeProvider, logger, signalProcessor);
+  errorUtils.setGlobalHandler(async (error: any, isFatal?: boolean) => {
+
+    if (isFatal === true) {
+      await captureException(error, true, timeProvider, logger, signalProcessor);
+    }
 
     if (defaultErrorHandler) {
       defaultErrorHandler(error, isFatal);
@@ -105,16 +106,18 @@ function setupUnhandledRejectionHandler(
     if (hermes?.enablePromiseRejectionTracker && typeof hermes.hasPromise === "function" && hermes.hasPromise()) {
       hermes.enablePromiseRejectionTracker({
         allRejections: true,
-        onUnhandled: (_id: string, error: unknown) => captureException(error, false, timeProvider, logger, signalProcessor),
-        onHandled: (id: string) => logger.internalLog("debug", `Promise rejection handled (id: ${id})`),
+        onUnhandled: (id: string, error: unknown) => {
+          captureException(error, false, timeProvider, logger, signalProcessor);
+        },
       });
       logger.internalLog("info", "Using Hermes promise rejection tracking.");
     } else if (patchGlobalPromise) {
       const rejectionTracking = require("promise/setimmediate/rejection-tracking");
       rejectionTracking.enable({
         allRejections: true,
-        onUnhandled: (_id: string, error: unknown) => captureException(error, false, timeProvider, logger, signalProcessor),
-        onHandled: (id: string) => logger.internalLog("debug", `Promise rejection handled (id: ${id})`),
+        onUnhandled: (id: string, error: unknown) => {
+          captureException(error, false, timeProvider, logger, signalProcessor);
+        },
       });
       logger.internalLog("info", "Using polyfill for promise rejection tracking.");
     } else {
