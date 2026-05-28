@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"symboloader/objstore"
 	"symboloader/server"
-	"symboloader/symbol"
 
+	"backend/libs/symbol"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"

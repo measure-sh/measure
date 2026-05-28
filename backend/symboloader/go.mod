@@ -3,6 +3,7 @@ module symboloader
 go 1.25.7
 
 require (
+	backend/libs v0.0.0
 	cloud.google.com/go/cloudsqlconn v1.20.2
 	cloud.google.com/go/storage v1.62.0
 	github.com/BurntSushi/toml v1.6.0
@@ -100,7 +101,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect
-	github.com/mattn/go-sqlite3 v1.14.37 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
@@ -142,3 +142,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260406210006-6f92a3bedf2d // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
+
+replace backend/libs => ../libs

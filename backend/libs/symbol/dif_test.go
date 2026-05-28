@@ -9,19 +9,156 @@ import (
 )
 
 func TestBuildUnifiedLayout(t *testing.T) {
-	{
-		expected := "46/2e29f02ecf536c9b52021ead322b75"
-		got := BuildUnifiedLayout("462e29f0-2ecf-536c-9b52-021ead322b75")
-		if expected != got {
-			t.Errorf("Expected %s, but got %s", expected, got)
-		}
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{
+			name: "dashed uuid",
+			in:   "462e29f0-2ecf-536c-9b52-021ead322b75",
+			want: "46/2e29f02ecf536c9b52021ead322b75",
+		},
+		{
+			name: "stripped uuid",
+			in:   "462e29f02ecf536c9b52021ead322b75",
+			want: "46/2e29f02ecf536c9b52021ead322b75",
+		},
+		{
+			name: "different dashed uuid",
+			in:   "95ca68df-f9ef-3380-be56-f7663a87a5b4",
+			want: "95/ca68dff9ef3380be56f7663a87a5b4",
+		},
+		{
+			name: "preserves case",
+			in:   "ABCDEF01-2345-6789-ABCD-EF0123456789",
+			want: "AB/CDEF0123456789ABCDEF0123456789",
+		},
 	}
-	{
-		expected := "46/2e29f02ecf536c9b52021ead322b75"
-		got := BuildUnifiedLayout("462e29f02ecf536c9b52021ead322b75")
-		if expected != got {
-			t.Errorf("Expected %s, but got %s", expected, got)
-		}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := BuildUnifiedLayout(tc.in)
+			if got != tc.want {
+				t.Errorf("BuildUnifiedLayout(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestFormatUUID(t *testing.T) {
+	cases := []struct {
+		name string
+		in   []byte
+		want string
+	}{
+		{
+			name: "all zero bytes",
+			in:   make([]byte, 16),
+			want: "00000000-0000-0000-0000-000000000000",
+		},
+		{
+			name: "known uuid bytes",
+			in: []byte{
+				0x46, 0x2e, 0x29, 0xf0,
+				0x2e, 0xcf,
+				0x53, 0x6c,
+				0x9b, 0x52,
+				0x02, 0x1e, 0xad, 0x32, 0x2b, 0x75,
+			},
+			want: "462e29f0-2ecf-536c-9b52-021ead322b75",
+		},
+		{
+			name: "all 0xff bytes",
+			in: []byte{
+				0xff, 0xff, 0xff, 0xff,
+				0xff, 0xff,
+				0xff, 0xff,
+				0xff, 0xff,
+				0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+			},
+			want: "ffffffff-ffff-ffff-ffff-ffffffffffff",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := formatUUID(tc.in)
+			if got != tc.want {
+				t.Errorf("formatUUID(%x) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestMappingKeyToDebugId(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{
+			name: "round-trips with BuildUnifiedLayout",
+			in:   "46/2e29f02ecf536c9b52021ead322b75",
+			want: "462e29f0-2ecf-536c-9b52-021ead322b75",
+		},
+		{
+			name: "different unified layout key",
+			in:   "95/ca68dff9ef3380be56f7663a87a5b4",
+			want: "95ca68df-f9ef-3380-be56-f7663a87a5b4",
+		},
+		{
+			name: "preserves case",
+			in:   "AB/CDEF0123456789ABCDEF0123456789",
+			want: "ABCDEF01-2345-6789-ABCD-EF0123456789",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := MappingKeyToDebugId(tc.in)
+			if got != tc.want {
+				t.Errorf("MappingKeyToDebugId(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestMappingKeyToCodeId(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{
+			name: "unified layout with debuginfo suffix",
+			in:   "46/2e29f02ecf536c9b52021ead322b75/debuginfo",
+			want: "462e29f02ecf536c9b52021ead322b75",
+		},
+		{
+			name: "without debuginfo suffix",
+			in:   "46/2e29f02ecf536c9b52021ead322b75",
+			want: "462e29f02ecf536c9b52021ead322b75",
+		},
+		{
+			name: "strips every slash",
+			in:   "ab/cd/ef/debuginfo",
+			want: "abcdef",
+		},
+		{
+			name: "strips every debuginfo occurrence",
+			in:   "debuginfo/ab/debuginfo",
+			want: "ab",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := MappingKeyToCodeId(tc.in)
+			if got != tc.want {
+				t.Errorf("MappingKeyToCodeId(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
 	}
 }
 

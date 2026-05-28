@@ -13,8 +13,9 @@ import (
 	"symboloader/cipher"
 	"symboloader/objstore"
 	"symboloader/server"
-	"symboloader/symbol"
 	"time"
+
+	"backend/libs/symbol"
 
 	"cloud.google.com/go/storage"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -165,6 +166,11 @@ func (m *Mapping) extractDif() (err error) {
 
 	default:
 		err = fmt.Errorf("failed to recognize mapping type %q", m.Type)
+	}
+
+	// FIXME: remove this
+	for _, v := range m.Difs {
+		fmt.Println("dif key", v.Key)
 	}
 
 	return
@@ -391,6 +397,9 @@ func (b *Build) upload(ctx context.Context) (err error) {
 			metadata["original_file_name"] = mapping.Filename
 
 			for _, dif := range mapping.Difs {
+				// FIXME: remove this
+				fmt.Println("uploading dif", dif.Key, dif.Meta)
+
 				if config.IsCloud() {
 					obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
 					writer := obj.NewWriter(ctx)

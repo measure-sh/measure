@@ -27,7 +27,6 @@ const (
 	TypeDsymDebug
 )
 
-
 // String provides the human recognizable
 // dSYM entity type.
 func (d DsymType) String() string {
@@ -191,7 +190,13 @@ func ExtractJsBundle(r io.Reader) (difs []*Dif, err error) {
 			return
 		}
 
+		// ignore directories
 		if header.Typeflag == tar.TypeDir {
+			continue
+		}
+
+		// only consider regular files
+		if header.Typeflag != tar.TypeReg {
 			continue
 		}
 
@@ -203,6 +208,14 @@ func ExtractJsBundle(r io.Reader) (difs []*Dif, err error) {
 
 		parts := strings.Split(header.Name, "/")
 		filename := parts[len(parts)-1]
+
+		// ignore hidden file
+		if strings.HasPrefix(filename, ".") {
+			continue
+		}
+
+		// FIXME: remove this
+		fmt.Println("filename", filename)
 
 		ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("measure.sh"))
 		fileId := uuid.NewSHA1(ns, []byte(filename))
@@ -301,9 +314,8 @@ func MappingKeyToDebugId(key string) string {
 // MappingKeyToCodeId formats a mapping key
 // in Unified Layout to a valid CodeId.
 func MappingKeyToCodeId(key string) string {
-	noSlash := strings.Replace(key, "/", "", -1)
-	result := strings.Replace(noSlash, "debuginfo", "", -1)
-	return result
+	noSlash := strings.ReplaceAll(key, "/", "")
+	return strings.ReplaceAll(noSlash, "debuginfo", "")
 }
 
 // VerifyMachO verifies Mach-O magic number.
