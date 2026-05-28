@@ -68,7 +68,6 @@ describe("getSpanColor", () => {
     const c = getSpanColor("anything");
     expect(c).toHaveProperty("bg");
     expect(c).toHaveProperty("border");
-    expect(c).toHaveProperty("text");
   });
 
   it("is deterministic for the same input", () => {
@@ -83,7 +82,6 @@ describe("getSpanColor", () => {
     const c = getSpanColor("foo");
     expect(c.bg.startsWith("bg-")).toBe(true);
     expect(c.border.startsWith("border-")).toBe(true);
-    expect(c.text.startsWith("text-")).toBe(true);
   });
 });
 

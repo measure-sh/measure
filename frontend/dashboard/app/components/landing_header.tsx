@@ -56,14 +56,14 @@ export default function LandingHeader() {
             width={120}
             height={40}
             alt={"Measure logo"}
-            className="dark:hidden group-hover:hidden"
+            className="dark:hidden"
           />
           <Image
             src="/images/measure_logo_horizontal_white.svg"
             width={120}
             height={40}
             alt={"Measure logo"}
-            className="hidden dark:block group-hover:block"
+            className="hidden dark:block"
           />
         </Link>
 
@@ -138,14 +138,14 @@ export default function LandingHeader() {
               src="/images/github_logo_black.svg"
               width={24}
               height={24}
-              className="w-4 h-4 dark:hidden group-hover:hidden"
+              className="w-4 h-4 dark:hidden"
               alt={"GitHub logo"}
             />
             <Image
               src="/images/github_logo_white.svg"
               width={24}
               height={24}
-              className="w-4 h-4 hidden dark:block group-hover:block"
+              className="w-4 h-4 hidden dark:block"
               alt={"GitHub logo"}
             />
             <span className="mt-0.5">1.3k</span>

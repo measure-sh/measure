@@ -54,40 +54,40 @@ const pillDefaults: Record<PillType, { label?: string; tint: string }> = {
   [PillType.Neutral]: { tint: "" },
   [PillType.Error]: {
     label: "Error",
-    tint: "border-sky-300 text-sky-700 bg-sky-50 dark:border-sky-900 dark:text-sky-400 dark:bg-sky-950/40",
+    tint: "border-sky-400 text-sky-700 bg-sky-100 dark:border-sky-400 dark:text-sky-400 dark:bg-sky-950/40",
   },
   [PillType.Anr]: {
     label: "ANR",
-    tint: "border-violet-300 text-violet-700 bg-violet-50 dark:border-violet-900 dark:text-violet-400 dark:bg-violet-950/40",
+    tint: "border-violet-400 text-violet-700 bg-violet-100 dark:border-violet-400 dark:text-violet-400 dark:bg-violet-950/40",
   },
   [PillType.Fatal]: {
     label: "Fatal",
-    tint: "border-red-300 text-red-700 bg-red-50 dark:border-red-900 dark:text-red-400 dark:bg-red-950/40",
+    tint: "border-red-400 text-red-700 bg-red-100 dark:border-red-400 dark:text-red-400 dark:bg-red-950/40",
   },
   [PillType.Unhandled]: {
     label: "Unhandled",
-    tint: "border-amber-300 text-amber-700 bg-amber-50 dark:border-amber-900 dark:text-amber-400 dark:bg-amber-950/40",
+    tint: "border-amber-400 text-amber-700 bg-amber-100 dark:border-amber-400 dark:text-amber-400 dark:bg-amber-950/40",
   },
   [PillType.Handled]: {
     label: "Handled",
-    tint: "border-yellow-300 text-yellow-700 bg-yellow-50 dark:border-yellow-900 dark:text-yellow-400 dark:bg-yellow-950/40",
+    tint: "border-yellow-400 text-yellow-700 bg-yellow-100 dark:border-yellow-400 dark:text-yellow-400 dark:bg-yellow-950/40",
   },
   [PillType.OpenStatus]: {
     label: "Open",
-    tint: "border-green-300 text-green-700 bg-green-50 dark:border-green-900 dark:text-green-400 dark:bg-green-950/40",
+    tint: "border-green-400 text-green-700 bg-green-100 dark:border-green-400 dark:text-green-400 dark:bg-green-950/40",
   },
   [PillType.ClosedStatus]: {
     label: "Closed",
-    tint: "border-indigo-300 text-indigo-700 bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:bg-indigo-950/40",
+    tint: "border-indigo-400 text-indigo-700 bg-indigo-100 dark:border-indigo-400 dark:text-indigo-400 dark:bg-indigo-950/40",
   },
   [PillType.StatusUnset]: { label: "Unset", tint: "" },
   [PillType.StatusOkay]: {
     label: "Okay",
-    tint: "border-green-300 text-green-700 bg-green-50 dark:border-green-900 dark:text-green-400 dark:bg-green-950/40",
+    tint: "border-green-400 text-green-700 bg-green-100 dark:border-green-400 dark:text-green-400 dark:bg-green-950/40",
   },
   [PillType.StatusError]: {
     label: "Error",
-    tint: "border-red-300 text-red-700 bg-red-50 dark:border-red-900 dark:text-red-400 dark:bg-red-950/40",
+    tint: "border-red-400 text-red-700 bg-red-100 dark:border-red-400 dark:text-red-400 dark:bg-red-950/40",
   },
 };
 
@@ -138,7 +138,7 @@ const Pill: React.FC<PillProps> = ({
         <TooltipContent
           side="bottom"
           align="start"
-          className="font-display max-w-96 text-sm text-accent-foreground fill-accent bg-accent"
+          className="font-display max-w-96 text-sm"
         >
           {content}
         </TooltipContent>
@@ -188,7 +188,7 @@ const Pill: React.FC<PillProps> = ({
               )}
             </button>
           </TooltipTrigger>
-          <TooltipContent className="bg-accent text-accent-foreground fill-accent">
+          <TooltipContent>
             {action.icon === "reset" ? "Reset to defaults" : "Clear"}
           </TooltipContent>
         </Tooltip>

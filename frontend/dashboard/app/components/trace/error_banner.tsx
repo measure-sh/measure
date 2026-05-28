@@ -17,7 +17,7 @@ const TraceErrorBanner: React.FC<TraceErrorBannerProps> = ({
   onNext,
 }) => (
   <div
-    className="flex flex-row items-center gap-2 px-3 py-1.5 text-xs rounded-md border bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900 text-red-700 dark:text-red-400"
+    className="flex flex-row items-center gap-2 px-3 py-1.5 text-xs rounded-md border bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-950 text-red-700 dark:text-red-400"
     data-testid="trace-error-banner"
   >
     <span className="font-display">

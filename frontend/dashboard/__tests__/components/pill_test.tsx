@@ -20,7 +20,7 @@ describe("Pill", () => {
       render(<Pill type={PillType.Error} />);
       const badge = findBadge("Error");
       expect(badge).not.toBeNull();
-      expect(badge!.className).toMatch(/border-sky-300/);
+      expect(badge!.className).toMatch(/border-sky-400/);
       expect(badge!.className).toMatch(/text-sky-700/);
     });
 
@@ -28,37 +28,37 @@ describe("Pill", () => {
       render(<Pill type={PillType.Anr} />);
       const badge = findBadge("ANR");
       expect(badge).not.toBeNull();
-      expect(badge!.className).toMatch(/border-violet-300/);
+      expect(badge!.className).toMatch(/border-violet-400/);
     });
 
     it("renders 'Fatal' label with red tint for PillType.Fatal", () => {
       render(<Pill type={PillType.Fatal} />);
       const badge = findBadge("Fatal");
-      expect(badge!.className).toMatch(/border-red-300/);
+      expect(badge!.className).toMatch(/border-red-400/);
     });
 
     it("renders 'Unhandled' label with amber tint for PillType.Unhandled", () => {
       render(<Pill type={PillType.Unhandled} />);
       const badge = findBadge("Unhandled");
-      expect(badge!.className).toMatch(/border-amber-300/);
+      expect(badge!.className).toMatch(/border-amber-400/);
     });
 
     it("renders 'Handled' label with yellow tint for PillType.Handled", () => {
       render(<Pill type={PillType.Handled} />);
       const badge = findBadge("Handled");
-      expect(badge!.className).toMatch(/border-yellow-300/);
+      expect(badge!.className).toMatch(/border-yellow-400/);
     });
 
     it("renders 'Open' label with green tint for PillType.OpenStatus", () => {
       render(<Pill type={PillType.OpenStatus} />);
       const badge = findBadge("Open");
-      expect(badge!.className).toMatch(/border-green-300/);
+      expect(badge!.className).toMatch(/border-green-400/);
     });
 
     it("renders 'Closed' label with indigo tint for PillType.ClosedStatus", () => {
       render(<Pill type={PillType.ClosedStatus} />);
       const badge = findBadge("Closed");
-      expect(badge!.className).toMatch(/border-indigo-300/);
+      expect(badge!.className).toMatch(/border-indigo-400/);
     });
 
     it("defaults to neutral type (no tint, outline variant)", () => {
@@ -150,7 +150,7 @@ describe("Pill", () => {
         </Pill>,
       );
       const outer = container.querySelector("span");
-      expect(outer!.className).toMatch(/border-sky-300/);
+      expect(outer!.className).toMatch(/border-sky-400/);
     });
   });
 });

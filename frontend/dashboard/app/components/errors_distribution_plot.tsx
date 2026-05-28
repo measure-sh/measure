@@ -3,10 +3,9 @@
 import { useErrorsDistributionPlotQuery } from "@/app/query/hooks";
 import { useFiltersStore } from "@/app/stores/provider";
 import { ResponsiveBar } from "@nivo/bar";
-import { useTheme } from "next-themes";
 import React from "react";
 import { numberToKMB } from "../utils/number_utils";
-import { chartTheme } from "../utils/shared_styles";
+import { chartTheme, useChartColors } from "../utils/shared_styles";
 import { SkeletonPlot } from "./skeleton";
 
 const demoDistribution: any = {
@@ -124,7 +123,7 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
 }) => {
   const { data: queryData, status } =
     useErrorsDistributionPlotQuery(errorGroupId);
-  const { theme } = useTheme();
+  const chartColors = useChartColors();
 
   const effectiveStatus = demo ? "success" : status;
   const plot = demo ? demoParsedPlot : queryData?.plot;
@@ -150,7 +149,7 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
             keys={plotKeys}
             theme={chartTheme}
             indexBy="attribute"
-            colors={{ scheme: theme === "dark" ? "tableau10" : "nivo" }}
+            colors={chartColors}
             margin={{ top: 40, right: 0, bottom: 180, left: 60 }}
             axisTop={null}
             axisRight={null}
@@ -170,13 +169,13 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
               legendOffset: demo ? -55 : -50,
               legendPosition: "middle",
             }}
-            labelTextColor={"black"}
+            labelTextColor="var(--primary-foreground)"
             valueFormat={(value) => numberToKMB(value)}
             enableGridX={false}
             enableGridY={false}
             tooltip={({ id, value, color }) => {
               return (
-                <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
+                <div className="bg-background text-foreground border shadow-md flex flex-col p-2 text-xs rounded-md">
                   <div className="flex flex-row items-center p-2">
                     <div
                       className="w-2 h-2 rounded-full"

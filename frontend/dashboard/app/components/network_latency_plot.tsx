@@ -1,35 +1,40 @@
-"use client"
+"use client";
 
-import { ResponsiveLine } from '@nivo/line'
-import { useTheme } from 'next-themes'
-import React, { useMemo, useState } from 'react'
-import { chartTheme } from '../utils/shared_styles'
-import { formatMillisToHumanReadable, formatPlotTooltipDate, getPlotTimeGroupNivoConfig, PlotTimeGroup } from '../utils/time_utils'
-import TabSelect from './tab_select'
+import { ResponsiveLine } from "@nivo/line";
+import { useTheme } from "next-themes";
+import React, { useMemo, useState } from "react";
+import { chartTheme, useChartColors } from "../utils/shared_styles";
+import {
+  formatMillisToHumanReadable,
+  formatPlotTooltipDate,
+  getPlotTimeGroupNivoConfig,
+  PlotTimeGroup,
+} from "../utils/time_utils";
+import TabSelect from "./tab_select";
 
 interface LatencyDataPoint {
-  datetime: string
-  p50: number | null
-  p90: number | null
-  p95: number | null
-  p99: number | null
-  count: number
+  datetime: string;
+  p50: number | null;
+  p90: number | null;
+  p95: number | null;
+  p99: number | null;
+  count: number;
 }
 
 interface NetworkLatencyPlotProps {
-  data: LatencyDataPoint[]
-  plotTimeGroup: PlotTimeGroup
+  data: LatencyDataPoint[];
+  plotTimeGroup: PlotTimeGroup;
 }
 
 type PlotData = {
-  id: string
+  id: string;
   data: {
-    id: string
-    x: string
-    y: number
-    count: number
-  }[]
-}[]
+    id: string;
+    x: string;
+    y: number;
+    count: number;
+  }[];
+}[];
 
 enum Quantile {
   p50 = "p50",
@@ -38,38 +43,48 @@ enum Quantile {
   p99 = "p99",
 }
 
-const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({ data, plotTimeGroup }) => {
-  const [quantile, setQuantile] = useState(Quantile.p95)
-  const { theme } = useTheme()
-  const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup)
+const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({
+  data,
+  plotTimeGroup,
+}) => {
+  const [quantile, setQuantile] = useState(Quantile.p95);
+  const { theme } = useTheme();
+  const chartColors = useChartColors();
+  const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
 
   const plot = useMemo<PlotData | undefined>(() => {
-    if (!data) return undefined
+    if (!data) return undefined;
 
-    return [{
-      id: quantile,
-      data: data.map((d, index) => ({
-        id: quantile + '.' + index,
-        x: d.datetime,
-        y: d[quantile] ?? 0,
-        count: d.count,
-      }))
-    }]
-  }, [data, quantile])
+    return [
+      {
+        id: quantile,
+        data: data.map((d, index) => ({
+          id: quantile + "." + index,
+          x: d.datetime,
+          y: d[quantile] ?? 0,
+          count: d.count,
+        })),
+      },
+    ];
+  }, [data, quantile]);
 
   if (!plot || plot.length === 0 || plot[0].data.length === 0) {
     return (
       <div className="flex font-body items-center justify-center w-full h-[36rem]">
         <p className="text-lg font-display text-center p-4">No Data</p>
       </div>
-    )
+    );
   }
 
   return (
     <div className="flex font-body items-center justify-center w-full h-[36rem]">
-      <div className='flex flex-col w-full h-full'>
-        <div className='flex flex-col w-full items-end p-2'>
-          <TabSelect items={Object.values(Quantile)} selected={quantile} onChangeSelected={(item) => setQuantile(item as Quantile)} />
+      <div className="flex flex-col w-full h-full">
+        <div className="flex flex-col w-full items-end p-2">
+          <TabSelect
+            items={Object.values(Quantile)}
+            selected={quantile}
+            onChangeSelected={(item) => setQuantile(item as Quantile)}
+          />
         </div>
         <ResponsiveLine
           data={plot}
@@ -77,44 +92,46 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({ data, plotTimeG
           theme={chartTheme}
           enableArea={true}
           areaOpacity={0.1}
-          colors={{ scheme: theme === 'dark' ? 'tableau10' : 'nivo' }}
+          colors={chartColors}
           margin={{ top: 20, right: 80, bottom: 140, left: 100 }}
           xFormat={timeConfig.xFormat}
           xScale={{
             format: timeConfig.xScaleFormat,
             precision: timeConfig.xScalePrecision,
-            type: 'time',
-            useUTC: false
+            type: "time",
+            useUTC: false,
           }}
           yScale={{
-            type: 'linear',
+            type: "linear",
             min: 0,
-            max: 'auto'
+            max: "auto",
           }}
           yFormat=".2f"
           axisTop={null}
           axisRight={null}
           axisBottom={{
-            legend: 'Date',
+            legend: "Date",
             tickPadding: 10,
             legendOffset: 100,
             format: timeConfig.axisBottomFormat,
             tickRotation: 45,
-            legendPosition: 'middle'
+            legendPosition: "middle",
           }}
           axisLeft={{
             tickSize: 1,
             tickPadding: 5,
             legend: `Duration (${quantile})`,
             legendOffset: -80,
-            legendPosition: 'middle'
+            legendPosition: "middle",
           }}
           pointSize={6}
           pointBorderWidth={1.5}
-          pointColor={theme === 'dark' ? "rgba(0, 0, 0, 255)" : "rgba(255, 255, 255, 255)"}
+          pointColor={
+            theme === "dark" ? "rgba(0, 0, 0, 255)" : "rgba(255, 255, 255, 255)"
+          }
           pointBorderColor={{
-            from: 'serieColor',
-            modifiers: [['darker', 0.3]]
+            from: "serieColor",
+            modifiers: [["darker", 0.3]],
           }}
           pointLabelYOffset={-12}
           useMesh={true}
@@ -122,26 +139,44 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({ data, plotTimeG
           enableGridY={false}
           enableSlices="x"
           sliceTooltip={({ slice }) => {
-            const pointData = slice.points[0]?.data as unknown as { count: number }
-            const count = pointData?.count ?? 0
+            const pointData = slice.points[0]?.data as unknown as {
+              count: number;
+            };
+            const count = pointData?.count ?? 0;
             return (
-              <div className="bg-accent text-accent-foreground flex flex-col p-2 text-xs rounded-md">
-                <p className='p-2 font-semibold'>{formatPlotTooltipDate(slice.points[0].data.xFormatted.toString(), plotTimeGroup)}</p>
-                <p className='px-2 pb-1'>Requests: {count.toLocaleString()}</p>
+              <div className="bg-background text-foreground border shadow-md flex flex-col p-2 text-xs rounded-md">
+                <p className="p-2 font-semibold">
+                  {formatPlotTooltipDate(
+                    slice.points[0].data.xFormatted.toString(),
+                    plotTimeGroup,
+                  )}
+                </p>
+                <p className="px-2 pb-1">Requests: {count.toLocaleString()}</p>
                 {slice.points.map((point) => (
-                  <div className="flex flex-row items-center px-2 py-0.5" key={point.id}>
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: point.serieColor }} />
+                  <div
+                    className="flex flex-row items-center px-2 py-0.5"
+                    key={point.id}
+                  >
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: point.serieColor }}
+                    />
                     <div className="px-1" />
-                    <p>{quantile}: {formatMillisToHumanReadable(point.data.yFormatted as number)}</p>
+                    <p>
+                      {quantile}:{" "}
+                      {formatMillisToHumanReadable(
+                        point.data.yFormatted as number,
+                      )}
+                    </p>
                   </div>
                 ))}
               </div>
-            )
+            );
           }}
         />
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default NetworkLatencyPlot
+export default NetworkLatencyPlot;

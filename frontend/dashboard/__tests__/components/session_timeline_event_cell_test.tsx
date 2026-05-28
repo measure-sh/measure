@@ -137,17 +137,17 @@ describe("SessionTimelineEventCell", () => {
     // The pill carries the colour now (not a dot). We assert one Tailwind
     // class per bucket as a smoke test that the colour helper still maps.
     it.each([
-      ["error", { type: "NPE", severity: "fatal" }, "bg-red-50"],
-      ["error", { type: "NPE", severity: "unhandled" }, "bg-amber-50"],
-      ["error", { type: "NPE", severity: "handled" }, "bg-yellow-50"],
-      ["anr", { type: "ANR" }, "bg-red-50"],
-      ["bug_report", { description: "Bug" }, "bg-red-50"],
-      ["gesture_click", { target: "Button" }, "bg-emerald-50"],
-      ["navigation", { to: "/home" }, "bg-fuchsia-50"],
-      ["http", { method: "get", status_code: 200, url: "/api" }, "bg-cyan-50"],
-      ["trace", { trace_name: "checkout" }, "bg-pink-50"],
-      ["custom", { name: "event" }, "bg-purple-50"],
-      ["cold_launch", {}, "bg-indigo-50"],
+      ["error", { type: "NPE", severity: "fatal" }, "bg-red-100"],
+      ["error", { type: "NPE", severity: "unhandled" }, "bg-amber-100"],
+      ["error", { type: "NPE", severity: "handled" }, "bg-yellow-100"],
+      ["anr", { type: "ANR" }, "bg-red-100"],
+      ["bug_report", { description: "Bug" }, "bg-red-100"],
+      ["gesture_click", { target: "Button" }, "bg-emerald-100"],
+      ["navigation", { to: "/home" }, "bg-fuchsia-100"],
+      ["http", { method: "get", status_code: 200, url: "/api" }, "bg-cyan-100"],
+      ["trace", { trace_name: "checkout" }, "bg-pink-100"],
+      ["custom", { name: "event" }, "bg-purple-100"],
+      ["cold_launch", {}, "bg-indigo-100"],
     ])("applies %s pill bg", (eventType, eventDetails, expectedClass) => {
       const { container } = renderCell({ eventType, eventDetails });
       const pill = container.querySelector(`.${expectedClass}`);

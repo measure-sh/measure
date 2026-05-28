@@ -35,32 +35,32 @@ export default function SessionTimelineEventCell({
     // ANRs and bug reports stay red.
     if (eventType === "error") {
       if (eventDetails.severity === "unhandled") {
-        return "border-amber-300 text-amber-700 bg-amber-50 dark:border-amber-900 dark:text-amber-400 dark:bg-amber-950/40";
+        return "border-amber-400 rounded-sm text-amber-700 bg-amber-100 dark:border-amber-400 dark:text-amber-400 dark:bg-amber-950/40";
       }
       if (eventDetails.severity === "handled") {
-        return "border-yellow-300 text-yellow-700 bg-yellow-50 dark:border-yellow-900 dark:text-yellow-400 dark:bg-yellow-950/40";
+        return "border-yellow-400 rounded-sm text-yellow-700 bg-yellow-100 dark:border-yellow-400 dark:text-yellow-400 dark:bg-yellow-950/40";
       }
-      return "border-red-300 text-red-700 bg-red-50 dark:border-red-900 dark:text-red-400 dark:bg-red-950/40";
+      return "border-red-400 rounded-sm text-red-700 bg-red-100 dark:border-red-400 dark:text-red-400 dark:bg-red-950/40";
     }
     if (eventType === "anr" || eventType === "bug_report") {
-      return "border-red-300 text-red-700 bg-red-50 dark:border-red-900 dark:text-red-400 dark:bg-red-950/40";
+      return "border-red-400 rounded-sm text-red-700 bg-red-100 dark:border-red-400 dark:text-red-400 dark:bg-red-950/40";
     }
     if (eventType.includes("gesture")) {
-      return "border-emerald-300 text-emerald-700 bg-emerald-50 dark:border-emerald-900 dark:text-emerald-400 dark:bg-emerald-950/40";
+      return "border-emerald-400 rounded-sm text-emerald-700 bg-emerald-100 dark:border-emerald-400 dark:text-emerald-400 dark:bg-emerald-950/40";
     }
     if (eventType === "navigation" || eventType === "screen_view") {
-      return "border-fuchsia-300 text-fuchsia-700 bg-fuchsia-50 dark:border-fuchsia-900 dark:text-fuchsia-400 dark:bg-fuchsia-950/40";
+      return "border-fuchsia-400 rounded-sm text-fuchsia-700 bg-fuchsia-100 dark:border-fuchsia-400 dark:text-fuchsia-400 dark:bg-fuchsia-950/40";
     }
     if (eventType === "http") {
-      return "border-cyan-300 text-cyan-700 bg-cyan-50 dark:border-cyan-900 dark:text-cyan-400 dark:bg-cyan-950/40";
+      return "border-cyan-400 rounded-sm text-cyan-700 bg-cyan-100 dark:border-cyan-400 dark:text-cyan-400 dark:bg-cyan-950/40";
     }
     if (eventType === "trace") {
-      return "border-pink-300 text-pink-700 bg-pink-50 dark:border-pink-900 dark:text-pink-400 dark:bg-pink-950/40";
+      return "border-pink-400 rounded-sm text-pink-700 bg-pink-100 dark:border-pink-400 dark:text-pink-400 dark:bg-pink-950/40";
     }
     if (eventType === "custom") {
-      return "border-purple-300 text-purple-700 bg-purple-50 dark:border-purple-900 dark:text-purple-400 dark:bg-purple-950/40";
+      return "border-purple-400 rounded-sm text-purple-700 bg-purple-100 dark:border-purple-400 dark:text-purple-400 dark:bg-purple-950/40";
     }
-    return "border-indigo-300 text-indigo-700 bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:bg-indigo-950/40";
+    return "border-indigo-400 rounded-sm text-indigo-700 bg-indigo-100 dark:border-indigo-400 dark:text-indigo-400 dark:bg-indigo-950/40";
   }
 
   function getPillLabel(): string {
@@ -178,11 +178,11 @@ export default function SessionTimelineEventCell({
   const snapshot = hasSnapshot();
 
   return (
-    <div className="border-b border-border group">
+    <div className="border-b border-border">
       <button
         type="button"
         onClick={onToggle}
-        className="w-full text-left px-3 py-4 font-display outline-none transition-colors group-hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-ring/50 focus-visible:ring-[2px] focus-visible:ring-inset"
+        className="w-full text-left px-3 py-4 font-display outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-ring/50 focus-visible:ring-[2px] focus-visible:ring-inset"
       >
         <div className="flex flex-row items-center gap-3">
           <Pill className={`${getPillColorClasses()} shrink-0 w-28`}>
@@ -211,7 +211,7 @@ export default function SessionTimelineEventCell({
         </div>
       </button>
       {expanded && (
-        <div className="px-3 pt-1 pb-3 transition-colors group-hover:bg-muted/50">
+        <div className="px-3 pt-1 pb-3">
           <SessionTimelineEventDetails
             teamId={teamId}
             appId={appId}

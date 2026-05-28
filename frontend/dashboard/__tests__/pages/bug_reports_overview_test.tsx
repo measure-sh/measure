@@ -531,9 +531,9 @@ describe("BugReportsOverview Component", () => {
     const statusBadge = openStatusText.closest('[data-slot="badge"]');
 
     // Check for correct styling on the status badge
-    expect(statusBadge).toHaveClass("border-green-300");
+    expect(statusBadge).toHaveClass("border-green-400");
     expect(statusBadge).toHaveClass("text-green-700");
-    expect(statusBadge).toHaveClass("bg-green-50");
+    expect(statusBadge).toHaveClass("bg-green-100");
 
     // Clean up the first render
     unmount();
@@ -568,8 +568,8 @@ describe("BugReportsOverview Component", () => {
     const closedStatusBadge = closedStatusText.closest('[data-slot="badge"]');
 
     // Check for correct styling on the closed status badge
-    expect(closedStatusBadge).toHaveClass("border-indigo-300");
+    expect(closedStatusBadge).toHaveClass("border-indigo-400");
     expect(closedStatusBadge).toHaveClass("text-indigo-700");
-    expect(closedStatusBadge).toHaveClass("bg-indigo-50");
+    expect(closedStatusBadge).toHaveClass("bg-indigo-100");
   });
 });

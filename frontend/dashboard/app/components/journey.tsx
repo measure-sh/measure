@@ -3,14 +3,18 @@
 import { useJourneyQuery } from "@/app/query/hooks";
 import { useFiltersStore } from "@/app/stores/provider";
 import { ResponsiveSankey } from "@nivo/sankey";
+import { X } from "lucide-react";
 import { useTheme } from "next-themes";
-import Link from "next/link";
-import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 import { JourneyType, emptyJourney } from "../api/api_calls";
 import { numberToKMB } from "../utils/number_utils";
-import { underlineLinkStyle } from "../utils/shared_styles";
-import { Button } from "./button";
+import { useChartColor, useChartColors } from "../utils/shared_styles";
 import { SkeletonPlot } from "./skeleton";
+import TabSelect from "./tab_select";
+
+const CRASHES_TAB = "Crashes";
+const ANRS_TAB = "ANRs";
 
 const demoJourney: InputJourneyData = {
   links: [
@@ -421,20 +425,21 @@ type JourneyData = {
   links: JourneyLink[];
 };
 
-const positiveNodeColour = "oklch(63.7% 0.237 25.331)";
-const negativeNodeColour = "oklch(72.3% 0.219 149.579)";
 const neutralLinkColour = `oklch(87.2% 0.01 258.338)`;
 const exceptionNodeLabelColour = "oklch(0.141 0.005 285.823)";
 const exceptionNodeLabelColourDark = "oklch(0.985 0 0)";
 
-function getNodeColor(node: Node): string {
+function getNodeColor(
+  node: Node,
+  chartColor: ReturnType<typeof useChartColor>,
+): string {
   const hasIssues =
     node.issues?.anrs?.length! > 0 || node.issues?.crashes?.length! > 0;
 
   if (hasIssues) {
-    return positiveNodeColour;
+    return chartColor.red;
   } else {
-    return negativeNodeColour;
+    return chartColor.green;
   }
 }
 
@@ -472,6 +477,7 @@ const NODE_LIMIT = 100; // Use constant for the node limit
 function transformData(
   journeyType: JourneyType,
   input: InputJourneyData,
+  chartColor: ReturnType<typeof useChartColor>,
 ): JourneyData {
   const nodes = input.nodes || [];
   const links = input.links || [];
@@ -549,7 +555,7 @@ function transformData(
     .filter((node) => finalLinkedNodeIds.has(node.id))
     .map((node) => ({
       id: node.id,
-      nodeColor: getNodeColor(node),
+      nodeColor: getNodeColor(node, chartColor),
       issues: node.issues,
     }));
 
@@ -567,21 +573,31 @@ const Journey: React.FC<JourneyProps> = ({
   demo = false,
 }) => {
   const { theme } = useTheme();
+  const chartColor = useChartColor();
+  const chartColors = useChartColors();
+  const router = useRouter();
   const filters = useFiltersStore((state) => state.filters);
   const journeyQuery = useJourneyQuery(journeyTypeProp, bidirectionalProp);
 
   const [selectedNode, setSelectedNode] = useState<JourneyNode | undefined>(
     undefined,
   );
+  const [issueTab, setIssueTab] = useState<string>(CRASHES_TAB);
   const showPanel = selectedNode !== undefined;
+
+  useEffect(() => {
+    if (!selectedNode) return;
+    const hasCrashes = (selectedNode.issues?.crashes?.length ?? 0) > 0;
+    setIssueTab(hasCrashes ? CRASHES_TAB : ANRS_TAB);
+  }, [selectedNode]);
 
   const journeyType = journeyTypeProp;
   const rawJourney = journeyQuery.data ?? emptyJourney;
   const transformedJourney = demo
-    ? transformData(journeyType, demoJourney)
+    ? transformData(journeyType, demoJourney, chartColor)
     : journeyQuery.status === "success"
-      ? transformData(journeyType, rawJourney)
-      : transformData(journeyType, emptyJourney);
+      ? transformData(journeyType, rawJourney, chartColor)
+      : transformData(journeyType, emptyJourney, chartColor);
   const journey = transformedJourney;
 
   // Derive effective API status: if query says success but transformed data has no nodes, treat as no data
@@ -663,9 +679,7 @@ const Journey: React.FC<JourneyProps> = ({
             colors={
               journeyType === JourneyType.Exceptions
                 ? (node) => node.nodeColor
-                : theme === "dark"
-                  ? { scheme: "tableau10" }
-                  : { scheme: "nivo" }
+                : chartColors
             }
             nodeBorderColor={{
               from: "color",
@@ -707,7 +721,7 @@ const Journey: React.FC<JourneyProps> = ({
             }
             linkTooltip={({ link }) => (
               <div
-                className={`flex flex-col p-2 text-xs font-body rounded-md bg-accent text-accent-foreground break-words`}
+                className={`flex flex-col p-2 text-xs font-body rounded-md bg-background text-foreground border shadow-md break-words`}
               >
                 <p className="p-2">
                   {link.source.id.split(".").pop()} →{" "}
@@ -720,13 +734,13 @@ const Journey: React.FC<JourneyProps> = ({
             )}
             nodeTooltip={({ node }) => (
               <div
-                className={`flex flex-col p-2 text-xs font-body rounded-md bg-accent text-accent-foreground break-words`}
+                className={`flex flex-col p-2 text-xs font-body rounded-md bg-background text-foreground border shadow-md break-words`}
               >
                 <p className="p-2">{node.id}</p>
 
                 {journeyType === JourneyType.Exceptions &&
                   node.issues?.crashes?.length! > 0 && (
-                    <p className="px-2 py-1 text-red-400">
+                    <p className="px-2 py-1 text-red-700 dark:text-red-400">
                       Crashes:{" "}
                       {node.issues?.crashes?.reduce(
                         (sum, issue) => sum + issue.count,
@@ -737,7 +751,7 @@ const Journey: React.FC<JourneyProps> = ({
 
                 {journeyType === JourneyType.Exceptions &&
                   node.issues?.anrs?.length! > 0 && (
-                    <p className="px-2 py-1 text-yellow-400">
+                    <p className="px-2 py-1 text-amber-700 dark:text-amber-400">
                       ANRs:{" "}
                       {node.issues?.anrs?.reduce(
                         (sum, issue) => sum + issue.count,
@@ -756,81 +770,95 @@ const Journey: React.FC<JourneyProps> = ({
           />
           {/* Panel */}
           <div
-            className={`absolute overflow-auto top-0 right-0 h-full w-3/4 bg-accent p-4 text-accent-foreground break-words transform transition-transform duration-300 ease-in-out ${
+            className={`absolute top-0 right-0 h-full w-3/4 bg-card text-card-foreground border flex flex-col overflow-hidden transform transition-transform duration-300 ease-in-out ${
               showPanel ? "translate-x-0" : "translate-x-full"
             }`}
           >
             {selectedNode !== undefined && (
-              <div>
-                <Button
-                  variant="secondary"
-                  className="py-2 px-4"
-                  onClick={() => setSelectedNode(undefined)}
-                >
-                  Close
-                </Button>
-                <p className="mt-6 text-lg">{selectedNode!.id}</p>
-                {selectedNode.issues?.crashes?.length! > 0 && (
-                  <div>
-                    <p className="font-body mt-4">Crashes:</p>
-                    <ul className="list-disc list-inside pt-2 pb-4 pl-2 pr-2">
-                      {selectedNode.issues?.crashes?.map(
+              <>
+                <div className="flex flex-row items-start justify-between gap-2 p-3 border-b">
+                  <p
+                    className="font-display text-sm truncate min-w-0"
+                    title={selectedNode.id}
+                  >
+                    {selectedNode.id}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedNode(undefined)}
+                    className="shrink-0 p-1 rounded-sm hover:bg-accent focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none"
+                    title="Close"
+                    aria-label="Close"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="py-2">
+                  <TabSelect
+                    items={[CRASHES_TAB, ANRS_TAB]}
+                    selected={issueTab}
+                    onChangeSelected={setIssueTab}
+                  />
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {issueTab === CRASHES_TAB &&
+                    ((selectedNode.issues?.crashes?.length ?? 0) > 0 ? (
+                      selectedNode.issues?.crashes?.map(
                         ({ id, title, count }) => (
-                          <li key={title}>
-                            {/* Show clickable link if Exceptions journey type */}
-                            {journeyType === JourneyType.Exceptions && (
-                              <span className="font-body text-xs">
-                                {demo ? (
-                                  <div className={underlineLinkStyle}>
-                                    {title} - {numberToKMB(count)}
-                                  </div>
-                                ) : (
-                                  <Link
-                                    href={`/${teamId}/errors/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`}
-                                    className={underlineLinkStyle}
-                                  >
-                                    {title} - {numberToKMB(count)}
-                                  </Link>
-                                )}
-                              </span>
-                            )}
-                          </li>
+                          <button
+                            key={title}
+                            type="button"
+                            onClick={
+                              demo
+                                ? undefined
+                                : () =>
+                                    router.push(
+                                      `/${teamId}/errors/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`,
+                                    )
+                            }
+                            className={`block w-full text-left px-3 py-2 border-b border-border/40 last:border-b-0 text-xs break-words font-body transition-colors ${demo ? "cursor-default" : "hover:bg-accent cursor-pointer"}`}
+                          >
+                            <span className="block">{title}</span>
+                            <span className="block text-[10px] text-muted-foreground mt-0.5">
+                              {numberToKMB(count)}
+                            </span>
+                          </button>
                         ),
-                      )}
-                    </ul>
-                  </div>
-                )}
-                {selectedNode.issues?.anrs?.length! > 0 && (
-                  <div>
-                    <p className="font-body pt-2">ANRs:</p>
-                    <ul className="list-disc list-inside pt-2 pb-4 pl-2 pr-2">
-                      {selectedNode.issues?.anrs?.map(
-                        ({ id, title, count }) => (
-                          <li key={title}>
-                            {/* Show clickable link if Exceptions journey type */}
-                            {journeyType === JourneyType.Exceptions && (
-                              <span className="font-body text-xs">
-                                {demo ? (
-                                  <div className={underlineLinkStyle}>
-                                    {title} - {numberToKMB(count)}
-                                  </div>
-                                ) : (
-                                  <Link
-                                    href={`/${teamId}/errors/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`}
-                                    className={underlineLinkStyle}
-                                  >
-                                    {title} - {numberToKMB(count)}
-                                  </Link>
-                                )}
-                              </span>
-                            )}
-                          </li>
-                        ),
-                      )}
-                    </ul>
-                  </div>
-                )}
-              </div>
+                      )
+                    ) : (
+                      <p className="px-3 py-4 text-xs text-muted-foreground">
+                        No crashes
+                      </p>
+                    ))}
+                  {issueTab === ANRS_TAB &&
+                    ((selectedNode.issues?.anrs?.length ?? 0) > 0 ? (
+                      selectedNode.issues?.anrs?.map(({ id, title, count }) => (
+                        <button
+                          key={title}
+                          type="button"
+                          onClick={
+                            demo
+                              ? undefined
+                              : () =>
+                                  router.push(
+                                    `/${teamId}/errors/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`,
+                                  )
+                          }
+                          className={`block w-full text-left px-3 py-2 border-b border-border/40 last:border-b-0 text-xs break-words font-body transition-colors ${demo ? "cursor-default" : "hover:bg-accent cursor-pointer"}`}
+                        >
+                          <span className="block">{title}</span>
+                          <span className="block text-[10px] text-muted-foreground mt-0.5">
+                            {numberToKMB(count)}
+                          </span>
+                        </button>
+                      ))
+                    ) : (
+                      <p className="px-3 py-4 text-xs text-muted-foreground">
+                        No ANRs
+                      </p>
+                    ))}
+                </div>
+              </>
             )}
           </div>
         </div>

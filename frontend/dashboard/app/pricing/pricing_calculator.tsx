@@ -383,7 +383,7 @@ export default function PricingCalculator() {
                 <span className="text-secondary-foreground font-semibold">
                   Free data per month:
                 </span>
-                <span className="font-display text-green-600 dark:text-green-500">
+                <span className="font-display text-green-700 dark:text-green-400">
                   {FREE_GB} GB
                 </span>
               </div>
@@ -393,10 +393,10 @@ export default function PricingCalculator() {
           {isFreeTier && (
             <div className="bg-green-50 dark:bg-background border-2 border-green-300 dark:border-border rounded-lg p-6 mb-8">
               <div className="flex flex-col items-start gap-1">
-                <h4 className="font-display text-lg text-green-900 dark:text-green-500">
+                <h4 className="font-display text-lg text-green-900 dark:text-green-400">
                   Free Tier
                 </h4>
-                <p className="font-body text-green-800 dark:text-green-500">
+                <p className="font-body text-green-800 dark:text-green-400">
                   Your usage is within the free limits ({FREE_GB} GB/month). No
                   charges apply.
                 </p>
