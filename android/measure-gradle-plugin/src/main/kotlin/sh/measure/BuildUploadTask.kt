@@ -29,8 +29,14 @@ import java.net.URI
 import java.net.URL
 
 internal const val HEADER_AUTHORIZATION = "Authorization"
+
+// Ignore unknown keys so new fields in the builds API response do not break
+// older plugin versions.
+private val json = Json { ignoreUnknownKeys = true }
+
 private const val TYPE_PROGUARD = "proguard"
 private const val TYPE_FLUTTER_SYMBOLS = "elf_debug"
+private const val TYPE_JS_BUNDLE = "jsbundle"
 private const val BUILDS_PATH = "builds"
 
 private const val ERROR_MSG_401 =
@@ -96,6 +102,9 @@ abstract class BuildUploadTask : DefaultTask() {
     @get:InputFiles
     abstract val flutterSymbolsFiles: ConfigurableFileCollection
 
+    @get:InputFiles
+    abstract val reactNativeBundleArchives: ConfigurableFileCollection
+
     @get:InputFile
     abstract val manifestFileProperty: RegularFileProperty
 
@@ -114,12 +123,13 @@ abstract class BuildUploadTask : DefaultTask() {
         val mappingFile = mappingFileProperty.getOrNull()?.asFile
         val buildMetadataFile = buildMetadataFileProperty.get().asFile
         val flutterSymbols = flutterSymbolsFiles.files
+        val rnBundleArchives = reactNativeBundleArchives.files
 
         val manifestData = readManifestData(manifestFile)
         val (buildSize, buildType) = readBuildMetadata(buildMetadataFile)
 
         val client = httpClientProvider.get().client
-        val mappings = collectMappingInfo(mappingFile, flutterSymbols)
+        val mappings = collectMappingInfo(mappingFile, flutterSymbols, rnBundleArchives)
         val buildsRequest = createBuildsRequest(manifestData, buildSize, buildType, mappings)
 
         sendBuildsRequest(
@@ -129,12 +139,14 @@ abstract class BuildUploadTask : DefaultTask() {
             mappings,
             mappingFile,
             flutterSymbols,
+            rnBundleArchives,
         )
     }
 
     private fun collectMappingInfo(
         mappingFile: File?,
         flutterSymbols: Set<File>,
+        rnBundleArchives: Set<File>,
     ): List<MappingInfo> {
         val mappings = mutableListOf<MappingInfo>()
 
@@ -149,6 +161,13 @@ abstract class BuildUploadTask : DefaultTask() {
             logger.info("measure: ${flutterSymbols.size} flutter symbol files found")
             flutterSymbols.forEach { symbolsFile ->
                 mappings.add(MappingInfo(type = TYPE_FLUTTER_SYMBOLS, filename = symbolsFile.name))
+            }
+        }
+
+        rnBundleArchives.forEach { archive ->
+            if (archive.exists()) {
+                logger.info("measure: react native bundle archive found at ${archive.absolutePath}")
+                mappings.add(MappingInfo(type = TYPE_JS_BUNDLE, filename = archive.name))
             }
         }
 
@@ -177,10 +196,11 @@ abstract class BuildUploadTask : DefaultTask() {
         mappings: List<MappingInfo>,
         mappingFile: File?,
         flutterSymbols: Set<File>,
+        rnBundleArchives: Set<File>,
     ) {
         val buildsResponse = callBuildsApi(client, manifestData, buildsRequest)
         if (buildsResponse != null && mappings.isNotEmpty()) {
-            uploadMappingFiles(client, buildsResponse, mappingFile, flutterSymbols)
+            uploadMappingFiles(client, buildsResponse, mappingFile, flutterSymbols, rnBundleArchives)
         }
     }
 
@@ -194,7 +214,7 @@ abstract class BuildUploadTask : DefaultTask() {
 
         return executeHttpRequestWithRetry(client, request, "Builds API request") { response ->
             if (response.isSuccessful) {
-                Json.decodeFromString(BuildsApiResponse.serializer(), response.body!!.string())
+                json.decodeFromString(BuildsApiResponse.serializer(), response.body!!.string())
             } else {
                 logError(response)
                 null
@@ -207,7 +227,7 @@ abstract class BuildUploadTask : DefaultTask() {
         manifestData: ManifestData,
         buildsRequest: BuildsApiRequest,
     ): Request {
-        val jsonBody = Json.encodeToString(BuildsApiRequest.serializer(), buildsRequest)
+        val jsonBody = json.encodeToString(BuildsApiRequest.serializer(), buildsRequest)
             .toRequestBody("application/json".toMediaType())
         return createJsonRequest(url, manifestData, jsonBody)
     }
@@ -227,11 +247,13 @@ abstract class BuildUploadTask : DefaultTask() {
         buildsResponse: BuildsApiResponse,
         mappingFile: File?,
         flutterSymbols: Set<File>,
+        rnBundleArchives: Set<File>,
     ) {
         buildsResponse.mappings.forEach { mapping ->
             val file = when (mapping.type) {
                 TYPE_PROGUARD -> mappingFile
                 TYPE_FLUTTER_SYMBOLS -> flutterSymbols.firstOrNull { it.name == mapping.filename }
+                TYPE_JS_BUNDLE -> rnBundleArchives.firstOrNull { it.name == mapping.filename }
                 else -> null
             }
 
