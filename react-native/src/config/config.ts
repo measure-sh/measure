@@ -5,7 +5,6 @@ import type { IMeasureConfig } from './measureConfig';
 export class Config implements InternalConfig, IMeasureConfig {
   enableLogging: boolean;
   autoStart: boolean;
-  enableFullCollectionMode: boolean;
   enableDiagnosticMode: boolean;
   maxCheckpointsPerSpan: number;
   maxCheckpointNameLength: number;
@@ -16,12 +15,10 @@ export class Config implements InternalConfig, IMeasureConfig {
   constructor(
     enableLogging?: boolean,
     autoStart?: boolean,
-    enableFullCollectionMode?: boolean,
     enableDiagnosticMode?: boolean
   ) {
     this.enableLogging = enableLogging ?? DefaultConfig.enableLogging;
     this.autoStart = autoStart ?? DefaultConfig.autoStart;
-    this.enableFullCollectionMode = enableFullCollectionMode ?? DefaultConfig.enableFullCollectionMode;
     this.enableDiagnosticMode = enableDiagnosticMode ?? DefaultConfig.enableDiagnosticMode;
     this.maxEventNameLength = 64;
     this.customEventNameRegex = DefaultConfig.customEventNameRegex;

@@ -18,9 +18,6 @@ export class TraceSampler implements ITraceSampler {
   }
 
   shouldSampleTrace(traceId: string): boolean {
-    if (this.configProvider.enableFullCollectionMode) {
-      return true;
-    }
     const rate = this.configProvider.traceSamplingRate;
 
     if (rate === 0.0) {

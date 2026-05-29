@@ -37,7 +37,6 @@ const App = (): React.JSX.Element => {
     const measureConfig = new MeasureConfig({
         enableLogging: true,
         autoStart: true,
-        enableFullCollectionMode: false,
         enableDiagnosticMode: true,
       });
 

@@ -470,7 +470,6 @@ const styles = StyleSheet.create({
 const measureReady = Measure.init({
   config: new MeasureConfig({
     enableLogging: true,
-    enableFullCollectionMode: true,
     enableDiagnosticMode: true,
   }),
 });

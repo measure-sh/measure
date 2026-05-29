@@ -111,10 +111,6 @@ export class ConfigProvider implements IConfigProvider {
     return this.defaultConfig.autoStart;
   }
 
-  get enableFullCollectionMode(): boolean {
-    return this.defaultConfig.enableFullCollectionMode;
-  }
-
   get enableDiagnosticMode(): boolean {
     return this.defaultConfig.enableDiagnosticMode;
   }
