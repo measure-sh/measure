@@ -43,7 +43,7 @@ export function setupErrorHandlers(options: Options): void {
 async function captureException(error: unknown, isFatal: boolean, timeProvider: TimeProvider, logger: Logger, signalProcessor: ISignalProcessor): Promise<void> {
   try {
     const severity = isFatal ? 'fatal' : 'unhandled';
-    const exceptionPayload = buildExceptionPayload(error, false, severity);
+    const exceptionPayload = buildExceptionPayload(error, severity);
 
     logger.log(
       isFatal ? "fatal" : "error",

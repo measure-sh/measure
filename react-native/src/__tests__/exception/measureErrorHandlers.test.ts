@@ -48,7 +48,7 @@ describe("errorHandlers", () => {
 
     await setHandler(err, true);
 
-    expect(buildExceptionPayload).toHaveBeenCalledWith(err, false, 'fatal');
+    expect(buildExceptionPayload).toHaveBeenCalledWith(err, 'fatal');
     expect(logger.log).toHaveBeenCalledWith(
       "fatal",
       "Fatal exception",
