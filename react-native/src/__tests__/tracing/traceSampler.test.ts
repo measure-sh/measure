@@ -7,27 +7,10 @@ describe('TraceSampler', () => {
 
   beforeEach(() => {
     config = {
-      enableFullCollectionMode: false,
       traceSamplingRate: 0,
     } as IConfigProvider;
 
     sampler = new TraceSampler(config);
-  });
-
-  describe('full collection mode', () => {
-    it('always samples when enableFullCollectionMode is true', () => {
-      config.enableFullCollectionMode = true;
-      config.traceSamplingRate = 0;
-
-      expect(
-        sampler.shouldSampleTrace('00000000000000000000000000000001')
-      ).toBe(true);
-      expect(
-        sampler.shouldSampleTrace('ffffffffffffffffffffffffffffffff')
-      ).toBe(true);
-      expect(sampler.shouldSampleTrace('')).toBe(true);
-      expect(sampler.shouldSampleTrace('not-a-trace-id')).toBe(true);
-    });
   });
 
   describe('sampling rate boundaries', () => {

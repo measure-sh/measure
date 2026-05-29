@@ -100,7 +100,6 @@ import { Measure, MeasureConfig } from '@measuresh/react-native';
 const config = new MeasureConfig({
   enableLogging: true,
   autoStart: true,
-  enableFullCollectionMode: false,
   enableDiagnosticMode: false,
 });
 

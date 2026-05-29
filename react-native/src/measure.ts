@@ -40,7 +40,6 @@ export const Measure = {
    * const measureConfig = new MeasureConfig({
    *       enableLogging: true,
    *       autoStart: true,
-   *       enableFullCollectionMode: false,
    *       enableDiagnosticMode: true,
    *     });
    *

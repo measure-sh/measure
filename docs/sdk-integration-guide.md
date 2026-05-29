@@ -505,9 +505,7 @@ root component or top-level `App` component.
 import { Measure, MeasureConfig } from '@measuresh/react-native';
 
 const measureConfig = new MeasureConfig({
-  // Enable full collection in debug mode
-  // to verify installation
-  enableFullCollectionMode: true,
+  enableLogging: true,
 });
 
 await Measure.init({ config: measureConfig });
@@ -606,19 +604,6 @@ Measure.initialize(with: clientInfo, config: config)
 
 Flutter SDK depends on the native SDKs, so you need to set `enableFullCollectionMode` to `true` in both
 Android and iOS native SDK initializations.
-
-</details>
-
-<details>
-    <summary>React Native</summary>
-
-React Native SDK depends on the native SDKs, so you need to set `enableFullCollectionMode` to `true` in both
-Android and iOS native SDK initializations. In your JS initialization:
-
-```typescript
-const config = new MeasureConfig({ enableFullCollectionMode: true });
-await Measure.init({ config });
-```
 
 </details>
 
