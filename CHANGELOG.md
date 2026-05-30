@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Add unified errors API & react native symbolication support (#3623) by @detj in #3623
 - (**backend**): Use autumn for metering and billing by @anupcowkur in #3534
+- (**frontend**): Add 3d view for layout snapshots by @anupcowkur in #3761
+- (**frontend**): Update light & dark themes by @anupcowkur
 - (**frontend**): Update trace ui by @anupcowkur
 - (**frontend**): Consolidate crashes and ANRs into Errors page by @anupcowkur
 - (**frontend**): Update filters ui by @anupcowkur in #3653
