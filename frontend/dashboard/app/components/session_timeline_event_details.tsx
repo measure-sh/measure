@@ -162,8 +162,8 @@ export default function SessionTimelineEventDetails({
               .map((attachment: { key: string; location: string }) => (
                 <LayoutSnapshot
                   key={attachment.key}
-                  width={350}
-                  height={350}
+                  width={400}
+                  height={400}
                   layoutUrl={attachment.location}
                 />
               ))}
