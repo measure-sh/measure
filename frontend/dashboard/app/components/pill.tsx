@@ -266,7 +266,7 @@ const Pill: React.FC<PillProps> = ({
         <TooltipContent
           side="bottom"
           align="start"
-          className="font-display max-w-96 text-sm"
+          className="font-body max-w-96 text-sm"
         >
           {content}
         </TooltipContent>

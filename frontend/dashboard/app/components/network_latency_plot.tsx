@@ -4,6 +4,7 @@ import { ResponsiveLine } from "@nivo/line";
 import { useTheme } from "next-themes";
 import React, { useMemo, useState } from "react";
 import { chartTheme, useChartColors } from "../utils/shared_styles";
+import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
 import {
   formatMillisToHumanReadable,
   formatPlotTooltipDate,
@@ -144,7 +145,7 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({
             };
             const count = pointData?.count ?? 0;
             return (
-              <div className="bg-background text-foreground border shadow-md flex flex-col p-2 text-xs rounded-md">
+              <PlotTooltipShell>
                 <p className="p-2 font-semibold">
                   {formatPlotTooltipDate(
                     slice.points[0].data.xFormatted.toString(),
@@ -157,10 +158,7 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({
                     className="flex flex-row items-center px-2 py-0.5"
                     key={point.id}
                   >
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: point.serieColor }}
-                    />
+                    <PlotTooltipSwatch color={point.serieColor} />
                     <div className="px-1" />
                     <p>
                       {quantile}:{" "}
@@ -170,7 +168,7 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({
                     </p>
                   </div>
                 ))}
-              </div>
+              </PlotTooltipShell>
             );
           }}
         />

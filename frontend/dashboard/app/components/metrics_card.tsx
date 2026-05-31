@@ -8,7 +8,7 @@ import React from "react";
 import { numberToKMB, toKiloBytes, toMegaBytes } from "../utils/number_utils";
 import { Card, CardContent, CardFooter } from "./card";
 import { SkeletonMetricsCard } from "./skeleton";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
+import SimpleTooltip from "./simple_tooltip";
 
 // Style constants
 const STYLES = {
@@ -40,10 +40,6 @@ const STYLES = {
     tooltipIconRow: "flex items-center gap-2 mt-2",
     tooltipIconRowSmall: "flex items-center gap-2 mt-1",
     tooltipSpacer: "py-2",
-  },
-  tooltip: {
-    content: "font-display max-w-96 text-sm",
-    text: "p-2",
   },
 } as const;
 
@@ -630,35 +626,27 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
   };
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild className="transition-all">
-        <Card
-          className={`${STYLES.layout.cardSize} bg-card text-card-foreground hover:bg-muted/50 dark:hover:bg-card/50`}
-        >
-          <CardContent className={STYLES.layout.cardContent}>
-            {showStatusIcon() && (
-              <div className={STYLES.layout.statusIconPosition}>
-                {getStatusIconForType()}
-              </div>
-            )}
-
-            <div className={STYLES.layout.contentFlex}>
-              {renderCardContent()}
-            </div>
-          </CardContent>
-          <CardFooter className={STYLES.layout.cardFooter}>
-            <p className={STYLES.text.footerTitle}>{title}</p>
-          </CardFooter>
-        </Card>
-      </TooltipTrigger>
-      <TooltipContent
-        side="bottom"
-        align="start"
-        className={STYLES.tooltip.content}
+    <SimpleTooltip
+      triggerClassName="transition-all"
+      content={renderTooltipContent()}
+    >
+      <Card
+        className={`${STYLES.layout.cardSize} bg-card text-card-foreground hover:bg-muted/50 dark:hover:bg-card/50`}
       >
-        {renderTooltipContent()}
-      </TooltipContent>
-    </Tooltip>
+        <CardContent className={STYLES.layout.cardContent}>
+          {showStatusIcon() && (
+            <div className={STYLES.layout.statusIconPosition}>
+              {getStatusIconForType()}
+            </div>
+          )}
+
+          <div className={STYLES.layout.contentFlex}>{renderCardContent()}</div>
+        </CardContent>
+        <CardFooter className={STYLES.layout.cardFooter}>
+          <p className={STYLES.text.footerTitle}>{title}</p>
+        </CardFooter>
+      </Card>
+    </SimpleTooltip>
   );
 };
 

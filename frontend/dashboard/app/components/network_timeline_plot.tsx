@@ -2,6 +2,7 @@
 
 import { Slider } from "@/app/components/slider";
 import { formatMillisToHumanReadable } from "@/app/utils/time_utils";
+import { PlotTooltipShell } from "@/app/components/plot_tooltip";
 import { ResponsiveHeatMapCanvas } from "@nivo/heatmap";
 import { useTheme } from "next-themes";
 import React, { useEffect, useMemo, useState } from "react";
@@ -204,14 +205,14 @@ const NetworkTimelinePlot: React.FC<Props> = ({ data }) => {
             if (cell.value === null) return null;
             const rangeLabel = (cell.data as any).rangeLabel as string;
             return (
-              <div className="bg-background text-foreground border shadow-md flex flex-col px-3 py-2 text-xs rounded-md mt-4 ml-4">
+              <PlotTooltipShell>
                 <p className="font-semibold">{cell.serieId}</p>
                 <p className="mt-1">{rangeLabel}</p>
                 <p className="mt-0.5">
                   {cell.value !== null ? Number(cell.value).toFixed(2) : "0"}{" "}
                   avg. requests/session
                 </p>
-              </div>
+              </PlotTooltipShell>
             );
           }}
           legends={[]}

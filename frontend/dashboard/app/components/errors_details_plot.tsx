@@ -13,6 +13,7 @@ import {
   getPlotTimeGroupForRange,
   getPlotTimeGroupNivoConfig,
 } from "../utils/time_utils";
+import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
 import { SkeletonPlot } from "./skeleton";
 
 const demoDataDate = DateTime.now();
@@ -182,7 +183,7 @@ const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
           enableSlices="x"
           sliceTooltip={({ slice }) => {
             return (
-              <div className="bg-background text-foreground border shadow-md flex flex-col p-2 text-xs rounded-md">
+              <PlotTooltipShell>
                 <p className="p-2">
                   Date:{" "}
                   {formatPlotTooltipDate(
@@ -195,10 +196,7 @@ const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
                     className="flex flex-row items-center p-2"
                     key={point.id}
                   >
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: point.serieColor }}
-                    />
+                    <PlotTooltipSwatch color={point.serieColor} />
                     <div className="px-2" />
                     <p>{point.serieId.toString()} - </p>
                     <div className="px-2" />
@@ -210,7 +208,7 @@ const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
                     </p>
                   </div>
                 ))}
-              </div>
+              </PlotTooltipShell>
             );
           }}
         />
