@@ -3,8 +3,52 @@
 import { Camera, ChevronDown } from "lucide-react";
 import { formatToCamelCase } from "../utils/string_utils";
 import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
-import Pill from "./pill";
+import Pill, { PillType } from "./pill";
 import SessionTimelineEventDetails from "./session_timeline_event_details";
+
+// Maps an event type with a fixed label/colour to its pill type. Errors depend
+// on severity too, so they're resolved in pillTypeForEvent below rather than
+// here.
+const eventPillTypes: Record<string, PillType> = {
+  anr: PillType.SessionEventAnr,
+  bug_report: PillType.SessionEventBugReport,
+  gesture_click: PillType.SessionEventGestureClick,
+  gesture_long_click: PillType.SessionEventGestureLongClick,
+  gesture_scroll: PillType.SessionEventGestureScroll,
+  http: PillType.SessionEventHttp,
+  lifecycle_activity: PillType.SessionEventLifecycleActivity,
+  lifecycle_fragment: PillType.SessionEventLifecycleFragment,
+  lifecycle_view_controller: PillType.SessionEventLifecycleViewController,
+  lifecycle_swift_ui: PillType.SessionEventLifecycleSwiftUI,
+  lifecycle_app: PillType.SessionEventLifecycleApp,
+  app_exit: PillType.SessionEventAppExit,
+  navigation: PillType.SessionEventNavigation,
+  screen_view: PillType.SessionEventScreenView,
+  cold_launch: PillType.SessionEventColdLaunch,
+  warm_launch: PillType.SessionEventWarmLaunch,
+  hot_launch: PillType.SessionEventHotLaunch,
+  low_memory: PillType.SessionEventLowMemory,
+  trim_memory: PillType.SessionEventTrimMemory,
+  trace: PillType.SessionEventTrace,
+  custom: PillType.SessionEventCustom,
+  string: PillType.SessionEventLog,
+};
+
+function pillTypeForEvent(eventType: string, eventDetails: any): PillType {
+  if (eventType === "error") {
+    if (eventDetails.severity === "unhandled") {
+      return PillType.SessionEventUnhandledError;
+    }
+    if (eventDetails.severity === "handled") {
+      return PillType.SessionEventHandledError;
+    }
+    if (eventDetails.severity === "fatal") {
+      return PillType.SessionEventFatalError;
+    }
+    return PillType.SessionEventError;
+  }
+  return eventPillTypes[eventType] ?? PillType.SessionEventDefault;
+}
 
 type SessionTimelineEventCellProps = {
   teamId: string;
@@ -29,72 +73,6 @@ export default function SessionTimelineEventCell({
   expanded,
   onToggle,
 }: SessionTimelineEventCellProps) {
-  function getPillColorClasses(): string {
-    // Errors get coloured by severity so the timeline visually mirrors the
-    // errors-list badges: red = fatal, amber = unhandled, yellow = handled.
-    // ANRs and bug reports stay red.
-    if (eventType === "error") {
-      if (eventDetails.severity === "unhandled") {
-        return "border-amber-400 rounded-sm text-amber-700 bg-amber-100 dark:border-amber-400 dark:text-amber-400 dark:bg-amber-950/40";
-      }
-      if (eventDetails.severity === "handled") {
-        return "border-yellow-400 rounded-sm text-yellow-700 bg-yellow-100 dark:border-yellow-400 dark:text-yellow-400 dark:bg-yellow-950/40";
-      }
-      return "border-red-400 rounded-sm text-red-700 bg-red-100 dark:border-red-400 dark:text-red-400 dark:bg-red-950/40";
-    }
-    if (eventType === "anr" || eventType === "bug_report") {
-      return "border-red-400 rounded-sm text-red-700 bg-red-100 dark:border-red-400 dark:text-red-400 dark:bg-red-950/40";
-    }
-    if (eventType.includes("gesture")) {
-      return "border-emerald-400 rounded-sm text-emerald-700 bg-emerald-100 dark:border-emerald-400 dark:text-emerald-400 dark:bg-emerald-950/40";
-    }
-    if (eventType === "navigation" || eventType === "screen_view") {
-      return "border-fuchsia-400 rounded-sm text-fuchsia-700 bg-fuchsia-100 dark:border-fuchsia-400 dark:text-fuchsia-400 dark:bg-fuchsia-950/40";
-    }
-    if (eventType === "http") {
-      return "border-cyan-400 rounded-sm text-cyan-700 bg-cyan-100 dark:border-cyan-400 dark:text-cyan-400 dark:bg-cyan-950/40";
-    }
-    if (eventType === "trace") {
-      return "border-pink-400 rounded-sm text-pink-700 bg-pink-100 dark:border-pink-400 dark:text-pink-400 dark:bg-pink-950/40";
-    }
-    if (eventType === "custom") {
-      return "border-purple-400 rounded-sm text-purple-700 bg-purple-100 dark:border-purple-400 dark:text-purple-400 dark:bg-purple-950/40";
-    }
-    return "border-indigo-400 rounded-sm text-indigo-700 bg-indigo-100 dark:border-indigo-400 dark:text-indigo-400 dark:bg-indigo-950/40";
-  }
-
-  function getPillLabel(): string {
-    if (eventType === "error") {
-      if (eventDetails.severity === "fatal") return "Fatal Error";
-      if (eventDetails.severity === "unhandled") return "Unhandled Error";
-      if (eventDetails.severity === "handled") return "Handled Error";
-      return "Error";
-    }
-    if (eventType === "anr") return "ANR";
-    if (eventType === "bug_report") return "Bug Report";
-    if (eventType === "gesture_click") return "Click";
-    if (eventType === "gesture_long_click") return "Long Click";
-    if (eventType === "gesture_scroll") return "Scroll";
-    if (eventType === "http") return "HTTP";
-    if (eventType === "lifecycle_activity") return "Activity";
-    if (eventType === "lifecycle_fragment") return "Fragment";
-    if (eventType === "lifecycle_view_controller") return "View Controller";
-    if (eventType === "lifecycle_swift_ui") return "SwiftUI";
-    if (eventType === "lifecycle_app") return "App";
-    if (eventType === "app_exit") return "App Exit";
-    if (eventType === "navigation") return "Navigation";
-    if (eventType === "screen_view") return "Screen View";
-    if (eventType === "cold_launch") return "Cold Launch";
-    if (eventType === "warm_launch") return "Warm Launch";
-    if (eventType === "hot_launch") return "Hot Launch";
-    if (eventType === "low_memory") return "Low Memory";
-    if (eventType === "trim_memory") return "Trim Memory";
-    if (eventType === "trace") return "Trace";
-    if (eventType === "custom") return "Custom";
-    if (eventType === "string") return "Log";
-    return eventType;
-  }
-
   function getTitle(): string {
     if (eventType === "error" || eventType === "anr") {
       return `${eventDetails.type}${eventDetails.message ? `: ${eventDetails.message}` : ""}`;
@@ -176,6 +154,7 @@ export default function SessionTimelineEventCell({
 
   const title = getTitle();
   const snapshot = hasSnapshot();
+  const pillType = pillTypeForEvent(eventType, eventDetails);
 
   return (
     <div className="border-b border-border">
@@ -185,8 +164,8 @@ export default function SessionTimelineEventCell({
         className="w-full text-left px-3 py-4 font-display outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-ring/50 focus-visible:ring-[2px] focus-visible:ring-inset"
       >
         <div className="flex flex-row items-center gap-3">
-          <Pill className={`${getPillColorClasses()} shrink-0 w-28`}>
-            {getPillLabel()}
+          <Pill type={pillType} className="shrink-0 w-28">
+            {pillType === PillType.SessionEventDefault ? eventType : null}
           </Pill>
           {title && (
             <p className="text-sm line-clamp-2 grow min-w-0 break-words">

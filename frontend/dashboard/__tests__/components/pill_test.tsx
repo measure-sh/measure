@@ -70,6 +70,78 @@ describe("Pill", () => {
     });
   });
 
+  describe("session event pills (per-event types)", () => {
+    // Exhaustive over every SessionEvent* type that carries a default label:
+    // label, colour-family tint, and the rounded-sm shape that distinguishes
+    // these from the pill-shaped filter/status chips.
+    const sessionCases: Array<[PillType, string, RegExp]> = [
+      [PillType.SessionEventFatalError, "Fatal Error", /border-red-400/],
+      [
+        PillType.SessionEventUnhandledError,
+        "Unhandled Error",
+        /border-amber-400/,
+      ],
+      [PillType.SessionEventHandledError, "Handled Error", /border-yellow-400/],
+      [PillType.SessionEventError, "Error", /border-red-400/],
+      [PillType.SessionEventAnr, "ANR", /border-red-400/],
+      [PillType.SessionEventBugReport, "Bug Report", /border-red-400/],
+      [PillType.SessionEventGestureClick, "Click", /border-emerald-400/],
+      [
+        PillType.SessionEventGestureLongClick,
+        "Long Click",
+        /border-emerald-400/,
+      ],
+      [PillType.SessionEventGestureScroll, "Scroll", /border-emerald-400/],
+      [PillType.SessionEventHttp, "HTTP", /border-cyan-400/],
+      [PillType.SessionEventLifecycleActivity, "Activity", /border-indigo-400/],
+      [PillType.SessionEventLifecycleFragment, "Fragment", /border-indigo-400/],
+      [
+        PillType.SessionEventLifecycleViewController,
+        "View Controller",
+        /border-indigo-400/,
+      ],
+      [PillType.SessionEventLifecycleSwiftUI, "SwiftUI", /border-indigo-400/],
+      [PillType.SessionEventLifecycleApp, "App", /border-indigo-400/],
+      [PillType.SessionEventAppExit, "App Exit", /border-indigo-400/],
+      [PillType.SessionEventNavigation, "Navigation", /border-fuchsia-400/],
+      [PillType.SessionEventScreenView, "Screen View", /border-fuchsia-400/],
+      [PillType.SessionEventColdLaunch, "Cold Launch", /border-indigo-400/],
+      [PillType.SessionEventWarmLaunch, "Warm Launch", /border-indigo-400/],
+      [PillType.SessionEventHotLaunch, "Hot Launch", /border-indigo-400/],
+      [PillType.SessionEventLowMemory, "Low Memory", /border-indigo-400/],
+      [PillType.SessionEventTrimMemory, "Trim Memory", /border-indigo-400/],
+      [PillType.SessionEventTrace, "Trace", /border-pink-400/],
+      [PillType.SessionEventCustom, "Custom", /border-purple-400/],
+      [PillType.SessionEventLog, "Log", /border-indigo-400/],
+    ];
+
+    it.each(sessionCases)(
+      "renders %s with its default label and tint",
+      (type, label, tintPattern) => {
+        render(<Pill type={type} />);
+        const badge = findBadge(label);
+        expect(badge).not.toBeNull();
+        expect(badge!.className).toMatch(tintPattern);
+        expect(badge!.className).toMatch(/rounded-sm/);
+      },
+    );
+
+    it("renders SessionEventDefault from children with indigo tint", () => {
+      render(<Pill type={PillType.SessionEventDefault}>weird_event</Pill>);
+      const badge = findBadge("weird_event");
+      expect(badge).not.toBeNull();
+      expect(badge!.className).toMatch(/border-indigo-400/);
+      expect(badge!.className).toMatch(/rounded-sm/);
+    });
+
+    it("renders null for SessionEventDefault with no children", () => {
+      const { container } = render(
+        <Pill type={PillType.SessionEventDefault} />,
+      );
+      expect(container.firstChild).toBeNull();
+    });
+  });
+
   describe("children override default label", () => {
     it("uses children over the typed default label", () => {
       render(<Pill type={PillType.Error}>Custom</Pill>);
