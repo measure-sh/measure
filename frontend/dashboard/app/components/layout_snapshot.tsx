@@ -103,11 +103,7 @@ function LayoutElementNode({
               style={bgStyle}
             />
           </TooltipTrigger>
-          <TooltipContent
-            side="bottom"
-            align="start"
-            className="font-display max-w-96 text-sm text-white fill-black bg-black pointer-events-none"
-          >
+          <TooltipContent side="bottom" align="start">
             {element.label}
           </TooltipContent>
         </Tooltip>
