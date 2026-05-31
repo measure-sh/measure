@@ -51,6 +51,14 @@ const nextConfig = {
         destination: "/:teamId/errors/:rest*",
         permanent: true,
       },
+      // The REST API reference is no longer published on the docs site. Forward
+      // stale links to the old /docs/api pages (overview, sdk, dashboard) to the
+      // docs home.
+      {
+        source: "/docs/api/:path*",
+        destination: "/docs",
+        permanent: true,
+      },
     ];
   },
   async headers() {

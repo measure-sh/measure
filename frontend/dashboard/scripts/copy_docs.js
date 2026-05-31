@@ -469,13 +469,18 @@ if (require.main === module) {
 
   const effectiveDocsDir = contentDest;
 
-  // CONTRIBUTING.md stays in docs/ for the open-source repo (GitHub surfaces
-  // it from there) but is not part of the published docs site. Drop it from
-  // the build input so it produces no page, nav entry, search hit, or
+  // These paths stay in docs/ for the open-source repo (GitHub surfaces them
+  // from there) but are not part of the published docs site. Drop them from
+  // the build input so they produce no page, nav entry, search hit, or
   // sitemap URL — every downstream step reads from content/docs/.
-  const excludedDoc = path.join(effectiveDocsDir, "CONTRIBUTING.md");
-  if (fs.existsSync(excludedDoc)) {
-    fs.rmSync(excludedDoc);
+  //   - CONTRIBUTING.md — contributor guide, GitHub-only
+  //   - api — REST API reference, kept in-repo but excluded from the site
+  const excludedPaths = ["CONTRIBUTING.md", "api"];
+  for (const rel of excludedPaths) {
+    const target = path.join(effectiveDocsDir, rel);
+    if (fs.existsSync(target)) {
+      fs.rmSync(target, { recursive: true });
+    }
   }
 
   // Copy assets to public/docs/assets/
