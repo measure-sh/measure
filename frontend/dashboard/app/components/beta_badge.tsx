@@ -1,9 +1,6 @@
 import { Badge } from "@/app/components/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/app/components/tooltip";
+import SimpleTooltip from "@/app/components/simple_tooltip";
+import { cn } from "@/app/utils/shadcn_utils";
 import { ReactNode } from "react";
 
 interface BetaBadgeProps {
@@ -11,32 +8,16 @@ interface BetaBadgeProps {
 }
 
 export default function BetaBadge({ popup }: BetaBadgeProps) {
-  if (popup) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <sup>
-            <Badge variant="outline" className="select-none cursor-default">
-              Beta
-            </Badge>
-          </sup>
-        </TooltipTrigger>
-        <TooltipContent
-          side="bottom"
-          align="start"
-          className="font-display max-w-80 text-sm"
-        >
-          <div className="p-2">{popup}</div>
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-
   return (
-    <sup>
-      <Badge variant="outline" className="select-none">
-        Beta
-      </Badge>
-    </sup>
+    <SimpleTooltip content={popup ? <div className="p-2">{popup}</div> : null}>
+      <sup>
+        <Badge
+          variant="outline"
+          className={cn("select-none", popup && "cursor-default")}
+        >
+          Beta
+        </Badge>
+      </sup>
+    </SimpleTooltip>
   );
 }

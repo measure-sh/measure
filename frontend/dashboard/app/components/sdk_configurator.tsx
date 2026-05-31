@@ -12,12 +12,8 @@ import DropdownSelect, {
   DropdownSelectType,
 } from "@/app/components/dropdown_select";
 import SdkConfigNumericInput from "@/app/components/sdk_config_numeric_input";
+import SimpleTooltip from "@/app/components/simple_tooltip";
 import { Switch } from "@/app/components/switch";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/app/components/tooltip";
 import { useSaveSdkConfigMutation } from "@/app/query/hooks";
 import { track } from "@/app/utils/analytics/track";
 import { toastNegative, toastPositive } from "@/app/utils/use_toast";
@@ -959,20 +955,17 @@ export default function SdkConfigurator({
                 <div className="py-8">
                   <div className="flex items-center gap-2 mb-4">
                     <p className="font-display">Disable HTTP event for URLs</p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 -mt-0.5" />
-                      </TooltipTrigger>
-                      <TooltipContent
-                        side="bottom"
-                        align="start"
-                        className="font-display max-w-96 text-sm"
-                      >
-                        HTTP events will not be collected for URLs matching
-                        these patterns. Supports exact match and wildcards (*).
-                        Enter one pattern per line.
-                      </TooltipContent>
-                    </Tooltip>
+                    <SimpleTooltip
+                      content={
+                        <>
+                          HTTP events will not be collected for URLs matching
+                          these patterns. Supports exact match and wildcards
+                          (*). Enter one pattern per line.
+                        </>
+                      }
+                    >
+                      <Info className="h-4 w-4 -mt-0.5" />
+                    </SimpleTooltip>
                   </div>
                   <Textarea
                     data-testid="http-disable-urls-textarea"
@@ -995,20 +988,17 @@ export default function SdkConfigurator({
                 <div className="py-2">
                   <div className="flex items-center gap-2 mb-4">
                     <p className="font-display">Track request for URLs</p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 -mt-0.5" />
-                      </TooltipTrigger>
-                      <TooltipContent
-                        side="bottom"
-                        align="start"
-                        className="font-display max-w-96 text-sm"
-                      >
-                        Full HTTP request (body and headers) will be captured
-                        for URLs matching these patterns. Supports exact match
-                        and wildcards (*). Enter one pattern per line.
-                      </TooltipContent>
-                    </Tooltip>
+                    <SimpleTooltip
+                      content={
+                        <>
+                          Full HTTP request (body and headers) will be captured
+                          for URLs matching these patterns. Supports exact match
+                          and wildcards (*). Enter one pattern per line.
+                        </>
+                      }
+                    >
+                      <Info className="h-4 w-4 -mt-0.5" />
+                    </SimpleTooltip>
                   </div>
                   <Textarea
                     data-testid="http-track-request-urls-textarea"
@@ -1031,20 +1021,17 @@ export default function SdkConfigurator({
                 <div className="py-2">
                   <div className="flex items-center gap-2 mb-4">
                     <p className="font-display">Track response for URLs</p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 -mt-0.5" />
-                      </TooltipTrigger>
-                      <TooltipContent
-                        side="bottom"
-                        align="start"
-                        className="font-display max-w-96 text-sm"
-                      >
-                        Full HTTP response (body and headers) will be captured
-                        for URLs matching these patterns. Supports exact match
-                        and wildcards (*). Enter one pattern per line.
-                      </TooltipContent>
-                    </Tooltip>
+                    <SimpleTooltip
+                      content={
+                        <>
+                          Full HTTP response (body and headers) will be captured
+                          for URLs matching these patterns. Supports exact match
+                          and wildcards (*). Enter one pattern per line.
+                        </>
+                      }
+                    >
+                      <Info className="h-4 w-4 -mt-0.5" />
+                    </SimpleTooltip>
                   </div>
                   <Textarea
                     data-testid="http-track-response-urls-textarea"
@@ -1067,21 +1054,18 @@ export default function SdkConfigurator({
                 <div className="py-2">
                   <div className="flex items-center gap-2 mb-4">
                     <p className="font-display">Blocked headers</p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 -mt-0.5" />
-                      </TooltipTrigger>
-                      <TooltipContent
-                        side="bottom"
-                        align="start"
-                        className="font-display max-w-96 text-sm"
-                      >
-                        Headers that will never be captured in HTTP requests or
-                        responses. Note that common sensitive headers like
-                        Authorization, Cookies, etc are never collected by
-                        default. Enter one header name per line.
-                      </TooltipContent>
-                    </Tooltip>
+                    <SimpleTooltip
+                      content={
+                        <>
+                          Headers that will never be captured in HTTP requests
+                          or responses. Note that common sensitive headers like
+                          Authorization, Cookies, etc are never collected by
+                          default. Enter one header name per line.
+                        </>
+                      }
+                    >
+                      <Info className="h-4 w-4 -mt-0.5" />
+                    </SimpleTooltip>
                   </div>
                   <Textarea
                     data-testid="http-blocked-headers-textarea"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
+import SimpleTooltip from "./simple_tooltip";
 
 export type LayoutElementType =
   | "container"
@@ -96,17 +96,12 @@ function LayoutElementNode({
   return (
     <>
       <div className="absolute" style={positionStyle}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              className={`absolute inset-0 border box-border ${borderClass}`}
-              style={bgStyle}
-            />
-          </TooltipTrigger>
-          <TooltipContent side="bottom" align="start">
-            {element.label}
-          </TooltipContent>
-        </Tooltip>
+        <SimpleTooltip content={element.label}>
+          <div
+            className={`absolute inset-0 border box-border ${borderClass}`}
+            style={bgStyle}
+          />
+        </SimpleTooltip>
       </div>
 
       {/* Children - on top, will intercept pointer events */}

@@ -3,7 +3,7 @@ import { emptyErrorGroupDetails } from "../api/api_calls";
 import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
 import { toastPositive } from "../utils/use_toast";
 import { Button } from "./button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
+import SimpleTooltip from "./simple_tooltip";
 
 type ErrorEvent = (typeof emptyErrorGroupDetails)["results"][number];
 
@@ -72,26 +72,17 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({
     "Please help me debug this.";
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="outline"
-          onClick={() => {
-            navigator.clipboard.writeText(llmContext);
-            toastPositive("AI context copied to clipboard");
-          }}
-        >
-          Copy AI Context
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent
-        side="bottom"
-        align="start"
-        className="font-display text-sm text-white fill-bg-neutral-800 bg-neutral-800"
+    <SimpleTooltip content="Copy full error context for easy pasting in your favorite LLM">
+      <Button
+        variant="outline"
+        onClick={() => {
+          navigator.clipboard.writeText(llmContext);
+          toastPositive("AI context copied to clipboard");
+        }}
       >
-        Copy full error context for easy pasting in your favorite LLM
-      </TooltipContent>
-    </Tooltip>
+        Copy AI Context
+      </Button>
+    </SimpleTooltip>
   );
 };
 

@@ -6,6 +6,7 @@ import { ResponsiveBar } from "@nivo/bar";
 import React from "react";
 import { numberToKMB } from "../utils/number_utils";
 import { chartTheme, useChartColors } from "../utils/shared_styles";
+import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
 import { SkeletonPlot } from "./skeleton";
 
 const demoDistribution: any = {
@@ -175,12 +176,9 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
             enableGridY={false}
             tooltip={({ id, value, color }) => {
               return (
-                <div className="bg-background text-foreground border shadow-md flex flex-col p-2 text-xs rounded-md">
+                <PlotTooltipShell>
                   <div className="flex flex-row items-center p-2">
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: color }}
-                    />
+                    <PlotTooltipSwatch color={color} />
                     <div className="px-2" />
                     <p>{id} - </p>
                     <div className="px-2" />
@@ -189,7 +187,7 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
                       {value > 1 ? "instances" : "instance"}
                     </p>
                   </div>
-                </div>
+                </PlotTooltipShell>
               );
             }}
           />

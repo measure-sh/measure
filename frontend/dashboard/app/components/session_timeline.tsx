@@ -15,6 +15,7 @@ import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
 
 import { useTheme } from "next-themes";
 import Pill from "./pill";
+import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
 import SessionTimelineEventCell from "./session_timeline_event_cell";
 
 const demoTimelineLastEventTime = DateTime.now().toUTC();
@@ -875,7 +876,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                   enableGridX={false}
                   enableGridY={false}
                   tooltip={({ point }) => (
-                    <div className="bg-background text-foreground border shadow-md flex flex-col p-2 text-xs rounded-md">
+                    <PlotTooltipShell>
                       <p>
                         Time:{" "}
                         {formatChartFormatTimestampToHumanReadable(
@@ -883,13 +884,10 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                         )}
                       </p>
                       <div className="flex flex-row items-center gap-2 mt-2">
-                        <div
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: point.serieColor }}
-                        />
+                        <PlotTooltipSwatch color={point.serieColor} />
                         <p>Cpu Usage: {point.data.yFormatted.toString()}%</p>
                       </div>
-                    </div>
+                    </PlotTooltipShell>
                   )}
                 />
                 {renderIndicator()}
@@ -938,7 +936,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                     const allMemoryData =
                       memoryDataLookup.get(point.data.xFormatted) || {};
                     return (
-                      <div className="bg-background text-foreground border shadow-md flex flex-col p-4 text-xs rounded-md">
+                      <PlotTooltipShell className="py-4">
                         <p>
                           Time:{" "}
                           {formatChartFormatTimestampToHumanReadable(
@@ -952,13 +950,11 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                               key={seriesName}
                               className="flex flex-row items-center gap-2 mt-2"
                             >
-                              <div
-                                className="w-2 h-2 rounded-full"
-                                style={{
-                                  backgroundColor: memoryData.find(
-                                    (it) => it.id === seriesName,
-                                  )!.serieColor,
-                                }}
+                              <PlotTooltipSwatch
+                                color={
+                                  memoryData.find((it) => it.id === seriesName)!
+                                    .serieColor
+                                }
                               />
                               <p>
                                 {seriesName}: {value as string} MB
@@ -966,7 +962,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                             </div>
                           ),
                         )}
-                      </div>
+                      </PlotTooltipShell>
                     );
                   }}
                 />
@@ -1020,7 +1016,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                     const allMemoryData =
                       memoryAbsDataLookup.get(point.data.xFormatted) || {};
                     return (
-                      <div className="bg-background text-foreground border shadow-md flex flex-col p-4 text-xs rounded-md">
+                      <PlotTooltipShell className="py-4">
                         <p>
                           Time:{" "}
                           {formatChartFormatTimestampToHumanReadable(
@@ -1034,13 +1030,12 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                               key={seriesName}
                               className="flex flex-row items-center gap-2 mt-2"
                             >
-                              <div
-                                className="w-2 h-2 rounded-full"
-                                style={{
-                                  backgroundColor: memoryAbsData.find(
+                              <PlotTooltipSwatch
+                                color={
+                                  memoryAbsData.find(
                                     (it) => it.id === seriesName,
-                                  )!.serieColor,
-                                }}
+                                  )!.serieColor
+                                }
                               />
                               <p>
                                 {seriesName}: {value as string} MB
@@ -1048,7 +1043,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                             </div>
                           ),
                         )}
-                      </div>
+                      </PlotTooltipShell>
                     );
                   }}
                 />

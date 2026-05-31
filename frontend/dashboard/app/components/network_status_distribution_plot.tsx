@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import React, { useMemo } from "react";
 import { numberToKMB } from "../utils/number_utils";
 import { chartTheme, useChartColor } from "../utils/shared_styles";
+import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
 import {
   formatPlotTooltipDate,
   getPlotTimeGroupNivoConfig,
@@ -153,7 +154,7 @@ const NetworkStatusDistributionPlot: React.FC<
             const pct = (count: number) =>
               total > 0 ? ((count / total) * 100).toFixed(1) : "0.0";
             return (
-              <div className="bg-background text-foreground border shadow-md flex flex-col p-2 text-xs rounded-md">
+              <PlotTooltipShell>
                 <p className="p-2 font-semibold">
                   {formatPlotTooltipDate(
                     slice.points[0].data.xFormatted.toString(),
@@ -173,10 +174,7 @@ const NetworkStatusDistributionPlot: React.FC<
                         className="flex flex-row items-center px-2 py-0.5"
                         key={point.id}
                       >
-                        <div
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: point.serieColor }}
-                        />
+                        <PlotTooltipSwatch color={point.serieColor} />
                         <div className="px-1" />
                         <p>
                           {point.serieId}: {count.toLocaleString()} (
@@ -185,7 +183,7 @@ const NetworkStatusDistributionPlot: React.FC<
                       </div>
                     );
                   })}
-              </div>
+              </PlotTooltipShell>
             );
           }}
           legends={[]}

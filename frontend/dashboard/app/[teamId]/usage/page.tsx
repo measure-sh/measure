@@ -32,6 +32,7 @@ import {
   underlineLinkStyle,
   useChartColors,
 } from "@/app/utils/shared_styles";
+import { PlotTooltipShell } from "@/app/components/plot_tooltip";
 import { ResponsivePie } from "@nivo/pie";
 
 import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialog";
@@ -386,7 +387,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
               arcLinkLabelsColor={{ from: "color" }}
               tooltip={({ datum: { id, label, value, color } }) => {
                 return (
-                  <div className="bg-background text-foreground border shadow-md flex flex-col py-2 px-4 font-display rounded-md">
+                  <PlotTooltipShell>
                     <p
                       className="text-sm font-semibold"
                       style={{
@@ -408,7 +409,7 @@ export default function Usage({ params }: { params: { teamId: string } }) {
                       Spans:{" "}
                       {selectedMonthUsage?.find((i) => i.id === id)!.spans}
                     </p>
-                  </div>
+                  </PlotTooltipShell>
                 );
               }}
               legends={[]}
