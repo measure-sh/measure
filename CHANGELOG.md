@@ -108,6 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Standardise and consolidate tooltips by @anupcowkur in #3772
 - (**frontend**): Update layout snapshot tooltip style by @anupcowkur in #3766
 - (**frontend**): Show code, num_code, user_def_attribute in error details if present by @anupcowkur in #3745
 - (**frontend**): Use yellow tint for handled error pills by @anupcowkur in #3735
