@@ -10,7 +10,7 @@ description: "Integrate the Measure SDK on Android, iOS or Flutter to track your
     * [Android](#android)
     * [iOS](#ios)
     * [Flutter](#flutter)
-    * [React Native (Coming Soon)](#react-native)
+    * [React Native (Coming Soon)](#react-native-coming-soon)
 * [3. Verify Installation](#3-verify-installation)
 * [4. Review Configuration Options](#4-review-configuration-options)
 * [Troubleshoot](#troubleshoot)
@@ -29,7 +29,7 @@ in later steps.
 * [Android](#android)
 * [iOS](#ios)
 * [Flutter](#flutter)
-* [React Native (Coming Soon)](#react-native)
+* [React Native (Coming Soon)](#react-native-coming-soon)
 
 ## Android
 
