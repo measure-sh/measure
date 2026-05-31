@@ -127,6 +127,8 @@ describe("SessionTimelineEventCell", () => {
         { class_name: "ContentView", type: "onAppear" },
         "SwiftUI",
       ],
+      ["string", { string: "a log line" }, "Log"],
+      ["unknown_event_type", {}, "unknown_event_type"],
     ])("shows %s pill label", (eventType, eventDetails, expectedLabel) => {
       renderCell({ eventType, eventDetails });
       expect(screen.getByText(expectedLabel)).toBeInTheDocument();
@@ -134,24 +136,65 @@ describe("SessionTimelineEventCell", () => {
   });
 
   describe("Pill colour", () => {
-    // The pill carries the colour now (not a dot). We assert one Tailwind
-    // class per bucket as a smoke test that the colour helper still maps.
+    // The pill carries the colour now (not a dot). Exhaustive over every event
+    // type so the cell's event -> pill-type mapping stays in sync with the
+    // colour families defined in pill.tsx.
     it.each([
       ["error", { type: "NPE", severity: "fatal" }, "bg-red-100"],
       ["error", { type: "NPE", severity: "unhandled" }, "bg-amber-100"],
       ["error", { type: "NPE", severity: "handled" }, "bg-yellow-100"],
+      ["error", { type: "NPE" }, "bg-red-100"],
       ["anr", { type: "ANR" }, "bg-red-100"],
       ["bug_report", { description: "Bug" }, "bg-red-100"],
       ["gesture_click", { target: "Button" }, "bg-emerald-100"],
-      ["navigation", { to: "/home" }, "bg-fuchsia-100"],
+      ["gesture_long_click", { target: "Button" }, "bg-emerald-100"],
+      ["gesture_scroll", { target: "List" }, "bg-emerald-100"],
       ["http", { method: "get", status_code: 200, url: "/api" }, "bg-cyan-100"],
+      [
+        "lifecycle_activity",
+        { class_name: "MainActivity", type: "created" },
+        "bg-indigo-100",
+      ],
+      [
+        "lifecycle_fragment",
+        { class_name: "HomeFragment", type: "resumed" },
+        "bg-indigo-100",
+      ],
+      [
+        "lifecycle_view_controller",
+        { class_name: "HomeVC", type: "viewDidLoad" },
+        "bg-indigo-100",
+      ],
+      [
+        "lifecycle_swift_ui",
+        { class_name: "ContentView", type: "onAppear" },
+        "bg-indigo-100",
+      ],
+      ["lifecycle_app", { type: "foreground" }, "bg-indigo-100"],
+      ["app_exit", { reason: "USER_REQUEST" }, "bg-indigo-100"],
+      ["navigation", { to: "/home" }, "bg-fuchsia-100"],
+      ["screen_view", { name: "Home" }, "bg-fuchsia-100"],
+      ["cold_launch", {}, "bg-indigo-100"],
+      ["warm_launch", {}, "bg-indigo-100"],
+      ["hot_launch", {}, "bg-indigo-100"],
+      ["low_memory", {}, "bg-indigo-100"],
+      ["trim_memory", {}, "bg-indigo-100"],
       ["trace", { trace_name: "checkout" }, "bg-pink-100"],
       ["custom", { name: "event" }, "bg-purple-100"],
-      ["cold_launch", {}, "bg-indigo-100"],
+      ["string", { string: "a log line" }, "bg-indigo-100"],
+      ["unknown_event_type", {}, "bg-indigo-100"],
     ])("applies %s pill bg", (eventType, eventDetails, expectedClass) => {
       const { container } = renderCell({ eventType, eventDetails });
       const pill = container.querySelector(`.${expectedClass}`);
       expect(pill).not.toBeNull();
+    });
+
+    it("renders the event pill square-ish (rounded-sm)", () => {
+      const { container } = renderCell({
+        eventType: "custom",
+        eventDetails: { name: "event" },
+      });
+      expect(container.querySelector(".rounded-sm")).not.toBeNull();
     });
   });
 

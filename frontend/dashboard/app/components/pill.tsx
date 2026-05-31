@@ -24,6 +24,36 @@ export enum PillType {
   StatusUnset = "status-unset",
   StatusOkay = "status-okay",
   StatusError = "status-error",
+  // Session timeline events — one type per event, coloured by family and
+  // (for errors) severity. Square-ish (rounded-sm) to set them apart from the
+  // pill-shaped filter/status chips above.
+  SessionEventFatalError = "session_event_fatal_error",
+  SessionEventUnhandledError = "session_event_unhandled_error",
+  SessionEventHandledError = "session_event_handled_error",
+  SessionEventError = "session_event_error",
+  SessionEventAnr = "session_event_anr",
+  SessionEventBugReport = "session_event_bug_report",
+  SessionEventGestureClick = "session_event_gesture_click",
+  SessionEventGestureLongClick = "session_event_gesture_long_click",
+  SessionEventGestureScroll = "session_event_gesture_scroll",
+  SessionEventHttp = "session_event_http",
+  SessionEventLifecycleActivity = "session_event_lifecycle_activity",
+  SessionEventLifecycleFragment = "session_event_lifecycle_fragment",
+  SessionEventLifecycleViewController = "session_event_lifecycle_view_controller",
+  SessionEventLifecycleSwiftUI = "session_event_lifecycle_swift_ui",
+  SessionEventLifecycleApp = "session_event_lifecycle_app",
+  SessionEventAppExit = "session_event_app_exit",
+  SessionEventNavigation = "session_event_navigation",
+  SessionEventScreenView = "session_event_screen_view",
+  SessionEventColdLaunch = "session_event_cold_launch",
+  SessionEventWarmLaunch = "session_event_warm_launch",
+  SessionEventHotLaunch = "session_event_hot_launch",
+  SessionEventLowMemory = "session_event_low_memory",
+  SessionEventTrimMemory = "session_event_trim_memory",
+  SessionEventTrace = "session_event_trace",
+  SessionEventCustom = "session_event_custom",
+  SessionEventLog = "session_event_log",
+  SessionEventDefault = "session_event_default",
 }
 
 // Action button shown on the right half of the pill. "clear" empties the
@@ -47,6 +77,30 @@ interface PillProps {
   action?: PillAction;
   className?: string;
 }
+
+// Session-event tints. Shared by colour family across the per-event types
+// below, and square-ish (rounded-sm) to override the badge's pill shape.
+// Spelled out in full because Tailwind can't see interpolated class names.
+const sessionRed =
+  "rounded-sm border-red-400 text-red-700 bg-red-100 dark:border-red-400 dark:text-red-400 dark:bg-red-950/40";
+const sessionAmber =
+  "rounded-sm border-amber-400 text-amber-700 bg-amber-100 dark:border-amber-400 dark:text-amber-400 dark:bg-amber-950/40";
+const sessionYellow =
+  "rounded-sm border-yellow-400 text-yellow-700 bg-yellow-100 dark:border-yellow-400 dark:text-yellow-400 dark:bg-yellow-950/40";
+const sessionEmerald =
+  "rounded-sm border-emerald-400 text-emerald-700 bg-emerald-100 dark:border-emerald-400 dark:text-emerald-400 dark:bg-emerald-950/40";
+const sessionFuchsia =
+  "rounded-sm border-fuchsia-400 text-fuchsia-700 bg-fuchsia-100 dark:border-fuchsia-400 dark:text-fuchsia-400 dark:bg-fuchsia-950/40";
+const sessionCyan =
+  "rounded-sm border-cyan-400 text-cyan-700 bg-cyan-100 dark:border-cyan-400 dark:text-cyan-400 dark:bg-cyan-950/40";
+const sessionPink =
+  "rounded-sm border-pink-400 text-pink-700 bg-pink-100 dark:border-pink-400 dark:text-pink-400 dark:bg-pink-950/40";
+const sessionPurple =
+  "rounded-sm border-purple-400 text-purple-700 bg-purple-100 dark:border-purple-400 dark:text-purple-400 dark:bg-purple-950/40";
+// Indigo is the catch-all for lifecycle, launches, memory, logs and any
+// otherwise-unmapped event.
+const sessionIndigo =
+  "rounded-sm border-indigo-400 text-indigo-700 bg-indigo-100 dark:border-indigo-400 dark:text-indigo-400 dark:bg-indigo-950/40";
 
 // Typed defaults: each PillType carries its display label (when no children
 // are passed) and its colour tint.
@@ -89,6 +143,80 @@ const pillDefaults: Record<PillType, { label?: string; tint: string }> = {
     label: "Error",
     tint: "border-red-400 text-red-700 bg-red-100 dark:border-red-400 dark:text-red-400 dark:bg-red-950/40",
   },
+  [PillType.SessionEventFatalError]: { label: "Fatal Error", tint: sessionRed },
+  [PillType.SessionEventUnhandledError]: {
+    label: "Unhandled Error",
+    tint: sessionAmber,
+  },
+  [PillType.SessionEventHandledError]: {
+    label: "Handled Error",
+    tint: sessionYellow,
+  },
+  [PillType.SessionEventError]: { label: "Error", tint: sessionRed },
+  [PillType.SessionEventAnr]: { label: "ANR", tint: sessionRed },
+  [PillType.SessionEventBugReport]: { label: "Bug Report", tint: sessionRed },
+  [PillType.SessionEventGestureClick]: { label: "Click", tint: sessionEmerald },
+  [PillType.SessionEventGestureLongClick]: {
+    label: "Long Click",
+    tint: sessionEmerald,
+  },
+  [PillType.SessionEventGestureScroll]: {
+    label: "Scroll",
+    tint: sessionEmerald,
+  },
+  [PillType.SessionEventHttp]: { label: "HTTP", tint: sessionCyan },
+  [PillType.SessionEventLifecycleActivity]: {
+    label: "Activity",
+    tint: sessionIndigo,
+  },
+  [PillType.SessionEventLifecycleFragment]: {
+    label: "Fragment",
+    tint: sessionIndigo,
+  },
+  [PillType.SessionEventLifecycleViewController]: {
+    label: "View Controller",
+    tint: sessionIndigo,
+  },
+  [PillType.SessionEventLifecycleSwiftUI]: {
+    label: "SwiftUI",
+    tint: sessionIndigo,
+  },
+  [PillType.SessionEventLifecycleApp]: { label: "App", tint: sessionIndigo },
+  [PillType.SessionEventAppExit]: { label: "App Exit", tint: sessionIndigo },
+  [PillType.SessionEventNavigation]: {
+    label: "Navigation",
+    tint: sessionFuchsia,
+  },
+  [PillType.SessionEventScreenView]: {
+    label: "Screen View",
+    tint: sessionFuchsia,
+  },
+  [PillType.SessionEventColdLaunch]: {
+    label: "Cold Launch",
+    tint: sessionIndigo,
+  },
+  [PillType.SessionEventWarmLaunch]: {
+    label: "Warm Launch",
+    tint: sessionIndigo,
+  },
+  [PillType.SessionEventHotLaunch]: {
+    label: "Hot Launch",
+    tint: sessionIndigo,
+  },
+  [PillType.SessionEventLowMemory]: {
+    label: "Low Memory",
+    tint: sessionIndigo,
+  },
+  [PillType.SessionEventTrimMemory]: {
+    label: "Trim Memory",
+    tint: sessionIndigo,
+  },
+  [PillType.SessionEventTrace]: { label: "Trace", tint: sessionPink },
+  [PillType.SessionEventCustom]: { label: "Custom", tint: sessionPurple },
+  [PillType.SessionEventLog]: { label: "Log", tint: sessionIndigo },
+  // No label: the cell passes the raw event type as children for unknown
+  // events, mirroring the old `return eventType` fallback.
+  [PillType.SessionEventDefault]: { tint: sessionIndigo },
 };
 
 const tooltipChars = 1000;
