@@ -84,7 +84,7 @@ export enum FilterSource {
   Errors,
 }
 
-export enum SessionsVsErrorsPlotApiStatus {
+export enum AppHealthPlotApiStatus {
   Loading,
   Success,
   Error,
@@ -1756,68 +1756,57 @@ export const fetchFiltersFromServer = async (
   }
 };
 
-export const fetchSessionsVsErrorsPlotFromServer = async (filters: Filters) => {
-  // Fetch all three datasets in parallel
-  const [sessionsRes, crashesRes, anrsRes] = await Promise.all([
-    fetchSessionTimelinesOverviewPlotFromServer(filters),
-    fetchErrorsOverviewPlotFromServer({
-      ...filters,
-      selectedErrorTypes: ["error"],
-    }),
-    fetchErrorsOverviewPlotFromServer({
-      ...filters,
-      selectedErrorTypes: ["anr"],
-    }),
-  ]);
+export const fetchAppHealthPlotFromServer = async (filters: Filters) => {
+  let url = `/api/apps/${filters.app!.id}/health/plots/instances?`;
 
-  // Handle error/no data
-  if (
-    sessionsRes.status !== SessionTimelinesOverviewPlotApiStatus.Success &&
-    sessionsRes.status !== SessionTimelinesOverviewPlotApiStatus.NoData
-  ) {
-    return { status: SessionsVsErrorsPlotApiStatus.Error, data: null };
-  }
-  if (
-    crashesRes.status !== ErrorsOverviewPlotApiStatus.Success &&
-    crashesRes.status !== ErrorsOverviewPlotApiStatus.NoData
-  ) {
-    return { status: SessionsVsErrorsPlotApiStatus.Error, data: null };
-  }
-  if (
-    anrsRes.status !== ErrorsOverviewPlotApiStatus.Success &&
-    anrsRes.status !== ErrorsOverviewPlotApiStatus.NoData
-  ) {
-    return { status: SessionsVsErrorsPlotApiStatus.Error, data: null };
-  }
+  url = await applyGenericFiltersToUrl(url, filters, null, null);
+  url = appendPlotTimeGroupToUrl(url, filters);
 
-  // Helper to flatten and merge all series of a type into a map of date -> count
-  function mergeSeries(seriesArr: any[], valueKey: string = "instances") {
-    const dateMap: Record<string, number> = {};
-    for (const series of seriesArr || []) {
-      for (const point of series.data || []) {
-        const date = point.datetime || point.x;
-        const value = point[valueKey] ?? point.y ?? 0;
-        dateMap[date] = (dateMap[date] || 0) + value;
-      }
+  let data: any;
+  try {
+    const res = await apiClient.fetch(url);
+
+    if (!res.ok) {
+      return { status: AppHealthPlotApiStatus.Error, data: null };
     }
-    return dateMap;
+
+    data = await res.json();
+  } catch {
+    return { status: AppHealthPlotApiStatus.Error, data: null };
   }
 
-  // Merge all series for each type
-  const sessionsMap = mergeSeries(sessionsRes.data || []);
-  const crashesMap = mergeSeries(crashesRes.data || []);
-  const anrsMap = mergeSeries(anrsRes.data || []);
+  if (data === null) {
+    return { status: AppHealthPlotApiStatus.NoData, data: null };
+  }
 
-  // Get all unique dates
+  // The server returns three sparse series keyed by id: "sessions", "crashes"
+  // and "anrs", each with { datetime, instances } points. Collapse each into a
+  // date -> count map.
+  const dateMaps: Record<string, Record<string, number>> = {
+    sessions: {},
+    crashes: {},
+    anrs: {},
+  };
+  for (const series of data || []) {
+    const dateMap = dateMaps[series.id];
+    if (dateMap === undefined) {
+      continue;
+    }
+    for (const point of series.data || []) {
+      dateMap[point.datetime] =
+        (dateMap[point.datetime] || 0) + (point.instances ?? 0);
+    }
+  }
+
+  // Align all three series on the same sorted set of dates, zero-filling gaps.
   const allDates = Array.from(
     new Set([
-      ...Object.keys(sessionsMap),
-      ...Object.keys(crashesMap),
-      ...Object.keys(anrsMap),
+      ...Object.keys(dateMaps.sessions),
+      ...Object.keys(dateMaps.crashes),
+      ...Object.keys(dateMaps.anrs),
     ]),
   ).sort();
 
-  // Build the final series arrays
   function buildSeries(id: string, map: Record<string, number>) {
     return {
       id,
@@ -1830,14 +1819,14 @@ export const fetchSessionsVsErrorsPlotFromServer = async (filters: Filters) => {
   }
 
   const result = [
-    buildSeries("Sessions", sessionsMap),
-    buildSeries("Crashes", crashesMap),
-    buildSeries("ANRs", anrsMap),
+    buildSeries("Sessions", dateMaps.sessions),
+    buildSeries("Crashes", dateMaps.crashes),
+    buildSeries("ANRs", dateMaps.anrs),
   ];
 
   // If all are empty, return NoData
   if (result.every((series) => series.data.every((point) => point.y === 0))) {
-    return { status: SessionsVsErrorsPlotApiStatus.NoData, data: null };
+    return { status: AppHealthPlotApiStatus.NoData, data: null };
   }
 
   // Remove ANRs if all y values are 0
@@ -1849,7 +1838,7 @@ export const fetchSessionsVsErrorsPlotFromServer = async (filters: Filters) => {
   });
 
   return {
-    status: SessionsVsErrorsPlotApiStatus.Success,
+    status: AppHealthPlotApiStatus.Success,
     data: filteredResult,
   };
 };

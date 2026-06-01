@@ -83,7 +83,7 @@ import {
   fetchPendingInvitesFromServer,
   fetchRootSpanNamesFromServer,
   fetchSdkConfigFromServer,
-  fetchSessionsVsErrorsPlotFromServer,
+  fetchAppHealthPlotFromServer,
   fetchSessionTimelineFromServer,
   fetchSessionTimelinesOverviewFromServer,
   fetchSessionTimelinesOverviewPlotFromServer,
@@ -125,7 +125,7 @@ import {
   SdkConfig,
   SdkConfigApiStatus,
   sendTestSlackAlertFromServer,
-  SessionsVsErrorsPlotApiStatus,
+  AppHealthPlotApiStatus,
   SessionTimelineApiStatus,
   SessionTimelinesOverviewApiStatus,
   SessionTimelinesOverviewPlotApiStatus,
@@ -631,41 +631,70 @@ describe("fetchJourneyFromServer", () => {
 });
 
 // ========================================================================
-// fetchSessionsVsErrorsPlotFromServer — composite fetch
+// fetchAppHealthPlotFromServer — single /health/plots/instances fetch
 // ========================================================================
-describe("fetchSessionsVsErrorsPlotFromServer", () => {
-  it("returns Success when all 3 child fetches return Success", async () => {
-    // Sessions plot
+describe("fetchAppHealthPlotFromServer", () => {
+  it("returns Success and maps the three server series to display series", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
-      successResponse([{ data: [{ datetime: "2026-01-01", instances: 100 }] }]),
-    );
-    // Crashes plot
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse([{ data: [{ datetime: "2026-01-01", instances: 10 }] }]),
-    );
-    // ANRs plot
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse([{ data: [{ datetime: "2026-01-01", instances: 1 }] }]),
+      successResponse([
+        { id: "sessions", data: [{ datetime: "2026-01-01", instances: 100 }] },
+        { id: "crashes", data: [{ datetime: "2026-01-01", instances: 10 }] },
+        { id: "anrs", data: [{ datetime: "2026-01-01", instances: 1 }] },
+      ]),
     );
 
-    const r = await fetchSessionsVsErrorsPlotFromServer(makeFilters());
-    expect(r.status).toBe(SessionsVsErrorsPlotApiStatus.Success);
+    const r = await fetchAppHealthPlotFromServer(makeFilters());
+    expect(r.status).toBe(AppHealthPlotApiStatus.Success);
+    expect(r.data?.map((s: any) => s.id)).toEqual([
+      "Sessions",
+      "Crashes",
+      "ANRs",
+    ]);
   });
 
-  it("returns Error if any child fetch errors", async () => {
+  it("hits the health plots endpoint", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
+    await fetchAppHealthPlotFromServer(makeFilters());
+    expect(mockApiClientFetch.mock.calls[0][0]).toContain(
+      "/health/plots/instances",
+    );
+  });
+
+  it("returns Error when the fetch returns a non-ok response", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    const r = await fetchSessionsVsErrorsPlotFromServer(makeFilters());
-    expect(r.status).toBe(SessionsVsErrorsPlotApiStatus.Error);
+    const r = await fetchAppHealthPlotFromServer(makeFilters());
+    expect(r.status).toBe(AppHealthPlotApiStatus.Error);
   });
 
-  it("returns NoData when all child datasets are empty", async () => {
+  it("returns NoData when the response body is null", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    const r = await fetchSessionsVsErrorsPlotFromServer(makeFilters());
-    expect(r.status).toBe(SessionsVsErrorsPlotApiStatus.NoData);
+    const r = await fetchAppHealthPlotFromServer(makeFilters());
+    expect(r.status).toBe(AppHealthPlotApiStatus.NoData);
+  });
+
+  it("returns NoData when every series value is zero", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse([
+        { id: "sessions", data: [{ datetime: "2026-01-01", instances: 0 }] },
+        { id: "crashes", data: [{ datetime: "2026-01-01", instances: 0 }] },
+        { id: "anrs", data: [{ datetime: "2026-01-01", instances: 0 }] },
+      ]),
+    );
+    const r = await fetchAppHealthPlotFromServer(makeFilters());
+    expect(r.status).toBe(AppHealthPlotApiStatus.NoData);
+  });
+
+  it("drops the ANRs series when all ANR values are zero", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse([
+        { id: "sessions", data: [{ datetime: "2026-01-01", instances: 100 }] },
+        { id: "crashes", data: [{ datetime: "2026-01-01", instances: 10 }] },
+        { id: "anrs", data: [{ datetime: "2026-01-01", instances: 0 }] },
+      ]),
+    );
+    const r = await fetchAppHealthPlotFromServer(makeFilters());
+    expect(r.status).toBe(AppHealthPlotApiStatus.Success);
+    expect(r.data?.map((s: any) => s.id)).toEqual(["Sessions", "Crashes"]);
   });
 });
 
@@ -1573,28 +1602,10 @@ describe("additional branch coverage", () => {
     expect(r.status).toBe(SpanMetricsPlotApiStatus.NoData);
   });
 
-  it("fetchSessionsVsErrorsPlotFromServer returns Error when sessions child errors", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(errorResponse()); // sessions
-    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    const r = await fetchSessionsVsErrorsPlotFromServer(makeFilters());
-    expect(r.status).toBe(SessionsVsErrorsPlotApiStatus.Error);
-  });
-
-  it("fetchSessionsVsErrorsPlotFromServer returns Error when crashes child errors", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    mockApiClientFetch.mockResolvedValueOnce(errorResponse()); // crashes
-    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    const r = await fetchSessionsVsErrorsPlotFromServer(makeFilters());
-    expect(r.status).toBe(SessionsVsErrorsPlotApiStatus.Error);
-  });
-
-  it("fetchSessionsVsErrorsPlotFromServer returns Error when anrs child errors", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    mockApiClientFetch.mockResolvedValueOnce(errorResponse()); // anrs
-    const r = await fetchSessionsVsErrorsPlotFromServer(makeFilters());
-    expect(r.status).toBe(SessionsVsErrorsPlotApiStatus.Error);
+  it("fetchAppHealthPlotFromServer returns Error when the fetch throws", async () => {
+    mockApiClientFetch.mockRejectedValueOnce(new Error("network down"));
+    const r = await fetchAppHealthPlotFromServer(makeFilters());
+    expect(r.status).toBe(AppHealthPlotApiStatus.Error);
   });
 
   it("appends all span statuses (Unset/Ok/Error) to span endpoint URLs", async () => {

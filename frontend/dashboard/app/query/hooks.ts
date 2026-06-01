@@ -48,7 +48,7 @@ import {
   SessionTimelineApiStatus,
   SessionTimelinesOverviewApiStatus,
   SessionTimelinesOverviewPlotApiStatus,
-  SessionsVsErrorsPlotApiStatus,
+  AppHealthPlotApiStatus,
   SpanMetricsPlotApiStatus,
   SpansApiStatus,
   Team,
@@ -105,7 +105,7 @@ import {
   fetchSessionTimelineFromServer,
   fetchSessionTimelinesOverviewFromServer,
   fetchSessionTimelinesOverviewPlotFromServer,
-  fetchSessionsVsErrorsPlotFromServer,
+  fetchAppHealthPlotFromServer,
   fetchSpanMetricsPlotFromServer,
   fetchSpansFromServer,
   fetchTeamSlackConnectUrlFromServer,
@@ -758,16 +758,16 @@ export function useSessionTimelinesOverviewPlotQuery() {
   });
 }
 
-export function useSessionsVsErrorsPlotQuery() {
+export function useAppHealthPlotQuery() {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
-    queryKey: ["sessionsVsErrorsPlot", filters.serialisedFilters] as const,
+    queryKey: ["appHealthPlot", filters.serialisedFilters] as const,
     queryFn: async () => {
-      const result = await fetchSessionsVsErrorsPlotFromServer(filters);
-      if (result.status === SessionsVsErrorsPlotApiStatus.Error) {
-        throw new Error("Failed to fetch sessions vs errors plot");
+      const result = await fetchAppHealthPlotFromServer(filters);
+      if (result.status === AppHealthPlotApiStatus.Error) {
+        throw new Error("Failed to fetch app health plot");
       }
-      if (result.status === SessionsVsErrorsPlotApiStatus.NoData) {
+      if (result.status === AppHealthPlotApiStatus.NoData) {
         return null;
       }
       return result.data;

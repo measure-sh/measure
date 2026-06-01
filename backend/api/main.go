@@ -96,6 +96,7 @@ func main() {
 	{
 		apps.GET(":id/journey", measure.GetAppJourney)
 		apps.GET(":id/metrics", measure.GetAppMetrics)
+		apps.GET(":id/health/plots/instances", measure.GetHealthOverviewPlotInstances)
 		apps.GET(":id/filters", measure.GetAppFilters)
 
 		// crashes

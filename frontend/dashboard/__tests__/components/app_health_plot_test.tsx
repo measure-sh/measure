@@ -1,4 +1,4 @@
-import SessionsVsErrorsPlot from "@/app/components/sessions_vs_errors_overview_plot";
+import AppHealthPlot from "@/app/components/app_health_plot";
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 
@@ -16,7 +16,7 @@ jest.mock("@/app/components/skeleton", () => ({
   SkeletonPlot: () => <div data-testid="skeleton-mock">loading</div>,
 }));
 
-const mockUseSessionsVsErrorsPlotQuery = jest.fn(
+const mockUseAppHealthPlotQuery = jest.fn(
   (): { data: any; status: string; error: Error | null } => ({
     data: undefined,
     status: "pending",
@@ -26,7 +26,7 @@ const mockUseSessionsVsErrorsPlotQuery = jest.fn(
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
-  useSessionsVsErrorsPlotQuery: () => mockUseSessionsVsErrorsPlotQuery(),
+  useAppHealthPlotQuery: () => mockUseAppHealthPlotQuery(),
 }));
 
 jest.mock("@/app/stores/provider", () => {
@@ -51,7 +51,7 @@ const filters = {
   endDate: "2026-02-01T06:00:00Z",
 };
 
-describe("SessionsVsErrorsPlot", () => {
+describe("AppHealthPlot", () => {
   beforeEach(() => {
     lastLineProps = null;
     useFiltersStore.setState({
@@ -62,7 +62,7 @@ describe("SessionsVsErrorsPlot", () => {
         endDate: "",
       },
     });
-    mockUseSessionsVsErrorsPlotQuery.mockReturnValue({
+    mockUseAppHealthPlotQuery.mockReturnValue({
       data: undefined,
       status: "pending",
       error: null,
@@ -71,47 +71,47 @@ describe("SessionsVsErrorsPlot", () => {
 
   it("renders no data state", () => {
     useFiltersStore.setState({ filters });
-    mockUseSessionsVsErrorsPlotQuery.mockReturnValue({
+    mockUseAppHealthPlotQuery.mockReturnValue({
       data: null,
       status: "success",
       error: null,
     });
-    render(<SessionsVsErrorsPlot />);
+    render(<AppHealthPlot />);
     expect(screen.getByText("No Data")).toBeInTheDocument();
   });
 
   it("renders error state", () => {
     useFiltersStore.setState({ filters });
-    mockUseSessionsVsErrorsPlotQuery.mockReturnValue({
+    mockUseAppHealthPlotQuery.mockReturnValue({
       data: undefined,
       status: "error",
       error: new Error("test"),
     });
-    render(<SessionsVsErrorsPlot />);
+    render(<AppHealthPlot />);
     expect(screen.getByText(/Error fetching plot/)).toBeInTheDocument();
   });
 
   it("renders loading state", () => {
     useFiltersStore.setState({ filters });
-    mockUseSessionsVsErrorsPlotQuery.mockReturnValue({
+    mockUseAppHealthPlotQuery.mockReturnValue({
       data: undefined,
       status: "pending",
       error: null,
     });
-    render(<SessionsVsErrorsPlot />);
+    render(<AppHealthPlot />);
     expect(screen.getByText("loading")).toBeInTheDocument();
   });
 
   it("uses demo data and bypasses API in demo mode", () => {
     useFiltersStore.setState({ filters });
-    render(<SessionsVsErrorsPlot demo />);
+    render(<AppHealthPlot demo />);
     expect(screen.getByTestId("line-mock")).toBeInTheDocument();
     expect(lastLineProps.data[0].id).toBe("Sessions");
   });
 
   it("renders data and minute precision axis for sub-12h range", () => {
     useFiltersStore.setState({ filters });
-    mockUseSessionsVsErrorsPlotQuery.mockReturnValue({
+    mockUseAppHealthPlotQuery.mockReturnValue({
       data: [
         {
           id: "Sessions",
@@ -121,7 +121,7 @@ describe("SessionsVsErrorsPlot", () => {
       status: "success",
       error: null,
     });
-    render(<SessionsVsErrorsPlot />);
+    render(<AppHealthPlot />);
 
     expect(screen.getByTestId("line-mock")).toBeInTheDocument();
     expect(lastLineProps.xScale.precision).toBe("minute");
@@ -136,7 +136,7 @@ describe("SessionsVsErrorsPlot", () => {
       endDate: "2026-02-06T00:00:00Z",
     };
     useFiltersStore.setState({ filters: hourFilters });
-    mockUseSessionsVsErrorsPlotQuery.mockReturnValue({
+    mockUseAppHealthPlotQuery.mockReturnValue({
       data: [
         {
           id: "Sessions",
@@ -146,7 +146,7 @@ describe("SessionsVsErrorsPlot", () => {
       status: "success",
       error: null,
     });
-    const { unmount: u1 } = render(<SessionsVsErrorsPlot />);
+    const { unmount: u1 } = render(<AppHealthPlot />);
     expect(lastLineProps.xScale.precision).toBe("hour");
     u1();
 
@@ -157,7 +157,7 @@ describe("SessionsVsErrorsPlot", () => {
       endDate: "2026-03-15T00:00:00Z",
     };
     useFiltersStore.setState({ filters: dayFilters });
-    const { unmount: u2 } = render(<SessionsVsErrorsPlot />);
+    const { unmount: u2 } = render(<AppHealthPlot />);
     expect(lastLineProps.xScale.precision).toBe("day");
     u2();
 
@@ -168,13 +168,13 @@ describe("SessionsVsErrorsPlot", () => {
       endDate: "2026-01-01T00:00:00Z",
     };
     useFiltersStore.setState({ filters: monthFilters });
-    render(<SessionsVsErrorsPlot />);
+    render(<AppHealthPlot />);
     expect(lastLineProps.axisBottom.format).toBe("%d %b, %Y");
   });
 
   it("renders tooltip in Sessions, Crashes, ANRs order", () => {
     useFiltersStore.setState({ filters });
-    mockUseSessionsVsErrorsPlotQuery.mockReturnValue({
+    mockUseAppHealthPlotQuery.mockReturnValue({
       data: [
         { id: "ANRs", data: [{ id: "a1", x: "2026-02-01T01:00:00", y: 1 }] },
         {
@@ -186,7 +186,7 @@ describe("SessionsVsErrorsPlot", () => {
       status: "success",
       error: null,
     });
-    render(<SessionsVsErrorsPlot />);
+    render(<AppHealthPlot />);
     expect(screen.getByTestId("line-mock")).toBeInTheDocument();
 
     const tooltip = lastLineProps.sliceTooltip({
@@ -219,7 +219,7 @@ describe("SessionsVsErrorsPlot", () => {
 
   it("skips missing tooltip series and keeps known ordering", () => {
     useFiltersStore.setState({ filters });
-    mockUseSessionsVsErrorsPlotQuery.mockReturnValue({
+    mockUseAppHealthPlotQuery.mockReturnValue({
       data: [
         {
           id: "Sessions",
@@ -230,7 +230,7 @@ describe("SessionsVsErrorsPlot", () => {
       status: "success",
       error: null,
     });
-    render(<SessionsVsErrorsPlot />);
+    render(<AppHealthPlot />);
 
     const tooltip = lastLineProps.sliceTooltip({
       slice: {
@@ -258,7 +258,7 @@ describe("SessionsVsErrorsPlot", () => {
 
   it("uses fallback color for unknown series id", () => {
     useFiltersStore.setState({ filters });
-    mockUseSessionsVsErrorsPlotQuery.mockReturnValue({
+    mockUseAppHealthPlotQuery.mockReturnValue({
       data: [
         {
           id: "Sessions",
@@ -268,7 +268,7 @@ describe("SessionsVsErrorsPlot", () => {
       status: "success",
       error: null,
     });
-    render(<SessionsVsErrorsPlot />);
+    render(<AppHealthPlot />);
 
     expect(lastLineProps.colors({ id: "Unknown" })).toBe("#888");
     expect(lastLineProps.pointBorderColor({ serieId: "Unknown" })).toBe("#888");
@@ -277,7 +277,7 @@ describe("SessionsVsErrorsPlot", () => {
   it("hides stale chart while new range data is loading", () => {
     // First render with data
     useFiltersStore.setState({ filters });
-    mockUseSessionsVsErrorsPlotQuery.mockReturnValue({
+    mockUseAppHealthPlotQuery.mockReturnValue({
       data: [
         {
           id: "Sessions",
@@ -287,7 +287,7 @@ describe("SessionsVsErrorsPlot", () => {
       status: "success",
       error: null,
     });
-    const { unmount } = render(<SessionsVsErrorsPlot />);
+    const { unmount } = render(<AppHealthPlot />);
     expect(screen.getByTestId("line-mock")).toBeInTheDocument();
     unmount();
 
@@ -298,12 +298,12 @@ describe("SessionsVsErrorsPlot", () => {
       endDate: "2026-02-01T03:00:00Z",
     };
     useFiltersStore.setState({ filters: newFilters });
-    mockUseSessionsVsErrorsPlotQuery.mockReturnValue({
+    mockUseAppHealthPlotQuery.mockReturnValue({
       data: undefined,
       status: "pending",
       error: null,
     });
-    render(<SessionsVsErrorsPlot />);
+    render(<AppHealthPlot />);
 
     expect(screen.getByText("loading")).toBeInTheDocument();
     expect(screen.queryByTestId("line-mock")).not.toBeInTheDocument();
