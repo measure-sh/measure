@@ -201,14 +201,14 @@ export default function DocsAppSidebar() {
                     width={120}
                     height={40}
                     alt="Measure logo"
-                    className="dark:hidden group-hover/logo:hidden"
+                    className="dark:hidden"
                   />
                   <Image
                     src="/images/measure_logo_horizontal_white.svg"
                     width={120}
                     height={40}
                     alt="Measure logo"
-                    className="hidden dark:block group-hover/logo:block"
+                    className="hidden dark:block"
                   />
                 </Link>
                 <ThemeToggle />
