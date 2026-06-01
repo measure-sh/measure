@@ -168,12 +168,11 @@ describe("Journeys page — page load", () => {
     );
   }
 
-  it("renders tabs, search, info note, and chart", async () => {
+  it("renders tabs, search, and chart", async () => {
     await renderAndWaitForChart();
     expect(screen.getByText("Paths")).toBeTruthy();
     expect(screen.getByText("Exceptions")).toBeTruthy();
     expect(screen.getByPlaceholderText("Search nodes...")).toBeTruthy();
-    expect(screen.getByText(/Journeys are approximated/)).toBeTruthy();
     expect(screen.getByTestId("nivo-sankey")).toBeTruthy();
   });
 
@@ -191,14 +190,6 @@ describe("Journeys page — page load", () => {
     expect(screen.getByTestId("sankey-link-0")).toBeTruthy();
     expect(screen.getByTestId("sankey-link-1")).toBeTruthy();
     expect(screen.getByTestId("sankey-link-2")).toBeTruthy();
-  });
-
-  it('"Learn more" link points to correct docs page', async () => {
-    await renderAndWaitForChart();
-    const link = screen.getByText("Learn more");
-    expect(link.closest("a")?.getAttribute("href")).toBe(
-      "/docs/features/configuration-options#journey-sampling",
-    );
   });
 
   it("defaults to Paths tab", async () => {

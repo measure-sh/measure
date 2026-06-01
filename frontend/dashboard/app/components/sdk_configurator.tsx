@@ -11,13 +11,12 @@ import { Button } from "@/app/components/button";
 import DropdownSelect, {
   DropdownSelectType,
 } from "@/app/components/dropdown_select";
+import InfoTooltip from "@/app/components/info_tooltip";
 import SdkConfigNumericInput from "@/app/components/sdk_config_numeric_input";
-import SimpleTooltip from "@/app/components/simple_tooltip";
 import { Switch } from "@/app/components/switch";
 import { useSaveSdkConfigMutation } from "@/app/query/hooks";
 import { track } from "@/app/utils/analytics/track";
 import { toastNegative, toastPositive } from "@/app/utils/use_toast";
-import { Info } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -633,19 +632,25 @@ export default function SdkConfigurator({
 
   return (
     <div className="w-full">
-      <p className="max-w-6xl font-display text-xl">
-        Configure Data Collection
-      </p>
-      <p className="mt-2 font-body text-xs text-muted-foreground">
-        See the{" "}
-        <Link
-          href="/docs/features/configuration-options"
-          className={underlineLinkStyle}
-        >
-          docs
-        </Link>{" "}
-        to learn more
-      </p>
+      <div className="flex items-center gap-2">
+        <p className="max-w-6xl font-display text-xl">
+          Configure Data Collection
+        </p>
+        <InfoTooltip
+          content={
+            <>
+              See the{" "}
+              <Link
+                href="/docs/features/configuration-options"
+                className={underlineLinkStyle}
+              >
+                docs
+              </Link>{" "}
+              to learn more
+            </>
+          }
+        />
+      </div>
 
       <div className="mt-6">
         <Accordion type="single" collapsible className="w-full">
@@ -955,7 +960,7 @@ export default function SdkConfigurator({
                 <div className="py-8">
                   <div className="flex items-center gap-2 mb-4">
                     <p className="font-display">Disable HTTP event for URLs</p>
-                    <SimpleTooltip
+                    <InfoTooltip
                       content={
                         <>
                           HTTP events will not be collected for URLs matching
@@ -963,9 +968,7 @@ export default function SdkConfigurator({
                           (*). Enter one pattern per line.
                         </>
                       }
-                    >
-                      <Info className="h-4 w-4 -mt-0.5" />
-                    </SimpleTooltip>
+                    />
                   </div>
                   <Textarea
                     data-testid="http-disable-urls-textarea"
@@ -988,7 +991,7 @@ export default function SdkConfigurator({
                 <div className="py-2">
                   <div className="flex items-center gap-2 mb-4">
                     <p className="font-display">Track request for URLs</p>
-                    <SimpleTooltip
+                    <InfoTooltip
                       content={
                         <>
                           Full HTTP request (body and headers) will be captured
@@ -996,9 +999,7 @@ export default function SdkConfigurator({
                           and wildcards (*). Enter one pattern per line.
                         </>
                       }
-                    >
-                      <Info className="h-4 w-4 -mt-0.5" />
-                    </SimpleTooltip>
+                    />
                   </div>
                   <Textarea
                     data-testid="http-track-request-urls-textarea"
@@ -1021,7 +1022,7 @@ export default function SdkConfigurator({
                 <div className="py-2">
                   <div className="flex items-center gap-2 mb-4">
                     <p className="font-display">Track response for URLs</p>
-                    <SimpleTooltip
+                    <InfoTooltip
                       content={
                         <>
                           Full HTTP response (body and headers) will be captured
@@ -1029,9 +1030,7 @@ export default function SdkConfigurator({
                           and wildcards (*). Enter one pattern per line.
                         </>
                       }
-                    >
-                      <Info className="h-4 w-4 -mt-0.5" />
-                    </SimpleTooltip>
+                    />
                   </div>
                   <Textarea
                     data-testid="http-track-response-urls-textarea"
@@ -1054,7 +1053,7 @@ export default function SdkConfigurator({
                 <div className="py-2">
                   <div className="flex items-center gap-2 mb-4">
                     <p className="font-display">Blocked headers</p>
-                    <SimpleTooltip
+                    <InfoTooltip
                       content={
                         <>
                           Headers that will never be captured in HTTP requests
@@ -1063,9 +1062,7 @@ export default function SdkConfigurator({
                           default. Enter one header name per line.
                         </>
                       }
-                    >
-                      <Info className="h-4 w-4 -mt-0.5" />
-                    </SimpleTooltip>
+                    />
                   </div>
                   <Textarea
                     data-testid="http-blocked-headers-textarea"

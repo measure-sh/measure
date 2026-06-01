@@ -24,6 +24,7 @@ import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialo
 import DropdownSelect, {
   DropdownSelectType,
 } from "@/app/components/dropdown_select";
+import InfoTooltip from "@/app/components/info_tooltip";
 import { Input } from "@/app/components/input";
 import { Skeleton, SkeletonTable } from "@/app/components/skeleton";
 import { Switch } from "@/app/components/switch";
@@ -354,7 +355,6 @@ export default function TeamOverview({
           {/* Slack Integration */}
           <div className="py-8" />
           <Skeleton className="h-6 w-40" />
-          <Skeleton className="h-3 w-80 mt-2" />
           <div className="py-4" />
           <Skeleton className="h-10 w-36 rounded-lg" />
 
@@ -863,18 +863,24 @@ export default function TeamOverview({
             )}
 
           <div className="py-8" />
-          <p className="font-display text-xl max-w-6xl text-center">
-            Slack Integration
-          </p>
-          <p className="mt-2 font-body text-xs text-muted-foreground">
-            Receive alert notifications and daily summaries in Slack.{" "}
-            <Link
-              className={underlineLinkStyle}
-              href="/docs/features/feature-slack-integration"
-            >
-              Learn more
-            </Link>
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="font-display text-xl max-w-6xl text-center">
+              Slack Integration
+            </p>
+            <InfoTooltip
+              content={
+                <>
+                  Receive alert notifications and daily summaries in Slack.{" "}
+                  <Link
+                    className={underlineLinkStyle}
+                    href="/docs/features/feature-slack-integration"
+                  >
+                    Learn more
+                  </Link>
+                </>
+              }
+            />
+          </div>
           <div className="py-4" />
           {(slackStatusQueryStatus === "pending" ||
             slackConnectUrlStatus === "pending") && (
