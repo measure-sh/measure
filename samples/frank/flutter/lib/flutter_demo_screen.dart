@@ -10,6 +10,7 @@ import 'package:stack_trace/stack_trace.dart';
 
 import 'bottom_nav_demo.dart';
 import 'layout_snapshot_page.dart';
+import 'masking_demo_page.dart';
 
 class _CustomException implements Exception {
   final String message;
@@ -23,6 +24,7 @@ enum _DemoCategory {
   bugReports('Bug Reports'),
   navigation('Navigation'),
   http('HTTP'),
+  masking('Masking'),
   misc('Misc');
 
   final String label;
@@ -305,6 +307,16 @@ class _FlutterDemoScreenState extends State<FlutterDemoScreen>
     );
   }
 
+  void _launchMaskingDemo() {
+    Navigator.push(
+      context,
+      MaterialPageRoute<Widget>(
+        builder: (context) => const MaskingDemoPage(),
+        settings: const RouteSettings(name: '/masking_demo'),
+      ),
+    );
+  }
+
   void _setUserId() {
     Measure.instance.setUserId('user-131351');
   }
@@ -408,6 +420,14 @@ class _FlutterDemoScreenState extends State<FlutterDemoScreen>
           description: 'Pushes a non-existent named route',
           category: _DemoCategory.navigation,
           action: _navigateToInvalidRoute,
+        ),
+
+        // Masking
+        _DemoItem(
+          title: 'Screenshot Masking',
+          description: 'Preview mask levels on sample content',
+          category: _DemoCategory.masking,
+          action: _launchMaskingDemo,
         ),
 
         // Misc

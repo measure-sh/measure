@@ -46,5 +46,6 @@ Map<String, dynamic> _$DynamicConfigToJson(DynamicConfig instance) =>
 const _$ScreenshotMaskLevelEnumMap = {
   ScreenshotMaskLevel.allTextAndMedia: 'all_text_and_media',
   ScreenshotMaskLevel.allText: 'all_text',
-  ScreenshotMaskLevel.none: 'none',
+  ScreenshotMaskLevel.allTextExceptClickable: 'all_text_except_clickable',
+  ScreenshotMaskLevel.sensitiveFieldsOnly: 'sensitive_fields_only',
 };

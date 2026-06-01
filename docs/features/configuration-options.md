@@ -458,9 +458,6 @@ The following levels of masking can be applied to the screenshots:
 
 Masks all text, buttons, input fields, image views and video.
 
-For View based UI, video masking is performed on VideoView and Exoplayer's `androidx.media3.ui.PlayerView`
-and image masking is performed on `ImageView`. Image and video masking is currently not supported for Compose based UI.
-
 Example:
 
 ![Mask All Text And Media](../assets/screenshot-mask-all-text-and-media.png)
@@ -484,15 +481,6 @@ Example:
 #### Mask sensitive input fields
 
 Masks sensitive input fields like password, email & phone fields.
-
-For View based UI, all input fields
-with [inputType](https://developer.android.com/reference/android/text/InputType)
-set to `textPassword`, `textVisiblePassword`, `textWebPassword`, `numberPassword`, `textEmailAddress`, `textEmail`
-and `phone` are masked in the screenshot.
-
-For compose based UI, all input fields with KeyboardOptions set
-to `KeyboardOptions(keyboardType = KeyboardType.Password)`
-are masked in the screenshot by default.
 
 Example:
 

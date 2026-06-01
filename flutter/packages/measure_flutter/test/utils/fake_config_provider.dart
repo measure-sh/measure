@@ -22,7 +22,8 @@ class FakeConfigProvider implements ConfigProvider {
   double _traceSamplingRate = 100;
   bool _crashTakeScreenshot = true;
   bool _gestureClickTakeSnapshot = true;
-  ScreenshotMaskLevel _screenshotMaskLevel = ScreenshotMaskLevel.none;
+  ScreenshotMaskLevel _screenshotMaskLevel =
+      ScreenshotMaskLevel.allTextAndMedia;
   final List<String> _httpDisableEventForUrls = [];
   final List<String> _httpTrackRequestForUrls = [];
   final List<String> _httpTrackResponseForUrls = [];
