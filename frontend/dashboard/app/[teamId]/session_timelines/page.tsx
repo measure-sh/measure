@@ -173,27 +173,13 @@ export default function SessionTimelinesOverview({
           </div>
           <div className="py-4" />
           <Table className="font-display select-none">
-            <TableHeader className="[&_tr]:!border-b-0 hover:bg-muted/50">
+            <TableHeader className="hover:bg-muted/50">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-[60%]">Session Timeline</TableHead>
                 <TableHead className="w-[20%] text-center">
                   Start Time
                 </TableHead>
                 <TableHead className="w-[20%] text-center">Duration</TableHead>
-              </TableRow>
-              <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={3} className="p-0 border-b-1">
-                  <p className="px-4 pt-1 pb-4 text-xs font-body">
-                    Note: Timelines are captured for Crashes, ANRs, Bug Reports
-                    & sampled sessions.{" "}
-                    <Link
-                      href="/docs/features/feature-session-timelines"
-                      className={underlineLinkStyle}
-                    >
-                      Learn more
-                    </Link>{" "}
-                  </p>
-                </TableCell>
               </TableRow>
             </TableHeader>
             <TableBody>

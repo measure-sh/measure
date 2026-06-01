@@ -8,11 +8,9 @@ import Filters, {
 import Journey, { JourneyType } from "@/app/components/journey";
 import TabSelect from "@/app/components/tab_select";
 import { useFiltersStore } from "@/app/stores/provider";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Skeleton, SkeletonPlot } from "../components/skeleton";
-import { underlineLinkStyle } from "../utils/shared_styles";
 
 export enum PlotType {
   Paths = "Paths",
@@ -130,17 +128,6 @@ export default function UserJourneys({
                 initialValue={""}
                 onChange={(it) => setSearchText(it)}
               />
-            )}
-            {!demo && (
-              <p className="py-4 text-xs font-body">
-                Note: Journeys are approximated based on sampled journey events.{" "}
-                <Link
-                  href="/docs/features/configuration-options#journey-sampling"
-                  className={underlineLinkStyle}
-                >
-                  Learn more
-                </Link>{" "}
-              </p>
             )}
             <div className="py-4" />
 

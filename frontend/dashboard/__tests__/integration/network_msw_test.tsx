@@ -181,11 +181,23 @@ describe("Network Overview (MSW integration)", () => {
     it('renders "Explore endpoint" section', async () => {
       await renderAndWaitForData();
       expect(screen.getByText("Explore endpoint")).toBeTruthy();
-      expect(
-        screen.getByText(
-          /Search for endpoints using exact paths or wildcard patterns/,
-        ),
-      ).toBeTruthy();
+      // Section description now lives in an info tooltip beside the heading.
+      const trigger = screen
+        .getByText("Explore endpoint")
+        .parentElement!.querySelector(
+          '[data-slot="tooltip-trigger"]',
+        ) as HTMLElement;
+      fireEvent.focus(trigger);
+      const content = await waitFor(() => {
+        const el = document.querySelector('[data-slot="tooltip-content"]');
+        if (!el) {
+          throw new Error("tooltip content not visible");
+        }
+        return el as HTMLElement;
+      });
+      expect(content.textContent).toContain(
+        "Search for endpoints using exact paths or wildcard patterns",
+      );
     });
 
     it("renders Search button", async () => {
@@ -196,7 +208,21 @@ describe("Network Overview (MSW integration)", () => {
     it('renders "Status Distribution" section', async () => {
       await renderAndWaitForData();
       expect(screen.getByText("Status Distribution")).toBeTruthy();
-      expect(screen.getByText(/HTTP status code distribution/)).toBeTruthy();
+      // Section description now lives in an info tooltip beside the heading.
+      const trigger = screen
+        .getByText("Status Distribution")
+        .parentElement!.querySelector(
+          '[data-slot="tooltip-trigger"]',
+        ) as HTMLElement;
+      fireEvent.focus(trigger);
+      const content = await waitFor(() => {
+        const el = document.querySelector('[data-slot="tooltip-content"]');
+        if (!el) {
+          throw new Error("tooltip content not visible");
+        }
+        return el as HTMLElement;
+      });
+      expect(content.textContent).toContain("HTTP status code distribution");
     });
 
     it('renders "Top Endpoints" section', async () => {

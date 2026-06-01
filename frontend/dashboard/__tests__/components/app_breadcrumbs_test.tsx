@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+
+// Radix tooltip content measures its arrow via ResizeObserver, absent in jsdom.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as any;
+}
 
 let mockPathname = "/";
 let mockSearchParams = new URLSearchParams();
@@ -98,6 +107,72 @@ describe("AppBreadcrumbs", () => {
       render(<AppBreadcrumbs />);
       expect(screen.getByText("Usage")).toBeInTheDocument();
       expect(screen.queryByText("Usage & Billing")).toBeNull();
+    });
+  });
+
+  describe("Section info tooltips", () => {
+    it("shows a capture-info tooltip on the session timelines section", async () => {
+      mockPathname = "/team-123/session_timelines";
+      render(<AppBreadcrumbs />);
+      const trigger = document.querySelector(
+        '[data-slot="tooltip-trigger"].lucide-info',
+      ) as HTMLElement;
+      expect(trigger).toBeTruthy();
+      fireEvent.focus(trigger);
+      const content = await waitFor(() => {
+        const el = document.querySelector('[data-slot="tooltip-content"]');
+        if (!el) {
+          throw new Error("tooltip content not visible");
+        }
+        return el as HTMLElement;
+      });
+      expect(content.textContent).toContain(
+        "Timelines are captured for Crashes, ANRs, Bug Reports",
+      );
+      expect(content.querySelector("a")).toHaveAttribute(
+        "href",
+        "/docs/features/feature-session-timelines",
+      );
+    });
+
+    it("shows a sampling-info tooltip on the journeys section", async () => {
+      mockPathname = "/team-123/journeys";
+      render(<AppBreadcrumbs />);
+      const trigger = document.querySelector(
+        '[data-slot="tooltip-trigger"].lucide-info',
+      ) as HTMLElement;
+      expect(trigger).toBeTruthy();
+      fireEvent.focus(trigger);
+      const content = await waitFor(() => {
+        const el = document.querySelector('[data-slot="tooltip-content"]');
+        if (!el) {
+          throw new Error("tooltip content not visible");
+        }
+        return el as HTMLElement;
+      });
+      expect(content.textContent).toContain(
+        "Journeys are approximated based on sampled journey events",
+      );
+      expect(content.querySelector("a")).toHaveAttribute(
+        "href",
+        "/docs/features/configuration-options#journey-sampling",
+      );
+    });
+
+    it("shows no info tooltip on sections without info", () => {
+      mockPathname = "/team-123/errors";
+      render(<AppBreadcrumbs />);
+      expect(
+        document.querySelector('[data-slot="tooltip-trigger"].lucide-info'),
+      ).toBeNull();
+    });
+
+    it("shows no info tooltip on a section detail page", () => {
+      mockPathname = "/team-123/session_timelines/app-1/sess-001";
+      render(<AppBreadcrumbs />);
+      expect(
+        document.querySelector('[data-slot="tooltip-trigger"].lucide-info'),
+      ).toBeNull();
     });
   });
 

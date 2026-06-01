@@ -26,6 +26,7 @@ import DropdownSelect, {
 import Filters, {
   AppVersionsInitialSelectionType,
 } from "@/app/components/filters";
+import InfoTooltip from "@/app/components/info_tooltip";
 import { Input } from "@/app/components/input";
 import SdkConfigNumericInput from "@/app/components/sdk_config_numeric_input";
 import SdkConfigurator from "@/app/components/sdk_configurator";
@@ -572,21 +573,28 @@ export default function Apps({ params }: { params: { teamId: string } }) {
             />
 
             <div className="py-8" />
-            <p className="font-display text-xl max-w-6xl">
-              Change Error Thresholds
-            </p>
-            <p className="mt-2 font-body text-xs text-muted-foreground">
-              Error rate thresholds affect dashboard overview error-rate status
-              and daily summary email/Slack status icons. Anything below{" "}
-              <span className="text-yellow-600 dark:text-yellow-500 font-bold">
-                Caution
-              </span>{" "}
-              level is considered{" "}
-              <span className="text-red-600 dark:text-red-500 font-bold">
-                Poor
-              </span>
-              .
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="font-display text-xl max-w-6xl">
+                Change Error Thresholds
+              </p>
+              <InfoTooltip
+                content={
+                  <>
+                    Error rate thresholds affect dashboard overview error-rate
+                    status and daily summary email/Slack status icons. Anything
+                    below{" "}
+                    <span className="text-yellow-600 dark:text-yellow-500 font-bold">
+                      Caution
+                    </span>{" "}
+                    level is considered{" "}
+                    <span className="text-red-600 dark:text-red-500 font-bold">
+                      Poor
+                    </span>
+                    .
+                  </>
+                }
+              />
+            </div>
             {thresholdPrefsStatus === "pending" && (
               <div className="flex flex-col gap-3 w-full mt-6">
                 <Skeleton className="h-4 w-48" />
@@ -660,15 +668,20 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                     testId="error-caution-threshold-input"
                   />
                 </div>
-                <p className="mt-6 font-body text-xs text-muted-foreground">
-                  An error alert is triggered when an error group reaches the
-                  configured minimum error count and the percentage of sessions
-                  it impacts meets or exceeds the spike threshold within an
-                  hour.
-                </p>
-                <div className="flex flex-row items-center gap-2 mt-2">
+                <div className="flex flex-row items-center gap-2 mt-6">
                   <p className="font-body text-sm w-80">
-                    Minimum error count to trigger a spike alert
+                    Minimum error count to trigger a spike alert{" "}
+                    <InfoTooltip
+                      className="inline-block align-middle mt-0"
+                      content={
+                        <>
+                          An error alert is triggered when an error group
+                          reaches the configured minimum error count and the
+                          percentage of sessions it impacts meets or exceeds the
+                          spike threshold within an hour.
+                        </>
+                      }
+                    />
                   </p>
                   <SdkConfigNumericInput
                     value={

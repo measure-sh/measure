@@ -8,9 +8,12 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/app/components/breadcrumb";
+import InfoTooltip from "@/app/components/info_tooltip";
 import { isCloud } from "@/app/utils/env_utils";
+import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import type { ReactNode } from "react";
 
 const sectionTitles: Record<string, string> = {
   overview: "Overview",
@@ -36,6 +39,33 @@ function resolveSectionTitle(slug: string): string {
 
 const subrouteTitles: Record<string, string> = {
   details: "Details",
+};
+
+// Helper text shown as an info tooltip beside the section title in the
+// breadcrumb, for sections that have no in-page heading to attach it to.
+const sectionInfo: Record<string, ReactNode> = {
+  session_timelines: (
+    <>
+      Timelines are captured for Crashes, ANRs, Bug Reports & sampled sessions.{" "}
+      <Link
+        href="/docs/features/feature-session-timelines"
+        className={underlineLinkStyle}
+      >
+        Learn more
+      </Link>
+    </>
+  ),
+  journeys: (
+    <>
+      Journeys are approximated based on sampled journey events.{" "}
+      <Link
+        href="/docs/features/configuration-options#journey-sampling"
+        className={underlineLinkStyle}
+      >
+        Learn more
+      </Link>
+    </>
+  ),
 };
 
 export default function AppBreadcrumbs() {
@@ -78,6 +108,12 @@ export default function AppBreadcrumbs() {
             <BreadcrumbPage className="font-display">
               {sectionTitle}
             </BreadcrumbPage>
+            {sectionInfo[sectionSlug] && (
+              <InfoTooltip
+                className="h-3.5 w-3.5 text-foreground"
+                content={sectionInfo[sectionSlug]}
+              />
+            )}
           </BreadcrumbItem>
         ) : (
           <>

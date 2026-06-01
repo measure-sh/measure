@@ -9,6 +9,15 @@ import {
   waitFor,
 } from "@testing-library/react";
 
+// Radix tooltip content measures its arrow via ResizeObserver, absent in jsdom.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as any;
+}
+
 const mockToastPositive = jest.fn();
 const mockToastNegative = jest.fn();
 const mockPush = jest.fn();
@@ -648,7 +657,22 @@ describe("Team Page", () => {
   it("renders slack integration doc link", async () => {
     await renderPage();
 
-    const learnMoreLink = screen.getByRole("link", { name: "Learn more" });
+    // The doc link now lives in an info tooltip beside the Slack heading.
+    const trigger = screen
+      .getByText("Slack Integration")
+      .parentElement!.querySelector(
+        '[data-slot="tooltip-trigger"]',
+      ) as HTMLElement;
+    fireEvent.focus(trigger);
+    const content = await waitFor(() => {
+      const el = document.querySelector('[data-slot="tooltip-content"]');
+      if (!el) {
+        throw new Error("tooltip content not visible");
+      }
+      return el as HTMLElement;
+    });
+
+    const learnMoreLink = content.querySelector("a");
     expect(learnMoreLink).toHaveAttribute(
       "href",
       "/docs/features/feature-slack-integration",

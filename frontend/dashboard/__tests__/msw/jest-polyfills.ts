@@ -11,19 +11,58 @@
 
 // These must be set BEFORE requiring undici (which needs TextEncoder)
 Object.defineProperties(globalThis, {
-    TextDecoder: { value: require('node:util').TextDecoder, writable: true, configurable: true },
-    TextEncoder: { value: require('node:util').TextEncoder, writable: true, configurable: true },
-    ReadableStream: { value: require('node:stream/web').ReadableStream, writable: true, configurable: true },
-    TransformStream: { value: require('node:stream/web').TransformStream, writable: true, configurable: true },
-    WritableStream: { value: require('node:stream/web').WritableStream, writable: true, configurable: true },
-    BroadcastChannel: { value: require('node:worker_threads').BroadcastChannel, writable: true, configurable: true },
-})
+  TextDecoder: {
+    value: require("node:util").TextDecoder,
+    writable: true,
+    configurable: true,
+  },
+  TextEncoder: {
+    value: require("node:util").TextEncoder,
+    writable: true,
+    configurable: true,
+  },
+  ReadableStream: {
+    value: require("node:stream/web").ReadableStream,
+    writable: true,
+    configurable: true,
+  },
+  TransformStream: {
+    value: require("node:stream/web").TransformStream,
+    writable: true,
+    configurable: true,
+  },
+  WritableStream: {
+    value: require("node:stream/web").WritableStream,
+    writable: true,
+    configurable: true,
+  },
+  BroadcastChannel: {
+    value: require("node:worker_threads").BroadcastChannel,
+    writable: true,
+    configurable: true,
+  },
+});
 
 // Now safe to require undici for Fetch API globals
-const undici = require('undici')
+const undici = require("undici");
 Object.defineProperties(globalThis, {
-    fetch: { value: undici.fetch, writable: true, configurable: true },
-    Headers: { value: undici.Headers, writable: true, configurable: true },
-    Request: { value: undici.Request, writable: true, configurable: true },
-    Response: { value: undici.Response, writable: true, configurable: true },
-})
+  fetch: { value: undici.fetch, writable: true, configurable: true },
+  Headers: { value: undici.Headers, writable: true, configurable: true },
+  Request: { value: undici.Request, writable: true, configurable: true },
+  Response: { value: undici.Response, writable: true, configurable: true },
+});
+
+// Radix UI tooltip/popover content measures its arrow via ResizeObserver,
+// which jsdom doesn't implement. A no-op lets tests reveal tooltip content
+// (e.g. hovering/focusing an InfoTooltip) without throwing.
+Object.defineProperties(globalThis, {
+  ResizeObserver: {
+    value: class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+    writable: true,
+    configurable: true,
+  },
+});

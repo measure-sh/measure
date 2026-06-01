@@ -165,15 +165,6 @@ describe("Session Timelines Overview (MSW integration)", () => {
       expect(screen.getByTestId("nivo-line-chart")).toBeTruthy();
     });
 
-    it("renders info note about session capture", async () => {
-      await renderAndWaitForData();
-      expect(
-        screen.getByText(
-          /Timelines are captured for Crashes, ANRs, Bug Reports/,
-        ),
-      ).toBeTruthy();
-    });
-
     it("renders device info for each session row", async () => {
       await renderAndWaitForData();
       // sess-001: "3.1.0(310), Android API Level 14, Google Pixel 8"
@@ -1757,28 +1748,6 @@ describe("Session Timelines Overview — additional coverage", () => {
           expect(screen.getByText(/harmony 4/)).toBeTruthy();
         },
         { timeout: 5000 },
-      );
-    });
-  });
-
-  // ================================================================
-  // LEARN MORE LINK
-  // ================================================================
-  describe("info note link", () => {
-    it('"Learn more" link points to the correct docs page', async () => {
-      renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Timelines are captured/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      const link = screen.getByText("Learn more");
-      expect(link.closest("a")?.getAttribute("href")).toBe(
-        "/docs/features/feature-session-timelines",
       );
     });
   });
