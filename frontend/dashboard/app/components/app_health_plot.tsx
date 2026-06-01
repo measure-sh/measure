@@ -1,6 +1,6 @@
 "use client";
 
-import { useSessionsVsErrorsPlotQuery } from "@/app/query/hooks";
+import { useAppHealthPlotQuery } from "@/app/query/hooks";
 import { useFiltersStore } from "@/app/stores/provider";
 import { ResponsiveLine } from "@nivo/line";
 import { DateTime } from "luxon";
@@ -128,15 +128,13 @@ const demoPlot = [
   },
 ];
 
-interface SessionsVsErrorsPlotProps {
+interface AppHealthPlotProps {
   demo?: boolean;
 }
 
-const SessionsVsErrorsPlot: React.FC<SessionsVsErrorsPlotProps> = ({
-  demo = false,
-}) => {
+const AppHealthPlot: React.FC<AppHealthPlotProps> = ({ demo = false }) => {
   const filters = useFiltersStore((state) => state.filters);
-  const { data: queryPlot, status } = useSessionsVsErrorsPlotQuery();
+  const { data: queryPlot, status } = useAppHealthPlotQuery();
   const { theme } = useTheme();
   const chartColor = useChartColor();
   const plotTimeGroup = getPlotTimeGroupForRange(
@@ -261,4 +259,4 @@ const SessionsVsErrorsPlot: React.FC<SessionsVsErrorsPlotProps> = ({
   );
 };
 
-export default SessionsVsErrorsPlot;
+export default AppHealthPlot;

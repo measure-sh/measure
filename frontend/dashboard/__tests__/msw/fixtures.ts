@@ -175,6 +175,46 @@ export function makeAnrPlotFixture() {
   ];
 }
 
+// --- Health Plot (GET /apps/:appId/health/plots/instances) ---
+// Single endpoint backing the overview app health plot. Response is
+// three series keyed by id: "sessions" | "crashes" | "anrs", each with
+// sparse { datetime, instances } points.
+
+export function makeHealthPlotFixture() {
+  return [
+    {
+      id: "sessions",
+      data: [
+        { datetime: "2026-04-01T00:00:00Z", instances: 1200 },
+        { datetime: "2026-04-02T00:00:00Z", instances: 1350 },
+        { datetime: "2026-04-03T00:00:00Z", instances: 1100 },
+        { datetime: "2026-04-04T00:00:00Z", instances: 1400 },
+        { datetime: "2026-04-05T00:00:00Z", instances: 1250 },
+      ],
+    },
+    {
+      id: "crashes",
+      data: [
+        { datetime: "2026-04-01T00:00:00Z", instances: 15 },
+        { datetime: "2026-04-02T00:00:00Z", instances: 12 },
+        { datetime: "2026-04-03T00:00:00Z", instances: 18 },
+        { datetime: "2026-04-04T00:00:00Z", instances: 10 },
+        { datetime: "2026-04-05T00:00:00Z", instances: 14 },
+      ],
+    },
+    {
+      id: "anrs",
+      data: [
+        { datetime: "2026-04-01T00:00:00Z", instances: 3 },
+        { datetime: "2026-04-02T00:00:00Z", instances: 2 },
+        { datetime: "2026-04-03T00:00:00Z", instances: 5 },
+        { datetime: "2026-04-04T00:00:00Z", instances: 1 },
+        { datetime: "2026-04-05T00:00:00Z", instances: 4 },
+      ],
+    },
+  ];
+}
+
 // --- Metrics (GET /apps/:appId/metrics) ---
 // Go structs: metrics.LaunchMetric, metrics.SessionAdoption, etc.
 // in backend/api/metrics/metrics.go

@@ -39,12 +39,12 @@ jest.mock("@/app/components/filters", () => ({
 
 const { useFiltersStore } = require("@/app/stores/provider") as any;
 
-// Mock SessionsVsErrorsOverviewPlot component
-jest.mock("@/app/components/sessions_vs_errors_overview_plot", () => ({
+// Mock AppHealthPlot component
+jest.mock("@/app/components/app_health_plot", () => ({
   __esModule: true, // Ensures the mock behaves like an ES module
   default: () => (
-    <div data-testid="sessions-vs-errors-overview-plot-mock">
-      SessionsVsErrorsOverviewPlot Component Rendered
+    <div data-testid="app-health-plot-mock">
+      AppHealthPlot Component Rendered
     </div>
   ),
 }));
@@ -89,7 +89,7 @@ describe("Overview Component", () => {
     });
 
     expect(
-      await screen.findByTestId("sessions-vs-errors-overview-plot-mock"),
+      await screen.findByTestId("app-health-plot-mock"),
     ).toBeInTheDocument();
     expect(
       await screen.findByTestId("metrics-overview-mock"),

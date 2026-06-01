@@ -5,7 +5,7 @@ import Filters, {
   AppVersionsInitialSelectionType,
 } from "@/app/components/filters";
 import MetricsOverview from "@/app/components/metrics_overview";
-import SessionsVsErrorsPlot from "@/app/components/sessions_vs_errors_overview_plot";
+import AppHealthPlot from "@/app/components/app_health_plot";
 import { Skeleton, SkeletonPlot } from "@/app/components/skeleton";
 import { useFiltersStore } from "@/app/stores/provider";
 import { useRouter } from "next/navigation";
@@ -88,7 +88,7 @@ export default function Overview({
 
       {(demo || filters.ready) && (
         <>
-          <SessionsVsErrorsPlot demo={demo} />
+          <AppHealthPlot demo={demo} />
           <div className="py-8" />
           <MetricsOverview demo={demo} />
         </>

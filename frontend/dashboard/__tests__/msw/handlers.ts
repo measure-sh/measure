@@ -26,6 +26,7 @@ import {
   makeExceptionInstanceFixture,
   makeExceptionsOverviewFixture,
   makeFiltersFixture,
+  makeHealthPlotFixture,
   makeJourneyFixture,
   makeMetricsFixture,
   makeNetworkDomainsFixture,
@@ -82,6 +83,11 @@ export const handlers = [
       return HttpResponse.json(makeAnrPlotFixture());
     }
     return HttpResponse.json(makeCrashPlotFixture());
+  }),
+
+  // 6. GET /api/apps/:appId/health/plots/instances (overview app health plot)
+  http.get("*/api/apps/:appId/health/plots/instances", () => {
+    return HttpResponse.json(makeHealthPlotFixture());
   }),
 
   // 7. GET /api/apps/:appId/metrics
