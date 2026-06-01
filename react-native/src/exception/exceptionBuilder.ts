@@ -35,10 +35,7 @@ function rewriteFilename(filename: string | undefined): string | undefined {
   return rewritten;
 }
 
-function isInApp(filename: string | undefined): boolean {
-  if (!filename) return true;
-  if (filename === '[native code]' || filename === 'native') return false;
-  if (filename.includes('InternalBytecode.js')) return false;
+function isInApp(_filename: string | undefined): boolean {
   return true;
 }
 
@@ -103,7 +100,8 @@ export interface ExceptionPayload {
  */
 export function buildExceptionPayload(
   error: unknown,
-  severity: 'fatal' | 'handled' | 'unhandled'
+  severity: 'fatal' | 'handled' | 'unhandled',
+  isCustom: boolean = false
 ): ExceptionPayload {
   const parsed = parseStacktrace(error);
 
@@ -132,6 +130,6 @@ export function buildExceptionPayload(
     foreground: true,
     threads: [],
     framework: "js",
-    is_custom: false,
+    is_custom: isCustom,
   };
 }

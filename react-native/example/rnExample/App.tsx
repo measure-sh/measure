@@ -164,6 +164,14 @@ const App = (): React.JSX.Element => {
     Promise.reject(new Error('Simulated unhandled promise rejection'));
   };
 
+  const trackHandledError = () => {
+    try {
+      throw new Error('Simulated handled error');
+    } catch (e) {
+      Measure.trackError({ error: e, attributes: { screen: 'Home' } });
+    }
+  };
+
   const simulateNativeCrash = () => {
     // @ts-ignore
     Measure.triggerNativeCrash();
@@ -273,6 +281,11 @@ const App = (): React.JSX.Element => {
           id: 'unhandled-rejection',
           title: 'Unhandled Promise Rejection',
           onPress: simulateUnhandledPromiseRejection,
+        },
+        {
+          id: 'handled-error',
+          title: 'Track Handled Error',
+          onPress: trackHandledError,
         },
         {
           id: 'native-crash',

@@ -1,6 +1,7 @@
 import { MeasureConfig } from './config/measureConfig';
 import type { MsrAttachment } from './events/msrAttachment';
 import * as MeasureErrorHandlers from './exception/measureErrorHandlers';
+import { buildExceptionPayload } from './exception/exceptionBuilder';
 import type { MeasureInitializer } from './measureInitializer';
 import {
   setShakeListener,
@@ -198,6 +199,21 @@ export class MeasureInternal {
     attributes?: Record<string, ValidAttributeValue>;
   }): Promise<void> {
     return this.measureInitializer.bugReportCollector.trackBugReport(params);
+  }
+
+  trackError({
+    error,
+    attributes,
+  }: {
+    error: unknown;
+    attributes?: Record<string, ValidAttributeValue>;
+  }): Promise<void> {
+    const payload = buildExceptionPayload(error, 'handled', false);
+    return this.measureInitializer.signalProcessor
+      .trackEvent(payload, 'exception', this.measureInitializer.timeProvider.now(), {}, attributes ?? {})
+      .catch((err) => {
+        this.measureInitializer.logger.log('error', 'Failed to track error', err);
+      });
   }
 
   getSessionId(): Promise<string | null> {

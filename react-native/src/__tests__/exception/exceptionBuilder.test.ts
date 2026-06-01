@@ -58,7 +58,7 @@ describe("buildExceptionPayload", () => {
     expect(frame?.file_name).toBe("app:///index.android.bundle");
   });
 
-  it("marks [native code] frames as not in_app", () => {
+  it("marks all frames as in_app", () => {
     const err = new Error("crash");
     err.stack = `Error: crash
     at nativeFunc ([native code]:1:1)`;
@@ -66,7 +66,7 @@ describe("buildExceptionPayload", () => {
     const payload = buildExceptionPayload(err, 'fatal');
     const frame = payload.exceptions[0]?.frames?.[0];
 
-    expect(frame?.in_app).toBe(false);
+    expect(frame?.in_app).toBe(true);
   });
 
   it("increments col_num by 1 for Hermes bytecode frames (line === 1)", () => {

@@ -11,6 +11,8 @@ import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.DefaultConfig
 import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.exceptions.ExceptionFramework
+import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.exporter.Exporter
 import sh.measure.android.logger.LogLevel
@@ -323,6 +325,11 @@ internal class SignalProcessorImpl(
         }
         val id = idProvider.uuid()
         val resolvedSessionId = sessionId ?: sessionManager.getSessionId()
+        val resolvedIsSampled = if (type == EventType.EXCEPTION &&
+            data is ExceptionData &&
+            data.framework == ExceptionFramework.JS &&
+            data.severity == ExceptionSeverity.Handled
+        ) true else isSampled
         return Event(
             id = id,
             sessionId = resolvedSessionId,
@@ -333,7 +340,7 @@ internal class SignalProcessorImpl(
             attributes = attributes,
             userTriggered = userTriggered,
             userDefinedAttributes = userDefinedAttributes,
-            isSampled = applyEventSampling(type, resolvedSessionId, isSampled),
+            isSampled = applyEventSampling(type, resolvedSessionId, resolvedIsSampled),
         )
     }
 
