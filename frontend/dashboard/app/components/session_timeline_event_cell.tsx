@@ -92,9 +92,14 @@ export default function SessionTimelineEventCell({
       eventType === "gesture_long_click" ||
       eventType === "gesture_scroll"
     ) {
-      return eventDetails.target.includes(".")
+      const target = eventDetails.target.includes(".")
         ? eventDetails.target.split(".").pop()!
         : eventDetails.target;
+      const text =
+        eventDetails.label ||
+        eventDetails.semantic_label ||
+        eventDetails.target_id;
+      return text ? `${target}: ${text}` : target;
     }
     if (eventType === "http") {
       return `${eventDetails.method.toUpperCase()} ${eventDetails.status_code} ${eventDetails.url}`;

@@ -168,6 +168,36 @@ class LayoutInspectorTest {
         assertEquals(ElementType.Container, node!!.type)
     }
 
+    @Test
+    fun `clickable TextView consumer captures its text as the label`() {
+        val activity = controller.get()
+        val textView = TextView(activity).apply {
+            text = "Send"
+            isClickable = true
+        }
+        initActivityWithView(textView)
+
+        val gesture = clickGesture(0f, 0f)
+        val event = motionEvent(0f, 0f)
+        val snapshot = LayoutInspector.capture(
+            activity.window.decorView.rootView,
+            gesture,
+            event,
+        )
+        val node = findNode(snapshot.root, "TextView")
+        assertNotNull(node)
+        assertTrue(node!!.highlighted)
+        assertEquals("Send", node.text)
+
+        val consumer = snapshot.findGestureConsumer()
+        assertNotNull(consumer)
+        assertEquals(
+            "Send",
+            consumer!!.collectLabel(),
+        )
+        event.recycle()
+    }
+
     // --- View: visibility filtering ---
 
     @Test

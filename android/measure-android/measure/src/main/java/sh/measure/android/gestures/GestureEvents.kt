@@ -5,12 +5,16 @@ package sh.measure.android.gestures
 import android.annotation.SuppressLint
 import kotlinx.serialization.Serializable
 import sh.measure.android.layoutinspector.LayoutElement
+import sh.measure.android.layoutinspector.collectLabel
+import sh.measure.android.layoutinspector.collectSemanticLabel
 
 @SuppressLint("UnsafeOptInUsageError")
 @Serializable
 internal data class ClickData(
     val target: String,
     val target_id: String?,
+    val label: String? = null,
+    val semantic_label: String? = null,
     val width: Int?,
     val height: Int?,
     val x: Float,
@@ -25,6 +29,8 @@ internal data class ClickData(
         ): ClickData = ClickData(
             target = layoutElement.label,
             target_id = layoutElement.id,
+            label = layoutElement.collectLabel(),
+            semantic_label = layoutElement.collectSemanticLabel(),
             width = layoutElement.width,
             height = layoutElement.height,
             x = gesture.x,
@@ -40,6 +46,8 @@ internal data class ClickData(
 internal data class LongClickData(
     val target: String,
     val target_id: String?,
+    val label: String? = null,
+    val semantic_label: String? = null,
     val width: Int?,
     val height: Int?,
     val x: Float,
@@ -54,6 +62,8 @@ internal data class LongClickData(
         ): LongClickData = LongClickData(
             target = layoutElement.label,
             target_id = layoutElement.id,
+            label = layoutElement.collectLabel(),
+            semantic_label = layoutElement.collectSemanticLabel(),
             width = layoutElement.width,
             height = layoutElement.height,
             x = gesture.x,

@@ -10,17 +10,19 @@ import (
 // GestureClick represents click events suitable
 // for session timeline.
 type GestureClick struct {
-	EventType   string              `json:"event_type"`
-	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
-	ThreadName  string              `json:"thread_name"`
-	Target      string              `json:"target"`
-	TargetID    string              `json:"target_id"`
-	Width       uint16              `json:"width"`
-	Height      uint16              `json:"height"`
-	X           float32             `json:"x"`
-	Y           float32             `json:"y"`
-	Timestamp   time.Time           `json:"timestamp"`
-	Attachments []event.Attachment  `json:"attachments"`
+	EventType     string              `json:"event_type"`
+	UDAttribute   *udattr.UDAttribute `json:"user_defined_attribute"`
+	ThreadName    string              `json:"thread_name"`
+	Target        string              `json:"target"`
+	TargetID      string              `json:"target_id"`
+	Label         string              `json:"label"`
+	SemanticLabel string              `json:"semantic_label"`
+	Width         uint16              `json:"width"`
+	Height        uint16              `json:"height"`
+	X             float32             `json:"x"`
+	Y             float32             `json:"y"`
+	Timestamp     time.Time           `json:"timestamp"`
+	Attachments   []event.Attachment  `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread
@@ -38,17 +40,19 @@ func (gc GestureClick) GetTimestamp() time.Time {
 // GestureLongClick represents long press events
 // suitable for session timeline.
 type GestureLongClick struct {
-	EventType   string              `json:"event_type"`
-	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
-	ThreadName  string              `json:"thread_name"`
-	Target      string              `json:"target"`
-	TargetID    string              `json:"target_id"`
-	Width       uint16              `json:"width"`
-	Height      uint16              `json:"height"`
-	X           float32             `json:"x"`
-	Y           float32             `json:"y"`
-	Timestamp   time.Time           `json:"timestamp"`
-	Attachments []event.Attachment  `json:"attachments"`
+	EventType     string              `json:"event_type"`
+	UDAttribute   *udattr.UDAttribute `json:"user_defined_attribute"`
+	ThreadName    string              `json:"thread_name"`
+	Target        string              `json:"target"`
+	TargetID      string              `json:"target_id"`
+	Label         string              `json:"label"`
+	SemanticLabel string              `json:"semantic_label"`
+	Width         uint16              `json:"width"`
+	Height        uint16              `json:"height"`
+	X             float32             `json:"x"`
+	Y             float32             `json:"y"`
+	Timestamp     time.Time           `json:"timestamp"`
+	Attachments   []event.Attachment  `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread
@@ -102,6 +106,8 @@ func ComputeGestureClicks(events []event.EventField) (result []ThreadGrouper) {
 			event.Attribute.ThreadName,
 			event.GestureClick.Target,
 			event.GestureClick.TargetID,
+			event.GestureClick.Label,
+			event.GestureClick.SemanticLabel,
 			event.GestureClick.Width,
 			event.GestureClick.Height,
 			event.GestureClick.X,
@@ -125,6 +131,8 @@ func ComputeGestureLongClicks(events []event.EventField) (result []ThreadGrouper
 			event.Attribute.ThreadName,
 			event.GestureLongClick.Target,
 			event.GestureLongClick.TargetID,
+			event.GestureLongClick.Label,
+			event.GestureLongClick.SemanticLabel,
 			event.GestureLongClick.Width,
 			event.GestureLongClick.Height,
 			event.GestureLongClick.X,

@@ -135,13 +135,15 @@ internal object TestData {
     fun getClickData(
         target: String = "target",
         targetId: String = "target-id",
+        label: String? = "label",
+        semanticLabel: String? = "semantic-label",
         width: Int = 100,
         height: Int = 200,
         x: Float = 50F,
         y: Float = 50F,
         touchDownTime: Long = 987549876L,
         touchUpTime: Long = 234567609L,
-    ): ClickData = ClickData(target, targetId, width, height, x, y, touchDownTime, touchUpTime)
+    ): ClickData = ClickData(target, targetId, label, semanticLabel, width, height, x, y, touchDownTime, touchUpTime)
 
     fun <T> T.toEvent(
         id: String = "event-id",
@@ -169,13 +171,15 @@ internal object TestData {
     fun getLongClickData(
         target: String = "target",
         targetId: String = "target-id",
+        label: String? = "label",
+        semanticLabel: String? = "semantic-label",
         width: Int = 100,
         height: Int = 200,
         x: Float = 50F,
         y: Float = 50F,
         touchDownTime: Long = 987549876L,
         touchUpTime: Long = 234567609L,
-    ): LongClickData = LongClickData(target, targetId, width, height, x, y, touchDownTime, touchUpTime)
+    ): LongClickData = LongClickData(target, targetId, label, semanticLabel, width, height, x, y, touchDownTime, touchUpTime)
 
     fun getScrollData(
         target: String = "target",

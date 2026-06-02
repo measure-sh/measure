@@ -896,16 +896,18 @@ Use the `string` type when sending unstructured or structured logs. Make sure st
 
 Use the `gesture_long_click` body type for longer press and hold gestures.
 
-| Field             | Type    | Optional | Comment                                     |
-| ----------------- | ------- | -------- | ------------------------------------------- |
-| `target`          | string  | Yes      | Class/Instance name of the originating view |
-| `target_id`       | string  | Yes      | Unique identifier for the target            |
-| `touch_down_time` | uint64  | Yes      | System uptime when target was pressed       |
-| `touch_up_time`   | uint64  | Yes      | System uptime when target was released      |
-| `width`           | uint16  | Yes      | Width of the target view in pixels          |
-| `height`          | uint16  | Yes      | Height of the target view in pixels         |
-| `x`               | float32 | No       | X coordinate of the target view             |
-| `y`               | float32 | No       | Y coordinate of the target view             |
+| Field             | Type    | Optional | Comment                                                            |
+| ----------------- | ------- | -------- | ----------------------------------------------------------------- |
+| `target`          | string  | Yes      | Class/Instance name of the originating view                       |
+| `target_id`       | string  | Yes      | Unique identifier for the target                                  |
+| `label`           | string  | Yes      | Visible text of the clicked element, truncated to 32 chars        |
+| `semantic_label`  | string  | Yes      | Accessibility label of the clicked element, truncated to 32 chars |
+| `touch_down_time` | uint64  | Yes      | System uptime when target was pressed                             |
+| `touch_up_time`   | uint64  | Yes      | System uptime when target was released                            |
+| `width`           | uint16  | Yes      | Width of the target view in pixels                                |
+| `height`          | uint16  | Yes      | Height of the target view in pixels                               |
+| `x`               | float32 | No       | X coordinate of the target view                                   |
+| `y`               | float32 | No       | Y coordinate of the target view                                   |
 
 #### **`gesture_scroll`**
 
@@ -927,16 +929,18 @@ Use the `gesture_scroll` body type for scroll events.
 
 Use the `gesture_click` body type for taps or clicks.
 
-| Field             | Type    | Optional | Comment                                         |
-| ----------------- | ------- | -------- | ----------------------------------------------- |
-| `target`          | string  | Yes      | Class/Instance name of the originating view     |
-| `target_id`       | string  | Yes      | Unique identifier for the target                |
-| `touch_down_time` | uint64  | Yes      | System uptime when target was pressed           |
-| `touch_up_time`   | uint64  | Yes      | System uptime when target was released          |
-| `width`           | uint16  | Yes      | Width of the target view in pixels              |
-| `height`          | uint16  | Yes      | Height of the target view in pixels             |
-| `x`               | float32 | No       | X coordinate of the target where click happened |
-| `y`               | float32 | No       | Y coordinate of the target where click happened |
+| Field             | Type    | Optional | Comment                                                           |
+| ----------------- | ------- | -------- | ----------------------------------------------------------------- |
+| `target`          | string  | Yes      | Class/Instance name of the originating view                       |
+| `target_id`       | string  | Yes      | Unique identifier for the target                                  |
+| `label`           | string  | Yes      | Visible text of the clicked element, truncated to 32 chars        |
+| `semantic_label`  | string  | Yes      | Accessibility label of the clicked element, truncated to 32 chars |
+| `touch_down_time` | uint64  | Yes      | System uptime when target was pressed                             |
+| `touch_up_time`   | uint64  | Yes      | System uptime when target was released                            |
+| `width`           | uint16  | Yes      | Width of the target view in pixels                                |
+| `height`          | uint16  | Yes      | Height of the target view in pixels                               |
+| `x`               | float32 | No       | X coordinate of the target where click happened                   |
+| `y`               | float32 | No       | Y coordinate of the target where click happened                   |
 
 #### **`http`**
 

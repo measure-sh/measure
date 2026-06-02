@@ -16,6 +16,8 @@ enum Direction: String, Codable {
 struct ClickData: Codable {
     let target: String?
     let targetId: String?
+    let label: String?
+    let semanticLabel: String?
     let width: UInt16?
     let height: UInt16?
     let x: FloatNumber32
@@ -26,6 +28,8 @@ struct ClickData: Codable {
     enum CodingKeys: String, CodingKey {
         case target
         case targetId = "target_id"
+        case label
+        case semanticLabel = "semantic_label"
         case width
         case height
         case x
@@ -38,6 +42,8 @@ struct ClickData: Codable {
 struct LongClickData: Codable {
     let target: String?
     let targetId: String?
+    let label: String?
+    let semanticLabel: String?
     let width: UInt16?
     let height: UInt16?
     let x: FloatNumber32
@@ -48,6 +54,8 @@ struct LongClickData: Codable {
     enum CodingKeys: String, CodingKey {
         case target
         case targetId = "target_id"
+        case label
+        case semanticLabel = "semantic_label"
         case width
         case height
         case x
