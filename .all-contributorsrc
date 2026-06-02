@@ -301,6 +301,16 @@
       "contributions": [
         "review"
       ]
+    },
+    {
+      "login": "ashyyhere",
+      "name": "Ash",
+      "avatar_url": "https://avatars.githubusercontent.com/u/203688643?v=4",
+      "profile": "https://github.com/ashyyhere",
+      "contributions": [
+        "maintenance",
+        "doc"
+      ]
     }
   ],
   "commitType": "docs"
