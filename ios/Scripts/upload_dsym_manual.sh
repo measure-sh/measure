@@ -3,8 +3,14 @@
 # Checkout the documentation for more details https://github.com/measure-sh/measure/blob/main/docs/features/feature-crash-reporting.md#ios-1.
 
 if [ "$#" -lt 7 ]; then
-  echo "Usage: $0 <path_to_dsym_folder> <api_url> <api_key> <version_name> <version_code> <app_unique_id> <build_size> [custom_headers]"
-  echo "Example: $0 dsym/ https://api.example.com abc123 1.0.0 42 com.example.app 123456 'X-Custom-1: val1|X-Custom-2: val2'"
+  echo "Usage: $0 <path_to_dsym_folder> <api_url> <api_key> <version_name> <version_code> <app_unique_id> <build_size> [options]"
+  echo ""
+  echo "Options:"
+  echo "  --bundle <path>          Path to the JS bundle file (.jsbundle)"
+  echo "  --mapping <path>         Path to the JS source map file (.map)"
+  echo "  --custom-headers <str>   Custom request headers (pipe-separated, e.g. 'X-H1: v1|X-H2: v2')"
+  echo ""
+  echo "Example: $0 dsym/ https://api.example.com abc123 1.0.0 42 com.example.app 123456 --bundle main.jsbundle --mapping main.jsbundle.map"
   exit 1
 fi
 
@@ -15,11 +21,29 @@ VERSION_NAME=$4
 VERSION_CODE=$5
 APP_UNIQUE_ID=$6
 BUILD_SIZE=$7
-RAW_CUSTOM_HEADERS="$8"
 BUILD_TYPE="ipa"
 OS_NAME="ios"
 SCRIPT_DIR=$(pwd)
 TEMP_FILES=()
+
+BUNDLE_PATH=""
+MAPPING_PATH=""
+RAW_CUSTOM_HEADERS=""
+
+# Parse optional named args from position 8 onwards
+shift 7
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --bundle)
+      BUNDLE_PATH="$2"; shift 2 ;;
+    --mapping)
+      MAPPING_PATH="$2"; shift 2 ;;
+    --custom-headers)
+      RAW_CUSTOM_HEADERS="$2"; shift 2 ;;
+    *)
+      echo "Unknown option: $1"; exit 1 ;;
+  esac
+done
 
 check_dependencies() {
   if ! command -v jq &> /dev/null; then
@@ -46,37 +70,80 @@ if [ ! -d "$DSYM_FOLDER" ]; then
   exit 1
 fi
 
-DSYM_TGZ_FILES=()
-DSYM_TGZ_BASENAMES=()
-DSYM_JSON_MAPPINGS="["
+if [ -n "$BUNDLE_PATH" ] && [ ! -f "$BUNDLE_PATH" ]; then
+  echo "Error: Bundle file not found at $BUNDLE_PATH"
+  exit 1
+fi
 
+if [ -n "$MAPPING_PATH" ] && [ ! -f "$MAPPING_PATH" ]; then
+  echo "Error: Mapping file not found at $MAPPING_PATH"
+  exit 1
+fi
+
+# --- Build mappings JSON and tarballs ---
+
+ALL_TGZ_FILES=()
+ALL_TGZ_BASENAMES=()
+JSON_MAPPINGS="["
 INDEX=0
+
+# dSYM tarballs — one per .dSYM directory
 for DSYM_DIR in "$DSYM_FOLDER"/*.dSYM; do
   if [ -d "$DSYM_DIR" ]; then
     TGZ_BASENAME="$(basename "$DSYM_DIR").tgz"
     DSYM_TGZ="$SCRIPT_DIR/$TGZ_BASENAME"
     tar -czf "$DSYM_TGZ" -C "$DSYM_FOLDER" "$(basename "$DSYM_DIR")"
-    
-    DSYM_TGZ_FILES+=("$DSYM_TGZ")
-    DSYM_TGZ_BASENAMES+=("$TGZ_BASENAME")
+
+    ALL_TGZ_FILES+=("$DSYM_TGZ")
+    ALL_TGZ_BASENAMES+=("$TGZ_BASENAME")
     TEMP_FILES+=("$DSYM_TGZ")
 
     if [ "$INDEX" -gt 0 ]; then
-      DSYM_JSON_MAPPINGS="$DSYM_JSON_MAPPINGS,"
+      JSON_MAPPINGS="$JSON_MAPPINGS,"
     fi
-    
-    DSYM_JSON_MAPPINGS="$DSYM_JSON_MAPPINGS {\"type\": \"dsym\", \"filename\": \"$TGZ_BASENAME\"}"
-    
+    JSON_MAPPINGS="$JSON_MAPPINGS {\"type\": \"dsym\", \"filename\": \"$TGZ_BASENAME\"}"
     INDEX=$((INDEX+1))
   fi
 done
 
-if [ "${#DSYM_TGZ_FILES[@]}" -eq 0 ]; then
+if [ "${#ALL_TGZ_FILES[@]}" -eq 0 ]; then
   echo "Error: No dSYM files found in the folder"
   exit 1
 fi
 
-DSYM_JSON_MAPPINGS="$DSYM_JSON_MAPPINGS ]"
+# JS bundle tarball — bundle file only
+if [ -n "$BUNDLE_PATH" ]; then
+  BUNDLE_BASENAME="$(basename "$BUNDLE_PATH")"
+  BUNDLE_TGZ_BASENAME="${BUNDLE_BASENAME}.tgz"
+  BUNDLE_TGZ="$SCRIPT_DIR/$BUNDLE_TGZ_BASENAME"
+  BUNDLE_DIR="$(dirname "$BUNDLE_PATH")"
+  tar -czf "$BUNDLE_TGZ" -C "$BUNDLE_DIR" "$BUNDLE_BASENAME"
+
+  ALL_TGZ_FILES+=("$BUNDLE_TGZ")
+  ALL_TGZ_BASENAMES+=("$BUNDLE_TGZ_BASENAME")
+  TEMP_FILES+=("$BUNDLE_TGZ")
+
+  JSON_MAPPINGS="$JSON_MAPPINGS, {\"type\": \"jsbundle\", \"filename\": \"$BUNDLE_TGZ_BASENAME\"}"
+fi
+
+# JS mapping tarball — mapping file only
+if [ -n "$MAPPING_PATH" ]; then
+  MAPPING_BASENAME="$(basename "$MAPPING_PATH")"
+  MAPPING_TGZ_BASENAME="${MAPPING_BASENAME}.tgz"
+  MAPPING_TGZ="$SCRIPT_DIR/$MAPPING_TGZ_BASENAME"
+  MAPPING_DIR="$(dirname "$MAPPING_PATH")"
+  tar -czf "$MAPPING_TGZ" -C "$MAPPING_DIR" "$MAPPING_BASENAME"
+
+  ALL_TGZ_FILES+=("$MAPPING_TGZ")
+  ALL_TGZ_BASENAMES+=("$MAPPING_TGZ_BASENAME")
+  TEMP_FILES+=("$MAPPING_TGZ")
+
+  JSON_MAPPINGS="$JSON_MAPPINGS, {\"type\": \"jsbundle\", \"filename\": \"$MAPPING_TGZ_BASENAME\"}"
+fi
+
+JSON_MAPPINGS="$JSON_MAPPINGS ]"
+
+# --- Upload build metadata ---
 
 METADATA_FILE=$(mktemp)
 TEMP_FILES+=("$METADATA_FILE")
@@ -89,7 +156,7 @@ JSON_PAYLOAD=$(cat <<-END_JSON
   "build_type": "$BUILD_TYPE",
   "app_unique_id": "$APP_UNIQUE_ID",
   "os_name": "$OS_NAME",
-  "mappings": $DSYM_JSON_MAPPINGS
+  "mappings": $JSON_MAPPINGS
 }
 END_JSON
 )
@@ -139,20 +206,22 @@ case "$HTTP_STATUS_CODE" in
     ;;
 esac
 
+# --- Upload all files via pre-signed URLs ---
+
 UPLOAD_SUCCESS_FLAG=$(mktemp)
 TEMP_FILES+=("$UPLOAD_SUCCESS_FLAG")
 echo "success" > "$UPLOAD_SUCCESS_FLAG"
 
 echo ""
-echo "Uploading dSYM files..."
+echo "Uploading files..."
 MAX_ATTEMPTS=3
 
 echo "$HTTP_RESPONSE_BODY" | jq -c '.mappings[]' | \
 while IFS= read -r URL_OBJECT; do
-    
+
     SIGNED_URL=$(echo "$URL_OBJECT" | jq -r '.upload_url')
     EXPECTED_FILENAME=$(echo "$URL_OBJECT" | jq -r '.filename')
-    
+
     UPLOAD_HEADERS_CURL=""
     HEADER_LINES=$(echo "$URL_OBJECT" | jq -r '.headers | to_entries[] | "\(.key): \(.value)"')
 
@@ -161,27 +230,27 @@ while IFS= read -r URL_OBJECT; do
             UPLOAD_HEADERS_CURL+=" --header \"$HEADER_LINE\""
         fi
     done <<< "$HEADER_LINES"
-    
+
     if [ -z "$SIGNED_URL" ] || [ -z "$EXPECTED_FILENAME" ]; then
         echo "[ERROR]: Failed to read response from server. Stack traces will not be symbolicated."
         echo "failure" > "$UPLOAD_SUCCESS_FLAG"
         break
     fi
-    
-    DSYM_TGZ_PATH=""
-    for (( j=0; j<${#DSYM_TGZ_BASENAMES[@]}; j++ )); do
-        if [ "${DSYM_TGZ_BASENAMES[$j]}" == "$EXPECTED_FILENAME" ]; then
-            DSYM_TGZ_PATH="${DSYM_TGZ_FILES[$j]}"
+
+    TGZ_PATH=""
+    for (( j=0; j<${#ALL_TGZ_BASENAMES[@]}; j++ )); do
+        if [ "${ALL_TGZ_BASENAMES[$j]}" == "$EXPECTED_FILENAME" ]; then
+            TGZ_PATH="${ALL_TGZ_FILES[$j]}"
             break
         fi
     done
 
-    if [ -z "$DSYM_TGZ_PATH" ]; then
-        echo "[ERROR]: Failed to upload dSYM files, no file found with name: $EXPECTED_FILENAME, Stack traces will not be symbolicated."
+    if [ -z "$TGZ_PATH" ]; then
+        echo "[ERROR]: No local file found for $EXPECTED_FILENAME. Stack traces will not be symbolicated."
         echo "failure" > "$UPLOAD_SUCCESS_FLAG"
         continue
     fi
-    
+
     UPLOAD_ATTEMPT_SUCCESS=false
     FILE_UPLOAD_COMMAND="curl --request PUT \
         --url \"$SIGNED_URL\" \
@@ -189,17 +258,17 @@ while IFS= read -r URL_OBJECT; do
         --write-out '%{http_code}' \
         --silent \
         --output /dev/null \
-        --data-binary \"@$DSYM_TGZ_PATH\""
+        --data-binary \"@$TGZ_PATH\""
 
     for ATTEMPT in $(seq 1 $MAX_ATTEMPTS); do
         echo "  Attempt $ATTEMPT/$MAX_ATTEMPTS: Uploading $EXPECTED_FILENAME..."
-        
+
         FILE_UPLOAD_STATUS=$(eval "$FILE_UPLOAD_COMMAND")
-        
+
         if [[ "$FILE_UPLOAD_STATUS" -ge 200 && "$FILE_UPLOAD_STATUS" -le 299 ]]; then
             echo "  [SUCCESS]: $EXPECTED_FILENAME uploaded on attempt $ATTEMPT. Status: $FILE_UPLOAD_STATUS"
             UPLOAD_ATTEMPT_SUCCESS=true
-            break # Success, move to the next file
+            break
         else
             if [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
                 sleep 1
@@ -219,7 +288,7 @@ FINAL_STATUS=$(cat "$UPLOAD_SUCCESS_FLAG")
 
 if [ "$FINAL_STATUS" == "success" ]; then
     echo ""
-    echo "✅ Successfully uploaded dSYM files to Measure."
+    echo "✅ Successfully uploaded files to Measure."
 else
     echo ""
     echo "❌ Failed to upload one or more files. Stack traces will not be symbolicated."

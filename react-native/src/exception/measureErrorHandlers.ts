@@ -45,6 +45,11 @@ async function captureException(error: unknown, isFatal: boolean, timeProvider: 
     const severity = isFatal ? 'fatal' : 'unhandled';
     const exceptionPayload = buildExceptionPayload(error, severity);
 
+    if (error instanceof Error && error.stack) {
+      logger.log("debug", `[ErrorHandler] Raw stacktrace:\n${error.stack}`);
+    }
+    logger.log("debug", `[ErrorHandler] Exception payload:\n${JSON.stringify(exceptionPayload, null, 2)}`);
+
     logger.log(
       isFatal ? "fatal" : "error",
       isFatal ? "Fatal exception" : "Exception",

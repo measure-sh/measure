@@ -20,6 +20,10 @@ function rewriteFilename(filename: string | undefined): string | undefined {
   let rewritten = filename
     .replace(/^file:\/\//, '')
     .replace(/^address at /, '')
+    // Strip http(s)://host:port/ prefix from JSC dev-server URLs
+    .replace(/^https?:\/\/[^/]*\//, '/')
+    // Strip query string left over from dev-server URLs
+    .replace(/\?[^/]*$/, '')
     // Strip the native app container path up to and including .app / CodePush dir
     .replace(/^.*\/[^.]+(\.app|CodePush|.*(?=\/))/, '');
 
