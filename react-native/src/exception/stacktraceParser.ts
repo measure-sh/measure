@@ -11,64 +11,80 @@ export interface ParsedStacktrace {
   stacktrace: ParsedFrame[];
 }
 
-// V8/Hermes: "  at functionName (file:line:col)"
-const CHROME_REGEX = /^\s*at\s+(.*?)\s+\((.*?):(\d+):(\d+)\)$/;
-// V8/Hermes anonymous: "  at file:line:col"
-const CHROME_ALT_REGEX = /^\s*at\s+(.*?):(\d+):(\d+)$/;
-// JSC/Safari named: "functionName@url:line:col"
-const JSC_REGEX = /^(.*?)@(.*):(\d+):(\d+)$/;
-// JSC/Safari anonymous: "url:line:col" (no @ separator)
-const JSC_ANON_REGEX = /^([^@\s]+):(\d+):(\d+)$/;
+/**
+ * Extract trailing `:line:col` from a string using lastIndexOf.
+ * O(n), no regex backtracking.
+ */
+function extractTrailingLineCol(
+  s: string
+): { prefix: string; line: number; col: number } | null {
+  const colSep = s.lastIndexOf(':');
+  if (colSep < 1) return null;
+  const col = parseInt(s.slice(colSep + 1), 10);
+  if (!Number.isFinite(col)) return null;
+
+  const lineSep = s.lastIndexOf(':', colSep - 1);
+  if (lineSep < 0) return null;
+  const line = parseInt(s.slice(lineSep + 1, colSep), 10);
+  if (!Number.isFinite(line)) return null;
+
+  return { prefix: s.slice(0, lineSep), line, col };
+}
 
 /**
  * Parse a single stack frame line into a ParsedFrame.
+ * Handles V8/Hermes and JSC/Safari formats without regex backtracking.
  */
-function parseFrameLine(line: string): ParsedFrame | null {
-  let fn: string | undefined;
-  let file: string | undefined;
-  let lineNum: number | undefined;
-  let colNum: number | undefined;
+function parseFrameLine(raw: string): ParsedFrame | null {
+  const line = raw.trim();
 
-  let match = line.match(CHROME_REGEX);
-  if (match) {
-    fn = match[1] || "<anonymous>";
-    file = match[2];
-    lineNum = match[3] ? parseInt(match[3], 10) : undefined;
-    colNum = match[4] ? parseInt(match[4], 10) : undefined;
-  } else {
-    match = line.match(CHROME_ALT_REGEX);
-    if (match) {
-      fn = "<anonymous>";
-      file = match[1];
-      lineNum = match[2] ? parseInt(match[2], 10) : undefined;
-      colNum = match[3] ? parseInt(match[3], 10) : undefined;
-    } else {
-      match = line.match(JSC_REGEX);
-      if (match) {
-        fn = match[1] || "<anonymous>";
-        file = match[2];
-        lineNum = match[3] ? parseInt(match[3], 10) : undefined;
-        colNum = match[4] ? parseInt(match[4], 10) : undefined;
-      } else {
-        match = line.match(JSC_ANON_REGEX);
-        if (match) {
-          fn = "<anonymous>";
-          file = match[1];
-          lineNum = match[2] ? parseInt(match[2], 10) : undefined;
-          colNum = match[3] ? parseInt(match[3], 10) : undefined;
+  // V8/Hermes: "at functionName (file:line:col)" or "at file:line:col"
+  if (line.startsWith('at ')) {
+    const inner = line.slice(3).trim();
+
+    // "at functionName (file:line:col)"
+    if (inner.endsWith(')')) {
+      const parenOpen = inner.lastIndexOf('(');
+      if (parenOpen !== -1) {
+        const fn = inner.slice(0, parenOpen).trim() || '<anonymous>';
+        const loc = inner.slice(parenOpen + 1, -1);
+        const parsed = extractTrailingLineCol(loc);
+        if (parsed) {
+          return { function: fn, file: parsed.prefix, line: parsed.line, column: parsed.col };
         }
       }
     }
+
+    // "at file:line:col"
+    const parsed = extractTrailingLineCol(inner);
+    if (parsed) {
+      return { function: '<anonymous>', file: parsed.prefix, line: parsed.line, column: parsed.col };
+    }
+
+    return null;
   }
 
-  if (!file) return null;
+  // JSC/Safari: "functionName@file:line:col"
+  const atIdx = line.indexOf('@');
+  if (atIdx !== -1) {
+    const fn = line.slice(0, atIdx);
+    const rest = line.slice(atIdx + 1);
+    const parsed = extractTrailingLineCol(rest);
+    if (parsed) {
+      return { function: fn || '<anonymous>', file: parsed.prefix, line: parsed.line, column: parsed.col };
+    }
+    return null;
+  }
 
-  return {
-    function: fn,
-    file,
-    line: lineNum,
-    column: colNum,
-  };
+  // JSC/Safari anonymous: "file:line:col" (no 'at' prefix, no '@', no spaces)
+  if (!line.includes(' ')) {
+    const parsed = extractTrailingLineCol(line);
+    if (parsed && parsed.prefix) {
+      return { function: '<anonymous>', file: parsed.prefix, line: parsed.line, column: parsed.col };
+    }
+  }
+
+  return null;
 }
 
 /**

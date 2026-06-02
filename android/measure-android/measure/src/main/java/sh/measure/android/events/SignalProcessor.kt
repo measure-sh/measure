@@ -329,7 +329,11 @@ internal class SignalProcessorImpl(
             data is ExceptionData &&
             data.framework == ExceptionFramework.JS &&
             data.severity == ExceptionSeverity.Handled
-        ) true else isSampled
+        ) {
+            true
+        } else {
+            isSampled
+        }
         return Event(
             id = id,
             sessionId = resolvedSessionId,
