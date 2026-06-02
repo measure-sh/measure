@@ -35,6 +35,10 @@ type Mapping struct {
 	UploadURL string            `json:"upload_url,omitempty"`
 	ExpiresAt time.Time         `json:"expires_at"`
 	Headers   map[string]string `json:"headers"`
+	// PatchID echoes the build's optional patch_id back to the
+	// caller so the build script can confirm the value persisted
+	// against this mapping row.
+	PatchID uuid.NullUUID `json:"patch_id,omitempty"`
 }
 
 type Build struct {
@@ -45,6 +49,12 @@ type Build struct {
 	Size        int        `json:"build_size" binding:"required,gt=0"`
 	Mappings    []*Mapping `json:"mappings" binding:"dive,required"`
 	AppUniqueID string     `json:"app_unique_id"`
+	// PatchID identifies an Over-The-Air patch (e.g. CodePush
+	// for RN, Shorebird for Flutter). Optional — when absent,
+	// the row's patch_id stays NULL and the build is not
+	// findable via patch_id-based symbolication lookup.
+	// Validated by uuid.NullUUID.UnmarshalJSON only if present.
+	PatchID uuid.NullUUID `json:"patch_id"`
 }
 
 type BuildResponse struct {
@@ -106,6 +116,7 @@ func (b Build) insertNewMappings(ctx context.Context, tx *pgx.Tx) (err error) {
 			Set(`key`, m.Key).
 			Set(`location`, m.Location).
 			Set(`fnv1_hash`, m.Checksum).
+			Set(`patch_id`, b.PatchID).
 			Set(`last_updated`, now)
 	}
 
@@ -144,6 +155,7 @@ func (b *Build) upsert(ctx context.Context, tx *pgx.Tx) (err error) {
 		VersionName: b.VersionName,
 		VersionCode: b.VersionCode,
 		Mappings:    []*Mapping{},
+		PatchID:     b.PatchID,
 	}
 
 	// ensure each new mapping gets
@@ -357,6 +369,7 @@ func PutBuilds(c *gin.Context) {
 
 			mapping.UploadURL = url
 			mapping.ExpiresAt = expiry
+			mapping.PatchID = build.PatchID
 			mapping.Headers = make(map[string]string)
 			mapping.Headers["x-goog-meta-mapping_id"] = mapping.ID.String()
 			mapping.Headers["x-goog-meta-original_file_name"] = mapping.Filename
@@ -407,6 +420,7 @@ func PutBuilds(c *gin.Context) {
 
 		mapping.UploadURL = proxyUrl
 		mapping.ExpiresAt = time.Now().Add(time.Hour)
+		mapping.PatchID = build.PatchID
 		mapping.Headers = make(map[string]string)
 		mapping.Headers["x-amz-meta-mapping_id"] = mapping.ID.String()
 		mapping.Headers["x-amz-meta-original_file_name"] = mapping.Filename

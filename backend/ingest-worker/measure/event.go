@@ -9,7 +9,6 @@ import (
 	"backend/libs/ambient"
 	"backend/libs/chrono"
 	"backend/libs/inet"
-	"backend/libs/objstore"
 	"backend/libs/opsys"
 	"context"
 	"database/sql"
@@ -24,10 +23,7 @@ import (
 
 	"cloud.google.com/go/auth"
 	"cloud.google.com/go/auth/credentials"
-	"cloud.google.com/go/storage"
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -1296,31 +1292,7 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		}
 
 		symblctr := symbolicator.New(origin, osName, sources, sentrySources)
-
-		if eventReq.needsJSSymbolication() {
-			if config.IsCloud() {
-				gcsClient, gcsErr := objstore.CreateGCSClient(ingestCtx)
-				if gcsErr != nil {
-					fmt.Printf("failed to create GCS client for JS symbolication: %v\n", gcsErr)
-				} else {
-					symblctr.PresignURL = func(key string) (string, error) {
-						return objstore.CreateGCSGETPresignedURL(gcsClient, config.SymbolsBucket, key, &storage.SignedURLOptions{
-							Scheme:  storage.SigningSchemeV4,
-							Method:  "GET",
-							Expires: time.Now().Add(time.Hour),
-						})
-					}
-				}
-			} else {
-				s3Client := objstore.CreateS3Client(ingestCtx, config.SymbolsAccessKey, config.SymbolsSecretAccessKey, config.SymbolsBucketRegion, config.AWSEndpoint)
-				symblctr.PresignURL = func(key string) (string, error) {
-					return objstore.CreateS3GETPresignedURL(ingestCtx, s3Client, &s3.GetObjectInput{
-						Bucket: aws.String(config.SymbolsBucket),
-						Key:    aws.String(key),
-					}, s3.WithPresignExpires(time.Hour))
-				}
-			}
-		}
+		symblctr.SymboloaderOrigin = config.SymboloaderOrigin
 
 		_, symbolicationSpan := ingestTracer.Start(ingestCtx, "symbolicate-events")
 		defer symbolicationSpan.End()
@@ -1460,6 +1432,5 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 	trackBatchBytes(eventReq.teamId, eventReq.size)
 
 	ingestBatchAckCount.Add(ctx, 1)
-	fmt.Println("processed batch")
 	return nil
 }

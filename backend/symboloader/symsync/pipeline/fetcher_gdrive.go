@@ -14,11 +14,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"backend/libs/symbol"
 	"github.com/bodgit/sevenzip"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/api/drive/v3"
-
-	"symboloader/symbol"
 )
 
 const (

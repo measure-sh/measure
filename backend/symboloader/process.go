@@ -13,8 +13,9 @@ import (
 	"symboloader/cipher"
 	"symboloader/objstore"
 	"symboloader/server"
-	"symboloader/symbol"
 	"time"
+
+	"backend/libs/symbol"
 
 	"cloud.google.com/go/storage"
 	"github.com/aws/aws-sdk-go-v2/aws"

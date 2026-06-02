@@ -3,10 +3,16 @@ FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/golang:alpine AS bu
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETTYPE
-WORKDIR /go/src/app
+WORKDIR /go/src
 
+# Copy dependency modules first for caching
+COPY --from=libs go.mod go.sum ../libs/
 COPY ["go.mod", "go.sum", "./"]
+
 RUN go mod download
+
+# Copy source
+COPY --from=libs . ../libs/
 COPY . .
 
 RUN --mount=type=cache,target=/go/pkg/mod \

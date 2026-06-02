@@ -286,9 +286,16 @@ func NewRequestNative() *requestNative {
 
 // frameJS represents a frame for JavaScript
 // symbolication, used for React Native.
+//
+// The same struct is used for both the outbound request
+// and the inbound response. On input, Symbolicator ignores
+// `filename` — only `abs_path` drives lookup. On output,
+// Symbolicator populates `filename` from the resolved
+// sourcemap token. Hence the `omitempty` tag — we do not
+// send it on input, but we read it on output.
 type frameJS struct {
 	Function string `json:"function"`
-	Filename string `json:"filename"`
+	Filename string `json:"filename,omitempty"`
 	AbsPath  string `json:"abs_path"`
 	LineNo   int    `json:"lineno"`
 	ColumnNo int    `json:"colno"`
@@ -300,20 +307,43 @@ type stacktraceJS struct {
 	Frames []frameJS `json:"frames"`
 }
 
+// moduleJS binds a frame's abs_path to a debug id so
+// Symbolicator can resolve the sourcemap by debug id
+// instead of relying on URL-based lookup.
+type moduleJS struct {
+	Type     string `json:"type"`
+	CodeFile string `json:"code_file"`
+	DebugID  string `json:"debug_id"`
+}
+
 // requestJS represents the payload sent
 // to Sentry's Symbolicator for JavaScript
 // symbolication, used for React Native.
 type requestJS struct {
-	// Platform defines the platform which
-	// should be 'node'.
+	// Platform defines the platform, must be "node".
 	Platform string `json:"platform"`
-	// Sources is the list of symbol sources
-	// as defined by Sentry Symbolicator.
-	// https://getsentry.github.io/symbolicator/api/
-	Sources []Source `json:"sources"`
+	// Source is the single Sentry-typed source pointing at
+	// Measure's /symbols/js endpoint. /symbolicate-js accepts
+	// a singular source field, not an array.
+	Source SentrySource `json:"source"`
 	// Stacktraces form a list of all frames
 	// that need symbolication.
 	Stacktraces []stacktraceJS `json:"stacktraces"`
+	// Modules binds frame abs_paths to debug ids. Empty
+	// slice is valid; without entries, Symbolicator falls
+	// back to URL-based lookup (gated on Release also being
+	// non-empty).
+	Modules []moduleJS `json:"modules"`
+	// Release is required for Symbolicator's URL-fallback
+	// path: without it, Symbolicator short-circuits and never
+	// queries the /symbols/js endpoint with `?url=` params
+	// (see crates/symbolicator-js/src/lookup.rs query gating).
+	// Measure has no native release concept; we synthesize a
+	// stable value from version_name + version_code so the
+	// gate opens. The /symbols/js endpoint ignores the value
+	// itself — scoping is done via app_id + version query
+	// params on the source URL.
+	Release string `json:"release,omitempty"`
 }
 
 // responseJS represents the payload received
@@ -329,7 +359,7 @@ type responseJS struct {
 func NewRequestJS() *requestJS {
 	return &requestJS{
 		Platform:    "node",
-		Sources:     []Source{},
 		Stacktraces: []stacktraceJS{},
+		Modules:     []moduleJS{},
 	}
 }

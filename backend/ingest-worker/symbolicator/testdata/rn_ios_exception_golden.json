@@ -1,0 +1,145 @@
+[
+  {
+    "type": "exception",
+    "exception_types": [
+      "Error"
+    ],
+    "exception_frames": [
+      [
+        {
+          "class_name": "",
+          "method_name": "simulateUnhandledPromiseRejection",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/App.tsx",
+          "line_num": 165,
+          "col_num": 29
+        },
+        {
+          "class_name": "",
+          "method_name": "_performTransitionSideEffects",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/Pressability/Pressability.js",
+          "line_num": 789,
+          "col_num": 18
+        },
+        {
+          "class_name": "",
+          "method_name": "_receiveSignal",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/Pressability/Pressability.js",
+          "line_num": 726,
+          "col_num": 41
+        },
+        {
+          "class_name": "",
+          "method_name": "responderEventHandlers.onResponderRelease",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/Pressability/Pressability.js",
+          "line_num": 543,
+          "col_num": 28
+        },
+        {
+          "class_name": "",
+          "method_name": "invokeGuardedCallbackImpl",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-prod.js",
+          "line_num": 22,
+          "col_num": 15
+        },
+        {
+          "class_name": "",
+          "method_name": "invokeGuardedCallback",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-prod.js",
+          "line_num": 40,
+          "col_num": 34
+        },
+        {
+          "class_name": "",
+          "method_name": "invokeGuardedCallbackAndCatchFirstError",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-prod.js",
+          "line_num": 53,
+          "col_num": 30
+        },
+        {
+          "class_name": "",
+          "method_name": "executeDispatch",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-prod.js",
+          "line_num": 73,
+          "col_num": 42
+        },
+        {
+          "class_name": "",
+          "method_name": "executeDispatchesAndReleaseTopLevel",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-prod.js",
+          "line_num": 1125,
+          "col_num": 24
+        },
+        {
+          "class_name": "",
+          "method_name": "forEachAccumulated",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-prod.js",
+          "line_num": 361,
+          "col_num": 35
+        },
+        {
+          "class_name": "",
+          "method_name": "batchedUpdates$argument_0",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-prod.js",
+          "line_num": 1160,
+          "col_num": 25
+        },
+        {
+          "class_name": "",
+          "method_name": "batchedUpdatesImpl",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-prod.js",
+          "line_num": 8457,
+          "col_num": 14
+        },
+        {
+          "class_name": "",
+          "method_name": "batchedUpdates",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-prod.js",
+          "line_num": 1106,
+          "col_num": 30
+        },
+        {
+          "class_name": "",
+          "method_name": "_receiveRootNodeIDEvent",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-prod.js",
+          "line_num": 1137,
+          "col_num": 17
+        },
+        {
+          "class_name": "",
+          "method_name": "ReactNativePrivateInterface.RCTEventEmitter.register$argument_0.receiveTouches",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-prod.js",
+          "line_num": 1209,
+          "col_num": 30
+        },
+        {
+          "class_name": "",
+          "method_name": "__callFunction",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+          "line_num": 433,
+          "col_num": 34
+        },
+        {
+          "class_name": "",
+          "method_name": "__guard$argument_0",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+          "line_num": 113,
+          "col_num": 26
+        },
+        {
+          "class_name": "",
+          "method_name": "__guard",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+          "line_num": 368,
+          "col_num": 11
+        },
+        {
+          "class_name": "",
+          "method_name": "callFunctionReturnFlushedQueue",
+          "file_name": "/Users/adwinross/Documents/Workspace/measure/react-native/example/rnExample/node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+          "line_num": 112,
+          "col_num": 17
+        }
+      ]
+    ]
+  }
+]

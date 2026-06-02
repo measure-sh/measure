@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -22,14 +23,14 @@ import (
 // request payload.
 //
 // set to `true` for quick debugging.
-const logRequest = false
+const logRequest = true
 
 // logResponse determines if symbolicator
 // should log the relevant parts of the
 // response payload.
 //
 // set to `true` for quick debugging.
-const logResponse = false
+const logResponse = true
 
 var ErrJVMSymbolicationFailure = errors.New("symbolicator received JVM errors")
 var ErrJSSymbolicationFailure = errors.New("symbolicator received JS errors")
@@ -147,10 +148,11 @@ type Symbolicator struct {
 	// jsSymbolicator maintains state for
 	// a JavaScript/React Native symbolication request.
 	jsSymbolicator *jsSymbolicator
-	// PresignURL generates a pre-signed HTTP GET URL for
-	// a given symbol storage key. Required for JS
-	// symbolication. If nil, JS symbolication is skipped.
-	PresignURL func(key string) (string, error)
+	// SymboloaderOrigin is the origin of the symboloader
+	// service. Symbolicator's /symbolicate-js endpoint
+	// will be pointed at the /symbols/js endpoint hosted
+	// on symboloader. If empty, JS symbolication is skipped.
+	SymboloaderOrigin string
 	// jvmLambdaWorkaround determines if each of the
 	// JVM stacktrace class names should be matched
 	// and replaced during the rewrite stage of
@@ -274,12 +276,13 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 				s.nativeSymbolicator.configureModule(mappings, baseAddr, uuid, arch)
 
 			case event.FrameworkJS:
-				s.jsSymbolicator.ensureRequestInitialized()
-				s.jsSymbolicator.parseExceptions(ev.Exception.Exceptions, i)
-				if configErr := s.jsSymbolicator.configureSources(mappings, s.PresignURL); configErr != nil {
-					fmt.Printf("error configuring JS sources for app %s: %v\n", appId, configErr)
+				if s.SymboloaderOrigin == "" {
 					continue
 				}
+				s.jsSymbolicator.ensureRequestInitialized()
+				s.jsSymbolicator.parseExceptions(ev.Exception.Exceptions, i)
+				s.jsSymbolicator.configureSource(s.SymboloaderOrigin, appId, ev.Attribute.AppVersion, ev.Attribute.AppBuild)
+				s.jsSymbolicator.populateModules(ev)
 			}
 		case event.TypeANR:
 			s.jvmSymbolicator.ensureRequestInitialized()
@@ -963,13 +966,17 @@ func (js *jsSymbolicator) ensureRequestInitialized() {
 
 // parseExceptions extracts exception frames for
 // JS symbolication and populates the stacktraceLUT.
+//
+// Symbolicator's /symbolicate-js endpoint ignores
+// `filename` on input; only `abs_path` drives lookup.
+// The SDK is expected to put a normalized URL form
+// (e.g. "app:///main.jsbundle") in frame.FileName.
 func (js *jsSymbolicator) parseExceptions(exceptions event.ExceptionUnits, index int) {
 	for j, excep := range exceptions {
 		frames := []frameJS{}
 		for k, frame := range excep.Frames {
 			frames = append(frames, frameJS{
 				Function: frame.MethodName,
-				Filename: frame.FileName,
 				AbsPath:  frame.FileName,
 				LineNo:   frame.LineNum,
 				ColumnNo: frame.ColNum,
@@ -982,29 +989,50 @@ func (js *jsSymbolicator) parseExceptions(exceptions event.ExceptionUnits, index
 	}
 }
 
-// configureSources adds an HTTP source for each jsbundle
-// mapping key by generating a pre-signed GET URL.
-// Skips silently if presign is nil.
-func (js *jsSymbolicator) configureSources(mappings map[string]symbol.MappingType, presign func(string) (string, error)) (err error) {
-	if presign == nil {
-		return
-	}
+// configureSource sets the single Sentry-typed source on
+// the JS symbolication request, and the Release field that
+// unlocks Symbolicator's URL-fallback path.
+//
+// The source URL carries Measure-scoping context (app id +
+// version) as query params. Symbolicator preserves these
+// when making the GET request to the /symbols/js endpoint
+// and appends its own `release`, `url`, `debug_id` params
+// on top.
+//
+// Release must be non-empty for Symbolicator to issue URL
+// lookups (see lookup.rs::query_sentry_for_files). The value
+// itself isn't checked against anything; the /symbols/js
+// endpoint ignores it and scopes via app_id + version.
+//
+// The token is a placeholder for now — /symbols/js does not
+// validate it. Real per-app authentication is a follow-up.
+func (js *jsSymbolicator) configureSource(symboloaderOrigin string, appID uuid.UUID, versionName, versionCode string) {
+	q := url.Values{}
+	q.Set("app_id", appID.String())
+	q.Set("version_name", versionName)
+	q.Set("version_code", versionCode)
 
-	for key, mType := range mappings {
-		if mType != symbol.TypeJsBundle {
-			continue
-		}
+	sourceURL := symboloaderOrigin + "/symbols/js?" + q.Encode()
 
-		url, urlErr := presign(key)
-		if urlErr != nil {
-			err = urlErr
-			return
-		}
+	js.request.Source = NewSentrySource(
+		"measure-symboloader",
+		sourceURL,
+		"measure",
+	)
+	js.request.Release = versionName + "+" + versionCode
+}
 
-		js.request.Sources = append(js.request.Sources, NewHTTPSourceJS(key, url))
-	}
-
-	return
+// populateModules emits the modules array that binds
+// frame abs_paths to debug ids. Symbolicator uses these
+// entries to resolve sourcemaps by debug id (the OTA
+// patch_id path on the /symbols/js endpoint).
+//
+// Where on the event payload the patch_id surfaces is
+// pending product/SDK design. Until that lands, this is
+// a no-op and Symbolicator's URL-fallback path runs —
+// scoped by the app_id + version params on the source URL.
+func (js *jsSymbolicator) populateModules(ev event.EventField) {
+	_ = ev
 }
 
 // symbolicate performs symbolication for
