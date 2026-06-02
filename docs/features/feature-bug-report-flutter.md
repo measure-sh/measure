@@ -58,7 +58,8 @@ navigatorState.push(
 
 ### Adding a screenshot
 
-Include a screenshot when opening the bug report widget:
+Include a screenshot when opening the bug report widget. The screenshot is automatically redacted
+based on the [screenshot mask level](configuration-options.md#screenshot-mask-level) configuration.
 
 ```dart
 final navigatorState = Navigator.of(context);

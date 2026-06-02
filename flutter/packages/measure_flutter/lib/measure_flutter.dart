@@ -116,6 +116,7 @@ export 'src/http/http_method.dart';
 export 'src/measure_api.dart';
 export 'src/measure_widget.dart';
 export 'src/navigation/navigator_observer.dart';
+export 'src/screenshot/msr_mask.dart';
 export 'src/tracing/span.dart';
 export 'src/tracing/span_builder.dart';
 export 'src/tracing/span_status.dart';
