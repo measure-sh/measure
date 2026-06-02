@@ -1835,8 +1835,8 @@ func (e Exception) Stacktrace() string {
 		// React Native JS stacktrace syntax
 		//
 		// TypeError: Cannot read property 'foo' of undefined
-		// at render (App.js:42:10)
-		// at ComponentA (ComponentA.js:10:5)
+		//     at render (App.js:42:10)
+		//     at ComponentA (ComponentA.js:10:5)
 		for i, exception := range e.Exceptions {
 			lastException := i == len(e.Exceptions)-1
 			title := makeTitle(exception.Type, exception.Message)
@@ -1846,7 +1846,7 @@ func (e Exception) Stacktrace() string {
 			}
 			for j, frame := range exception.Frames {
 				lastFrame := j == len(exception.Frames)-1
-				b.WriteString(frame.String(FrameworkJS))
+				b.WriteString(JsFramePrefix + frame.String(FrameworkJS))
 				if !lastFrame || !lastException {
 					b.WriteString("\n")
 				}

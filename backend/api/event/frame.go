@@ -13,6 +13,15 @@ import (
 // appears in Android stacktrace frames.
 const FramePrefix = "\tat "
 
+// JsFramePrefix is the indent string that
+// appears before each frame in a standard
+// JavaScript stacktrace. The frame body
+// itself starts with "at " (produced by
+// Frame.String for FrameworkJS), so this
+// constant only contributes the leading
+// whitespace.
+const JsFramePrefix = "    "
+
 // GenericPrefix is the prefix string
 // that appears in Android stacktraces.
 const GenericPrefix = ": "
