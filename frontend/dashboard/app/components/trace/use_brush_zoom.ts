@@ -35,6 +35,10 @@ export function useBrushToZoom(args: {
     if (!waterfall) {
       return;
     }
+    // Bind to the window that owns the element. In the scaled demo preview the
+    // waterfall lives inside an iframe, so its mouse events fire in the iframe's
+    // window, not the host one.
+    const win = waterfall.ownerDocument.defaultView ?? window;
 
     // +6 (resizer handle) + TIMELINE_LEFT_INSET_PX (ml-2) gets us past the
     // dead gutter at the left edge of the timeline cell to where bars start.
@@ -64,8 +68,8 @@ export function useBrushToZoom(args: {
     };
 
     const onUp = (e: MouseEvent) => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      win.removeEventListener("mousemove", onMove);
+      win.removeEventListener("mouseup", onUp);
       const start = downAt;
       downAt = null;
       setStartPx(null);
@@ -100,7 +104,7 @@ export function useBrushToZoom(args: {
         ev.stopPropagation();
         ev.preventDefault();
       };
-      window.addEventListener("click", swallow, { capture: true, once: true });
+      win.addEventListener("click", swallow, { capture: true, once: true });
     };
 
     const onDown = (e: MouseEvent) => {
@@ -115,15 +119,15 @@ export function useBrushToZoom(args: {
       downAt = cursor;
       setStartPx(cursor);
       setCurrentPx(cursor);
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
+      win.addEventListener("mousemove", onMove);
+      win.addEventListener("mouseup", onUp);
     };
 
     waterfall.addEventListener("mousedown", onDown);
     return () => {
       waterfall.removeEventListener("mousedown", onDown);
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      win.removeEventListener("mousemove", onMove);
+      win.removeEventListener("mouseup", onUp);
     };
   }, [
     waterfallRef,

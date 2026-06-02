@@ -171,89 +171,93 @@ const AppHealthPlot: React.FC<AppHealthPlotProps> = ({ demo = false }) => {
         <p className="text-lg font-display text-center p-4">No Data</p>
       )}
       {effectiveStatus === "success" && plot !== null && plot !== undefined && (
-        <ResponsiveLine
-          data={plot}
-          curve="monotoneX"
-          theme={chartTheme}
-          enableArea={true}
-          areaOpacity={0.05}
-          colors={({ id }) => colorMap[id as keyof typeof colorMap] || "#888"}
-          margin={{ top: 40, right: 40, bottom: 80, left: 40 }}
-          xFormat={timeConfig.xFormat}
-          xScale={{
-            format: timeConfig.xScaleFormat,
-            precision: timeConfig.xScalePrecision,
-            type: "time",
-            useUTC: false,
-          }}
-          yScale={{
-            type: "linear",
-            min: 0,
-            max: "auto",
-          }}
-          yFormat="d"
-          axisTop={null}
-          axisRight={null}
-          axisBottom={{
-            tickPadding: 16,
-            format: timeConfig.axisBottomFormat,
-            legendPosition: "middle",
-            tickRotation: 55,
-          }}
-          axisLeft={{
-            tickSize: 1,
-            tickPadding: 5,
-            format: (value) =>
-              Number.isInteger(value) ? numberToKMB(value) : "",
-          }}
-          pointSize={6}
-          pointBorderWidth={1.5}
-          pointColor={
-            theme === "dark" ? "rgba(0, 0, 0, 255)" : "rgba(255, 255, 255, 255)"
-          }
-          pointBorderColor={({ serieId }: { serieId: string }) =>
-            colorMap[serieId as keyof typeof colorMap] || "#888"
-          }
-          pointLabelYOffset={-12}
-          useMesh={true}
-          enableGridX={false}
-          enableGridY={false}
-          enableSlices="x"
-          sliceTooltip={({ slice }) => {
-            const order = ["Sessions", "Crashes", "ANRs"] as const;
-            const pointsById: Record<string, (typeof slice.points)[number]> =
-              Object.fromEntries(slice.points.map((p) => [p.serieId, p]));
-            return (
-              <PlotTooltipShell>
-                <p className="p-2">
-                  Date:{" "}
-                  {formatPlotTooltipDate(
-                    slice.points[0].data.xFormatted.toString(),
-                    plotTimeGroup,
-                  )}
-                </p>
-                {order.map((key) => {
-                  const point = pointsById[key];
-                  if (!point) return null;
-                  return (
-                    <div
-                      className="flex flex-row items-center p-2"
-                      key={point.id}
-                    >
-                      <PlotTooltipSwatch color={colorMap[key]} />
-                      <div className="px-2" />
-                      <p>{labelMap[key]} - </p>
-                      <div className="px-2" />
-                      <p>
-                        {point.data.yFormatted} {labelMap[key]}
-                      </p>
-                    </div>
-                  );
-                })}
-              </PlotTooltipShell>
-            );
-          }}
-        />
+        <div className="size-full">
+          <ResponsiveLine
+            data={plot}
+            curve="monotoneX"
+            theme={chartTheme}
+            enableArea={true}
+            areaOpacity={0.05}
+            colors={({ id }) => colorMap[id as keyof typeof colorMap] || "#888"}
+            margin={{ top: 40, right: 40, bottom: 80, left: 40 }}
+            xFormat={timeConfig.xFormat}
+            xScale={{
+              format: timeConfig.xScaleFormat,
+              precision: timeConfig.xScalePrecision,
+              type: "time",
+              useUTC: false,
+            }}
+            yScale={{
+              type: "linear",
+              min: 0,
+              max: "auto",
+            }}
+            yFormat="d"
+            axisTop={null}
+            axisRight={null}
+            axisBottom={{
+              tickPadding: 16,
+              format: timeConfig.axisBottomFormat,
+              legendPosition: "middle",
+              tickRotation: 55,
+            }}
+            axisLeft={{
+              tickSize: 1,
+              tickPadding: 5,
+              format: (value) =>
+                Number.isInteger(value) ? numberToKMB(value) : "",
+            }}
+            pointSize={6}
+            pointBorderWidth={1.5}
+            pointColor={
+              theme === "dark"
+                ? "rgba(0, 0, 0, 255)"
+                : "rgba(255, 255, 255, 255)"
+            }
+            pointBorderColor={({ seriesId }: { seriesId: string }) =>
+              colorMap[seriesId as keyof typeof colorMap] || "#888"
+            }
+            pointLabelYOffset={-12}
+            useMesh={true}
+            enableGridX={false}
+            enableGridY={false}
+            enableSlices="x"
+            sliceTooltip={({ slice }) => {
+              const order = ["Sessions", "Crashes", "ANRs"] as const;
+              const pointsById: Record<string, (typeof slice.points)[number]> =
+                Object.fromEntries(slice.points.map((p) => [p.seriesId, p]));
+              return (
+                <PlotTooltipShell>
+                  <p className="p-2">
+                    Date:{" "}
+                    {formatPlotTooltipDate(
+                      slice.points[0].data.xFormatted.toString(),
+                      plotTimeGroup,
+                    )}
+                  </p>
+                  {order.map((key) => {
+                    const point = pointsById[key];
+                    if (!point) return null;
+                    return (
+                      <div
+                        className="flex flex-row items-center p-2"
+                        key={point.id}
+                      >
+                        <PlotTooltipSwatch color={colorMap[key]} />
+                        <div className="px-2" />
+                        <p>{labelMap[key]} - </p>
+                        <div className="px-2" />
+                        <p>
+                          {point.data.yFormatted} {labelMap[key]}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </PlotTooltipShell>
+              );
+            }}
+          />
+        </div>
       )}
     </div>
   );

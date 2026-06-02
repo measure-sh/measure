@@ -138,14 +138,14 @@ describe("NetworkEndpointStatusCodesPlot", () => {
         points: [
           {
             id: "p1",
-            serieColor: "#e8c1a0",
-            serieId: "200",
+            seriesColor: "#e8c1a0",
+            seriesId: "200",
             data: { xFormatted: "2024-01-01", y: 9, total_count: 10 },
           },
           {
             id: "p2",
-            serieColor: "#f47560",
-            serieId: "500",
+            seriesColor: "#f47560",
+            seriesId: "500",
             data: { xFormatted: "2024-01-01", y: 1, total_count: 10 },
           },
         ],

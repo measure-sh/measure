@@ -11,6 +11,7 @@
  * In tests, isBillingEnabled() returns false by default, so billing section
  * is NOT rendered. Billing store actions are tested directly.
  */
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
   afterEach,
@@ -117,7 +118,9 @@ function renderWithProviders(ui: React.ReactElement) {
 // ====================================================================
 describe("Usage Page (MSW integration)", () => {
   async function renderAndWaitForData() {
-    renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Usage params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(screen.getByTestId("nivo-pie-chart")).toBeTruthy();
@@ -167,7 +170,9 @@ describe("Usage Page (MSW integration)", () => {
           return HttpResponse.json(makeUsageFixture());
         }),
       );
-      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Usage params={promiseParams({ teamId: "test-team" })} />,
+      );
       expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy();
       expect(screen.queryByTestId("nivo-pie-chart")).toBeNull();
     });
@@ -178,7 +183,9 @@ describe("Usage Page (MSW integration)", () => {
           return new HttpResponse(null, { status: 500 });
         }),
       );
-      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Usage params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText(/Error fetching usage data/)).toBeTruthy();
@@ -193,7 +200,9 @@ describe("Usage Page (MSW integration)", () => {
           return new HttpResponse(null, { status: 404 });
         }),
       );
-      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Usage params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(
@@ -339,7 +348,9 @@ describe("Usage Page (MSW integration)", () => {
 // ====================================================================
 describe("Usage — billing section hidden", () => {
   it("does not render billing section when isBillingEnabled is false", async () => {
-    renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Usage params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(screen.getByTestId("nivo-pie-chart")).toBeTruthy();
@@ -369,7 +380,9 @@ describe("Usage — billing enabled", () => {
           return HttpResponse.json(makeBillingInfoFixture({ plan: "free" }));
         }),
       );
-      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Usage params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Billing")).toBeTruthy();
@@ -420,7 +433,9 @@ describe("Usage — billing enabled", () => {
         ),
       );
 
-      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Usage params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Upgrade to Pro")).toBeTruthy();
@@ -474,7 +489,9 @@ describe("Usage — billing enabled", () => {
           return HttpResponse.json(makeBillingInfoFixture({ plan: "pro" }));
         }),
       );
-      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Usage params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Billing")).toBeTruthy();
@@ -508,7 +525,9 @@ describe("Usage — billing enabled", () => {
         ),
       );
 
-      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Usage params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Downgrade to Free")).toBeTruthy();
@@ -559,7 +578,9 @@ describe("Usage — billing enabled", () => {
           );
         }),
       );
-      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Usage params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Undo Cancellation")).toBeTruthy();
@@ -596,7 +617,9 @@ describe("Usage — billing enabled", () => {
         ),
       );
 
-      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Usage params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Undo Cancellation")).toBeTruthy();
@@ -635,7 +658,9 @@ describe("Usage — billing enabled", () => {
         }),
       );
 
-      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Usage params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Downgrade to Free")).toBeTruthy();
@@ -671,7 +696,9 @@ describe("Usage — billing enabled", () => {
         }),
       );
 
-      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Usage params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Downgrade to Free")).toBeTruthy();
@@ -727,7 +754,9 @@ describe("Usage — billing enabled", () => {
         }),
       );
 
-      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Usage params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("ENTERPRISE")).toBeTruthy();
@@ -776,7 +805,9 @@ describe("Usage — billing enabled", () => {
         }),
       );
 
-      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Usage params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("ENTERPRISE")).toBeTruthy();
@@ -822,7 +853,9 @@ describe("Usage — billing enabled", () => {
         },
       });
 
-      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Usage params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Manage Billing")).toBeTruthy();
@@ -870,7 +903,9 @@ describe("Usage — billing enabled", () => {
         }),
       );
 
-      renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Usage params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("FREE")).toBeTruthy();
@@ -907,7 +942,9 @@ describe("Usage — auth failure", () => {
         return new HttpResponse(null, { status: 401 });
       }),
     );
-    renderWithProviders(<Usage params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Usage params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(refreshAttempted).toBe(true);

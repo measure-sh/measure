@@ -40,7 +40,7 @@ import { Progress } from "@/app/components/progress";
 import { toastNegative, toastPositive } from "@/app/utils/use_toast";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 type AppMonthlyUsage = {
   id: string;
@@ -105,7 +105,8 @@ function parseUsageForMonth(usage: any[], month: string): AppMonthlyUsage[] {
   return result;
 }
 
-export default function Usage({ params }: { params: { teamId: string } }) {
+export default function Usage(props: { params: Promise<{ teamId: string }> }) {
+  const params = use(props.params);
   const { theme } = useTheme();
   const chartColors = useChartColors();
 
@@ -150,6 +151,18 @@ export default function Usage({ params }: { params: { teamId: string } }) {
 
   // Derived data from usage
   const months = usageData ? parseMonths(usageData) : [];
+
+  // Pin the selected month to the latest available month when usage data first
+  // loads, so a later refetch that introduces a newer month doesn't move the
+  // selection out from under the user.
+  const [prevUsageData, setPrevUsageData] = useState(usageData);
+  if (usageData !== prevUsageData) {
+    setPrevUsageData(usageData);
+    if (!selectedMonth && months.length > 0) {
+      setSelectedMonth(months[months.length - 1]);
+    }
+  }
+
   const effectiveMonth =
     selectedMonth ??
     (months.length > 0 ? months[months.length - 1] : undefined);
@@ -157,13 +170,6 @@ export default function Usage({ params }: { params: { teamId: string } }) {
     usageData && effectiveMonth
       ? parseUsageForMonth(usageData, effectiveMonth)
       : [];
-
-  // Set initial month when usage data loads
-  useEffect(() => {
-    if (usageData && !selectedMonth && months.length > 0) {
-      setSelectedMonth(months[months.length - 1]);
-    }
-  }, [usageData]);
 
   // Handle success/cancel from Autumn-driven checkout redirect
   useEffect(() => {
@@ -186,18 +192,18 @@ export default function Usage({ params }: { params: { teamId: string } }) {
   }, []);
 
   // Stop polling once Autumn confirms Pro.
-  useEffect(() => {
-    if (awaitingProConfirmation && billingInfo?.plan === "pro") {
-      setAwaitingProConfirmation(false);
-    }
-  }, [billingInfo, awaitingProConfirmation]);
+  if (awaitingProConfirmation && billingInfo?.plan === "pro") {
+    setAwaitingProConfirmation(false);
+  }
 
   const bytesGranted = billingInfo?.bytes_granted ?? 0;
   const bytesUsed = billingInfo?.bytes_used ?? 0;
+  // Capture "now" once at mount.
+  const [now] = useState(() => Date.now());
   const cancellationScheduled =
     billingInfo?.plan === "pro" &&
     (billingInfo?.canceled_at ?? 0) > 0 &&
-    (billingInfo?.current_period_end ?? 0) * 1000 > Date.now();
+    (billingInfo?.current_period_end ?? 0) * 1000 > now;
   const freeUsagePercent =
     billingInfo?.plan === "free" && bytesGranted > 0
       ? Math.min(

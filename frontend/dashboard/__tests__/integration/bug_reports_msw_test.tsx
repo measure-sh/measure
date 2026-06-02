@@ -13,6 +13,7 @@
  *   - PATCH endpoint for status toggle
  *   - user_defined_attribute rendered as pills
  */
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
   afterEach,
@@ -147,7 +148,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
 
   async function renderAndWaitForData() {
     renderWithProviders(
-      <BugReportsOverview params={{ teamId: "test-team" }} />,
+      <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
     );
     await waitFor(
       () => {
@@ -245,7 +246,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
       );
 
       renderWithProviders(
-        <BugReportsOverview params={{ teamId: "test-team" }} />,
+        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -265,7 +266,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
       );
 
       renderWithProviders(
-        <BugReportsOverview params={{ teamId: "test-team" }} />,
+        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -283,7 +284,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
       );
 
       renderWithProviders(
-        <BugReportsOverview params={{ teamId: "test-team" }} />,
+        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -313,7 +314,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
       );
 
       renderWithProviders(
-        <BugReportsOverview params={{ teamId: "test-team" }} />,
+        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -359,7 +360,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
         }),
       );
       renderWithProviders(
-        <BugReportsOverview params={{ teamId: "test-team" }} />,
+        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -392,7 +393,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
         }),
       );
       renderWithProviders(
-        <BugReportsOverview params={{ teamId: "test-team" }} />,
+        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -433,7 +434,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
         }),
       );
       renderWithProviders(
-        <BugReportsOverview params={{ teamId: "test-team" }} />,
+        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -598,7 +599,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
 
       mockSearchParams.set("po", "5");
       renderWithProviders(
-        <BugReportsOverview params={{ teamId: "test-team" }} />,
+        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -907,7 +908,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
       );
 
       renderWithProviders(
-        <BugReportsOverview params={{ teamId: "test-team" }} />,
+        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -1175,7 +1176,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
       );
 
       renderWithProviders(
-        <BugReportsOverview params={{ teamId: "test-team" }} />,
+        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -1207,7 +1208,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
       );
 
       renderWithProviders(
-        <BugReportsOverview params={{ teamId: "test-team" }} />,
+        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -1281,7 +1282,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
 
     it("re-render still shows plot data", async () => {
       const { unmount } = renderWithProviders(
-        <BugReportsOverview params={{ teamId: "test-team" }} />,
+        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -1292,7 +1293,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
 
       unmount();
       renderWithProviders(
-        <BugReportsOverview params={{ teamId: "test-team" }} />,
+        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -1329,7 +1330,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
 
     it("re-render still shows data", async () => {
       const { unmount } = renderWithProviders(
-        <BugReportsOverview params={{ teamId: "test-team" }} />,
+        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -1342,7 +1343,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
 
       unmount();
       renderWithProviders(
-        <BugReportsOverview params={{ teamId: "test-team" }} />,
+        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -1404,7 +1405,7 @@ describe("Bug Reports — auth failure", () => {
     );
 
     renderWithProviders(
-      <BugReportsOverview params={{ teamId: "test-team" }} />,
+      <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
     );
     await waitFor(
       () => {
@@ -2087,7 +2088,9 @@ describe("Bug reports — team switch to no-apps team", () => {
   it("switching from team with apps to team with no apps shows NoApps after store reset", async () => {
     // Phase 1: render with team that has apps — fully load
     const { unmount } = renderWithProviders(
-      <BugReportsOverview params={{ teamId: "team-with-apps" }} />,
+      <BugReportsOverview
+        params={promiseParams({ teamId: "team-with-apps" })}
+      />,
     );
 
     await waitFor(
@@ -2112,7 +2115,7 @@ describe("Bug reports — team switch to no-apps team", () => {
     unmount();
 
     renderWithProviders(
-      <BugReportsOverview params={{ teamId: "team-no-apps" }} />,
+      <BugReportsOverview params={promiseParams({ teamId: "team-no-apps" })} />,
     );
 
     // Wait for NoApps message to appear

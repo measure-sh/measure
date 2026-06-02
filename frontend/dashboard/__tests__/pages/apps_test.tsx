@@ -1,3 +1,4 @@
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import Apps from "@/app/[teamId]/apps/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
@@ -501,7 +502,7 @@ const defaultLoadedAppsState = {
 
 const renderPage = async () => {
   await act(async () => {
-    render(<Apps params={{ teamId: "team-1" }} />);
+    render(<Apps params={promiseParams({ teamId: "team-1" })} />);
     await Promise.resolve();
   });
 };

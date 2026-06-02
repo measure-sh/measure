@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { isValidElement, ReactNode } from "react";
 import { Button } from "./button";
 import {
   Dialog,
@@ -42,7 +42,13 @@ const DangerConfirmationDialog: React.FC<DangerConfirmationDialogProps> = ({
             Are you sure?
           </DialogTitle>
         </DialogHeader>
-        <DialogDescription>{body}</DialogDescription>
+        {/* Body may be a string or the caller's own block element (a div/ul or
+            <p>). Radix renders DialogDescription as a <p>, which can't legally
+            contain block elements, so when given an element adopt it as the
+            description (asChild) rather than nesting it inside the <p>. */}
+        <DialogDescription asChild={isValidElement(body)}>
+          {body}
+        </DialogDescription>
         <DialogFooter>
           <Button variant="destructive" onClick={onAffirmativeAction}>
             {affirmativeText}

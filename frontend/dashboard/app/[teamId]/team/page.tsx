@@ -44,13 +44,12 @@ import { toastNegative, toastPositive } from "@/app/utils/use_toast";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 
-export default function TeamOverview({
-  params,
-}: {
-  params: { teamId: string };
+export default function TeamOverview(props: {
+  params: Promise<{ teamId: string }>;
 }) {
+  const params = use(props.params);
   const { data: teams, status: teamsStatus } = useTeamsQuery();
   const team = teams?.find((t) => t.id === params.teamId) ?? null;
 
@@ -547,7 +546,7 @@ export default function TeamOverview({
               type="email"
               placeholder="Enter email"
               className="w-96 font-body"
-              onInput={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setInviteMemberEmail(e.target.value)
               }
               value={inviteMemberEmail}

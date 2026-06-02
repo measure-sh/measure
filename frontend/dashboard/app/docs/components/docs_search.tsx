@@ -3,7 +3,7 @@
 import { Command } from "cmdk";
 import { FileText, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface SearchEntry {
   slug: string;
@@ -83,7 +83,6 @@ export default function DocsSearch({
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [entries, setEntries] = useState<SearchEntry[]>([]);
-  const [results, setResults] = useState<ScoredResult[]>([]);
   const loaded = useRef(false);
 
   // Load search index on first open
@@ -97,48 +96,38 @@ export default function DocsSearch({
     }
   }, [open]);
 
-  // Simple client-side search
-  const search = useCallback(
-    (q: string) => {
-      if (!q.trim()) {
-        setResults([]);
-        return;
-      }
+  // Client-side search results derived from the query and loaded index.
+  const results = useMemo<ScoredResult[]>(() => {
+    if (!query.trim()) {
+      return [];
+    }
 
-      const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
-      const scored = entries
-        .map((entry) => {
-          const titleLower = entry.title.toLowerCase();
-          const headingsLower = entry.headings.join(" ").toLowerCase();
-          const contentLower = entry.content.toLowerCase();
+    const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    return entries
+      .map((entry) => {
+        const titleLower = entry.title.toLowerCase();
+        const headingsLower = entry.headings.join(" ").toLowerCase();
+        const contentLower = entry.content.toLowerCase();
 
-          let score = 0;
-          for (const term of terms) {
-            if (titleLower.includes(term)) {
-              score += 10;
-            }
-            if (headingsLower.includes(term)) {
-              score += 5;
-            }
-            if (contentLower.includes(term)) {
-              score += 1;
-            }
+        let score = 0;
+        for (const term of terms) {
+          if (titleLower.includes(term)) {
+            score += 10;
           }
-          const snippet = getMatchSnippet(entry.content, terms);
-          return { entry, score, snippet };
-        })
-        .filter((r) => r.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 10);
-
-      setResults(scored);
-    },
-    [entries],
-  );
-
-  useEffect(() => {
-    search(query);
-  }, [query, search]);
+          if (headingsLower.includes(term)) {
+            score += 5;
+          }
+          if (contentLower.includes(term)) {
+            score += 1;
+          }
+        }
+        const snippet = getMatchSnippet(entry.content, terms);
+        return { entry, score, snippet };
+      })
+      .filter((r) => r.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+  }, [query, entries]);
 
   // Cmd+K keyboard shortcut
   useEffect(() => {

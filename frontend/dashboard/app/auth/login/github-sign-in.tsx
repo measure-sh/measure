@@ -17,7 +17,7 @@ export default function GitHubSignIn({
   const doGitHubLogin = async () => {
     const { origin } = new URL(window.location.href);
     const { url, error } = await signInWithGitHub({
-      clientId: process?.env?.NEXT_PUBLIC_OAUTH_GITHUB_KEY,
+      clientId: process.env.NEXT_PUBLIC_OAUTH_GITHUB_KEY,
       options: {
         redirectTo: `${origin}/auth/callback/github`,
         next: "",

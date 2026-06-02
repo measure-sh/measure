@@ -1,11 +1,13 @@
-"use client"
+"use client";
 
-import UserJourneys from "@/app/components/user_journeys"
+import UserJourneys from "@/app/components/user_journeys";
+import { use } from "react";
 
 interface PageProps {
-  params: { teamId: string }
+  params: Promise<{ teamId: string }>;
 }
 
 export default function UserJourneysPage({ params }: PageProps) {
-  return <UserJourneys params={params} />
+  const resolvedParams = use(params);
+  return <UserJourneys params={resolvedParams} />;
 }

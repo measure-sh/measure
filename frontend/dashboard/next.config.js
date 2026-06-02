@@ -3,16 +3,24 @@ const nextConfig = {
   output: "standalone",
   poweredByHeader: false,
   experimental: {
+    // middleware.ts reverse-proxies /api/* and /yrtmlt/* to external origins
+    // via NextResponse.rewrite(). Raise the proxy timeout from the 30s default
+    // so long-running API requests aren't cut off.
     proxyTimeout: 90000,
-    // The /_md/[...path] route handler reads markdown source files at runtime.
-    // Next's tracer can't infer these dynamic reads, so include them explicitly
-    // in the standalone output. Without this, agents requesting Accept:text/markdown
-    // would get 406 in production.
-    outputFileTracingIncludes: {
-      "/page-md/[...path]": ["./app/**/page.md", "./content/docs/**/*"],
-    },
+  },
+  // The /page-md/[...path] route handler reads markdown source files at runtime.
+  // Next's tracer can't infer these dynamic reads, so include them explicitly
+  // in the standalone output. Without this, agents requesting Accept:text/markdown
+  // would get 406 in production.
+  outputFileTracingIncludes: {
+    "/page-md/[...path]": ["./app/**/page.md", "./content/docs/**/*"],
   },
   images: {
+    // Next 16 blocks optimizing images served from local/private IPs by default.
+    // The localhost:9111 remote pattern below points at self-hosted object storage,
+    // so this must stay enabled to keep serving app icons and avatars in
+    // self-hosted deployments.
+    dangerouslyAllowLocalIP: true,
     remotePatterns: [
       {
         protocol: "http",

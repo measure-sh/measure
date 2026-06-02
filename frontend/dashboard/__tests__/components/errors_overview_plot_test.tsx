@@ -177,8 +177,8 @@ describe("ErrorsOverviewPlot", () => {
         points: [
           {
             id: "p1",
-            serieColor: "#111",
-            serieId: "3.1.0",
+            seriesColor: "#111",
+            seriesId: "3.1.0",
             data: { xFormatted: "2026-02-01T01:00:00", y: 5, yFormatted: 5 },
           },
         ],
@@ -189,8 +189,8 @@ describe("ErrorsOverviewPlot", () => {
         points: [
           {
             id: "p2",
-            serieColor: "#111",
-            serieId: "3.1.0",
+            seriesColor: "#111",
+            seriesId: "3.1.0",
             data: { xFormatted: "2026-02-01T01:00:00", y: 1, yFormatted: 1 },
           },
         ],

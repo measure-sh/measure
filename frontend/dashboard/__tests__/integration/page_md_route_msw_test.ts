@@ -13,19 +13,16 @@
  * needs to instantiate. They invoke the exported `GET` handler directly
  * with constructed params — no Next.js server boot required.
  */
-import {
-  describe,
-  expect,
-  it,
-} from "@jest/globals";
+import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
 import { GET } from "@/app/page-md/[...path]/route";
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 
 function call(segments: string[] | undefined) {
   // The handler ignores the request object — only params.path is read.
-  return GET({} as any, { params: { path: segments } });
+  return GET({} as any, { params: promiseParams({ path: segments }) });
 }
 
 async function expectMarkdown(res: Response, expectedSubstring: string) {
@@ -52,7 +49,10 @@ describe("/page-md/[...path] route handler", () => {
   describe("marketing pages (colocated app/<route>/page.md)", () => {
     it("serves the homepage from app/page.md when segments=['index']", async () => {
       const res = await call(["index"]);
-      const body = await expectMarkdown(res, "Mobile apps break, get to the root cause faster.");
+      const body = await expectMarkdown(
+        res,
+        "Mobile apps break, get to the root cause faster.",
+      );
       // Frontmatter must be stripped before serving
       expect(body.startsWith("---")).toBe(false);
       expect(body).not.toContain("canonical: /");

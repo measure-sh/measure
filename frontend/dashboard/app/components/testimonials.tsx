@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 interface Testimonial {
   name: string;
@@ -78,21 +78,23 @@ This isn't just another tool. It's crafted with intent, care, and deep expertise
   },
 ];
 
+function subscribeToResize(onChange: () => void) {
+  window.addEventListener("resize", onChange);
+  return () => window.removeEventListener("resize", onChange);
+}
+
 // Lay testimonials out left-to-right across the columns (item 0 → col 0,
 // item 1 → col 1, …) so the reading order is horizontal, while each column
 // stacks independently to keep the staggered, masonry-style heights.
 function useColumnCount() {
-  const [count, setCount] = useState(3);
-  useEffect(() => {
-    const compute = () => {
+  return useSyncExternalStore(
+    subscribeToResize,
+    () => {
       const w = window.innerWidth;
-      setCount(w >= 1024 ? 3 : w >= 768 ? 2 : 1);
-    };
-    compute();
-    window.addEventListener("resize", compute);
-    return () => window.removeEventListener("resize", compute);
-  }, []);
-  return count;
+      return w >= 1024 ? 3 : w >= 768 ? 2 : 1;
+    },
+    () => 3,
+  );
 }
 
 export default function Testimonials() {

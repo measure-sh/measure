@@ -140,21 +140,26 @@ export default function LayoutSnapshot({
   } | null>(null);
   const frame = useRef(0);
 
-  const fetchLayout = async () => {
-    try {
-      const response = await fetch(layoutUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch layout: ${response.statusText}`);
-      }
-      const data = await response.json();
-      setLayout(data);
-    } catch (error) {
-      console.error("Error fetching layout:", error);
-    }
-  };
-
   useEffect(() => {
+    let cancelled = false;
+    const fetchLayout = async () => {
+      try {
+        const response = await fetch(layoutUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch layout: ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (!cancelled) {
+          setLayout(data);
+        }
+      } catch (error) {
+        console.error("Error fetching layout:", error);
+      }
+    };
     fetchLayout();
+    return () => {
+      cancelled = true;
+    };
   }, [layoutUrl]);
 
   useEffect(() => {

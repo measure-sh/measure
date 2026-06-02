@@ -66,13 +66,11 @@ describe("track", () => {
   it("is a no-op when window is undefined (SSR)", () => {
     const originalWindow = global.window;
     // Force the SSR branch by removing window.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (global as any).window;
     try {
       track("ssr_event", { foo: "bar" });
       expect(captureSpy).not.toHaveBeenCalled();
     } finally {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (global as any).window = originalWindow;
     }
   });

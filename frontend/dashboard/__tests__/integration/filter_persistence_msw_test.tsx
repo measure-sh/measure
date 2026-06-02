@@ -8,6 +8,7 @@
  * (e.g. "Last Year") get re-anchored to now() on remount so we never
  * render stale data.
  */
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
   afterEach,
@@ -100,7 +101,9 @@ import SessionTimelinesOverview from "@/app/[teamId]/session_timelines/page";
 async function renderAndWait() {
   render(
     <QueryClientProvider client={testQueryClient}>
-      <SessionTimelinesOverview params={{ teamId: "test-team" }} />
+      <SessionTimelinesOverview
+        params={promiseParams({ teamId: "test-team" })}
+      />
     </QueryClientProvider>,
   );
   await waitFor(

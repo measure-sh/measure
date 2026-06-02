@@ -2,7 +2,7 @@
 
 import { ResponsiveLineCanvas } from "@nivo/line";
 import { DateTime } from "luxon";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { emptySessionTimeline } from "../api/api_calls";
 import { kilobytesToMegabytes } from "../utils/number_utils";
 import { useChartColor, useChartColors } from "../utils/shared_styles";
@@ -355,15 +355,15 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
     },
   };
 
-  function parseEventsThreadsAndEventTypesFromSessionTimeline() {
-    let events: {
+  const { events, threads, eventTypes } = useMemo(() => {
+    const events: {
       eventType: string;
       timestamp: string;
       thread: string;
       details: any;
     }[] = [];
-    let threads = new Set<string>();
-    let eventTypes = new Set<string>();
+    const threadsSet = new Set<string>();
+    const eventTypesSet = new Set<string>();
     const traceEventType = "trace";
 
     Object.keys(sessionTimeline.threads).forEach((item) =>
@@ -375,13 +375,13 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           thread: item,
           details: subItem,
         });
-        threads.add(item);
-        eventTypes.add(subItem.event_type);
+        threadsSet.add(item);
+        eventTypesSet.add(subItem.event_type);
       }),
     );
 
     if (sessionTimeline.traces !== null) {
-      eventTypes.add(traceEventType);
+      eventTypesSet.add(traceEventType);
       sessionTimeline.traces.forEach((item: any) => {
         events.push({
           eventType: traceEventType,
@@ -390,7 +390,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           details: item,
         });
 
-        threads.add(item.thread_name);
+        threadsSet.add(item.thread_name);
       });
     }
 
@@ -401,14 +401,12 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
       return dateA.toMillis() - dateB.toMillis();
     });
 
-    let threadsArray = Array.from(threads);
-    let eventsTypesArray = Array.from(eventTypes);
-
-    return { events, threads: threadsArray, eventTypes: eventsTypesArray };
-  }
-
-  const { events, threads, eventTypes } =
-    parseEventsThreadsAndEventTypesFromSessionTimeline();
+    return {
+      events,
+      threads: Array.from(threadsSet),
+      eventTypes: Array.from(eventTypesSet),
+    };
+  }, [sessionTimeline]);
 
   const firstEventTime =
     events.length > 0 ? DateTime.fromISO(events[0].timestamp) : null;
@@ -468,7 +466,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
       ? [
           {
             id: "Java Free Heap",
-            serieColor: chartColor.violet,
+            seriesColor: chartColor.violet,
             data: sessionTimeline.memory_usage
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -478,7 +476,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           },
           {
             id: "Java Max Heap",
-            serieColor: chartColor.red,
+            seriesColor: chartColor.red,
             data: sessionTimeline.memory_usage
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -488,7 +486,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           },
           {
             id: "Java Total Heap",
-            serieColor: chartColor.yellow,
+            seriesColor: chartColor.yellow,
             data: sessionTimeline.memory_usage
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -498,7 +496,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           },
           {
             id: "Native Free Heap",
-            serieColor: chartColor.amber,
+            seriesColor: chartColor.amber,
             data: sessionTimeline.memory_usage
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -508,7 +506,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           },
           {
             id: "Native Total Heap",
-            serieColor: chartColor.teal,
+            seriesColor: chartColor.teal,
             data: sessionTimeline.memory_usage
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -518,7 +516,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           },
           {
             id: "RSS",
-            serieColor: chartColor.green,
+            seriesColor: chartColor.green,
             data: sessionTimeline.memory_usage
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -528,7 +526,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           },
           {
             id: "Total PSS",
-            serieColor: chartColor.pink,
+            seriesColor: chartColor.pink,
             data: sessionTimeline.memory_usage
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -544,7 +542,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
       ? [
           {
             id: "Max Memory",
-            serieColor: chartColor.violet,
+            seriesColor: chartColor.violet,
             data: sessionTimeline.memory_usage_absolute
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -554,7 +552,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           },
           {
             id: "Used Memory",
-            serieColor: chartColor.red,
+            seriesColor: chartColor.red,
             data: sessionTimeline.memory_usage_absolute
               .filter((item) => isWithinEventTimeRange(item.timestamp))
               .map((item) => ({
@@ -587,12 +585,13 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
     }
   }
 
-  let maxMemoryDataValue = 0;
   const createMemoryDataLookup = () => {
-    if (!memoryData) return null;
+    if (!memoryData) {
+      return { lookup: null, maxValue: 0 };
+    }
 
     const lookup = new Map();
-    maxMemoryDataValue = 0; // Reset before calculation
+    let maxValue = 0;
 
     const filteredMemoryUsage = sessionTimeline.memory_usage.filter((item) =>
       isWithinEventTimeRange(item.timestamp),
@@ -617,27 +616,27 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
 
       for (const val of Object.values(values)) {
         const numVal = parseFloat(val);
-        if (numVal > maxMemoryDataValue) {
-          maxMemoryDataValue = numVal;
+        if (numVal > maxValue) {
+          maxValue = numVal;
         }
       }
 
       lookup.set(formattedTimestamp, values);
     });
 
-    maxMemoryDataValue = roundUpToNiceMemoryValue(maxMemoryDataValue);
-
-    return lookup;
+    return { lookup, maxValue: roundUpToNiceMemoryValue(maxValue) };
   };
 
-  const memoryDataLookup = createMemoryDataLookup();
+  const { lookup: memoryDataLookup, maxValue: maxMemoryDataValue } =
+    createMemoryDataLookup();
 
-  let maxMemoryAbsDataValue = 0;
   const createMemoryAbsDataLookup = () => {
-    if (!memoryAbsData) return null;
+    if (!memoryAbsData) {
+      return { lookup: null, maxValue: 0 };
+    }
 
     const lookup = new Map();
-    maxMemoryAbsDataValue = 0; // Reset before calculation
+    let maxValue = 0;
 
     const filteredMemoryUsage = sessionTimeline.memory_usage_absolute.filter(
       (item) => isWithinEventTimeRange(item.timestamp),
@@ -651,27 +650,25 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
 
       for (const val of Object.values(values)) {
         const numVal = parseFloat(val);
-        if (numVal > maxMemoryAbsDataValue) {
-          maxMemoryAbsDataValue = numVal;
+        if (numVal > maxValue) {
+          maxValue = numVal;
         }
       }
 
       lookup.set(formattedTimestamp, values);
     });
 
-    maxMemoryAbsDataValue = roundUpToNiceMemoryValue(maxMemoryAbsDataValue);
-
-    return lookup;
+    return { lookup, maxValue: roundUpToNiceMemoryValue(maxValue) };
   };
 
-  const memoryAbsDataLookup = createMemoryAbsDataLookup();
+  const { lookup: memoryAbsDataLookup, maxValue: maxMemoryAbsDataValue } =
+    createMemoryAbsDataLookup();
 
   const stickyRef = useRef<HTMLDivElement | null>(null);
   const eventRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const [selectedThreads, setSelectedThreads] = useState(threads);
   const [selectedEventTypes, setSelectedEventTypes] = useState(eventTypes);
-  const [filteredEvents, setFilteredEvents] = useState(events);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [indicatorTimestamp, setIndicatorTimestamp] = useState<string | null>(
     events.length > 0 ? events[0].timestamp : null,
@@ -697,19 +694,23 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
     });
   };
 
-  useEffect(() => {
-    setFilteredEvents(
+  const filteredEvents = useMemo(
+    () =>
       events.filter(
         (e) =>
           selectedThreads.includes(e.thread) &&
           selectedEventTypes.includes(e.eventType),
       ),
-    );
-  }, [selectedThreads, selectedEventTypes]);
+    [events, selectedThreads, selectedEventTypes],
+  );
+
+  // Clear the scroll indicator when there are no events to point at.
+  if (filteredEvents.length === 0 && indicatorTimestamp !== null) {
+    setIndicatorTimestamp(null);
+  }
 
   useEffect(() => {
     if (filteredEvents.length === 0) {
-      setIndicatorTimestamp(null);
       return;
     }
 
@@ -842,7 +843,6 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                   data={cpuData}
                   curve="monotoneX"
                   theme={canvasChartTheme}
-                  crosshairType="cross"
                   margin={chartMargin}
                   xFormat="time:%Y-%m-%d %I:%M:%S:%L %p"
                   xScale={{
@@ -884,7 +884,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                         )}
                       </p>
                       <div className="flex flex-row items-center gap-2 mt-2">
-                        <PlotTooltipSwatch color={point.serieColor} />
+                        <PlotTooltipSwatch color={point.seriesColor} />
                         <p>Cpu Usage: {point.data.yFormatted.toString()}%</p>
                       </div>
                     </PlotTooltipShell>
@@ -899,7 +899,6 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                   data={memoryData}
                   curve="monotoneX"
                   theme={canvasChartTheme}
-                  crosshairType="cross"
                   margin={chartMargin}
                   xFormat="time:%Y-%m-%d %H:%M:%S:%L %p"
                   xScale={{
@@ -927,7 +926,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                     legendOffset: -52,
                     legendPosition: "middle",
                   }}
-                  colors={{ datum: "serieColor" }}
+                  colors={{ datum: "seriesColor" }}
                   pointSize={0}
                   enableGridX={false}
                   enableGridY={false}
@@ -953,7 +952,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                               <PlotTooltipSwatch
                                 color={
                                   memoryData.find((it) => it.id === seriesName)!
-                                    .serieColor
+                                    .seriesColor
                                 }
                               />
                               <p>
@@ -975,7 +974,6 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                   data={memoryAbsData}
                   curve="monotoneX"
                   theme={canvasChartTheme}
-                  crosshairType="cross"
                   margin={chartMargin}
                   xFormat="time:%Y-%m-%d %H:%M:%S:%L %p"
                   xScale={{
@@ -1007,7 +1005,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                     legendOffset: -52,
                     legendPosition: "middle",
                   }}
-                  colors={{ datum: "serieColor" }}
+                  colors={{ datum: "seriesColor" }}
                   pointSize={0}
                   enableGridX={false}
                   enableGridY={false}
@@ -1034,7 +1032,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
                                 color={
                                   memoryAbsData.find(
                                     (it) => it.id === seriesName,
-                                  )!.serieColor
+                                  )!.seriesColor
                                 }
                               />
                               <p>

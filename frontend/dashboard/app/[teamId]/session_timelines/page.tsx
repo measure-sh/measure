@@ -33,15 +33,14 @@ import {
 import { track } from "@/app/utils/analytics/track";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 const PAGINATION_LIMIT = 5;
 
-export default function SessionTimelinesOverview({
-  params,
-}: {
-  params: { teamId: string };
+export default function SessionTimelinesOverview(props: {
+  params: Promise<{ teamId: string }>;
 }) {
+  const params = use(props.params);
   const router = useRouter();
   const searchParams = useSearchParams();
 

@@ -21,7 +21,7 @@ import { ChevronRight, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import DocsSearch from "./docs_search";
 
 function NavSection({ item }: { item: NavItem }) {
@@ -62,14 +62,16 @@ function CollapsibleNavItem({
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
-  // Re-expand when client-side navigation makes a child the active page —
-  // the sidebar persists across docs routes, so the useState seed alone
-  // would stay stale.
-  useEffect(() => {
+  // Re-expand when client-side navigation makes a child the active page — the
+  // sidebar persists across docs routes, so the useState seed alone would stay
+  // stale.
+  const [prevDefaultOpen, setPrevDefaultOpen] = useState(defaultOpen);
+  if (defaultOpen !== prevDefaultOpen) {
+    setPrevDefaultOpen(defaultOpen);
     if (defaultOpen) {
       setIsOpen(true);
     }
-  }, [defaultOpen]);
+  }
 
   return (
     <SidebarMenuItem>
@@ -131,14 +133,16 @@ function CollapsibleSubItem({
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
-  // Re-expand when client-side navigation makes a child the active page —
-  // the sidebar persists across docs routes, so the useState seed alone
-  // would stay stale.
-  useEffect(() => {
+  // Re-expand when client-side navigation makes a child the active page — the
+  // sidebar persists across docs routes, so the useState seed alone would stay
+  // stale.
+  const [prevDefaultOpen, setPrevDefaultOpen] = useState(defaultOpen);
+  if (defaultOpen !== prevDefaultOpen) {
+    setPrevDefaultOpen(defaultOpen);
     if (defaultOpen) {
       setIsOpen(true);
     }
-  }, [defaultOpen]);
+  }
 
   return (
     <SidebarMenuSubItem>

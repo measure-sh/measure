@@ -101,12 +101,16 @@ const NetworkTimelinePlot: React.FC<Props> = ({ data }) => {
   const defaultEnd = Math.min(minBucket + 120 - interval, maxBucket);
   const [rangeEnd, setRangeEnd] = useState(defaultEnd);
   const [debouncedRangeEnd, setDebouncedRangeEnd] = useState(defaultEnd);
-
-  useEffect(() => {
-    const end = Math.min(minBucket + 120 - interval, maxBucket);
-    setRangeEnd(end);
-    setDebouncedRangeEnd(end);
-  }, [minBucket, maxBucket]);
+  // Reset the range when the bucket bounds change.
+  const [prevBounds, setPrevBounds] = useState({ minBucket, maxBucket });
+  if (
+    prevBounds.minBucket !== minBucket ||
+    prevBounds.maxBucket !== maxBucket
+  ) {
+    setPrevBounds({ minBucket, maxBucket });
+    setRangeEnd(defaultEnd);
+    setDebouncedRangeEnd(defaultEnd);
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedRangeEnd(rangeEnd), 50);
@@ -167,7 +171,7 @@ const NetworkTimelinePlot: React.FC<Props> = ({ data }) => {
           />
         </div>
       )}
-      <div className="w-full" style={{ height: containerHeight }}>
+      <div className="size-full" style={{ height: containerHeight }}>
         <ResponsiveHeatMapCanvas
           data={filteredHeatmapData}
           theme={canvasTheme}

@@ -635,7 +635,6 @@ const FiltersComponent = forwardRef<
       } else if (currentTeamId === "") {
         store.setCurrentTeamId(teamId);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [teamId]);
 
     const appsQuery = useAppsQuery(teamId);
@@ -650,7 +649,6 @@ const FiltersComponent = forwardRef<
         return;
       }
       store.setApps(appsQuery.data.data, appsQuery.data.status);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [appsQuery.status, appsQuery.data]);
 
     useEffect(() => {
@@ -677,7 +675,6 @@ const FiltersComponent = forwardRef<
         // in place without wiping selections.
         store.setSelectedApp(picked);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [appsQuery.status, appsQuery.data, teamId]);
 
     const filterOptionsQuery = useFilterOptionsQuery(selectedApp, filterSource);
@@ -708,7 +705,6 @@ const FiltersComponent = forwardRef<
       } else {
         store.setFilterOptions(null, status);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       filterOptionsQuery.status,
       filterOptionsQuery.data,
@@ -742,7 +738,6 @@ const FiltersComponent = forwardRef<
       } else {
         store.setRootSpanNames(null, status);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       rootSpanNamesQuery.status,
       rootSpanNamesQuery.data,
@@ -830,27 +825,28 @@ const FiltersComponent = forwardRef<
     // Each time the modal opens, copy current store values into the pending
     // snapshot so the modal starts from the committed state. Closing without
     // saving leaves the snapshot stale, but the next open re-syncs it.
-    useEffect(() => {
-      if (!moreFiltersOpen) {
-        return;
+    const [prevMoreFiltersOpen, setPrevMoreFiltersOpen] =
+      useState(moreFiltersOpen);
+    if (moreFiltersOpen !== prevMoreFiltersOpen) {
+      setPrevMoreFiltersOpen(moreFiltersOpen);
+      if (moreFiltersOpen) {
+        setPendingModalFilters({
+          selectedSessionTypes: store.selectedSessionTypes,
+          selectedSpanStatuses: store.selectedSpanStatuses,
+          selectedBugReportStatuses: store.selectedBugReportStatuses,
+          selectedHttpMethods: store.selectedHttpMethods,
+          selectedOsVersions: store.selectedOsVersions,
+          selectedCountries: store.selectedCountries,
+          selectedNetworkProviders: store.selectedNetworkProviders,
+          selectedNetworkTypes: store.selectedNetworkTypes,
+          selectedNetworkGenerations: store.selectedNetworkGenerations,
+          selectedLocales: store.selectedLocales,
+          selectedDeviceManufacturers: store.selectedDeviceManufacturers,
+          selectedDeviceNames: store.selectedDeviceNames,
+          selectedUdAttrMatchers: store.selectedUdAttrMatchers,
+        });
       }
-      setPendingModalFilters({
-        selectedSessionTypes: store.selectedSessionTypes,
-        selectedSpanStatuses: store.selectedSpanStatuses,
-        selectedBugReportStatuses: store.selectedBugReportStatuses,
-        selectedHttpMethods: store.selectedHttpMethods,
-        selectedOsVersions: store.selectedOsVersions,
-        selectedCountries: store.selectedCountries,
-        selectedNetworkProviders: store.selectedNetworkProviders,
-        selectedNetworkTypes: store.selectedNetworkTypes,
-        selectedNetworkGenerations: store.selectedNetworkGenerations,
-        selectedLocales: store.selectedLocales,
-        selectedDeviceManufacturers: store.selectedDeviceManufacturers,
-        selectedDeviceNames: store.selectedDeviceNames,
-        selectedUdAttrMatchers: store.selectedUdAttrMatchers,
-      });
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [moreFiltersOpen]);
+    }
 
     // Commit the pending snapshot to the store and close the modal.
     const saveMoreFilters = () => {

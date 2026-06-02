@@ -194,17 +194,17 @@ describe("AppHealthPlot", () => {
         points: [
           {
             id: "a1",
-            serieId: "ANRs",
+            seriesId: "ANRs",
             data: { xFormatted: "2026-02-01T01:00:00", yFormatted: 1 },
           },
           {
             id: "s1",
-            serieId: "Sessions",
+            seriesId: "Sessions",
             data: { xFormatted: "2026-02-01T01:00:00", yFormatted: 10 },
           },
           {
             id: "c1",
-            serieId: "Crashes",
+            seriesId: "Crashes",
             data: { xFormatted: "2026-02-01T01:00:00", yFormatted: 2 },
           },
         ],
@@ -237,12 +237,12 @@ describe("AppHealthPlot", () => {
         points: [
           {
             id: "a1",
-            serieId: "ANRs",
+            seriesId: "ANRs",
             data: { xFormatted: "2026-02-01T01:00:00", yFormatted: 1 },
           },
           {
             id: "s1",
-            serieId: "Sessions",
+            seriesId: "Sessions",
             data: { xFormatted: "2026-02-01T01:00:00", yFormatted: 10 },
           },
         ],
@@ -271,7 +271,9 @@ describe("AppHealthPlot", () => {
     render(<AppHealthPlot />);
 
     expect(lastLineProps.colors({ id: "Unknown" })).toBe("#888");
-    expect(lastLineProps.pointBorderColor({ serieId: "Unknown" })).toBe("#888");
+    expect(lastLineProps.pointBorderColor({ seriesId: "Unknown" })).toBe(
+      "#888",
+    );
   });
 
   it("hides stale chart while new range data is loading", () => {

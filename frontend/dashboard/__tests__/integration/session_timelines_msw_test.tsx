@@ -7,6 +7,7 @@
  * manufacturers/names, udAttrs, freeText) plus pagination. This test
  * suite exercises every filter, pagination, URL sync, and the detail page.
  */
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
   afterEach,
@@ -18,6 +19,7 @@ import {
 } from "@jest/globals";
 import {
   act,
+  cleanup,
   fireEvent,
   render,
   screen,
@@ -141,7 +143,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
 
   async function renderAndWaitForData() {
     renderWithProviders(
-      <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+      <SessionTimelinesOverview
+        params={promiseParams({ teamId: "test-team" })}
+      />,
     );
     await waitFor(
       () => {
@@ -191,7 +195,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
         }),
       );
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -210,7 +216,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
         }),
       );
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -227,7 +235,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
         }),
       );
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -279,7 +289,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -357,7 +369,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -422,7 +436,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -481,7 +497,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
 
       mockSearchParams.set("po", "5");
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -506,7 +524,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -836,7 +856,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
       mockSearchParams.set("po", "10");
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
 
       // The useEffect reads po from URL and calls setPaginationOffset
@@ -879,11 +901,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "my-app",
             sessionId: "my-session",
-          }}
+          })}
         />,
       );
       await waitFor(
@@ -908,11 +930,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(() => {
@@ -929,11 +951,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(
@@ -954,11 +976,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
       );
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
 
@@ -984,11 +1006,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       const { unmount } = renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(
@@ -1001,11 +1023,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
       unmount();
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       // Cached data shows immediately — no loading spinner
@@ -1023,11 +1045,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       const { unmount } = renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(() => expect(fetchCount).toBe(1), { timeout: 5000 });
@@ -1035,11 +1057,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
       unmount();
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-002",
-          }}
+          })}
         />,
       );
       await waitFor(() => expect(fetchCount).toBe(2), { timeout: 5000 });
@@ -1059,11 +1081,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(() => expect(refreshAttempted).toBe(true), {
@@ -1088,11 +1110,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(
@@ -1116,11 +1138,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "nonexistent",
-          }}
+          })}
         />,
       );
       await waitFor(
@@ -1141,11 +1163,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
       );
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(
@@ -1199,11 +1221,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
       );
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(
@@ -1267,11 +1289,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(() => expect(detailUrls.length).toBeGreaterThan(0), {
@@ -1316,7 +1338,9 @@ describe("Session Timelines Overview — additional coverage", () => {
 
   async function renderAndWaitForData() {
     renderWithProviders(
-      <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+      <SessionTimelinesOverview
+        params={promiseParams({ teamId: "test-team" })}
+      />,
     );
     await waitFor(
       () => {
@@ -1482,7 +1506,9 @@ describe("Session Timelines Overview — additional coverage", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1571,6 +1597,10 @@ describe("Session Timelines Overview — additional coverage", () => {
     it("version + date range survive URL round-trip", async () => {
       await renderAndWaitForData();
 
+      // Clear replace calls from the initial render so the capture below reflects
+      // the version change (React 19 defers the effect that writes the URL).
+      mockRouterReplace.mockClear();
+
       await act(async () => {
         filtersStore
           .getState()
@@ -1600,8 +1630,16 @@ describe("Session Timelines Overview — additional coverage", () => {
       for (const [key, value] of params.entries())
         mockSearchParams.set(key, value);
 
+      // Unmount the first tree before re-rendering: this round-trip simulates a
+      // fresh navigation to the captured URL. Leaving it mounted lets its stale
+      // Filters effect race with the new mount over the shared store (React 19's
+      // effect ordering surfaces this; React 18 happened to let the new tree win).
+      cleanup();
+
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1623,7 +1661,9 @@ describe("Session Timelines Overview — additional coverage", () => {
   describe("store cache", () => {
     it("re-mount still shows data", async () => {
       const { unmount } = renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy(),
@@ -1632,7 +1672,9 @@ describe("Session Timelines Overview — additional coverage", () => {
 
       unmount();
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy(),
@@ -1670,7 +1712,9 @@ describe("Session Timelines Overview — additional coverage", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1695,7 +1739,9 @@ describe("Session Timelines Overview — additional coverage", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1718,7 +1764,9 @@ describe("Session Timelines Overview — additional coverage", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1741,7 +1789,9 @@ describe("Session Timelines Overview — additional coverage", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1758,7 +1808,9 @@ describe("Session Timelines Overview — additional coverage", () => {
   describe("keyboard navigation", () => {
     it("pressing Enter on a table row calls router.push with session href", async () => {
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1786,7 +1838,9 @@ describe("Session Timelines Overview — additional coverage", () => {
 
     it("pressing Space on a table row calls router.push with session href", async () => {
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1831,7 +1885,9 @@ describe("Session Timelines Overview — additional coverage", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1868,8 +1924,16 @@ describe("Session Timelines Overview — additional coverage", () => {
       for (const [key, value] of params.entries())
         mockSearchParams.set(key, value);
 
+      // Unmount the first tree before re-rendering: this round-trip simulates a
+      // fresh navigation to the captured URL. Leaving it mounted lets its stale
+      // Filters effect race with the new mount over the shared store (React 19's
+      // effect ordering surfaces this; React 18 happened to let the new tree win).
+      cleanup();
+
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
 
       await waitFor(
@@ -1891,7 +1955,9 @@ describe("Session Timelines Overview — additional coverage", () => {
   describe("combined session type + free text", () => {
     it("session type + free text both appear in data-fetch URL", async () => {
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1923,7 +1989,9 @@ describe("Session timelines — team switch to no-apps team", () => {
   it("switching from team with apps to team with no apps shows NoApps after store reset", async () => {
     // Phase 1: render with team that has apps — fully load
     const { unmount } = renderWithProviders(
-      <SessionTimelinesOverview params={{ teamId: "team-with-apps" }} />,
+      <SessionTimelinesOverview
+        params={promiseParams({ teamId: "team-with-apps" })}
+      />,
     );
 
     await waitFor(
@@ -1946,7 +2014,9 @@ describe("Session timelines — team switch to no-apps team", () => {
     unmount();
 
     renderWithProviders(
-      <SessionTimelinesOverview params={{ teamId: "team-no-apps" }} />,
+      <SessionTimelinesOverview
+        params={promiseParams({ teamId: "team-no-apps" })}
+      />,
     );
 
     // Wait for NoApps message to appear

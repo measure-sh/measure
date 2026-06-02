@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ChevronsUpDown, Circle, CircleCheck } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { AppVersion } from "../api/api_calls";
 
 import { cn } from "../utils/shadcn_utils";
@@ -51,12 +51,13 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
   };
   const [selected, setSelected] = useState(initialSelected);
   const [searchValue, setSearchValue] = useState("");
-
-  useEffect(() => {
-    if (selected !== initialSelected) {
-      setSelected(initialSelected);
-    }
-  }, [initialSelected]);
+  // Sync to a new initialSelected from the parent.
+  const [prevInitialSelected, setPrevInitialSelected] =
+    useState(initialSelected);
+  if (initialSelected !== prevInitialSelected) {
+    setPrevInitialSelected(initialSelected);
+    setSelected(initialSelected);
+  }
 
   const selectSingleItem = (item: string) => {
     setSelected(item);

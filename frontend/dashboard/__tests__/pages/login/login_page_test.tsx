@@ -1,3 +1,4 @@
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import Login from "@/app/auth/login/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
@@ -88,7 +89,7 @@ describe("Login Page", () => {
 
   it("fetches the current session when mcp param is absent", async () => {
     await act(async () => {
-      render(<Login searchParams={{}} />);
+      render(<Login searchParams={promiseParams({})} />);
     });
 
     expect(mockFetchCurrentSession).toHaveBeenCalled();
@@ -97,14 +98,14 @@ describe("Login Page", () => {
   it("skips session fetch in MCP mode", () => {
     render(
       <Login
-        searchParams={{
+        searchParams={promiseParams({
           mcp: "1",
           response_type: "code",
           client_id: "test_client",
           redirect_uri: "http://localhost/cb",
           state: "s",
           code_challenge: "ch",
-        }}
+        })}
       />,
     );
 
@@ -114,14 +115,14 @@ describe("Login Page", () => {
   it("renders sign-in buttons in MCP mode without loading state", () => {
     render(
       <Login
-        searchParams={{
+        searchParams={promiseParams({
           mcp: "1",
           response_type: "code",
           client_id: "test_client",
           redirect_uri: "http://localhost/cb",
           state: "s",
           code_challenge: "ch",
-        }}
+        })}
       />,
     );
 
@@ -133,14 +134,14 @@ describe("Login Page", () => {
   it("constructs correct GitHub authorize URL in MCP mode", () => {
     render(
       <Login
-        searchParams={{
+        searchParams={promiseParams({
           mcp: "1",
           response_type: "code",
           client_id: "my_client",
           redirect_uri: "http://localhost:9999/cb",
           state: "mystate",
           code_challenge: "mychallenge",
-        }}
+        })}
       />,
     );
 
@@ -164,14 +165,14 @@ describe("Login Page", () => {
   it("constructs correct Google authorize URL in MCP mode", () => {
     render(
       <Login
-        searchParams={{
+        searchParams={promiseParams({
           mcp: "1",
           response_type: "code",
           client_id: "my_client",
           redirect_uri: "http://localhost:9999/cb",
           state: "mystate",
           code_challenge: "mychallenge",
-        }}
+        })}
       />,
     );
 
@@ -188,7 +189,9 @@ describe("Login Page", () => {
 
   it("error param hides sign-in buttons", async () => {
     await act(async () => {
-      render(<Login searchParams={{ error: "Could not sign in" }} />);
+      render(
+        <Login searchParams={promiseParams({ error: "Could not sign in" })} />,
+      );
     });
 
     expect(screen.queryByText("Sign in with GitHub")).not.toBeInTheDocument();
@@ -198,7 +201,11 @@ describe("Login Page", () => {
   it("message param hides sign-in buttons", async () => {
     await act(async () => {
       render(
-        <Login searchParams={{ message: "user@example.com not allowed" }} />,
+        <Login
+          searchParams={promiseParams({
+            message: "user@example.com not allowed",
+          })}
+        />,
       );
     });
 
@@ -209,7 +216,7 @@ describe("Login Page", () => {
   it("does not show invite error in MCP mode", () => {
     render(
       <Login
-        searchParams={{
+        searchParams={promiseParams({
           mcp: "1",
           response_type: "code",
           client_id: "c",
@@ -217,7 +224,7 @@ describe("Login Page", () => {
           state: "s",
           code_challenge: "ch",
           inviteId: "some-invite",
-        }}
+        })}
       />,
     );
 
@@ -228,7 +235,9 @@ describe("Login Page", () => {
 
   it("validates invite when inviteId is present in non-MCP mode", async () => {
     await act(async () => {
-      render(<Login searchParams={{ inviteId: "invite-123" }} />);
+      render(
+        <Login searchParams={promiseParams({ inviteId: "invite-123" })} />,
+      );
     });
 
     expect(mockValidateInvites).toHaveBeenCalledWith("invite-123");
@@ -238,7 +247,9 @@ describe("Login Page", () => {
     mockValidateInvites.mockResolvedValue({ status: "error" });
 
     await act(async () => {
-      render(<Login searchParams={{ inviteId: "bad-invite" }} />);
+      render(
+        <Login searchParams={promiseParams({ inviteId: "bad-invite" })} />,
+      );
     });
 
     expect(
@@ -250,7 +261,9 @@ describe("Login Page", () => {
     mockValidateInvites.mockResolvedValue({ status: "success" });
 
     await act(async () => {
-      render(<Login searchParams={{ inviteId: "good-invite" }} />);
+      render(
+        <Login searchParams={promiseParams({ inviteId: "good-invite" })} />,
+      );
     });
 
     expect(
@@ -269,7 +282,7 @@ describe("Login Page", () => {
     } as any);
 
     await act(async () => {
-      render(<Login searchParams={{}} />);
+      render(<Login searchParams={promiseParams({})} />);
     });
 
     expect(mockRouterReplace).toHaveBeenCalledWith("/team-1/overview");
@@ -286,7 +299,7 @@ describe("Login Page", () => {
     } as any);
 
     await act(async () => {
-      render(<Login searchParams={{}} />);
+      render(<Login searchParams={promiseParams({})} />);
     });
 
     expect(screen.getByText("Logging in...")).toBeInTheDocument();
@@ -303,7 +316,7 @@ describe("Login Page", () => {
     } as any);
 
     await act(async () => {
-      render(<Login searchParams={{}} />);
+      render(<Login searchParams={promiseParams({})} />);
     });
 
     expect(mockPosthogIdentify).toHaveBeenCalledWith(
@@ -329,7 +342,7 @@ describe("Login Page", () => {
   it("does not validate invite in MCP mode", () => {
     render(
       <Login
-        searchParams={{
+        searchParams={promiseParams({
           mcp: "1",
           response_type: "code",
           client_id: "c",
@@ -337,7 +350,7 @@ describe("Login Page", () => {
           state: "s",
           code_challenge: "ch",
           inviteId: "some-invite",
-        }}
+        })}
       />,
     );
 

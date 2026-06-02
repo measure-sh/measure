@@ -2,20 +2,21 @@
 
 import Overview from "@/app/components/overview";
 import { track } from "@/app/utils/analytics/track";
-import { useEffect } from "react";
+import { use, useEffect } from "react";
 
 interface PageProps {
-  params: { teamId: string };
+  params: Promise<{ teamId: string }>;
 }
 
 export default function OverviewPage({ params }: PageProps) {
+  const resolvedParams = use(params);
   useEffect(() => {
     track("dashboard_opened", {
-      team_id: params.teamId,
+      team_id: resolvedParams.teamId,
       feature_area: "overview",
       entry_point: "direct",
     });
-  }, [params.teamId]);
+  }, [resolvedParams.teamId]);
 
-  return <Overview params={params} />;
+  return <Overview params={resolvedParams} />;
 }

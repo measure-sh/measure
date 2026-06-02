@@ -11,6 +11,7 @@
  * global fetch boundary and serves fixture data matching the Go struct
  * shapes.
  */
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
   afterEach,
@@ -184,7 +185,7 @@ function renderWithProviders(ui: React.ReactElement) {
 describe("Errors Overview (MSW integration)", () => {
   async function renderAndWaitForData() {
     renderWithProviders(
-      <ErrorsOverviewPage params={{ teamId: "test-team" }} />,
+      <ErrorsOverviewPage params={promiseParams({ teamId: "test-team" })} />,
     );
     await waitFor(
       () => {
@@ -254,7 +255,7 @@ describe("Errors Overview (MSW integration)", () => {
     );
 
     renderWithProviders(
-      <ErrorsOverviewPage params={{ teamId: "test-team" }} />,
+      <ErrorsOverviewPage params={promiseParams({ teamId: "test-team" })} />,
     );
     await waitFor(
       () => {
@@ -282,7 +283,7 @@ describe("Errors Overview (MSW integration)", () => {
     );
 
     renderWithProviders(
-      <ErrorsOverviewPage params={{ teamId: "test-team" }} />,
+      <ErrorsOverviewPage params={promiseParams({ teamId: "test-team" })} />,
     );
     await waitFor(
       () => {
@@ -302,12 +303,12 @@ describe("Errors Detail (MSW integration)", () => {
   async function renderDetailAndWait() {
     renderWithProviders(
       <ErrorDetailsPage
-        params={{
+        params={promiseParams({
           teamId: "test-team",
           appId: makeAppFixture().id,
           errorGroupId: "crash-group-001",
           errorGroupName: encodeURIComponent("java.lang.NullPointerException"),
-        }}
+        })}
       />,
     );
     await waitFor(
@@ -368,12 +369,12 @@ describe("Errors Detail (MSW integration)", () => {
 
     renderWithProviders(
       <ErrorDetailsPage
-        params={{
+        params={promiseParams({
           teamId: "test-team",
           appId: makeAppFixture().id,
           errorGroupId: "crash-group-001",
           errorGroupName: "test",
-        }}
+        })}
       />,
     );
 
@@ -396,12 +397,12 @@ describe("Errors Detail (MSW integration)", () => {
 
     renderWithProviders(
       <ErrorDetailsPage
-        params={{
+        params={promiseParams({
           teamId: "test-team",
           appId: makeAppFixture().id,
           errorGroupId: "anr-group-001",
           errorGroupName: "test",
-        }}
+        })}
       />,
     );
 
@@ -435,12 +436,12 @@ describe("Errors Detail (MSW integration)", () => {
 
     renderWithProviders(
       <ErrorDetailsPage
-        params={{
+        params={promiseParams({
           teamId: "test-team",
           appId: makeAppFixture().id,
           errorGroupId: "crash-group-001",
           errorGroupName: "test",
-        }}
+        })}
       />,
     );
 
@@ -502,7 +503,7 @@ describe("Errors filter behaviour", () => {
 
   async function renderAndWaitForData() {
     renderWithProviders(
-      <ErrorsOverviewPage params={{ teamId: "test-team" }} />,
+      <ErrorsOverviewPage params={promiseParams({ teamId: "test-team" })} />,
     );
     await waitFor(
       () => {
@@ -617,7 +618,7 @@ describe("Errors filter behaviour", () => {
 describe("Errors filter pill", () => {
   async function renderAndWaitForData() {
     renderWithProviders(
-      <ErrorsOverviewPage params={{ teamId: "test-team" }} />,
+      <ErrorsOverviewPage params={promiseParams({ teamId: "test-team" })} />,
     );
     await waitFor(
       () => {

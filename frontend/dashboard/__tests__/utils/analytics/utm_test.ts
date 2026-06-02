@@ -50,12 +50,10 @@ afterEach(() => {
 describe("captureUTMsFromURL", () => {
   it("is a no-op in SSR (no window)", () => {
     const originalWindow = global.window;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (global as any).window;
     try {
       expect(() => captureUTMsFromURL()).not.toThrow();
     } finally {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (global as any).window = originalWindow;
     }
   });
@@ -175,12 +173,10 @@ describe("captureUTMsFromURL", () => {
 describe("getUTMState", () => {
   it("returns null in SSR (no window)", () => {
     const originalWindow = global.window;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (global as any).window;
     try {
       expect(getUTMState()).toBeNull();
     } finally {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (global as any).window = originalWindow;
     }
   });

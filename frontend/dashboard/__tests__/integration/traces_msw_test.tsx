@@ -10,6 +10,7 @@
  * Device, App version, Network type), TraceWaterfall timeline visualization,
  * and "View Session Timeline" link.
  */
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
   afterEach,
@@ -138,7 +139,9 @@ describe("Traces Overview (MSW integration)", () => {
   const { AppVersion, OsVersion } = require("@/app/api/api_calls");
 
   async function renderAndWaitForData() {
-    renderWithProviders(<TracesOverview params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         // Wait for the trace ID to appear in the table (not span name which also appears in root span names dropdown)
@@ -215,7 +218,9 @@ describe("Traces Overview (MSW integration)", () => {
           );
         }),
       );
-      renderWithProviders(<TracesOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Unset")).toBeTruthy();
@@ -256,7 +261,9 @@ describe("Traces Overview (MSW integration)", () => {
           );
         }),
       );
-      renderWithProviders(<TracesOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText(/iPadOS 17/)).toBeTruthy();
@@ -281,7 +288,9 @@ describe("Traces Overview (MSW integration)", () => {
           );
         }),
       );
-      renderWithProviders(<TracesOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText(/harmonyos 4/)).toBeTruthy();
@@ -338,7 +347,9 @@ describe("Traces Overview (MSW integration)", () => {
         }),
       );
 
-      renderWithProviders(<TracesOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(
@@ -356,7 +367,9 @@ describe("Traces Overview (MSW integration)", () => {
         }),
       );
 
-      renderWithProviders(<TracesOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText(/Error fetching plot/)).toBeTruthy();
@@ -372,7 +385,9 @@ describe("Traces Overview (MSW integration)", () => {
         }),
       );
 
-      renderWithProviders(<TracesOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("No Data")).toBeTruthy();
@@ -532,7 +547,9 @@ describe("Traces Overview (MSW integration)", () => {
       );
 
       mockSearchParams.set("po", "5");
-      renderWithProviders(<TracesOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("ID: trace-deep-link")).toBeTruthy();
@@ -603,7 +620,9 @@ describe("Traces Overview (MSW integration)", () => {
           );
         }),
       );
-      renderWithProviders(<TracesOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("ID: trace-001")).toBeTruthy();
@@ -1033,7 +1052,9 @@ describe("Traces Overview (MSW integration)", () => {
           });
         }),
       );
-      renderWithProviders(<TracesOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Trace")).toBeTruthy(); // header
@@ -1074,7 +1095,7 @@ describe("Traces Overview (MSW integration)", () => {
 
     it("re-render still shows plot data", async () => {
       const { unmount } = renderWithProviders(
-        <TracesOverview params={{ teamId: "test-team" }} />,
+        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -1084,7 +1105,9 @@ describe("Traces Overview (MSW integration)", () => {
       );
 
       unmount();
-      renderWithProviders(<TracesOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("ID: trace-001")).toBeTruthy();
@@ -1124,7 +1147,7 @@ describe("Traces Overview (MSW integration)", () => {
 
     it("re-render still shows data", async () => {
       const { unmount } = renderWithProviders(
-        <TracesOverview params={{ teamId: "test-team" }} />,
+        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
       );
       await waitFor(
         () => {
@@ -1134,7 +1157,9 @@ describe("Traces Overview (MSW integration)", () => {
       );
 
       unmount();
-      renderWithProviders(<TracesOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("ID: trace-001")).toBeTruthy();
@@ -2294,7 +2319,9 @@ describe("Traces — auth failure", () => {
         return new HttpResponse(null, { status: 401 });
       }),
     );
-    renderWithProviders(<TracesOverview params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(refreshAttempted).toBe(true);
@@ -2336,7 +2363,7 @@ describe("Traces — team switch to no-apps team", () => {
   it("switching from team with apps to team with no apps shows NoApps after store reset", async () => {
     // Phase 1: render with team that has apps — fully load
     const { unmount } = renderWithProviders(
-      <TracesOverview params={{ teamId: "team-with-apps" }} />,
+      <TracesOverview params={promiseParams({ teamId: "team-with-apps" })} />,
     );
 
     await waitFor(
@@ -2358,7 +2385,9 @@ describe("Traces — team switch to no-apps team", () => {
 
     unmount();
 
-    renderWithProviders(<TracesOverview params={{ teamId: "team-no-apps" }} />);
+    renderWithProviders(
+      <TracesOverview params={promiseParams({ teamId: "team-no-apps" })} />,
+    );
 
     // Wait for NoApps message to appear
     await waitFor(

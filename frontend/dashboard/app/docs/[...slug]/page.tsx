@@ -15,7 +15,7 @@ import DocsToc from "../components/docs_toc";
 import { createMarkdownComponents } from "../components/md_components";
 
 interface PageProps {
-  params: { slug: string[] };
+  params: Promise<{ slug: string[] }>;
 }
 
 export async function generateStaticParams() {
@@ -23,14 +23,17 @@ export async function generateStaticParams() {
   return slugs.map((slug) => ({ slug }));
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const doc = getDocBySlug(params.slug);
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const doc = getDocBySlug(slug);
 
   if (!doc) {
     return {};
   }
 
-  const path = `/docs/${params.slug.join("/")}`;
+  const path = `/docs/${slug.join("/")}`;
 
   return {
     title: doc.title,
@@ -45,8 +48,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default function DocPage({ params }: PageProps) {
-  const doc = getDocBySlug(params.slug);
+export default async function DocPage({ params }: PageProps) {
+  const { slug } = await params;
+  const doc = getDocBySlug(slug);
 
   if (!doc) {
     notFound();
@@ -60,11 +64,11 @@ export default function DocPage({ params }: PageProps) {
         <Markdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeRaw, rehypeSlug]}
-          components={createMarkdownComponents(params.slug, doc.isIndex)}
+          components={createMarkdownComponents(slug, doc.isIndex)}
         >
           {doc.content}
         </Markdown>
-        <DocsNavLinks currentSlug={`/docs/${params.slug.join("/")}`} />
+        <DocsNavLinks currentSlug={`/docs/${slug.join("/")}`} />
       </article>
       <DocsToc entries={tocEntries} />
     </>

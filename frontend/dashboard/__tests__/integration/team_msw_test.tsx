@@ -10,6 +10,7 @@
  * All mutations require confirmation dialogs. Permissions from /authz
  * control which actions are enabled.
  */
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
   afterEach,
@@ -126,7 +127,7 @@ function renderWithProviders(ui: React.ReactElement) {
 describe("Team Page (MSW integration)", () => {
   async function renderAndWaitForData() {
     const { container } = renderWithProviders(
-      <TeamOverview params={{ teamId: "team-001" }} />,
+      <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
     );
     // Wait for something that only appears after teams + authz data loads
     await waitFor(
@@ -195,7 +196,9 @@ describe("Team Page (MSW integration)", () => {
           return new HttpResponse(null, { status: 500 });
         }),
       );
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText(/Error fetching team/)).toBeTruthy();
@@ -210,7 +213,9 @@ describe("Team Page (MSW integration)", () => {
           return new HttpResponse(null, { status: 500 });
         }),
       );
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText(/Error fetching team members/)).toBeTruthy();
@@ -225,7 +230,9 @@ describe("Team Page (MSW integration)", () => {
           return HttpResponse.json({ error: "server error" }, { status: 500 });
         }),
       );
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(
@@ -288,7 +295,9 @@ describe("Team Page (MSW integration)", () => {
           );
         }),
       );
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("member@example.com")).toBeTruthy();
@@ -328,7 +337,9 @@ describe("Team Page (MSW integration)", () => {
           );
         }),
       );
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("member@example.com")).toBeTruthy();
@@ -381,7 +392,9 @@ describe("Team Page (MSW integration)", () => {
           return HttpResponse.json([]);
         }),
       );
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Members")).toBeTruthy();
@@ -448,7 +461,9 @@ describe("Team Page (MSW integration)", () => {
           );
         }),
       );
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Change Team Name")).toBeTruthy();
@@ -497,7 +512,9 @@ describe("Team Page (MSW integration)", () => {
           return HttpResponse.json(null);
         }),
       );
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           const img = screen.getByAltText("Add to Slack");
@@ -525,7 +542,9 @@ describe("Team Page (MSW integration)", () => {
           );
         }),
       );
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Send Test Alert")).toBeTruthy();
@@ -545,7 +564,9 @@ describe("Team Page (MSW integration)", () => {
           );
         }),
       );
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Send Test Alert")).toBeTruthy();
@@ -563,7 +584,9 @@ describe("Team Page (MSW integration)", () => {
           return HttpResponse.json({ error: "server error" }, { status: 500 });
         }),
       );
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(
@@ -684,7 +707,9 @@ describe("Team Page (MSW integration)", () => {
         }),
       );
 
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(paths.some((p) => p.includes("/invites"))).toBe(true);
@@ -712,7 +737,7 @@ describe("Team Page (MSW integration)", () => {
 describe("Team Page — mutations", () => {
   async function renderAndWaitForData() {
     const { container } = renderWithProviders(
-      <TeamOverview params={{ teamId: "team-001" }} />,
+      <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
     );
     await waitFor(
       () => {
@@ -1192,7 +1217,9 @@ describe("Team Page — mutations", () => {
         }),
       );
 
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Send Test Alert")).toBeTruthy();
@@ -1226,7 +1253,9 @@ describe("Team Page — mutations", () => {
         }),
       );
 
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByAltText("Add to Slack")).toBeTruthy();
@@ -1259,7 +1288,9 @@ describe("Team Page — mutations", () => {
         }),
       );
 
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("member@example.com")).toBeTruthy();
@@ -1298,7 +1329,9 @@ describe("Team Page — mutations", () => {
         }),
       );
 
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("member@example.com")).toBeTruthy();
@@ -1337,7 +1370,9 @@ describe("Team Page — mutations", () => {
         }),
       );
 
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("member@example.com")).toBeTruthy();
@@ -1370,7 +1405,9 @@ describe("Team Page — mutations", () => {
         }),
       );
 
-      renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+      renderWithProviders(
+        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Change Team Name")).toBeTruthy();
@@ -1662,7 +1699,9 @@ describe("Team — auth failure", () => {
         return new HttpResponse(null, { status: 401 });
       }),
     );
-    renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+    renderWithProviders(
+      <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+    );
     await waitFor(
       () => {
         expect(refreshAttempted).toBe(true);
@@ -1677,7 +1716,9 @@ describe("Team — auth failure", () => {
 // ====================================================================
 describe("Team Page — create team dialog", () => {
   async function renderAndWaitForData() {
-    renderWithProviders(<TeamOverview params={{ teamId: "team-001" }} />);
+    renderWithProviders(
+      <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
+    );
     await waitFor(
       () => {
         expect(screen.getByText("Invite Team Members")).toBeTruthy();
@@ -1971,7 +2012,9 @@ describe("Team page — loading states", () => {
         return HttpResponse.json(makeTeamsFixture());
       }),
     );
-    renderWithProviders(<TeamOverview params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <TeamOverview params={promiseParams({ teamId: "test-team" })} />,
+    );
     expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy();
   });
 });
