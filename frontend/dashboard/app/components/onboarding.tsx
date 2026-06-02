@@ -454,8 +454,7 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
   // `showStepCreate` is a UI history flag — keep showing the Step 1 header
   // (with a checkmark) once it was the user's starting point, even after
   // they've advanced. Captured at first render and never updated.
-  const showStepCreateRef = useRef<boolean>(apps.length === 0);
-  const showStepCreate = showStepCreateRef.current;
+  const [showStepCreate] = useState<boolean>(() => apps.length === 0);
 
   const setStep = (newStep: Step) => {
     if (selectedApp) {

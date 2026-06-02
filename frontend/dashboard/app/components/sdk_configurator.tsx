@@ -19,7 +19,7 @@ import { track } from "@/app/utils/analytics/track";
 import { toastNegative, toastPositive } from "@/app/utils/use_toast";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { underlineLinkStyle } from "../utils/shared_styles";
 import DangerConfirmationDialog from "./danger_confirmation_dialog";
 import { Textarea } from "./textarea";
@@ -44,9 +44,11 @@ export default function SdkConfigurator({
   osName,
 }: SdkConfiguratorProps) {
   // Local editable state
-  const [sdkConfig, setSdkConfigState] = useState<SdkConfig | null>(null);
+  const [sdkConfig, setSdkConfigState] = useState<SdkConfig | null>(
+    initialConfig,
+  );
   const [originalSdkConfig, setOriginalSdkConfig] = useState<SdkConfig | null>(
-    null,
+    initialConfig,
   );
 
   // Per-section save status tracking
@@ -67,17 +69,6 @@ export default function SdkConfigurator({
   const saveSdkConfigMutation = useSaveSdkConfigMutation();
   const routeParams = useParams<{ teamId: string }>();
 
-  // Track changes per section
-  const [crashesChanged, setCrashesChanged] = useState(false);
-  const [anrsChanged, setAnrsChanged] = useState(false);
-  const [bugReportsChanged, setBugReportsChanged] = useState(false);
-  const [tracesChanged, setTracesChanged] = useState(false);
-  const [launchMetricsChanged, setLaunchMetricsChanged] = useState(false);
-  const [journeyChanged, setJourneyChanged] = useState(false);
-  const [httpChanged, setHttpChanged] = useState(false);
-  const [screenshotMaskingChanged, setScreenshotMaskingChanged] =
-    useState(false);
-
   // Confirmation dialog states
   const [crashesConfirmOpen, setCrashesConfirmOpen] = useState(false);
   const [anrsConfirmOpen, setAnrsConfirmOpen] = useState(false);
@@ -88,11 +79,13 @@ export default function SdkConfigurator({
   const [httpConfirmOpen, setHttpConfirmOpen] = useState(false);
   const [maskingConfirmOpen, setMaskingConfirmOpen] = useState(false);
 
-  // Sync initialConfig prop into local state on mount / when it changes
-  useEffect(() => {
+  // Sync initialConfig prop into local state when it changes.
+  const [prevInitialConfig, setPrevInitialConfig] = useState(initialConfig);
+  if (initialConfig !== prevInitialConfig) {
+    setPrevInitialConfig(initialConfig);
     setSdkConfigState(initialConfig);
     setOriginalSdkConfig(initialConfig);
-  }, [initialConfig]);
+  }
 
   const updateSdkConfig = (updates: Partial<SdkConfig>) => {
     if (!sdkConfig) {
@@ -101,127 +94,53 @@ export default function SdkConfigurator({
     setSdkConfigState({ ...sdkConfig, ...updates });
   };
 
-  // Track changes per section
-  useEffect(() => {
-    if (!sdkConfig || !originalSdkConfig) {
-      return;
-    }
-    setCrashesChanged(
-      sdkConfig.crash_take_screenshot !==
-        originalSdkConfig.crash_take_screenshot ||
-        sdkConfig.crash_timeline_duration !==
-          originalSdkConfig.crash_timeline_duration,
-    );
-  }, [
-    sdkConfig?.crash_take_screenshot,
-    sdkConfig?.crash_timeline_duration,
-    originalSdkConfig?.crash_take_screenshot,
-    originalSdkConfig?.crash_timeline_duration,
-  ]);
-
-  useEffect(() => {
-    if (!sdkConfig || !originalSdkConfig) {
-      return;
-    }
-    setAnrsChanged(
-      sdkConfig.anr_take_screenshot !== originalSdkConfig.anr_take_screenshot ||
-        sdkConfig.anr_timeline_duration !==
-          originalSdkConfig.anr_timeline_duration,
-    );
-  }, [
-    sdkConfig?.anr_take_screenshot,
-    sdkConfig?.anr_timeline_duration,
-    originalSdkConfig?.anr_take_screenshot,
-    originalSdkConfig?.anr_timeline_duration,
-  ]);
-
-  useEffect(() => {
-    if (!sdkConfig || !originalSdkConfig) {
-      return;
-    }
-    setBugReportsChanged(
-      sdkConfig.bug_report_timeline_duration !==
-        originalSdkConfig.bug_report_timeline_duration,
-    );
-  }, [
-    sdkConfig?.bug_report_timeline_duration,
-    originalSdkConfig?.bug_report_timeline_duration,
-  ]);
-
-  useEffect(() => {
-    if (!sdkConfig || !originalSdkConfig) {
-      return;
-    }
-    setTracesChanged(
-      sdkConfig.trace_sampling_rate !== originalSdkConfig.trace_sampling_rate,
-    );
-  }, [sdkConfig?.trace_sampling_rate, originalSdkConfig?.trace_sampling_rate]);
-
-  useEffect(() => {
-    if (!sdkConfig || !originalSdkConfig) {
-      return;
-    }
-    setLaunchMetricsChanged(
-      sdkConfig.launch_sampling_rate !== originalSdkConfig.launch_sampling_rate,
-    );
-  }, [
-    sdkConfig?.launch_sampling_rate,
-    originalSdkConfig?.launch_sampling_rate,
-  ]);
-
-  useEffect(() => {
-    if (!sdkConfig || !originalSdkConfig) {
-      return;
-    }
-    setJourneyChanged(
-      sdkConfig.journey_sampling_rate !==
-        originalSdkConfig.journey_sampling_rate,
-    );
-  }, [
-    sdkConfig?.journey_sampling_rate,
-    originalSdkConfig?.journey_sampling_rate,
-  ]);
-
-  useEffect(() => {
-    if (!sdkConfig || !originalSdkConfig) {
-      return;
-    }
-    setHttpChanged(
-      sdkConfig.http_sampling_rate !== originalSdkConfig.http_sampling_rate ||
-        JSON.stringify(sdkConfig.http_disable_event_for_urls) !==
-          JSON.stringify(originalSdkConfig.http_disable_event_for_urls) ||
-        JSON.stringify(sdkConfig.http_track_request_for_urls) !==
-          JSON.stringify(originalSdkConfig.http_track_request_for_urls) ||
-        JSON.stringify(sdkConfig.http_track_response_for_urls) !==
-          JSON.stringify(originalSdkConfig.http_track_response_for_urls) ||
-        JSON.stringify(sdkConfig.http_blocked_headers) !==
-          JSON.stringify(originalSdkConfig.http_blocked_headers),
-    );
-  }, [
-    sdkConfig?.http_sampling_rate,
-    sdkConfig?.http_disable_event_for_urls,
-    sdkConfig?.http_track_request_for_urls,
-    sdkConfig?.http_track_response_for_urls,
-    sdkConfig?.http_blocked_headers,
-    originalSdkConfig?.http_sampling_rate,
-    originalSdkConfig?.http_disable_event_for_urls,
-    originalSdkConfig?.http_track_request_for_urls,
-    originalSdkConfig?.http_track_response_for_urls,
-    originalSdkConfig?.http_blocked_headers,
-  ]);
-
-  useEffect(() => {
-    if (!sdkConfig || !originalSdkConfig) {
-      return;
-    }
-    setScreenshotMaskingChanged(
-      sdkConfig.screenshot_mask_level !==
-        originalSdkConfig.screenshot_mask_level,
-    );
-  }, [
-    sdkConfig?.screenshot_mask_level,
-    originalSdkConfig?.screenshot_mask_level,
-  ]);
+  // Track changes per section, derived from the current vs. original config.
+  const crashesChanged =
+    !!sdkConfig &&
+    !!originalSdkConfig &&
+    (sdkConfig.crash_take_screenshot !==
+      originalSdkConfig.crash_take_screenshot ||
+      sdkConfig.crash_timeline_duration !==
+        originalSdkConfig.crash_timeline_duration);
+  const anrsChanged =
+    !!sdkConfig &&
+    !!originalSdkConfig &&
+    (sdkConfig.anr_take_screenshot !== originalSdkConfig.anr_take_screenshot ||
+      sdkConfig.anr_timeline_duration !==
+        originalSdkConfig.anr_timeline_duration);
+  const bugReportsChanged =
+    !!sdkConfig &&
+    !!originalSdkConfig &&
+    sdkConfig.bug_report_timeline_duration !==
+      originalSdkConfig.bug_report_timeline_duration;
+  const tracesChanged =
+    !!sdkConfig &&
+    !!originalSdkConfig &&
+    sdkConfig.trace_sampling_rate !== originalSdkConfig.trace_sampling_rate;
+  const launchMetricsChanged =
+    !!sdkConfig &&
+    !!originalSdkConfig &&
+    sdkConfig.launch_sampling_rate !== originalSdkConfig.launch_sampling_rate;
+  const journeyChanged =
+    !!sdkConfig &&
+    !!originalSdkConfig &&
+    sdkConfig.journey_sampling_rate !== originalSdkConfig.journey_sampling_rate;
+  const httpChanged =
+    !!sdkConfig &&
+    !!originalSdkConfig &&
+    (sdkConfig.http_sampling_rate !== originalSdkConfig.http_sampling_rate ||
+      JSON.stringify(sdkConfig.http_disable_event_for_urls) !==
+        JSON.stringify(originalSdkConfig.http_disable_event_for_urls) ||
+      JSON.stringify(sdkConfig.http_track_request_for_urls) !==
+        JSON.stringify(originalSdkConfig.http_track_request_for_urls) ||
+      JSON.stringify(sdkConfig.http_track_response_for_urls) !==
+        JSON.stringify(originalSdkConfig.http_track_response_for_urls) ||
+      JSON.stringify(sdkConfig.http_blocked_headers) !==
+        JSON.stringify(originalSdkConfig.http_blocked_headers));
+  const screenshotMaskingChanged =
+    !!sdkConfig &&
+    !!originalSdkConfig &&
+    sdkConfig.screenshot_mask_level !== originalSdkConfig.screenshot_mask_level;
 
   if (!sdkConfig || !originalSdkConfig) {
     return null;

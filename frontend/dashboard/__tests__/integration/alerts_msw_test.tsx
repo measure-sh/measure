@@ -11,6 +11,7 @@
  * in-flight dedup, re-render resilience, keyboard nav, time formatting,
  * empty results, error states, and 401 auth failure.
  */
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
   afterEach,
@@ -120,7 +121,9 @@ function renderWithProviders(ui: React.ReactElement) {
 // ====================================================================
 describe("Alerts Overview (MSW integration)", () => {
   async function renderAndWaitForData() {
-    renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(
@@ -198,7 +201,9 @@ describe("Alerts Overview (MSW integration)", () => {
         }),
       );
 
-      renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(
@@ -416,7 +421,9 @@ describe("Alerts Overview (MSW integration)", () => {
       );
 
       mockSearchParams.set("po", "5");
-      renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Deep-linked page 2 alert")).toBeTruthy();
@@ -442,7 +449,9 @@ describe("Alerts Overview (MSW integration)", () => {
         }),
       );
 
-      renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(
@@ -471,7 +480,9 @@ describe("Alerts Overview (MSW integration)", () => {
         }),
       );
 
-      renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(
@@ -706,7 +717,9 @@ describe("Alerts Overview (MSW integration)", () => {
         }),
       );
 
-      renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           // Table header should render
@@ -727,7 +740,9 @@ describe("Alerts Overview (MSW integration)", () => {
         }),
       );
 
-      renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Alert")).toBeTruthy();
@@ -789,7 +804,9 @@ describe("Alerts — auth failure", () => {
       }),
     );
 
-    renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(refreshAttempted).toBe(true);
@@ -803,7 +820,7 @@ describe("Alerts — team switch to no-apps team", () => {
   it("switching from team with apps to team with no apps shows NoApps after store reset", async () => {
     // Phase 1: render with team that has apps — fully load
     const { unmount } = renderWithProviders(
-      <AlertsOverview params={{ teamId: "team-with-apps" }} />,
+      <AlertsOverview params={promiseParams({ teamId: "team-with-apps" })} />,
     );
 
     await waitFor(
@@ -829,7 +846,9 @@ describe("Alerts — team switch to no-apps team", () => {
 
     unmount();
 
-    renderWithProviders(<AlertsOverview params={{ teamId: "team-no-apps" }} />);
+    renderWithProviders(
+      <AlertsOverview params={promiseParams({ teamId: "team-no-apps" })} />,
+    );
 
     // Wait for NoApps message to appear
     await waitFor(
@@ -849,7 +868,9 @@ describe("Alerts page — loading states", () => {
         return HttpResponse.json([]);
       }),
     );
-    renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+    );
     expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy();
   });
 });

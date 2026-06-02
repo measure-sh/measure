@@ -11,7 +11,7 @@ import { resetAllStores } from "@/app/stores/reset_all";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { posthog } from "posthog-js";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { determineAcquisitionSource } from "@/app/utils/analytics/acquisition";
 import { getStoredGCLID } from "@/app/utils/analytics/attribution";
 import { getUTMState } from "@/app/utils/analytics/utm";
@@ -23,7 +23,7 @@ function buildMcpAuthorizeUrl(
   searchParams: { [key: string]: string | string[] | undefined },
   provider: string,
 ): string {
-  const apiBaseUrl = process?.env?.NEXT_PUBLIC_API_BASE_URL || "";
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(searchParams)) {
     if (key === "mcp" || value === undefined) {
@@ -35,78 +35,40 @@ function buildMcpAuthorizeUrl(
   return `${apiBaseUrl}/oauth/authorize?${params.toString()}`;
 }
 
-export default function Login({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
+export default function Login(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const searchParams = use(props.searchParams);
   const error = searchParams["error"];
   const message = searchParams["message"];
   const inviteId = searchParams["inviteId"];
   const isMcp = searchParams["mcp"] === "1";
   const [session, setSession] = useState<Session | null>(null);
-  const [home, setHome] = useState("");
+  const home = session ? `/${session.user.own_team_id}/overview` : "";
   const [loading, setLoading] = useState(!isMcp);
   const [inviteInvalid, setInviteInvalid] = useState(false);
   const router = useRouter();
 
-  const validateInvite = async () => {
-    const result = await validateInvitesFromServer(inviteId as string);
-
-    switch (result.status) {
-      case ValidateInviteApiStatus.Error:
-        setInviteInvalid(true);
-        break;
-      case ValidateInviteApiStatus.Success:
-        setInviteInvalid(false);
-        break;
-    }
-  };
-
   useEffect(() => {
-    if (!isMcp && inviteId) {
-      validateInvite();
+    if (isMcp || !inviteId) {
+      return;
     }
+    const validateInvite = async () => {
+      const result = await validateInvitesFromServer(inviteId as string);
+
+      switch (result.status) {
+        case ValidateInviteApiStatus.Error:
+          setInviteInvalid(true);
+          break;
+        case ValidateInviteApiStatus.Success:
+          setInviteInvalid(false);
+          break;
+      }
+    };
+    validateInvite();
   }, [inviteId, isMcp]);
 
   const registry = useMeasureStoreRegistry();
-
-  const getSession = async () => {
-    const session = await fetchCurrentSession();
-    if (session) {
-      setSession(session);
-      const utm = getUTMState();
-      const acquisition = determineAcquisitionSource({
-        utm_source: utm?.first_touch_utm_source,
-        utm_medium: utm?.first_touch_utm_medium,
-        utm_campaign: utm?.first_touch_utm_campaign,
-        referrer_domain: utm?.referrer_domain,
-        gclid: getStoredGCLID(),
-      });
-      const email = session.user.email ?? "";
-      const atIdx = email.indexOf("@");
-      const emailDomain = atIdx >= 0 ? email.slice(atIdx + 1) : undefined;
-      posthog.identify(
-        session.user.id,
-        {
-          email,
-          name: session.user.name,
-        },
-        {
-          first_touch_utm_source: utm?.first_touch_utm_source,
-          first_touch_utm_medium: utm?.first_touch_utm_medium,
-          first_touch_utm_campaign: utm?.first_touch_utm_campaign,
-          last_touch_utm_source: utm?.last_touch_utm_source,
-          last_touch_utm_medium: utm?.last_touch_utm_medium,
-          referrer_domain: utm?.referrer_domain,
-          signup_acquisition_source: acquisition.source,
-          signup_is_inbound: acquisition.is_inbound,
-          email_domain: emailDomain,
-        },
-      );
-    }
-    setLoading(false);
-  };
 
   useEffect(() => {
     if (isMcp) {
@@ -123,16 +85,48 @@ export default function Login({
       return;
     }
 
-    if (!session) {
-      getSession();
+    if (session) {
+      router.replace(`/${session.user.own_team_id}/overview`);
       return;
     }
 
-    if (session) {
-      const url = `/${session.user.own_team_id}/overview`;
-      setHome(url);
-      router.replace(url);
-    }
+    const getSession = async () => {
+      const session = await fetchCurrentSession();
+      if (session) {
+        setSession(session);
+        const utm = getUTMState();
+        const acquisition = determineAcquisitionSource({
+          utm_source: utm?.first_touch_utm_source,
+          utm_medium: utm?.first_touch_utm_medium,
+          utm_campaign: utm?.first_touch_utm_campaign,
+          referrer_domain: utm?.referrer_domain,
+          gclid: getStoredGCLID(),
+        });
+        const email = session.user.email ?? "";
+        const atIdx = email.indexOf("@");
+        const emailDomain = atIdx >= 0 ? email.slice(atIdx + 1) : undefined;
+        posthog.identify(
+          session.user.id,
+          {
+            email,
+            name: session.user.name,
+          },
+          {
+            first_touch_utm_source: utm?.first_touch_utm_source,
+            first_touch_utm_medium: utm?.first_touch_utm_medium,
+            first_touch_utm_campaign: utm?.first_touch_utm_campaign,
+            last_touch_utm_source: utm?.last_touch_utm_source,
+            last_touch_utm_medium: utm?.last_touch_utm_medium,
+            referrer_domain: utm?.referrer_domain,
+            signup_acquisition_source: acquisition.source,
+            signup_is_inbound: acquisition.is_inbound,
+            email_domain: emailDomain,
+          },
+        );
+      }
+      setLoading(false);
+    };
+    getSession();
   }, [session, isMcp]);
 
   const mcpGitHubUrl = isMcp

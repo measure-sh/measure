@@ -87,91 +87,97 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({
             onChangeSelected={(item) => setQuantile(item as Quantile)}
           />
         </div>
-        <ResponsiveLine
-          data={plot}
-          curve="monotoneX"
-          theme={chartTheme}
-          enableArea={true}
-          areaOpacity={0.1}
-          colors={chartColors}
-          margin={{ top: 20, right: 80, bottom: 140, left: 100 }}
-          xFormat={timeConfig.xFormat}
-          xScale={{
-            format: timeConfig.xScaleFormat,
-            precision: timeConfig.xScalePrecision,
-            type: "time",
-            useUTC: false,
-          }}
-          yScale={{
-            type: "linear",
-            min: 0,
-            max: "auto",
-          }}
-          yFormat=".2f"
-          axisTop={null}
-          axisRight={null}
-          axisBottom={{
-            legend: "Date",
-            tickPadding: 10,
-            legendOffset: 100,
-            format: timeConfig.axisBottomFormat,
-            tickRotation: 45,
-            legendPosition: "middle",
-          }}
-          axisLeft={{
-            tickSize: 1,
-            tickPadding: 5,
-            legend: `Duration (${quantile})`,
-            legendOffset: -80,
-            legendPosition: "middle",
-          }}
-          pointSize={6}
-          pointBorderWidth={1.5}
-          pointColor={
-            theme === "dark" ? "rgba(0, 0, 0, 255)" : "rgba(255, 255, 255, 255)"
-          }
-          pointBorderColor={{
-            from: "serieColor",
-            modifiers: [["darker", 0.3]],
-          }}
-          pointLabelYOffset={-12}
-          useMesh={true}
-          enableGridX={false}
-          enableGridY={false}
-          enableSlices="x"
-          sliceTooltip={({ slice }) => {
-            const pointData = slice.points[0]?.data as unknown as {
-              count: number;
-            };
-            const count = pointData?.count ?? 0;
-            return (
-              <PlotTooltipShell>
-                <p className="p-2 font-semibold">
-                  {formatPlotTooltipDate(
-                    slice.points[0].data.xFormatted.toString(),
-                    plotTimeGroup,
-                  )}
-                </p>
-                <p className="px-2 pb-1">Requests: {count.toLocaleString()}</p>
-                {slice.points.map((point) => (
-                  <div
-                    className="flex flex-row items-center px-2 py-0.5"
-                    key={point.id}
-                  >
-                    <PlotTooltipSwatch color={point.serieColor} />
-                    <div className="px-1" />
-                    <p>
-                      {quantile}:{" "}
-                      {formatMillisToHumanReadable(
-                        point.data.yFormatted as number,
-                      )}
-                    </p>
-                  </div>
-                ))}
-              </PlotTooltipShell>
-            );
-          }}
-        />
+        <div className="size-full">
+          <ResponsiveLine
+            data={plot}
+            curve="monotoneX"
+            theme={chartTheme}
+            enableArea={true}
+            areaOpacity={0.1}
+            colors={chartColors}
+            margin={{ top: 20, right: 80, bottom: 140, left: 100 }}
+            xFormat={timeConfig.xFormat}
+            xScale={{
+              format: timeConfig.xScaleFormat,
+              precision: timeConfig.xScalePrecision,
+              type: "time",
+              useUTC: false,
+            }}
+            yScale={{
+              type: "linear",
+              min: 0,
+              max: "auto",
+            }}
+            yFormat=".2f"
+            axisTop={null}
+            axisRight={null}
+            axisBottom={{
+              legend: "Date",
+              tickPadding: 10,
+              legendOffset: 100,
+              format: timeConfig.axisBottomFormat,
+              tickRotation: 45,
+              legendPosition: "middle",
+            }}
+            axisLeft={{
+              tickSize: 1,
+              tickPadding: 5,
+              legend: `Duration (${quantile})`,
+              legendOffset: -80,
+              legendPosition: "middle",
+            }}
+            pointSize={6}
+            pointBorderWidth={1.5}
+            pointColor={
+              theme === "dark"
+                ? "rgba(0, 0, 0, 255)"
+                : "rgba(255, 255, 255, 255)"
+            }
+            pointBorderColor={{
+              from: "seriesColor",
+              modifiers: [["darker", 0.3]],
+            }}
+            pointLabelYOffset={-12}
+            useMesh={true}
+            enableGridX={false}
+            enableGridY={false}
+            enableSlices="x"
+            sliceTooltip={({ slice }) => {
+              const pointData = slice.points[0]?.data as unknown as {
+                count: number;
+              };
+              const count = pointData?.count ?? 0;
+              return (
+                <PlotTooltipShell>
+                  <p className="p-2 font-semibold">
+                    {formatPlotTooltipDate(
+                      slice.points[0].data.xFormatted.toString(),
+                      plotTimeGroup,
+                    )}
+                  </p>
+                  <p className="px-2 pb-1">
+                    Requests: {count.toLocaleString()}
+                  </p>
+                  {slice.points.map((point) => (
+                    <div
+                      className="flex flex-row items-center px-2 py-0.5"
+                      key={point.id}
+                    >
+                      <PlotTooltipSwatch color={point.seriesColor} />
+                      <div className="px-1" />
+                      <p>
+                        {quantile}:{" "}
+                        {formatMillisToHumanReadable(
+                          Number(point.data.yFormatted),
+                        )}
+                      </p>
+                    </div>
+                  ))}
+                </PlotTooltipShell>
+              );
+            }}
+          />
+        </div>
       </div>
     </div>
   );

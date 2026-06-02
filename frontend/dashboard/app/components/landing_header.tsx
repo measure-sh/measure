@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useScrollDirection } from "../utils/scroll_utils";
 import { cn } from "../utils/shadcn_utils";
 import { buttonVariants } from "./button_variants";
@@ -10,18 +10,18 @@ import { ThemeToggle } from "./theme_toggle";
 import TrackCtaLink from "./analytics/track_cta_link";
 import TrackGithubLink from "./analytics/track_github_link";
 
-// Hook to detect if we're on a small screen
+// Hook to detect if we're on a small screen.
+function subscribeToResize(onChange: () => void) {
+  window.addEventListener("resize", onChange);
+  return () => window.removeEventListener("resize", onChange);
+}
+
 function useIsSmallScreen() {
-  const [isSmall, setIsSmall] = useState(false);
-
-  useEffect(() => {
-    const checkSize = () => setIsSmall(window.innerWidth < 768); // md breakpoint
-    checkSize();
-    window.addEventListener("resize", checkSize);
-    return () => window.removeEventListener("resize", checkSize);
-  }, []);
-
-  return isSmall;
+  return useSyncExternalStore(
+    subscribeToResize,
+    () => window.innerWidth < 768, // md breakpoint
+    () => false,
+  );
 }
 
 export default function LandingHeader() {

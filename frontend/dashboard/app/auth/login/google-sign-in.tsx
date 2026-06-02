@@ -9,7 +9,7 @@ import {
 } from "@/app/utils/analytics/attribution";
 import Image from "next/image";
 
-const googleClientID = process?.env?.NEXT_PUBLIC_OAUTH_GOOGLE_KEY;
+const googleClientID = process.env.NEXT_PUBLIC_OAUTH_GOOGLE_KEY;
 
 export default function GoogleSignIn({
   mcpAuthorizeUrl,

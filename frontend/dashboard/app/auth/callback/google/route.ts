@@ -9,8 +9,8 @@ import { setCookiesFromJWT } from "../../cookie";
 
 export const dynamic = "force-dynamic";
 
-const origin = process?.env?.NEXT_PUBLIC_SITE_URL;
-const apiOrigin = process?.env?.API_BASE_URL;
+const origin = process.env.NEXT_PUBLIC_SITE_URL;
+const apiOrigin = process.env.API_BASE_URL;
 const posthog = getPosthogServer();
 
 export async function GET(request: Request) {

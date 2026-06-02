@@ -3,13 +3,13 @@
  * https://jestjs.io/docs/configuration
  */
 
-import type { Config } from 'jest';
-import nextJest from 'next/jest';
+import type { Config } from "jest";
+import nextJest from "next/jest";
 
 const createJestConfig = nextJest({
   // Provide the path to your Next.js app to load next.config.js and .env files in your test environment
-  dir: './',
-})
+  dir: "./",
+});
 
 const config: Config = {
   // All imported modules in your tests should be mocked automatically
@@ -74,8 +74,8 @@ const config: Config = {
 
   // A set of global variables that need to be available in all test environments
   globals: {
-    fetch: () => { },
-    Request: function () { },
+    fetch: () => {},
+    Request: function () {},
   },
 
   // The maximum amount of workers used to run your tests. Can be specified as % or a number. E.g. maxWorkers: 10% will use 10% of your CPU amount + 1 as the maximum worker number. maxWorkers: 2 will use a maximum of 2 workers.
@@ -100,7 +100,7 @@ const config: Config = {
 
   // A map from regular expressions to module names or to arrays of module names that allow to stub out resources with a single module
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1', // Map @ to the root directory
+    "^@/(.*)$": "<rootDir>/$1", // Map @ to the root directory
   },
 
   // Skip Next.js build output so jest-haste-map doesn't see duplicate
@@ -180,6 +180,7 @@ const config: Config = {
     "/node_modules/",
     "__tests__/integration/",
     "__tests__/msw/",
+    "__tests__/helpers/",
   ],
 
   // The regexp pattern or array of patterns that Jest uses to detect test files
@@ -213,4 +214,4 @@ const config: Config = {
   // watchman: true,
 };
 
-export default createJestConfig(config)
+export default createJestConfig(config);

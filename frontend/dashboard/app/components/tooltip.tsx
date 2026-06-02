@@ -4,6 +4,7 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import * as React from "react";
 
 import { cn } from "@/app/utils/shadcn_utils";
+import { usePortalContainer } from "./portal_container";
 
 function TooltipProvider({
   delayDuration = 0,
@@ -21,9 +22,19 @@ function TooltipProvider({
 function Tooltip({
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Root>) {
+  const container = usePortalContainer();
   return (
     <TooltipProvider>
-      <TooltipPrimitive.Root data-slot="tooltip" {...props} />
+      <TooltipPrimitive.Root
+        data-slot="tooltip"
+        // Inside the scaled-preview iframe, Radix keeps a hoverable tooltip open
+        // by tracking the pointer through a grace area via a listener on the host
+        // document, which never sees movement inside the iframe — so it never
+        // closes on leave. Disabling hoverable content routes close-on-leave
+        // through the trigger's React event, which does cross the iframe boundary.
+        disableHoverableContent={container ? true : undefined}
+        {...props}
+      />
     </TooltipProvider>
   );
 }
@@ -40,8 +51,9 @@ function TooltipContent({
   children,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+  const container = usePortalContainer();
   return (
-    <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Portal container={container ?? undefined}>
       <TooltipPrimitive.Content
         data-slot="tooltip-content"
         sideOffset={sideOffset}

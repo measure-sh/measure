@@ -363,18 +363,19 @@ describe("Network Overview (MSW integration)", () => {
     it('clicking "Frequency" tab button shows frequency data', async () => {
       await renderAndWaitForData();
       // Find the Frequency tab button (not the table header)
-      const frequencyBtn = screen
-        .getAllByText("Frequency")
-        .find((el) => el.tagName === "BUTTON")!;
+      let frequencyBtn: HTMLElement | undefined;
       await waitFor(
         () => {
+          frequencyBtn = screen
+            .getAllByText("Frequency")
+            .find((el) => el.tagName === "BUTTON");
           expect(frequencyBtn).toBeTruthy();
         },
         { timeout: 5000 },
       );
 
       await act(async () => {
-        fireEvent.click(frequencyBtn);
+        fireEvent.click(frequencyBtn!);
       });
       await waitFor(() => {
         expect(screen.getByText("api.example.com/v1/events")).toBeTruthy();
@@ -385,18 +386,19 @@ describe("Network Overview (MSW integration)", () => {
     it("frequency tab also shows latency and error rate columns", async () => {
       await renderAndWaitForData();
       // Find the Frequency tab button (not the table header)
-      const frequencyBtn = screen
-        .getAllByText("Frequency")
-        .find((el) => el.tagName === "BUTTON")!;
+      let frequencyBtn: HTMLElement | undefined;
       await waitFor(
         () => {
+          frequencyBtn = screen
+            .getAllByText("Frequency")
+            .find((el) => el.tagName === "BUTTON");
           expect(frequencyBtn).toBeTruthy();
         },
         { timeout: 5000 },
       );
 
       await act(async () => {
-        fireEvent.click(frequencyBtn);
+        fireEvent.click(frequencyBtn!);
       });
       await waitFor(() => {
         // /v1/events endpoint: p95_latency=180ms, error_rate=0.1%

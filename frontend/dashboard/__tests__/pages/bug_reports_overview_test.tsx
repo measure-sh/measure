@@ -1,3 +1,4 @@
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import BugReportsOverview from "@/app/[teamId]/bug_reports/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
@@ -142,12 +143,12 @@ describe("BugReportsOverview Component", () => {
   });
 
   it("renders the Filters component", () => {
-    render(<BugReportsOverview params={{ teamId: "123" }} />);
+    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
     expect(screen.getByTestId("filters-mock")).toBeInTheDocument();
   });
 
   it("does not render main bug reports UI when filters are not ready", () => {
-    render(<BugReportsOverview params={{ teamId: "123" }} />);
+    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
     expect(
       screen.queryByTestId("bug-reports-overview-plot-mock"),
     ).not.toBeInTheDocument();
@@ -163,7 +164,7 @@ describe("BugReportsOverview Component", () => {
       isFetching: false,
       error: null,
     });
-    render(<BugReportsOverview params={{ teamId: "123" }} />);
+    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
     await act(async () => {
       useFiltersStore.setState({
         filters: {
@@ -197,7 +198,7 @@ describe("BugReportsOverview Component", () => {
       isFetching: false,
       error: null,
     });
-    render(<BugReportsOverview params={{ teamId: "123" }} />);
+    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
     await act(async () => {
       useFiltersStore.setState({
         filters: {
@@ -227,7 +228,7 @@ describe("BugReportsOverview Component", () => {
       isFetching: false,
       error: new Error("fail"),
     });
-    render(<BugReportsOverview params={{ teamId: "123" }} />);
+    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
     await act(async () => {
       useFiltersStore.setState({
         filters: {
@@ -251,7 +252,7 @@ describe("BugReportsOverview Component", () => {
       isFetching: false,
       error: null,
     });
-    render(<BugReportsOverview params={{ teamId: "123" }} />);
+    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
     await act(async () => {
       useFiltersStore.setState({
         filters: {
@@ -297,7 +298,7 @@ describe("BugReportsOverview Component", () => {
       isFetching: false,
       error: null,
     });
-    render(<BugReportsOverview params={{ teamId: "123" }} />);
+    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
     await act(async () => {
       useFiltersStore.setState({
         filters: {
@@ -320,7 +321,7 @@ describe("BugReportsOverview Component", () => {
         isFetching: false,
         error: null,
       });
-      render(<BugReportsOverview params={{ teamId: "123" }} />);
+      render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
       await act(async () => {
         useFiltersStore.setState({
           filters: {
@@ -342,7 +343,7 @@ describe("BugReportsOverview Component", () => {
         isFetching: false,
         error: null,
       });
-      render(<BugReportsOverview params={{ teamId: "123" }} />);
+      render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
       await act(async () => {
         useFiltersStore.setState({
           filters: {
@@ -369,7 +370,7 @@ describe("BugReportsOverview Component", () => {
         isFetching: false,
         error: null,
       });
-      render(<BugReportsOverview params={{ teamId: "123" }} />);
+      render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
       await act(async () => {
         useFiltersStore.setState({
           filters: {
@@ -409,7 +410,7 @@ describe("BugReportsOverview Component", () => {
         error: null,
       });
 
-      render(<BugReportsOverview params={{ teamId: "123" }} />);
+      render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
       await act(async () => {
         useFiltersStore.setState({
           filters: {
@@ -463,7 +464,7 @@ describe("BugReportsOverview Component", () => {
       isFetching: true,
       error: null,
     });
-    render(<BugReportsOverview params={{ teamId: "123" }} />);
+    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
 
     // Set loading state
     await act(async () => {
@@ -514,7 +515,7 @@ describe("BugReportsOverview Component", () => {
       error: null,
     });
     const { unmount } = render(
-      <BugReportsOverview params={{ teamId: "123" }} />,
+      <BugReportsOverview params={promiseParams({ teamId: "123" })} />,
     );
     await act(async () => {
       useFiltersStore.setState({
@@ -552,7 +553,7 @@ describe("BugReportsOverview Component", () => {
       isFetching: false,
       error: null,
     });
-    render(<BugReportsOverview params={{ teamId: "123" }} />);
+    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
     await act(async () => {
       useFiltersStore.setState({
         filters: {

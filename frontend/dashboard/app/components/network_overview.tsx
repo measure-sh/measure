@@ -251,19 +251,21 @@ export default function NetworkOverview({
       timelinePlotData !== null &&
       timelinePlotData.points.length > 0;
 
-  // Auto-select first domain when domains load
-  useEffect(() => {
-    if (
-      !demo &&
-      domainsQuery.status === "success" &&
-      domainsQuery.data &&
-      domainsQuery.data.length > 0 &&
-      searchDomain === ""
-    ) {
-      setSearchDomain(domainsQuery.data[0]);
-      setSearchPathPattern("");
-    }
-  }, [domainsQuery.status, domainsQuery.data]);
+  // Auto-select the first domain the first time domains load. The one-shot flag
+  // avoids re-selecting if the user later clears the field.
+  const [didAutoSelectDomain, setDidAutoSelectDomain] = useState(false);
+  if (
+    !demo &&
+    !didAutoSelectDomain &&
+    domainsQuery.status === "success" &&
+    domainsQuery.data &&
+    domainsQuery.data.length > 0 &&
+    searchDomain === ""
+  ) {
+    setDidAutoSelectDomain(true);
+    setSearchDomain(domainsQuery.data[0]);
+    setSearchPathPattern("");
+  }
 
   const handleSearch = () => {
     if (demo) return;
@@ -287,21 +289,28 @@ export default function NetworkOverview({
     router.replace(`?${filters.serialisedFilters!}`, { scroll: false });
   }, [filters.ready, filters.serialisedFilters]);
 
-  // Update recent paths when domain or pattern changes
-  useEffect(() => {
-    if (demo) return;
-    if (searchDomain) {
-      setRecentPaths(
-        getRecentSearchesForDomain(
-          params!.teamId,
-          searchDomain,
-          searchPathPattern,
-        ),
-      );
-    } else {
-      setRecentPaths([]);
-    }
-  }, [searchDomain, searchPathPattern]);
+  // Re-sync recent paths from storage when the domain or pattern changes. The
+  // list stays locally mutable — users can remove individual entries below.
+  const [prevSearch, setPrevSearch] = useState({
+    domain: searchDomain,
+    pattern: searchPathPattern,
+  });
+  if (
+    !demo &&
+    (prevSearch.domain !== searchDomain ||
+      prevSearch.pattern !== searchPathPattern)
+  ) {
+    setPrevSearch({ domain: searchDomain, pattern: searchPathPattern });
+    setRecentPaths(
+      searchDomain
+        ? getRecentSearchesForDomain(
+            params!.teamId,
+            searchDomain,
+            searchPathPattern,
+          )
+        : [],
+    );
+  }
 
   return (
     <div className="flex flex-col items-start">

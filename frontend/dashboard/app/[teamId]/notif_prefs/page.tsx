@@ -9,9 +9,26 @@ import {
   useSaveNotifPrefsMutation,
 } from "@/app/query/hooks";
 import { toastNegative, toastPositive } from "@/app/utils/use_toast";
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 
 type NotifPrefs = typeof emptyNotifPrefs;
+
+interface NotifRowProps {
+  rowTitle: string;
+  checked: boolean;
+  handleChange: () => void;
+}
+
+function NotifRow({ rowTitle, checked, handleChange }: NotifRowProps) {
+  return (
+    <div className="table-row-group">
+      <div className="table-cell py-2">{rowTitle}</div>
+      <div className="table-cell px-12 py-2">
+        <Checkbox checked={checked} onCheckedChange={handleChange} />
+      </div>
+    </div>
+  );
+}
 
 export default function Notifications() {
   const notifPrefsQuery = useNotifPrefsQuery();
@@ -21,11 +38,12 @@ export default function Notifications() {
   const [updatedNotifPrefs, setUpdatedNotifPrefs] =
     useState<NotifPrefs>(emptyNotifPrefs);
 
-  useEffect(() => {
-    if (notifPrefsQuery.data) {
-      setUpdatedNotifPrefs(notifPrefsQuery.data);
-    }
-  }, [notifPrefsQuery.data]);
+  // Seed the editable copy when prefs load (and re-seed if they refetch).
+  const [prevLoadedPrefs, setPrevLoadedPrefs] = useState(notifPrefsQuery.data);
+  if (notifPrefsQuery.data && notifPrefsQuery.data !== prevLoadedPrefs) {
+    setPrevLoadedPrefs(notifPrefsQuery.data);
+    setUpdatedNotifPrefs(notifPrefsQuery.data);
+  }
 
   const togglePref = (key: keyof NotifPrefs) => {
     setUpdatedNotifPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -49,27 +67,6 @@ export default function Notifications() {
         error instanceof Error ? error.message : undefined,
       );
     }
-  };
-
-  interface NotifRowProps {
-    rowTitle: string;
-    checked: boolean;
-    handleChange: () => void;
-  }
-
-  const NotifRow: React.FC<NotifRowProps> = ({
-    rowTitle,
-    checked,
-    handleChange,
-  }) => {
-    return (
-      <div className="table-row-group">
-        <div className="table-cell py-2">{rowTitle}</div>
-        <div className="table-cell px-12 py-2">
-          <Checkbox checked={checked} onCheckedChange={handleChange} />
-        </div>
-      </div>
-    );
   };
 
   return (

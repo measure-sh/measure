@@ -1,3 +1,4 @@
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import Overview from "@/app/[teamId]/overview/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
@@ -63,12 +64,12 @@ describe("Overview Component", () => {
   });
 
   it("renders the Filters component", () => {
-    render(<Overview params={{ teamId: "123" }} />);
+    render(<Overview params={promiseParams({ teamId: "123" })} />);
     expect(screen.getByTestId("filters-mock")).toBeInTheDocument();
   });
 
   it("does not render Journey or MetricsOverview when filters are not ready", () => {
-    render(<Overview params={{ teamId: "123" }} />);
+    render(<Overview params={promiseParams({ teamId: "123" })} />);
     expect(screen.queryByTestId("journey-mock")).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("metrics-overview-mock"),
@@ -76,7 +77,7 @@ describe("Overview Component", () => {
   });
 
   it("renders Journey and MetricsOverview when filters become ready and updates URL", async () => {
-    render(<Overview params={{ teamId: "123" }} />);
+    render(<Overview params={promiseParams({ teamId: "123" })} />);
 
     await act(async () => {
       useFiltersStore.setState({

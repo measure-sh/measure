@@ -26,15 +26,14 @@ import {
 } from "@/app/utils/time_utils";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 const PAGINATION_LIMIT = 5;
 
-export default function TracesOverview({
-  params,
-}: {
-  params: { teamId: string };
+export default function TracesOverview(props: {
+  params: Promise<{ teamId: string }>;
 }) {
+  const params = use(props.params);
   const router = useRouter();
   const searchParams = useSearchParams();
 

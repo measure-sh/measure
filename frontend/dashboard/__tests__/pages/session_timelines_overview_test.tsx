@@ -1,3 +1,4 @@
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import SessionTimelinesOverview from "@/app/[teamId]/session_timelines/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
@@ -147,12 +148,16 @@ describe("SessionTimelinesOverview Component", () => {
   });
 
   it("renders the Filters component", () => {
-    render(<SessionTimelinesOverview params={{ teamId: "123" }} />);
+    render(
+      <SessionTimelinesOverview params={promiseParams({ teamId: "123" })} />,
+    );
     expect(screen.getByTestId("filters-mock")).toBeInTheDocument();
   });
 
   it("does not render main sessions UI when filters are not ready", () => {
-    render(<SessionTimelinesOverview params={{ teamId: "123" }} />);
+    render(
+      <SessionTimelinesOverview params={promiseParams({ teamId: "123" })} />,
+    );
     expect(
       screen.queryByTestId("session-timelines-overview-plot-mock"),
     ).not.toBeInTheDocument();
@@ -168,7 +173,9 @@ describe("SessionTimelinesOverview Component", () => {
       isFetching: false,
       error: null,
     });
-    render(<SessionTimelinesOverview params={{ teamId: "123" }} />);
+    render(
+      <SessionTimelinesOverview params={promiseParams({ teamId: "123" })} />,
+    );
     await act(async () => {
       useFiltersStore.setState({
         filters: {
@@ -203,7 +210,9 @@ describe("SessionTimelinesOverview Component", () => {
       isFetching: false,
       error: null,
     });
-    render(<SessionTimelinesOverview params={{ teamId: "123" }} />);
+    render(
+      <SessionTimelinesOverview params={promiseParams({ teamId: "123" })} />,
+    );
     await act(async () => {
       useFiltersStore.setState({
         filters: {
@@ -232,7 +241,9 @@ describe("SessionTimelinesOverview Component", () => {
       isFetching: false,
       error: new Error("fail"),
     });
-    render(<SessionTimelinesOverview params={{ teamId: "123" }} />);
+    render(
+      <SessionTimelinesOverview params={promiseParams({ teamId: "123" })} />,
+    );
     await act(async () => {
       useFiltersStore.setState({
         filters: {
@@ -256,7 +267,9 @@ describe("SessionTimelinesOverview Component", () => {
       isFetching: false,
       error: null,
     });
-    render(<SessionTimelinesOverview params={{ teamId: "123" }} />);
+    render(
+      <SessionTimelinesOverview params={promiseParams({ teamId: "123" })} />,
+    );
     await act(async () => {
       useFiltersStore.setState({
         filters: {
@@ -304,7 +317,9 @@ describe("SessionTimelinesOverview Component", () => {
         isFetching: false,
         error: null,
       });
-      render(<SessionTimelinesOverview params={{ teamId: "123" }} />);
+      render(
+        <SessionTimelinesOverview params={promiseParams({ teamId: "123" })} />,
+      );
       await act(async () => {
         useFiltersStore.setState({
           filters: {
@@ -326,7 +341,9 @@ describe("SessionTimelinesOverview Component", () => {
         isFetching: false,
         error: null,
       });
-      render(<SessionTimelinesOverview params={{ teamId: "123" }} />);
+      render(
+        <SessionTimelinesOverview params={promiseParams({ teamId: "123" })} />,
+      );
       await act(async () => {
         useFiltersStore.setState({
           filters: {
@@ -353,7 +370,9 @@ describe("SessionTimelinesOverview Component", () => {
         isFetching: false,
         error: null,
       });
-      render(<SessionTimelinesOverview params={{ teamId: "123" }} />);
+      render(
+        <SessionTimelinesOverview params={promiseParams({ teamId: "123" })} />,
+      );
       await act(async () => {
         useFiltersStore.setState({
           filters: {
@@ -393,7 +412,9 @@ describe("SessionTimelinesOverview Component", () => {
         error: null,
       });
 
-      render(<SessionTimelinesOverview params={{ teamId: "123" }} />);
+      render(
+        <SessionTimelinesOverview params={promiseParams({ teamId: "123" })} />,
+      );
       await act(async () => {
         useFiltersStore.setState({
           filters: {
@@ -447,7 +468,9 @@ describe("SessionTimelinesOverview Component", () => {
       isFetching: true,
       error: null,
     });
-    render(<SessionTimelinesOverview params={{ teamId: "123" }} />);
+    render(
+      <SessionTimelinesOverview params={promiseParams({ teamId: "123" })} />,
+    );
 
     // Set loading state
     await act(async () => {

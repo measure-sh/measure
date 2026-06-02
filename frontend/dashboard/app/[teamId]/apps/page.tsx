@@ -36,9 +36,10 @@ import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
 import { toastNegative, toastPositive } from "@/app/utils/use_toast";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { use, useRef, useState } from "react";
 
-export default function Apps({ params }: { params: { teamId: string } }) {
+export default function Apps(props: { params: Promise<{ teamId: string }> }) {
+  const params = use(props.params);
   const filters = useFiltersStore((state) => state.filters);
   const appsApiStatus = useFiltersStore((state) => state.appsApiStatus);
   // No apps yet → render <Onboarding> via Filters and hide the CreateApp
@@ -115,14 +116,10 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
   const filtersRef = useRef<any>(null);
 
-  // Sync app name when filters become ready or change
-  const prevAppNameRef = useRef<string>("");
-  if (
-    filters.ready &&
-    filters.app &&
-    filters.app.name !== prevAppNameRef.current
-  ) {
-    prevAppNameRef.current = filters.app.name;
+  // Sync app name when filters become ready or change.
+  const [prevAppName, setPrevAppName] = useState<string>("");
+  if (filters.ready && filters.app && filters.app.name !== prevAppName) {
+    setPrevAppName(filters.app.name);
     setAppName(filters.app.name);
     setSaveAppNameButtonDisabled(true);
     // Reset editable state when app changes

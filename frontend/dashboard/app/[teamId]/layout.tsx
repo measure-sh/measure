@@ -169,15 +169,22 @@ export default function DashboardLayout({
     posthog.group("team", selectedTeam.id, { name: selectedTeam.name });
   }, [selectedTeam?.id, selectedTeam?.name]);
 
-  useEffect(() => {
-    const updatedNavData = { ...navData };
-    updatedNavData.navMain.forEach((section) => {
-      section.items.forEach((item) => {
-        item.isActive = pathName.includes(item.url);
-      });
-    });
-    setNavData(updatedNavData);
-  }, [pathName]);
+  // Mark the active nav item from the current path. prevPathName starts null so
+  // this runs on first render too (buildInitNavData starts every item inactive).
+  const [prevPathName, setPrevPathName] = useState<string | null>(null);
+  if (pathName !== prevPathName) {
+    setPrevPathName(pathName);
+    setNavData((current) => ({
+      ...current,
+      navMain: current.navMain.map((section) => ({
+        ...section,
+        items: section.items.map((item) => ({
+          ...item,
+          isActive: pathName.includes(item.url),
+        })),
+      })),
+    }));
+  }
 
   const logoutUser = async () => {
     await signOut();

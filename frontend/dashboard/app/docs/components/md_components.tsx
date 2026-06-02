@@ -273,7 +273,7 @@ export function createMarkdownComponents(
     img: ({ src, alt, node, ...props }) => (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={rewriteImgSrc(src || "")}
+        src={rewriteImgSrc(typeof src === "string" ? src : "")}
         alt={alt || ""}
         className="rounded-lg border border-border my-4 max-w-full"
         loading="lazy"
@@ -410,7 +410,10 @@ function extractTextContent(children: React.ReactNode): string {
     return children.map(extractTextContent).join("");
   }
   if (children && typeof children === "object" && "props" in children) {
-    return extractTextContent((children as React.ReactElement).props.children);
+    return extractTextContent(
+      (children as React.ReactElement<{ children?: React.ReactNode }>).props
+        .children,
+    );
   }
   return "";
 }

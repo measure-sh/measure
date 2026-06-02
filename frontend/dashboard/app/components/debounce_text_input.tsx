@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import React, { useCallback, useEffect, useState } from 'react'
-import { cn } from '../utils/shadcn_utils'
-import { Input } from './input'
+import React, { useCallback, useEffect, useState } from "react";
+import { cn } from "../utils/shadcn_utils";
+import { Input } from "./input";
 
 interface DebounceTextInputProps {
-  className?: string
-  id: string
-  placeholder: string
-  initialValue: string
-  onChange: (input: string) => void
+  className?: string;
+  id: string;
+  placeholder: string;
+  initialValue: string;
+  onChange: (input: string) => void;
 }
 
 const DebounceTextInput: React.FC<DebounceTextInputProps> = ({
@@ -17,29 +17,32 @@ const DebounceTextInput: React.FC<DebounceTextInputProps> = ({
   id,
   placeholder,
   initialValue,
-  onChange
+  onChange,
 }) => {
-  const [inputValue, setInputValue] = useState(initialValue)
+  const [inputValue, setInputValue] = useState(initialValue);
+  // Reset the field when the parent passes a new initialValue.
+  const [prevInitialValue, setPrevInitialValue] = useState(initialValue);
+  if (initialValue !== prevInitialValue) {
+    setPrevInitialValue(initialValue);
+    setInputValue(initialValue);
+  }
 
-  useEffect(() => {
-    if (inputValue !== initialValue) {
-      setInputValue(initialValue)
-    }
-  }, [initialValue])
-
-  const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(event.target.value)
-  }, [])
+  const handleInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setInputValue(event.target.value);
+    },
+    [],
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      onChange(inputValue)
-    }, 500)
+      onChange(inputValue);
+    }, 500);
 
     return () => {
-      clearTimeout(timer)
-    }
-  }, [inputValue, onChange])
+      clearTimeout(timer);
+    };
+  }, [inputValue, onChange]);
 
   return (
     <Input
@@ -50,8 +53,7 @@ const DebounceTextInput: React.FC<DebounceTextInputProps> = ({
       value={inputValue}
       onChange={handleInputChange}
     />
-  )
-}
+  );
+};
 
-
-export default DebounceTextInput
+export default DebounceTextInput;

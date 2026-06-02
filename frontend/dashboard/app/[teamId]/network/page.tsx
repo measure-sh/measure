@@ -1,5 +1,10 @@
-import NetworkOverview from '@/app/components/network_overview'
+import NetworkOverview from "@/app/components/network_overview";
 
-export default function NetworkPage({ params }: { params: { teamId: string } }) {
-    return <NetworkOverview params={params} />
+export default async function NetworkPage({
+  params,
+}: {
+  params: Promise<{ teamId: string }>;
+}) {
+  const resolvedParams = await params;
+  return <NetworkOverview params={resolvedParams} />;
 }

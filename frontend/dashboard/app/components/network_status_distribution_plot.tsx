@@ -87,7 +87,7 @@ const NetworkStatusDistributionPlot: React.FC<
 
   return (
     <div className="flex font-body items-center justify-center w-full h-[36rem]">
-      <div className="flex flex-col w-full h-full">
+      <div className="size-full">
         <ResponsiveLine
           data={plot}
           curve="monotoneX"
@@ -133,8 +133,8 @@ const NetworkStatusDistributionPlot: React.FC<
           pointColor={
             theme === "dark" ? "rgba(0, 0, 0, 255)" : "rgba(255, 255, 255, 255)"
           }
-          pointBorderColor={({ serieId }: { serieId: string }) =>
-            colorMap[serieId as keyof typeof colorMap] || "#888"
+          pointBorderColor={({ seriesId }: { seriesId: string }) =>
+            colorMap[seriesId as keyof typeof colorMap] || "#888"
           }
           pointLabelYOffset={-12}
           useMesh={true}
@@ -165,7 +165,7 @@ const NetworkStatusDistributionPlot: React.FC<
                 {/* nivo orders points by y-value, sort to maintain 2xx, 3xx, 4xx, 5xx order */}
                 {[...slice.points]
                   .sort((a, b) =>
-                    a.serieId.toString().localeCompare(b.serieId.toString()),
+                    a.seriesId.toString().localeCompare(b.seriesId.toString()),
                   )
                   .map((point) => {
                     const count = Number(point.data.y);
@@ -174,10 +174,10 @@ const NetworkStatusDistributionPlot: React.FC<
                         className="flex flex-row items-center px-2 py-0.5"
                         key={point.id}
                       >
-                        <PlotTooltipSwatch color={point.serieColor} />
+                        <PlotTooltipSwatch color={point.seriesColor} />
                         <div className="px-1" />
                         <p>
-                          {point.serieId}: {count.toLocaleString()} (
+                          {point.seriesId}: {count.toLocaleString()} (
                           {pct(count)}%)
                         </p>
                       </div>

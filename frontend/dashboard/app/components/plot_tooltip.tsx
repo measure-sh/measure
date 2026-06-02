@@ -14,7 +14,7 @@ export function PlotTooltipShell({
   return (
     <div
       className={cn(
-        "bg-background text-foreground font-body border shadow-md flex flex-col px-4 py-2 text-xs rounded-md",
+        "bg-background text-foreground font-body border shadow-md flex flex-col px-4 py-2 text-xs rounded-md whitespace-nowrap",
         className,
       )}
     >

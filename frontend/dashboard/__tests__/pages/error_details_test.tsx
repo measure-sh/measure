@@ -1,3 +1,4 @@
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import ErrorDetailsPage from "@/app/[teamId]/errors/[appId]/[errorGroupId]/[errorGroupName]/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
@@ -176,12 +177,12 @@ describe("ErrorGroupDetails Page", () => {
   it("renders the Filters component", () => {
     render(
       <ErrorDetailsPage
-        params={{
+        params={promiseParams({
           teamId: "123",
           appId: "app-1",
           errorGroupId: "g1",
           errorGroupName: "test",
-        }}
+        })}
       />,
     );
     expect(screen.getByTestId("filters-mock")).toBeInTheDocument();
@@ -190,12 +191,12 @@ describe("ErrorGroupDetails Page", () => {
   it("does not render the main UI when filters are not ready", () => {
     render(
       <ErrorDetailsPage
-        params={{
+        params={promiseParams({
           teamId: "123",
           appId: "app-1",
           errorGroupId: "g1",
           errorGroupName: "test",
-        }}
+        })}
       />,
     );
     expect(
@@ -218,12 +219,12 @@ describe("ErrorGroupDetails Page", () => {
     });
     render(
       <ErrorDetailsPage
-        params={{
+        params={promiseParams({
           teamId: "123",
           appId: "app-1",
           errorGroupId: "g1",
           errorGroupName: "test",
-        }}
+        })}
       />,
     );
 
@@ -257,12 +258,12 @@ describe("ErrorGroupDetails Page", () => {
     });
     render(
       <ErrorDetailsPage
-        params={{
+        params={promiseParams({
           teamId: "123",
           appId: "app-1",
           errorGroupId: "g1",
           errorGroupName: "test",
-        }}
+        })}
       />,
     );
     await act(async () => {
@@ -291,12 +292,12 @@ describe("ErrorGroupDetails Page", () => {
     });
     render(
       <ErrorDetailsPage
-        params={{
+        params={promiseParams({
           teamId: "123",
           appId: "app-1",
           errorGroupId: "g1",
           errorGroupName: "test",
-        }}
+        })}
       />,
     );
     await act(async () => {
@@ -323,12 +324,12 @@ describe("ErrorGroupDetails Page", () => {
     });
     render(
       <ErrorDetailsPage
-        params={{
+        params={promiseParams({
           teamId: "123",
           appId: "app-1",
           errorGroupId: "g1",
           errorGroupName: "test",
-        }}
+        })}
       />,
     );
     await act(async () => {
@@ -355,12 +356,12 @@ describe("ErrorGroupDetails Page", () => {
     });
     render(
       <ErrorDetailsPage
-        params={{
+        params={promiseParams({
           teamId: "123",
           appId: "app-1",
           errorGroupId: "g1",
           errorGroupName: "test",
-        }}
+        })}
       />,
     );
     await act(async () => {
@@ -395,12 +396,12 @@ describe("ErrorGroupDetails Page", () => {
     });
     render(
       <ErrorDetailsPage
-        params={{
+        params={promiseParams({
           teamId: "123",
           appId: "app-1",
           errorGroupId: "g1",
           errorGroupName: "test",
-        }}
+        })}
       />,
     );
     await act(async () => {
@@ -431,12 +432,12 @@ describe("ErrorGroupDetails Page", () => {
     });
     render(
       <ErrorDetailsPage
-        params={{
+        params={promiseParams({
           teamId: "123",
           appId: "app-1",
           errorGroupId: "g1",
           errorGroupName: "test",
-        }}
+        })}
       />,
     );
     await act(async () => {

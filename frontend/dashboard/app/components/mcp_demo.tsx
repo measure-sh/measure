@@ -67,7 +67,6 @@ export default function MCPDemo() {
   const [phase, setPhase] = useState<Phase>(Phase.InitialPause);
   const [promptChars, setPromptChars] = useState(0);
   const [responseChars, setResponseChars] = useState(0);
-  const [visible, setVisible] = useState(true);
   const [thinkingDots, setThinkingDots] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -141,13 +140,12 @@ export default function MCPDemo() {
         break;
 
       case Phase.FadeOut:
-        setVisible(false);
+        // the fade-out is driven by the derived `visible` below
         timeout = setTimeout(() => {
           setPhase(Phase.InitialPause);
           setPromptChars(0);
           setResponseChars(0);
           setThinkingDots(1);
-          setVisible(true);
         }, FADE_OUT_DURATION);
         break;
     }
@@ -224,6 +222,7 @@ export default function MCPDemo() {
     return parts;
   };
 
+  const visible = phase !== Phase.FadeOut;
   const showPrompt = phase >= Phase.TypingPrompt;
   const showThinking = phase === Phase.Thinking;
   const showToolCall = phase >= Phase.ToolCallAppear;

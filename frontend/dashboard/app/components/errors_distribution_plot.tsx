@@ -145,52 +145,54 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
       {effectiveStatus === "success" &&
         plot !== undefined &&
         plotKeys !== undefined && (
-          <ResponsiveBar
-            data={plot}
-            keys={plotKeys}
-            theme={chartTheme}
-            indexBy="attribute"
-            colors={chartColors}
-            margin={{ top: 40, right: 0, bottom: 180, left: 60 }}
-            axisTop={null}
-            axisRight={null}
-            axisBottom={{
-              legend: "Attributes",
-              tickPadding: 10,
-              legendOffset: 100,
-              tickRotation: 60,
-              legendPosition: "middle",
-            }}
-            axisLeft={{
-              tickSize: 1,
-              tickPadding: 5,
-              format: (value) =>
-                Number.isInteger(value) ? numberToKMB(value) : "",
-              legend: "Error instances",
-              legendOffset: demo ? -55 : -50,
-              legendPosition: "middle",
-            }}
-            labelTextColor="var(--primary-foreground)"
-            valueFormat={(value) => numberToKMB(value)}
-            enableGridX={false}
-            enableGridY={false}
-            tooltip={({ id, value, color }) => {
-              return (
-                <PlotTooltipShell>
-                  <div className="flex flex-row items-center p-2">
-                    <PlotTooltipSwatch color={color} />
-                    <div className="px-2" />
-                    <p>{id} - </p>
-                    <div className="px-2" />
-                    <p>
-                      {numberToKMB(value)}{" "}
-                      {value > 1 ? "instances" : "instance"}
-                    </p>
-                  </div>
-                </PlotTooltipShell>
-              );
-            }}
-          />
+          <div className="size-full">
+            <ResponsiveBar
+              data={plot}
+              keys={plotKeys}
+              theme={chartTheme}
+              indexBy="attribute"
+              colors={chartColors}
+              margin={{ top: 40, right: 0, bottom: 180, left: 60 }}
+              axisTop={null}
+              axisRight={null}
+              axisBottom={{
+                legend: "Attributes",
+                tickPadding: 10,
+                legendOffset: 100,
+                tickRotation: 60,
+                legendPosition: "middle",
+              }}
+              axisLeft={{
+                tickSize: 1,
+                tickPadding: 5,
+                format: (value) =>
+                  Number.isInteger(value) ? numberToKMB(value) : "",
+                legend: "Error instances",
+                legendOffset: demo ? -55 : -50,
+                legendPosition: "middle",
+              }}
+              labelTextColor="var(--primary-foreground)"
+              valueFormat={(value) => numberToKMB(value)}
+              enableGridX={false}
+              enableGridY={false}
+              tooltip={({ id, value, color }) => {
+                return (
+                  <PlotTooltipShell>
+                    <div className="flex flex-row items-center p-2">
+                      <PlotTooltipSwatch color={color} />
+                      <div className="px-2" />
+                      <p>{id} - </p>
+                      <div className="px-2" />
+                      <p>
+                        {numberToKMB(value)}{" "}
+                        {value > 1 ? "instances" : "instance"}
+                      </p>
+                    </div>
+                  </PlotTooltipShell>
+                );
+              }}
+            />
+          </div>
         )}
     </div>
   );

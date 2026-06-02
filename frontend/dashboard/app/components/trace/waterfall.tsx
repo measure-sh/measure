@@ -2,7 +2,6 @@
 
 import React, {
   useCallback,
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -39,6 +38,39 @@ interface TraceWaterfallProps {
   sessionTimelineNode?: React.ReactNode;
 }
 
+// The brush-to-zoom drag state lives here so that dragging re-renders only
+// this overlay, not the whole waterfall (which can be hundreds of rows).
+const BrushZoomOverlay = React.memo(function BrushZoomOverlay(props: {
+  waterfallRef: React.RefObject<HTMLDivElement | null>;
+  leftColumnFraction: number;
+  viewStartMs: number;
+  viewEndMs: number;
+  traceDurationMs: number;
+  setViewStartMs: (ms: number) => void;
+  setViewEndMs: (ms: number) => void;
+}) {
+  const { startPx, currentPx } = useBrushToZoom(props);
+
+  if (
+    startPx === null ||
+    currentPx === null ||
+    Math.abs(currentPx - startPx) <= 1
+  ) {
+    return null;
+  }
+
+  return (
+    <div
+      className="pointer-events-none absolute top-0 bottom-0 bg-primary/15 border-l border-r border-primary z-20"
+      style={{
+        left: `${Math.min(startPx, currentPx)}px`,
+        width: `${Math.abs(currentPx - startPx)}px`,
+      }}
+      data-testid="trace-brush-overlay"
+    />
+  );
+});
+
 const TraceWaterfall: React.FC<TraceWaterfallProps> = ({
   inputTrace,
   sessionTimelineNode,
@@ -63,14 +95,17 @@ const TraceWaterfall: React.FC<TraceWaterfallProps> = ({
   const [hoveredSpanId, setHoveredSpanId] = useState<string | undefined>();
   const [viewStartMs, setViewStartMs] = useState(0);
   const [viewEndMs, setViewEndMs] = useState(traceDurationMs);
+  // Reset the zoom window when the trace changes.
+  const [prevTraceDurationMs, setPrevTraceDurationMs] =
+    useState(traceDurationMs);
+  if (traceDurationMs !== prevTraceDurationMs) {
+    setPrevTraceDurationMs(traceDurationMs);
+    setViewStartMs(0);
+    setViewEndMs(traceDurationMs);
+  }
 
   const waterfallRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
-
-  useEffect(() => {
-    setViewStartMs(0);
-    setViewEndMs(traceDurationMs);
-  }, [traceDurationMs]);
 
   const viewWindowMs = Math.max(1, viewEndMs - viewStartMs);
   const isZoomed = viewStartMs > 0 || viewEndMs < traceDurationMs;
@@ -78,16 +113,6 @@ const TraceWaterfall: React.FC<TraceWaterfallProps> = ({
     setViewStartMs(0);
     setViewEndMs(traceDurationMs);
   }, [traceDurationMs]);
-
-  const { startPx: brushStartPx, currentPx: brushCurrentPx } = useBrushToZoom({
-    waterfallRef,
-    leftColumnFraction,
-    viewStartMs,
-    viewEndMs,
-    traceDurationMs,
-    setViewStartMs,
-    setViewEndMs,
-  });
 
   // Span↔Thread resizer adjusts the Span column's share of the total width.
   // Constrained so the Thread column never collapses below THREAD_MIN_FRACTION.
@@ -126,17 +151,13 @@ const TraceWaterfall: React.FC<TraceWaterfallProps> = ({
     [searchMatches],
   );
 
-  useEffect(() => {
-    if (searchIndex >= searchMatches.length) {
-      setSearchIndex(0);
-    }
-  }, [searchMatches, searchIndex]);
-
-  useEffect(() => {
-    if (errorIndex >= prepared.errorSpanIds.length) {
-      setErrorIndex(0);
-    }
-  }, [prepared.errorSpanIds, errorIndex]);
+  // Clamp the active match indices when their result set shrinks.
+  if (searchIndex >= searchMatches.length && searchIndex !== 0) {
+    setSearchIndex(0);
+  }
+  if (errorIndex >= prepared.errorSpanIds.length && errorIndex !== 0) {
+    setErrorIndex(0);
+  }
 
   const expandAncestors = useCallback(
     (spanId: string) => {
@@ -345,18 +366,15 @@ const TraceWaterfall: React.FC<TraceWaterfallProps> = ({
           style={cssVars}
           data-testid="trace-waterfall"
         >
-          {brushStartPx !== null &&
-            brushCurrentPx !== null &&
-            Math.abs(brushCurrentPx - brushStartPx) > 1 && (
-              <div
-                className="pointer-events-none absolute top-0 bottom-0 bg-primary/15 border-l border-r border-primary z-20"
-                style={{
-                  left: `${Math.min(brushStartPx, brushCurrentPx)}px`,
-                  width: `${Math.abs(brushCurrentPx - brushStartPx)}px`,
-                }}
-                data-testid="trace-brush-overlay"
-              />
-            )}
+          <BrushZoomOverlay
+            waterfallRef={waterfallRef}
+            leftColumnFraction={leftColumnFraction}
+            viewStartMs={viewStartMs}
+            viewEndMs={viewEndMs}
+            traceDurationMs={traceDurationMs}
+            setViewStartMs={setViewStartMs}
+            setViewEndMs={setViewEndMs}
+          />
           <div className="overflow-y-auto flex-1">
             <WaterfallHeader
               viewStartMs={viewStartMs}

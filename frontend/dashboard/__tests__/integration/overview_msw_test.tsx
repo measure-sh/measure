@@ -21,7 +21,7 @@ import {
   expect,
   it,
 } from "@jest/globals";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 // --- External dependency mocks (things that don't exist in jsdom) ---
@@ -1381,6 +1381,10 @@ describe("Overview page — URL serialization and parsing", () => {
     it("version selection survives URL round-trip", async () => {
       await renderAndWaitForData();
 
+      // Clear replace calls from the initial render so the capture below reflects
+      // the version change (React 19 defers the effect that writes the URL).
+      mockRouterReplace.mockClear();
+
       // Change version to index 1
       await act(async () => {
         filtersStore
@@ -1410,6 +1414,12 @@ describe("Overview page — URL serialization and parsing", () => {
         mockSearchParams.set(key, value);
       }
 
+      // Unmount the first tree before re-rendering: this round-trip simulates a
+      // fresh navigation to the captured URL. Leaving it mounted lets its stale
+      // Filters effect race with the new mount over the shared store (React 19's
+      // effect ordering surfaces this; React 18 happened to let the new tree win).
+      cleanup();
+
       renderWithProviders(<Overview params={{ teamId: "test-team" }} />);
       await waitFor(
         () => {
@@ -1420,10 +1430,13 @@ describe("Overview page — URL serialization and parsing", () => {
         { timeout: 5000 },
       );
 
-      // The version should be restored from URL
-      const versions = filtersStore.getState().selectedVersions;
-      expect(versions).toHaveLength(1);
-      expect(versions[0].name).toBe("3.0.2");
+      // The version should be restored from URL. React 19 may commit the
+      // restored selection a tick after the data resolves, so wait for it.
+      await waitFor(() => {
+        const versions = filtersStore.getState().selectedVersions;
+        expect(versions).toHaveLength(1);
+        expect(versions[0].name).toBe("3.0.2");
+      });
     });
 
     it("date range survives URL round-trip", async () => {
@@ -1458,6 +1471,12 @@ describe("Overview page — URL serialization and parsing", () => {
       for (const [key, value] of serializedParams.entries()) {
         mockSearchParams.set(key, value);
       }
+
+      // Unmount the first tree before re-rendering: this round-trip simulates a
+      // fresh navigation to the captured URL. Leaving it mounted lets its stale
+      // Filters effect race with the new mount over the shared store (React 19's
+      // effect ordering surfaces this; React 18 happened to let the new tree win).
+      cleanup();
 
       renderWithProviders(<Overview params={{ teamId: "test-team" }} />);
       await waitFor(

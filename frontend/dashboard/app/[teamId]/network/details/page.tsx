@@ -2,16 +2,21 @@
 
 import NetworkDetails from "@/app/components/network_details";
 import { track } from "@/app/utils/analytics/track";
-import { useEffect } from "react";
+import { use, useEffect } from "react";
 
-export default function ExploreUrl({ params }: { params: { teamId: string } }) {
+export default function ExploreUrl({
+  params,
+}: {
+  params: Promise<{ teamId: string }>;
+}) {
+  const resolvedParams = use(params);
   useEffect(() => {
     track("network_call_inspected", {
-      team_id: params.teamId,
+      team_id: resolvedParams.teamId,
       feature_area: "network",
       entry_point: "direct",
     });
-  }, [params.teamId]);
+  }, [resolvedParams.teamId]);
 
-  return <NetworkDetails params={params} />;
+  return <NetworkDetails params={resolvedParams} />;
 }

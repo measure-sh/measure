@@ -5,13 +5,12 @@ import { Skeleton } from "@/app/components/skeleton";
 import { useSessionTimelineQuery } from "@/app/query/hooks";
 import { track } from "@/app/utils/analytics/track";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { use, useEffect, useRef } from "react";
 
-export default function Session({
-  params,
-}: {
-  params: { teamId: string; appId: string; sessionId: string };
+export default function Session(props: {
+  params: Promise<{ teamId: string; appId: string; sessionId: string }>;
 }) {
+  const params = use(props.params);
   const { data: sessionTimeline, status } = useSessionTimelineQuery(
     params.appId,
     params.sessionId,

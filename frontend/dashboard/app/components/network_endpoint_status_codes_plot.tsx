@@ -61,99 +61,103 @@ const NetworkEndpointStatusCodesPlot: React.FC<Props> = ({
   return (
     <div className="flex font-body items-center justify-center w-full h-[36rem]">
       <div className="flex flex-col w-full h-full">
-        <ResponsiveLine
-          data={plot}
-          curve="monotoneX"
-          theme={chartTheme}
-          enableArea={true}
-          areaOpacity={0.1}
-          colors={({ id }) => getStatusCodeColor(Number(id))}
-          margin={{ top: 20, right: 80, bottom: 140, left: 80 }}
-          xFormat={timeConfig.xFormat}
-          xScale={{
-            format: timeConfig.xScaleFormat,
-            precision: timeConfig.xScalePrecision,
-            type: "time",
-            useUTC: false,
-          }}
-          yScale={{
-            type: "linear",
-            min: 0,
-            max: "auto",
-          }}
-          yFormat=" >-.2f"
-          axisTop={null}
-          axisRight={null}
-          axisBottom={{
-            legend: "Date",
-            tickPadding: 10,
-            legendOffset: 100,
-            format: timeConfig.axisBottomFormat,
-            tickRotation: 45,
-            legendPosition: "middle",
-          }}
-          axisLeft={{
-            tickSize: 1,
-            tickPadding: 5,
-            format: (value) =>
-              Number.isInteger(value) ? numberToKMB(value) : "",
-            legend: "Requests",
-            legendOffset: -60,
-            legendPosition: "middle",
-          }}
-          pointSize={6}
-          pointBorderWidth={1.5}
-          pointColor={
-            theme === "dark" ? "rgba(0, 0, 0, 255)" : "rgba(255, 255, 255, 255)"
-          }
-          pointBorderColor={({ serieId }: { serieId: string }) =>
-            getStatusCodeColor(Number(serieId))
-          }
-          pointLabelYOffset={-12}
-          useMesh={true}
-          enableGridX={false}
-          enableGridY={false}
-          enableSlices="x"
-          sliceTooltip={({ slice }) => {
-            const firstPoint = slice.points[0]?.data as unknown as {
-              xFormatted: string;
-              total_count: number;
-            };
-            const total = firstPoint?.total_count ?? 0;
-            const pct = (count: number) =>
-              total > 0 ? ((count / total) * 100).toFixed(1) : "0.0";
-            return (
-              <PlotTooltipShell>
-                <p className="p-2 font-semibold">
-                  {formatPlotTooltipDate(
-                    slice.points[0].data.xFormatted.toString(),
-                    plotTimeGroup,
-                  )}
-                </p>
-                <p className="px-2 pb-1">Total: {total.toLocaleString()}</p>
-                {[...slice.points]
-                  .sort((a, b) => Number(a.serieId) - Number(b.serieId))
-                  .map((point) => {
-                    const count = Number(point.data.y);
-                    return (
-                      <div
-                        className="flex flex-row items-center px-2 py-0.5"
-                        key={point.id}
-                      >
-                        <PlotTooltipSwatch color={point.serieColor} />
-                        <div className="px-1" />
-                        <p>
-                          {point.serieId}: {count.toLocaleString()} (
-                          {pct(count)}%)
-                        </p>
-                      </div>
-                    );
-                  })}
-              </PlotTooltipShell>
-            );
-          }}
-          legends={[]}
-        />
+        <div className="size-full">
+          <ResponsiveLine
+            data={plot}
+            curve="monotoneX"
+            theme={chartTheme}
+            enableArea={true}
+            areaOpacity={0.1}
+            colors={({ id }) => getStatusCodeColor(Number(id))}
+            margin={{ top: 20, right: 80, bottom: 140, left: 80 }}
+            xFormat={timeConfig.xFormat}
+            xScale={{
+              format: timeConfig.xScaleFormat,
+              precision: timeConfig.xScalePrecision,
+              type: "time",
+              useUTC: false,
+            }}
+            yScale={{
+              type: "linear",
+              min: 0,
+              max: "auto",
+            }}
+            yFormat=" >-.2f"
+            axisTop={null}
+            axisRight={null}
+            axisBottom={{
+              legend: "Date",
+              tickPadding: 10,
+              legendOffset: 100,
+              format: timeConfig.axisBottomFormat,
+              tickRotation: 45,
+              legendPosition: "middle",
+            }}
+            axisLeft={{
+              tickSize: 1,
+              tickPadding: 5,
+              format: (value) =>
+                Number.isInteger(value) ? numberToKMB(value) : "",
+              legend: "Requests",
+              legendOffset: -60,
+              legendPosition: "middle",
+            }}
+            pointSize={6}
+            pointBorderWidth={1.5}
+            pointColor={
+              theme === "dark"
+                ? "rgba(0, 0, 0, 255)"
+                : "rgba(255, 255, 255, 255)"
+            }
+            pointBorderColor={({ seriesId }: { seriesId: string }) =>
+              getStatusCodeColor(Number(seriesId))
+            }
+            pointLabelYOffset={-12}
+            useMesh={true}
+            enableGridX={false}
+            enableGridY={false}
+            enableSlices="x"
+            sliceTooltip={({ slice }) => {
+              const firstPoint = slice.points[0]?.data as unknown as {
+                xFormatted: string;
+                total_count: number;
+              };
+              const total = firstPoint?.total_count ?? 0;
+              const pct = (count: number) =>
+                total > 0 ? ((count / total) * 100).toFixed(1) : "0.0";
+              return (
+                <PlotTooltipShell>
+                  <p className="p-2 font-semibold">
+                    {formatPlotTooltipDate(
+                      slice.points[0].data.xFormatted.toString(),
+                      plotTimeGroup,
+                    )}
+                  </p>
+                  <p className="px-2 pb-1">Total: {total.toLocaleString()}</p>
+                  {[...slice.points]
+                    .sort((a, b) => Number(a.seriesId) - Number(b.seriesId))
+                    .map((point) => {
+                      const count = Number(point.data.y);
+                      return (
+                        <div
+                          className="flex flex-row items-center px-2 py-0.5"
+                          key={point.id}
+                        >
+                          <PlotTooltipSwatch color={point.seriesColor} />
+                          <div className="px-1" />
+                          <p>
+                            {point.seriesId}: {count.toLocaleString()} (
+                            {pct(count)}%)
+                          </p>
+                        </div>
+                      );
+                    })}
+                </PlotTooltipShell>
+              );
+            }}
+            legends={[]}
+          />
+        </div>
       </div>
     </div>
   );

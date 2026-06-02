@@ -17,6 +17,8 @@ export enum PlotType {
   Exceptions = "Exceptions",
 }
 
+const journeyTypeUrlKey = "jt";
+
 interface UserJourneysProps {
   params?: { teamId: string };
   demo?: boolean;
@@ -32,18 +34,13 @@ export default function UserJourneys({
   const searchParams = useSearchParams();
   const filters = useFiltersStore((state) => state.filters);
 
-  const [plotType, setPlotType] = useState<PlotType>(PlotType.Paths);
+  // Derive the initial plot type from the URL once.
+  const [plotType, setPlotType] = useState<PlotType>(() =>
+    searchParams.get(journeyTypeUrlKey) === PlotType.Exceptions
+      ? PlotType.Exceptions
+      : PlotType.Paths,
+  );
   const [searchText, setSearchText] = useState("");
-
-  const journeyTypeUrlKey = "jt";
-
-  // Initialize plot type from URL on mount
-  useEffect(() => {
-    const jt = searchParams.get(journeyTypeUrlKey);
-    if (jt === PlotType.Exceptions) {
-      setPlotType(PlotType.Exceptions);
-    }
-  }, []);
 
   // Sync filters and plot type to URL
   useEffect(() => {

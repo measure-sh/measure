@@ -1,3 +1,4 @@
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import ErrorsOverviewPage from "@/app/[teamId]/errors/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
@@ -113,12 +114,12 @@ describe("ErrorsOverview Page", () => {
   });
 
   it("renders the Filters component", () => {
-    render(<ErrorsOverviewPage params={{ teamId: "123" }} />);
+    render(<ErrorsOverviewPage params={promiseParams({ teamId: "123" })} />);
     expect(screen.getByTestId("filters-mock")).toBeInTheDocument();
   });
 
   it("does not render the main UI when filters are not ready", () => {
-    render(<ErrorsOverviewPage params={{ teamId: "123" }} />);
+    render(<ErrorsOverviewPage params={promiseParams({ teamId: "123" })} />);
     expect(
       screen.queryByTestId("errors-overview-plot-mock"),
     ).not.toBeInTheDocument();
@@ -133,7 +134,7 @@ describe("ErrorsOverview Page", () => {
       isFetching: false,
       error: null,
     });
-    render(<ErrorsOverviewPage params={{ teamId: "123" }} />);
+    render(<ErrorsOverviewPage params={promiseParams({ teamId: "123" })} />);
 
     await act(async () => {
       useFiltersStore.setState({
@@ -165,7 +166,7 @@ describe("ErrorsOverview Page", () => {
       isFetching: false,
       error: null,
     });
-    render(<ErrorsOverviewPage params={{ teamId: "123" }} />);
+    render(<ErrorsOverviewPage params={promiseParams({ teamId: "123" })} />);
 
     await act(async () => {
       useFiltersStore.setState({
@@ -194,7 +195,7 @@ describe("ErrorsOverview Page", () => {
       isFetching: false,
       error: new Error("fail"),
     });
-    render(<ErrorsOverviewPage params={{ teamId: "123" }} />);
+    render(<ErrorsOverviewPage params={promiseParams({ teamId: "123" })} />);
 
     await act(async () => {
       useFiltersStore.setState({
@@ -218,7 +219,7 @@ describe("ErrorsOverview Page", () => {
       isFetching: false,
       error: null,
     });
-    render(<ErrorsOverviewPage params={{ teamId: "123" }} />);
+    render(<ErrorsOverviewPage params={promiseParams({ teamId: "123" })} />);
 
     await act(async () => {
       useFiltersStore.setState({
@@ -248,7 +249,7 @@ describe("ErrorsOverview Page", () => {
       isFetching: false,
       error: null,
     });
-    render(<ErrorsOverviewPage params={{ teamId: "123" }} />);
+    render(<ErrorsOverviewPage params={promiseParams({ teamId: "123" })} />);
 
     await act(async () => {
       useFiltersStore.setState({
@@ -280,7 +281,7 @@ describe("ErrorsOverview Page", () => {
         isFetching: false,
         error: null,
       });
-      render(<ErrorsOverviewPage params={{ teamId: "123" }} />);
+      render(<ErrorsOverviewPage params={promiseParams({ teamId: "123" })} />);
       await act(async () => {
         useFiltersStore.setState({
           filters: {
@@ -302,7 +303,7 @@ describe("ErrorsOverview Page", () => {
         isFetching: false,
         error: null,
       });
-      render(<ErrorsOverviewPage params={{ teamId: "123" }} />);
+      render(<ErrorsOverviewPage params={promiseParams({ teamId: "123" })} />);
       await act(async () => {
         useFiltersStore.setState({
           filters: {
@@ -328,7 +329,7 @@ describe("ErrorsOverview Page", () => {
         isFetching: false,
         error: null,
       });
-      render(<ErrorsOverviewPage params={{ teamId: "123" }} />);
+      render(<ErrorsOverviewPage params={promiseParams({ teamId: "123" })} />);
       await act(async () => {
         useFiltersStore.setState({
           filters: {
@@ -371,7 +372,7 @@ describe("ErrorsOverview Page", () => {
         isFetching: false,
         error: null,
       });
-      render(<ErrorsOverviewPage params={{ teamId: "123" }} />);
+      render(<ErrorsOverviewPage params={promiseParams({ teamId: "123" })} />);
       await act(async () => {
         useFiltersStore.setState({
           filters: {
@@ -412,7 +413,7 @@ describe("ErrorsOverview Page", () => {
       isFetching: true,
       error: null,
     });
-    render(<ErrorsOverviewPage params={{ teamId: "123" }} />);
+    render(<ErrorsOverviewPage params={promiseParams({ teamId: "123" })} />);
     await act(async () => {
       useFiltersStore.setState({
         filters: {
