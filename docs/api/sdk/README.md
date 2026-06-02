@@ -309,7 +309,11 @@ to the returned URLs. For uploading the files, you can issue a standard http req
 - Depending on the platform, `mapping_type` can be `proguard` for Android, `dsym` or `elf_debug` for iOS, or `jsbundle` for React Native.
 - `mappings` is optional. When `mappings` array is not present, only the build size information will be updated.
 - Each mapping file for iOS must be gzipped tarball of `dSYM` bundles ending with a `.tgz` file extension.
-- Each mapping file for React Native must be a gzipped tarball (`.tgz`) containing the minified JS bundle (`.js`) and its source map (`.js.map`).
+- For React Native, upload the JS bundle and its sourcemap as **two separate `jsbundle` mappings in the same request**, not bundled together. Each must be a gzipped tarball ending with `.tgz`, wrapping a single inner file:
+  - One `.tgz` containing the minified JS bundle (e.g. `main.jsbundle` for iOS, `index.android.bundle` for Android).
+  - A second `.tgz` containing the matching sourcemap (e.g. `main.jsbundle.map`, `index.android.bundle.map`).
+
+  Symbolication pairs the two server-side via the inner filename's `.map` suffix, so the inner filenames must follow the `<bundle>` / `<bundle>.map` convention.
 - For mapping filename, only provide the filename, not a path.
 - When `mappings` is present, the server returns a mappings array containing the pre-signed URL for uploading each mapping file.
 - Each pre-signed mapping file upload URL has an expiry set which is the same as the `expires_at` field.
@@ -320,9 +324,11 @@ to the returned URLs. For uploading the files, you can issue a standard http req
 Example of a file upload request:
 
 ```sh
-curl -s -X PUT <upload_url> \
+curl -X PUT \
   --header 'x-amz-meta-mapping_id: 77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc' \
-  --header 'x-amz-meta-original_file_name: somefile.tgz'
+  --header 'x-amz-meta-original_file_name: somefile.tgz' \
+  --data-binary @/path/to/somefile.tgz \
+  <upload-url>
 ```
 
 #### Authorization \& Content Type
@@ -398,7 +404,11 @@ Payload must contain the app version info, build info and optional build mapping
     },
     {
       "type": "jsbundle",
-      "filename": "index.android.bundle.tgz"
+      "filename": "main.jsbundle.tgz"
+    },
+    {
+      "type": "jsbundle",
+      "filename": "main.jsbundle.map.tgz"
     }
   ]
 }

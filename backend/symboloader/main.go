@@ -45,6 +45,7 @@ func main() {
 	}
 
 	r.GET("/symbols", HandleSymbolsRequest)
+	r.GET("/symbols/js", HandleSymbolsJsRequest)
 
 	// listen and serve on 0.0.0.0:${PORT}
 	port := os.Getenv("PORT")

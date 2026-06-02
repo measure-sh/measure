@@ -426,6 +426,8 @@ services:
     build:
       dockerfile: dockerfile
       context: ../backend/symboloader
+      additional_contexts:
+        libs: ../backend/libs
       args:
         TARGETTYPE: debug
     ports:
@@ -447,6 +449,8 @@ services:
     develop:
       watch:
         - path: ../backend/symboloader
+          action: rebuild
+        - path: ../backend/libs
           action: rebuild
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8083/ping"]

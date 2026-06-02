@@ -214,19 +214,22 @@ func ExtractJsBundle(r io.Reader) (difs []*Dif, err error) {
 			continue
 		}
 
-		// FIXME: remove this
-		fmt.Println("filename", filename)
-
+		// Hash by file contents rather than filename so that
+		// successive builds shipping the same logical filename
+		// (e.g. main.jsbundle, index.android.bundle) land at
+		// distinct storage keys when their contents differ, and
+		// dedup naturally when contents match.
+		//
+		// The key's last segment is the original inner filename
+		// (e.g. main.jsbundle, main.jsbundle.map). The artifact-
+		// lookup endpoint derives the response abs_path from this
+		// segment, avoiding any HEAD against storage metadata.
+		// `.map` extension is the discriminator between bundle
+		// and sourcemap rows.
 		ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("measure.sh"))
-		fileId := uuid.NewSHA1(ns, []byte(filename))
+		fileId := uuid.NewSHA1(ns, data)
 		base := BuildUnifiedLayout(fileId.String())
-
-		var key string
-		if strings.HasSuffix(filename, ".map") {
-			key = base + "/sourcemap"
-		} else {
-			key = base + "/debuginfo"
-		}
+		key := base + "/" + filename
 
 		difs = append(difs, &Dif{
 			Data: data,

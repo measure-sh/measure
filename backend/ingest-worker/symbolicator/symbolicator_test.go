@@ -15,8 +15,10 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -36,22 +38,26 @@ import (
 const symbolicatorImage = "ghcr.io/getsentry/symbolicator:26.3.1"
 
 var (
-	pgPool                  *pgxpool.Pool
-	symbolicatorOrigin      string
-	minioEndpoint           string
-	s3Client                *s3.Client
-	symbolsBucket           = "test-symbols"
+	pgPool                   *pgxpool.Pool
+	symbolicatorOrigin       string
+	minioEndpoint            string
+	s3Client                 *s3.Client
+	s3InContainerClient      *s3.Client // signs presigned URLs reachable from inside containers
+	symbolsBucket            = "test-symbols"
 	basicProguardMappingKey  string // unified layout key for the basic proguard mapping
 	basicProguardDebugID     string // UUID-formatted debug ID for the basic proguard mapping
 	realProguardMappingKey   string // unified layout key for the real proguard mapping
 	sqliteProguardMappingKey string // unified layout key for the sqlite proguard mapping
-	elfDebugMappingKey      string // unified layout key for the ELF debug symbols
-	symbolicatorContainer   testcontainers.Container
-	minioContainer          testcontainers.Container
-	sentrySourceURL         string // URL for the Sentry source handler, reachable from symbolicator container
-	sentryListener          net.Listener
-	update                  = flag.Bool("update", false, "update golden files")
-	testdataDir             string
+	elfDebugMappingKey       string // unified layout key for the ELF debug symbols
+	jsBundleMappingKey       string // unified layout key for the JS bundle
+	jsSourcemapMappingKey    string // unified layout key for the JS sourcemap
+	symbolicatorContainer    testcontainers.Container
+	minioContainer           testcontainers.Container
+	sentrySourceURL          string // URL for the Sentry source handler, reachable from symbolicator container
+	symboloaderOriginURL     string // origin (no path) of the same test HTTP server; used as the /symbols/js host
+	sentryListener           net.Listener
+	update                   = flag.Bool("update", false, "update golden files")
+	testdataDir              string
 )
 
 func TestMain(m *testing.M) {
@@ -108,6 +114,18 @@ func TestMain(m *testing.M) {
 	// Create S3 client for MinIO
 	s3Client = s3.New(s3.Options{
 		BaseEndpoint: aws.String(minioEndpoint),
+		Region:       "us-east-1",
+		Credentials:  credentials.NewStaticCredentialsProvider("minioadmin", "minioadmin", ""),
+		UsePathStyle: true,
+	})
+
+	// A separate S3 client whose BaseEndpoint uses the docker
+	// network alias "minio:9000". Used solely to sign presigned
+	// URLs returned from the /symbols/js handler — those
+	// URLs are fetched by the symbolicator container, which
+	// can't reach the test host's mapped MinIO port.
+	s3InContainerClient = s3.New(s3.Options{
+		BaseEndpoint: aws.String("http://minio:9000"),
 		Region:       "us-east-1",
 		Credentials:  credentials.NewStaticCredentialsProvider("minioadmin", "minioadmin", ""),
 		UsePathStyle: true,
@@ -248,6 +266,47 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
+	// Upload React Native JS bundle + sourcemap to MinIO. Keys
+	// mirror what ExtractJsBundle now produces: unified layout
+	// derived from a SHA1 of the *file contents*, with the
+	// original inner filename as the last path segment.
+	jsBundleBytes, err := os.ReadFile(filepath.Join(testdataDir, "main.jsbundle"))
+	if err != nil {
+		fmt.Printf("failed to read main.jsbundle: %v\n", err)
+		os.Exit(1)
+	}
+	jsMapBytes, err := os.ReadFile(filepath.Join(testdataDir, "main.jsbundle.map"))
+	if err != nil {
+		fmt.Printf("failed to read main.jsbundle.map: %v\n", err)
+		os.Exit(1)
+	}
+
+	jsNS := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("measure.sh"))
+	jsBundleID := uuid.NewSHA1(jsNS, jsBundleBytes)
+	jsMapID := uuid.NewSHA1(jsNS, jsMapBytes)
+	jsBundleMappingKey = symbol.BuildUnifiedLayout(jsBundleID.String()) + "/main.jsbundle"
+	jsSourcemapMappingKey = symbol.BuildUnifiedLayout(jsMapID.String()) + "/main.jsbundle.map"
+
+	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(symbolsBucket),
+		Key:    aws.String(jsBundleMappingKey),
+		Body:   bytes.NewReader(jsBundleBytes),
+	})
+	if err != nil {
+		fmt.Printf("failed to upload js bundle to minio: %v\n", err)
+		os.Exit(1)
+	}
+
+	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(symbolsBucket),
+		Key:    aws.String(jsSourcemapMappingKey),
+		Body:   bytes.NewReader(jsMapBytes),
+	})
+	if err != nil {
+		fmt.Printf("failed to upload js sourcemap to minio: %v\n", err)
+		os.Exit(1)
+	}
+
 	// 4. Start Sentry source HTTP handler (serves ProGuard files from MinIO)
 	sentryMux := http.NewServeMux()
 	sentryMux.HandleFunc("/symbols", func(w http.ResponseWriter, r *http.Request) {
@@ -288,6 +347,130 @@ func TestMain(m *testing.M) {
 		}
 	})
 
+	// /symbols/js serves the Sentry-compatible artifact-lookup
+	// protocol that Symbolicator's JS code path queries. This is
+	// an in-process replica of backend/symboloader/symbolsjs.go's
+	// URL-fallback path (non-OTA): given app_id + version_name +
+	// version_code + url=, return file entries pointing at presigned
+	// GETs against MinIO. The patch_id (OTA) branch is intentionally
+	// short-circuited to [] — this test exercises the non-OTA flow.
+	sentryMux.HandleFunc("/symbols/js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		q := r.URL.Query()
+		debugIDs := q["debug_id"]
+		appIDStr := q.Get("app_id")
+		versionName := q.Get("version_name")
+		versionCode := q.Get("version_code")
+		urls := q["url"]
+
+		if len(debugIDs) > 0 {
+			// OTA path not exercised by this test.
+			w.Write([]byte("[]"))
+			return
+		}
+
+		if appIDStr == "" || versionName == "" || versionCode == "" || len(urls) == 0 {
+			w.Write([]byte("[]"))
+			return
+		}
+
+		rows, qerr := pgPool.Query(r.Context(),
+			`SELECT key FROM build_mappings WHERE app_id=$1 AND version_name=$2 AND version_code=$3 AND mapping_type=$4 ORDER BY last_updated DESC`,
+			appIDStr, versionName, versionCode, symbol.TypeJsBundle.String())
+		if qerr != nil {
+			http.Error(w, qerr.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		byFilename := make(map[string]string)
+		for rows.Next() {
+			var key string
+			if scanErr := rows.Scan(&key); scanErr != nil {
+				http.Error(w, scanErr.Error(), http.StatusInternalServerError)
+				return
+			}
+			filename := path.Base(key)
+			if _, exists := byFilename[filename]; !exists {
+				byFilename[filename] = key
+			}
+		}
+
+		type lookupFile struct {
+			Type         string            `json:"type"`
+			ID           string            `json:"id"`
+			URL          string            `json:"url"`
+			AbsPath      string            `json:"abs_path"`
+			Headers      map[string]string `json:"headers"`
+			ResolvedWith string            `json:"resolved_with"`
+		}
+
+		presigner := s3.NewPresignClient(s3InContainerClient)
+		results := []lookupFile{}
+		seen := make(map[string]bool)
+
+		for _, u := range urls {
+			bundleFilename := strings.TrimPrefix(u, "/")
+			if bundleFilename == "" {
+				continue
+			}
+			sourcemapFilename := bundleFilename + ".map"
+
+			bundleKey := byFilename[bundleFilename]
+			sourcemapKey := byFilename[sourcemapFilename]
+			if bundleKey == "" && sourcemapKey == "" {
+				continue
+			}
+
+			sig := bundleKey + "|" + sourcemapKey
+			if seen[sig] {
+				continue
+			}
+			seen[sig] = true
+
+			if bundleKey != "" {
+				req, perr := presigner.PresignGetObject(r.Context(), &s3.GetObjectInput{
+					Bucket: aws.String(symbolsBucket),
+					Key:    aws.String(bundleKey),
+				}, s3.WithPresignExpires(5*time.Minute))
+				if perr == nil {
+					headers := map[string]string{}
+					if sourcemapKey != "" {
+						headers["Sourcemap"] = sourcemapFilename
+					}
+					results = append(results, lookupFile{
+						Type:         "file",
+						ID:           bundleKey,
+						URL:          req.URL,
+						AbsPath:      "~/" + bundleFilename,
+						Headers:      headers,
+						ResolvedWith: "release",
+					})
+				}
+			}
+
+			if sourcemapKey != "" {
+				req, perr := presigner.PresignGetObject(r.Context(), &s3.GetObjectInput{
+					Bucket: aws.String(symbolsBucket),
+					Key:    aws.String(sourcemapKey),
+				}, s3.WithPresignExpires(5*time.Minute))
+				if perr == nil {
+					results = append(results, lookupFile{
+						Type:         "file",
+						ID:           sourcemapKey,
+						URL:          req.URL,
+						AbsPath:      "~/" + sourcemapFilename,
+						Headers:      map[string]string{},
+						ResolvedWith: "release",
+					})
+				}
+			}
+		}
+
+		_ = json.NewEncoder(w).Encode(results)
+	})
+
 	sentryListener, err = net.Listen("tcp", ":0")
 	if err != nil {
 		fmt.Printf("failed to start sentry source listener: %v\n", err)
@@ -300,6 +483,7 @@ func TestMain(m *testing.M) {
 	// container. host.docker.internal resolves to the host on Docker Desktop
 	// (macOS/Windows). The HostConfigModifier below adds the mapping for Linux.
 	sentrySourceURL = fmt.Sprintf("http://host.docker.internal:%d/symbols", sentryPort)
+	symboloaderOriginURL = fmt.Sprintf("http://host.docker.internal:%d", sentryPort)
 
 	// 5. Start Symbolicator
 	configPath := filepath.Join(testdataDir, "symbolicator.yml")
@@ -601,6 +785,9 @@ type goldenFrame struct {
 	MethodName string `json:"method_name"`
 	FileName   string `json:"file_name"`
 	LineNum    int    `json:"line_num"`
+	// ColNum is meaningful only for JS frames. omitempty keeps
+	// existing JVM / Apple / Dart golden files byte-identical.
+	ColNum int `json:"col_num,omitempty"`
 }
 
 func extractResult(events []event.EventField) []symbolicatedResult {
@@ -618,6 +805,7 @@ func extractResult(events []event.EventField) []symbolicatedResult {
 						MethodName: f.MethodName,
 						FileName:   f.FileName,
 						LineNum:    f.LineNum,
+						ColNum:     f.ColNum,
 					})
 				}
 				r.ExceptionFrames = append(r.ExceptionFrames, frames)
@@ -630,6 +818,7 @@ func extractResult(events []event.EventField) []symbolicatedResult {
 						MethodName: f.MethodName,
 						FileName:   f.FileName,
 						LineNum:    f.LineNum,
+						ColNum:     f.ColNum,
 					})
 				}
 				r.ThreadFrames = append(r.ThreadFrames, frames)
@@ -644,6 +833,7 @@ func extractResult(events []event.EventField) []symbolicatedResult {
 						MethodName: f.MethodName,
 						FileName:   f.FileName,
 						LineNum:    f.LineNum,
+						ColNum:     f.ColNum,
 					})
 				}
 				r.ExceptionFrames = append(r.ExceptionFrames, frames)
@@ -656,6 +846,7 @@ func extractResult(events []event.EventField) []symbolicatedResult {
 						MethodName: f.MethodName,
 						FileName:   f.FileName,
 						LineNum:    f.LineNum,
+						ColNum:     f.ColNum,
 					})
 				}
 				r.ThreadFrames = append(r.ThreadFrames, frames)
@@ -1139,4 +1330,92 @@ func TestJVMSQLiteExceptionReal(t *testing.T) {
 
 	results := extractResult(events)
 	assertMatchesGolden(t, "jvm_sqlite_exception_golden.json", results)
+}
+
+// makeJSExceptionEvents loads a React Native / JS exception
+// fixture from the full event JSON and wraps it into an
+// EventField slice. The fixture's exception.framework must be
+// "js" for the symbolicator to route it through the JS path.
+func makeJSExceptionEvents(t *testing.T, fixture, versionName, versionCode, osName string) []event.EventField {
+	t.Helper()
+
+	data, err := os.ReadFile(filepath.Join(testdataDir, fixture))
+	if err != nil {
+		t.Fatalf("read js fixture: %v", err)
+	}
+
+	var raw struct {
+		Exception event.Exception `json:"exception"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		t.Fatalf("unmarshal js fixture: %v", err)
+	}
+
+	return []event.EventField{
+		{
+			ID:        uuid.New(),
+			SessionID: uuid.New(),
+			Timestamp: time.Now(),
+			Type:      event.TypeException,
+			Attribute: event.Attribute{
+				AppVersion: versionName,
+				AppBuild:   versionCode,
+				OSName:     osName,
+			},
+			Exception: &raw.Exception,
+		},
+	}
+}
+
+// TestJSExceptionSymbolicationNonOTA exercises the URL-fallback
+// (non-patch_id) path end-to-end:
+//
+//   - Two build_mappings rows are seeded: one for the bundle
+//     and one for the sourcemap. patch_id is left NULL.
+//   - The ingest-worker symbolicator constructs a /symbolicate-js
+//     request with an empty modules array and a synthesized
+//     `release` of "<version_name>+<version_code>". That release
+//     value unlocks Symbolicator's URL-fallback path
+//     (lookup.rs::query_sentry_for_files short-circuits when
+//     release.is_none()).
+//   - Symbolicator queries our /symbols/js handler with
+//     ?app_id=&version_name=&version_code=&url=/main.jsbundle.
+//     The handler resolves the bundle + sourcemap rows and
+//     returns file entries with abs_path that match the frame's
+//     URL candidates (`~/main.jsbundle`, `~/main.jsbundle.map`).
+//   - Symbolicator fetches both via presigned MinIO URLs,
+//     resolves frame positions through the sourcemap, and our
+//     rewriteException pass copies the resolved positions back
+//     into the event frames.
+//
+// The test requires real fixture files in testdata/:
+//   - main.jsbundle       (the minified RN bundle)
+//   - main.jsbundle.map   (its sourcemap)
+//   - rn_ios_input.json   (the exception event payload)
+//
+// First run requires -update to write the golden file.
+func TestJSExceptionSymbolicationNonOTA(t *testing.T) {
+	ctx := context.Background()
+	appID := uuid.New()
+	versionName := "1.0"
+	versionCode := "1"
+
+	seedApp(ctx, t, appID)
+	seedBuildMapping(ctx, t, appID, versionName, versionCode, symbol.TypeJsBundle.String(), jsBundleMappingKey)
+	seedBuildMapping(ctx, t, appID, versionName, versionCode, symbol.TypeJsBundle.String(), jsSourcemapMappingKey)
+
+	events := makeJSExceptionEvents(t, "rn_ios_input.json", versionName, versionCode, "ios")
+
+	// JS path does not consume the Symbolicator-level sources
+	// array or sentry sources — its single source is built from
+	// SymboloaderOrigin inside configureSource. Pass nils.
+	symb := New(symbolicatorOrigin, "ios", nil, nil)
+	symb.SymboloaderOrigin = symboloaderOriginURL
+
+	if err := symb.Symbolicate(ctx, pgPool, appID, events, nil); err != nil {
+		t.Fatalf("Symbolicate failed: %v", err)
+	}
+
+	results := extractResult(events)
+	assertMatchesGolden(t, "rn_ios_exception_golden.json", results)
 }

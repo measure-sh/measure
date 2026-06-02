@@ -159,18 +159,3 @@ func NewSentrySource(id, url, token string) SentrySource {
 	}
 }
 
-// NewHTTPSourceJS creates an HTTP source for
-// JavaScript/React Native source map lookups.
-// url should be a pre-signed GET URL pointing
-// directly to the stored source map file.
-func NewHTTPSourceJS(id, url string) (source Source) {
-	source.ID = id
-	source.Type = "http"
-	source.Url = url
-	source.Filters.FileTypes = []string{"sourcemap"}
-	source.Filters.PathPatterns = []string{}
-	source.Layout.Type = "unified"
-	source.Layout.Casing = "lowercase"
-
-	return
-}

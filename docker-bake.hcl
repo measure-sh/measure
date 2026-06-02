@@ -60,6 +60,9 @@ target "alerts" {
 target "symboloader" {
   inherits = ["docker-metadata-action"]
   context = "backend/symboloader"
+  contexts = {
+    libs = "backend/libs"
+  }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]

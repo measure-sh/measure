@@ -1,0 +1,176 @@
+{
+    "id": "cee6f4cc-b735-49e6-b052-fbaae3ec205e",
+    "session_id": "df6a0aee-2b05-4206-804d-3125cf347089",
+    "user_triggered": false,
+    "timestamp": "2026-05-30T11:10:40.37500000Z",
+    "type": "exception",
+    "exception": {
+        "severity": "unhandled",
+        "exceptions": [
+            {
+                "type": "Error",
+                "message": "Simulated unhandled promise rejection",
+                "frames": [
+                    {
+                        "in_app": true,
+                        "method_name": "simulateUnhandledPromiseRejection",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 54979,
+                        "col_num": 31,
+                        "frame_index": 0
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "_performTransitionSideEffects",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 32494,
+                        "col_num": 22,
+                        "frame_index": 1
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "_receiveSignal",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 32444,
+                        "col_num": 45,
+                        "frame_index": 2
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "onResponderRelease",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 32294,
+                        "col_num": 34,
+                        "frame_index": 3
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "invokeGuardedCallbackImpl",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 26022,
+                        "col_num": 17,
+                        "frame_index": 4
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "invokeGuardedCallback",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 26040,
+                        "col_num": 36,
+                        "frame_index": 5
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "invokeGuardedCallbackAndCatchFirstError",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 26043,
+                        "col_num": 32,
+                        "frame_index": 6
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "executeDispatch",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 26060,
+                        "col_num": 44,
+                        "frame_index": 7
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "executeDispatchesAndReleaseTopLevel",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 26598,
+                        "col_num": 227,
+                        "frame_index": 8
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "forEachAccumulated",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 26248,
+                        "col_num": 37,
+                        "frame_index": 9
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "anonymous",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 26621,
+                        "col_num": 27,
+                        "frame_index": 10
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "batchedUpdatesImpl",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 30992,
+                        "col_num": 16,
+                        "frame_index": 11
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "batchedUpdates",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 26588,
+                        "col_num": 32,
+                        "frame_index": 12
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "_receiveRootNodeIDEvent",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 26610,
+                        "col_num": 19,
+                        "frame_index": 13
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "receiveTouches",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 26649,
+                        "col_num": 32,
+                        "frame_index": 14
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "__callFunction",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 2567,
+                        "col_num": 38,
+                        "frame_index": 15
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "anonymous",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 2374,
+                        "col_num": 31,
+                        "frame_index": 16
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "__guard",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 2500,
+                        "col_num": 15,
+                        "frame_index": 17
+                    },
+                    {
+                        "in_app": true,
+                        "method_name": "callFunctionReturnFlushedQueue",
+                        "file_name": "app:///main.jsbundle",
+                        "line_num": 2373,
+                        "col_num": 21,
+                        "frame_index": 18
+                    }
+                ],
+                "thread_name": "main",
+                "thread_sequence": 0
+            }
+        ],
+        "foreground": true,
+        "threads": [],
+        "framework": "js",
+        "is_custom": false
+    }
+}
