@@ -73,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Build and use new api for app health plot by @anupcowkur in #3780
 - (**backend**): Update email template by @anupcowkur in #3749
 - (**backend**): Tidy go modules and prune go.work.sum by @anupcowkur in #3739
 - (**backend**): Send user defined attributes in error details (#3738) by @detj in #3738
