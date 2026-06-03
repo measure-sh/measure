@@ -69,7 +69,10 @@ func (a App) GetHealthPlotInstances(ctx context.Context, af *filter.AppFilter) (
 			if errV != nil {
 				return errV
 			}
-			stmt.Where("app_version in (?)", selectedVersions.Parameterize())
+			// (app_version.1, app_version.2) instead of app_version: a whole-tuple
+			// IN crashes on ClickHouse >= 26.2 (code 27) when a set skip index
+			// exists on a tuple element subcolumn, as on app_metrics.
+			stmt.Where("(app_version.1, app_version.2) in (?)", selectedVersions.Parameterize())
 		}
 
 		stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
