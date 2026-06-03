@@ -1070,6 +1070,33 @@ func getGCSCreds() (*auth.Credentials, error) {
 	return gcsCreds.creds, nil
 }
 
+// mintSymboloaderToken returns the bearer credential used for
+// requests to symboloader's /symbols and /symbols/js endpoints.
+//
+// On cloud it mints a Google OIDC ID token scoped to the
+// symboloader origin, satisfying symboloader's Cloud Run IAM
+// invoker check. The token is audience-scoped to the service, so
+// a single value authorizes both the ProGuard and JS lookups
+// regardless of the app's OS. On self-host it returns the static
+// placeholder symboloader currently accepts.
+//
+// Callers must guard on a non-empty SymboloaderOrigin before
+// calling; the cloud path needs it as the token audience.
+func mintSymboloaderToken(ctx context.Context, config *server.ServerConfig) (token string, err error) {
+	if !config.IsCloud() {
+		return "measure", nil
+	}
+	ts, err := idtoken.NewTokenSource(ctx, config.SymboloaderOrigin)
+	if err != nil {
+		return
+	}
+	tok, err := ts.Token()
+	if err != nil {
+		return
+	}
+	return tok.AccessToken, nil
+}
+
 // PushHandler handles incoming Pub/Sub push messages containing
 // ingest batches published by the ingest service.
 func PushHandler(c *gin.Context) {
@@ -1242,6 +1269,20 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		sources := []symbolicator.Source{}
 		var sentrySources []symbolicator.SentrySource
 
+		// Mint the symboloader bearer token once per batch. The same
+		// audience-scoped token authorizes both the ProGuard (/symbols)
+		// and JS (/symbols/js) lookups, so it is computed here rather
+		// than per-OS. Stays empty on a cloud minting failure; the
+		// sources below skip rather than send an invalid token.
+		var symboloaderTok string
+		if config.SymboloaderOrigin != "" {
+			if tok, tokErr := mintSymboloaderToken(ingestCtx, config); tokErr != nil {
+				fmt.Printf("failed to obtain symboloader token: %v\n", tokErr)
+			} else {
+				symboloaderTok = tok
+			}
+		}
+
 		switch opsys.ToFamily(osName) {
 		case opsys.Android:
 			if config.IsCloud() {
@@ -1256,19 +1297,8 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 			} else {
 				sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
 			}
-			if config.SymboloaderOrigin != "" {
-				if config.IsCloud() {
-					ts, err := idtoken.NewTokenSource(ingestCtx, config.SymboloaderOrigin)
-					if err != nil {
-						fmt.Printf("failed to create identity token source for symboloader: %v\n", err)
-					} else if tok, err := ts.Token(); err != nil {
-						fmt.Printf("failed to generate identity token for symboloader: %v\n", err)
-					} else {
-						sentrySources = append(sentrySources, symbolicator.NewSentrySource("msr-symbols-sentry", config.SymboloaderOrigin+"/symbols", tok.AccessToken))
-					}
-				} else {
-					sentrySources = append(sentrySources, symbolicator.NewSentrySource("msr-symbols-sentry", config.SymboloaderOrigin+"/symbols", "measure"))
-				}
+			if symboloaderTok != "" {
+				sentrySources = append(sentrySources, symbolicator.NewSentrySource("msr-symbols-sentry", config.SymboloaderOrigin+"/symbols", symboloaderTok))
 			}
 		case opsys.AppleFamily:
 			if config.IsCloud() {
@@ -1293,6 +1323,7 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 
 		symblctr := symbolicator.New(origin, osName, sources, sentrySources)
 		symblctr.SymboloaderOrigin = config.SymboloaderOrigin
+		symblctr.SymboloaderToken = symboloaderTok
 
 		_, symbolicationSpan := ingestTracer.Start(ingestCtx, "symbolicate-events")
 		defer symbolicationSpan.End()

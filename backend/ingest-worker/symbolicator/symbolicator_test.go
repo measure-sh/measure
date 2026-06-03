@@ -1411,6 +1411,9 @@ func TestJSExceptionSymbolicationNonOTA(t *testing.T) {
 	// SymboloaderOrigin inside configureSource. Pass nils.
 	symb := New(symbolicatorOrigin, "ios", nil, nil)
 	symb.SymboloaderOrigin = symboloaderOriginURL
+	// Mirror the self-host wire shape: the static placeholder
+	// bearer. The test symboloader does not validate it.
+	symb.SymboloaderToken = "measure"
 
 	if err := symb.Symbolicate(ctx, pgPool, appID, events, nil); err != nil {
 		t.Fatalf("Symbolicate failed: %v", err)
