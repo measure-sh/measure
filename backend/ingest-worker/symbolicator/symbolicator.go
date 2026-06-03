@@ -153,6 +153,13 @@ type Symbolicator struct {
 	// will be pointed at the /symbols/js endpoint hosted
 	// on symboloader. If empty, JS symbolication is skipped.
 	SymboloaderOrigin string
+	// SymboloaderToken is the bearer credential sent to the
+	// symboloader /symbols/js endpoint. On cloud it is a Google
+	// OIDC ID token (audience = SymboloaderOrigin) required by
+	// symboloader's Cloud Run IAM invoker check; on self-host it
+	// is the static placeholder. Set by the caller after New,
+	// alongside SymboloaderOrigin.
+	SymboloaderToken string
 	// jvmLambdaWorkaround determines if each of the
 	// JVM stacktrace class names should be matched
 	// and replaced during the rewrite stage of
@@ -281,7 +288,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 				}
 				s.jsSymbolicator.ensureRequestInitialized()
 				s.jsSymbolicator.parseExceptions(ev.Exception.Exceptions, i)
-				s.jsSymbolicator.configureSource(s.SymboloaderOrigin, appId, ev.Attribute.AppVersion, ev.Attribute.AppBuild)
+				s.jsSymbolicator.configureSource(s.SymboloaderOrigin, s.SymboloaderToken, appId, ev.Attribute.AppVersion, ev.Attribute.AppBuild)
 				s.jsSymbolicator.populateModules(ev)
 			}
 		case event.TypeANR:
@@ -1004,9 +1011,13 @@ func (js *jsSymbolicator) parseExceptions(exceptions event.ExceptionUnits, index
 // itself isn't checked against anything; the /symbols/js
 // endpoint ignores it and scopes via app_id + version.
 //
-// The token is a placeholder for now — /symbols/js does not
-// validate it. Real per-app authentication is a follow-up.
-func (js *jsSymbolicator) configureSource(symboloaderOrigin string, appID uuid.UUID, versionName, versionCode string) {
+// token is the bearer credential Symbolicator forwards verbatim
+// as `Authorization: Bearer <token>` when it GETs /symbols/js. On
+// cloud it is a Google OIDC ID token that satisfies symboloader's
+// Cloud Run IAM invoker check; on self-host it is the static
+// placeholder. It is minted by the caller (see
+// mintSymboloaderToken) and supplied via Symbolicator.SymboloaderToken.
+func (js *jsSymbolicator) configureSource(symboloaderOrigin, token string, appID uuid.UUID, versionName, versionCode string) {
 	q := url.Values{}
 	q.Set("app_id", appID.String())
 	q.Set("version_name", versionName)
@@ -1017,7 +1028,7 @@ func (js *jsSymbolicator) configureSource(symboloaderOrigin string, appID uuid.U
 	js.request.Source = NewSentrySource(
 		"measure-symboloader",
 		sourceURL,
-		"measure",
+		token,
 	)
 	js.request.Release = versionName + "+" + versionCode
 }
