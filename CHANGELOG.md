@@ -195,6 +195,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add usage notes for patch_id (#3793) by @detj in #3793
 - (**backend**): Add error fields matrix (#3701) by @detj in #3701
 - (**backend**): Update dashboard api docs (#3686) by @detj in #3686
+- Consolidate contributing guide into repo root by @anupcowkur in #3798
 - Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3797
 - Update README.md [skip ci] by @allcontributors[bot]
 - Add ashyyhere as a contributor for maintenance, and doc (#3794) by @allcontributors[bot] in #3794
