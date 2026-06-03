@@ -311,6 +311,15 @@
         "maintenance",
         "doc"
       ]
+    },
+    {
+      "login": "gryzor",
+      "name": "Martin Marconcini",
+      "avatar_url": "https://avatars.githubusercontent.com/u/15253?v=4",
+      "profile": "https://github.com/Gryzor",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "commitType": "docs"
