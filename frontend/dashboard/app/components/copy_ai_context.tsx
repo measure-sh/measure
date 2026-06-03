@@ -12,71 +12,121 @@ interface CopyAiContextProps {
   errorEvent: ErrorEvent;
 }
 
+const hasValue = (value: unknown): boolean =>
+  value !== null && value !== undefined && value !== "";
+
+const formatValue = (value: unknown): string =>
+  typeof value === "object" && value !== null
+    ? JSON.stringify(value)
+    : String(value);
+
+// Renders key/value pairs as a markdown bullet list, dropping empty values.
+// Markdown bullets carry the same data as a JSON object with a fraction of the
+// punctuation, which is what makes the output token efficient.
+const bulletList = (entries: [string, unknown][]): string =>
+  entries
+    .filter(([, value]) => hasValue(value))
+    .map(([key, value]) => `- ${key}: ${formatValue(value)}`)
+    .join("\n");
+
+// Stack traces and thread dumps go in fenced blocks. A code fence preserves the
+// multi-line layout without indenting every line (the previous JSON/indented
+// format spent tokens on per-line whitespace and escaped newlines).
+const codeBlock = (content: string): string =>
+  "```\n" + content.trim() + "\n```";
+
 const CopyAiContext: React.FC<CopyAiContextProps> = ({
   appName,
   errorEvent,
 }) => {
-  const formatErrorDetails = () => {
-    let formatted = "";
+  const buildMarkdown = () => {
+    const title =
+      errorEvent.exception?.title ||
+      errorEvent.anr?.title ||
+      errorEvent.type ||
+      "Error";
 
-    formatted = formatted + "App Name: " + appName + "\n";
-    formatted =
-      formatted + "App version: " + errorEvent.attribute.app_version + "\n";
-    formatted =
-      formatted +
-      "Date & time: " +
-      formatDateToHumanReadableDateTime(errorEvent.timestamp) +
-      "\n";
-    formatted = formatted + "Platform: " + errorEvent.attribute.platform + "\n";
-    formatted =
-      formatted +
-      "Device: " +
-      errorEvent.attribute.device_manufacturer +
-      errorEvent.attribute.device_model +
-      "\n";
-    formatted =
-      formatted + "Network type: " + errorEvent.attribute.network_type + "\n";
+    const sections: string[] = [
+      `# ${title}`,
+      "I'm debugging this error in my app. The full context is below.",
+    ];
 
-    formatted = formatted + "\nSTACK TRACES:\n";
-    const stacktrace = errorEvent.exception
-      ? (errorEvent.exception.stacktrace ?? "")
-      : (errorEvent.anr?.stacktrace ?? "");
-    const indentedStackTrace = stacktrace
-      .split("\n")
-      .map((line) => "    " + line)
-      .join("\n");
-
-    formatted =
-      formatted +
-      "Thread: " +
-      errorEvent.attribute.thread_name +
-      "\nStacktrace:\n" +
-      indentedStackTrace +
-      "\n\n";
-
-    if (errorEvent.threads) {
-      errorEvent.threads.forEach((e) => {
-        formatted = formatted + "Thread: " + e.name + "\n";
-        formatted = formatted + "Stacktrace:\n    " + e.frames.join("\n    ");
-        formatted = formatted + "\n\n";
-      });
+    const summary = bulletList([
+      ["app", appName],
+      ["type", errorEvent.type],
+      ["severity", errorEvent.severity],
+      ["message", errorEvent.exception?.message],
+      ["code", errorEvent.code],
+      ["num_code", errorEvent.num_code],
+      ["timestamp", formatDateToHumanReadableDateTime(errorEvent.timestamp)],
+      ["session_id", errorEvent.session_id],
+      ["event_id", errorEvent.id],
+    ]);
+    if (summary) {
+      sections.push("## Summary\n" + summary);
     }
 
-    return formatted;
+    const attributes = bulletList(Object.entries(errorEvent.attribute));
+    if (attributes) {
+      sections.push("## Attributes\n" + attributes);
+    }
+
+    if (errorEvent.user_defined_attribute) {
+      const userAttributes = bulletList(
+        Object.entries(errorEvent.user_defined_attribute),
+      );
+      if (userAttributes) {
+        sections.push("## User-defined attributes\n" + userAttributes);
+      }
+    }
+
+    if (errorEvent.meta) {
+      const meta = bulletList(Object.entries(errorEvent.meta));
+      if (meta) {
+        sections.push("## Meta\n" + meta);
+      }
+    }
+
+    const attachments = (errorEvent.attachments ?? [])
+      .filter(
+        (a) => hasValue(a.name) || hasValue(a.location) || hasValue(a.key),
+      )
+      .map((a) => `- ${a.name || a.key} (${a.type}): ${a.location || a.key}`)
+      .join("\n");
+    if (attachments) {
+      sections.push("## Attachments\n" + attachments);
+    }
+
+    const stacktrace =
+      errorEvent.exception?.stacktrace ?? errorEvent.anr?.stacktrace ?? "";
+    if (hasValue(stacktrace)) {
+      sections.push(
+        `## Stack trace (thread: ${errorEvent.attribute.thread_name})\n` +
+          codeBlock(stacktrace),
+      );
+    }
+
+    const threads = (errorEvent.threads ?? []).filter(
+      (t) => hasValue(t.name) && t.frames.some(hasValue),
+    );
+    if (threads.length > 0) {
+      const threadBlocks = threads
+        .map((t) => `### ${t.name}\n` + codeBlock(t.frames.join("\n")))
+        .join("\n\n");
+      sections.push("## All threads\n" + threadBlocks);
+    }
+
+    sections.push("Please help me identify the root cause and suggest a fix.");
+
+    return sections.join("\n\n");
   };
 
-  const llmContext =
-    "I am trying to fix an error in my app. The details are as follows: \n\n" +
-    formatErrorDetails() +
-    "\n\n" +
-    "Please help me debug this.";
-
   return (
-    <SimpleTooltip content="Copy full error context for easy pasting in your favorite LLM">
+    <SimpleTooltip content="Copy error context as token efficient markdown for your coding agent">
       <Button
         variant="outline"
         onClick={() => {
-          navigator.clipboard.writeText(llmContext);
+          navigator.clipboard.writeText(buildMarkdown());
           toastPositive("AI context copied to clipboard");
         }}
       >
