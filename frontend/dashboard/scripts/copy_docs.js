@@ -469,13 +469,11 @@ if (require.main === module) {
 
   const effectiveDocsDir = contentDest;
 
-  // These paths stay in docs/ for the open-source repo (GitHub surfaces them
-  // from there) but are not part of the published docs site. Drop them from
-  // the build input so they produce no page, nav entry, search hit, or
-  // sitemap URL — every downstream step reads from content/docs/.
-  //   - CONTRIBUTING.md — contributor guide, GitHub-only
-  //   - api — REST API reference, kept in-repo but excluded from the site
-  const excludedPaths = ["CONTRIBUTING.md", "api"];
+  // The REST API reference lives in docs/api/ for the open-source repo but is
+  // not part of the published docs site. Drop it from the build input so it
+  // produces no page, nav entry, search hit, or sitemap URL — every downstream
+  // step reads from content/docs/.
+  const excludedPaths = ["api"];
   for (const rel of excludedPaths) {
     const target = path.join(effectiveDocsDir, rel);
     if (fs.existsSync(target)) {
