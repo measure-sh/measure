@@ -113,6 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Upgrade React and NextJs by @anupcowkur in #3795
 - (**frontend**): Remove REST apis from docs site by @anupcowkur in #3773
 - (**frontend**): Standardise and consolidate tooltips by @anupcowkur in #3772
 - (**frontend**): Update layout snapshot tooltip style by @anupcowkur in #3766
@@ -194,6 +195,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add usage notes for patch_id (#3793) by @detj in #3793
 - (**backend**): Add error fields matrix (#3701) by @detj in #3701
 - (**backend**): Update dashboard api docs (#3686) by @detj in #3686
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3797
+- Update README.md [skip ci] by @allcontributors[bot]
 - Add ashyyhere as a contributor for maintenance, and doc (#3794) by @allcontributors[bot] in #3794
 - Add contribution guidelines and update README link (#3764) by @ashyyhere in #3764
 - Update readme screenshots by @anupcowkur in #3768
