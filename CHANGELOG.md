@@ -194,6 +194,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add usage notes for patch_id (#3793) by @detj in #3793
 - (**backend**): Add error fields matrix (#3701) by @detj in #3701
 - (**backend**): Update dashboard api docs (#3686) by @detj in #3686
+- Add ashyyhere as a contributor for maintenance, and doc (#3794) by @allcontributors[bot] in #3794
+- Add contribution guidelines and update README link (#3764) by @ashyyhere in #3764
 - Update readme screenshots by @anupcowkur in #3768
 - Fix broken contribution guide link in README by @anupcowkur in #3704
 - Update sdk documentation (#3690) by @abhaysood in #3690
