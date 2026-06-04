@@ -24,6 +24,8 @@ class ClickDataTest {
             type = ElementType.Container,
             bounds = Bounds(10, 20, 100, 50),
             flags = ElementFlags.create(scrollable = false, highlighted = false),
+            text = "Add to cart",
+            semanticLabel = "Add item to cart",
         )
         val result = ClickData.fromTargetNode(
             gesture = detectedGesture,
@@ -31,6 +33,8 @@ class ClickDataTest {
         )
         Assert.assertEquals(target.label, result.target)
         Assert.assertEquals(target.id, result.target_id)
+        Assert.assertEquals("Add to cart", result.label)
+        Assert.assertEquals("Add item to cart", result.semantic_label)
         Assert.assertEquals(target.width, result.width)
         Assert.assertEquals(target.height, result.height)
         Assert.assertEquals(detectedGesture.x, result.x)

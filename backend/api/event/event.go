@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"backend/libs/ingest"
 	"backend/libs/opsys"
@@ -32,6 +33,8 @@ const (
 	maxGestureLongClickTargetChars            = 128
 	maxGestureLongClickTargetNameChars        = 128
 	maxGestureLongClickTargetIDChars          = 128
+	maxGestureLongClickLabelChars             = 32
+	maxGestureLongClickSemanticLabelChars     = 32
 	maxGestureScrollTargetChars               = 128
 	maxGestureScrollTargetNameChars           = 128
 	maxGestureScrollTargetIDChars             = 128
@@ -39,6 +42,8 @@ const (
 	maxGestureClickTargetChars                = 128
 	maxGestureClickTargetNameChars            = 128
 	maxGestureClickTargetIDChars              = 128
+	maxGestureClickLabelChars                 = 32
+	maxGestureClickSemanticLabelChars         = 32
 	maxLifecycleActivityTypeChars             = 32
 	maxLifecycleActivityClassNameChars        = 128
 	maxLifecycleFragmentTypeChars             = 32
@@ -487,6 +492,8 @@ type LogString struct {
 type GestureLongClick struct {
 	Target        string  `json:"target"`
 	TargetID      string  `json:"target_id"`
+	Label         string  `json:"label"`
+	SemanticLabel string  `json:"semantic_label"`
 	TouchDownTime uint64  `json:"touch_down_time"`
 	TouchUpTime   uint64  `json:"touch_up_time"`
 	Width         uint16  `json:"width"`
@@ -510,6 +517,8 @@ type GestureScroll struct {
 type GestureClick struct {
 	Target        string  `json:"target"`
 	TargetID      string  `json:"target_id"`
+	Label         string  `json:"label"`
+	SemanticLabel string  `json:"semantic_label"`
 	TouchDownTime uint64  `json:"touch_down_time"`
 	TouchUpTime   uint64  `json:"touch_up_time"`
 	Width         uint16  `json:"width"`
@@ -900,6 +909,12 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		if len(e.GestureLongClick.TargetID) > maxGestureLongClickTargetIDChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_long_click.target_id`, maxGestureLongClickTargetIDChars)
 		}
+		if utf8.RuneCountInString(e.GestureLongClick.Label) > maxGestureLongClickLabelChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_long_click.label`, maxGestureLongClickLabelChars)
+		}
+		if utf8.RuneCountInString(e.GestureLongClick.SemanticLabel) > maxGestureLongClickSemanticLabelChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_long_click.semantic_label`, maxGestureLongClickSemanticLabelChars)
+		}
 	}
 
 	if e.IsGestureScroll() {
@@ -929,6 +944,12 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		}
 		if len(e.GestureClick.TargetID) > maxGestureClickTargetIDChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_click.target_id`, maxGestureClickTargetIDChars)
+		}
+		if utf8.RuneCountInString(e.GestureClick.Label) > maxGestureClickLabelChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_click.label`, maxGestureClickLabelChars)
+		}
+		if utf8.RuneCountInString(e.GestureClick.SemanticLabel) > maxGestureClickSemanticLabelChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_click.semantic_label`, maxGestureClickSemanticLabelChars)
 		}
 	}
 

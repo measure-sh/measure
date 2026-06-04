@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:measure_flutter/src/gestures/click_data.dart';
+import 'package:measure_flutter/src/gestures/gesture_label_extractor.dart';
 import 'package:measure_flutter/src/gestures/layout_snapshot_widget_filters.dart';
 import 'package:measure_flutter/src/gestures/msr_scroll_direction.dart';
 import 'package:measure_flutter/src/gestures/scroll_data.dart';
@@ -159,6 +160,8 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
         return;
       }
 
+      final labels = extractGestureLabels(result.gestureElement!);
+
       widget
           .onClick(
         ClickData(
@@ -166,6 +169,8 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
           x: (position.dx * devicePixelRatio).roundToDouble(),
           y: (position.dy * devicePixelRatio).roundToDouble(),
           targetId: null,
+          label: labels.label,
+          semanticLabel: labels.semanticLabel,
           touchDownTime: null,
           touchUpTime: null,
           width: result.gestureElement?.size?.width.toInt(),
@@ -204,6 +209,8 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
       return;
     }
 
+    final labels = extractGestureLabels(result.gestureElement!);
+
     widget
         .onLongClick(
       LongClickData(
@@ -211,6 +218,8 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
         x: (position.dx * devicePixelRatio).roundToDouble(),
         y: (position.dy * devicePixelRatio).roundToDouble(),
         targetId: null,
+        label: labels.label,
+        semanticLabel: labels.semanticLabel,
         touchDownTime: null,
         touchUpTime: null,
         width: result.gestureElement?.size?.width.toInt(),

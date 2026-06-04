@@ -257,6 +257,41 @@ describe("SessionTimelineEventCell", () => {
       expect(screen.getByText("LoginButton")).toBeInTheDocument();
     });
 
+    it("shows target and captured label as 'target: label'", () => {
+      renderCell({
+        eventType: "gesture_click",
+        eventDetails: {
+          target: "com.example.views.LoginButton",
+          label: "Sign in",
+        },
+      });
+      expect(screen.getByText("LoginButton: Sign in")).toBeInTheDocument();
+    });
+
+    it("falls back to semantic_label when label is absent", () => {
+      renderCell({
+        eventType: "gesture_click",
+        eventDetails: {
+          target: "LoginButton",
+          semantic_label: "Sign in to your account",
+        },
+      });
+      expect(
+        screen.getByText("LoginButton: Sign in to your account"),
+      ).toBeInTheDocument();
+    });
+
+    it("falls back to target_id when label and semantic_label are absent", () => {
+      renderCell({
+        eventType: "gesture_click",
+        eventDetails: {
+          target: "LoginButton",
+          target_id: "btn_login",
+        },
+      });
+      expect(screen.getByText("LoginButton: btn_login")).toBeInTheDocument();
+    });
+
     it("shows HTTP method, status and URL as title", () => {
       renderCell({
         eventType: "http",

@@ -69,6 +69,8 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
         let longClickData = LongClickData(
             target: "button",
             targetId: "button_1",
+            label: "Add to cart",
+            semanticLabel: "Add item to cart",
             width: 10,
             height: 20,
             x: 100,
@@ -102,6 +104,8 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             if let longClickDataDict = jsonDict?["gesture_long_click"] as? [String: Any] {
                 XCTAssertEqual(longClickDataDict["target"] as? String, "button")
                 XCTAssertEqual(longClickDataDict["target_id"] as? String, "button_1")
+                XCTAssertEqual(longClickDataDict["label"] as? String, "Add to cart")
+                XCTAssertEqual(longClickDataDict["semantic_label"] as? String, "Add item to cart")
                 XCTAssertEqual(longClickDataDict["x"] as? FloatNumber32, 100)
                 XCTAssertEqual(longClickDataDict["y"] as? FloatNumber32, 50)
                 XCTAssertEqual(longClickDataDict["width"] as? Number, 10)
@@ -120,6 +124,8 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
         let clickData = ClickData(
             target: "button",
             targetId: "button_1",
+            label: "Add to cart",
+            semanticLabel: "Add item to cart",
             width: 100,
             height: 50,
             x: 15.0,
@@ -375,6 +381,8 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
         let clickData = ClickData(
             target: "button",
             targetId: "button_1",
+            label: "Add to cart",
+            semanticLabel: "Add item to cart",
             width: 100,
             height: 50,
             x: 15.0,

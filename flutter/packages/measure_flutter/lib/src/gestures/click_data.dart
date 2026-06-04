@@ -8,6 +8,9 @@ class ClickData implements JsonSerialized {
   final String target;
   @JsonKey(name: "target_id")
   final String? targetId;
+  final String? label;
+  @JsonKey(name: "semantic_label")
+  final String? semanticLabel;
   final double x;
   final double y;
   @JsonKey(name: "touch_down_time")
@@ -20,6 +23,8 @@ class ClickData implements JsonSerialized {
   ClickData({
     required this.target,
     this.targetId,
+    this.label,
+    this.semanticLabel,
     required this.x,
     required this.y,
     required this.touchDownTime,

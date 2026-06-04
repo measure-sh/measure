@@ -603,6 +603,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			row.
 				Set(`gesture_long_click.target`, e.events[i].GestureLongClick.Target).
 				Set(`gesture_long_click.target_id`, e.events[i].GestureLongClick.TargetID).
+				Set(`gesture_long_click.label`, e.events[i].GestureLongClick.Label).
+				Set(`gesture_long_click.semantic_label`, e.events[i].GestureLongClick.SemanticLabel).
 				Set(`gesture_long_click.touch_down_time`, e.events[i].GestureLongClick.TouchDownTime).
 				Set(`gesture_long_click.touch_up_time`, e.events[i].GestureLongClick.TouchUpTime).
 				Set(`gesture_long_click.width`, e.events[i].GestureLongClick.Width).
@@ -613,6 +615,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			row.
 				Set(`gesture_long_click.target`, nil).
 				Set(`gesture_long_click.target_id`, nil).
+				Set(`gesture_long_click.label`, nil).
+				Set(`gesture_long_click.semantic_label`, nil).
 				Set(`gesture_long_click.touch_down_time`, nil).
 				Set(`gesture_long_click.touch_up_time`, nil).
 				Set(`gesture_long_click.width`, nil).
@@ -626,6 +630,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			row.
 				Set(`gesture_click.target`, e.events[i].GestureClick.Target).
 				Set(`gesture_click.target_id`, e.events[i].GestureClick.TargetID).
+				Set(`gesture_click.label`, e.events[i].GestureClick.Label).
+				Set(`gesture_click.semantic_label`, e.events[i].GestureClick.SemanticLabel).
 				Set(`gesture_click.touch_down_time`, e.events[i].GestureClick.TouchDownTime).
 				Set(`gesture_click.touch_up_time`, e.events[i].GestureClick.TouchUpTime).
 				Set(`gesture_click.width`, e.events[i].GestureClick.Width).
@@ -636,6 +642,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			row.
 				Set(`gesture_click.target`, nil).
 				Set(`gesture_click.target_id`, nil).
+				Set(`gesture_click.label`, nil).
+				Set(`gesture_click.semantic_label`, nil).
 				Set(`gesture_click.touch_down_time`, nil).
 				Set(`gesture_click.touch_up_time`, nil).
 				Set(`gesture_click.width`, nil).
