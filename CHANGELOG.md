@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Avoid whole-tuple in query (#3805) by @detj in #3805
 - (**backend**): Prevent panic in apple symbolication (#3804) by @detj in #3804
 - (**backend**): Send iam auth token for js symbolication (#3799) by @detj in #3799
 - (**backend**): Improve js stacktrace appearance (#3791) by @detj in #3791
