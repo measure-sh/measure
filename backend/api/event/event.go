@@ -785,6 +785,13 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		f := e.Exception.GetFramework()
 		switch f {
 		case FrameworkApple:
+			// Apple framework is exclusive to Apple operating
+			// systems, unlike "js" or "dart" which are
+			// cross-platform.
+			if opsys.ToFamily(e.Attribute.OSName) != opsys.AppleFamily {
+				return fmt.Errorf(`%q framework requires an Apple os_name, got %q`, f, e.Attribute.OSName)
+			}
+
 			// Apple exceptions may contain error with stacktrace or
 			// may not contain error. If it does not contain error,
 			// then validate that stacktrace must be present.

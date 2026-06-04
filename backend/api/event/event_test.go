@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 func readException(path string) (exception Exception, err error) {
@@ -939,6 +942,47 @@ func TestHasJSFrames(t *testing.T) {
 
 		if e.HasJSFrames() {
 			t.Errorf("Expected HasJSFrames to return false for non-JS framework, got true")
+		}
+	})
+}
+
+func TestValidateAppleFrameworkOSName(t *testing.T) {
+	makeEvent := func(osName string) EventField {
+		return EventField{
+			ID:        uuid.New(),
+			AppID:     uuid.New(),
+			Type:      TypeException,
+			Timestamp: time.Now(),
+			Attribute: Attribute{OSName: osName},
+			Exception: &Exception{
+				Framework: FrameworkApple,
+				Exceptions: ExceptionUnits{
+					{
+						Type: "EXC_BAD_ACCESS",
+						ExceptionUnitiOS: &ExceptionUnitiOS{
+							Signal: "SIGSEGV",
+						},
+						Frames: Frames{{}},
+					},
+				},
+				Threads: Threads{
+					{Name: "main", Frames: Frames{{}}},
+				},
+			},
+		}
+	}
+
+	t.Run("Rejects apple framework on non-Apple os_name", func(t *testing.T) {
+		ev := makeEvent("android")
+		if err := ev.Validate(); err == nil {
+			t.Error("Expected validation error for apple framework with android os_name, got nil")
+		}
+	})
+
+	t.Run("Accepts apple framework on Apple os_name", func(t *testing.T) {
+		ev := makeEvent("ios")
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for apple framework with ios os_name, got %v", err)
 		}
 	})
 }

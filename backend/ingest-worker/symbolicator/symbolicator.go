@@ -231,6 +231,10 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 		// in place and do not need any
 		// further processing
 		if ev.Type == event.TypeException && ev.Exception.GetFramework() == event.FrameworkApple {
+			if s.appleSymbolicator == nil {
+				fmt.Printf("skipping apple symbolication for event %s: symbolicator initialized for os %q\n", ev.ID, s.OSName)
+				continue
+			}
 			s.appleSymbolicator.symbolicate(ev, s.Origin, s.Sources)
 			continue
 		}
@@ -717,6 +721,14 @@ func (as *appleSymbolicator) makeAppleCrashReport(event event.EventField) {
 	var b strings.Builder
 
 	for j, exception := range event.Exception.Exceptions {
+		// a unit without signal/thread info cannot produce
+		// a meaningful crash report section
+		if exception.ExceptionUnitiOS == nil {
+			unit, _ := json.Marshal(exception)
+			fmt.Printf("skipping apple crash report section for event %s: exception unit %d has no iOS unit data: %s\n", event.ID, j, string(unit))
+			continue
+		}
+
 		// write os info
 		b.WriteString(fmt.Sprintf("Version: %s (%s)\n", event.Attribute.AppVersion, event.Attribute.AppBuild))
 
