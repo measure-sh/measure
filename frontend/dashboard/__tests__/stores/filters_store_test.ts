@@ -22,6 +22,7 @@ jest.mock("@/app/query/query_client", () => ({
 
 import {
   applyFilterOptions,
+  appsEqual,
   AppVersionsInitialSelectionType,
   createFiltersStore,
   type FilterOptionsData,
@@ -135,6 +136,52 @@ describe("pickApp", () => {
   it("skips invalid URL appId and falls through to next priority", () => {
     const picked = pickApp(apps, initConfig({ appId: "no-such" }, "b"), null);
     expect(picked?.id).toBe("b");
+  });
+});
+
+describe("appsEqual", () => {
+  it("returns true for the same reference", () => {
+    const a = makeApp("a");
+    expect(appsEqual(a, a)).toBe(true);
+  });
+
+  it("returns true for distinct objects with identical content", () => {
+    expect(appsEqual(makeApp("a"), makeApp("a"))).toBe(true);
+  });
+
+  it("returns false when the api_key changes (rotation, same id)", () => {
+    const before = makeApp("a");
+    const after = makeApp("a", {
+      api_key: { ...before.api_key, key: "rotated" },
+    });
+    expect(appsEqual(before, after)).toBe(false);
+  });
+
+  it("returns false when the name changes (rename, same id)", () => {
+    expect(appsEqual(makeApp("a"), makeApp("a", { name: "Renamed" }))).toBe(
+      false,
+    );
+  });
+
+  it("returns false when the onboarded flag flips (same id)", () => {
+    expect(
+      appsEqual(
+        makeApp("a", { onboarded: false }),
+        makeApp("a", { onboarded: true }),
+      ),
+    ).toBe(false);
+  });
+
+  it("returns false when the id differs", () => {
+    expect(appsEqual(makeApp("a"), makeApp("b"))).toBe(false);
+  });
+
+  it("returns false when a nested api_key field other than the key changes", () => {
+    const before = makeApp("a");
+    const after = makeApp("a", {
+      api_key: { ...before.api_key, last_seen: "2026-01-01T00:00:00Z" },
+    });
+    expect(appsEqual(before, after)).toBe(false);
   });
 });
 

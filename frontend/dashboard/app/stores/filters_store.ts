@@ -891,6 +891,17 @@ export function pickApp(
   return apps[0];
 }
 
+// True when two apps carry identical data. A refetch hands back a brand-new
+// app object every time, so reference identity can't distinguish "same app,
+// fresh fields" (e.g. a rotated api_key or a flipped onboarded flag) from
+// "genuinely unchanged". Structural equality can — and stays correct as the
+// App shape grows, since it compares whatever fields exist rather than a
+// hand-picked subset. Both apps originate from the same apps query response,
+// so their key order matches and stringify comparison is reliable.
+export function appsEqual(a: App, b: App): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 export function resolveRootSpanName(
   rootSpanNames: string[],
   initConfig: InitConfig,

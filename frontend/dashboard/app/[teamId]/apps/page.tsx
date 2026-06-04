@@ -116,13 +116,22 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
 
   const filtersRef = useRef<any>(null);
 
-  // Sync app name when filters become ready or change.
+  // Sync the editable name input to the selected app. Keyed on name so a
+  // rename (which updates filters.app in place) re-syncs the input to the
+  // server's stored value.
   const [prevAppName, setPrevAppName] = useState<string>("");
   if (filters.ready && filters.app && filters.app.name !== prevAppName) {
     setPrevAppName(filters.app.name);
     setAppName(filters.app.name);
     setSaveAppNameButtonDisabled(true);
-    // Reset editable state when app changes
+  }
+
+  // Drop unsaved retention/threshold edits when the selected app actually
+  // changes. Keyed on id so renaming the current app doesn't discard
+  // in-progress edits.
+  const [prevAppId, setPrevAppId] = useState<string>("");
+  if (filters.ready && filters.app && filters.app.id !== prevAppId) {
+    setPrevAppId(filters.app.id);
     setUpdatedRetention(null);
     setEditableThresholdPrefs(null);
   }
