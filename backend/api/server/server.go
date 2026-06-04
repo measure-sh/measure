@@ -469,7 +469,7 @@ func Init(config *ServerConfig) {
 
 	if gin.Mode() == gin.ReleaseMode {
 		// read more: https://clickhouse.com/docs/operations/settings/settings#compatibility
-		compatibility := "25.12"
+		compatibility := "26.2"
 		chOpts.Settings = clickhouse.Settings{
 			"wait_for_async_insert":         1,
 			"wait_for_async_insert_timeout": 1000,
