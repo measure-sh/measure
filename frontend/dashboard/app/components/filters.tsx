@@ -38,6 +38,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import {
   applyFilterOptions,
+  appsEqual,
   AppVersionsInitialSelectionType,
   defaultSessionTypes,
   expandRangesToArray,
@@ -666,13 +667,11 @@ const FiltersComponent = forwardRef<
       if (!picked) {
         return;
       }
-      // Skip the setter when nothing changed — apps reference churns on
-      // every refetch even when the picked app is the same.
-      if (!selectedApp || selectedApp.id !== picked.id) {
-        store.setSelectedApp(picked);
-      } else if (selectedApp.onboarded !== picked.onboarded) {
-        // Same id, new onboarded flag (poller saw verification). Update
-        // in place without wiping selections.
+      // Sync selectedApp when the refetched app differs in any field, not
+      // just id: a rotated api_key, rename, or onboarded flip keeps the
+      // same id. A same-id update is fine since setSelectedApp only clears
+      // the user's version/OS filter selections when the id changes.
+      if (!selectedApp || !appsEqual(selectedApp, picked)) {
         store.setSelectedApp(picked);
       }
     }, [appsQuery.status, appsQuery.data, teamId]);

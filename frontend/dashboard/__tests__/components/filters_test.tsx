@@ -501,6 +501,80 @@ describe("Filters — store state after queries resolve", () => {
   });
 });
 
+describe("Filters — selectedApp sync on refetch", () => {
+  it("updates selectedApp when a refetch returns the same id with a rotated api_key", async () => {
+    setAppsSuccess([makeApp("a")]);
+    setFiltersSuccess();
+    await renderFilters();
+    await waitFor(() => {
+      expect(storeInstance.getState().selectedApp?.id).toBe("a");
+      expect(storeInstance.getState().selectedApp?.api_key.key).toBe("k");
+    });
+
+    // Same app id, new key — exactly what an API key rotation produces.
+    const next: App = {
+      ...makeApp("a"),
+      api_key: {
+        created_at: "",
+        key: "rotated-key",
+        last_seen: null,
+        revoked: false,
+      },
+    };
+    setAppsSuccess([next]);
+    await act(async () => {
+      // Mirrors the refetch landing in the store; forces the sync effect
+      // (keyed on appsQuery.data) to re-run against the fresh apps list.
+      storeInstance.getState().setApps([next], AppsApiStatus.Success);
+    });
+
+    await waitFor(() => {
+      expect(storeInstance.getState().selectedApp?.api_key.key).toBe(
+        "rotated-key",
+      );
+    });
+  });
+
+  it("updates selectedApp when a refetch flips the onboarded flag for the same id", async () => {
+    setAppsSuccess([makeApp("a", false)]);
+    setFiltersSuccess();
+    await renderFilters();
+    await waitFor(() => {
+      expect(storeInstance.getState().selectedApp?.onboarded).toBe(false);
+    });
+
+    const next = makeApp("a", true);
+    setAppsSuccess([next]);
+    await act(async () => {
+      storeInstance.getState().setApps([next], AppsApiStatus.Success);
+    });
+
+    await waitFor(() => {
+      expect(storeInstance.getState().selectedApp?.onboarded).toBe(true);
+    });
+  });
+
+  it("does not replace selectedApp when a refetch returns identical content", async () => {
+    setAppsSuccess([makeApp("a")]);
+    setFiltersSuccess();
+    await renderFilters();
+    await waitFor(() => {
+      expect(storeInstance.getState().selectedApp?.id).toBe("a");
+    });
+    const before = storeInstance.getState().selectedApp;
+
+    // A refetch hands back a fresh object with identical content.
+    const refetched = makeApp("a");
+    setAppsSuccess([refetched]);
+    await act(async () => {
+      storeInstance.getState().setApps([refetched], AppsApiStatus.Success);
+    });
+
+    // appsEqual sees no change, so the store keeps the same object reference.
+    expect(storeInstance.getState().selectedApp).toBe(before);
+  });
+});
+
 describe("Filters — date initialization", () => {
   it("defaults to Last 6 Hours on first-ever mount", async () => {
     setAppsSuccess([makeApp("a")]);
