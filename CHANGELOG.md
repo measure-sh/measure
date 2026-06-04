@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Add unified errors API & react native symbolication support (#3623) by @detj in #3623
 - (**backend**): Use autumn for metering and billing by @anupcowkur in #3534
+- (**frontend**): Capture and show label and semantic label for gestures (#3788) by @abhaysood in #3788
 - (**frontend**): Move info text to info tooltips by @anupcowkur in #3778
 - (**frontend**): Add 3d view for layout snapshots by @anupcowkur in #3761
 - (**frontend**): Update light & dark themes by @anupcowkur
