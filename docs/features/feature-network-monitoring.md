@@ -30,6 +30,40 @@ are automatically tracked by simply adding the Measure Android Gradle Plugin:
 * [HttpURLConnection](https://developer.android.com/reference/java/net/HttpURLConnection): requires minimum 
   Android SDK version: 0.18.0.
 
+##### Using Retrofit
+
+[Retrofit](https://square.github.io/retrofit/) uses OkHttp under the hood, but as a transitive dependency.
+Auto-instrumentation does not work with transitive dependencies, so projects that depend only on Retrofit
+are not instrumented automatically. Use one of the following workarounds:
+
+**Option 1: Declare OkHttp as a direct dependency**
+
+Pin the OkHttp version explicitly in your `build.gradle.kts`. This lets auto-instrumentation work without
+any code changes:
+
+```kotlin
+dependencies {
+    implementation("com.squareup.retrofit2:retrofit:3.0.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+}
+```
+
+**Option 2: Add the interceptor manually**
+
+Configure the `OkHttpClient` passed to Retrofit with Measure's interceptor and event listener factory:
+
+```kotlin
+val client = OkHttpClient.Builder()
+    .addInterceptor(MeasureOkHttpApplicationInterceptor())
+    .eventListenerFactory(MeasureEventListenerFactory(null))
+    .build()
+
+val retrofit = Retrofit.Builder()
+    .baseUrl("https://api.example.com")
+    .client(client)
+    .build()
+```
+
 #### iOS
 
 On iOS, network requests made using the [URLSession](https://developer.apple.com/documentation/foundation/urlsession),
