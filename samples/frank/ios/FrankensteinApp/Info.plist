@@ -43,5 +43,10 @@
 	<string>$(MEASURE_API_KEY)</string>
 	<key>MeasureApiUrl</key>
 	<string>$(MEASURE_API_URL)</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 </dict>
 </plist>
