@@ -62,9 +62,7 @@ internal class UnhandledExceptionCollector(
         }
     }
 
-    private fun isDiscardableError(throwable: Throwable): Boolean {
-        return throwable.javaClass.name.contains(JS_EXCEPTION_NAME) || throwable.cause?.javaClass?.name?.contains(
-            JS_EXCEPTION_NAME
-        ) ?: false
-    }
+    private fun isDiscardableError(throwable: Throwable): Boolean = throwable.javaClass.name.contains(JS_EXCEPTION_NAME) || throwable.cause?.javaClass?.name?.contains(
+        JS_EXCEPTION_NAME,
+    ) ?: false
 }

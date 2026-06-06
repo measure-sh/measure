@@ -429,17 +429,18 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                          configProvider: configProvider,
                                                          signalSampler: signalSampler,
                                                          httpEventValidator: httpEventValidator)
+        self.screenshotGenerator = BaseScreenshotGenerator(configProvider: configProvider,
+                                                           logger: logger,
+                                                           attachmentProcessor: attachmentProcessor,
+                                                           userPermissionManager: userPermissionManager)
         self.internalSignalCollector = BaseInternalSignalCollector(logger: logger,
                                                                    timeProvider: timeProvider,
                                                                    signalProcessor: signalProcessor,
                                                                    sessionManager: sessionManager,
                                                                    attributeProcessors: attributeProcessors,
                                                                    signalSampler: signalSampler,
-                                                                   configProvider: configProvider)
-        self.screenshotGenerator = BaseScreenshotGenerator(configProvider: configProvider,
-                                                           logger: logger,
-                                                           attachmentProcessor: attachmentProcessor,
-                                                           userPermissionManager: userPermissionManager)
+                                                                   configProvider: configProvider,
+                                                                   screenshotGenerator: screenshotGenerator)
         self.bugReportManager = BaseBugReportManager(screenshotGenerator: screenshotGenerator,
                                                      configProvider: configProvider,
                                                      idProvider: idProvider,

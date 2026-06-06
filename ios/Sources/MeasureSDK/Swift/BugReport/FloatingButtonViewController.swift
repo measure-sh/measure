@@ -142,7 +142,7 @@ final class FloatingButtonViewController: UIViewController {
     }
 
     @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
-        screenshotGenerator.generate(window: view.window!, name: screenshotName, storageType: .data) { [weak self] attachment in
+        screenshotGenerator.generate(window: view.window!, name: screenshotName, storageType: .data, sync: false) { [weak self] attachment in
             guard let self = self, let attachment = attachment else { return }
             self.animateScreenshotToButton(attachment)
         }

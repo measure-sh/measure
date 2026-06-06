@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UIKit
 
 protocol InternalSignalCollector {
     func enable()
@@ -53,6 +54,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
     private let attributeProcessors: [AttributeProcessor]
     private let signalSampler: SignalSampler
     private let configProvider: ConfigProvider
+    private let screenshotGenerator: ScreenshotGenerator
 
     private var isEnabled = AtomicBool(false)
     var isForeground: Bool
@@ -63,7 +65,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
          sessionManager: SessionManager,
          attributeProcessors: [AttributeProcessor],
          signalSampler: SignalSampler,
-         configProvider: ConfigProvider) {
+         configProvider: ConfigProvider,
+         screenshotGenerator: ScreenshotGenerator) {
         self.logger = logger
         self.signalProcessor = signalProcessor
         self.sessionManager = sessionManager
@@ -71,6 +74,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
         self.attributeProcessors = attributeProcessors
         self.signalSampler = signalSampler
         self.configProvider = configProvider
+        self.screenshotGenerator = screenshotGenerator
         self.isForeground = true
     }
 
@@ -137,8 +141,24 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     )
                 }
                 let isFatal = (data["severity"] as? String) == "fatal"
+                let isJsFramework = (data["framework"] as? String) == "js"
                 if isFatal {
                     sessionManager.markCurrentSessionAsCrashed()
+                }
+                var exceptionAttachments: [MsrAttachment]? = nil
+                if isFatal && isJsFramework && configProvider.crashTakeScreenshot {
+                    DispatchQueue.main.sync {
+                        if let window = UIWindow.keyWindow() {
+                            screenshotGenerator.generate(window: window,
+                                                         name: screenshotName,
+                                                         storageType: .data,
+                                                         sync: true) { attachment in
+                                if let attachment = attachment {
+                                    exceptionAttachments = [attachment]
+                                }
+                            }
+                        }
+                    }
                 }
                 let exceptionData = try extractExceptionData(data: data)
                 signalProcessor.track(
@@ -147,7 +167,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     type: .exception,
                     attributes: evaluatedAttributes,
                     sessionId: sessionId,
-                    attachments: nil,
+                    attachments: exceptionAttachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
                     needsReporting: true,
