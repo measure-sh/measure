@@ -29,7 +29,7 @@ interface SdkConfiguratorProps {
   appName: string;
   initialConfig: SdkConfig;
   currentUserCanChangeAppSettings: boolean;
-  osName?: string | null;
+  osNames?: string[] | null;
 }
 
 type SectionSaveStatus = "idle" | "saving" | "saved" | "error";
@@ -41,7 +41,7 @@ export default function SdkConfigurator({
   appName,
   initialConfig,
   currentUserCanChangeAppSettings,
-  osName,
+  osNames,
 }: SdkConfiguratorProps) {
   // Local editable state
   const [sdkConfig, setSdkConfigState] = useState<SdkConfig | null>(
@@ -167,7 +167,7 @@ export default function SdkConfigurator({
           track("sampling_adjusted", {
             team_id: routeParams?.teamId,
             app_id: appId,
-            app_platform: osName,
+            app_platform: osNames?.join(","),
             feature_area: "sampling",
             entry_point: "direct",
             section: sectionKey,
@@ -277,11 +277,10 @@ export default function SdkConfigurator({
 
   const getHeaderPlaceholder = () => ["X-User-ID", "X-API-Key"].join("\n");
 
-  // Helper to check if ANR should be shown
+  // Helper to check if ANR should be shown. ANR is Android-only, so show it
+  // when the OS is unknown or the app reports on Android.
   const shouldShowAnr =
-    osName === null ||
-    osName === undefined ||
-    osName.toLowerCase() === "android";
+    !osNames?.length || osNames.some((os) => os.toLowerCase() === "android");
 
   // Confirmation dialog body generators
   const getCrashesConfirmBody = () => {

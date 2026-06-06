@@ -34,3 +34,20 @@ func ToFamily(osName string) string {
 		return Unknown
 	}
 }
+
+// family groups OS names such that members of the same family share a key.
+// ios and ipados belong to the apple family; every other value is its own
+// family.
+func family(osName string) string {
+	switch strings.ToLower(osName) {
+	case IOS, IPad:
+		return AppleFamily
+	default:
+		return strings.ToLower(osName)
+	}
+}
+
+// SameFamily reports whether two OS names belong to the same family.
+func SameFamily(a, b string) bool {
+	return family(a) == family(b)
+}

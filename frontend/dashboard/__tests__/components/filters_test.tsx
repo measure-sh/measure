@@ -131,7 +131,7 @@ function makeApp(id: string, onboarded = true): App {
     onboarded,
     created_at: "",
     updated_at: "",
-    os_name: "android",
+    os_names: ["android"],
     onboarded_at: null,
     unique_identifier: null,
   };

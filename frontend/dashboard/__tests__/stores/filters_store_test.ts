@@ -45,7 +45,7 @@ function makeApp(id: string, overrides: Partial<App> = {}): App {
     onboarded: true,
     created_at: "",
     updated_at: "",
-    os_name: "android",
+    os_names: ["android"],
     onboarded_at: null,
     unique_identifier: null,
     ...overrides,

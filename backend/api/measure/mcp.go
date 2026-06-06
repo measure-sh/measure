@@ -1496,7 +1496,6 @@ func mcpBuildAppFilter(ctx context.Context, appID uuid.UUID, cf mcpCommonFilters
 		}
 		filtersAF := &filter.AppFilter{AppID: appID}
 		filtersAF.SetDefaultTimeRange()
-		filtersAF.AppOSName = app.OSName
 		filterCtx := ambient.WithTeamId(ctx, app.TeamId)
 
 		var fl filter.FilterList
@@ -1574,13 +1573,13 @@ func mcpListApps(ctx context.Context, _ mcpListAppsInput) (*mcpsdk.CallToolResul
 
 	pgPool := server.Server.PgPool
 	type appRow struct {
-		ID               string `json:"id"`
-		Name             string `json:"name"`
-		Platform         string `json:"platform"`
-		UniqueIdentifier string `json:"unique_identifier"`
+		ID               string   `json:"id"`
+		Name             string   `json:"name"`
+		OsNames          []string `json:"os_names"`
+		UniqueIdentifier string   `json:"unique_identifier"`
 	}
 	rows, err := pgPool.Query(ctx,
-		`SELECT a.id, a.app_name, coalesce(a.os_name, ''), coalesce(a.unique_identifier, '')
+		`SELECT a.id, a.app_name, coalesce(a.os_names, '{}'), coalesce(a.unique_identifier, '')
 		 FROM measure.apps a
 		 JOIN measure.team_membership tm ON a.team_id = tm.team_id
 		 WHERE tm.user_id = $1
@@ -1594,7 +1593,7 @@ func mcpListApps(ctx context.Context, _ mcpListAppsInput) (*mcpsdk.CallToolResul
 	var apps []appRow
 	for rows.Next() {
 		var row appRow
-		if err := rows.Scan(&row.ID, &row.Name, &row.Platform, &row.UniqueIdentifier); err != nil {
+		if err := rows.Scan(&row.ID, &row.Name, &row.OsNames, &row.UniqueIdentifier); err != nil {
 			return nil, nil, fmt.Errorf("failed to query apps: %w", err)
 		}
 		apps = append(apps, row)
@@ -1638,7 +1637,6 @@ func mcpGetFilters(ctx context.Context, in mcpGetFiltersInput) (*mcpsdk.CallTool
 	if err != nil {
 		return nil, nil, err
 	}
-	af.AppOSName = app.OSName
 	filterCtx := ambient.WithTeamId(ctx, app.TeamId)
 
 	var fl filter.FilterList
@@ -1674,7 +1672,6 @@ func mcpGetMetrics(ctx context.Context, in mcpGetMetricsInput) (*mcpsdk.CallTool
 	if err := app.Populate(ctx); err != nil {
 		return nil, nil, err
 	}
-	af.AppOSName = app.OSName
 	metricsCtx := ambient.WithTeamId(ctx, teamID)
 
 	adoption, err := app.GetAdoptionMetrics(metricsCtx, af)

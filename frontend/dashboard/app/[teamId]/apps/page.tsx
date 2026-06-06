@@ -481,35 +481,44 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
 
           <div className="font-body">
             <div className="flex flex-col mt-8">
-              {filters.app!.unique_identifier && filters.app!.os_name && (
-                <p className="font-display text-muted-foreground">
-                  Unique Identifier
-                </p>
-              )}
-              {filters.app!.unique_identifier && filters.app!.os_name && (
-                <p className="text-sm mt-0.5">
-                  {filters.app!.unique_identifier}
-                </p>
-              )}
-              {filters.app!.unique_identifier && filters.app!.os_name && (
-                <p className="font-display text-muted-foreground mt-6">
-                  Operating System
-                </p>
-              )}
-              {filters.app!.unique_identifier && filters.app!.os_name && (
-                <p className="text-sm mt-0.5">{filters.app!.os_name}</p>
-              )}
-              {filters.app!.unique_identifier && filters.app!.os_name && (
-                <p className="font-display text-muted-foreground mt-6">
-                  Created at
-                </p>
-              )}
-              {filters.app!.unique_identifier && filters.app!.os_name && (
-                <p className="text-sm mt-0.5">
-                  {formatDateToHumanReadableDateTime(filters.app!.created_at)}
-                </p>
-              )}
-              {(!filters.app!.unique_identifier || !filters.app!.os_name) && (
+              {filters.app!.unique_identifier &&
+                !!filters.app!.os_names?.length && (
+                  <p className="font-display text-muted-foreground">
+                    Unique Identifier
+                  </p>
+                )}
+              {filters.app!.unique_identifier &&
+                !!filters.app!.os_names?.length && (
+                  <p className="text-sm mt-0.5">
+                    {filters.app!.unique_identifier}
+                  </p>
+                )}
+              {filters.app!.unique_identifier &&
+                !!filters.app!.os_names?.length && (
+                  <p className="font-display text-muted-foreground mt-6">
+                    Operating Systems
+                  </p>
+                )}
+              {filters.app!.unique_identifier &&
+                !!filters.app!.os_names?.length && (
+                  <p className="text-sm mt-0.5">
+                    {filters.app!.os_names?.join(", ")}
+                  </p>
+                )}
+              {filters.app!.unique_identifier &&
+                !!filters.app!.os_names?.length && (
+                  <p className="font-display text-muted-foreground mt-6">
+                    Created at
+                  </p>
+                )}
+              {filters.app!.unique_identifier &&
+                !!filters.app!.os_names?.length && (
+                  <p className="text-sm mt-0.5">
+                    {formatDateToHumanReadableDateTime(filters.app!.created_at)}
+                  </p>
+                )}
+              {(!filters.app!.unique_identifier ||
+                !filters.app!.os_names?.length) && (
                 <p className="font-body text-sm">
                   Follow our{" "}
                   <Link className={underlineLinkStyle} href="/docs">
@@ -573,7 +582,7 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
             <SdkConfigurator
               appId={filters.app!.id}
               appName={filters.app!.name}
-              osName={filters.app!.os_name}
+              osNames={filters.app!.os_names}
               initialConfig={sdkConfig!}
               currentUserCanChangeAppSettings={canWriteSdkConfig}
             />

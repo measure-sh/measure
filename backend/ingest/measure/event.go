@@ -266,6 +266,22 @@ func (e *eventreq) checkSeen(ctx context.Context) (err error) {
 
 // readMultipartRequest parses and validates the event request payload for
 // events and attachments.
+// getOSName returns the batch's operating system, taken from the first event
+// (or the first span, for span-only batches). Returns "" if the batch has
+// neither.
+func (e *eventreq) getOSName() string {
+	if len(e.events) > 0 {
+		return strings.ToLower(e.events[0].Attribute.OSName)
+	}
+	if len(e.spans) > 0 {
+		return strings.ToLower(e.spans[0].Attributes.OSName)
+	}
+	// Unreachable in practice: ingest rejects any batch without at least one
+	// event or span and any with an empty or unrecognized os_name. This guard
+	// only avoids an index-out-of-range panic.
+	return ""
+}
+
 func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -362,13 +378,6 @@ func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 		// compute launch timings
 		ev.ComputeLaunchTimes()
 
-		// read OS name from payload
-		// if we haven't figured out
-		// already.
-		if e.osName == "" {
-			e.osName = strings.ToLower(ev.Attribute.OSName)
-		}
-
 		e.events = append(e.events, ev)
 	}
 
@@ -395,13 +404,6 @@ func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 
 		e.bumpSize(uint64(len(bytes)))
 		sp.AppID = e.appId
-
-		// read OS name from payload
-		// if we haven't figured out
-		// already.
-		if e.osName == "" {
-			e.osName = strings.ToLower(sp.Attributes.OSName)
-		}
 
 		e.spans = append(e.spans, sp)
 	}
@@ -519,11 +521,6 @@ func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
 		// compute launch timings
 		ev.ComputeLaunchTimes()
 
-		// read OS name from payload if we haven't figured out already
-		if e.osName == "" {
-			e.osName = strings.ToLower(ev.Attribute.OSName)
-		}
-
 		e.events = append(e.events, ev)
 	}
 
@@ -546,11 +543,6 @@ func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
 
 		e.bumpSize(uint64(len(bytes)))
 		sp.AppID = e.appId
-
-		// read OS name from payload if we haven't figured out already
-		if e.osName == "" {
-			e.osName = strings.ToLower(sp.Attributes.OSName)
-		}
 
 		e.spans = append(e.spans, sp)
 	}
@@ -822,7 +814,6 @@ func PutEvents(c *gin.Context) {
 		appId:       appId,
 		teamId:      app.TeamId,
 		json:        strings.HasPrefix(c.ContentType(), "application/json"),
-		osName:      app.OSName,
 		attachments: make(map[uuid.UUID]*blob),
 	}
 
@@ -866,6 +857,12 @@ func PutEvents(c *gin.Context) {
 			return
 		}
 	}
+
+	// Resolve the batch's OS from its own events/spans. This drives
+	// symbolication routing, which must follow the batch's actual runtime OS
+	// rather than the app's stored os_names (an app can span multiple OSes of
+	// a family).
+	eventReq.osName = eventReq.getOSName()
 
 	if err := eventReq.checkSeen(ingestReqCtx); err != nil {
 		msg := "failed to check for duplicate event request batch"

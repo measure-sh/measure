@@ -15,7 +15,7 @@ import (
 type App struct {
 	ID           *uuid.UUID `json:"id"`
 	TeamId       uuid.UUID  `json:"team_id"`
-	OSName       string     `json:"os_name"`
+	OSNames      []string   `json:"os_names"`
 	FirstVersion string     `json:"first_version"`
 	Onboarded    bool       `json:"onboarded"`
 	OnboardedAt  time.Time  `json:"onboarded_at"`
@@ -24,14 +24,13 @@ type App struct {
 // SelectApp selects app by its id.
 func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 	var onboarded pgtype.Bool
-	var os pgtype.Text
 	var firstVersion pgtype.Text
 
 	stmt := sqlf.PostgreSQL.
 		Select("id").
 		Select("team_id").
 		Select("onboarded").
-		Select("os_name").
+		Select("os_names").
 		Select("first_version").
 		From("apps").
 		Where("id = ?", id)
@@ -42,7 +41,7 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 		app = &App{}
 	}
 
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&app.ID, &app.TeamId, &onboarded, &os, &firstVersion); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&app.ID, &app.TeamId, &onboarded, &app.OSNames, &firstVersion); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		} else {
@@ -54,12 +53,6 @@ func SelectApp(ctx context.Context, id uuid.UUID) (app *App, err error) {
 		app.Onboarded = onboarded.Bool
 	} else {
 		app.Onboarded = false
-	}
-
-	if os.Valid {
-		app.OSName = os.String
-	} else {
-		app.OSName = ""
 	}
 
 	if firstVersion.Valid {

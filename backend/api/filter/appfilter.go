@@ -51,9 +51,6 @@ type AppFilter struct {
 	// ID is the unique id of the app.
 	AppID uuid.UUID
 
-	// AppOSName is the OSName value of the app.
-	AppOSName string
-
 	// From represents the lower time bound of
 	// the filter time range.
 	From time.Time `form:"from" time_format:"2006-01-02T15:04:05.000Z" time_utc:"1"`

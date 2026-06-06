@@ -98,7 +98,7 @@ export default function SessionTimelinesOverview(props: {
     track("session_searched", {
       team_id: params.teamId,
       app_id: filters.app?.id,
-      app_platform: filters.app?.os_name,
+      app_platform: filters.app?.os_names?.join(","),
       feature_area: "sessions",
       entry_point: "direct",
     });
