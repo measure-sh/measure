@@ -360,7 +360,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
   };
 
   const { events, threads, eventTypes } = useMemo(() => {
-    const events: {
+    const collected: {
       eventType: string;
       timestamp: string;
       thread: string;
@@ -373,7 +373,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
     Object.keys(sessionTimeline.threads).forEach((item) =>
       // @ts-ignore
       sessionTimeline.threads[item].forEach((subItem: any) => {
-        events.push({
+        collected.push({
           eventType: subItem.event_type,
           timestamp: subItem.timestamp,
           thread: item,
@@ -387,7 +387,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
     if (sessionTimeline.traces !== null) {
       eventTypesSet.add(traceEventType);
       sessionTimeline.traces.forEach((item: any) => {
-        events.push({
+        collected.push({
           eventType: traceEventType,
           timestamp: item.start_time,
           thread: item.thread_name,
@@ -398,12 +398,20 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
       });
     }
 
-    events.sort((a, b) => {
+    collected.sort((a, b) => {
       const dateA = DateTime.fromISO(a.timestamp, { zone: "utc" });
       const dateB = DateTime.fromISO(b.timestamp, { zone: "utc" });
 
       return dateA.toMillis() - dateB.toMillis();
     });
+
+    // Several events can share an event type, thread, and millisecond-precision
+    // timestamp, so pair each with its sorted position to give it a stable,
+    // unique identity for React keys and expansion state.
+    const events = collected.map((e, index) => ({
+      ...e,
+      key: `${e.eventType}|${e.thread}|${e.timestamp}|${index}`,
+    }));
 
     return {
       events,
@@ -677,14 +685,6 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
   const [indicatorTimestamp, setIndicatorTimestamp] = useState<string | null>(
     events.length > 0 ? events[0].timestamp : null,
   );
-
-  function eventKey(e: {
-    eventType: string;
-    timestamp: string;
-    thread: string;
-  }) {
-    return `${e.eventType}|${e.thread}|${e.timestamp}`;
-  }
 
   const toggleExpansion = (key: string) => {
     setExpandedKeys((prev) => {
@@ -1077,7 +1077,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
       {/* Events list — natural page-level scroll, no fixed height. */}
       <div className="flex flex-col w-full">
         {filteredEvents.map((e, index) => {
-          const key = eventKey(e);
+          const key = e.key;
           return (
             <div
               key={key}
