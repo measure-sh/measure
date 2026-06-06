@@ -205,6 +205,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :recycle: Refactor
 
+- (**frontend**): Clarify onboarding first-event poll effect by @anupcowkur in #3843
 - (**frontend**): Consolidate pill styling by @anupcowkur in #3771
 - (**frontend**): Inline errors_type_filter into filters by @anupcowkur
 - (**frontend**): Switch session filter to type=error,anr by @anupcowkur
