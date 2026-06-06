@@ -278,14 +278,14 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
 
   const extraAttributeRows: Array<[string, unknown]> = [];
   if (firstResult) {
-    if (
-      typeof firstResult.num_code === "number" &&
-      firstResult.num_code !== 0
-    ) {
+    if (typeof firstResult.num_code === "number") {
       extraAttributeRows.push(["num_code", firstResult.num_code]);
     }
     if (typeof firstResult.code === "string" && firstResult.code !== "") {
       extraAttributeRows.push(["code", firstResult.code]);
+    }
+    if (firstResult.meta && Object.keys(firstResult.meta).length > 0) {
+      extraAttributeRows.push(["meta", firstResult.meta]);
     }
     if (
       firstResult.user_defined_attribute &&

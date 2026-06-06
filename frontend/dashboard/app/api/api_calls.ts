@@ -772,7 +772,7 @@ const emptyErrorGroupDetailsItem = {
     stacktrace: "",
   } as { title: string; stacktrace: string } | null,
   severity: "",
-  num_code: 0,
+  num_code: 0 as number | null,
   code: "",
   meta: null as Record<string, unknown> | null,
   user_defined_attribute: null as Record<string, unknown> | null,
