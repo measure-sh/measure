@@ -17,6 +17,7 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
     private var sessionManager = MockSessionManager()
     private var signalSampler = MockSignalSampler()
     private var configProvider = MockConfigProvider()
+    private var screenshotGenerator = MockScreenshotGenerator()
 
     override func setUp() {
         super.setUp()
@@ -29,7 +30,8 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             sessionManager: sessionManager,
             attributeProcessors: [],
             signalSampler: signalSampler,
-            configProvider: configProvider
+            configProvider: configProvider,
+            screenshotGenerator: screenshotGenerator
         )
     }
 
