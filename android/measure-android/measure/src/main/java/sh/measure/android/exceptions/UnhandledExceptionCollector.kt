@@ -13,6 +13,9 @@ import java.lang.Thread.UncaughtExceptionHandler
  *
  * Note that the original [UncaughtExceptionHandler], if set, is always called.
  */
+
+private const val JS_EXCEPTION_NAME = "JavascriptException"
+
 internal class UnhandledExceptionCollector(
     private val logger: Logger,
     private val signalProcessor: SignalProcessor,
@@ -37,6 +40,10 @@ internal class UnhandledExceptionCollector(
 
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         try {
+            if (isDiscardableError(throwable)) {
+                return
+            }
+
             signalProcessor.trackCrash(
                 data = ExceptionFactory.createMeasureException(
                     throwable,
@@ -53,5 +60,11 @@ internal class UnhandledExceptionCollector(
         } finally {
             previousHandler?.uncaughtException(thread, throwable)
         }
+    }
+
+    private fun isDiscardableError(throwable: Throwable): Boolean {
+        return throwable.javaClass.name.contains(JS_EXCEPTION_NAME) || throwable.cause?.javaClass?.name?.contains(
+            JS_EXCEPTION_NAME
+        ) ?: false
     }
 }

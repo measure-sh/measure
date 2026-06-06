@@ -107,8 +107,11 @@ for DSYM_DIR in "$DSYM_FOLDER"/*.dSYM; do
 done
 
 if [ "${#ALL_TGZ_FILES[@]}" -eq 0 ]; then
-  echo "Error: No dSYM files found in the folder"
-  exit 1
+  if [ -z "$BUNDLE_PATH" ] && [ -z "$MAPPING_PATH" ]; then
+    echo "Error: No dSYM files found and no --bundle or --mapping provided. Nothing to upload."
+    exit 1
+  fi
+  echo "No dSYM files found — uploading JS files only."
 fi
 
 # JS bundle tarball — bundle file only
@@ -123,7 +126,11 @@ if [ -n "$BUNDLE_PATH" ]; then
   ALL_TGZ_BASENAMES+=("$BUNDLE_TGZ_BASENAME")
   TEMP_FILES+=("$BUNDLE_TGZ")
 
-  JSON_MAPPINGS="$JSON_MAPPINGS, {\"type\": \"jsbundle\", \"filename\": \"$BUNDLE_TGZ_BASENAME\"}"
+  if [ "$INDEX" -gt 0 ]; then
+    JSON_MAPPINGS="$JSON_MAPPINGS,"
+  fi
+  JSON_MAPPINGS="$JSON_MAPPINGS {\"type\": \"jsbundle\", \"filename\": \"$BUNDLE_TGZ_BASENAME\"}"
+  INDEX=$((INDEX+1))
 fi
 
 # JS mapping tarball — mapping file only
@@ -138,7 +145,11 @@ if [ -n "$MAPPING_PATH" ]; then
   ALL_TGZ_BASENAMES+=("$MAPPING_TGZ_BASENAME")
   TEMP_FILES+=("$MAPPING_TGZ")
 
-  JSON_MAPPINGS="$JSON_MAPPINGS, {\"type\": \"jsbundle\", \"filename\": \"$MAPPING_TGZ_BASENAME\"}"
+  if [ "$INDEX" -gt 0 ]; then
+    JSON_MAPPINGS="$JSON_MAPPINGS,"
+  fi
+  JSON_MAPPINGS="$JSON_MAPPINGS {\"type\": \"jsbundle\", \"filename\": \"$MAPPING_TGZ_BASENAME\"}"
+  INDEX=$((INDEX+1))
 fi
 
 JSON_MAPPINGS="$JSON_MAPPINGS ]"
