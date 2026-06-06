@@ -55,6 +55,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
     private let signalSampler: SignalSampler
     private let configProvider: ConfigProvider
     private let screenshotGenerator: ScreenshotGenerator
+    private let systemCrashReporter: SystemCrashReporter
 
     private var isEnabled = AtomicBool(false)
     var isForeground: Bool
@@ -66,7 +67,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
          attributeProcessors: [AttributeProcessor],
          signalSampler: SignalSampler,
          configProvider: ConfigProvider,
-         screenshotGenerator: ScreenshotGenerator) {
+         screenshotGenerator: ScreenshotGenerator,
+         systemCrashReporter: SystemCrashReporter) {
         self.logger = logger
         self.signalProcessor = signalProcessor
         self.sessionManager = sessionManager
@@ -75,6 +77,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
         self.signalSampler = signalSampler
         self.configProvider = configProvider
         self.screenshotGenerator = screenshotGenerator
+        self.systemCrashReporter = systemCrashReporter
         self.isForeground = true
     }
 
@@ -147,18 +150,28 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                 }
                 var exceptionAttachments: [MsrAttachment]? = nil
                 if isFatal && isJsFramework && configProvider.crashTakeScreenshot {
-                    DispatchQueue.main.sync {
+                    let captureScreenshot = {
                         if let window = UIWindow.keyWindow() {
-                            screenshotGenerator.generate(window: window,
-                                                         name: screenshotName,
-                                                         storageType: .data,
-                                                         sync: true) { attachment in
+                            self.screenshotGenerator.generate(window: window,
+                                                              name: screenshotName,
+                                                              storageType: .data,
+                                                              sync: true) { attachment in
                                 if let attachment = attachment {
                                     exceptionAttachments = [attachment]
                                 }
                             }
                         }
                     }
+                    if Thread.isMainThread {
+                        captureScreenshot()
+                    } else {
+                        DispatchQueue.main.sync(execute: captureScreenshot)
+                    }
+                }
+                if isFatal && isJsFramework {
+                    // Disable KSCrash before React Native terminates the app via SIGABRT,
+                    // preventing a duplicate native crash report for the same JS fatal error.
+                    systemCrashReporter.disable()
                 }
                 let exceptionData = try extractExceptionData(data: data)
                 signalProcessor.track(

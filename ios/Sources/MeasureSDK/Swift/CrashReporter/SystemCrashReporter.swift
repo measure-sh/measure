@@ -16,6 +16,7 @@ import Foundation
 protocol SystemCrashReporter {
     var hasPendingCrashReport: Bool { get }
     func enable() throws
+    func disable()
     func clearCrashData()
     func loadCrashReport() throws -> [String: Any]
     func loadAllCrashReports() -> [[String: Any]]
@@ -32,11 +33,6 @@ final class BaseSystemCrashReporter: SystemCrashReporter {
     init(logger: Logger, crashDataPersistence: CrashDataPersistence) {
         self.logger = logger
         self.crashDataPersistence = crashDataPersistence
-        do {
-            try enable()
-        } catch {
-            logger.internalLog(level: .error, message: "SystemCrashReporter: KSCrash init failed.", error: error, data: nil)
-        }
     }
 
     func enable() throws {
@@ -63,6 +59,10 @@ final class BaseSystemCrashReporter: SystemCrashReporter {
         }
 
         logger.log(level: .info, message: "SystemCrashReporter: Crash reporter enabled.", error: nil, data: nil)
+    }
+
+    func disable() {
+        kscm_disableAllMonitors()
     }
 
     func clearCrashData() {

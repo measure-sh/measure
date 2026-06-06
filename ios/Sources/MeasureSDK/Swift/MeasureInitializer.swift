@@ -440,7 +440,8 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                                    attributeProcessors: attributeProcessors,
                                                                    signalSampler: signalSampler,
                                                                    configProvider: configProvider,
-                                                                   screenshotGenerator: screenshotGenerator)
+                                                                   screenshotGenerator: screenshotGenerator,
+                                                                   systemCrashReporter: systemCrashReporter)
         self.bugReportManager = BaseBugReportManager(screenshotGenerator: screenshotGenerator,
                                                      configProvider: configProvider,
                                                      idProvider: idProvider,

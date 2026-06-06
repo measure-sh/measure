@@ -339,13 +339,14 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                            attachmentProcessor: self.attachmentProcessor,
                                                            userPermissionManager: self.userPermissionManager)
         self.internalSignalCollector = internalSignalCollector ?? BaseInternalSignalCollector(logger: self.logger,
-                                                                   timeProvider: self.timeProvider,
-                                                                   signalProcessor: self.signalProcessor,
-                                                                   sessionManager: self.sessionManager,
-                                                                   attributeProcessors: self.attributeProcessors,
-                                                                   signalSampler: self.signalSampler,
-                                                                   configProvider: self.configProvider,
-                                                                   screenshotGenerator: self.screenshotGenerator)
+                                                                                              timeProvider: self.timeProvider,
+                                                                                              signalProcessor: self.signalProcessor,
+                                                                                              sessionManager: self.sessionManager,
+                                                                                              attributeProcessors: self.attributeProcessors,
+                                                                                              signalSampler: self.signalSampler,
+                                                                                              configProvider: self.configProvider,
+                                                                                              screenshotGenerator: self.screenshotGenerator,
+                                                                                              systemCrashReporter: self.systemCrashReporter)
         self.bugReportManager = bugReportManager ?? BaseBugReportManager(screenshotGenerator: self.screenshotGenerator,
                                                      configProvider: self.configProvider,
                                                                          idProvider: self.idProvider,

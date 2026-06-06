@@ -162,6 +162,9 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     var attributeTransformer: AttributeTransformer {
         return measureInitializer.attributeTransformer
     }
+    var systemCrashReporter: SystemCrashReporter {
+        return measureInitializer.systemCrashReporter
+    }
     private let lifecycleObserver: LifecycleObserver
     var isStarted: Bool = false
     var previousSessionCrashed = false
@@ -270,7 +273,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         guard !isStarted else { return }
 
         self.logger.log(level: .info, message: "MeasureInternal: Starting Measure SDK", error: nil, data: nil)
-        registedCollectors()
+        registerCollectors()
         isStarted = true
     }
 
@@ -484,7 +487,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.internalSignalCollector.isForeground = true
         self.sessionManager.applicationWillEnterForeground()
         self.lifecycleCollector.applicationWillEnterForeground()
-        self.registedCollectors()
+        self.registerCollectors()
         if self.configLoader.isConfigLoaded {
             self.exporter.export()
         }
@@ -503,7 +506,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.appLaunchCollector.applicationWillResignActive()
     }
 
-    private func registedCollectors() {
+    private func registerCollectors() {
         self.customEventCollector.enable()
         self.userTriggeredEventCollector.enable()
         self.cpuUsageCollector.enable()
@@ -513,6 +516,11 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleCollector.enable()
         self.spanCollector.enable()
         self.internalSignalCollector.enable()
+        do {
+            try systemCrashReporter.enable()
+        } catch {
+            logger.internalLog(level: .error, message: "MeasureInternal: KSCrash enable failed.", error: error, data: nil)
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             if let window = UIApplication.shared.windows.first {
                 self.gestureCollector.enable(for: window)
@@ -531,6 +539,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleCollector.disable()
         self.spanCollector.disabled()
         self.internalSignalCollector.disable()
+        self.systemCrashReporter.disable()
     }
 
     private func registerAlwaysOnCollectors() {

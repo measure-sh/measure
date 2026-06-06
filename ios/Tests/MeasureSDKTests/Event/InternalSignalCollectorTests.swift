@@ -18,11 +18,13 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
     private var signalSampler = MockSignalSampler()
     private var configProvider = MockConfigProvider()
     private var screenshotGenerator = MockScreenshotGenerator()
+    private var systemCrashReporter = MockSystemCrashReporter()
 
     override func setUp() {
         super.setUp()
         logger = MockLogger()
         signalProcessor = MockSignalProcessor()
+        systemCrashReporter = MockSystemCrashReporter()
         eventCollector = BaseInternalSignalCollector(
             logger: logger,
             timeProvider: timeProvider,
@@ -31,7 +33,8 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             attributeProcessors: [],
             signalSampler: signalSampler,
             configProvider: configProvider,
-            screenshotGenerator: screenshotGenerator
+            screenshotGenerator: screenshotGenerator,
+            systemCrashReporter: systemCrashReporter
         )
     }
 
@@ -288,5 +291,55 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
         )
 
         XCTAssertTrue(sessionManager.isCrashed)
+    }
+
+    func testTrackEvent_disablesKSCrashForFatalJsException() {
+        eventCollector.enable()
+        let type = EventType.exception.rawValue
+
+        guard var eventData = fileManagerHelper.getExceptionDict(fileName: "js_fatal", fileExtension: "json") else {
+            XCTFail("Missing js_fatal.json in test bundle.")
+            return
+        }
+
+        XCTAssertFalse(systemCrashReporter.disableCalled)
+
+        eventCollector.trackEvent(
+            data: &eventData,
+            type: type,
+            timestamp: 1234567890,
+            attributes: [:],
+            userDefinedAttrs: [:],
+            userTriggered: false,
+            sessionId: nil,
+            threadName: nil,
+            attachments: []
+        )
+
+        XCTAssertTrue(systemCrashReporter.disableCalled)
+    }
+
+    func testTrackEvent_doesNotDisableKSCrashForNonFatalJsException() {
+        eventCollector.enable()
+        let type = EventType.exception.rawValue
+
+        guard var eventData = fileManagerHelper.getExceptionDict(fileName: "flutter_handled", fileExtension: "json") else {
+            XCTFail("Missing flutter_handled.json in test bundle.")
+            return
+        }
+
+        eventCollector.trackEvent(
+            data: &eventData,
+            type: type,
+            timestamp: 1234567890,
+            attributes: [:],
+            userDefinedAttrs: [:],
+            userTriggered: false,
+            sessionId: nil,
+            threadName: nil,
+            attachments: []
+        )
+
+        XCTAssertFalse(systemCrashReporter.disableCalled)
     }
 }

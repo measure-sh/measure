@@ -28,7 +28,6 @@ final class BaseCrashReportingManager: CrashReportManager {
     private let idProvider: IdProvider
     private let sysCtl: SysCtl
     private let configProvider: ConfigProvider
-    private var isEnabled = AtomicBool(false)
     let hasPendingCrashReport: Bool
 
     init(logger: Logger,

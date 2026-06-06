@@ -240,29 +240,4 @@ final class MeasureInternalTests: XCTestCase {
         XCTAssertFalse(logger.logs.contains("CpuUsageCollector enabled."), "collectors should not be re-enabled when SDK is stopped")
         XCTAssertFalse(logger.logs.contains("LifecycleCollector enabled."), "collectors should not be re-enabled when SDK is stopped")
     }
-
-    func testEncodeWebP_completesOnMainThreadWithEncodedBytes() {
-        // Use a synchronous dispatch queue + a config-provider with a known quality.
-        // Verifies the orchestrator (a) ran the codec, (b) hopped back to main
-        // before invoking the completion handler.
-        let initializer = MockMeasureInitializer(
-            configProvider: MockConfigProvider(autoStart: false),
-            measureDispatchQueue: MockMeasureDispatchQueue()
-        )
-        let internalUnderTest = MeasureInternal(initializer)
-        let pixels = Data(count: 2 * 2 * 4)
-        let completed = expectation(description: "completion")
-        var ranOnMainThread = false
-        var encoded: Data?
-
-        internalUnderTest.encodeWebP(pixels: pixels, width: 2, height: 2) { result in
-            ranOnMainThread = Thread.isMainThread
-            encoded = result
-            completed.fulfill()
-        }
-
-        wait(for: [completed], timeout: 1.0)
-        XCTAssertTrue(ranOnMainThread)
-        XCTAssertNotNil(encoded)
-    }
 }
