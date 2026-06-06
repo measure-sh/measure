@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -205,14 +206,22 @@ func (e eventreq) hasANRs() bool {
 	return len(e.anrIds) > 0
 }
 
-// getOSName extracts the operating system name
-// of the app from ingest batch.
+// getOSName extracts the operating system name of the app from the ingest
+// batch, taken from the first event (or the first span, for span-only
+// batches). Returns "" if the batch has neither.
 func (e eventreq) getOSName() (osName string) {
 	if len(e.events) > 0 {
 		return strings.ToLower(e.events[0].Attribute.OSName)
 	}
 
-	return strings.ToLower(e.spans[0].Attributes.OSName)
+	if len(e.spans) > 0 {
+		return strings.ToLower(e.spans[0].Attributes.OSName)
+	}
+
+	// Unreachable in practice: ingest guarantees every event/span carries a
+	// valid, non-empty os_name, and onboarding only calls this when the batch
+	// has at least one. This guard only avoids an index-out-of-range panic.
+	return ""
 }
 
 // getOSVersion extracts the operating system version
@@ -1453,7 +1462,7 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		osName := eventReq.getOSName()
 		version := eventReq.getOSVersion()
 
-		if err := app.Onboard(ingestCtx, &tx, uniqueID, osName, version); err != nil {
+		if err := app.Onboard(ingestCtx, &tx, uniqueID, version); err != nil {
 			return fmt.Errorf("failed to onboard app: %w", err)
 		}
 
@@ -1462,6 +1471,25 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		}
 
 		fireFirstIngestionEvents(ingestCtx, *app.ID, app.TeamId, osName)
+	}
+
+	// Keep the app's recorded os_names current on every batch (not just at
+	// onboarding) so an app that later reports another OS of the same family
+	// — e.g. ipados in addition to ios — is captured. The in-memory guard
+	// means a write happens only when a genuinely new OS appears. The set is
+	// kept single-family here; cross-family values are skipped. Best-effort:
+	// a failure must not fail ingestion — a later batch with the OS retries.
+	if eventReq.onboardable() {
+		batchOS := eventReq.getOSName()
+		if batchOS != "" && !slices.Contains(app.OSNames, batchOS) {
+			if len(app.OSNames) == 0 || opsys.SameFamily(batchOS, app.OSNames[0]) {
+				if err := app.AddOSName(ingestCtx, batchOS); err != nil {
+					fmt.Printf("failed to update os_names for app %s: %v\n", app.ID, err)
+				}
+			} else {
+				fmt.Printf("ignoring cross-family os_name %q for app %s (existing family %q)\n", batchOS, app.ID, app.OSNames[0])
+			}
+		}
 	}
 
 	// Track usage with Autumn as the very last step. Must come after

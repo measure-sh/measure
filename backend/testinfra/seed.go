@@ -143,8 +143,8 @@ func (h *TestHelper) SeedApp(ctx context.Context, t *testing.T, appID, teamID, a
 	now := time.Now()
 
 	_, err := h.PgPool.Exec(ctx,
-		`INSERT INTO apps (id, team_id, app_name, unique_identifier, os_name, first_version, onboarded, onboarded_at, retention, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-		appID, teamID, appName, appName, "android", "1.0.0", true, now, retention, now, now)
+		`INSERT INTO apps (id, team_id, app_name, unique_identifier, os_names, first_version, onboarded, onboarded_at, retention, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+		appID, teamID, appName, appName, []string{"android"}, "1.0.0", true, now, retention, now, now)
 	if err != nil {
 		t.Fatalf("seed app: %v", err)
 	}

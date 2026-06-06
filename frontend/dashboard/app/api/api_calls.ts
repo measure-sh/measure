@@ -565,7 +565,7 @@ export type App = {
   onboarded: boolean;
   created_at: string;
   updated_at: string;
-  os_name: string | null;
+  os_names: string[] | null;
   onboarded_at: string | null;
   unique_identifier: string | null;
 };

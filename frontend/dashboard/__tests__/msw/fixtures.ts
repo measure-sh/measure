@@ -17,7 +17,7 @@ export function makeAppFixture(overrides: Record<string, any> = {}) {
     team_id: "a1b2c3d4-5e6f-7a8b-9c0d-e1f2a3b4c5d6",
     name: "measure demo",
     unique_identifier: "sh.measure.demo",
-    os_name: "android",
+    os_names: ["android"],
     api_key: {
       key: "msw-test-api-key-0000",
       revoked: false,

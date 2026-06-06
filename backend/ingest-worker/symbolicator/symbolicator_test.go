@@ -546,8 +546,8 @@ func seedApp(ctx context.Context, t *testing.T, appID uuid.UUID) {
 	}
 
 	_, err = pgPool.Exec(ctx,
-		`INSERT INTO apps (id, team_id, app_name, unique_identifier, os_name, first_version, onboarded, onboarded_at, retention, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-		appID, teamID, "test-app", "sh.measure.test", "android", "1.0.0", true, now, 90, now, now)
+		`INSERT INTO apps (id, team_id, app_name, unique_identifier, os_names, first_version, onboarded, onboarded_at, retention, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+		appID, teamID, "test-app", "sh.measure.test", []string{"android"}, "1.0.0", true, now, 90, now, now)
 	if err != nil {
 		t.Fatalf("seed app: %v", err)
 	}

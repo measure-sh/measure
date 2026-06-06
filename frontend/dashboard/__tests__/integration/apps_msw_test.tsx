@@ -188,7 +188,7 @@ describe("Apps Page (MSW integration)", () => {
       await renderAndWaitForData();
       expect(screen.getByText("Unique Identifier")).toBeTruthy();
       expect(screen.getByText("sh.measure.demo")).toBeTruthy();
-      expect(screen.getByText("Operating System")).toBeTruthy();
+      expect(screen.getByText("Operating Systems")).toBeTruthy();
       expect(screen.getByText("android")).toBeTruthy();
       expect(screen.getByText("Created at")).toBeTruthy();
     });
@@ -455,7 +455,7 @@ describe("Apps Page — not-onboarded app", () => {
     server.use(
       http.get("*/api/teams/:teamId/apps", () => {
         return HttpResponse.json([
-          makeAppFixture({ unique_identifier: null, os_name: null }),
+          makeAppFixture({ unique_identifier: null, os_names: null }),
         ]);
       }),
     );
@@ -470,7 +470,7 @@ describe("Apps Page — not-onboarded app", () => {
     );
     expect(screen.getByText(/Follow our/)).toBeTruthy();
     expect(screen.queryByText("Unique Identifier")).toBeNull();
-    expect(screen.queryByText("Operating System")).toBeNull();
+    expect(screen.queryByText("Operating Systems")).toBeNull();
   });
 });
 
@@ -542,7 +542,7 @@ describe("Apps Page — create app", () => {
       team_id: "test-team",
       name: "My New App",
       unique_identifier: null,
-      os_name: null,
+      os_names: null,
       api_key: {
         key: "msw-new-app-key",
         revoked: false,
@@ -777,7 +777,7 @@ describe("Apps Page — SDK configurator", () => {
     it("hides ANRs accordion for iOS app", async () => {
       server.use(
         http.get("*/api/teams/:teamId/apps", () => {
-          return HttpResponse.json([makeAppFixture({ os_name: "ios" })]);
+          return HttpResponse.json([makeAppFixture({ os_names: ["ios"] })]);
         }),
       );
       renderWithProviders(

@@ -420,14 +420,14 @@ Payload must contain the app version info, build info and optional build mapping
 }
 ```
 
-| Field          | Type   | Optional | Comment                                                                                                                                 |
-| -------------- | ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `version_name` | string | No       | Version name of the build. Like "1.0"                                                                                                   |
-| `version_code` | string | No       | Version code of the build. Like "999"                                                                                                   |
-| `build_size`   | string | No       | Size of app in bytes                                                                                                                    |
-| `build_type`   | string | No       | Type of the build.<br />- `aab`, `apk` for Android<br />- `ipa` for iOS                                                                 |
+| Field          | Type   | Optional | Comment                                                                                                                                    |
+| -------------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `version_name` | string | No       | Version name of the build. Like "1.0"                                                                                                      |
+| `version_code` | string | No       | Version code of the build. Like "999"                                                                                                      |
+| `build_size`   | string | No       | Size of app in bytes                                                                                                                       |
+| `build_type`   | string | No       | Type of the build.<br />- `aab`, `apk` for Android<br />- `ipa` for iOS                                                                    |
 | `patch_id`     | string | Yes      | Optional UUID identifying an Over-The-Air patch this build's mappings belong to. Omit when uploading a regular (non-OTA) build's mappings. |
-| `mappings`     | array  | Yes      | List of mapping files objects.                                                                                                          |
+| `mappings`     | array  | Yes      | List of mapping files objects.                                                                                                             |
 
 ##### Mappings
 
@@ -590,7 +590,7 @@ Events can contain the following attributes, some of which are mandatory.
 | `device_locale`                     | string  | Yes      | Locale based on RFC 5646, eg. en-US                                         |
 | `device_low_power_mode`             | bool    | Yes      | `true` when low power mode is enabled                                       |
 | `device_thermal_throttling_enabled` | bool    | Yes      | `true` when thermal throttling is enabled                                   |
-| `os_name`                           | string  | Yes      | Operating system name. One of:<br/>- android</br>- ios</br>- ipados         |
+| `os_name`                           | string  | No       | Operating system name. One of:<br/>- android</br>- ios</br>- ipados         |
 | `os_version`                        | string  | Yes      | Operating system version                                                    |
 | `os_page_size`                      | uint8   | Yes      | Operating system memory page size                                           |
 | `network_type`                      | string  | No       | One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network   |
@@ -903,7 +903,7 @@ Use the `string` type when sending unstructured or structured logs. Make sure st
 
 Use the `gesture_long_click` body type for longer press and hold gestures.
 
-| Field             | Type    | Optional | Comment                                                            |
+| Field             | Type    | Optional | Comment                                                           |
 | ----------------- | ------- | -------- | ----------------------------------------------------------------- |
 | `target`          | string  | Yes      | Class/Instance name of the originating view                       |
 | `target_id`       | string  | Yes      | Unique identifier for the target                                  |

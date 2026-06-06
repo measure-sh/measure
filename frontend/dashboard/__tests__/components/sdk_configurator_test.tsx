@@ -152,7 +152,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -170,7 +170,7 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByText("Screenshot Masking")).toBeInTheDocument();
   });
 
-  it("hides ANR section when osName is iOS, shows it for Android and null", () => {
+  it("hides ANR section when osNames is iOS, shows it for Android and null", () => {
     // Test with iOS
     const { unmount } = render(
       <SdkConfigurator
@@ -178,7 +178,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName="ios"
+        osNames={["ios"]}
       />,
     );
 
@@ -192,7 +192,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName="android"
+        osNames={["android"]}
       />,
     );
 
@@ -206,7 +206,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -220,7 +220,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -242,7 +242,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={false}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -282,7 +282,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -346,7 +346,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -407,7 +407,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -464,7 +464,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -519,7 +519,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -617,7 +617,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -673,7 +673,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -720,7 +720,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -785,7 +785,7 @@ describe("SdkConfigurator Component", () => {
           ],
         }}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -852,7 +852,7 @@ describe("SdkConfigurator Component", () => {
           screenshot_mask_level: "sensitive_fields_only",
         }}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -871,7 +871,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -929,7 +929,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -985,7 +985,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -1037,7 +1037,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -1087,7 +1087,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -1137,7 +1137,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -1187,7 +1187,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -1282,7 +1282,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -1331,7 +1331,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={false}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -1377,7 +1377,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -1405,7 +1405,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -1433,7 +1433,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -1461,7 +1461,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -1509,7 +1509,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -1537,7 +1537,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 
@@ -1565,7 +1565,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osName={null}
+        osNames={null}
       />,
     );
 

@@ -28,7 +28,7 @@ const baseMockApp = {
   onboarded: true,
   created_at: "2025-01-01T00:00:00Z",
   updated_at: "2025-01-01T00:00:00Z",
-  os_name: "Android",
+  os_names: ["android"],
   onboarded_at: "2025-01-01T00:00:00Z",
   unique_identifier: "com.example.app",
 };
