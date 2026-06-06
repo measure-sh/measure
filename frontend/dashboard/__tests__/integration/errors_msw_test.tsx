@@ -319,6 +319,33 @@ describe("Errors Detail (MSW integration)", () => {
     );
   }
 
+  // Renders the detail route with a single event whose fields are taken from
+  // `overrides`, then waits for it to paint. Used by the extra-attribute
+  // (num_code / code / meta / user_defined_attribute) cases below.
+  async function renderDetailWithEvent(overrides: Record<string, any>) {
+    server.use(
+      http.get("*/api/apps/:appId/errorGroups/:groupId/errors", () => {
+        return HttpResponse.json(makeExceptionInstanceFixture(overrides));
+      }),
+    );
+    renderWithProviders(
+      <ErrorDetailsPage
+        params={promiseParams({
+          teamId: "test-team",
+          appId: makeAppFixture().id,
+          errorGroupId: "crash-group-001",
+          errorGroupName: "test",
+        })}
+      />,
+    );
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Id: instance-001/)).toBeTruthy();
+      },
+      { timeout: 5000 },
+    );
+  }
+
   it("renders details plot, distribution plot, and common path", async () => {
     await renderDetailAndWait();
     // 1 line chart for details plot
@@ -418,54 +445,103 @@ describe("Errors Detail (MSW integration)", () => {
     ).toBeGreaterThanOrEqual(1);
   });
 
-  it("renders num_code, code, and user_defined_attribute rows above threads when present", async () => {
-    server.use(
-      http.get("*/api/apps/:appId/errorGroups/:groupId/errors", () => {
-        return HttpResponse.json(
-          makeExceptionInstanceFixture({
-            num_code: 137,
-            code: "OUT_OF_MEMORY",
-            user_defined_attribute: {
-              user_tier: "premium",
-              account_age_days: 142,
-            },
-          }),
-        );
-      }),
-    );
-
-    renderWithProviders(
-      <ErrorDetailsPage
-        params={promiseParams({
-          teamId: "test-team",
-          appId: makeAppFixture().id,
-          errorGroupId: "crash-group-001",
-          errorGroupName: "test",
-        })}
-      />,
-    );
-
-    await waitFor(
-      () => {
-        expect(screen.getByText(/Id: instance-001/)).toBeTruthy();
+  it("renders num_code, code, meta, and user_defined_attribute rows above threads when present", async () => {
+    await renderDetailWithEvent({
+      num_code: 137,
+      code: "OUT_OF_MEMORY",
+      meta: {
+        error_domain: "PaymentDomain",
+        recoverable: false,
       },
-      { timeout: 5000 },
-    );
+      user_defined_attribute: {
+        user_tier: "premium",
+        account_age_days: 142,
+      },
+    });
 
     expect(screen.getByText("num_code")).toBeTruthy();
     expect(screen.getByText("137")).toBeTruthy();
     expect(screen.getByText("code")).toBeTruthy();
     expect(screen.getByText("OUT_OF_MEMORY")).toBeTruthy();
+    expect(screen.getByText("meta")).toBeTruthy();
+    expect(screen.getByText(/error_domain/)).toBeTruthy();
     expect(screen.getByText("user_defined_attribute")).toBeTruthy();
     expect(screen.getByText(/user_tier/)).toBeTruthy();
     expect(screen.getByText(/premium/)).toBeTruthy();
   });
 
-  it("omits num_code, code, and user_defined_attribute rows when default/empty", async () => {
+  it("omits num_code, code, meta, and user_defined_attribute rows when default/empty", async () => {
     await renderDetailAndWait();
     expect(screen.queryByText("num_code")).toBeNull();
     expect(screen.queryByText("code")).toBeNull();
+    expect(screen.queryByText("meta")).toBeNull();
     expect(screen.queryByText("user_defined_attribute")).toBeNull();
+  });
+
+  // The detail endpoint returns num_code (number | null), code (string), and
+  // meta (object | null) independently, so any combination can arrive. Each
+  // row must show only when its value is available: num_code when it is a
+  // number (including 0), code when it is a non-empty string, meta when it is
+  // a non-null object with keys. The three cases below mirror real iOS error
+  // payloads where exactly that mix occurs.
+
+  it("shows num_code 0 and meta, hides empty code", async () => {
+    await renderDetailWithEvent({
+      num_code: 0,
+      code: "",
+      meta: {
+        NSFilePath: "//invalid/file",
+        NSURL: null,
+        NSUnderlyingError: null,
+        NSUserStringVariant: ["Remove"],
+      },
+    });
+
+    // num_code === 0 is a real value, not "absent" — it must be shown.
+    expect(screen.getByText("num_code")).toBeTruthy();
+    // meta is a non-empty object → shown as JSON.
+    expect(screen.getByText("meta")).toBeTruthy();
+    expect(screen.getByText(/NSFilePath/)).toBeTruthy();
+    // code is an empty string → hidden.
+    expect(screen.queryByText("code")).toBeNull();
+  });
+
+  it("shows num_code 0 and code, hides null meta", async () => {
+    await renderDetailWithEvent({
+      num_code: 0,
+      code: "NamedException, Something happened",
+      meta: null,
+    });
+
+    expect(screen.getByText("num_code")).toBeTruthy();
+    expect(screen.getByText("code")).toBeTruthy();
+    expect(screen.getByText("NamedException, Something happened")).toBeTruthy();
+    // meta is null → hidden.
+    expect(screen.queryByText("meta")).toBeNull();
+  });
+
+  it("shows num_code, code, and meta together", async () => {
+    await renderDetailWithEvent({
+      num_code: 260,
+      code: "NSCocoaErrorDomain",
+      meta: {
+        NSFilePath: "/path/that/does/not/exist.txt",
+        NSURL: null,
+        NSUnderlyingError: null,
+      },
+    });
+
+    expect(screen.getByText("num_code")).toBeTruthy();
+    expect(screen.getByText("260")).toBeTruthy();
+    expect(screen.getByText("code")).toBeTruthy();
+    expect(screen.getByText("NSCocoaErrorDomain")).toBeTruthy();
+    expect(screen.getByText("meta")).toBeTruthy();
+    expect(screen.getByText(/NSFilePath/)).toBeTruthy();
+  });
+
+  it("hides the meta row when meta is an empty object", async () => {
+    await renderDetailWithEvent({ meta: {} });
+    expect(screen.queryByText("meta")).toBeNull();
   });
 });
 
