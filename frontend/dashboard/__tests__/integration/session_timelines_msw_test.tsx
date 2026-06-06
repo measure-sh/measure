@@ -86,7 +86,9 @@ import {
 import { server } from "../msw/server";
 
 jest.spyOn(console, "log").mockImplementation(() => {});
-jest.spyOn(console, "error").mockImplementation(() => {});
+const consoleErrorSpy = jest
+  .spyOn(console, "error")
+  .mockImplementation(() => {});
 
 beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
 afterEach(() => {
@@ -1303,6 +1305,78 @@ describe("Session Timeline Detail (MSW integration)", () => {
       // The detail URL should NOT contain filter params
       expect(detailUrls[0]).not.toContain("free_text=");
       expect(detailUrls[0]).not.toContain("filter_short_code=");
+    });
+  });
+
+  // ================================================================
+  // DUPLICATE EVENT KEYS (regression)
+  // ================================================================
+  describe("duplicate event keys", () => {
+    it("renders events sharing type, thread, and timestamp without a duplicate React key warning", async () => {
+      // Two lifecycle_view_controller callbacks fired on the same thread in the
+      // same millisecond. (event type, thread, timestamp) is therefore not a
+      // unique identity, which previously produced a shared React key and the
+      // "Encountered two children with the same key" warning.
+      server.use(
+        http.get("*/api/apps/:appId/sessions/:sessionId", () => {
+          return HttpResponse.json(
+            makeSessionTimelineDetailFixture({
+              threads: {
+                "com.apple.main-thread": [
+                  {
+                    event_type: "lifecycle_view_controller",
+                    thread_name: "com.apple.main-thread",
+                    class_name: "HomeViewController",
+                    type: "viewWillAppear",
+                    timestamp: "2026-05-26T10:18:42.322Z",
+                  },
+                  {
+                    event_type: "lifecycle_view_controller",
+                    thread_name: "com.apple.main-thread",
+                    class_name: "HomeViewController",
+                    type: "viewDidAppear",
+                    timestamp: "2026-05-26T10:18:42.322Z",
+                  },
+                ],
+              },
+              traces: [],
+            }),
+          );
+        }),
+      );
+
+      renderWithProviders(
+        <SessionDetail
+          params={promiseParams({
+            teamId: "test-team",
+            appId: "app-1",
+            sessionId: "sess-001",
+          })}
+        />,
+      );
+
+      // Both colliding events must actually render, otherwise the scenario
+      // that triggers the warning isn't exercised.
+      await waitFor(
+        () => {
+          expect(
+            screen.getByText("HomeViewController: viewWillAppear"),
+          ).toBeTruthy();
+          expect(
+            screen.getByText("HomeViewController: viewDidAppear"),
+          ).toBeTruthy();
+        },
+        { timeout: 5000 },
+      );
+
+      const duplicateKeyWarning = consoleErrorSpy.mock.calls.find((call) =>
+        call.some(
+          (arg) =>
+            typeof arg === "string" &&
+            arg.includes("two children with the same key"),
+        ),
+      );
+      expect(duplicateKeyWarning).toBeUndefined();
     });
   });
 });
