@@ -71,9 +71,9 @@ const (
 	maxCustomNameChars                        = 64
 	maxLayoutElementIDChars                   = 512
 	maxLayoutElementLabelChars                = 512
-	maxBugReportScreenShots                   = 5
 	maxBugReportDescChars                     = 4000
 	maxErrorMetaBytes                         = 4096 // Maximum size for marshaled Error.Meta in bytes
+	maxEventAttachments                       = 5
 	customNameKeyPattern                      = "^[a-zA-Z0-9_-]+$"
 )
 
@@ -756,6 +756,10 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 
 	if e.Attribute.SessionStartTime.After(e.Timestamp) {
 		return fmt.Errorf("%q must not be greater than %q", `attribute.session_start_time`, `timestamp`)
+	}
+
+	if len(e.Attachments) > maxEventAttachments {
+		return fmt.Errorf(`%q exceeds maximum allowed count of (%d)`, `attachments`, maxEventAttachments)
 	}
 
 	// Don't allow batches that contain events too far in the past or future

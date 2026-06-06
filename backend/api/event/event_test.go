@@ -986,3 +986,46 @@ func TestValidateAppleFrameworkOSName(t *testing.T) {
 		}
 	})
 }
+
+func TestValidateAttachmentLimit(t *testing.T) {
+	makeEvent := func(n int) EventField {
+		attachments := make([]Attachment, n)
+		for i := range attachments {
+			attachments[i] = Attachment{
+				ID:   uuid.New(),
+				Name: "screenshot.png",
+				Type: "screenshot",
+			}
+		}
+		return EventField{
+			ID:          uuid.New(),
+			AppID:       uuid.New(),
+			Type:        TypeString,
+			Timestamp:   time.Now(),
+			Attribute:   Attribute{OSName: "android"},
+			LogString:   &LogString{String: "log line"},
+			Attachments: attachments,
+		}
+	}
+
+	t.Run("Accepts event with no attachments", func(t *testing.T) {
+		ev := makeEvent(0)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for 0 attachments, got %v", err)
+		}
+	})
+
+	t.Run("Accepts event at the attachment limit", func(t *testing.T) {
+		ev := makeEvent(maxEventAttachments)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for %d attachments, got %v", maxEventAttachments, err)
+		}
+	})
+
+	t.Run("Rejects event over the attachment limit", func(t *testing.T) {
+		ev := makeEvent(maxEventAttachments + 1)
+		if err := ev.Validate(); err == nil {
+			t.Errorf("Expected validation error for %d attachments, got nil", maxEventAttachments+1)
+		}
+	})
+}
