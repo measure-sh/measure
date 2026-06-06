@@ -85,6 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Switch to pgsty minio (#3831) by @detj in #3831
 - (**backend**): Upgrade to clickhouse 26.2 (#3808) by @detj in #3808
 - (**backend**): Build and use new api for app health plot by @anupcowkur in #3780
 - (**backend**): Update email template by @anupcowkur in #3749
