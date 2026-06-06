@@ -1145,6 +1145,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 			Select("attribute.device_manufacturer as device_manufacturer").
 			Select("attribute.device_model as device_model").
 			Select("attribute.network_type as network_type").
+			Select("attribute.thread_name as thread_name").
 			Select("exception.exceptions as exceptions").
 			Select("exception.threads as threads").
 			Select("exception.framework as framework").
@@ -1190,6 +1191,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 				&e.Attribute.DeviceManufacturer,
 				&e.Attribute.DeviceModel,
 				&e.Attribute.NetworkType,
+				&e.Attribute.ThreadName,
 				&exceptions,
 				&threads,
 				&e.Exception.Framework,
@@ -1238,6 +1240,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 			Select("attribute.device_manufacturer as device_manufacturer").
 			Select("attribute.device_model as device_model").
 			Select("attribute.network_type as network_type").
+			Select("attribute.thread_name as thread_name").
 			Select("anr.exceptions as exceptions").
 			Select("anr.threads as threads").
 			Select("attachments").
@@ -1268,6 +1271,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, fingerprint string, af *fi
 				&e.Attribute.DeviceManufacturer,
 				&e.Attribute.DeviceModel,
 				&e.Attribute.NetworkType,
+				&e.Attribute.ThreadName,
 				&exceptions,
 				&threads,
 				&attachments,
@@ -1696,6 +1700,7 @@ func (a App) GetExceptionsWithFilter(ctx context.Context, fingerprint string, af
 		Select("attribute.device_manufacturer as device_manufacturer").
 		Select("attribute.device_model as device_model").
 		Select("attribute.network_type as network_type").
+		Select("attribute.thread_name as thread_name").
 		Select("exception.exceptions as exceptions").
 		Select("exception.threads as threads").
 		Select("exception.framework as framework").
@@ -1774,6 +1779,7 @@ func (a App) GetExceptionsWithFilter(ctx context.Context, fingerprint string, af
 			&e.Attribute.DeviceManufacturer,
 			&e.Attribute.DeviceModel,
 			&e.Attribute.NetworkType,
+			&e.Attribute.ThreadName,
 			&exceptions,
 			&threads,
 			&e.Exception.Framework,
@@ -2277,6 +2283,7 @@ func (a App) GetANRsWithFilter(ctx context.Context, fingerprint string, af *filt
 		Select("attribute.device_manufacturer as device_manufacturer").
 		Select("attribute.device_model as device_model").
 		Select("attribute.network_type as network_type").
+		Select("attribute.thread_name as thread_name").
 		Select("anr.exceptions as exceptions").
 		Select("anr.threads as threads").
 		Select("attachments").
@@ -2353,6 +2360,7 @@ func (a App) GetANRsWithFilter(ctx context.Context, fingerprint string, af *filt
 			&e.Attribute.DeviceManufacturer,
 			&e.Attribute.DeviceModel,
 			&e.Attribute.NetworkType,
+			&e.Attribute.ThreadName,
 			&exceptions,
 			&threads,
 			&attachments,
