@@ -512,7 +512,7 @@ services:
     command: ["run", "-c", "/etc/symbolicator/config.yml"]
 
   minio:
-    image: quay.io/minio/minio
+    image: pgsty/minio
     ports:
       - "9119:9000"
       - "9229:9001"
