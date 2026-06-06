@@ -113,6 +113,11 @@ const defaultFreeTextPlaceholder = "Search anything...";
 
 const SEARCH_INPUT_ID = "free-text";
 
+// Custom errors aren't a supported feature yet, so the errors "Custom Only"
+// filter toggle stays hidden regardless of the per-page showCustomErrors prop.
+// Flip to true to surface it once custom errors are supported.
+const CUSTOM_ERRORS_ENABLED = false;
+
 // Errors-only Severity filter: store holds lowercase values; the dropdown
 // shows capitalized labels.
 const SEVERITY_DISPLAY_ITEMS: string[] = ["Fatal", "Unhandled", "Handled"];
@@ -1601,7 +1606,7 @@ const FiltersComponent = forwardRef<
                     onChangeCustomErrorsOnly={(custom) =>
                       store.setCustomErrorsOnly(custom)
                     }
-                    showCustomToggle={showCustomErrors}
+                    showCustomToggle={showCustomErrors && CUSTOM_ERRORS_ENABLED}
                     open={errorsTypeOpen}
                     onOpenChange={setErrorsTypeOpen}
                   />
