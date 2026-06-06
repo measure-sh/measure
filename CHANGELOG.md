@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Guard against nil team in MCP app resolution by @anupcowkur in #3841
 - (**backend**): Return thread_name in error detail responses (#3830) by @abhaysood in #3830
 - (**backend**): Per-severity error group counts (#3827) by @detj in #3827
 - (**backend**): Accept ipados as a valid os_name value (#3816) by @detj in #3816
