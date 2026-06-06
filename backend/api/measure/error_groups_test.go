@@ -254,6 +254,151 @@ func TestGetErrorGroupsWithFilterSeverityFiltering(t *testing.T) {
 	}
 }
 
+// 32-char fingerprints shared across the fatal and nonfatal group tables —
+// the same crash reported both fatally and nonfatally, which is the scenario
+// the per-severity count split must handle.
+const (
+	fpSharedFatalHandled   = "00000000000000000000000000000020"
+	fpSharedFatalUnhandled = "00000000000000000000000000000021"
+)
+
+// seedSharedFingerprintCounts writes two fingerprints that each live in BOTH
+// fatal_exception_groups and nonfatal_exception_groups, with asymmetric event
+// counts per severity. This reproduces the count-duplication bug: a single
+// counts row joined to two per-severity group rows handed both the combined
+// total.
+//
+//   - fpSharedFatalHandled:   1 fatal event + 3 handled events
+//   - fpSharedFatalUnhandled: 1 fatal event + 2 unhandled events
+//
+// This seed is for the case where error groups were not symbolicated, but we still want the final instance count to be accurate no matter the severity.
+func seedSharedFingerprintCounts(f plotFixture, t *testing.T, ts time.Time) {
+	t.Helper()
+	teamID, appID := f.teamIDStr(), f.appIDStr()
+
+	seedExceptionGroup(f.ctx, t, teamID, appID, fpSharedFatalHandled)
+	seedNonfatalExceptionGroup(f.ctx, t, teamID, appID, fpSharedFatalHandled, true, false)
+	seedSeverityEvents(f, t, fpSharedFatalHandled, "fatal", 1, ts)
+	seedSeverityEvents(f, t, fpSharedFatalHandled, "handled", 3, ts)
+
+	seedExceptionGroup(f.ctx, t, teamID, appID, fpSharedFatalUnhandled)
+	seedNonfatalExceptionGroup(f.ctx, t, teamID, appID, fpSharedFatalUnhandled, false, false)
+	seedSeverityEvents(f, t, fpSharedFatalUnhandled, "fatal", 1, ts)
+	seedSeverityEvents(f, t, fpSharedFatalUnhandled, "unhandled", 2, ts)
+}
+
+func seedSeverityEvents(f plotFixture, t *testing.T, fingerprint, severity string, n int, ts time.Time) {
+	t.Helper()
+	for i := 0; i < n; i++ {
+		seedIssueEventWithSeverity(f.ctx, t, f.teamIDStr(), f.appIDStr(), fingerprint, severity, ts)
+	}
+}
+
+// wantCount pairs an expected fingerprint+severity row with its event count.
+type wantCount struct {
+	id       string
+	severity event.Severity
+	count    uint64
+}
+
+// TestGetErrorGroupsWithFilterSharedFingerprintCounts guards against the
+// count-duplication bug where a fingerprint present in both the fatal and
+// nonfatal group tables had the combined event total reported on every
+// per-severity row. Each row must carry only the count for its own severity.
+func TestGetErrorGroupsWithFilterSharedFingerprintCounts(t *testing.T) {
+	cases := []struct {
+		name       string
+		severities []event.Severity
+		want       []wantCount
+	}{
+		{
+			name:       "fatal,handled splits counts per severity",
+			severities: []event.Severity{event.SeverityFatal, event.SeverityHandled},
+			want: []wantCount{
+				{fpSharedFatalHandled, event.SeverityFatal, 1},
+				{fpSharedFatalHandled, event.SeverityHandled, 3},
+				// unhandled twin contributes only its fatal row here.
+				{fpSharedFatalUnhandled, event.SeverityFatal, 1},
+			},
+		},
+		{
+			name:       "fatal,unhandled splits counts per severity",
+			severities: []event.Severity{event.SeverityFatal, event.SeverityUnhandled},
+			want: []wantCount{
+				{fpSharedFatalHandled, event.SeverityFatal, 1},
+				{fpSharedFatalUnhandled, event.SeverityFatal, 1},
+				{fpSharedFatalUnhandled, event.SeverityUnhandled, 2},
+			},
+		},
+		{
+			name:       "handled,unhandled excludes fatal events",
+			severities: []event.Severity{event.SeverityHandled, event.SeverityUnhandled},
+			want: []wantCount{
+				{fpSharedFatalHandled, event.SeverityHandled, 3},
+				{fpSharedFatalUnhandled, event.SeverityUnhandled, 2},
+			},
+		},
+		{
+			name:       "fatal,handled,unhandled covers every row",
+			severities: []event.Severity{event.SeverityFatal, event.SeverityHandled, event.SeverityUnhandled},
+			want: []wantCount{
+				{fpSharedFatalHandled, event.SeverityFatal, 1},
+				{fpSharedFatalHandled, event.SeverityHandled, 3},
+				{fpSharedFatalUnhandled, event.SeverityFatal, 1},
+				{fpSharedFatalUnhandled, event.SeverityUnhandled, 2},
+			},
+		},
+		{
+			name:       "fatal returns fatal counts only",
+			severities: []event.Severity{event.SeverityFatal},
+			want: []wantCount{
+				{fpSharedFatalHandled, event.SeverityFatal, 1},
+				{fpSharedFatalUnhandled, event.SeverityFatal, 1},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			f := newPlotFixture(t)
+			ts := time.Now().UTC()
+			seedSharedFingerprintCounts(f, t, ts)
+
+			af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "", "")
+			af.ErrorTypes = []event.ErrorType{event.ErrorTypeError}
+			af.Severities = c.severities
+
+			groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, af)
+			if err != nil {
+				t.Fatalf("GetErrorGroupsWithFilter: %v", err)
+			}
+			if len(groups) != len(c.want) {
+				t.Fatalf("got %d rows, want %d: %+v", len(groups), len(c.want), groups)
+			}
+			for _, w := range c.want {
+				g := findErrorGroupBySeverity(groups, w.id, w.severity)
+				if g == nil {
+					t.Errorf("missing row for fingerprint %s severity %s", w.id, w.severity)
+					continue
+				}
+				if g.Count != w.count {
+					t.Errorf("fingerprint %s severity %s: count = %d, want %d", w.id, w.severity, g.Count, w.count)
+				}
+			}
+		})
+	}
+}
+
+func findErrorGroupBySeverity(groups []group.ErrorGroup, id string, severity event.Severity) *group.ErrorGroup {
+	for i := range groups {
+		if groups[i].ID == id && groups[i].Severity == severity {
+			return &groups[i]
+		}
+	}
+	return nil
+}
+
 // 32-char fingerprints for is_custom tests.
 const (
 	fpGroupCustomFatal    = "0000000000000000000000000000000e"

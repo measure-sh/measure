@@ -472,7 +472,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 		return nil
 	}
 
-	newGroupsBranch := func(table, sourceType, severityExpr, isCustomExpr string) (*sqlf.Stmt, error) {
+	newGroupsBranch := func(table, sourceType, severityClass, severityExpr, isCustomExpr string) (*sqlf.Stmt, error) {
 		s := sqlf.
 			From(table).
 			Select("team_id").
@@ -485,6 +485,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 			Select("argMax(line_number, timestamp) as line_number").
 			Select("any(timestamp) as last_occurrence").
 			Select("'" + sourceType + "' as source_type").
+			Select("'" + severityClass + "' as severity_class").
 			Select(severityExpr + " as severity").
 			Select(isCustomExpr + " as is_custom")
 		return s, applyGroupFilters(s)
@@ -493,7 +494,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 	var groupsBranches []*sqlf.Stmt
 
 	if queryANR {
-		s, errBranch := newGroupsBranch("anr_groups final", "anr", "'fatal'", "false")
+		s, errBranch := newGroupsBranch("anr_groups final", "anr", "fatal", "'fatal'", "false")
 		if errBranch != nil {
 			err = errBranch
 			return
@@ -502,7 +503,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 	}
 
 	if queryFatal {
-		s, errBranch := newGroupsBranch("fatal_exception_groups final", "exception", "'fatal'", "argMax(is_custom, timestamp)")
+		s, errBranch := newGroupsBranch("fatal_exception_groups final", "exception", "fatal", "'fatal'", "argMax(is_custom, timestamp)")
 		if errBranch != nil {
 			err = errBranch
 			return
@@ -511,7 +512,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 	}
 
 	if queryNonfatal {
-		s, errBranch := newGroupsBranch("nonfatal_exception_groups final", "exception", "if(argMax(handled, timestamp), 'handled', 'unhandled')", "argMax(is_custom, timestamp)")
+		s, errBranch := newGroupsBranch("nonfatal_exception_groups final", "exception", "nonfatal", "if(argMax(handled, timestamp), 'handled', 'unhandled')", "argMax(is_custom, timestamp)")
 		if errBranch != nil {
 			err = errBranch
 			return
@@ -534,6 +535,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 			Select("anr.fingerprint as id").
 			Select("count() as event_count").
 			Select("'anr' as source_type").
+			Select("'fatal' as severity_class").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
 			Where("timestamp >= toDateTime64(?, 3, 'UTC')", af.From).
@@ -552,7 +554,13 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 		countsBranches = append(countsBranches, s)
 	}
 
-	if queryFatal || queryNonfatal {
+	// Exception counts are split into one branch per severity_class so the
+	// counts mirror the groups CTE: a fingerprint living in both
+	// fatal_exception_groups and nonfatal_exception_groups gets a separate
+	// count per class instead of a single combined total joined to both rows.
+	// Each branch counts only the events matching its bucket's severities; the
+	// groups-driven LEFT JOIN drops counts whose group is absent for that class.
+	newExceptionCountsBranch := func(severityClass string, severities []event.Severity) *sqlf.Stmt {
 		s := sqlf.
 			From("events").
 			Select("team_id").
@@ -560,6 +568,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 			Select("exception.fingerprint as id").
 			Select("count() as event_count").
 			Select("'exception' as source_type").
+			Select("'"+severityClass+"' as severity_class").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
 			Where("timestamp >= toDateTime64(?, 3, 'UTC')", af.From).
@@ -570,7 +579,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 			GroupBy("app_id").
 			GroupBy("id")
 
-		applyExceptionSeverityFilter(s, af.Severities)
+		applyExceptionSeverityFilter(s, severities)
 
 		if af.CustomError {
 			s.Where("`exception.is_custom` = true")
@@ -581,7 +590,22 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 			s.Where("attribute.app_build in ?", af.VersionCodes)
 		}
 
-		countsBranches = append(countsBranches, s)
+		return s
+	}
+
+	if queryFatal {
+		countsBranches = append(countsBranches, newExceptionCountsBranch("fatal", []event.Severity{event.SeverityFatal}))
+	}
+
+	if queryNonfatal {
+		var nonfatalSeverities []event.Severity
+		if hasHandled {
+			nonfatalSeverities = append(nonfatalSeverities, event.SeverityHandled)
+		}
+		if hasUnhandled {
+			nonfatalSeverities = append(nonfatalSeverities, event.SeverityUnhandled)
+		}
+		countsBranches = append(countsBranches, newExceptionCountsBranch("nonfatal", nonfatalSeverities))
 	}
 
 	groupsCTE := unionStmts(groupsBranches)
@@ -604,7 +628,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, af *filter.AppFilter)
 		Select("c.event_count as event_count").
 		Select("round((event_count * 100.0) / sum(event_count) over (), 2) as contribution").
 		From("groups as g").
-		LeftJoin("counts as c", "c.team_id = g.team_id and c.app_id = g.app_id and c.id = g.id and c.source_type = g.source_type").
+		LeftJoin("counts as c", "c.team_id = g.team_id and c.app_id = g.app_id and c.id = g.id and c.source_type = g.source_type and c.severity_class = g.severity_class").
 		Where("c.event_count > 0").
 		OrderBy("event_count desc, g.last_occurrence desc, g.id")
 
