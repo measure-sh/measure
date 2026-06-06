@@ -514,64 +514,56 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
         : null;
 
   useEffect(() => {
-    if (step !== "verify") {
-      return;
-    }
-    if (!selectedApp) {
+    if (step !== "verify" || !selectedApp) {
       return;
     }
 
-    let active = true;
     const targetAppId = selectedApp.id;
+    // A poll can still be waiting on the network when the user leaves this
+    // screen. We set this in cleanup so the poll skips its update instead
+    // of touching a screen that's no longer there.
+    let stopped = false;
 
-    const tick = async () => {
+    // The onboarded flag flips as soon as the SDK reports its first event
+    // of any kind but we need to make sure that filters are updated by the
+    // materialised view before proceeding so that the destination page
+    // does not show "No Data" when users heads there.
+    const firstEventHasLanded = async (): Promise<boolean> => {
       const appsResult = await fetchAppsFromServer(teamId);
-      if (!active) {
-        return;
-      }
       if (appsResult.status !== AppsApiStatus.Success || !appsResult.data) {
-        return;
+        return false;
       }
-      const fresh = (appsResult.data as App[]).find(
-        (a) => a.id === targetAppId,
+      const refetchedApp = (appsResult.data as App[]).find(
+        (app) => app.id === targetAppId,
       );
-      if (!fresh?.onboarded) {
-        return;
+      if (!refetchedApp?.onboarded) {
+        return false;
       }
-      // The apps endpoint flips `onboarded` as soon as the SDK reports a
-      // crash, but the filters aggregation pipeline runs separately and
-      // may still be catching up. Probe the Errors filter endpoint and
-      // only advance the wizard once it returns Success — otherwise the
-      // destination /errors page would land on a NoData state until the
-      // user refreshes.
-      const filtersResult = await fetchFiltersFromServer(
-        fresh,
+      const errorsFilterResult = await fetchFiltersFromServer(
+        refetchedApp,
         FilterSource.Errors,
       );
-      if (!active) {
-        return;
-      }
-      if (filtersResult.status !== FiltersApiStatus.Success) {
-        return;
-      }
-      // Mark the wizard verified so the success card renders. We
-      // deliberately don't flip selectedApp.onboarded or refetch the apps
-      // query here — that would change the filter-options query key,
-      // which refetches successfully, which flips filtersApiStatus to
-      // Success, which unmounts Onboarding before the user gets to see
-      // the "Crash received" celebration. Fresh onboarded state lands
-      // naturally when the user clicks View Dashboard and the destination
-      // page mounts its own Filters.
-      onboardingStore.markVerified(targetAppId);
+      return errorsFilterResult.status === FiltersApiStatus.Success;
     };
 
-    tick();
-    const interval = setInterval(tick, POLL_INTERVAL_MS);
+    const pollForFirstEvent = async () => {
+      if ((await firstEventHasLanded()) && !stopped) {
+        // Only show the success card. Don't update the app's onboarded
+        // flag or refetch apps here: that reloads the filters, which
+        // unmounts this screen before the user sees the success message.
+        // The real onboarded state loads later, when they open the
+        // dashboard.
+        onboardingStore.markVerified(targetAppId);
+      }
+    };
+
+    pollForFirstEvent();
+    const interval = setInterval(pollForFirstEvent, POLL_INTERVAL_MS);
     return () => {
-      active = false;
+      stopped = true;
       clearInterval(interval);
     };
-  }, [step, selectedApp?.id, teamId, filtersStore, onboardingStore]);
+  }, [step, selectedApp?.id, teamId, onboardingStore]);
 
   const handleCreateApp = async () => {
     const trimmed = appName.trim();
