@@ -1438,6 +1438,9 @@ func mcpResolveAppAccess(ctx context.Context, rawAppID string) (uuid.UUID, uuid.
 	if err != nil {
 		return uuid.UUID{}, uuid.UUID{}, fmt.Errorf("failed to get app team: %v", err)
 	}
+	if team == nil {
+		return uuid.UUID{}, uuid.UUID{}, fmt.Errorf("no team exists for app %s", appID)
+	}
 
 	return appID, *team.ID, nil
 }
