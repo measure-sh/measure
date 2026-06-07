@@ -34,7 +34,7 @@ function markdownResponse(body: string) {
 
 /**
  * Resolve URL segments to a colocated `page.md` next to the route's
- * `page.tsx`. The middleware rewrites `/` to `/_md/index` so the homepage
+ * `page.tsx`. The proxy rewrites `/` to `/page-md/index` so the homepage
  * lands here as ["index"] — translate that back to `app/page.md`.
  */
 function resolvePageMd(segments: string[]): string | null {

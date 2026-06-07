@@ -2,7 +2,7 @@
  * Integration tests for the markdown content-negotiation route handler at
  * `app/page-md/[...path]/route.ts`.
  *
- * The middleware unit tests cover the *rewrite decision* — given a
+ * The proxy unit tests cover the *rewrite decision* — given a
  * pathname + matcher, what URL does the function emit? They can't cover
  * what actually happens after the rewrite hits the route handler, which
  * is where the markdown source is resolved, the response is built, and

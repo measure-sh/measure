@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
-// Mock next/server before importing the middleware so the import picks up
+// Mock next/server before importing the proxy so the import picks up
 // the mock. NextResponse.rewrite captures the destination URL as a string.
 jest.mock("next/server", () => ({
   NextResponse: {
@@ -9,13 +9,17 @@ jest.mock("next/server", () => ({
   },
 }));
 
-import { config, middleware } from "@/middleware";
+import { config, proxy } from "@/proxy";
 
-// Build a minimal stub of NextRequest. The middleware only touches
+// Build a minimal stub of NextRequest. The proxy only touches
 // `request.nextUrl.pathname`, `request.nextUrl.search`, and the cloned
 // URL returned by `request.nextUrl.clone()`. Headers are not inspected
 // by the function — they're filtered upstream by `config.matcher`.
-function makeRequest(pathname: string, search = "", origin = "https://measure.sh") {
+function makeRequest(
+  pathname: string,
+  search = "",
+  origin = "https://measure.sh",
+) {
   return {
     nextUrl: {
       pathname,
@@ -27,7 +31,7 @@ function makeRequest(pathname: string, search = "", origin = "https://measure.sh
   } as any;
 }
 
-describe("middleware", () => {
+describe("proxy", () => {
   const originalApi = process.env.API_BASE_URL;
   const originalPosthog = process.env.POSTHOG_HOST;
 
@@ -51,61 +55,71 @@ describe("middleware", () => {
 
   describe("/api proxy", () => {
     it("rewrites /api/foo to the default API origin", () => {
-      const result: any = middleware(makeRequest("/api/foo"));
+      const result: any = proxy(makeRequest("/api/foo"));
       expect(result.type).toBe("rewrite");
       expect(result.url).toBe("http://api:8080/foo");
     });
 
     it("preserves query string", () => {
-      const result: any = middleware(makeRequest("/api/users", "?limit=10&offset=20"));
+      const result: any = proxy(
+        makeRequest("/api/users", "?limit=10&offset=20"),
+      );
       expect(result.url).toBe("http://api:8080/users?limit=10&offset=20");
     });
 
     it("uses API_BASE_URL env var when set", () => {
       process.env.API_BASE_URL = "https://api.example.com:9000";
-      const result: any = middleware(makeRequest("/api/foo"));
+      const result: any = proxy(makeRequest("/api/foo"));
       expect(result.url).toBe("https://api.example.com:9000/foo");
     });
 
     it("replaces only the first /api occurrence", () => {
       // /api/api-keys → after replace("/api", "") → /api-keys (not //-keys)
-      const result: any = middleware(makeRequest("/api/api-keys"));
+      const result: any = proxy(makeRequest("/api/api-keys"));
       expect(result.url).toBe("http://api:8080/api-keys");
     });
 
     it("handles a bare /api with no trailing path", () => {
       // After replacement pathname becomes "" — URL normalizes to "/"
-      const result: any = middleware(makeRequest("/api"));
+      const result: any = proxy(makeRequest("/api"));
       expect(result.url).toBe("http://api:8080/");
     });
 
     it("handles a deeply nested path", () => {
-      const result: any = middleware(makeRequest("/api/teams/abc/apps/xyz/sessions"));
+      const result: any = proxy(
+        makeRequest("/api/teams/abc/apps/xyz/sessions"),
+      );
       expect(result.url).toBe("http://api:8080/teams/abc/apps/xyz/sessions");
     });
 
     it("falls back to http://api:8080 when API_BASE_URL is empty string", () => {
       process.env.API_BASE_URL = "";
-      const result: any = middleware(makeRequest("/api/foo"));
+      const result: any = proxy(makeRequest("/api/foo"));
       expect(result.url).toBe("http://api:8080/foo");
     });
   });
 
   describe("/yrtmlt/static proxy", () => {
     it("rewrites /yrtmlt/static/array.js to PostHog assets CDN", () => {
-      const result: any = middleware(makeRequest("/yrtmlt/static/array.js"));
-      expect(result.url).toBe("https://us-assets.i.posthog.com/static/array.js");
+      const result: any = proxy(makeRequest("/yrtmlt/static/array.js"));
+      expect(result.url).toBe(
+        "https://us-assets.i.posthog.com/static/array.js",
+      );
     });
 
     it("preserves nested static paths", () => {
-      const result: any = middleware(makeRequest("/yrtmlt/static/recorder/recorder.js"));
-      expect(result.url).toBe("https://us-assets.i.posthog.com/static/recorder/recorder.js");
+      const result: any = proxy(
+        makeRequest("/yrtmlt/static/recorder/recorder.js"),
+      );
+      expect(result.url).toBe(
+        "https://us-assets.i.posthog.com/static/recorder/recorder.js",
+      );
     });
 
     it("static branch takes precedence over generic /yrtmlt branch", () => {
       // Path starts with /yrtmlt/static/ so it must hit the assets CDN,
       // not the POSTHOG_HOST branch (which doesn't need to be set).
-      const result: any = middleware(makeRequest("/yrtmlt/static/foo.js"));
+      const result: any = proxy(makeRequest("/yrtmlt/static/foo.js"));
       expect(result.url).toContain("us-assets.i.posthog.com");
     });
   });
@@ -113,13 +127,13 @@ describe("middleware", () => {
   describe("/yrtmlt non-static proxy", () => {
     it("rewrites /yrtmlt/decide to POSTHOG_HOST", () => {
       process.env.POSTHOG_HOST = "https://us.posthog.com";
-      const result: any = middleware(makeRequest("/yrtmlt/decide"));
+      const result: any = proxy(makeRequest("/yrtmlt/decide"));
       expect(result.url).toBe("https://us.posthog.com/decide");
     });
 
     it("handles POSTHOG_HOST with a custom port", () => {
       process.env.POSTHOG_HOST = "http://posthog.local:8000";
-      const result: any = middleware(makeRequest("/yrtmlt/e"));
+      const result: any = proxy(makeRequest("/yrtmlt/e"));
       expect(result.url).toBe("http://posthog.local:8000/e");
     });
 
@@ -127,46 +141,50 @@ describe("middleware", () => {
       // "/yrtmlt/static".startsWith("/yrtmlt/static/") is false, so this
       // falls through to the generic /yrtmlt branch.
       process.env.POSTHOG_HOST = "https://us.posthog.com";
-      const result: any = middleware(makeRequest("/yrtmlt/static"));
+      const result: any = proxy(makeRequest("/yrtmlt/static"));
       expect(result.url).toBe("https://us.posthog.com/static");
     });
 
     it("throws when POSTHOG_HOST is unset (documented behavior)", () => {
-      // The middleware constructs `new URL(process.env.POSTHOG_HOST || "")`.
+      // The proxy constructs `new URL(process.env.POSTHOG_HOST || "")`.
       // Empty string is not a valid URL, so this throws — the runtime
       // contract assumes POSTHOG_HOST is set whenever /yrtmlt routes are live.
-      expect(() => middleware(makeRequest("/yrtmlt/foo"))).toThrow();
+      expect(() => proxy(makeRequest("/yrtmlt/foo"))).toThrow();
     });
   });
 
   describe("markdown content negotiation (fall-through)", () => {
     it("rewrites / to /page-md/index (homepage sentinel)", () => {
-      const result: any = middleware(makeRequest("/"));
+      const result: any = proxy(makeRequest("/"));
       expect(result.url).toBe("https://measure.sh/page-md/index");
     });
 
     it("rewrites /about to /page-md/about", () => {
-      const result: any = middleware(makeRequest("/about"));
+      const result: any = proxy(makeRequest("/about"));
       expect(result.url).toBe("https://measure.sh/page-md/about");
     });
 
     it("rewrites nested product paths", () => {
-      const result: any = middleware(makeRequest("/product/mcp"));
+      const result: any = proxy(makeRequest("/product/mcp"));
       expect(result.url).toBe("https://measure.sh/page-md/product/mcp");
     });
 
     it("rewrites docs paths so /page-md/[...path]/route.ts can serve them", () => {
-      const result: any = middleware(makeRequest("/docs/sdk-integration-guide"));
-      expect(result.url).toBe("https://measure.sh/page-md/docs/sdk-integration-guide");
+      const result: any = proxy(makeRequest("/docs/sdk-integration-guide"));
+      expect(result.url).toBe(
+        "https://measure.sh/page-md/docs/sdk-integration-guide",
+      );
     });
 
     it("rewrites pages with query strings (search params preserved on the URL)", () => {
-      const result: any = middleware(makeRequest("/about", "?utm=email"));
+      const result: any = proxy(makeRequest("/about", "?utm=email"));
       expect(result.url).toBe("https://measure.sh/page-md/about?utm=email");
     });
 
     it("preserves the original origin", () => {
-      const result: any = middleware(makeRequest("/pricing", "", "http://localhost:3000"));
+      const result: any = proxy(
+        makeRequest("/pricing", "", "http://localhost:3000"),
+      );
       expect(result.url).toBe("http://localhost:3000/page-md/pricing");
     });
   });
@@ -197,9 +215,7 @@ describe("middleware", () => {
     it("third entry's source excludes Next internals, the markdown route itself, API and PostHog proxies, and favicon", () => {
       const m: any = config.matcher[2];
       const sourceRegex = new RegExp(
-        m.source
-          .replace("/((?!", "^/(?!")
-          .replace(").*)", ").*$"),
+        m.source.replace("/((?!", "^/(?!").replace(").*)", ").*$"),
       );
       // Should NOT match (filtered by negative lookahead)
       expect(sourceRegex.test("/_next/static/foo.js")).toBe(false);
@@ -237,29 +253,29 @@ describe("middleware", () => {
   describe("path edge cases", () => {
     it("/api/ with trailing slash rewrites to API origin root", () => {
       // pathname.replace("/api", "") → "/", URL keeps it
-      const result: any = middleware(makeRequest("/api/"));
+      const result: any = proxy(makeRequest("/api/"));
       expect(result.url).toBe("http://api:8080/");
     });
 
     it("/api/foo/ preserves trailing slash on the rewritten path", () => {
-      const result: any = middleware(makeRequest("/api/foo/"));
+      const result: any = proxy(makeRequest("/api/foo/"));
       expect(result.url).toBe("http://api:8080/foo/");
     });
 
     it("preserves percent-encoded segments through the API rewrite", () => {
-      const result: any = middleware(makeRequest("/api/teams/team%20one"));
+      const result: any = proxy(makeRequest("/api/teams/team%20one"));
       expect(result.url).toBe("http://api:8080/teams/team%20one");
     });
 
     it("preserves a leading double slash after /api stripping", () => {
       // /api//foo → pathname.replace("/api", "") → "//foo"
       // URL does not collapse the double slash; documents existing behavior.
-      const result: any = middleware(makeRequest("/api//foo"));
+      const result: any = proxy(makeRequest("/api//foo"));
       expect(result.url).toBe("http://api:8080//foo");
     });
 
     it("markdown rewrite preserves a trailing slash on marketing paths", () => {
-      const result: any = middleware(makeRequest("/about/"));
+      const result: any = proxy(makeRequest("/about/"));
       expect(result.url).toBe("https://measure.sh/page-md/about/");
     });
   });
@@ -277,7 +293,7 @@ describe("middleware", () => {
         get: (name: string) =>
           name.toLowerCase() === "accept" ? "text/markdown" : null,
       };
-      const result: any = middleware(req);
+      const result: any = proxy(req);
       expect(result.url).toBe("http://api:8080/foo");
     });
   });
@@ -285,15 +301,15 @@ describe("middleware", () => {
   describe("POSTHOG_HOST configuration edge cases", () => {
     it("throws when POSTHOG_HOST is a non-URL string", () => {
       process.env.POSTHOG_HOST = "not-a-url";
-      expect(() => middleware(makeRequest("/yrtmlt/foo"))).toThrow();
+      expect(() => proxy(makeRequest("/yrtmlt/foo"))).toThrow();
     });
 
     it("silently drops the path component of POSTHOG_HOST", () => {
-      // The middleware reads only protocol/hostname/port off POSTHOG_HOST
+      // The proxy reads only protocol/hostname/port off POSTHOG_HOST
       // and overwrites pathname with the rewritten /yrtmlt/* path. Any
       // path in POSTHOG_HOST (e.g. /proxy) is therefore discarded.
       process.env.POSTHOG_HOST = "https://us.posthog.com/proxy";
-      const result: any = middleware(makeRequest("/yrtmlt/decide"));
+      const result: any = proxy(makeRequest("/yrtmlt/decide"));
       expect(result.url).toBe("https://us.posthog.com/decide");
     });
   });

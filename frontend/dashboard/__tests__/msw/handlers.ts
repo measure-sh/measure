@@ -6,7 +6,7 @@
  * error states, empty data, etc.
  *
  * URL paths use the /api/* prefix that the frontend sends. The Next.js
- * middleware strips /api and proxies to the Go backend in production,
+ * proxy strips /api and proxies to the Go backend in production,
  * but in tests MSW intercepts before that happens.
  */
 import { http, HttpResponse } from "msw";

@@ -3,7 +3,7 @@ const nextConfig = {
   output: "standalone",
   poweredByHeader: false,
   experimental: {
-    // middleware.ts reverse-proxies /api/* and /yrtmlt/* to external origins
+    // proxy.ts reverse-proxies /api/* and /yrtmlt/* to external origins
     // via NextResponse.rewrite(). Raise the proxy timeout from the 30s default
     // so long-running API requests aren't cut off.
     proxyTimeout: 90000,
