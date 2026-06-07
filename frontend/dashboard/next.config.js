@@ -67,6 +67,13 @@ const nextConfig = {
         destination: "/docs",
         permanent: true,
       },
+      // The Crashlytics alternatives page moved from the plural slug to the
+      // singular. Forward the old URL so existing links keep working.
+      {
+        source: "/crashlytics-alternatives",
+        destination: "/crashlytics-alternative",
+        permanent: true,
+      },
     ];
   },
   async headers() {

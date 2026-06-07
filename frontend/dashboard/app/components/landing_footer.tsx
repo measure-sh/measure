@@ -151,15 +151,6 @@ export default function LandingFooter() {
             Why Measure?
           </Link>
           <Link
-            href="/crashlytics-alternatives"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Firebase Crashlytics alternative
-          </Link>
-          <Link
             href="/pricing"
             className={cn(
               buttonVariants({ variant: "ghost" }),
@@ -196,6 +187,73 @@ export default function LandingFooter() {
           >
             GitHub
           </TrackGithubLink>
+        </div>
+
+        <div className="flex flex-col items-center md:items-start gap-4">
+          <p className="font-display text-2xl md:px-2">Alternatives</p>
+          <Link
+            href="/crashlytics-alternative"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            Firebase Crashlytics
+          </Link>
+          <Link
+            href="/sentry-alternative"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            Sentry
+          </Link>
+          <Link
+            href="/bugsnag-alternative"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            Bugsnag
+          </Link>
+          <Link
+            href="/embrace-alternative"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            Embrace
+          </Link>
+          <Link
+            href="/luciq-alternative"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            Luciq
+          </Link>
+          <Link
+            href="/datadog-alternative"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            Datadog
+          </Link>
+          <Link
+            href="/new-relic-alternative"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            New Relic
+          </Link>
         </div>
 
         <div className="flex flex-col items-center md:items-start gap-4">
