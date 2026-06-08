@@ -46,6 +46,29 @@ jobs:
       - name: Run Jest tests
         run: npm test
 
+  format-check:
+    name: Check dashboard formatting
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/dashboard
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies for CI
+        run: npm ci
+
+      - name: Check Prettier formatting
+        run: npm run format:check
+
   push:
     name: Build and push image
     runs-on: ubuntu-latest

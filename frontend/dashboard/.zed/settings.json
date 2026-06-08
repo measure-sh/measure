@@ -1,0 +1,14 @@
+// Project-local Zed settings for the dashboard.
+//
+// Forces Prettier (the project's pinned version + .prettierrc.json) as the
+// formatter for JS/TS and formats those on save, so what Zed writes matches
+// `npm run format`. Prettier is bundled with Zed — no extension needed.
+// Scoped to frontend/dashboard via this nested settings file, so it doesn't
+// affect react-native/ or other parts of the monorepo.
+{
+  "languages": {
+    "JavaScript": { "formatter": "prettier", "format_on_save": "on" },
+    "TypeScript": { "formatter": "prettier", "format_on_save": "on" },
+    "TSX": { "formatter": "prettier", "format_on_save": "on" },
+  },
+}

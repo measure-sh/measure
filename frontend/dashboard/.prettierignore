@@ -1,0 +1,17 @@
+# Dependencies
+node_modules
+
+# Build output
+.next/
+out/
+build/
+coverage/
+
+# Generated files
+content/
+public/docs/
+app/components/sdk_versions.generated.ts
+next-env.d.ts
+
+# Lockfile
+package-lock.json
