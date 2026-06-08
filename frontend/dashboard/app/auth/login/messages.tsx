@@ -1,18 +1,18 @@
-'use client'
+"use client";
 
-import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 export default function Messages() {
-  const searchParams = useSearchParams()
-  const error = searchParams?.get('error')
-  const message = searchParams?.get('message')
-  let showLink = false
+  const searchParams = useSearchParams();
+  const error = searchParams?.get("error");
+  const message = searchParams?.get("message");
+  let showLink = false;
   if (error) {
-    showLink = true
+    showLink = true;
   }
   if (message) {
-    showLink = true
+    showLink = true;
   }
 
   return (
@@ -28,8 +28,13 @@ export default function Messages() {
         </>
       )}
       {showLink && (
-        <Link href="/auth/login" className="underline text-blue-500 hover:text-blue-700 mt-4 inline-block">Go back to login</Link>
+        <Link
+          href="/auth/login"
+          className="underline text-blue-500 hover:text-blue-700 mt-4 inline-block"
+        >
+          Go back to login
+        </Link>
       )}
     </div>
-  )
+  );
 }

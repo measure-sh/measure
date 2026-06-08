@@ -20,7 +20,7 @@ export default function DocsToc({ entries }: { entries: TocEntry[] }) {
           }
         }
       },
-      { rootMargin: "-80px 0px -80% 0px" }
+      { rootMargin: "-80px 0px -80% 0px" },
     );
 
     for (const tocEntry of entries) {
@@ -40,7 +40,9 @@ export default function DocsToc({ entries }: { entries: TocEntry[] }) {
   return (
     <aside className="hidden xl:block w-56 shrink-0 ml-auto">
       <div className="fixed top-8 right-8 w-56 overflow-y-auto max-h-[calc(100vh-4rem)]">
-        <p className="text-sm font-body text-muted-foreground px-2 mb-2">On this page</p>
+        <p className="text-sm font-body text-muted-foreground px-2 mb-2">
+          On this page
+        </p>
         <nav className="flex flex-col gap-0.5">
           {entries.map((entry) => (
             <a
@@ -52,7 +54,7 @@ export default function DocsToc({ entries }: { entries: TocEntry[] }) {
                 entry.level === 3 && "pl-6",
                 activeId === entry.id
                   ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
               )}
             >
               {entry.text}

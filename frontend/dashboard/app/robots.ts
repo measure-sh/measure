@@ -1,4 +1,4 @@
-import type { MetadataRoute } from "next"
+import type { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -11,5 +11,5 @@ export default function robots(): MetadataRoute.Robots {
     ],
     sitemap: "https://measure.sh/sitemap.xml",
     host: "https://measure.sh",
-  }
+  };
 }
