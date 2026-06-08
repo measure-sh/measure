@@ -211,7 +211,12 @@ jest.mock("@/app/components/tab_select", () => ({
 
 // --- Import after mocks ---
 
-import Onboarding from "@/app/components/onboarding";
+import Onboarding, { REACT_NATIVE_ENABLED } from "@/app/components/onboarding";
+
+// React Native onboarding is gated behind REACT_NATIVE_ENABLED: the RN tab is
+// hidden and its flow unreachable while off. These tests run only when it's
+// enabled, so they come back automatically when the flag flips.
+const describeWhenRNEnabled = REACT_NATIVE_ENABLED ? describe : describe.skip;
 
 // --- Helpers ---
 
@@ -648,12 +653,22 @@ describe("Onboarding — Step 2: Integrate", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("renders Android, iOS, Flutter, and React Native tabs", () => {
+    it("renders Android, iOS, and Flutter tabs", () => {
       renderOnboarding();
       expect(screen.getByTestId("tab-Android")).toBeInTheDocument();
       expect(screen.getByTestId("tab-iOS")).toBeInTheDocument();
       expect(screen.getByTestId("tab-Flutter")).toBeInTheDocument();
-      expect(screen.getByTestId("tab-React Native")).toBeInTheDocument();
+    });
+
+    it("shows the React Native tab only when it is enabled", () => {
+      renderOnboarding();
+      if (REACT_NATIVE_ENABLED) {
+        expect(screen.getByTestId("tab-React Native")).toBeInTheDocument();
+      } else {
+        expect(
+          screen.queryByTestId("tab-React Native"),
+        ).not.toBeInTheDocument();
+      }
     });
 
     it("selects Android by default", () => {
@@ -890,7 +905,7 @@ describe("Onboarding — Step 2: Integrate", () => {
     });
   });
 
-  describe("React Native sub-platform selector", () => {
+  describeWhenRNEnabled("React Native sub-platform selector", () => {
     it("does not render the sub-selector on Android, iOS or Flutter tabs", () => {
       renderOnboarding();
       expect(
