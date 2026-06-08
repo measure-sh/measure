@@ -21,6 +21,9 @@ Package.resolved
 
 # zed editor
 .zed
+# but share the dashboard's project-level Zed settings (formatter config)
+!frontend/dashboard/.zed/
+!frontend/dashboard/.zed/settings.json
 
 # email preview output
 backend/email/cmd/preview/output/

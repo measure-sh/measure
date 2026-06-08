@@ -170,6 +170,39 @@ xcodebuild test \
     ONLY_ACTIVE_ARCH=YES
 ```
 
+## Code formatting
+
+The dashboard uses [Prettier](https://prettier.io/) to keep TypeScript and JavaScript formatting consistent regardless of which editor you use. The configuration lives in [`frontend/dashboard/.prettierrc.json`](frontend/dashboard/.prettierrc.json).
+
+Run it manually from the `frontend/dashboard` directory:
+
+```sh
+npm run format        # format all JS/TS files in place
+npm run format:check  # check formatting without writing changes
+```
+
+Linting is handled separately by ESLint:
+
+```sh
+npm run lint
+```
+
+### Editor setup
+
+Formatting on save keeps every commit consistently formatted and means you rarely need to run the commands above by hand.
+
+- **Zed** — works out of the box. The repo ships [`frontend/dashboard/.zed/settings.json`](frontend/dashboard/.zed/settings.json), and Prettier is bundled with Zed, so no extension is needed. Reopen the project after pulling so the settings load.
+- **VS Code** — install the [Prettier extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode), then add to your user or workspace settings:
+
+  ```json
+  {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+  ```
+
+- **Other editors** — any editor with a Prettier integration will pick up `.prettierrc.json` automatically.
+
 ## Writing commit messages
 
 All commits landing in any branch are first linted in your local environment and then in CI.
