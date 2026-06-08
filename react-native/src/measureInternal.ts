@@ -1,6 +1,6 @@
 import { MeasureConfig } from './config/measureConfig';
 import type { MsrAttachment } from './events/msrAttachment';
-import * as MeasureErrorHandlers from './exception/measureErrorHandlers';
+import { ErrorReportingManager } from './exception/errorReportingManager';
 import { buildExceptionPayload } from './exception/exceptionBuilder';
 import type { MeasureInitializer } from './measureInitializer';
 import {
@@ -19,23 +19,17 @@ export class MeasureInternal {
   private measureInitializer: MeasureInitializer;
   private shakeHandler?: (() => void) | null;
   private started = false;
+  private errorReportingManager: ErrorReportingManager;
 
   constructor(measureInitializer: MeasureInitializer) {
     this.measureInitializer = measureInitializer;
 
-    MeasureErrorHandlers.setupErrorHandlers({
-      onerror: true,
-      onunhandledrejection: true,
-      patchGlobalPromise: true,
-      logger: this.measureInitializer.logger,
-      timeProvider: this.measureInitializer.timeProvider,
-      signalProcessor: this.measureInitializer.signalProcessor,
-    });
-
-    this.measureInitializer.logger.internalLog(
-      'info',
-      'React Native error handlers installed.'
+    this.errorReportingManager = new ErrorReportingManager(
+      this.measureInitializer.timeProvider,
+      this.measureInitializer.logger,
+      this.measureInitializer.signalProcessor,
     );
+    this.errorReportingManager.enable();
   }
 
   registerCollectors(): void {
@@ -86,6 +80,7 @@ export class MeasureInternal {
       return Promise.resolve();
     }
     this.started = true;
+    this.errorReportingManager.enable();
     this.registerCollectors();
     enableNativeModule();
     return nativeStart();
@@ -100,6 +95,7 @@ export class MeasureInternal {
       return Promise.resolve();
     }
     this.started = false;
+    this.errorReportingManager.disable();
     this.unregisterCollectors();
     disableNativeModule();
     return nativeStop();

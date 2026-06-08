@@ -10,8 +10,11 @@ jest.mock('../native/measureBridge', () => ({
   getSessionId: jest.fn(() => Promise.resolve('mock-session-id')),
 }));
 
-jest.mock('../exception/measureErrorHandlers', () => ({
-  setupErrorHandlers: jest.fn(),
+jest.mock('../exception/errorReportingManager', () => ({
+  ErrorReportingManager: jest.fn().mockImplementation(() => ({
+    enable: jest.fn(),
+    disable: jest.fn(),
+  })),
 }));
 
 function makeMockInitializer() {
