@@ -325,15 +325,7 @@ internal class SignalProcessorImpl(
         }
         val id = idProvider.uuid()
         val resolvedSessionId = sessionId ?: sessionManager.getSessionId()
-        val resolvedIsSampled = if (type == EventType.EXCEPTION &&
-            data is ExceptionData &&
-            data.framework == ExceptionFramework.JS &&
-            data.severity == ExceptionSeverity.Handled
-        ) {
-            true
-        } else {
-            isSampled
-        }
+        val resolvedIsSampled = if (isHandledJsException(type, data)) true else isSampled
         return Event(
             id = id,
             sessionId = resolvedSessionId,
@@ -419,6 +411,13 @@ internal class SignalProcessorImpl(
             }
             isKeyValid && isValueValid
         }
+    }
+
+    private fun isHandledJsException(eventType: EventType, data: Any?): Boolean {
+        return eventType == EventType.EXCEPTION &&
+            data is ExceptionData &&
+            data.framework == ExceptionFramework.JS &&
+            data.severity == ExceptionSeverity.Handled
     }
 
     private fun applyEventSampling(
