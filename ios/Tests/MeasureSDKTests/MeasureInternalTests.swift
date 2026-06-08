@@ -177,6 +177,7 @@ final class MeasureInternalTests: XCTestCase {
     }
 
     func testApplicationWillEnterForeground_triggersExport() {
+        measureInternal.start()
         let exporter = mockMeasureInitializer.exporter as! MockExporter // swiftlint:disable:this force_cast
         let before = exporter.exportCallCount
         NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
@@ -192,6 +193,7 @@ final class MeasureInternalTests: XCTestCase {
     }
 
     func testApplicationWillEnterForeground_triggersExportOnEachTransition() {
+        measureInternal.start()
         let exporter = mockMeasureInitializer.exporter as! MockExporter // swiftlint:disable:this force_cast
         let before = exporter.exportCallCount
         NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
@@ -206,6 +208,7 @@ final class MeasureInternalTests: XCTestCase {
             configProvider: MockConfigProvider()
         )
         let sut = MeasureInternal(initializer)
+        sut.start()
         let exporter = initializer.exporter as! MockExporter // swiftlint:disable:this force_cast
         let before = exporter.exportCallCount
 
@@ -216,12 +219,26 @@ final class MeasureInternalTests: XCTestCase {
     }
 
     func testApplicationWillEnterForeground_triggersExport_whenConfigIsLoaded() {
+        measureInternal.start()
         let exporter = mockMeasureInitializer.exporter as! MockExporter // swiftlint:disable:this force_cast
         let before = exporter.exportCallCount
 
         NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
 
         XCTAssertEqual(exporter.exportCallCount, before + 1, "export() should be called when config has been loaded")
+    }
+
+    func testApplicationWillEnterForeground_doesNotRegisterCollectors_whenStopped() {
+        measureInternal.start()
+        measureInternal.stop()
+        let logger = mockMeasureInitializer.logger as! MockLogger // swiftlint:disable:this force_cast
+        logger.logs.removeAll()
+
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+
+        XCTAssertFalse(logger.logs.contains("CustomEventCollector enabled."), "collectors should not be re-enabled when SDK is stopped")
+        XCTAssertFalse(logger.logs.contains("CpuUsageCollector enabled."), "collectors should not be re-enabled when SDK is stopped")
+        XCTAssertFalse(logger.logs.contains("LifecycleCollector enabled."), "collectors should not be re-enabled when SDK is stopped")
     }
 
     func testEncodeWebP_completesOnMainThreadWithEncodedBytes() {
