@@ -50,6 +50,7 @@ final class BaseSignalStore: SignalStore {
             } else {
                 timelineDuration = config.bugReportTimelineDurationSeconds
             }
+            logger.log(level: .info, message: "Marking timeline for reporting", error: nil, data: nil)
 
             eventStore.markTimelineForReporting(eventTimestampMillis: eventEntity.timestampInMillis,
                                                 durationSeconds: timelineDuration,

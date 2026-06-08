@@ -1,5 +1,60 @@
 import { parseStacktrace } from "./stacktraceParser";
 
+const isHermesEnabled = (): boolean => !!(global as any).HermesInternal;
+
+/**
+ * Rewrites a raw filename from a JS stack frame to the app:// format
+ * expected by the sentry-symbolicator.
+ *
+ * Release builds produce paths like:
+ *   iOS:     /var/containers/.../AppName.app/main.jsbundle
+ *   Android: index.android.bundle
+ *
+ * The symbolicator expects:
+ *   app:///main.jsbundle
+ *   app:///index.android.bundle
+ */
+function rewriteFilename(filename: string | undefined): string | undefined {
+  if (!filename) return filename;
+
+  let rewritten = filename
+    .replace(/^file:\/\//, '')
+    .replace(/^address at /, '')
+    // Strip http(s)://host:port/ prefix from JSC dev-server URLs
+    .replace(/^https?:\/\/[^/]*\//, '/')
+    // Strip query string left over from dev-server URLs
+    .replace(/\?[^/]*$/, '')
+    // Strip the native app container path up to and including .app / CodePush dir
+    .replace(/^.*\/[^.]+(\.app|CodePush|.*(?=\/))/, '');
+
+  if (rewritten === '[native code]' || rewritten === 'native') {
+    return rewritten;
+  }
+
+  const appPrefix = 'app://';
+  rewritten = rewritten.startsWith('/')
+    ? `${appPrefix}${rewritten}`
+    : `${appPrefix}/${rewritten}`;
+
+  return rewritten;
+}
+
+function isInApp(_filename: string | undefined): boolean {
+  return true;
+}
+
+/**
+ * Hermes bytecode frames always have line === 1 and use col as the bytecode
+ * offset. Hermes columns are 0-based; the symbolicator expects 1-based.
+ */
+function rewriteColumn(line: number | undefined, col: number | undefined): number | undefined {
+  if (col === undefined) return undefined;
+  if (isHermesEnabled() && line === 1) {
+    return col + 1;
+  }
+  return col;
+}
+
 export interface StackFrame {
   binary_name?: string;
   binary_address?: string;
@@ -33,12 +88,15 @@ export interface ThreadDetail {
 }
 
 export interface ExceptionPayload {
-  handled: boolean;
+  severity: 'fatal' | 'handled' | 'unhandled';
   exceptions: ExceptionDetail[];
-  foreground?: boolean;
+  foreground: boolean;
   threads?: ThreadDetail[];
-  framework?: string;
-  error?: unknown;
+  framework: string;
+  is_custom: boolean;
+  num_code?: number;
+  code?: string;
+  meta?: Record<string, unknown>;
 }
 
 /**
@@ -46,17 +104,18 @@ export interface ExceptionPayload {
  */
 export function buildExceptionPayload(
   error: unknown,
-  handled: boolean
+  severity: 'fatal' | 'handled' | 'unhandled',
+  isCustom: boolean = false
 ): ExceptionPayload {
   const parsed = parseStacktrace(error);
 
   const frames: StackFrame[] = parsed.stacktrace.map((frame, idx) => ({
     binary_name: undefined,
-    in_app: false,
+    in_app: isInApp(frame.file),
     method_name: frame.function,
-    file_name: frame.file,
+    file_name: rewriteFilename(frame.file),
     line_num: frame.line ?? undefined,
-    col_num: frame.column ?? undefined,
+    col_num: rewriteColumn(frame.line, frame.column),
     frame_index: idx,
   }));
 
@@ -69,17 +128,12 @@ export function buildExceptionPayload(
     os_build_number: undefined,
   };
 
-  const thread: ThreadDetail = {
-    name: "main",
-    frames,
-    sequence: 0,
-  };
-
   return {
-    handled,
+    severity,
     exceptions: [exceptionDetail],
     foreground: true,
-    threads: [thread],
+    threads: [],
     framework: "js",
+    is_custom: isCustom,
   };
 }
