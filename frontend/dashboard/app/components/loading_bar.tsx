@@ -1,10 +1,11 @@
 const LoadingBar: React.FC = () => {
   const loaderStyle: React.CSSProperties = {
-    height: '4px',
-    width: '100%',
-    background: 'no-repeat linear-gradient(#0c0a09 0 0), no-repeat linear-gradient(#0c0a09 0 0), #a8a29e',
-    backgroundSize: '60% 100%',
-    animation: 'gradientMove 3s infinite',
+    height: "4px",
+    width: "100%",
+    background:
+      "no-repeat linear-gradient(#0c0a09 0 0), no-repeat linear-gradient(#0c0a09 0 0), #a8a29e",
+    backgroundSize: "60% 100%",
+    animation: "gradientMove 3s infinite",
   };
 
   return (
@@ -20,4 +21,4 @@ const LoadingBar: React.FC = () => {
   );
 };
 
-export default LoadingBar
+export default LoadingBar;

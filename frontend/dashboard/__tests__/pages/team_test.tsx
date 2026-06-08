@@ -566,7 +566,9 @@ const setDefaultTeamPageState = () => {
 
 const renderPage = async ({
   waitForSlack = true,
-}: { waitForSlack?: boolean } = {}) => {
+}: {
+  waitForSlack?: boolean;
+} = {}) => {
   setDefaultTeamsState();
   setDefaultTeamPageState();
   render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
