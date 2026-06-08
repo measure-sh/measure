@@ -223,10 +223,7 @@ function reactNativeInitSnippet(label: string): Snippet {
     code: `// In your app entry (e.g. App.tsx)
 import { Measure, MeasureConfig } from '@measuresh/react-native';
 
-const config = new MeasureConfig({
-  // Collect all data without sampling. You can adjust sample rates later if you choose to.
-  enableFullCollectionMode: true,
-});
+const config = new MeasureConfig({});
 
 await Measure.init({ config });`,
   };
