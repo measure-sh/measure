@@ -478,6 +478,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     }
 
     private func applicationWillEnterForeground() {
+        guard isStarted else { return }
         self.appLaunchCollector.applicationWillEnterForeground()
         self.crashDataPersistence.isForeground = true
         self.internalSignalCollector.isForeground = true
