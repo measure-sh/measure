@@ -129,6 +129,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Hide RN onboarding tab by @anupcowkur in #3853
+- (**frontend**): Updating react native onboarding snippet by @anupcowkur
 - (**frontend**): Add alternative pages by @anupcowkur in #3852
 - (**frontend**): Hide custom errors toggle by @anupcowkur in #3840
 - (**frontend**): Update stacktrace in demo timeline by @anupcowkur in #3802
