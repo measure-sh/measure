@@ -413,12 +413,10 @@ internal class SignalProcessorImpl(
         }
     }
 
-    private fun isHandledJsException(eventType: EventType, data: Any?): Boolean {
-        return eventType == EventType.EXCEPTION &&
-            data is ExceptionData &&
-            data.framework == ExceptionFramework.JS &&
-            data.severity == ExceptionSeverity.Handled
-    }
+    private fun isHandledJsException(eventType: EventType, data: Any?): Boolean = eventType == EventType.EXCEPTION &&
+        data is ExceptionData &&
+        data.framework == ExceptionFramework.JS &&
+        data.severity == ExceptionSeverity.Handled
 
     private fun applyEventSampling(
         eventType: EventType,
