@@ -13,6 +13,7 @@ Measure exposes a [Model Context Protocol](https://modelcontextprotocol.io) (MCP
   * [`list_apps`](#list_apps)
   * [`get_filters`](#get_filters)
   * [`get_metrics`](#get_metrics)
+  * [`get_app_health_over_time`](#get_app_health_over_time)
   * [`get_errors`](#get_errors)
   * [`get_error`](#get_error)
   * [`get_errors_over_time`](#get_errors_over_time)
@@ -74,17 +75,21 @@ Get available filter options (versions, OS, countries, devices, etc.) for an app
 
 Get app metrics including adoption, crash-free/ANR-free sessions and launch performance (cold/warm/hot p95).
 
+### `get_app_health_over_time`
+
+Get the app health timeline: sessions, crashes (fatal exceptions) and ANRs bucketed over time.
+
 ### `get_errors`
 
-Get crash or ANR error groups for an app.
+Get error groups (crashes, non-fatal exceptions and ANRs) for an app, filterable by error type and severity.
 
 ### `get_error`
 
-Get individual crash or ANR events for a specific error group.
+Get individual error events (exception or ANR) for a specific error group.
 
 ### `get_errors_over_time`
 
-Get time-series of crash or ANR occurrences across all error groups.
+Get time-series of error occurrences across all error groups, filterable by error type and severity.
 
 ### `get_error_over_time`
 
@@ -96,7 +101,7 @@ Get attribute distribution (OS, device, version, country) for a specific error g
 
 ### `get_error_common_path`
 
-Get the most common user navigation path leading to a specific crash or ANR.
+Get the most common user navigation path leading to a specific error group.
 
 ### `get_sessions`
 
