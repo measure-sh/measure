@@ -107,7 +107,6 @@ Schema migrations for ClickHouse database are managed using the `dbmate-clickhou
     ```
 - **Never** specify the `.sql` file extension at the end. The extension is appended automatically.
 - **Never** prefix the schema/database name in your objects
-- **Never** edit the generated `schema.sql` file manually
 
 ## ClickHouse Database Operations
 

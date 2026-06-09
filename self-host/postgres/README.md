@@ -15,7 +15,6 @@ Schema migrations for Postgres database are managed using the `dbmate-postgres` 
 
 - Migrations **MUST** be idempotent
 - Migrations **MUST** contain both `up` &amp; `down` migrations
-- **NEVER** edit the generated `schema.sql` file manually
 - Follow this naming convention for naming migration files
   - Syntax: `<sql-command>_<entity-name>_<entity-type>`
   - `<sql-command>` should be `create` or `alter` etc sql commands
