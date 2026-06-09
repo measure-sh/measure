@@ -684,6 +684,46 @@ func TestSpanMetricsPlotQuantilesAreMonotonicAndVersionIsolated(t *testing.T) {
 	}
 }
 
+// TestSpanMetricsPlotQuantilesForSkewedDistribution checks that each quantile
+// column reports the level it claims — in particular that p99 is the 99th
+// percentile and not the median. Distinct per-rank durations force the four
+// percentiles to resolve to different values, which requires a spread (rather
+// than uniform) distribution to observe.
+func TestSpanMetricsPlotQuantilesForSkewedDistribution(t *testing.T) {
+	f := newPlotFixture(t)
+	base := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
+
+	// 101 spans with durations 1s..101s in a single version and 15-minute
+	// bucket. Sorted durations are v[rank] = (rank+1)*1000ms, and ClickHouse's
+	// quantile lands on v[level*100], giving exact, non-interpolated percentiles.
+	for i := 0; i < 101; i++ {
+		dur := time.Duration(i+1) * time.Second
+		seedSpan(f.ctx, t, f.teamIDStr(), f.appIDStr(), "http_request", 1, base, base.Add(dur), "v1", "1")
+	}
+
+	af := f.appFilter(base.Add(-time.Hour), base.Add(time.Hour), "UTC", filter.PlotTimeGroupHours)
+	items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, "http_request", af)
+	if err != nil {
+		t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("expected 1 span-metrics row, got %d", len(items))
+	}
+
+	p50, p90, p95, p99 := spanQuantiles(t, items[0], "skewed row")
+
+	assertMonotonicQuantiles(t, p50, p90, p95, p99, "skewed row")
+	// Skewed input must separate every percentile; equality anywhere means a
+	// column is reporting the wrong level (e.g. p99 collapsing to the median).
+	if !(p50 < p90 && p90 < p95 && p95 < p99) {
+		t.Fatalf("expected strictly increasing quantiles for skewed durations, got p50=%.2f p90=%.2f p95=%.2f p99=%.2f", p50, p90, p95, p99)
+	}
+	assertApprox(t, p50, 51000.0, 0.01, "skewed p50")
+	assertApprox(t, p90, 91000.0, 0.01, "skewed p90")
+	assertApprox(t, p95, 96000.0, 0.01, "skewed p95")
+	assertApprox(t, p99, 100000.0, 0.01, "skewed p99")
+}
+
 // expectedCounts returns aggregated per-bucket counts for synthetic seed times.
 // withSpanPreBucket=true models span_metrics_mv behavior where rows are first
 // bucketed to 15-minute windows before query-time grouping is applied.
