@@ -1522,6 +1522,7 @@ func TestMCPToolsList(t *testing.T) {
 
 	expectedTools := []string{
 		"list_apps", "get_filters", "get_metrics",
+		"get_app_health_over_time",
 		"get_errors", "get_error",
 		"get_errors_over_time", "get_error_over_time", "get_error_distribution",
 		"get_error_common_path",
@@ -1690,6 +1691,104 @@ func TestMCPListApps(t *testing.T) {
 	})
 }
 
+func TestMCPGetAppHealthOverTime(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("missing timezone", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "healthnotz@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "healthnotz team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := "msr_healthnotz"
+		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+
+		resp := callMCPTool(t, rawToken, "get_app_health_over_time", map[string]any{"app_id": appID.String()})
+		if !isToolError(resp) {
+			t.Error("want tool error for missing timezone")
+		}
+	})
+
+	t.Run("missing app_id", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "healthnoapp@mcp.test")
+		rawToken := "msr_healthnoapp"
+		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+
+		resp := callMCPTool(t, rawToken, "get_app_health_over_time", map[string]any{"timezone": "UTC"})
+		if !isToolError(resp) {
+			t.Error("want tool error for missing app_id")
+		}
+	})
+
+	t.Run("valid call with seeded data", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "health@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "health team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+
+		now := time.Now().UTC()
+		ts := now.Add(-1 * time.Hour)
+		// 5 plain sessions, 2 crash sessions (legacy fatal), 1 ANR session.
+		seedAppMetrics(ctx, t, teamID.String(), appID.String(), ts, 5, 2, 1)
+
+		rawToken := "msr_healthtoken"
+		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+
+		resp := callMCPTool(t, rawToken, "get_app_health_over_time", map[string]any{
+			"app_id":        appID.String(),
+			"timezone":      "UTC",
+			"versions":      []string{"v1"},
+			"version_codes": []string{"1"},
+			"from":          now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
+			"to":            now.Format(time.RFC3339),
+		})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+
+		content := extractTextContent(t, resp)
+		var result map[string][]struct {
+			DateTime  string `json:"datetime"`
+			Instances uint64 `json:"instances"`
+		}
+		if err := json.Unmarshal([]byte(content), &result); err != nil {
+			t.Fatalf("response is not the expected JSON object: %v\ncontent: %s", err, content)
+		}
+
+		sumInstances := func(series string) uint64 {
+			var total uint64
+			for _, pt := range result[series] {
+				total += pt.Instances
+			}
+			return total
+		}
+
+		for _, series := range []string{"sessions", "crashes", "anrs"} {
+			if _, ok := result[series]; !ok {
+				t.Errorf("response missing %q series", series)
+			}
+		}
+		if got := sumInstances("sessions"); got != 8 {
+			t.Errorf("sessions = %d, want 8 (5 generic + 2 crash + 1 anr)", got)
+		}
+		if got := sumInstances("crashes"); got != 2 {
+			t.Errorf("crashes = %d, want 2", got)
+		}
+		if got := sumInstances("anrs"); got != 1 {
+			t.Errorf("anrs = %d, want 1", got)
+		}
+	})
+}
+
 func TestMCPGetErrors_Crash(t *testing.T) {
 	ctx := context.Background()
 
@@ -1700,40 +1799,51 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 		rawToken := "msr_tok1"
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
 
-		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{"type": "crash"})
+		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{"error_types": []string{"error"}})
 		if !isToolError(resp) {
 			t.Error("want tool error for missing app_id")
 		}
 	})
 
-	t.Run("missing type", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "errnotype@mcp.test")
-		rawToken := "msr_errnotype"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
-
-		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
-			"app_id": uuid.New().String(),
-		})
-		if !isToolError(resp) {
-			t.Error("want tool error for missing type")
-		}
-	})
-
-	t.Run("invalid type value", func(t *testing.T) {
+	t.Run("invalid error_types value", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "u2@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "badtype team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
 		rawToken := "msr_tok2"
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
-			"type":   "invalid",
-			"app_id": uuid.New().String(),
+			"error_types": []string{"invalid"},
+			"app_id":      appID.String(),
 		})
 		if !isToolError(resp) {
-			t.Error("want tool error for invalid type")
+			t.Error("want tool error for invalid error_types")
+		}
+	})
+
+	t.Run("invalid severities value", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "u3@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "badsev team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := "msr_tok3"
+		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+
+		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
+			"severities": []string{"bogus"},
+			"app_id":     appID.String(),
+		})
+		if !isToolError(resp) {
+			t.Error("want tool error for invalid severities")
 		}
 	})
 
@@ -1748,8 +1858,8 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 		seedApp(ctx, t, appID, teamID, 30)
 
 		fingerprint := "fp-crash-1"
-		th.SeedExceptionGroup(ctx, t, teamID.String(), appID.String(), fingerprint)
-		th.SeedIssueEvent(ctx, t, teamID.String(), appID.String(), "exception", fingerprint, false, time.Now().Add(-1*time.Hour))
+		th.SeedFatalExceptionGroupWithCustomFlag(ctx, t, teamID.String(), appID.String(), fingerprint, false)
+		th.SeedIssueEventWithSeverity(ctx, t, teamID.String(), appID.String(), fingerprint, "fatal", time.Now().Add(-1*time.Hour))
 
 		rawToken := "msr_crashtoken"
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
@@ -1757,10 +1867,11 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 		now := time.Now().UTC()
 		from := now.Add(-7 * 24 * time.Hour)
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
-			"type":   "crash",
-			"app_id": appID.String(),
-			"from":   from.Format(time.RFC3339),
-			"to":     now.Format(time.RFC3339),
+			"error_types": []string{"error"},
+			"severities":  []string{"fatal"},
+			"app_id":      appID.String(),
+			"from":        from.Format(time.RFC3339),
+			"to":          now.Format(time.RFC3339),
 		})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
@@ -1786,11 +1897,12 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
-			"type":   "crash",
-			"app_id": appID.String(),
-			"limit":  0,
-			"from":   now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
-			"to":     now.Format(time.RFC3339),
+			"error_types": []string{"error"},
+			"severities":  []string{"fatal"},
+			"app_id":      appID.String(),
+			"limit":       0,
+			"from":        now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
+			"to":          now.Format(time.RFC3339),
 		})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
@@ -1811,11 +1923,12 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
-			"type":   "crash",
-			"app_id": appID.String(),
-			"limit":  500,
-			"from":   now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
-			"to":     now.Format(time.RFC3339),
+			"error_types": []string{"error"},
+			"severities":  []string{"fatal"},
+			"app_id":      appID.String(),
+			"limit":       500,
+			"from":        now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
+			"to":          now.Format(time.RFC3339),
 		})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
@@ -1848,10 +1961,10 @@ func TestMCPGetErrors_ANR(t *testing.T) {
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
-			"type":   "anr",
-			"app_id": appID.String(),
-			"from":   now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
-			"to":     now.Format(time.RFC3339),
+			"error_types": []string{"anr"},
+			"app_id":      appID.String(),
+			"from":        now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
+			"to":          now.Format(time.RFC3339),
 		})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
@@ -1867,39 +1980,6 @@ func TestMCPGetErrors_ANR(t *testing.T) {
 func TestMCPGetError_Crash(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("missing type", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "detnotype@mcp.test")
-		rawToken := "msr_detnotype"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
-
-		resp := callMCPTool(t, rawToken, "get_error", map[string]any{
-			"app_id":         uuid.New().String(),
-			"error_group_id": "fp-1",
-		})
-		if !isToolError(resp) {
-			t.Error("want tool error for missing type")
-		}
-	})
-
-	t.Run("invalid type", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "detbadtype@mcp.test")
-		rawToken := "msr_detbadtype"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
-
-		resp := callMCPTool(t, rawToken, "get_error", map[string]any{
-			"type":           "invalid",
-			"app_id":         uuid.New().String(),
-			"error_group_id": "fp-1",
-		})
-		if !isToolError(resp) {
-			t.Error("want tool error for invalid type")
-		}
-	})
-
 	t.Run("missing error_group_id", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
@@ -1908,7 +1988,6 @@ func TestMCPGetError_Crash(t *testing.T) {
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_error", map[string]any{
-			"type":   "crash",
 			"app_id": uuid.New().String(),
 		})
 		if !isToolError(resp) {
@@ -1927,14 +2006,13 @@ func TestMCPGetError_Crash(t *testing.T) {
 		seedApp(ctx, t, appID, teamID, 30)
 
 		fingerprint := "fp-detail-1"
-		th.SeedExceptionGroup(ctx, t, teamID.String(), appID.String(), fingerprint)
+		th.SeedFatalExceptionGroupWithCustomFlag(ctx, t, teamID.String(), appID.String(), fingerprint, false)
 
 		rawToken := "msr_dettoken"
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_error", map[string]any{
-			"type":           "crash",
 			"app_id":         appID.String(),
 			"error_group_id": fingerprint,
 			"from":           now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
@@ -1967,7 +2045,6 @@ func TestMCPGetError_Crash(t *testing.T) {
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_error", map[string]any{
-			"type":           "crash",
 			"app_id":         appID.String(),
 			"error_group_id": "fp-detail-2",
 			"limit":          0,
@@ -1995,7 +2072,6 @@ func TestMCPGetError_Crash(t *testing.T) {
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_error", map[string]any{
-			"type":           "crash",
 			"app_id":         appID.String(),
 			"error_group_id": "fp-detail-3",
 			"limit":          500,
@@ -2021,7 +2097,6 @@ func TestMCPGetError_ANR(t *testing.T) {
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_error", map[string]any{
-			"type":   "anr",
 			"app_id": uuid.New().String(),
 		})
 		if !isToolError(resp) {
@@ -2047,7 +2122,6 @@ func TestMCPGetError_ANR(t *testing.T) {
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_error", map[string]any{
-			"type":           "anr",
 			"app_id":         appID.String(),
 			"error_group_id": fingerprint,
 			"from":           now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
@@ -2082,7 +2156,7 @@ func TestMCPGetFilters(t *testing.T) {
 		}
 	})
 
-	t.Run("invalid type value", func(t *testing.T) {
+	t.Run("invalid error_types value", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "filtbad@mcp.test")
@@ -2095,11 +2169,33 @@ func TestMCPGetFilters(t *testing.T) {
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_filters", map[string]any{
-			"app_id": appID.String(),
-			"type":   "bogus",
+			"app_id":      appID.String(),
+			"error_types": []string{"bogus"},
 		})
 		if !isToolError(resp) {
-			t.Error("want tool error for invalid type value")
+			t.Error("want tool error for invalid error_types value")
+		}
+	})
+
+	t.Run("span and error_types are mutually exclusive", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "filtmutex@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "filtmutex team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := "msr_filtmutextok"
+		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+
+		resp := callMCPTool(t, rawToken, "get_filters", map[string]any{
+			"app_id":      appID.String(),
+			"error_types": []string{"error"},
+			"span":        true,
+		})
+		if !isToolError(resp) {
+			t.Error("want tool error when span and error_types are both set")
 		}
 	})
 
@@ -2117,7 +2213,8 @@ func TestMCPGetFilters(t *testing.T) {
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_filters", map[string]any{
-			"app_id": appID.String(),
+			"app_id":      appID.String(),
+			"error_types": []string{"error", "anr"},
 		})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
@@ -2331,23 +2428,16 @@ func TestMCPGetErrorOverviewPlot(t *testing.T) {
 		return appID, rawToken
 	}
 
-	t.Run("missing type", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "eplotnotype@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_errors_over_time", map[string]any{"app_id": appID.String(), "timezone": "UTC"})
-		if !isToolError(resp) {
-			t.Error("want tool error for missing type")
-		}
-	})
-	t.Run("invalid type", func(t *testing.T) {
+	t.Run("invalid error_types", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "eplotbadtype@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_errors_over_time", map[string]any{"type": "invalid", "app_id": appID.String(), "timezone": "UTC"})
+		resp := callMCPTool(t, rawToken, "get_errors_over_time", map[string]any{"error_types": []string{"invalid"}, "app_id": appID.String(), "timezone": "UTC"})
 		if !isToolError(resp) {
-			t.Error("want tool error for invalid type")
+			t.Error("want tool error for invalid error_types")
 		}
 	})
 	t.Run("missing timezone", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "eplotnotz@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_errors_over_time", map[string]any{"type": "crash", "app_id": appID.String()})
+		resp := callMCPTool(t, rawToken, "get_errors_over_time", map[string]any{"app_id": appID.String()})
 		if !isToolError(resp) {
 			t.Error("want tool error for missing timezone")
 		}
@@ -2355,7 +2445,7 @@ func TestMCPGetErrorOverviewPlot(t *testing.T) {
 	t.Run("valid crash plot call", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "eplot2@mcp.test")
 		now := time.Now().UTC()
-		resp := callMCPTool(t, rawToken, "get_errors_over_time", map[string]any{"type": "crash", "app_id": appID.String(), "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
+		resp := callMCPTool(t, rawToken, "get_errors_over_time", map[string]any{"error_types": []string{"error"}, "severities": []string{"fatal"}, "app_id": appID.String(), "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
@@ -2363,7 +2453,15 @@ func TestMCPGetErrorOverviewPlot(t *testing.T) {
 	t.Run("valid ANR plot call", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "eplotanr@mcp.test")
 		now := time.Now().UTC()
-		resp := callMCPTool(t, rawToken, "get_errors_over_time", map[string]any{"type": "anr", "app_id": appID.String(), "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
+		resp := callMCPTool(t, rawToken, "get_errors_over_time", map[string]any{"error_types": []string{"anr"}, "app_id": appID.String(), "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+	})
+	t.Run("valid no-filter plot call", func(t *testing.T) {
+		appID, rawToken := setupToolTest(t, "eplotall@mcp.test")
+		now := time.Now().UTC()
+		resp := callMCPTool(t, rawToken, "get_errors_over_time", map[string]any{"app_id": appID.String(), "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
@@ -2386,30 +2484,16 @@ func TestMCPGetErrorDetailPlot(t *testing.T) {
 		return appID, rawToken
 	}
 
-	t.Run("missing type", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "edplotnotype@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_error_over_time", map[string]any{"app_id": appID.String(), "error_group_id": "fp-1", "timezone": "UTC"})
-		if !isToolError(resp) {
-			t.Error("want tool error for missing type")
-		}
-	})
-	t.Run("invalid type", func(t *testing.T) {
-		_, rawToken := setupToolTest(t, "edplotbad@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_error_over_time", map[string]any{"type": "invalid", "app_id": uuid.New().String(), "error_group_id": "fp-1", "timezone": "UTC"})
-		if !isToolError(resp) {
-			t.Error("want tool error for invalid type")
-		}
-	})
 	t.Run("missing timezone", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "edplotnotz@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_error_over_time", map[string]any{"type": "crash", "app_id": appID.String(), "error_group_id": "fp-1"})
+		resp := callMCPTool(t, rawToken, "get_error_over_time", map[string]any{"app_id": appID.String(), "error_group_id": "fp-1"})
 		if !isToolError(resp) {
 			t.Error("want tool error for missing timezone")
 		}
 	})
 	t.Run("missing error_group_id", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "edplotnofp@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_error_over_time", map[string]any{"type": "crash", "app_id": appID.String(), "timezone": "UTC"})
+		resp := callMCPTool(t, rawToken, "get_error_over_time", map[string]any{"app_id": appID.String(), "timezone": "UTC"})
 		if !isToolError(resp) {
 			t.Error("want tool error for missing error_group_id")
 		}
@@ -2417,7 +2501,7 @@ func TestMCPGetErrorDetailPlot(t *testing.T) {
 	t.Run("valid call", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "edplot2@mcp.test")
 		now := time.Now().UTC()
-		resp := callMCPTool(t, rawToken, "get_error_over_time", map[string]any{"type": "crash", "app_id": appID.String(), "error_group_id": "fp-test-1", "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
+		resp := callMCPTool(t, rawToken, "get_error_over_time", map[string]any{"app_id": appID.String(), "error_group_id": "fp-test-1", "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
@@ -2440,23 +2524,9 @@ func TestMCPGetErrorDistribution(t *testing.T) {
 		return appID, rawToken
 	}
 
-	t.Run("missing type", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "edistnotype@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_error_distribution", map[string]any{"app_id": appID.String(), "error_group_id": "fp-1"})
-		if !isToolError(resp) {
-			t.Error("want tool error for missing type")
-		}
-	})
-	t.Run("invalid type", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "edistbadtype@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_error_distribution", map[string]any{"type": "invalid", "app_id": appID.String(), "error_group_id": "fp-1"})
-		if !isToolError(resp) {
-			t.Error("want tool error for invalid type")
-		}
-	})
 	t.Run("missing error_group_id", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "edistnofp@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_error_distribution", map[string]any{"type": "crash", "app_id": appID.String()})
+		resp := callMCPTool(t, rawToken, "get_error_distribution", map[string]any{"app_id": appID.String()})
 		if !isToolError(resp) {
 			t.Error("want tool error for missing error_group_id")
 		}
@@ -2464,7 +2534,7 @@ func TestMCPGetErrorDistribution(t *testing.T) {
 	t.Run("valid crash distribution", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "edist2@mcp.test")
 		now := time.Now().UTC()
-		resp := callMCPTool(t, rawToken, "get_error_distribution", map[string]any{"type": "crash", "app_id": appID.String(), "error_group_id": "fp-test-dist-1", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
+		resp := callMCPTool(t, rawToken, "get_error_distribution", map[string]any{"app_id": appID.String(), "error_group_id": "fp-test-dist-1", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
@@ -2472,7 +2542,7 @@ func TestMCPGetErrorDistribution(t *testing.T) {
 	t.Run("valid anr distribution", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "edist3@mcp.test")
 		now := time.Now().UTC()
-		resp := callMCPTool(t, rawToken, "get_error_distribution", map[string]any{"type": "anr", "app_id": appID.String(), "error_group_id": "fp-test-dist-2", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
+		resp := callMCPTool(t, rawToken, "get_error_distribution", map[string]any{"app_id": appID.String(), "error_group_id": "fp-test-dist-2", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
@@ -2516,15 +2586,36 @@ func TestMCPGetSessions(t *testing.T) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
 	})
-	for _, st := range []string{"crash", "anr", "issues"} {
-		t.Run("with session_type "+st, func(t *testing.T) {
-			appID, rawToken := setupToolTest(t, "sess"+st+"@mcp.test")
-			resp := callMCPTool(t, rawToken, "get_sessions", map[string]any{"app_id": appID.String(), "session_type": st, "from": from, "to": to})
+	errorFilterCases := []struct {
+		name string
+		args map[string]any
+	}{
+		{"crash", map[string]any{"error_types": []string{"error"}, "severities": []string{"fatal"}}},
+		{"anr", map[string]any{"error_types": []string{"anr"}}},
+		{"all errors", map[string]any{"error_types": []string{"error", "anr"}}},
+		{"handled", map[string]any{"severities": []string{"handled"}}},
+		{"custom only", map[string]any{"custom_errors_only": true}},
+	}
+	for _, ec := range errorFilterCases {
+		t.Run("with error filter "+ec.name, func(t *testing.T) {
+			appID, rawToken := setupToolTest(t, "sess"+strings.ReplaceAll(ec.name, " ", "")+"@mcp.test")
+			args := map[string]any{"app_id": appID.String(), "from": from, "to": to}
+			for k, v := range ec.args {
+				args[k] = v
+			}
+			resp := callMCPTool(t, rawToken, "get_sessions", args)
 			if isToolError(resp) {
 				t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 			}
 		})
 	}
+	t.Run("invalid severities", func(t *testing.T) {
+		appID, rawToken := setupToolTest(t, "sessbadsev@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_sessions", map[string]any{"app_id": appID.String(), "severities": []string{"nope"}, "from": from, "to": to})
+		if !isToolError(resp) {
+			t.Error("want tool error for invalid severities")
+		}
+	})
 	for _, filter := range []string{"foreground", "background", "user_interaction"} {
 		t.Run("with "+filter+" filter", func(t *testing.T) {
 			appID, rawToken := setupToolTest(t, "sess"+filter+"@mcp.test")
@@ -2570,6 +2661,14 @@ func TestMCPGetSessionsOverTime(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "splot2@mcp.test")
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_sessions_over_time", map[string]any{"app_id": appID.String(), "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+	})
+	t.Run("valid call with error filter", func(t *testing.T) {
+		appID, rawToken := setupToolTest(t, "sploterr@mcp.test")
+		now := time.Now().UTC()
+		resp := callMCPTool(t, rawToken, "get_sessions_over_time", map[string]any{"app_id": appID.String(), "error_types": []string{"error"}, "severities": []string{"fatal"}, "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
@@ -3304,11 +3403,12 @@ func TestMCPAccessControl(t *testing.T) {
 	}{
 		{"get_filters", map[string]any{"app_id": appA.String()}},
 		{"get_metrics", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
-		{"get_errors", map[string]any{"app_id": appA.String(), "type": "crash", "from": from, "to": to}},
-		{"get_error", map[string]any{"app_id": appA.String(), "type": "crash", "error_group_id": "fp-1", "from": from, "to": to}},
-		{"get_errors_over_time", map[string]any{"app_id": appA.String(), "type": "crash", "timezone": "UTC", "from": from, "to": to}},
-		{"get_error_over_time", map[string]any{"app_id": appA.String(), "type": "crash", "error_group_id": "fp-1", "timezone": "UTC", "from": from, "to": to}},
-		{"get_error_distribution", map[string]any{"app_id": appA.String(), "type": "crash", "error_group_id": "fp-1", "from": from, "to": to}},
+		{"get_app_health_over_time", map[string]any{"app_id": appA.String(), "timezone": "UTC", "from": from, "to": to}},
+		{"get_errors", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
+		{"get_error", map[string]any{"app_id": appA.String(), "error_group_id": "fp-1", "from": from, "to": to}},
+		{"get_errors_over_time", map[string]any{"app_id": appA.String(), "timezone": "UTC", "from": from, "to": to}},
+		{"get_error_over_time", map[string]any{"app_id": appA.String(), "error_group_id": "fp-1", "timezone": "UTC", "from": from, "to": to}},
+		{"get_error_distribution", map[string]any{"app_id": appA.String(), "error_group_id": "fp-1", "from": from, "to": to}},
 		{"get_sessions", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
 		{"get_sessions_over_time", map[string]any{"app_id": appA.String(), "timezone": "UTC", "from": from, "to": to}},
 		{"get_session", map[string]any{"app_id": appA.String(), "session_id": uuid.New().String()}},
@@ -3347,7 +3447,7 @@ func TestMCPInvalidAppIDFormat(t *testing.T) {
 		args map[string]any
 	}{
 		{"get_filters", map[string]any{"app_id": "not-a-uuid"}},
-		{"get_errors", map[string]any{"app_id": "not-a-uuid", "type": "crash"}},
+		{"get_errors", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_sessions", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_metrics", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_bug_reports", map[string]any{"app_id": "not-a-uuid"}},
@@ -3357,7 +3457,7 @@ func TestMCPInvalidAppIDFormat(t *testing.T) {
 		{"get_trace", map[string]any{"app_id": "not-a-uuid", "trace_id": "some-id"}},
 		{"get_alerts", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_journey", map[string]any{"app_id": "not-a-uuid"}},
-		{"get_error_common_path", map[string]any{"app_id": "not-a-uuid", "type": "crash", "error_group_id": "fp-1"}},
+		{"get_error_common_path", map[string]any{"app_id": "not-a-uuid", "error_group_id": "fp-1"}},
 		{"update_bug_report_status", map[string]any{"app_id": "not-a-uuid", "bug_report_id": "some-id", "status": 1}},
 	}
 
@@ -3389,32 +3489,6 @@ func TestMCPUnknownTool(t *testing.T) {
 func TestMCPGetErrorCommonPath(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("missing type", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "cp1@mcp.test")
-		rawToken := "msr_cptok1"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
-
-		resp := callMCPTool(t, rawToken, "get_error_common_path", map[string]any{"app_id": uuid.New().String(), "error_group_id": "fp-1"})
-		if !isToolError(resp) {
-			t.Error("want tool error for missing type")
-		}
-	})
-
-	t.Run("invalid type value", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "cp2@mcp.test")
-		rawToken := "msr_cptok2"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
-
-		resp := callMCPTool(t, rawToken, "get_error_common_path", map[string]any{"app_id": uuid.New().String(), "type": "invalid", "error_group_id": "fp-1"})
-		if !isToolError(resp) {
-			t.Error("want tool error for invalid type")
-		}
-	})
-
 	t.Run("missing error_group_id", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
@@ -3422,7 +3496,7 @@ func TestMCPGetErrorCommonPath(t *testing.T) {
 		rawToken := "msr_cptok3"
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
 
-		resp := callMCPTool(t, rawToken, "get_error_common_path", map[string]any{"app_id": uuid.New().String(), "type": "crash"})
+		resp := callMCPTool(t, rawToken, "get_error_common_path", map[string]any{"app_id": uuid.New().String()})
 		if !isToolError(resp) {
 			t.Error("want tool error for missing error_group_id")
 		}
@@ -3438,11 +3512,11 @@ func TestMCPGetErrorCommonPath(t *testing.T) {
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
 		fingerprint := "fp-cp-crash-1"
-		th.SeedExceptionGroup(ctx, t, teamID.String(), appID.String(), fingerprint)
+		th.SeedFatalExceptionGroupWithCustomFlag(ctx, t, teamID.String(), appID.String(), fingerprint, false)
 		rawToken := "msr_cptok6"
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
-		resp := callMCPTool(t, rawToken, "get_error_common_path", map[string]any{"app_id": appID.String(), "type": "crash", "error_group_id": fingerprint})
+		resp := callMCPTool(t, rawToken, "get_error_common_path", map[string]any{"app_id": appID.String(), "error_group_id": fingerprint})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
@@ -3473,7 +3547,7 @@ func TestMCPGetErrorCommonPath(t *testing.T) {
 		rawToken := "msr_cptok7"
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
-		resp := callMCPTool(t, rawToken, "get_error_common_path", map[string]any{"app_id": appID.String(), "type": "anr", "error_group_id": fingerprint})
+		resp := callMCPTool(t, rawToken, "get_error_common_path", map[string]any{"app_id": appID.String(), "error_group_id": fingerprint})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
