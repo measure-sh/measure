@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Fix bug report status description in table comment + code by @anupcowkur in #3859
 - (**backend**): Correct p99 quantile level in span_metrics by @anupcowkur in #3855
 - (**backend**): Guard against nil team in MCP app resolution by @anupcowkur in #3841
 - (**backend**): Return thread_name in error detail responses (#3830) by @abhaysood in #3830
