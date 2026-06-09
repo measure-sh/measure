@@ -43,8 +43,8 @@ type BugReportInstance struct {
 type BugReportStatusUpdatePayload struct {
 	// Status represents the status of the bug report.
 	//
-	// - 0 (closed)
-	// - 1 (open)
+	// - 0 (open)
+	// - 1 (closed)
 	//
 	// pointer differentiates between 0 and nil, to validate
 	// non-existant status.
