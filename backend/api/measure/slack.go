@@ -2,11 +2,15 @@ package measure
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -490,7 +494,85 @@ func getSlackChannelName(botToken, channelID string) string {
 	return res.Channel.Name
 }
 
+// slackSignatureVersion is the version Slack prepends to the signature base
+// string and to the signature itself.
+const slackSignatureVersion = "v0"
+
+// slackRequestMaxAge is the maximum age of an incoming Slack request we accept.
+// Slack recommends rejecting requests older than five minutes to guard against
+// replay attacks.
+const slackRequestMaxAge = 5 * time.Minute
+
+// computeSlackSignature builds the value Slack puts in the X-Slack-Signature
+// header: the HMAC-SHA256 of the "v0:{timestamp}:{body}" base string, keyed with
+// the signing secret, hex-encoded and prefixed with "v0=".
+func computeSlackSignature(signingSecret, timestamp string, body []byte) string {
+	baseString := fmt.Sprintf("%s:%s:%s", slackSignatureVersion, timestamp, body)
+	mac := hmac.New(sha256.New, []byte(signingSecret))
+	mac.Write([]byte(baseString))
+	return slackSignatureVersion + "=" + hex.EncodeToString(mac.Sum(nil))
+}
+
+// verifySlackSignature verifies that a request body genuinely came from Slack
+// using the app's signing secret, following the scheme described at
+// https://api.slack.com/authentication/verifying-requests-from-slack. It
+// recomputes the HMAC-SHA256 of "v0:{timestamp}:{body}" keyed with the signing
+// secret and compares it against the X-Slack-Signature header in constant time.
+// Requests whose timestamp falls outside the allowed window are rejected.
+func verifySlackSignature(header http.Header, body []byte, signingSecret string) error {
+	timestamp := header.Get("X-Slack-Request-Timestamp")
+	if timestamp == "" {
+		return fmt.Errorf("missing X-Slack-Request-Timestamp header")
+	}
+
+	signature := header.Get("X-Slack-Signature")
+	if signature == "" {
+		return fmt.Errorf("missing X-Slack-Signature header")
+	}
+
+	ts, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid X-Slack-Request-Timestamp header: %w", err)
+	}
+
+	if age := time.Since(time.Unix(ts, 0)); age > slackRequestMaxAge || age < -slackRequestMaxAge {
+		return fmt.Errorf("stale X-Slack-Request-Timestamp header")
+	}
+
+	expected := computeSlackSignature(signingSecret, timestamp, body)
+
+	if !hmac.Equal([]byte(expected), []byte(signature)) {
+		return fmt.Errorf("signature mismatch")
+	}
+
+	return nil
+}
+
 func HandleSlackEvents(c *gin.Context) {
+	signingSecret := server.Server.Config.SlackSigningSecret
+	if signingSecret == "" {
+		fmt.Println("SLACK_SIGNING_SECRET is not configured, rejecting Slack request")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Slack signing secret not configured"})
+		return
+	}
+
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		msg := `failed to read request body`
+		fmt.Println(msg, err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	if err := verifySlackSignature(c.Request.Header, body, signingSecret); err != nil {
+		fmt.Println("Slack request verification failed:", err)
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid Slack signature"})
+		return
+	}
+
+	// Restore the body that the verification step consumed so the form binding
+	// below can read it again.
+	c.Request.Body = io.NopCloser(bytes.NewReader(body))
 
 	var payload struct {
 		Command     string `form:"command"`
