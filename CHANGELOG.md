@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Correct p99 quantile level in span_metrics by @anupcowkur in #3855
 - (**backend**): Guard against nil team in MCP app resolution by @anupcowkur in #3841
 - (**backend**): Return thread_name in error detail responses (#3830) by @abhaysood in #3830
 - (**backend**): Per-severity error group counts (#3827) by @detj in #3827
@@ -87,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Remove unused schema.sql files by @anupcowkur in #3856
 - (**backend**): Limit to 5 event attachments (#3833) by @detj in #3833
 - (**backend**): Switch to pgsty minio (#3831) by @detj in #3831
 - (**backend**): Upgrade to clickhouse 26.2 (#3808) by @detj in #3808
