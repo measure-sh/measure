@@ -80,43 +80,58 @@ services:
         TARGETTYPE: debug
     ports:
       - "8080:8080"
+    secrets:
+      - postgres-dsn
+      - clickhouse-dsn
+      - clickhouse-reader-dsn
+      - symbols-secret-access-key
+      - attachments-secret-access-key
+      - smtp-password
+      - slack-client-secret
+      - ga4-measurement-protocol-secret
+      - autumn-secret-key
+      - autumn-webhook-secret
+      - oauth-google-secret
+      - oauth-github-secret
+      - session-access-secret
+      - session-refresh-secret
     environment:
       - BILLING_ENABLED=${BILLING_ENABLED}
-      - AUTUMN_SECRET_KEY=${AUTUMN_SECRET_KEY}
-      - AUTUMN_WEBHOOK_SECRET=${AUTUMN_WEBHOOK_SECRET}
-      - POSTGRES_DSN=${POSTGRES_DSN}
-      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
-      - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
+      - AUTUMN_SECRET_KEY_FILE=/run/secrets/autumn-secret-key
+      - AUTUMN_WEBHOOK_SECRET_FILE=/run/secrets/autumn-webhook-secret
+      - POSTGRES_DSN_FILE=/run/secrets/postgres-dsn
+      - CLICKHOUSE_DSN_FILE=/run/secrets/clickhouse-dsn
+      - CLICKHOUSE_READER_DSN_FILE=/run/secrets/clickhouse-reader-dsn
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_HOST=${REDIS_HOST}
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
       - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
       - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
       - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
-      - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
+      - SYMBOLS_SECRET_ACCESS_KEY_FILE=/run/secrets/symbols-secret-access-key
       - SYMBOLICATOR_ORIGIN=${SYMBOLICATOR_ORIGIN}
       - ATTACHMENTS_S3_ORIGIN=${ATTACHMENTS_S3_ORIGIN:-}
       - ATTACHMENTS_S3_BUCKET=${ATTACHMENTS_S3_BUCKET}
       - ATTACHMENTS_S3_BUCKET_REGION=${ATTACHMENTS_S3_BUCKET_REGION}
       - ATTACHMENTS_ACCESS_KEY=${ATTACHMENTS_ACCESS_KEY}
-      - ATTACHMENTS_SECRET_ACCESS_KEY=${ATTACHMENTS_SECRET_ACCESS_KEY}
+      - ATTACHMENTS_SECRET_ACCESS_KEY_FILE=/run/secrets/attachments-secret-access-key
       - SITE_ORIGIN=${NEXT_PUBLIC_SITE_URL}
       - API_ORIGIN=${NEXT_PUBLIC_API_BASE_URL}
       - OAUTH_GOOGLE_KEY=${OAUTH_GOOGLE_KEY}
-      - OAUTH_GOOGLE_SECRET=${OAUTH_GOOGLE_SECRET}
+      - OAUTH_GOOGLE_SECRET_FILE=/run/secrets/oauth-google-secret
       - OAUTH_GITHUB_KEY=${OAUTH_GITHUB_KEY}
-      - OAUTH_GITHUB_SECRET=${OAUTH_GITHUB_SECRET}
-      - SESSION_ACCESS_SECRET=${SESSION_ACCESS_SECRET}
-      - SESSION_REFRESH_SECRET=${SESSION_REFRESH_SECRET}
+      - OAUTH_GITHUB_SECRET_FILE=/run/secrets/oauth-github-secret
+      - SESSION_ACCESS_SECRET_FILE=/run/secrets/session-access-secret
+      - SESSION_REFRESH_SECRET_FILE=/run/secrets/session-refresh-secret
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
       - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_PASSWORD_FILE=/run/secrets/smtp-password
       - EMAIL_DOMAIN=${EMAIL_DOMAIN}
       - SLACK_CLIENT_ID=${SLACK_CLIENT_ID}
-      - SLACK_CLIENT_SECRET=${SLACK_CLIENT_SECRET}
+      - SLACK_CLIENT_SECRET_FILE=/run/secrets/slack-client-secret
       - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-}
-      - GA4_MEASUREMENT_PROTOCOL_SECRET=${GA4_MEASUREMENT_PROTOCOL_SECRET:-}
+      - GA4_MEASUREMENT_PROTOCOL_SECRET_FILE=/run/secrets/ga4-measurement-protocol-secret
       - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
       - POSTHOG_HOST=${POSTHOG_HOST:-}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
@@ -174,9 +189,16 @@ services:
       - "8086"
     deploy:
       replicas: 3
+    secrets:
+      - postgres-dsn
+      - clickhouse-dsn
+      - symbols-secret-access-key
+      - attachments-secret-access-key
+      - autumn-secret-key
+      - ga4-measurement-protocol-secret
     environment:
-      - POSTGRES_DSN=${POSTGRES_DSN}
-      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - POSTGRES_DSN_FILE=/run/secrets/postgres-dsn
+      - CLICKHOUSE_DSN_FILE=/run/secrets/clickhouse-dsn
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_HOST=${REDIS_HOST}
       - IGGY_ADDR=${IGGY_ADDR}
@@ -186,11 +208,11 @@ services:
       - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
       - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
       - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
-      - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
+      - SYMBOLS_SECRET_ACCESS_KEY_FILE=/run/secrets/symbols-secret-access-key
       - ATTACHMENTS_S3_BUCKET=${ATTACHMENTS_S3_BUCKET}
       - ATTACHMENTS_S3_BUCKET_REGION=${ATTACHMENTS_S3_BUCKET_REGION}
       - ATTACHMENTS_ACCESS_KEY=${ATTACHMENTS_ACCESS_KEY}
-      - ATTACHMENTS_SECRET_ACCESS_KEY=${ATTACHMENTS_SECRET_ACCESS_KEY}
+      - ATTACHMENTS_SECRET_ACCESS_KEY_FILE=/run/secrets/attachments-secret-access-key
       - SYSTEM_SYMBOLS_S3_BUCKET=${SYSTEM_SYMBOLS_S3_BUCKET}
       - SYMBOLICATOR_ORIGIN=${SYMBOLICATOR_ORIGIN}
       - SYMBOLOADER_ORIGIN=${SYMBOLOADER_ORIGIN}
@@ -199,9 +221,9 @@ services:
       - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
       - BILLING_ENABLED=${BILLING_ENABLED}
-      - AUTUMN_SECRET_KEY=${AUTUMN_SECRET_KEY}
+      - AUTUMN_SECRET_KEY_FILE=/run/secrets/autumn-secret-key
       - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-}
-      - GA4_MEASUREMENT_PROTOCOL_SECRET=${GA4_MEASUREMENT_PROTOCOL_SECRET:-}
+      - GA4_MEASUREMENT_PROTOCOL_SECRET_FILE=/run/secrets/ga4-measurement-protocol-secret
       - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
       - POSTHOG_HOST=${POSTHOG_HOST:-}
       - PORT=8086
@@ -258,11 +280,17 @@ services:
         TARGETTYPE: debug
     ports:
       - "8085:8085"
+    secrets:
+      - postgres-dsn
+      - clickhouse-dsn
+      - symbols-secret-access-key
+      - attachments-secret-access-key
+      - autumn-secret-key
     environment:
       - BILLING_ENABLED=${BILLING_ENABLED}
-      - AUTUMN_SECRET_KEY=${AUTUMN_SECRET_KEY}
-      - POSTGRES_DSN=${POSTGRES_DSN}
-      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - AUTUMN_SECRET_KEY_FILE=/run/secrets/autumn-secret-key
+      - POSTGRES_DSN_FILE=/run/secrets/postgres-dsn
+      - CLICKHOUSE_DSN_FILE=/run/secrets/clickhouse-dsn
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_HOST=${REDIS_HOST}
       - IGGY_ADDR=${IGGY_ADDR}
@@ -272,11 +300,11 @@ services:
       - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
       - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
       - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
-      - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
+      - SYMBOLS_SECRET_ACCESS_KEY_FILE=/run/secrets/symbols-secret-access-key
       - ATTACHMENTS_S3_BUCKET=${ATTACHMENTS_S3_BUCKET}
       - ATTACHMENTS_S3_BUCKET_REGION=${ATTACHMENTS_S3_BUCKET_REGION}
       - ATTACHMENTS_ACCESS_KEY=${ATTACHMENTS_ACCESS_KEY}
-      - ATTACHMENTS_SECRET_ACCESS_KEY=${ATTACHMENTS_SECRET_ACCESS_KEY}
+      - ATTACHMENTS_SECRET_ACCESS_KEY_FILE=/run/secrets/attachments-secret-access-key
       - API_ORIGIN=${NEXT_PUBLIC_API_BASE_URL}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
       - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
@@ -328,20 +356,27 @@ services:
     build:
       dockerfile: dockerfile
       context: ../backend/cleanup
+      additional_contexts:
+        libs: ../backend/libs
       args:
         TARGETTYPE: debug
     ports:
       - "8081:8081"
+    secrets:
+      - postgres-dsn
+      - clickhouse-dsn
+      - clickhouse-reader-dsn
+      - attachments-secret-access-key
     environment:
-      - POSTGRES_DSN=${POSTGRES_DSN}
-      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
-      - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
+      - POSTGRES_DSN_FILE=/run/secrets/postgres-dsn
+      - CLICKHOUSE_DSN_FILE=/run/secrets/clickhouse-dsn
+      - CLICKHOUSE_READER_DSN_FILE=/run/secrets/clickhouse-reader-dsn
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
       - ATTACHMENTS_S3_ORIGIN=${ATTACHMENTS_S3_ORIGIN}
       - ATTACHMENTS_S3_BUCKET=${ATTACHMENTS_S3_BUCKET}
       - ATTACHMENTS_S3_BUCKET_REGION=${ATTACHMENTS_S3_BUCKET_REGION}
       - ATTACHMENTS_ACCESS_KEY=${ATTACHMENTS_ACCESS_KEY}
-      - ATTACHMENTS_SECRET_ACCESS_KEY=${ATTACHMENTS_SECRET_ACCESS_KEY}
+      - ATTACHMENTS_SECRET_ACCESS_KEY_FILE=/run/secrets/attachments-secret-access-key
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
       - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
@@ -383,20 +418,25 @@ services:
         TARGETTYPE: debug
     ports:
       - "8082:8082"
+    secrets:
+      - postgres-dsn
+      - clickhouse-dsn
+      - smtp-password
+      - autumn-secret-key
     environment:
-      - POSTGRES_DSN=${POSTGRES_DSN}
-      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - POSTGRES_DSN_FILE=/run/secrets/postgres-dsn
+      - CLICKHOUSE_DSN_FILE=/run/secrets/clickhouse-dsn
       - SITE_ORIGIN=${NEXT_PUBLIC_SITE_URL}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
       - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_PASSWORD_FILE=/run/secrets/smtp-password
       - EMAIL_DOMAIN=${EMAIL_DOMAIN}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
       - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
       - BILLING_ENABLED=${BILLING_ENABLED}
-      - AUTUMN_SECRET_KEY=${AUTUMN_SECRET_KEY}
+      - AUTUMN_SECRET_KEY_FILE=/run/secrets/autumn-secret-key
     develop:
       watch:
         - path: ../backend/alerts
@@ -434,14 +474,16 @@ services:
       - "8083:8083"
     secrets:
       - drive-api-key
+      - postgres-dsn
+      - symbols-secret-access-key
     environment:
-      - POSTGRES_DSN=${POSTGRES_DSN}
+      - POSTGRES_DSN_FILE=/run/secrets/postgres-dsn
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
       - SYSTEM_SYMBOLS_S3_BUCKET=${SYSTEM_SYMBOLS_S3_BUCKET}
       - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
       - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
       - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
-      - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
+      - SYMBOLS_SECRET_ACCESS_KEY_FILE=/run/secrets/symbols-secret-access-key
       - DRIVE_API_KEY_FILE=/run/secrets/drive-api-key
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
       - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
@@ -472,17 +514,24 @@ services:
     build:
       dockerfile: dockerfile
       context: ../backend/migrator
+      additional_contexts:
+        libs: ../backend/libs
       args:
         TARGETTYPE: debug
+    secrets:
+      - postgres-dsn
+      - clickhouse-dsn
+      - clickhouse-reader-dsn
+      - symbols-secret-access-key
     environment:
-      - POSTGRES_DSN=${POSTGRES_DSN}
-      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
-      - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
+      - POSTGRES_DSN_FILE=/run/secrets/postgres-dsn
+      - CLICKHOUSE_DSN_FILE=/run/secrets/clickhouse-dsn
+      - CLICKHOUSE_READER_DSN_FILE=/run/secrets/clickhouse-reader-dsn
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
       - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
       - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
       - SYMBOLS_ACCESS_KEY=${SYMBOLS_ACCESS_KEY}
-      - SYMBOLS_SECRET_ACCESS_KEY=${SYMBOLS_SECRET_ACCESS_KEY}
+      - SYMBOLS_SECRET_ACCESS_KEY_FILE=/run/secrets/symbols-secret-access-key
     develop:
       watch:
         - path: ../backend/migrator
@@ -727,3 +776,31 @@ volumes:
 secrets:
   drive-api-key:
     environment: "DRIVE_API_KEY"
+  session-access-secret:
+    environment: "SESSION_ACCESS_SECRET"
+  session-refresh-secret:
+    environment: "SESSION_REFRESH_SECRET"
+  postgres-dsn:
+    environment: "POSTGRES_DSN"
+  clickhouse-dsn:
+    environment: "CLICKHOUSE_DSN"
+  clickhouse-reader-dsn:
+    environment: "CLICKHOUSE_READER_DSN"
+  symbols-secret-access-key:
+    environment: "SYMBOLS_SECRET_ACCESS_KEY"
+  attachments-secret-access-key:
+    environment: "ATTACHMENTS_SECRET_ACCESS_KEY"
+  smtp-password:
+    environment: "SMTP_PASSWORD"
+  slack-client-secret:
+    environment: "SLACK_CLIENT_SECRET"
+  ga4-measurement-protocol-secret:
+    environment: "GA4_MEASUREMENT_PROTOCOL_SECRET"
+  autumn-secret-key:
+    environment: "AUTUMN_SECRET_KEY"
+  autumn-webhook-secret:
+    environment: "AUTUMN_WEBHOOK_SECRET"
+  oauth-google-secret:
+    environment: "OAUTH_GOOGLE_SECRET"
+  oauth-github-secret:
+    environment: "OAUTH_GITHUB_SECRET"

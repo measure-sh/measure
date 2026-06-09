@@ -3,6 +3,8 @@ package pipeline
 import (
 	"errors"
 	"os"
+
+	"backend/libs/secret"
 )
 
 var (
@@ -23,11 +25,16 @@ type StorageEnv struct {
 // StorageEnvFromEnv reads storage configuration from environment variables.
 // Returns an error if required variables are absent.
 func StorageEnvFromEnv() (StorageEnv, error) {
+	secretKey, err := secret.FromEnvOrFile("SYMBOLS_SECRET_ACCESS_KEY")
+	if err != nil {
+		return StorageEnv{}, err
+	}
+
 	env := StorageEnv{
 		Bucket:    os.Getenv("SYSTEM_SYMBOLS_S3_BUCKET"),
 		Region:    os.Getenv("SYMBOLS_S3_BUCKET_REGION"),
 		AccessKey: os.Getenv("SYMBOLS_ACCESS_KEY"),
-		SecretKey: os.Getenv("SYMBOLS_SECRET_ACCESS_KEY"),
+		SecretKey: secretKey,
 		Endpoint:  os.Getenv("AWS_ENDPOINT_URL"),
 		IsCloud:   os.Getenv("CLOUD_RUN_JOB") != "" && os.Getenv("CLOUD_RUN_EXECUTION") != "",
 	}

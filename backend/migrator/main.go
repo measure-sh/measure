@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"migrator/migrate"
 	"os"
+
+	"backend/libs/secret"
+	"migrator/migrate"
 
 	"github.com/spf13/cobra"
 )
@@ -88,7 +90,10 @@ func loadMigrations() {
 		symbolsBucket := os.Getenv("SYMBOLS_S3_BUCKET")
 		symbolsBucketRegion := os.Getenv("SYMBOLS_S3_BUCKET_REGION")
 		symbolsAccessKey := os.Getenv("SYMBOLS_ACCESS_KEY")
-		symbolsSecretAccessKey := os.Getenv("SYMBOLS_SECRET_ACCESS_KEY")
+		symbolsSecretAccessKey, err := secret.FromEnvOrFile("SYMBOLS_SECRET_ACCESS_KEY")
+		if err != nil {
+			return
+		}
 
 		symbolsConfig := migrate.SymbolsConfig{
 			EndpointUrl:     endpointUrl,
@@ -112,7 +117,10 @@ func loadMigrations() {
 		symbolsBucket := os.Getenv("SYMBOLS_S3_BUCKET")
 		symbolsBucketRegion := os.Getenv("SYMBOLS_S3_BUCKET_REGION")
 		symbolsAccessKey := os.Getenv("SYMBOLS_ACCESS_KEY")
-		symbolsSecretAccessKey := os.Getenv("SYMBOLS_SECRET_ACCESS_KEY")
+		symbolsSecretAccessKey, err := secret.FromEnvOrFile("SYMBOLS_SECRET_ACCESS_KEY")
+		if err != nil {
+			return err
+		}
 
 		symbolsConfig := migrate.SymbolsConfig{
 			EndpointUrl:     endpointUrl,

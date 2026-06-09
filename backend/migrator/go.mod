@@ -3,6 +3,7 @@ module migrator
 go 1.25.7
 
 require (
+	backend/libs v0.0.0
 	github.com/aws/aws-sdk-go-v2 v1.41.6
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.100.0
 	github.com/google/uuid v1.6.0
@@ -23,3 +24,5 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 )
+
+replace backend/libs => ../libs

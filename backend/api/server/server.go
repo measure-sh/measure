@@ -14,6 +14,7 @@ import (
 	"backend/libs/ga4"
 	"backend/libs/inet"
 	"backend/libs/posthog"
+	"backend/libs/secret"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -162,7 +163,10 @@ func NewConfig() *ServerConfig {
 		log.Println("SYMBOLS_ACCESS_KEY env var not set, mapping file uploads won't work")
 	}
 
-	symbolsSecretAccessKey := os.Getenv("SYMBOLS_SECRET_ACCESS_KEY")
+	symbolsSecretAccessKey, secErr := secret.FromEnvOrFile("SYMBOLS_SECRET_ACCESS_KEY")
+	if secErr != nil {
+		log.Printf("failed to read SYMBOLS_SECRET_ACCESS_KEY: %v", secErr)
+	}
 	if symbolsSecretAccessKey == "" {
 		log.Println("SYMBOLS_SECRET_ACCESS_KEY env var not set, mapping file uploads won't work")
 	}
@@ -182,7 +186,10 @@ func NewConfig() *ServerConfig {
 		log.Println("ATTACHMENTS_ACCESS_KEY env var not set, event attachment uploads won't work")
 	}
 
-	attachmentsSecretAccessKey := os.Getenv("ATTACHMENTS_SECRET_ACCESS_KEY")
+	attachmentsSecretAccessKey, secErr := secret.FromEnvOrFile("ATTACHMENTS_SECRET_ACCESS_KEY")
+	if secErr != nil {
+		log.Printf("failed to read ATTACHMENTS_SECRET_ACCESS_KEY: %v", secErr)
+	}
 	if attachmentsSecretAccessKey == "" {
 		log.Println("ATTACHMENTS_SECRET_ACCESS_KEY env var not set, event attachment uploads won't work")
 	}
@@ -212,7 +219,10 @@ func NewConfig() *ServerConfig {
 		log.Println("OAUTH_GITHUB_KEY env var is not set, dashboard authn won't work")
 	}
 
-	oauthGitHubSecret := os.Getenv("OAUTH_GITHUB_SECRET")
+	oauthGitHubSecret, secErr := secret.FromEnvOrFile("OAUTH_GITHUB_SECRET")
+	if secErr != nil {
+		log.Printf("failed to read OAUTH_GITHUB_SECRET: %v", secErr)
+	}
 	if oauthGitHubSecret == "" {
 		log.Println("OAUTH_GITHUB_SECRET env var is not set, dashboard authn won't work")
 	}
@@ -222,32 +232,50 @@ func NewConfig() *ServerConfig {
 		log.Println("OAUTH_GOOGLE_KEY env var is not set, dashboard authn won't work")
 	}
 
-	oauthGoogleSecret := os.Getenv("OAUTH_GOOGLE_SECRET")
+	oauthGoogleSecret, secErr := secret.FromEnvOrFile("OAUTH_GOOGLE_SECRET")
+	if secErr != nil {
+		log.Printf("failed to read OAUTH_GOOGLE_SECRET: %v", secErr)
+	}
 	if oauthGoogleSecret == "" {
 		log.Println("OAUTH_GOOGLE_SECRET env var is not set, Google sign-in won't work")
 	}
 
-	atSecret := os.Getenv("SESSION_ACCESS_SECRET")
+	atSecret, atErr := secret.FromEnvOrFile("SESSION_ACCESS_SECRET")
+	if atErr != nil {
+		log.Printf("failed to read SESSION_ACCESS_SECRET: %v", atErr)
+	}
 	if atSecret == "" {
 		log.Println("SESSION_ACCESS_SECRET env var is not set, dashboard authn won't work")
 	}
 
-	rtSecret := os.Getenv("SESSION_REFRESH_SECRET")
+	rtSecret, secErr := secret.FromEnvOrFile("SESSION_REFRESH_SECRET")
+	if secErr != nil {
+		log.Printf("failed to read SESSION_REFRESH_SECRET: %v", secErr)
+	}
 	if rtSecret == "" {
 		log.Println("SESSION_REFRESH_SECRET env var is not set, dashboard authn won't work")
 	}
 
-	postgresDSN := os.Getenv("POSTGRES_DSN")
+	postgresDSN, secErr := secret.FromEnvOrFile("POSTGRES_DSN")
+	if secErr != nil {
+		log.Printf("failed to read POSTGRES_DSN: %v", secErr)
+	}
 	if postgresDSN == "" {
 		log.Println("POSTGRES_DSN env var is not set, cannot start server")
 	}
 
-	clickhouseDSN := os.Getenv("CLICKHOUSE_DSN")
+	clickhouseDSN, secErr := secret.FromEnvOrFile("CLICKHOUSE_DSN")
+	if secErr != nil {
+		log.Printf("failed to read CLICKHOUSE_DSN: %v", secErr)
+	}
 	if clickhouseDSN == "" {
 		log.Println("CLICKHOUSE_DSN env var is not set, cannot start server")
 	}
 
-	clickhouseReaderDSN := os.Getenv("CLICKHOUSE_READER_DSN")
+	clickhouseReaderDSN, secErr := secret.FromEnvOrFile("CLICKHOUSE_READER_DSN")
+	if secErr != nil {
+		log.Printf("failed to read CLICKHOUSE_READER_DSN: %v", secErr)
+	}
 	if clickhouseReaderDSN == "" {
 		log.Println("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
 	}
@@ -282,7 +310,10 @@ func NewConfig() *ServerConfig {
 		log.Println("SMTP_USER env var is not set, emails will not work")
 	}
 
-	smtpPassword := os.Getenv("SMTP_PASSWORD")
+	smtpPassword, secErr := secret.FromEnvOrFile("SMTP_PASSWORD")
+	if secErr != nil {
+		log.Printf("failed to read SMTP_PASSWORD: %v", secErr)
+	}
 	if smtpPassword == "" {
 		log.Println("SMTP_PASSWORD env var is not set, emails will not work")
 	}
@@ -308,17 +339,26 @@ func NewConfig() *ServerConfig {
 		log.Println("SLACK_CLIENT_ID env var is not set, Slack integration will not work")
 	}
 
-	slackClientSecret := os.Getenv("SLACK_CLIENT_SECRET")
+	slackClientSecret, secErr := secret.FromEnvOrFile("SLACK_CLIENT_SECRET")
+	if secErr != nil {
+		log.Printf("failed to read SLACK_CLIENT_SECRET: %v", secErr)
+	}
 	if slackClientSecret == "" {
 		log.Println("SLACK_CLIENT_SECRET env var is not set, Slack integration will not work")
 	}
 
-	autumnSecretKey := os.Getenv("AUTUMN_SECRET_KEY")
+	autumnSecretKey, secErr := secret.FromEnvOrFile("AUTUMN_SECRET_KEY")
+	if secErr != nil {
+		log.Printf("failed to read AUTUMN_SECRET_KEY: %v", secErr)
+	}
 	if autumnSecretKey == "" {
 		log.Println("AUTUMN_SECRET_KEY env var is not set, billing will not work")
 	}
 
-	autumnWebhookSecret := os.Getenv("AUTUMN_WEBHOOK_SECRET")
+	autumnWebhookSecret, secErr := secret.FromEnvOrFile("AUTUMN_WEBHOOK_SECRET")
+	if secErr != nil {
+		log.Printf("failed to read AUTUMN_WEBHOOK_SECRET: %v", secErr)
+	}
 	if autumnWebhookSecret == "" {
 		log.Println("AUTUMN_WEBHOOK_SECRET env var is not set, billing webhooks will not work")
 	}
@@ -332,7 +372,10 @@ func NewConfig() *ServerConfig {
 		log.Println("GA4_MEASUREMENT_ID env var is not set, GA4 conversion events will not be sent")
 	}
 
-	ga4MeasurementProtocolSecret := os.Getenv("GA4_MEASUREMENT_PROTOCOL_SECRET")
+	ga4MeasurementProtocolSecret, secErr := secret.FromEnvOrFile("GA4_MEASUREMENT_PROTOCOL_SECRET")
+	if secErr != nil {
+		log.Printf("failed to read GA4_MEASUREMENT_PROTOCOL_SECRET: %v", secErr)
+	}
 	if ga4MeasurementProtocolSecret == "" {
 		log.Println("GA4_MEASUREMENT_PROTOCOL_SECRET env var is not set, GA4 conversion events will not be sent")
 	}

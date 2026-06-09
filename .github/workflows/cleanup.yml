@@ -110,6 +110,8 @@ jobs:
         with:
           context: backend/cleanup
           file: backend/cleanup/dockerfile
+          build-contexts: |
+            libs=backend/libs
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
