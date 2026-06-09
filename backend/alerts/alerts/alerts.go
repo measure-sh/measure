@@ -333,15 +333,16 @@ func getActiveTeams(ctx context.Context) ([]Team, error) {
 		return teams, nil
 	}
 
-	// Filter out teams that Autumn has blocked from ingesting. Fail-open on
-	// any Autumn error so a dependency outage doesn't silently drop alerts.
+	// Drop teams Autumn has blocked from ingesting (bytes limit reached). The
+	// cached check (autumn.CheckCached) avoids an Autumn call per team on every
+	// run. Fail-open on any Autumn error so an outage doesn't drop alerts.
 	filtered := make([]Team, 0, len(teams))
 	for _, t := range teams {
 		if t.AutumnCustomerID == nil || *t.AutumnCustomerID == "" {
 			filtered = append(filtered, t)
 			continue
 		}
-		resp, err := autumn.Check(ctx, *t.AutumnCustomerID, autumn.FeatureBytes)
+		allowed, err := autumn.CheckCached(ctx, server.Server.VK, *t.AutumnCustomerID, autumn.FeatureBytes)
 		if err != nil {
 			if autumn.IsServerOrNetworkError(err) {
 				log.Printf("alerts: autumn unavailable, keeping team %s (customer=%s): %v", t.ID, *t.AutumnCustomerID, err)
@@ -351,7 +352,7 @@ func getActiveTeams(ctx context.Context) ([]Team, error) {
 			filtered = append(filtered, t)
 			continue
 		}
-		if resp.Allowed {
+		if allowed {
 			filtered = append(filtered, t)
 		}
 	}

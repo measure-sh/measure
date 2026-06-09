@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"time"
 
 	"cloud.google.com/go/cloudsqlconn"
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -17,6 +18,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leporo/sqlf"
+	"github.com/valkey-io/valkey-go"
+	redis "github.com/valkey-io/valkey-go"
 	"github.com/wneessen/go-mail"
 )
 
@@ -27,6 +30,7 @@ type server struct {
 	ChPool driver.Conn
 	Mail   *mail.Client
 	Config *ServerConfig
+	VK     valkey.Client
 }
 
 type PostgresConfig struct {
@@ -39,9 +43,15 @@ type ClickhouseConfig struct {
 	DSN string
 }
 
+type RedisConfig struct {
+	Host string
+	Port int
+}
+
 type ServerConfig struct {
 	PG              PostgresConfig
 	CH              ClickhouseConfig
+	RD              RedisConfig
 	SiteOrigin      string
 	SmtpHost        string
 	SmtpPort        string
@@ -95,6 +105,21 @@ func NewConfig() *ServerConfig {
 	}
 	if clickhouseDSN == "" {
 		log.Println("CLICKHOUSE_DSN env var is not set, cannot start server")
+	}
+
+	redisHost := os.Getenv("REDIS_HOST")
+	if redisHost == "" {
+		log.Println("REDIS_HOST env var is not set, caching will not work")
+	}
+
+	redisPortStr := os.Getenv("REDIS_PORT")
+	if redisPortStr == "" {
+		log.Println("REDIS_PORT env var is not set, caching will not work")
+	}
+
+	redisPort, err := strconv.Atoi(redisPortStr)
+	if err != nil {
+		log.Fatalf("Invalid REDIS_PORT value: %v", err)
 	}
 
 	smtpHost := os.Getenv("SMTP_HOST")
@@ -160,6 +185,10 @@ func NewConfig() *ServerConfig {
 		},
 		CH: ClickhouseConfig{
 			DSN: clickhouseDSN,
+		},
+		RD: RedisConfig{
+			Host: redisHost,
+			Port: redisPort,
 		},
 		SiteOrigin:      siteOrigin,
 		SmtpHost:        smtpHost,
@@ -250,18 +279,34 @@ func Init(config *ServerConfig) {
 		}
 	}
 
+	// init redis client
+	addr := fmt.Sprintf("%s:%d", config.RD.Host, config.RD.Port)
+	options := redis.ClientOption{
+		InitAddress: []string{addr},
+	}
+
+	options.ConnWriteTimeout = 30 * time.Second
+	options.ClientName = "measure-alerts"
+
+	vkClient, err := redis.NewClient(options)
+	if err != nil {
+		log.Printf("failed to create redis client: %v\n", err)
+	}
+
 	Server = &server{
 		PgPool: pgPool,
 		ChPool: chPool,
 		Config: config,
 		Mail:   mailClient,
+		VK:     vkClient,
 	}
 }
 
-func InitForTest(config *ServerConfig, pgPool *pgxpool.Pool, chPool driver.Conn) {
+func InitForTest(config *ServerConfig, pgPool *pgxpool.Pool, chPool driver.Conn, vk valkey.Client) {
 	Server = &server{
 		PgPool: pgPool,
 		ChPool: chPool,
 		Config: config,
+		VK:     vk,
 	}
 }
