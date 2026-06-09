@@ -1,13 +1,15 @@
-# build stage
-FROM node:lts-alpine AS builder
-
+FROM node:lts-slim
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN apk add --no-cache ca-certificates && npm install
-COPY ./ ./
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates wget \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json ./
+RUN npm install
+
+COPY . .
 COPY --from=docs . ./content/docs
+EXPOSE 3000
 
-FROM builder
-WORKDIR /app
-COPY --from=builder /app ./
 CMD ["npm", "run", "dev"]
