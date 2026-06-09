@@ -1245,7 +1245,7 @@ type mcpCommonFilters struct {
 type mcpErrorFilters struct {
 	ErrorTypes       []string `json:"error_types,omitempty" jsonschema:"Filter by error source: 'error' (exceptions) and/or 'anr'. Default: both"`
 	Severities       []string `json:"severities,omitempty" jsonschema:"Filter exceptions by severity: 'fatal' (crashes), 'unhandled' (uncaught non-fatal), 'handled' (caught & reported). Applies to the 'error' type only, not 'anr'. Default: all"`
-	CustomErrorsOnly bool     `json:"custom_errors_only,omitempty" jsonschema:"Only include custom (developer-reported) errors. Note: Measure SDKs do not emit custom errors yet, so enabling this currently returns no results."`
+	CustomErrorsOnly bool     `json:"custom_errors_only,omitempty" jsonschema:"Restrict exceptions to custom (developer-reported) ones only. ANRs are never custom and are not filtered by this. No Measure SDK emits custom errors yet, so there are currently no custom exceptions."`
 }
 
 type mcpListAppsInput struct{}
