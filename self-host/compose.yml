@@ -428,6 +428,8 @@ services:
     environment:
       - POSTGRES_DSN_FILE=/run/secrets/postgres-dsn
       - CLICKHOUSE_DSN_FILE=/run/secrets/clickhouse-dsn
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
       - SITE_ORIGIN=${NEXT_PUBLIC_SITE_URL}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
@@ -463,6 +465,8 @@ services:
       dbmate-clickhouse:
         condition: service_completed_successfully
         required: false
+      redis:
+        condition: service_healthy
 
   symboloader:
     build:

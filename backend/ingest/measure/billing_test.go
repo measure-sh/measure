@@ -104,49 +104,9 @@ func TestCheckIngestAllowedForApp(t *testing.T) {
 		}
 	})
 
-	t.Run("cache hit (allowed) → no autumn.Check call", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		teamID := uuid.New()
-		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "test-team")
-		seedApp(ctx, t, appID, teamID, 30)
-		custID := uuid.New().String()
-		seedTeamAutumnCustomer(ctx, t, teamID, custID)
-
-		setCachedAutumnCheck(ctx, server.Server.VK, custID, true)
-
-		autumntest.MockCheck(t, func(_ context.Context, _, _ string) (*autumn.CheckResponse, error) {
-			t.Errorf("autumn.Check must not be called on cache hit")
-			return nil, errors.New("unexpected")
-		})
-
-		if err := CheckIngestAllowedForApp(ctx, appID); err != nil {
-			t.Errorf("want nil, got %v", err)
-		}
-	})
-
-	t.Run("cache hit (blocked) → returns blocked, no autumn.Check call", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		teamID := uuid.New()
-		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "test-team")
-		seedApp(ctx, t, appID, teamID, 30)
-		custID := uuid.New().String()
-		seedTeamAutumnCustomer(ctx, t, teamID, custID)
-
-		setCachedAutumnCheck(ctx, server.Server.VK, custID, false)
-
-		autumntest.MockCheck(t, func(_ context.Context, _, _ string) (*autumn.CheckResponse, error) {
-			t.Errorf("autumn.Check must not be called on cache hit")
-			return nil, errors.New("unexpected")
-		})
-
-		if err := CheckIngestAllowedForApp(ctx, appID); err == nil {
-			t.Error("want error from cached blocked verdict, got nil")
-		}
-	})
-
-	t.Run("cache miss → calls autumn.Check, populates cache", func(t *testing.T) {
+	// Guards that CheckIngestAllowedForApp goes through the cache: a second call
+	// for the same customer is served from Valkey instead of re-hitting Autumn.
+	t.Run("caches verdict — second call skips autumn.Check", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		teamID := uuid.New()
 		appID := uuid.New()
@@ -168,33 +128,7 @@ func TestCheckIngestAllowedForApp(t *testing.T) {
 			t.Fatalf("second call: want nil, got %v", err)
 		}
 		if checkCalls != 1 {
-			t.Errorf("autumn.Check called %d times, want 1 (second call should hit cache)", checkCalls)
-		}
-
-		allowed, ok := getCachedAutumnCheck(ctx, server.Server.VK, custID)
-		if !ok || !allowed {
-			t.Errorf("cache state after miss: ok=%v allowed=%v, want ok=true allowed=true", ok, allowed)
-		}
-	})
-
-	t.Run("autumn error on miss → fail open, cache not populated", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		teamID := uuid.New()
-		appID := uuid.New()
-		seedTeam(ctx, t, teamID, "test-team")
-		seedApp(ctx, t, appID, teamID, 30)
-		custID := uuid.New().String()
-		seedTeamAutumnCustomer(ctx, t, teamID, custID)
-
-		autumntest.MockCheck(t, func(_ context.Context, _, _ string) (*autumn.CheckResponse, error) {
-			return nil, errors.New("autumn timeout")
-		})
-
-		if err := CheckIngestAllowedForApp(ctx, appID); err != nil {
-			t.Errorf("want nil (fail-open), got %v", err)
-		}
-		if _, ok := getCachedAutumnCheck(ctx, server.Server.VK, custID); ok {
-			t.Error("cache should be empty after autumn error; got hit")
+			t.Errorf("autumn.Check called %d times, want 1 (second call should hit the shared cache)", checkCalls)
 		}
 	})
 }

@@ -2445,6 +2445,39 @@ func TestCreateDailySummary(t *testing.T) {
 			t.Errorf("want >=1 email when billing disabled, got 0")
 		}
 	})
+
+	// Guards that getActiveTeams goes through the cache: a second pass over the
+	// same customer is served from Valkey instead of re-hitting Autumn.
+	t.Run("getActiveTeams caches the verdict — second call skips autumn.Check", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		origBilling := server.Server.Config.BillingEnabled
+		server.Server.Config.BillingEnabled = true
+		t.Cleanup(func() { server.Server.Config.BillingEnabled = origBilling })
+
+		teamID := uuid.New().String()
+		customerID := uuid.New().String()
+		th.SeedTeam(ctx, t, teamID, "Cached Team")
+		th.SeedTeamAutumnCustomer(ctx, t, teamID, customerID)
+
+		var checkCalls int
+		autumntest.MockCheck(t, func(_ context.Context, _, _ string) (*autumn.CheckResponse, error) {
+			checkCalls++
+			return &autumn.CheckResponse{Allowed: true}, nil
+		})
+
+		if _, err := getActiveTeams(ctx); err != nil {
+			t.Fatalf("first getActiveTeams: %v", err)
+		}
+		if _, err := getActiveTeams(ctx); err != nil {
+			t.Fatalf("second getActiveTeams: %v", err)
+		}
+		if checkCalls != 1 {
+			t.Errorf("autumn.Check called %d times, want 1 (second call should hit the shared Valkey cache)", checkCalls)
+		}
+	})
 }
 
 // --------------------------------------------------------------------------

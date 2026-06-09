@@ -32,7 +32,7 @@ func TestMain(m *testing.M) {
 
 	server.InitForTest(&server.ServerConfig{
 		SiteOrigin: "https://test.measure.sh",
-	}, pgPool, chConn)
+	}, pgPool, chConn, vk)
 
 	code := m.Run()
 
