@@ -4344,7 +4344,7 @@ func (a App) GetBugReportById(ctx context.Context, bugReportId string) (bugRepor
 // UpdateBugReportStatusById updates the status of a bug report by its event id.
 func (a App) UpdateBugReportStatusById(ctx context.Context, bugReportId string, status uint8) (err error) {
 	if status != 0 && status != 1 {
-		return fmt.Errorf("invalid status %d. Should be 0 (closed) or 1 (open)", status)
+		return fmt.Errorf("invalid status %d. Should be 0 (open) or 1 (closed)", status)
 	}
 
 	stmt := sqlf.
