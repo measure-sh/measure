@@ -7,10 +7,9 @@ agp802 = "8.0.2"
 androidx-navigation = "2.9.7"
 androidx-compose-runtime = "1.9.4"
 bundletool = "1.18.2"
-# android-tools is used for calculating app size and aab size by the gradle plugin.
-# The version should remain compatible with lower versions of android gradle plugin. New versions
-# are not backwords compatible.
-android-tools = "31.13.0"
+# android-tools (sdklib, apkanalyzer, common) is used to calculate app and aab size.
+# Keep this in sync with what the min AGP version supports
+android-tools = "31.0.2"
 asm-util = "9.6"
 squareup-okhttp = "4.12.0"
 squareup-okio = "3.7.0"
