@@ -1,6 +1,21 @@
-FROM node:lts-alpine AS base
+FROM node:lts-slim AS deps
+WORKDIR /app
 
-FROM base AS builder
+COPY package.json package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
+
+FROM node:lts-slim AS builder
+WORKDIR /app
+
+# Copy dependencies
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy source code
+COPY . .
+COPY --from=docs . ./content/docs
+
+# Build arguments (Next.js public env vars)
 ARG NEXT_PUBLIC_SITE_URL
 ARG NEXT_PUBLIC_API_BASE_URL
 ARG NEXT_PUBLIC_INGEST_BASE_URL
@@ -14,29 +29,50 @@ ARG NEXT_PUBLIC_POSTHOG_API_KEY
 ARG NEXT_PUBLIC_GTM_ID
 ARG NEXT_PUBLIC_C15T_BACKEND_URL
 
-WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN apk add --no-cache ca-certificates && npm ci
-COPY . .
-COPY --from=docs . ./content/docs
-RUN NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED} \
-  NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
-  NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL} \
-  NEXT_PUBLIC_INGEST_BASE_URL=${NEXT_PUBLIC_INGEST_BASE_URL} \
-  NEXT_PUBLIC_IS_CLOUD=${NEXT_PUBLIC_IS_CLOUD} \
-  NEXT_PUBLIC_BILLING_ENABLED=${NEXT_PUBLIC_BILLING_ENABLED} \
-  NEXT_PUBLIC_OAUTH_GOOGLE_KEY=${NEXT_PUBLIC_OAUTH_GOOGLE_KEY} \
-  NEXT_PUBLIC_OAUTH_GITHUB_KEY=${NEXT_PUBLIC_OAUTH_GITHUB_KEY} \
-  NEXT_PUBLIC_POSTHOG_HOST=${NEXT_PUBLIC_POSTHOG_HOST} \
-  NEXT_PUBLIC_POSTHOG_API_KEY=${NEXT_PUBLIC_POSTHOG_API_KEY} \
-  NEXT_PUBLIC_GTM_ID=${NEXT_PUBLIC_GTM_ID} \
-  NEXT_PUBLIC_C15T_BACKEND_URL=${NEXT_PUBLIC_C15T_BACKEND_URL} \
-  npm run build
+# PostHog sourcemap upload (opt-in). UPLOAD_SOURCEMAPS gates whether the upload
+# runs at all; POSTHOG_PROJECT_ID targets the project. The personal API key is a
+# secret and is mounted into the build step below, not passed as a build arg.
+ARG UPLOAD_SOURCEMAPS
+ARG POSTHOG_PROJECT_ID
 
-FROM base
+# Make build args available as environment variables during build
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
+    NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL \
+    NEXT_PUBLIC_INGEST_BASE_URL=$NEXT_PUBLIC_INGEST_BASE_URL \
+    NEXT_PUBLIC_IS_CLOUD=$NEXT_PUBLIC_IS_CLOUD \
+    NEXT_PUBLIC_BILLING_ENABLED=$NEXT_PUBLIC_BILLING_ENABLED \
+    NEXT_TELEMETRY_DISABLED=$NEXT_TELEMETRY_DISABLED \
+    NEXT_PUBLIC_OAUTH_GOOGLE_KEY=$NEXT_PUBLIC_OAUTH_GOOGLE_KEY \
+    NEXT_PUBLIC_OAUTH_GITHUB_KEY=$NEXT_PUBLIC_OAUTH_GITHUB_KEY \
+    NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
+    NEXT_PUBLIC_POSTHOG_API_KEY=$NEXT_PUBLIC_POSTHOG_API_KEY \
+    NEXT_PUBLIC_GTM_ID=$NEXT_PUBLIC_GTM_ID \
+    NEXT_PUBLIC_C15T_BACKEND_URL=$NEXT_PUBLIC_C15T_BACKEND_URL \
+    UPLOAD_SOURCEMAPS=$UPLOAD_SOURCEMAPS \
+    POSTHOG_PROJECT_ID=$POSTHOG_PROJECT_ID
+
+# The personal API key is mounted as a secret (never baked into image layers).
+# When UPLOAD_SOURCEMAPS is unset, the secret is absent and the cat fails — the
+# `|| true` keeps the var empty so the build still succeeds without uploading.
+RUN --mount=type=secret,id=posthog_sourcemap_personal_key \
+    POSTHOG_SOURCEMAP_PERSONAL_KEY="$(cat /run/secrets/posthog_sourcemap_personal_key 2>/dev/null || true)" \
+    npm run build
+
+# ============================================
+# Production Runner (minimal)
+# ============================================
+FROM node:lts-slim AS runner
 WORKDIR /app
-ENV NODE_ENV=production
-COPY --from=builder /app/public ./public
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy standalone output (this is the key for small images)
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+
+ENV NODE_ENV=production
+
 CMD ["node", "server.js"]
