@@ -4,13 +4,13 @@ const {
   withAppBuildGradle,
   withProjectBuildGradle,
   withXcodeProject,
+  withAndroidManifest,
 } = require('@expo/config-plugins');
 
 // When installed, this file lives at:
 //   node_modules/@measuresh/react-native/plugin/index.js
 // So the package root is one directory up from __dirname.
 // From the iOS project (ios/) the package is at ../node_modules/@measuresh/react-native.
-// From the Android project (android/) it is at ../node_modules/@measuresh/react-native/android.
 const PACKAGE_NAME = '@measuresh/react-native';
 const IOS_POD_PATH = `../node_modules/${PACKAGE_NAME}`;
 
@@ -23,6 +23,9 @@ const MEASURE_POD_LINES = `
 const BUNDLE_PHASE_NAME = 'Bundle React Native code and images';
 const UPLOAD_PHASE_NAME = 'Upload Measure Symbol Files';
 const SOURCEMAP_EXPORT = 'export SOURCEMAP_FILE="$(pwd)/main.jsbundle.map"';
+
+const ANDROID_META_KEY_API_KEY = 'sh.measure.android.API_KEY';
+const ANDROID_META_KEY_API_URL = 'sh.measure.android.API_URL';
 
 // ─── iOS: Podfile ────────────────────────────────────────────────────────────
 
@@ -50,9 +53,9 @@ function withMeasureIos(config) {
  *    images" shell script so the Hermes-composed sourcemap is generated on every
  *    Release build.
  * 2. Adds an "Upload Measure Symbol Files" Run Script phase that calls
- *    upload_build_phase.sh with the user-supplied API credentials.
+ *    upload_build_phase.sh with the iOS-specific API credentials.
  */
-function withMeasureXcodeBuildPhases(config, { apiKey, apiUrl }) {
+function withMeasureXcodeBuildPhases(config, { iosApiKey, iosApiUrl }) {
   return withXcodeProject(config, (config) => {
     const xcodeProject = config.modResults;
     const shellScriptPhases =
@@ -76,21 +79,18 @@ function withMeasureXcodeBuildPhases(config, { apiKey, apiUrl }) {
     }
 
     // 2. Add upload build phase (idempotent)
-    const alreadyAdded = Object.values(shellScriptPhases).some(
-      (phase) => {
-        if (typeof phase !== 'object' || !phase.shellScript) return false;
-        try {
-          return JSON.parse(phase.shellScript).includes('upload_build_phase.sh');
-        } catch {
-          return false;
-        }
+    const alreadyAdded = Object.values(shellScriptPhases).some((phase) => {
+      if (typeof phase !== 'object' || !phase.shellScript) return false;
+      try {
+        return JSON.parse(phase.shellScript).includes('upload_build_phase.sh');
+      } catch {
+        return false;
       }
-    );
+    });
 
     if (!alreadyAdded) {
-      const uploadScript = `"$SRCROOT/../node_modules/${PACKAGE_NAME}/scripts/upload_build_phase.sh" "${apiUrl}" "${apiKey}"`;
+      const uploadScript = `"$SRCROOT/../node_modules/${PACKAGE_NAME}/scripts/upload_build_phase.sh" "${iosApiUrl}" "${iosApiKey}"`;
 
-      // Find the application native target
       const nativeTargets = xcodeProject.pbxNativeTargetSection();
       const appTargetEntry = Object.entries(nativeTargets).find(
         ([, t]) => t.productType === '"com.apple.product-type.application"'
@@ -112,6 +112,40 @@ function withMeasureXcodeBuildPhases(config, { apiKey, apiUrl }) {
         );
       }
     }
+
+    return config;
+  });
+}
+
+// ─── Android: AndroidManifest.xml ─────────────────────────────────────────────
+
+/**
+ * Injects the Measure API key and URL as <meta-data> tags in the
+ * AndroidManifest.xml application element. These are read by the Measure
+ * Android Gradle plugin to upload mapping files after each build.
+ */
+function withMeasureAndroidManifest(config, { androidApiKey, androidApiUrl }) {
+  return withAndroidManifest(config, (config) => {
+    const application = config.modResults.manifest.application?.[0];
+    if (!application) return config;
+
+    if (!application['meta-data']) {
+      application['meta-data'] = [];
+    }
+
+    const metaData = application['meta-data'];
+
+    const setMetaData = (name, value) => {
+      const existing = metaData.find((m) => m.$?.['android:name'] === name);
+      if (existing) {
+        existing.$['android:value'] = value;
+      } else {
+        metaData.push({ $: { 'android:name': name, 'android:value': value } });
+      }
+    };
+
+    setMetaData(ANDROID_META_KEY_API_KEY, androidApiKey);
+    setMetaData(ANDROID_META_KEY_API_URL, androidApiUrl);
 
     return config;
   });
@@ -189,17 +223,21 @@ function withMeasureMainApplication(config) {
 // ─── Entry point ─────────────────────────────────────────────────────────────
 
 module.exports = function withMeasurePlugin(config, options = {}) {
-  const { apiKey, apiUrl } = options;
+  const { androidApiKey, androidApiUrl, iosApiKey, iosApiUrl } = options;
 
+  // iOS
   config = withMeasureIos(config);
-
-  if (apiKey && apiUrl) {
-    config = withMeasureXcodeBuildPhases(config, { apiKey, apiUrl });
+  if (iosApiKey && iosApiUrl) {
+    config = withMeasureXcodeBuildPhases(config, { iosApiKey, iosApiUrl });
   }
 
+  // Android
   config = withMeasureProjectBuildGradle(config);
   config = withMeasureAppBuildGradle(config);
   config = withMeasureMainApplication(config);
+  if (androidApiKey && androidApiUrl) {
+    config = withMeasureAndroidManifest(config, { androidApiKey, androidApiUrl });
+  }
 
   return config;
 };

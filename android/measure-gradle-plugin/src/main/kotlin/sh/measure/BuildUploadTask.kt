@@ -4,14 +4,7 @@ package sh.measure
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.decodeFromStream
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Headers
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
@@ -34,7 +27,6 @@ import java.io.File
 import java.io.IOException
 import java.net.URI
 import java.net.URL
-import java.nio.file.Files
 
 internal const val HEADER_AUTHORIZATION = "Authorization"
 
@@ -46,12 +38,6 @@ private const val TYPE_PROGUARD = "proguard"
 private const val TYPE_FLUTTER_SYMBOLS = "elf_debug"
 private const val TYPE_JS_BUNDLE = "jsbundle"
 private const val BUILDS_PATH = "builds"
-
-// First 8 bytes of any Hermes bytecode file.
-private val HERMES_MAGIC = byteArrayOf(
-    0xC6.toByte(), 0x1F, 0xBC.toByte(), 0x03,
-    0xC1.toByte(), 0x03, 0x19, 0x1F,
-)
 
 private const val ERROR_MSG_401 =
     "measure: Failed to upload build info to Measure, please check the api-key in manifest. Stack traces will not be symbolicated."
@@ -263,124 +249,19 @@ abstract class BuildUploadTask : DefaultTask() {
         flutterSymbols: Set<File>,
         rnBundleArchives: Set<File>,
     ) {
-        val tempDirs = mutableListOf<File>()
-        try {
-            buildsResponse.mappings.forEach { mapping ->
-                val file = when (mapping.type) {
-                    TYPE_PROGUARD -> mappingFile
-                    TYPE_FLUTTER_SYMBOLS -> flutterSymbols.firstOrNull { it.name == mapping.filename }
-                    TYPE_JS_BUNDLE -> {
-                        val archive = rnBundleArchives.firstOrNull { it.name == mapping.filename }
-                        if (archive != null && archive.exists()) {
-                            val tempDir = Files.createTempDirectory("measure-rn-upload-").toFile()
-                            tempDirs.add(tempDir)
-                            processRnArchive(archive, tempDir)
-                        } else {
-                            archive
-                        }
-                    }
-                    else -> null
-                }
-
-                if (file != null && file.exists()) {
-                    uploadFileToPresignedUrl(client, mapping, file)
-                } else {
-                    logger.warn("measure: file ${mapping.filename} not found for upload")
-                }
+        buildsResponse.mappings.forEach { mapping ->
+            val file = when (mapping.type) {
+                TYPE_PROGUARD -> mappingFile
+                TYPE_FLUTTER_SYMBOLS -> flutterSymbols.firstOrNull { it.name == mapping.filename }
+                TYPE_JS_BUNDLE -> rnBundleArchives.firstOrNull { it.name == mapping.filename }
+                else -> null
             }
-        } finally {
-            tempDirs.forEach { it.deleteRecursively() }
-        }
-    }
 
-    /**
-     * Processes a React Native .tgz archive before upload:
-     * - Bundle files: detects Hermes bytecode and replaces with an empty placeholder.
-     * - Sourcemap files: strips absolute path prefixes from the `sources` array.
-     *
-     * Returns the processed archive in [tempDir], or the original [archive] on error.
-     */
-    private fun processRnArchive(archive: File, tempDir: File): File {
-        return try {
-            val extractDir = File(tempDir, "extracted").also { it.mkdirs() }
-            extractTgz(archive, extractDir)
-
-            val innerFile = extractDir.listFiles()?.firstOrNull() ?: return archive
-
-            if (innerFile.name.endsWith(".map")) {
-                val stripped = stripSourcemapPaths(innerFile.readText())
-                innerFile.writeText(stripped)
+            if (file != null && file.exists()) {
+                uploadFileToPresignedUrl(client, mapping, file)
             } else {
-                val firstBytes = innerFile.inputStream().use { stream ->
-                    val buf = ByteArray(8)
-                    stream.read(buf)
-                    buf
-                }
-                if (firstBytes.contentEquals(HERMES_MAGIC)) {
-                    logger.info("measure: Hermes bytecode detected in ${innerFile.name}, replacing with empty placeholder")
-                    innerFile.writeBytes(ByteArray(0))
-                }
+                logger.warn("measure: file ${mapping.filename} not found for upload")
             }
-
-            val outputTgz = File(tempDir, archive.name)
-            createTgz(extractDir, innerFile.name, outputTgz)
-            outputTgz
-        } catch (e: Exception) {
-            logger.warn("measure: failed to process RN archive ${archive.name}: ${e.message}")
-            archive
-        }
-    }
-
-    private fun extractTgz(tgzFile: File, destDir: File) {
-        ProcessBuilder("tar", "-xzf", tgzFile.absolutePath, "-C", destDir.absolutePath)
-            .redirectErrorStream(true)
-            .start()
-            .waitFor()
-    }
-
-    private fun createTgz(sourceDir: File, innerFileName: String, destFile: File) {
-        ProcessBuilder("tar", "-czf", destFile.absolutePath, "-C", sourceDir.absolutePath, innerFileName)
-            .redirectErrorStream(true)
-            .start()
-            .waitFor()
-    }
-
-    private fun stripSourcemapPaths(content: String): String {
-        return try {
-            val root = Json.parseToJsonElement(content).jsonObject
-            val sources = root["sources"]?.jsonArray ?: return content
-
-            val prefix = sources.asSequence()
-                .mapNotNull { it.jsonPrimitive.contentOrNull }
-                .firstOrNull { it.contains("node_modules/") }
-                ?.substringBefore("node_modules/")
-
-            if (prefix.isNullOrEmpty()) {
-                logger.warn("measure: could not detect path prefix from node_modules, uploading sourcemap as-is")
-                return content
-            }
-
-            logger.info("measure: stripping path prefix from sourcemap: $prefix")
-
-            val stripped = sources.map { element ->
-                val path = element.jsonPrimitive.contentOrNull ?: return@map element
-                when {
-                    path.startsWith(prefix) -> {
-                        val relative = path.removePrefix(prefix)
-                        JsonPrimitive(if (relative.isEmpty()) "unknown" else relative)
-                    }
-                    else -> {
-                        val basename = path.trimEnd('/').substringAfterLast('/')
-                        JsonPrimitive(basename.ifEmpty { path })
-                    }
-                }
-            }
-
-            val modified = JsonObject(root.toMutableMap().also { it["sources"] = JsonArray(stripped) })
-            json.encodeToString(JsonObject.serializer(), modified)
-        } catch (e: Exception) {
-            logger.warn("measure: failed to strip sourcemap paths: ${e.message}")
-            content
         }
     }
 
