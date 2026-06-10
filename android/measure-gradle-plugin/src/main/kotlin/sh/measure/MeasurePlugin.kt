@@ -39,8 +39,8 @@ class MeasurePlugin : Plugin<Project> {
         if (!project.plugins.hasPlugin("com.android.application")) {
             project.logger.warn(
                 """
-                WARNING: Measure gradle plugin can only be applied to Android application projects, 
-                that is, projects that have the com.android.application plugin applied. 
+                WARNING: Measure gradle plugin can only be applied to Android application projects,
+                that is, projects that have the com.android.application plugin applied.
                 Applying the plugin to other project types has no effect.
                 """.trimIndent(),
             )
@@ -235,6 +235,7 @@ class MeasurePlugin : Plugin<Project> {
             packageReactNativeBundleTaskName(variant),
             bundleFile,
         )
+        packageBundleTask.configure { it.dependsOn(emptyBundleTask) }
         val rewriteSourceMapTask = project.tasks.register(
             rewriteReactNativeSourceMapTaskName(variant),
             RewriteJsSourceMapTask::class.java,
