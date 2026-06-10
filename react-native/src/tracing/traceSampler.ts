@@ -34,7 +34,9 @@ export class TraceSampler implements ITraceSampler {
     const idLo = this.longFromBase16String(traceId, 16);
 
     const mask = BigInt("0x7FFFFFFFFFFFFFFF");
-    const threshold = BigInt(Math.floor(Number(mask) * sampleRate));
+    const RATE_SCALE = BigInt(1_000_000);
+    const scaledRate = BigInt(Math.round(sampleRate * 1_000_000));
+    const threshold = (mask * scaledRate) / RATE_SCALE;
 
     return (idLo & mask) < threshold;
   }

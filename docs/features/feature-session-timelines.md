@@ -66,3 +66,9 @@ NSString *sessionId = [Measure getSessionId];
 ```dart
 final String? sessionId = await Measure.instance.getSessionId();
 ```
+
+#### React Native
+
+```ts
+const sessionId = await Measure.getSessionId();
+```

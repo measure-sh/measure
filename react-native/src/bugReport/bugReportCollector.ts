@@ -94,6 +94,6 @@ export class BugReportCollector implements IBugReportCollector {
       attributes,
     });
 
-    launchBugReport(takeScreenshot, bugReportConfig, attributes);
+    return launchBugReport(takeScreenshot, bugReportConfig, attributes);
   }
 }
