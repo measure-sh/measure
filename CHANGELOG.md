@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Include message to group js errors (#3865) by @detj in #3865
 - (**backend**): Verify slack webhooks by @anupcowkur in #3861
 - (**backend**): Fix bug report status description in table comment + code by @anupcowkur in #3859
 - (**backend**): Correct p99 quantile level in span_metrics by @anupcowkur in #3855
