@@ -63,7 +63,7 @@ export class MeasureInternal {
         this.measureInitializer.spanProcessor.onConfigLoaded();
       });
 
-    if (this.measureInitializer.config.autoStart) {
+    if (config?.autoStart) {
       this.started = true;
       this.registerCollectors();
       enableNativeModule();
