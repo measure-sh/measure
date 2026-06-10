@@ -10,7 +10,7 @@ description: "Integrate the Measure SDK on Android, iOS or Flutter to track your
     * [Android](#android)
     * [iOS](#ios)
     * [Flutter](#flutter)
-    * [React Native (Coming Soon)](#react-native-coming-soon)
+    * [React Native](#react-native)
 * [3. Verify Installation](#3-verify-installation)
 * [4. Review Configuration Options](#4-review-configuration-options)
 * [Troubleshoot](#troubleshoot)
@@ -29,7 +29,7 @@ in later steps.
 * [Android](#android)
 * [iOS](#ios)
 * [Flutter](#flutter)
-* [React Native (Coming Soon)](#react-native-coming-soon)
+* [React Native](#react-native)
 
 ## Android
 
@@ -467,7 +467,10 @@ on every click to help visualize user interactions. To enable these features, si
 Read more about adding custom widget names in the layout snapshots
 in [Gesture Tracking & Layout Snapshots](features/feature-gesture-tracking.md#flutter). 
 
-## React Native (Coming Soon)
+## React Native
+
+> [!IMPORTANT]
+> This is an alpha release of the React Native SDK. Please open an [issue](https://github.com/measure-sh/measure/issues) if you face any problems.
 
 The React Native SDK supports both **Expo** and **Vanilla React Native** projects on Android and iOS.
 
