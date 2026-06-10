@@ -11,7 +11,6 @@ import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.Directory
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFile
-import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
@@ -188,6 +187,8 @@ class MeasurePlugin : Plugin<Project> {
 
     private fun packageReactNativeSourceMapTaskName(variant: Variant) = "packageReactNativeSourceMap${variant.name.capitalize()}"
 
+    private fun rewriteReactNativeSourceMapTaskName(variant: Variant) = "rewriteReactNativeSourceMap${variant.name.capitalize()}"
+
     // The builds API expects the JS bundle and its source map as two separate
     // jsbundle mappings, each a .tgz wrapping a single file. Symbolication pairs
     // them server-side via the inner filename's .map suffix.
@@ -213,11 +214,24 @@ class MeasurePlugin : Plugin<Project> {
             packageReactNativeBundleTaskName(variant),
             bundleFile,
         )
+        val rewriteSourceMapTask = project.tasks.register(
+            rewriteReactNativeSourceMapTaskName(variant),
+            RewriteJsSourceMapTask::class.java,
+        ) {
+            it.sourceMapInputProperty.set(sourceMapFile)
+            it.sourceMapOutputProperty.set(
+                project.layout.buildDirectory.file(
+                    sourceMapFile.map { map ->
+                        "intermediates/measure/${variant.name}/rn-sourcemap/${map.asFile.name}"
+                    },
+                ),
+            )
+        }
         val packageSourceMapTask = registerPackageArchiveTask(
             project,
             variant,
             packageReactNativeSourceMapTaskName(variant),
-            sourceMapFile,
+            rewriteSourceMapTask.flatMap { it.sourceMapOutputProperty },
         )
 
         project.tasks.matching { it.name in candidateNames }.configureEach { bundleTask ->
@@ -235,7 +249,7 @@ class MeasurePlugin : Plugin<Project> {
         project: Project,
         variant: Variant,
         taskName: String,
-        file: RegularFileProperty,
+        file: Provider<RegularFile>,
     ): TaskProvider<Tar> = project.tasks.register(taskName, Tar::class.java) {
         it.compression = Compression.GZIP
         it.archiveFileName.set(file.map { f -> "${f.asFile.name}.tgz" })
