@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Restrict bug report status updates roles by @anupcowkur in #3897
 - (**backend**): Cache autumn billing checks in alerts by @anupcowkur in #3863
 - (**backend**): Include message to group js errors (#3865) by @detj in #3865
 - (**backend**): Verify slack webhooks by @anupcowkur in #3861
