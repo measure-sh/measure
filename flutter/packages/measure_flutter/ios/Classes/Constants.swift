@@ -64,8 +64,3 @@ enum ErrorCode {
     static let errorInvalidAttribute = "invalid_attribute"
     static let errorUnknown = "unknown_error"
 }
-
-enum Attribute {
-    static let platform = "platform"
-    static let platformFlutter = "flutter"
-}
