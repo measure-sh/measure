@@ -19,7 +19,8 @@ export class Config implements InternalConfig, IMeasureConfig {
   ) {
     this.enableLogging = enableLogging ?? DefaultConfig.enableLogging;
     this.autoStart = autoStart ?? DefaultConfig.autoStart;
-    this.enableDiagnosticMode = enableDiagnosticMode ?? DefaultConfig.enableDiagnosticMode;
+    this.enableDiagnosticMode =
+      enableDiagnosticMode ?? DefaultConfig.enableDiagnosticMode;
     this.maxEventNameLength = 64;
     this.customEventNameRegex = DefaultConfig.customEventNameRegex;
     this.maxSpanNameLength = 64;

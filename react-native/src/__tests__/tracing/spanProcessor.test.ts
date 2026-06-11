@@ -107,7 +107,9 @@ describe('SpanProcessor', () => {
     span.end(2000);
 
     expect(mockSignalProcessor.trackSpan).toHaveBeenCalledTimes(1);
-    expect(mockSignalProcessor.trackSpan.mock.calls[0][0].name).toBe('immediate');
+    expect(mockSignalProcessor.trackSpan.mock.calls[0][0].name).toBe(
+      'immediate'
+    );
   });
 
   it('drops span if name exceeds max length', () => {

@@ -16,11 +16,6 @@ import {
   MeasureConfig,
 } from '@measuresh/react-native';
 
-type ActionItem = {
-  id: string;
-  title: string;
-  onPress: () => void;
-};
 
 const App = (): React.JSX.Element => {
   const isDarkMode = useColorScheme() === 'dark';

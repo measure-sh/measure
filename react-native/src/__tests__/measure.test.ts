@@ -50,7 +50,11 @@ describe('Measure.start', () => {
   beforeEach(async () => {
     jest.resetModules();
     mockStart = jest.fn(() => Promise.resolve());
-    setupMocks(jest.fn(() => Promise.resolve()), mockStart, jest.fn());
+    setupMocks(
+      jest.fn(() => Promise.resolve()),
+      mockStart,
+      jest.fn()
+    );
     Measure = require('../measure').Measure;
   });
 
@@ -75,7 +79,11 @@ describe('Measure.stop', () => {
   beforeEach(async () => {
     jest.resetModules();
     mockStop = jest.fn(() => Promise.resolve());
-    setupMocks(jest.fn(() => Promise.resolve()), jest.fn(), mockStop);
+    setupMocks(
+      jest.fn(() => Promise.resolve()),
+      jest.fn(),
+      mockStop
+    );
     Measure = require('../measure').Measure;
   });
 

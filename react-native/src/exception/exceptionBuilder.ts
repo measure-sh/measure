@@ -1,4 +1,4 @@
-import { parseStacktrace } from "./stacktraceParser";
+import { parseStacktrace } from './stacktraceParser';
 
 const isHermesEnabled = (): boolean => !!(global as any).HermesInternal;
 
@@ -47,7 +47,10 @@ function isInApp(_filename: string | undefined): boolean {
  * Hermes bytecode frames always have line === 1 and use col as the bytecode
  * offset. Hermes columns are 0-based; the symbolicator expects 1-based.
  */
-function rewriteColumn(line: number | undefined, col: number | undefined): number | undefined {
+function rewriteColumn(
+  line: number | undefined,
+  col: number | undefined
+): number | undefined {
   if (col === undefined) return undefined;
   if (isHermesEnabled() && line === 1) {
     return col + 1;
@@ -123,7 +126,7 @@ export function buildExceptionPayload(
     type: parsed.type,
     message: parsed.message,
     frames,
-    thread_name: "main",
+    thread_name: 'main',
     thread_sequence: 0,
     os_build_number: undefined,
   };
@@ -133,7 +136,7 @@ export function buildExceptionPayload(
     exceptions: [exceptionDetail],
     foreground: true,
     threads: [],
-    framework: "js",
+    framework: 'js',
     is_custom: isCustom,
   };
 }
