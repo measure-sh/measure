@@ -27,7 +27,7 @@ export class MeasureInternal {
     this.errorReportingManager = new ErrorReportingManager(
       this.measureInitializer.timeProvider,
       this.measureInitializer.logger,
-      this.measureInitializer.signalProcessor,
+      this.measureInitializer.signalProcessor
     );
     this.errorReportingManager.enable();
   }
@@ -110,7 +110,11 @@ export class MeasureInternal {
     attributes?: Record<string, ValidAttributeValue>;
     timestamp?: number;
   }): Promise<void> =>
-    this.measureInitializer.customEventCollector.trackCustomEvent({ name, attributes, timestamp });
+    this.measureInitializer.customEventCollector.trackCustomEvent({
+      name,
+      attributes,
+      timestamp,
+    });
 
   getCurrentTime(): number {
     return this.measureInitializer.timeProvider.now();
@@ -123,13 +127,18 @@ export class MeasureInternal {
     screenName: string;
     attributes?: Record<string, ValidAttributeValue>;
   }): Promise<void> =>
-    this.measureInitializer.userTriggeredEventCollector.trackScreenView({ screenName, attributes });
+    this.measureInitializer.userTriggeredEventCollector.trackScreenView({
+      screenName,
+      attributes,
+    });
 
-  launchBugReport = (params: {
-    takeScreenshot?: boolean;
-    bugReportConfig?: Record<string, any>;
-    attributes?: Record<string, ValidAttributeValue>;
-  } = {}): Promise<void> =>
+  launchBugReport = (
+    params: {
+      takeScreenshot?: boolean;
+      bugReportConfig?: Record<string, any>;
+      attributes?: Record<string, ValidAttributeValue>;
+    } = {}
+  ): Promise<void> =>
     this.measureInitializer.bugReportCollector.launchBugReport(params);
 
   onShake({ handler }: { handler?: (() => void) | null }): void {
@@ -151,12 +160,23 @@ export class MeasureInternal {
     return this.measureInitializer.spanCollector.createSpan({ name });
   }
 
-  startSpan({ name, timestampMs }: { name: string; timestampMs?: number }): Span {
-    return this.measureInitializer.spanCollector.startSpan({ name, timestampMs });
+  startSpan({
+    name,
+    timestampMs,
+  }: {
+    name: string;
+    timestampMs?: number;
+  }): Span {
+    return this.measureInitializer.spanCollector.startSpan({
+      name,
+      timestampMs,
+    });
   }
 
   getTraceParentHeaderValue({ span }: { span: Span }): string {
-    return this.measureInitializer.spanCollector.getTraceParentHeaderValue({ span });
+    return this.measureInitializer.spanCollector.getTraceParentHeaderValue({
+      span,
+    });
   }
 
   getTraceParentHeaderKey(): string {
@@ -206,9 +226,19 @@ export class MeasureInternal {
   }): Promise<void> {
     const payload = buildExceptionPayload(error, 'handled', false);
     return this.measureInitializer.signalProcessor
-      .trackEvent(payload, 'exception', this.measureInitializer.timeProvider.now(), {}, attributes ?? {})
+      .trackEvent(
+        payload,
+        'exception',
+        this.measureInitializer.timeProvider.now(),
+        {},
+        attributes ?? {}
+      )
       .catch((err) => {
-        this.measureInitializer.logger.log('error', 'Failed to track error', err);
+        this.measureInitializer.logger.log(
+          'error',
+          'Failed to track error',
+          err
+        );
       });
   }
 

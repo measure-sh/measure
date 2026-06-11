@@ -1,13 +1,13 @@
-import type { ValidAttributeValue } from "../utils/attributeValueValidator";
-import type { IIdProvider } from "../utils/idProvider";
-import type { TimeProvider } from "../utils/timeProvider";
-import type { Checkpoint } from "./checkpoint";
-import type { InternalSpan } from "./internalSpan";
-import type { Span } from "./span";
-import type { SpanData } from "./spanData";
-import type { ISpanProcessor } from "./spanProcessor";
-import { EndState, SpanStatus } from "./spanStatus";
-import type { ITraceSampler } from "./traceSampler";
+import type { ValidAttributeValue } from '../utils/attributeValueValidator';
+import type { IIdProvider } from '../utils/idProvider';
+import type { TimeProvider } from '../utils/timeProvider';
+import type { Checkpoint } from './checkpoint';
+import type { InternalSpan } from './internalSpan';
+import type { Span } from './span';
+import type { SpanData } from './spanData';
+import type { ISpanProcessor } from './spanProcessor';
+import { EndState, SpanStatus } from './spanStatus';
+import type { ITraceSampler } from './traceSampler';
 
 export class MsrSpan implements InternalSpan {
   timeProvider: TimeProvider;
@@ -67,7 +67,8 @@ export class MsrSpan implements InternalSpan {
     const startTime = timestamp;
     const spanId = idProvider.spanId();
     const traceId = parentSpan?.traceId ?? idProvider.traceId();
-    const isSampled = parentSpan?.isSampled ?? traceSampler.shouldSampleTrace(traceId);
+    const isSampled =
+      parentSpan?.isSampled ?? traceSampler.shouldSampleTrace(traceId);
 
     const span = new MsrSpan(
       timeProvider,

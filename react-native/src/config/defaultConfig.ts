@@ -2,6 +2,6 @@
 export const DefaultConfig = {
   enableLogging: false,
   autoStart: true,
-enableDiagnosticMode: false,
-  customEventNameRegex: "^[a-zA-Z0-9_-]+\$",
+  enableDiagnosticMode: false,
+  customEventNameRegex: '^[a-zA-Z0-9_-]+\$',
 };

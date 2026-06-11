@@ -30,7 +30,10 @@ export class BugReportCollector implements IBugReportCollector {
 
   register(): void {
     if (this.isRegistered) {
-      this.logger.internalLog('debug', '[BugReportCollector] Already registered.');
+      this.logger.internalLog(
+        'debug',
+        '[BugReportCollector] Already registered.'
+      );
       return;
     }
     this.isRegistered = true;
@@ -56,20 +59,30 @@ export class BugReportCollector implements IBugReportCollector {
     attributes?: Record<string, ValidAttributeValue>;
   }): Promise<void> {
     if (!this.isRegistered) {
-      this.logger.internalLog('warning', 'Measure SDK is stopped. trackBugReport() will be ignored.');
+      this.logger.internalLog(
+        'warning',
+        'Measure SDK is stopped. trackBugReport() will be ignored.'
+      );
       return;
     }
 
     try {
-      this.logger.internalLog('info', '[BugReportCollector] Tracking bug report...', {
-        description,
-        attachments,
-        attributes,
-      });
+      this.logger.internalLog(
+        'info',
+        '[BugReportCollector] Tracking bug report...',
+        {
+          description,
+          attachments,
+          attributes,
+        }
+      );
 
       await trackBugReport(description, attachments, attributes);
     } catch (err: any) {
-      this.logger.internalLog('error', `[BugReportCollector] trackBugReport failed: ${err}`);
+      this.logger.internalLog(
+        'error',
+        `[BugReportCollector] trackBugReport failed: ${err}`
+      );
       throw err;
     }
   }
@@ -84,15 +97,22 @@ export class BugReportCollector implements IBugReportCollector {
     attributes?: Record<string, ValidAttributeValue>;
   } = {}): Promise<void> {
     if (!this.isRegistered) {
-      this.logger.internalLog('warning', 'Measure SDK is stopped. launchBugReport() will be ignored.');
+      this.logger.internalLog(
+        'warning',
+        'Measure SDK is stopped. launchBugReport() will be ignored.'
+      );
       return;
     }
 
-    this.logger.internalLog('info', '[BugReportCollector] Launching native bug report UI...', {
-      takeScreenshot,
-      bugReportConfig,
-      attributes,
-    });
+    this.logger.internalLog(
+      'info',
+      '[BugReportCollector] Launching native bug report UI...',
+      {
+        takeScreenshot,
+        bugReportConfig,
+        attributes,
+      }
+    );
 
     return launchBugReport(takeScreenshot, bugReportConfig, attributes);
   }

@@ -12,9 +12,9 @@ export interface Client {
 
   /** The API key assigned to your Android project. Available in the Measure dashboard. */
   apiKeyAndroid: string;
-  
-  /** 
-   * The backend URL where data will be sent. For self-host users this is available 
+
+  /**
+   * The backend URL where data will be sent. For self-host users this is available
    * in the Measure dashboard. For SaaS users this is set automatically.
    */
   apiUrl: string;
@@ -22,10 +22,10 @@ export interface Client {
 
 /**
  * Identifiers required to connect to the Measure backend.
- * 
+ *
  * This class is used during SDK initialization via `Measure.initialize(...)`.
  * It provides the SDK with the credentials and endpoint needed to send analytics data.
- * 
+ *
  * @example
  * ```typescript
  * const clientInfo = new ClientInfo(
@@ -42,7 +42,7 @@ class ClientInfo implements Client {
 
   /**
    * Creates a new ClientInfo instance.
-   * 
+   *
    * @param apiKeyIos - The API key assigned to your iOS project
    * @param apiKeyAndroid - The API key assigned to your Android project
    * @param apiUrl - The backend URL where data will be sent (optional, defaults to api.measure.sh)
@@ -59,7 +59,10 @@ class ClientInfo implements Client {
       new URL(apiUrl);
       this.apiUrl = apiUrl;
     } catch (e) {
-      console.debug('Measure apiUrl is invalid, falling back to default.', apiUrl);
+      console.debug(
+        'Measure apiUrl is invalid, falling back to default.',
+        apiUrl
+      );
       this.apiUrl = FALLBACK_API_URL;
     }
 
@@ -69,13 +72,13 @@ class ClientInfo implements Client {
 }
 
 class ClientInfoInternal {
-    apiKey: string;
-    apiUrl: string;
+  apiKey: string;
+  apiUrl: string;
 
-    constructor(apiKey: string, apiUrl: string) {
-      this.apiKey = apiKey;
-      this.apiUrl = apiUrl;
-    }
+  constructor(apiKey: string, apiUrl: string) {
+    this.apiKey = apiKey;
+    this.apiUrl = apiUrl;
   }
+}
 
 export { ClientInfo, ClientInfoInternal };

@@ -1,21 +1,23 @@
-import type { Logger } from "../utils/logger";
-import { buildExceptionPayload } from "./exceptionBuilder";
-import type { TimeProvider } from "../utils/timeProvider";
-import type { ISignalProcessor } from "../events/signalProcessor";
+import type { Logger } from '../utils/logger';
+import { buildExceptionPayload } from './exceptionBuilder';
+import type { TimeProvider } from '../utils/timeProvider';
+import type { ISignalProcessor } from '../events/signalProcessor';
 
 export class ErrorReportingManager {
   private readonly timeProvider: TimeProvider;
   private readonly logger: Logger;
   private readonly signalProcessor: ISignalProcessor;
 
-  private defaultErrorHandler: ((error: any, isFatal?: boolean) => void) | undefined;
+  private defaultErrorHandler:
+    | ((error: any, isFatal?: boolean) => void)
+    | undefined;
   private isEnabled = false;
   private usingPolyfill = false;
 
   constructor(
     timeProvider: TimeProvider,
     logger: Logger,
-    signalProcessor: ISignalProcessor,
+    signalProcessor: ISignalProcessor
   ) {
     this.timeProvider = timeProvider;
     this.logger = logger;
@@ -42,7 +44,10 @@ export class ErrorReportingManager {
     this.logger.internalLog('info', 'React Native error handlers removed.');
   }
 
-  private async captureException(error: unknown, isFatal: boolean): Promise<void> {
+  private async captureException(
+    error: unknown,
+    isFatal: boolean
+  ): Promise<void> {
     if (!this.isEnabled) {
       return;
     }
@@ -51,21 +56,27 @@ export class ErrorReportingManager {
       const exceptionPayload = buildExceptionPayload(error, severity);
 
       if (error instanceof Error && error.stack) {
-        this.logger.log('debug', `[ErrorHandler] Raw stacktrace:\n${error.stack}`);
+        this.logger.log(
+          'debug',
+          `[ErrorHandler] Raw stacktrace:\n${error.stack}`
+        );
       }
-      this.logger.log('debug', `[ErrorHandler] Exception payload:\n${JSON.stringify(exceptionPayload, null, 2)}`);
+      this.logger.log(
+        'debug',
+        `[ErrorHandler] Exception payload:\n${JSON.stringify(exceptionPayload, null, 2)}`
+      );
 
       this.logger.log(
         isFatal ? 'fatal' : 'error',
         isFatal ? 'Fatal exception' : 'Exception',
         error,
-        exceptionPayload,
+        exceptionPayload
       );
 
       await this.signalProcessor.trackEvent(
         exceptionPayload,
         'exception',
-        this.timeProvider.now(),
+        this.timeProvider.now()
       );
     } catch (e) {
       this.logger.log('error', 'Failed to process exception', e);
@@ -75,7 +86,10 @@ export class ErrorReportingManager {
   private installGlobalErrorHandler(): void {
     const errorUtils = (global as any).ErrorUtils;
     if (!errorUtils?.getGlobalHandler || !errorUtils?.setGlobalHandler) {
-      this.logger.log('warning', 'ErrorUtils not found. Skipping global error handler setup.');
+      this.logger.log(
+        'warning',
+        'ErrorUtils not found. Skipping global error handler setup.'
+      );
       return;
     }
 
@@ -109,14 +123,21 @@ export class ErrorReportingManager {
     try {
       const hermes = (global as any).HermesInternal;
 
-      if (hermes?.enablePromiseRejectionTracker && typeof hermes.hasPromise === 'function' && hermes.hasPromise()) {
+      if (
+        hermes?.enablePromiseRejectionTracker &&
+        typeof hermes.hasPromise === 'function' &&
+        hermes.hasPromise()
+      ) {
         hermes.enablePromiseRejectionTracker({
           allRejections: true,
           onUnhandled: (_id: string, error: unknown) => {
             this.captureException(error, false);
           },
         });
-        this.logger.internalLog('info', 'Using Hermes promise rejection tracking.');
+        this.logger.internalLog(
+          'info',
+          'Using Hermes promise rejection tracking.'
+        );
       } else {
         const rejectionTracking = require('promise/setimmediate/rejection-tracking');
         rejectionTracking.enable({
@@ -126,10 +147,17 @@ export class ErrorReportingManager {
           },
         });
         this.usingPolyfill = true;
-        this.logger.internalLog('info', 'Using polyfill for promise rejection tracking.');
+        this.logger.internalLog(
+          'info',
+          'Using polyfill for promise rejection tracking.'
+        );
       }
     } catch (e) {
-      this.logger.log('error', 'Failed to set up promise rejection tracking', e);
+      this.logger.log(
+        'error',
+        'Failed to set up promise rejection tracking',
+        e
+      );
     }
   }
 
@@ -141,9 +169,16 @@ export class ErrorReportingManager {
         const rejectionTracking = require('promise/setimmediate/rejection-tracking');
         rejectionTracking.disable();
         this.usingPolyfill = false;
-        this.logger.internalLog('info', 'Polyfill promise rejection tracking disabled.');
+        this.logger.internalLog(
+          'info',
+          'Polyfill promise rejection tracking disabled.'
+        );
       } catch (e) {
-        this.logger.log('error', 'Failed to disable polyfill promise rejection tracking', e);
+        this.logger.log(
+          'error',
+          'Failed to disable polyfill promise rejection tracking',
+          e
+        );
       }
     }
   }

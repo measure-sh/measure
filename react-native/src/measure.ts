@@ -331,11 +331,13 @@ export const Measure = {
    * Measure.launchBugReport({ takeScreenshot: true, bugReportConfig: { theme: "dark" }, attributes: { userId: "123", screen: "Home" } });
    * ```
    */
-  launchBugReport(params: {
-    takeScreenshot?: boolean;
-    bugReportConfig?: Record<string, any>;
-    attributes?: Record<string, ValidAttributeValue>;
-  } = {}): Promise<void> {
+  launchBugReport(
+    params: {
+      takeScreenshot?: boolean;
+      bugReportConfig?: Record<string, any>;
+      attributes?: Record<string, ValidAttributeValue>;
+    } = {}
+  ): Promise<void> {
     if (!_measureInternal) {
       return Promise.reject(
         new Error('Measure is not initialized. Call init() first.')

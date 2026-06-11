@@ -50,7 +50,12 @@ function parseFrameLine(raw: string): ParsedFrame | null {
         const loc = inner.slice(parenOpen + 1, -1);
         const parsed = extractTrailingLineCol(loc);
         if (parsed) {
-          return { function: fn, file: parsed.prefix, line: parsed.line, column: parsed.col };
+          return {
+            function: fn,
+            file: parsed.prefix,
+            line: parsed.line,
+            column: parsed.col,
+          };
         }
       }
     }
@@ -58,7 +63,12 @@ function parseFrameLine(raw: string): ParsedFrame | null {
     // "at file:line:col"
     const parsed = extractTrailingLineCol(inner);
     if (parsed) {
-      return { function: '<anonymous>', file: parsed.prefix, line: parsed.line, column: parsed.col };
+      return {
+        function: '<anonymous>',
+        file: parsed.prefix,
+        line: parsed.line,
+        column: parsed.col,
+      };
     }
 
     return null;
@@ -71,7 +81,12 @@ function parseFrameLine(raw: string): ParsedFrame | null {
     const rest = line.slice(atIdx + 1);
     const parsed = extractTrailingLineCol(rest);
     if (parsed) {
-      return { function: fn || '<anonymous>', file: parsed.prefix, line: parsed.line, column: parsed.col };
+      return {
+        function: fn || '<anonymous>',
+        file: parsed.prefix,
+        line: parsed.line,
+        column: parsed.col,
+      };
     }
     return null;
   }
@@ -80,7 +95,12 @@ function parseFrameLine(raw: string): ParsedFrame | null {
   if (!line.includes(' ')) {
     const parsed = extractTrailingLineCol(line);
     if (parsed && parsed.prefix) {
-      return { function: '<anonymous>', file: parsed.prefix, line: parsed.line, column: parsed.col };
+      return {
+        function: '<anonymous>',
+        file: parsed.prefix,
+        line: parsed.line,
+        column: parsed.col,
+      };
     }
   }
 
@@ -92,7 +112,7 @@ function parseFrameLine(raw: string): ParsedFrame | null {
  */
 export function parseStacktrace(error: unknown): ParsedStacktrace {
   if (!error) {
-    return { type: "UnknownError", message: String(error), stacktrace: [] };
+    return { type: 'UnknownError', message: String(error), stacktrace: [] };
   }
 
   if (error instanceof Error) {
@@ -100,7 +120,7 @@ export function parseStacktrace(error: unknown): ParsedStacktrace {
 
     const frames: ParsedFrame[] =
       stack
-        ?.split("\n")
+        ?.split('\n')
         .map(parseFrameLine)
         .filter((f): f is ParsedFrame => f !== null) || [];
 

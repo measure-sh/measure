@@ -8,15 +8,6 @@ import {
   Alert,
 } from 'react-native';
 import { Measure, type Span } from '@measuresh/react-native';
-import type { RootStackParamList } from './AppNavigator';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
-
-
-type TracesScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'TracesScreen'
->;
 
 // Component for a single action button
 const ActionButton = React.memo(
