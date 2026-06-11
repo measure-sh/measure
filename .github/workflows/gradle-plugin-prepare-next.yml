@@ -36,10 +36,6 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
 
-      - name: Create branch
-        run: |
-          git checkout -b prepare-next-gradle-plugin-${{ inputs.version }}
-
       - name: Validate input version format
         run: |
           if ! [[ ${{ inputs.version }} =~ ^[0-9]+\.[0-9]+\.[0-9]+-SNAPSHOT$ ]]; then
