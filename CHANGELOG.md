@@ -91,6 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Use docker secrets (#3862) by @detj in #3862
 - (**backend**): Make mcp tool description more accurate by @anupcowkur in #3860
 - (**backend**): Update mcp tools by @anupcowkur in #3858
 - (**backend**): Remove unused schema.sql files by @anupcowkur in #3856
