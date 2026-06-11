@@ -67,7 +67,7 @@ export class MeasureInternal {
       this.started = true;
       this.registerCollectors();
       enableNativeModule();
-      nativeStart();
+      await nativeStart();
     }
   }
 

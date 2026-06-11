@@ -11,6 +11,7 @@
       "types": "./lib/typescript/src/index.d.ts",
       "default": "./lib/module/index.js"
     },
+    "./app.plugin.js": "./app.plugin.js",
     "./package.json": "./package.json"
   },
   "files": [
@@ -18,7 +19,10 @@
     "lib",
     "android",
     "ios",
+    "app.plugin.js",
+    "plugin",
     "cpp",
+    "scripts",
     "*.podspec",
     "react-native.config.js",
     "expo-module.config.json",

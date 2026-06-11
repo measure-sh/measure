@@ -10,7 +10,7 @@ description: "Integrate the Measure SDK on Android, iOS or Flutter to track your
     * [Android](#android)
     * [iOS](#ios)
     * [Flutter](#flutter)
-    * [React Native (Coming Soon)](#react-native-coming-soon)
+    * [React Native](#react-native)
 * [3. Verify Installation](#3-verify-installation)
 * [4. Review Configuration Options](#4-review-configuration-options)
 * [Troubleshoot](#troubleshoot)
@@ -29,7 +29,7 @@ in later steps.
 * [Android](#android)
 * [iOS](#ios)
 * [Flutter](#flutter)
-* [React Native (Coming Soon)](#react-native-coming-soon)
+* [React Native](#react-native)
 
 ## Android
 
@@ -467,10 +467,12 @@ on every click to help visualize user interactions. To enable these features, si
 Read more about adding custom widget names in the layout snapshots
 in [Gesture Tracking & Layout Snapshots](features/feature-gesture-tracking.md#flutter). 
 
-## React Native (Coming Soon)
+## React Native
 
-The React Native SDK currently supports Android and iOS targets. It depends on the native Android and iOS SDKs,
-so all the minimum requirements for Android and iOS apply to the React Native SDK as well.
+> [!IMPORTANT]
+> This is an alpha release of the React Native SDK. Please open an [issue](https://github.com/measure-sh/measure/issues) if you face any problems.
+
+The React Native SDK supports both **Expo** and **Vanilla React Native** projects on Android and iOS.
 
 <details>
   <summary>Minimum Requirements</summary>
@@ -484,66 +486,208 @@ so all the minimum requirements for Android and iOS apply to the React Native SD
 
 ### Install the SDK
 
-Add the following dependency to your project:
-
 ```sh
-npm install @measuresh/react-native@0.0.1
+npm install @measuresh/react-native@0.1.0
 ```
 
 or with yarn:
 
 ```sh
-yarn add @measuresh/react-native@0.0.1
+yarn add @measuresh/react-native@0.1.0
 ```
 
-### Initialize the SDK
+---
 
-Call `Measure.init` as early as possible in your app entry point — for example, inside a `useEffect` in your
-root component or top-level `App` component.
+### Expo
+
+The recommended setup for Expo projects uses the Measure config plugin, which automates the native configuration for both Android and iOS.
+
+#### 1. Add the plugin to `app.json`
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "@measuresh/react-native",
+        {
+          "androidApiKey": "<android-api-key>",
+          "androidApiUrl": "<android-api-url>",
+          "iosApiKey": "<ios-api-key>",
+          "iosApiUrl": "<ios-api-url>"
+        }
+      ]
+    ]
+  }
+}
+```
+
+The plugin automatically handles:
+
+**Android**
+- Injects `sh.measure.android.API_KEY` and `sh.measure.android.API_URL` into `AndroidManifest.xml`
+- Adds the Measure Gradle plugin to the project build files
+- Adds the `measure-android` dependency to `app/build.gradle`
+
+**iOS**
+- Adds the `MeasureReactNative` pod to `Podfile`
+- Adds `export SOURCEMAP_FILE="$(pwd)/main.jsbundle.map"` to the "Bundle React Native code and images" build phase so a sourcemap is generated on every Release build
+- Adds an "Upload Measure Symbol Files" build phase that automatically uploads dSYM files and the JavaScript sourcemap after each Release build
+
+#### 2. Run prebuild
+
+```sh
+npx expo prebuild
+```
+
+#### 3. Initialize the SDK
+
+Call `Measure.init` as early as possible in your app entry point:
 
 ```typescript
 import { Measure, MeasureConfig } from '@measuresh/react-native';
+import { useEffect } from 'react';
 
-const measureConfig = new MeasureConfig({
-  enableLogging: true,
-});
+export default function App() {
+  useEffect(() => {
+    Measure.init({
+      config: new MeasureConfig({ autoStart: true }),
+    });
+  }, []);
 
-await Measure.init({ config: measureConfig });
+  // ...
+}
 ```
 
-### React Native Android Setup
-
-The React Native SDK depends on the native Android SDK, so you need to follow all the steps mentioned in the
-[Android](#android) section to set up the Android SDK properly.
-
-1. [Add API Key & API URL to Android Manifest](#add-the-api-key--api-url)
-2. [Add Android Gradle Plugin](#add-the-gradle-plugin)
-3. [Initialize the native Android SDK](#initialize-the-sdk)
-
-After installing the dependencies, rebuild the app to link the native module:
+#### 4. Build and run
 
 ```sh
+# Android
+npx expo run:android
+
+# iOS
+npx expo run:ios
+```
+
+---
+
+### Vanilla React Native
+
+#### Android setup
+
+Step 1 — Add API credentials to `AndroidManifest.xml`
+
+```xml
+<manifest>
+  <application>
+    <meta-data
+      android:name="sh.measure.android.API_KEY"
+      android:value="<android-api-key>" />
+    <meta-data
+      android:name="sh.measure.android.API_URL"
+      android:value="<android-api-url>" />
+  </application>
+</manifest>
+```
+
+**Step 2 — Add the Gradle plugin**
+
+In your project-level `build.gradle`:
+
+```groovy
+buildscript {
+  dependencies {
+    classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.12.0")
+  }
+}
+```
+
+In your app-level `build.gradle` (after all other plugins):
+
+```groovy
+apply plugin: "sh.measure.android.gradle"
+```
+
+The Gradle plugin automatically uploads ProGuard/R8 mapping files and JavaScript sourcemaps after every `assembleRelease` or `bundleRelease` build — no manual upload step is needed.
+
+#### iOS setup
+
+**Step 1 — Add the pod**
+
+In your `Podfile`:
+
+```ruby
+pod 'MeasureReactNative', :path => '../node_modules/@measuresh/react-native'
+```
+
+Then run:
+
+```sh
+pod install
+```
+
+**Step 2 — Enable sourcemap generation**
+
+In Xcode, open your target → Build Phases → **"Bundle React Native code and images"** and add this line at the top of the script:
+
+```sh
+export SOURCEMAP_FILE="$(pwd)/main.jsbundle.map"
+```
+
+**Step 3 — Add the upload build phase**
+
+Add a new Run Script build phase **after** the bundle phase:
+
+```sh
+"$SRCROOT/../node_modules/@measuresh/react-native/scripts/upload_build_phase.sh" \
+  "<ios-api-url>" \
+  "<ios-api-key>"
+```
+
+This script automatically uploads dSYM files and the JavaScript sourcemap after each Release build. See the caution note below about when to run it.
+
+> [!CAUTION]
+> The upload script runs on every build in the configuration you add it to. To restrict it to Archive builds only, wrap the script content in:
+> ```sh
+> if [ "$ACTION" = "archive" ]; then
+>   # script content here
+> fi
+> ```
+
+#### Initialize the SDK
+
+Call `Measure.init` as early as possible in your app entry point:
+
+```typescript
+import { Measure, MeasureConfig } from '@measuresh/react-native';
+import { useEffect } from 'react';
+
+export default function App() {
+  useEffect(() => {
+    Measure.init({
+      config: new MeasureConfig({ autoStart: true }),
+    });
+  }, []);
+
+  // ...
+}
+```
+
+#### Build and run
+
+```sh
+# Android
 npx react-native run-android
-```
 
-### React Native iOS Setup
-
-The React Native SDK depends on the native iOS SDK, so you need to follow all the steps mentioned in the
-[iOS](#ios) section to set up the iOS SDK properly.
-
-1. [Install the SDK using CocoaPods or SPM](#install-the-sdk)
-2. [Initialize the native iOS SDK](#initialize-the-sdk-1)
-
-After running `pod install`, rebuild the app to link the native module:
-
-```sh
+# iOS
 npx react-native run-ios
 ```
 
+---
+
 ### Track navigation
 
-See [Navigation Monitoring](features/feature-navigation-lifecycle-tracking.md#react-native) for instructions on how to track
-navigation events.
+See [Navigation Monitoring](features/feature-navigation-lifecycle-tracking.md#react-native) for instructions on how to track navigation events.
 
 ### Track http requests
 
@@ -648,8 +792,9 @@ Android and iOS native SDK initializations.
 <details>
     <summary>React Native</summary>
 
-React Native SDK depends on the native SDKs, so verify that the API URL and API key are set correctly in both
-Android and iOS native SDK initializations.
+**Expo:** Verify that `androidApiKey`, `androidApiUrl`, `iosApiKey`, and `iosApiUrl` are all set in the plugin options in `app.json` and that `npx expo prebuild` has been run.
+
+**Vanilla React Native:** Verify the API key and URL are present in `AndroidManifest.xml` (Android) and that the upload build phase script has the correct API key and URL (iOS).
 
 </details>
 
