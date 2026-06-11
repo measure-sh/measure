@@ -24,7 +24,6 @@ extension Attributes: Equatable {
             lhs.deviceLocale == rhs.deviceLocale &&
             lhs.osName == rhs.osName &&
             lhs.osVersion == rhs.osVersion &&
-            lhs.platform == rhs.platform &&
             lhs.networkType == rhs.networkType &&
             lhs.networkGeneration == rhs.networkGeneration &&
             lhs.networkProvider == rhs.networkProvider &&

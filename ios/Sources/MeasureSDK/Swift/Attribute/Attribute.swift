@@ -43,7 +43,6 @@ class Attributes: Codable {
     var deviceLocale: String?
     var osName: String?
     var osVersion: String?
-    var platform: String = AttributeConstants.platform
     var networkType: NetworkType?
     var networkGeneration: NetworkGeneration?
     var networkProvider: String?
@@ -74,7 +73,6 @@ class Attributes: Codable {
         case deviceLocale = "device_locale"
         case osName = "os_name"
         case osVersion = "os_version"
-        case platform = "platform"
         case networkType = "network_type"
         case networkGeneration = "network_generation"
         case networkProvider = "network_provider"
@@ -106,7 +104,6 @@ class Attributes: Codable {
         deviceLocale: String? = nil,
         osName: String? = nil,
         osVersion: String? = nil,
-        platform: String = AttributeConstants.platform,
         networkType: NetworkType? = nil,
         networkGeneration: NetworkGeneration? = nil,
         networkProvider: String? = nil,
@@ -135,7 +132,6 @@ class Attributes: Codable {
            self.deviceLocale = deviceLocale
            self.osName = osName
            self.osVersion = osVersion
-           self.platform = platform
            self.networkType = networkType
            self.networkGeneration = networkGeneration
            self.networkProvider = networkProvider
@@ -167,7 +163,6 @@ class Attributes: Codable {
         self.deviceLocale = dict["device_locale"] as? String
         self.osName = dict["os_name"] as? String
         self.osVersion = dict["os_version"] as? String
-        self.platform = dict["platform"] as? String ?? AttributeConstants.platform
         self.networkType = (dict["network_type"] as? String).flatMap(NetworkType.init)
         self.networkGeneration = (dict["network_generation"] as? String).flatMap(NetworkGeneration.init)
         self.networkProvider = dict["network_provider"] as? String

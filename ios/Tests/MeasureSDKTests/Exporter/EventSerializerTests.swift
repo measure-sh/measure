@@ -465,7 +465,6 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             XCTAssertEqual(attributesDict?["device_locale"] as? String, attributes.deviceLocale)
             XCTAssertEqual(attributesDict?["os_name"] as? String, attributes.osName)
             XCTAssertEqual(attributesDict?["os_version"] as? String, attributes.osVersion)
-            XCTAssertEqual(attributesDict?["platform"] as? String, attributes.platform)
             XCTAssertEqual(attributesDict?["network_type"] as? String, attributes.networkType?.rawValue)
             XCTAssertEqual(attributesDict?["network_generation"] as? String, attributes.networkGeneration?.rawValue)
             XCTAssertEqual(attributesDict?["network_provider"] as? String, attributes.networkProvider)

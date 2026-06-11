@@ -38,7 +38,6 @@ final class SignalProcessorTests: XCTestCase {
         deviceLocale: "en_US",
         osName: "iOS",
         osVersion: "17.0",
-        platform: "ios",
         networkType: .wifi,
         networkGeneration: .generation5,
         networkProvider: "Verizon",
@@ -117,7 +116,6 @@ final class SignalProcessorTests: XCTestCase {
             attributes.deviceLocale = "en_US"
             attributes.osName = "iOS"
             attributes.osVersion = "17.0"
-            attributes.platform = "ios"
             attributes.networkType = .wifi
             attributes.networkGeneration = .generation5
             attributes.networkProvider = "Verizon"
@@ -211,7 +209,6 @@ final class SignalProcessorTests: XCTestCase {
             deviceLocale: "en_US",
             osName: "iOS",
             osVersion: "17.0",
-            platform: "ios",
             networkType: .wifi,
             networkGeneration: .generation5,
             networkProvider: "Verizon",
@@ -238,7 +235,6 @@ final class SignalProcessorTests: XCTestCase {
             deviceLocale: "en_US",
             osName: "iOS",
             osVersion: "17.0",
-            platform: "ios",
             networkType: .wifi,
             networkGeneration: .generation5,
             networkProvider: "Verizon",
