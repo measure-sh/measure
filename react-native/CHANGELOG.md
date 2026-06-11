@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
+- (**rn**): Prepare rn release 0.1.0
 - (**rn**): Fix typescript lint and typecheck error (#3878)
 - (**rn**): Add upload build script (#3874)
 - (**rn**): Remove enableFullCollectionMode from measure config (#3759)
