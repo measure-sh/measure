@@ -5,10 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [measure_flutter-v0.6.0] - 2026-06-11
+
+### :sparkles: New features
+
+- (**flutter**): Mask sensitive content in screenshots (#3779) by @abhaysood in #3779
+
+### :hammer: Misc
+
+- (**flutter**): Update exception schema (#3728) by @abhaysood in #3728
+- (**flutter**): Add diagnostic mode for SDK logging (#3593) by @abhaysood in #3593
+- (**flutter**): Fix screenshot rendering in bug reports (#3615) by @abhaysood in #3615
+- (**flutter**): Compress flutter screenshots to webp (#3545) by @abhaysood in #3545
+- (**flutter**): Prepare next measure_flutter version 0.6.0 (#3450) by @abhaysood in #3450
+
 ## [measure_flutter-v0.5.0] - 2026-04-08
 
 ### :hammer: Misc
 
+- (**flutter**): Prepare measure_flutter release 0.5.0 (#3449) by @abhaysood in #3449
 - (**flutter**): Prepare measure_dio-v0.4.0 (#3317) by @abhaysood in #3317
 
 ## [measure_flutter-v0.4.0] - 2026-02-19
