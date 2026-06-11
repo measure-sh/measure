@@ -56,7 +56,7 @@ internal class SignalProcessorTest {
     }
 
     @Test
-    fun `track stores event with session id, event id, thread name and platform attributes`() {
+    fun `track stores event with session id, event id and thread name attributes`() {
         val exceptionData = TestData.getExceptionData()
         val timestamp = 1710746412L
         val type = EventType.EXCEPTION
@@ -74,7 +74,6 @@ internal class SignalProcessorTest {
             sessionId = sessionManager.getSessionId(),
         ).apply {
             appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name)
-            appendAttribute(Attribute.PLATFORM_KEY, "android")
         }
 
         assertEquals(1, signalStore.trackedEvents.size)
@@ -103,7 +102,6 @@ internal class SignalProcessorTest {
             attachments = attachments,
         ).apply {
             appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name)
-            appendAttribute(Attribute.PLATFORM_KEY, "android")
         }
 
         assertEquals(1, signalStore.trackedEvents.size)
@@ -191,7 +189,6 @@ internal class SignalProcessorTest {
             attributes = mutableMapOf("key" to "value"),
         ).apply {
             appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name)
-            appendAttribute(Attribute.PLATFORM_KEY, "android")
         }
 
         assertEquals(1, signalStore.trackedEvents.size)
@@ -268,7 +265,6 @@ internal class SignalProcessorTest {
             isSampled = sampler.trackJourneyForSession,
         ).apply {
             appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name)
-            appendAttribute(Attribute.PLATFORM_KEY, "android")
         }
 
         signalProcessor.trackUserTriggered(

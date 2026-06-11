@@ -20,7 +20,6 @@ internal object Attribute {
     const val OS_NAME_KEY = "os_name"
     const val OS_VERSION_KEY = "os_version"
     const val OS_PAGE_SIZE = "os_page_size"
-    const val PLATFORM_KEY = "platform"
     const val NETWORK_TYPE_KEY = "network_type"
     const val NETWORK_GENERATION_KEY = "network_generation"
     const val NETWORK_PROVIDER_KEY = "network_provider"

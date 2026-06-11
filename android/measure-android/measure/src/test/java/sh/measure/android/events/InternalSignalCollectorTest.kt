@@ -56,7 +56,7 @@ class InternalSignalCollectorTest {
     )
 
     @Test
-    fun `trackEvent without platform attribute should not track event`() {
+    fun `trackEvent without event name should not track event`() {
         val data = mutableMapOf<String, Any?>()
         val type = EventType.CUSTOM
         val timestamp = 1234567890L

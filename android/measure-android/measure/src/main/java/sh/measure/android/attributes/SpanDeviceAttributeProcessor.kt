@@ -15,7 +15,6 @@ internal class SpanDeviceAttributeProcessor(
         Attribute.DEVICE_LOCALE_KEY to getDeviceLocale(),
         Attribute.OS_NAME_KEY to "android",
         Attribute.OS_VERSION_KEY to Build.VERSION.SDK_INT.toString(),
-        Attribute.PLATFORM_KEY to "android",
     )
 
     private fun getDeviceLocale(): String = localeProvider.getLocale()
