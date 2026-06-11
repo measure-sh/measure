@@ -33,6 +33,11 @@ final class BaseSystemCrashReporter: SystemCrashReporter {
     init(logger: Logger, crashDataPersistence: CrashDataPersistence) {
         self.logger = logger
         self.crashDataPersistence = crashDataPersistence
+        do {
+            try enable()
+        } catch {
+            logger.internalLog(level: .error, message: "MeasureInternal: KSCrash enable failed.", error: error, data: nil)
+        }
     }
 
     func enable() throws {
