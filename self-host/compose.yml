@@ -130,6 +130,7 @@ services:
       - EMAIL_DOMAIN=${EMAIL_DOMAIN}
       - SLACK_CLIENT_ID=${SLACK_CLIENT_ID}
       - SLACK_CLIENT_SECRET_FILE=/run/secrets/slack-client-secret
+      - SLACK_SIGNING_SECRET_FILE=/run/secrets/slack-signing-secret
       - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-}
       - GA4_MEASUREMENT_PROTOCOL_SECRET_FILE=/run/secrets/ga4-measurement-protocol-secret
       - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}

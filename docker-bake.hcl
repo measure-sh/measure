@@ -88,6 +88,7 @@ target "dashboard" {
     docs = "docs"
   }
   dockerfile = "dockerfile.prod"
+  secret = ["id=posthog_sourcemap_personal_key,env=POSTHOG_SOURCEMAP_PERSONAL_KEY"]
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
   platforms = ["linux/amd64"]

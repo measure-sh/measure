@@ -11,7 +11,6 @@ import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.Directory
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFile
-import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
@@ -40,8 +39,8 @@ class MeasurePlugin : Plugin<Project> {
         if (!project.plugins.hasPlugin("com.android.application")) {
             project.logger.warn(
                 """
-                WARNING: Measure gradle plugin can only be applied to Android application projects, 
-                that is, projects that have the com.android.application plugin applied. 
+                WARNING: Measure gradle plugin can only be applied to Android application projects,
+                that is, projects that have the com.android.application plugin applied.
                 Applying the plugin to other project types has no effect.
                 """.trimIndent(),
             )
@@ -188,9 +187,18 @@ class MeasurePlugin : Plugin<Project> {
 
     private fun packageReactNativeSourceMapTaskName(variant: Variant) = "packageReactNativeSourceMap${variant.name.capitalize()}"
 
+    private fun rewriteReactNativeSourceMapTaskName(variant: Variant) = "rewriteReactNativeSourceMap${variant.name.capitalize()}"
+
+    private fun emptyReactNativeBundleTaskName(variant: Variant) = "prepareEmptyReactNativeBundle${variant.name.capitalize()}"
+
     // The builds API expects the JS bundle and its source map as two separate
     // jsbundle mappings, each a .tgz wrapping a single file. Symbolication pairs
     // them server-side via the inner filename's .map suffix.
+    //
+    // With Hermes the bundle is bytecode that symbolication never reads, only the
+    // source map matters, so we package an empty placeholder named after the bundle
+    // asset instead of uploading the real (large) bytecode bundle. The placeholder
+    // keeps the archive and inner filename intact so server-side pairing still works.
     private fun wireReactNativeBundle(
         project: Project,
         variant: Variant,
@@ -206,6 +214,20 @@ class MeasurePlugin : Plugin<Project> {
 
         val bundleFile = project.objects.fileProperty()
         val sourceMapFile = project.objects.fileProperty()
+        val emptyBundleAssetName = project.objects.property(String::class.java)
+        val emptyBundleFile = project.layout.buildDirectory.file(
+            emptyBundleAssetName.map { "intermediates/measure/${variant.name}/emptyBundle/$it" },
+        )
+        val emptyBundleTask = project.tasks.register(emptyReactNativeBundleTaskName(variant)) { task ->
+            task.onlyIf { emptyBundleAssetName.isPresent }
+            task.outputs.file(emptyBundleFile)
+            task.doLast {
+                emptyBundleFile.get().asFile.apply {
+                    parentFile.mkdirs()
+                    writeBytes(ByteArray(0))
+                }
+            }
+        }
 
         val packageBundleTask = registerPackageArchiveTask(
             project,
@@ -213,16 +235,35 @@ class MeasurePlugin : Plugin<Project> {
             packageReactNativeBundleTaskName(variant),
             bundleFile,
         )
+        packageBundleTask.configure { it.dependsOn(emptyBundleTask) }
+        val rewriteSourceMapTask = project.tasks.register(
+            rewriteReactNativeSourceMapTaskName(variant),
+            RewriteJsSourceMapTask::class.java,
+        ) {
+            it.sourceMapInputProperty.set(sourceMapFile)
+            it.sourceMapOutputProperty.set(
+                project.layout.buildDirectory.file(
+                    sourceMapFile.map { map ->
+                        "intermediates/measure/${variant.name}/rn-sourcemap/${map.asFile.name}"
+                    },
+                ),
+            )
+        }
         val packageSourceMapTask = registerPackageArchiveTask(
             project,
             variant,
             packageReactNativeSourceMapTaskName(variant),
-            sourceMapFile,
+            rewriteSourceMapTask.flatMap { it.sourceMapOutputProperty },
         )
 
         project.tasks.matching { it.name in candidateNames }.configureEach { bundleTask ->
             val paths = readReactNativeBundlePaths(project, bundleTask) ?: return@configureEach
-            bundleFile.set(paths.bundle)
+            if (paths.hermesEnabled) {
+                emptyBundleAssetName.set(paths.bundleAssetName)
+                bundleFile.set(emptyBundleTask.flatMap { emptyBundleFile })
+            } else {
+                bundleFile.set(paths.bundle)
+            }
             sourceMapFile.set(paths.sourceMap)
             rnBundleArchives.from(
                 packageBundleTask.flatMap { it.archiveFile },
@@ -235,7 +276,7 @@ class MeasurePlugin : Plugin<Project> {
         project: Project,
         variant: Variant,
         taskName: String,
-        file: RegularFileProperty,
+        file: Provider<RegularFile>,
     ): TaskProvider<Tar> = project.tasks.register(taskName, Tar::class.java) {
         it.compression = Compression.GZIP
         it.archiveFileName.set(file.map { f -> "${f.asFile.name}.tgz" })
@@ -248,6 +289,8 @@ class MeasurePlugin : Plugin<Project> {
     private data class ReactNativeBundlePaths(
         val bundle: Provider<RegularFile>,
         val sourceMap: Provider<RegularFile>,
+        val bundleAssetName: Provider<String>,
+        val hermesEnabled: Boolean,
     )
 
     private fun readReactNativeBundlePaths(
@@ -282,6 +325,8 @@ class MeasurePlugin : Plugin<Project> {
             ReactNativeBundlePaths(
                 bundle = jsBundleDir.file(bundleAssetName),
                 sourceMap = jsSourceMapsDir.file(bundleAssetName.map { "$it.map" }),
+                bundleAssetName = bundleAssetName,
+                hermesEnabled = hermesEnabled.get(),
             )
         }
     } catch (e: Exception) {

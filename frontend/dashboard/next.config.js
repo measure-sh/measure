@@ -1,3 +1,5 @@
+import { withPostHogConfig } from "@posthog/nextjs-config";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
@@ -119,4 +121,20 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+// Sourcemap upload is opt-in via an explicit build-time flag, NOT NODE_ENV:
+// staging and local self-host builds also run with NODE_ENV=production but must
+// not upload. Only when UPLOAD_SOURCEMAPS=true do we wrap with withPostHogConfig
+// (which validates its config eagerly and runs the upload). Otherwise the plain
+// Next.js config is exported untouched and no PostHog build hooks run.
+const uploadSourcemaps = process.env.UPLOAD_SOURCEMAPS === "true";
+
+export default uploadSourcemaps
+  ? withPostHogConfig(nextConfig, {
+      personalApiKey: process.env.POSTHOG_SOURCEMAP_PERSONAL_KEY,
+      projectId: process.env.POSTHOG_PROJECT_ID,
+      sourcemaps: {
+        enabled: true,
+        deleteAfterUpload: true,
+      },
+    })
+  : nextConfig;

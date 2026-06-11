@@ -46,8 +46,7 @@ Use this guide to setup Slack integration to receive Measure alert notifications
 
 ## Configure Slack settings for existing installation
 
-If you are upgrading from v0.8.2 or below, you would need to manually update the environment variables. After you've followed the above steps, instead of entering the client id and secrets in a terminal prompt, you will need to edit your environment variables file
-and restart the services.
+If you are upgrading from v0.8.2 or below, you would need to manually update the environment variables. After you've followed the above steps, instead of entering the client id and secrets in a terminal prompt, you will need to edit your environment variables file and restart the services.
 
 > [!NOTE]
 >
@@ -60,6 +59,7 @@ and restart the services.
     ```sh
     SLACK_CLIENT_ID=your-slack-client-id                # change this
     SLACK_CLIENT_SECRET=your-slack-client-secret        # change this
+    SLACK_SIGNING_SECRET=your-slack-signing-secret      # change this
     ```
 
 2. **State Salt**. Generate a random 44 character salt. Use the command `openssl rand -hex 22` to generate a random salt.

@@ -94,6 +94,7 @@ type ServerConfig struct {
 	TxEmailAddress               string
 	SlackClientID                string
 	SlackClientSecret            string
+	SlackSigningSecret           string
 	AutumnSecretKey              string
 	AutumnWebhookSecret          string
 	GA4MeasurementID             string
@@ -347,6 +348,14 @@ func NewConfig() *ServerConfig {
 		log.Println("SLACK_CLIENT_SECRET env var is not set, Slack integration will not work")
 	}
 
+	slackSigningSecret, slckErr := secret.FromEnvOrFile("SLACK_SIGNING_SECRET")
+	if slckErr != nil {
+		log.Printf("failed to read SLACK_SIGNING_SECRET: %v", slckErr)
+	}
+	if slackSigningSecret == "" {
+		log.Println("SLACK_SIGNING_SECRET env var is not set, Slack integration will not work")
+	}
+
 	autumnSecretKey, secErr := secret.FromEnvOrFile("AUTUMN_SECRET_KEY")
 	if secErr != nil {
 		log.Printf("failed to read AUTUMN_SECRET_KEY: %v", secErr)
@@ -442,6 +451,7 @@ func NewConfig() *ServerConfig {
 		TxEmailAddress:               txEmailAddress,
 		SlackClientID:                slackClientID,
 		SlackClientSecret:            slackClientSecret,
+		SlackSigningSecret:           slackSigningSecret,
 		AutumnSecretKey:              autumnSecretKey,
 		AutumnWebhookSecret:          autumnWebhookSecret,
 		GA4MeasurementID:             ga4MeasurementID,

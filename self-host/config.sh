@@ -272,6 +272,7 @@ EMAIL_DOMAIN=
 
 SLACK_CLIENT_ID=$SLACK_CLIENT_ID
 SLACK_CLIENT_SECRET=$SLACK_CLIENT_SECRET
+SLACK_SIGNING_SECRET=$SLACK_SIGNING_SECRET
 SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
 
 ###########
@@ -418,6 +419,7 @@ EMAIL_DOMAIN=$EMAIL_DOMAIN
 
 SLACK_CLIENT_ID=$SLACK_CLIENT_ID
 SLACK_CLIENT_SECRET=$SLACK_CLIENT_SECRET
+SLACK_SIGNING_SECRET=$SLACK_SIGNING_SECRET
 SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
 
 ###########
@@ -613,6 +615,7 @@ END
     echo -e "Set up a Slack app to get API credentials. See https://github.com/measure-sh/measure/blob/main/docs/hosting/slack.md for more details. If you wish to ignore this, enter empty values."
     SLACK_CLIENT_ID=$(prompt_optional_value_manual "Enter Slack client ID: ")
     SLACK_CLIENT_SECRET=$(prompt_optional_value_manual "Enter Slack client secret: ")
+    SLACK_SIGNING_SECRET=$(prompt_optional_value_manual "Enter Slack signing secret: ")
     echo -e "Generated secure Slack OAuth State Salt"
     SLACK_OAUTH_STATE_SALT=$(generate_password 44)
 
@@ -860,6 +863,10 @@ ensure() {
 
   if ! check_env_variable "SLACK_CLIENT_SECRET"; then
     add_env_variable "SLACK_CLIENT_SECRET" ""
+  fi
+
+  if ! check_env_variable "SLACK_SIGNING_SECRET"; then
+    add_env_variable "SLACK_SIGNING_SECRET" "" "SLACK_CLIENT_SECRET"
   fi
 
   if ! check_env_variable "SLACK_OAUTH_STATE_SALT"; then

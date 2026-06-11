@@ -1951,12 +1951,35 @@ func (e *Exception) ComputeFingerprint() (err error) {
 		if frame.FileName != "" {
 			input += sep + frame.FileName
 		}
-	case FrameworkDart, FrameworkJS:
+	case FrameworkDart:
 		// get the outermost exception
 		outermostException := e.Exceptions[0]
 
 		// initialize fingerprint data with the exception type
 		input = outermostException.Type
+
+		if len(outermostException.Frames) > 0 {
+			methodName := outermostException.Frames[0].MethodName
+			fileName := outermostException.Frames[0].FileName
+
+			// Include any non-empty information
+			if methodName != "" {
+				input += sep + methodName
+			}
+			if fileName != "" {
+				input += sep + fileName
+			}
+		}
+	case FrameworkJS:
+		// get the outermost exception
+		outermostException := e.Exceptions[0]
+
+		// initialize fingerprint data with the exception type
+		input = outermostException.Type
+
+		if outermostException.Message != "" {
+			input += sep + outermostException.Message
+		}
 
 		if len(outermostException.Frames) > 0 {
 			methodName := outermostException.Frames[0].MethodName

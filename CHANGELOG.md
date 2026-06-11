@@ -27,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Include message to group js errors (#3865) by @detj in #3865
+- (**backend**): Verify slack webhooks by @anupcowkur in #3861
+- (**backend**): Fix bug report status description in table comment + code by @anupcowkur in #3859
 - (**backend**): Correct p99 quantile level in span_metrics by @anupcowkur in #3855
 - (**backend**): Guard against nil team in MCP app resolution by @anupcowkur in #3841
 - (**backend**): Return thread_name in error detail responses (#3830) by @abhaysood in #3830
@@ -88,6 +91,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Make mcp tool description more accurate by @anupcowkur in #3860
+- (**backend**): Update mcp tools by @anupcowkur in #3858
 - (**backend**): Remove unused schema.sql files by @anupcowkur in #3856
 - (**backend**): Limit to 5 event attachments (#3833) by @detj in #3833
 - (**backend**): Switch to pgsty minio (#3831) by @detj in #3831
@@ -131,6 +136,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Add posthog sourcemap upload for dashboard (#3857) by @detj in #3857
 - (**frontend**): Format dashboard with new prettier config by @anupcowkur in #3854
 - (**frontend**): Set up prettier formatting for the dashboard by @anupcowkur
 - (**frontend**): Hide RN onboarding tab by @anupcowkur in #3853
