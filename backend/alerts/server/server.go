@@ -2,6 +2,7 @@ package server
 
 import (
 	"backend/autumn"
+	"backend/libs/secret"
 	"context"
 	"fmt"
 	"log"
@@ -80,12 +81,18 @@ func NewConfig() *ServerConfig {
 		log.Println("SITE_ORIGIN env var not set. Need for Cross Origin Resource Sharing (CORS) to work.")
 	}
 
-	postgresDSN := os.Getenv("POSTGRES_DSN")
+	postgresDSN, secErr := secret.FromEnvOrFile("POSTGRES_DSN")
+	if secErr != nil {
+		log.Printf("failed to read POSTGRES_DSN: %v", secErr)
+	}
 	if postgresDSN == "" {
 		log.Println("POSTGRES_DSN env var is not set, cannot start server")
 	}
 
-	clickhouseDSN := os.Getenv("CLICKHOUSE_DSN")
+	clickhouseDSN, secErr := secret.FromEnvOrFile("CLICKHOUSE_DSN")
+	if secErr != nil {
+		log.Printf("failed to read CLICKHOUSE_DSN: %v", secErr)
+	}
 	if clickhouseDSN == "" {
 		log.Println("CLICKHOUSE_DSN env var is not set, cannot start server")
 	}
@@ -105,7 +112,10 @@ func NewConfig() *ServerConfig {
 		log.Println("SMTP_USER env var is not set, emails will not work")
 	}
 
-	smtpPassword := os.Getenv("SMTP_PASSWORD")
+	smtpPassword, secErr := secret.FromEnvOrFile("SMTP_PASSWORD")
+	if secErr != nil {
+		log.Printf("failed to read SMTP_PASSWORD: %v", secErr)
+	}
 	if smtpPassword == "" {
 		log.Println("SMTP_PASSWORD env var is not set, emails will not work")
 	}
@@ -134,7 +144,10 @@ func NewConfig() *ServerConfig {
 	billingEnabled := false
 	if os.Getenv("BILLING_ENABLED") == "true" {
 		billingEnabled = true
-		autumnSecretKey := os.Getenv("AUTUMN_SECRET_KEY")
+		autumnSecretKey, secErr := secret.FromEnvOrFile("AUTUMN_SECRET_KEY")
+		if secErr != nil {
+			log.Printf("failed to read AUTUMN_SECRET_KEY: %v", secErr)
+		}
 		if autumnSecretKey == "" {
 			log.Println("AUTUMN_SECRET_KEY env var is not set, billing checks will fail-open")
 		}

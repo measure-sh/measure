@@ -3,6 +3,7 @@ module backend/cleanup
 go 1.25.7
 
 require (
+	backend/libs v0.0.0
 	cloud.google.com/go/cloudsqlconn v1.20.2
 	cloud.google.com/go/storage v1.62.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.44.0
@@ -118,3 +119,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260406210006-6f92a3bedf2d // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
+
+replace backend/libs => ../libs

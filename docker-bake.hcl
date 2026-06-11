@@ -72,6 +72,9 @@ target "symboloader" {
 target "cleanup" {
   inherits = ["docker-metadata-action"]
   context = "backend/cleanup"
+  contexts = {
+    libs = "backend/libs"
+  }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]

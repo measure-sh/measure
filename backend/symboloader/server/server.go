@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 
+	"backend/libs/secret"
+
 	"cloud.google.com/go/cloudsqlconn"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -74,12 +76,18 @@ func NewConfig() *ServerConfig {
 		log.Println("SYMBOLS_ACCESS_KEY env var not set, mapping file uploads won't work")
 	}
 
-	symbolsSecretAccessKey := os.Getenv("SYMBOLS_SECRET_ACCESS_KEY")
+	symbolsSecretAccessKey, secErr := secret.FromEnvOrFile("SYMBOLS_SECRET_ACCESS_KEY")
+	if secErr != nil {
+		log.Printf("failed to read SYMBOLS_SECRET_ACCESS_KEY: %v", secErr)
+	}
 	if symbolsSecretAccessKey == "" {
 		log.Println("SYMBOLS_SECRET_ACCESS_KEY env var not set, mapping file uploads won't work")
 	}
 
-	postgresDSN := os.Getenv("POSTGRES_DSN")
+	postgresDSN, secErr := secret.FromEnvOrFile("POSTGRES_DSN")
+	if secErr != nil {
+		log.Printf("failed to read POSTGRES_DSN: %v", secErr)
+	}
 	if postgresDSN == "" {
 		// log.Fatal("POSTGRES_DSN env var is not set, cannot start server")
 		log.Println("POSTGRES_DSN env var is not set, cannot start server")

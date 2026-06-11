@@ -110,6 +110,8 @@ jobs:
         with:
           context: backend/migrator
           file: backend/migrator/dockerfile
+          build-contexts: |
+            libs=backend/libs
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |

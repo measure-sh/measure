@@ -7,6 +7,8 @@ import (
 	"net"
 	"os"
 
+	"backend/libs/secret"
+
 	"cloud.google.com/go/cloudsqlconn"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -85,7 +87,11 @@ func NewConfig() *ServerConfig {
 			log.Println("ATTACHMENTS_ACCESS_KEY env var not set, event attachment removal won't work")
 		}
 
-		attachmentsSecretAccessKey = os.Getenv("ATTACHMENTS_SECRET_ACCESS_KEY")
+		akey, attErr := secret.FromEnvOrFile("ATTACHMENTS_SECRET_ACCESS_KEY")
+		if attErr != nil {
+			log.Printf("failed to read ATTACHMENTS_SECRET_ACCESS_KEY: %v", attErr)
+		}
+		attachmentsSecretAccessKey = akey
 		if attachmentsSecretAccessKey == "" {
 			log.Println("ATTACHMENTS_SECRET_ACCESS_KEY env var not set, event attachment removal won't work")
 		}
@@ -96,17 +102,26 @@ func NewConfig() *ServerConfig {
 		}
 	}
 
-	postgresDSN := os.Getenv("POSTGRES_DSN")
+	postgresDSN, secErr := secret.FromEnvOrFile("POSTGRES_DSN")
+	if secErr != nil {
+		log.Printf("failed to read POSTGRES_DSN: %v", secErr)
+	}
 	if postgresDSN == "" {
 		log.Println("POSTGRES_DSN env var is not set, cannot start server")
 	}
 
-	clickhouseDSN := os.Getenv("CLICKHOUSE_DSN")
+	clickhouseDSN, secErr := secret.FromEnvOrFile("CLICKHOUSE_DSN")
+	if secErr != nil {
+		log.Printf("failed to read CLICKHOUSE_DSN: %v", secErr)
+	}
 	if clickhouseDSN == "" {
 		log.Println("CLICKHOUSE_DSN env var is not set, cannot start server")
 	}
 
-	clickhouseReaderDSN := os.Getenv("CLICKHOUSE_READER_DSN")
+	clickhouseReaderDSN, secErr := secret.FromEnvOrFile("CLICKHOUSE_READER_DSN")
+	if secErr != nil {
+		log.Printf("failed to read CLICKHOUSE_READER_DSN: %v", secErr)
+	}
 	if clickhouseReaderDSN == "" {
 		log.Println("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
 	}
