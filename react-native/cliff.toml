@@ -1,0 +1,79 @@
+[changelog]
+header = """
+# Changelog\n
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n
+"""
+
+body = """
+{% if version -%}
+    ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else -%}
+    ## [Unreleased]
+{% endif -%}\n
+{% for group, commits in commits | group_by(attribute="group") %}
+    {% if commits | length > 0 %}### {{ group | striptags | trim | upper_first }}\n{% endif -%}
+    {% for scope, commits in commits | filter(attribute="merge_commit", value=false) | group_by(attribute="scope") %}
+        {% for commit in commits %}
+            - {% if commit.scope != "other" %}(**{{ commit.scope }}**): {% endif %}\
+              {{ commit.message | upper_first }}\
+              {% if commit.remote.username %} by @{{ commit.remote.username }}{%- endif %}\
+              {% if commit.remote.pr_number %} in #{{ commit.remote.pr_number }}{%- endif -%}
+        {%- endfor -%}
+    {% endfor %}
+{% endfor %}\n
+"""
+
+footer = """
+{% for release in releases -%}
+    {% if release.version -%}
+        {% if release.previous.version -%}
+            [{{ release.version | trim_start_matches(pat="v") }}]: \
+                https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}\
+                /compare/{{ release.previous.version }}..{{ release.version }}
+        {% endif -%}
+    {% else -%}
+        [unreleased]: https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}\
+            /compare/{{ release.previous.version }}..HEAD
+    {% endif -%}
+{% endfor %}
+"""
+
+trim = true
+
+[git]
+# Enable conventional commit parsing
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+
+# Only include commits that start with (rn)
+filter_commits_regex = "^.*\\(rn\\):.*$"
+
+commit_parsers = [
+  { message = "^ci\\(rn\\):", skip = true },
+  { message = "^docs\\(rn\\):", group = ":books: Documentation", default_scope = "other" },
+  { message = "^chore\\(rn\\):", group = ":hammer: Misc", default_scope = "other" },
+  { message = "^feat\\(rn\\):", group = ":sparkles: New features" },
+  { message = "^test\\(rn\\):", group = ":test_tube: Testing", skip = true },
+  { message = "^fix\\(rn\\):", group = ":bug: Bug fixes" },
+  { message = "^perf\\(rn\\):", group = ":zap: Performance" },
+  { message = "^refactor\\(rn\\):", group = ":recycle: Refactor" },
+  { message = "^remove\\(rn\\):", group = ":coffin: Removed" },
+  { message = "^delete\\(rn\\):", group = ":coffin: Removed" },
+]
+
+protect_breaking_commits = false
+filter_commits = true
+
+# Only match tags for React Native
+tag_pattern = "^rn-v[0-9]+\\.[0-9]+\\.[0-9]+$"
+
+# Ignore non-RN tags
+ignore_tags = "^(android|backend|frontend|webapp|flutter|ios|kmp|measure_flutter|measure_dio|measure_build)"
+
+# Sorting and ordering
+topo_order = false
+sort_commits = "newest"

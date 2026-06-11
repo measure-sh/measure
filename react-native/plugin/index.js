@@ -161,7 +161,7 @@ function withMeasureProjectBuildGradle(config) {
       contents = contents.replace(
         /dependencies\s?{/,
         `dependencies {
-        classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.11.0")`
+        classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.12.0")`
       );
     }
 
@@ -180,7 +180,7 @@ function withMeasureAppBuildGradle(config) {
       contents = contents.replace(
         /dependencies\s?{/,
         `dependencies {
-        implementation("sh.measure:measure-android:0.17.0")`
+        implementation("sh.measure:measure-android:0.18.0")`
       );
     }
 
