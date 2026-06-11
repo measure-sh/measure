@@ -63,7 +63,6 @@ const (
 	maxDeviceManufacturerChars = 32
 	maxOSNameChars             = 32
 	maxOSVersionChars          = 32
-	maxPlatformChars           = 32
 	maxAppVersionChars         = 128
 	maxAppBuildChars           = 32
 	maxAppUniqueIDChars        = 128
@@ -88,7 +87,6 @@ type SpanAttributes struct {
 	AppBuild                 string    `json:"app_build" binding:"required"`
 	OSName                   string    `json:"os_name" binding:"required"`
 	OSVersion                string    `json:"os_version" binding:"required"`
-	Platform                 string    `json:"platform" binding:"required"`
 	ThreadName               string    `json:"thread_name"`
 	CountryCode              string    `json:"inet_country_code"`
 	NetworkType              string    `json:"network_type"`
@@ -310,10 +308,6 @@ func (s *SpanField) Validate(opts ...ingest.ValidationOptions) error {
 
 	if len(s.Attributes.OSVersion) > maxOSVersionChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `os_version`, maxOSVersionChars)
-	}
-
-	if len(s.Attributes.Platform) > maxPlatformChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `platform`, maxPlatformChars)
 	}
 
 	switch opsys.ToFamily(s.Attributes.OSName) {

@@ -269,12 +269,12 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 	cols := []string{
 		"id", "type", "session_id", "app_id", "team_id", "timestamp", "user_triggered",
 		"`attribute.installation_id`", "`attribute.app_version`", "`attribute.app_build`",
-		"`attribute.app_unique_id`", "`attribute.platform`", "`attribute.measure_sdk_version`",
+		"`attribute.app_unique_id`", "`attribute.measure_sdk_version`",
 	}
 	vals := []string{
 		"generateUUIDv4()", quote(row.Type), sessionExpr, quote(appID), quote(teamID),
 		quote(ts), "false", "generateUUIDv4()",
-		quote(row.AppVersion), quote(row.AppBuild), "'com.test'", "'android'", "'0.1'",
+		quote(row.AppVersion), quote(row.AppBuild), "'com.test'", "'0.1'",
 	}
 
 	if isIssue {
@@ -405,9 +405,9 @@ func (h *TestHelper) SeedNavigationEventInSession(ctx context.Context, t *testin
 	query := fmt.Sprintf(
 		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
 			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
-			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`, "+
+			"`attribute.app_unique_id`, `attribute.measure_sdk_version`, "+
 			"`navigation.to`) "+
-			`VALUES ('%s', 'navigation', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1', '%s')`,
+			`VALUES ('%s', 'navigation', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', '0.1', '%s')`,
 		uuid.New().String(), sessionID, appID, teamID,
 		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String(), destination)
 	if err := h.ChConn.Exec(ctx, query); err != nil {
@@ -621,9 +621,9 @@ func (h *TestHelper) SeedLaunchEvent(ctx context.Context, t *testing.T, teamID, 
 	query := fmt.Sprintf(
 		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
 			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
-			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`, "+
+			"`attribute.app_unique_id`, `attribute.measure_sdk_version`, "+
 			"%s) "+
-			`VALUES ('%s', '%s', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1', %d)`,
+			`VALUES ('%s', '%s', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', '0.1', %d)`,
 		durationCol,
 		uuid.New().String(), launchType, uuid.New().String(), appID, teamID,
 		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String(), durationMs)
@@ -700,8 +700,8 @@ func (h *TestHelper) SeedSpan(
 			"start_time, end_time, "+
 			"`attribute.app_unique_id`, `attribute.installation_id`, "+
 			"`attribute.measure_sdk_version`, `attribute.app_version`, `attribute.os_version`, "+
-			"`attribute.platform`, `attribute.device_low_power_mode`, `attribute.device_thermal_throttling_enabled`) "+
-			`VALUES ('%s', '%s', '%s', '%s', '%s', '%s', %d, '%s', '%s', 'com.test', '%s', '0.1', ('%s','%s'), ('Android','14'), 'android', false, false)`,
+			"`attribute.device_low_power_mode`, `attribute.device_thermal_throttling_enabled`) "+
+			`VALUES ('%s', '%s', '%s', '%s', '%s', '%s', %d, '%s', '%s', 'com.test', '%s', '0.1', ('%s','%s'), ('Android','14'), false, false)`,
 		teamID, appID, spanName, spanID, traceID, uuid.New().String(), status,
 		startTime.UTC().Format("2006-01-02 15:04:05"), endTime.UTC().Format("2006-01-02 15:04:05"),
 		uuid.New().String(), appVersion, appBuild,
@@ -795,9 +795,9 @@ func (h *TestHelper) SeedHttpEvent(
 	query := fmt.Sprintf(
 		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, inserted_at, user_triggered, `+
 			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
-			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`, "+
+			"`attribute.app_unique_id`, `attribute.measure_sdk_version`, "+
 			"`http.url`, `http.method`, `http.status_code`, `http.start_time`, `http.end_time`, `inet.country_code`) "+
-			`SELECT generateUUIDv4(), 'http', generateUUIDv4(), '%s', '%s', toDateTime64('%s', 3, 'UTC') + toIntervalMillisecond(number), '%s', false, generateUUIDv4(), 'v1', '1', 'com.test', 'android', '0.1', '%s', '%s', %d, 1000, 1100, 'US' FROM numbers(%d)`,
+			`SELECT generateUUIDv4(), 'http', generateUUIDv4(), '%s', '%s', toDateTime64('%s', 3, 'UTC') + toIntervalMillisecond(number), '%s', false, generateUUIDv4(), 'v1', '1', 'com.test', '0.1', '%s', '%s', %d, 1000, 1100, 'US' FROM numbers(%d)`,
 		appID, teamID, tsStr, tsStr, url, method, statusCode, count)
 	if err := h.ChConn.Exec(ctx, query); err != nil {
 		t.Fatalf("seed http event: %v", err)
