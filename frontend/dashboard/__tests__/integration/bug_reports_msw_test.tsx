@@ -84,6 +84,7 @@ jest.mock("@nivo/line", () => ({
 // --- MSW ---
 import {
   makeAppFixture,
+  makeAuthzAndMembersFixture,
   makeBugReportDetailFixture,
   makeBugReportsOverviewFixture,
   makeBugReportsPlotFixture,
@@ -1513,6 +1514,32 @@ describe("Bug Report Detail (MSW integration)", () => {
   // PAGE LOAD
   // ================================================================
   describe("page load", () => {
+    it("enables status toggle when user can update bug reports", async () => {
+      await renderDetail();
+      const button = screen
+        .getByText("Close Bug Report")
+        .closest("button") as HTMLButtonElement;
+      await waitFor(() => {
+        expect(button?.disabled).toBe(false);
+      });
+    });
+
+    it("disables status toggle when user cannot update bug reports", async () => {
+      server.use(
+        http.get("*/api/teams/:teamId/authz", () => {
+          return HttpResponse.json(
+            makeAuthzAndMembersFixture({ can_update_bug_reports: false }),
+          );
+        }),
+      );
+
+      await renderDetail();
+      const button = screen
+        .getByText("Close Bug Report")
+        .closest("button") as HTMLButtonElement;
+      expect(button?.disabled).toBe(true);
+    });
+
     it("renders description", async () => {
       await renderDetail();
       expect(

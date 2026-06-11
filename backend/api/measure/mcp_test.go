@@ -3640,6 +3640,35 @@ func TestMCPUpdateBugReportStatus(t *testing.T) {
 			t.Errorf("want ok=done, got %v", result["ok"])
 		}
 	})
+
+	t.Run("viewer cannot update bug report status", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "ubrviewer@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "viewer team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "viewer")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := "msr_ubrviewer"
+		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		bugReportID := uuid.New().String()
+		seedBugReport(ctx, t, teamID.String(), appID.String(), bugReportID, "viewer test bug", time.Now().UTC())
+
+		resp := callMCPTool(t, rawToken, "update_bug_report_status", map[string]any{"app_id": appID.String(), "bug_report_id": bugReportID, "status": 1})
+		if !isToolError(resp) {
+			t.Fatal("want tool error: viewers must not update bug reports")
+		}
+		if content := extractTextContent(t, resp); !strings.Contains(content, "not authorized") {
+			t.Errorf("want authorization error, got %q", content)
+		}
+
+		// Reads stay allowed for viewers.
+		readResp := callMCPTool(t, rawToken, "get_bug_reports", map[string]any{"app_id": appID.String()})
+		if isToolError(readResp) {
+			t.Errorf("viewer should still read bug reports, got error: %q", extractTextContent(t, readResp))
+		}
+	})
 }
 
 // --------------------------------------------------------------------------

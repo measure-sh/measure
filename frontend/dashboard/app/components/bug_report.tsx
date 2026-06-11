@@ -5,6 +5,7 @@ import { Button } from "@/app/components/button";
 import { buttonVariants } from "@/app/components/button_variants";
 import { Skeleton } from "@/app/components/skeleton";
 import {
+  useAuthzAndMembersQuery,
   useBugReportQuery,
   useToggleBugReportStatusMutation,
 } from "@/app/query/hooks";
@@ -87,6 +88,11 @@ export default function BugReport({
     demo ? "" : params.bugReportId,
   );
   const toggleStatusMutation = useToggleBugReportStatusMutation();
+  const { data: authzAndMembers } = useAuthzAndMembersQuery(
+    demo ? undefined : params.teamId,
+  );
+  const canUpdateStatus =
+    demo || authzAndMembers?.can_update_bug_reports === true;
 
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [demoStatusToggled, setDemoStatusToggled] = useState(false);
@@ -252,6 +258,7 @@ export default function BugReport({
               variant="outline"
               className="w-fit"
               disabled={
+                !canUpdateStatus ||
                 displayUpdateStatus === UpdateBugReportStatusApiStatus.Loading
               }
               onClick={handleToggleStatus}

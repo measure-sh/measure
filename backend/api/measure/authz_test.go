@@ -234,11 +234,13 @@ func TestScopeMap_AppScopes(t *testing.T) {
 		wantAppRead    bool
 		wantBillingAll bool
 		wantTeamAll    bool
+		wantBugAll     bool
+		wantBugRead    bool
 	}{
-		{name: "owner", role: owner, wantAppAll: true, wantAppRead: false, wantBillingAll: true, wantTeamAll: true},
-		{name: "admin", role: admin, wantAppAll: true, wantAppRead: false, wantBillingAll: true, wantTeamAll: false},
-		{name: "developer", role: developer, wantAppAll: false, wantAppRead: true, wantBillingAll: false, wantTeamAll: false},
-		{name: "viewer", role: viewer, wantAppAll: false, wantAppRead: true, wantBillingAll: false, wantTeamAll: false},
+		{name: "owner", role: owner, wantAppAll: true, wantAppRead: false, wantBillingAll: true, wantTeamAll: true, wantBugAll: true, wantBugRead: false},
+		{name: "admin", role: admin, wantAppAll: true, wantAppRead: false, wantBillingAll: true, wantTeamAll: false, wantBugAll: true, wantBugRead: false},
+		{name: "developer", role: developer, wantAppAll: false, wantAppRead: true, wantBillingAll: false, wantTeamAll: false, wantBugAll: true, wantBugRead: false},
+		{name: "viewer", role: viewer, wantAppAll: false, wantAppRead: true, wantBillingAll: false, wantTeamAll: false, wantBugAll: false, wantBugRead: true},
 	}
 
 	for _, tt := range tests {
@@ -255,6 +257,12 @@ func TestScopeMap_AppScopes(t *testing.T) {
 			}
 			if got := slices.Contains(roleScopes, *ScopeTeamAll); got != tt.wantTeamAll {
 				t.Fatalf("ScopeTeamAll = %v, want %v", got, tt.wantTeamAll)
+			}
+			if got := slices.Contains(roleScopes, *ScopeBugReportAll); got != tt.wantBugAll {
+				t.Fatalf("ScopeBugReportAll = %v, want %v", got, tt.wantBugAll)
+			}
+			if got := slices.Contains(roleScopes, *ScopeBugReportRead); got != tt.wantBugRead {
+				t.Fatalf("ScopeBugReportRead = %v, want %v", got, tt.wantBugRead)
 			}
 		})
 	}
@@ -337,6 +345,12 @@ func TestPerformAuthzMatrix(t *testing.T) {
 		{name: "owner team all allowed", role: "owner", scope: *ScopeTeamAll, wantAllow: true},
 		{name: "admin team all denied", role: "admin", scope: *ScopeTeamAll, wantAllow: false},
 		{name: "viewer team read allowed", role: "viewer", scope: *ScopeTeamRead, wantAllow: true},
+		{name: "owner bug report all allowed", role: "owner", scope: *ScopeBugReportAll, wantAllow: true},
+		{name: "admin bug report all allowed", role: "admin", scope: *ScopeBugReportAll, wantAllow: true},
+		{name: "developer bug report all allowed", role: "developer", scope: *ScopeBugReportAll, wantAllow: true},
+		{name: "viewer bug report all denied", role: "viewer", scope: *ScopeBugReportAll, wantAllow: false},
+		{name: "viewer bug report read allowed", role: "viewer", scope: *ScopeBugReportRead, wantAllow: true},
+		{name: "developer bug report read allowed", role: "developer", scope: *ScopeBugReportRead, wantAllow: true},
 	}
 
 	for _, tc := range tests {

@@ -1231,6 +1231,7 @@ export function makeNetworkEndpointStatusCodesFixture() {
 export function makeAuthzFixture(overrides: Record<string, any> = {}) {
   return {
     can_create_app: true,
+    can_update_bug_reports: true,
     can_rename_app: true,
     can_change_retention: true,
     can_rotate_api_key: true,
@@ -1303,6 +1304,7 @@ export function makeAuthzAndMembersFixture(
     can_invite_roles: ["owner", "admin", "viewer"],
     can_change_billing: true,
     can_create_app: true,
+    can_update_bug_reports: true,
     can_rename_app: true,
     can_change_retention: true,
     can_rotate_api_key: true,

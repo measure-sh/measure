@@ -98,6 +98,8 @@ var (
 	ScopeAlertRead                 = newScope("alert", "read")
 	ScopeAppAll                    = newScope("app", "*")
 	ScopeAppRead                   = newScope("app", "read")
+	ScopeBugReportAll              = newScope("bugReport", "*")
+	ScopeBugReportRead             = newScope("bugReport", "read")
 )
 
 type scope struct {
@@ -125,10 +127,10 @@ func (s scope) getRolesSameOrLower(r rank) []rank {
 }
 
 var scopeMap = map[rank][]scope{
-	owner:     {*ScopeBillingAll, *ScopeTeamAll, *ScopeAlertAll, *ScopeAppAll},
-	admin:     {*ScopeBillingAll, *ScopeAlertAll, *ScopeAppAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
-	developer: {*ScopeBillingRead, *ScopeAlertAll, *ScopeAppRead, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
-	viewer:    {*ScopeBillingRead, *ScopeAlertRead, *ScopeTeamRead, *ScopeTeamInviteSameOrLower, *ScopeAppRead},
+	owner:     {*ScopeBillingAll, *ScopeTeamAll, *ScopeAlertAll, *ScopeAppAll, *ScopeBugReportAll},
+	admin:     {*ScopeBillingAll, *ScopeAlertAll, *ScopeAppAll, *ScopeBugReportAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
+	developer: {*ScopeBillingRead, *ScopeAlertAll, *ScopeAppRead, *ScopeBugReportAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
+	viewer:    {*ScopeBillingRead, *ScopeAlertRead, *ScopeTeamRead, *ScopeTeamInviteSameOrLower, *ScopeAppRead, *ScopeBugReportRead},
 }
 
 var roleMap = map[string]rank{
@@ -188,6 +190,21 @@ func PerformAuthz(uid string, rid string, scope scope) (bool, error) {
 			return true, nil
 		}
 		if slices.Contains(roleScope, *ScopeAppRead) {
+			return true, nil
+		}
+
+		return false, nil
+	case *ScopeBugReportAll:
+		if slices.Contains(roleScope, *ScopeBugReportAll) {
+			return true, nil
+		}
+
+		return false, nil
+	case *ScopeBugReportRead:
+		if slices.Contains(roleScope, *ScopeBugReportAll) {
+			return true, nil
+		}
+		if slices.Contains(roleScope, *ScopeBugReportRead) {
 			return true, nil
 		}
 
@@ -321,9 +338,11 @@ func GetAuthzRoles(c *gin.Context) {
 	canRenameTeam := slices.Contains(scopeMap[userRole], *ScopeTeamAll)
 	canManageSlack := slices.Contains(scopeMap[userRole], *ScopeTeamAll)
 	canChangeAppThresholdPrefs := slices.Contains(scopeMap[userRole], *ScopeAppAll)
+	canUpdateBugReports := slices.Contains(scopeMap[userRole], *ScopeBugReportAll)
 
 	c.JSON(http.StatusOK, gin.H{
 		"can_invite_roles":               inviteeRoles,
+		"can_update_bug_reports":         canUpdateBugReports,
 		"can_change_billing":             canChangeBilling,
 		"can_create_app":                 canCreateApp,
 		"can_rename_app":                 canRenameApp,
