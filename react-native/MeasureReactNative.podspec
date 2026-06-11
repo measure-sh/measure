@@ -12,5 +12,5 @@ Pod::Spec.new do |s|
     s.static_framework = true
     s.source_files = "ios/**/*.{swift,h,m}"
     s.dependency "React-Core"
-    s.dependency 'measure-sh', '0.10.2'
+    s.dependency 'measure-sh', '0.11.0'
   end
