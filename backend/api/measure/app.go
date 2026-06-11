@@ -10121,7 +10121,7 @@ func GetBugReportsOverview(c *gin.Context) {
 		return
 	}
 
-	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeBugReportRead)
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
@@ -10274,7 +10274,7 @@ func GetBugReportsInstancesPlot(c *gin.Context) {
 		return
 	}
 
-	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeBugReportRead)
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
@@ -10388,7 +10388,7 @@ func GetBugReport(c *gin.Context) {
 		return
 	}
 
-	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeBugReportRead)
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
@@ -10475,7 +10475,7 @@ func UpdateBugReportStatus(c *gin.Context) {
 		return
 	}
 
-	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeAppRead)
+	okApp, err := PerformAuthz(userId, team.ID.String(), *ScopeBugReportAll)
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)

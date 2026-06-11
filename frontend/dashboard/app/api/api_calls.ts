@@ -803,6 +803,7 @@ export const emptyErrorGroupDetails = {
 
 export const defaultAuthzAndMembers = {
   can_invite_roles: ["viewer"],
+  can_update_bug_reports: false,
   can_change_billing: false,
   can_create_app: false,
   can_rename_app: false,

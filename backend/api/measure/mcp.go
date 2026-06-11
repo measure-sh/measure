@@ -2411,6 +2411,16 @@ func mcpUpdateBugReportStatus(ctx context.Context, in mcpUpdateBugReportStatusIn
 		return nil, nil, err
 	}
 
+	// Updating a bug report is a write; membership alone is not enough.
+	userID, _ := mcpUserIDFromContext(ctx)
+	allowed, err := PerformAuthz(userID, teamID.String(), *ScopeBugReportAll)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to perform authorization: %v", err)
+	}
+	if !allowed {
+		return nil, nil, fmt.Errorf("you are not authorized to update bug reports; ask a team admin for access")
+	}
+
 	app := &App{ID: &appID, TeamId: teamID}
 	if err := app.UpdateBugReportStatusById(ctx, in.BugReportID, uint8(status)); err != nil {
 		return nil, nil, fmt.Errorf("failed to update bug report status: %v", err)
