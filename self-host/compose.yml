@@ -88,6 +88,7 @@ services:
       - attachments-secret-access-key
       - smtp-password
       - slack-client-secret
+      - slack-signing-secret
       - ga4-measurement-protocol-secret
       - autumn-secret-key
       - autumn-webhook-secret
@@ -795,6 +796,8 @@ secrets:
     environment: "SMTP_PASSWORD"
   slack-client-secret:
     environment: "SLACK_CLIENT_SECRET"
+  slack-signing-secret:
+    environment: "SLACK_SIGNING_SECRET"
   ga4-measurement-protocol-secret:
     environment: "GA4_MEASUREMENT_PROTOCOL_SECRET"
   autumn-secret-key:
