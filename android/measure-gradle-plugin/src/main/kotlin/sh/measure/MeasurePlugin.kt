@@ -120,7 +120,15 @@ class MeasurePlugin : Plugin<Project> {
                     BuildUploadTask::class.java,
                 ) {
                     it.manifestFileProperty.set(manifestDataFileProvider(project, variant))
-                    it.mappingFileProperty.set(variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE))
+                    // When R8 is disabled the obfuscation mapping artifact is absent or
+                    // points to a file that is never produced. orElse keeps the collection
+                    // (and task graph) resolvable in that case, while still depending on the
+                    // R8 task when a mapping is produced; upload() filters to files that exist.
+                    it.mappingFiles.from(
+                        variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE)
+                            .map { mapping -> listOf(mapping.asFile) }
+                            .orElse(emptyList()),
+                    )
                     getFlutterSymbolsDirPath(project)?.let { dir ->
                         it.flutterSymbolsFiles.from(
                             project.fileTree(dir) { tree -> tree.include("**/*.symbols") },
