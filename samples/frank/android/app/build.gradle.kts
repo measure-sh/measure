@@ -114,7 +114,12 @@ val bundleReactNativeDebug by tasks.registering(Exec::class) {
         "--entry-file", "index.js",
         "--bundle-output", bundleOutput.absolutePath,
     )
-    inputs.files(fileTree(rnDir) { include("index.js", "src/**/*.js", "src/**/*.ts", "src/**/*.tsx") })
+    // Metro bundles the SDK from its `src` (see react_native/metro.config.js),
+    // so track that for incremental builds.
+    inputs.files(
+        fileTree(rnDir) { include("index.js", "src/**/*.js", "src/**/*.ts", "src/**/*.tsx") },
+        fileTree(rnDir.resolve("node_modules/@measuresh/react-native/src")),
+    )
     outputs.file(bundleOutput)
 }
 

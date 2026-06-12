@@ -1,5 +1,6 @@
 const path = require('path');
 const {getDefaultConfig} = require('@react-native/metro-config');
+const exclusionList = require('metro-config/private/defaults/exclusionList').default;
 
 const measureReactNativePath = path.resolve(__dirname, '../../../react-native');
 
@@ -13,8 +14,21 @@ config.resolver.nodeModulesPaths = [
   path.resolve(measureReactNativePath, 'node_modules'),
 ];
 
-// Prefer "source" entry point so the Measure RN SDK is resolved from
-// TypeScript source instead of requiring a prior `npx bob build`.
-config.resolver.resolverMainFields = ['source', 'react-native', 'browser', 'main'];
+// Force react / react-native to this app's copies. The SDK's own node_modules
+// pin older versions; a second react-native in the bundle breaks native module
+// lookup at runtime ("PlatformConstants could not be found").
+const escapedSdkPath = measureReactNativePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+config.resolver.blockList = exclusionList([
+  new RegExp(`${escapedSdkPath}/node_modules/(react|react-native)/.*`),
+]);
+
+// Resolve the Measure RN SDK from its TypeScript `source` instead of compiled
+// `lib/`, so SDK edits need no `bob build` and can't go stale. The SDK's
+// `exports` map gates source behind the "source" condition, which Metro's
+// package-exports resolution only honors when it's an active condition.
+config.resolver.unstable_conditionNames = [
+  'source',
+  ...config.resolver.unstable_conditionNames,
+];
 
 module.exports = config;

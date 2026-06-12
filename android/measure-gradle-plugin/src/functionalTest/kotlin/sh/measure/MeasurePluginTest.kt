@@ -107,6 +107,24 @@ class MeasurePluginTest {
 
     @ParameterizedTest
     @MethodSource("versions")
+    fun `minification disabled, assert upload request is still created`(
+        agpVersion: SemVer,
+        gradleVersion: GradleVersion,
+    ) {
+        server.enqueue(MockResponse().setResponseCode(200))
+        server.start(8080)
+        val project = MeasurePluginFixture(
+            agpVersion,
+            minifyEnabled = false,
+            setMeasureApiKey = true,
+            measureApiUrl = "http://localhost:8080"
+        ).gradleProject
+        build(gradleVersion, project.rootDir, ":app:assembleRelease")
+        assertEquals(1, server.requestCount)
+    }
+
+    @ParameterizedTest
+    @MethodSource("versions")
     fun `API_KEY is not set in manifest, assert logs error`(
         agpVersion: SemVer,
         gradleVersion: GradleVersion,

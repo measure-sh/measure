@@ -21,7 +21,6 @@ import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
-import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 import java.io.File
 import java.io.IOException
@@ -95,9 +94,12 @@ abstract class BuildUploadTask : DefaultTask() {
     @get:Internal
     abstract val httpClientProvider: Property<MeasureHttpClient>
 
-    @get:Optional
-    @get:InputFile
-    abstract val mappingFileProperty: RegularFileProperty
+    // A file collection rather than an @InputFile so the task does not fail when R8
+    // is disabled and the proguard mapping artifact is absent or points to a file
+    // that is never produced. This lets Flutter and React Native mappings (and build
+    // metadata) still be uploaded.
+    @get:InputFiles
+    abstract val mappingFiles: ConfigurableFileCollection
 
     @get:InputFiles
     abstract val flutterSymbolsFiles: ConfigurableFileCollection
@@ -120,7 +122,7 @@ abstract class BuildUploadTask : DefaultTask() {
     @TaskAction
     fun upload() {
         val manifestFile = manifestFileProperty.get().asFile
-        val mappingFile = mappingFileProperty.getOrNull()?.asFile
+        val mappingFile = mappingFiles.files.firstOrNull { it.exists() }
         val buildMetadataFile = buildMetadataFileProperty.get().asFile
         val flutterSymbols = flutterSymbolsFiles.files
         val rnBundleArchives = reactNativeBundleArchives.files
@@ -154,7 +156,7 @@ abstract class BuildUploadTask : DefaultTask() {
             logger.info("measure: proguard mapping file found at ${mappingFile.absolutePath}")
             mappings.add(MappingInfo(type = TYPE_PROGUARD, filename = mappingFile.name))
         } else {
-            logger.warn("measure: mapping file not found, symbolication will not work")
+            logger.info("measure: no proguard mapping file found, skipping upload")
         }
 
         if (flutterSymbols.isNotEmpty()) {
