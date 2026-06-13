@@ -34,11 +34,12 @@ import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.httpurl.HttpUrlConnectionEventCollector
 import sh.measure.android.logger.LogLevel
+import sh.measure.android.logs.LogEventCollector
+import sh.measure.android.logs.LogSeverity
 import sh.measure.android.okhttp.OkHttpEventCollector
 import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.tracing.Span
 import sh.measure.android.tracing.SpanBuilder
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  *  The public API to interact with Measure SDK.
@@ -46,8 +47,12 @@ import java.util.concurrent.atomic.AtomicBoolean
  *  It's a singleton class that allows initializing the Measure SDK, and more.
  */
 object Measure {
-    // Ensures initialization is done only once.
-    private val isInitialized = AtomicBoolean(false)
+    // Set once initialization completes and [measure] is safe to access. Bytecode
+    // instrumentation hooks like MsrLog read this from arbitrary threads during startup
+    // without holding the init lock, so it must be volatile and must only become true
+    // after [measure] is fully assigned.
+    @Volatile
+    private var isInitialized = false
 
     // Internal instance of Measure SDK.
     private lateinit var measure: MeasureInternal
@@ -69,7 +74,10 @@ object Measure {
         context: Context,
         measureConfig: MeasureConfig = MeasureConfig(),
     ) {
-        if (isInitialized.compareAndSet(false, true)) {
+        synchronized(this) {
+            if (isInitialized) {
+                return
+            }
             InternalTrace.trace(
                 label = { "msr-init" },
                 block = {
@@ -79,6 +87,7 @@ object Measure {
                     measure = MeasureInternal(initializer)
                     storeProcessImportanceState()
                     measure.init()
+                    isInitialized = true
                 },
             )
         }
@@ -91,7 +100,7 @@ object Measure {
      * @see MeasureConfig.autoStart to control whether the SDK should start on init or not.
      */
     fun start() {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             InternalTrace.trace(
                 label = { "msr-start" },
                 block = {
@@ -107,7 +116,7 @@ object Measure {
      * @see start to start tracking.
      */
     fun stop() {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             InternalTrace.trace(
                 label = { "msr-stop" },
                 block = {
@@ -130,7 +139,7 @@ object Measure {
      */
     @JvmStatic
     fun setUserId(userId: String) {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             measure.setUserId(userId)
         }
     }
@@ -140,7 +149,7 @@ object Measure {
      */
     @JvmStatic
     fun clearUserId() {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             measure.clearUserId()
         }
     }
@@ -163,7 +172,7 @@ object Measure {
      */
     @JvmStatic
     fun trackScreenView(screenName: String, attributes: Map<String, AttributeValue> = emptyMap()) {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             measure.trackScreenView(screenName, attributes)
         }
     }
@@ -193,7 +202,7 @@ object Measure {
         throwable: Throwable,
         attributes: Map<String, AttributeValue> = emptyMap(),
     ) {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             measure.trackHandledException(throwable, attributes)
         }
     }
@@ -230,8 +239,38 @@ object Measure {
         attributes: Map<String, AttributeValue> = emptyMap(),
         timestamp: Long? = null,
     ) {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             measure.trackEvent(name, attributes, timestamp)
+        }
+    }
+
+    /**
+     * Tracks a log with a severity level and optional attributes.
+     *
+     * Logs appear in the session timeline and provide context when debugging issues.
+     * Logs longer than 4000 characters are truncated. Logs written to logcat by the app
+     * are also collected automatically.
+     *
+     * Example usage:
+     * ```kotlin
+     * Measure.log("Payment failed, retrying", LogSeverity.Warning)
+     * ```
+     *
+     * @param body The log to track.
+     * @param severity The severity of the log, defaults to [LogSeverity.Info].
+     * @param attributes Optional key-value pairs providing additional context to the log.
+     * @param timestamp Optional timestamp for the log, defaults to current time.
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun log(
+        body: String,
+        severity: LogSeverity = LogSeverity.Info,
+        attributes: Map<String, AttributeValue> = emptyMap(),
+        timestamp: Long? = null,
+    ) {
+        if (isInitialized) {
+            measure.log(body, severity, attributes, timestamp)
         }
     }
 
@@ -243,7 +282,7 @@ object Measure {
      *
      * @return [Span] A new span instance if the SDK is initialized, or an invalid no-op span if not initialized
      */
-    fun startSpan(name: String): Span = if (isInitialized.get()) {
+    fun startSpan(name: String): Span = if (isInitialized) {
         measure.startSpan(name)
     } else {
         Span.invalid()
@@ -262,7 +301,7 @@ object Measure {
      * Note: Use this method when you need to trace an operation that has already started and you have
      * captured its start time using [getCurrentTime].
      */
-    fun startSpan(name: String, timestamp: Long): Span = if (isInitialized.get()) {
+    fun startSpan(name: String, timestamp: Long): Span = if (isInitialized) {
         measure.startSpan(name, timestamp = timestamp)
     } else {
         Span.invalid()
@@ -279,7 +318,7 @@ object Measure {
      *
      * Note: Use this method when you need to create a span without immediately starting it.
      */
-    fun createSpanBuilder(name: String): SpanBuilder? = if (isInitialized.get()) {
+    fun createSpanBuilder(name: String): SpanBuilder? = if (isInitialized) {
         measure.createSpan(name)
     } else {
         null
@@ -321,7 +360,7 @@ object Measure {
      * Note: Use this method to obtain timestamps when creating spans to ensure consistent time
      * measurements and avoid clock drift issues within traces.
      */
-    fun getCurrentTime(): Long = if (isInitialized.get()) {
+    fun getCurrentTime(): Long = if (isInitialized) {
         measure.timeProvider.now()
     } else {
         System.currentTimeMillis()
@@ -338,7 +377,7 @@ object Measure {
      * @return session ID if the SDK is initialized, null otherwise.
      */
     fun getSessionId(): String? {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             return measure.getSessionId()
         }
         return null
@@ -358,7 +397,7 @@ object Measure {
      * @see launchBugReportActivity to launch the inbuilt bug reporting flow.
      */
     fun setShakeListener(listener: MsrShakeListener?) {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             measure.setShakeListener(listener)
         }
     }
@@ -376,7 +415,7 @@ object Measure {
         takeScreenshot: Boolean = true,
         attributes: MutableMap<String, AttributeValue> = mutableMapOf(),
     ) {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             return measure.startBugReportFlow(takeScreenshot, attributes)
         }
     }
@@ -401,7 +440,7 @@ object Measure {
         attachments: List<MsrAttachment> = listOf(),
         attributes: MutableMap<String, AttributeValue> = mutableMapOf(),
     ) {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             return measure.trackBugReport(description, attachments, attributes)
         }
     }
@@ -424,7 +463,7 @@ object Measure {
         onComplete: (attachment: MsrAttachment) -> Unit,
         onError: (() -> Unit)? = null,
     ) {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             return measure.captureScreenshot(activity, onComplete, onError)
         }
     }
@@ -449,7 +488,7 @@ object Measure {
         onComplete: (attachment: MsrAttachment) -> Unit,
         onError: (() -> Unit)? = null,
     ) {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             return measure.takeLayoutSnapshot(activity, onComplete, onError)
         }
     }
@@ -472,7 +511,7 @@ object Measure {
         onComplete: (attachment: MsrAttachment) -> Unit,
         onError: () -> Unit,
     ) {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             return measure.imageUriToAttachment(context, uri, onComplete, onError)
         }
     }
@@ -516,7 +555,7 @@ object Measure {
         responseBody: String? = null,
         client: String = "unknown",
     ) {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             measure.trackHttpEvent(
                 url,
                 method,
@@ -570,7 +609,7 @@ object Measure {
         sessionId: String?,
         threadName: String?,
     ) {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             measure.internalTrackEvent(
                 data = data,
                 type = type,
@@ -622,7 +661,7 @@ object Measure {
         hasEnded: Boolean,
         isSampled: Boolean,
     ) {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             measure.internalTrackSpan(
                 name = name,
                 traceId = traceId,
@@ -646,7 +685,7 @@ object Measure {
      * This method is not intended for public usage and can change in future versions.
      */
     fun internalGetAttachmentDirectory(): String? {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             return measure.getAttachmentDirectory()
         }
         return null
@@ -665,7 +704,7 @@ object Measure {
         height: Int,
         callback: (ByteArray?) -> Unit,
     ) {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             measure.encodeWebP(pixels, width, height, callback)
         } else {
             callback(null)
@@ -677,7 +716,7 @@ object Measure {
      * This method is not intended for public usage.
      */
     fun internalAddLog(platform: String, message: String) {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             measure.internalAddLog(platform, message)
         }
     }
@@ -687,21 +726,21 @@ object Measure {
      * before calling this method.
      */
     fun getDynamicConfigPath(): String? {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             return measure.getDynamicConfigPath()
         }
         return null
     }
 
     internal fun getBugReportCollector(): BugReportCollector {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             return measure.bugReportCollector
         }
         throw IllegalAccessException("Attempt to access bug report without initializing the SDK")
     }
 
     internal fun getOkHttpEventCollector(): OkHttpEventCollector? {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             return try {
                 measure.httpEventCollector as OkHttpEventCollector
             } catch (e: ClassCastException) {
@@ -718,17 +757,29 @@ object Measure {
 
     @JvmStatic
     internal fun getHttpUrlConnectionEventCollector(): HttpUrlConnectionEventCollector? {
-        if (isInitialized.get()) {
+        if (isInitialized) {
             return measure.httpUrlConnectionEventCollector
+        }
+        return null
+    }
+
+    @JvmStatic
+    internal fun getLogEventCollector(): LogEventCollector? {
+        if (isInitialized) {
+            return measure.logEventCollector
         }
         return null
     }
 
     @VisibleForTesting
     internal fun initForInstrumentationTest(initializer: MeasureInitializer) {
-        if (isInitialized.compareAndSet(false, true)) {
+        synchronized(this) {
+            if (isInitialized) {
+                return
+            }
             measure = MeasureInternal(initializer)
             measure.init()
+            isInitialized = true
         }
     }
 

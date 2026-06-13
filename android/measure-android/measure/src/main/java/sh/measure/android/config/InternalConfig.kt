@@ -122,4 +122,10 @@ internal interface InternalConfig {
      * The estimated size of one event on disk.
      */
     val estimatedEventSizeInKb: Int
+
+    /**
+     * The maximum length of a log message, messages longer than this are truncated.
+     * Defaults to 4000 chars.
+     */
+    val maxLogMessageLength: Int
 }

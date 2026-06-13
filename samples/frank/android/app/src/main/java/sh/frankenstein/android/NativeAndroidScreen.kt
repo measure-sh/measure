@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import sh.measure.android.Measure
 import sh.measure.android.attributes.AttributesBuilder
 import sh.measure.android.bugreport.MsrShakeListener
+import sh.measure.android.logs.LogSeverity
 import java.io.IOException
 
 private class CustomException(override val message: String? = null) : Exception()
@@ -48,6 +49,7 @@ private enum class DemoCategory(val label: String) {
     BUG_REPORTS("Bug Reports"),
     NAVIGATION("Navigation"),
     SCREENSHOTS("Screenshots"),
+    LOGS("Logs"),
     MISC("Misc"),
 }
 
@@ -250,6 +252,25 @@ fun NativeAndroidScreen() {
                     .build()
                 Measure.trackEvent(name = "custom_event_all_attrs", attributes = attributes)
                 Toast.makeText(context, "Custom event tracked", Toast.LENGTH_SHORT).show()
+            },
+        ),
+        DemoItem(
+            title = "Logcat Log",
+            description = "Writes an android.util.Log entry collected automatically",
+            category = DemoCategory.LOGS,
+            action = {
+                Log.i("Frank", "Logcat log from android")
+            },
+        ),
+        DemoItem(
+            title = "Manual Log",
+            description = "Tracks a log via Measure.log with warning severity",
+            category = DemoCategory.LOGS,
+            action = {
+                val attributes = AttributesBuilder()
+                    .put("retry_count", 3)
+                    .build()
+                Measure.log("Manual log from android", LogSeverity.Warning, attributes)
             },
         ),
         DemoItem(

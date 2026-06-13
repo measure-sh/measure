@@ -35,6 +35,7 @@ internal class FakeConfigProvider : ConfigProvider {
         listOf("Content-Type", "msr-req-id", "Authorization", "Content-Length")
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null
     override var estimatedEventSizeInKb: Int = 2
+    override var maxLogMessageLength: Int = 4000
     override var maxDiskUsageInMb: Int = 50
     override var enableFullCollectionMode: Boolean = true
     override var enableDiagnosticMode: Boolean = false
@@ -45,6 +46,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var traceSamplingRate: Float = 1f
     override var journeySamplingRate: Float = 1f
     override var screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.AllTextAndMedia
+    override var minLogSeverityNumber: Int = 8
     override var cpuUsageInterval: Long = 3
     override var memoryUsageInterval: Long = 3
     override var crashTakeScreenshot: Boolean = true

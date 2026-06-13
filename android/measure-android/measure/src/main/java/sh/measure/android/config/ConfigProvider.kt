@@ -91,6 +91,7 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
     override val shakeSlop: Int = defaultConfig.shakeSlop
     override val disallowedCustomHeaders: List<String> = defaultConfig.disallowedCustomHeaders
     override val estimatedEventSizeInKb: Int = defaultConfig.estimatedEventSizeInKb
+    override val maxLogMessageLength: Int = defaultConfig.maxLogMessageLength
     override val autoStart: Boolean = defaultConfig.autoStart
     override val maxDiskUsageInMb: Int = defaultConfig.maxDiskUsageInMb
     override val trackActivityIntentData: Boolean = defaultConfig.trackActivityIntentData
@@ -114,6 +115,8 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
         get() = dynamicConfig.journeySamplingRate
     override val screenshotMaskLevel: ScreenshotMaskLevel
         get() = dynamicConfig.screenshotMaskLevel
+    override val minLogSeverityNumber: Int
+        get() = dynamicConfig.minLogSeverityNumber
     override val cpuUsageInterval: Long
         get() = dynamicConfig.cpuUsageInterval
     override val memoryUsageInterval: Long

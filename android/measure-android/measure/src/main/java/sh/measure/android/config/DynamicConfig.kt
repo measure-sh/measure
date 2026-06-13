@@ -42,6 +42,12 @@ internal interface IDynamicConfig {
     val screenshotMaskLevel: ScreenshotMaskLevel
 
     /**
+     * Minimum severity number of logs to collect. Logs below this number are dropped.
+     * Defaults to 12 (info).
+     */
+    val minLogSeverityNumber: Int
+
+    /**
      * Interval in seconds to collect CPU usage. Defaults to 5 seconds.
      */
     val cpuUsageInterval: Long
@@ -135,6 +141,9 @@ internal data class DynamicConfig(
     @SerialName("screenshot_mask_level")
     override val screenshotMaskLevel: ScreenshotMaskLevel =
         ScreenshotMaskLevel.AllTextAndMedia,
+
+    @SerialName("min_log_severity_number")
+    override val minLogSeverityNumber: Int = 12,
 
     @SerialName("cpu_usage_interval")
     override val cpuUsageInterval: Long = 5,

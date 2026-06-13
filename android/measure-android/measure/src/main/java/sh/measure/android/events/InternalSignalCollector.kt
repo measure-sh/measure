@@ -14,6 +14,7 @@ import sh.measure.android.gestures.LongClickData
 import sh.measure.android.gestures.ScrollData
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.logs.LogData
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.okhttp.HttpData
 import sh.measure.android.serialization.jsonSerializer
@@ -179,6 +180,21 @@ internal class InternalSignalCollector(
                     )
                 }
 
+                EventType.LOG -> {
+                    val extractedData = extractLogData(data)
+                    signalProcessor.track(
+                        data = extractedData,
+                        timestamp = timestamp,
+                        type = eventType,
+                        attributes = attributes,
+                        userDefinedAttributes = userDefinedAttrs,
+                        attachments = eventAttachments,
+                        threadName = threadName,
+                        sessionId = sessionId,
+                        userTriggered = userTriggered,
+                    )
+                }
+
                 EventType.SCROLL -> {
                     val extractedData = extractScrollData(data)
                     signalProcessor.track(
@@ -270,6 +286,11 @@ internal class InternalSignalCollector(
 
     private fun extractLongClickData(data: MutableMap<String, Any?>): LongClickData = jsonSerializer.decodeFromJsonElement(
         LongClickData.serializer(),
+        data.toJsonElement(),
+    )
+
+    private fun extractLogData(data: MutableMap<String, Any?>): LogData = jsonSerializer.decodeFromJsonElement(
+        LogData.serializer(),
         data.toJsonElement(),
     )
 }

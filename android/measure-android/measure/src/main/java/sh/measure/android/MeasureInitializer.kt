@@ -51,6 +51,7 @@ import sh.measure.android.lifecycle.AppLifecycleManager
 import sh.measure.android.lifecycle.DefaultActivityLifecycleCollector
 import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.logger.Logger
+import sh.measure.android.logs.LogEventCollector
 import sh.measure.android.networkchange.InitialNetworkStateProvider
 import sh.measure.android.networkchange.InitialNetworkStateProviderImpl
 import sh.measure.android.networkchange.NetworkChangesCollector
@@ -428,6 +429,12 @@ internal class MeasureInitializerImpl(
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
     ),
+    override val logEventCollector: LogEventCollector = LogEventCollector(
+        logger = logger,
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        configProvider = configProvider,
+    ),
     override val bugReportCollector: BugReportCollector = BugReportCollectorImpl(
         logger = logger,
         fileStorage = fileStorage,
@@ -497,6 +504,7 @@ internal interface MeasureInitializer {
     val spanProcessor: SpanProcessor
     val spanCollector: SpanCollector
     val customEventCollector: CustomEventCollector
+    val logEventCollector: LogEventCollector
     val bugReportCollector: BugReportCollector
     val executorServiceRegistry: ExecutorServiceRegistry
     val shakeBugReportCollector: ShakeBugReportCollector

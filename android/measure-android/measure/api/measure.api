@@ -32,6 +32,11 @@ public final class sh/measure/android/Measure {
 	public final fun internalTrackSpan (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JJJILjava/util/Map;Ljava/util/Map;Ljava/util/Map;ZZ)V
 	public final fun launchBugReportActivity (ZLjava/util/Map;)V
 	public static synthetic fun launchBugReportActivity$default (Lsh/measure/android/Measure;ZLjava/util/Map;ILjava/lang/Object;)V
+	public static final fun log (Ljava/lang/String;)V
+	public static final fun log (Ljava/lang/String;Lsh/measure/android/logs/LogSeverity;)V
+	public static final fun log (Ljava/lang/String;Lsh/measure/android/logs/LogSeverity;Ljava/util/Map;)V
+	public static final fun log (Ljava/lang/String;Lsh/measure/android/logs/LogSeverity;Ljava/util/Map;Ljava/lang/Long;)V
+	public static synthetic fun log$default (Ljava/lang/String;Lsh/measure/android/logs/LogSeverity;Ljava/util/Map;Ljava/lang/Long;ILjava/lang/Object;)V
 	public final fun setShakeListener (Lsh/measure/android/bugreport/MsrShakeListener;)V
 	public static final fun setUserId (Ljava/lang/String;)V
 	public final fun start ()V
@@ -196,6 +201,37 @@ public final class sh/measure/android/httpurl/MsrHttpUrlFactory {
 	public static final field INSTANCE Lsh/measure/android/httpurl/MsrHttpUrlFactory;
 	public static final fun openStream (Ljava/net/URL;)Ljava/io/InputStream;
 	public static final fun wrap (Ljava/net/URLConnection;)Ljava/net/URLConnection;
+}
+
+public final class sh/measure/android/logs/LogSeverity : java/lang/Enum {
+	public static final field Debug Lsh/measure/android/logs/LogSeverity;
+	public static final field Error Lsh/measure/android/logs/LogSeverity;
+	public static final field Fatal Lsh/measure/android/logs/LogSeverity;
+	public static final field Info Lsh/measure/android/logs/LogSeverity;
+	public static final field Warning Lsh/measure/android/logs/LogSeverity;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lsh/measure/android/logs/LogSeverity;
+	public static fun values ()[Lsh/measure/android/logs/LogSeverity;
+}
+
+public final class sh/measure/android/logs/MsrLog {
+	public static final field $stable I
+	public static final field INSTANCE Lsh/measure/android/logs/MsrLog;
+	public static final fun d (Ljava/lang/String;Ljava/lang/String;)I
+	public static final fun d (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
+	public static final fun e (Ljava/lang/String;Ljava/lang/String;)I
+	public static final fun e (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
+	public static final fun i (Ljava/lang/String;Ljava/lang/String;)I
+	public static final fun i (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
+	public static final fun println (ILjava/lang/String;Ljava/lang/String;)I
+	public static final fun v (Ljava/lang/String;Ljava/lang/String;)I
+	public static final fun v (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
+	public static final fun w (Ljava/lang/String;Ljava/lang/String;)I
+	public static final fun w (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
+	public static final fun w (Ljava/lang/String;Ljava/lang/Throwable;)I
+	public static final fun wtf (Ljava/lang/String;Ljava/lang/String;)I
+	public static final fun wtf (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I
+	public static final fun wtf (Ljava/lang/String;Ljava/lang/Throwable;)I
 }
 
 public final class sh/measure/android/navigation/ComposeNavigationCollectorKt {

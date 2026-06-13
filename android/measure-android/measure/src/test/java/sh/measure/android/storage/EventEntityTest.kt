@@ -11,7 +11,7 @@ class EventEntityTest {
         assertThrows(IllegalArgumentException::class.java) {
             EventEntity(
                 id = "event-id",
-                type = EventType.STRING,
+                type = EventType.LOG,
                 timestamp = "2024-03-18T12:50:12.62600000Z",
                 sessionId = "987",
                 userTriggered = false,
@@ -28,7 +28,7 @@ class EventEntityTest {
         assertThrows(IllegalArgumentException::class.java) {
             EventEntity(
                 id = "event-id",
-                type = EventType.STRING,
+                type = EventType.LOG,
                 timestamp = "2024-03-18T12:50:12.62600000Z",
                 sessionId = "987",
                 userTriggered = false,
