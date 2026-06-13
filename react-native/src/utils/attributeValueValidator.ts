@@ -1,3 +1,4 @@
+import { rawConsole } from './rawConsole';
 export type ValidAttributeValue = string | number | boolean;
 
 /**
@@ -16,7 +17,7 @@ export function validateAttributes(attributes: Record<string, any>): boolean {
 
     if (!isValid) {
       if (__DEV__) {
-        console.warn(
+        rawConsole.warn(
           `[MeasureRN] Invalid attribute '${key}' with value:`,
           value
         );

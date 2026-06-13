@@ -26,4 +26,9 @@ export interface InternalConfig {
    * Max checkpoints per span. Defaults to 100.
    */
   maxCheckpointsPerSpan: number;
+
+  /**
+   * Max length of a log message. Defaults to 4000 chars.
+   */
+  maxLogMessageLength: number;
 }

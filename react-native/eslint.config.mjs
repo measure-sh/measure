@@ -24,6 +24,19 @@ export default defineConfig([
     },
   },
   {
+    // SDK code must write through rawConsole so ConsoleLogCollector never
+    // captures the SDK's own output.
+    files: ['src/**/*.ts', 'src/**/*.tsx'],
+    ignores: [
+      'src/__tests__/**',
+      'src/events/consoleLogCollector.ts',
+      'src/utils/rawConsole.ts',
+    ],
+    rules: {
+      'no-console': 'error',
+    },
+  },
+  {
     ignores: ['node_modules/', 'lib/', 'example/', 'scripts/', 'plugin/'],
   },
 ]);

@@ -1,3 +1,4 @@
+import { rawConsole } from './rawConsole';
 import { internalAddLog } from '../native/measureBridge';
 
 export type LogLevel = 'debug' | 'info' | 'warning' | 'error' | 'fatal';
@@ -60,17 +61,17 @@ export class MeasureLogger implements Logger {
 
     switch (level) {
       case 'debug':
-        console.debug(output);
+        rawConsole.debug(output);
         break;
       case 'info':
-        console.info(output);
+        rawConsole.info(output);
         break;
       case 'warning':
-        console.warn(output);
+        rawConsole.warn(output);
         break;
       case 'error':
       case 'fatal':
-        console.error(output);
+        rawConsole.error(output);
         break;
     }
   }

@@ -25,6 +25,8 @@ function makeMockInitializer() {
     spanProcessor: { onConfigLoaded: jest.fn() },
     customEventCollector: { register: jest.fn(), unregister: jest.fn() },
     userTriggeredEventCollector: { register: jest.fn(), unregister: jest.fn() },
+    logCollector: { register: jest.fn(), unregister: jest.fn() },
+    consoleLogCollector: { register: jest.fn(), unregister: jest.fn() },
     spanCollector: { register: jest.fn(), unregister: jest.fn() },
     bugReportCollector: { register: jest.fn(), unregister: jest.fn() },
   } as any;
@@ -45,6 +47,8 @@ describe('MeasureInternal.start', () => {
     expect(
       initializer.userTriggeredEventCollector.register
     ).toHaveBeenCalledTimes(1);
+    expect(initializer.logCollector.register).toHaveBeenCalledTimes(1);
+    expect(initializer.consoleLogCollector.register).toHaveBeenCalledTimes(1);
     expect(initializer.spanCollector.register).toHaveBeenCalledTimes(1);
     expect(initializer.bugReportCollector.register).toHaveBeenCalledTimes(1);
     expect(measureBridge.enableNativeModule).toHaveBeenCalledTimes(1);
@@ -101,6 +105,8 @@ describe('MeasureInternal.stop', () => {
     expect(
       initializer.userTriggeredEventCollector.unregister
     ).toHaveBeenCalledTimes(1);
+    expect(initializer.logCollector.unregister).toHaveBeenCalledTimes(1);
+    expect(initializer.consoleLogCollector.unregister).toHaveBeenCalledTimes(1);
     expect(initializer.spanCollector.unregister).toHaveBeenCalledTimes(1);
     expect(initializer.bugReportCollector.unregister).toHaveBeenCalledTimes(1);
     expect(measureBridge.disableNativeModule).toHaveBeenCalledTimes(1);

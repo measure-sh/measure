@@ -63,6 +63,10 @@ export class ConfigProvider implements IConfigProvider {
     return this.dynamicConfig.screenshotMaskLevel;
   }
 
+  get minLogSeverityNumber(): number {
+    return this.dynamicConfig.minLogSeverityNumber;
+  }
+
   get cpuUsageInterval(): number {
     return this.dynamicConfig.cpuUsageInterval;
   }
@@ -133,6 +137,10 @@ export class ConfigProvider implements IConfigProvider {
 
   get maxCheckpointsPerSpan(): number {
     return this.defaultConfig.maxCheckpointsPerSpan;
+  }
+
+  get maxLogMessageLength(): number {
+    return this.defaultConfig.maxLogMessageLength;
   }
 
   setDynamicConfig(config: IDynamicConfig): void {

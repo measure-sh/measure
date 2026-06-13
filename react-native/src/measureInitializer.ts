@@ -12,6 +12,11 @@ import {
   UserTriggeredEventCollector,
   type IUserTriggeredEventCollector,
 } from './events/userTriggeredEventCollector';
+import { LogCollector, type ILogCollector } from './events/logCollector';
+import {
+  ConsoleLogCollector,
+  type IConsoleLogCollector,
+} from './events/consoleLogCollector';
 import { SpanCollector, type ISpanCollector } from './tracing/spanCollector';
 import type { Tracer } from './tracing/tracer';
 import { TraceSampler, type ITraceSampler } from './tracing/traceSampler';
@@ -46,6 +51,8 @@ export interface IMeasureInitializer {
   timeProvider: TimeProvider;
   customEventCollector: ICustomEventCollector;
   userTriggeredEventCollector: IUserTriggeredEventCollector;
+  logCollector: ILogCollector;
+  consoleLogCollector: IConsoleLogCollector;
   spanCollector: ISpanCollector;
   tracer: Tracer;
   idProvider: IIdProvider;
@@ -67,6 +74,8 @@ export class MeasureInitializer implements IMeasureInitializer {
   timeProvider: TimeProvider;
   customEventCollector: ICustomEventCollector;
   userTriggeredEventCollector: IUserTriggeredEventCollector;
+  logCollector: ILogCollector;
+  consoleLogCollector: IConsoleLogCollector;
   spanCollector: ISpanCollector;
   tracer: Tracer;
   idProvider: IIdProvider;
@@ -105,6 +114,15 @@ export class MeasureInitializer implements IMeasureInitializer {
       logger: this.logger,
       timeProvider: this.timeProvider,
       signalProcessor: this.signalProcessor,
+    });
+    this.logCollector = new LogCollector({
+      logger: this.logger,
+      timeProvider: this.timeProvider,
+      configProvider: this.configProvider,
+      signalProcessor: this.signalProcessor,
+    });
+    this.consoleLogCollector = new ConsoleLogCollector({
+      logCollector: this.logCollector,
     });
     this.uuidGenerator = new UuidGenerator();
     this.randormizer = new Randomizer();

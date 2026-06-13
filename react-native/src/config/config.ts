@@ -11,6 +11,7 @@ export class Config implements InternalConfig, IMeasureConfig {
   maxSpanNameLength: number;
   maxEventNameLength: number;
   customEventNameRegex: string;
+  maxLogMessageLength: number;
 
   constructor(
     enableLogging?: boolean,
@@ -26,5 +27,6 @@ export class Config implements InternalConfig, IMeasureConfig {
     this.maxSpanNameLength = 64;
     this.maxCheckpointNameLength = 64;
     this.maxCheckpointsPerSpan = 100;
+    this.maxLogMessageLength = 4000;
   }
 }

@@ -22,6 +22,9 @@ export interface IDynamicConfig {
   /** Screenshot masking level */
   screenshotMaskLevel: ScreenshotMaskLevel;
 
+  /** Minimum severity number of logs to collect. Logs below this number are dropped. Defaults to 12 (info). */
+  minLogSeverityNumber: number;
+
   /** Interval in seconds to collect CPU usage. Defaults to 5. */
   cpuUsageInterval: number;
 
@@ -61,6 +64,7 @@ export class DynamicConfig implements IDynamicConfig {
   traceSamplingRate: number;
   journeySamplingRate: number;
   screenshotMaskLevel: ScreenshotMaskLevel;
+  minLogSeverityNumber: number;
   cpuUsageInterval: number;
   memoryUsageInterval: number;
   crashTakeScreenshot: boolean;
@@ -81,6 +85,7 @@ export class DynamicConfig implements IDynamicConfig {
     this.traceSamplingRate = values.traceSamplingRate;
     this.journeySamplingRate = values.journeySamplingRate;
     this.screenshotMaskLevel = values.screenshotMaskLevel;
+    this.minLogSeverityNumber = values.minLogSeverityNumber;
     this.cpuUsageInterval = values.cpuUsageInterval;
     this.memoryUsageInterval = values.memoryUsageInterval;
     this.crashTakeScreenshot = values.crashTakeScreenshot;
@@ -102,6 +107,7 @@ export class DynamicConfig implements IDynamicConfig {
       traceSamplingRate: 0.01,
       journeySamplingRate: 0.01,
       screenshotMaskLevel: ScreenshotMaskLevel.allTextAndMedia,
+      minLogSeverityNumber: 12,
       cpuUsageInterval: 5,
       memoryUsageInterval: 5,
       crashTakeScreenshot: true,
@@ -138,6 +144,7 @@ export class DynamicConfig implements IDynamicConfig {
       traceSamplingRate: obj['trace_sampling_rate'],
       journeySamplingRate: obj['journey_sampling_rate'],
       screenshotMaskLevel: obj['screenshot_mask_level'],
+      minLogSeverityNumber: obj['min_log_severity_number'] ?? 12,
       cpuUsageInterval: obj['cpu_usage_interval'],
       memoryUsageInterval: obj['memory_usage_interval'],
       crashTakeScreenshot: obj['crash_take_screenshot'],

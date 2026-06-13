@@ -14,7 +14,7 @@ import {
   View,
   useColorScheme,
 } from 'react-native';
-import {Measure, MeasureConfig} from '@measuresh/react-native';
+import {LogSeverity, Measure, MeasureConfig} from '@measuresh/react-native';
 
 const lightColors = {
   background: '#FAFAFA',
@@ -125,6 +125,18 @@ const trackCustomEvent = () => {
       screen: 'RNDemos',
       action: 'Track Custom Event',
     },
+  });
+};
+
+const consoleLog = () => {
+  console.log('Console log from react native');
+};
+
+const manualLog = () => {
+  Measure.log({
+    body: 'Manual log from react native',
+    severity: LogSeverity.Warning,
+    attributes: {retry_count: 3},
   });
 };
 
@@ -257,6 +269,23 @@ const ReactNativeScreen = () => {
           title: 'Track HTTP Manually',
           description: 'Tracks a synthetic HTTP event',
           onPress: trackHttpManually,
+        },
+      ],
+    },
+    {
+      title: 'Logs',
+      data: [
+        {
+          id: 'console-log',
+          title: 'Console Log',
+          description: 'Writes a console.log collected automatically',
+          onPress: consoleLog,
+        },
+        {
+          id: 'manual-log',
+          title: 'Manual Log',
+          description: 'Tracks a log via Measure.log with warning severity',
+          onPress: manualLog,
         },
       ],
     },
