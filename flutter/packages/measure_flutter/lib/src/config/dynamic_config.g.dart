@@ -11,6 +11,7 @@ DynamicConfig _$DynamicConfigFromJson(Map<String, dynamic> json) =>
       traceSamplingRate: (json['trace_sampling_rate'] as num).toDouble(),
       screenshotMaskLevel: $enumDecode(
           _$ScreenshotMaskLevelEnumMap, json['screenshot_mask_level']),
+      minLogSeverityNumber: (json['min_log_severity_number'] as num).toInt(),
       crashTakeScreenshot: json['crash_take_screenshot'] as bool,
       gestureClickTakeSnapshot: json['gesture_click_take_snapshot'] as bool,
       httpDisableEventForUrls:
@@ -35,6 +36,7 @@ Map<String, dynamic> _$DynamicConfigToJson(DynamicConfig instance) =>
       'trace_sampling_rate': instance.traceSamplingRate,
       'screenshot_mask_level':
           _$ScreenshotMaskLevelEnumMap[instance.screenshotMaskLevel]!,
+      'min_log_severity_number': instance.minLogSeverityNumber,
       'crash_take_screenshot': instance.crashTakeScreenshot,
       'gesture_click_take_snapshot': instance.gestureClickTakeSnapshot,
       'http_disable_event_for_urls': instance.httpDisableEventForUrls,

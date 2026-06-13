@@ -24,6 +24,7 @@ class DefaultConfig {
   static const int maxUserDefinedAttributesPerEvent = 100;
   static const int maxUserDefinedAttributeKeyLength = 256;
   static const int maxUserDefinedAttributeValueLength = 256;
+  static const int maxLogMessageLength = 4000;
   static const double coldLaunchSamplingRate = 0.0001;
   static const double warmLaunchSamplingRate = 0.0001;
   static const double hotLaunchSamplingRate = 0.0001;

@@ -6,6 +6,7 @@ void main() {
   Map<String, dynamic> baseJson(String maskLevel) => {
         'trace_sampling_rate': 0.01,
         'screenshot_mask_level': maskLevel,
+        'min_log_severity_number': 12,
         'crash_take_screenshot': true,
         'gesture_click_take_snapshot': true,
         'http_disable_event_for_urls': <String>[],
@@ -27,6 +28,19 @@ void main() {
         final config = DynamicConfig.fromJson(baseJson(json));
         expect(config.screenshotMaskLevel, expected);
       });
+    });
+  });
+
+  group('DynamicConfig min_log_severity_number', () {
+    test('decodes min_log_severity_number', () {
+      final json = baseJson('all_text_and_media')
+        ..['min_log_severity_number'] = 20;
+      final config = DynamicConfig.fromJson(json);
+      expect(config.minLogSeverityNumber, 20);
+    });
+
+    test('defaults to 12 (info)', () {
+      expect(DynamicConfig.defaults().minLogSeverityNumber, 12);
     });
   });
 }

@@ -13,6 +13,10 @@ abstract interface class IDynamicConfig {
   /// to [ScreenshotMaskLevel.allTextAndMedia].
   ScreenshotMaskLevel get screenshotMaskLevel;
 
+  /// Minimum severity number of logs to collect. Logs below this number are
+  /// dropped. Defaults to 12 (info).
+  int get minLogSeverityNumber;
+
   /// Whether to take a screenshot when a crash occurs. Defaults to true.
   bool get crashTakeScreenshot;
 
@@ -54,6 +58,10 @@ class DynamicConfig implements IDynamicConfig {
   final ScreenshotMaskLevel screenshotMaskLevel;
 
   @override
+  @JsonKey(name: 'min_log_severity_number')
+  final int minLogSeverityNumber;
+
+  @override
   @JsonKey(name: 'crash_take_screenshot')
   final bool crashTakeScreenshot;
 
@@ -80,6 +88,7 @@ class DynamicConfig implements IDynamicConfig {
   const DynamicConfig({
     required this.traceSamplingRate,
     required this.screenshotMaskLevel,
+    required this.minLogSeverityNumber,
     required this.crashTakeScreenshot,
     required this.gestureClickTakeSnapshot,
     required this.httpDisableEventForUrls,
@@ -92,6 +101,7 @@ class DynamicConfig implements IDynamicConfig {
   factory DynamicConfig.defaults() => const DynamicConfig(
     traceSamplingRate: 0.01,
     screenshotMaskLevel: ScreenshotMaskLevel.allTextAndMedia,
+    minLogSeverityNumber: 12,
     crashTakeScreenshot: true,
     gestureClickTakeSnapshot: true,
     httpDisableEventForUrls: [],
@@ -111,6 +121,7 @@ class DynamicConfig implements IDynamicConfig {
   DynamicConfig copyWith({
     double? traceSamplingRate,
     ScreenshotMaskLevel? screenshotMaskLevel,
+    int? minLogSeverityNumber,
     bool? crashTakeScreenshot,
     bool? gestureClickTakeSnapshot,
     List<String>? httpDisableEventForUrls,
@@ -121,6 +132,7 @@ class DynamicConfig implements IDynamicConfig {
     return DynamicConfig(
       traceSamplingRate: traceSamplingRate ?? this.traceSamplingRate,
       screenshotMaskLevel: screenshotMaskLevel ?? this.screenshotMaskLevel,
+      minLogSeverityNumber: minLogSeverityNumber ?? this.minLogSeverityNumber,
       crashTakeScreenshot: crashTakeScreenshot ?? this.crashTakeScreenshot,
       gestureClickTakeSnapshot: gestureClickTakeSnapshot ?? this.gestureClickTakeSnapshot,
       httpDisableEventForUrls: httpDisableEventForUrls ?? this.httpDisableEventForUrls,

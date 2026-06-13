@@ -12,6 +12,7 @@ import 'package:measure_flutter/src/gestures/long_click_data.dart';
 import 'package:measure_flutter/src/http/http_collector.dart';
 import 'package:measure_flutter/src/isolate/file_processing_isolate.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
+import 'package:measure_flutter/src/logs/log_collector.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/navigation/navigation_collector.dart';
@@ -30,6 +31,7 @@ final class MeasureInternal {
   final Logger logger;
   final ConfigProvider configProvider;
   final CustomEventCollector _customEventCollector;
+  final LogCollector _logCollector;
   final ExceptionCollector _exceptionCollector;
   final NavigationCollector _navigationCollector;
   final HttpCollector _httpCollector;
@@ -51,6 +53,7 @@ final class MeasureInternal {
   })  : logger = initializer.logger,
         configProvider = initializer.configProvider,
         _customEventCollector = initializer.customEventCollector,
+        _logCollector = initializer.logCollector,
         _exceptionCollector = initializer.exceptionCollector,
         _httpCollector = initializer.httpCollector,
         _navigationCollector = initializer.navigationCollector,
@@ -81,6 +84,7 @@ final class MeasureInternal {
     await _fileProcessingIsolate.init();
     _exceptionCollector.register();
     _customEventCollector.register();
+    _logCollector.register();
     _httpCollector.register();
     _navigationCollector.register();
     _bugReportCollector.register();
@@ -91,6 +95,7 @@ final class MeasureInternal {
   Future<void> unregisterCollectors() async {
     _exceptionCollector.unregister();
     _customEventCollector.unregister();
+    _logCollector.unregister();
     _httpCollector.unregister();
     _navigationCollector.unregister();
     _bugReportCollector.unregister();
@@ -101,6 +106,10 @@ final class MeasureInternal {
 
   void trackCustomEvent(String name, int? timestamp, Map<String, AttributeValue> attributes) {
     _customEventCollector.trackCustomEvent(name, timestamp, attributes);
+  }
+
+  void log(String body, LogSeverity severity, Map<String, AttributeValue> attributes, int? timestamp) {
+    _logCollector.trackLog(body, severity, attributes, timestamp);
   }
 
   Future<void> trackError(

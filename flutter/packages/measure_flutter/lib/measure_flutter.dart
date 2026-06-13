@@ -113,6 +113,7 @@ export 'src/events/msr_attachment.dart';
 export 'src/gestures/layout_snapshot_capture.dart';
 export 'src/gestures/snapshot_node.dart';
 export 'src/http/http_method.dart';
+export 'src/logs/log_severity.dart';
 export 'src/measure_api.dart';
 export 'src/measure_widget.dart';
 export 'src/navigation/navigator_observer.dart';
@@ -371,6 +372,36 @@ class Measure implements MeasureApi {
   }) {
     if (_isInitialized) {
       _measure.trackCustomEvent(name, timestamp, attributes);
+    }
+  }
+
+  /// Tracks a log with a severity level and optional attributes.
+  ///
+  /// Logs appear in the session timeline and provide context when debugging
+  /// issues. Messages longer than 4000 characters are truncated.
+  ///
+  /// **Parameters:**
+  /// - [body]: The log body to track
+  /// - [severity]: The severity of the log, defaults to [LogSeverity.info]
+  /// - [attributes]: Optional key-value pairs providing additional context
+  /// - [timestamp]: Optional timestamp in milliseconds since epoch (defaults to current time)
+  ///
+  /// **Example:**
+  /// ```dart
+  /// Measure.instance.log(
+  ///   'Payment failed, retrying',
+  ///   severity: LogSeverity.warning,
+  /// );
+  /// ```
+  @override
+  void log(
+    String body, {
+    LogSeverity severity = LogSeverity.info,
+    Map<String, AttributeValue> attributes = const {},
+    int? timestamp,
+  }) {
+    if (_isInitialized) {
+      _measure.log(body, severity, attributes, timestamp);
     }
   }
 

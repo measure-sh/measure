@@ -137,6 +137,9 @@ class ConfigProviderImpl implements ConfigProvider {
   int get maxUserDefinedAttributesPerEvent => _defaultConfig.maxUserDefinedAttributesPerEvent;
 
   @override
+  int get maxLogMessageLength => _defaultConfig.maxLogMessageLength;
+
+  @override
   Map<Type, String> get widgetFilter => _defaultConfig.widgetFilter;
 
   @override
@@ -144,6 +147,9 @@ class ConfigProviderImpl implements ConfigProvider {
 
   @override
   ScreenshotMaskLevel get screenshotMaskLevel => _dynamicConfig.screenshotMaskLevel;
+
+  @override
+  int get minLogSeverityNumber => _dynamicConfig.minLogSeverityNumber;
 
   @override
   bool get crashTakeScreenshot => _dynamicConfig.crashTakeScreenshot;

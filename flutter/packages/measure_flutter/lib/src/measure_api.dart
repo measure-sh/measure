@@ -14,6 +14,13 @@ abstract class MeasureApi {
     int? timestamp,
   });
 
+  void log(
+    String body, {
+    LogSeverity severity = LogSeverity.info,
+    Map<String, AttributeValue> attributes = const {},
+    int? timestamp,
+  });
+
   Future<void> init(
     FutureOr<void> Function() action, {
     MeasureConfig config = const MeasureConfig(),

@@ -215,6 +215,17 @@ class _FlutterDemoScreenState extends State<FlutterDemoScreen>
     Measure.instance.trackEvent(name: 'event', attributes: attrs.build());
   }
 
+  void _trackLog() {
+    final attrs = AttributeBuilder()..add('retry_count', 3);
+    Measure.instance.log(
+      'Manually tracked log',
+      severity: LogSeverity.warning,
+      attributes: attrs.build(),
+    );
+    // ignore: avoid_print
+    print('Log printed from frank flutter');
+  }
+
   void _dioGet() async {
     final dio = Dio();
     dio.interceptors.add(MsrInterceptor());
@@ -442,6 +453,12 @@ class _FlutterDemoScreenState extends State<FlutterDemoScreen>
           description: 'Tracks an event with attributes',
           category: _DemoCategory.misc,
           action: _trackCustomEvent,
+        ),
+        _DemoItem(
+          title: 'Track Log',
+          description: 'Tracks a log and prints to console',
+          category: _DemoCategory.misc,
+          action: _trackLog,
         ),
         // HTTP
         _DemoItem(
