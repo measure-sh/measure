@@ -63,6 +63,7 @@ export default function SdkConfigurator({
     journey: "idle",
     http: "idle",
     masking: "idle",
+    logs: "idle",
   });
 
   // TanStack Query mutation
@@ -78,6 +79,7 @@ export default function SdkConfigurator({
   const [journeyConfirmOpen, setJourneyConfirmOpen] = useState(false);
   const [httpConfirmOpen, setHttpConfirmOpen] = useState(false);
   const [maskingConfirmOpen, setMaskingConfirmOpen] = useState(false);
+  const [logsConfirmOpen, setLogsConfirmOpen] = useState(false);
 
   // Sync initialConfig prop into local state when it changes.
   const [prevInitialConfig, setPrevInitialConfig] = useState(initialConfig);
@@ -141,6 +143,11 @@ export default function SdkConfigurator({
     !!sdkConfig &&
     !!originalSdkConfig &&
     sdkConfig.screenshot_mask_level !== originalSdkConfig.screenshot_mask_level;
+  const logsChanged =
+    !!sdkConfig &&
+    !!originalSdkConfig &&
+    sdkConfig.min_log_severity_number !==
+      originalSdkConfig.min_log_severity_number;
 
   if (!sdkConfig || !originalSdkConfig) {
     return null;
@@ -236,6 +243,11 @@ export default function SdkConfigurator({
       screenshot_mask_level: sdkConfig.screenshot_mask_level,
     });
   };
+  const handleSaveLogs = () => {
+    saveSection("logs", {
+      min_log_severity_number: sdkConfig.min_log_severity_number,
+    });
+  };
 
   const arrayToInput = (arr: string[]): string => {
     if (!arr || arr.length === 0) return "";
@@ -267,6 +279,32 @@ export default function SdkConfigurator({
       "Sensitive fields only": "sensitive_fields_only",
     };
     return map[display] || "sensitive_fields_only";
+  };
+
+  // Convert a log severity number to its display label, must be in sync with
+  // displayToLogSeverityNumber.
+  const logSeverityNumberToDisplay = (severityNumber: number): string => {
+    const map: { [key: number]: string } = {
+      8: "Debug",
+      12: "Info",
+      16: "Warning",
+      20: "Error",
+      24: "Fatal",
+    };
+    return map[severityNumber] ?? "Info";
+  };
+
+  // Convert a display label to its log severity number, must be in sync with
+  // logSeverityNumberToDisplay.
+  const displayToLogSeverityNumber = (display: string): number => {
+    const map: { [key: string]: number } = {
+      Debug: 8,
+      Info: 12,
+      Warning: 16,
+      Error: 20,
+      Fatal: 24,
+    };
+    return map[display] ?? 12;
   };
 
   const getUrlPlaceholder = () =>
@@ -538,6 +576,36 @@ export default function SdkConfigurator({
           </li>
         </ul>
         <p className="mt-4">These changes will apply to all new screenshots.</p>
+      </div>
+    );
+  };
+
+  const getLogsConfirmBody = () => {
+    return (
+      <div className="font-body">
+        <p>
+          Are you sure you want to update{" "}
+          <span className="font-display font-bold">Logs settings</span> for app{" "}
+          <span className="font-display font-bold">{appName}</span>?
+        </p>
+        <p className="mt-4">The following changes will be applied:</p>
+        <ul className="mt-2 space-y-1 list-disc list-inside">
+          <li>
+            Minimum log level:{" "}
+            <span className="font-display font-bold">
+              {logSeverityNumberToDisplay(
+                originalSdkConfig.min_log_severity_number,
+              )}
+            </span>{" "}
+            →{" "}
+            <span className="font-display font-bold">
+              {logSeverityNumberToDisplay(sdkConfig.min_log_severity_number)}
+            </span>
+          </li>
+        </ul>
+        <p className="mt-4">
+          Logs below this level will no longer be collected.
+        </p>
       </div>
     );
   };
@@ -1062,6 +1130,55 @@ export default function SdkConfigurator({
               </div>
             </AccordionContent>
           </AccordionItem>
+
+          {/* Logs Accordion */}
+          <AccordionItem value="logs" className="mt-2">
+            <AccordionTrigger className="font-body text-base">
+              Logs
+            </AccordionTrigger>
+            <AccordionContent className={accordionContentStyle}>
+              <div className="mt-2 space-y-2">
+                <div className="flex flex-col gap-2 min-h-[2.5rem] sm:flex-row sm:items-center sm:gap-2">
+                  <p className="text-sm">Collect logs at</p>
+                  <DropdownSelect
+                    data-testid="min-log-level-dropdown"
+                    type={DropdownSelectType.SingleString}
+                    title=""
+                    items={["Debug", "Info", "Warning", "Error", "Fatal"]}
+                    initialSelected={logSeverityNumberToDisplay(
+                      sdkConfig.min_log_severity_number,
+                    )}
+                    onChangeSelected={(item) =>
+                      updateSdkConfig({
+                        min_log_severity_number: displayToLogSeverityNumber(
+                          item as string,
+                        ),
+                      })
+                    }
+                  />
+                  <p className="text-sm">severity and above</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Logs below this severity are dropped on the device and never
+                  uploaded. Applies to both automatically collected logs and
+                  logs you track manually.
+                </p>
+                <div className="flex justify-end mt-2">
+                  <Button
+                    data-testid="logs-save-button"
+                    variant="outline"
+                    disabled={
+                      !currentUserCanChangeAppSettings || !logsChanged
+                    }
+                    loading={sectionStatuses.logs === "saving"}
+                    onClick={() => setLogsConfirmOpen(true)}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
         </Accordion>
       </div>
 
@@ -1162,6 +1279,18 @@ export default function SdkConfigurator({
           handleSaveMasking();
         }}
         onCancelAction={() => setMaskingConfirmOpen(false)}
+      />
+
+      <DangerConfirmationDialog
+        body={getLogsConfirmBody()}
+        open={logsConfirmOpen}
+        affirmativeText="Yes, I'm sure"
+        cancelText="Cancel"
+        onAffirmativeAction={() => {
+          setLogsConfirmOpen(false);
+          handleSaveLogs();
+        }}
+        onCancelAction={() => setLogsConfirmOpen(false)}
       />
     </div>
   );

@@ -1169,6 +1169,7 @@ export type SdkConfig = {
   http_track_response_for_urls: string[];
   http_blocked_headers: string[];
   screenshot_mask_level: string;
+  min_log_severity_number: number;
 };
 export class AppVersion {
   name: string;

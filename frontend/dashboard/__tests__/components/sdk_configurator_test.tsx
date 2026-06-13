@@ -74,6 +74,11 @@ jest.mock("@/app/components/dropdown_select", () => ({
         All text except clickable
       </option>
       <option value="Sensitive fields only">Sensitive fields only</option>
+      <option value="Debug">Debug</option>
+      <option value="Info">Info</option>
+      <option value="Warning">Warning</option>
+      <option value="Error">Error</option>
+      <option value="Fatal">Fatal</option>
     </select>
   ),
   DropdownSelectType: { SingleString: "single_string" },
@@ -120,6 +125,7 @@ const mockInitialConfig = {
   http_track_response_for_urls: [],
   http_blocked_headers: [],
   screenshot_mask_level: "sensitive_fields_only",
+  min_log_severity_number: 12,
 };
 
 // Helper: simulate the mutation.mutate call succeeding
@@ -168,6 +174,7 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByText("User Journeys")).toBeInTheDocument();
     expect(screen.getByText("HTTP")).toBeInTheDocument();
     expect(screen.getByText("Screenshot Masking")).toBeInTheDocument();
+    expect(screen.getByText("Logs")).toBeInTheDocument();
   });
 
   it("hides ANR section when osNames is iOS, shows it for Android and null", () => {
@@ -654,6 +661,60 @@ describe("SdkConfigurator Component", () => {
           appId: "test-app-id",
           config: expect.objectContaining({
             screenshot_mask_level: "all_text",
+          }),
+        },
+        expect.any(Object),
+      );
+    });
+
+    expect(toastPositive).toHaveBeenCalled();
+  });
+
+  it("saves logs config with correct payload on successful save", async () => {
+    const { toastPositive } = require("@/app/utils/use_toast");
+    simulateMutateSuccess();
+
+    render(
+      <SdkConfigurator
+        appId="test-app-id"
+        appName="Test App"
+        initialConfig={mockInitialConfig}
+        currentUserCanChangeAppSettings={true}
+        osNames={null}
+      />,
+    );
+
+    // Change min log level dropdown
+    const logLevelDropdown = screen.getByTestId("min-log-level-dropdown");
+    await act(async () => {
+      fireEvent.change(logLevelDropdown, { target: { value: "Warning" } });
+    });
+
+    // Click save button
+    const saveButton = screen.getByTestId("logs-save-button");
+    await act(async () => {
+      fireEvent.click(saveButton);
+    });
+
+    // Click affirmative on confirmation dialog
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("danger-confirmation-dialog"),
+      ).toBeInTheDocument();
+    });
+
+    const affirmativeButton = screen.getByTestId("dialog-affirmative-button");
+    await act(async () => {
+      fireEvent.click(affirmativeButton);
+    });
+
+    // Verify mutate was called with correct payload
+    await waitFor(() => {
+      expect(mockMutate).toHaveBeenCalledWith(
+        {
+          appId: "test-app-id",
+          config: expect.objectContaining({
+            min_log_severity_number: 16,
           }),
         },
         expect.any(Object),

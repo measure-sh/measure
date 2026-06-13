@@ -31,7 +31,7 @@ const eventPillTypes: Record<string, PillType> = {
   trim_memory: PillType.SessionEventTrimMemory,
   trace: PillType.SessionEventTrace,
   custom: PillType.SessionEventCustom,
-  string: PillType.SessionEventLog,
+  log: PillType.SessionEventLog,
 };
 
 function pillTypeForEvent(eventType: string, eventDetails: any): PillType {
@@ -82,10 +82,10 @@ export default function SessionTimelineEventCell({
         ? eventDetails.description
         : eventDetails.bug_report_id;
     }
-    if (eventType === "string") {
-      return eventDetails.logLevel
-        ? `${formatToCamelCase(eventDetails.logLevel)}: ${eventDetails.string}`
-        : eventDetails.string;
+    if (eventType === "log") {
+      return eventDetails.severity_text
+        ? `${formatToCamelCase(eventDetails.severity_text)}: ${eventDetails.body}`
+        : eventDetails.body;
     }
     if (
       eventType === "gesture_click" ||

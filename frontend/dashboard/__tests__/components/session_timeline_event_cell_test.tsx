@@ -127,7 +127,7 @@ describe("SessionTimelineEventCell", () => {
         { class_name: "ContentView", type: "onAppear" },
         "SwiftUI",
       ],
-      ["string", { string: "a log line" }, "Log"],
+      ["log", { body: "a log line", severity_text: "info" }, "Log"],
       ["unknown_event_type", {}, "unknown_event_type"],
     ])("shows %s pill label", (eventType, eventDetails, expectedLabel) => {
       renderCell({ eventType, eventDetails });
@@ -181,7 +181,7 @@ describe("SessionTimelineEventCell", () => {
       ["trim_memory", {}, "bg-indigo-100"],
       ["trace", { trace_name: "checkout" }, "bg-pink-100"],
       ["custom", { name: "event" }, "bg-purple-100"],
-      ["string", { string: "a log line" }, "bg-indigo-100"],
+      ["log", { body: "a log line" }, "bg-indigo-100"],
       ["unknown_event_type", {}, "bg-indigo-100"],
     ])("applies %s pill bg", (eventType, eventDetails, expectedClass) => {
       const { container } = renderCell({ eventType, eventDetails });
