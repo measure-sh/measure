@@ -20,6 +20,7 @@ import org.gradle.api.tasks.bundling.Tar
 import sh.measure.asm.BytecodeTransformationPipelineBuilder
 import sh.measure.asm.BytecodeTransformer
 import sh.measure.asm.HttpUrlConnectionTransformer
+import sh.measure.asm.LogTransformer
 import sh.measure.asm.NavigationTransformer
 import sh.measure.asm.OkHttpTransformer
 import sh.measure.utils.capitalize
@@ -62,6 +63,7 @@ class MeasurePlugin : Plugin<Project> {
                 .addTransformer(OkHttpTransformer())
                 .addTransformer(NavigationTransformer())
                 .addTransformer(HttpUrlConnectionTransformer())
+                .addTransformer(LogTransformer())
                 .build()
 
         androidComponents.onVariants { variant ->
