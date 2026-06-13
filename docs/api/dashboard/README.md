@@ -6715,6 +6715,7 @@ The required headers must be present in each request.
     "trace_sampling_rate": 0.001,
     "journey_sampling_rate": 0.001,
     "screenshot_mask_level": "all_text",
+    "min_log_severity_number": 12,
     "cpu_usage_interval": 5,
     "memory_usage_interval": 5,
     "crash_take_screenshot": true,

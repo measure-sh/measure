@@ -43,7 +43,7 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [Error Fields SDK Compatibility Matrix](#error-fields-sdk-compatibility-matrix)
       - [Older SDKs (without React Native)](#older-sdks-without-react-native)
       - [Newer SDKs (with React Native)](#newer-sdks-with-react-native)
-    - [**`string`**](#string)
+    - [**`log`**](#log)
     - [**`gesture_long_click`**](#gesture_long_click)
     - [**`gesture_scroll`**](#gesture_scroll)
     - [**`gesture_click`**](#gesture_click)
@@ -254,7 +254,7 @@ To understand the shape of the multipart/form-data payload, take a look at this 
 --PieBoundary123456789012345678901234567
 Content-Disposition: form-data; name="event"
 
-{"type":"string","id":"233a2fbc-a0d1-4912-a92f-9e43e72afbc6","session_id":"633a2fbc-a0d1-4912-a92f-9e43e72afbc6","string":{"severity_text":"INFO","string":"This is a log from the Android logcat"},"timestamp":"2023-08-24T14:51:38.000000534Z","attribute":{"user_id":null,"installation_id":"322a2fbc-a0d1-1212-a92f-9e43e72afbc7","device_name":"sunfish","device_model":"SM-G950F","device_manufacturer":"samsung","device_type":"phone","device_is_foldable":true,"device_is_physical":false,"device_density_dpi":100,"device_width_px":480,"device_height_px":800,"device_density":2,"os_name":"android","os_version":"31","platform":"android","app_version":"1.0.1","app_build":"576358","app_unique_id":"com.example.app","network_type":"cellular","network_provider":"airtel","network_generation":"4g","measure_sdk_version":"0.0.1"},"user_defined_attribute":{"username":"alice","paid_user":true,"credit_balance":12345,"latitude":30.2661403415387},"attachments":[]}
+{"type":"log","id":"233a2fbc-a0d1-4912-a92f-9e43e72afbc6","session_id":"633a2fbc-a0d1-4912-a92f-9e43e72afbc6","log":{"severity_text":"info","severity_number":12,"body":"This is a log written by the app"},"timestamp":"2023-08-24T14:51:38.000000534Z","attribute":{"user_id":null,"installation_id":"322a2fbc-a0d1-1212-a92f-9e43e72afbc7","device_name":"sunfish","device_model":"SM-G950F","device_manufacturer":"samsung","device_type":"phone","device_is_foldable":true,"device_is_physical":false,"device_density_dpi":100,"device_width_px":480,"device_height_px":800,"device_density":2,"os_name":"android","os_version":"31","platform":"android","app_version":"1.0.1","app_build":"576358","app_unique_id":"com.example.app","network_type":"cellular","network_provider":"airtel","network_generation":"4g","measure_sdk_version":"0.0.1"},"user_defined_attribute":{"username":"alice","paid_user":true,"credit_balance":12345,"latitude":30.2661403415387},"attachments":[]}
 --PieBoundary123456789012345678901234567
 Content-Disposition: form-data; name="event"
 
@@ -472,6 +472,7 @@ Fetches the latest SDK configuration for the app.
 | trace_sampling_rate          | Sampling rate for all traces                                                                                                                         |
 | journey_sampling_rate        | Sampling rate sessions that should report journey events - `lifecycle_activity`, `lifecycle_fragment`, `lifecycle_view_controller` and `screen_view` |
 | screenshot_mask_level        | Screenshot masking level. One of `all_text_and_media`, `all_text`, `all_text_except_clickable` and `sensitive_fields_only`                           |
+| min_log_severity_number      | Minimum severity number of logs to collect. Logs below this number are dropped. `debug` 8, `info` 12, `warning` 16, `error` 20, `fatal` 24           |
 | cpu_usage_interval           | CPU usage measurement interval                                                                                                                       |
 | memory_usage_interval        | Memory usage measurement interval                                                                                                                    |
 | crash_take_screenshot        | Whether to take screenshot on crash                                                                                                                  |
@@ -511,6 +512,7 @@ Fetches the latest SDK configuration for the app.
     "trace_sampling_rate": 0.001,
     "journey_sampling_rate": 0.001,
     "screenshot_mask_level": "all_text",
+    "min_log_severity_number": 12,
     "cpu_usage_interval": 5,
     "memory_usage_interval": 5,
     "crash_take_screenshot": true,
@@ -890,14 +892,15 @@ Use this matrix when testing to assert all field permutations are correctly sent
 | `exception.error`     | —       | ✗   |
 | `anr.handled`         | ✗       | ✗   |
 
-#### **`string`**
+#### **`log`**
 
-Use the `string` type when sending unstructured or structured logs. Make sure structured logs are in stringified JSON format.
+Use the `log` type when sending unstructured or structured logs. Make sure structured logs are in stringified JSON format.
 
-| Field           | Type   | Optional | Comment                                                        |
-| --------------- | ------ | -------- | -------------------------------------------------------------- |
-| `severity_text` | string | Yes      | Log level. One of `info`, `warning`, `error`, `fatal`, `debug` |
-| `string`        | string | No       | Log message text                                               |
+| Field             | Type    | Optional | Comment                                                                           |
+| ----------------- | ------- | -------- | --------------------------------------------------------------------------------- |
+| `severity_text`   | string  | Yes      | Log level. One of `info`, `warning`, `error`, `fatal`, `debug`                    |
+| `severity_number` | integer | Yes      | Numeric severity. `debug` 8, `info` 12, `warning` 16, `error` 20, `fatal` 24      |
+| `body`            | string  | No       | Log body text                                                                     |
 
 #### **`gesture_long_click`**
 

@@ -35,6 +35,7 @@ feature's documentation to understand its underlying mechanism and enhance your 
 * [**Gesture Tracking**](features/feature-gesture-tracking.md) — Automatically track user gestures in your app
 * [**Performance Tracing**](features/feature-performance-tracing.md) — Monitor app performance with traces
 * [**Custom Events**](features/feature-custom-events.md) — Capture custom events in your app
+* [**Logs**](features/feature-logs.md) — Track logs and collect them automatically on Android and React Native
 * **Bug Reporting** — Let users report bugs directly from your app
     * [**Android**](features/feature-bug-report-android.md)
     * [**iOS**](features/feature-bug-report-ios.md)

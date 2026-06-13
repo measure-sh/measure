@@ -36,6 +36,7 @@ available in two ways:
     * [**Journey Sampling**](#journey-sampling)
     * [**HTTP Events**](#http-events)
     * [**Screenshot Mask Level**](#screenshot-mask-level)
+    * [**Logs**](#logs)
 
 # SDK Configuration Options
 
@@ -313,6 +314,7 @@ The following defaults are set for each app:
 | Track HTTP response body for URLs    | (empty)                                                                             |
 | Blocked HTTP headers                 | Authorization, Cookie, Set-Cookie, Proxy-Authorization, WWW-Authenticate, X-Api-Key |
 | Screenshot mask level                | AllTextAndMedia                                                                     |
+| Minimum log severity                 | Info                                                                                |
 
 ## Crash Reporting
 
@@ -484,3 +486,16 @@ Masks sensitive input fields like password, email & phone fields.
 Example:
 
 ![Mask Sensitive Input Fields](../assets/screenshot-mask-sensitive-input-fields-2.png)
+
+## Logs
+
+The minimum severity of logs to collect can be configured in the **Logs** section
+("Collect logs at _level_ severity and above"). Logs below the chosen severity are dropped
+at the source and never leave the device. This applies to both automatically collected logs
+and logs tracked manually with the `log` API.
+
+By default, logs at `info` severity and above are collected (`info`, `warning`, `error` and
+`fatal`) while `debug` logs are dropped. The available levels in increasing severity are
+`debug`, `info`, `warning`, `error` and `fatal`.
+
+See [Logs](feature-logs.md) for more details.
