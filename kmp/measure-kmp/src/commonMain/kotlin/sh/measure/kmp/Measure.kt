@@ -1,6 +1,7 @@
 package sh.measure.kmp
 
 import sh.measure.kmp.attributes.AttributeValue
+import sh.measure.kmp.logs.LogSeverity
 import sh.measure.kmp.tracing.Span
 import sh.measure.kmp.tracing.SpanBuilder
 
@@ -50,6 +51,26 @@ expect object Measure {
      */
     fun trackEvent(
         name: String,
+        attributes: Map<String, AttributeValue> = emptyMap(),
+        timestamp: Long? = null,
+    )
+
+    /**
+     * Tracks a log with the given severity, attributes and timestamp.
+     *
+     * Logs appear in the session timeline and provide context when debugging issues. Bodies
+     * longer than 4000 characters are truncated. On Android, logs written to logcat by the app
+     * are also collected automatically; iOS collects only logs tracked using this method.
+     *
+     * @param body The log body to track.
+     * @param severity The severity of the log, defaults to [LogSeverity.Info].
+     * @param attributes Optional key-value pairs providing additional context to the log.
+     * @param timestamp optional monotonic millisecond timestamp for the log. Pass `null` (the
+     *   default) to record the log at the SDK's current time.
+     */
+    fun log(
+        body: String,
+        severity: LogSeverity = LogSeverity.Info,
         attributes: Map<String, AttributeValue> = emptyMap(),
         timestamp: Long? = null,
     )

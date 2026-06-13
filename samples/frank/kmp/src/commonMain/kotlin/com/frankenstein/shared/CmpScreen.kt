@@ -33,7 +33,9 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import sh.measure.kmp.Measure
+import sh.measure.kmp.attributes.IntAttr
 import sh.measure.kmp.attributes.StringAttr
+import sh.measure.kmp.logs.LogSeverity
 
 private val MeasureLightColors = lightColorScheme(
     primary = Color(0xFF2E7D32),
@@ -193,6 +195,16 @@ private fun demos(onOpenHttp: () -> Unit): List<DemoItem> = listOf(
         Measure.trackEvent(
             name = "kmp_event",
             attributes = mapOf("from" to StringAttr("kmp")),
+        )
+    },
+    ActionDemo(
+        title = "Track Log",
+        description = "Records a log with severity and attributes",
+    ) { _ ->
+        Measure.log(
+            body = "Manually tracked log from kmp",
+            severity = LogSeverity.Warning,
+            attributes = mapOf("retry_count" to IntAttr(3)),
         )
     },
     ActionDemo(
