@@ -148,6 +148,18 @@ import UIKit
         measureInternal.trackEvent(name, attributes: attributes, timestamp: timestamp)
     }
 
+    func log(_ body: String, severity: LogSeverity, attributes: [String: AttributeValue], timestamp: Int64?) {
+        guard let measureInternal = measureInternal else { return }
+
+        measureInternal.log(body, severity: severity, attributes: attributes, timestamp: timestamp)
+    }
+
+    @objc func log(_ body: String, severity: LogSeverity, attributes: [String: Any], timestamp: NSNumber?) {
+        guard let measureInternal = measureInternal else { return }
+
+        measureInternal.log(body, severity: severity, attributes: attributes, timestamp: timestamp)
+    }
+
     func trackScreenView(_ screenName: String, attributes: [String: AttributeValue]?) {
         guard let measureInternal = measureInternal else { return }
 
@@ -544,6 +556,43 @@ extension Measure {
     ///   - timestamp: Optional timestamp for the event, defaults to current time
     @objc public static func trackEvent(_ name: String, attributes: [String: Any], timestamp: NSNumber? = nil) {
         Measure.shared.trackEvent(name, attributes: attributes, timestamp: timestamp)
+    }
+
+    /// Tracks a log message with optional severity, attributes and timestamp.
+    ///
+    /// Log messages longer than 4000 characters are truncated. Logs are not collected
+    /// automatically on iOS, use this method to track them.
+    ///
+    ///   ```swift
+    ///   Measure.log("user signed in", severity: .info, attributes: ["user_name": .string("Alice")])
+    ///   ```
+    /// - Parameters:
+    ///   - body: The log message (max 4000 characters)
+    ///   - severity: Severity of the log, defaults to `.info`
+    ///   - attributes: Key-value pairs providing additional context
+    ///   - timestamp: Optional timestamp for the log, defaults to current time
+    public static func log(_ body: String, severity: LogSeverity = .info, attributes: [String: AttributeValue] = [:], timestamp: Int64? = nil) {
+        Measure.shared.log(body, severity: severity, attributes: attributes, timestamp: timestamp)
+    }
+
+    /// Tracks a log message with optional severity, attributes and timestamp.
+    ///
+    /// Log messages longer than 4000 characters are truncated. Logs are not collected
+    /// automatically on iOS, use this method to track them.
+    ///
+    /// Note:
+    /// This method is primarily intended for Objective-C use.
+    ///
+    ///   ```objc
+    ///   [Measure log:@"user signed in" severity:LogSeverityInfo attributes:@{@"user_name": @"Alice"} timestamp:nil];
+    ///   ```
+    /// - Parameters:
+    ///   - body: The log message (max 4000 characters)
+    ///   - severity: Severity of the log, defaults to `.info`
+    ///   - attributes: Key-value pairs providing additional context
+    ///   - timestamp: Optional timestamp for the log, defaults to current time
+    @objc public static func log(_ body: String, severity: LogSeverity = .info, attributes: [String: Any], timestamp: NSNumber? = nil) {
+        Measure.shared.log(body, severity: severity, attributes: attributes, timestamp: timestamp)
     }
 
     /// Call when a screen is viewed by the user.

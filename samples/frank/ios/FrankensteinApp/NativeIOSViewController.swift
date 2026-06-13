@@ -50,7 +50,7 @@ private enum DemoAction: String {
     // HTTP
     case httpGet200, httpPost201, httpPut400, httpGetError, httpGetNonJson
     // Misc
-    case customEvent, trackError, createSpan, setUserId, clearUserId
+    case customEvent, trackLog, trackError, createSpan, setUserId, clearUserId
 }
 
 private struct DemoItem: Identifiable {
@@ -90,6 +90,7 @@ private let demos: [DemoItem] = [
     DemoItem(id: "http-get-nonjson", title: "GET — Non-JSON Response", description: "HTML content type response", category: .http, action: .httpGetNonJson),
     // Misc
     DemoItem(id: "custom-event", title: "Custom Event", description: "Tracks an event with attributes", category: .misc, action: .customEvent),
+    DemoItem(id: "track-log", title: "Track Log", description: "Tracks a log with attributes", category: .misc, action: .trackLog),
     DemoItem(id: "track-error", title: "Track Error", description: "Tracks a file-not-found error", category: .misc, action: .trackError),
     DemoItem(id: "create-span", title: "Create Span", description: "Span with checkpoints and attributes", category: .misc, action: .createSpan),
     DemoItem(id: "set-user", title: "Set User ID", description: "Sets a dummy user ID on the SDK", category: .misc, action: .setUserId),
@@ -350,6 +351,8 @@ private struct NativeIOSScreen: View {
                 "action": .string("Track Custom Event"),
             ]
             Measure.trackEvent(name: "button_click", attributes: attributes, timestamp: nil)
+        case .trackLog:
+            Measure.log("Manually tracked log", severity: .warning, attributes: ["retry_count": .int(3)])
         case .trackError:
             do {
                 _ = try String(contentsOfFile: "/nonexistent/path.txt", encoding: .utf8)

@@ -47,6 +47,8 @@ struct EventSerializer {
             eventType = NetworkChangeData.self
         case .custom:
             eventType = CustomEventData.self
+        case .log:
+            eventType = LogData.self
         case .screenView:
             eventType = ScreenViewData.self
         case .bugReport:

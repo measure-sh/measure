@@ -93,6 +93,7 @@ final class BaseConfigProvider: ConfigProvider {
     var defaultHttpHeadersBlocklist: [String] { defaultConfig.defaultHttpHeadersBlocklist }
     var sessionBackgroundTimeoutThresholdMs: Number { defaultConfig.sessionBackgroundTimeoutThresholdMs }
     var maxEventNameLength: Number { defaultConfig.maxEventNameLength }
+    var maxLogMessageLength: Number { defaultConfig.maxLogMessageLength }
     var maxUserDefinedAttributesPerEvent: Number { defaultConfig.maxUserDefinedAttributesPerEvent }
     var customEventNameRegex: String { defaultConfig.customEventNameRegex }
     var maxUserDefinedAttributeKeyLength: Number { defaultConfig.maxUserDefinedAttributeKeyLength }
@@ -128,6 +129,7 @@ final class BaseConfigProvider: ConfigProvider {
     var traceSamplingRate: Float { dynamicConfig.traceSamplingRate }
     var journeySamplingRate: Float { dynamicConfig.journeySamplingRate }
     var screenshotMaskLevel: ScreenshotMaskLevel { dynamicConfig.screenshotMaskLevel }
+    var minLogSeverityNumber: Int { dynamicConfig.minLogSeverityNumber }
     var cpuUsageInterval: Number { dynamicConfig.cpuUsageInterval }
     var memoryUsageInterval: Number { dynamicConfig.memoryUsageInterval }
     var crashTakeScreenshot: Bool { dynamicConfig.crashTakeScreenshot }

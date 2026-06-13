@@ -35,6 +35,10 @@ protocol DynamicConfig {
     /// Screenshot masking level.
     var screenshotMaskLevel: ScreenshotMaskLevel { get }
 
+    /// Minimum severity number of logs to collect. Logs below this number are dropped.
+    /// Defaults to 12 (info).
+    var minLogSeverityNumber: Int { get }
+
     /// Interval in seconds to collect CPU usage.
     /// Defaults to 5 seconds.
     var cpuUsageInterval: Number { get }
@@ -84,6 +88,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
     let traceSamplingRate: Float
     let journeySamplingRate: Float
     let screenshotMaskLevel: ScreenshotMaskLevel
+    let minLogSeverityNumber: Int
     let cpuUsageInterval: Number
     let memoryUsageInterval: Number
     let crashTakeScreenshot: Bool
@@ -103,6 +108,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
          traceSamplingRate: Float = DefaultConfig.traceSamplingRate,
          journeySamplingRate: Float = DefaultConfig.journeySamplingRate,
          screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel,
+         minLogSeverityNumber: Int = DefaultConfig.minLogSeverityNumber,
          cpuUsageInterval: Number = DefaultConfig.cpuUsageInterval,
          memoryUsageInterval: Number = DefaultConfig.memoryUsageInterval,
          crashTakeScreenshot: Bool = DefaultConfig.crashTakeScreenshot,
@@ -122,6 +128,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         self.traceSamplingRate = traceSamplingRate
         self.journeySamplingRate = journeySamplingRate
         self.screenshotMaskLevel = screenshotMaskLevel
+        self.minLogSeverityNumber = minLogSeverityNumber
         self.cpuUsageInterval = cpuUsageInterval
         self.memoryUsageInterval = memoryUsageInterval
         self.crashTakeScreenshot = crashTakeScreenshot
@@ -145,6 +152,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         traceSamplingRate = try c.decodeIfPresent(Float.self, forKey: .traceSamplingRate) ?? DefaultConfig.traceSamplingRate
         journeySamplingRate = try c.decodeIfPresent(Float.self, forKey: .journeySamplingRate) ?? DefaultConfig.journeySamplingRate
         screenshotMaskLevel = try c.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
+        minLogSeverityNumber = try c.decodeIfPresent(Int.self, forKey: .minLogSeverityNumber) ?? DefaultConfig.minLogSeverityNumber
         cpuUsageInterval = try c.decodeIfPresent(Number.self, forKey: .cpuUsageInterval) ?? DefaultConfig.cpuUsageInterval
         memoryUsageInterval = try c.decodeIfPresent(Number.self, forKey: .memoryUsageInterval) ?? DefaultConfig.memoryUsageInterval
         crashTakeScreenshot = try c.decodeIfPresent(Bool.self, forKey: .crashTakeScreenshot) ?? DefaultConfig.crashTakeScreenshot
@@ -166,6 +174,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         case traceSamplingRate = "trace_sampling_rate"
         case journeySamplingRate = "journey_sampling_rate"
         case screenshotMaskLevel = "screenshot_mask_level"
+        case minLogSeverityNumber = "min_log_severity_number"
         case cpuUsageInterval = "cpu_usage_interval"
         case memoryUsageInterval = "memory_usage_interval"
         case crashTakeScreenshot = "crash_take_screenshot"

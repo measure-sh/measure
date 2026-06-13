@@ -20,6 +20,7 @@ struct Config: InternalConfig, MeasureConfig {
     let defaultHttpHeadersBlocklist: [String]
     let sessionBackgroundTimeoutThresholdMs: Number
     let maxEventNameLength: Number
+    let maxLogMessageLength: Number
     let maxUserDefinedAttributesPerEvent: Number
     let customEventNameRegex: String
     let maxUserDefinedAttributeKeyLength: Number
@@ -77,6 +78,7 @@ struct Config: InternalConfig, MeasureConfig {
                                             "X-Api-Key"]
         self.sessionBackgroundTimeoutThresholdMs = 30_000 // 30 seconds
         self.maxEventNameLength = 64 // 64 chars
+        self.maxLogMessageLength = 4000 // 4000 chars
         self.maxUserDefinedAttributesPerEvent = 100
         self.customEventNameRegex = "^[a-zA-Z0-9_-]+$"
         self.maxUserDefinedAttributeKeyLength = 256 // 256 chars

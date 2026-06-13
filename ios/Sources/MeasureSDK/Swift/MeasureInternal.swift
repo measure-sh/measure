@@ -112,6 +112,9 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var customEventCollector: CustomEventCollector {
         return measureInitializer.customEventCollector
     }
+    private var logEventCollector: LogEventCollector {
+        return measureInitializer.logEventCollector
+    }
     private var userTriggeredEventCollector: UserTriggeredEventCollector {
         return measureInitializer.userTriggeredEventCollector
     }
@@ -297,6 +300,20 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         let transformedAttributes = attributeTransformer.transformAttributes(attributes)
 
         customEventCollector.trackEvent(name: name, attributes: transformedAttributes, timestamp: timestamp?.int64Value)
+    }
+
+    func log(_ body: String, severity: LogSeverity, attributes: [String: AttributeValue], timestamp: Int64?) {
+        guard isStarted else { return }
+
+        logEventCollector.trackLog(body: body, severity: severity, attributes: attributes, timestamp: timestamp)
+    }
+
+    func log(_ body: String, severity: LogSeverity, attributes: [String: Any], timestamp: NSNumber?) {
+        guard isStarted else { return }
+
+        let transformedAttributes = attributeTransformer.transformAttributes(attributes)
+
+        logEventCollector.trackLog(body: body, severity: severity, attributes: transformedAttributes, timestamp: timestamp?.int64Value)
     }
 
     func trackScreenView(_ screenName: String, attributes: [String: AttributeValue]?) {
@@ -508,6 +525,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
 
     private func registerCollectors() {
         self.customEventCollector.enable()
+        self.logEventCollector.enable()
         self.userTriggeredEventCollector.enable()
         self.cpuUsageCollector.enable()
         self.memoryUsageCollector.enable()
@@ -530,6 +548,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
 
     private func unregisterCollectors() {
         self.customEventCollector.disable()
+        self.logEventCollector.disable()
         self.userTriggeredEventCollector.disable()
         self.cpuUsageCollector.disable()
         self.memoryUsageCollector.disable()

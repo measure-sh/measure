@@ -93,6 +93,7 @@ final class BaseExporterTests: XCTestCase {
             screenView: nil,
             bugReport: nil,
             sessionStartData: nil,
+            log: nil,
             needsReporting: false
         )
     }

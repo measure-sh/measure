@@ -46,7 +46,7 @@ protocol InternalSignalCollector {
 
 // Recieves events and spans from cross platform frameworks and
 // sends them to the `SignalProcessor` for being stored.
-final class BaseInternalSignalCollector: InternalSignalCollector {
+final class BaseInternalSignalCollector: InternalSignalCollector { // swiftlint:disable:this type_body_length
     private let logger: Logger
     private let signalProcessor: SignalProcessor
     private let timeProvider: TimeProvider
@@ -122,6 +122,21 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
                     data: customEventData,
                     timestamp: timestamp,
                     type: .custom,
+                    attributes: evaluatedAttributes,
+                    sessionId: sessionId,
+                    attachments: nil,
+                    userDefinedAttributes: serializedUserDefinedAttributes,
+                    threadName: threadName,
+                    needsReporting: false,
+                    synchronous: false
+                )
+
+            case EventType.log.rawValue:
+                let logData = try extractLogData(data: data)
+                signalProcessor.track(
+                    data: logData,
+                    timestamp: timestamp,
+                    type: .log,
                     attributes: evaluatedAttributes,
                     sessionId: sessionId,
                     attachments: nil,
@@ -356,6 +371,11 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
     func extractCustomEventData(data: [String: Any?]) throws -> CustomEventData {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
         return try JSONDecoder().decode(CustomEventData.self, from: jsonData)
+    }
+
+    func extractLogData(data: [String: Any?]) throws -> LogData {
+        let jsonData = try JSONSerialization.data(withJSONObject: data, options: [])
+        return try JSONDecoder().decode(LogData.self, from: jsonData)
     }
 
     func extractExceptionData(data: [String: Any?]) throws -> Exception {

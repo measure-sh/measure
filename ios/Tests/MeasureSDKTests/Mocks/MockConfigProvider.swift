@@ -21,6 +21,7 @@ final class MockConfigProvider: ConfigProvider {
     var defaultHttpHeadersBlocklist: [String]
     var sessionBackgroundTimeoutThresholdMs: Number
     var maxEventNameLength: Number
+    var maxLogMessageLength: Number
     var maxUserDefinedAttributesPerEvent: Number
     var customEventNameRegex: String
     var maxUserDefinedAttributeKeyLength: Number
@@ -58,6 +59,7 @@ final class MockConfigProvider: ConfigProvider {
     var traceSamplingRate: Float
     var journeySamplingRate: Float
     var screenshotMaskLevel: ScreenshotMaskLevel
+    var minLogSeverityNumber: Int
     var cpuUsageInterval: Number
     var memoryUsageInterval: Number
     var crashTakeScreenshot: Bool
@@ -87,6 +89,7 @@ final class MockConfigProvider: ConfigProvider {
          defaultHttpHeadersBlocklist: [String] = DefaultConfig.disallowedCustomHeaders,
          sessionBackgroundTimeoutThresholdMs: Number = 30_000,
          maxEventNameLength: Number = 64,
+         maxLogMessageLength: Number = 4_000,
          maxUserDefinedAttributesPerEvent: Number = 100,
          customEventNameRegex: String = "^[a-zA-Z0-9_-]+$",
          maxUserDefinedAttributeKeyLength: Number = 256,
@@ -147,6 +150,7 @@ final class MockConfigProvider: ConfigProvider {
          traceSamplingRate: Float = 0.01,
          journeySamplingRate: Float = 0.01,
          screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia,
+         minLogSeverityNumber: Int = 8,
          cpuUsageInterval: Number = 5,
          memoryUsageInterval: Number = 5,
          crashTakeScreenshot: Bool = true,
@@ -179,6 +183,7 @@ final class MockConfigProvider: ConfigProvider {
         self.defaultHttpHeadersBlocklist = defaultHttpHeadersBlocklist
         self.sessionBackgroundTimeoutThresholdMs = sessionBackgroundTimeoutThresholdMs
         self.maxEventNameLength = maxEventNameLength
+        self.maxLogMessageLength = maxLogMessageLength
         self.maxUserDefinedAttributesPerEvent = maxUserDefinedAttributesPerEvent
         self.customEventNameRegex = customEventNameRegex
         self.maxUserDefinedAttributeKeyLength = maxUserDefinedAttributeKeyLength
@@ -218,6 +223,7 @@ final class MockConfigProvider: ConfigProvider {
         self.traceSamplingRate = traceSamplingRate
         self.journeySamplingRate = journeySamplingRate
         self.screenshotMaskLevel = screenshotMaskLevel
+        self.minLogSeverityNumber = minLogSeverityNumber
         self.cpuUsageInterval = cpuUsageInterval
         self.memoryUsageInterval = memoryUsageInterval
         self.crashTakeScreenshot = crashTakeScreenshot
