@@ -348,7 +348,7 @@ func GetIssueGroupCommonPath(ctx context.Context, teamID, appID uuid.UUID, group
                 e.type = 'low_memory', 'Low memory warning received from system',
                 e.type = 'trim_memory', concat('System requested memory trim (level: ', coalesce(e.trim_memory.level, 'unknown'), ')'),
                 e.type = 'custom', concat('Custom event: ', coalesce(e.custom.name, 'unknown')),
-                e.type = 'string', concat('Log [', coalesce(e.string.severity_text, 'INFO'), ']: ', substring(coalesce(e.string.string, ''), 1, 80)),
+                e.type = 'log', concat('Log [', coalesce(e.log.severity_text, 'INFO'), ']: ', substring(coalesce(e.log.body, ''), 1, 80)),
                 e.type = 'session_start', 'Session started',
                 e.type = 'bug_report', 'User submitted bug report',
                 concat('Event: ', e.type)

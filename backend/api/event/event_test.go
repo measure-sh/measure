@@ -1000,10 +1000,10 @@ func TestValidateAttachmentLimit(t *testing.T) {
 		return EventField{
 			ID:          uuid.New(),
 			AppID:       uuid.New(),
-			Type:        TypeString,
+			Type:        TypeLog,
 			Timestamp:   time.Now(),
 			Attribute:   Attribute{OSName: "android"},
-			LogString:   &LogString{String: "log line"},
+			Log:         &Log{Body: "log line"},
 			Attachments: attachments,
 		}
 	}

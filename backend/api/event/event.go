@@ -30,6 +30,7 @@ const (
 	maxAppExitReasonChars                     = 64
 	maxAppExitImportanceChars                 = 32
 	maxSeverityTextChars                      = 10
+	maxSeverityNumber                         = 24
 	maxGestureLongClickTargetChars            = 128
 	maxGestureLongClickTargetNameChars        = 128
 	maxGestureLongClickTargetIDChars          = 128
@@ -81,7 +82,7 @@ const TypeCustom = "custom"
 const TypeANR = "anr"
 const TypeException = "exception"
 const TypeAppExit = "app_exit"
-const TypeString = "string"
+const TypeLog = "log"
 const TypeGestureLongClick = "gesture_long_click"
 const TypeGestureClick = "gesture_click"
 const TypeGestureScroll = "gesture_scroll"
@@ -167,7 +168,7 @@ var androidValidTypes = []string{
 	TypeNetworkChange, TypeHttp,
 	TypeMemoryUsage, TypeMemoryUsageAbs, TypeLowMemory, TypeTrimMemory,
 	TypeCPUUsage, TypeNavigation, TypeScreenView,
-	TypeString,
+	TypeLog,
 	TypeCustom,
 	TypeBugReport,
 	TypeSessionStart,
@@ -185,7 +186,7 @@ var iOSValidTypes = []string{
 	TypeMemoryUsageAbs,
 	TypeCPUUsage,
 	TypeScreenView,
-	TypeString,
+	TypeLog,
 	TypeCustom,
 	TypeBugReport,
 	TypeSessionStart,
@@ -484,9 +485,10 @@ type AppExit struct {
 	PID         string `json:"pid"`
 }
 
-type LogString struct {
-	SeverityText string `json:"severity_text"`
-	String       string `json:"string" binding:"required"`
+type Log struct {
+	SeverityText   string `json:"severity_text"`
+	SeverityNumber int32  `json:"severity_number"`
+	Body           string `json:"body" binding:"required"`
 }
 
 type GestureLongClick struct {
@@ -694,7 +696,7 @@ type EventField struct {
 	ANR                     *ANR                     `json:"anr,omitempty"`
 	Exception               *Exception               `json:"exception,omitempty"`
 	AppExit                 *AppExit                 `json:"app_exit,omitempty"`
-	LogString               *LogString               `json:"string,omitempty"`
+	Log                     *Log                     `json:"log,omitempty"`
 	GestureLongClick        *GestureLongClick        `json:"gesture_long_click,omitempty"`
 	GestureScroll           *GestureScroll           `json:"gesture_scroll,omitempty"`
 	GestureClick            *GestureClick            `json:"gesture_click,omitempty"`
@@ -901,12 +903,15 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		}
 	}
 
-	if e.IsString() {
-		if len(e.LogString.String) < 1 {
-			return fmt.Errorf(`%q must not be empty`, `string`)
+	if e.IsLog() {
+		if len(e.Log.Body) < 1 {
+			return fmt.Errorf(`%q must not be empty`, `log.body`)
 		}
-		if len(e.LogString.SeverityText) > maxSeverityTextChars {
-			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `string.severity_text`, maxSeverityTextChars)
+		if len(e.Log.SeverityText) > maxSeverityTextChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `log.severity_text`, maxSeverityTextChars)
+		}
+		if e.Log.SeverityNumber < 0 || e.Log.SeverityNumber > maxSeverityNumber {
+			return fmt.Errorf(`%q must be between 0 and %d`, `log.severity_number`, maxSeverityNumber)
 		}
 	}
 
@@ -1269,10 +1274,10 @@ func (e EventField) IsAppExit() bool {
 	return e.Type == TypeAppExit
 }
 
-// IsSring returns true for string
+// IsLog returns true for log
 // event.
-func (e EventField) IsString() bool {
-	return e.Type == TypeString
+func (e EventField) IsLog() bool {
+	return e.Type == TypeLog
 }
 
 // IsGestureLongClick returns true for

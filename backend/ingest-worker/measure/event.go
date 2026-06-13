@@ -596,15 +596,17 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`app_exit.pid`, nil)
 		}
 
-		// string
-		if e.events[i].IsString() {
+		// log
+		if e.events[i].IsLog() {
 			row.
-				Set(`string.severity_text`, e.events[i].LogString.SeverityText).
-				Set(`string.string`, e.events[i].LogString.String)
+				Set(`log.severity_text`, e.events[i].Log.SeverityText).
+				Set(`log.severity_number`, e.events[i].Log.SeverityNumber).
+				Set(`log.body`, e.events[i].Log.Body)
 		} else {
 			row.
-				Set(`string.severity_text`, nil).
-				Set(`string.string`, nil)
+				Set(`log.severity_text`, nil).
+				Set(`log.severity_number`, nil).
+				Set(`log.body`, nil)
 		}
 
 		// gesture long click

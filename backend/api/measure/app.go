@@ -2768,7 +2768,7 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 			Select("groupUniqArrayArray(user_ids) as user_ids").
 			Select("groupUniqArrayArray(unique_types) as unique_types").
 			Select("groupUniqArrayArray(unique_custom_type_names) as unique_custom_type_names").
-			Select("groupUniqArrayArray(unique_strings) as unique_strings").
+			Select("groupUniqArrayArray(unique_logs) as unique_logs").
 			Select("groupUniqArrayArray(unique_view_classnames) as unique_view_classnames").
 			Select("groupUniqArrayArray(unique_subview_classnames) as unique_subview_classnames").
 			Select("groupUniqArrayArray(unique_fatal_exceptions) as unique_fatal_exceptions").
@@ -2945,7 +2945,7 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, af *filter.AppFilter)
 				Clause("or").
 				Clause("arrayExists(x -> x ilike ?, unique_custom_type_names)", partial).
 				Clause("or").
-				Clause("arrayExists(x -> x ilike ?, unique_strings)", partial).
+				Clause("arrayExists(x -> x ilike ?, unique_logs)", partial).
 				Clause("or").
 				Clause("arrayExists(x -> x ilike ?, unique_view_classnames)", partial).
 				Clause("or").
@@ -3015,7 +3015,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 			Select("groupUniqArrayArray(user_ids) as user_ids").
 			Select("groupUniqArrayArray(unique_types) as unique_types").
 			Select("groupUniqArrayArray(unique_custom_type_names) as unique_custom_type_names").
-			Select("groupUniqArrayArray(unique_strings) as unique_strings").
+			Select("groupUniqArrayArray(unique_logs) as unique_logs").
 			Select("groupUniqArrayArray(unique_view_classnames) as unique_view_classnames").
 			Select("groupUniqArrayArray(unique_subview_classnames) as unique_subview_classnames").
 			Select("groupUniqArrayArray(unique_fatal_exceptions) as unique_fatal_exceptions").
@@ -3222,7 +3222,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 				Clause("or").
 				Clause("arrayExists(x -> x like ?, unique_custom_type_names)", partial).
 				Clause("or").
-				Clause("arrayExists(x -> x ilike ?, unique_strings)", partial).
+				Clause("arrayExists(x -> x ilike ?, unique_logs)", partial).
 				Clause("or").
 				Clause("arrayExists(x -> x ilike ?, unique_view_classnames)", partial).
 				Clause("or").
@@ -3248,7 +3248,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 		stmt.Select("user_ids").
 			Select("unique_types").
 			Select("unique_custom_type_names").
-			Select("unique_strings").
+			Select("unique_logs").
 			Select("unique_view_classnames").
 			Select("unique_subview_classnames").
 			Select("unique_fatal_exceptions").
@@ -3270,7 +3270,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 
 	for rows.Next() {
 		var uniqueUserIds, uniqueTypes, uniqueCustomTypeNames,
-			uniqueStrings, uniqueViewClassnames, uniqueSubviewClassnames, uniqueErrors []string
+			uniqueLogs, uniqueViewClassnames, uniqueSubviewClassnames, uniqueErrors []string
 		uniqueFatalExceptions := []map[string]string{}
 		uniqueUnhandledExceptions := []map[string]string{}
 		uniqueHandledExceptions := []map[string]string{}
@@ -3303,7 +3303,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 				&uniqueUserIds,
 				&uniqueTypes,
 				&uniqueCustomTypeNames,
-				&uniqueStrings,
+				&uniqueLogs,
 				&uniqueViewClassnames,
 				&uniqueSubviewClassnames,
 				&uniqueFatalExceptions,
@@ -3356,7 +3356,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, af *filter.AppFilter) (s
 			sess.SessionID.String(),
 			uniqueTypes,
 			uniqueCustomTypeNames,
-			uniqueStrings,
+			uniqueLogs,
 			uniqueViewClassnames,
 			uniqueSubviewClassnames,
 			uniqueErrors,
@@ -4886,6 +4886,9 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		`screen_view.name `,
 		`bug_report.description`,
 		`custom.name`,
+		`log.severity_text`,
+		`log.severity_number`,
+		`log.body`,
 	}
 
 	switch a.Family() {
@@ -4900,8 +4903,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			`app_exit.trace`,
 			`app_exit.process_name`,
 			`app_exit.pid`,
-			`string.severity_text`,
-			`string.string`,
 			`lifecycle_activity.type`,
 			`lifecycle_activity.class_name`,
 			`lifecycle_activity.intent`,
@@ -4986,7 +4987,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		var attachments string
 
 		var appExit event.AppExit
-		var logString event.LogString
+		var logData event.Log
 		var gestureLongClick event.GestureLongClick
 		var gestureClick event.GestureClick
 		var gestureScroll event.GestureScroll
@@ -5182,6 +5183,11 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 
 			// custom
 			&custom.Name,
+
+			// log
+			&logData.SeverityText,
+			&logData.SeverityNumber,
+			&logData.Body,
 		}
 
 		switch a.Family() {
@@ -5199,10 +5205,6 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 				&appExit.Trace,
 				&appExit.ProcessName,
 				&appExit.PID,
-
-				// log string
-				&logString.SeverityText,
-				&logString.String,
 
 				// lifecycle activity
 				&lifecycleActivity.Type,
@@ -5328,8 +5330,8 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		case event.TypeAppExit:
 			ev.AppExit = &appExit
 			session.Events = append(session.Events, ev)
-		case event.TypeString:
-			ev.LogString = &logString
+		case event.TypeLog:
+			ev.Log = &logData
 			session.Events = append(session.Events, ev)
 		case event.TypeGestureLongClick:
 			// only unmarshal attachments if more than
@@ -8986,7 +8988,7 @@ func GetSession(c *gin.Context) {
 		event.TypeGestureLongClick,
 		event.TypeGestureScroll,
 		event.TypeNavigation,
-		event.TypeString,
+		event.TypeLog,
 		event.TypeNetworkChange,
 		event.TypeColdLaunch,
 		event.TypeWarmLaunch,
@@ -9059,11 +9061,11 @@ func GetSession(c *gin.Context) {
 		threads.Organize(event.TypeCustom, threadedCustoms)
 	}
 
-	logEvents := eventMap[event.TypeString]
+	logEvents := eventMap[event.TypeLog]
 	if len(logEvents) > 0 {
-		logs := timeline.ComputeLogString(logEvents)
+		logs := timeline.ComputeLogs(logEvents)
 		threadedLogs := timeline.GroupByThreads(logs)
-		threads.Organize(event.TypeString, threadedLogs)
+		threads.Organize(event.TypeLog, threadedLogs)
 	}
 
 	netChangeEvents := eventMap[event.TypeNetworkChange]

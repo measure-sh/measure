@@ -7,37 +7,37 @@ import (
 	"backend/libs/udattr"
 )
 
-// LogString represents log events suitable
+// Log represents log events suitable
 // for session timeline.
-type LogString struct {
+type Log struct {
 	EventType   string              `json:"event_type"`
 	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
 	ThreadName  string              `json:"thread_name"`
-	*event.LogString
+	*event.Log
 	Timestamp time.Time `json:"timestamp"`
 }
 
 // GetThreadName provides the name of the thread
 // where logging took place.
-func (ls LogString) GetThreadName() string {
-	return ls.ThreadName
+func (l Log) GetThreadName() string {
+	return l.ThreadName
 }
 
 // GetTimestamp provides the timestamp of
 // the log event.
-func (ls LogString) GetTimestamp() time.Time {
-	return ls.Timestamp
+func (l Log) GetTimestamp() time.Time {
+	return l.Timestamp
 }
 
-// ComputeLogString computes logging events
+// ComputeLogs computes logging events
 // for session timeline.
-func ComputeLogString(events []event.EventField) (result []ThreadGrouper) {
+func ComputeLogs(events []event.EventField) (result []ThreadGrouper) {
 	for _, event := range events {
-		logs := LogString{
+		logs := Log{
 			event.Type,
 			&event.UserDefinedAttribute,
 			event.Attribute.ThreadName,
-			event.LogString,
+			event.Log,
 			event.Timestamp,
 		}
 		result = append(result, logs)

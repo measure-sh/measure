@@ -52,6 +52,7 @@ type SdkConfig struct {
 	TraceSamplingRate         float64             `json:"trace_sampling_rate"`
 	JourneySamplingRate       float64             `json:"journey_sampling_rate"`
 	ScreenshotMaskLevel       ScreenshotMaskLevel `json:"screenshot_mask_level"`
+	MinLogSeverityNumber      int                 `json:"min_log_severity_number"`
 	CPUUsageInterval          int                 `json:"cpu_usage_interval"`
 	MemoryUsageInterval       int                 `json:"memory_usage_interval"`
 	CrashTakeScreenshot       bool                `json:"crash_take_screenshot"`
@@ -119,6 +120,7 @@ func createDefaultConfig() SdkConfig {
 		TraceSamplingRate:         0.01,
 		JourneySamplingRate:       0.01,
 		ScreenshotMaskLevel:       ScreenshotMaskLevelAllTextAndMedia,
+		MinLogSeverityNumber:      12,
 		CPUUsageInterval:          5,
 		MemoryUsageInterval:       5,
 		CrashTakeScreenshot:       true,
@@ -199,6 +201,7 @@ func getConfigFromDb(ctx context.Context, appID uuid.UUID) (*SdkConfig, error) {
 		Select("trace_sampling_rate").
 		Select("journey_sampling_rate").
 		Select("screenshot_mask_level").
+		Select("min_log_severity_number").
 		Select("cpu_usage_interval").
 		Select("memory_usage_interval").
 		Select("crash_take_screenshot").
@@ -226,6 +229,7 @@ func getConfigFromDb(ctx context.Context, appID uuid.UUID) (*SdkConfig, error) {
 		&sdkConfig.TraceSamplingRate,
 		&sdkConfig.JourneySamplingRate,
 		&sdkConfig.ScreenshotMaskLevel,
+		&sdkConfig.MinLogSeverityNumber,
 		&sdkConfig.CPUUsageInterval,
 		&sdkConfig.MemoryUsageInterval,
 		&sdkConfig.CrashTakeScreenshot,

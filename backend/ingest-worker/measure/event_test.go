@@ -24,7 +24,7 @@ func TestEventReqOnboardable(t *testing.T) {
 		eventReq := &eventreq{
 			events: []event.EventField{
 				{
-					Type: event.TypeString,
+					Type: event.TypeLog,
 				},
 			},
 		}
@@ -57,7 +57,7 @@ func TestEventReqGetOSName(t *testing.T) {
 		eventReq := &eventreq{
 			events: []event.EventField{
 				{
-					Type: event.TypeString,
+					Type: event.TypeLog,
 					Attribute: event.Attribute{
 						OSName: "Android",
 					},
@@ -77,7 +77,7 @@ func TestEventReqGetOSName(t *testing.T) {
 		eventReq := &eventreq{
 			events: []event.EventField{
 				{
-					Type: event.TypeString,
+					Type: event.TypeLog,
 					Attribute: event.Attribute{
 						OSVersion: "33",
 					},
@@ -97,7 +97,7 @@ func TestEventReqGetOSName(t *testing.T) {
 		eventReq := &eventreq{
 			events: []event.EventField{
 				{
-					Type: event.TypeString,
+					Type: event.TypeLog,
 					Attribute: event.Attribute{
 						AppUniqueID: "sh.measure.test",
 					},
