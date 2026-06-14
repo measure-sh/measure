@@ -340,10 +340,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 
 		// configure module for jvm symbolication
 		if s.jvmSymbolicator != nil {
-			if err := s.jvmSymbolicator.configureModule(mappings); err != nil {
-				fmt.Printf("Error configuring module for app id %s, version %s, build %s: %v\n", appId, name, code, err)
-				continue
-			}
+			s.jvmSymbolicator.configureModule(mappings)
 		}
 	}
 
@@ -371,7 +368,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 // symbolicate performs symbolication for
 // the JVM symbolicator.
 func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.SpanField, origin string, sources []SentrySource, lambdaWorkaround bool) (err error) {
-	if js.request != nil {
+	if js.request != nil && len(js.request.Modules) > 0 {
 		sr := &SymbolicatorRequest{}
 		if err = sr.prepareJvmRequest(js, origin, sources); err != nil {
 			return
@@ -408,7 +405,11 @@ func (js *jvmSymbolicator) symbolicate(events []event.EventField, spans []span.S
 // configureModule configures the module
 // required by symbolicator for JVM
 // symbolication.
-func (js *jvmSymbolicator) configureModule(mappings map[string]symbol.MappingType) (err error) {
+//
+// A build can legitimately have no proguard mapping (e.g. R8 disabled, or a
+// Flutter/RN build that only uploads its own mappings). In that case no module
+// is added and symbolicate skips the request, leaving JVM frames untouched.
+func (js *jvmSymbolicator) configureModule(mappings map[string]symbol.MappingType) {
 	if js.request == nil {
 		// no JVM events to symbolicate
 		return
@@ -425,12 +426,9 @@ func (js *jvmSymbolicator) configureModule(mappings map[string]symbol.MappingTyp
 		}
 	}
 	if debugId == "" {
-		err = errors.New("no proguard mapping found")
 		return
 	}
 	js.request.AddModule(debugId, symbol.TypeProguard.String())
-
-	return
 }
 
 // splitClassName splits a fully qualified JVM class name into
