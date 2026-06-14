@@ -266,24 +266,24 @@ extension MeasureManager {
         }
     }
 
-    func trackError(_ error: Error, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool = false) {
+    func trackError(_ error: Error, attributes: [String: AttributeValue]? = nil) {
         guard let measureInternal = self.measureInternal else { return }
-        return measureInternal.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
+        return measureInternal.trackError(error, attributes: attributes)
     }
 
-    @objc func trackError(_ error: NSError, attributes: [String: Any]? = nil, collectStackTraces: Bool = false) {
+    @objc func trackError(_ error: NSError, attributes: [String: Any]? = nil) {
         guard let measureInternal = self.measureInternal else { return }
-        return measureInternal.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
+        return measureInternal.trackError(error, attributes: attributes)
     }
 
-    func trackException(_ exception: NSException, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool = false) {
+    func trackException(_ exception: NSException, attributes: [String: AttributeValue]? = nil) {
         guard let measureInternal = self.measureInternal else { return }
-        return measureInternal.trackException(exception, attributes: attributes, collectStackTraces: collectStackTraces)
+        return measureInternal.trackException(exception, attributes: attributes)
     }
 
-    @objc func trackException(_ exception: NSException, attributes: [String: Any]? = nil, collectStackTraces: Bool = false) {
+    @objc func trackException(_ exception: NSException, attributes: [String: Any]? = nil) {
         guard let measureInternal = self.measureInternal else { return }
-        return measureInternal.trackException(exception, attributes: attributes, collectStackTraces: collectStackTraces)
+        return measureInternal.trackException(exception, attributes: attributes)
     }
 
     func internalGetAttachmentDirectory() -> String? {
@@ -814,36 +814,32 @@ extension MeasureManager {
     /// - Parameters:
     ///   - error: The Swift `Error` instance to track. Use this for native Swift errors (e.g. enums or structs conforming to `Error`).
     ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. request ID, user action, component).
-    ///   - collectStackTraces: If `true`, captures the current stack trace to aid in debugging.
-    public static func trackError(_ error: Error, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool = false) {
-        MeasureManager.shared.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
+    public static func trackError(_ error: Error, attributes: [String: AttributeValue]? = nil) {
+        Measure.shared.trackError(error, attributes: attributes)
     }
 
     /// Tracks a handled Objective-C style error (`NSError`) for backward compatibility or bridging scenarios.
     /// - Parameters:
     ///   - error: The `NSError` instance to track. Ideal for errors coming from Apple frameworks or Objective-C code.
     ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. file path, HTTP status, method name).
-    ///   - collectStackTraces: If `true`, captures the current stack trace to aid in debugging.
-    @objc public static func trackError(_ error: NSError, attributes: [String: Any]? = nil, collectStackTraces: Bool = false) {
-        MeasureManager.shared.trackError(error, attributes: attributes, collectStackTraces: collectStackTraces)
+    @objc public static func trackError(_ error: NSError, attributes: [String: Any]? = nil) {
+        Measure.shared.trackError(error, attributes: attributes)
     }
 
     /// Tracks a handled NSException and records it as part of the monitoring system.
     /// - Parameters:
     ///   - exception: The NSException instance to track.
     ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. request ID, user action, component).
-    ///   - collectStackTraces: If `true`, captures the current stack trace to aid in debugging.
-    public static func trackException(_ exception: NSException, attributes: [String: AttributeValue]? = nil, collectStackTraces: Bool = false) {
-        MeasureManager.shared.trackException(exception, attributes: attributes, collectStackTraces: collectStackTraces)
+    public static func trackException(_ exception: NSException, attributes: [String: AttributeValue]? = nil) {
+        Measure.shared.trackException(exception, attributes: attributes)
     }
 
     /// Tracks a handled NSException and records it as part of the monitoring system.
     /// - Parameters:
     ///   - exception: The NSException instance to track.
     ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. request ID, user action, component).
-    ///   - collectStackTraces: If `true`, captures the current stack trace to aid in debugging.
-    @objc public static func trackException(_ exception: NSException, attributes: [String: Any]? = nil, collectStackTraces: Bool = false) {
-        MeasureManager.shared.trackException(exception, attributes: attributes, collectStackTraces: collectStackTraces)
+    @objc public static func trackException(_ exception: NSException, attributes: [String: Any]? = nil) {
+        Measure.shared.trackException(exception, attributes: attributes)
     }
 
     /// An internal method get the directory path wheere attachments are stored, used by cross-platform frameworks

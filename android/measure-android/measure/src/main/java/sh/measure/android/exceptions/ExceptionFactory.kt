@@ -5,11 +5,11 @@ internal object ExceptionFactory {
      * Creates [ExceptionData] from a [Throwable].
      *
      * @param throwable The [Throwable] to create the [ExceptionData] from.
-     * @param handled Whether the exception was handled or not.
+     * @param severity The severity of the exception.
      */
     fun createMeasureException(
         throwable: Throwable,
-        handled: Boolean,
+        severity: ExceptionSeverity? = null,
         thread: Thread,
         foreground: Boolean,
         framework: String? = ExceptionFramework.JVM,
@@ -57,7 +57,7 @@ internal object ExceptionFactory {
         return ExceptionData(
             exceptions,
             threads = threads,
-            handled = handled,
+            severity = severity,
             foreground = foreground,
             framework = framework,
         )

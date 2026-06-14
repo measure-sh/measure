@@ -126,23 +126,30 @@ func QueueEmailForTeam(ctx context.Context, pool *pgxpool.Pool, tx pgx.Tx, teamI
 	if err != nil {
 		return fmt.Errorf("failed to fetch team members: %w", err)
 	}
-	defer memberRows.Close()
 
+	// Drain rows before issuing further queries on the same tx — pgx
+	// reports "conn busy" if another query starts while a rowset is open.
+	var emails []string
 	for memberRows.Next() {
 		var to string
 		if err := memberRows.Scan(&to); err != nil {
+			memberRows.Close()
 			return fmt.Errorf("failed to scan team member email: %w", err)
 		}
+		emails = append(emails, to)
+	}
+	if err := memberRows.Err(); err != nil {
+		memberRows.Close()
+		return fmt.Errorf("failed to iterate team members: %w", err)
+	}
+	memberRows.Close()
 
+	for _, to := range emails {
 		pendingEmail := info
 		pendingEmail.To = to
 		if err := QueueEmail(ctx, pool, tx, teamID, appID, pendingEmail); err != nil {
 			return fmt.Errorf("failed to queue email for team member %s: %w", to, err)
 		}
-	}
-
-	if err := memberRows.Err(); err != nil {
-		return fmt.Errorf("failed to iterate team members: %w", err)
 	}
 
 	return nil
@@ -158,16 +165,33 @@ func RenderEmailBody(title, contentHTML, ctaText, ctaURL string) string {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
     <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { color-scheme: light dark; supported-color-schemes: light dark; }
+    </style>
     <title>%s</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Space Mono', monospace; line-height: 1.6; color: #333; background-color: #f8f9fa;">
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
         <!-- Header -->
-        <div style="background-color: #000000; color: #ffffff; padding: 20px; display: flex; align-items: center; gap: 16px;">
-            <img src="https://measure.sh/images/measure_logo.png" alt="measure" style="height: 32px; width: auto; vertical-align: middle;">
-            <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; margin-top: 3px;">%s</h1>
-        </div>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%%" style="background-color: #000000;">
+            <tr>
+                <td style="padding: 20px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                            <td width="32" valign="top" style="vertical-align: top; padding-bottom: 4px; padding-right: 4px;">
+                                <img src="https://measure.sh/images/measure_logo.png" alt="measure" width="32" height="32" style="display: block; height: 32px; width: 32px; border: 0;">
+                            </td>
+                            <td valign="middle" style="vertical-align: middle; color: #ffffff;">
+                                <h1 style="margin: 0; padding: 0; font-size: 20px; line-height: 32px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; color: #ffffff;">%s</h1>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
 
         <!-- Content -->
         <div style="padding: 40px 30px;">%s
@@ -186,7 +210,7 @@ func RenderEmailBody(title, contentHTML, ctaText, ctaURL string) string {
                 This notification was sent from <a href="https://measure.sh" style="text-decoration: none; color: inherit; cursor: pointer;"><strong>measure.sh</strong></a>
             </p>
             <p style="margin: 4px 0 0 0; font-size: 12px; color: #a0aec0;">
-                open source tool to monitor mobile apps
+            	Mobile apps break, get to the root cause faster
             </p>
         </div>
     </div>

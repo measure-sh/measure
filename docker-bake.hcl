@@ -60,6 +60,9 @@ target "alerts" {
 target "symboloader" {
   inherits = ["docker-metadata-action"]
   context = "backend/symboloader"
+  contexts = {
+    libs = "backend/libs"
+  }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
@@ -69,6 +72,9 @@ target "symboloader" {
 target "cleanup" {
   inherits = ["docker-metadata-action"]
   context = "backend/cleanup"
+  contexts = {
+    libs = "backend/libs"
+  }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
@@ -82,6 +88,7 @@ target "dashboard" {
     docs = "docs"
   }
   dockerfile = "dockerfile.prod"
+  secret = ["id=posthog_sourcemap_personal_key,env=POSTHOG_SOURCEMAP_PERSONAL_KEY"]
   cache-from = ["type=gha"]
   cache-to = ["type=gha,mode=max"]
   platforms = ["linux/amd64"]

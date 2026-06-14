@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { useConsentManager } from "@c15t/nextjs";
 import posthog from "posthog-js";
@@ -36,10 +36,13 @@ export function PostHogProvider({
   const measurementGranted = has("measurement");
 
   const shouldInit = isCloud() && !!apiKey;
-  const [initialized, setInitialized] = useState(false);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (shouldInit && !initialized) {
+    if (!shouldInit) {
+      return;
+    }
+    if (!initializedRef.current) {
       posthog.init(apiKey as string, {
         api_host: proxyPath ?? host,
         ...(proxyPath && { ui_host: "https://us.posthog.com" }),
@@ -50,20 +53,15 @@ export function PostHogProvider({
       // Stay opted out until c15t resolves measurement consent below; with
       // cookieless_mode "on_reject" this keeps capture cookieless meanwhile.
       posthog.opt_out_capturing();
-      setInitialized(true);
+      initializedRef.current = true;
     }
-  }, [shouldInit, initialized, apiKey, host, proxyPath]);
-
-  useEffect(() => {
-    if (!shouldInit || !initialized) {
-      return;
-    }
+    // Apply measurement consent on init and whenever it changes.
     if (measurementGranted) {
       posthog.opt_in_capturing();
     } else {
       posthog.opt_out_capturing();
     }
-  }, [shouldInit, initialized, measurementGranted]);
+  }, [shouldInit, measurementGranted, apiKey, host, proxyPath]);
 
   const client = useMemo(
     () => (shouldInit ? posthog : createNoopPostHog()),

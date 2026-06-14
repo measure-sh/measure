@@ -13,6 +13,7 @@
  * - Permissions controlling which actions are enabled
  * - Confirmation dialogs for destructive actions
  */
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
   afterEach,
@@ -44,7 +45,12 @@ if (typeof globalThis.ResizeObserver === "undefined") {
 
 jest.mock("posthog-js", () => ({
   __esModule: true,
-  default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
+  default: {
+    reset: jest.fn(),
+    capture: jest.fn(),
+    init: jest.fn(),
+    group: jest.fn(),
+  },
 }));
 
 const mockRouterReplace = jest.fn();
@@ -55,6 +61,7 @@ jest.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
   useSearchParams: () => mockSearchParams,
   usePathname: () => "/test-team/apps",
+  useParams: () => ({ teamId: "test-team" }),
 }));
 
 jest.mock("next/link", () => ({
@@ -139,7 +146,9 @@ function renderWithProviders(ui: React.ReactElement) {
 // ====================================================================
 describe("Apps Page (MSW integration)", () => {
   async function renderAndWaitForData() {
-    renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Apps params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
@@ -179,7 +188,7 @@ describe("Apps Page (MSW integration)", () => {
       await renderAndWaitForData();
       expect(screen.getByText("Unique Identifier")).toBeTruthy();
       expect(screen.getByText("sh.measure.demo")).toBeTruthy();
-      expect(screen.getByText("Operating System")).toBeTruthy();
+      expect(screen.getByText("Operating Systems")).toBeTruthy();
       expect(screen.getByText("android")).toBeTruthy();
       expect(screen.getByText("Created at")).toBeTruthy();
     });
@@ -220,7 +229,9 @@ describe("Apps Page (MSW integration)", () => {
           return new HttpResponse(null, { status: 500 });
         }),
       );
-      renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Apps params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText(/Error fetching app settings/)).toBeTruthy();
@@ -267,7 +278,9 @@ describe("Apps Page (MSW integration)", () => {
         }),
       );
 
-      renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Apps params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
@@ -308,7 +321,9 @@ describe("Apps Page (MSW integration)", () => {
         }),
       );
 
-      renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Apps params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(
@@ -440,11 +455,13 @@ describe("Apps Page — not-onboarded app", () => {
     server.use(
       http.get("*/api/teams/:teamId/apps", () => {
         return HttpResponse.json([
-          makeAppFixture({ unique_identifier: null, os_name: null }),
+          makeAppFixture({ unique_identifier: null, os_names: null }),
         ]);
       }),
     );
-    renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Apps params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
@@ -453,7 +470,7 @@ describe("Apps Page — not-onboarded app", () => {
     );
     expect(screen.getByText(/Follow our/)).toBeTruthy();
     expect(screen.queryByText("Unique Identifier")).toBeNull();
-    expect(screen.queryByText("Operating System")).toBeNull();
+    expect(screen.queryByText("Operating Systems")).toBeNull();
   });
 });
 
@@ -462,7 +479,9 @@ describe("Apps Page — not-onboarded app", () => {
 // ====================================================================
 describe("Apps Page — threshold validation", () => {
   async function renderAndWaitForData() {
-    renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Apps params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
@@ -482,7 +501,9 @@ describe("Apps Page — threshold validation", () => {
 // ====================================================================
 describe("Apps Page — create app", () => {
   it("renders Create App button", async () => {
-    renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Apps params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
@@ -498,7 +519,9 @@ describe("Apps Page — create app", () => {
         return HttpResponse.json(makeAuthzFixture({ can_create_app: false }));
       }),
     );
-    renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Apps params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
@@ -519,7 +542,7 @@ describe("Apps Page — create app", () => {
       team_id: "test-team",
       name: "My New App",
       unique_identifier: null,
-      os_name: null,
+      os_names: null,
       api_key: {
         key: "msw-new-app-key",
         revoked: false,
@@ -550,7 +573,9 @@ describe("Apps Page — create app", () => {
       }),
     );
 
-    renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Apps params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
@@ -613,7 +638,9 @@ describe("Apps Page — no apps in team", () => {
 
   it("renders the Onboarding create step when team has zero apps", async () => {
     server.use(noAppsHandler());
-    renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Apps params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(screen.getByTestId("onboarding-step-create")).toBeTruthy();
@@ -624,7 +651,9 @@ describe("Apps Page — no apps in team", () => {
 
   it("hides the Create App button when team has zero apps", async () => {
     server.use(noAppsHandler());
-    renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Apps params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(screen.getByTestId("onboarding-step-create")).toBeTruthy();
@@ -658,7 +687,9 @@ describe("Apps Page — no apps in team", () => {
       }),
     );
 
-    renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Apps params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(() => {
       expect(screen.getByTestId("onboarding-step-create")).toBeTruthy();
     });
@@ -692,7 +723,9 @@ describe("Apps Page — no apps in team", () => {
 // ====================================================================
 describe("Apps Page — retention save button", () => {
   async function renderAndWaitForData() {
-    renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Apps params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
@@ -712,7 +745,9 @@ describe("Apps Page — retention save button", () => {
 // ====================================================================
 describe("Apps Page — SDK configurator", () => {
   async function renderAndWaitForData() {
-    renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Apps params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(screen.getByText("Configure Data Collection")).toBeTruthy();
@@ -742,10 +777,12 @@ describe("Apps Page — SDK configurator", () => {
     it("hides ANRs accordion for iOS app", async () => {
       server.use(
         http.get("*/api/teams/:teamId/apps", () => {
-          return HttpResponse.json([makeAppFixture({ os_name: "ios" })]);
+          return HttpResponse.json([makeAppFixture({ os_names: ["ios"] })]);
         }),
       );
-      renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Apps params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Configure Data Collection")).toBeTruthy();
@@ -763,7 +800,9 @@ describe("Apps Page — SDK configurator", () => {
 // ====================================================================
 describe("Apps Page — mutations", () => {
   async function renderAndWaitForData() {
-    renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Apps params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
@@ -1306,7 +1345,9 @@ describe("Apps Page — mutations", () => {
         }),
       );
 
-      renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Apps params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
@@ -1329,7 +1370,9 @@ describe("Apps Page — mutations", () => {
         }),
       );
 
-      renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Apps params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
@@ -1349,7 +1392,9 @@ describe("Apps Page — mutations", () => {
         }),
       );
 
-      renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Apps params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
@@ -1373,7 +1418,9 @@ describe("Apps Page — mutations", () => {
         }),
       );
 
-      renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <Apps params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Change Error Thresholds")).toBeTruthy();
@@ -1524,7 +1571,9 @@ describe("Apps — auth failure", () => {
         return new HttpResponse(null, { status: 401 });
       }),
     );
-    renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Apps params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(refreshAttempted).toBe(true);
@@ -1542,7 +1591,9 @@ describe("Apps page — loading states", () => {
         return HttpResponse.json([]);
       }),
     );
-    renderWithProviders(<Apps params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <Apps params={promiseParams({ teamId: "test-team" })} />,
+    );
     expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy();
   });
 });

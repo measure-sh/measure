@@ -4,13 +4,16 @@
   "devDependencies": {
     "@commitlint/cli": "^19.3.0",
     "@commitlint/config-conventional": "^19.2.2",
-    "husky": "^9.0.11"
+    "husky": "^9.0.11",
+    "lint-staged": "^17.0.7"
   },
   "scripts": {
     "prepare": "husky"
   },
+  "lint-staged": {
+    "frontend/dashboard/**/*.{ts,tsx,js,jsx,mjs,cjs}": "frontend/dashboard/node_modules/.bin/prettier --write"
+  },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.11"
-  },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  }
 }

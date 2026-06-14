@@ -10,6 +10,7 @@ import 'package:stack_trace/stack_trace.dart';
 
 import 'bottom_nav_demo.dart';
 import 'layout_snapshot_page.dart';
+import 'masking_demo_page.dart';
 
 class _CustomException implements Exception {
   final String message;
@@ -23,6 +24,7 @@ enum _DemoCategory {
   bugReports('Bug Reports'),
   navigation('Navigation'),
   http('HTTP'),
+  masking('Masking'),
   misc('Misc');
 
   final String label;
@@ -119,10 +121,6 @@ class _FlutterDemoScreenState extends State<FlutterDemoScreen>
     }
   }
 
-  void _throwChainedException() {
-    throw _CustomException('Chained: root cause').toString();
-  }
-
   void _noMethodChannel() async {
     await const MethodChannel('non_existent_channel')
         .invokeMethod('non_existent_method');
@@ -196,6 +194,18 @@ class _FlutterDemoScreenState extends State<FlutterDemoScreen>
   }
 
   // -- Misc --
+
+  void _trackHandledError() {
+    try {
+      throw _CustomException('Handled error caught by the app');
+    } catch (error, stack) {
+      Measure.instance.trackHandledError(
+        error,
+        stack,
+        attributes: AttributeBuilder().add('order_id', 'order-12345').build(),
+      );
+    }
+  }
 
   void _trackCustomEvent() {
     final attrs = AttributeBuilder()
@@ -293,6 +303,16 @@ class _FlutterDemoScreenState extends State<FlutterDemoScreen>
       MaterialPageRoute<Widget>(
         builder: (context) => const LayoutSnapshotPage(),
         settings: const RouteSettings(name: '/layout_snapshot'),
+      ),
+    );
+  }
+
+  void _launchMaskingDemo() {
+    Navigator.push(
+      context,
+      MaterialPageRoute<Widget>(
+        builder: (context) => const MaskingDemoPage(),
+        settings: const RouteSettings(name: '/masking_demo'),
       ),
     );
   }
@@ -402,7 +422,21 @@ class _FlutterDemoScreenState extends State<FlutterDemoScreen>
           action: _navigateToInvalidRoute,
         ),
 
+        // Masking
+        _DemoItem(
+          title: 'Screenshot Masking',
+          description: 'Preview mask levels on sample content',
+          category: _DemoCategory.masking,
+          action: _launchMaskingDemo,
+        ),
+
         // Misc
+        _DemoItem(
+          title: 'Handled Error',
+          description: 'Reports a caught exception via trackHandledError',
+          category: _DemoCategory.misc,
+          action: _trackHandledError,
+        ),
         _DemoItem(
           title: 'Custom Event',
           description: 'Tracks an event with attributes',

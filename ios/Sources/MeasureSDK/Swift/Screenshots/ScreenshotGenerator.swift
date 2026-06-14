@@ -13,6 +13,7 @@ protocol ScreenshotGenerator {
     func generate(window: UIWindow,
                   name: String,
                   storageType: AttachmentStorageType,
+                  sync: Bool,
                   completion: @escaping (MsrAttachment?) -> Void)
 
     func generate(viewController: UIViewController,
@@ -58,8 +59,9 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
     func generate(window: UIWindow,
                   name: String,
                   storageType: AttachmentStorageType,
+                  sync: Bool = false,
                   completion: @escaping (MsrAttachment?) -> Void) {
-        DispatchQueue.main.async { [weak self] in
+        let work = { [weak self] in
             guard let self = self else {
                 completion(nil)
                 return
@@ -106,6 +108,16 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
                 )
                 completion(attachment)
             }
+        }
+
+        if sync {
+            if Thread.isMainThread {
+                work()
+            } else {
+                DispatchQueue.main.sync(execute: work)
+            }
+        } else {
+            DispatchQueue.main.async(execute: work)
         }
     }
 

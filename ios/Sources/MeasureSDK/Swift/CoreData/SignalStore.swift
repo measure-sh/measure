@@ -35,7 +35,8 @@ final class BaseSignalStore: SignalStore {
         let eventEntity = EventEntity(event, needsReporting: needsReporting)
 
         var isCrashEvent = false
-        if let exception = event.exception, !exception.handled {
+        if let exception = event.exception,
+           exception.severity == .fatal || exception.severity == .unhandled {
             isCrashEvent = true
         }
         let isBugReportEvent = event.type == .bugReport
@@ -49,6 +50,7 @@ final class BaseSignalStore: SignalStore {
             } else {
                 timelineDuration = config.bugReportTimelineDurationSeconds
             }
+            logger.log(level: .info, message: "Marking timeline for reporting", error: nil, data: nil)
 
             eventStore.markTimelineForReporting(eventTimestampMillis: eventEntity.timestampInMillis,
                                                 durationSeconds: timelineDuration,

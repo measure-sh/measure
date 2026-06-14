@@ -19,6 +19,7 @@ import {
 } from "@/app/components/sidebar";
 import { signOut, useTeamsQuery } from "@/app/query/hooks";
 import { usePathname, useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import React, { useEffect, useMemo, useState } from "react";
 import { Team } from "../api/api_calls";
 import { apiClient } from "../api/api_client";
@@ -60,14 +61,8 @@ function buildInitNavData() {
         title: "Issues",
         items: [
           {
-            title: "Crashes",
-            url: "crashes",
-            isActive: false,
-            external: false,
-          },
-          {
-            title: "ANRs",
-            url: "anrs",
+            title: "Errors",
+            url: "errors",
             isActive: false,
             external: false,
           },
@@ -165,15 +160,31 @@ export default function DashboardLayout({
     apiClient.init(router);
   }, []);
 
+  // Group subsequent events by team so PostHog can attribute engagement to
+  // a team, not just an individual user.
   useEffect(() => {
-    const updatedNavData = { ...navData };
-    updatedNavData.navMain.forEach((section) => {
-      section.items.forEach((item) => {
-        item.isActive = pathName.includes(item.url);
-      });
-    });
-    setNavData(updatedNavData);
-  }, [pathName]);
+    if (!selectedTeam) {
+      return;
+    }
+    posthog.group("team", selectedTeam.id, { name: selectedTeam.name });
+  }, [selectedTeam?.id, selectedTeam?.name]);
+
+  // Mark the active nav item from the current path. prevPathName starts null so
+  // this runs on first render too (buildInitNavData starts every item inactive).
+  const [prevPathName, setPrevPathName] = useState<string | null>(null);
+  if (pathName !== prevPathName) {
+    setPrevPathName(pathName);
+    setNavData((current) => ({
+      ...current,
+      navMain: current.navMain.map((section) => ({
+        ...section,
+        items: section.items.map((item) => ({
+          ...item,
+          isActive: pathName.includes(item.url),
+        })),
+      })),
+    }));
+  }
 
   const logoutUser = async () => {
     await signOut();

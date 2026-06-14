@@ -9,8 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Track app OS names as a single-family set) by @anupcowkur in #3839
 - (**backend**): Add unified errors API & react native symbolication support (#3623) by @detj in #3623
 - (**backend**): Use autumn for metering and billing by @anupcowkur in #3534
+- (**frontend**): Copy ai context as markdown with more details by @anupcowkur in #3807
+- (**frontend**): Capture and show label and semantic label for gestures (#3788) by @abhaysood in #3788
+- (**frontend**): Move info text to info tooltips by @anupcowkur in #3778
+- (**frontend**): Add 3d view for layout snapshots by @anupcowkur in #3761
+- (**frontend**): Update light & dark themes by @anupcowkur
+- (**frontend**): Update trace ui by @anupcowkur
+- (**frontend**): Consolidate crashes and ANRs into Errors page by @anupcowkur
 - (**frontend**): Update filters ui by @anupcowkur in #3653
 - (**frontend**): Serve markdown for marketing & docs pages to agents by @anupcowkur in #3621
 - (**frontend**): Add onboarding flow by @anupcowkur in #3613
@@ -19,6 +27,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Restrict bug report status updates roles by @anupcowkur in #3897
+- (**backend**): Cache autumn billing checks in alerts by @anupcowkur in #3863
+- (**backend**): Include message to group js errors (#3865) by @detj in #3865
+- (**backend**): Verify slack webhooks by @anupcowkur in #3861
+- (**backend**): Fix bug report status description in table comment + code by @anupcowkur in #3859
+- (**backend**): Correct p99 quantile level in span_metrics by @anupcowkur in #3855
+- (**backend**): Guard against nil team in MCP app resolution by @anupcowkur in #3841
+- (**backend**): Return thread_name in error detail responses (#3830) by @abhaysood in #3830
+- (**backend**): Per-severity error group counts (#3827) by @detj in #3827
+- (**backend**): Accept ipados as a valid os_name value (#3816) by @detj in #3816
+- (**backend**): Avoid whole-tuple in query (#3805) by @detj in #3805
+- (**backend**): Prevent panic in apple symbolication (#3804) by @detj in #3804
+- (**backend**): Send iam auth token for js symbolication (#3799) by @detj in #3799
+- (**backend**): Improve js stacktrace appearance (#3791) by @detj in #3791
+- (**backend**): Attachment urls were broken in error details (#3743) by @detj in #3743
+- (**backend**): Set correct severity for error details (#3725) by @detj in #3725
+- (**backend**): Unify severity filter across errorGroups endpoints (#3723) by @detj in #3723
+- (**backend**): Handled exceptions were incorrectly grouped (#3708) by @detj in #3708
+- (**backend**): Add missing notif pref creation step for new user in mcp auth by @anupcowkur in #3705
 - (**backend**): Allow anr source when custom filter is active (#3671) by @detj in #3671
 - (**backend**): Resolve issues in error event retrieval (#3664) by @detj in #3664
 - (**backend**): Intelligently sort app versions (#3642) by @detj in #3642
@@ -35,6 +62,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Show error code, meta, and num_code when available by @anupcowkur in #3828
+- (**frontend**): Give session timeline events unique React keys by @anupcowkur in #3826
+- (**frontend**): Refresh app display after api key rotation by @anupcowkur in #3819
+- (**frontend**): Fix dark/light measure logo in docs sidebar by @anupcowkur in #3777
+- (**frontend**): Correct docs page TOC anchor links by @anupcowkur in #3774
+- (**frontend**): Limit KMB formatting to 2 decimals by @anupcowkur in #3770
+- (**frontend**): Hide empty user def attr in session timeline event cell by @anupcowkur in #3748
+- (**frontend**): Make layout snapshots visible in light mode by @anupcowkur in #3710
+- (**frontend**): Add missing hover accent color to error type filter by @anupcowkur
+- (**frontend**): Hide errors/anrs pills on error detail page by @anupcowkur
+- (**frontend**): Drop type/severity/custom filters on error details by @anupcowkur
+- (**frontend**): Use type=error,anr on filters endpoint for Errors by @anupcowkur
+- (**frontend**): Forward error filters to group plot endpoint by @anupcowkur
 - (**frontend**): Match cmd and K sizes in docs search by @anupcowkur
 - (**frontend**): Remove unused prose-custom class by @anupcowkur
 - (**frontend**): Expand sidebar docs section when child is open by @anupcowkur in #3633
@@ -53,6 +93,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Use docker secrets (#3862) by @detj in #3862
+- (**backend**): Make mcp tool description more accurate by @anupcowkur in #3860
+- (**backend**): Update mcp tools by @anupcowkur in #3858
+- (**backend**): Remove unused schema.sql files by @anupcowkur in #3856
+- (**backend**): Limit to 5 event attachments (#3833) by @detj in #3833
+- (**backend**): Switch to pgsty minio (#3831) by @detj in #3831
+- (**backend**): Upgrade to clickhouse 26.2 (#3808) by @detj in #3808
+- (**backend**): Build and use new api for app health plot by @anupcowkur in #3780
+- (**backend**): Update email template by @anupcowkur in #3749
+- (**backend**): Tidy go modules and prune go.work.sum by @anupcowkur in #3739
+- (**backend**): Send user defined attributes in error details (#3738) by @detj in #3738
+- (**backend**): Updates posthog versions in dashborard and backend by @anupcowkur in #3737
+- (**backend**): Add analytics events by @anupcowkur in #3724
+- (**backend**): Updates alerts to use new error page route by @anupcowkur
+- (**backend**): Update usage of handled (#3689) by @detj in #3689
 - (**backend**): Set severity as fatal for anr events (#3687) by @detj in #3687
 - (**backend**): Expand session filtering & storage for exception severities (#3685) by @detj in #3685
 - (**backend**): Expand severity & error types in app filter (#3663) by @detj in #3663
@@ -84,6 +139,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Add posthog sourcemap upload for dashboard (#3857) by @detj in #3857
+- (**frontend**): Format dashboard with new prettier config by @anupcowkur in #3854
+- (**frontend**): Set up prettier formatting for the dashboard by @anupcowkur
+- (**frontend**): Hide RN onboarding tab by @anupcowkur in #3853
+- (**frontend**): Updating react native onboarding snippet by @anupcowkur
+- (**frontend**): Add alternative pages by @anupcowkur in #3852
+- (**frontend**): Hide custom errors toggle by @anupcowkur in #3840
+- (**frontend**): Update stacktrace in demo timeline by @anupcowkur in #3802
+- (**frontend**): Update colours by @anupcowkur in #3800
+- (**frontend**): Upgrade React and NextJs by @anupcowkur in #3795
+- (**frontend**): Remove REST apis from docs site by @anupcowkur in #3773
+- (**frontend**): Standardise and consolidate tooltips by @anupcowkur in #3772
+- (**frontend**): Update layout snapshot tooltip style by @anupcowkur in #3766
+- (**frontend**): Show code, num_code, user_def_attribute in error details if present by @anupcowkur in #3745
+- (**frontend**): Use yellow tint for handled error pills by @anupcowkur in #3735
+- (**frontend**): Show details btn & images for non fatal errors in timelines by @anupcowkur in #3734
+- (**frontend**): Update session timeline attrs ui to match trace panel attrs by @anupcowkur in #3693
+- (**frontend**): Update disclaimer text style for cross paltform onboarding by @anupcowkur in #3691
+- (**frontend**): Extract RN sdk version for onboarding by @anupcowkur
+- (**frontend**): Disable text selection on pills by @anupcowkur
+- (**frontend**): Label session timeline events by severity by @anupcowkur
+- (**frontend**): Update session timeline UI by @anupcowkur
+- (**frontend**): Add RN steps to onboarding by @anupcowkur
+- (**frontend**): Split error sessions by severity in timeline filter by @anupcowkur
+- (**frontend**): Redirect /crashes and /anrs to /errors by @anupcowkur
+- (**frontend**): Open type popover from errors-types pill click by @anupcowkur
+- (**frontend**): Consolidate chips into one Pill component by @anupcowkur
+- (**frontend**): Update bug report status badge by @anupcowkur
+- (**frontend**): Combine anr+error pills, default to both types by @anupcowkur
+- (**frontend**): Set error page default to ANRs + Fatal errors by @anupcowkur
+- (**frontend**): Nest custom only inside type filter popover by @anupcowkur
+- (**frontend**): Set errors page defaults to fata errors only by @anupcowkur
+- (**frontend**): Add badges to errors list by @anupcowkur
+- (**frontend**): Apply more filters only on save by @anupcowkur
 - (**frontend**): Hide c15t branding by @anupcowkur in #3641
 - (**frontend**): Use c15t cookie banner by @anupcowkur in #3640
 - (**frontend**): Improve line height comment by @anupcowkur in #3635
@@ -130,9 +219,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Add tests for filters component by @anupcowkur in #3438
 - (**frontend**): Add api latency tracking posthog events by @anupcowkur in #3431
 
+### :recycle: Refactor
+
+- (**frontend**): Rename middleware to proxy for Next 16 by @anupcowkur in #3844
+- (**frontend**): Clarify onboarding first-event poll effect by @anupcowkur in #3843
+- (**frontend**): Consolidate pill styling by @anupcowkur in #3771
+- (**frontend**): Inline errors_type_filter into filters by @anupcowkur
+- (**frontend**): Switch session filter to type=error,anr by @anupcowkur
+
 ### :books: Documentation
 
+- (**backend**): Add usage notes for patch_id (#3793) by @detj in #3793
+- (**backend**): Add error fields matrix (#3701) by @detj in #3701
 - (**backend**): Update dashboard api docs (#3686) by @detj in #3686
+- Consolidate contributing guide into repo root by @anupcowkur in #3798
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3797
+- Update README.md [skip ci] by @allcontributors[bot]
+- Add ashyyhere as a contributor for maintenance, and doc (#3794) by @allcontributors[bot] in #3794
+- Add contribution guidelines and update README link (#3764) by @ashyyhere in #3764
+- Update readme screenshots by @anupcowkur in #3768
+- Fix broken contribution guide link in README by @anupcowkur in #3704
+- Update sdk documentation (#3690) by @abhaysood in #3690
+- Update self hosting guidance by @anupcowkur in #3700
+- Fix RN title mistake by @anupcowkur
 - Remove empty line in code snippet by @anupcowkur
 - Remove FAQ, data retention, contributing and versioning pages by @anupcowkur
 - Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #3587

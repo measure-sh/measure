@@ -8,7 +8,6 @@ description: "Periodically capture CPU usage of Android, iOS and Flutter apps wh
 - [**Android**](#android)
 - [**iOS**](#ios)
 - [**Flutter**](#flutter)
-- [**Data collected**](#data-collected)
 
 Measure SDK captures CPU usage periodically (defaults to 3 seconds) when the app is in foreground.
 
@@ -66,12 +65,13 @@ This provides an estimate of how much CPU time the app is consuming relative to 
 CPU usage is collected for Flutter apps based on the platform the app is running on (Android or iOS). The SDK uses the
 same methods as described above for Android and iOS.
 
+## React Native
+
+CPU usage is collected for React Native apps based on the platform the app is running on (Android or iOS). The SDK uses the
+same methods as described above for Android and iOS.
+
 #### Further reading
 
 * [Task Info](https://web.mit.edu/darwin/src/modules/xnu/osfmk/man/task_info.html)
 * [Thread Info](https://web.mit.edu/darwin/src/modules/xnu/osfmk/man/thread_info.html)
 * [Thread Basic Info](https://web.mit.edu/darwin/src/modules/xnu/osfmk/man/thread_basic_info.html)
-
-## Data collected
-
-Checkout the data collected by Measure in [CPU Usage Event](../api/sdk/README.md#cpu_usage) section.

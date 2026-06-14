@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { SafeAreaView } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -13,6 +13,7 @@ import ComponentScreen from './ComponentScreen';
 export type RootStackParamList = {
   HomeScreen: undefined;
   ComponentScreen: undefined;
+  TracesScreen: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -23,7 +24,6 @@ export default function App() {
       const measureConfig = new MeasureConfig({
         enableLogging: true,
         autoStart: false,
-        enableFullCollectionMode: false,
         enableDiagnosticMode: true,
       });
 

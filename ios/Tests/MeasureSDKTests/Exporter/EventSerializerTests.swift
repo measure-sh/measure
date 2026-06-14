@@ -69,6 +69,8 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
         let longClickData = LongClickData(
             target: "button",
             targetId: "button_1",
+            label: "Add to cart",
+            semanticLabel: "Add item to cart",
             width: 10,
             height: 20,
             x: 100,
@@ -102,6 +104,8 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             if let longClickDataDict = jsonDict?["gesture_long_click"] as? [String: Any] {
                 XCTAssertEqual(longClickDataDict["target"] as? String, "button")
                 XCTAssertEqual(longClickDataDict["target_id"] as? String, "button_1")
+                XCTAssertEqual(longClickDataDict["label"] as? String, "Add to cart")
+                XCTAssertEqual(longClickDataDict["semantic_label"] as? String, "Add item to cart")
                 XCTAssertEqual(longClickDataDict["x"] as? FloatNumber32, 100)
                 XCTAssertEqual(longClickDataDict["y"] as? FloatNumber32, 50)
                 XCTAssertEqual(longClickDataDict["width"] as? Number, 10)
@@ -120,6 +124,8 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
         let clickData = ClickData(
             target: "button",
             targetId: "button_1",
+            label: "Add to cart",
+            semanticLabel: "Add item to cart",
             width: 100,
             height: 50,
             x: 15.0,
@@ -209,13 +215,16 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
         )
 
         let exception = Exception(
-            handled: false,
             exceptions: [exceptionDetail],
             foreground: true,
             threads: [ThreadDetail(name: "main", frames: [stackFrame], sequence: 1)],
             binaryImages: [binaryImage],
             framework: "ios",
-            error: nil
+            severity: nil,
+            isCustom: nil,
+            numCode: nil,
+            code: nil,
+            meta: nil
         )
 
         // Event setup
@@ -243,7 +252,6 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
             if let exceptionDict = jsonDict?["exception"] as? [String: Any] {
-                XCTAssertEqual(exceptionDict["handled"] as? Bool, false)
                 XCTAssertEqual(exceptionDict["foreground"] as? Bool, true)
 
                 if let exceptionDetails = exceptionDict["exceptions"] as? [[String: Any]],
@@ -312,10 +320,69 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
         }
     }
 
+    func testEventEntity_ExceptionSerializes() {
+        let exceptionDetail = ExceptionDetail(
+            type: "NSError",
+            message: "Something went wrong",
+            frames: nil,
+            signal: nil,
+            threadName: "main",
+            threadSequence: 0,
+            osBuildNumber: nil
+        )
+
+        let exception = Exception(
+            exceptions: [exceptionDetail],
+            foreground: nil,
+            threads: nil,
+            binaryImages: nil,
+            framework: "apple",
+            severity: .fatal,
+            isCustom: true,
+            numCode: 42,
+            code: "NSPOSIXErrorDomain",
+            meta: nil
+        )
+
+        let event = Event(
+            id: "new-fields-test",
+            sessionId: "sessionId",
+            timestamp: "2024-10-22T10:03:00Z",
+            timestampInMillis: 123456792,
+            type: .exception,
+            data: exception,
+            attachments: [],
+            attributes: TestDataGenerator.generateAttributes(),
+            userTriggered: false
+        )
+
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: EventEntity(event, needsReporting: true)) else {
+            XCTFail("getSerialisedEvent cannot be nil")
+            return
+        }
+
+        do {
+            let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+            guard let exceptionDict = jsonDict?["exception"] as? [String: Any] else {
+                XCTFail("Exception data is not present in the serialized event.")
+                return
+            }
+            XCTAssertEqual(exceptionDict["severity"] as? String, "fatal")
+            XCTAssertEqual(exceptionDict["is_custom"] as? Bool, true)
+            XCTAssertEqual(exceptionDict["num_code"] as? Int, 42)
+            XCTAssertEqual(exceptionDict["code"] as? String, "NSPOSIXErrorDomain")
+            XCTAssertNil(exceptionDict["handled"], "handled key must not be present in the serialized output")
+        } catch {
+            XCTFail("Invalid JSON object: \(error.localizedDescription)")
+        }
+    }
+
     func testEventEntity_EventObjectContents() {
         let clickData = ClickData(
             target: "button",
             targetId: "button_1",
+            label: "Add to cart",
+            semanticLabel: "Add item to cart",
             width: 100,
             height: 50,
             x: 15.0,

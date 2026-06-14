@@ -226,7 +226,6 @@
 		CF48773F2DEEB26B00311F57 /* UIApplication+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF48773E2DEEB26B00311F57 /* UIApplication+Extension.swift */; };
 		CF4877412DEEB2C000311F57 /* UIWindow+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF4877402DEEB2C000311F57 /* UIWindow+Extension.swift */; };
 		CF48E3562DF95E8100FCD26D /* ExceptionGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF48E3552DF95E8100FCD26D /* ExceptionGenerator.swift */; };
-		CF48E3982E01866400FCD26D /* Error.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF48E3972E01866400FCD26D /* Error.swift */; };
 		CF49F7BF2F977B5D0067EDB8 /* libMeasureWebP.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CF49F7BC2F977B390067EDB8 /* libMeasureWebP.a */; };
 		CF4EA2D52EA243EB0020FC71 /* UserTriggeredEventCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF4EA2D42EA243EB0020FC71 /* UserTriggeredEventCollectorTests.swift */; };
 		CF4EA2D72EA246700020FC71 /* MockExceptionGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF4EA2D62EA246700020FC71 /* MockExceptionGenerator.swift */; };
@@ -253,6 +252,8 @@
 		CF893DD52E950BF000D99D45 /* EventToAttachmentMigrationPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF893DD42E950BF000D99D45 /* EventToAttachmentMigrationPolicy.swift */; };
 		CF893DDB2E950DEE00D99D45 /* EventOb+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF893DDA2E950DEE00D99D45 /* EventOb+CoreDataProperties.swift */; };
 		CF90E9E52F6B16DB00D3351B /* MockAttachmentProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF90E9E42F6B16DB00D3351B /* MockAttachmentProcessor.swift */; };
+		CF9619EF2FC18993000FE152 /* ExceptionSeverity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9619EE2FC18993000FE152 /* ExceptionSeverity.swift */; };
+		CF9619F02FC18993000FE152 /* CodableValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9619ED2FC18993000FE152 /* CodableValue.swift */; };
 		CF9D74C52E6169F3007D6D30 /* LifecycleManagerInternal.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9D74C42E6169F3007D6D30 /* LifecycleManagerInternal.swift */; };
 		CF9D75792E66C0FA007D6D30 /* SessionStartData.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9D75782E66C0FA007D6D30 /* SessionStartData.swift */; };
 		CF9EDCFA2F0E2BAA00029281 /* RecentSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9EDCF92F0E2BAA00029281 /* RecentSession.swift */; };
@@ -596,7 +597,6 @@
 		CF48773E2DEEB26B00311F57 /* UIApplication+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIApplication+Extension.swift"; sourceTree = "<group>"; };
 		CF4877402DEEB2C000311F57 /* UIWindow+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIWindow+Extension.swift"; sourceTree = "<group>"; };
 		CF48E3552DF95E8100FCD26D /* ExceptionGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExceptionGenerator.swift; sourceTree = "<group>"; };
-		CF48E3972E01866400FCD26D /* Error.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Error.swift; sourceTree = "<group>"; };
 		CF49F7B72F977B380067EDB8 /* MeasureWebP.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = MeasureWebP.xcodeproj; path = Sources/MeasureWebP/MeasureWebP.xcodeproj; sourceTree = "<group>"; };
 		CF4EA2D42EA243EB0020FC71 /* UserTriggeredEventCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserTriggeredEventCollectorTests.swift; sourceTree = "<group>"; };
 		CF4EA2D62EA246700020FC71 /* MockExceptionGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockExceptionGenerator.swift; sourceTree = "<group>"; };
@@ -626,6 +626,8 @@
 		CF893DD42E950BF000D99D45 /* EventToAttachmentMigrationPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventToAttachmentMigrationPolicy.swift; sourceTree = "<group>"; };
 		CF893DDA2E950DEE00D99D45 /* EventOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		CF90E9E42F6B16DB00D3351B /* MockAttachmentProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAttachmentProcessor.swift; sourceTree = "<group>"; };
+		CF9619ED2FC18993000FE152 /* CodableValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableValue.swift; sourceTree = "<group>"; };
+		CF9619EE2FC18993000FE152 /* ExceptionSeverity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExceptionSeverity.swift; sourceTree = "<group>"; };
 		CF9D74C42E6169F3007D6D30 /* LifecycleManagerInternal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifecycleManagerInternal.swift; sourceTree = "<group>"; };
 		CF9D75782E66C0FA007D6D30 /* SessionStartData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStartData.swift; sourceTree = "<group>"; };
 		CF9EDCF92F0E2BAA00029281 /* RecentSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentSession.swift; sourceTree = "<group>"; };
@@ -866,13 +868,14 @@
 			isa = PBXGroup;
 			children = (
 				529B319A2D5B85FC007A8E45 /* BinaryImage.swift */,
+				CF9619ED2FC18993000FE152 /* CodableValue.swift */,
 				526D17C92D5A1913009A2E90 /* Exception.swift */,
 				526D17CA2D5A1913009A2E90 /* ExceptionDetail.swift */,
 				CF48E3552DF95E8100FCD26D /* ExceptionGenerator.swift */,
+				CF9619EE2FC18993000FE152 /* ExceptionSeverity.swift */,
 				69694F0E2DE04619008D1AF1 /* Framework.swift */,
 				526D17CB2D5A1913009A2E90 /* StackFrame.swift */,
 				526D17CC2D5A1913009A2E90 /* ThreadDetail.swift */,
-				CF48E3972E01866400FCD26D /* Error.swift */,
 			);
 			path = Exception;
 			sourceTree = "<group>";
@@ -1121,9 +1124,9 @@
 		52B7F0F12D757F81001498BC /* CrashReporter */ = {
 			isa = PBXGroup;
 			children = (
-				CFE1DD4C2F62C668003BD29B /* CrashReports */,
 				CFE1DD512F62E201003BD29B /* CrashDataFormatterTests.swift */,
 				CFE1DD532F62EC6C003BD29B /* CrashReportManagerTests.swift */,
+				CFE1DD4C2F62C668003BD29B /* CrashReports */,
 			);
 			path = CrashReporter;
 			sourceTree = "<group>";
@@ -1809,7 +1812,6 @@
 				CF1BB4FD2DDF317300588506 /* MotionManager.swift in Sources */,
 				CF83E2E32E0D21EB00FE7041 /* MeasureDispatchQueue.swift in Sources */,
 				CF48773F2DEEB26B00311F57 /* UIApplication+Extension.swift in Sources */,
-				CF48E3982E01866400FCD26D /* Error.swift in Sources */,
 				526D187B2D5A1913009A2E90 /* NSObject+Extension.swift in Sources */,
 				526D188D2D5A1913009A2E90 /* UserPermissionManager.swift in Sources */,
 				526D18612D5A1913009A2E90 /* HttpInterceptorCallbacks.swift in Sources */,
@@ -1852,6 +1854,8 @@
 				526D18742D5A1913009A2E90 /* MemoryUsageCalculator.swift in Sources */,
 				526D18302D5A1913009A2E90 /* ConfigProvider.swift in Sources */,
 				526D18902D5A1913009A2E90 /* Measure.swift in Sources */,
+				CF9619EF2FC18993000FE152 /* ExceptionSeverity.swift in Sources */,
+				CF9619F02FC18993000FE152 /* CodableValue.swift in Sources */,
 				CF9EDCFA2F0E2BAA00029281 /* RecentSession.swift in Sources */,
 				526D18782D5A1913009A2E90 /* ScreenshotGenerator.swift in Sources */,
 				CFD88D012DA4D4910095115E /* SpanData.swift in Sources */,

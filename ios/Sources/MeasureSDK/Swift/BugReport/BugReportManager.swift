@@ -62,7 +62,7 @@ final class BaseBugReportManager: BugReportManager {
 
             if takeScreenshot,
                let window = UIWindow.keyWindow() {
-                screenshotGenerator.generate(window: window, name: screenshotName, storageType: .data) { attachment in
+                screenshotGenerator.generate(window: window, name: screenshotName, storageType: .data, sync: false) { attachment in
                     if let attachment = attachment {
                         self.localAttachments.append(attachment)
                     }

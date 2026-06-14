@@ -1,20 +1,22 @@
 import AdaptiveCaptureDemo from "@/app/components/adaptive_capture_demo";
 import { buttonVariants } from "@/app/components/button_variants";
+import TrackCtaLink from "@/app/components/analytics/track_cta_link";
 import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
-import Link from "next/link";
 import LandingFooter from "../../components/landing_footer";
 import LandingHeader from "../../components/landing_header";
 
 export const metadata: Metadata = {
   title: "Adaptive Capture — Control Mobile Monitoring Costs",
-  description: "Dynamically control what monitoring data your mobile app collects without shipping new builds. Stop paying for data you'll never use.",
+  description:
+    "Dynamically control what monitoring data your mobile app collects without shipping new builds. Stop paying for data you'll never use.",
   alternates: { canonical: "/product/adaptive-capture" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Adaptive Capture — Control Mobile Monitoring Costs",
-    description: "Dynamically control what monitoring data your mobile app collects without shipping new builds. Stop paying for data you'll never use.",
+    description:
+      "Dynamically control what monitoring data your mobile app collects without shipping new builds. Stop paying for data you'll never use.",
     url: "/product/adaptive-capture",
   },
 };
@@ -53,7 +55,9 @@ export default function ProductAdaptiveCapture() {
         </div>
 
         {/* CTA */}
-        <Link
+        <TrackCtaLink
+          location="product_adaptive_capture"
+          destination="signup"
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -61,7 +65,7 @@ export default function ProductAdaptiveCapture() {
           )}
         >
           Get To The Root Cause
-        </Link>
+        </TrackCtaLink>
         <div className="py-16" />
       </div>
       <LandingFooter />

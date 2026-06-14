@@ -29,6 +29,7 @@ describe("onboarding_store", () => {
           step: "integrate",
           platform: "Android",
           flutterPlatform: "Android",
+          reactNativePlatform: "Android",
         }),
       );
       window.localStorage.setItem(
@@ -37,6 +38,7 @@ describe("onboarding_store", () => {
           step: "verify",
           platform: "iOS",
           flutterPlatform: "iOS",
+          reactNativePlatform: "iOS",
         }),
       );
 
@@ -46,11 +48,13 @@ describe("onboarding_store", () => {
           step: "integrate",
           platform: "Android",
           flutterPlatform: "Android",
+          reactNativePlatform: "Android",
         },
         "app-2": {
           step: "verify",
           platform: "iOS",
           flutterPlatform: "iOS",
+          reactNativePlatform: "iOS",
         },
       });
     });
@@ -63,6 +67,7 @@ describe("onboarding_store", () => {
           step: "integrate",
           platform: "Android",
           flutterPlatform: "Android",
+          reactNativePlatform: "Android",
         }),
       );
 
@@ -79,6 +84,7 @@ describe("onboarding_store", () => {
           step: "not-a-step",
           platform: "Android",
           flutterPlatform: "Android",
+          reactNativePlatform: "Android",
         }),
       );
 
@@ -136,6 +142,7 @@ describe("onboarding_store", () => {
         step: "verify",
         platform: "iOS",
         flutterPlatform: DEFAULT_ONBOARDING_STATE.flutterPlatform,
+        reactNativePlatform: DEFAULT_ONBOARDING_STATE.reactNativePlatform,
       });
     });
   });
@@ -150,6 +157,7 @@ describe("onboarding_store", () => {
         step: "integrate",
         platform: "Flutter",
         flutterPlatform: DEFAULT_ONBOARDING_STATE.flutterPlatform,
+        reactNativePlatform: DEFAULT_ONBOARDING_STATE.reactNativePlatform,
       });
     });
 
@@ -172,7 +180,33 @@ describe("onboarding_store", () => {
         step: DEFAULT_ONBOARDING_STATE.step,
         platform: "Flutter",
         flutterPlatform: "iOS",
+        reactNativePlatform: DEFAULT_ONBOARDING_STATE.reactNativePlatform,
       });
+    });
+  });
+
+  describe("setOnboardingReactNativePlatform", () => {
+    it("updates reactNativePlatform without changing other fields", () => {
+      const store = createOnboardingStore();
+      store.getState().setOnboardingPlatform("app-1", "React Native");
+      store.getState().setOnboardingReactNativePlatform("app-1", "iOS");
+
+      expect(store.getState().onboarding["app-1"]).toEqual({
+        step: DEFAULT_ONBOARDING_STATE.step,
+        platform: "React Native",
+        flutterPlatform: DEFAULT_ONBOARDING_STATE.flutterPlatform,
+        reactNativePlatform: "iOS",
+      });
+    });
+
+    it("persists to localStorage for in-flight steps", () => {
+      const store = createOnboardingStore();
+      store.getState().setOnboardingPlatform("app-1", "React Native");
+      store.getState().setOnboardingReactNativePlatform("app-1", "iOS");
+      expect(
+        JSON.parse(window.localStorage.getItem(key("app-1"))!)
+          .reactNativePlatform,
+      ).toBe("iOS");
     });
   });
 
@@ -217,10 +251,11 @@ describe("onboarding_store", () => {
       });
     });
 
-    it("preserves platform / flutterPlatform when marking verified", () => {
+    it("preserves platform / flutterPlatform / reactNativePlatform when marking verified", () => {
       const store = createOnboardingStore();
       store.getState().setOnboardingPlatform("app-1", "Flutter");
       store.getState().setOnboardingFlutterPlatform("app-1", "iOS");
+      store.getState().setOnboardingReactNativePlatform("app-1", "iOS");
 
       store.getState().markVerified("app-1");
 
@@ -228,6 +263,7 @@ describe("onboarding_store", () => {
         step: "verified",
         platform: "Flutter",
         flutterPlatform: "iOS",
+        reactNativePlatform: "iOS",
       });
     });
   });

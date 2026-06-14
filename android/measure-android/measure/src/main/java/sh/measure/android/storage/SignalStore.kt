@@ -6,6 +6,7 @@ import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.okhttp.HttpData
@@ -75,13 +76,18 @@ internal class SignalStoreImpl(
                 )
                 return
             }
-            val isCrashEvent =
-                eventEntity.type == EventType.EXCEPTION && !(event.data as ExceptionData).handled
+            val severity = (event.data as? ExceptionData)
+                ?.takeIf { eventEntity.type == EventType.EXCEPTION }
+                ?.severity
+            val isFatalError = severity == ExceptionSeverity.Fatal
+            val isUnhandledError = severity == ExceptionSeverity.Unhandled
             val isAnrEvent = eventEntity.type == EventType.ANR
             val isBugReportEvent = eventEntity.type == EventType.BUG_REPORT
+            val collectTimeline =
+                isFatalError || isUnhandledError || isAnrEvent || isBugReportEvent
 
             when {
-                isCrashEvent || isAnrEvent || isBugReportEvent -> {
+                collectTimeline -> {
                     val success = database.insertEvent(eventEntity)
                     flush()
                     if (!success) {
@@ -101,11 +107,11 @@ internal class SignalStoreImpl(
                 }
             }
 
-            if (isCrashEvent || isAnrEvent || isBugReportEvent) {
+            if (collectTimeline) {
                 val timelineDuration = when {
-                    isCrashEvent -> configProvider.crashTimelineDurationSeconds
                     isAnrEvent -> configProvider.anrTimelineDurationSeconds
-                    else -> configProvider.bugReportTimelineDurationSeconds
+                    isBugReportEvent -> configProvider.bugReportTimelineDurationSeconds
+                    else -> configProvider.crashTimelineDurationSeconds
                 }
 
                 database.markTimelineForReporting(

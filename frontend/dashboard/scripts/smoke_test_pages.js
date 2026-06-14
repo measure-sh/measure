@@ -76,7 +76,13 @@ const MARKETING_URLS = [
   "/why-measure",
   "/pricing",
   "/security",
-  "/crashlytics-alternatives",
+  "/crashlytics-alternative",
+  "/sentry-alternative",
+  "/bugsnag-alternative",
+  "/embrace-alternative",
+  "/luciq-alternative",
+  "/datadog-alternative",
+  "/new-relic-alternative",
   "/product/adaptive-capture",
   "/product/app-health",
   "/product/bug-reports",
@@ -136,9 +142,6 @@ const DOCS_URLS = [
   "/docs/hosting/migration-guides/v0.8.x",
   "/docs/hosting/migration-guides/v0.9.x",
   "/docs/hosting/migration-guides/v0.10.x",
-  "/docs/api",
-  "/docs/api/sdk",
-  "/docs/api/dashboard",
 ];
 
 // Non-marketing routes: page.tsx exists but no page.md is authored.

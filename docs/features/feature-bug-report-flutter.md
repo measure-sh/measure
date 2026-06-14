@@ -58,7 +58,8 @@ navigatorState.push(
 
 ### Adding a screenshot
 
-Include a screenshot when opening the bug report widget:
+Include a screenshot when opening the bug report widget. The screenshot is automatically redacted
+based on the [screenshot mask level](configuration-options.md#screenshot-mask-level) configuration.
 
 ```dart
 final navigatorState = Navigator.of(context);
@@ -113,7 +114,11 @@ You can build a custom experience to match the look and feel of your app. Once t
 
 ```dart
 // Track the bug report
-Measure.instance.trackBugReport(description: "...");
+Measure.instance.trackBugReport(
+  description: "...",
+  attachments: [],
+  attributes: {},
+);
 ```
 
 ### Attachments
@@ -124,10 +129,11 @@ report. You can add screenshots to bug reports by using the `Measure.captureScre
 ```dart
 final screenshot = await Measure.instance.captureScreenshot();
 
-Measure.trackBugReport(
-    description = "...",
-    attachments = [screenshot]
-)
+Measure.instance.trackBugReport(
+    description: "...",
+    attachments: [if (screenshot != null) screenshot],
+    attributes: {},
+);
 ```
 
 ### Limits
@@ -158,6 +164,7 @@ Or add attributes with `trackBugReport` method.
 final attributes = AttributeBuilder().add("order_id", "order-12345").build();
 Measure.instance.trackBugReport(
   description: "...",
+  attachments: [],
   attributes: attributes,
 );
 ```

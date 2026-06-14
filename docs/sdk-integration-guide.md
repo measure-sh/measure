@@ -10,6 +10,7 @@ description: "Integrate the Measure SDK on Android, iOS or Flutter to track your
     * [Android](#android)
     * [iOS](#ios)
     * [Flutter](#flutter)
+    * [React Native](#react-native)
 * [3. Verify Installation](#3-verify-installation)
 * [4. Review Configuration Options](#4-review-configuration-options)
 * [Troubleshoot](#troubleshoot)
@@ -28,6 +29,7 @@ in later steps.
 * [Android](#android)
 * [iOS](#ios)
 * [Flutter](#flutter)
+* [React Native](#react-native)
 
 ## Android
 
@@ -124,7 +126,7 @@ Add the following plugin to your project.
 
 ```kotlin
 plugins {
-    id("sh.measure.android.gradle") version "0.11.0"
+    id("sh.measure.android.gradle") version "0.12.0"
 }
 ```
 
@@ -132,7 +134,7 @@ or, use the following if you're using `build.gradle`.
 
 ```groovy
 plugins {
-    id 'sh.measure.android.gradle' version '0.11.0'
+    id 'sh.measure.android.gradle' version '0.12.0'
 }
 ```
 
@@ -179,13 +181,13 @@ measure {
 Add the following to your app's `build.gradle.kts` file.
 
 ```kotlin
-implementation("sh.measure:measure-android:0.17.0")
+implementation("sh.measure:measure-android:0.18.0")
 ```
 
 or, add the following to your app's `build.gradle` file.
 
 ```groovy
-implementation 'sh.measure:measure-android:0.17.0'
+implementation 'sh.measure:measure-android:0.18.0'
 ```
 
 ### Initialize the SDK
@@ -288,7 +290,7 @@ Add Measure as a dependency by adding `dependencies` value to your `Package.swif
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.10.2")
+    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.11.0")
 ]
 ```
 
@@ -324,8 +326,12 @@ func application(_ application: UIApplication,
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"<apiKey>" apiUrl:@"<apiUrl>"];
     BaseMeasureConfig *config = [[BaseMeasureConfig alloc] initWithEnableLogging:YES
-                                                           autoStart:true
-                                                           requestHeadersProvider:nil];
+                                                           autoStart:YES
+                                                           requestHeadersProvider:NULL
+                                                           maxDiskUsageInMb:50
+                                                           enableFullCollectionMode:YES
+                                                           enableDiagnosticMode:NO
+                                                           enableDiagnosticModeGesture:NO];
     [Measure initializeWith:clientInfo config:config];
     return YES;
   }
@@ -374,7 +380,7 @@ Add the following dependency to your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  measure_flutter: ^0.5.0
+  measure_flutter: ^0.6.0
 ```
 
 ### Initialize the SDK
@@ -460,6 +466,232 @@ on every click to help visualize user interactions. To enable these features, si
 
 Read more about adding custom widget names in the layout snapshots
 in [Gesture Tracking & Layout Snapshots](features/feature-gesture-tracking.md#flutter). 
+
+## React Native
+
+> [!IMPORTANT]
+> This is an alpha release of the React Native SDK. Please open an [issue](https://github.com/measure-sh/measure/issues) if you face any problems.
+
+The React Native SDK supports both **Expo** and **Vanilla React Native** projects on Android and iOS.
+
+<details>
+  <summary>Minimum Requirements</summary>
+
+| Name         | Version  |
+|--------------|----------|
+| React Native | `0.72.0` |
+| React        | `18.2.0` |
+
+</details>
+
+### Install the SDK
+
+```sh
+npm install @measuresh/react-native@0.1.0
+```
+
+or with yarn:
+
+```sh
+yarn add @measuresh/react-native@0.1.0
+```
+
+---
+
+### Expo
+
+The recommended setup for Expo projects uses the Measure config plugin, which automates the native configuration for both Android and iOS.
+
+#### 1. Add the plugin to `app.json`
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "@measuresh/react-native",
+        {
+          "androidApiKey": "<android-api-key>",
+          "androidApiUrl": "<android-api-url>",
+          "iosApiKey": "<ios-api-key>",
+          "iosApiUrl": "<ios-api-url>"
+        }
+      ]
+    ]
+  }
+}
+```
+
+The plugin automatically handles:
+
+**Android**
+- Injects `sh.measure.android.API_KEY` and `sh.measure.android.API_URL` into `AndroidManifest.xml`
+- Adds the Measure Gradle plugin to the project build files
+- Adds the `measure-android` dependency to `app/build.gradle`
+
+**iOS**
+- Adds the `MeasureReactNative` pod to `Podfile`
+- Adds `export SOURCEMAP_FILE="$(pwd)/main.jsbundle.map"` to the "Bundle React Native code and images" build phase so a sourcemap is generated on every Release build
+- Adds an "Upload Measure Symbol Files" build phase that automatically uploads dSYM files and the JavaScript sourcemap after each Release build
+
+#### 2. Run prebuild
+
+```sh
+npx expo prebuild
+```
+
+#### 3. Initialize the SDK
+
+Call `Measure.init` as early as possible in your app entry point:
+
+```typescript
+import { Measure, MeasureConfig } from '@measuresh/react-native';
+import { useEffect } from 'react';
+
+export default function App() {
+  useEffect(() => {
+    Measure.init({
+      config: new MeasureConfig({ autoStart: true }),
+    });
+  }, []);
+
+  // ...
+}
+```
+
+#### 4. Build and run
+
+```sh
+# Android
+npx expo run:android
+
+# iOS
+npx expo run:ios
+```
+
+---
+
+### Vanilla React Native
+
+#### Android setup
+
+Step 1 — Add API credentials to `AndroidManifest.xml`
+
+```xml
+<manifest>
+  <application>
+    <meta-data
+      android:name="sh.measure.android.API_KEY"
+      android:value="<android-api-key>" />
+    <meta-data
+      android:name="sh.measure.android.API_URL"
+      android:value="<android-api-url>" />
+  </application>
+</manifest>
+```
+
+**Step 2 — Add the Gradle plugin**
+
+In your project-level `build.gradle`:
+
+```groovy
+buildscript {
+  dependencies {
+    classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.12.0")
+  }
+}
+```
+
+In your app-level `build.gradle` (after all other plugins):
+
+```groovy
+apply plugin: "sh.measure.android.gradle"
+```
+
+The Gradle plugin automatically uploads ProGuard/R8 mapping files and JavaScript sourcemaps after every `assembleRelease` or `bundleRelease` build — no manual upload step is needed.
+
+#### iOS setup
+
+**Step 1 — Add the pod**
+
+In your `Podfile`:
+
+```ruby
+pod 'MeasureReactNative', :path => '../node_modules/@measuresh/react-native'
+```
+
+Then run:
+
+```sh
+pod install
+```
+
+**Step 2 — Enable sourcemap generation**
+
+In Xcode, open your target → Build Phases → **"Bundle React Native code and images"** and add this line at the top of the script:
+
+```sh
+export SOURCEMAP_FILE="$(pwd)/main.jsbundle.map"
+```
+
+**Step 3 — Add the upload build phase**
+
+Add a new Run Script build phase **after** the bundle phase:
+
+```sh
+"$SRCROOT/../node_modules/@measuresh/react-native/scripts/upload_build_phase.sh" \
+  "<ios-api-url>" \
+  "<ios-api-key>"
+```
+
+This script automatically uploads dSYM files and the JavaScript sourcemap after each Release build. See the caution note below about when to run it.
+
+> [!CAUTION]
+> The upload script runs on every build in the configuration you add it to. To restrict it to Archive builds only, wrap the script content in:
+> ```sh
+> if [ "$ACTION" = "archive" ]; then
+>   # script content here
+> fi
+> ```
+
+#### Initialize the SDK
+
+Call `Measure.init` as early as possible in your app entry point:
+
+```typescript
+import { Measure, MeasureConfig } from '@measuresh/react-native';
+import { useEffect } from 'react';
+
+export default function App() {
+  useEffect(() => {
+    Measure.init({
+      config: new MeasureConfig({ autoStart: true }),
+    });
+  }, []);
+
+  // ...
+}
+```
+
+#### Build and run
+
+```sh
+# Android
+npx react-native run-android
+
+# iOS
+npx react-native run-ios
+```
+
+---
+
+### Track navigation
+
+See [Navigation Monitoring](features/feature-navigation-lifecycle-tracking.md#react-native) for instructions on how to track navigation events.
+
+### Track http requests
+
+See [Network Monitoring](features/feature-network-monitoring.md#react-native) for instructions on how to track HTTP requests.
 
 ## 3. Verify Installation
 
@@ -557,6 +789,15 @@ Android and iOS native SDK initializations.
 
 </details>
 
+<details>
+    <summary>React Native</summary>
+
+**Expo:** Verify that `androidApiKey`, `androidApiUrl`, `iosApiKey`, and `iosApiUrl` are all set in the plugin options in `app.json` and that `npx expo prebuild` has been run.
+
+**Vanilla React Native:** Verify the API key and URL are present in `AndroidManifest.xml` (Android) and that the upload build phase script has the correct API key and URL (iOS).
+
+</details>
+
 ### Flutter iOS — MeasureSDK must be linked statically
 
 Flutter adds `use_frameworks!` to the iOS `Podfile` by default, which causes CocoaPods to link all pods dynamically. MeasureSDK must be linked statically and will not work correctly with dynamic linking.
@@ -623,6 +864,18 @@ config: const MeasureConfig(enableLogging:true));
 
 </details>
 
+<details>
+    <summary>React Native</summary>
+
+Enable logging during SDK initialization.
+
+```typescript
+const config = new MeasureConfig({ enableLogging: true });
+await Measure.init({ config });
+```
+
+</details>
+
 ### Connecting to a Self-hosted Server
 
 If you are hosting the server in cloud. Make sure the API URL is set to the public URL of your server.
@@ -679,6 +932,20 @@ await Measure.instance.init(
   () => runApp(MeasureWidget(child: MyApp())),
   config: const MeasureConfig(enableDiagnosticMode: true),
 );
+```
+
+On iOS, the `enableDiagnosticModeGesture` flag is set on the native `BaseMeasureConfig` in your `AppDelegate` (see the iOS section above), not on the Dart `MeasureConfig`.
+
+</details>
+
+<details>
+    <summary>React Native</summary>
+
+Enable diagnostic mode during SDK initialization.
+
+```typescript
+const config = new MeasureConfig({ enableDiagnosticMode: true });
+await Measure.init({ config });
 ```
 
 On iOS, the `enableDiagnosticModeGesture` flag is set on the native `BaseMeasureConfig` in your `AppDelegate` (see the iOS section above), not on the Dart `MeasureConfig`.

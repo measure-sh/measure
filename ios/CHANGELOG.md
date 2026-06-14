@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.11.0] - 2026-06-11
+
+### :bug: Bug fixes
+
+
+- (**ios**): Enable kscrash before checking for crash reports (#3881)
+- (**ios**): Ensure sdk remains stopped when moving to foreground (#3847)
+- (**ios**): Send correct user defined attributes for bug report (#3665)
+- (**ios**): Remove orphaned attachment cleanup logic (#3600)
+- (**ios**): Send correct user defined attributes json (#3589)
+- (**ios**): Update incorrect filename (#3544)
+- (**ios**): Add proper masking to swiftui components (#3515)
+- (**ios**): Ignore http events with empty url (#3511)
+- (**ios**): Send lifecycle app event reliably (#3463)
+
+### :hammer: Misc
+
+
+- (**ios**): Update exception data json structure (#3694)
+- (**ios**): Export data once dynamic config is loaded (#3683)
+- (**ios**): Remove capture layout snapshot api (#3680)
+- (**ios**): Run export when moving to foreground (#3657)
+- (**ios**): Save measure related files in application support directory (#3627)
+- (**ios**): Update sdk version (#3612)
+- (**ios**): Add objc api to track http events (#3598)
+- (**ios**): Encode gallery images using webp (#3559)
+- (**ios**): Limit batch size to 10 mb (#3557)
+- (**ios**): Use webp encoding for screenshots (#3504)
+- (**ios**): Update release script (#3446)
+- (**ios**): Generate correct os build number (#3430)
+
+### :sparkles: New features
+
+
+- (**ios**): Add performance tracing apis for objc (#3560)
+- (**ios**): Add diagnostic mode for SDK logging (#3433)
+
 ## [ios-v0.10.0] - 2026-04-03
 
 ### :bug: Bug fixes
@@ -16,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
+- (**ios**): Prepare sdk release 0.10.0 (#3391)
 - (**ios**): Send attachment size in the event payload (#3355)
 - (**ios**): Update sdk integration docs (#3341)
 - (**ios**): Use correct session start time (#3339)
@@ -384,6 +422,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677)
 - (**ios**): Initial project setup  (#1034)
 
+[ios-v0.11.0]: https://github.com///compare/ios-v0.10.0..ios-v0.11.0
 [ios-v0.10.0]: https://github.com///compare/ios-v0.9.2..ios-v0.10.0
 [ios-v0.9.2]: https://github.com///compare/ios-v0.9.1..ios-v0.9.2
 [ios-v0.9.1]: https://github.com///compare/ios-v0.9.0..ios-v0.9.1

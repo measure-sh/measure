@@ -1,10 +1,10 @@
-import type { Config } from 'tailwindcss'
+import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: [
-    './pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
-    './app/**/*.{js,ts,jsx,tsx,mdx}',
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   future: {
     hoverOnlyWhenSupported: true,
@@ -12,18 +12,18 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        display: ['var(--font-josefin-sans)'],
-        body: ['var(--font-work-sans)'],
-        code: ['var(--font-fira-code)'],
+        display: ["var(--font-josefin-sans)"],
+        body: ["var(--font-work-sans)"],
+        code: ["var(--font-fira-code)"],
       },
       // text-5xl and up ship with line-height 1, too tight when a heading
       // wraps; these line-heights give wrapped lines room to breathe.
       fontSize: {
-        '5xl': ['3rem', { lineHeight: '1.1' }],
-        '6xl': ['3.75rem', { lineHeight: '1.1' }],
-        '7xl': ['4.5rem', { lineHeight: '1.05' }],
-        '8xl': ['6rem', { lineHeight: '1.05' }],
-        '9xl': ['8rem', { lineHeight: '1.05' }],
+        "5xl": ["3rem", { lineHeight: "1.1" }],
+        "6xl": ["3.75rem", { lineHeight: "1.1" }],
+        "7xl": ["4.5rem", { lineHeight: "1.05" }],
+        "8xl": ["6rem", { lineHeight: "1.05" }],
+        "9xl": ["8rem", { lineHeight: "1.05" }],
       },
       keyframes: {
         "accordion-down": {
@@ -42,5 +42,5 @@ const config: Config = {
     },
   },
   plugins: [require("@tailwindcss/forms")],
-}
-export default config
+};
+export default config;

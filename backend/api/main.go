@@ -14,6 +14,7 @@ import (
 	"backend/api/server"
 	"backend/libs/concur"
 	"backend/libs/inet"
+	"backend/libs/posthog"
 
 	"github.com/gin-gonic/gin"
 
@@ -95,6 +96,7 @@ func main() {
 	{
 		apps.GET(":id/journey", measure.GetAppJourney)
 		apps.GET(":id/metrics", measure.GetAppMetrics)
+		apps.GET(":id/health/plots/instances", measure.GetHealthOverviewPlotInstances)
 		apps.GET(":id/filters", measure.GetAppFilters)
 
 		// crashes
@@ -266,4 +268,8 @@ func main() {
 	// Wait for all background tasks
 	fmt.Println("Waiting for background tasks...")
 	concur.GlobalWg.Wait()
+
+	// Flush PostHog after background tasks settle so any events they enqueue
+	// during shutdown still get delivered.
+	posthog.Close()
 }

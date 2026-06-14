@@ -39,6 +39,10 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
   - [Event Types](#event-types)
     - [**`anr`**](#anr)
     - [**`exception`**](#exception)
+      - [All Error Types Illustrated](#all-error-types-illustrated)
+    - [Error Fields SDK Compatibility Matrix](#error-fields-sdk-compatibility-matrix)
+      - [Older SDKs (without React Native)](#older-sdks-without-react-native)
+      - [Newer SDKs (with React Native)](#newer-sdks-with-react-native)
     - [**`string`**](#string)
     - [**`gesture_long_click`**](#gesture_long_click)
     - [**`gesture_scroll`**](#gesture_scroll)
@@ -305,7 +309,12 @@ to the returned URLs. For uploading the files, you can issue a standard http req
 - Depending on the platform, `mapping_type` can be `proguard` for Android, `dsym` or `elf_debug` for iOS, or `jsbundle` for React Native.
 - `mappings` is optional. When `mappings` array is not present, only the build size information will be updated.
 - Each mapping file for iOS must be gzipped tarball of `dSYM` bundles ending with a `.tgz` file extension.
-- Each mapping file for React Native must be a gzipped tarball (`.tgz`) containing the minified JS bundle (`.js`) and its source map (`.js.map`).
+- For React Native, upload the JS bundle and its sourcemap as **two separate `jsbundle` mappings in the same request**, not bundled together. Each must be a gzipped tarball ending with `.tgz`, wrapping a single inner file:
+  - One `.tgz` containing the minified JS bundle (e.g. `main.jsbundle` for iOS, `index.android.bundle` for Android).
+  - A second `.tgz` containing the matching sourcemap (e.g. `main.jsbundle.map`, `index.android.bundle.map`).
+
+  Symbolication pairs the two server-side via the inner filename's `.map` suffix, so the inner filenames must follow the `<bundle>` / `<bundle>.map` convention.
+- `patch_id` is optional. When supplied, it must be a valid UUID. Every mapping in the request is associated with this `patch_id` and the value is echoed back on each mapping object in the response. Use this to tag mappings that belong to an Over-The-Air patch (e.g. CodePush for React Native, Shorebird for Flutter) so the SDK can later refer to the exact mapping at symbolication time. When omitted, mappings are stored without a patch reference and are looked up by `version_name` + `version_code` instead.
 - For mapping filename, only provide the filename, not a path.
 - When `mappings` is present, the server returns a mappings array containing the pre-signed URL for uploading each mapping file.
 - Each pre-signed mapping file upload URL has an expiry set which is the same as the `expires_at` field.
@@ -316,9 +325,11 @@ to the returned URLs. For uploading the files, you can issue a standard http req
 Example of a file upload request:
 
 ```sh
-curl -s -X PUT <upload_url> \
+curl -X PUT \
   --header 'x-amz-meta-mapping_id: 77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc' \
-  --header 'x-amz-meta-original_file_name: somefile.tgz'
+  --header 'x-amz-meta-original_file_name: somefile.tgz' \
+  --data-binary @/path/to/somefile.tgz \
+  <upload-url>
 ```
 
 #### Authorization \& Content Type
@@ -351,7 +362,8 @@ curl -s -X PUT <upload_url> \
         "headers": {
           "x-amz-meta-mapping_id": "e2bbcad8-0566-44ea-af43-9dd114c64e8c",
           "x-amz-meta-original_file_name": "DemoApp.app.dSYM.tgz"
-        }
+        },
+        "patch_id": "550e8400-e29b-41d4-a716-446655440000"
       },
       {
         "id": "77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc",
@@ -362,11 +374,14 @@ curl -s -X PUT <upload_url> \
         "headers": {
           "x-amz-meta-mapping_id": "77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc",
           "x-amz-meta-original_file_name": "app.symbols"
-        }
+        },
+        "patch_id": "550e8400-e29b-41d4-a716-446655440000"
       }
     ]
   }
   ```
+
+  Each mapping object includes a `patch_id` field only when the request supplied one. It is omitted otherwise.
 
 #### Request Body
 
@@ -383,6 +398,7 @@ Payload must contain the app version info, build info and optional build mapping
   "version_code": "10",
   "build_size": 10241024,
   "build_type": "ipa",
+  "patch_id": "550e8400-e29b-41d4-a716-446655440000",
   "mappings": [
     {
       "type": "dsym",
@@ -394,28 +410,33 @@ Payload must contain the app version info, build info and optional build mapping
     },
     {
       "type": "jsbundle",
-      "filename": "index.android.bundle.tgz"
+      "filename": "main.jsbundle.tgz"
+    },
+    {
+      "type": "jsbundle",
+      "filename": "main.jsbundle.map.tgz"
     }
   ]
 }
 ```
 
-| Field          | Type   | Optional | Comment                                                                 |
-| -------------- | ------ | -------- | ----------------------------------------------------------------------- |
-| `version_name` | string | No       | Version name of the build. Like "1.0"                                   |
-| `version_code` | string | No       | Version code of the build. Like "999"                                   |
-| `build_size`   | string | No       | Size of app in bytes                                                    |
-| `build_type`   | string | No       | Type of the build.<br />- `aab`, `apk` for Android<br />- `ipa` for iOS |
-| `mappings`     | array  | Yes      | List of mapping files objects.                                          |
+| Field          | Type   | Optional | Comment                                                                                                                                    |
+| -------------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `version_name` | string | No       | Version name of the build. Like "1.0"                                                                                                      |
+| `version_code` | string | No       | Version code of the build. Like "999"                                                                                                      |
+| `build_size`   | string | No       | Size of app in bytes                                                                                                                       |
+| `build_type`   | string | No       | Type of the build.<br />- `aab`, `apk` for Android<br />- `ipa` for iOS                                                                    |
+| `patch_id`     | string | Yes      | Optional UUID identifying an Over-The-Air patch this build's mappings belong to. Omit when uploading a regular (non-OTA) build's mappings. |
+| `mappings`     | array  | Yes      | List of mapping files objects.                                                                                                             |
 
 ##### Mappings
 
 Each mapping object has the following shape.
 
-| Field      | Type   | Optional | Comment                                                             |
-| ---------- | ------ | -------- | ------------------------------------------------------------------- |
+| Field      | Type   | Optional | Comment                                                                                         |
+| ---------- | ------ | -------- | ----------------------------------------------------------------------------------------------- |
 | `type`     | string | No       | Type of the mapping file. Either `proguard`, `dsym`, `elf_debug`, or `jsbundle` (React Native). |
-| `filename` | string | No       | Filename of the mapping file.                                       |
+| `filename` | string | No       | Filename of the mapping file.                                                                   |
 
 </details>
 
@@ -443,7 +464,7 @@ List of HTTP status codes for success and failures.
 Fetches the latest SDK configuration for the app.
 
 | Config                       | Description                                                                                                                                          |
-|------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | max_events_in_batch          | Maximum number of events and spans in a batch                                                                                                        |
 | crash_timeline_duration      | The duration of session timeline collected with crashes                                                                                              |
 | anr_timeline_duration        | The duration of session timeline collected with ANRs                                                                                                 |
@@ -527,7 +548,7 @@ List of HTTP status codes for success and failures.
 <summary>Status Codes - Click to expand</summary>
 
 | **Status**                  | **Meaning**                                                                                                             |
-|-----------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `200 Ok`                    | Successfully retrieved a config                                                                                         |
 | `304 Not Modified`          | The config has not changed, the body will be empty.                                                                     |
 | `400 Bad Request`           | Request body is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
@@ -569,7 +590,7 @@ Events can contain the following attributes, some of which are mandatory.
 | `device_locale`                     | string  | Yes      | Locale based on RFC 5646, eg. en-US                                         |
 | `device_low_power_mode`             | bool    | Yes      | `true` when low power mode is enabled                                       |
 | `device_thermal_throttling_enabled` | bool    | Yes      | `true` when thermal throttling is enabled                                   |
-| `os_name`                           | string  | Yes      | Operating system name. One of:<br/>- android</br>- ios</br>- ipados         |
+| `os_name`                           | string  | No       | Operating system name. One of:<br/>- android</br>- ios</br>- ipados         |
 | `os_version`                        | string  | Yes      | Operating system version                                                    |
 | `os_page_size`                      | uint8   | Yes      | Operating system memory page size                                           |
 | `network_type`                      | string  | No       | One of<br/>- wifi<br/>- cellular<br/>- vpn<br/>- unknown<br/>- no_network   |
@@ -674,7 +695,7 @@ Use the `anr` type for [Application Not Responding](https://developer.android.co
 
 | Field        | Type    | Optional | Comment                                                         |
 | ------------ | ------- | -------- | --------------------------------------------------------------- |
-| `handled`    | boolean | No       | `false` for crashes, `true` if exceptions are handled           |
+| `handled`    | boolean | Yes      | Do not use. Retained only for backwards compatibility           |
 | `exceptions` | array   | No       | Array of exception objects                                      |
 | `foreground` | boolean | No       | `true` if the app was in the foreground at the time of the ANR. |
 | `threads`    | array   | Yes      | Array of thread objects                                         |
@@ -704,7 +725,7 @@ Use the `exception` type for errors and crashes.
 
 | Field           | Type    | Optional | Comment                                                                                                                                                             |
 | --------------- | ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `handled`       | boolean | No       | `false` for crashes, `true` if exceptions are handled. Prefer using `severity` for new integrations; `handled` is retained for backwards compatibility.             |
+| `handled`       | boolean | Yes      | Do not use. Prefer using `severity` for new integrations; `handled` is retained for backwards compatibility.                                                        |
 | `severity`      | string  | Yes      | Severity level of the exception. One of: `fatal`, `handled`, `unhandled`. When omitted, severity is inferred from `handled`: `false` → `fatal`, `true` → `handled`. |
 | `exceptions`    | array   | No       | Array of exception objects                                                                                                                                          |
 | `foreground`    | boolean | Yes      | `true` if the app was in the foreground at the time of the exception.                                                                                               |
@@ -772,20 +793,102 @@ Each binary_image object contains further fields.
 | `end_addr`   | string  | Yes      | End address - upper memory boundary of the binary. Only applies to Apple apps              |
 | `base_addr`  | string  | Yes      | Base address - base address of symbols, only applies to Dart exceptions                    |
 | `system`     | boolean | Yes      | Binary marker - indicates a system binary, only applies to Apple apps                      |
-| `name`       | string  | Yes      | Name of the app, framework or libary binary, only applies to Apple apps                    |
+| `name`       | string  | Yes      | Name of the app, framework or library binary, only applies to Apple apps                   |
 | `arch`       | string  | No       | CPU architecture the binary is compiled for                                                |
 | `uuid`       | string  | No       | Unique fingerprint for the binary's build                                                  |
 | `path`       | string  | Yes      | Full path to where the binary was located at runtime, only applies to Apple apps           |
 
 `error` object.
 
+**Deprecated. Use `num_code`, `code`, and `meta` directly on exception instead.**
+
 The error object contains further fields. Applicable for Apple apps. Should not exceed `4096 bytes`.
 
-| Field     | Type    | Optional | Comment                                                |
-| --------- | ------- | -------- | ------------------------------------------------------ |
-| `numcode` | integer | Yes      | Numeric code that describes the error                  |
-| `code`    | string  | Yes      | String code that describes the error                   |
-| `meta`    | object  | Yes      | Object containing arbitrary fields for error's metdata |
+| Field     | Type    | Optional | Comment                                                 |
+| --------- | ------- | -------- | ------------------------------------------------------- |
+| `numcode` | integer | Yes      | Numeric code that describes the error                   |
+| `code`    | string  | Yes      | String code that describes the error                    |
+| `meta`    | object  | Yes      | Object containing arbitrary fields for error's metadata |
+
+##### All Error Types Illustrated
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {
+  'background':'#1e1e2e',
+  'primaryTextColor':'#cdd6f4',
+  'lineColor':'#cdd6f4',
+  'fontFamily':'monospace'
+}}}%%
+flowchart TB
+    subgraph Fatal["Fatal"]
+        direction TB
+        F1["`**Legacy**
+        Unhandled exception
+        handled: 0`"]
+        F2["`Fatal exception
+        severity: fatal`"]
+        F1 --> F2
+    end
+
+    subgraph NonFatal["Non Fatal"]
+        direction TB
+        N1["`**Legacy**
+        Handled exception
+        handled: 1`"]
+        N2["`Handled exception
+        severity: handled`"]
+        N3["`Unhandled exception
+        severity: unhandled
+        _New_`"]
+        N1 --> N2
+    end
+
+    subgraph ANR["ANR"]
+        direction TB
+        A1["ANR"]
+        A2["ANR"]
+        A1 --> A2
+    end
+
+    classDef fatal fill:#f38ba8,stroke:#f38ba8,color:#1e1e2e
+    classDef nonFatalLegacy fill:#f9e2af,stroke:#f9e2af,color:#1e1e2e
+    classDef nonFatalNew fill:#fab387,stroke:#fab387,color:#1e1e2e
+    classDef anr fill:#89b4fa,stroke:#89b4fa,color:#1e1e2e
+
+    class F1,F2 fatal
+    class N1,N2 nonFatalLegacy
+    class N3 nonFatalNew
+    class A1,A2 anr
+
+    style Fatal fill:#f38ba822,stroke:#f38ba8,color:#1e1e2e
+    style NonFatal fill:#f9e2af22,stroke:#f9e2af,color:#1e1e2e
+    style ANR fill:#89b4fa22,stroke:#89b4fa,color:#1e1e2e
+```
+
+#### Error Fields SDK Compatibility Matrix
+
+Use this matrix when testing to assert all field permutations are correctly sent across SDK versions and platforms.
+
+##### Older SDKs (without React Native)
+
+| Field               | Android | iOS |
+| ------------------- | ------- | --- |
+| `exception.handled` | ✓       | ✓   |
+| `exception.error`   | —       | ✓   |
+| `anr.handled`       | ✓       | N/A |
+
+##### Newer SDKs (with React Native)
+
+| Field                 | Android | iOS |
+| --------------------- | ------- | --- |
+| `exception.handled`   | ✗       | ✗   |
+| `exception.severity`  | ✓       | ✓   |
+| `exception.is_custom` | ✓       | ✓   |
+| `exception.num_code`  | ✓       | ✓   |
+| `exception.code`      | ✓       | ✓   |
+| `exception.meta`      | ✓       | ✓   |
+| `exception.error`     | —       | ✗   |
+| `anr.handled`         | ✗       | ✗   |
 
 #### **`string`**
 
@@ -800,16 +903,18 @@ Use the `string` type when sending unstructured or structured logs. Make sure st
 
 Use the `gesture_long_click` body type for longer press and hold gestures.
 
-| Field             | Type    | Optional | Comment                                     |
-| ----------------- | ------- | -------- | ------------------------------------------- |
-| `target`          | string  | Yes      | Class/Instance name of the originating view |
-| `target_id`       | string  | Yes      | Unique identifier for the target            |
-| `touch_down_time` | uint64  | Yes      | System uptime when target was pressed       |
-| `touch_up_time`   | uint64  | Yes      | System uptime when target was released      |
-| `width`           | uint16  | Yes      | Width of the target view in pixels          |
-| `height`          | uint16  | Yes      | Height of the target view in pixels         |
-| `x`               | float32 | No       | X coordinate of the target view             |
-| `y`               | float32 | No       | Y coordinate of the target view             |
+| Field             | Type    | Optional | Comment                                                           |
+| ----------------- | ------- | -------- | ----------------------------------------------------------------- |
+| `target`          | string  | Yes      | Class/Instance name of the originating view                       |
+| `target_id`       | string  | Yes      | Unique identifier for the target                                  |
+| `label`           | string  | Yes      | Visible text of the clicked element, truncated to 32 chars        |
+| `semantic_label`  | string  | Yes      | Accessibility label of the clicked element, truncated to 32 chars |
+| `touch_down_time` | uint64  | Yes      | System uptime when target was pressed                             |
+| `touch_up_time`   | uint64  | Yes      | System uptime when target was released                            |
+| `width`           | uint16  | Yes      | Width of the target view in pixels                                |
+| `height`          | uint16  | Yes      | Height of the target view in pixels                               |
+| `x`               | float32 | No       | X coordinate of the target view                                   |
+| `y`               | float32 | No       | Y coordinate of the target view                                   |
 
 #### **`gesture_scroll`**
 
@@ -831,16 +936,18 @@ Use the `gesture_scroll` body type for scroll events.
 
 Use the `gesture_click` body type for taps or clicks.
 
-| Field             | Type    | Optional | Comment                                         |
-| ----------------- | ------- | -------- | ----------------------------------------------- |
-| `target`          | string  | Yes      | Class/Instance name of the originating view     |
-| `target_id`       | string  | Yes      | Unique identifier for the target                |
-| `touch_down_time` | uint64  | Yes      | System uptime when target was pressed           |
-| `touch_up_time`   | uint64  | Yes      | System uptime when target was released          |
-| `width`           | uint16  | Yes      | Width of the target view in pixels              |
-| `height`          | uint16  | Yes      | Height of the target view in pixels             |
-| `x`               | float32 | No       | X coordinate of the target where click happened |
-| `y`               | float32 | No       | Y coordinate of the target where click happened |
+| Field             | Type    | Optional | Comment                                                           |
+| ----------------- | ------- | -------- | ----------------------------------------------------------------- |
+| `target`          | string  | Yes      | Class/Instance name of the originating view                       |
+| `target_id`       | string  | Yes      | Unique identifier for the target                                  |
+| `label`           | string  | Yes      | Visible text of the clicked element, truncated to 32 chars        |
+| `semantic_label`  | string  | Yes      | Accessibility label of the clicked element, truncated to 32 chars |
+| `touch_down_time` | uint64  | Yes      | System uptime when target was pressed                             |
+| `touch_up_time`   | uint64  | Yes      | System uptime when target was released                            |
+| `width`           | uint16  | Yes      | Width of the target view in pixels                                |
+| `height`          | uint16  | Yes      | Height of the target view in pixels                               |
+| `x`               | float32 | No       | X coordinate of the target where click happened                   |
+| `y`               | float32 | No       | Y coordinate of the target where click happened                   |
 
 #### **`http`**
 

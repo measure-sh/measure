@@ -2,6 +2,11 @@
 
 import { signInWithGitHub } from "@/app/auth/oauth";
 import { Button } from "@/app/components/button";
+import {
+  appendAttributionToURL,
+  getGAClientID,
+  getStoredGCLID,
+} from "@/app/utils/analytics/attribution";
 import Image from "next/image";
 
 export default function GitHubSignIn({
@@ -12,7 +17,7 @@ export default function GitHubSignIn({
   const doGitHubLogin = async () => {
     const { origin } = new URL(window.location.href);
     const { url, error } = await signInWithGitHub({
-      clientId: process?.env?.NEXT_PUBLIC_OAUTH_GITHUB_KEY,
+      clientId: process.env.NEXT_PUBLIC_OAUTH_GITHUB_KEY,
       options: {
         redirectTo: `${origin}/auth/callback/github`,
         next: "",
@@ -31,7 +36,13 @@ export default function GitHubSignIn({
 
   const handleClick = () => {
     if (mcpAuthorizeUrl) {
-      window.location.assign(mcpAuthorizeUrl);
+      window.location.assign(
+        appendAttributionToURL(
+          mcpAuthorizeUrl,
+          getGAClientID(),
+          getStoredGCLID(),
+        ),
+      );
       return;
     }
     doGitHubLogin();
@@ -48,14 +59,14 @@ export default function GitHubSignIn({
         src="/images/github_logo_black.svg"
         width={24}
         height={24}
-        className="w-4 h-4 dark:hidden group-hover:hidden"
+        className="w-4 h-4 dark:hidden"
         alt={"GitHub logo"}
       />
       <Image
         src="/images/github_logo_white.svg"
         width={24}
         height={24}
-        className="w-4 h-4 hidden dark:block group-hover:block"
+        className="w-4 h-4 hidden dark:block"
         alt={"GitHub logo"}
       />
       <span> Sign in with GitHub</span>

@@ -5,6 +5,7 @@ import { Button } from "@/app/components/button";
 import { buttonVariants } from "@/app/components/button_variants";
 import { Skeleton } from "@/app/components/skeleton";
 import {
+  useAuthzAndMembersQuery,
   useBugReportQuery,
   useToggleBugReportStatusMutation,
 } from "@/app/query/hooks";
@@ -15,7 +16,7 @@ import { DateTime } from "luxon";
 import Image from "next/image";
 import Link from "next/link";
 import { FormEventHandler, useState } from "react";
-import Pill from "./pill";
+import Pill, { PillType } from "./pill";
 
 const demoBugReport = {
   session_id: "81f06f23-4291-4590-a5df-c96d57d3c692",
@@ -87,6 +88,11 @@ export default function BugReport({
     demo ? "" : params.bugReportId,
   );
   const toggleStatusMutation = useToggleBugReportStatusMutation();
+  const { data: authzAndMembers } = useAuthzAndMembersQuery(
+    demo ? undefined : params.teamId,
+  );
+  const canUpdateStatus =
+    demo || authzAndMembers?.can_update_bug_reports === true;
 
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [demoStatusToggled, setDemoStatusToggled] = useState(false);
@@ -194,26 +200,28 @@ export default function BugReport({
       {displayBugReportApiStatus === "success" && displayBugReport && (
         <div>
           <div className="flex flex-wrap gap-2 py-2 pb-12 items-center">
-            <p
-              className={`w-fit px-2 py-1 rounded-full border text-xs font-body ${displayBugReport.status === 0 ? "border-green-600 dark:border-green-500 text-green-600 dark:text-green-500 bg-green-50 dark:bg-background" : "border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-background"}`}
-            >
-              {displayBugReport.status === 0 ? "Open" : "Closed"}
-            </p>
             <Pill
-              title={`User ID: ${displayBugReport.attribute.user_id !== "" ? displayBugReport.attribute.user_id : "N/A"}`}
+              type={
+                displayBugReport.status === 0
+                  ? PillType.OpenStatus
+                  : PillType.ClosedStatus
+              }
             />
             <Pill
-              title={`Time: ${formatDateToHumanReadableDateTime(displayBugReport.timestamp)}`}
-            />
+              tooltip
+            >{`User ID: ${displayBugReport.attribute.user_id !== "" ? displayBugReport.attribute.user_id : "N/A"}`}</Pill>
             <Pill
-              title={`Device: ${displayBugReport.attribute.device_manufacturer + displayBugReport.attribute.device_model}`}
-            />
+              tooltip
+            >{`Time: ${formatDateToHumanReadableDateTime(displayBugReport.timestamp)}`}</Pill>
             <Pill
-              title={`App version: ${displayBugReport.attribute.app_version} (${displayBugReport.attribute.app_build})`}
-            />
+              tooltip
+            >{`Device: ${displayBugReport.attribute.device_manufacturer + displayBugReport.attribute.device_model}`}</Pill>
             <Pill
-              title={`Network type: ${displayBugReport.attribute.network_type}`}
-            />
+              tooltip
+            >{`App version: ${displayBugReport.attribute.app_version} (${displayBugReport.attribute.app_build})`}</Pill>
+            <Pill
+              tooltip
+            >{`Network type: ${displayBugReport.attribute.network_type}`}</Pill>
             {displayBugReport.user_defined_attribute !== undefined &&
               displayBugReport.user_defined_attribute !== null && (
                 <>
@@ -221,8 +229,8 @@ export default function BugReport({
                     ([attrKey, attrValue]) => (
                       <Pill
                         key={`${attrKey}-${attrValue?.toString()}}`}
-                        title={`${attrKey}: ${attrValue?.toString()}`}
-                      />
+                        tooltip
+                      >{`${attrKey}: ${attrValue?.toString()}`}</Pill>
                     ),
                   )}
                 </>
@@ -250,6 +258,7 @@ export default function BugReport({
               variant="outline"
               className="w-fit"
               disabled={
+                !canUpdateStatus ||
                 displayUpdateStatus === UpdateBugReportStatusApiStatus.Loading
               }
               onClick={handleToggleStatus}

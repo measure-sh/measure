@@ -1,0 +1,271 @@
+"use client";
+
+import { FilterSource, emptyErrorsOverviewResponse } from "@/app/api/api_calls";
+import Paginator from "@/app/components/paginator";
+import {
+  paginationOffsetUrlKey,
+  useErrorsOverviewQuery,
+} from "@/app/query/hooks";
+import { useFiltersStore } from "@/app/stores/provider";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import React, { useEffect, useRef, useState } from "react";
+import Pill, { PillType } from "./pill";
+import ErrorsOverviewPlot from "./errors_overview_plot";
+import Filters, { AppVersionsInitialSelectionType } from "./filters";
+import LoadingBar from "./loading_bar";
+import { SkeletonListPage } from "./skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./table";
+
+const PAGINATION_LIMIT = 5;
+
+interface ErrorsOverviewProps {
+  teamId: string;
+}
+
+export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const filters = useFiltersStore((state) => state.filters);
+
+  // Pagination is component-local state, initialized from URL
+  const [paginationOffset, setPaginationOffset] = useState(() => {
+    const po = searchParams.get(paginationOffsetUrlKey);
+    return po ? parseInt(po) : 0;
+  });
+
+  // Reset pagination when filters change (skip pre-ready transitions)
+  const prevFiltersRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!filters.ready) return;
+    if (
+      prevFiltersRef.current !== null &&
+      prevFiltersRef.current !== filters.serialisedFilters
+    ) {
+      setPaginationOffset(0);
+    }
+    prevFiltersRef.current = filters.serialisedFilters;
+  }, [filters.ready, filters.serialisedFilters]);
+
+  // URL sync
+  useEffect(() => {
+    if (!filters.ready) {
+      return;
+    }
+    router.replace(
+      `?${paginationOffsetUrlKey}=${encodeURIComponent(paginationOffset)}&${filters.serialisedFilters!}`,
+      { scroll: false },
+    );
+  }, [paginationOffset, filters.ready, filters.serialisedFilters]);
+
+  const {
+    data: errorsOverview = emptyErrorsOverviewResponse,
+    status,
+    isFetching,
+  } = useErrorsOverviewQuery(paginationOffset);
+
+  const nextPage = () => setPaginationOffset((o) => o + PAGINATION_LIMIT);
+  const prevPage = () =>
+    setPaginationOffset((o) => Math.max(0, o - PAGINATION_LIMIT));
+
+  return (
+    <div className="flex flex-col items-start">
+      <div className="py-4" />
+
+      <Filters
+        teamId={teamId}
+        filterSource={FilterSource.Errors}
+        appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
+        showNoData={true}
+        showNotOnboarded={true}
+        showAppSelector={true}
+        showAppVersions={true}
+        showDates={true}
+        showSessionTypes={false}
+        showOsVersions={true}
+        showCountries={true}
+        showNetworkTypes={true}
+        showNetworkProviders={true}
+        showNetworkGenerations={true}
+        showLocales={true}
+        showDeviceManufacturers={true}
+        showDeviceNames={true}
+        showBugReportStatus={false}
+        showHttpMethods={false}
+        showUdAttrs={true}
+        showFreeText={false}
+        showErrorType={true}
+        showSeverity={true}
+        showCustomErrors={true}
+      />
+      <div className="py-4" />
+
+      {/* Full page skeleton when filters not ready */}
+      {filters.loading && <SkeletonListPage />}
+
+      {/* Error state for error groups fetch */}
+      {filters.ready && status === "error" && (
+        <p className="text-lg font-display">
+          Error fetching list of errors, please change filters, refresh page or
+          select a different app to try again
+        </p>
+      )}
+
+      {/* Main error groups list UI */}
+      {filters.ready && (status === "success" || status === "pending") && (
+        <div className="flex flex-col items-center w-full">
+          <ErrorsOverviewPlot />
+          <div className="self-end">
+            <Paginator
+              prevEnabled={isFetching ? false : errorsOverview.meta.previous}
+              nextEnabled={isFetching ? false : errorsOverview.meta.next}
+              displayText=""
+              onNext={nextPage}
+              onPrev={prevPage}
+            />
+          </div>
+          <div
+            className={`py-1 w-full ${isFetching ? "visible" : "invisible"}`}
+          >
+            <LoadingBar />
+          </div>
+          <div className="py-4" />
+          <Table className="font-display select-none">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[60%]">Error</TableHead>
+                <TableHead className="w-[20%] text-center">Instances</TableHead>
+                <TableHead className="w-[20%] text-center">
+                  Percentage contribution
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {errorsOverview.results?.map(
+                (
+                  {
+                    id,
+                    type,
+                    error_type,
+                    severity,
+                    message,
+                    method_name,
+                    file_name,
+                    count,
+                    percentage_contribution,
+                  }: any,
+                  idx: number,
+                ) => {
+                  // Get date range, start date and end date from searchParams
+                  const d = searchParams.get("d");
+                  const sd = searchParams.get("sd");
+                  const ed = searchParams.get("ed");
+                  // Build query string for timestamps if present
+                  const timestampQuery = [
+                    sd ? `sd=${encodeURIComponent(sd)}` : null,
+                    ed ? `ed=${encodeURIComponent(ed)}` : null,
+                    d ? `d=${encodeURIComponent(d)}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join("&");
+                  // Build base path
+                  const groupName =
+                    type + (file_name !== "" ? "@" + file_name : "");
+                  const basePath = `/${teamId}/errors/${filters.app!.id}/${id}/${encodeURIComponent(groupName)}`;
+                  // Final href with query params if any
+                  const href = timestampQuery
+                    ? `${basePath}?${timestampQuery}`
+                    : basePath;
+                  return (
+                    <TableRow
+                      key={`${idx}-${id}`}
+                      className="font-body"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          router.push(href);
+                        }
+                      }}
+                    >
+                      <TableCell className="w-[60%] relative p-0">
+                        <Link
+                          href={href}
+                          className="absolute inset-0 z-10 cursor-pointer"
+                          tabIndex={-1}
+                          aria-label={`${file_name !== "" ? file_name : "unknown_file"}: ${method_name !== "" ? method_name : "unknown_method"}()`}
+                          style={{ display: "block" }}
+                        />
+                        <div className="pointer-events-none p-4">
+                          <p className="truncate select-none">
+                            {(file_name !== "" ? file_name : "unknown_file") +
+                              ": " +
+                              (method_name !== ""
+                                ? method_name
+                                : "unknown_method") +
+                              "()"}
+                          </p>
+
+                          <p className="text-xs truncate text-muted-foreground mt-0.5 select-none">
+                            {`${type}${message ? `:${message}` : ""}`}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5 pt-3">
+                            {error_type === "anr" && (
+                              <Pill type={PillType.Anr} />
+                            )}
+                            {error_type === "exception" && (
+                              <Pill type={PillType.Error} />
+                            )}
+                            {severity === "fatal" && (
+                              <Pill type={PillType.Fatal} />
+                            )}
+                            {severity === "unhandled" && (
+                              <Pill type={PillType.Unhandled} />
+                            )}
+                            {severity === "handled" && (
+                              <Pill type={PillType.Handled} />
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="w-[20%] text-center truncate select-none relative p-0">
+                        <Link
+                          href={href}
+                          className="absolute inset-0 z-10 cursor-pointer"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                          style={{ display: "block" }}
+                        />
+                        <div className="pointer-events-none p-4">{count}</div>
+                      </TableCell>
+                      <TableCell className="w-[20%] text-center truncate select-none relative p-0">
+                        <Link
+                          href={href}
+                          className="absolute inset-0 z-10 cursor-pointer"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                          style={{ display: "block" }}
+                        />
+                        <div className="pointer-events-none p-4">
+                          {percentage_contribution}%
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                },
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  );
+};

@@ -2,24 +2,26 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useScrollDirection } from "../utils/scroll_utils";
 import { cn } from "../utils/shadcn_utils";
 import { buttonVariants } from "./button_variants";
 import { ThemeToggle } from "./theme_toggle";
+import TrackCtaLink from "./analytics/track_cta_link";
+import TrackGithubLink from "./analytics/track_github_link";
 
-// Hook to detect if we're on a small screen
+// Hook to detect if we're on a small screen.
+function subscribeToResize(onChange: () => void) {
+  window.addEventListener("resize", onChange);
+  return () => window.removeEventListener("resize", onChange);
+}
+
 function useIsSmallScreen() {
-  const [isSmall, setIsSmall] = useState(false);
-
-  useEffect(() => {
-    const checkSize = () => setIsSmall(window.innerWidth < 768); // md breakpoint
-    checkSize();
-    window.addEventListener("resize", checkSize);
-    return () => window.removeEventListener("resize", checkSize);
-  }, []);
-
-  return isSmall;
+  return useSyncExternalStore(
+    subscribeToResize,
+    () => window.innerWidth < 768, // md breakpoint
+    () => false,
+  );
 }
 
 export default function LandingHeader() {
@@ -54,14 +56,14 @@ export default function LandingHeader() {
             width={120}
             height={40}
             alt={"Measure logo"}
-            className="dark:hidden group-hover:hidden"
+            className="dark:hidden"
           />
           <Image
             src="/images/measure_logo_horizontal_white.svg"
             width={120}
             height={40}
             alt={"Measure logo"}
-            className="hidden dark:block group-hover:block"
+            className="hidden dark:block"
           />
         </Link>
 
@@ -127,7 +129,7 @@ export default function LandingHeader() {
         <div className="hidden md:flex md:flex-row items-center justify-center">
           <ThemeToggle />
           <div className="px-2" />
-          <Link
+          <TrackGithubLink
             target="_blank"
             href="https://github.com/measure-sh/measure"
             className={cn(buttonVariants({ variant: "ghost" }), "group px-2")}
@@ -136,32 +138,36 @@ export default function LandingHeader() {
               src="/images/github_logo_black.svg"
               width={24}
               height={24}
-              className="w-4 h-4 dark:hidden group-hover:hidden"
+              className="w-4 h-4 dark:hidden"
               alt={"GitHub logo"}
             />
             <Image
               src="/images/github_logo_white.svg"
               width={24}
               height={24}
-              className="w-4 h-4 hidden dark:block group-hover:block"
+              className="w-4 h-4 hidden dark:block"
               alt={"GitHub logo"}
             />
             <span className="mt-0.5">1.3k</span>
-          </Link>
+          </TrackGithubLink>
           <div className="px-1" />
-          <Link
+          <TrackCtaLink
+            location="header"
+            destination="signup"
             href="/auth/login"
             className={cn(buttonVariants({ variant: "ghost" }), "px-4")}
           >
             Sign In
-          </Link>
+          </TrackCtaLink>
           <div className="px-1" />
-          <Link
+          <TrackCtaLink
+            location="header"
+            destination="signup"
             href="/auth/login"
             className={cn(buttonVariants({ variant: "default" }))}
           >
             Get Started
-          </Link>
+          </TrackCtaLink>
         </div>
       </div>
 
@@ -215,7 +221,7 @@ export default function LandingHeader() {
         <div className="py-2" />
         <ThemeToggle />
         <div className="py-1" />
-        <Link
+        <TrackGithubLink
           target="_blank"
           href="https://github.com/measure-sh/measure"
           className={cn(buttonVariants({ variant: "ghost" }))}
@@ -235,23 +241,27 @@ export default function LandingHeader() {
             alt={"GitHub logo"}
           />
           <span className="mt-0.5">1.1k</span>
-        </Link>
+        </TrackGithubLink>
         <div className="py-1" />
-        <Link
+        <TrackCtaLink
+          location="header"
+          destination="signup"
           href="/auth/login"
           className={cn(buttonVariants({ variant: "ghost" }))}
           onClick={() => setIsMenuOpen(false)}
         >
           Sign In
-        </Link>
+        </TrackCtaLink>
         <div className="py-1" />
-        <Link
+        <TrackCtaLink
+          location="header"
+          destination="signup"
           href="/auth/login"
           className={cn(buttonVariants({ variant: "default" }))}
           onClick={() => setIsMenuOpen(false)}
         >
           Get Started
-        </Link>
+        </TrackCtaLink>
       </div>
     </header>
   );

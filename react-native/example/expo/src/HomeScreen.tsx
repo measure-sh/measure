@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   SectionList,
   Text,
@@ -33,6 +33,14 @@ const simulateJSException = () => {
 
 const simulateUnhandledPromiseRejection = () => {
   Promise.reject(new Error('Simulated unhandled promise rejection'));
+};
+
+const trackHandledError = () => {
+  try {
+    throw new Error('Simulated handled error');
+  } catch (e) {
+    Measure.trackError({ error: e, attributes: { screen: 'Home' } });
+  }
 };
 
 const simulateNativeCrash = () => {
@@ -222,6 +230,11 @@ export default function HomeScreen() {
           id: 'unhandled-rejection',
           title: 'Unhandled Promise Rejection',
           onPress: simulateUnhandledPromiseRejection,
+        },
+        {
+          id: 'handled-error',
+          title: 'Track Handled Error',
+          onPress: trackHandledError,
         },
         {
           id: 'native-crash',

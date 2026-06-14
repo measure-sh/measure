@@ -7,15 +7,36 @@ import {
   SidebarTrigger,
 } from "@/app/components/sidebar";
 import { cn } from "@/app/utils/shadcn_utils";
+import { track } from "@/app/utils/analytics/track";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import DocsAppSidebar from "./components/docs_sidebar";
+
+function deriveDocSection(pathname: string): string {
+  // Drop leading "/docs" and any trailing slash to get the in-docs path.
+  // "/docs/android/quickstart" -> first segment "android"; "/docs" or "/docs/"
+  // -> "index" so we can distinguish the landing doc from individual sections.
+  const trimmed = pathname.replace(/^\/docs\/?/, "").replace(/\/$/, "");
+  if (trimmed === "") {
+    return "index";
+  }
+  const [first] = trimmed.split("/");
+  return first;
+}
 
 export default function DocsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    track("docs_viewed", { doc_section: deriveDocSection(pathname) });
+  }, [pathname]);
+
   return (
     <SidebarProvider>
       <DocsAppSidebar />

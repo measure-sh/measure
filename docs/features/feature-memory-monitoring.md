@@ -9,7 +9,6 @@ description: "Periodically capture memory usage of Android, iOS and Flutter apps
 - [Android](#android)
 - [iOS](#ios)
 - [Flutter](#flutter)
-- [Data collected](#data-collected)
 
 ## Introduction
 
@@ -37,11 +36,6 @@ A worker thread reads the following properties every 2 seconds and reports them 
   using [Debug.getNativeFreeHeapSize](https://developer.android.com/reference/android/os/Debug#getNativeHeapFreeSize()).
 
 ![Memory Usage](../assets/android-memory-usage.png)
-
-#### Data collected
-
-Checkout all the data collected for memory usage in
-the [Memory Usage Event](../api/sdk/README.md#memory_usage) section.
 
 ## iOS
 
@@ -81,8 +75,8 @@ readings may suggest this fallback occurred.
 Memory usage is collected for Flutter apps based on the platform the app is running on (Android or iOS). The SDK uses the
 same methods as described above for Android and iOS.
 
-## Data collected
+## React Native
 
-Check out the data collected by Measure in the [Memory Usage Absolute](../api/sdk/README.md#memory_usage_absolute)
-section.
+Memory usage is collected for React Native apps based on the platform the app is running on (Android or iOS). The SDK uses the
+same methods as described above for Android and iOS.
 

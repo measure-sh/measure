@@ -21,7 +21,7 @@ import {
   expect,
   it,
 } from "@jest/globals";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 // --- External dependency mocks (things that don't exist in jsdom) ---
@@ -75,8 +75,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   makeAppFixture,
   makeFiltersFixture,
+  makeHealthPlotFixture,
   makeMetricsFixture,
-  makeSessionPlotFixture,
 } from "../msw/fixtures";
 import { server } from "../msw/server";
 
@@ -206,9 +206,9 @@ describe("Overview page (MSW integration)", () => {
     );
   });
 
-  it("renders chart error when sessions plot API fails", async () => {
+  it("renders chart error when the health plot API fails", async () => {
     server.use(
-      http.get("*/api/apps/:appId/sessions/plots/instances", () => {
+      http.get("*/api/apps/:appId/health/plots/instances", () => {
         return new HttpResponse(null, { status: 500 });
       }),
     );
@@ -224,15 +224,9 @@ describe("Overview page (MSW integration)", () => {
   });
 
   it("renders metrics even when the plot API fails", async () => {
-    // Plot APIs all fail, but metrics should still load independently
+    // Plot API fails, but metrics should still load independently
     server.use(
-      http.get("*/api/apps/:appId/sessions/plots/instances", () => {
-        return new HttpResponse(null, { status: 500 });
-      }),
-      http.get("*/api/apps/:appId/crashGroups/plots/instances", () => {
-        return new HttpResponse(null, { status: 500 });
-      }),
-      http.get("*/api/apps/:appId/anrGroups/plots/instances", () => {
+      http.get("*/api/apps/:appId/health/plots/instances", () => {
         return new HttpResponse(null, { status: 500 });
       }),
     );
@@ -326,9 +320,7 @@ describe("Overview page — filter interactions", () => {
   // Common test infra: captured requests
   let shortFilterBodies: any[];
   let metricsRequests: { url: string; appId: string }[];
-  let sessionPlotRequests: { url: string }[];
-  let crashPlotRequests: { url: string }[];
-  let anrPlotRequests: { url: string }[];
+  let healthPlotRequests: { url: string }[];
   let filtersRequests: { url: string; appId: string }[];
 
   const defaultInitConfig = {
@@ -340,9 +332,7 @@ describe("Overview page — filter interactions", () => {
   beforeEach(() => {
     shortFilterBodies = [];
     metricsRequests = [];
-    sessionPlotRequests = [];
-    crashPlotRequests = [];
-    anrPlotRequests = [];
+    healthPlotRequests = [];
     filtersRequests = [];
 
     // Install request-tracking handlers for ALL overview endpoints
@@ -360,20 +350,9 @@ describe("Overview page — filter interactions", () => {
         });
         return HttpResponse.json(makeMetricsFixture());
       }),
-      http.get("*/api/apps/:appId/sessions/plots/instances", ({ request }) => {
-        sessionPlotRequests.push({ url: request.url });
-        return HttpResponse.json(makeSessionPlotFixture());
-      }),
-      http.get(
-        "*/api/apps/:appId/crashGroups/plots/instances",
-        ({ request }) => {
-          crashPlotRequests.push({ url: request.url });
-          return HttpResponse.json([]);
-        },
-      ),
-      http.get("*/api/apps/:appId/anrGroups/plots/instances", ({ request }) => {
-        anrPlotRequests.push({ url: request.url });
-        return HttpResponse.json([]);
+      http.get("*/api/apps/:appId/health/plots/instances", ({ request }) => {
+        healthPlotRequests.push({ url: request.url });
+        return HttpResponse.json(makeHealthPlotFixture());
       }),
       http.get("*/api/apps/:appId/filters", ({ request, params }) => {
         filtersRequests.push({
@@ -450,11 +429,9 @@ describe("Overview page — filter interactions", () => {
       );
     });
 
-    it("switching app refetches all 3 plot endpoints for the new app", async () => {
+    it("switching app refetches the health plot endpoint for the new app", async () => {
       await renderAndWaitForData();
-      sessionPlotRequests.length = 0;
-      crashPlotRequests.length = 0;
-      anrPlotRequests.length = 0;
+      healthPlotRequests.length = 0;
 
       await act(async () => {
         filtersStore.getState().setSelectedApp(app2);
@@ -462,9 +439,7 @@ describe("Overview page — filter interactions", () => {
 
       await waitFor(
         () => {
-          expect(sessionPlotRequests.length).toBeGreaterThan(0);
-          expect(crashPlotRequests.length).toBeGreaterThan(0);
-          expect(anrPlotRequests.length).toBeGreaterThan(0);
+          expect(healthPlotRequests.length).toBeGreaterThan(0);
         },
         { timeout: 5000 },
       );
@@ -699,11 +674,9 @@ describe("Overview page — filter interactions", () => {
       );
     });
 
-    it("version change triggers all 3 plot refetches", async () => {
+    it("version change triggers a health plot refetch", async () => {
       await renderAndWaitForData();
-      sessionPlotRequests.length = 0;
-      crashPlotRequests.length = 0;
-      anrPlotRequests.length = 0;
+      healthPlotRequests.length = 0;
 
       await act(async () => {
         filtersStore
@@ -713,9 +686,7 @@ describe("Overview page — filter interactions", () => {
 
       await waitFor(
         () => {
-          expect(sessionPlotRequests.length).toBeGreaterThan(0);
-          expect(crashPlotRequests.length).toBeGreaterThan(0);
-          expect(anrPlotRequests.length).toBeGreaterThan(0);
+          expect(healthPlotRequests.length).toBeGreaterThan(0);
         },
         { timeout: 5000 },
       );
@@ -740,10 +711,10 @@ describe("Overview page — filter interactions", () => {
         { timeout: 5000 },
       );
 
-      const sessionUrl = sessionPlotRequests.find((r) =>
+      const healthUrl = healthPlotRequests.find((r) =>
         r.url.includes("filter_short_code="),
       );
-      expect(sessionUrl?.url).toContain("filter_short_code=test-fsc-999");
+      expect(healthUrl?.url).toContain("filter_short_code=test-fsc-999");
     });
 
     it("switching version back to original does not fire duplicate POST (cache hit)", async () => {
@@ -844,11 +815,9 @@ describe("Overview page — filter interactions", () => {
       );
     });
 
-    it("changing to Last Week refetches all 3 plot endpoints", async () => {
+    it("changing to Last Week refetches the health plot endpoint", async () => {
       await renderAndWaitForData();
-      sessionPlotRequests.length = 0;
-      crashPlotRequests.length = 0;
-      anrPlotRequests.length = 0;
+      healthPlotRequests.length = 0;
 
       const now = new Date();
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -856,9 +825,7 @@ describe("Overview page — filter interactions", () => {
 
       await waitFor(
         () => {
-          expect(sessionPlotRequests.length).toBeGreaterThan(0);
-          expect(crashPlotRequests.length).toBeGreaterThan(0);
-          expect(anrPlotRequests.length).toBeGreaterThan(0);
+          expect(healthPlotRequests.length).toBeGreaterThan(0);
         },
         { timeout: 5000 },
       );
@@ -1072,9 +1039,9 @@ describe("Overview page — filter interactions", () => {
     });
 
     it("metrics and plots refetch independently — one can succeed while other fails", async () => {
-      // Override session plot to return error, keep metrics working
+      // Override the health plot to return error, keep metrics working
       server.use(
-        http.get("*/api/apps/:appId/sessions/plots/instances", () => {
+        http.get("*/api/apps/:appId/health/plots/instances", () => {
           return new HttpResponse(null, { status: 500 });
         }),
       );
@@ -1414,6 +1381,10 @@ describe("Overview page — URL serialization and parsing", () => {
     it("version selection survives URL round-trip", async () => {
       await renderAndWaitForData();
 
+      // Clear replace calls from the initial render so the capture below reflects
+      // the version change (React 19 defers the effect that writes the URL).
+      mockRouterReplace.mockClear();
+
       // Change version to index 1
       await act(async () => {
         filtersStore
@@ -1443,6 +1414,12 @@ describe("Overview page — URL serialization and parsing", () => {
         mockSearchParams.set(key, value);
       }
 
+      // Unmount the first tree before re-rendering: this round-trip simulates a
+      // fresh navigation to the captured URL. Leaving it mounted lets its stale
+      // Filters effect race with the new mount over the shared store (React 19's
+      // effect ordering surfaces this; React 18 happened to let the new tree win).
+      cleanup();
+
       renderWithProviders(<Overview params={{ teamId: "test-team" }} />);
       await waitFor(
         () => {
@@ -1453,10 +1430,13 @@ describe("Overview page — URL serialization and parsing", () => {
         { timeout: 5000 },
       );
 
-      // The version should be restored from URL
-      const versions = filtersStore.getState().selectedVersions;
-      expect(versions).toHaveLength(1);
-      expect(versions[0].name).toBe("3.0.2");
+      // The version should be restored from URL. React 19 may commit the
+      // restored selection a tick after the data resolves, so wait for it.
+      await waitFor(() => {
+        const versions = filtersStore.getState().selectedVersions;
+        expect(versions).toHaveLength(1);
+        expect(versions[0].name).toBe("3.0.2");
+      });
     });
 
     it("date range survives URL round-trip", async () => {
@@ -1491,6 +1471,12 @@ describe("Overview page — URL serialization and parsing", () => {
       for (const [key, value] of serializedParams.entries()) {
         mockSearchParams.set(key, value);
       }
+
+      // Unmount the first tree before re-rendering: this round-trip simulates a
+      // fresh navigation to the captured URL. Leaving it mounted lets its stale
+      // Filters effect race with the new mount over the shared store (React 19's
+      // effect ordering surfaces this; React 18 happened to let the new tree win).
+      cleanup();
 
       renderWithProviders(<Overview params={{ teamId: "test-team" }} />);
       await waitFor(
@@ -1632,10 +1618,24 @@ describe("Overview page — rendered values", () => {
 
     it("chart does NOT show ANRs series when all ANR values are zero", async () => {
       server.use(
-        http.get("*/api/apps/:appId/anrGroups/plots/instances", () => {
+        http.get("*/api/apps/:appId/health/plots/instances", () => {
           return HttpResponse.json([
             {
-              id: "3.1.0",
+              id: "sessions",
+              data: [
+                { datetime: "2026-04-01T00:00:00Z", instances: 1000 },
+                { datetime: "2026-04-02T00:00:00Z", instances: 1100 },
+              ],
+            },
+            {
+              id: "crashes",
+              data: [
+                { datetime: "2026-04-01T00:00:00Z", instances: 5 },
+                { datetime: "2026-04-02T00:00:00Z", instances: 7 },
+              ],
+            },
+            {
+              id: "anrs",
               data: [
                 { datetime: "2026-04-01T00:00:00Z", instances: 0 },
                 { datetime: "2026-04-02T00:00:00Z", instances: 0 },
@@ -1765,12 +1765,9 @@ describe("Overview page — error edge cases", () => {
     );
   });
 
-  it("crashes plot error + ANR plot error but sessions plot success → chart shows error", async () => {
+  it("health plot error → chart shows error", async () => {
     server.use(
-      http.get("*/api/apps/:appId/crashGroups/plots/instances", () => {
-        return new HttpResponse(null, { status: 500 });
-      }),
-      http.get("*/api/apps/:appId/anrGroups/plots/instances", () => {
+      http.get("*/api/apps/:appId/health/plots/instances", () => {
         return new HttpResponse(null, { status: 500 });
       }),
     );
@@ -1785,15 +1782,9 @@ describe("Overview page — error edge cases", () => {
     );
   });
 
-  it("all plot endpoints return empty data → chart shows No Data", async () => {
+  it("health plot returns null → chart shows No Data", async () => {
     server.use(
-      http.get("*/api/apps/:appId/sessions/plots/instances", () => {
-        return HttpResponse.json(null);
-      }),
-      http.get("*/api/apps/:appId/crashGroups/plots/instances", () => {
-        return HttpResponse.json(null);
-      }),
-      http.get("*/api/apps/:appId/anrGroups/plots/instances", () => {
+      http.get("*/api/apps/:appId/health/plots/instances", () => {
         return HttpResponse.json(null);
       }),
     );
@@ -2190,9 +2181,9 @@ describe("Overview page — URL params in data-fetch requests", () => {
         allUrls.push(request.url);
         return HttpResponse.json(makeMetricsFixture());
       }),
-      http.get("*/api/apps/:appId/sessions/plots/instances", ({ request }) => {
+      http.get("*/api/apps/:appId/health/plots/instances", ({ request }) => {
         allUrls.push(request.url);
-        return HttpResponse.json(makeSessionPlotFixture());
+        return HttpResponse.json(makeHealthPlotFixture());
       }),
     );
 
@@ -2206,9 +2197,9 @@ describe("Overview page — URL params in data-fetch requests", () => {
   it("plot URLs include plot_time_group param", async () => {
     const plotUrls: string[] = [];
     server.use(
-      http.get("*/api/apps/:appId/sessions/plots/instances", ({ request }) => {
+      http.get("*/api/apps/:appId/health/plots/instances", ({ request }) => {
         plotUrls.push(request.url);
-        return HttpResponse.json(makeSessionPlotFixture());
+        return HttpResponse.json(makeHealthPlotFixture());
       }),
     );
 
@@ -2222,9 +2213,9 @@ describe("Overview page — URL params in data-fetch requests", () => {
     // Default is Last 6 Hours → ≤24h → "minutes"
     const plotUrls: string[] = [];
     server.use(
-      http.get("*/api/apps/:appId/sessions/plots/instances", ({ request }) => {
+      http.get("*/api/apps/:appId/health/plots/instances", ({ request }) => {
         plotUrls.push(request.url);
-        return HttpResponse.json(makeSessionPlotFixture());
+        return HttpResponse.json(makeHealthPlotFixture());
       }),
     );
 
@@ -2235,9 +2226,9 @@ describe("Overview page — URL params in data-fetch requests", () => {
   it('Last Week date range produces "hours" plot_time_group', async () => {
     const plotUrls: string[] = [];
     server.use(
-      http.get("*/api/apps/:appId/sessions/plots/instances", ({ request }) => {
+      http.get("*/api/apps/:appId/health/plots/instances", ({ request }) => {
         plotUrls.push(request.url);
-        return HttpResponse.json(makeSessionPlotFixture());
+        return HttpResponse.json(makeHealthPlotFixture());
       }),
     );
 
@@ -2270,9 +2261,9 @@ describe("Overview page — URL params in data-fetch requests", () => {
   it('Last 3 Months date range produces "days" plot_time_group', async () => {
     const plotUrls: string[] = [];
     server.use(
-      http.get("*/api/apps/:appId/sessions/plots/instances", ({ request }) => {
+      http.get("*/api/apps/:appId/health/plots/instances", ({ request }) => {
         plotUrls.push(request.url);
-        return HttpResponse.json(makeSessionPlotFixture());
+        return HttpResponse.json(makeHealthPlotFixture());
       }),
     );
 
@@ -2311,15 +2302,17 @@ describe("Overview page — URL params in data-fetch requests", () => {
 describe("Overview page — data shape edge cases", () => {
   it("null instances in plot data are treated as zero", async () => {
     server.use(
-      http.get("*/api/apps/:appId/sessions/plots/instances", () => {
+      http.get("*/api/apps/:appId/health/plots/instances", () => {
         return HttpResponse.json([
           {
-            id: "3.1.0",
+            id: "sessions",
             data: [
               { datetime: "2026-04-01T00:00:00Z", instances: null },
               { datetime: "2026-04-02T00:00:00Z", instances: 100 },
             ],
           },
+          { id: "crashes", data: [] },
+          { id: "anrs", data: [] },
         ]);
       }),
     );
@@ -2356,26 +2349,18 @@ describe("Overview page — data shape edge cases", () => {
 
   it("single data point in plot renders chart", async () => {
     server.use(
-      http.get("*/api/apps/:appId/sessions/plots/instances", () => {
+      http.get("*/api/apps/:appId/health/plots/instances", () => {
         return HttpResponse.json([
           {
-            id: "3.1.0",
+            id: "sessions",
             data: [{ datetime: "2026-04-01T00:00:00Z", instances: 500 }],
           },
-        ]);
-      }),
-      http.get("*/api/apps/:appId/crashGroups/plots/instances", () => {
-        return HttpResponse.json([
           {
-            id: "3.1.0",
+            id: "crashes",
             data: [{ datetime: "2026-04-01T00:00:00Z", instances: 5 }],
           },
-        ]);
-      }),
-      http.get("*/api/apps/:appId/anrGroups/plots/instances", () => {
-        return HttpResponse.json([
           {
-            id: "3.1.0",
+            id: "anrs",
             data: [{ datetime: "2026-04-01T00:00:00Z", instances: 1 }],
           },
         ]);
@@ -2393,39 +2378,32 @@ describe("Overview page — data shape edge cases", () => {
     );
   });
 
-  it("multi-version plot data merges correctly into unique dates", async () => {
-    // Two versions with overlapping dates — mergeSeries sums instances
-    // per date. All 3 child datasets need same dates so the union size
-    // matches expectations.
-    const twoDates = [
-      { datetime: "2026-04-01T00:00:00Z", instances: 10 },
-      { datetime: "2026-04-02T00:00:00Z", instances: 20 },
-    ];
+  it("merges unique dates across the three series", async () => {
+    // The client unions datetimes across sessions/crashes/anrs and
+    // zero-fills gaps, so every series gets padded to the union size.
     server.use(
-      http.get("*/api/apps/:appId/sessions/plots/instances", () => {
+      http.get("*/api/apps/:appId/health/plots/instances", () => {
         return HttpResponse.json([
           {
-            id: "3.1.0",
+            id: "sessions",
             data: [
               { datetime: "2026-04-01T00:00:00Z", instances: 100 },
               { datetime: "2026-04-02T00:00:00Z", instances: 200 },
             ],
           },
           {
-            id: "3.0.2",
+            id: "crashes",
             data: [
-              { datetime: "2026-04-01T00:00:00Z", instances: 50 },
-              { datetime: "2026-04-02T00:00:00Z", instances: 75 },
-              { datetime: "2026-04-03T00:00:00Z", instances: 25 },
+              { datetime: "2026-04-01T00:00:00Z", instances: 5 },
+              { datetime: "2026-04-02T00:00:00Z", instances: 7 },
+              { datetime: "2026-04-03T00:00:00Z", instances: 3 },
             ],
           },
+          {
+            id: "anrs",
+            data: [{ datetime: "2026-04-02T00:00:00Z", instances: 1 }],
+          },
         ]);
-      }),
-      http.get("*/api/apps/:appId/crashGroups/plots/instances", () => {
-        return HttpResponse.json([{ id: "3.1.0", data: twoDates }]);
-      }),
-      http.get("*/api/apps/:appId/anrGroups/plots/instances", () => {
-        return HttpResponse.json([{ id: "3.1.0", data: twoDates }]);
       }),
     );
 
@@ -2433,8 +2411,8 @@ describe("Overview page — data shape edge cases", () => {
 
     await waitFor(
       () => {
-        // 3 unique dates across the 2 session versions (A01, A02, A03).
-        // All series get padded to 3 points (the union of all dates).
+        // 3 unique dates across the series (A01, A02, A03). All series get
+        // padded to 3 points (the union of all dates).
         const sessions = screen.getByTestId("chart-series-Sessions");
         expect(sessions.textContent).toContain("3 points");
       },

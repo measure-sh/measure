@@ -354,7 +354,7 @@ private struct NativeIOSScreen: View {
             do {
                 _ = try String(contentsOfFile: "/nonexistent/path.txt", encoding: .utf8)
             } catch {
-                Measure.trackError(error, collectStackTraces: true)
+                Measure.trackError(error)
             }
         case .createSpan:
             let span = Measure.startSpan(name: "load-data")

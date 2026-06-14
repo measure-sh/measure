@@ -143,8 +143,8 @@ func (h *TestHelper) SeedApp(ctx context.Context, t *testing.T, appID, teamID, a
 	now := time.Now()
 
 	_, err := h.PgPool.Exec(ctx,
-		`INSERT INTO apps (id, team_id, app_name, unique_identifier, os_name, first_version, onboarded, onboarded_at, retention, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-		appID, teamID, appName, appName, "android", "1.0.0", true, now, retention, now, now)
+		`INSERT INTO apps (id, team_id, app_name, unique_identifier, os_names, first_version, onboarded, onboarded_at, retention, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+		appID, teamID, appName, appName, []string{"android"}, "1.0.0", true, now, retention, now, now)
 	if err != nil {
 		t.Fatalf("seed app: %v", err)
 	}
@@ -193,36 +193,131 @@ func (h *TestHelper) SeedIngestionUsage(ctx context.Context, t *testing.T, teamI
 	}
 }
 
-func (h *TestHelper) SeedEvents(ctx context.Context, t *testing.T, teamID, appID string, count int) {
+// EventRow describes one or more rows to insert into the events table. It is
+// the single source of truth for seeding events: every higher-level helper
+// (generic, issue, severity, app-metrics, …) builds an EventRow and delegates
+// to SeedEventRows, so any attribute — app version, severity, handled state,
+// session — can be varied without adding new helpers.
+//
+// Zero-value fields fall back to defaults applied by (EventRow).filled:
+//   - Type:       "test"
+//   - AppVersion: "v1", AppBuild: "1"
+//   - Timestamp:  time.Now().UTC()
+//   - SessionID:  a fresh UUID per inserted row
+type EventRow struct {
+	Type       string
+	SessionID  string
+	Timestamp  time.Time
+	AppVersion string
+	AppBuild   string
+
+	// Exception/ANR payload, written only for issue events (Type "exception"
+	// or "anr"). Severity, ExceptionsJSON and IsCustom are written only when
+	// set, leaving ClickHouse column defaults otherwise.
+	Handled        bool
+	Fingerprint    string
+	Severity       string
+	ExceptionsJSON string
+	IsCustom       bool
+}
+
+func (r EventRow) filled() EventRow {
+	if r.Type == "" {
+		r.Type = "test"
+	}
+	if r.AppVersion == "" {
+		r.AppVersion = "v1"
+	}
+	if r.AppBuild == "" {
+		r.AppBuild = "1"
+	}
+	if r.Timestamp.IsZero() {
+		r.Timestamp = time.Now().UTC()
+	}
+	return r
+}
+
+// SeedEventRows inserts count rows described by row into the events table using
+// a single bulk INSERT … SELECT FROM numbers(count). Each row gets a fresh id
+// and installation id; the session id is fresh per row unless row.SessionID
+// pins it, so a batch of generic events represents distinct sessions. Issue
+// payload columns are emitted only for exception/anr events.
+func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, appID string, count int, row EventRow) {
 	t.Helper()
-	for i := 0; i < count; i++ {
-		query := fmt.Sprintf(
-			`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
-				"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
-				"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`) "+
-				`VALUES ('%s', 'test', '%s', '%s', '%s', now(), false, '%s', 'v1', '1', 'com.test', 'android', '0.1')`,
-			uuid.New().String(), uuid.New().String(), appID, teamID, uuid.New().String())
-		if err := h.ChConn.Exec(ctx, query); err != nil {
-			t.Fatalf("seed events: %v", err)
+	if count <= 0 {
+		return
+	}
+	row = row.filled()
+	ts := row.Timestamp.UTC().Format("2006-01-02 15:04:05")
+	isIssue := row.Type == "exception" || row.Type == "anr"
+
+	quote := func(s string) string { return "'" + s + "'" }
+	boolLit := func(b bool) string {
+		if b {
+			return "true"
 		}
+		return "false"
+	}
+
+	// generateUUIDv4() is evaluated per row by ClickHouse, so id, installation
+	// id and (unpinned) session id are unique across the batch.
+	sessionExpr := "generateUUIDv4()"
+	if row.SessionID != "" {
+		sessionExpr = quote(row.SessionID)
+	}
+
+	cols := []string{
+		"id", "type", "session_id", "app_id", "team_id", "timestamp", "user_triggered",
+		"`attribute.installation_id`", "`attribute.app_version`", "`attribute.app_build`",
+		"`attribute.app_unique_id`", "`attribute.platform`", "`attribute.measure_sdk_version`",
+	}
+	vals := []string{
+		"generateUUIDv4()", quote(row.Type), sessionExpr, quote(appID), quote(teamID),
+		quote(ts), "false", "generateUUIDv4()",
+		quote(row.AppVersion), quote(row.AppBuild), "'com.test'", "'android'", "'0.1'",
+	}
+
+	if isIssue {
+		cols = append(cols,
+			"`exception.handled`", "`exception.foreground`", "`exception.fingerprint`",
+			"`anr.handled`", "`anr.foreground`", "`anr.fingerprint`")
+		vals = append(vals,
+			boolLit(row.Handled), "true", quote(row.Fingerprint),
+			boolLit(row.Handled), "true", quote(row.Fingerprint))
+
+		if row.ExceptionsJSON != "" {
+			cols = append(cols, "`exception.exceptions`", "`anr.exceptions`")
+			vals = append(vals, quote(row.ExceptionsJSON), quote(row.ExceptionsJSON))
+		}
+		if row.Severity != "" {
+			cols = append(cols, "`exception.severity`")
+			vals = append(vals, quote(row.Severity))
+		}
+		if row.IsCustom {
+			cols = append(cols, "`exception.is_custom`")
+			vals = append(vals, "true")
+		}
+	}
+
+	query := fmt.Sprintf("INSERT INTO measure.events (%s) SELECT %s FROM numbers(%d)",
+		strings.Join(cols, ", "), strings.Join(vals, ", "), count)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed event (%s): %v", row.Type, err)
 	}
 }
 
+// SeedEvents inserts count generic ("test") events at the current time.
+func (h *TestHelper) SeedEvents(ctx context.Context, t *testing.T, teamID, appID string, count int) {
+	t.Helper()
+	h.SeedEventRows(ctx, t, teamID, appID, count, EventRow{})
+}
+
 // SeedGenericEvents inserts count generic ("test" type) events at the given
-// timestamp using a single bulk INSERT…SELECT FROM numbers(count). Each row
-// gets a server-generated UUID for its id, session_id, and installation_id,
-// so every event represents a distinct session.
+// timestamp. Each row gets a fresh id, session id and installation id, so
+// every event represents a distinct session.
 func (h *TestHelper) SeedGenericEvents(ctx context.Context, t *testing.T, teamID, appID string, count int, ts time.Time) {
 	t.Helper()
-	query := fmt.Sprintf(
-		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
-			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
-			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`) "+
-			`SELECT generateUUIDv4(), 'test', generateUUIDv4(), '%s', '%s', '%s', false, generateUUIDv4(), 'v1', '1', 'com.test', 'android', '0.1' FROM numbers(%d)`,
-		appID, teamID, ts.UTC().Format("2006-01-02 15:04:05"), count)
-	if err := h.ChConn.Exec(ctx, query); err != nil {
-		t.Fatalf("seed generic events: %v", err)
-	}
+	h.SeedEventRows(ctx, t, teamID, appID, count, EventRow{Timestamp: ts})
 }
 
 // SeedIssueEvent inserts a single exception or ANR event with explicit handled
@@ -273,19 +368,34 @@ func (h *TestHelper) SeedIssueEventWithDataInSession(
 	ts time.Time,
 ) {
 	t.Helper()
-	query := fmt.Sprintf(
-		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
-			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
-			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`, "+
-			"`exception.handled`, `exception.foreground`, `exception.fingerprint`, `exception.exceptions`, "+
-			"`anr.handled`, `anr.foreground`, `anr.fingerprint`, `anr.exceptions`) "+
-			`VALUES ('%s', '%s', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1', %t, true, '%s', '%s', %t, true, '%s', '%s')`,
-		uuid.New().String(), eventType, sessionID, appID, teamID,
-		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String(),
-		handled, fingerprint, exceptionsJSON, handled, fingerprint, exceptionsJSON)
-	if err := h.ChConn.Exec(ctx, query); err != nil {
-		t.Fatalf("seed issue event with data (%s): %v", eventType, err)
-	}
+	h.SeedEventRows(ctx, t, teamID, appID, 1, EventRow{
+		Type:           eventType,
+		SessionID:      sessionID,
+		Fingerprint:    fingerprint,
+		Handled:        handled,
+		ExceptionsJSON: exceptionsJSON,
+		Timestamp:      ts,
+	})
+}
+
+// SeedIssueEventWithSeverity inserts an exception event with an explicit
+// exception.severity column value, mimicking new-SDK ingestion. The handled
+// bool is set consistently with severity ("handled" → true, others → false).
+// Use this to test the new-data path of severity-aware queries.
+func (h *TestHelper) SeedIssueEventWithSeverity(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, fingerprint, severity string,
+	ts time.Time,
+) {
+	t.Helper()
+	h.SeedEventRows(ctx, t, teamID, appID, 1, EventRow{
+		Type:        "exception",
+		Fingerprint: fingerprint,
+		Severity:    severity,
+		Handled:     severity == "handled",
+		Timestamp:   ts,
+	})
 }
 
 // SeedNavigationEventInSession inserts a navigation event with a known
@@ -309,16 +419,7 @@ func (h *TestHelper) SeedNavigationEventInSession(ctx context.Context, t *testin
 // sessions_index gets populated via the materialized view.
 func (h *TestHelper) SeedEventWithSession(ctx context.Context, t *testing.T, teamID, appID, sessionID string, ts time.Time) {
 	t.Helper()
-	query := fmt.Sprintf(
-		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
-			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
-			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`) "+
-			`VALUES ('%s', 'test', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1')`,
-		uuid.New().String(), sessionID, appID, teamID,
-		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String())
-	if err := h.ChConn.Exec(ctx, query); err != nil {
-		t.Fatalf("seed event with session: %v", err)
-	}
+	h.SeedEventRows(ctx, t, teamID, appID, 1, EventRow{SessionID: sessionID, Timestamp: ts})
 }
 
 // SeedExceptionGroup inserts a row into fatal_exception_groups so that
@@ -447,18 +548,13 @@ func (h *TestHelper) SeedIssueEventWithCustomFlag(
 	ts time.Time,
 ) {
 	t.Helper()
-	query := fmt.Sprintf(
-		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
-			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
-			"`attribute.app_unique_id`, `attribute.platform`, `attribute.measure_sdk_version`, "+
-			"`exception.handled`, `exception.foreground`, `exception.fingerprint`, `exception.is_custom`) "+
-			`VALUES ('%s', 'exception', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', 'android', '0.1', %t, true, '%s', %t)`,
-		uuid.New().String(), uuid.New().String(), appID, teamID,
-		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String(),
-		handled, fingerprint, isCustom)
-	if err := h.ChConn.Exec(ctx, query); err != nil {
-		t.Fatalf("seed issue event with custom flag: %v", err)
-	}
+	h.SeedEventRows(ctx, t, teamID, appID, 1, EventRow{
+		Type:        "exception",
+		Fingerprint: fingerprint,
+		Handled:     handled,
+		IsCustom:    isCustom,
+		Timestamp:   ts,
+	})
 }
 
 // SeedAnrGroup inserts a row into anr_groups so that ANR-alert group-info

@@ -33,6 +33,8 @@ type Attribute struct {
 	// - android
 	// - ios
 	// - flutter
+	//
+	// Deprecated: Use OSName instead.
 	Platform string `json:"platform" binding:"required"`
 
 	// ThreadName is the thread on which the

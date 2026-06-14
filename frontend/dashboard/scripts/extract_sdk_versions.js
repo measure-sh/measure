@@ -32,6 +32,7 @@ const PATTERNS = {
   androidSdk: /measure-android:(\d+\.\d+\.\d+)/,
   iosSdk: /branch:\s*["']ios-v(\d+\.\d+\.\d+)["']/,
   flutter: /measure_flutter:\s*\^(\d+\.\d+\.\d+)/,
+  reactNative: /@measuresh\/react-native@(\d+\.\d+\.\d+)/,
 };
 
 function findSource() {
@@ -70,6 +71,7 @@ export const SDK_VERSIONS = {
   androidSdk: ${JSON.stringify(versions.androidSdk)},
   iosSdk: ${JSON.stringify(versions.iosSdk)},
   flutter: ${JSON.stringify(versions.flutter)},
+  reactNative: ${JSON.stringify(versions.reactNative)},
 } as const
 `;
 }

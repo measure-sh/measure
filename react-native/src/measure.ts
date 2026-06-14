@@ -40,7 +40,6 @@ export const Measure = {
    * const measureConfig = new MeasureConfig({
    *       enableLogging: true,
    *       autoStart: true,
-   *       enableFullCollectionMode: false,
    *       enableDiagnosticMode: true,
    *     });
    *
@@ -332,11 +331,13 @@ export const Measure = {
    * Measure.launchBugReport({ takeScreenshot: true, bugReportConfig: { theme: "dark" }, attributes: { userId: "123", screen: "Home" } });
    * ```
    */
-  launchBugReport(params: {
-    takeScreenshot?: boolean;
-    bugReportConfig?: Record<string, any>;
-    attributes?: Record<string, ValidAttributeValue>;
-  } = {}): Promise<void> {
+  launchBugReport(
+    params: {
+      takeScreenshot?: boolean;
+      bugReportConfig?: Record<string, any>;
+      attributes?: Record<string, ValidAttributeValue>;
+    } = {}
+  ): Promise<void> {
     if (!_measureInternal) {
       return Promise.reject(
         new Error('Measure is not initialized. Call init() first.')
@@ -433,6 +434,37 @@ export const Measure = {
     }
 
     return _measureInternal.trackBugReport(params);
+  },
+
+  /**
+   * Tracks a handled error with optional attributes.
+   *
+   * Use this to manually capture exceptions that are caught and handled in your
+   * code but are still meaningful to track (e.g., a failed payment, a network
+   * error that was gracefully recovered from).
+   *
+   * @param params.error - The error or value to track.
+   * @param params.attributes - Optional key-value pairs providing additional context.
+   *
+   * @example
+   * ```ts
+   * try {
+   *   await processPayment();
+   * } catch (e) {
+   *   Measure.trackError({ error: e, attributes: { screen: "Checkout" } });
+   * }
+   * ```
+   */
+  trackError(params: {
+    error: unknown;
+    attributes?: Record<string, ValidAttributeValue>;
+  }): Promise<void> {
+    if (!_measureInternal) {
+      return Promise.reject(
+        new Error('Measure is not initialized. Call init() first.')
+      );
+    }
+    return _measureInternal.trackError(params);
   },
 
   /**

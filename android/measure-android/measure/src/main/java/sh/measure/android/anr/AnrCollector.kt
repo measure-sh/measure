@@ -47,7 +47,6 @@ internal class AnrCollector(
 
     private fun toMeasureException(anr: AnrError): ExceptionData = ExceptionFactory.createMeasureException(
         throwable = anr,
-        handled = false,
         thread = anr.thread,
         foreground = processInfo.isForegroundProcess(),
     )

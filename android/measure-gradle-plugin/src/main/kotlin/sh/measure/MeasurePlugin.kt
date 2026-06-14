@@ -6,9 +6,17 @@ import com.android.build.api.variant.Variant
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.Task
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.Directory
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFile
+import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.TaskProvider
+import org.gradle.api.tasks.bundling.Compression
+import org.gradle.api.tasks.bundling.Tar
 import sh.measure.asm.BytecodeTransformationPipelineBuilder
 import sh.measure.asm.BytecodeTransformer
 import sh.measure.asm.HttpUrlConnectionTransformer
@@ -31,8 +39,8 @@ class MeasurePlugin : Plugin<Project> {
         if (!project.plugins.hasPlugin("com.android.application")) {
             project.logger.warn(
                 """
-                WARNING: Measure gradle plugin can only be applied to Android application projects, 
-                that is, projects that have the com.android.application plugin applied. 
+                WARNING: Measure gradle plugin can only be applied to Android application projects,
+                that is, projects that have the com.android.application plugin applied.
                 Applying the plugin to other project types has no effect.
                 """.trimIndent(),
             )
@@ -103,6 +111,8 @@ class MeasurePlugin : Plugin<Project> {
                 it.appSizeOutputFileProperty.set(appSizeFileProvider(project, variant))
             }
 
+        val rnBundleArchives = project.objects.fileCollection()
+
         val uploadBuildProvider =
             project.tasks
                 .register(
@@ -111,9 +121,12 @@ class MeasurePlugin : Plugin<Project> {
                 ) {
                     it.manifestFileProperty.set(manifestDataFileProvider(project, variant))
                     it.mappingFileProperty.set(variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE))
-                    getFlutterSymbolsDirPath(project)?.takeIf { path -> path.exists() }?.let { path ->
-                        it.flutterSymbolsDirProperty.set(path)
+                    getFlutterSymbolsDirPath(project)?.let { dir ->
+                        it.flutterSymbolsFiles.from(
+                            project.fileTree(dir) { tree -> tree.include("**/*.symbols") },
+                        )
                     }
+                    it.reactNativeBundleArchives.setFrom(rnBundleArchives)
                     it.buildMetadataFileProperty.set(appSizeFileProvider(project, variant))
                     it.retriesProperty.set(DEFAULT_RETRIES)
                     it.usesService(httpClientProvider)
@@ -142,6 +155,7 @@ class MeasurePlugin : Plugin<Project> {
                 task.finalizedBy(aabSizeProvider, uploadBuildProvider)
             }
         }
+        wireReactNativeBundle(project, variant, rnBundleArchives)
     }
 
     private fun getFlutterExtension(project: Project): Any? = project.extensions.findByName("flutter")
@@ -168,6 +182,160 @@ class MeasurePlugin : Plugin<Project> {
     private fun buildUploadTaskName(variant: Variant) = "upload${variant.name.capitalize()}BuildToMeasure"
 
     private fun extractManifestDataTaskName(variant: Variant) = "extract${variant.name.capitalize()}ManifestData"
+
+    private fun packageReactNativeBundleTaskName(variant: Variant) = "packageReactNativeBundle${variant.name.capitalize()}"
+
+    private fun packageReactNativeSourceMapTaskName(variant: Variant) = "packageReactNativeSourceMap${variant.name.capitalize()}"
+
+    private fun rewriteReactNativeSourceMapTaskName(variant: Variant) = "rewriteReactNativeSourceMap${variant.name.capitalize()}"
+
+    private fun emptyReactNativeBundleTaskName(variant: Variant) = "prepareEmptyReactNativeBundle${variant.name.capitalize()}"
+
+    // The builds API expects the JS bundle and its source map as two separate
+    // jsbundle mappings, each a .tgz wrapping a single file. Symbolication pairs
+    // them server-side via the inner filename's .map suffix.
+    //
+    // With Hermes the bundle is bytecode that symbolication never reads, only the
+    // source map matters, so we package an empty placeholder named after the bundle
+    // asset instead of uploading the real (large) bytecode bundle. The placeholder
+    // keeps the archive and inner filename intact so server-side pairing still works.
+    private fun wireReactNativeBundle(
+        project: Project,
+        variant: Variant,
+        rnBundleArchives: ConfigurableFileCollection,
+    ) {
+        if (!project.plugins.hasPlugin("com.facebook.react")) return
+
+        val capName = variant.name.capitalize()
+        val candidateNames = setOf(
+            "createBundle${capName}JsAndAssets",
+            "bundle${capName}JsAndAssets",
+        )
+
+        val bundleFile = project.objects.fileProperty()
+        val sourceMapFile = project.objects.fileProperty()
+        val emptyBundleAssetName = project.objects.property(String::class.java)
+        val emptyBundleFile = project.layout.buildDirectory.file(
+            emptyBundleAssetName.map { "intermediates/measure/${variant.name}/emptyBundle/$it" },
+        )
+        val emptyBundleTask = project.tasks.register(emptyReactNativeBundleTaskName(variant)) { task ->
+            task.onlyIf { emptyBundleAssetName.isPresent }
+            task.outputs.file(emptyBundleFile)
+            task.doLast {
+                emptyBundleFile.get().asFile.apply {
+                    parentFile.mkdirs()
+                    writeBytes(ByteArray(0))
+                }
+            }
+        }
+
+        val packageBundleTask = registerPackageArchiveTask(
+            project,
+            variant,
+            packageReactNativeBundleTaskName(variant),
+            bundleFile,
+        )
+        packageBundleTask.configure { it.dependsOn(emptyBundleTask) }
+        val rewriteSourceMapTask = project.tasks.register(
+            rewriteReactNativeSourceMapTaskName(variant),
+            RewriteJsSourceMapTask::class.java,
+        ) {
+            it.sourceMapInputProperty.set(sourceMapFile)
+            it.sourceMapOutputProperty.set(
+                project.layout.buildDirectory.file(
+                    sourceMapFile.map { map ->
+                        "intermediates/measure/${variant.name}/rn-sourcemap/${map.asFile.name}"
+                    },
+                ),
+            )
+        }
+        val packageSourceMapTask = registerPackageArchiveTask(
+            project,
+            variant,
+            packageReactNativeSourceMapTaskName(variant),
+            rewriteSourceMapTask.flatMap { it.sourceMapOutputProperty },
+        )
+
+        project.tasks.matching { it.name in candidateNames }.configureEach { bundleTask ->
+            val paths = readReactNativeBundlePaths(project, bundleTask) ?: return@configureEach
+            if (paths.hermesEnabled) {
+                emptyBundleAssetName.set(paths.bundleAssetName)
+                bundleFile.set(emptyBundleTask.flatMap { emptyBundleFile })
+            } else {
+                bundleFile.set(paths.bundle)
+            }
+            sourceMapFile.set(paths.sourceMap)
+            rnBundleArchives.from(
+                packageBundleTask.flatMap { it.archiveFile },
+                packageSourceMapTask.flatMap { it.archiveFile },
+            )
+        }
+    }
+
+    private fun registerPackageArchiveTask(
+        project: Project,
+        variant: Variant,
+        taskName: String,
+        file: Provider<RegularFile>,
+    ): TaskProvider<Tar> = project.tasks.register(taskName, Tar::class.java) {
+        it.compression = Compression.GZIP
+        it.archiveFileName.set(file.map { f -> "${f.asFile.name}.tgz" })
+        it.destinationDirectory.set(
+            project.layout.buildDirectory.dir("intermediates/measure/${variant.name}"),
+        )
+        it.from(file)
+    }
+
+    private data class ReactNativeBundlePaths(
+        val bundle: Provider<RegularFile>,
+        val sourceMap: Provider<RegularFile>,
+        val bundleAssetName: Provider<String>,
+        val hermesEnabled: Boolean,
+    )
+
+    private fun readReactNativeBundlePaths(
+        project: Project,
+        bundleTask: Task,
+    ): ReactNativeBundlePaths? = try {
+        val jsBundleDir = bundleTask::class.java.getMethod("getJsBundleDir")
+            .invoke(bundleTask) as DirectoryProperty
+        val jsSourceMapsDir = bundleTask::class.java.getMethod("getJsSourceMapsDir")
+            .invoke(bundleTask) as DirectoryProperty
+
+        @Suppress("UNCHECKED_CAST")
+        val bundleAssetName = bundleTask::class.java.getMethod("getBundleAssetName")
+            .invoke(bundleTask) as Property<String>
+
+        @Suppress("UNCHECKED_CAST")
+        val hermesEnabled = bundleTask::class.java.getMethod("getHermesEnabled")
+            .invoke(bundleTask) as Property<Boolean>
+
+        @Suppress("UNCHECKED_CAST")
+        val hermesFlags = bundleTask::class.java.getMethod("getHermesFlags")
+            .invoke(bundleTask) as ListProperty<String>
+
+        if (hermesEnabled.get() && "-output-source-map" !in hermesFlags.get()) {
+            project.logger.warn(
+                "measure: Hermes is enabled but -output-source-map is missing from " +
+                    "hermesFlags; no React Native source map will be uploaded. Add " +
+                    "-output-source-map back to hermesFlags to enable symbolication.",
+            )
+            null
+        } else {
+            ReactNativeBundlePaths(
+                bundle = jsBundleDir.file(bundleAssetName),
+                sourceMap = jsSourceMapsDir.file(bundleAssetName.map { "$it.map" }),
+                bundleAssetName = bundleAssetName,
+                hermesEnabled = hermesEnabled.get(),
+            )
+        }
+    } catch (e: Exception) {
+        project.logger.warn(
+            "measure: could not read React Native bundle config from $bundleTask, " +
+                "bundle will not be uploaded: ${e.message}",
+        )
+        null
+    }
 
     // Returns the path to the flutter symbols directory if it exists.
     // This function uses the flutter extension to get the source directory and then uses the
@@ -196,7 +364,8 @@ class MeasurePlugin : Plugin<Project> {
                         ?: continue
                 val flutterSourceDir = flutterProject.file(source)
                 if (!File(flutterSourceDir, "pubspec.yaml").exists()) continue
-                return File(flutterSourceDir, splitDebugInfoPath)
+                val symbolsDir = File(splitDebugInfoPath)
+                return if (symbolsDir.isAbsolute) symbolsDir else File(flutterSourceDir, splitDebugInfoPath)
             } catch (e: Exception) {
                 project.logger.error("measure: Error accessing Flutter source directory: ${e.message}")
             }

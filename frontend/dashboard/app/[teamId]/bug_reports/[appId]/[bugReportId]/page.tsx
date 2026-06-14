@@ -1,11 +1,13 @@
-"use client"
+"use client";
 
-import BugReport from "@/app/components/bug_report"
+import BugReport from "@/app/components/bug_report";
+import { use } from "react";
 
 interface PageProps {
-  params: { teamId: string, appId: string, bugReportId: string }
+  params: Promise<{ teamId: string; appId: string; bugReportId: string }>;
 }
 
 export default function BugReportPage({ params }: PageProps) {
-  return <BugReport params={params} />
+  const resolvedParams = use(params);
+  return <BugReport params={resolvedParams} />;
 }

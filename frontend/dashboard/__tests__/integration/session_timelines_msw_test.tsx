@@ -7,6 +7,7 @@
  * manufacturers/names, udAttrs, freeText) plus pagination. This test
  * suite exercises every filter, pagination, URL sync, and the detail page.
  */
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
   afterEach,
@@ -18,6 +19,7 @@ import {
 } from "@jest/globals";
 import {
   act,
+  cleanup,
   fireEvent,
   render,
   screen,
@@ -84,7 +86,9 @@ import {
 import { server } from "../msw/server";
 
 jest.spyOn(console, "log").mockImplementation(() => {});
-jest.spyOn(console, "error").mockImplementation(() => {});
+const consoleErrorSpy = jest
+  .spyOn(console, "error")
+  .mockImplementation(() => {});
 
 beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
 afterEach(() => {
@@ -141,7 +145,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
 
   async function renderAndWaitForData() {
     renderWithProviders(
-      <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+      <SessionTimelinesOverview
+        params={promiseParams({ teamId: "test-team" })}
+      />,
     );
     await waitFor(
       () => {
@@ -163,15 +169,6 @@ describe("Session Timelines Overview (MSW integration)", () => {
       expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy();
       expect(screen.getByText(/Session ID: sess-002/)).toBeTruthy();
       expect(screen.getByTestId("nivo-line-chart")).toBeTruthy();
-    });
-
-    it("renders info note about session capture", async () => {
-      await renderAndWaitForData();
-      expect(
-        screen.getByText(
-          /Timelines are captured for Crashes, ANRs, Bug Reports/,
-        ),
-      ).toBeTruthy();
     });
 
     it("renders device info for each session row", async () => {
@@ -200,7 +197,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
         }),
       );
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -219,7 +218,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
         }),
       );
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -236,7 +237,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
         }),
       );
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -288,7 +291,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -366,7 +371,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -431,7 +438,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -490,7 +499,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
 
       mockSearchParams.set("po", "5");
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -515,7 +526,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -720,14 +733,14 @@ describe("Session Timelines Overview (MSW integration)", () => {
     });
 
     // --- Session type filter (URL param, not shortFilters body) ---
-    it("session type change adds crash/anr params to data-fetch URL", async () => {
+    it("session type change adds type=error,anr + severity to data-fetch URL", async () => {
       await renderAndWaitForData();
       sessionRequests.length = 0;
       await act(async () => {
         filtersStore
           .getState()
           .setSelectedSessionTypes([
-            "Crash Sessions" as any,
+            "Fatal Error Sessions" as any,
             "ANR Sessions" as any,
           ]);
       });
@@ -735,8 +748,8 @@ describe("Session Timelines Overview (MSW integration)", () => {
         timeout: 5000,
       });
       const url = sessionRequests[sessionRequests.length - 1].url;
-      expect(url).toContain("crash=1");
-      expect(url).toContain("anr=1");
+      expect(url).toContain("type=error%2Canr");
+      expect(url).toContain("severity=fatal");
     });
 
     // --- Free text filter (URL param) ---
@@ -845,7 +858,9 @@ describe("Session Timelines Overview (MSW integration)", () => {
       mockSearchParams.set("po", "10");
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
 
       // The useEffect reads po from URL and calls setPaginationOffset
@@ -888,11 +903,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "my-app",
             sessionId: "my-session",
-          }}
+          })}
         />,
       );
       await waitFor(
@@ -917,11 +932,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(() => {
@@ -938,11 +953,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(
@@ -963,11 +978,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
       );
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
 
@@ -993,11 +1008,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       const { unmount } = renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(
@@ -1010,11 +1025,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
       unmount();
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       // Cached data shows immediately — no loading spinner
@@ -1032,11 +1047,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       const { unmount } = renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(() => expect(fetchCount).toBe(1), { timeout: 5000 });
@@ -1044,11 +1059,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
       unmount();
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-002",
-          }}
+          })}
         />,
       );
       await waitFor(() => expect(fetchCount).toBe(2), { timeout: 5000 });
@@ -1068,11 +1083,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(() => expect(refreshAttempted).toBe(true), {
@@ -1097,11 +1112,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(
@@ -1125,11 +1140,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "nonexistent",
-          }}
+          })}
         />,
       );
       await waitFor(
@@ -1142,7 +1157,7 @@ describe("Session Timeline Detail (MSW integration)", () => {
       );
     });
 
-    it("clicking an event cell selects it and shows its details in the right panel", async () => {
+    it("clicking an event cell expands it inline and shows its details", async () => {
       server.use(
         http.get("*/api/apps/:appId/sessions/:sessionId", () => {
           return HttpResponse.json(makeSessionTimelineDetailFixture());
@@ -1150,11 +1165,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
       );
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(
@@ -1164,45 +1179,43 @@ describe("Session Timeline Detail (MSW integration)", () => {
         { timeout: 5000 },
       );
 
-      // The fixture has a lifecycle_activity event which renders as
-      // "Activity Created: MainActivity" via SessionTimelineEventCell
+      // The fixture has a lifecycle_activity event; the pill carries
+      // "Activity" and the cell title is the formatted "Created: MainActivity".
       await waitFor(
         () => {
-          expect(
-            screen.getByText(/Activity Created: MainActivity/),
-          ).toBeTruthy();
+          expect(screen.getByText(/Created: MainActivity/)).toBeTruthy();
         },
         { timeout: 5000 },
       );
 
-      // The fixture also has a trace event: "Trace start: activity.onCreate"
+      // The fixture also has a trace event; the pill carries "Trace" and
+      // the title is just the trace_name.
       await waitFor(
         () => {
-          expect(
-            screen.getByText(/Trace start: activity\.onCreate/),
-          ).toBeTruthy();
+          expect(screen.getByText(/activity\.onCreate/)).toBeTruthy();
         },
         { timeout: 5000 },
       );
 
-      // Click the trace event cell (second event in sorted order)
+      // Click the trace event cell to expand it.
       const traceEventButton = screen
-        .getByText(/Trace start: activity\.onCreate/)
+        .getByText(/activity\.onCreate/)
         .closest("button");
       expect(traceEventButton).toBeTruthy();
       await act(async () => {
         fireEvent.click(traceEventButton!);
       });
 
-      // The right panel (SessionTimelineEventDetails) should now show
-      // details for the trace event, which includes trace_id and trace_name
+      // The inline detail panel renders the event as a single JSON CodeBlock,
+      // so assert via textContent rather than discrete elements.
       await waitFor(() => {
-        expect(screen.getByText("trace_id")).toBeTruthy();
-        expect(screen.getByText("trace-001")).toBeTruthy();
+        const text = document.body.textContent ?? "";
+        expect(text).toContain("trace_id");
+        expect(text).toContain("trace-001");
       });
     });
 
-    it("clicking a different event cell switches the detail panel", async () => {
+    it("clicking a different event cell switches the inline details", async () => {
       server.use(
         http.get("*/api/apps/:appId/sessions/:sessionId", () => {
           return HttpResponse.json(makeSessionTimelineDetailFixture());
@@ -1210,11 +1223,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
       );
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(
@@ -1226,42 +1239,40 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       await waitFor(
         () => {
-          expect(
-            screen.getByText(/Activity Created: MainActivity/),
-          ).toBeTruthy();
-          expect(
-            screen.getByText(/Trace start: activity\.onCreate/),
-          ).toBeTruthy();
+          expect(screen.getByText(/Created: MainActivity/)).toBeTruthy();
+          expect(screen.getByText(/activity\.onCreate/)).toBeTruthy();
         },
         { timeout: 5000 },
       );
 
-      // Click the lifecycle_activity event first
+      // Click the lifecycle_activity event first.
       const activityButton = screen
-        .getByText(/Activity Created: MainActivity/)
+        .getByText(/Created: MainActivity/)
         .closest("button");
       await act(async () => {
         fireEvent.click(activityButton!);
       });
 
-      // Detail panel should show lifecycle_activity details
+      // Inline details for lifecycle_activity should now be rendered.
       await waitFor(() => {
-        expect(screen.getByText("event_type")).toBeTruthy();
-        expect(screen.getByText("lifecycle_activity")).toBeTruthy();
+        const text = document.body.textContent ?? "";
+        expect(text).toContain("event_type");
+        expect(text).toContain("lifecycle_activity");
       });
 
-      // Now click the trace event
+      // Now click the trace event. Expansion is independent, so the trace
+      // event simply opens alongside.
       const traceButton = screen
-        .getByText(/Trace start: activity\.onCreate/)
+        .getByText(/activity\.onCreate/)
         .closest("button");
       await act(async () => {
         fireEvent.click(traceButton!);
       });
 
-      // Detail panel should switch to show trace details
       await waitFor(() => {
-        expect(screen.getByText("trace_id")).toBeTruthy();
-        expect(screen.getByText("trace-001")).toBeTruthy();
+        const text = document.body.textContent ?? "";
+        expect(text).toContain("trace_id");
+        expect(text).toContain("trace-001");
       });
     });
 
@@ -1280,11 +1291,11 @@ describe("Session Timeline Detail (MSW integration)", () => {
 
       renderWithProviders(
         <SessionDetail
-          params={{
+          params={promiseParams({
             teamId: "test-team",
             appId: "app-1",
             sessionId: "sess-001",
-          }}
+          })}
         />,
       );
       await waitFor(() => expect(detailUrls.length).toBeGreaterThan(0), {
@@ -1294,6 +1305,78 @@ describe("Session Timeline Detail (MSW integration)", () => {
       // The detail URL should NOT contain filter params
       expect(detailUrls[0]).not.toContain("free_text=");
       expect(detailUrls[0]).not.toContain("filter_short_code=");
+    });
+  });
+
+  // ================================================================
+  // DUPLICATE EVENT KEYS (regression)
+  // ================================================================
+  describe("duplicate event keys", () => {
+    it("renders events sharing type, thread, and timestamp without a duplicate React key warning", async () => {
+      // Two lifecycle_view_controller callbacks fired on the same thread in the
+      // same millisecond. (event type, thread, timestamp) is therefore not a
+      // unique identity, which previously produced a shared React key and the
+      // "Encountered two children with the same key" warning.
+      server.use(
+        http.get("*/api/apps/:appId/sessions/:sessionId", () => {
+          return HttpResponse.json(
+            makeSessionTimelineDetailFixture({
+              threads: {
+                "com.apple.main-thread": [
+                  {
+                    event_type: "lifecycle_view_controller",
+                    thread_name: "com.apple.main-thread",
+                    class_name: "HomeViewController",
+                    type: "viewWillAppear",
+                    timestamp: "2026-05-26T10:18:42.322Z",
+                  },
+                  {
+                    event_type: "lifecycle_view_controller",
+                    thread_name: "com.apple.main-thread",
+                    class_name: "HomeViewController",
+                    type: "viewDidAppear",
+                    timestamp: "2026-05-26T10:18:42.322Z",
+                  },
+                ],
+              },
+              traces: [],
+            }),
+          );
+        }),
+      );
+
+      renderWithProviders(
+        <SessionDetail
+          params={promiseParams({
+            teamId: "test-team",
+            appId: "app-1",
+            sessionId: "sess-001",
+          })}
+        />,
+      );
+
+      // Both colliding events must actually render, otherwise the scenario
+      // that triggers the warning isn't exercised.
+      await waitFor(
+        () => {
+          expect(
+            screen.getByText("HomeViewController: viewWillAppear"),
+          ).toBeTruthy();
+          expect(
+            screen.getByText("HomeViewController: viewDidAppear"),
+          ).toBeTruthy();
+        },
+        { timeout: 5000 },
+      );
+
+      const duplicateKeyWarning = consoleErrorSpy.mock.calls.find((call) =>
+        call.some(
+          (arg) =>
+            typeof arg === "string" &&
+            arg.includes("two children with the same key"),
+        ),
+      );
+      expect(duplicateKeyWarning).toBeUndefined();
     });
   });
 });
@@ -1329,7 +1412,9 @@ describe("Session Timelines Overview — additional coverage", () => {
 
   async function renderAndWaitForData() {
     renderWithProviders(
-      <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+      <SessionTimelinesOverview
+        params={promiseParams({ teamId: "test-team" })}
+      />,
     );
     await waitFor(
       () => {
@@ -1344,15 +1429,17 @@ describe("Session Timelines Overview — additional coverage", () => {
   // ================================================================
   describe("session type params — each type individually", () => {
     it.each([
-      ["Crash Sessions", "crash=1"],
-      ["ANR Sessions", "anr=1"],
-      ["Bug Report Sessions", "bug_report=1"],
-      ["User Interaction Sessions", "user_interaction=1"],
-      ["Foreground Sessions", "foreground=1"],
-      ["Background Sessions", "background=1"],
+      ["Fatal Error Sessions", "type=error", "severity=fatal"],
+      ["Unhandled Error Sessions", "type=error", "severity=unhandled"],
+      ["Handled Error Sessions", "type=error", "severity=handled"],
+      ["ANR Sessions", "type=anr", undefined],
+      ["Bug Report Sessions", "bug_report=1", undefined],
+      ["User Interaction Sessions", "user_interaction=1", undefined],
+      ["Foreground Sessions", "foreground=1", undefined],
+      ["Background Sessions", "background=1", undefined],
     ])(
       'selecting "%s" adds %s to data-fetch URL',
-      async (sessionType, expectedParam) => {
+      async (sessionType, expectedType, expectedSeverity) => {
         await renderAndWaitForData();
         sessionRequests.length = 0;
 
@@ -1363,9 +1450,11 @@ describe("Session Timelines Overview — additional coverage", () => {
         await waitFor(() => expect(sessionRequests.length).toBeGreaterThan(0), {
           timeout: 5000,
         });
-        expect(sessionRequests[sessionRequests.length - 1].url).toContain(
-          expectedParam,
-        );
+        const url = sessionRequests[sessionRequests.length - 1].url;
+        expect(url).toContain(expectedType);
+        if (expectedSeverity) {
+          expect(url).toContain(expectedSeverity);
+        }
       },
     );
 
@@ -1377,7 +1466,9 @@ describe("Session Timelines Overview — additional coverage", () => {
         filtersStore
           .getState()
           .setSelectedSessionTypes([
-            "Crash Sessions",
+            "Fatal Error Sessions",
+            "Unhandled Error Sessions",
+            "Handled Error Sessions",
             "ANR Sessions",
             "Bug Report Sessions",
             "User Interaction Sessions",
@@ -1391,8 +1482,8 @@ describe("Session Timelines Overview — additional coverage", () => {
       });
       const url = sessionRequests[sessionRequests.length - 1].url;
       // When all are selected, sessionTypes.all = true → no params added
-      expect(url).not.toContain("crash=1");
-      expect(url).not.toContain("anr=1");
+      expect(url).not.toContain("type=");
+      expect(url).not.toContain("bug_report=1");
     });
   });
 
@@ -1489,7 +1580,9 @@ describe("Session Timelines Overview — additional coverage", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1578,6 +1671,10 @@ describe("Session Timelines Overview — additional coverage", () => {
     it("version + date range survive URL round-trip", async () => {
       await renderAndWaitForData();
 
+      // Clear replace calls from the initial render so the capture below reflects
+      // the version change (React 19 defers the effect that writes the URL).
+      mockRouterReplace.mockClear();
+
       await act(async () => {
         filtersStore
           .getState()
@@ -1607,8 +1704,16 @@ describe("Session Timelines Overview — additional coverage", () => {
       for (const [key, value] of params.entries())
         mockSearchParams.set(key, value);
 
+      // Unmount the first tree before re-rendering: this round-trip simulates a
+      // fresh navigation to the captured URL. Leaving it mounted lets its stale
+      // Filters effect race with the new mount over the shared store (React 19's
+      // effect ordering surfaces this; React 18 happened to let the new tree win).
+      cleanup();
+
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1630,7 +1735,9 @@ describe("Session Timelines Overview — additional coverage", () => {
   describe("store cache", () => {
     it("re-mount still shows data", async () => {
       const { unmount } = renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy(),
@@ -1639,7 +1746,9 @@ describe("Session Timelines Overview — additional coverage", () => {
 
       unmount();
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy(),
@@ -1677,7 +1786,9 @@ describe("Session Timelines Overview — additional coverage", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1702,7 +1813,9 @@ describe("Session Timelines Overview — additional coverage", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1725,7 +1838,9 @@ describe("Session Timelines Overview — additional coverage", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1748,7 +1863,9 @@ describe("Session Timelines Overview — additional coverage", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1760,34 +1877,14 @@ describe("Session Timelines Overview — additional coverage", () => {
   });
 
   // ================================================================
-  // LEARN MORE LINK
-  // ================================================================
-  describe("info note link", () => {
-    it('"Learn more" link points to the correct docs page', async () => {
-      renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Timelines are captured/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      const link = screen.getByText("Learn more");
-      expect(link.closest("a")?.getAttribute("href")).toBe(
-        "/docs/features/feature-session-timelines",
-      );
-    });
-  });
-
-  // ================================================================
   // KEYBOARD NAVIGATION ON TABLE ROWS
   // ================================================================
   describe("keyboard navigation", () => {
     it("pressing Enter on a table row calls router.push with session href", async () => {
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1815,7 +1912,9 @@ describe("Session Timelines Overview — additional coverage", () => {
 
     it("pressing Space on a table row calls router.push with session href", async () => {
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1860,7 +1959,9 @@ describe("Session Timelines Overview — additional coverage", () => {
       );
 
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1897,8 +1998,16 @@ describe("Session Timelines Overview — additional coverage", () => {
       for (const [key, value] of params.entries())
         mockSearchParams.set(key, value);
 
+      // Unmount the first tree before re-rendering: this round-trip simulates a
+      // fresh navigation to the captured URL. Leaving it mounted lets its stale
+      // Filters effect race with the new mount over the shared store (React 19's
+      // effect ordering surfaces this; React 18 happened to let the new tree win).
+      cleanup();
+
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
 
       await waitFor(
@@ -1920,7 +2029,9 @@ describe("Session Timelines Overview — additional coverage", () => {
   describe("combined session type + free text", () => {
     it("session type + free text both appear in data-fetch URL", async () => {
       renderWithProviders(
-        <SessionTimelinesOverview params={{ teamId: "test-team" }} />,
+        <SessionTimelinesOverview
+          params={promiseParams({ teamId: "test-team" })}
+        />,
       );
       await waitFor(
         () => {
@@ -1933,7 +2044,7 @@ describe("Session Timelines Overview — additional coverage", () => {
       await act(async () => {
         filtersStore
           .getState()
-          .setSelectedSessionTypes(["Crash Sessions" as any]);
+          .setSelectedSessionTypes(["Fatal Error Sessions" as any]);
         filtersStore.getState().setSelectedFreeText("NullPointerException");
       });
 
@@ -1941,7 +2052,8 @@ describe("Session Timelines Overview — additional coverage", () => {
         timeout: 5000,
       });
       const url = sessionRequests[sessionRequests.length - 1].url;
-      expect(url).toContain("crash=1");
+      expect(url).toContain("type=error");
+      expect(url).toContain("severity=fatal");
       expect(url).toContain("free_text=NullPointerException");
     });
   });
@@ -1951,7 +2063,9 @@ describe("Session timelines — team switch to no-apps team", () => {
   it("switching from team with apps to team with no apps shows NoApps after store reset", async () => {
     // Phase 1: render with team that has apps — fully load
     const { unmount } = renderWithProviders(
-      <SessionTimelinesOverview params={{ teamId: "team-with-apps" }} />,
+      <SessionTimelinesOverview
+        params={promiseParams({ teamId: "team-with-apps" })}
+      />,
     );
 
     await waitFor(
@@ -1974,7 +2088,9 @@ describe("Session timelines — team switch to no-apps team", () => {
     unmount();
 
     renderWithProviders(
-      <SessionTimelinesOverview params={{ teamId: "team-no-apps" }} />,
+      <SessionTimelinesOverview
+        params={promiseParams({ teamId: "team-no-apps" })}
+      />,
     );
 
     // Wait for NoApps message to appear

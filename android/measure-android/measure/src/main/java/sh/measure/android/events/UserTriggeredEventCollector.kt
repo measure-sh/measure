@@ -5,6 +5,7 @@ import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.exceptions.ExceptionFactory
+import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.navigation.ScreenViewData
@@ -178,7 +179,7 @@ internal class UserTriggeredEventCollectorImpl(
         signalProcessor.trackUserTriggered(
             data = ExceptionFactory.createMeasureException(
                 throwable = throwable,
-                handled = true,
+                severity = ExceptionSeverity.Handled,
                 thread = thread,
                 foreground = processInfoProvider.isForegroundProcess(),
             ),

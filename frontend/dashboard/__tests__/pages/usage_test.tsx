@@ -1,3 +1,4 @@
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import Usage from "@/app/[teamId]/usage/page";
 import {
   INCLUDED_PRO_GB,
@@ -399,7 +400,7 @@ describe("Usage Page", () => {
     useUsageStore.setState({ fetchUsageApiStatus: 0 }); // Loading
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     const spinners = screen.getAllByTestId("skeleton-mock");
@@ -410,7 +411,7 @@ describe("Usage Page", () => {
     useUsageStore.setState({ fetchUsageApiStatus: 2 }); // Error
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText(/Error fetching usage data/)).toBeInTheDocument();
@@ -420,7 +421,7 @@ describe("Usage Page", () => {
     useUsageStore.setState({ fetchUsageApiStatus: 3 }); // NoApps
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(
@@ -454,7 +455,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByTestId("pie-chart-mock")).toBeInTheDocument();
@@ -468,7 +469,7 @@ describe("Usage Page", () => {
     isBillingEnabled.mockReturnValue(false);
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.queryByText("Billing")).not.toBeInTheDocument();
@@ -481,7 +482,7 @@ describe("Usage Page", () => {
     isBillingEnabled.mockReturnValue(false);
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     const store = useUsageStore.getState();
@@ -495,7 +496,7 @@ describe("Usage Page", () => {
     useUsageStore.setState({ fetchBillingInfoApiStatus: 0 }); // Loading
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     // There will be at least one loading spinner for billing
@@ -507,7 +508,7 @@ describe("Usage Page", () => {
     useUsageStore.setState({ fetchBillingInfoApiStatus: 2 }); // Error
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText(/Error fetching billing data/)).toBeInTheDocument();
@@ -521,7 +522,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText("FREE")).toBeInTheDocument();
@@ -538,7 +539,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText("PRO")).toBeInTheDocument();
@@ -568,7 +569,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     // 1_000_000 / 5_000_000_000 = 0.0002 → 0.02% after rounding.
@@ -601,7 +602,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText("0%")).toBeInTheDocument();
@@ -628,7 +629,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     // 48 bytes / 5 GB rounds to 0 — clamp pulls it up to 0.01% so the bar isn't hidden.
@@ -644,7 +645,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.queryByText(/Free plan usage:/)).not.toBeInTheDocument();
@@ -661,7 +662,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     const upgradeButton = screen.getByText("Upgrade to Pro");
@@ -680,7 +681,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     const upgradeButton = screen.getByText("Upgrade to Pro");
@@ -704,7 +705,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     const upgradeButton = screen.getByText("Upgrade to Pro");
@@ -727,7 +728,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     const upgradeButton = screen.getByText("Upgrade to Pro");
@@ -751,7 +752,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     const downgradeButton = screen.getByText("Downgrade to Free");
@@ -772,7 +773,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     // Open dialog
@@ -809,7 +810,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     // Open dialog
@@ -850,7 +851,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText("Undo Cancellation")).toBeInTheDocument();
@@ -865,7 +866,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText(/Cancellation scheduled for/)).toBeInTheDocument();
@@ -881,7 +882,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     await act(async () => {
@@ -904,7 +905,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     await act(async () => {
@@ -933,7 +934,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.queryByText("Undo Cancellation")).not.toBeInTheDocument();
@@ -951,7 +952,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText("Undo Cancellation")).toBeDisabled();
@@ -965,7 +966,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText("Downgrade to Free")).toBeInTheDocument();
@@ -991,7 +992,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     await act(async () => {
@@ -1014,7 +1015,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.queryByText(/Next invoice/)).not.toBeInTheDocument();
@@ -1031,7 +1032,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText(/Next invoice/)).toBeInTheDocument();
@@ -1053,7 +1054,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     await act(async () => {
@@ -1082,7 +1083,7 @@ describe("Usage Page", () => {
     window.history.replaceState = jest.fn();
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     // Advance timers past the 100ms setTimeout
@@ -1108,7 +1109,7 @@ describe("Usage Page", () => {
     window.history.replaceState = jest.fn();
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     // Advance timers past the 100ms setTimeout
@@ -1135,7 +1136,7 @@ describe("Usage Page", () => {
     window.history.replaceState = jest.fn();
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     // Trigger useEffect timeout (100ms)
@@ -1156,7 +1157,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText(/GB per month included/)).toBeInTheDocument();
@@ -1173,7 +1174,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.queryByText(/GB per month included/)).not.toBeInTheDocument();
@@ -1191,7 +1192,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText(/Status:/)).toBeInTheDocument();
@@ -1209,7 +1210,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     // Free plan — subscription info should not be displayed
@@ -1224,7 +1225,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.queryByText(/Status:/)).not.toBeInTheDocument();
@@ -1243,7 +1244,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     // Subscription info section should be absent, no crash
@@ -1263,7 +1264,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText(/^Data:/)).toBeInTheDocument();
@@ -1284,7 +1285,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(
@@ -1313,7 +1314,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText(/1\.00 GB of 25\.00 GB used/)).toBeInTheDocument();
@@ -1333,7 +1334,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(
@@ -1352,7 +1353,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.queryByText(/Status:/)).not.toBeInTheDocument();
@@ -1372,7 +1373,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText("Manage Billing")).toBeInTheDocument();
@@ -1385,7 +1386,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.queryByText("Manage Billing")).not.toBeInTheDocument();
@@ -1399,7 +1400,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     const btn = screen.getByText("Manage Billing");
@@ -1418,7 +1419,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     await act(async () => {
@@ -1450,7 +1451,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     await act(async () => {
@@ -1478,7 +1479,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     await act(async () => {
@@ -1503,7 +1504,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     await act(async () => {
@@ -1532,7 +1533,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     await act(async () => {
@@ -1564,7 +1565,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     // Open and confirm downgrade dialog
@@ -1590,7 +1591,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     const skeletons = screen.getAllByTestId("skeleton-mock");
@@ -1609,7 +1610,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     await act(async () => {
@@ -1633,7 +1634,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText("ENTERPRISE")).toBeInTheDocument();
@@ -1646,7 +1647,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText(/^Data:/)).toBeInTheDocument();
@@ -1668,7 +1669,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.queryByText("Unlimited")).not.toBeInTheDocument();
@@ -1689,7 +1690,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(
@@ -1710,7 +1711,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(
@@ -1726,7 +1727,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText(/Retention:/)).toBeInTheDocument();
@@ -1740,7 +1741,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.queryByText(/Retention:/)).not.toBeInTheDocument();
@@ -1753,7 +1754,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText(/Plan period:/)).toBeInTheDocument();
@@ -1770,7 +1771,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.queryByText(/Plan period:/)).not.toBeInTheDocument();
@@ -1786,7 +1787,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.queryByText(/Data used this cycle:/)).not.toBeInTheDocument();
@@ -1801,7 +1802,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.queryByText("FREE")).not.toBeInTheDocument();
@@ -1817,7 +1818,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.queryByText(/personalised plans/)).not.toBeInTheDocument();
@@ -1831,7 +1832,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText("Manage Billing")).toBeInTheDocument();
@@ -1845,7 +1846,7 @@ describe("Usage Page", () => {
     });
 
     await act(async () => {
-      render(<Usage params={{ teamId: "team1" }} />);
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
     expect(screen.getByText("Manage Billing")).toBeDisabled();

@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 func readException(path string) (exception Exception, err error) {
@@ -939,6 +942,342 @@ func TestHasJSFrames(t *testing.T) {
 
 		if e.HasJSFrames() {
 			t.Errorf("Expected HasJSFrames to return false for non-JS framework, got true")
+		}
+	})
+}
+
+func TestValidateAppleFrameworkOSName(t *testing.T) {
+	makeEvent := func(osName string) EventField {
+		return EventField{
+			ID:        uuid.New(),
+			AppID:     uuid.New(),
+			Type:      TypeException,
+			Timestamp: time.Now(),
+			Attribute: Attribute{OSName: osName},
+			Exception: &Exception{
+				Framework: FrameworkApple,
+				Exceptions: ExceptionUnits{
+					{
+						Type: "EXC_BAD_ACCESS",
+						ExceptionUnitiOS: &ExceptionUnitiOS{
+							Signal: "SIGSEGV",
+						},
+						Frames: Frames{{}},
+					},
+				},
+				Threads: Threads{
+					{Name: "main", Frames: Frames{{}}},
+				},
+			},
+		}
+	}
+
+	t.Run("Rejects apple framework on non-Apple os_name", func(t *testing.T) {
+		ev := makeEvent("android")
+		if err := ev.Validate(); err == nil {
+			t.Error("Expected validation error for apple framework with android os_name, got nil")
+		}
+	})
+
+	t.Run("Accepts apple framework on Apple os_name", func(t *testing.T) {
+		ev := makeEvent("ios")
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for apple framework with ios os_name, got %v", err)
+		}
+	})
+}
+
+func TestValidateAttachmentLimit(t *testing.T) {
+	makeEvent := func(n int) EventField {
+		attachments := make([]Attachment, n)
+		for i := range attachments {
+			attachments[i] = Attachment{
+				ID:   uuid.New(),
+				Name: "screenshot.png",
+				Type: "screenshot",
+			}
+		}
+		return EventField{
+			ID:          uuid.New(),
+			AppID:       uuid.New(),
+			Type:        TypeString,
+			Timestamp:   time.Now(),
+			Attribute:   Attribute{OSName: "android"},
+			LogString:   &LogString{String: "log line"},
+			Attachments: attachments,
+		}
+	}
+
+	t.Run("Accepts event with no attachments", func(t *testing.T) {
+		ev := makeEvent(0)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for 0 attachments, got %v", err)
+		}
+	})
+
+	t.Run("Accepts event at the attachment limit", func(t *testing.T) {
+		ev := makeEvent(maxEventAttachments)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for %d attachments, got %v", maxEventAttachments, err)
+		}
+	})
+
+	t.Run("Rejects event over the attachment limit", func(t *testing.T) {
+		ev := makeEvent(maxEventAttachments + 1)
+		if err := ev.Validate(); err == nil {
+			t.Errorf("Expected validation error for %d attachments, got nil", maxEventAttachments+1)
+		}
+	})
+}
+
+func TestComputeFingerprint(t *testing.T) {
+	t.Run("FrameworkJS with message", func(t *testing.T) {
+		e := Exception{
+			Framework: FrameworkJS,
+			Exceptions: ExceptionUnits{
+				{
+					Type:    "TypeError",
+					Message: "Cannot read property 'foo' of undefined",
+					Frames: Frames{
+						{
+							MethodName: "render",
+							FileName:   "App.js",
+						},
+					},
+				},
+			},
+		}
+
+		err := e.ComputeFingerprint()
+		if err != nil {
+			t.Fatalf("Unexpected error computing JS fingerprint: %v", err)
+		}
+
+		expected := "a8c01be01b06e5284186a69934ec04f6"
+		if e.Fingerprint != expected {
+			t.Errorf("Expected fingerprint %q, but got %q", expected, e.Fingerprint)
+		}
+	})
+
+	t.Run("FrameworkJS with different message", func(t *testing.T) {
+		e := Exception{
+			Framework: FrameworkJS,
+			Exceptions: ExceptionUnits{
+				{
+					Type:    "TypeError",
+					Message: "Cannot read property 'bar' of undefined",
+					Frames: Frames{
+						{
+							MethodName: "render",
+							FileName:   "App.js",
+						},
+					},
+				},
+			},
+		}
+
+		err := e.ComputeFingerprint()
+		if err != nil {
+			t.Fatalf("Unexpected error computing JS fingerprint: %v", err)
+		}
+
+		expected := "56f894bf670623086c843b1d462c5c44"
+		if e.Fingerprint != expected {
+			t.Errorf("Expected fingerprint %q, but got %q", expected, e.Fingerprint)
+		}
+	})
+
+	t.Run("FrameworkJS with empty message", func(t *testing.T) {
+		e := Exception{
+			Framework: FrameworkJS,
+			Exceptions: ExceptionUnits{
+				{
+					Type:    "TypeError",
+					Message: "",
+					Frames: Frames{
+						{
+							MethodName: "render",
+							FileName:   "App.js",
+						},
+					},
+				},
+			},
+		}
+
+		err := e.ComputeFingerprint()
+		if err != nil {
+			t.Fatalf("Unexpected error computing JS fingerprint: %v", err)
+		}
+
+		expected := "f7a09ac70683ba3a38cc8dbf537d51b4"
+		if e.Fingerprint != expected {
+			t.Errorf("Expected fingerprint %q, but got %q", expected, e.Fingerprint)
+		}
+	})
+
+	t.Run("FrameworkDart with invalid double message", func(t *testing.T) {
+		e := Exception{
+			Framework: FrameworkDart,
+			Exceptions: ExceptionUnits{
+				{
+					Type:    "FormatException",
+					Message: "Invalid double",
+					Frames: Frames{
+						{
+							MethodName: "parseDouble",
+							FileName:   "parser.dart",
+						},
+					},
+				},
+			},
+		}
+
+		err := e.ComputeFingerprint()
+		if err != nil {
+			t.Fatalf("Unexpected error computing Dart fingerprint: %v", err)
+		}
+
+		expected := "20bb2b941c29aefcd6b81b2cba2d3511"
+		if e.Fingerprint != expected {
+			t.Errorf("Expected fingerprint %q, but got %q", expected, e.Fingerprint)
+		}
+	})
+
+	t.Run("FrameworkDart with invalid float message (retains same fingerprint)", func(t *testing.T) {
+		e := Exception{
+			Framework: FrameworkDart,
+			Exceptions: ExceptionUnits{
+				{
+					Type:    "FormatException",
+					Message: "Invalid float",
+					Frames: Frames{
+						{
+							MethodName: "parseDouble",
+							FileName:   "parser.dart",
+						},
+					},
+				},
+			},
+		}
+
+		err := e.ComputeFingerprint()
+		if err != nil {
+			t.Fatalf("Unexpected error computing Dart fingerprint: %v", err)
+		}
+
+		expected := "20bb2b941c29aefcd6b81b2cba2d3511"
+		if e.Fingerprint != expected {
+			t.Errorf("Expected fingerprint %q, but got %q", expected, e.Fingerprint)
+		}
+	})
+
+	t.Run("FrameworkJVM with nested exceptions uses innermost", func(t *testing.T) {
+		e := Exception{
+			Framework: FrameworkJVM,
+			Exceptions: ExceptionUnits{
+				{
+					Type:    "java.lang.RuntimeException",
+					Message: "Nested exception wrapper",
+					Frames: Frames{
+						{
+							MethodName: "outerMethod",
+							FileName:   "OuterClass.java",
+						},
+					},
+				},
+				{
+					Type:    "java.lang.NullPointerException",
+					Message: "Null pointer occurred",
+					Frames: Frames{
+						{
+							MethodName: "innerMethod",
+							FileName:   "InnerClass.java",
+						},
+					},
+				},
+			},
+		}
+
+		err := e.ComputeFingerprint()
+		if err != nil {
+			t.Fatalf("Unexpected error computing JVM fingerprint: %v", err)
+		}
+
+		expected := "a74cd8f37b38b20c7505f5da3bc83df3"
+		if e.Fingerprint != expected {
+			t.Errorf("Expected fingerprint %q, but got %q", expected, e.Fingerprint)
+		}
+	})
+
+	t.Run("FrameworkApple selects relevant in-app frame", func(t *testing.T) {
+		e := Exception{
+			Framework: FrameworkApple,
+			Exceptions: ExceptionUnits{
+				{
+					ExceptionUnitiOS: &ExceptionUnitiOS{
+						Signal: "SIGABRT",
+					},
+					Frames: Frames{
+						{
+							MethodName: "systemMethod",
+							FileName:   "libsystem_kernel.dylib",
+							InApp:      false,
+						},
+						{
+							MethodName: "myInAppMethod",
+							FileName:   "ViewController.swift",
+							InApp:      true,
+						},
+					},
+				},
+			},
+		}
+
+		err := e.ComputeFingerprint()
+		if err != nil {
+			t.Fatalf("Unexpected error computing Apple fingerprint: %v", err)
+		}
+
+		expected := "53f373bcd16b29f5033e1c4477a8f5cd"
+		if e.Fingerprint != expected {
+			t.Errorf("Expected fingerprint %q, but got %q", expected, e.Fingerprint)
+		}
+	})
+}
+
+func TestANRComputeFingerprint(t *testing.T) {
+	t.Run("ANR with nested exceptions uses innermost", func(t *testing.T) {
+		a := ANR{
+			Exceptions: ExceptionUnits{
+				{
+					Type: "AppNotResponding",
+					Frames: Frames{
+						{
+							MethodName: "systemWait",
+							FileName:   "native.c",
+						},
+					},
+				},
+				{
+					Type: "MainThreadBlocked",
+					Frames: Frames{
+						{
+							MethodName: "blockerMethod",
+							FileName:   "MainActivity.java",
+						},
+					},
+				},
+			},
+		}
+
+		err := a.ComputeFingerprint()
+		if err != nil {
+			t.Fatalf("Unexpected error computing ANR fingerprint: %v", err)
+		}
+
+		expected := "575ddc443e854d811e7e1b2b04868356"
+		if a.Fingerprint != expected {
+			t.Errorf("Expected fingerprint %q, but got %q", expected, a.Fingerprint)
 		}
 	})
 }

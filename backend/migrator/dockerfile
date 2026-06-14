@@ -5,8 +5,13 @@ ARG TARGETARCH
 ARG TARGETTYPE
 WORKDIR /go/src
 
+# Copy dependency modules first for caching
+COPY --from=libs go.mod go.sum ../libs/
 COPY ["go.mod", "go.sum", "./"]
 RUN go mod download
+
+# Copy source
+COPY --from=libs . ../libs/
 COPY . .
 
 RUN --mount=type=cache,target=/go/pkg/mod \

@@ -11,6 +11,7 @@ import (
 
 	"backend/autumn"
 	"backend/libs/bus"
+	"backend/libs/secret"
 
 	"cloud.google.com/go/pubsub/v2"
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -138,7 +139,10 @@ func NewConfig() *ServerConfig {
 		log.Println("SYMBOLS_ACCESS_KEY env var not set, mapping file uploads won't work")
 	}
 
-	symbolsSecretAccessKey := os.Getenv("SYMBOLS_SECRET_ACCESS_KEY")
+	symbolsSecretAccessKey, secErr := secret.FromEnvOrFile("SYMBOLS_SECRET_ACCESS_KEY")
+	if secErr != nil {
+		log.Printf("failed to read SYMBOLS_SECRET_ACCESS_KEY: %v", secErr)
+	}
 	if symbolsSecretAccessKey == "" {
 		log.Println("SYMBOLS_SECRET_ACCESS_KEY env var not set, mapping file uploads won't work")
 	}
@@ -158,7 +162,10 @@ func NewConfig() *ServerConfig {
 		log.Println("ATTACHMENTS_ACCESS_KEY env var not set, event attachment uploads won't work")
 	}
 
-	attachmentsSecretAccessKey := os.Getenv("ATTACHMENTS_SECRET_ACCESS_KEY")
+	attachmentsSecretAccessKey, secErr := secret.FromEnvOrFile("ATTACHMENTS_SECRET_ACCESS_KEY")
+	if secErr != nil {
+		log.Printf("failed to read ATTACHMENTS_SECRET_ACCESS_KEY: %v", secErr)
+	}
 	if attachmentsSecretAccessKey == "" {
 		log.Println("ATTACHMENTS_SECRET_ACCESS_KEY env var not set, event attachment uploads won't work")
 	}
@@ -168,7 +175,10 @@ func NewConfig() *ServerConfig {
 		log.Println("API_ORIGIN env var not set. Need for proxying session attachments.")
 	}
 
-	autumnSecretKey := os.Getenv("AUTUMN_SECRET_KEY")
+	autumnSecretKey, secErr := secret.FromEnvOrFile("AUTUMN_SECRET_KEY")
+	if secErr != nil {
+		log.Printf("failed to read AUTUMN_SECRET_KEY: %v", secErr)
+	}
 	if autumnSecretKey == "" && billingEnabled {
 		log.Println("AUTUMN_SECRET_KEY env var is not set, billing enforcement will fail-open")
 	}
@@ -177,12 +187,18 @@ func NewConfig() *ServerConfig {
 		SecretKey: autumnSecretKey,
 	})
 
-	postgresDSN := os.Getenv("POSTGRES_DSN")
+	postgresDSN, secErr := secret.FromEnvOrFile("POSTGRES_DSN")
+	if secErr != nil {
+		log.Printf("failed to read POSTGRES_DSN: %v", secErr)
+	}
 	if postgresDSN == "" {
 		log.Println("POSTGRES_DSN env var is not set, cannot start server")
 	}
 
-	clickhouseDSN := os.Getenv("CLICKHOUSE_DSN")
+	clickhouseDSN, secErr := secret.FromEnvOrFile("CLICKHOUSE_DSN")
+	if secErr != nil {
+		log.Printf("failed to read CLICKHOUSE_DSN: %v", secErr)
+	}
 	if clickhouseDSN == "" {
 		log.Println("CLICKHOUSE_DSN env var is not set, cannot start server")
 	}
@@ -312,7 +328,7 @@ func Init(config *ServerConfig) {
 		chOpts.Settings = clickhouse.Settings{
 			"wait_for_async_insert":         1,
 			"wait_for_async_insert_timeout": 1000,
-			"compatibility":                 "25.12",
+			"compatibility":                 "26.2",
 		}
 
 		chOpts.Compression = &clickhouse.Compression{

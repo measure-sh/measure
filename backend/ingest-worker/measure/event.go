@@ -9,7 +9,6 @@ import (
 	"backend/libs/ambient"
 	"backend/libs/chrono"
 	"backend/libs/inet"
-	"backend/libs/objstore"
 	"backend/libs/opsys"
 	"context"
 	"database/sql"
@@ -18,16 +17,14 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"time"
 
 	"cloud.google.com/go/auth"
 	"cloud.google.com/go/auth/credentials"
-	"cloud.google.com/go/storage"
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -209,14 +206,22 @@ func (e eventreq) hasANRs() bool {
 	return len(e.anrIds) > 0
 }
 
-// getOSName extracts the operating system name
-// of the app from ingest batch.
+// getOSName extracts the operating system name of the app from the ingest
+// batch, taken from the first event (or the first span, for span-only
+// batches). Returns "" if the batch has neither.
 func (e eventreq) getOSName() (osName string) {
 	if len(e.events) > 0 {
 		return strings.ToLower(e.events[0].Attribute.OSName)
 	}
 
-	return strings.ToLower(e.spans[0].Attributes.OSName)
+	if len(e.spans) > 0 {
+		return strings.ToLower(e.spans[0].Attributes.OSName)
+	}
+
+	// Unreachable in practice: ingest guarantees every event/span carries a
+	// valid, non-empty os_name, and onboarding only calls this when the batch
+	// has at least one. This guard only avoids an index-out-of-range panic.
+	return ""
 }
 
 // getOSVersion extracts the operating system version
@@ -282,7 +287,7 @@ func (e eventreq) bucketExceptions(ctx context.Context) (err error) {
 			events[i].Exception.GetMethodName(),
 			events[i].Exception.GetFileName(),
 			events[i].Exception.GetLineNumber(),
-			events[i].Exception.Handled,
+			events[i].Exception.GetSeverity() == event.SeverityHandled,
 			events[i].Exception.GetSeverity() == event.SeverityFatal,
 			events[i].Exception.IsCustom,
 			events[i].Timestamp,
@@ -607,6 +612,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			row.
 				Set(`gesture_long_click.target`, e.events[i].GestureLongClick.Target).
 				Set(`gesture_long_click.target_id`, e.events[i].GestureLongClick.TargetID).
+				Set(`gesture_long_click.label`, e.events[i].GestureLongClick.Label).
+				Set(`gesture_long_click.semantic_label`, e.events[i].GestureLongClick.SemanticLabel).
 				Set(`gesture_long_click.touch_down_time`, e.events[i].GestureLongClick.TouchDownTime).
 				Set(`gesture_long_click.touch_up_time`, e.events[i].GestureLongClick.TouchUpTime).
 				Set(`gesture_long_click.width`, e.events[i].GestureLongClick.Width).
@@ -617,6 +624,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			row.
 				Set(`gesture_long_click.target`, nil).
 				Set(`gesture_long_click.target_id`, nil).
+				Set(`gesture_long_click.label`, nil).
+				Set(`gesture_long_click.semantic_label`, nil).
 				Set(`gesture_long_click.touch_down_time`, nil).
 				Set(`gesture_long_click.touch_up_time`, nil).
 				Set(`gesture_long_click.width`, nil).
@@ -630,6 +639,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			row.
 				Set(`gesture_click.target`, e.events[i].GestureClick.Target).
 				Set(`gesture_click.target_id`, e.events[i].GestureClick.TargetID).
+				Set(`gesture_click.label`, e.events[i].GestureClick.Label).
+				Set(`gesture_click.semantic_label`, e.events[i].GestureClick.SemanticLabel).
 				Set(`gesture_click.touch_down_time`, e.events[i].GestureClick.TouchDownTime).
 				Set(`gesture_click.touch_up_time`, e.events[i].GestureClick.TouchUpTime).
 				Set(`gesture_click.width`, e.events[i].GestureClick.Width).
@@ -640,6 +651,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			row.
 				Set(`gesture_click.target`, nil).
 				Set(`gesture_click.target_id`, nil).
+				Set(`gesture_click.label`, nil).
+				Set(`gesture_click.semantic_label`, nil).
 				Set(`gesture_click.touch_down_time`, nil).
 				Set(`gesture_click.touch_up_time`, nil).
 				Set(`gesture_click.width`, nil).
@@ -1074,6 +1087,33 @@ func getGCSCreds() (*auth.Credentials, error) {
 	return gcsCreds.creds, nil
 }
 
+// mintSymboloaderToken returns the bearer credential used for
+// requests to symboloader's /symbols and /symbols/js endpoints.
+//
+// On cloud it mints a Google OIDC ID token scoped to the
+// symboloader origin, satisfying symboloader's Cloud Run IAM
+// invoker check. The token is audience-scoped to the service, so
+// a single value authorizes both the ProGuard and JS lookups
+// regardless of the app's OS. On self-host it returns the static
+// placeholder symboloader currently accepts.
+//
+// Callers must guard on a non-empty SymboloaderOrigin before
+// calling; the cloud path needs it as the token audience.
+func mintSymboloaderToken(ctx context.Context, config *server.ServerConfig) (token string, err error) {
+	if !config.IsCloud() {
+		return "measure", nil
+	}
+	ts, err := idtoken.NewTokenSource(ctx, config.SymboloaderOrigin)
+	if err != nil {
+		return
+	}
+	tok, err := ts.Token()
+	if err != nil {
+		return
+	}
+	return tok.AccessToken, nil
+}
+
 // PushHandler handles incoming Pub/Sub push messages containing
 // ingest batches published by the ingest service.
 func PushHandler(c *gin.Context) {
@@ -1246,6 +1286,20 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		sources := []symbolicator.Source{}
 		var sentrySources []symbolicator.SentrySource
 
+		// Mint the symboloader bearer token once per batch. The same
+		// audience-scoped token authorizes both the ProGuard (/symbols)
+		// and JS (/symbols/js) lookups, so it is computed here rather
+		// than per-OS. Stays empty on a cloud minting failure; the
+		// sources below skip rather than send an invalid token.
+		var symboloaderTok string
+		if config.SymboloaderOrigin != "" {
+			if tok, tokErr := mintSymboloaderToken(ingestCtx, config); tokErr != nil {
+				fmt.Printf("failed to obtain symboloader token: %v\n", tokErr)
+			} else {
+				symboloaderTok = tok
+			}
+		}
+
 		switch opsys.ToFamily(osName) {
 		case opsys.Android:
 			if config.IsCloud() {
@@ -1260,19 +1314,8 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 			} else {
 				sources = append(sources, symbolicator.NewS3SourceAndroid("msr-symbols", config.SymbolsBucket, config.SymbolsBucketRegion, config.AWSEndpoint, config.SymbolsAccessKey, config.SymbolsSecretAccessKey))
 			}
-			if config.SymboloaderOrigin != "" {
-				if config.IsCloud() {
-					ts, err := idtoken.NewTokenSource(ingestCtx, config.SymboloaderOrigin)
-					if err != nil {
-						fmt.Printf("failed to create identity token source for symboloader: %v\n", err)
-					} else if tok, err := ts.Token(); err != nil {
-						fmt.Printf("failed to generate identity token for symboloader: %v\n", err)
-					} else {
-						sentrySources = append(sentrySources, symbolicator.NewSentrySource("msr-symbols-sentry", config.SymboloaderOrigin+"/symbols", tok.AccessToken))
-					}
-				} else {
-					sentrySources = append(sentrySources, symbolicator.NewSentrySource("msr-symbols-sentry", config.SymboloaderOrigin+"/symbols", "measure"))
-				}
+			if symboloaderTok != "" {
+				sentrySources = append(sentrySources, symbolicator.NewSentrySource("msr-symbols-sentry", config.SymboloaderOrigin+"/symbols", symboloaderTok))
 			}
 		case opsys.AppleFamily:
 			if config.IsCloud() {
@@ -1296,31 +1339,8 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		}
 
 		symblctr := symbolicator.New(origin, osName, sources, sentrySources)
-
-		if eventReq.needsJSSymbolication() {
-			if config.IsCloud() {
-				gcsClient, gcsErr := objstore.CreateGCSClient(ingestCtx)
-				if gcsErr != nil {
-					fmt.Printf("failed to create GCS client for JS symbolication: %v\n", gcsErr)
-				} else {
-					symblctr.PresignURL = func(key string) (string, error) {
-						return objstore.CreateGCSGETPresignedURL(gcsClient, config.SymbolsBucket, key, &storage.SignedURLOptions{
-							Scheme:  storage.SigningSchemeV4,
-							Method:  "GET",
-							Expires: time.Now().Add(time.Hour),
-						})
-					}
-				}
-			} else {
-				s3Client := objstore.CreateS3Client(ingestCtx, config.SymbolsAccessKey, config.SymbolsSecretAccessKey, config.SymbolsBucketRegion, config.AWSEndpoint)
-				symblctr.PresignURL = func(key string) (string, error) {
-					return objstore.CreateS3GETPresignedURL(ingestCtx, s3Client, &s3.GetObjectInput{
-						Bucket: aws.String(config.SymbolsBucket),
-						Key:    aws.String(key),
-					}, s3.WithPresignExpires(time.Hour))
-				}
-			}
-		}
+		symblctr.SymboloaderOrigin = config.SymboloaderOrigin
+		symblctr.SymboloaderToken = symboloaderTok
 
 		_, symbolicationSpan := ingestTracer.Start(ingestCtx, "symbolicate-events")
 		defer symbolicationSpan.End()
@@ -1442,12 +1462,33 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		osName := eventReq.getOSName()
 		version := eventReq.getOSVersion()
 
-		if err := app.Onboard(ingestCtx, &tx, uniqueID, osName, version); err != nil {
+		if err := app.Onboard(ingestCtx, &tx, uniqueID, version); err != nil {
 			return fmt.Errorf("failed to onboard app: %w", err)
 		}
 
 		if err := tx.Commit(ingestCtx); err != nil {
 			return fmt.Errorf("failed to commit app onboard transaction: %w", err)
+		}
+
+		fireFirstIngestionEvents(ingestCtx, *app.ID, app.TeamId, osName)
+	}
+
+	// Keep the app's recorded os_names current on every batch (not just at
+	// onboarding) so an app that later reports another OS of the same family
+	// — e.g. ipados in addition to ios — is captured. The in-memory guard
+	// means a write happens only when a genuinely new OS appears. The set is
+	// kept single-family here; cross-family values are skipped. Best-effort:
+	// a failure must not fail ingestion — a later batch with the OS retries.
+	if eventReq.onboardable() {
+		batchOS := eventReq.getOSName()
+		if batchOS != "" && !slices.Contains(app.OSNames, batchOS) {
+			if len(app.OSNames) == 0 || opsys.SameFamily(batchOS, app.OSNames[0]) {
+				if err := app.AddOSName(ingestCtx, batchOS); err != nil {
+					fmt.Printf("failed to update os_names for app %s: %v\n", app.ID, err)
+				}
+			} else {
+				fmt.Printf("ignoring cross-family os_name %q for app %s (existing family %q)\n", batchOS, app.ID, app.OSNames[0])
+			}
 		}
 	}
 
@@ -1458,6 +1499,5 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 	trackBatchBytes(eventReq.teamId, eventReq.size)
 
 	ingestBatchAckCount.Add(ctx, 1)
-	fmt.Println("processed batch")
 	return nil
 }

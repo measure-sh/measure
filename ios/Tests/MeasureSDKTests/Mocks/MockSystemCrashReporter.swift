@@ -12,6 +12,7 @@ final class MockSystemCrashReporter: SystemCrashReporter {
     var hasPendingCrashReport: Bool = false
     var enableCalled = false
     var enableShouldThrow = false
+    var disableCalled = false
     var clearCrashDataCalled = false
     var reportToReturn: [String: Any]? = nil
     var allReportsToReturn: [[String: Any]] = []
@@ -22,6 +23,10 @@ final class MockSystemCrashReporter: SystemCrashReporter {
         if enableShouldThrow {
             throw NSError(domain: "MockSystemCrashReporter", code: -1, userInfo: [NSLocalizedDescriptionKey: "Mock enable failed"])
         }
+    }
+
+    func disable() {
+        disableCalled = true
     }
 
     func clearCrashData() {

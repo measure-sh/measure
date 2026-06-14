@@ -1,3 +1,4 @@
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import TeamOverview from "@/app/[teamId]/team/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
@@ -8,6 +9,15 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+
+// Radix tooltip content measures its arrow via ResizeObserver, absent in jsdom.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as any;
+}
 
 const mockToastPositive = jest.fn();
 const mockToastNegative = jest.fn();
@@ -556,10 +566,12 @@ const setDefaultTeamPageState = () => {
 
 const renderPage = async ({
   waitForSlack = true,
-}: { waitForSlack?: boolean } = {}) => {
+}: {
+  waitForSlack?: boolean;
+} = {}) => {
   setDefaultTeamsState();
   setDefaultTeamPageState();
-  render(<TeamOverview params={{ teamId: "team-1" }} />);
+  render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
   await screen.findByText("Invite Team Members");
   if (waitForSlack) {
     await screen.findByTestId("slack-switch");
@@ -648,7 +660,22 @@ describe("Team Page", () => {
   it("renders slack integration doc link", async () => {
     await renderPage();
 
-    const learnMoreLink = screen.getByRole("link", { name: "Learn more" });
+    // The doc link now lives in an info tooltip beside the Slack heading.
+    const trigger = screen
+      .getByText("Slack Integration")
+      .parentElement!.querySelector(
+        '[data-slot="tooltip-trigger"]',
+      ) as HTMLElement;
+    fireEvent.focus(trigger);
+    const content = await waitFor(() => {
+      const el = document.querySelector('[data-slot="tooltip-content"]');
+      if (!el) {
+        throw new Error("tooltip content not visible");
+      }
+      return el as HTMLElement;
+    });
+
+    const learnMoreLink = content.querySelector("a");
     expect(learnMoreLink).toHaveAttribute(
       "href",
       "/docs/features/feature-slack-integration",
@@ -662,7 +689,7 @@ describe("Team Page", () => {
       selectedTeam: null,
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
 
     expect(
       await screen.findByText(
@@ -685,7 +712,7 @@ describe("Team Page", () => {
       teamSlack: { slack_team_name: "Measure", is_active: true },
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByText("Invite Team Members");
 
     expect(
@@ -703,7 +730,7 @@ describe("Team Page", () => {
       pendingInvitesApiStatus: "loading",
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
 
     const spinners = await screen.findAllByTestId("skeleton-mock");
     expect(spinners.length).toBeGreaterThan(0);
@@ -723,7 +750,7 @@ describe("Team Page", () => {
       teamSlack: { slack_team_name: "Measure", is_active: true },
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByText("Invite Team Members");
 
     expect(
@@ -747,7 +774,7 @@ describe("Team Page", () => {
       teamSlack: { slack_team_name: "Measure", is_active: true },
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
 
     const skeletons = await screen.findAllByTestId("skeleton-table-mock");
     expect(skeletons.length).toBeGreaterThan(0);
@@ -760,7 +787,7 @@ describe("Team Page", () => {
       authzAndMembers: { ...defaultAuthz, can_rename_team: false },
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByText("Invite Team Members");
 
     const saveButton = screen.getByRole("button", { name: "Save" });
@@ -837,7 +864,7 @@ describe("Team Page", () => {
       authzAndMembers: { ...defaultAuthz, can_invite_roles: [] },
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByText("Invite Team Members");
 
     expect(screen.getAllByTestId("dropdown-Roles")[0]).toBeDisabled();
@@ -851,7 +878,7 @@ describe("Team Page", () => {
       authzAndMembers: { ...defaultAuthz, can_invite_roles: ["developer"] },
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByText("Invite Team Members");
 
     expect(screen.getByRole("button", { name: "Resend" })).toBeDisabled();
@@ -934,7 +961,7 @@ describe("Team Page", () => {
       },
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByText("Invite Team Members");
 
     expect(screen.getByTestId("dropdown-Current Role")).toBeInTheDocument();
@@ -1061,7 +1088,7 @@ describe("Team Page", () => {
       authzAndMembers: { ...defaultAuthz, can_manage_slack: false },
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByTestId("slack-switch");
 
     expect(screen.getByTestId("slack-switch")).toBeDisabled();
@@ -1080,7 +1107,7 @@ describe("Team Page", () => {
       updateSlackStatus: mockUpdateSlackStatus,
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByTestId("slack-switch");
 
     fireEvent.click(screen.getByTestId("slack-switch"));
@@ -1099,7 +1126,7 @@ describe("Team Page", () => {
       testSlackAlert: mockTestSlackAlert,
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByRole("button", { name: "Send Test Alert" });
 
     fireEvent.click(screen.getByRole("button", { name: "Send Test Alert" }));
@@ -1118,7 +1145,7 @@ describe("Team Page", () => {
       teamSlack: null,
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByText("Invite Team Members");
 
     const addToSlackImage = await screen.findByAltText("Add to Slack");
@@ -1135,7 +1162,7 @@ describe("Team Page", () => {
       teamSlack: null,
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByText("Invite Team Members");
 
     expect(
@@ -1153,7 +1180,7 @@ describe("Team Page", () => {
       teamSlackConnectUrl: null,
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByText("Invite Team Members");
 
     expect(
@@ -1172,7 +1199,7 @@ describe("Team Page", () => {
       teamSlack: null,
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByText("Invite Team Members");
 
     const guide = await screen.findByRole("link", { name: "guide" });
@@ -1188,7 +1215,7 @@ describe("Team Page", () => {
       teamSlack: null,
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByText("Invite Team Members");
 
     expect(
@@ -1212,7 +1239,7 @@ describe("Team Page", () => {
       updateSlackStatus: mockUpdateSlackStatus,
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByRole("button", { name: "Send Test Alert" });
     fireEvent.click(screen.getByTestId("slack-switch"));
     fireEvent.click(screen.getByRole("button", { name: "Yes, I'm sure" }));
@@ -1234,7 +1261,7 @@ describe("Team Page", () => {
       updateSlackStatus: mockUpdateSlackStatus,
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByTestId("slack-switch");
     fireEvent.click(screen.getByTestId("slack-switch"));
 
@@ -1254,7 +1281,7 @@ describe("Team Page", () => {
       updateSlackStatus: mockUpdateSlackStatus,
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByRole("button", { name: "Send Test Alert" });
 
     fireEvent.click(screen.getByTestId("slack-switch"));
@@ -1275,7 +1302,7 @@ describe("Team Page", () => {
       teamSlack: null,
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByText("Invite Team Members");
 
     const addToSlackImage = await screen.findByAltText("Add to Slack");
@@ -1296,7 +1323,7 @@ describe("Team Page", () => {
       testSlackAlert: mockTestSlackAlert,
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByRole("button", { name: "Send Test Alert" });
     fireEvent.click(screen.getByRole("button", { name: "Send Test Alert" }));
     fireEvent.click(screen.getByRole("button", { name: "Yes, I'm sure" }));
@@ -1359,7 +1386,7 @@ describe("Team Page", () => {
       teamSlack: { slack_team_name: "Measure", is_active: true },
     });
 
-    render(<TeamOverview params={{ teamId: "team-1" }} />);
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
     await screen.findByText("Invite Team Members");
 
     // Page renders without errors even without session user ID

@@ -11,6 +11,7 @@
  * in-flight dedup, re-render resilience, keyboard nav, time formatting,
  * empty results, error states, and 401 auth failure.
  */
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
   afterEach,
@@ -120,7 +121,9 @@ function renderWithProviders(ui: React.ReactElement) {
 // ====================================================================
 describe("Alerts Overview (MSW integration)", () => {
   async function renderAndWaitForData() {
-    renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(
@@ -198,7 +201,9 @@ describe("Alerts Overview (MSW integration)", () => {
         }),
       );
 
-      renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(
@@ -230,7 +235,7 @@ describe("Alerts Overview (MSW integration)", () => {
       const links = screen.getAllByRole("link", { name: /ID: alert-001/ });
       expect(links.length).toBeGreaterThan(0);
       expect(links[0].getAttribute("href")).toBe(
-        "/test-team/crashes/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-001",
+        "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-001",
       );
     });
 
@@ -239,7 +244,7 @@ describe("Alerts Overview (MSW integration)", () => {
       const links = screen.getAllByRole("link", { name: /ID: alert-002/ });
       expect(links.length).toBeGreaterThan(0);
       expect(links[0].getAttribute("href")).toBe(
-        "/test-team/anrs/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/anr-group-001",
+        "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/anr-group-001",
       );
     });
 
@@ -249,7 +254,7 @@ describe("Alerts Overview (MSW integration)", () => {
       const dataRow = rows[1]; // first data row (index 0 is header)
       fireEvent.keyDown(dataRow, { key: "Enter" });
       expect(mockRouterPush).toHaveBeenCalledWith(
-        "/test-team/crashes/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-001",
+        "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-001",
       );
     });
 
@@ -259,7 +264,7 @@ describe("Alerts Overview (MSW integration)", () => {
       const dataRow = rows[1];
       fireEvent.keyDown(dataRow, { key: " " });
       expect(mockRouterPush).toHaveBeenCalledWith(
-        "/test-team/crashes/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-001",
+        "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-001",
       );
     });
 
@@ -269,7 +274,7 @@ describe("Alerts Overview (MSW integration)", () => {
       const dataRow = rows[2]; // second data row
       fireEvent.keyDown(dataRow, { key: "Enter" });
       expect(mockRouterPush).toHaveBeenCalledWith(
-        "/test-team/anrs/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/anr-group-001",
+        "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/anr-group-001",
       );
     });
   });
@@ -319,7 +324,7 @@ describe("Alerts Overview (MSW integration)", () => {
             entity_id: "crash-group-page2",
             type: "crash_spike",
             message: "Page 2 alert: OutOfMemoryError spike",
-            url: "/test-team/crashes/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-page2",
+            url: "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-page2",
             created_at: "2026-04-08T12:00:00Z",
             updated_at: "2026-04-08T12:00:00Z",
           },
@@ -399,7 +404,7 @@ describe("Alerts Overview (MSW integration)", () => {
             entity_id: "crash-group-page2",
             type: "crash_spike",
             message: "Deep-linked page 2 alert",
-            url: "/test-team/crashes/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-page2",
+            url: "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-page2",
             created_at: "2026-04-08T12:00:00Z",
             updated_at: "2026-04-08T12:00:00Z",
           },
@@ -416,7 +421,9 @@ describe("Alerts Overview (MSW integration)", () => {
       );
 
       mockSearchParams.set("po", "5");
-      renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Deep-linked page 2 alert")).toBeTruthy();
@@ -442,7 +449,9 @@ describe("Alerts Overview (MSW integration)", () => {
         }),
       );
 
-      renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(
@@ -471,7 +480,9 @@ describe("Alerts Overview (MSW integration)", () => {
         }),
       );
 
-      renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(
@@ -500,7 +511,7 @@ describe("Alerts Overview (MSW integration)", () => {
             entity_id: "crash-group-page2",
             type: "crash_spike",
             message: "Page 2 alert",
-            url: "/test-team/crashes/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-page2",
+            url: "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-page2",
             created_at: "2026-04-08T12:00:00Z",
             updated_at: "2026-04-08T12:00:00Z",
           },
@@ -706,7 +717,9 @@ describe("Alerts Overview (MSW integration)", () => {
         }),
       );
 
-      renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           // Table header should render
@@ -727,7 +740,9 @@ describe("Alerts Overview (MSW integration)", () => {
         }),
       );
 
-      renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+      renderWithProviders(
+        <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+      );
       await waitFor(
         () => {
           expect(screen.getByText("Alert")).toBeTruthy();
@@ -789,7 +804,9 @@ describe("Alerts — auth failure", () => {
       }),
     );
 
-    renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+    );
     await waitFor(
       () => {
         expect(refreshAttempted).toBe(true);
@@ -803,7 +820,7 @@ describe("Alerts — team switch to no-apps team", () => {
   it("switching from team with apps to team with no apps shows NoApps after store reset", async () => {
     // Phase 1: render with team that has apps — fully load
     const { unmount } = renderWithProviders(
-      <AlertsOverview params={{ teamId: "team-with-apps" }} />,
+      <AlertsOverview params={promiseParams({ teamId: "team-with-apps" })} />,
     );
 
     await waitFor(
@@ -829,7 +846,9 @@ describe("Alerts — team switch to no-apps team", () => {
 
     unmount();
 
-    renderWithProviders(<AlertsOverview params={{ teamId: "team-no-apps" }} />);
+    renderWithProviders(
+      <AlertsOverview params={promiseParams({ teamId: "team-no-apps" })} />,
+    );
 
     // Wait for NoApps message to appear
     await waitFor(
@@ -849,7 +868,9 @@ describe("Alerts page — loading states", () => {
         return HttpResponse.json([]);
       }),
     );
-    renderWithProviders(<AlertsOverview params={{ teamId: "test-team" }} />);
+    renderWithProviders(
+      <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
+    );
     expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy();
   });
 });

@@ -53,6 +53,8 @@ let screenshotContentTypePng = "image/png"
 let layoutSnapshotContentType = "image/svg+xml"
 let layoutSnapshotJsonContentType = "application/json"
 let layoutSnapshotJsonContentEncoding = "gzip"
+let swiftErrorFramesToStrip = 3
+let objcErrorFramesToStrip = 4
 
 struct AttributeConstants {
     static let deviceManufacturer = "Apple"

@@ -1,6 +1,6 @@
 ---
 title: "Measure SDK Documentation"
-description: "Measure documentation. SDK integration, features, self-hosting and REST API reference for monitoring mobile apps."
+description: "Measure documentation. SDK integration and upgrades, features, configuration, performance and self-hosting reference for monitoring mobile apps."
 ---
 
 # Documentation
@@ -11,12 +11,11 @@ description: "Measure documentation. SDK integration, features, self-hosting and
 * [**Explore Features**](#explore-features) — Discover all available features
 * [**Configuration Options**](#configuration-options) — Customize SDK behavior
 * [**Performance Impact**](#performance-impact) — Assess the SDK's impact on app performance
+
+**Additional Info**
+
 * [**SDK Upgrade Guides**](sdk-upgrade-guides/README.md) — Upgrade to the latest SDK versions for Android and iOS
-
-**Further Reading**
-
-* [**Self-Hosting Guide**](hosting/README.md) - Host measure-sh on your own infrastructure (best for small and hobby projects)
-* [**API Documentation**](api/README.md) - APIs that various Measure SDKs use
+* [**Self-Hosting Guide**](hosting/README.md) - Host measure-sh on your own infrastructure
 
 # Integrate the SDK
 
@@ -41,6 +40,7 @@ feature's documentation to understand its underlying mechanism and enhance your 
     * [**iOS**](features/feature-bug-report-ios.md)
     * [**Flutter**](features/feature-bug-report-flutter.md)
 * [**Screenshot Masking for SwiftUI**](features/feature-screenshot-masking-swiftui.md) — Mask sensitive content in SwiftUI views when capturing screenshots
+* [**Screenshot Masking for Flutter**](features/feature-screenshot-masking-flutter.md) — Mask sensitive content in Flutter widgets when capturing screenshots
 * [**App Launch Metrics**](features/feature-app-launch-metrics.md) — Measure app launch performance
 * [**Network Monitoring**](features/feature-network-monitoring.md) — Monitor HTTP requests and responses
 * [**Network Connectivity Changes**](features/feature-network-connectivity-changes.md) — Track when network connectivity changes

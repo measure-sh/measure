@@ -37,7 +37,10 @@ export class MeasureTimeProvider implements TimeProvider {
   }
 
   now(): number {
-    return this.anchoredEpochTime + (performance.now() - this.anchoredElapsedRealtime);
+    return (
+      this.anchoredEpochTime +
+      (performance.now() - this.anchoredElapsedRealtime)
+    );
   }
 
   iso8601Timestamp(timeInMillis: number): string {

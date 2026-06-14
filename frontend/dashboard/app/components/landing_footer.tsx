@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cn } from "../utils/shadcn_utils";
 import { buttonVariants } from "./button_variants";
 import { CookiePreferencesLink } from "./cookie_preferences_link";
+import TrackGithubLink from "./analytics/track_github_link";
 
 export default function LandingFooter() {
   return (
@@ -30,7 +31,7 @@ export default function LandingFooter() {
             &copy; {new Date().getFullYear()} Measure, Inc. All rights reserved.
           </p>
           <div className="py-4" />
-          <Link
+          <TrackGithubLink
             target="_blank"
             href="https://github.com/measure-sh/measure"
             className={cn(buttonVariants({ variant: "outline" }), "group px-2")}
@@ -39,18 +40,18 @@ export default function LandingFooter() {
               src="/images/github_logo_black.svg"
               width={24}
               height={24}
-              className="w-4 h-4 dark:hidden group-hover:hidden"
+              className="w-4 h-4 dark:hidden"
               alt={"GitHub logo"}
             />
             <Image
               src="/images/github_logo_white.svg"
               width={24}
               height={24}
-              className="w-4 h-4 hidden dark:block group-hover:block"
+              className="w-4 h-4 hidden dark:block"
               alt={"GitHub logo"}
             />
             <span className="mt-0.5">Star us on Github</span>
-          </Link>
+          </TrackGithubLink>
         </div>
 
         <div className="flex flex-col items-center md:items-start gap-4">
@@ -150,15 +151,6 @@ export default function LandingFooter() {
             Why Measure?
           </Link>
           <Link
-            href="/crashlytics-alternatives"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Firebase Crashlytics alternative
-          </Link>
-          <Link
             href="/pricing"
             className={cn(
               buttonVariants({ variant: "ghost" }),
@@ -185,7 +177,7 @@ export default function LandingFooter() {
           >
             Blog
           </Link>
-          <Link
+          <TrackGithubLink
             href="https://github.com/measure-sh/measure"
             target="_blank"
             className={cn(
@@ -194,6 +186,73 @@ export default function LandingFooter() {
             )}
           >
             GitHub
+          </TrackGithubLink>
+        </div>
+
+        <div className="flex flex-col items-center md:items-start gap-4">
+          <p className="font-display text-2xl md:px-2">Alternatives</p>
+          <Link
+            href="/crashlytics-alternative"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            Firebase Crashlytics
+          </Link>
+          <Link
+            href="/sentry-alternative"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            Sentry
+          </Link>
+          <Link
+            href="/bugsnag-alternative"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            Bugsnag
+          </Link>
+          <Link
+            href="/embrace-alternative"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            Embrace
+          </Link>
+          <Link
+            href="/luciq-alternative"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            Luciq
+          </Link>
+          <Link
+            href="/datadog-alternative"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            Datadog
+          </Link>
+          <Link
+            href="/new-relic-alternative"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "font-display select-none w-full md:w-fit",
+            )}
+          >
+            New Relic
           </Link>
         </div>
 
@@ -286,14 +345,14 @@ export default function LandingFooter() {
               alt="LinkedIn Logo"
               width={22}
               height={22}
-              className="dark:hidden group-hover:hidden"
+              className="dark:hidden"
             />
             <Image
               src={"/images/linkedin_logo_white.png"}
               alt="LinkedIn Logo"
               width={22}
               height={22}
-              className="hidden dark:block group-hover:block"
+              className="hidden dark:block"
             />
           </Link>
           <Link
@@ -309,14 +368,14 @@ export default function LandingFooter() {
               alt="X Logo"
               width={20}
               height={20}
-              className="dark:hidden group-hover:hidden"
+              className="dark:hidden"
             />
             <Image
               src={"/images/x_logo_white.png"}
               alt="X Logo"
               width={20}
               height={20}
-              className="hidden dark:block group-hover:block"
+              className="hidden dark:block"
             />
           </Link>
         </div>

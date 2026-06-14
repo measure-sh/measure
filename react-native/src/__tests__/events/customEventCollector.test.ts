@@ -18,7 +18,7 @@ describe('CustomEventCollector', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    logger = { log: jest.fn(), internalLog: jest.fn() };
+    logger = { log: jest.fn(), internalLog: jest.fn() } as any;
     timeProvider = { now: jest.fn(() => 123456789) };
     configProvider = {
       maxEventNameLength: 10,
@@ -75,7 +75,11 @@ describe('CustomEventCollector', () => {
     (validateAttributes as jest.Mock).mockReturnValueOnce(false);
     const attrs = { good: 'ok', bad: { nested: true } } as any;
 
-    await collector.trackCustomEvent({ name: 'event1', attributes: attrs, timestamp: 111 });
+    await collector.trackCustomEvent({
+      name: 'event1',
+      attributes: attrs,
+      timestamp: 111,
+    });
 
     expect(signalProcessor.trackEvent).not.toHaveBeenCalled();
     expect(logger.log).toHaveBeenCalledWith(

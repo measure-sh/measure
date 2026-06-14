@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Card } from "../components/card";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
+import PricingViewed from "./pricing_viewed";
 import { sharedOpenGraph } from "../utils/metadata";
 import {
   FREE_GB,
@@ -33,6 +34,7 @@ export const metadata: Metadata = {
 export default function Pricing() {
   return (
     <main className="flex flex-col items-center justify-between">
+      <PricingViewed />
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
         {/* Header */}
@@ -61,7 +63,7 @@ export default function Pricing() {
               </ul>
             </div>
           </Card>
-          <Card className="w-full md:w-1/2 bg-green-50 dark:bg-card border border-green-300 dark:border-border">
+          <Card className="w-full md:w-1/2 bg-green-50 dark:bg-card border border-green-400 dark:border-border">
             <div className="p-4 md:p-8 flex flex-col items-center">
               <p className="text-xl text-green-900 dark:text-primary font-display">
                 PRO
@@ -98,15 +100,15 @@ export default function Pricing() {
                 Adaptive Capture
               </Link>
             </p>
-            <LucideCheckCircle className="text-green-600 dark:text-green-500 w-4 h-4" />
+            <LucideCheckCircle className="text-green-700 dark:text-green-400 w-4 h-4" />
           </div>
           <div className="flex flex-row gap-4 items-center">
             <p>No Seat Limits</p>
-            <LucideCheckCircle className="text-green-600 dark:text-green-500 w-4 h-4" />
+            <LucideCheckCircle className="text-green-700 dark:text-green-400 w-4 h-4" />
           </div>
           <div className="flex flex-row gap-4 items-center">
             <p>No Artificial Bundles</p>
-            <LucideCheckCircle className="text-green-600 dark:text-green-500 w-4 h-4" />
+            <LucideCheckCircle className="text-green-700 dark:text-green-400 w-4 h-4" />
           </div>
         </div>
 

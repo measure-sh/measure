@@ -1,5 +1,10 @@
 "use client";
-import { SlidersHorizontal } from "lucide-react";
+import {
+  ChevronsUpDown,
+  Circle,
+  CircleCheck,
+  SlidersHorizontal,
+} from "lucide-react";
 import { DateTime } from "luxon";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -33,6 +38,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import {
   applyFilterOptions,
+  appsEqual,
   AppVersionsInitialSelectionType,
   defaultSessionTypes,
   expandRangesToArray,
@@ -55,7 +61,6 @@ import { CheckChipGroup } from "./check_chip";
 import DebounceTextInput from "./debounce_text_input";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -63,10 +68,12 @@ import {
   DialogTitle,
 } from "./dialog";
 import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
-import FilterChip, { type FilterChipAction } from "./filter_chip";
+import Pill, { type PillAction } from "./pill";
 import { Input } from "./input";
 import Onboarding from "./onboarding";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { Skeleton } from "./skeleton";
+import { Switch } from "./switch";
 import UserDefAttrSelector, { UdAttrMatcher } from "./user_def_attr_selector";
 
 export { AppVersionsInitialSelectionType };
@@ -96,12 +103,34 @@ interface FiltersProps {
   showHttpMethods: boolean;
   showUdAttrs: boolean;
   showFreeText: boolean;
+  showErrorType?: boolean;
+  showSeverity?: boolean;
+  showCustomErrors?: boolean;
   freeTextPlaceholder?: string;
 }
 
 const defaultFreeTextPlaceholder = "Search anything...";
 
 const SEARCH_INPUT_ID = "free-text";
+
+// Custom errors aren't a supported feature yet, so the errors "Custom Only"
+// filter toggle stays hidden regardless of the per-page showCustomErrors prop.
+// Flip to true to surface it once custom errors are supported.
+const CUSTOM_ERRORS_ENABLED = false;
+
+// Errors-only Severity filter: store holds lowercase values; the dropdown
+// shows capitalized labels.
+const SEVERITY_DISPLAY_ITEMS: string[] = ["Fatal", "Unhandled", "Handled"];
+const SEVERITY_DISPLAY_TO_STORE: Record<string, string> = {
+  Fatal: "fatal",
+  Unhandled: "unhandled",
+  Handled: "handled",
+};
+const SEVERITY_STORE_TO_DISPLAY: Record<string, string> = {
+  fatal: "Fatal",
+  unhandled: "Unhandled",
+  handled: "Handled",
+};
 
 enum DateRange {
   Last15Mins = "Last 15 Minutes",
@@ -150,18 +179,18 @@ function sameItems<T>(a: T[], b: readonly T[]): boolean {
 }
 
 // A chip's clear button — empties the filter so the chip disappears.
-const clearAction = (onClick: () => void): FilterChipAction => ({
-  kind: "clear",
+const clearAction = (onClick: () => void): PillAction => ({
+  icon: "clear",
   onClick,
 });
 
 // A chip's reset button — restores the filter's non-empty default.
-const resetAction = (onClick: () => void): FilterChipAction => ({
-  kind: "reset",
+const resetAction = (onClick: () => void): PillAction => ({
+  icon: "reset",
   onClick,
 });
 
-function deserializeUrlFilters(queryString: string): URLFilters {
+export function deserializeUrlFilters(queryString: string): URLFilters {
   const params = new URLSearchParams(queryString);
   const result: URLFilters = {};
 
@@ -228,6 +257,15 @@ function deserializeUrlFilters(queryString: string): URLFilters {
             .filter((s): s is SessionType =>
               Object.values(SessionType).includes(s as SessionType),
             );
+          break;
+
+        case "errorTypes":
+        case "severities":
+          result[originalKey] = value.split(",").filter((s) => s);
+          break;
+
+        case "customErrorsOnly":
+          result[originalKey] = value === "1";
           break;
 
         case "dateRange":
@@ -338,6 +376,123 @@ function StringMultiRow({
   );
 }
 
+interface ErrorsTypeFilterProps {
+  selectedErrorTypes: string[];
+  customErrorsOnly: boolean;
+  onChangeErrorTypes: (types: string[]) => void;
+  onChangeCustomErrorsOnly: (custom: boolean) => void;
+  showCustomToggle?: boolean;
+  disabled?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export const ErrorsTypeFilter: React.FC<ErrorsTypeFilterProps> = ({
+  selectedErrorTypes,
+  customErrorsOnly,
+  onChangeErrorTypes,
+  onChangeCustomErrorsOnly,
+  showCustomToggle = true,
+  disabled = false,
+  open: controlledOpen,
+  onOpenChange,
+}) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (value: boolean) => {
+    setInternalOpen(value);
+    onOpenChange?.(value);
+  };
+
+  const errorChecked = selectedErrorTypes.includes("error");
+  const anrChecked = selectedErrorTypes.includes("anr");
+
+  const toggleError = (checked: boolean) => {
+    const next = checked
+      ? Array.from(new Set([...selectedErrorTypes, "error"]))
+      : selectedErrorTypes.filter((t) => t !== "error");
+    onChangeErrorTypes(next);
+    if (!checked && customErrorsOnly) {
+      onChangeCustomErrorsOnly(false);
+    }
+  };
+
+  const toggleAnr = (checked: boolean) => {
+    const next = checked
+      ? Array.from(new Set([...selectedErrorTypes, "anr"]))
+      : selectedErrorTypes.filter((t) => t !== "anr");
+    onChangeErrorTypes(next);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger disabled={disabled} asChild>
+        <Button
+          variant="outline"
+          className="flex justify-between w-fit min-w-[150px] select-none"
+        >
+          <span className="truncate">Type</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="p-2 w-64" align="start">
+        <div className="flex flex-col">
+          <div className="flex items-center px-2 py-2 rounded hover:bg-accent hover:text-accent-foreground">
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={errorChecked}
+              onClick={() => toggleError(!errorChecked)}
+              className="flex items-center gap-2 cursor-pointer select-none font-display text-sm flex-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="flex items-center justify-center w-4 h-4">
+                {errorChecked ? (
+                  <CircleCheck className="h-4 w-4" />
+                ) : (
+                  <Circle className="h-4 w-4 opacity-50" />
+                )}
+              </span>
+              <span className="flex-1 truncate">Error</span>
+            </button>
+            {showCustomToggle && (
+              <label
+                className={`flex items-center gap-2 select-none font-display text-xs ml-2 ${
+                  errorChecked ? "cursor-pointer" : "opacity-50"
+                }`}
+              >
+                <span className="pr-1">Custom Only</span>
+                <Switch
+                  disabled={!errorChecked}
+                  checked={customErrorsOnly}
+                  onCheckedChange={(checked) =>
+                    onChangeCustomErrorsOnly(checked === true)
+                  }
+                />
+              </label>
+            )}
+          </div>
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={anrChecked}
+            onClick={() => toggleAnr(!anrChecked)}
+            className="flex items-center gap-2 cursor-pointer select-none font-display text-sm px-2 py-2 rounded hover:bg-accent hover:text-accent-foreground text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span className="flex items-center justify-center w-4 h-4">
+              {anrChecked ? (
+                <CircleCheck className="h-4 w-4" />
+              ) : (
+                <Circle className="h-4 w-4 opacity-50" />
+              )}
+            </span>
+            <span className="flex-1 truncate">ANR</span>
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 const FiltersComponent = forwardRef<
   { refresh: (appIdToSelect?: string) => Promise<void> },
   FiltersProps
@@ -366,6 +521,9 @@ const FiltersComponent = forwardRef<
       showHttpMethods,
       showUdAttrs,
       showFreeText,
+      showErrorType = false,
+      showSeverity = false,
+      showCustomErrors = false,
       freeTextPlaceholder,
     },
     ref,
@@ -483,7 +641,6 @@ const FiltersComponent = forwardRef<
       } else if (currentTeamId === "") {
         store.setCurrentTeamId(teamId);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [teamId]);
 
     const appsQuery = useAppsQuery(teamId);
@@ -498,7 +655,6 @@ const FiltersComponent = forwardRef<
         return;
       }
       store.setApps(appsQuery.data.data, appsQuery.data.status);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [appsQuery.status, appsQuery.data]);
 
     useEffect(() => {
@@ -516,16 +672,13 @@ const FiltersComponent = forwardRef<
       if (!picked) {
         return;
       }
-      // Skip the setter when nothing changed — apps reference churns on
-      // every refetch even when the picked app is the same.
-      if (!selectedApp || selectedApp.id !== picked.id) {
-        store.setSelectedApp(picked);
-      } else if (selectedApp.onboarded !== picked.onboarded) {
-        // Same id, new onboarded flag (poller saw verification). Update
-        // in place without wiping selections.
+      // Sync selectedApp when the refetched app differs in any field, not
+      // just id: a rotated api_key, rename, or onboarded flip keeps the
+      // same id. A same-id update is fine since setSelectedApp only clears
+      // the user's version/OS filter selections when the id changes.
+      if (!selectedApp || !appsEqual(selectedApp, picked)) {
         store.setSelectedApp(picked);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [appsQuery.status, appsQuery.data, teamId]);
 
     const filterOptionsQuery = useFilterOptionsQuery(selectedApp, filterSource);
@@ -556,7 +709,6 @@ const FiltersComponent = forwardRef<
       } else {
         store.setFilterOptions(null, status);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       filterOptionsQuery.status,
       filterOptionsQuery.data,
@@ -590,7 +742,6 @@ const FiltersComponent = forwardRef<
       } else {
         store.setRootSpanNames(null, status);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       rootSpanNamesQuery.status,
       rootSpanNamesQuery.data,
@@ -633,6 +784,102 @@ const FiltersComponent = forwardRef<
     const [scrollTarget, setScrollTarget] = useState<string | null>(null);
     // Drives the inline app versions dropdown so its chip can open it too.
     const [appVersionsOpen, setAppVersionsOpen] = useState(false);
+    // Drives the Errors type popover so the combined error-types pill can
+    // open it on click.
+    const [errorsTypeOpen, setErrorsTypeOpen] = useState(false);
+
+    // Pending snapshot of every store field driven by a control inside the More
+    // filters modal. Initialized when the modal opens, written to by modal
+    // controls, and only committed back to the store on Save. Cancel/dismiss
+    // discards it. Keeping it local means in-progress edits don't ripple to the
+    // store, the chips, the data tables, or other consumers until the user
+    // confirms.
+    type PendingModalFilters = {
+      selectedSessionTypes: SessionType[];
+      selectedSpanStatuses: SpanStatus[];
+      selectedBugReportStatuses: BugReportStatus[];
+      selectedHttpMethods: HttpMethod[];
+      selectedOsVersions: typeof store.selectedOsVersions;
+      selectedCountries: string[];
+      selectedNetworkProviders: string[];
+      selectedNetworkTypes: string[];
+      selectedNetworkGenerations: string[];
+      selectedLocales: string[];
+      selectedDeviceManufacturers: string[];
+      selectedDeviceNames: string[];
+      selectedUdAttrMatchers: UdAttrMatcher[];
+    };
+    const [pendingModalFilters, setPendingModalFilters] =
+      useState<PendingModalFilters>(() => ({
+        selectedSessionTypes: store.selectedSessionTypes,
+        selectedSpanStatuses: store.selectedSpanStatuses,
+        selectedBugReportStatuses: store.selectedBugReportStatuses,
+        selectedHttpMethods: store.selectedHttpMethods,
+        selectedOsVersions: store.selectedOsVersions,
+        selectedCountries: store.selectedCountries,
+        selectedNetworkProviders: store.selectedNetworkProviders,
+        selectedNetworkTypes: store.selectedNetworkTypes,
+        selectedNetworkGenerations: store.selectedNetworkGenerations,
+        selectedLocales: store.selectedLocales,
+        selectedDeviceManufacturers: store.selectedDeviceManufacturers,
+        selectedDeviceNames: store.selectedDeviceNames,
+        selectedUdAttrMatchers: store.selectedUdAttrMatchers,
+      }));
+
+    // Each time the modal opens, copy current store values into the pending
+    // snapshot so the modal starts from the committed state. Closing without
+    // saving leaves the snapshot stale, but the next open re-syncs it.
+    const [prevMoreFiltersOpen, setPrevMoreFiltersOpen] =
+      useState(moreFiltersOpen);
+    if (moreFiltersOpen !== prevMoreFiltersOpen) {
+      setPrevMoreFiltersOpen(moreFiltersOpen);
+      if (moreFiltersOpen) {
+        setPendingModalFilters({
+          selectedSessionTypes: store.selectedSessionTypes,
+          selectedSpanStatuses: store.selectedSpanStatuses,
+          selectedBugReportStatuses: store.selectedBugReportStatuses,
+          selectedHttpMethods: store.selectedHttpMethods,
+          selectedOsVersions: store.selectedOsVersions,
+          selectedCountries: store.selectedCountries,
+          selectedNetworkProviders: store.selectedNetworkProviders,
+          selectedNetworkTypes: store.selectedNetworkTypes,
+          selectedNetworkGenerations: store.selectedNetworkGenerations,
+          selectedLocales: store.selectedLocales,
+          selectedDeviceManufacturers: store.selectedDeviceManufacturers,
+          selectedDeviceNames: store.selectedDeviceNames,
+          selectedUdAttrMatchers: store.selectedUdAttrMatchers,
+        });
+      }
+    }
+
+    // Commit the pending snapshot to the store and close the modal.
+    const saveMoreFilters = () => {
+      store.setSelectedSessionTypes(pendingModalFilters.selectedSessionTypes);
+      store.setSelectedSpanStatuses(pendingModalFilters.selectedSpanStatuses);
+      store.setSelectedBugReportStatuses(
+        pendingModalFilters.selectedBugReportStatuses,
+      );
+      store.setSelectedHttpMethods(pendingModalFilters.selectedHttpMethods);
+      store.setSelectedOsVersions(pendingModalFilters.selectedOsVersions);
+      store.setSelectedCountries(pendingModalFilters.selectedCountries);
+      store.setSelectedNetworkProviders(
+        pendingModalFilters.selectedNetworkProviders,
+      );
+      store.setSelectedNetworkTypes(pendingModalFilters.selectedNetworkTypes);
+      store.setSelectedNetworkGenerations(
+        pendingModalFilters.selectedNetworkGenerations,
+      );
+      store.setSelectedLocales(pendingModalFilters.selectedLocales);
+      store.setSelectedDeviceManufacturers(
+        pendingModalFilters.selectedDeviceManufacturers,
+      );
+      store.setSelectedDeviceNames(pendingModalFilters.selectedDeviceNames);
+      store.setSelectedUdAttrMatchers(
+        pendingModalFilters.selectedUdAttrMatchers,
+      );
+      setMoreFiltersOpen(false);
+      setScrollTarget(null);
+    };
 
     // Open the More filters modal with one filter's section scrolled into view.
     const openFilterModal = (rowKey: string) => {
@@ -669,14 +916,27 @@ const FiltersComponent = forwardRef<
       showDeviceNames ||
       showUdAttrs;
 
+    // Errors-only controls live on the main row alongside the standard
+    // inline dropdowns. Severity is hidden when the user has unchecked Error
+    // in the Type multi-select. Custom only lives inside the Type popover.
+    const isErrorsSource = filterSource === FilterSource.Errors;
+    const onlyAnrSelected =
+      store.selectedErrorTypes.length === 1 &&
+      store.selectedErrorTypes[0] === "anr";
+    const showErrorTypeControl = isErrorsSource && showErrorType;
+    const showSeverityControl =
+      isErrorsSource && showSeverity && !onlyAnrSelected;
+
     // Dropdowns that stay inline: app, trace name, date range, app versions,
-    // plus the "More filters" trigger.
+    // the Errors-only controls, plus the "More filters" trigger.
     const skeletonMainRowCount =
       [
         showAppSelector,
         filterSource === FilterSource.Spans,
         showDates,
         showAppVersions,
+        showErrorTypeControl,
+        showSeverityControl,
       ].filter(Boolean).length + (hasMoreFiltersConfig ? 1 : 0);
 
     // Same as hasMoreFiltersConfig but gated on loaded data — drives the real
@@ -703,7 +963,7 @@ const FiltersComponent = forwardRef<
       key: string;
       label: string;
       tooltip: string;
-      action?: FilterChipAction;
+      action?: PillAction;
     }[] = [];
 
     if (showSessionTypes && store.selectedSessionTypes.length > 0) {
@@ -843,6 +1103,50 @@ const FiltersComponent = forwardRef<
     // input instead of opening the modal.
     const searchActive = showFreeText && store.selectedFreeText !== "";
 
+    // Combined error-types pill mirrors the multi-select state: one chip
+    // summarising both ANRs and Errors. "ANRs" is added when 'anr' is in the
+    // selection; the Errors portion folds in custom + severity. With a single
+    // severity and no custom flag the form reads "<Severity> Errors"; with
+    // multiple severities or the custom flag set it switches to the dash
+    // form "Errors - Sev1, Sev2" / "Custom Errors only - Sev1, Sev2".
+    const anrSelected = store.selectedErrorTypes.includes("anr");
+    const errorSelected = store.selectedErrorTypes.includes("error");
+    const showErrorTypesPill =
+      isErrorsSource && showErrorType && (anrSelected || errorSelected);
+    const errorTypesPillParts: string[] = [];
+    if (anrSelected) {
+      errorTypesPillParts.push("ANRs");
+    }
+    if (errorSelected) {
+      const severityDisplays = store.selectedSeverities
+        .map((s) => SEVERITY_STORE_TO_DISPLAY[s])
+        .filter((d): d is string => Boolean(d));
+      let errorLabel: string;
+      if (store.customErrorsOnly) {
+        errorLabel =
+          severityDisplays.length === 0
+            ? "Custom Errors only"
+            : `Custom Errors only - ${severityDisplays.join(", ")}`;
+      } else if (severityDisplays.length === 1) {
+        errorLabel = `${severityDisplays[0]} Errors`;
+      } else if (severityDisplays.length === 0) {
+        errorLabel = "Errors";
+      } else {
+        errorLabel = `Errors - ${severityDisplays.join(", ")}`;
+      }
+      errorTypesPillParts.push(errorLabel);
+    }
+    const errorTypesPillLabel = errorTypesPillParts.join(", ");
+    const errorTypesAtDefaults =
+      sameItems(store.selectedErrorTypes, ["error", "anr"]) &&
+      sameItems(store.selectedSeverities, ["fatal"]) &&
+      !store.customErrorsOnly;
+    const resetErrorTypesPill = () => {
+      store.setSelectedErrorTypes(["error", "anr"]);
+      store.setSelectedSeverities(["fatal"]);
+      store.setCustomErrorsOnly(false);
+    };
+
     // App versions: page default is the latest build, or every build.
     const defaultAppVersions =
       appVersionsInitialSelectionType === AppVersionsInitialSelectionType.All
@@ -885,9 +1189,12 @@ const FiltersComponent = forwardRef<
             rowKey="sessionTypes"
             title="Session Types"
             items={Object.values(SessionType)}
-            selected={store.selectedSessionTypes}
+            selected={pendingModalFilters.selectedSessionTypes}
             onChange={(items) =>
-              store.setSelectedSessionTypes(items as SessionType[])
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedSessionTypes: items as SessionType[],
+              }))
             }
           />
         )}
@@ -896,9 +1203,12 @@ const FiltersComponent = forwardRef<
             rowKey="spanStatuses"
             title="Span Status"
             items={Object.values(SpanStatus)}
-            selected={store.selectedSpanStatuses}
+            selected={pendingModalFilters.selectedSpanStatuses}
             onChange={(items) =>
-              store.setSelectedSpanStatuses(items as SpanStatus[])
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedSpanStatuses: items as SpanStatus[],
+              }))
             }
           />
         )}
@@ -907,9 +1217,12 @@ const FiltersComponent = forwardRef<
             rowKey="bugReportStatuses"
             title="Bug Report Status"
             items={Object.values(BugReportStatus)}
-            selected={store.selectedBugReportStatuses}
+            selected={pendingModalFilters.selectedBugReportStatuses}
             onChange={(items) =>
-              store.setSelectedBugReportStatuses(items as BugReportStatus[])
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedBugReportStatuses: items as BugReportStatus[],
+              }))
             }
           />
         )}
@@ -918,10 +1231,13 @@ const FiltersComponent = forwardRef<
             rowKey="httpMethods"
             title="HTTP Method"
             items={Object.values(HttpMethod)}
-            selected={store.selectedHttpMethods}
+            selected={pendingModalFilters.selectedHttpMethods}
             getLabel={(item) => item.toUpperCase()}
             onChange={(items) =>
-              store.setSelectedHttpMethods(items as HttpMethod[])
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedHttpMethods: items as HttpMethod[],
+              }))
             }
           />
         )}
@@ -929,10 +1245,15 @@ const FiltersComponent = forwardRef<
           <FilterRow rowKey="osVersions" title="OS Versions">
             <CheckChipGroup
               items={store.osVersions}
-              selected={store.selectedOsVersions}
+              selected={pendingModalFilters.selectedOsVersions}
               getLabel={(item) => item.displayName}
               isEqual={(a, b) => a.displayName === b.displayName}
-              onChange={(items) => store.setSelectedOsVersions(items)}
+              onChange={(items) =>
+                setPendingModalFilters((p) => ({
+                  ...p,
+                  selectedOsVersions: items,
+                }))
+              }
             />
           </FilterRow>
         )}
@@ -941,8 +1262,13 @@ const FiltersComponent = forwardRef<
             rowKey="countries"
             title="Country"
             items={store.countries}
-            selected={store.selectedCountries}
-            onChange={(items) => store.setSelectedCountries(items)}
+            selected={pendingModalFilters.selectedCountries}
+            onChange={(items) =>
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedCountries: items,
+              }))
+            }
           />
         )}
         {showNetworkProviders && store.networkProviders.length > 0 && (
@@ -950,8 +1276,13 @@ const FiltersComponent = forwardRef<
             rowKey="networkProviders"
             title="Network Provider"
             items={store.networkProviders}
-            selected={store.selectedNetworkProviders}
-            onChange={(items) => store.setSelectedNetworkProviders(items)}
+            selected={pendingModalFilters.selectedNetworkProviders}
+            onChange={(items) =>
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedNetworkProviders: items,
+              }))
+            }
           />
         )}
         {showNetworkTypes && store.networkTypes.length > 0 && (
@@ -959,8 +1290,13 @@ const FiltersComponent = forwardRef<
             rowKey="networkTypes"
             title="Network type"
             items={store.networkTypes}
-            selected={store.selectedNetworkTypes}
-            onChange={(items) => store.setSelectedNetworkTypes(items)}
+            selected={pendingModalFilters.selectedNetworkTypes}
+            onChange={(items) =>
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedNetworkTypes: items,
+              }))
+            }
           />
         )}
         {showNetworkGenerations && store.networkGenerations.length > 0 && (
@@ -968,8 +1304,13 @@ const FiltersComponent = forwardRef<
             rowKey="networkGenerations"
             title="Network generation"
             items={store.networkGenerations}
-            selected={store.selectedNetworkGenerations}
-            onChange={(items) => store.setSelectedNetworkGenerations(items)}
+            selected={pendingModalFilters.selectedNetworkGenerations}
+            onChange={(items) =>
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedNetworkGenerations: items,
+              }))
+            }
           />
         )}
         {showLocales && store.locales.length > 0 && (
@@ -977,8 +1318,10 @@ const FiltersComponent = forwardRef<
             rowKey="locales"
             title="Locale"
             items={store.locales}
-            selected={store.selectedLocales}
-            onChange={(items) => store.setSelectedLocales(items)}
+            selected={pendingModalFilters.selectedLocales}
+            onChange={(items) =>
+              setPendingModalFilters((p) => ({ ...p, selectedLocales: items }))
+            }
           />
         )}
         {showDeviceManufacturers && store.deviceManufacturers.length > 0 && (
@@ -986,8 +1329,13 @@ const FiltersComponent = forwardRef<
             rowKey="deviceManufacturers"
             title="Device Manufacturer"
             items={store.deviceManufacturers}
-            selected={store.selectedDeviceManufacturers}
-            onChange={(items) => store.setSelectedDeviceManufacturers(items)}
+            selected={pendingModalFilters.selectedDeviceManufacturers}
+            onChange={(items) =>
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedDeviceManufacturers: items,
+              }))
+            }
           />
         )}
         {showDeviceNames && store.deviceNames.length > 0 && (
@@ -995,8 +1343,13 @@ const FiltersComponent = forwardRef<
             rowKey="deviceNames"
             title="Device Name"
             items={store.deviceNames}
-            selected={store.selectedDeviceNames}
-            onChange={(items) => store.setSelectedDeviceNames(items)}
+            selected={pendingModalFilters.selectedDeviceNames}
+            onChange={(items) =>
+              setPendingModalFilters((p) => ({
+                ...p,
+                selectedDeviceNames: items,
+              }))
+            }
           />
         )}
         {showUdAttrs && store.userDefAttrs.length > 0 && (
@@ -1004,9 +1357,12 @@ const FiltersComponent = forwardRef<
             <UserDefAttrSelector
               attrs={store.userDefAttrs}
               ops={store.userDefAttrOps}
-              initialSelected={store.selectedUdAttrMatchers}
+              initialSelected={pendingModalFilters.selectedUdAttrMatchers}
               onChangeSelected={(udAttrMatchers) =>
-                store.setSelectedUdAttrMatchers(udAttrMatchers)
+                setPendingModalFilters((p) => ({
+                  ...p,
+                  selectedUdAttrMatchers: udAttrMatchers,
+                }))
               }
             />
           </FilterRow>
@@ -1064,11 +1420,7 @@ const FiltersComponent = forwardRef<
                 store.filtersApiStatus === FiltersApiStatus.NoData && (
                   <p className="font-body text-sm">
                     No{" "}
-                    {filterSource === FilterSource.Crashes
-                      ? "crashes"
-                      : filterSource === FilterSource.Anrs
-                        ? "ANRs"
-                        : "data"}{" "}
+                    {filterSource === FilterSource.Errors ? "errors" : "data"}{" "}
                     received for this app yet
                   </p>
                 )}
@@ -1244,6 +1596,39 @@ const FiltersComponent = forwardRef<
                     onOpenChange={setAppVersionsOpen}
                   />
                 )}
+                {showErrorTypeControl && (
+                  <ErrorsTypeFilter
+                    selectedErrorTypes={store.selectedErrorTypes}
+                    customErrorsOnly={store.customErrorsOnly}
+                    onChangeErrorTypes={(types) =>
+                      store.setSelectedErrorTypes(types)
+                    }
+                    onChangeCustomErrorsOnly={(custom) =>
+                      store.setCustomErrorsOnly(custom)
+                    }
+                    showCustomToggle={showCustomErrors && CUSTOM_ERRORS_ENABLED}
+                    open={errorsTypeOpen}
+                    onOpenChange={setErrorsTypeOpen}
+                  />
+                )}
+                {showSeverityControl && (
+                  <DropdownSelect
+                    title="Severity"
+                    type={DropdownSelectType.MultiString}
+                    items={SEVERITY_DISPLAY_ITEMS}
+                    initialSelected={store.selectedSeverities.map(
+                      (s) => SEVERITY_STORE_TO_DISPLAY[s] ?? s,
+                    )}
+                    onChangeSelected={(items) => {
+                      const display = items as string[];
+                      store.setSelectedSeverities(
+                        display
+                          .map((d) => SEVERITY_DISPLAY_TO_STORE[d])
+                          .filter((v): v is string => v !== undefined),
+                      );
+                    }}
+                  />
+                )}
                 {hasMoreFilters && (
                   <Button
                     variant="outline"
@@ -1271,45 +1656,72 @@ const FiltersComponent = forwardRef<
                 )}
               </div>
 
-              {(showAppVersions || filterChips.length > 0 || searchActive) && (
+              {(showAppVersions ||
+                filterChips.length > 0 ||
+                searchActive ||
+                showErrorTypesPill) && (
                 <>
                   <div className="py-4" />
                   <div className="flex flex-wrap gap-2 items-center">
-                    {showAppVersions && (
-                      <FilterChip
-                        {...chipLabels(
+                    {showAppVersions &&
+                      (() => {
+                        const { label, tooltip } = chipLabels(
                           "App versions",
                           store.selectedVersions.map((v) => v.displayName),
-                        )}
-                        onClick={() => setAppVersionsOpen(true)}
-                        action={
-                          appVersionsChanged
-                            ? resetAction(() =>
-                                store.setSelectedVersions(defaultAppVersions),
-                              )
-                            : undefined
-                        }
-                      />
-                    )}
+                        );
+                        return (
+                          <Pill
+                            onClick={() => setAppVersionsOpen(true)}
+                            tooltip={tooltip !== label ? tooltip : undefined}
+                            action={
+                              appVersionsChanged
+                                ? resetAction(() =>
+                                    store.setSelectedVersions(
+                                      defaultAppVersions,
+                                    ),
+                                  )
+                                : undefined
+                            }
+                          >
+                            {label}
+                          </Pill>
+                        );
+                      })()}
                     {filterChips.map((chip) => (
-                      <FilterChip
+                      <Pill
                         key={chip.key}
-                        label={chip.label}
-                        tooltip={chip.tooltip}
                         onClick={() => openFilterModal(chip.key)}
+                        tooltip={
+                          chip.tooltip !== chip.label ? chip.tooltip : undefined
+                        }
                         action={chip.action}
-                      />
+                      >
+                        {chip.label}
+                      </Pill>
                     ))}
+                    {showErrorTypesPill && (
+                      <Pill
+                        onClick={() => setErrorsTypeOpen(true)}
+                        action={
+                          errorTypesAtDefaults
+                            ? undefined
+                            : resetAction(resetErrorTypesPill)
+                        }
+                      >
+                        {errorTypesPillLabel}
+                      </Pill>
+                    )}
                     {searchActive && (
-                      <FilterChip
-                        label={`Search: ${store.selectedFreeText}`}
+                      <Pill
                         onClick={() =>
                           document.getElementById(SEARCH_INPUT_ID)?.focus()
                         }
                         action={clearAction(() =>
                           store.setSelectedFreeText(""),
                         )}
-                      />
+                      >
+                        {`Search: ${store.selectedFreeText}`}
+                      </Pill>
                     )}
                   </div>
                 </>
@@ -1336,9 +1748,9 @@ const FiltersComponent = forwardRef<
                     </DialogHeader>
                     {moreFiltersContent}
                     <DialogFooter>
-                      <DialogClose asChild>
-                        <Button variant="outline">Done</Button>
-                      </DialogClose>
+                      <Button variant="outline" onClick={saveMoreFilters}>
+                        Save
+                      </Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>

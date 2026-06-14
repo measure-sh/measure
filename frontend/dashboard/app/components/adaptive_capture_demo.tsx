@@ -88,7 +88,7 @@ const AdaptiveCaptureDemo: React.FC<AdaptiveCaptureDemoProps> = ({
               return (
                 <div
                   key={key}
-                  className={`bg-background text-foreground ${active ? "border-primary" : "bg-background border-border opacity-80 dark:opacity-50"} border-2 rounded-md p-4`}
+                  className={`bg-background text-foreground ${active ? "" : "bg-background border-border opacity-80 dark:opacity-50"} border-2 rounded-md p-4`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm">{config.name}</span>

@@ -117,6 +117,14 @@ func seedGenericEvents(ctx context.Context, t *testing.T, teamID, appID string, 
 	th.SeedGenericEvents(ctx, t, teamID, appID, count, ts)
 }
 
+func seedAppMetrics(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time, genericCount, crashCount, anrCount int) {
+	th.SeedAppMetrics(ctx, t, teamID, appID, ts, genericCount, crashCount, anrCount)
+}
+
+func seedEventRows(ctx context.Context, t *testing.T, teamID, appID string, count int, row testinfra.EventRow) {
+	th.SeedEventRows(ctx, t, teamID, appID, count, row)
+}
+
 func seedIssueEvent(
 	ctx context.Context,
 	t *testing.T,
@@ -125,6 +133,15 @@ func seedIssueEvent(
 	ts time.Time,
 ) {
 	th.SeedIssueEvent(ctx, t, teamID, appID, eventType, fingerprint, handled, ts)
+}
+
+func seedIssueEventWithSeverity(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, fingerprint, severity string,
+	ts time.Time,
+) {
+	th.SeedIssueEventWithSeverity(ctx, t, teamID, appID, fingerprint, severity, ts)
 }
 
 func seedExceptionGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {

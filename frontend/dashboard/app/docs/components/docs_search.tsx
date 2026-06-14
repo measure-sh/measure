@@ -3,7 +3,7 @@
 import { Command } from "cmdk";
 import { FileText, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface SearchEntry {
   slug: string;
@@ -53,17 +53,23 @@ export function highlightTerms(text: string, query: string): React.ReactNode {
     return text;
   }
 
-  const pattern = new RegExp(`(${terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gi");
+  const pattern = new RegExp(
+    `(${terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`,
+    "gi",
+  );
   const parts = text.split(pattern);
 
   return parts.map((part, i) =>
     terms.some((t) => part.toLowerCase() === t) ? (
-      <mark key={i} className="bg-yellow-200 dark:bg-yellow-300 rounded-sm px-0.5">
+      <mark
+        key={i}
+        className="bg-green-200 dark:bg-green-300 rounded-sm px-0.5"
+      >
         {part}
       </mark>
     ) : (
       part
-    )
+    ),
   );
 }
 
@@ -77,7 +83,6 @@ export default function DocsSearch({
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [entries, setEntries] = useState<SearchEntry[]>([]);
-  const [results, setResults] = useState<ScoredResult[]>([]);
   const loaded = useRef(false);
 
   // Load search index on first open
@@ -87,52 +92,42 @@ export default function DocsSearch({
       fetch("/docs/search-index.json")
         .then((res) => res.json())
         .then((data: SearchEntry[]) => setEntries(data))
-        .catch(() => { });
+        .catch(() => {});
     }
   }, [open]);
 
-  // Simple client-side search
-  const search = useCallback(
-    (q: string) => {
-      if (!q.trim()) {
-        setResults([]);
-        return;
-      }
+  // Client-side search results derived from the query and loaded index.
+  const results = useMemo<ScoredResult[]>(() => {
+    if (!query.trim()) {
+      return [];
+    }
 
-      const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
-      const scored = entries
-        .map((entry) => {
-          const titleLower = entry.title.toLowerCase();
-          const headingsLower = entry.headings.join(" ").toLowerCase();
-          const contentLower = entry.content.toLowerCase();
+    const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    return entries
+      .map((entry) => {
+        const titleLower = entry.title.toLowerCase();
+        const headingsLower = entry.headings.join(" ").toLowerCase();
+        const contentLower = entry.content.toLowerCase();
 
-          let score = 0;
-          for (const term of terms) {
-            if (titleLower.includes(term)) {
-              score += 10;
-            }
-            if (headingsLower.includes(term)) {
-              score += 5;
-            }
-            if (contentLower.includes(term)) {
-              score += 1;
-            }
+        let score = 0;
+        for (const term of terms) {
+          if (titleLower.includes(term)) {
+            score += 10;
           }
-          const snippet = getMatchSnippet(entry.content, terms);
-          return { entry, score, snippet };
-        })
-        .filter((r) => r.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 10);
-
-      setResults(scored);
-    },
-    [entries]
-  );
-
-  useEffect(() => {
-    search(query);
-  }, [query, search]);
+          if (headingsLower.includes(term)) {
+            score += 5;
+          }
+          if (contentLower.includes(term)) {
+            score += 1;
+          }
+        }
+        const snippet = getMatchSnippet(entry.content, terms);
+        return { entry, score, snippet };
+      })
+      .filter((r) => r.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+  }, [query, entries]);
 
   // Cmd+K keyboard shortcut
   useEffect(() => {
@@ -165,7 +160,10 @@ export default function DocsSearch({
       className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm"
       onClick={() => onOpenChange(false)}
     >
-      <div className="fixed left-1/2 top-[20%] -translate-x-1/2 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="fixed left-1/2 top-[20%] -translate-x-1/2 w-full max-w-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
         <Command
           className="bg-popover border border-border rounded-lg shadow-lg overflow-hidden"
           shouldFilter={false}
@@ -179,7 +177,9 @@ export default function DocsSearch({
               className="flex h-9 w-full min-w-0 rounded-md border border-transparent bg-transparent px-3 py-1 text-base shadow-none transition-[color,box-shadow] outline-none placeholder:text-muted-foreground font-body md:text-sm dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
               autoFocus
             />
-            <kbd className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">esc</kbd>
+            <kbd className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
+              esc
+            </kbd>
           </div>
           <Command.List className="max-h-72 overflow-y-auto p-2">
             {query.trim() && results.length === 0 && (

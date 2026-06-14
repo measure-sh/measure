@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"symboloader/symbol"
+	"backend/libs/symbol"
 )
 
 func seedDIF(t *testing.T, store *fakeStore, debugID string) {

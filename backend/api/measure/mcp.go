@@ -2,6 +2,7 @@ package measure
 
 import (
 	"backend/api/authsession"
+	"backend/api/event"
 	"backend/api/filter"
 	"backend/api/group"
 	"backend/api/network"
@@ -76,6 +77,8 @@ type mcpOAuthStatePayload struct {
 	RedirectURI   string `json:"redirect_uri"`
 	CodeChallenge string `json:"code_challenge"`
 	Provider      string `json:"provider"`
+	GAClientID    string `json:"ga_client_id,omitempty"`
+	GCLID         string `json:"gclid,omitempty"`
 }
 
 // mcpTokenInfo holds the validated token metadata returned by mcpValidateToken.
@@ -196,7 +199,7 @@ func mcpRegisterClient(ctx context.Context, clientName string, redirectURIs []st
 
 // mcpAuthorize validates the client, stores OAuth state in Valkey, and returns
 // the provider OAuth redirect URL.
-func mcpAuthorize(ctx context.Context, provider, clientID, redirectURI, mcpState, codeChallenge string) (providerURL string, err error) {
+func mcpAuthorize(ctx context.Context, provider, clientID, redirectURI, mcpState, codeChallenge, gaClientID, gclid string) (providerURL string, err error) {
 	pgPool := server.Server.PgPool
 	vk := server.Server.VK
 	siteOrigin := server.Server.Config.SiteOrigin
@@ -233,6 +236,8 @@ func mcpAuthorize(ctx context.Context, provider, clientID, redirectURI, mcpState
 		RedirectURI:   redirectURI,
 		CodeChallenge: codeChallenge,
 		Provider:      provider,
+		GAClientID:    gaClientID,
+		GCLID:         gclid,
 	}
 	if storeErr := mcpStoreMCPStateInValkey(ctx, vk, oauthState, payload); storeErr != nil {
 		return "", &mcpHTTPError{http.StatusInternalServerError, "failed to store state"}
@@ -333,7 +338,7 @@ func mcpCallback(ctx context.Context, code, state string) (redirectURL string, e
 		return "", &mcpHTTPError{http.StatusBadRequest, "unsupported provider in state"}
 	}
 
-	msrUser, fcErr := mcpFindOrCreateUser(ctx, userName, userEmail)
+	msrUser, fcErr := mcpFindOrCreateUser(ctx, userName, userEmail, providerName, statePayload.GAClientID, statePayload.GCLID)
 	if fcErr != nil {
 		return "", &mcpHTTPError{http.StatusInternalServerError, "failed to find or create user"}
 	}
@@ -471,7 +476,7 @@ func mcpStoreMCPStateInValkey(ctx context.Context, vk valkey.Client, state strin
 
 // mcpFindOrCreateUser finds an existing Measure user by email or creates a new
 // one (including a default team) via the same logic used by SigninGitHub.
-func mcpFindOrCreateUser(ctx context.Context, name, email string) (mcpUserInfo, error) {
+func mcpFindOrCreateUser(ctx context.Context, name, email, provider, gaClientID, gclid string) (mcpUserInfo, error) {
 	msrUser, err := FindUserByEmail(ctx, email)
 	if err != nil {
 		return mcpUserInfo{}, fmt.Errorf("failed to find user: %w", err)
@@ -482,6 +487,16 @@ func mcpFindOrCreateUser(ctx context.Context, name, email string) (mcpUserInfo, 
 		msrUser = NewUser(name, email)
 		if err := msrUser.save(ctx, nil); err != nil {
 			return mcpUserInfo{}, fmt.Errorf("%s: %w", msg, err)
+		}
+
+		if err := SaveUserAttribution(ctx, *msrUser.ID, gaClientID, gclid); err != nil {
+			fmt.Println("mcp: failed to save user attribution:", err)
+		}
+
+		fireSignupEvent(ctx, msrUser, provider, gaClientID)
+
+		if err := createNotifPref(uuid.MustParse(*msrUser.ID)); err != nil {
+			fmt.Println("mcp: failed to create notif prefs:", err)
 		}
 
 		userName := msrUser.firstName()
@@ -500,6 +515,8 @@ func mcpFindOrCreateUser(ctx context.Context, name, email string) (mcpUserInfo, 
 		if err := tx.Commit(ctx); err != nil {
 			return mcpUserInfo{}, fmt.Errorf("%s: %w", msg, err)
 		}
+
+		fireTeamCreatedEvent(ctx, msrUser, team)
 
 		if err := addNewUserToInvitedTeams(ctx, *msrUser.ID, email); err != nil {
 			fmt.Println("mcp: failed to add user to invited teams:", err)
@@ -658,6 +675,8 @@ func MCPAuthorize(c *gin.Context) {
 	mcpState := c.Query("state")
 	codeChallenge := c.Query("code_challenge")
 	provider := c.Query("provider")
+	gaClientID := c.Query("ga_client_id")
+	gclid := c.Query("gclid")
 
 	if responseType != "code" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "unsupported response_type"})
@@ -681,7 +700,7 @@ func MCPAuthorize(c *gin.Context) {
 		return
 	}
 
-	providerURL, err := mcpAuthorize(ctx, provider, clientID, redirectURI, mcpState, codeChallenge)
+	providerURL, err := mcpAuthorize(ctx, provider, clientID, redirectURI, mcpState, codeChallenge, gaClientID, gclid)
 	if err != nil {
 		herr := err.(*mcpHTTPError)
 		c.AbortWithStatusJSON(herr.Status, gin.H{"error": herr.Message})
@@ -844,6 +863,28 @@ func NewMCPHandler() http.Handler {
 	return newMCPServer()
 }
 
+// mcpAddTool registers a tool with the MCP server and instruments successful
+// invocations with an `mcp_query_made` PostHog event. Same signature as
+// mcpsdk.AddTool, so call sites only differ in the function name.
+func mcpAddTool[I, O any](
+	s *mcpsdk.Server,
+	tool *mcpsdk.Tool,
+	handler func(context.Context, *mcpsdk.CallToolRequest, I) (*mcpsdk.CallToolResult, O, error),
+) {
+	toolName := tool.Name
+	wrapped := func(ctx context.Context, req *mcpsdk.CallToolRequest, in I) (*mcpsdk.CallToolResult, O, error) {
+		start := time.Now()
+		result, out, err := handler(ctx, req, in)
+		if err == nil {
+			if userID, ok := mcpUserIDFromContext(ctx); ok {
+				fireMCPQueryEvent(ctx, userID, toolName, time.Since(start))
+			}
+		}
+		return result, out, err
+	}
+	mcpsdk.AddTool(s, tool, wrapped)
+}
+
 // --------------------------------------------------------------------------
 // MCP server setup
 // --------------------------------------------------------------------------
@@ -857,7 +898,7 @@ func newMCPServer() http.Handler {
 	)
 
 	// list_apps
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "list_apps",
 		Description: "List all apps the authenticated user has access to",
 	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpListAppsInput) (*mcpsdk.CallToolResult, any, error) {
@@ -865,16 +906,16 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_filters
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_filters",
-		Description: "Get available filter options (versions, OS, countries, devices, etc.) for an app",
-		InputSchema: mcpMustInferSchema[mcpGetFiltersInput](),
+		Description: "Get available filter options (versions, OS, countries, devices, etc.) for an app. Optionally scope to errors (error_types) or spans (span).",
+		InputSchema: mcpMustInferErrorFilterSchema[mcpGetFiltersInput](),
 	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFiltersInput) (*mcpsdk.CallToolResult, any, error) {
 		return mcpGetFilters(ctx, in)
 	})
 
 	// get_metrics
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_metrics",
 		Description: "Get app metrics including adoption, crash-free/ANR-free sessions, and launch performance (cold/warm/hot p95). Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferSchema[mcpGetMetricsInput](),
@@ -882,71 +923,80 @@ func newMCPServer() http.Handler {
 		return mcpGetMetrics(ctx, in)
 	})
 
+	// get_app_health_over_time
+	mcpAddTool(s, &mcpsdk.Tool{
+		Name:        "get_app_health_over_time",
+		Description: "Get the app health timeline: sessions, crashes (fatal exceptions) and ANRs bucketed over time. This is the overview health plot. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+		InputSchema: mcpMustInferSchema[mcpGetAppHealthOverTimeInput](),
+	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetAppHealthOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
+		return mcpGetAppHealthOverTime(ctx, in)
+	})
+
 	// get_errors
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_errors",
-		Description: "Get crash or ANR error groups for an app. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
-		InputSchema: mcpMustInferErrorToolSchema[mcpGetErrorsInput](),
+		Description: "Get error groups (crashes, non-fatal exceptions and ANRs) for an app. Filter by error_types and severities (e.g. error_types=[\"error\"]+severities=[\"fatal\"] for crashes, error_types=[\"anr\"] for ANRs). Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+		InputSchema: mcpMustInferErrorFilterSchema[mcpGetErrorsInput](),
 	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorsInput) (*mcpsdk.CallToolResult, any, error) {
 		return mcpGetErrors(ctx, in)
 	})
 
 	// get_error
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_error",
-		Description: "Get individual crash or ANR events for a specific error group. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
-		InputSchema: mcpMustInferErrorToolSchema[mcpGetErrorInput](),
+		Description: "Get individual error events (exception or ANR) for a specific error group. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+		InputSchema: mcpMustInferSchema[mcpGetErrorInput](),
 	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorInput) (*mcpsdk.CallToolResult, any, error) {
 		return mcpGetError(ctx, in)
 	})
 
 	// get_errors_over_time
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_errors_over_time",
-		Description: "Get time-series of crash or ANR occurrences across all error groups. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
-		InputSchema: mcpMustInferErrorToolSchema[mcpGetErrorsOverTimeInput](),
+		Description: "Get time-series of error occurrences across all error groups. Filter by error_types and severities. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+		InputSchema: mcpMustInferErrorFilterSchema[mcpGetErrorsOverTimeInput](),
 	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 		return mcpGetErrorsOverTime(ctx, in)
 	})
 
 	// get_error_over_time
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_error_over_time",
 		Description: "Get time-series of occurrences for a specific error group. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
-		InputSchema: mcpMustInferErrorToolSchema[mcpGetErrorOverTimeInput](),
+		InputSchema: mcpMustInferSchema[mcpGetErrorOverTimeInput](),
 	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 		return mcpGetErrorOverTime(ctx, in)
 	})
 
 	// get_error_distribution
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_error_distribution",
 		Description: "Get attribute distribution (OS, device, version, country) for a specific error group. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
-		InputSchema: mcpMustInferErrorToolSchema[mcpGetErrorDistributionInput](),
+		InputSchema: mcpMustInferSchema[mcpGetErrorDistributionInput](),
 	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorDistributionInput) (*mcpsdk.CallToolResult, any, error) {
 		return mcpGetErrorDistribution(ctx, in)
 	})
 
 	// get_sessions
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_sessions",
-		Description: "Get sessions for an app, ordered by most recent first. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
-		InputSchema: mcpMustInferSchema[mcpGetSessionsInput](),
+		Description: "Get sessions for an app, ordered by most recent first. Filter to sessions containing errors via error_types and severities. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+		InputSchema: mcpMustInferErrorFilterSchema[mcpGetSessionsInput](),
 	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSessionsInput) (*mcpsdk.CallToolResult, any, error) {
 		return mcpGetSessions(ctx, in)
 	})
 
 	// get_sessions_over_time
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_sessions_over_time",
-		Description: "Get time-series of session counts. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
-		InputSchema: mcpMustInferSchema[mcpGetSessionsOverTimeInput](),
+		Description: "Get time-series of session counts. Filter to sessions containing errors via error_types and severities. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+		InputSchema: mcpMustInferErrorFilterSchema[mcpGetSessionsOverTimeInput](),
 	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSessionsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 		return mcpGetSessionsOverTime(ctx, in)
 	})
 
 	// get_session
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_session",
 		Description: "Get full session with all events",
 		InputSchema: mcpMustInferSchema[mcpGetSessionInput](),
@@ -955,7 +1005,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_bug_reports
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_bug_reports",
 		Description: "Get bug reports for an app, ordered by most recent first. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferSchema[mcpGetBugReportsInput](),
@@ -964,7 +1014,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_bug_reports_over_time
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_bug_reports_over_time",
 		Description: "Get time-series of bug report counts. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferSchema[mcpGetBugReportsOverTimeInput](),
@@ -973,7 +1023,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_bug_report
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_bug_report",
 		Description: "Get a single bug report with full details",
 		InputSchema: mcpMustInferSchema[mcpGetBugReportInput](),
@@ -982,7 +1032,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// update_bug_report_status
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "update_bug_report_status",
 		Description: "Update the status of a bug report (open or closed)",
 		InputSchema: mcpMustInferSchema[mcpUpdateBugReportStatusInput](),
@@ -991,7 +1041,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_root_span_names
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_root_span_names",
 		Description: "Get all root span names for an app",
 		InputSchema: mcpMustInferSchema[mcpGetRootSpanNamesInput](),
@@ -1000,7 +1050,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_span_instances
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_span_instances",
 		Description: "Get span instances for a root span name. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferSchema[mcpGetSpanInstancesInput](),
@@ -1009,7 +1059,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_span_metrics_over_time
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_span_metrics_over_time",
 		Description: "Get p50/p90/p95/p99 duration metrics over time for a span name. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferSchema[mcpGetSpanMetricsOverTimeInput](),
@@ -1018,7 +1068,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_trace
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_trace",
 		Description: "Get full trace with all child spans",
 		InputSchema: mcpMustInferSchema[mcpGetTraceInput](),
@@ -1027,7 +1077,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_alerts
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_alerts",
 		Description: "Get alerts for an app, ordered by most recent first",
 		InputSchema: mcpMustInferSchema[mcpGetAlertsInput](),
@@ -1036,7 +1086,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_journey
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_journey",
 		Description: "Get user navigation journey graph with session counts between screens. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
 		InputSchema: mcpMustInferSchema[mcpGetJourneyInput](),
@@ -1045,16 +1095,16 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_error_common_path
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_error_common_path",
-		Description: "Get the most common user navigation path leading to a specific crash or ANR",
-		InputSchema: mcpMustInferErrorToolSchema[mcpGetErrorCommonPathInput](),
+		Description: "Get the most common user navigation path leading to a specific error group (crash, exception or ANR)",
+		InputSchema: mcpMustInferSchema[mcpGetErrorCommonPathInput](),
 	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorCommonPathInput) (*mcpsdk.CallToolResult, any, error) {
 		return mcpGetErrorCommonPath(ctx, in)
 	})
 
 	// get_network_unique_domains
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_network_unique_domains",
 		Description: "Get all unique domains observed in HTTP requests for an app",
 		InputSchema: mcpMustInferSchema[mcpGetUniqueDomainsInput](),
@@ -1063,7 +1113,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_network_paths_for_domain
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_network_paths_for_domain",
 		Description: "Get all unique URL paths for a domain from HTTP requests, with optional search query",
 		InputSchema: mcpMustInferSchema[mcpGetPathsForDomainInput](),
@@ -1072,7 +1122,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_network_metrics_trends
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_network_metrics_trends",
 		Description: "Get top network endpoints by latency, error rate, and frequency for domain and path pattern",
 		InputSchema: mcpMustInferSchema[mcpGetNetworkTrendsInput](),
@@ -1081,7 +1131,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_network_status_codes_over_time
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_network_status_codes_over_time",
 		Description: "Get HTTP status code distribution over time across all network requests",
 		InputSchema: mcpMustInferSchema[mcpGetAppHttpStatusCodesOverTimeInput](),
@@ -1090,7 +1140,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_network_endpoint_latency_over_time
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_network_endpoint_latency_over_time",
 		Description: "Get latency percentiles (p50/p90/p95/p99) over time for a specific endpoint",
 		InputSchema: mcpMustInferSchema[mcpGetHttpEndpointLatencyOverTimeInput](),
@@ -1099,7 +1149,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_network_endpoint_status_codes_over_time
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_network_endpoint_status_codes_over_time",
 		Description: "Get HTTP status code distribution over time for a specific endpoint ",
 		InputSchema: mcpMustInferSchema[mcpGetHttpEndpointStatusCodesOverTimeInput](),
@@ -1108,7 +1158,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_network_requests_timeline
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_network_requests_timeline",
 		Description: "Get HTTP requests timeline showing when top endpoints are typically called during a session",
 		InputSchema: mcpMustInferSchema[mcpGetNetworkTimelineInput](),
@@ -1117,7 +1167,7 @@ func newMCPServer() http.Handler {
 	})
 
 	// get_network_endpoint_timeline
-	mcpsdk.AddTool(s, &mcpsdk.Tool{
+	mcpAddTool(s, &mcpsdk.Tool{
 		Name:        "get_network_endpoint_timeline",
 		Description: "Get HTTP requests timeline for a specific endpoint showing when it is typically called during a session. Only works for known path patterns.",
 		InputSchema: mcpMustInferSchema[mcpGetNetworkEndpointTimelineInput](),
@@ -1144,15 +1194,20 @@ func mcpMustInferSchema[T any]() json.RawMessage {
 	return json.RawMessage(data)
 }
 
-// mcpMustInferErrorToolSchema infers a JSON schema from a Go type and adds an
-// enum constraint to the "type" property (crash | anr).
-func mcpMustInferErrorToolSchema[T any]() json.RawMessage {
+// mcpMustInferErrorFilterSchema infers a JSON schema from a Go type and adds
+// enum constraints to the items of the "error_types" (error | anr) and
+// "severities" (fatal | unhandled | handled) array properties when present.
+// Used by tools that embed mcpErrorFilters (or otherwise expose those fields).
+func mcpMustInferErrorFilterSchema[T any]() json.RawMessage {
 	schema, err := jsonschema.For[T](nil)
 	if err != nil {
 		panic("mcp: failed to infer schema: " + err.Error())
 	}
-	if typeSchema, ok := schema.Properties["type"]; ok {
-		typeSchema.Enum = []any{"crash", "anr"}
+	if p, ok := schema.Properties["error_types"]; ok && p.Items != nil {
+		p.Items.Enum = []any{string(event.ErrorTypeError), string(event.ErrorTypeANR)}
+	}
+	if p, ok := schema.Properties["severities"]; ok && p.Items != nil {
+		p.Items.Enum = []any{string(event.SeverityFatal), string(event.SeverityUnhandled), string(event.SeverityHandled)}
 	}
 	data, err := schema.MarshalJSON()
 	if err != nil {
@@ -1183,48 +1238,60 @@ type mcpCommonFilters struct {
 	DeviceNames         []string `json:"device_names,omitempty" jsonschema:"Filter by device names"`
 }
 
+// mcpErrorFilters contains the error-scoping filters shared by the errors
+// tools and the session tools, mirroring the dashboard's type/severity query
+// params. A crash is error_types=["error"] with severities=["fatal"]; an ANR
+// is error_types=["anr"]. Leaving these empty matches every error source.
+type mcpErrorFilters struct {
+	ErrorTypes       []string `json:"error_types,omitempty" jsonschema:"Filter by error source: 'error' (exceptions) and/or 'anr'. Default: both"`
+	Severities       []string `json:"severities,omitempty" jsonschema:"Filter exceptions by severity: 'fatal' (crashes), 'unhandled' (uncaught non-fatal), 'handled' (caught & reported). Applies to the 'error' type only, not 'anr'. Default: all"`
+	CustomErrorsOnly bool     `json:"custom_errors_only,omitempty" jsonschema:"Restrict exceptions to custom (developer-reported) ones only. ANRs are never custom and are not filtered by this. No Measure SDK emits custom errors yet, so there are currently no custom exceptions."`
+}
+
 type mcpListAppsInput struct{}
 type mcpGetFiltersInput struct {
-	AppID string `json:"app_id" jsonschema:"UUID of the app to query"`
-	Type  string `json:"type,omitempty" jsonschema:"Filter type: crash, anr, span, or all (default: all)"`
+	AppID      string   `json:"app_id" jsonschema:"UUID of the app to query"`
+	ErrorTypes []string `json:"error_types,omitempty" jsonschema:"Scope filter options to errors of these types: 'error' (exceptions) and/or 'anr'. Mutually exclusive with span. Omit for all data."`
+	Span       bool     `json:"span,omitempty" jsonschema:"Scope filter options to spans"`
 }
 type mcpGetMetricsInput struct {
 	mcpCommonFilters
 	Limit  int `json:"limit,omitempty" jsonschema:"Maximum number of items to return (default: 10)"`
 	Offset int `json:"offset,omitempty" jsonschema:"Number of items to skip for pagination (default: 0)"`
 }
+type mcpGetAppHealthOverTimeInput struct {
+	mcpCommonFilters
+	Timezone string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
+}
 type mcpGetErrorsInput struct {
 	mcpCommonFilters
-	Type   string `json:"type" jsonschema:"Error type: crash or anr"`
-	Limit  int    `json:"limit,omitempty" jsonschema:"Maximum number of groups to return (default: 25, max: 100)"`
-	Offset int    `json:"offset,omitempty" jsonschema:"Number of groups to skip for pagination (default: 0)"`
+	mcpErrorFilters
+	Limit  int `json:"limit,omitempty" jsonschema:"Maximum number of groups to return (default: 25, max: 100)"`
+	Offset int `json:"offset,omitempty" jsonschema:"Number of groups to skip for pagination (default: 0)"`
 }
 type mcpGetErrorInput struct {
 	mcpCommonFilters
-	Type         string `json:"type" jsonschema:"Error type: crash or anr"`
 	ErrorGroupID string `json:"error_group_id" jsonschema:"Fingerprint/ID of the error group"`
 	Limit        int    `json:"limit,omitempty" jsonschema:"Maximum number of events to return (default: 1)"`
 	Offset       int    `json:"offset,omitempty" jsonschema:"Number of events to skip for pagination (default: 0)"`
 }
 type mcpGetErrorsOverTimeInput struct {
 	mcpCommonFilters
-	Type     string `json:"type" jsonschema:"Error type: crash or anr"`
+	mcpErrorFilters
 	Timezone string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
 }
 type mcpGetErrorOverTimeInput struct {
 	mcpCommonFilters
-	Type         string `json:"type" jsonschema:"Error type: crash or anr"`
 	ErrorGroupID string `json:"error_group_id" jsonschema:"Fingerprint/ID of the error group"`
 	Timezone     string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
 }
 type mcpGetErrorDistributionInput struct {
 	mcpCommonFilters
-	Type         string `json:"type" jsonschema:"Error type: crash or anr"`
 	ErrorGroupID string `json:"error_group_id" jsonschema:"Fingerprint/ID of the error group"`
 }
 type mcpGetSessionsInput struct {
 	mcpCommonFilters
-	SessionType     string `json:"session_type,omitempty" jsonschema:"Filter by session type: crash, anr, issues, or all"`
+	mcpErrorFilters
 	FreeText        string `json:"free_text,omitempty" jsonschema:"Free text search filter"`
 	Foreground      *bool  `json:"foreground,omitempty" jsonschema:"Filter for foreground sessions"`
 	Background      *bool  `json:"background,omitempty" jsonschema:"Filter for background sessions"`
@@ -1234,7 +1301,7 @@ type mcpGetSessionsInput struct {
 }
 type mcpGetSessionsOverTimeInput struct {
 	mcpCommonFilters
-	SessionType     string `json:"session_type,omitempty" jsonschema:"Filter by session type: crash, anr, issues, or all"`
+	mcpErrorFilters
 	FreeText        string `json:"free_text,omitempty" jsonschema:"Free text search filter"`
 	Foreground      *bool  `json:"foreground,omitempty" jsonschema:"Filter for foreground sessions"`
 	Background      *bool  `json:"background,omitempty" jsonschema:"Filter for background sessions"`
@@ -1297,13 +1364,12 @@ type mcpGetJourneyInput struct {
 }
 type mcpGetErrorCommonPathInput struct {
 	AppID        string `json:"app_id" jsonschema:"UUID of the app to query"`
-	Type         string `json:"type" jsonschema:"Error type: crash or anr"`
 	ErrorGroupID string `json:"error_group_id" jsonschema:"Fingerprint/ID of the error group"`
 }
 type mcpUpdateBugReportStatusInput struct {
 	AppID       string `json:"app_id" jsonschema:"UUID of the app"`
 	BugReportID string `json:"bug_report_id" jsonschema:"ID of the bug report"`
-	Status      *int   `json:"status" jsonschema:"New status: 0 (closed) or 1 (open)"`
+	Status      *int   `json:"status" jsonschema:"New status: 0 (open) or 1 (closed)"`
 }
 
 // Network tool input structs.
@@ -1398,6 +1464,9 @@ func mcpResolveAppAccess(ctx context.Context, rawAppID string) (uuid.UUID, uuid.
 	if err != nil {
 		return uuid.UUID{}, uuid.UUID{}, fmt.Errorf("failed to get app team: %v", err)
 	}
+	if team == nil {
+		return uuid.UUID{}, uuid.UUID{}, fmt.Errorf("no team exists for app %s", appID)
+	}
 
 	return appID, *team.ID, nil
 }
@@ -1456,7 +1525,6 @@ func mcpBuildAppFilter(ctx context.Context, appID uuid.UUID, cf mcpCommonFilters
 		}
 		filtersAF := &filter.AppFilter{AppID: appID}
 		filtersAF.SetDefaultTimeRange()
-		filtersAF.AppOSName = app.OSName
 		filterCtx := ambient.WithTeamId(ctx, app.TeamId)
 
 		var fl filter.FilterList
@@ -1472,18 +1540,29 @@ func mcpBuildAppFilter(ctx context.Context, appID uuid.UUID, cf mcpCommonFilters
 	return af, nil
 }
 
-// mcpApplySessionFilters sets session-specific filter fields on an AppFilter.
-func mcpApplySessionFilters(af *filter.AppFilter, sessionType, freeText string, foreground, background, userInteraction *bool) {
-	switch sessionType {
-	case "crash":
-		af.Crash = true
-	case "anr":
-		af.ANR = true
-	case "issues":
-		af.Crash = true
-		af.ANR = true
+// mcpApplyErrorFilters validates and applies the error-scoping filters onto an
+// AppFilter. Empty fields leave the filter unscoped (all error sources).
+func mcpApplyErrorFilters(af *filter.AppFilter, ef mcpErrorFilters) error {
+	for _, t := range ef.ErrorTypes {
+		et := event.ErrorType(t)
+		if !et.IsValid() {
+			return fmt.Errorf("error_types values must be any combination of: %s, %s", event.ErrorTypeError, event.ErrorTypeANR)
+		}
+		af.ErrorTypes = append(af.ErrorTypes, et)
 	}
+	for _, s := range ef.Severities {
+		sv := event.Severity(s)
+		if !sv.IsValid() {
+			return fmt.Errorf("severities values must be any combination of: %s, %s, %s", event.SeverityFatal, event.SeverityUnhandled, event.SeverityHandled)
+		}
+		af.Severities = append(af.Severities, sv)
+	}
+	af.CustomError = ef.CustomErrorsOnly
+	return nil
+}
 
+// mcpApplySessionFilters sets session-specific filter fields on an AppFilter.
+func mcpApplySessionFilters(af *filter.AppFilter, freeText string, foreground, background, userInteraction *bool) {
 	if freeText != "" {
 		af.FreeText = freeText
 	}
@@ -1534,13 +1613,13 @@ func mcpListApps(ctx context.Context, _ mcpListAppsInput) (*mcpsdk.CallToolResul
 
 	pgPool := server.Server.PgPool
 	type appRow struct {
-		ID               string `json:"id"`
-		Name             string `json:"name"`
-		Platform         string `json:"platform"`
-		UniqueIdentifier string `json:"unique_identifier"`
+		ID               string   `json:"id"`
+		Name             string   `json:"name"`
+		OsNames          []string `json:"os_names"`
+		UniqueIdentifier string   `json:"unique_identifier"`
 	}
 	rows, err := pgPool.Query(ctx,
-		`SELECT a.id, a.app_name, coalesce(a.os_name, ''), coalesce(a.unique_identifier, '')
+		`SELECT a.id, a.app_name, coalesce(a.os_names, '{}'), coalesce(a.unique_identifier, '')
 		 FROM measure.apps a
 		 JOIN measure.team_membership tm ON a.team_id = tm.team_id
 		 WHERE tm.user_id = $1
@@ -1554,7 +1633,7 @@ func mcpListApps(ctx context.Context, _ mcpListAppsInput) (*mcpsdk.CallToolResul
 	var apps []appRow
 	for rows.Next() {
 		var row appRow
-		if err := rows.Scan(&row.ID, &row.Name, &row.Platform, &row.UniqueIdentifier); err != nil {
+		if err := rows.Scan(&row.ID, &row.Name, &row.OsNames, &row.UniqueIdentifier); err != nil {
 			return nil, nil, fmt.Errorf("failed to query apps: %w", err)
 		}
 		apps = append(apps, row)
@@ -1581,24 +1660,20 @@ func mcpGetFilters(ctx context.Context, in mcpGetFiltersInput) (*mcpsdk.CallTool
 	}
 	af.SetDefaultTimeRange()
 
-	switch in.Type {
-	case "crash":
-		af.Crash = true
-	case "anr":
-		af.ANR = true
-	case "span":
+	if in.Span && len(in.ErrorTypes) > 0 {
+		return nil, nil, fmt.Errorf("span and error_types are mutually exclusive")
+	}
+	if in.Span {
 		af.Span = true
-	case "all", "":
-		// no specific filter
-	default:
-		return nil, nil, fmt.Errorf("type must be 'crash', 'anr', 'span', or 'all'")
+	}
+	if err := mcpApplyErrorFilters(af, mcpErrorFilters{ErrorTypes: in.ErrorTypes}); err != nil {
+		return nil, nil, err
 	}
 
 	app, err := SelectApp(ctx, appID)
 	if err != nil {
 		return nil, nil, err
 	}
-	af.AppOSName = app.OSName
 	filterCtx := ambient.WithTeamId(ctx, app.TeamId)
 
 	var fl filter.FilterList
@@ -1634,7 +1709,6 @@ func mcpGetMetrics(ctx context.Context, in mcpGetMetricsInput) (*mcpsdk.CallTool
 	if err := app.Populate(ctx); err != nil {
 		return nil, nil, err
 	}
-	af.AppOSName = app.OSName
 	metricsCtx := ambient.WithTeamId(ctx, teamID)
 
 	adoption, err := app.GetAdoptionMetrics(metricsCtx, af)
@@ -1695,12 +1769,9 @@ func mcpGetMetrics(ctx context.Context, in mcpGetMetricsInput) (*mcpsdk.CallTool
 	return mcpTextResult(string(data)), nil, nil
 }
 
-func mcpGetErrors(ctx context.Context, in mcpGetErrorsInput) (*mcpsdk.CallToolResult, any, error) {
-	if in.Type == "" {
-		return nil, nil, fmt.Errorf("type is required (crash or anr)")
-	}
-	if in.Type != "crash" && in.Type != "anr" {
-		return nil, nil, fmt.Errorf("type must be 'crash' or 'anr'")
+func mcpGetAppHealthOverTime(ctx context.Context, in mcpGetAppHealthOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
+	if in.Timezone == "" {
+		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
 
 	appID, teamID, err := mcpResolveAppAccess(ctx, in.AppID)
@@ -1710,6 +1781,51 @@ func mcpGetErrors(ctx context.Context, in mcpGetErrorsInput) (*mcpsdk.CallToolRe
 
 	af, err := mcpBuildAppFilter(ctx, appID, in.mcpCommonFilters)
 	if err != nil {
+		return nil, nil, err
+	}
+	af.Timezone = in.Timezone
+	af.Limit = filter.DefaultPaginationLimit
+
+	app := &App{ID: &appID, TeamId: teamID}
+	plotCtx := ambient.WithTeamId(ctx, teamID)
+
+	sessions, crashes, anrs, plotErr := app.GetHealthPlotInstances(plotCtx, af)
+	if plotErr != nil {
+		return nil, nil, fmt.Errorf("failed to get app health plot: %v", plotErr)
+	}
+
+	build := func(points []healthInstance) []map[string]any {
+		series := make([]map[string]any, 0, len(points))
+		for i := range points {
+			series = append(series, map[string]any{
+				"datetime":  points[i].DateTime,
+				"instances": points[i].Instances,
+			})
+		}
+		return series
+	}
+
+	result := map[string]any{
+		"sessions": build(sessions),
+		"crashes":  build(crashes),
+		"anrs":     build(anrs),
+	}
+
+	data, _ := json.Marshal(result)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func mcpGetErrors(ctx context.Context, in mcpGetErrorsInput) (*mcpsdk.CallToolResult, any, error) {
+	appID, teamID, err := mcpResolveAppAccess(ctx, in.AppID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	af, err := mcpBuildAppFilter(ctx, appID, in.mcpCommonFilters)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := mcpApplyErrorFilters(af, in.mcpErrorFilters); err != nil {
 		return nil, nil, err
 	}
 
@@ -1723,38 +1839,17 @@ func mcpGetErrors(ctx context.Context, in mcpGetErrorsInput) (*mcpsdk.CallToolRe
 	af.Limit = limit
 	af.Offset = in.Offset
 
-	if in.Type == "crash" {
-		af.Crash = true
-	} else {
-		af.ANR = true
-	}
-
 	app := &App{ID: &appID, TeamId: teamID}
-	var data []byte
-	if in.Type == "crash" {
-		groups, _, _, groupErr := app.GetExceptionGroupsWithFilter(ctx, af)
-		if groupErr != nil {
-			return nil, nil, fmt.Errorf("failed to get error groups: %v", groupErr)
-		}
-		data, _ = json.Marshal(groups)
-	} else {
-		groups, _, _, groupErr := app.GetANRGroupsWithFilter(ctx, af)
-		if groupErr != nil {
-			return nil, nil, fmt.Errorf("failed to get error groups: %v", groupErr)
-		}
-		data, _ = json.Marshal(groups)
+	groups, _, _, groupErr := app.GetErrorGroupsWithFilter(ctx, af)
+	if groupErr != nil {
+		return nil, nil, fmt.Errorf("failed to get error groups: %v", groupErr)
 	}
+	data, _ := json.Marshal(groups)
 
 	return mcpTextResult(string(data)), nil, nil
 }
 
 func mcpGetError(ctx context.Context, in mcpGetErrorInput) (*mcpsdk.CallToolResult, any, error) {
-	if in.Type == "" {
-		return nil, nil, fmt.Errorf("type is required (crash or anr)")
-	}
-	if in.Type != "crash" && in.Type != "anr" {
-		return nil, nil, fmt.Errorf("type must be 'crash' or 'anr'")
-	}
 	if in.ErrorGroupID == "" {
 		return nil, nil, fmt.Errorf("error_group_id is required")
 	}
@@ -1780,31 +1875,16 @@ func mcpGetError(ctx context.Context, in mcpGetErrorInput) (*mcpsdk.CallToolResu
 	af.Offset = in.Offset
 
 	app := &App{ID: &appID, TeamId: teamID}
-	var data []byte
-	if in.Type == "crash" {
-		events, _, _, evErr := app.GetExceptionsWithFilter(ctx, in.ErrorGroupID, af)
-		if evErr != nil {
-			return nil, nil, fmt.Errorf("failed to get error details: %v", evErr)
-		}
-		data, _ = json.Marshal(events)
-	} else {
-		events, _, _, evErr := app.GetANRsWithFilter(ctx, in.ErrorGroupID, af)
-		if evErr != nil {
-			return nil, nil, fmt.Errorf("failed to get error details: %v", evErr)
-		}
-		data, _ = json.Marshal(events)
+	events, _, _, evErr := app.GetErrorsWithFilter(ctx, in.ErrorGroupID, af)
+	if evErr != nil {
+		return nil, nil, fmt.Errorf("failed to get error details: %v", evErr)
 	}
+	data, _ := json.Marshal(events)
 
 	return mcpTextResult(string(data)), nil, nil
 }
 
 func mcpGetErrorsOverTime(ctx context.Context, in mcpGetErrorsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
-	if in.Type == "" {
-		return nil, nil, fmt.Errorf("type is required (crash or anr)")
-	}
-	if in.Type != "crash" && in.Type != "anr" {
-		return nil, nil, fmt.Errorf("type must be 'crash' or 'anr'")
-	}
 	if in.Timezone == "" {
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
@@ -1818,42 +1898,24 @@ func mcpGetErrorsOverTime(ctx context.Context, in mcpGetErrorsOverTimeInput) (*m
 	if err != nil {
 		return nil, nil, err
 	}
+	if err := mcpApplyErrorFilters(af, in.mcpErrorFilters); err != nil {
+		return nil, nil, err
+	}
 	af.Timezone = in.Timezone
 	af.Limit = filter.DefaultPaginationLimit
 
-	if in.Type == "crash" {
-		af.Crash = true
-	} else {
-		af.ANR = true
-	}
-
 	app := &App{ID: &appID, TeamId: teamID}
 	plotCtx := ambient.WithTeamId(ctx, teamID)
-	var data []byte
-	if in.Type == "crash" {
-		instances, plotErr := app.GetExceptionPlotInstances(plotCtx, af)
-		if plotErr != nil {
-			return nil, nil, fmt.Errorf("failed to get error overview plot: %v", plotErr)
-		}
-		data, _ = json.Marshal(instances)
-	} else {
-		instances, plotErr := app.GetANRPlotInstances(plotCtx, af)
-		if plotErr != nil {
-			return nil, nil, fmt.Errorf("failed to get error overview plot: %v", plotErr)
-		}
-		data, _ = json.Marshal(instances)
+	instances, plotErr := app.GetErrorPlotInstances(plotCtx, af)
+	if plotErr != nil {
+		return nil, nil, fmt.Errorf("failed to get error overview plot: %v", plotErr)
 	}
+	data, _ := json.Marshal(instances)
 
 	return mcpTextResult(string(data)), nil, nil
 }
 
 func mcpGetErrorOverTime(ctx context.Context, in mcpGetErrorOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
-	if in.Type == "" {
-		return nil, nil, fmt.Errorf("type is required (crash or anr)")
-	}
-	if in.Type != "crash" && in.Type != "anr" {
-		return nil, nil, fmt.Errorf("type must be 'crash' or 'anr'")
-	}
 	if in.ErrorGroupID == "" {
 		return nil, nil, fmt.Errorf("error_group_id is required")
 	}
@@ -1875,31 +1937,16 @@ func mcpGetErrorOverTime(ctx context.Context, in mcpGetErrorOverTimeInput) (*mcp
 
 	app := &App{ID: &appID, TeamId: teamID}
 	plotCtx := ambient.WithTeamId(ctx, teamID)
-	var data []byte
-	if in.Type == "crash" {
-		instances, plotErr := app.GetExceptionGroupPlotInstances(plotCtx, in.ErrorGroupID, af)
-		if plotErr != nil {
-			return nil, nil, fmt.Errorf("failed to get error detail plot: %v", plotErr)
-		}
-		data, _ = json.Marshal(instances)
-	} else {
-		instances, plotErr := app.GetANRGroupPlotInstances(plotCtx, in.ErrorGroupID, af)
-		if plotErr != nil {
-			return nil, nil, fmt.Errorf("failed to get error detail plot: %v", plotErr)
-		}
-		data, _ = json.Marshal(instances)
+	instances, plotErr := app.GetErrorGroupPlotInstances(plotCtx, in.ErrorGroupID, af)
+	if plotErr != nil {
+		return nil, nil, fmt.Errorf("failed to get error detail plot: %v", plotErr)
 	}
+	data, _ := json.Marshal(instances)
 
 	return mcpTextResult(string(data)), nil, nil
 }
 
 func mcpGetErrorDistribution(ctx context.Context, in mcpGetErrorDistributionInput) (*mcpsdk.CallToolResult, any, error) {
-	if in.Type == "" {
-		return nil, nil, fmt.Errorf("type is required (crash or anr)")
-	}
-	if in.Type != "crash" && in.Type != "anr" {
-		return nil, nil, fmt.Errorf("type must be 'crash' or 'anr'")
-	}
 	if in.ErrorGroupID == "" {
 		return nil, nil, fmt.Errorf("error_group_id is required")
 	}
@@ -1917,20 +1964,11 @@ func mcpGetErrorDistribution(ctx context.Context, in mcpGetErrorDistributionInpu
 
 	app := &App{ID: &appID, TeamId: teamID}
 	distCtx := ambient.WithTeamId(ctx, teamID)
-	var data []byte
-	if in.Type == "crash" {
-		distribution, distErr := app.GetExceptionAttributesDistribution(distCtx, in.ErrorGroupID, af)
-		if distErr != nil {
-			return nil, nil, fmt.Errorf("failed to get error distribution: %v", distErr)
-		}
-		data, _ = json.Marshal(distribution)
-	} else {
-		distribution, distErr := app.GetANRAttributesDistribution(distCtx, in.ErrorGroupID, af)
-		if distErr != nil {
-			return nil, nil, fmt.Errorf("failed to get error distribution: %v", distErr)
-		}
-		data, _ = json.Marshal(distribution)
+	distribution, distErr := app.GetErrorGroupAttributesDistribution(distCtx, in.ErrorGroupID, af)
+	if distErr != nil {
+		return nil, nil, fmt.Errorf("failed to get error distribution: %v", distErr)
 	}
+	data, _ := json.Marshal(distribution)
 
 	return mcpTextResult(string(data)), nil, nil
 }
@@ -1956,7 +1994,10 @@ func mcpGetSessions(ctx context.Context, in mcpGetSessionsInput) (*mcpsdk.CallTo
 	af.Limit = limit
 	af.Offset = in.Offset
 
-	mcpApplySessionFilters(af, in.SessionType, in.FreeText, in.Foreground, in.Background, in.UserInteraction)
+	if err := mcpApplyErrorFilters(af, in.mcpErrorFilters); err != nil {
+		return nil, nil, err
+	}
+	mcpApplySessionFilters(af, in.FreeText, in.Foreground, in.Background, in.UserInteraction)
 
 	app := &App{ID: &appID, TeamId: teamID}
 	sessCtx := ambient.WithTeamId(ctx, teamID)
@@ -1985,7 +2026,10 @@ func mcpGetSessionsOverTime(ctx context.Context, in mcpGetSessionsOverTimeInput)
 	af.Timezone = in.Timezone
 	af.Limit = filter.DefaultPaginationLimit
 
-	mcpApplySessionFilters(af, in.SessionType, in.FreeText, in.Foreground, in.Background, in.UserInteraction)
+	if err := mcpApplyErrorFilters(af, in.mcpErrorFilters); err != nil {
+		return nil, nil, err
+	}
+	mcpApplySessionFilters(af, in.FreeText, in.Foreground, in.Background, in.UserInteraction)
 
 	app := &App{ID: &appID, TeamId: teamID}
 	plotCtx := ambient.WithTeamId(ctx, teamID)
@@ -2333,12 +2377,6 @@ func mcpGetJourney(ctx context.Context, in mcpGetJourneyInput) (*mcpsdk.CallTool
 }
 
 func mcpGetErrorCommonPath(ctx context.Context, in mcpGetErrorCommonPathInput) (*mcpsdk.CallToolResult, any, error) {
-	if in.Type == "" {
-		return nil, nil, fmt.Errorf("type is required (crash or anr)")
-	}
-	if in.Type != "crash" && in.Type != "anr" {
-		return nil, nil, fmt.Errorf("type must be 'crash' or 'anr'")
-	}
 	if in.ErrorGroupID == "" {
 		return nil, nil, fmt.Errorf("error_group_id is required")
 	}
@@ -2348,8 +2386,7 @@ func mcpGetErrorCommonPath(ctx context.Context, in mcpGetErrorCommonPathInput) (
 		return nil, nil, err
 	}
 
-	gt := group.GroupType(in.Type)
-	data, pathErr := GetIssueGroupCommonPath(ctx, teamID, appID, gt, in.ErrorGroupID)
+	data, pathErr := GetIssueGroupCommonPath(ctx, teamID, appID, group.GroupTypeError, in.ErrorGroupID)
 	if pathErr != nil {
 		return nil, nil, fmt.Errorf("failed to get error common path: %v", pathErr)
 	}
@@ -2362,16 +2399,26 @@ func mcpUpdateBugReportStatus(ctx context.Context, in mcpUpdateBugReportStatusIn
 		return nil, nil, fmt.Errorf("bug_report_id is required")
 	}
 	if in.Status == nil {
-		return nil, nil, fmt.Errorf("status is required (0 for closed, 1 for open)")
+		return nil, nil, fmt.Errorf("status is required (0 for open, 1 for closed)")
 	}
 	status := *in.Status
 	if status != 0 && status != 1 {
-		return nil, nil, fmt.Errorf("status must be 0 (closed) or 1 (open)")
+		return nil, nil, fmt.Errorf("status must be 0 (open) or 1 (closed)")
 	}
 
 	appID, teamID, err := mcpResolveAppAccess(ctx, in.AppID)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	// Updating a bug report is a write; membership alone is not enough.
+	userID, _ := mcpUserIDFromContext(ctx)
+	allowed, err := PerformAuthz(userID, teamID.String(), *ScopeBugReportAll)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to perform authorization: %v", err)
+	}
+	if !allowed {
+		return nil, nil, fmt.Errorf("you are not authorized to update bug reports; ask a team admin for access")
 	}
 
 	app := &App{ID: &appID, TeamId: teamID}

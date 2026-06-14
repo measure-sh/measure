@@ -172,11 +172,12 @@ final class MeasureInternalTests: XCTestCase {
         XCTAssertNil(screenshotAttachment, "captureScreenshot should not create an attachment if not started")
 
         // Test `trackError`
-        measureInternal.trackError(NSError(domain: "Test", code: 1), attributes: [:], collectStackTraces: false)
+        measureInternal.trackError(NSError(domain: "Test", code: 1), attributes: [:])
         XCTAssertFalse(logger.logs.contains(where: { $0.contains("Event processed") }), "trackError should not proceed if not started")
     }
 
     func testApplicationWillEnterForeground_triggersExport() {
+        measureInternal.start()
         let exporter = mockMeasureInitializer.exporter as! MockExporter // swiftlint:disable:this force_cast
         let before = exporter.exportCallCount
         NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
@@ -192,6 +193,7 @@ final class MeasureInternalTests: XCTestCase {
     }
 
     func testApplicationWillEnterForeground_triggersExportOnEachTransition() {
+        measureInternal.start()
         let exporter = mockMeasureInitializer.exporter as! MockExporter // swiftlint:disable:this force_cast
         let before = exporter.exportCallCount
         NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
@@ -206,6 +208,7 @@ final class MeasureInternalTests: XCTestCase {
             configProvider: MockConfigProvider()
         )
         let sut = MeasureInternal(initializer)
+        sut.start()
         let exporter = initializer.exporter as! MockExporter // swiftlint:disable:this force_cast
         let before = exporter.exportCallCount
 
@@ -216,6 +219,7 @@ final class MeasureInternalTests: XCTestCase {
     }
 
     func testApplicationWillEnterForeground_triggersExport_whenConfigIsLoaded() {
+        measureInternal.start()
         let exporter = mockMeasureInitializer.exporter as! MockExporter // swiftlint:disable:this force_cast
         let before = exporter.exportCallCount
 
@@ -224,28 +228,16 @@ final class MeasureInternalTests: XCTestCase {
         XCTAssertEqual(exporter.exportCallCount, before + 1, "export() should be called when config has been loaded")
     }
 
-    func testEncodeWebP_completesOnMainThreadWithEncodedBytes() {
-        // Use a synchronous dispatch queue + a config-provider with a known quality.
-        // Verifies the orchestrator (a) ran the codec, (b) hopped back to main
-        // before invoking the completion handler.
-        let initializer = MockMeasureInitializer(
-            configProvider: MockConfigProvider(autoStart: false),
-            measureDispatchQueue: MockMeasureDispatchQueue()
-        )
-        let internalUnderTest = MeasureInternal(initializer)
-        let pixels = Data(count: 2 * 2 * 4)
-        let completed = expectation(description: "completion")
-        var ranOnMainThread = false
-        var encoded: Data?
+    func testApplicationWillEnterForeground_doesNotRegisterCollectors_whenStopped() {
+        measureInternal.start()
+        measureInternal.stop()
+        let logger = mockMeasureInitializer.logger as! MockLogger // swiftlint:disable:this force_cast
+        logger.logs.removeAll()
 
-        internalUnderTest.encodeWebP(pixels: pixels, width: 2, height: 2) { result in
-            ranOnMainThread = Thread.isMainThread
-            encoded = result
-            completed.fulfill()
-        }
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
 
-        wait(for: [completed], timeout: 1.0)
-        XCTAssertTrue(ranOnMainThread)
-        XCTAssertNotNil(encoded)
+        XCTAssertFalse(logger.logs.contains("CustomEventCollector enabled."), "collectors should not be re-enabled when SDK is stopped")
+        XCTAssertFalse(logger.logs.contains("CpuUsageCollector enabled."), "collectors should not be re-enabled when SDK is stopped")
+        XCTAssertFalse(logger.logs.contains("LifecycleCollector enabled."), "collectors should not be re-enabled when SDK is stopped")
     }
 }

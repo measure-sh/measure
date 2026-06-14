@@ -3,18 +3,22 @@ import Link from "next/link";
 import { buttonVariants } from "../components/button_variants";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
+import TrackCtaLink from "../components/analytics/track_cta_link";
+import TrackGithubLink from "../components/analytics/track_github_link";
 import { sharedOpenGraph } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
 export const metadata: Metadata = {
   title: "Security & Data Protection",
-  description: "How Measure protects your app's data — encryption, infrastructure and access controls. Open source so you can audit it yourself.",
+  description:
+    "How Measure protects your app's data — encryption, infrastructure and access controls. Open source so you can audit it yourself.",
   alternates: { canonical: "/security" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Security & Data Protection | Measure",
-    description: "How Measure protects your app's data — encryption, infrastructure and access controls. Open source so you can audit it yourself.",
+    description:
+      "How Measure protects your app's data — encryption, infrastructure and access controls. Open source so you can audit it yourself.",
     url: "/security",
   },
 };
@@ -51,13 +55,13 @@ export default function Security() {
           <p className="mb-8 text-justify text-lg">
             Measure is fully open-source, and its source code is publicly
             available on{" "}
-            <Link
+            <TrackGithubLink
               target="_blank"
               className={underlineLinkStyle}
               href="https://github.com/measure-sh/measure"
             >
               Github
-            </Link>
+            </TrackGithubLink>
             . This transparency allows continuous review by the open-source
             community, fostering early identification and remediation of
             potential security issues.
@@ -155,10 +159,10 @@ export default function Security() {
             Google-managed encryption keys with the <b>AES-256</b> algorithm.
             Data in transit, including API requests and responses, is encrypted
             using <b>TLS 1.2</b> or higher. We apply strict access controls,
-            monitoring and regular security reviews to ensure data security.
-            Our architecture follows the principle of least privilege and
-            enforces separation between customer environments. Measure Cloud
-            adheres to Google&apos;s security best practices, as outlined in the{" "}
+            monitoring and regular security reviews to ensure data security. Our
+            architecture follows the principle of least privilege and enforces
+            separation between customer environments. Measure Cloud adheres to
+            Google&apos;s security best practices, as outlined in the{" "}
             <Link
               target="_blank"
               className={underlineLinkStyle}
@@ -225,7 +229,9 @@ export default function Security() {
         </div>
 
         <div className="py-8" />
-        <Link
+        <TrackCtaLink
+          location="security"
+          destination="signup"
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -233,7 +239,7 @@ export default function Security() {
           )}
         >
           Get To The Root Cause
-        </Link>
+        </TrackCtaLink>
         <div className="py-16" />
       </div>
       <LandingFooter />

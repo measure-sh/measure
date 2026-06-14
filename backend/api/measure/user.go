@@ -310,8 +310,7 @@ func FindUserByEmail(ctx context.Context, email string) (*User, error) {
 	return &user, nil
 }
 
-// NewUser creates a new user from name
-// and email pair.
+// NewUser creates a new user from name and email.
 func NewUser(name, email string) (user *User) {
 	id := uuid.New().String()
 	now := time.Now()

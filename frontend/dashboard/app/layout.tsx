@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Fira_Code, Josefin_Sans, Work_Sans } from "next/font/google";
+import AttributionCapture from "./components/analytics/attribution_capture";
 import { ClientProviders } from "./components/client_providers";
 import { ConsentManager } from "./components/consent_manager";
 import { ThemeProvider } from "./components/theme_provider";
 import { Toaster } from "./components/toaster";
+import UTMCapture from "./components/analytics/utm_capture";
 import "./globals.css";
 import { previewImage, sharedOpenGraph } from "./utils/metadata";
 
@@ -73,6 +75,8 @@ export default function RootLayout({
       <body
         className={`${josefin_sans.variable} ${work_sans.variable} ${fira_code.variable}`}
       >
+        <AttributionCapture />
+        <UTMCapture />
         <ClientProviders>
           <ThemeProvider
             attribute="class"

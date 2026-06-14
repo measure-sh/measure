@@ -26,11 +26,11 @@ exports[`Danger Confirmation Dialog renders correctly in closed state 1`] = `
       style="pointer-events: auto;"
     />
     <div
-      aria-describedby="radix-:r5:"
-      aria-labelledby="radix-:r4:"
+      aria-describedby="radix-_r_5_"
+      aria-labelledby="radix-_r_4_"
       class="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg bg-background text-foreground"
       data-state="open"
-      id="radix-:r3:"
+      id="radix-_r_3_"
       role="dialog"
       style="pointer-events: auto;"
       tabindex="-1"
@@ -40,14 +40,14 @@ exports[`Danger Confirmation Dialog renders correctly in closed state 1`] = `
       >
         <h2
           class="text-lg font-semibold leading-none tracking-tight font-display text-red-600 dark:text-red-400"
-          id="radix-:r4:"
+          id="radix-_r_4_"
         >
           Are you sure?
         </h2>
       </div>
       <p
         class="text-sm text-muted-foreground"
-        id="radix-:r5:"
+        id="radix-_r_5_"
       >
         SOME BODY TEXT
       </p>
@@ -55,7 +55,7 @@ exports[`Danger Confirmation Dialog renders correctly in closed state 1`] = `
         class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2"
       >
         <button
-          class="relative font-display select-none inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60 h-9 px-4 py-2 has-[>svg]:px-3"
+          class="relative font-display select-none inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:hover:bg-destructive/70 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/80 h-9 px-4 py-2 has-[>svg]:px-3"
           data-slot="button"
         >
           SOME AFFIRMATIVE TEXT
@@ -190,11 +190,11 @@ exports[`Danger Confirmation Dialog renders correctly in opened state 1`] = `
       style="pointer-events: auto;"
     />
     <div
-      aria-describedby="radix-:r2:"
-      aria-labelledby="radix-:r1:"
+      aria-describedby="radix-_r_2_"
+      aria-labelledby="radix-_r_1_"
       class="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg bg-background text-foreground"
       data-state="open"
-      id="radix-:r0:"
+      id="radix-_r_0_"
       role="dialog"
       style="pointer-events: auto;"
       tabindex="-1"
@@ -204,14 +204,14 @@ exports[`Danger Confirmation Dialog renders correctly in opened state 1`] = `
       >
         <h2
           class="text-lg font-semibold leading-none tracking-tight font-display text-red-600 dark:text-red-400"
-          id="radix-:r1:"
+          id="radix-_r_1_"
         >
           Are you sure?
         </h2>
       </div>
       <p
         class="text-sm text-muted-foreground"
-        id="radix-:r2:"
+        id="radix-_r_2_"
       >
         SOME BODY TEXT
       </p>
@@ -219,7 +219,7 @@ exports[`Danger Confirmation Dialog renders correctly in opened state 1`] = `
         class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2"
       >
         <button
-          class="relative font-display select-none inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60 h-9 px-4 py-2 has-[>svg]:px-3"
+          class="relative font-display select-none inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:hover:bg-destructive/70 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/80 h-9 px-4 py-2 has-[>svg]:px-3"
           data-slot="button"
         >
           SOME AFFIRMATIVE TEXT

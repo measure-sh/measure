@@ -84,6 +84,8 @@ final class BaseGestureCollector: GestureCollector {
 
             let data = ClickData(target: gestureTargetFinderData.target ?? target,
                                  targetId: gestureTargetFinderData.targetId ?? targetId,
+                                 label: gestureTargetFinderData.label,
+                                 semanticLabel: gestureTargetFinderData.semanticLabel,
                                  width: width != 0 ? width : nil,
                                  height: height != 0 ? height : nil,
                                  x: FloatNumber32(x),
@@ -114,6 +116,8 @@ final class BaseGestureCollector: GestureCollector {
 
             let data = LongClickData(target: gestureTargetFinderData.target ?? target,
                                      targetId: gestureTargetFinderData.targetId ?? targetId,
+                                     label: gestureTargetFinderData.label,
+                                     semanticLabel: gestureTargetFinderData.semanticLabel,
                                      width: width != 0 ? width : nil,
                                      height: height != 0 ? height : nil,
                                      x: FloatNumber32(x),

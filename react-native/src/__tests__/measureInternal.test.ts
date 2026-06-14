@@ -10,8 +10,11 @@ jest.mock('../native/measureBridge', () => ({
   getSessionId: jest.fn(() => Promise.resolve('mock-session-id')),
 }));
 
-jest.mock('../exception/measureErrorHandlers', () => ({
-  setupErrorHandlers: jest.fn(),
+jest.mock('../exception/errorReportingManager', () => ({
+  ErrorReportingManager: jest.fn().mockImplementation(() => ({
+    enable: jest.fn(),
+    disable: jest.fn(),
+  })),
 }));
 
 function makeMockInitializer() {
@@ -39,7 +42,9 @@ describe('MeasureInternal.start', () => {
     await sdk.start();
 
     expect(initializer.customEventCollector.register).toHaveBeenCalledTimes(1);
-    expect(initializer.userTriggeredEventCollector.register).toHaveBeenCalledTimes(1);
+    expect(
+      initializer.userTriggeredEventCollector.register
+    ).toHaveBeenCalledTimes(1);
     expect(initializer.spanCollector.register).toHaveBeenCalledTimes(1);
     expect(initializer.bugReportCollector.register).toHaveBeenCalledTimes(1);
     expect(measureBridge.enableNativeModule).toHaveBeenCalledTimes(1);
@@ -90,8 +95,12 @@ describe('MeasureInternal.stop', () => {
 
     await sdk.stop();
 
-    expect(initializer.customEventCollector.unregister).toHaveBeenCalledTimes(1);
-    expect(initializer.userTriggeredEventCollector.unregister).toHaveBeenCalledTimes(1);
+    expect(initializer.customEventCollector.unregister).toHaveBeenCalledTimes(
+      1
+    );
+    expect(
+      initializer.userTriggeredEventCollector.unregister
+    ).toHaveBeenCalledTimes(1);
     expect(initializer.spanCollector.unregister).toHaveBeenCalledTimes(1);
     expect(initializer.bugReportCollector.unregister).toHaveBeenCalledTimes(1);
     expect(measureBridge.disableNativeModule).toHaveBeenCalledTimes(1);
@@ -159,7 +168,9 @@ describe('MeasureInternal start/stop lifecycle', () => {
     await sdk.start();
 
     expect(initializer.customEventCollector.register).toHaveBeenCalledTimes(2);
-    expect(initializer.customEventCollector.unregister).toHaveBeenCalledTimes(1);
+    expect(initializer.customEventCollector.unregister).toHaveBeenCalledTimes(
+      1
+    );
   });
 });
 

@@ -9,7 +9,34 @@ import {
   formatMillisToHumanReadable,
 } from "../utils/time_utils";
 import { buttonVariants } from "./button_variants";
+import CodeBlock from "./code_block";
 import LayoutSnapshot from "./layout_snapshot";
+
+// Text size matches the attribute rows so the stacktrace doesn't visually
+// dominate the rest of the event detail.
+const stacktraceClassName =
+  "font-code text-xs leading-relaxed rounded-sm overflow-hidden [&_pre]:p-4 [&_pre]:overflow-x-auto";
+
+function renderAttributeRow(key: string, value: unknown): ReactNode {
+  const isObject = typeof value === "object" && value !== null;
+  return (
+    <div
+      key={key}
+      className="flex flex-col gap-0.5 px-3 py-2 border-b border-border/40 last:border-b-0"
+    >
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground select-none">
+        {key}
+      </p>
+      {isObject ? (
+        <pre className="text-xs font-code whitespace-pre-wrap break-words m-0">
+          {JSON.stringify(value, null, 2)}
+        </pre>
+      ) : (
+        <p className="text-xs break-words font-code">{String(value)}</p>
+      )}
+    </div>
+  );
+}
 
 type SessionTimelineEventDetailsProps = {
   teamId: string;
@@ -33,120 +60,83 @@ export default function SessionTimelineEventDetails({
   };
 
   function getBodyFromEventDetails(): ReactNode {
-    // Remove user defined attrs. In case of http event, remove start_time and end_time as well since they represent uptime in ms and not timestamps.
-    const entries = Object.entries(eventDetails).filter(
-      ([key]) =>
-        key !== "user_defined_attribute" &&
-        !(eventType === "http" && (key === "start_time" || key === "end_time")),
-    );
-    const userDefinedAttributes = Object.entries(eventDetails).find(
-      ([key]) => key === "user_defined_attribute",
-    )?.[1];
-    const errorException = Object.entries(eventDetails).filter(
-      ([key]) => key === "error",
-    )?.[0]?.[1] as Record<string, unknown>;
-    const keyStyle = "text-accent-foreground/60 w-1/3";
-    const valueStyle = "w-2/3 pl-2";
+    // Pulled out so the stacktrace renders as a syntax-highlighted Java
+    // CodeBlock — keeping it inline with the attribute rows would lose
+    // newlines and make frames unreadable.
+    const stacktrace =
+      typeof eventDetails.stacktrace === "string" &&
+      eventDetails.stacktrace !== ""
+        ? eventDetails.stacktrace
+        : null;
+
+    const entries: Array<[string, unknown]> = [];
+    Object.entries(eventDetails).forEach(([key, value]) => {
+      if (key === "stacktrace") {
+        return;
+      }
+      // Attachments are already rendered as the snapshot images above.
+      if (key === "attachments") {
+        return;
+      }
+      // For http events, start_time and end_time are uptime ms, not timestamps.
+      if (
+        eventType === "http" &&
+        (key === "start_time" || key === "end_time")
+      ) {
+        return;
+      }
+      if (value === "" || value === null || value === undefined) {
+        return;
+      }
+      if (
+        key === "error" &&
+        typeof value === "object" &&
+        value !== null &&
+        (value as Record<string, unknown>).numcode === 0 &&
+        (value as Record<string, unknown>).code === "" &&
+        (value as Record<string, unknown>).meta === null
+      ) {
+        return;
+      }
+      if (
+        key === "user_defined_attribute" &&
+        typeof value === "object" &&
+        value !== null &&
+        Object.keys(value as Record<string, unknown>).length === 0
+      ) {
+        return;
+      }
+      if (typeof value === "object") {
+        entries.push([key, value]);
+        return;
+      }
+      let display: string | number | boolean = value as
+        | string
+        | number
+        | boolean;
+      if (key === "timestamp" || key === "start_time" || key === "end_time") {
+        display = formatDateToHumanReadableDateTime(value.toString());
+      } else if (key === "duration") {
+        display = formatMillisToHumanReadable(parseInt(value.toString()));
+      }
+      entries.push([key, display]);
+    });
 
     return (
-      <div className="flex flex-col p-4 w-full gap-1 text-sm">
-        {entries.map(([key, value]) => {
-          if (
-            key === "stacktrace" &&
-            typeof value === "string" &&
-            value !== ""
-          ) {
-            return (
-              <div className="flex flex-col" key={key}>
-                <p className={keyStyle}>{key}:</p>
-                <p className="w-full p-1 text-xs rounded-md font-code">
-                  {value.replace(/\n/g, "\n\t")}
-                </p>
-              </div>
-            );
-          } else if (
-            key === "request_headers" ||
-            (key === "response_headers" && typeof value === "object")
-          ) {
-            return (
-              <div className="flex flex-col" key={key}>
-                <p className={keyStyle}>{key}:</p>
-                <p className="w-full p-1 text-xs rounded-md whitespace-pre">
-                  {JSON.stringify(value, null, "\t")}
-                </p>
-              </div>
-            );
-          } else if (
-            value === "" ||
-            value === null ||
-            typeof value === "object"
-          ) {
-            return null; // Skip empty or invalid values
-          } else {
-            let valueString = value?.toString();
-            if (
-              valueString !== null &&
-              valueString !== undefined &&
-              (key === "timestamp" ||
-                key === "start_time" ||
-                key === "end_time")
-            ) {
-              valueString = formatDateToHumanReadableDateTime(valueString);
-            }
-            if (
-              valueString !== null &&
-              valueString !== undefined &&
-              key === "duration"
-            ) {
-              valueString = formatMillisToHumanReadable(parseInt(valueString));
-            }
-            return (
-              <div className="flex flex-row" key={key}>
-                <p className={keyStyle}>{key}</p>
-                <p className={valueStyle}>{valueString}</p>
-              </div>
-            );
-          }
-        })}
-
-        {userDefinedAttributes !== undefined &&
-          userDefinedAttributes !== null && (
-            <div key="user_defined_attribute">
-              {Object.entries(userDefinedAttributes).map(
-                ([attrKey, attrValue]) => (
-                  <div className="flex flex-row py-1" key={attrKey}>
-                    <p className={keyStyle}>{attrKey}</p>
-                    <p className={valueStyle}>{attrValue?.toString()}</p>
-                  </div>
-                ),
-              )}
-            </div>
-          )}
-
-        {errorException !== undefined &&
-          errorException !== null &&
-          (errorException.numcode !== 0 ||
-            errorException.code !== "" ||
-            errorException.meta !== null) && (
-            <div key="error">
-              {Object.entries(errorException).map(([errKey, errVal]) => {
-                return (
-                  <div key={`error_${errKey}`} className="flex flex-row py-1">
-                    <p className={keyStyle}>{errKey}</p>
-                    {typeof errVal === "object" ? (
-                      <pre className={valueStyle}>
-                        <code className="text-pretty">
-                          {JSON.stringify(errVal, null, 2)}
-                        </code>
-                      </pre>
-                    ) : (
-                      <p className={valueStyle}>{errVal?.toString()}</p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+      <div className="flex flex-col">
+        {entries.map(([k, v]) => renderAttributeRow(k, v))}
+        {stacktrace && (
+          <div className="flex flex-col gap-0.5 px-3 py-2 border-b border-border/40 last:border-b-0">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground select-none">
+              STACKTRACE
+            </p>
+            <CodeBlock
+              language="java"
+              className={stacktraceClassName}
+              code={stacktrace}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -163,7 +153,7 @@ export default function SessionTimelineEventDetails({
         eventType === "gesture_scroll"
       ) {
         return (
-          <div className="flex flex-col gap-8 p-4 items-center">
+          <div className="flex flex-wrap gap-4 items-start">
             {eventDetails.attachments
               .filter(
                 (attachment: { key: string; location: string; type: string }) =>
@@ -172,8 +162,8 @@ export default function SessionTimelineEventDetails({
               .map((attachment: { key: string; location: string }) => (
                 <LayoutSnapshot
                   key={attachment.key}
-                  width={350}
-                  height={350}
+                  width={400}
+                  height={400}
                   layoutUrl={attachment.location}
                 />
               ))}
@@ -190,7 +180,7 @@ export default function SessionTimelineEventDetails({
       eventDetails.attachments.length > 0
     ) {
       if (
-        (eventType === "exception" && eventDetails.user_triggered === false) ||
+        eventType === "error" ||
         eventType === "anr" ||
         eventType === "gesture_click" ||
         eventType === "gesture_long_click" ||
@@ -208,7 +198,7 @@ export default function SessionTimelineEventDetails({
         }
 
         return (
-          <div className="flex flex-wrap gap-8 p-4 items-center">
+          <div className="flex flex-wrap gap-4 items-start">
             {imageAttachments.map(
               (
                 attachment: { key: string; location: string },
@@ -237,21 +227,16 @@ export default function SessionTimelineEventDetails({
       buttonVariants({ variant: "secondary" }),
       "justify-center w-fit",
     );
-    if (
-      (eventType === "exception" &&
-        eventDetails.user_triggered === false &&
-        eventDetails.handled === false) ||
-      eventType === "anr"
-    ) {
-      const label = `View ${eventType === "exception" ? "Crash" : "ANR"} Details`;
+    if (eventType === "error" || eventType === "anr") {
+      const label = `View ${eventType === "error" ? "Error" : "ANR"} Details`;
       return (
-        <div className="px-4 pt-8 pb-4">
+        <div>
           {demo ? (
             <div className={linkStyle}>{label}</div>
           ) : (
             <Link
               key={eventDetails.id}
-              href={`/${teamId}/${eventType === "exception" ? "crashes" : "anrs"}/${appId}/${eventDetails.group_id}/${eventDetails.type + "@" + eventDetails.file_name}`}
+              href={`/${teamId}/errors/${appId}/${eventDetails.group_id}/${eventDetails.type + "@" + eventDetails.file_name}`}
               className={linkStyle}
             >
               {label}
@@ -263,7 +248,7 @@ export default function SessionTimelineEventDetails({
     if (eventType === "trace") {
       const label = "View Trace Details";
       return (
-        <div className="px-4 pt-8 pb-4">
+        <div>
           {demo ? (
             <div className={linkStyle}>{label}</div>
           ) : (
@@ -281,7 +266,7 @@ export default function SessionTimelineEventDetails({
     if (eventType === "bug_report") {
       const label = "View Bug Report Details";
       return (
-        <div className="px-4 pt-8 pb-4">
+        <div>
           {demo ? (
             <div className={linkStyle}>{label}</div>
           ) : (
@@ -299,11 +284,11 @@ export default function SessionTimelineEventDetails({
   }
 
   return (
-    <div className="flex flex-col items-center bg-accent text-accent-foreground h-full font-display overflow-y-auto break-words">
+    <div className="flex flex-col gap-3 font-display break-words">
       {getJsonLayoutSnapshotsFromEventDetails()}
       {getImageLayoutSnapshotsFromEventDetails()}
-      {getDetailsLinkFromEventDetails()}
       {getBodyFromEventDetails()}
+      {getDetailsLinkFromEventDetails()}
     </div>
   );
 }

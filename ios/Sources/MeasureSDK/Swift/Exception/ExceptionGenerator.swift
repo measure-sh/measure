@@ -12,9 +12,25 @@ import KSCrash
 #endif
 import Foundation
 
+/// Generates an `Exception` from a handled error or exception by triggering a KSCrash live report
+/// and parsing the resulting stack trace.
+///
+/// `framesToStrip` controls how many frames are removed from the top of the crashed thread's stack
+/// before the exception is reported. This is necessary because the SDK's own call stack (e.g.
+/// `generateException`, `generate`, `trackError`) always appears at the top of the trace and is
+/// not useful to the caller.
+///
+/// The correct value depends on the call path:
+/// - Swift `trackError(_:Error)`      → 3
+/// - ObjC  `trackError(_:NSError)`    → 4  (one extra frame for the `@objc` bridge)
+/// - Swift `trackException`           → 3
+/// - ObjC  `trackException`           → 4  (one extra frame for the `@objc` bridge)
+///
+/// If the Measure SDK is present as a dynamic framework (i.e. "Measure" or "Measure.dylib" appears
+/// in the crash report's binary images), stripping is skipped entirely.
 protocol ExceptionGenerator {
-    func generate(_ error: NSError, collectStackTraces: Bool) -> Exception?
-    func generate(_ exception: NSException, collectStackTraces: Bool) -> Exception?
+    func generate(_ error: NSError, framesToStrip: Int) -> Exception?
+    func generate(_ exception: NSException, framesToStrip: Int) -> Exception?
 }
 
 final class BaseExceptionGenerator: ExceptionGenerator {
@@ -28,30 +44,36 @@ final class BaseExceptionGenerator: ExceptionGenerator {
         self.sysCtl = sysCtl
     }
 
-    func generate(_ error: NSError, collectStackTraces: Bool) -> Exception? {
+    func generate(_ error: NSError, framesToStrip: Int) -> Exception? {
         let nsException = NSException(name: NSExceptionName(rawValue: error.domain),
                                       reason: error.localizedDescription,
                                       userInfo: error.userInfo)
-        let msrError = MsrError(numcode: Int64(error.code),
-                                code: error.domain,
-                                meta: convertToCodableValue(error.userInfo))
-        return generateException(nsException, collectStackTraces: collectStackTraces, msrError: msrError)
+        return generateException(nsException,
+                                 numCode: Int64(error.code),
+                                 code: error.domain,
+                                 meta: convertToCodableValue(error.userInfo),
+                                 framesToStrip: framesToStrip)
     }
 
-    func generate(_ exception: NSException, collectStackTraces: Bool) -> Exception? {
+    func generate(_ exception: NSException, framesToStrip: Int) -> Exception? {
         let userInfo = exception.userInfo?.reduce(into: [String: Any]()) { result, pair in
             if let key = pair.key as? String {
                 result[key] = pair.value
             }
         }
-        let msrError = MsrError(numcode: nil,
-                                code: "\(exception.name.rawValue), \(exception.reason ?? "")",
-                                meta: userInfo.map { convertToCodableValue($0) })
-        return generateException(exception, collectStackTraces: collectStackTraces, msrError: msrError)
+        return generateException(exception,
+                                 numCode: nil,
+                                 code: "\(exception.name.rawValue), \(exception.reason ?? "")",
+                                 meta: userInfo.map { convertToCodableValue($0) },
+                                 framesToStrip: framesToStrip)
     }
 
-    private func generateException(_ exception: NSException, collectStackTraces: Bool, msrError: MsrError?) -> Exception? {
-        KSCrash.shared.report(exception, logAllThreads: collectStackTraces)
+    private func generateException(_ exception: NSException,
+                                   numCode: Int64?,
+                                   code: String?,
+                                   meta: [String: CodableValue]?,
+                                   framesToStrip: Int) -> Exception? {
+        KSCrash.shared.report(exception, logAllThreads: true)
 
         guard let store = KSCrash.shared.reportStore,
               let reportID = store.reportIDs.last,
@@ -61,7 +83,8 @@ final class BaseExceptionGenerator: ExceptionGenerator {
         }
 
         let formatter = CrashDataFormatter(report.value, sysCtl: sysCtl)
-        let result = formatter.getException(true, error: msrError)
+        var result = formatter.getException(severity: .handled, numCode: numCode, code: code, meta: meta, framesToStrip: framesToStrip)
+        result.foreground = crashDataPersistence.isForeground
         store.deleteReport(with: Int64(truncating: reportID))
         crashDataPersistence.clearCrashData()
 

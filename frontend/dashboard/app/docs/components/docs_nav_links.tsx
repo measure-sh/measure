@@ -34,7 +34,8 @@ export default function DocsNavLinks({ currentSlug }: { currentSlug: string }) {
   }
 
   const prevSlug = currentIndex > 0 ? flatSlugs[currentIndex - 1] : null;
-  const nextSlug = currentIndex < flatSlugs.length - 1 ? flatSlugs[currentIndex + 1] : null;
+  const nextSlug =
+    currentIndex < flatSlugs.length - 1 ? flatSlugs[currentIndex + 1] : null;
 
   return (
     <div className="flex justify-between items-center mt-12 pt-6 border-t border-border">

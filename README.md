@@ -17,7 +17,7 @@ Complete Mobile App Monitoring platform with Crash Reporting, ANR Tracking, Bug 
 
 ## Quick start
 
-Sign up to [Measure Cloud](https://measure.sh) or [self host](https://measure.sh/docs/hosting) on your own servers (best for small apps and hobby projects). Once you've logged in, check out our [SDK integration](https://measure.sh/docs/sdk-integration-guide) docs.
+Sign up to [Measure Cloud](https://measure.sh) or [self host](https://measure.sh/docs/hosting) on your own servers. Once you've logged in, check out our [SDK integration](https://measure.sh/docs/sdk-integration-guide) docs.
 
 ## Features
 
@@ -85,7 +85,7 @@ We would love for you to contribute to Measure by opening issues, sending PRs, �
 
 1. [**SDK Integration Guide**](https://measure.sh/docs/sdk-integration-guide) - Integrate Android or iOS SDK and start measuring in no time
 2. [**Explore Features**](https://measure.sh/docs/features/feature-session-timelines) - Learn about the features available in Measure and how to use them
-3. [**Contribution Guide**](https://measure.sh/docs/CONTRIBUTING) - Contribute to Measure
+3. [**Contribution Guide**](CONTRIBUTING.md) - Contribute to Measure
 
 ## Platforms
 
@@ -155,6 +155,8 @@ Measure would not be possible without our amazing contributors! ❤️
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Pranathi-pellakuru"><img src="https://avatars.githubusercontent.com/u/84898399?v=4?s=100" width="100px;" alt="Pranathi-pellakuru"/><br /><sub><b>Pranathi-pellakuru</b></sub></a><br /><a href="#ideas-Pranathi-pellakuru" title="Ideas, Planning, & Feedback">🤔</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/hubcio"><img src="https://avatars.githubusercontent.com/u/5490304?v=4?s=100" width="100px;" alt="Hubert Gruszecki"/><br /><sub><b>Hubert Gruszecki</b></sub></a><br /><a href="https://github.com/measure-sh/measure/pulls?q=is%3Apr+reviewed-by%3Ahubcio" title="Reviewed Pull Requests">👀</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/ashyyhere"><img src="https://avatars.githubusercontent.com/u/203688643?v=4?s=100" width="100px;" alt="Ash"/><br /><sub><b>Ash</b></sub></a><br /><a href="#maintenance-ashyyhere" title="Maintenance">🚧</a> <a href="https://github.com/measure-sh/measure/commits?author=ashyyhere" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/Gryzor"><img src="https://avatars.githubusercontent.com/u/15253?v=4?s=100" width="100px;" alt="Martin Marconcini"/><br /><sub><b>Martin Marconcini</b></sub></a><br /><a href="https://github.com/measure-sh/measure/commits?author=gryzor" title="Documentation">📖</a></td>
     </tr>
   </tbody>
 </table>

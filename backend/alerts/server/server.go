@@ -2,6 +2,7 @@ package server
 
 import (
 	"backend/autumn"
+	"backend/libs/secret"
 	"context"
 	"fmt"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"time"
 
 	"cloud.google.com/go/cloudsqlconn"
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -16,6 +18,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leporo/sqlf"
+	"github.com/valkey-io/valkey-go"
+	redis "github.com/valkey-io/valkey-go"
 	"github.com/wneessen/go-mail"
 )
 
@@ -26,6 +30,7 @@ type server struct {
 	ChPool driver.Conn
 	Mail   *mail.Client
 	Config *ServerConfig
+	VK     valkey.Client
 }
 
 type PostgresConfig struct {
@@ -38,9 +43,15 @@ type ClickhouseConfig struct {
 	DSN string
 }
 
+type RedisConfig struct {
+	Host string
+	Port int
+}
+
 type ServerConfig struct {
 	PG              PostgresConfig
 	CH              ClickhouseConfig
+	RD              RedisConfig
 	SiteOrigin      string
 	SmtpHost        string
 	SmtpPort        string
@@ -80,14 +91,35 @@ func NewConfig() *ServerConfig {
 		log.Println("SITE_ORIGIN env var not set. Need for Cross Origin Resource Sharing (CORS) to work.")
 	}
 
-	postgresDSN := os.Getenv("POSTGRES_DSN")
+	postgresDSN, secErr := secret.FromEnvOrFile("POSTGRES_DSN")
+	if secErr != nil {
+		log.Printf("failed to read POSTGRES_DSN: %v", secErr)
+	}
 	if postgresDSN == "" {
 		log.Println("POSTGRES_DSN env var is not set, cannot start server")
 	}
 
-	clickhouseDSN := os.Getenv("CLICKHOUSE_DSN")
+	clickhouseDSN, secErr := secret.FromEnvOrFile("CLICKHOUSE_DSN")
+	if secErr != nil {
+		log.Printf("failed to read CLICKHOUSE_DSN: %v", secErr)
+	}
 	if clickhouseDSN == "" {
 		log.Println("CLICKHOUSE_DSN env var is not set, cannot start server")
+	}
+
+	redisHost := os.Getenv("REDIS_HOST")
+	if redisHost == "" {
+		log.Println("REDIS_HOST env var is not set, caching will not work")
+	}
+
+	redisPortStr := os.Getenv("REDIS_PORT")
+	if redisPortStr == "" {
+		log.Println("REDIS_PORT env var is not set, caching will not work")
+	}
+
+	redisPort, err := strconv.Atoi(redisPortStr)
+	if err != nil {
+		log.Fatalf("Invalid REDIS_PORT value: %v", err)
 	}
 
 	smtpHost := os.Getenv("SMTP_HOST")
@@ -105,7 +137,10 @@ func NewConfig() *ServerConfig {
 		log.Println("SMTP_USER env var is not set, emails will not work")
 	}
 
-	smtpPassword := os.Getenv("SMTP_PASSWORD")
+	smtpPassword, secErr := secret.FromEnvOrFile("SMTP_PASSWORD")
+	if secErr != nil {
+		log.Printf("failed to read SMTP_PASSWORD: %v", secErr)
+	}
 	if smtpPassword == "" {
 		log.Println("SMTP_PASSWORD env var is not set, emails will not work")
 	}
@@ -134,7 +169,10 @@ func NewConfig() *ServerConfig {
 	billingEnabled := false
 	if os.Getenv("BILLING_ENABLED") == "true" {
 		billingEnabled = true
-		autumnSecretKey := os.Getenv("AUTUMN_SECRET_KEY")
+		autumnSecretKey, secErr := secret.FromEnvOrFile("AUTUMN_SECRET_KEY")
+		if secErr != nil {
+			log.Printf("failed to read AUTUMN_SECRET_KEY: %v", secErr)
+		}
 		if autumnSecretKey == "" {
 			log.Println("AUTUMN_SECRET_KEY env var is not set, billing checks will fail-open")
 		}
@@ -147,6 +185,10 @@ func NewConfig() *ServerConfig {
 		},
 		CH: ClickhouseConfig{
 			DSN: clickhouseDSN,
+		},
+		RD: RedisConfig{
+			Host: redisHost,
+			Port: redisPort,
 		},
 		SiteOrigin:      siteOrigin,
 		SmtpHost:        smtpHost,
@@ -212,7 +254,7 @@ func Init(config *ServerConfig) {
 
 	chOpts.Settings = clickhouse.Settings{
 		// read more: https://clickhouse.com/docs/operations/settings/settings#compatibility
-		"compatibility": "25.12",
+		"compatibility": "26.2",
 	}
 
 	chPool, err = clickhouse.Open(chOpts)
@@ -237,18 +279,34 @@ func Init(config *ServerConfig) {
 		}
 	}
 
+	// init redis client
+	addr := fmt.Sprintf("%s:%d", config.RD.Host, config.RD.Port)
+	options := redis.ClientOption{
+		InitAddress: []string{addr},
+	}
+
+	options.ConnWriteTimeout = 30 * time.Second
+	options.ClientName = "measure-alerts"
+
+	vkClient, err := redis.NewClient(options)
+	if err != nil {
+		log.Printf("failed to create redis client: %v\n", err)
+	}
+
 	Server = &server{
 		PgPool: pgPool,
 		ChPool: chPool,
 		Config: config,
 		Mail:   mailClient,
+		VK:     vkClient,
 	}
 }
 
-func InitForTest(config *ServerConfig, pgPool *pgxpool.Pool, chPool driver.Conn) {
+func InitForTest(config *ServerConfig, pgPool *pgxpool.Pool, chPool driver.Conn, vk valkey.Client) {
 	Server = &server{
 		PgPool: pgPool,
 		ChPool: chPool,
 		Config: config,
+		VK:     vk,
 	}
 }

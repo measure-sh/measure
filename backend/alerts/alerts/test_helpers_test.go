@@ -50,7 +50,7 @@ func setupAlertsTest(ctx context.Context, t *testing.T) {
 
 	server.InitForTest(&server.ServerConfig{
 		SiteOrigin: "https://test.measure.sh",
-	}, th.PgPool, th.ChConn)
+	}, th.PgPool, th.ChConn, th.VK)
 }
 
 func cleanupAll(ctx context.Context, t *testing.T) {

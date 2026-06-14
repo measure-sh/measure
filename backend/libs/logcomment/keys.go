@@ -32,6 +32,10 @@ const Filters = "filters"
 // logcomment.
 const Metrics = "metrics"
 
+// Health is the root key for `health`
+// logcomment.
+const Health = "health"
+
 // Journeys is the root key for the `journeys`
 // logcomment.
 const Journeys = "journeys"

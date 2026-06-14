@@ -7,6 +7,8 @@ import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.exceptions.ExceptionFramework
+import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.gestures.ClickData
 import sh.measure.android.gestures.LongClickData
 import sh.measure.android.gestures.ScrollData
@@ -81,7 +83,7 @@ internal class InternalSignalCollector(
                         )
                     }
                     val extractedData = extractExceptionEventData(data)
-                    if (!extractedData.handled) {
+                    if (extractedData.severity == ExceptionSeverity.Fatal) {
                         // ignoring session ID and user triggered properties
                         // this should be safe as handled exceptions are not tracked in
                         // a separate session and are not user triggered.
@@ -93,8 +95,9 @@ internal class InternalSignalCollector(
                             userDefinedAttributes = userDefinedAttrs,
                             attachments = eventAttachments,
                             threadName = threadName,
-                            // Disable screenshot as it'll be added by the Flutter SDK.
-                            takeScreenshot = false,
+                            // Take screenshot for JS fatal errors. For Flutter, the Flutter SDK
+                            // adds the screenshot itself, so it is disabled there.
+                            takeScreenshot = extractedData.framework == ExceptionFramework.JS,
                         )
                     } else {
                         signalProcessor.track(

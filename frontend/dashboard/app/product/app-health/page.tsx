@@ -1,20 +1,23 @@
+import ScaledPreview from "@/app/components/scaled_preview";
 import { buttonVariants } from "@/app/components/button_variants";
+import TrackCtaLink from "@/app/components/analytics/track_cta_link";
 import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
-import Link from "next/link";
 import LandingFooter from "../../components/landing_footer";
 import LandingHeader from "../../components/landing_header";
 import OverviewDemo from "./overview_demo";
 
 export const metadata: Metadata = {
   title: "Mobile App Health Metrics & Dashboards",
-  description: "Track mobile app health metrics that matter: crash-free sessions, ANR-free sessions, app launch times, release adoption and more.",
+  description:
+    "Track mobile app health metrics that matter: crash-free sessions, ANR-free sessions, app launch times, release adoption and more.",
   alternates: { canonical: "/product/app-health" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Mobile App Health Metrics & Dashboards | Measure",
-    description: "Track mobile app health metrics that matter: crash-free sessions, ANR-free sessions, app launch times, release adoption and more.",
+    description:
+      "Track mobile app health metrics that matter: crash-free sessions, ANR-free sessions, app launch times, release adoption and more.",
     url: "/product/app-health",
   },
 };
@@ -46,18 +49,17 @@ export default function ProductAppHealth() {
         </p>
 
         <div className="relative w-full max-w-[90vw] md:max-w-6xl h-[600px] md:h-[940px] mt-12 mb-32 mx-auto border border-border rounded-lg shadow-xl overflow-hidden">
-          {/* SCALING WRAPPER */}
-          {/* Mobile: Scale 0.4 (40%) -> requires Width 250% (100/0.4) */}
-          {/* Desktop: Scale 0.8 (80%) -> requires Width 125% (100/0.8) */}
-          <div className="w-[250%] h-[250%] md:w-[125%] md:h-[125%] origin-top-left transform scale-[0.4] md:scale-[0.8]">
-            <div className="w-full h-full px-8 py-12 overflow-y-auto">
+          <ScaledPreview>
+            <div className="bg-background text-foreground min-h-screen px-8 py-12">
               <OverviewDemo />
             </div>
-          </div>
+          </ScaledPreview>
         </div>
 
         {/* CTA */}
-        <Link
+        <TrackCtaLink
+          location="product_app_health"
+          destination="signup"
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -65,7 +67,7 @@ export default function ProductAppHealth() {
           )}
         >
           Get To The Root Cause
-        </Link>
+        </TrackCtaLink>
         <div className="py-16" />
       </div>
       <LandingFooter />

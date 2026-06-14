@@ -335,7 +335,7 @@
 			name = "[CP-User] Upload dSYMs to Firebase Crashlytics";
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nif [[ \"$CONFIGURATION\" == \"Debug\" ]]; then\n  PLIST=\"$SRCROOT/FrankensteinApp/Firebase/Debug/GoogleService-Info.plist\"\nelse\n  PLIST=\"$SRCROOT/FrankensteinApp/Firebase/Release/GoogleService-Info.plist\"\nfi\n\nif [[ ! -f \"$PLIST\" ]]; then\n  echo \"warning: GoogleService-Info.plist not found at $PLIST, skipping dSYM upload\"\n  exit 0\nfi\n\n\"${PODS_ROOT}/FirebaseCrashlytics/upload-symbols\"   -gsp \"$PLIST\"   -p ios   \"${DWARF_DSYM_FOLDER_PATH}\"\n";
+			shellScript = "set -e\nif [[ \"$CONFIGURATION\" == \"Debug\" ]]; then\n  PLIST=\"$SRCROOT/FrankensteinApp/Firebase/Debug/GoogleService-Info.plist\"\nelse\n  PLIST=\"$SRCROOT/FrankensteinApp/Firebase/Release/GoogleService-Info.plist\"\nfi\n\nif [[ ! -f \"$PLIST\" ]]; then\n  echo \"warning: GoogleService-Info.plist not found at $PLIST, skipping dSYM upload\"\n  exit 0\nfi\n\nPROJECT_ID=$(/usr/libexec/PlistBuddy -c \"Print :PROJECT_ID\" \"$PLIST\" 2>/dev/null || true)\nif [[ \"$PROJECT_ID\" == \"frank-sample-placeholder\" ]]; then\n  echo \"warning: placeholder Firebase config, skipping dSYM upload\"\n  exit 0\nfi\n\n\"${PODS_ROOT}/FirebaseCrashlytics/upload-symbols\"   -gsp \"$PLIST\"   -p ios   \"${DWARF_DSYM_FOLDER_PATH}\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -520,8 +520,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				BUNDLE_DISPLAY_NAME = "Measure Frankenstein";
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = FZ7UUKUP84;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -539,7 +539,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = sh.frankenstein.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "";
+				PROVISIONING_PROFILE_SPECIFIER = "match AppStore sh.frankenstein.ios";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

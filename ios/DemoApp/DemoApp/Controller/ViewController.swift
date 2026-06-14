@@ -37,7 +37,11 @@ import Measure
                       "Segmentation Fault (SIGSEGV)",
                       "Abnormal Termination (SIGABRT)",
                       "Illegal Instruction (SIGILL)",
-                      "Bus Error (SIGBUS)"]
+                      "Bus Error (SIGBUS)",
+                      "Track Handled NSException",
+                      "Track Handled NSError",
+                      "Track Swift Error (main thread)",
+                      "Track NSException (main thread)"]
 
     let httpEventTypes = ["GET – 200 OK (JSON)",
                           "POST – 201 Created (JSON body)",
@@ -67,13 +71,6 @@ import Measure
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
-        Measure.trackEvent(name: "custom_user_event", attributes: ["name": .string("Adwin"), "age": .int(34)])
-        do {
-            let path = "/path/that/does/not/exist.txt"
-            _ = try String(contentsOfFile: path, encoding: .utf8)
-        } catch {
-            Measure.trackError(error, collectStackTraces: true)
-        }
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -337,6 +334,35 @@ import Measure
         case "Stack Overflow":
             func recurse() { recurse() }
             recurse()
+        case "Track Handled NSException":
+            DispatchQueue(label: "sh.measure.dempapp.background").async {
+                let exception = NSException(name: NSExceptionName(rawValue: "NamedException"),
+                                            reason: "Something happened",
+                                            userInfo: nil)
+                Measure.trackException(exception,
+                                       attributes: ["swiftui": .boolean(true), "lat": .float(64.0), "long": .float(14.0), "string": .string("string")])
+            }
+        case "Track Handled NSError":
+            DispatchQueue(label: "sh.measure.dempapp.background").async {
+                do {
+                    let path = "/path/that/does/not/exist.txt"
+                    _ = try String(contentsOfFile: path, encoding: .utf8)
+                } catch {
+                    Measure.trackError(error)
+                }
+            }
+        case "Track Swift Error (main thread)":
+            do {
+                let path = "/path/that/does/not/exist.txt"
+                _ = try String(contentsOfFile: path, encoding: .utf8)
+            } catch {
+                Measure.trackError(error)
+            }
+        case "Track NSException (main thread)":
+            let exception = NSException(name: NSExceptionName(rawValue: "NamedException"),
+                                        reason: "Something happened on main thread",
+                                        userInfo: ["key": "value"])
+            Measure.trackException(exception, attributes: ["source": .string("swift-main-thread")])
         default:
             fatalError("Triggered crash: \(type)")
         }

@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [android-v0.18.0] - 2026-06-11
+
+### :sparkles: New features
+
+- (**android**): Auto-track http events from HttpUrlConnection (#3553) by @abhaysood in #3553
+- (**android**): Compress screenshots using webp on all versions (#3532) by @abhaysood in #3532
+
+### :bug: Bug fixes
+
+- (**android**): Collect timeline for unhandled errors (#3744) by @abhaysood in #3744
+
+### :hammer: Misc
+
+- (**android**): Downgrade android-tools version (#3871) by @abhaysood in #3871
+- (**android**): Fix duplicated word in doc comment (#3796) by @abhaysood in #3796
+- (**android**): Omit severity field from ANR events (#3755) by @abhaysood in #3755
+- (**android**): Update exception schema (#3727) by @abhaysood in #3727
+- (**android**): Flush on app foreground transition (#3677) by @abhaysood in #3677
+- (**android**): Add custom events demo for android (#3590) by @abhaysood in #3590
+- (**android**): Create cross platform sample app (#3454) by @abhaysood in #3454
+- (**android**): Add attachment size to each attachment (#3353) by @abhaysood in #3353
+- (**android**): Prepare next development version 0.18.0-SNAPSHOT (#3351) by @abhaysood in #3351
+
+### :books: Documentation
+
+- (**android**): Add network monitoring guidance for Retrofit users (#3803) by @abhaysood in #3803
+- (**android**): Add full collection mode to integration guide (#3563) by @abhaysood in #3563
+
 ## [android-v0.17.0] - 2026-03-25
 
 ### :sparkles: New features
@@ -18,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**android**): Prepare sdk release 0.17.0 (#3349) by @abhaysood in #3349
 - (**android**): Use correct session start time in sessions table (#3343) by @abhaysood in #3343
 - (**android**): Fix incorrect export flag handling (#3342) by @abhaysood in #3342
 - (**android**): Limit sdk log files to max 5 (#3340) by @abhaysood in #3340
@@ -869,6 +898,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Add missing links to readme by @abhaysood
 - (**android**): Create a template for Android SDK documentation by @abhaysood
 
+[android-v0.18.0]: https://github.com/measure-sh/measure/compare/android-v0.17.0..android-v0.18.0
 [android-v0.17.0]: https://github.com/measure-sh/measure/compare/android-v0.16.1..android-v0.17.0
 [android-v0.16.1]: https://github.com/measure-sh/measure/compare/android-v0.16.0..android-v0.16.1
 [android-v0.16.0]: https://github.com/measure-sh/measure/compare/android-v0.15.1..android-v0.16.0
@@ -886,3 +916,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [android-v0.6.1]: https://github.com/measure-sh/measure/compare/android-v0.5.0..android-v0.6.1
 [android-v0.5.0]: https://github.com/measure-sh/measure/compare/android-v0.4.0..android-v0.5.0
 [android-v0.4.0]: https://github.com/measure-sh/measure/compare/android-v0.3.0..android-v0.4.0
+

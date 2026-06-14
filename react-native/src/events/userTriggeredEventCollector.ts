@@ -1,5 +1,8 @@
 import { trackHttpEvent } from '../native/measureBridge';
-import { validateAttributes, type ValidAttributeValue } from '../utils/attributeValueValidator';
+import {
+  validateAttributes,
+  type ValidAttributeValue,
+} from '../utils/attributeValueValidator';
 import type { Logger } from '../utils/logger';
 import type { TimeProvider } from '../utils/timeProvider';
 import { EventType } from './eventType';
@@ -57,7 +60,9 @@ export interface IUserTriggeredEventCollector {
   }): Promise<void>;
 }
 
-export class UserTriggeredEventCollector implements IUserTriggeredEventCollector {
+export class UserTriggeredEventCollector
+  implements IUserTriggeredEventCollector
+{
   private logger: Logger;
   private timeProvider: TimeProvider;
   private enabled = false;
@@ -89,7 +94,10 @@ export class UserTriggeredEventCollector implements IUserTriggeredEventCollector
     attributes?: Record<string, ValidAttributeValue>;
   }): Promise<void> {
     if (!this.enabled) {
-      this.logger.internalLog('warning', 'Measure SDK is stopped. trackScreenView() will be ignored.');
+      this.logger.internalLog(
+        'warning',
+        'Measure SDK is stopped. trackScreenView() will be ignored.'
+      );
       return;
     }
 
@@ -120,9 +128,15 @@ export class UserTriggeredEventCollector implements IUserTriggeredEventCollector
         []
       );
 
-      this.logger.log('info', `Successfully tracked screen view: ${screenName}`);
+      this.logger.log(
+        'info',
+        `Successfully tracked screen view: ${screenName}`
+      );
     } catch (err) {
-      this.logger.log('error', `Failed to track screen view ${screenName}: ${err}`);
+      this.logger.log(
+        'error',
+        `Failed to track screen view ${screenName}: ${err}`
+      );
     }
   }
 
@@ -131,63 +145,66 @@ export class UserTriggeredEventCollector implements IUserTriggeredEventCollector
   }
 
   async trackHttpEvent(params: {
-  url: string;
-  method: string;
-  startTime: number;
-  endTime: number;
-  client?: string | null;
-  statusCode?: number | null;
-  error?: string | null;
-  requestHeaders?: Record<string, string> | null;
-  responseHeaders?: Record<string, string> | null;
-  requestBody?: string | null;
-  responseBody?: string | null;
-}): Promise<void> {
-  if (!this.enabled) {
-    this.logger.internalLog('warning', 'Measure SDK is stopped. trackHttpEvent() will be ignored.');
-    return;
-  }
+    url: string;
+    method: string;
+    startTime: number;
+    endTime: number;
+    client?: string | null;
+    statusCode?: number | null;
+    error?: string | null;
+    requestHeaders?: Record<string, string> | null;
+    responseHeaders?: Record<string, string> | null;
+    requestBody?: string | null;
+    responseBody?: string | null;
+  }): Promise<void> {
+    if (!this.enabled) {
+      this.logger.internalLog(
+        'warning',
+        'Measure SDK is stopped. trackHttpEvent() will be ignored.'
+      );
+      return;
+    }
 
-  const {
-    url,
-    method,
-    startTime,
-    endTime,
-    client = 'unknown',
-    statusCode,
-    error,
-    requestHeaders = {},
-    responseHeaders = {},
-    requestBody,
-    responseBody
-  } = params;
-
-  if (!url || !method) {
-    this.logger.log('error', 'Invalid HTTP event: url or method missing');
-    return;
-  }
-
-  try {
-    await trackHttpEvent(
+    const {
       url,
-      method.toLowerCase(),
+      method,
       startTime,
       endTime,
+      client = 'unknown',
       statusCode,
-      error ?? null,
-      requestHeaders ?? {},
-      responseHeaders ?? {},
-      requestBody ?? null,
-      responseBody ?? null,
-      client ?? undefined
-    );
+      error,
+      requestHeaders = {},
+      responseHeaders = {},
+      requestBody,
+      responseBody,
+    } = params;
 
-    this.logger.log('info', `Tracked HTTP event: ${method} ${url}`);
-  } catch (err) {
-    this.logger.log(
-      'error',
-      `Failed to track HTTP event (${method} ${url}): ${err}`
-    );
+    if (!url || !method) {
+      this.logger.log('error', 'Invalid HTTP event: url or method missing');
+      return;
+    }
+
+    try {
+      await trackHttpEvent(
+        url,
+        method.toLowerCase(),
+        startTime,
+        endTime,
+        statusCode,
+        error ?? null,
+        requestHeaders ?? {},
+        responseHeaders ?? {},
+        requestBody ?? null,
+        responseBody ?? null,
+        client ?? undefined
+      );
+
+      this.logger.log('info', `Tracked HTTP event: ${method} ${url}`);
+    } catch (err) {
+      this.logger.log(
+        'error',
+        `Failed to track HTTP event (${method} ${url}): ${err}`
+      );
+    }
   }
-}
 }

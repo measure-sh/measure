@@ -1,3 +1,4 @@
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import Apps from "@/app/[teamId]/apps/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
@@ -27,7 +28,7 @@ const baseMockApp = {
   onboarded: true,
   created_at: "2025-01-01T00:00:00Z",
   updated_at: "2025-01-01T00:00:00Z",
-  os_name: "Android",
+  os_names: ["android"],
   onboarded_at: "2025-01-01T00:00:00Z",
   unique_identifier: "com.example.app",
 };
@@ -501,7 +502,7 @@ const defaultLoadedAppsState = {
 
 const renderPage = async () => {
   await act(async () => {
-    render(<Apps params={{ teamId: "team-1" }} />);
+    render(<Apps params={promiseParams({ teamId: "team-1" })} />);
     await Promise.resolve();
   });
 };
@@ -1480,6 +1481,75 @@ describe("Apps Page", () => {
     expect(
       await screen.findByText("Configure Data Retention"),
     ).toBeInTheDocument();
+  });
+
+  describe("editable state on app change", () => {
+    // Make unsaved retention (30 → 90) and threshold (good 95 → 90) edits.
+    const makeEdits = async () => {
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("retention-select-90"));
+      });
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("error-good-threshold-input"), {
+          target: { value: "90" },
+        });
+      });
+    };
+
+    // Retention and rename are the two plain "Save" buttons (retention first);
+    // the threshold button is labelled "Save thresholds".
+    const retentionSave = () =>
+      screen.getAllByRole("button", { name: "Save" })[0];
+    const thresholdSave = () =>
+      screen.getByRole("button", { name: "Save thresholds" });
+
+    it("keeps unsaved retention and threshold edits when the current app is renamed", async () => {
+      await renderLoadedPage();
+      await makeEdits();
+
+      expect(retentionSave()).not.toBeDisabled();
+      expect(thresholdSave()).not.toBeDisabled();
+
+      // A rename lands via a filters refresh: same id, new name.
+      await act(async () => {
+        useFiltersStore.setState({
+          filters: {
+            ready: true,
+            app: { ...getAppPayload(), name: "Renamed App" },
+            serialisedFilters: "app=app-1",
+          },
+        });
+      });
+
+      // The name input follows the rename...
+      expect(screen.getByDisplayValue("Renamed App")).toBeInTheDocument();
+      // ...but the unsaved edits survive because the id is unchanged.
+      expect(retentionSave()).not.toBeDisabled();
+      expect(thresholdSave()).not.toBeDisabled();
+    });
+
+    it("drops unsaved retention and threshold edits when switching to a different app", async () => {
+      await renderLoadedPage();
+      await makeEdits();
+
+      expect(retentionSave()).not.toBeDisabled();
+      expect(thresholdSave()).not.toBeDisabled();
+
+      // Switch to a different app (new id) via a filters update.
+      await act(async () => {
+        useFiltersStore.setState({
+          filters: {
+            ready: true,
+            app: { ...getAppPayload(), id: "app-2", name: "Other App" },
+            serialisedFilters: "app=app-2",
+          },
+        });
+      });
+
+      // Edits reset to the saved values, so both save buttons disable again.
+      expect(retentionSave()).toBeDisabled();
+      expect(thresholdSave()).toBeDisabled();
+    });
   });
 
   describe("Threshold Preferences", () => {

@@ -3,18 +3,19 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import TabSelect, { TabSize } from "./tab_select";
+import ScaledPreview from "./scaled_preview";
 
 const BugReport = dynamic(() => import("./bug_report"), { ssr: false });
 const UserJourneys = dynamic(() => import("./user_journeys"), { ssr: false });
 const Overview = dynamic(() => import("./overview"), { ssr: false });
-const TraceDetails = dynamic(() => import("./trace_details"), { ssr: false });
+const TraceDetails = dynamic(() => import("./trace/details"), { ssr: false });
 const SessionTimeline = dynamic(() => import("./session_timeline"), {
   ssr: false,
 });
-const ExceptionsDetails = dynamic(
+const ErrorsDetails = dynamic(
   () =>
-    import("./exceptions_details").then(
-      (mod) => mod.ExceptionsDetails as unknown as React.ComponentType<any>,
+    import("./errors_details").then(
+      (mod) => mod.ErrorsDetails as unknown as React.ComponentType<any>,
     ),
   { ssr: false },
 );
@@ -106,6 +107,22 @@ const features = [
 export default function FeatureDemoCarousel() {
   const [featureIndex, setFeatureIndex] = useState(0);
 
+  // Indices line up with `features`. Only the active demo is mounted — it's
+  // swapped inside the single iframe rendered by ScaledPreview below.
+  const demos = [
+    <SessionTimeline
+      demo={true}
+      hideDemoTitle={false}
+      key="demo-session-timeline"
+    />,
+    <Overview demo={true} hideDemoTitle={false} key="demo-overview" />,
+    <ErrorsDetails demo={true} hideDemoTitle={false} key="demo-errors" />,
+    <TraceDetails demo={true} hideDemoTitle={false} key="demo-trace" />,
+    <BugReport demo={true} hideDemoTitle={false} key="demo-bugreport" />,
+    <UserJourneys demo={true} hideDemoTitle={false} key="demo-journeys" />,
+    <NetworkOverview demo={true} hideDemoTitle={false} key="demo-network" />,
+  ];
+
   return (
     <>
       <div className="w-full scale-65 md:scale-100 flex items-center justify-center">
@@ -125,51 +142,16 @@ export default function FeatureDemoCarousel() {
       <div className="py-2 md:py-4" />
 
       <div className="relative w-full max-w-[90vw] md:max-w-6xl h-[500px] md:h-[1000px] mx-auto border border-border rounded-lg shadow-xl overflow-hidden">
-        {[
-          <SessionTimeline
-            demo={true}
-            hideDemoTitle={false}
-            key={`demo-session-timeline`}
-          />,
-          <Overview demo={true} hideDemoTitle={false} key={`demo-overview`} />,
-          <ExceptionsDetails
-            demo={true}
-            hideDemoTitle={false}
-            key={`demo-exceptions`}
-          />,
-          <TraceDetails demo={true} hideDemoTitle={false} key={`demo-trace`} />,
-          <BugReport
-            demo={true}
-            hideDemoTitle={false}
-            key={`demo-bugreport`}
-          />,
-          <UserJourneys
-            demo={true}
-            hideDemoTitle={false}
-            key={`demo-journeys`}
-          />,
-          <NetworkOverview
-            demo={true}
-            hideDemoTitle={false}
-            key={`demo-network`}
-          />,
-        ].map((DemoComponent, idx) => (
+        <ScaledPreview>
+          {/* The demos' sticky charts use a -top-12 offset that cancels this
+              py-12 padding so they pin flush to the top — keep them in sync. */}
           <div
-            key={idx}
-            aria-hidden={featureIndex !== idx}
-            className={`absolute inset-0 w-full h-full transition-opacity duration-300 ease-in-out ${
-              featureIndex === idx
-                ? "opacity-100 z-20"
-                : "opacity-0 pointer-events-none z-10"
-            }`}
+            key={featureIndex}
+            className="bg-background text-foreground min-h-screen px-8 py-12"
           >
-            <div className="w-[250%] h-[250%] md:w-[125%] md:h-[125%] origin-top-left transform scale-[0.4] md:scale-[0.8]">
-              <div className="w-full h-full px-8 py-12 overflow-y-auto">
-                {DemoComponent}
-              </div>
-            </div>
+            {demos[featureIndex]}
           </div>
-        ))}
+        </ScaledPreview>
       </div>
     </>
   );

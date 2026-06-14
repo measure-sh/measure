@@ -1,4 +1,4 @@
-import type { IConfigProvider } from "../config/configProvider";
+import type { IConfigProvider } from '../config/configProvider';
 
 /**
  * Protocol for determining if a trace should be sampled.
@@ -18,9 +18,6 @@ export class TraceSampler implements ITraceSampler {
   }
 
   shouldSampleTrace(traceId: string): boolean {
-    if (this.configProvider.enableFullCollectionMode) {
-      return true;
-    }
     const rate = this.configProvider.traceSamplingRate;
 
     if (rate === 0.0) {
@@ -36,8 +33,10 @@ export class TraceSampler implements ITraceSampler {
 
     const idLo = this.longFromBase16String(traceId, 16);
 
-    const mask = BigInt("0x7FFFFFFFFFFFFFFF");
-    const threshold = BigInt(Math.floor(Number(mask) * sampleRate));
+    const mask = BigInt('0x7FFFFFFFFFFFFFFF');
+    const RATE_SCALE = BigInt(1_000_000);
+    const scaledRate = BigInt(Math.round(sampleRate * 1_000_000));
+    const threshold = (mask * scaledRate) / RATE_SCALE;
 
     return (idLo & mask) < threshold;
   }
@@ -54,7 +53,7 @@ export class TraceSampler implements ITraceSampler {
     const hexSubstring = input.substring(index, endIndex);
 
     try {
-      return BigInt("0x" + hexSubstring);
+      return BigInt('0x' + hexSubstring);
     } catch {
       return BigInt(0);
     }

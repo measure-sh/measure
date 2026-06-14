@@ -27,7 +27,6 @@ const (
 	TypeDsymDebug
 )
 
-
 // String provides the human recognizable
 // dSYM entity type.
 func (d DsymType) String() string {
@@ -191,7 +190,13 @@ func ExtractJsBundle(r io.Reader) (difs []*Dif, err error) {
 			return
 		}
 
+		// ignore directories
 		if header.Typeflag == tar.TypeDir {
+			continue
+		}
+
+		// only consider regular files
+		if header.Typeflag != tar.TypeReg {
 			continue
 		}
 
@@ -204,16 +209,27 @@ func ExtractJsBundle(r io.Reader) (difs []*Dif, err error) {
 		parts := strings.Split(header.Name, "/")
 		filename := parts[len(parts)-1]
 
-		ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("measure.sh"))
-		fileId := uuid.NewSHA1(ns, []byte(filename))
-		base := BuildUnifiedLayout(fileId.String())
-
-		var key string
-		if strings.HasSuffix(filename, ".map") {
-			key = base + "/sourcemap"
-		} else {
-			key = base + "/debuginfo"
+		// ignore hidden file
+		if strings.HasPrefix(filename, ".") {
+			continue
 		}
+
+		// Hash by file contents rather than filename so that
+		// successive builds shipping the same logical filename
+		// (e.g. main.jsbundle, index.android.bundle) land at
+		// distinct storage keys when their contents differ, and
+		// dedup naturally when contents match.
+		//
+		// The key's last segment is the original inner filename
+		// (e.g. main.jsbundle, main.jsbundle.map). The artifact-
+		// lookup endpoint derives the response abs_path from this
+		// segment, avoiding any HEAD against storage metadata.
+		// `.map` extension is the discriminator between bundle
+		// and sourcemap rows.
+		ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("measure.sh"))
+		fileId := uuid.NewSHA1(ns, data)
+		base := BuildUnifiedLayout(fileId.String())
+		key := base + "/" + filename
 
 		difs = append(difs, &Dif{
 			Data: data,
@@ -301,9 +317,8 @@ func MappingKeyToDebugId(key string) string {
 // MappingKeyToCodeId formats a mapping key
 // in Unified Layout to a valid CodeId.
 func MappingKeyToCodeId(key string) string {
-	noSlash := strings.Replace(key, "/", "", -1)
-	result := strings.Replace(noSlash, "debuginfo", "", -1)
-	return result
+	noSlash := strings.ReplaceAll(key, "/", "")
+	return strings.ReplaceAll(noSlash, "debuginfo", "")
 }
 
 // VerifyMachO verifies Mach-O magic number.

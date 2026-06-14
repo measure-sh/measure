@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"backend/libs/ingest"
 	"backend/libs/opsys"
@@ -32,6 +33,8 @@ const (
 	maxGestureLongClickTargetChars            = 128
 	maxGestureLongClickTargetNameChars        = 128
 	maxGestureLongClickTargetIDChars          = 128
+	maxGestureLongClickLabelChars             = 32
+	maxGestureLongClickSemanticLabelChars     = 32
 	maxGestureScrollTargetChars               = 128
 	maxGestureScrollTargetNameChars           = 128
 	maxGestureScrollTargetIDChars             = 128
@@ -39,6 +42,8 @@ const (
 	maxGestureClickTargetChars                = 128
 	maxGestureClickTargetNameChars            = 128
 	maxGestureClickTargetIDChars              = 128
+	maxGestureClickLabelChars                 = 32
+	maxGestureClickSemanticLabelChars         = 32
 	maxLifecycleActivityTypeChars             = 32
 	maxLifecycleActivityClassNameChars        = 128
 	maxLifecycleFragmentTypeChars             = 32
@@ -66,9 +71,9 @@ const (
 	maxCustomNameChars                        = 64
 	maxLayoutElementIDChars                   = 512
 	maxLayoutElementLabelChars                = 512
-	maxBugReportScreenShots                   = 5
 	maxBugReportDescChars                     = 4000
 	maxErrorMetaBytes                         = 4096 // Maximum size for marshaled Error.Meta in bytes
+	maxEventAttachments                       = 5
 	customNameKeyPattern                      = "^[a-zA-Z0-9_-]+$"
 )
 
@@ -372,7 +377,7 @@ type Thread struct {
 type Threads []Thread
 
 type ANR struct {
-	Handled     bool           `json:"handled" binding:"required"`
+	Handled     bool           `json:"handled"`
 	Exceptions  ExceptionUnits `json:"exceptions" binding:"required"`
 	Threads     Threads        `json:"threads" binding:"required"`
 	Fingerprint string         `json:"fingerprint"`
@@ -380,7 +385,7 @@ type ANR struct {
 }
 
 type Exception struct {
-	Handled      bool           `json:"handled" binding:"required"`
+	Handled      bool           `json:"handled"`
 	Exceptions   ExceptionUnits `json:"exceptions" binding:"required"`
 	Threads      Threads        `json:"threads" binding:"required"`
 	Fingerprint  string         `json:"fingerprint"`
@@ -487,6 +492,8 @@ type LogString struct {
 type GestureLongClick struct {
 	Target        string  `json:"target"`
 	TargetID      string  `json:"target_id"`
+	Label         string  `json:"label"`
+	SemanticLabel string  `json:"semantic_label"`
 	TouchDownTime uint64  `json:"touch_down_time"`
 	TouchUpTime   uint64  `json:"touch_up_time"`
 	Width         uint16  `json:"width"`
@@ -510,6 +517,8 @@ type GestureScroll struct {
 type GestureClick struct {
 	Target        string  `json:"target"`
 	TargetID      string  `json:"target_id"`
+	Label         string  `json:"label"`
+	SemanticLabel string  `json:"semantic_label"`
 	TouchDownTime uint64  `json:"touch_down_time"`
 	TouchUpTime   uint64  `json:"touch_up_time"`
 	Width         uint16  `json:"width"`
@@ -749,6 +758,10 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		return fmt.Errorf("%q must not be greater than %q", `attribute.session_start_time`, `timestamp`)
 	}
 
+	if len(e.Attachments) > maxEventAttachments {
+		return fmt.Errorf(`%q exceeds maximum allowed count of (%d)`, `attachments`, maxEventAttachments)
+	}
+
 	// Don't allow batches that contain events too far in the past or future
 	//
 	// Since, these timestamps affect the creation of partitions in the database
@@ -776,6 +789,13 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		f := e.Exception.GetFramework()
 		switch f {
 		case FrameworkApple:
+			// Apple framework is exclusive to Apple operating
+			// systems, unlike "js" or "dart" which are
+			// cross-platform.
+			if opsys.ToFamily(e.Attribute.OSName) != opsys.AppleFamily {
+				return fmt.Errorf(`%q framework requires an Apple os_name, got %q`, f, e.Attribute.OSName)
+			}
+
 			// Apple exceptions may contain error with stacktrace or
 			// may not contain error. If it does not contain error,
 			// then validate that stacktrace must be present.
@@ -900,6 +920,12 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		if len(e.GestureLongClick.TargetID) > maxGestureLongClickTargetIDChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_long_click.target_id`, maxGestureLongClickTargetIDChars)
 		}
+		if utf8.RuneCountInString(e.GestureLongClick.Label) > maxGestureLongClickLabelChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_long_click.label`, maxGestureLongClickLabelChars)
+		}
+		if utf8.RuneCountInString(e.GestureLongClick.SemanticLabel) > maxGestureLongClickSemanticLabelChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_long_click.semantic_label`, maxGestureLongClickSemanticLabelChars)
+		}
 	}
 
 	if e.IsGestureScroll() {
@@ -929,6 +955,12 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		}
 		if len(e.GestureClick.TargetID) > maxGestureClickTargetIDChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_click.target_id`, maxGestureClickTargetIDChars)
+		}
+		if utf8.RuneCountInString(e.GestureClick.Label) > maxGestureClickLabelChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_click.label`, maxGestureClickLabelChars)
+		}
+		if utf8.RuneCountInString(e.GestureClick.SemanticLabel) > maxGestureClickSemanticLabelChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `gesture_click.semantic_label`, maxGestureClickSemanticLabelChars)
 		}
 	}
 
@@ -1835,8 +1867,8 @@ func (e Exception) Stacktrace() string {
 		// React Native JS stacktrace syntax
 		//
 		// TypeError: Cannot read property 'foo' of undefined
-		// at render (App.js:42:10)
-		// at ComponentA (ComponentA.js:10:5)
+		//     at render (App.js:42:10)
+		//     at ComponentA (ComponentA.js:10:5)
 		for i, exception := range e.Exceptions {
 			lastException := i == len(e.Exceptions)-1
 			title := makeTitle(exception.Type, exception.Message)
@@ -1846,7 +1878,7 @@ func (e Exception) Stacktrace() string {
 			}
 			for j, frame := range exception.Frames {
 				lastFrame := j == len(exception.Frames)-1
-				b.WriteString(frame.String(FrameworkJS))
+				b.WriteString(JsFramePrefix + frame.String(FrameworkJS))
 				if !lastFrame || !lastException {
 					b.WriteString("\n")
 				}
@@ -1919,12 +1951,35 @@ func (e *Exception) ComputeFingerprint() (err error) {
 		if frame.FileName != "" {
 			input += sep + frame.FileName
 		}
-	case FrameworkDart, FrameworkJS:
+	case FrameworkDart:
 		// get the outermost exception
 		outermostException := e.Exceptions[0]
 
 		// initialize fingerprint data with the exception type
 		input = outermostException.Type
+
+		if len(outermostException.Frames) > 0 {
+			methodName := outermostException.Frames[0].MethodName
+			fileName := outermostException.Frames[0].FileName
+
+			// Include any non-empty information
+			if methodName != "" {
+				input += sep + methodName
+			}
+			if fileName != "" {
+				input += sep + fileName
+			}
+		}
+	case FrameworkJS:
+		// get the outermost exception
+		outermostException := e.Exceptions[0]
+
+		// initialize fingerprint data with the exception type
+		input = outermostException.Type
+
+		if outermostException.Message != "" {
+			input += sep + outermostException.Message
+		}
 
 		if len(outermostException.Frames) > 0 {
 			methodName := outermostException.Frames[0].MethodName

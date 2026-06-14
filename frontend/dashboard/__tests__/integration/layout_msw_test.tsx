@@ -60,7 +60,12 @@ if (typeof window.matchMedia === "undefined") {
 
 jest.mock("posthog-js", () => ({
   __esModule: true,
-  default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
+  default: {
+    reset: jest.fn(),
+    capture: jest.fn(),
+    init: jest.fn(),
+    group: jest.fn(),
+  },
 }));
 
 const mockRouterReplace = jest.fn();
@@ -71,6 +76,7 @@ jest.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => mockUsePathname(),
+  useParams: () => ({ teamId: "team-001" }),
 }));
 
 jest.mock("next/link", () => ({
@@ -206,8 +212,7 @@ describe("Dashboard Layout — navigation", () => {
   it("renders Issues nav items", async () => {
     renderLayout();
     await waitFor(() => {
-      expect(screen.getByText("Crashes")).toBeTruthy();
-      expect(screen.getByText("ANRs")).toBeTruthy();
+      expect(screen.getByText("Errors")).toBeTruthy();
       expect(screen.getByText("Bug Reports")).toBeTruthy();
       expect(screen.getByText("Alerts")).toBeTruthy();
     });
@@ -255,8 +260,8 @@ describe("Dashboard Layout — navigation", () => {
     const overviewLink = inSidebar().getByText("Overview").closest("a");
     expect(overviewLink?.getAttribute("href")).toBe("/team-001/overview");
 
-    const crashesLink = screen.getByText("Crashes").closest("a");
-    expect(crashesLink?.getAttribute("href")).toBe("/team-001/crashes");
+    const errorsLink = screen.getByText("Errors").closest("a");
+    expect(errorsLink?.getAttribute("href")).toBe("/team-001/errors");
 
     const tracesLink = screen.getByText("Traces").closest("a");
     expect(tracesLink?.getAttribute("href")).toBe("/team-001/traces");
@@ -276,13 +281,13 @@ describe("Dashboard Layout — navigation", () => {
   it("clicking nav item calls router.push with correct path", async () => {
     renderLayout();
     await waitFor(() => {
-      expect(screen.getByText("Crashes")).toBeTruthy();
+      expect(screen.getByText("Errors")).toBeTruthy();
     });
 
     await act(async () => {
-      fireEvent.click(screen.getByText("Crashes"));
+      fireEvent.click(screen.getByText("Errors"));
     });
-    expect(mockRouterPush).toHaveBeenCalledWith("/team-001/crashes");
+    expect(mockRouterPush).toHaveBeenCalledWith("/team-001/errors");
   });
 
   it("renders children in main content area", async () => {
@@ -324,11 +329,11 @@ describe("Dashboard Layout — active sidebar item", () => {
   it("other nav items are NOT active when pathname is /team-001/overview", async () => {
     renderLayout();
     await waitFor(() => {
-      expect(screen.getByText("Crashes")).toBeTruthy();
+      expect(screen.getByText("Errors")).toBeTruthy();
     });
 
-    const crashesLink = screen.getByText("Crashes").closest("a");
-    expect(crashesLink?.getAttribute("data-active")).not.toBe("true");
+    const errorsLink = screen.getByText("Errors").closest("a");
+    expect(errorsLink?.getAttribute("data-active")).not.toBe("true");
 
     const tracesLink = screen.getByText("Traces").closest("a");
     expect(tracesLink?.getAttribute("data-active")).not.toBe("true");
@@ -340,23 +345,23 @@ describe("Dashboard Layout — active sidebar item", () => {
   it("clicking a nav item marks it as active", async () => {
     renderLayout();
     await waitFor(() => {
-      expect(screen.getByText("Crashes")).toBeTruthy();
+      expect(screen.getByText("Errors")).toBeTruthy();
     });
 
-    // Before click — Crashes is not active
+    // Before click — Errors is not active
     expect(
-      screen.getByText("Crashes").closest("a")?.getAttribute("data-active"),
+      screen.getByText("Errors").closest("a")?.getAttribute("data-active"),
     ).not.toBe("true");
 
-    // Click Crashes
+    // Click Errors
     await act(async () => {
-      fireEvent.click(screen.getByText("Crashes"));
+      fireEvent.click(screen.getByText("Errors"));
     });
 
-    // After click — handleNavClick sets crashes as active
+    // After click — handleNavClick sets errors as active
     await waitFor(() => {
       expect(
-        screen.getByText("Crashes").closest("a")?.getAttribute("data-active"),
+        screen.getByText("Errors").closest("a")?.getAttribute("data-active"),
       ).toBe("true");
     });
   });
@@ -444,8 +449,8 @@ describe("Dashboard Layout — team switching", () => {
       const overviewLink = inSidebar().getByText("Overview").closest("a");
       expect(overviewLink?.getAttribute("href")).toBe("/team-002/overview");
 
-      const crashesLink = screen.getByText("Crashes").closest("a");
-      expect(crashesLink?.getAttribute("href")).toBe("/team-002/crashes");
+      const errorsLink = screen.getByText("Errors").closest("a");
+      expect(errorsLink?.getAttribute("href")).toBe("/team-002/errors");
 
       const tracesLink = screen.getByText("Traces").closest("a");
       expect(tracesLink?.getAttribute("href")).toBe("/team-002/traces");
@@ -470,12 +475,12 @@ describe("Dashboard Layout — team switching", () => {
       ).toBe("/team-002/overview");
     });
 
-    // Click Crashes nav item
+    // Click Errors nav item
     await act(async () => {
-      fireEvent.click(screen.getByText("Crashes"));
+      fireEvent.click(screen.getByText("Errors"));
     });
 
-    expect(mockRouterPush).toHaveBeenCalledWith("/team-002/crashes");
+    expect(mockRouterPush).toHaveBeenCalledWith("/team-002/errors");
   });
 
   it("team switcher shows the new team name after switching", async () => {

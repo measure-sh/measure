@@ -23,6 +23,7 @@ import {
   DEFAULT_ONBOARDING_STATE,
   type OnboardingFlutterPlatform,
   type OnboardingPlatform,
+  type OnboardingReactNativePlatform,
   type OnboardingStep,
 } from "../stores/onboarding_store";
 import { useFiltersStore, useOnboardingStore } from "../stores/provider";
@@ -37,11 +38,27 @@ import TabSelect from "./tab_select";
 
 type Platform = OnboardingPlatform;
 type FlutterPlatform = OnboardingFlutterPlatform;
+type ReactNativePlatform = OnboardingReactNativePlatform;
+// Cross-platform SDKs all target one of these native sides.
+type NativeTarget = "Android" | "iOS";
 type Step = OnboardingStep;
 
-const PLATFORMS: Platform[] = ["Android", "iOS", "Flutter"];
-const FLUTTER_PLATFORMS: FlutterPlatform[] = ["Android", "iOS"];
+const PLATFORMS: Platform[] = ["Android", "iOS", "Flutter", "React Native"];
+const NATIVE_TARGETS: NativeTarget[] = ["Android", "iOS"];
 const POLL_INTERVAL_MS = 3000;
+
+// React Native onboarding isn't ready to ship yet. While this is false the RN
+// tab is hidden and the flow is unreachable. Flip it to true to show the tab
+// and enable the full flow — the type, snippet builders, and the flag-gated
+// tests all come back with no other changes.
+export const REACT_NATIVE_ENABLED = false;
+
+// Platforms offered as tabs. RN appears only when enabled; the rest of the RN
+// machinery (type, snippet builders) stays intact so the flag is the single
+// switch that brings it back.
+const VISIBLE_PLATFORMS: Platform[] = REACT_NATIVE_ENABLED
+  ? PLATFORMS
+  : PLATFORMS.filter((p) => p !== "React Native");
 
 interface OnboardingProps {
   teamId: string;
@@ -55,10 +72,10 @@ interface Snippet {
   language: CodeBlockLanguage;
 }
 
-function androidGradleDepSnippet(label: string): Snippet {
+function androidGradleDepSnippet(label: string, testId: string): Snippet {
   return {
     label,
-    testId: "snippet-dependency",
+    testId,
     language: "kotlin",
     code: `// In your app/build.gradle.kts
 dependencies {
@@ -174,19 +191,26 @@ Future.delayed(const Duration(seconds: 2), () {
   };
 }
 
-function iosPodfileSnippet(label: string): Snippet {
+// Shared between cross-platform SDKs (Flutter, React Native) — the iOS side
+// always needs `measure-sh` linked statically. Only the user-visible project
+// name (in the intro) and Podfile target name differ per cross-platform.
+function iosPodfileSnippet(
+  label: string,
+  projectName: string,
+  targetName: string,
+): Snippet {
   return {
     label,
     testId: "snippet-ios-podfile",
     language: "ruby",
-    code: `# Flutter projects default to use_frameworks! but measure-sh must be
+    code: `# ${projectName} projects default to use_frameworks! but measure-sh must be
 # linked statically. First install the cocoapods-pod-linkage plugin:
 #   gem install cocoapods-pod-linkage
 #
 # Then in ios/Podfile:
 plugin 'cocoapods-pod-linkage'
 
-target 'Runner' do
+target '${targetName}' do
   use_frameworks!
   pod 'measure-sh', :linkage => :static
   # ... your existing pods stay as-is
@@ -194,16 +218,156 @@ end`,
   };
 }
 
+function reactNativeDepSnippet(label: string): Snippet {
+  return {
+    label,
+    testId: "snippet-dependency",
+    language: "shellscript",
+    code: `# In your project root
+npm install @measuresh/react-native@${SDK_VERSIONS.reactNative}`,
+  };
+}
+
+function reactNativeInitSnippet(label: string): Snippet {
+  return {
+    label,
+    testId: "snippet-init",
+    language: "typescript",
+    code: `// In your app entry (e.g. App.tsx)
+import { Measure, MeasureConfig } from '@measuresh/react-native';
+
+const config = new MeasureConfig({});
+
+await Measure.init({ config });`,
+  };
+}
+
+function reactNativeCrashSnippet(label: string): Snippet {
+  return {
+    label,
+    testId: "snippet-crash",
+    language: "typescript",
+    code: `// Add this after Measure.init.
+// The 2-second delay gives the SDK time to flush the crash event.
+// Remove this code after the crash appears in your dashboard.
+setTimeout(() => {
+  throw new Error('Test crash from Measure onboarding');
+}, 2000);`,
+  };
+}
+
+// A single ordered step inside a cross-platform integration flow. `body`
+// is the user-visible label minus the leading "N. " prefix — the orchestrator
+// numbers steps in sequence so each cross-platform's nativePrep length can
+// vary without the snippet authors having to hand-number their labels.
+interface OrderedStep {
+  body: string;
+  build: (label: string) => Snippet;
+}
+
+// Describes a cross-platform SDK (Flutter, React Native). The native side
+// holds the API key (via manifest meta-data / Podfile + native init), so each
+// target has its own ordered list of prep snippets that run between the
+// cross-platform dependency install and the cross-platform SDK init.
+interface CrossPlatform {
+  dep: OrderedStep;
+  init: OrderedStep;
+  crash: OrderedStep;
+  nativePrep: Record<NativeTarget, OrderedStep[]>;
+}
+
+function flutterCrossPlatform(apiKey: string, apiUrl: string): CrossPlatform {
+  return {
+    dep: { body: "Add the Flutter package", build: flutterDepSnippet },
+    init: { body: "Initialize the Flutter SDK", build: flutterInitSnippet },
+    crash: { body: "Trigger a test crash", build: flutterCrashSnippet },
+    nativePrep: {
+      Android: [
+        {
+          body: "Add API key to AndroidManifest.xml",
+          build: (l) => androidManifestSnippet(apiKey, apiUrl, l),
+        },
+        {
+          body: "Initialize the Android native SDK",
+          build: (l) => androidInitSnippet(l, "snippet-android-init"),
+        },
+      ],
+      iOS: [
+        {
+          body: "Configure iOS Podfile for static linkage",
+          build: (l) => iosPodfileSnippet(l, "Flutter", "Runner"),
+        },
+        {
+          body: "Initialize the iOS native SDK",
+          build: (l) => iosInitSnippet(apiKey, apiUrl, l, "snippet-ios-init"),
+        },
+      ],
+    },
+  };
+}
+
+function reactNativeCrossPlatform(
+  apiKey: string,
+  apiUrl: string,
+): CrossPlatform {
+  return {
+    dep: { body: "Add the React Native package", build: reactNativeDepSnippet },
+    init: {
+      body: "Initialize the React Native SDK",
+      build: reactNativeInitSnippet,
+    },
+    crash: { body: "Trigger a test crash", build: reactNativeCrashSnippet },
+    nativePrep: {
+      Android: [
+        {
+          // Plain RN needs the Measure Android SDK on the Gradle classpath;
+          // Expo's prebuild handles this so the bracketed note keeps Expo
+          // users from chasing a non-issue.
+          body: "Add the Gradle dependency (skip this step if using Expo)",
+          build: (l) => androidGradleDepSnippet(l, "snippet-android-gradle"),
+        },
+        {
+          body: "Add API key to AndroidManifest.xml",
+          build: (l) => androidManifestSnippet(apiKey, apiUrl, l),
+        },
+        {
+          body: "Initialize the Android native SDK",
+          build: (l) => androidInitSnippet(l, "snippet-android-init"),
+        },
+      ],
+      iOS: [
+        {
+          body: "Configure iOS Podfile for static linkage (skip this step if using Expo)",
+          build: (l) => iosPodfileSnippet(l, "React Native", "<YourAppTarget>"),
+        },
+        {
+          body: "Initialize the iOS native SDK",
+          build: (l) => iosInitSnippet(apiKey, apiUrl, l, "snippet-ios-init"),
+        },
+      ],
+    },
+  };
+}
+
+function buildCrossPlatformSnippets(
+  info: CrossPlatform,
+  target: NativeTarget,
+): Snippet[] {
+  const ordered = [info.dep, ...info.nativePrep[target], info.init, info.crash];
+  return ordered.map((step, i) => step.build(`${i + 1}. ${step.body}`));
+}
+
 function buildSnippets(
   platform: Platform,
   flutterPlatform: FlutterPlatform,
+  reactNativePlatform: ReactNativePlatform,
   apiKey: string,
   apiUrl: string,
 ): Snippet[] {
   switch (platform) {
     case "Android":
       return [
-        androidGradleDepSnippet("1. Add the dependency"),
+        androidGradleDepSnippet("1. Add the dependency", "snippet-dependency"),
         androidManifestSnippet(
           apiKey,
           apiUrl,
@@ -242,36 +406,15 @@ DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
         },
       ];
     case "Flutter":
-      // A Measure app targets one native platform; the Flutter codebase may
-      // ship to both, so the user picks which native side to integrate now.
-      if (flutterPlatform === "Android") {
-        return [
-          flutterDepSnippet("1. Add the Flutter package"),
-          androidManifestSnippet(
-            apiKey,
-            apiUrl,
-            "2. Add API key to AndroidManifest.xml",
-          ),
-          androidInitSnippet(
-            "3. Initialize the Android native SDK",
-            "snippet-android-init",
-          ),
-          flutterInitSnippet("4. Initialize the Flutter SDK"),
-          flutterCrashSnippet("5. Trigger a test crash"),
-        ];
-      }
-      return [
-        flutterDepSnippet("1. Add the Flutter package"),
-        iosPodfileSnippet("2. Configure iOS Podfile for static linkage"),
-        iosInitSnippet(
-          apiKey,
-          apiUrl,
-          "3. Initialize the iOS native SDK",
-          "snippet-ios-init",
-        ),
-        flutterInitSnippet("4. Initialize the Flutter SDK"),
-        flutterCrashSnippet("5. Trigger a test crash"),
-      ];
+      return buildCrossPlatformSnippets(
+        flutterCrossPlatform(apiKey, apiUrl),
+        flutterPlatform,
+      );
+    case "React Native":
+      return buildCrossPlatformSnippets(
+        reactNativeCrossPlatform(apiKey, apiUrl),
+        reactNativePlatform,
+      );
   }
 }
 
@@ -310,16 +453,24 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
     apps.length === 0
       ? "create"
       : (persistedState?.step ?? DEFAULT_ONBOARDING_STATE.step);
-  const platform: Platform =
+  const resolvedPlatform: Platform =
     persistedState?.platform ?? DEFAULT_ONBOARDING_STATE.platform;
+  // If RN is gated off but a user has it persisted from a prior session, fall
+  // back to the default so they don't land on a platform whose tab is hidden.
+  const platform: Platform =
+    !REACT_NATIVE_ENABLED && resolvedPlatform === "React Native"
+      ? DEFAULT_ONBOARDING_STATE.platform
+      : resolvedPlatform;
   const flutterPlatform: FlutterPlatform =
     persistedState?.flutterPlatform ?? DEFAULT_ONBOARDING_STATE.flutterPlatform;
+  const reactNativePlatform: ReactNativePlatform =
+    persistedState?.reactNativePlatform ??
+    DEFAULT_ONBOARDING_STATE.reactNativePlatform;
 
   // `showStepCreate` is a UI history flag — keep showing the Step 1 header
   // (with a checkmark) once it was the user's starting point, even after
   // they've advanced. Captured at first render and never updated.
-  const showStepCreateRef = useRef<boolean>(apps.length === 0);
-  const showStepCreate = showStepCreateRef.current;
+  const [showStepCreate] = useState<boolean>(() => apps.length === 0);
 
   const setStep = (newStep: Step) => {
     if (selectedApp) {
@@ -342,65 +493,93 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
     }
   };
 
+  const setReactNativePlatform = (
+    newReactNativePlatform: ReactNativePlatform,
+  ) => {
+    if (selectedApp) {
+      onboardingStore.setOnboardingReactNativePlatform(
+        selectedApp.id,
+        newReactNativePlatform,
+      );
+    }
+  };
+
+  // Cross-platform SDKs each keep their own native-target sub-selection.
+  // Resolve the active pair (target + setter) up front so the sub-selector
+  // UI can be platform-agnostic.
+  const crossPlatform: {
+    kind: "Flutter" | "React Native";
+    target: NativeTarget;
+    setTarget: (t: NativeTarget) => void;
+    testIdSlug: string;
+  } | null =
+    platform === "Flutter"
+      ? {
+          kind: "Flutter",
+          target: flutterPlatform,
+          setTarget: setFlutterPlatform,
+          testIdSlug: "flutter",
+        }
+      : platform === "React Native"
+        ? {
+            kind: "React Native",
+            target: reactNativePlatform,
+            setTarget: setReactNativePlatform,
+            testIdSlug: "react-native",
+          }
+        : null;
+
   useEffect(() => {
-    if (step !== "verify") {
-      return;
-    }
-    if (!selectedApp) {
+    if (step !== "verify" || !selectedApp) {
       return;
     }
 
-    let active = true;
     const targetAppId = selectedApp.id;
+    // A poll can still be waiting on the network when the user leaves this
+    // screen. We set this in cleanup so the poll skips its update instead
+    // of touching a screen that's no longer there.
+    let stopped = false;
 
-    const tick = async () => {
+    // The onboarded flag flips as soon as the SDK reports its first event
+    // of any kind but we need to make sure that filters are updated by the
+    // materialised view before proceeding so that the destination page
+    // does not show "No Data" when users heads there.
+    const firstEventHasLanded = async (): Promise<boolean> => {
       const appsResult = await fetchAppsFromServer(teamId);
-      if (!active) {
-        return;
-      }
       if (appsResult.status !== AppsApiStatus.Success || !appsResult.data) {
-        return;
+        return false;
       }
-      const fresh = (appsResult.data as App[]).find(
-        (a) => a.id === targetAppId,
+      const refetchedApp = (appsResult.data as App[]).find(
+        (app) => app.id === targetAppId,
       );
-      if (!fresh?.onboarded) {
-        return;
+      if (!refetchedApp?.onboarded) {
+        return false;
       }
-      // The apps endpoint flips `onboarded` as soon as the SDK reports a
-      // crash, but the filters aggregation pipeline runs separately and
-      // may still be catching up. Probe the Crashes filter endpoint and
-      // only advance the wizard once it returns Success — otherwise the
-      // destination /crashes page would land on a NoData state until the
-      // user refreshes.
-      const filtersResult = await fetchFiltersFromServer(
-        fresh,
-        FilterSource.Crashes,
+      const errorsFilterResult = await fetchFiltersFromServer(
+        refetchedApp,
+        FilterSource.Errors,
       );
-      if (!active) {
-        return;
-      }
-      if (filtersResult.status !== FiltersApiStatus.Success) {
-        return;
-      }
-      // Mark the wizard verified so the success card renders. We
-      // deliberately don't flip selectedApp.onboarded or refetch the apps
-      // query here — that would change the filter-options query key,
-      // which refetches successfully, which flips filtersApiStatus to
-      // Success, which unmounts Onboarding before the user gets to see
-      // the "Crash received" celebration. Fresh onboarded state lands
-      // naturally when the user clicks View Dashboard and the destination
-      // page mounts its own Filters.
-      onboardingStore.markVerified(targetAppId);
+      return errorsFilterResult.status === FiltersApiStatus.Success;
     };
 
-    tick();
-    const interval = setInterval(tick, POLL_INTERVAL_MS);
+    const pollForFirstEvent = async () => {
+      if ((await firstEventHasLanded()) && !stopped) {
+        // Only show the success card. Don't update the app's onboarded
+        // flag or refetch apps here: that reloads the filters, which
+        // unmounts this screen before the user sees the success message.
+        // The real onboarded state loads later, when they open the
+        // dashboard.
+        onboardingStore.markVerified(targetAppId);
+      }
+    };
+
+    pollForFirstEvent();
+    const interval = setInterval(pollForFirstEvent, POLL_INTERVAL_MS);
     return () => {
-      active = false;
+      stopped = true;
       clearInterval(interval);
     };
-  }, [step, selectedApp?.id, teamId, filtersStore, onboardingStore]);
+  }, [step, selectedApp?.id, teamId, onboardingStore]);
 
   const handleCreateApp = async () => {
     const trimmed = appName.trim();
@@ -450,7 +629,13 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
 
   const apiKey = selectedApp?.api_key.key ?? "YOUR_API_KEY";
   const apiUrl = resolveApiUrl();
-  const snippets = buildSnippets(platform, flutterPlatform, apiKey, apiUrl);
+  const snippets = buildSnippets(
+    platform,
+    flutterPlatform,
+    reactNativePlatform,
+    apiKey,
+    apiUrl,
+  );
 
   const integrateStepNumber = showStepCreate ? 2 : 1;
   const verifyStepNumber = showStepCreate ? 3 : 2;
@@ -548,35 +733,36 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
           {step === "integrate" && (
             <div className="ml-11 flex flex-col gap-8">
               <TabSelect
-                items={PLATFORMS as unknown as string[]}
+                items={VISIBLE_PLATFORMS as unknown as string[]}
                 selected={platform}
                 onChangeSelected={(p) => setPlatform(p as Platform)}
               />
-              {platform === "Flutter" && (
+              {crossPlatform && (
                 <div
                   className="flex flex-col gap-2 mt-2"
-                  data-testid="onboarding-flutter-platform-select"
+                  data-testid={`onboarding-${crossPlatform.testIdSlug}-platform-select`}
                 >
-                  <p className="font-body bg-green-50 dark:bg-green-100 text-green-900 border border-green-300 p-4 rounded-md">
+                  <p className="font-body border border-amber-200 text-amber-700 bg-amber-50 dark:border-amber-950 dark:text-amber-400 dark:bg-amber-950/40 p-4 rounded-md">
                     Cross platform apps need to have a unique API key for each
                     platform they target. To integrate on another platform, you
                     will create a new app on Measure with a different API key.
                     <br />
                     <br />
-                    Choose which platform this Flutter app will run on.
+                    Choose which platform this {crossPlatform.kind} app will run
+                    on.
                   </p>
                   <div className="flex flex-row gap-6 items-center mt-8">
-                    {FLUTTER_PLATFORMS.map((p) => (
+                    {NATIVE_TARGETS.map((p) => (
                       <button
                         key={p}
-                        onClick={() => setFlutterPlatform(p)}
+                        onClick={() => crossPlatform.setTarget(p)}
                         className={`font-body cursor-pointer outline-hidden pb-0.5 border-b-2 transition-colors ${
-                          flutterPlatform === p
+                          crossPlatform.target === p
                             ? "border-foreground hover:border-foreground"
                             : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground"
                         }`}
-                        data-testid={`onboarding-flutter-platform-${p}`}
-                        data-selected={flutterPlatform === p}
+                        data-testid={`onboarding-${crossPlatform.testIdSlug}-platform-${p}`}
+                        data-selected={crossPlatform.target === p}
                       >
                         {p}
                       </button>

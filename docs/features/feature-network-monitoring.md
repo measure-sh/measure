@@ -11,7 +11,6 @@ description: "Monitor HTTP requests and responses from your mobile app. Status c
 * [**Request timeline**](#request-timeline)
 * [**Searching for endpoints**](#searching-for-endpoints)
 * [**How are endpoint patterns generated**](#how-are-endpoint-patterns-generated)
-* [**Data collected**](#data-collected)
 
 Measure SDK can capture network requests, responses and failures along with useful metrics to help understand how APIs
 are performing in production from an end user perspective.
@@ -31,6 +30,40 @@ are automatically tracked by simply adding the Measure Android Gradle Plugin:
 * [HttpURLConnection](https://developer.android.com/reference/java/net/HttpURLConnection): requires minimum 
   Android SDK version: 0.18.0.
 
+##### Using Retrofit
+
+[Retrofit](https://square.github.io/retrofit/) uses OkHttp under the hood, but as a transitive dependency.
+Auto-instrumentation does not work with transitive dependencies, so projects that depend only on Retrofit
+are not instrumented automatically. Use one of the following workarounds:
+
+**Option 1: Declare OkHttp as a direct dependency**
+
+Pin the OkHttp version explicitly in your `build.gradle.kts`. This lets auto-instrumentation work without
+any code changes:
+
+```kotlin
+dependencies {
+    implementation("com.squareup.retrofit2:retrofit:3.0.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+}
+```
+
+**Option 2: Add the interceptor manually**
+
+Configure the `OkHttpClient` passed to Retrofit with Measure's interceptor and event listener factory:
+
+```kotlin
+val client = OkHttpClient.Builder()
+    .addInterceptor(MeasureOkHttpApplicationInterceptor())
+    .eventListenerFactory(MeasureEventListenerFactory(null))
+    .build()
+
+val retrofit = Retrofit.Builder()
+    .baseUrl("https://api.example.com")
+    .client(client)
+    .build()
+```
+
 #### iOS
 
 On iOS, network requests made using the [URLSession](https://developer.apple.com/documentation/foundation/urlsession),
@@ -41,7 +74,6 @@ including any third party libraries, are automatically tracked by simply adding 
 On Flutter, network requests made using the [Dio](https://pub.dev/packages/dio) package can be tracked by adding
 the `measure_dio` package to your project. This package provides `MsrInterceptor` that can automatically
 track network requests done using Dio.
-
 
 ```yaml
 dependencies:
@@ -76,7 +108,7 @@ Future<http.Response> _trackRequest(
     [Object? body]
     ) async {
   final measure = Measure.instance;
-  final startTime = measure.getTimestamp();
+  final startTime = measure.getCurrentTime();
 
   try {
     final response = await request();
@@ -86,7 +118,7 @@ Future<http.Response> _trackRequest(
       method: method,
       statusCode: response.statusCode,
       startTime: startTime,
-      endTime: measure.getTimestamp(),
+      endTime: measure.getCurrentTime(),
       requestHeaders: headers,
       responseHeaders: response.headers,
       requestBody: body?.toString(),
@@ -100,7 +132,7 @@ Future<http.Response> _trackRequest(
       url: uri.toString(),
       method: method,
       startTime: startTime,
-      endTime: measure.getTimestamp(),
+      endTime: measure.getCurrentTime(),
       failureReason: e.runtimeType.toString(),
       failureDescription: e.toString(),
       requestHeaders: headers,
@@ -109,6 +141,71 @@ Future<http.Response> _trackRequest(
     );
     rethrow;
   }
+}
+```
+
+#### React Native
+
+On React Native, `fetch` and `XHR` requests use URLSession on iOS and OkHttp on Android under the hood. HTTP
+events are automatically tracked on iOS, but require additional setup on Android.
+
+##### Android
+
+To track HTTP events on Android, configure a custom `OkHttpClient` with `OkHttpClientProvider` in
+`MainApplication.kt`:
+
+```kotlin
+OkHttpClientProvider.setOkHttpClientFactory(object : OkHttpClientFactory {
+  override fun createNewNetworkModuleClient(): OkHttpClient {
+    return OkHttpClient.Builder()
+      .cookieJar(ReactCookieJarContainer())
+      .addInterceptor(MeasureOkHttpApplicationInterceptor())
+      .eventListenerFactory(MeasureEventListenerFactory(null))
+      .build()
+  }
+})
+```
+
+Without this configuration, HTTP events are not tracked on Android.
+
+##### iOS
+
+HTTP requests are tracked automatically on iOS. To also capture HTTP responses, add `MSRNetworkInterceptor` to
+the session configuration in `AppDelegate.mm`:
+
+```objc
+RCTSetCustomNSURLSessionConfigurationProvider(^NSURLSessionConfiguration *{
+  NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+  [MSRNetworkInterceptor enableOn:configuration];
+  return configuration;
+});
+```
+
+##### Manual tracking
+
+For HTTP clients not automatically instrumented, use `Measure.trackHttpEvent`:
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const startTime = Measure.getCurrentTime();
+try {
+  const response = await fetch('https://api.example.com/data');
+  await Measure.trackHttpEvent({
+    url: 'https://api.example.com/data',
+    method: 'GET',
+    startTime,
+    endTime: Measure.getCurrentTime(),
+    statusCode: response.status,
+  });
+} catch (error) {
+  await Measure.trackHttpEvent({
+    url: 'https://api.example.com/data',
+    method: 'GET',
+    startTime,
+    endTime: Measure.getCurrentTime(),
+    error: (error as Error).message,
+  });
 }
 ```
 
@@ -205,7 +302,3 @@ For example, `/api/users/550e8400-e29b-41d4-a716-446655440000/orders/12345` beco
 For these, Measure looks at the variety of values seen in each position of a path. If a segment has many distinct
 values (e.g. `/api/products/abc`, `/api/products/xyz`, ...), it is automatically replaced with `*` to form
 `/api/products/*`.
-
-## Data collected
-
-Checkout the data collected by Measure for each HTTP request in the [HTTP Event](../api/sdk/README.md#http) section.

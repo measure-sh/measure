@@ -15,7 +15,6 @@ description: "Automatically capture user gestures like taps, scrolls and long-pr
 * [**Benchmark Results**](#benchmark-results)
     * [**Android**](#android-1)
     * [**iOS**](#ios-1)
-* [**Data collected**](#data-collected)
 
 ## Overview
 
@@ -244,6 +243,11 @@ To include custom widgets or additional widget types in your snapshots, use
 the [measure_build](../../flutter/packages/measure_build/README.md) package to generate a comprehensive list of all
 widget types used in your app.
 
+### React Native
+
+Gesture detection for React Native apps are based on the platform the app is running on (Android or iOS). The SDK uses the same methods as described above for Android and iOS.
+
+
 ## Benchmark results
 
 ### Android
@@ -273,9 +277,3 @@ TLDR;
   depth of **100** widgets.
 - The time to generate the layout snapshot increases linearly with the depth of the widget tree.
 - The benchmark tests can be found [here](../../flutter/example/integration_test/layout_snapshot_performance_test.dart).
-
-## Data collected
-
-Check out the data collected by Measure in
-the [Gesture Click](../api/sdk/README.md#gesture_click), [Gesture Long Click](../api/sdk/README.md#gesture_long_click)
-and [Gesture Scroll](../api/sdk/README.md#gesture_scroll) sections.

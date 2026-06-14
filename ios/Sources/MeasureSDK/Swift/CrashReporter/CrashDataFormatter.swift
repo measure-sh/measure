@@ -27,34 +27,46 @@ final class CrashDataFormatter {
         self.isLp64 = resolveIsLp64(binaryImageDicts: binaryImageDicts)
     }
 
-    func getException(_ handled: Bool = false, error: MsrError? = nil) -> Exception {
+    func getException(severity: ExceptionSeverity? = nil,
+                      numCode: Int64? = nil,
+                      code: String? = nil,
+                      meta: [String: CodableValue]? = nil,
+                      framesToStrip: Int = 0) -> Exception {
         let crashedThreadDict = threadDicts.first { $0["crashed"] as? Bool == true || $0["crashed"] as? Int == 1 }
         let otherThreadDicts  = threadDicts.filter { $0["crashed"] as? Bool != true && $0["crashed"] as? Int != 1 }
 
-        let crashedThread   = crashedThreadDict.map { parseThread($0) }
+        let isHandled              = severity == .handled
+        let effectiveFramesToStrip = hasMeasureBinaryImage() ? 0 : framesToStrip
+        let crashedThread   = crashedThreadDict.map { parseThread($0, isHandled: isHandled, framesToStrip: effectiveFramesToStrip) }
         let exceptionDetail = parseExceptionDetail(crashedThread: crashedThread)
-        let otherThreads    = otherThreadDicts.map { parseThread($0) }
+        let otherThreads    = otherThreadDicts.map { parseThread($0, isHandled: isHandled) }
 
         guard let crashedThread else {
-            return Exception(handled: handled,
-                             exceptions: [exceptionDetail],
+            return Exception(exceptions: [exceptionDetail],
                              foreground: parseForeground(),
                              threads: nil,
                              binaryImages: nil,
                              framework: Framework.apple,
-                             error: error)
+                             severity: severity,
+                             isCustom: nil,
+                             numCode: numCode,
+                             code: code,
+                             meta: meta)
         }
 
         let allThreads   = [crashedThread] + otherThreads
         let binaryImages = parseBinaryImages(threads: allThreads)
 
-        return Exception(handled: handled,
-                         exceptions: [exceptionDetail],
+        return Exception(exceptions: [exceptionDetail],
                          foreground: parseForeground(),
                          threads: otherThreads,
                          binaryImages: binaryImages,
                          framework: Framework.apple,
-                         error: error)
+                         severity: severity,
+                         isCustom: nil,
+                         numCode: numCode,
+                         code: code,
+                         meta: meta)
     }
 
     func parseExceptionDetail(crashedThread: ThreadDetail?) -> ExceptionDetail {
@@ -96,20 +108,24 @@ final class CrashDataFormatter {
             ?? (stats["application_in_foreground"] as? Int).map { $0 != 0 }
     }
 
-    func parseThread(_ dict: [String: Any]) -> ThreadDetail {
-        let index   = dict["index"] as? Int  ?? 0
+    func parseThread(_ dict: [String: Any], isHandled: Bool = false, framesToStrip: Int = 0) -> ThreadDetail {
+        let index   = dict["index"]   as? Int  ?? 0
         let crashed = dict["crashed"] as? Bool ?? (dict["crashed"] as? Int == 1)
-        let name    = dict["name"] as? String
-                   ?? (crashed ? "Thread \(index) Crashed" : "Thread \(index)")
-        let frames  = parseFrames(dict)
+        let name    = dict["name"]    as? String
+                   ?? (crashed && !isHandled ? "Thread \(index) Crashed" : "Thread \(index)")
+        let frames  = parseFrames(dict, framesToStrip: framesToStrip)
         return ThreadDetail(name: name, frames: frames, sequence: Number(index))
     }
 
-    func parseFrames(_ threadDict: [String: Any]) -> [StackFrame] {
+    func parseFrames(_ threadDict: [String: Any], framesToStrip: Int = 0) -> [StackFrame] {
         guard
             let backtrace = threadDict["backtrace"] as? [String: Any],
             let contents = backtrace["contents"] as? [[String: Any]]
         else { return [] }
+
+        if framesToStrip > 0 {
+            contents = Array(contents.dropFirst(min(framesToStrip, contents.count)))
+        }
 
         return contents.enumerated().map { idx, frame in
             parseFrame(frame, index: idx)
@@ -217,6 +233,10 @@ final class CrashDataFormatter {
         case CPU_TYPE_POWERPC: return "powerpc"
         default:               return "???"
         }
+    }
+
+    private func hasMeasureBinaryImage() -> Bool {
+        return binaryImageDicts.contains { ($0["name"] as? String)?.hasPrefix("Measure") == true }
     }
 
     private func isAppBinary(name: String?) -> Bool {

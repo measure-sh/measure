@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"symboloader/symbol"
+	"backend/libs/symbol"
 )
 
 // DeleteResult records the outcome of removing one archive's DIFs.

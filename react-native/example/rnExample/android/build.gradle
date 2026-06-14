@@ -6,23 +6,23 @@ buildscript {
     }
     repositories {
         google()
-        mavenCentral()
         mavenLocal()
+        mavenCentral()
         gradlePluginPortal()
     }
     dependencies {
         classpath("com.android.tools.build:gradle:8.6.0")
         classpath("com.facebook.react:react-native-gradle-plugin")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
-        classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.11.0")
+        classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.12.0-SNAPSHOT")
     }
 }
 
 allprojects {
     repositories {
         google()
-        mavenCentral()
         mavenLocal()
+        mavenCentral()
         gradlePluginPortal()
     }
 }

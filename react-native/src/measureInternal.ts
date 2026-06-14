@@ -1,6 +1,7 @@
 import { MeasureConfig } from './config/measureConfig';
 import type { MsrAttachment } from './events/msrAttachment';
-import * as MeasureErrorHandlers from './exception/measureErrorHandlers';
+import { ErrorReportingManager } from './exception/errorReportingManager';
+import { buildExceptionPayload } from './exception/exceptionBuilder';
 import type { MeasureInitializer } from './measureInitializer';
 import {
   setShakeListener,
@@ -18,23 +19,17 @@ export class MeasureInternal {
   private measureInitializer: MeasureInitializer;
   private shakeHandler?: (() => void) | null;
   private started = false;
+  private errorReportingManager: ErrorReportingManager;
 
   constructor(measureInitializer: MeasureInitializer) {
     this.measureInitializer = measureInitializer;
 
-    MeasureErrorHandlers.setupErrorHandlers({
-      onerror: true,
-      onunhandledrejection: true,
-      patchGlobalPromise: true,
-      logger: this.measureInitializer.logger,
-      timeProvider: this.measureInitializer.timeProvider,
-      signalProcessor: this.measureInitializer.signalProcessor,
-    });
-
-    this.measureInitializer.logger.internalLog(
-      'info',
-      'React Native error handlers installed.'
+    this.errorReportingManager = new ErrorReportingManager(
+      this.measureInitializer.timeProvider,
+      this.measureInitializer.logger,
+      this.measureInitializer.signalProcessor
     );
+    this.errorReportingManager.enable();
   }
 
   registerCollectors(): void {
@@ -72,7 +67,7 @@ export class MeasureInternal {
       this.started = true;
       this.registerCollectors();
       enableNativeModule();
-      nativeStart();
+      await nativeStart();
     }
   }
 
@@ -85,6 +80,7 @@ export class MeasureInternal {
       return Promise.resolve();
     }
     this.started = true;
+    this.errorReportingManager.enable();
     this.registerCollectors();
     enableNativeModule();
     return nativeStart();
@@ -99,6 +95,7 @@ export class MeasureInternal {
       return Promise.resolve();
     }
     this.started = false;
+    this.errorReportingManager.disable();
     this.unregisterCollectors();
     disableNativeModule();
     return nativeStop();
@@ -113,7 +110,11 @@ export class MeasureInternal {
     attributes?: Record<string, ValidAttributeValue>;
     timestamp?: number;
   }): Promise<void> =>
-    this.measureInitializer.customEventCollector.trackCustomEvent({ name, attributes, timestamp });
+    this.measureInitializer.customEventCollector.trackCustomEvent({
+      name,
+      attributes,
+      timestamp,
+    });
 
   getCurrentTime(): number {
     return this.measureInitializer.timeProvider.now();
@@ -126,13 +127,18 @@ export class MeasureInternal {
     screenName: string;
     attributes?: Record<string, ValidAttributeValue>;
   }): Promise<void> =>
-    this.measureInitializer.userTriggeredEventCollector.trackScreenView({ screenName, attributes });
+    this.measureInitializer.userTriggeredEventCollector.trackScreenView({
+      screenName,
+      attributes,
+    });
 
-  launchBugReport = (params: {
-    takeScreenshot?: boolean;
-    bugReportConfig?: Record<string, any>;
-    attributes?: Record<string, ValidAttributeValue>;
-  } = {}): Promise<void> =>
+  launchBugReport = (
+    params: {
+      takeScreenshot?: boolean;
+      bugReportConfig?: Record<string, any>;
+      attributes?: Record<string, ValidAttributeValue>;
+    } = {}
+  ): Promise<void> =>
     this.measureInitializer.bugReportCollector.launchBugReport(params);
 
   onShake({ handler }: { handler?: (() => void) | null }): void {
@@ -154,12 +160,23 @@ export class MeasureInternal {
     return this.measureInitializer.spanCollector.createSpan({ name });
   }
 
-  startSpan({ name, timestampMs }: { name: string; timestampMs?: number }): Span {
-    return this.measureInitializer.spanCollector.startSpan({ name, timestampMs });
+  startSpan({
+    name,
+    timestampMs,
+  }: {
+    name: string;
+    timestampMs?: number;
+  }): Span {
+    return this.measureInitializer.spanCollector.startSpan({
+      name,
+      timestampMs,
+    });
   }
 
   getTraceParentHeaderValue({ span }: { span: Span }): string {
-    return this.measureInitializer.spanCollector.getTraceParentHeaderValue({ span });
+    return this.measureInitializer.spanCollector.getTraceParentHeaderValue({
+      span,
+    });
   }
 
   getTraceParentHeaderKey(): string {
@@ -198,6 +215,31 @@ export class MeasureInternal {
     attributes?: Record<string, ValidAttributeValue>;
   }): Promise<void> {
     return this.measureInitializer.bugReportCollector.trackBugReport(params);
+  }
+
+  trackError({
+    error,
+    attributes,
+  }: {
+    error: unknown;
+    attributes?: Record<string, ValidAttributeValue>;
+  }): Promise<void> {
+    const payload = buildExceptionPayload(error, 'handled', false);
+    return this.measureInitializer.signalProcessor
+      .trackEvent(
+        payload,
+        'exception',
+        this.measureInitializer.timeProvider.now(),
+        {},
+        attributes ?? {}
+      )
+      .catch((err) => {
+        this.measureInitializer.logger.log(
+          'error',
+          'Failed to track error',
+          err
+        );
+      });
   }
 
   getSessionId(): Promise<string | null> {

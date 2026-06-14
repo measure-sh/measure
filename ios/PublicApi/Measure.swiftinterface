@@ -370,10 +370,10 @@ extension Measure.MeasureManager {
   public static func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Measure.AttributeValue]? = nil)
   @objc public static func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Any]? = nil)
   @objc public static func captureScreenshot(for viewController: UIKit.UIViewController, completion: @escaping (Measure.MsrAttachment?) -> Swift.Void)
-  public static func trackError(_ error: any Swift.Error, attributes: [Swift.String : Measure.AttributeValue]? = nil, collectStackTraces: Swift.Bool = false)
-  @objc public static func trackError(_ error: Foundation.NSError, attributes: [Swift.String : Any]? = nil, collectStackTraces: Swift.Bool = false)
-  public static func trackException(_ exception: Foundation.NSException, attributes: [Swift.String : Measure.AttributeValue]? = nil, collectStackTraces: Swift.Bool = false)
-  @objc public static func trackException(_ exception: Foundation.NSException, attributes: [Swift.String : Any]? = nil, collectStackTraces: Swift.Bool = false)
+  public static func trackError(_ error: any Swift.Error, attributes: [Swift.String : Measure.AttributeValue]? = nil)
+  @objc public static func trackError(_ error: Foundation.NSError, attributes: [Swift.String : Any]? = nil)
+  public static func trackException(_ exception: Foundation.NSException, attributes: [Swift.String : Measure.AttributeValue]? = nil)
+  @objc public static func trackException(_ exception: Foundation.NSException, attributes: [Swift.String : Any]? = nil)
   public static func internalGetAttachmentDirectory() -> Swift.String?
   public static func internalEncodeWebP(pixels: Foundation.Data, width: Swift.Int, height: Swift.Int, completion: @escaping (Foundation.Data?) -> Swift.Void)
   public static func internalGetDynamicConfigPath() -> Swift.String?

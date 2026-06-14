@@ -12,6 +12,10 @@ services:
         - NEXT_PUBLIC_POSTHOG_HOST=${POSTHOG_HOST}
         - NEXT_PUBLIC_POSTHOG_API_KEY=${POSTHOG_API_KEY}
         - NEXT_PUBLIC_GTM_ID=${GTM_ID}
+        - UPLOAD_SOURCEMAPS=${UPLOAD_SOURCEMAPS:-}
+        - POSTHOG_PROJECT_ID=${POSTHOG_PROJECT_ID:-}
+      secrets:
+        - posthog_sourcemap_personal_key
     environment:
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
@@ -187,3 +191,7 @@ services:
         max-file: 5
 
   clickstack: !reset
+
+secrets:
+  posthog_sourcemap_personal_key:
+    environment: POSTHOG_SOURCEMAP_PERSONAL_KEY

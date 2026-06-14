@@ -1,3 +1,4 @@
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import UserJourneys from "@/app/[teamId]/journeys/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
@@ -91,12 +92,12 @@ describe("UserJourneys Page", () => {
   });
 
   it("renders the Filters component", () => {
-    render(<UserJourneys params={{ teamId: "123" }} />);
+    render(<UserJourneys params={promiseParams({ teamId: "123" })} />);
     expect(screen.getByTestId("filters-mock")).toBeInTheDocument();
   });
 
   it("does not render Journey, TabSelect or DebounceTextInput when filters are not ready", () => {
-    render(<UserJourneys params={{ teamId: "123" }} />);
+    render(<UserJourneys params={promiseParams({ teamId: "123" })} />);
     expect(screen.queryByTestId("tab-select-mock")).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("debounce-text-input-mock"),
@@ -108,7 +109,7 @@ describe("UserJourneys Page", () => {
   });
 
   it("renders TabSelect, DebounceTextInput, and Journey (Paths) when filters become ready and updates URL", async () => {
-    render(<UserJourneys params={{ teamId: "123" }} />);
+    render(<UserJourneys params={promiseParams({ teamId: "123" })} />);
 
     await act(async () => {
       useFiltersStore.setState({
@@ -131,7 +132,7 @@ describe("UserJourneys Page", () => {
   });
 
   it("renders Journey (Exceptions) when Exceptions tab is selected", async () => {
-    render(<UserJourneys params={{ teamId: "123" }} />);
+    render(<UserJourneys params={promiseParams({ teamId: "123" })} />);
 
     await act(async () => {
       useFiltersStore.setState({
@@ -154,7 +155,7 @@ describe("UserJourneys Page", () => {
   });
 
   it("renders Journey (Paths) by default and switches to Exceptions when tab is selected", async () => {
-    render(<UserJourneys params={{ teamId: "123" }} />);
+    render(<UserJourneys params={promiseParams({ teamId: "123" })} />);
 
     await act(async () => {
       useFiltersStore.setState({
@@ -195,7 +196,7 @@ describe("UserJourneys Page", () => {
     const {
       default: UserJourneysPatched,
     } = require("@/app/[teamId]/journeys/page");
-    render(<UserJourneysPatched params={{ teamId: "123" }} />);
+    render(<UserJourneysPatched params={promiseParams({ teamId: "123" })} />);
     await act(async () => {
       useFiltersStore.setState({
         filters: {
@@ -215,7 +216,7 @@ describe("UserJourneys Page", () => {
   });
 
   it("updates searchText when DebounceTextInput changes", async () => {
-    render(<UserJourneys params={{ teamId: "123" }} />);
+    render(<UserJourneys params={promiseParams({ teamId: "123" })} />);
 
     await act(async () => {
       useFiltersStore.setState({

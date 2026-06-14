@@ -1,6 +1,6 @@
 ---
 title: "Error Tracking (Handled Exceptions)"
-description: "Track handled exceptions in your mobile app — issues that don't crash but still affect users. Android, iOS and Flutter APIs."
+description: "Track handled exceptions in your mobile app — issues that don't crash but still affect users. Android, iOS, Flutter and React Native APIs."
 ---
 
 # Track errors
@@ -13,6 +13,7 @@ still affect user experience.
   - [**Android**](#android)
   - [**iOS**](#ios)
   - [**Flutter**](#flutter)
+  - [**React Native**](#react-native)
 
 ## API Reference
 
@@ -68,13 +69,13 @@ You can optionally include attributes and enable stack trace collection.
 Measure.trackError(error, attributes: [
     "screen": .string("Login"),
     "retryCount": .int(2)
-], collectStackTraces: true)
+])
 ```
 
 You can track handled NSError objects from Objective-C code as well using `trackError` method.
 
 ```objc
-[Measure trackError:error attributes:@{ @"screen": @"Login", @"retryCount": 2 } collectStackTraces:YES];
+[Measure trackError:error attributes:@{ @"screen": @"Login", @"retryCount": 2 }];
 ```
 
 #### Flutter
@@ -86,5 +87,39 @@ try {
   methodThatThrows();
 } catch (e, stackTrace) {
   Measure.trackHandledError(e, stackTrace);
+}
+```
+
+#### React Native
+
+To track handled errors, use the `trackError` method from the Measure SDK.
+
+```ts
+import { Measure } from '@measuresh/react-native';
+
+try {
+  methodThatThrows();
+} catch (e) {
+  Measure.trackError({ error: e });
+}
+```
+
+You can optionally include attributes to provide additional context about the error.
+
+- Attribute keys must be strings with a maximum length of 256 characters.
+- Attribute values must be one of the primitive types: `string`, `number`, or `boolean`.
+- String attribute values can have a maximum length of 256 characters.
+
+```ts
+try {
+  methodThatThrows();
+} catch (e) {
+  Measure.trackError({
+    error: e,
+    attributes: {
+      screen: 'Login',
+      retryCount: 2,
+    },
+  });
 }
 ```

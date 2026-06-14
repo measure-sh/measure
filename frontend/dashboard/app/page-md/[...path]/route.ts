@@ -34,13 +34,14 @@ function markdownResponse(body: string) {
 
 /**
  * Resolve URL segments to a colocated `page.md` next to the route's
- * `page.tsx`. The middleware rewrites `/` to `/_md/index` so the homepage
+ * `page.tsx`. The proxy rewrites `/` to `/page-md/index` so the homepage
  * lands here as ["index"] — translate that back to `app/page.md`.
  */
 function resolvePageMd(segments: string[]): string | null {
-  const rel = segments.length === 1 && segments[0] === "index"
-    ? "page.md"
-    : path.join(...segments, "page.md");
+  const rel =
+    segments.length === 1 && segments[0] === "index"
+      ? "page.md"
+      : path.join(...segments, "page.md");
 
   const candidate = path.join(APP_DIR, rel);
   // path.join collapses any "..", and the startsWith guard catches escapes
@@ -52,9 +53,10 @@ function resolvePageMd(segments: string[]): string | null {
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { path?: string[] } },
+  { params }: { params: Promise<{ path?: string[] }> },
 ) {
-  const segments = params.path ?? [];
+  const { path } = await params;
+  const segments = path ?? [];
 
   if (segments.length === 0) {
     return notAcceptable();

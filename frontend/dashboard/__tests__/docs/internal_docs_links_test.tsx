@@ -43,9 +43,9 @@ describe("GitHub docs links have been replaced", () => {
     expect(content).toContain('href="/docs/features/configuration-options"');
   });
 
-  it("user_journeys.tsx links to /docs/features/configuration-options#journey-sampling", () => {
+  it("app_breadcrumbs.tsx links to /docs/features/configuration-options#journey-sampling", () => {
     const content = fs.readFileSync(
-      path.join(APP_DIR, "components/user_journeys.tsx"),
+      path.join(APP_DIR, "components/app_breadcrumbs.tsx"),
       "utf-8",
     );
 
@@ -92,9 +92,9 @@ describe("GitHub docs links have been replaced", () => {
     );
   });
 
-  it("session_timelines/page.tsx links to /docs/features/feature-session-timelines", () => {
+  it("app_breadcrumbs.tsx links to /docs/features/feature-session-timelines", () => {
     const content = fs.readFileSync(
-      path.join(APP_DIR, "[teamId]/session_timelines/page.tsx"),
+      path.join(APP_DIR, "components/app_breadcrumbs.tsx"),
       "utf-8",
     );
 
@@ -121,9 +121,9 @@ describe("rewritten links do not use target=_blank", () => {
     expect(docsLinkLine).not.toContain("target");
   });
 
-  it("user_journeys.tsx does not open docs in new tab", () => {
+  it("app_breadcrumbs.tsx does not open the journeys docs link in new tab", () => {
     const content = fs.readFileSync(
-      path.join(APP_DIR, "components/user_journeys.tsx"),
+      path.join(APP_DIR, "components/app_breadcrumbs.tsx"),
       "utf-8",
     );
 
@@ -136,9 +136,9 @@ describe("rewritten links do not use target=_blank", () => {
     expect(docsLinkLine).not.toContain("target");
   });
 
-  it("session_timelines/page.tsx does not open docs in new tab", () => {
+  it("app_breadcrumbs.tsx does not open the session timelines docs link in new tab", () => {
     const content = fs.readFileSync(
-      path.join(APP_DIR, "[teamId]/session_timelines/page.tsx"),
+      path.join(APP_DIR, "components/app_breadcrumbs.tsx"),
       "utf-8",
     );
 

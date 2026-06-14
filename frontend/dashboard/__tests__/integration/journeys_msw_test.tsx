@@ -97,6 +97,7 @@ import {
   makeAppFixture,
   makeJourneyFixture,
   makeJourneyWithExceptionsFixture,
+  makeJourneyWithMixedIssuesFixture,
 } from "../msw/fixtures";
 import { server } from "../msw/server";
 
@@ -167,12 +168,11 @@ describe("Journeys page — page load", () => {
     );
   }
 
-  it("renders tabs, search, info note, and chart", async () => {
+  it("renders tabs, search, and chart", async () => {
     await renderAndWaitForChart();
     expect(screen.getByText("Paths")).toBeTruthy();
     expect(screen.getByText("Exceptions")).toBeTruthy();
     expect(screen.getByPlaceholderText("Search nodes...")).toBeTruthy();
-    expect(screen.getByText(/Journeys are approximated/)).toBeTruthy();
     expect(screen.getByTestId("nivo-sankey")).toBeTruthy();
   });
 
@@ -190,14 +190,6 @@ describe("Journeys page — page load", () => {
     expect(screen.getByTestId("sankey-link-0")).toBeTruthy();
     expect(screen.getByTestId("sankey-link-1")).toBeTruthy();
     expect(screen.getByTestId("sankey-link-2")).toBeTruthy();
-  });
-
-  it('"Learn more" link points to correct docs page', async () => {
-    await renderAndWaitForChart();
-    const link = screen.getByText("Learn more");
-    expect(link.closest("a")?.getAttribute("href")).toBe(
-      "/docs/features/configuration-options#journey-sampling",
-    );
   });
 
   it("defaults to Paths tab", async () => {
@@ -380,7 +372,7 @@ describe("Journeys page — exceptions panel", () => {
 
     await waitFor(() => {
       // Panel is visible - check for crash/ANR content
-      expect(screen.getByText("Close")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Close" })).toBeTruthy();
     });
   });
 
@@ -430,12 +422,13 @@ describe("Journeys page — exceptions panel", () => {
       fireEvent.click(screen.getByTestId("sankey-node-CartActivity"));
     });
 
-    await waitFor(() => {
-      expect(screen.getByText(/ANR in CartActivity/)).toBeTruthy();
-      // Match "- 30" (the count displayed next to the ANR title), not "30" alone
-      // which also matches timestamps like "1:51:30 PM"
-      expect(screen.getByText(/- 30$/m)).toBeTruthy();
-    });
+    await waitFor(() =>
+      expect(screen.getByText(/ANR in CartActivity/)).toBeTruthy(),
+    );
+    // Title and count render in separate spans within the item button now,
+    // so assert the count inside that button rather than as a joined string.
+    const anrButton = screen.getByText(/ANR in CartActivity/).closest("button");
+    expect(anrButton?.textContent).toContain("30");
   });
 
   it("panel has Close button that hides the panel", async () => {
@@ -456,15 +449,18 @@ describe("Journeys page — exceptions panel", () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId("sankey-node-ProductListActivity"));
     });
-    await waitFor(() => expect(screen.getByText("Close")).toBeTruthy(), {
-      timeout: 5000,
-    });
+    await waitFor(
+      () => expect(screen.getByRole("button", { name: "Close" })).toBeTruthy(),
+      {
+        timeout: 5000,
+      },
+    );
 
     await act(async () => {
-      fireEvent.click(screen.getByText("Close"));
+      fireEvent.click(screen.getByRole("button", { name: "Close" }));
     });
     // Panel is hidden
-    expect(screen.queryByText("Close")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
   });
 
   it("clicking a node with NO issues does NOT open the panel", async () => {
@@ -488,7 +484,7 @@ describe("Journeys page — exceptions panel", () => {
     });
 
     // Panel should not open — no Close button visible
-    expect(screen.queryByText("Close")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
   });
 
   it("clicking a link does NOT open the panel", async () => {
@@ -510,7 +506,7 @@ describe("Journeys page — exceptions panel", () => {
       fireEvent.click(screen.getByTestId("sankey-link-0"));
     });
 
-    expect(screen.queryByText("Close")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
   });
 
   it("open panel closes when clicking a node with no issues", async () => {
@@ -532,16 +528,19 @@ describe("Journeys page — exceptions panel", () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId("sankey-node-ProductListActivity"));
     });
-    await waitFor(() => expect(screen.getByText("Close")).toBeTruthy(), {
-      timeout: 5000,
-    });
+    await waitFor(
+      () => expect(screen.getByRole("button", { name: "Close" })).toBeTruthy(),
+      {
+        timeout: 5000,
+      },
+    );
 
     // Click a node without issues — should close the panel
     await act(async () => {
       fireEvent.click(screen.getByTestId("sankey-node-MainActivity"));
     });
 
-    expect(screen.queryByText("Close")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
   });
 
   it("open panel closes when clicking a link", async () => {
@@ -563,16 +562,19 @@ describe("Journeys page — exceptions panel", () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId("sankey-node-CartActivity"));
     });
-    await waitFor(() => expect(screen.getByText("Close")).toBeTruthy(), {
-      timeout: 5000,
-    });
+    await waitFor(
+      () => expect(screen.getByRole("button", { name: "Close" })).toBeTruthy(),
+      {
+        timeout: 5000,
+      },
+    );
 
     // Click a link — should close the panel
     await act(async () => {
       fireEvent.click(screen.getByTestId("sankey-link-0"));
     });
 
-    expect(screen.queryByText("Close")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
   });
 
   it("open panel stays open when clicking another node with issues (switches to new node)", async () => {
@@ -635,13 +637,26 @@ describe("Journeys page — exceptions panel", () => {
       fireEvent.click(screen.getByTestId("sankey-node-ProductListActivity"));
     });
 
-    await waitFor(() => {
-      const crashLink = screen
-        .getByText(/NullPointerException at ProductList/)
-        .closest("a");
-      expect(crashLink?.getAttribute("href")).toContain("/test-team/crashes/");
-      expect(crashLink?.getAttribute("href")).toContain("/crash-001/");
+    await waitFor(() =>
+      expect(
+        screen.getByText(/NullPointerException at ProductList/),
+      ).toBeTruthy(),
+    );
+
+    // The crash item navigates via router.push (a button now, not an anchor).
+    await act(async () => {
+      fireEvent.click(
+        screen
+          .getByText(/NullPointerException at ProductList/)
+          .closest("button")!,
+      );
     });
+
+    expect(mockRouterPush).toHaveBeenCalled();
+    const target =
+      mockRouterPush.mock.calls[mockRouterPush.mock.calls.length - 1][0];
+    expect(target).toContain("/test-team/errors/");
+    expect(target).toContain("/crash-001/");
   });
 
   it("clicking a node in Paths mode does not open the panel", async () => {
@@ -657,7 +672,70 @@ describe("Journeys page — exceptions panel", () => {
     });
 
     // Panel should not open — no Close button visible
-    expect(screen.queryByText("Close")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
+  });
+});
+
+describe("Journeys page — exceptions panel tabs", () => {
+  beforeEach(() => {
+    server.use(
+      http.get("*/api/apps/:appId/journey", () => {
+        return HttpResponse.json(makeJourneyWithMixedIssuesFixture());
+      }),
+    );
+  });
+
+  it("Crashes tab shows crashes and ANRs tab shows ANRs", async () => {
+    renderWithProviders(<UserJourneys params={{ teamId: "test-team" }} />);
+    await waitFor(
+      () => expect(screen.getByTestId("nivo-sankey")).toBeTruthy(),
+      {
+        timeout: 5000,
+      },
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Exceptions"));
+    });
+    await waitFor(
+      () => expect(screen.getByTestId("nivo-sankey")).toBeTruthy(),
+      {
+        timeout: 5000,
+      },
+    );
+
+    // CheckoutActivity has both a crash and an ANR.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("sankey-node-CheckoutActivity"));
+    });
+
+    // Defaults to the Crashes tab: the crash shows, the ANR does not.
+    await waitFor(() =>
+      expect(
+        screen.getByText(/IllegalStateException at Checkout/),
+      ).toBeTruthy(),
+    );
+    expect(screen.queryByText(/ANR in CheckoutActivity/)).toBeNull();
+
+    // Switch to the ANRs tab: the ANR shows, the crash does not.
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "ANRs" }));
+    });
+    await waitFor(() =>
+      expect(screen.getByText(/ANR in CheckoutActivity/)).toBeTruthy(),
+    );
+    expect(screen.queryByText(/IllegalStateException at Checkout/)).toBeNull();
+
+    // Switch back to the Crashes tab: the crash shows again, the ANR is hidden.
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Crashes" }));
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByText(/IllegalStateException at Checkout/),
+      ).toBeTruthy(),
+    );
+    expect(screen.queryByText(/ANR in CheckoutActivity/)).toBeNull();
   });
 });
 
@@ -1113,7 +1191,7 @@ describe("Journeys page — remaining coverage", () => {
       );
     });
 
-    it("ANR links point to /anrs/ detail page", async () => {
+    it("ANR links point to /errors/ detail page", async () => {
       renderWithProviders(<UserJourneys params={{ teamId: "test-team" }} />);
       await waitFor(
         () => expect(screen.getByTestId("nivo-sankey")).toBeTruthy(),
@@ -1134,11 +1212,21 @@ describe("Journeys page — remaining coverage", () => {
         fireEvent.click(screen.getByTestId("sankey-node-CartActivity"));
       });
 
-      await waitFor(() => {
-        const anrLink = screen.getByText(/ANR in CartActivity/).closest("a");
-        expect(anrLink?.getAttribute("href")).toContain("/test-team/anrs/");
-        expect(anrLink?.getAttribute("href")).toContain("/anr-001/");
+      await waitFor(() =>
+        expect(screen.getByText(/ANR in CartActivity/)).toBeTruthy(),
+      );
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByText(/ANR in CartActivity/).closest("button")!,
+        );
       });
+
+      expect(mockRouterPush).toHaveBeenCalled();
+      const target =
+        mockRouterPush.mock.calls[mockRouterPush.mock.calls.length - 1][0];
+      expect(target).toContain("/test-team/errors/");
+      expect(target).toContain("/anr-001/");
     });
   });
 
@@ -1444,14 +1532,25 @@ describe("Journeys page — remaining coverage", () => {
         fireEvent.click(screen.getByTestId("sankey-node-ProductListActivity"));
       });
 
-      await waitFor(() => {
-        const crashLink = screen
-          .getByText(/NullPointerException at ProductList/)
-          .closest("a");
-        const href = crashLink?.getAttribute("href") ?? "";
-        expect(href).toContain("start_date=");
-        expect(href).toContain("end_date=");
+      await waitFor(() =>
+        expect(
+          screen.getByText(/NullPointerException at ProductList/),
+        ).toBeTruthy(),
+      );
+
+      await act(async () => {
+        fireEvent.click(
+          screen
+            .getByText(/NullPointerException at ProductList/)
+            .closest("button")!,
+        );
       });
+
+      expect(mockRouterPush).toHaveBeenCalled();
+      const href =
+        mockRouterPush.mock.calls[mockRouterPush.mock.calls.length - 1][0];
+      expect(href).toContain("start_date=");
+      expect(href).toContain("end_date=");
     });
 
     it("ANR link includes start_date and end_date query params", async () => {
@@ -1473,12 +1572,21 @@ describe("Journeys page — remaining coverage", () => {
         fireEvent.click(screen.getByTestId("sankey-node-CartActivity"));
       });
 
-      await waitFor(() => {
-        const anrLink = screen.getByText(/ANR in CartActivity/).closest("a");
-        const href = anrLink?.getAttribute("href") ?? "";
-        expect(href).toContain("start_date=");
-        expect(href).toContain("end_date=");
+      await waitFor(() =>
+        expect(screen.getByText(/ANR in CartActivity/)).toBeTruthy(),
+      );
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByText(/ANR in CartActivity/).closest("button")!,
+        );
       });
+
+      expect(mockRouterPush).toHaveBeenCalled();
+      const href =
+        mockRouterPush.mock.calls[mockRouterPush.mock.calls.length - 1][0];
+      expect(href).toContain("start_date=");
+      expect(href).toContain("end_date=");
     });
   });
 

@@ -10,6 +10,7 @@ import {
   CollapsibleTrigger,
 } from "../components/collapsible";
 import { Slider } from "../components/slider";
+import TrackCtaLink from "../components/analytics/track_cta_link";
 import { calculate } from "../utils/pricing_calculator";
 import {
   FREE_GB,
@@ -382,7 +383,7 @@ export default function PricingCalculator() {
                 <span className="text-secondary-foreground font-semibold">
                   Free data per month:
                 </span>
-                <span className="font-display text-green-600 dark:text-green-500">
+                <span className="font-display text-green-700 dark:text-green-400">
                   {FREE_GB} GB
                 </span>
               </div>
@@ -392,10 +393,10 @@ export default function PricingCalculator() {
           {isFreeTier && (
             <div className="bg-green-50 dark:bg-background border-2 border-green-300 dark:border-border rounded-lg p-6 mb-8">
               <div className="flex flex-col items-start gap-1">
-                <h4 className="font-display text-lg text-green-900 dark:text-green-500">
+                <h4 className="font-display text-lg text-green-900 dark:text-green-400">
                   Free Tier
                 </h4>
-                <p className="font-body text-green-800 dark:text-green-500">
+                <p className="font-body text-green-800 dark:text-green-400">
                   Your usage is within the free limits ({FREE_GB} GB/month). No
                   charges apply.
                 </p>
@@ -419,7 +420,9 @@ export default function PricingCalculator() {
             </div>
           )}
 
-          <Link
+          <TrackCtaLink
+            location="pricing"
+            destination="signup"
             href={"/auth/login"}
             className={cn(
               buttonVariants({ variant: "default" }),
@@ -427,7 +430,7 @@ export default function PricingCalculator() {
             )}
           >
             Get Started
-          </Link>
+          </TrackCtaLink>
 
           <p
             className={`text-sm text-card-foreground font-body mt-4 p-4 w-full text-center`}

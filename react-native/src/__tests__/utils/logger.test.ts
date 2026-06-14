@@ -55,10 +55,7 @@ describe('MeasureLogger diagnostic mode', () => {
 
     logger.log('error', 'failed', err);
 
-    expect(internalAddLog).toHaveBeenCalledWith(
-      'react-native',
-      'failed\nboom'
-    );
+    expect(internalAddLog).toHaveBeenCalledWith('react-native', 'failed\nboom');
   });
 
   it('uses String(error) for non-Error values', () => {

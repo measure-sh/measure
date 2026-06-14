@@ -54,359 +54,364 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-4)
     - [Response Body](#response-body-7)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-7)
-  - [GET `/apps/:id/filters`](#get-appsidfilters)
+  - [GET `/apps/:id/health/plots/instances`](#get-appsidhealthplotsinstances)
     - [Usage Notes](#usage-notes-8)
     - [Authorization \& Content Type](#authorization--content-type-5)
     - [Response Body](#response-body-8)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-8)
-  - [GET `/apps/:id/crashGroups`](#get-appsidcrashgroups)
+  - [GET `/apps/:id/filters`](#get-appsidfilters)
     - [Usage Notes](#usage-notes-9)
     - [Authorization \& Content Type](#authorization--content-type-6)
     - [Response Body](#response-body-9)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-9)
-  - [GET `/apps/:id/crashGroups/plots/instances`](#get-appsidcrashgroupsplotsinstances)
+  - [GET `/apps/:id/crashGroups`](#get-appsidcrashgroups)
     - [Usage Notes](#usage-notes-10)
     - [Authorization \& Content Type](#authorization--content-type-7)
     - [Response Body](#response-body-10)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-10)
-  - [GET `/apps/:id/crashGroups/:id/crashes`](#get-appsidcrashgroupsidcrashes)
+  - [GET `/apps/:id/crashGroups/plots/instances`](#get-appsidcrashgroupsplotsinstances)
     - [Usage Notes](#usage-notes-11)
     - [Authorization \& Content Type](#authorization--content-type-8)
     - [Response Body](#response-body-11)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-11)
-  - [GET `/apps/:id/crashGroups/:id/path`](#get-appsidcrashgroupsidpath)
+  - [GET `/apps/:id/crashGroups/:id/crashes`](#get-appsidcrashgroupsidcrashes)
     - [Usage Notes](#usage-notes-12)
     - [Authorization \& Content Type](#authorization--content-type-9)
     - [Response Body](#response-body-12)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-12)
-  - [GET `/apps/:id/crashGroups/:id/plots/instances`](#get-appsidcrashgroupsidplotsinstances)
+  - [GET `/apps/:id/crashGroups/:id/path`](#get-appsidcrashgroupsidpath)
     - [Usage Notes](#usage-notes-13)
     - [Authorization \& Content Type](#authorization--content-type-10)
     - [Response Body](#response-body-13)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-13)
-  - [GET `/apps/:id/crashGroups/:id/plots/journey`](#get-appsidcrashgroupsidplotsjourney)
+  - [GET `/apps/:id/crashGroups/:id/plots/instances`](#get-appsidcrashgroupsidplotsinstances)
     - [Usage Notes](#usage-notes-14)
     - [Authorization \& Content Type](#authorization--content-type-11)
     - [Response Body](#response-body-14)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-14)
-  - [GET `/apps/:id/anrGroups`](#get-appsidanrgroups)
+  - [GET `/apps/:id/crashGroups/:id/plots/journey`](#get-appsidcrashgroupsidplotsjourney)
     - [Usage Notes](#usage-notes-15)
     - [Authorization \& Content Type](#authorization--content-type-12)
     - [Response Body](#response-body-15)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-15)
-  - [GET `/apps/:id/anrGroups/plots/instances`](#get-appsidanrgroupsplotsinstances)
+  - [GET `/apps/:id/anrGroups`](#get-appsidanrgroups)
     - [Usage Notes](#usage-notes-16)
     - [Authorization \& Content Type](#authorization--content-type-13)
     - [Response Body](#response-body-16)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-16)
-  - [GET `/apps/:id/anrGroups/:id/anrs`](#get-appsidanrgroupsidanrs)
+  - [GET `/apps/:id/anrGroups/plots/instances`](#get-appsidanrgroupsplotsinstances)
     - [Usage Notes](#usage-notes-17)
     - [Authorization \& Content Type](#authorization--content-type-14)
     - [Response Body](#response-body-17)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-17)
-  - [GET `/apps/:id/anrGroups/:id/path`](#get-appsidanrgroupsidpath)
+  - [GET `/apps/:id/anrGroups/:id/anrs`](#get-appsidanrgroupsidanrs)
     - [Usage Notes](#usage-notes-18)
     - [Authorization \& Content Type](#authorization--content-type-15)
     - [Response Body](#response-body-18)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-18)
-  - [GET `/apps/:id/anrGroups/:id/plots/instances`](#get-appsidanrgroupsidplotsinstances)
+  - [GET `/apps/:id/anrGroups/:id/path`](#get-appsidanrgroupsidpath)
     - [Usage Notes](#usage-notes-19)
     - [Authorization \& Content Type](#authorization--content-type-16)
     - [Response Body](#response-body-19)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-19)
-  - [GET `/apps/:id/anrGroups/:id/plots/journey`](#get-appsidanrgroupsidplotsjourney)
+  - [GET `/apps/:id/anrGroups/:id/plots/instances`](#get-appsidanrgroupsidplotsinstances)
     - [Usage Notes](#usage-notes-20)
     - [Authorization \& Content Type](#authorization--content-type-17)
     - [Response Body](#response-body-20)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-20)
-  - [GET `/apps/:id/errorGroups`](#get-appsiderrorgroups)
+  - [GET `/apps/:id/anrGroups/:id/plots/journey`](#get-appsidanrgroupsidplotsjourney)
     - [Usage Notes](#usage-notes-21)
     - [Authorization \& Content Type](#authorization--content-type-18)
     - [Response Body](#response-body-21)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-21)
-  - [GET `/apps/:id/errorGroups/plots/instances`](#get-appsiderrorgroupsplotsinstances)
+  - [GET `/apps/:id/errorGroups`](#get-appsiderrorgroups)
     - [Usage Notes](#usage-notes-22)
     - [Authorization \& Content Type](#authorization--content-type-19)
     - [Response Body](#response-body-22)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-22)
-  - [GET `/apps/:id/errorGroups/:errorGroupId/errors`](#get-appsiderrorgroupserrorgroupiderrors)
+  - [GET `/apps/:id/errorGroups/plots/instances`](#get-appsiderrorgroupsplotsinstances)
     - [Usage Notes](#usage-notes-23)
     - [Authorization \& Content Type](#authorization--content-type-20)
     - [Response Body](#response-body-23)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-23)
-  - [GET `/apps/:id/errorGroups/:errorGroupId/path`](#get-appsiderrorgroupserrorgroupidpath)
+  - [GET `/apps/:id/errorGroups/:errorGroupId/errors`](#get-appsiderrorgroupserrorgroupiderrors)
     - [Usage Notes](#usage-notes-24)
     - [Authorization \& Content Type](#authorization--content-type-21)
     - [Response Body](#response-body-24)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-24)
-  - [GET `/apps/:id/errorGroups/:errorGroupId/plots/instances`](#get-appsiderrorgroupserrorgroupidplotsinstances)
+  - [GET `/apps/:id/errorGroups/:errorGroupId/path`](#get-appsiderrorgroupserrorgroupidpath)
     - [Usage Notes](#usage-notes-25)
     - [Authorization \& Content Type](#authorization--content-type-22)
     - [Response Body](#response-body-25)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-25)
-  - [GET `/apps/:id/errorGroups/:errorGroupId/plots/distribution`](#get-appsiderrorgroupserrorgroupidplotsdistribution)
+  - [GET `/apps/:id/errorGroups/:errorGroupId/plots/instances`](#get-appsiderrorgroupserrorgroupidplotsinstances)
     - [Usage Notes](#usage-notes-26)
     - [Authorization \& Content Type](#authorization--content-type-23)
     - [Response Body](#response-body-26)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-26)
-  - [GET `/apps/:id/sessions`](#get-appsidsessions)
+  - [GET `/apps/:id/errorGroups/:errorGroupId/plots/distribution`](#get-appsiderrorgroupserrorgroupidplotsdistribution)
     - [Usage Notes](#usage-notes-27)
     - [Authorization \& Content Type](#authorization--content-type-24)
     - [Response Body](#response-body-27)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-27)
-  - [GET `/apps/:id/sessions/plots/instances`](#get-appsidsessionsplotsinstances)
+  - [GET `/apps/:id/sessions`](#get-appsidsessions)
     - [Usage Notes](#usage-notes-28)
     - [Authorization \& Content Type](#authorization--content-type-25)
     - [Response Body](#response-body-28)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-28)
-  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
+  - [GET `/apps/:id/sessions/plots/instances`](#get-appsidsessionsplotsinstances)
     - [Usage Notes](#usage-notes-29)
     - [Authorization \& Content Type](#authorization--content-type-26)
     - [Response Body](#response-body-29)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-29)
-  - [PATCH `/apps/:id/rename`](#patch-appsidrename)
+  - [GET `/apps/:id/sessions/:id`](#get-appsidsessionsid)
     - [Usage Notes](#usage-notes-30)
-    - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-27)
     - [Response Body](#response-body-30)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-30)
-  - [PATCH `/apps/:id/apiKey`](#patch-appsidapikey)
+  - [PATCH `/apps/:id/rename`](#patch-appsidrename)
     - [Usage Notes](#usage-notes-31)
+    - [Request body](#request-body-3)
     - [Authorization \& Content Type](#authorization--content-type-28)
     - [Response Body](#response-body-31)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-31)
-  - [GET `/apps/:id/retention`](#get-appsidretention)
+  - [PATCH `/apps/:id/apiKey`](#patch-appsidapikey)
     - [Usage Notes](#usage-notes-32)
     - [Authorization \& Content Type](#authorization--content-type-29)
     - [Response Body](#response-body-32)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-32)
-  - [PATCH `/apps/:id/retention`](#patch-appsidretention)
+  - [GET `/apps/:id/retention`](#get-appsidretention)
     - [Usage Notes](#usage-notes-33)
-    - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-30)
     - [Response Body](#response-body-33)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-33)
-  - [GET `/apps/:id/thresholdPrefs`](#get-appsidthresholdprefs)
+  - [PATCH `/apps/:id/retention`](#patch-appsidretention)
     - [Usage Notes](#usage-notes-34)
+    - [Request body](#request-body-4)
     - [Authorization \& Content Type](#authorization--content-type-31)
     - [Response Body](#response-body-34)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-34)
-  - [PATCH `/apps/:id/thresholdPrefs`](#patch-appsidthresholdprefs)
+  - [GET `/apps/:id/thresholdPrefs`](#get-appsidthresholdprefs)
     - [Usage Notes](#usage-notes-35)
-    - [Request Body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-32)
     - [Response Body](#response-body-35)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-35)
-  - [POST `/apps/:id/shortFilters`](#post-appsidshortfilters)
+  - [PATCH `/apps/:id/thresholdPrefs`](#patch-appsidthresholdprefs)
     - [Usage Notes](#usage-notes-36)
-    - [Request body](#request-body-6)
+    - [Request Body](#request-body-5)
     - [Authorization \& Content Type](#authorization--content-type-33)
     - [Response Body](#response-body-36)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-36)
-  - [GET `/apps/:id/spans/roots/names`](#get-appsidspansrootsnames)
+  - [POST `/apps/:id/shortFilters`](#post-appsidshortfilters)
     - [Usage Notes](#usage-notes-37)
+    - [Request body](#request-body-6)
     - [Authorization \& Content Type](#authorization--content-type-34)
     - [Response Body](#response-body-37)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-37)
-  - [GET `/apps/:id/spans`](#get-appsidspans)
+  - [GET `/apps/:id/spans/roots/names`](#get-appsidspansrootsnames)
     - [Usage Notes](#usage-notes-38)
     - [Authorization \& Content Type](#authorization--content-type-35)
     - [Response Body](#response-body-38)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-38)
-  - [GET `/apps/:id/spans/plots/metrics`](#get-appsidspansplotsmetrics)
+  - [GET `/apps/:id/spans`](#get-appsidspans)
     - [Usage Notes](#usage-notes-39)
     - [Authorization \& Content Type](#authorization--content-type-36)
     - [Response Body](#response-body-39)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-39)
-  - [GET `/apps/:id/traces/:traceId`](#get-appsidtracestraceid)
+  - [GET `/apps/:id/spans/plots/metrics`](#get-appsidspansplotsmetrics)
     - [Usage Notes](#usage-notes-40)
     - [Authorization \& Content Type](#authorization--content-type-37)
     - [Response Body](#response-body-40)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-40)
-  - [GET `/apps/:id/bugReports`](#get-appsidbugreports)
+  - [GET `/apps/:id/traces/:traceId`](#get-appsidtracestraceid)
     - [Usage Notes](#usage-notes-41)
     - [Authorization \& Content Type](#authorization--content-type-38)
     - [Response Body](#response-body-41)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-41)
-  - [GET `/apps/:id/bugReports/plots/instances`](#get-appsidbugreportsplotsinstances)
+  - [GET `/apps/:id/bugReports`](#get-appsidbugreports)
     - [Usage Notes](#usage-notes-42)
     - [Authorization \& Content Type](#authorization--content-type-39)
     - [Response Body](#response-body-42)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-42)
-  - [GET `/apps/:id/bugReports/:bugReportId`](#get-appsidbugreportsbugreportid)
+  - [GET `/apps/:id/bugReports/plots/instances`](#get-appsidbugreportsplotsinstances)
     - [Usage Notes](#usage-notes-43)
     - [Authorization \& Content Type](#authorization--content-type-40)
     - [Response Body](#response-body-43)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-43)
-  - [PATCH `/apps/:id/bugReports/:bugReportId`](#patch-appsidbugreportsbugreportid)
+  - [GET `/apps/:id/bugReports/:bugReportId`](#get-appsidbugreportsbugreportid)
     - [Usage Notes](#usage-notes-44)
-    - [Request body](#request-body-7)
     - [Authorization \& Content Type](#authorization--content-type-41)
     - [Response Body](#response-body-44)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-44)
-  - [GET `/apps/:id/alerts`](#get-appsidalerts)
+  - [PATCH `/apps/:id/bugReports/:bugReportId`](#patch-appsidbugreportsbugreportid)
     - [Usage Notes](#usage-notes-45)
+    - [Request body](#request-body-7)
     - [Authorization \& Content Type](#authorization--content-type-42)
     - [Response Body](#response-body-45)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-45)
-  - [GET `/apps/:id/config`](#get-appsidconfig)
+  - [GET `/apps/:id/alerts`](#get-appsidalerts)
     - [Usage Notes](#usage-notes-46)
     - [Authorization \& Content Type](#authorization--content-type-43)
     - [Response Body](#response-body-46)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-46)
-  - [PATCH `/apps/:id/config`](#patch-appsidconfig)
+  - [GET `/apps/:id/config`](#get-appsidconfig)
     - [Usage Notes](#usage-notes-47)
     - [Authorization \& Content Type](#authorization--content-type-44)
     - [Response Body](#response-body-47)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-47)
-  - [GET `/apps/:id/networkRequests/domains`](#get-appsidnetworkrequestsdomains)
+  - [PATCH `/apps/:id/config`](#patch-appsidconfig)
     - [Usage Notes](#usage-notes-48)
     - [Authorization \& Content Type](#authorization--content-type-45)
     - [Response Body](#response-body-48)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-48)
-  - [GET `/apps/:id/networkRequests/paths`](#get-appsidnetworkrequestspaths)
+  - [GET `/apps/:id/networkRequests/domains`](#get-appsidnetworkrequestsdomains)
     - [Usage Notes](#usage-notes-49)
     - [Authorization \& Content Type](#authorization--content-type-46)
     - [Response Body](#response-body-49)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-49)
-  - [GET `/apps/:id/networkRequests/trends`](#get-appsidnetworkrequeststrends)
+  - [GET `/apps/:id/networkRequests/paths`](#get-appsidnetworkrequestspaths)
     - [Usage Notes](#usage-notes-50)
     - [Authorization \& Content Type](#authorization--content-type-47)
     - [Response Body](#response-body-50)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-50)
-  - [GET `/apps/:id/networkRequests/plots/overviewStatusCodes`](#get-appsidnetworkrequestsplotsoverviewstatuscodes)
+  - [GET `/apps/:id/networkRequests/trends`](#get-appsidnetworkrequeststrends)
     - [Usage Notes](#usage-notes-51)
     - [Authorization \& Content Type](#authorization--content-type-48)
     - [Response Body](#response-body-51)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-51)
-  - [GET `/apps/:id/networkRequests/plots/endpointLatency`](#get-appsidnetworkrequestsplotsendpointlatency)
+  - [GET `/apps/:id/networkRequests/plots/overviewStatusCodes`](#get-appsidnetworkrequestsplotsoverviewstatuscodes)
     - [Usage Notes](#usage-notes-52)
     - [Authorization \& Content Type](#authorization--content-type-49)
     - [Response Body](#response-body-52)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-52)
-  - [GET `/apps/:id/networkRequests/plots/endpointStatusCodes`](#get-appsidnetworkrequestsplotsendpointstatuscodes)
+  - [GET `/apps/:id/networkRequests/plots/endpointLatency`](#get-appsidnetworkrequestsplotsendpointlatency)
     - [Usage Notes](#usage-notes-53)
     - [Authorization \& Content Type](#authorization--content-type-50)
     - [Response Body](#response-body-53)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-53)
-  - [GET `/apps/:id/networkRequests/plots/overviewTimeline`](#get-appsidnetworkrequestsplotsoverviewtimeline)
+  - [GET `/apps/:id/networkRequests/plots/endpointStatusCodes`](#get-appsidnetworkrequestsplotsendpointstatuscodes)
     - [Usage Notes](#usage-notes-54)
     - [Authorization \& Content Type](#authorization--content-type-51)
     - [Response Body](#response-body-54)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-54)
-  - [GET `/apps/:id/networkRequests/plots/endpointTimeline`](#get-appsidnetworkrequestsplotsendpointtimeline)
+  - [GET `/apps/:id/networkRequests/plots/overviewTimeline`](#get-appsidnetworkrequestsplotsoverviewtimeline)
     - [Usage Notes](#usage-notes-55)
     - [Authorization \& Content Type](#authorization--content-type-52)
     - [Response Body](#response-body-55)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-55)
-- [Teams](#teams)
-  - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-53)
-    - [Request Body](#request-body-8)
+  - [GET `/apps/:id/networkRequests/plots/endpointTimeline`](#get-appsidnetworkrequestsplotsendpointtimeline)
     - [Usage Notes](#usage-notes-56)
+    - [Authorization \& Content Type](#authorization--content-type-53)
     - [Response Body](#response-body-56)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-56)
-  - [GET `/teams`](#get-teams)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-54)
+    - [Request Body](#request-body-8)
+    - [Usage Notes](#usage-notes-57)
     - [Response Body](#response-body-57)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-57)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-57)
+  - [GET `/teams`](#get-teams)
     - [Authorization \& Content Type](#authorization--content-type-55)
     - [Response Body](#response-body-58)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-58)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-58)
     - [Authorization \& Content Type](#authorization--content-type-56)
     - [Response Body](#response-body-59)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-59)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-59)
-    - [Request body](#request-body-9)
     - [Authorization \& Content Type](#authorization--content-type-57)
     - [Response Body](#response-body-60)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-60)
-  - [GET `/teams/:id/invites`](#get-teamsidinvites)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-60)
+    - [Request body](#request-body-9)
     - [Authorization \& Content Type](#authorization--content-type-58)
     - [Response Body](#response-body-61)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-61)
-  - [POST `/teams/:id/invite`](#post-teamsidinvite)
+  - [GET `/teams/:id/invites`](#get-teamsidinvites)
     - [Usage Notes](#usage-notes-61)
-    - [Request body](#request-body-10)
     - [Authorization \& Content Type](#authorization--content-type-59)
     - [Response Body](#response-body-62)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-62)
-  - [PATCH `/teams/:id/invite/:id`](#patch-teamsidinviteid)
+  - [POST `/teams/:id/invite`](#post-teamsidinvite)
     - [Usage Notes](#usage-notes-62)
+    - [Request body](#request-body-10)
     - [Authorization \& Content Type](#authorization--content-type-60)
     - [Response Body](#response-body-63)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-63)
-  - [DELETE `/teams/:id/invite/:id`](#delete-teamsidinviteid)
+  - [PATCH `/teams/:id/invite/:id`](#patch-teamsidinviteid)
     - [Usage Notes](#usage-notes-63)
     - [Authorization \& Content Type](#authorization--content-type-61)
     - [Response Body](#response-body-64)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-64)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+  - [DELETE `/teams/:id/invite/:id`](#delete-teamsidinviteid)
     - [Usage Notes](#usage-notes-64)
-    - [Request body](#request-body-11)
     - [Authorization \& Content Type](#authorization--content-type-62)
     - [Response Body](#response-body-65)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-65)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-65)
+    - [Request body](#request-body-11)
     - [Authorization \& Content Type](#authorization--content-type-63)
     - [Response Body](#response-body-66)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-66)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
     - [Usage Notes](#usage-notes-66)
     - [Authorization \& Content Type](#authorization--content-type-64)
     - [Response Body](#response-body-67)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-67)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
     - [Usage Notes](#usage-notes-67)
-    - [Request body](#request-body-12)
     - [Authorization \& Content Type](#authorization--content-type-65)
     - [Response Body](#response-body-68)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-68)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-68)
+    - [Request body](#request-body-12)
     - [Authorization \& Content Type](#authorization--content-type-66)
     - [Response Body](#response-body-69)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-69)
-  - [GET `/teams/:id/usage`](#get-teamsidusage)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
     - [Usage Notes](#usage-notes-69)
     - [Authorization \& Content Type](#authorization--content-type-67)
     - [Response Body](#response-body-70)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-70)
-  - [GET `/teams/:id/slack`](#get-teamsidslack)
+  - [GET `/teams/:id/usage`](#get-teamsidusage)
     - [Usage Notes](#usage-notes-70)
     - [Authorization \& Content Type](#authorization--content-type-68)
     - [Response Body](#response-body-71)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-71)
-  - [PATCH `/teams/:id/slack/status`](#patch-teamsidslackstatus)
+  - [GET `/teams/:id/slack`](#get-teamsidslack)
     - [Usage Notes](#usage-notes-71)
-    - [Request body](#request-body-13)
     - [Authorization \& Content Type](#authorization--content-type-69)
     - [Response Body](#response-body-72)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-72)
-  - [POST `/teams/:id/slack/test`](#post-teamsidslacktest)
+  - [PATCH `/teams/:id/slack/status`](#patch-teamsidslackstatus)
     - [Usage Notes](#usage-notes-72)
+    - [Request body](#request-body-13)
     - [Authorization \& Content Type](#authorization--content-type-70)
     - [Response Body](#response-body-73)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-73)
-- [Prefs](#prefs)
-  - [GET `/prefs/notifPrefs`](#get-prefsnotifprefs)
+  - [POST `/teams/:id/slack/test`](#post-teamsidslacktest)
     - [Usage Notes](#usage-notes-73)
     - [Authorization \& Content Type](#authorization--content-type-71)
     - [Response Body](#response-body-74)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-74)
-  - [PATCH `/prefs/notifPrefs`](#patch-prefsnotifprefs)
+- [Prefs](#prefs)
+  - [GET `/prefs/notifPrefs`](#get-prefsnotifprefs)
     - [Usage Notes](#usage-notes-74)
-    - [Request body](#request-body-14)
     - [Authorization \& Content Type](#authorization--content-type-72)
     - [Response Body](#response-body-75)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-75)
+  - [PATCH `/prefs/notifPrefs`](#patch-prefsnotifprefs)
+    - [Usage Notes](#usage-notes-75)
+    - [Request body](#request-body-14)
+    - [Authorization \& Content Type](#authorization--content-type-73)
+    - [Response Body](#response-body-76)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-76)
 
 ## Auth
 
@@ -850,6 +855,7 @@ List of HTTP status codes for success and failures.
 
 - [**GET `/apps/:id/journey`**](#get-appsidjourney) - Fetch an app's issue journey map for a time range &amp; version.
 - [**GET `/apps/:id/metrics`**](#get-appsidmetrics) - Fetch an app's health metrics for a time range &amp; version.
+- [**GET `/apps/:id/health/plots/instances`**](#get-appsidhealthplotsinstances) - Fetch an app's health overview instances plot (sessions, crashes &amp; ANRs) aggregated by date range &amp; version.
 - [**GET `/apps/:id/filters`**](#get-appsidfilters) - Fetch an app's filters.
 - [**GET `/apps/:id/crashGroups`**](#get-appsidcrashgroups) - _(deprecated)_ Fetch an app's crash overview.
 - [**GET `/apps/:id/crashGroups/plots/instances`**](#get-appsidcrashgroupsplotsinstances) - _(deprecated)_ Fetch an app's crash overview instances plot aggregated by date range & version.
@@ -1141,6 +1147,102 @@ The required headers must be present in each request.
       "p95": 0
     }
   }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes & Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+### GET `/apps/:id/health/plots/instances`
+
+Fetch an app's health overview instances plot. The response is a time series of three metrics bucketed by datetime: sessions, crashes (fatal exceptions) &amp; ANRs. Filter time range using `from` &amp; `to` query string parameters. Filter version using `versions` &amp; `version_codes` query string parameters.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI.
+- Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include data after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include data before this time.
+  - `timezone` (_required_) - IANA timezone used to bucket and format datetime values in the response.
+  - `plot_time_group` (_optional_) - Time bucket used for plot aggregation. Accepted values: `minutes`, `hours`, `days`, `months`. Defaults to `days`.
+  - `versions` (_optional_) - List of comma separated app version identifier strings to return only matching data.
+  - `version_codes` (_optional_) - List of comma separated app version codes to return only matching data.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+- `from` &amp; `to` will default to a last 7 days time range if not supplied.
+- Both `versions` &amp; `version_codes` should be present if any one of them is present, and must contain the same number of items.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- The response is an array of three series identified by `id`: `sessions`, `crashes` &amp; `anrs`. Each series holds a sparse list of datetime buckets that had data, so a bucket with no crashes or ANRs is simply absent from that series.
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  [
+    {
+      "id": "sessions",
+      "data": [
+        { "datetime": "2024-10-02", "instances": 12044 },
+        { "datetime": "2024-10-03", "instances": 13890 }
+      ]
+    },
+    {
+      "id": "crashes",
+      "data": [
+        { "datetime": "2024-10-02", "instances": 32 },
+        { "datetime": "2024-10-03", "instances": 28 }
+      ]
+    },
+    {
+      "id": "anrs",
+      "data": [{ "datetime": "2024-10-02", "instances": 4 }]
+    }
+  ]
   ```
 
   </details>
@@ -3335,8 +3437,8 @@ The required headers must be present in each request.
 #### Response Body
 
 - Each result is either an exception event or an ANR event, distinguished by the `type` field (`"exception"` or `"anr"`).
-- Exception events include `exception`, `severity`, `num_code`, `code`, and `meta` fields. `severity` is `"fatal"`, `"unhandled"`, or `"handled"`.
-- ANR events include an `anr` field instead of `exception`. `severity` is always `"fatal"` for ANRs.
+- Exception events include `exception`, `severity`, `num_code`, `code`, `meta`, and `user_defined_attribute` fields. `severity` is `"fatal"`, `"unhandled"`, or `"handled"`.
+- ANR events include an `anr` field instead of `exception`. `severity` is always `"fatal"` for ANRs. ANR events do not include `user_defined_attribute`.
 
 - Response
 
@@ -3394,6 +3496,10 @@ The required headers must be present in each request.
         "num_code": 0,
         "code": "",
         "meta": null,
+        "user_defined_attribute": {
+          "username": "alice",
+          "paid_user": true
+        },
         "attachments": [
           {
             "id": "e5f6a7b8-c9d0-1234-abcd-ef5678901234",

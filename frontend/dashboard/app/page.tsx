@@ -11,6 +11,9 @@ import LandingFooter from "./components/landing_footer";
 import LandingHeader from "./components/landing_header";
 import LandingHeroAnimation from "./components/landing_hero_animation";
 import MCPDemo from "./components/mcp_demo";
+import Testimonials from "./components/testimonials";
+import TrackCtaLink from "./components/analytics/track_cta_link";
+import TrackGithubLink from "./components/analytics/track_github_link";
 import { sharedOpenGraph } from "./utils/metadata";
 import { cn } from "./utils/shadcn_utils";
 import { underlineLinkStyle } from "./utils/shared_styles";
@@ -52,57 +55,6 @@ const KukuFmLogo = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const testimonials = [
-  {
-    name: "Hussain Mustafa",
-    profile_pic_url: "/images/testimonial_pics/hussain.jpg",
-    content:
-      "I've been using measure.sh lately to monitor my mobile apps and host it myself and it has been a delight. Definitely recommend it to anyone looking for an open source mobile app monitoring tool.",
-    url: "https://x.com/husslingaround/status/1855983892294983980",
-    platform: "x",
-  },
-  {
-    name: "Aditya Pahilwani",
-    profile_pic_url: "/images/testimonial_pics/aditya.jpg",
-    content:
-      "I'm surprised this hasn't gained more attention yet—it's incredibly exciting for the mobile space, where we definitely lack observability and measure addresses so many of those gaps.",
-    url: "https://x.com/AdityaPahilwani/status/1843561672188821520",
-    platform: "x",
-  },
-  {
-    name: "Sutirth Chakravarty",
-    profile_pic_url: "/images/testimonial_pics/sutirth.jpeg",
-    content:
-      "When I stumbled upon measure.sh, I was blown away!\n\n🚀Crash-free sessions improved dramatically—now hitting a mythical 99.99% consistently.\n📊 Logs, metrics, traces—finally stitched together in one view.\n⚡️ Our hot & warm app startup times? Looking great!",
-    url: "https://www.linkedin.com/posts/sutirthchakravarty_circa-early-2024-i-had-the-chance-to-attend-activity-7317570327520124928-yo1s",
-    platform: "linkedin",
-  },
-  {
-    name: "Ragunath Jawahar",
-    profile_pic_url: "/images/testimonial_pics/raghunath.jpg",
-    content:
-      "The good folks at measure.sh have been working on a mobile app monitoring platform for several months now and have open-sourced it. Do check it out and show it some love!\n\nThis is quite a strong team that led several mobile platform initiatives at Gojek.",
-    url: "https://x.com/ragunathjawahar/status/1825490936857522290",
-    platform: "x",
-  },
-  {
-    name: "Iniyan Murugavel",
-    profile_pic_url: "/images/testimonial_pics/iniyan.jpeg",
-    content:
-      "I'm personally a fan. Not just of the product, but of the minds behind it.\n\nIt's built by some of the sharpest mobile engineers I've admired for years. Folks who live and breathe performance, scaling, and observability.\n\nThis isn't just another tool. It's crafted with intent, care, and deep expertise.",
-    url: "https://www.linkedin.com/posts/iniyanarul_crashes-were-observed-first-on-measure-activity-7316853914589413377-gFd_/",
-    platform: "linkedin",
-  },
-  {
-    name: "Tuist",
-    profile_pic_url: "/images/testimonial_pics/tuist.jpeg",
-    content:
-      "Looking for a way to keep tabs on your mobile apps? How about using a free and open-source solution? Consider exploring measure.sh!",
-    url: "https://www.linkedin.com/posts/tuistio_github-measure-shmeasure-measure-is-an-activity-7312413362292719616-DUlU",
-    platform: "linkedin",
-  },
-];
-
 export default function Home() {
   return (
     <main className="flex flex-col items-center justify-between">
@@ -113,7 +65,7 @@ export default function Home() {
         <h1 className="text-4xl font-display md:w-4xl text-center px-4">
           Mobile apps <HandDrawnUnderline color="red">break</HandDrawnUnderline>
           , get to the{" "}
-          <HandDrawnUnderline color="yellow">root cause</HandDrawnUnderline>{" "}
+          <HandDrawnUnderline color="green">root cause</HandDrawnUnderline>{" "}
           faster.
         </h1>
         <div className="py-12" />
@@ -132,7 +84,9 @@ export default function Home() {
 
         {/* CTA 1 */}
         <div className="py-4 md:py-12" />
-        <Link
+        <TrackCtaLink
+          location="hero"
+          destination="signup"
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -140,7 +94,7 @@ export default function Home() {
           )}
         >
           Get To The Root Cause
-        </Link>
+        </TrackCtaLink>
 
         {/* Trusted By */}
         <div className="py-16" />
@@ -167,14 +121,14 @@ export default function Home() {
               {[...Array(2)].map((_, i) => (
                 <Fragment key={i}>
                   <div className="w-[40px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
-                    <KukuFmLogo className="w-full h-full object-contain" />
+                    <KukuFmLogo className="w-full h-full object-contain grayscale brightness-0 dark:invert" />
                   </div>
                   <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
                     <Image
                       src="/images/hoichoi_logo.svg"
                       alt="Hoichoi Logo"
                       fill
-                      className="object-contain"
+                      className="object-contain grayscale brightness-0 dark:invert"
                     />
                   </div>
                   <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
@@ -182,7 +136,7 @@ export default function Home() {
                       src="/images/country_delight_logo.png"
                       alt="Country Delight Logo"
                       fill
-                      className="object-contain"
+                      className="object-contain grayscale"
                     />
                   </div>
                   <div className="w-[140px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
@@ -190,7 +144,7 @@ export default function Home() {
                       src="/images/dashreels_logo.png"
                       alt="Dashreels Logo"
                       fill
-                      className="object-contain"
+                      className="object-contain grayscale brightness-0 dark:invert"
                     />
                   </div>
                   <div className="w-[120px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
@@ -198,7 +152,7 @@ export default function Home() {
                       src="/images/turtlemint_logo.svg"
                       alt="Turtelmint Logo"
                       fill
-                      className="object-contain"
+                      className="object-contain grayscale brightness-0 dark:invert"
                     />
                   </div>
                   <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
@@ -206,7 +160,7 @@ export default function Home() {
                       src="/images/astro_logo.png"
                       alt="Astro Logo"
                       fill
-                      className="object-contain"
+                      className="object-contain grayscale brightness-0 dark:invert"
                     />
                   </div>
                   <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
@@ -214,7 +168,7 @@ export default function Home() {
                       src="/images/allofresh_logo.png"
                       alt="Allofresh Logo"
                       fill
-                      className="object-contain"
+                      className="object-contain grayscale brightness-0 dark:invert"
                     />
                   </div>
                   <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
@@ -222,13 +176,13 @@ export default function Home() {
                       src="/images/smcindia_logo.png"
                       alt="SMC India Logo"
                       fill
-                      className="object-contain dark:hidden"
+                      className="object-contain dark:hidden grayscale brightness-0 dark:invert"
                     />
                     <Image
                       src="/images/smcindia_logo_dark.png"
                       alt="SMC India Logo"
                       fill
-                      className="object-contain hidden dark:block"
+                      className="object-contain hidden dark:block grayscale brightness-0 dark:invert"
                     />
                   </div>
                   <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
@@ -236,7 +190,7 @@ export default function Home() {
                       src="/images/even_logo.png"
                       alt="Even Logo"
                       fill
-                      className="object-contain"
+                      className="object-contain grayscale brightness-0 dark:invert"
                     />
                   </div>
                   <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
@@ -244,7 +198,7 @@ export default function Home() {
                       src="/images/karya_logo.png"
                       alt="Karya Logo"
                       fill
-                      className="object-contain"
+                      className="object-contain grayscale brightness-0 dark:invert"
                     />
                   </div>
                 </Fragment>
@@ -313,56 +267,7 @@ export default function Home() {
             Tried it, Loved it ❤️
           </h2>
           <div className="py-4" />
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4 md:gap-6 lg:gap-8 p-4 md:p-6 lg:p-8 w-full max-w-6xl">
-            {testimonials.map((testimonial, index) => (
-              <Link
-                href={testimonial.url}
-                key={index}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="h-full"
-              >
-                <div className="flex flex-col h-full border border-border p-8 rounded-md bg-card text-card-foreground shadow-sm">
-                  <div className="flex flex-row items-center gap-1 pt-2">
-                    <Image
-                      src={testimonial.profile_pic_url}
-                      alt={`${testimonial.name} Profile Picture`}
-                      width={32}
-                      height={32}
-                      className="rounded-full border border-gray-300"
-                    />
-                    <p className="font-body text-sm">{testimonial.name}</p>
-                    <div className="flex grow" />
-                    <Image
-                      src={
-                        testimonial.platform === "x"
-                          ? "/images/x_logo_black.png"
-                          : "/images/linkedin_logo_black.png"
-                      }
-                      alt={`Social platform logo`}
-                      width={32}
-                      height={32}
-                      className={`dark:hidden object-contain ${testimonial.platform === "x" ? "w-5 h-5" : "w-8 h-8"}`}
-                    />
-                    <Image
-                      src={
-                        testimonial.platform === "x"
-                          ? "/images/x_logo_white.png"
-                          : "/images/linkedin_logo_white.png"
-                      }
-                      alt={`Social platform logo`}
-                      width={32}
-                      height={32}
-                      className={`hidden dark:block object-contain ${testimonial.platform === "x" ? "w-5 h-5" : "w-8 h-8"}`}
-                    />
-                  </div>
-                  <p className="mt-8 mb-4 font-sans flex-1 whitespace-pre-line">
-                    {testimonial.content}
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <Testimonials />
         </div>
 
         {/* For Mobile Developers */}
@@ -381,7 +286,7 @@ export default function Home() {
             <div className="flex flex-col items-center justify-center w-full md:w-1/2 h-32 border-r md:border-r-0 border-l border-t border-border">
               <p className="text-4xl font-body text-center">Open Source</p>
               <div className="py-1" />
-              <Link
+              <TrackGithubLink
                 target="_blank"
                 href="https://github.com/measure-sh/measure"
                 className={cn(
@@ -393,18 +298,18 @@ export default function Home() {
                   src="/images/github_logo_black.svg"
                   width={24}
                   height={24}
-                  className="w-4 h-4 dark:hidden group-hover:hidden"
+                  className="w-4 h-4 dark:hidden"
                   alt={"GitHub logo"}
                 />
                 <Image
                   src="/images/github_logo_white.svg"
                   width={24}
                   height={24}
-                  className="w-4 h-4 hidden dark:block group-hover:block"
+                  className="w-4 h-4 hidden dark:block"
                   alt={"GitHub logo"}
                 />
                 <span className="mt-0.5">Star us on Github</span>
-              </Link>
+              </TrackGithubLink>
             </div>
             <div className="flex flex-col items-center justify-center w-full md:w-1/2 h-32 border-l border-t border-r border-border">
               <p className="text-4xl font-body text-center">Simple Pricing</p>
@@ -477,7 +382,9 @@ export default function Home() {
 
         {/* CTA 2 */}
         <div className="py-8 md:py-12" />
-        <Link
+        <TrackCtaLink
+          location="landing_bottom"
+          destination="signup"
           href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
@@ -485,7 +392,7 @@ export default function Home() {
           )}
         >
           Get To The Root Cause
-        </Link>
+        </TrackCtaLink>
         <div className="py-12 md:py-18" />
       </div>
       <LandingFooter />

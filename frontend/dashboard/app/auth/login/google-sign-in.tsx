@@ -2,9 +2,14 @@
 
 import { encodeOAuthState } from "@/app/auth/oauth";
 import { Button } from "@/app/components/button";
+import {
+  appendAttributionToURL,
+  getGAClientID,
+  getStoredGCLID,
+} from "@/app/utils/analytics/attribution";
 import Image from "next/image";
 
-const googleClientID = process?.env?.NEXT_PUBLIC_OAUTH_GOOGLE_KEY;
+const googleClientID = process.env.NEXT_PUBLIC_OAUTH_GOOGLE_KEY;
 
 export default function GoogleSignIn({
   mcpAuthorizeUrl,
@@ -34,7 +39,13 @@ export default function GoogleSignIn({
 
   const handleClick = () => {
     if (mcpAuthorizeUrl) {
-      window.location.assign(mcpAuthorizeUrl);
+      window.location.assign(
+        appendAttributionToURL(
+          mcpAuthorizeUrl,
+          getGAClientID(),
+          getStoredGCLID(),
+        ),
+      );
       return;
     }
     doGoogleLogin();

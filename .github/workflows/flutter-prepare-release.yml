@@ -83,7 +83,7 @@ jobs:
         run: |
           sed -i "s/^version: .*/version: ${{ inputs.version }}/" flutter/packages/measure_flutter/pubspec.yaml
           sed -i 's/api("sh.measure:measure-android:.*")/api("sh.measure:measure-android:${{ inputs.android_sdk_version }}")/' flutter/packages/measure_flutter/android/build.gradle
-          sed -i "s/s.dependency 'measure-sh', '.*'/s.dependency 'measure-sh', '${{ inputs.ios_sdk_version }}'/" flutter/packages/measure_flutter/ios/measure_flutter.podspec
+          sed -i "s/s.dependency 'measure-sh', '.*'/s.dependency 'measure-sh', '~> ${{ inputs.ios_sdk_version }}'/" flutter/packages/measure_flutter/ios/measure_flutter.podspec
           sed -i "s/measure_flutter: ^.*/measure_flutter: ^${{ inputs.version }}/" flutter/packages/measure_flutter/README.md
           sed -i "s/measure_flutter: ^.*/measure_flutter: ^${{ inputs.version }}/" docs/sdk-integration-guide.md
 

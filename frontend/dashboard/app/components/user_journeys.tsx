@@ -8,16 +8,16 @@ import Filters, {
 import Journey, { JourneyType } from "@/app/components/journey";
 import TabSelect from "@/app/components/tab_select";
 import { useFiltersStore } from "@/app/stores/provider";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Skeleton, SkeletonPlot } from "../components/skeleton";
-import { underlineLinkStyle } from "../utils/shared_styles";
 
 export enum PlotType {
   Paths = "Paths",
   Exceptions = "Exceptions",
 }
+
+const journeyTypeUrlKey = "jt";
 
 interface UserJourneysProps {
   params?: { teamId: string };
@@ -34,18 +34,13 @@ export default function UserJourneys({
   const searchParams = useSearchParams();
   const filters = useFiltersStore((state) => state.filters);
 
-  const [plotType, setPlotType] = useState<PlotType>(PlotType.Paths);
+  // Derive the initial plot type from the URL once.
+  const [plotType, setPlotType] = useState<PlotType>(() =>
+    searchParams.get(journeyTypeUrlKey) === PlotType.Exceptions
+      ? PlotType.Exceptions
+      : PlotType.Paths,
+  );
   const [searchText, setSearchText] = useState("");
-
-  const journeyTypeUrlKey = "jt";
-
-  // Initialize plot type from URL on mount
-  useEffect(() => {
-    const jt = searchParams.get(journeyTypeUrlKey);
-    if (jt === PlotType.Exceptions) {
-      setPlotType(PlotType.Exceptions);
-    }
-  }, []);
 
   // Sync filters and plot type to URL
   useEffect(() => {
@@ -131,17 +126,6 @@ export default function UserJourneys({
                 onChange={(it) => setSearchText(it)}
               />
             )}
-            {!demo && (
-              <p className="py-4 text-xs font-body">
-                Note: Journeys are approximated based on sampled journey events.{" "}
-                <Link
-                  href="/docs/features/configuration-options#journey-sampling"
-                  className={underlineLinkStyle}
-                >
-                  Learn more
-                </Link>{" "}
-              </p>
-            )}
             <div className="py-4" />
 
             {plotType === PlotType.Paths && (
@@ -149,7 +133,6 @@ export default function UserJourneys({
                 teamId={params.teamId}
                 bidirectional={false}
                 journeyType={JourneyType.Paths}
-                exceptionsGroupId={null}
                 searchText={searchText}
                 demo={demo}
               />
@@ -159,7 +142,6 @@ export default function UserJourneys({
                 teamId={params.teamId}
                 bidirectional={false}
                 journeyType={JourneyType.Exceptions}
-                exceptionsGroupId={null}
                 searchText={searchText}
                 demo={demo}
               />

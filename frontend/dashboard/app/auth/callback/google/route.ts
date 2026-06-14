@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import { getPosthogServer } from "../../../posthog-server";
+import {
+  appendAttributionToURL,
+  parseCookieValue,
+  parseGAClientID,
+} from "../../../utils/analytics/attribution";
 import { setCookiesFromJWT } from "../../cookie";
 
 export const dynamic = "force-dynamic";
 
-const origin = process?.env?.NEXT_PUBLIC_SITE_URL;
-const apiOrigin = process?.env?.API_BASE_URL;
-const posthog = getPosthogServer()
+const origin = process.env.NEXT_PUBLIC_SITE_URL;
+const apiOrigin = process.env.API_BASE_URL;
+const posthog = getPosthogServer();
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -14,21 +19,21 @@ export async function GET(request: Request) {
   const state = searchParams.get("state");
   const errRedirectUrl = `${origin}/auth/login?error=Could not sign in with Google`;
 
-  let err = ""
+  let err = "";
   if (!code) {
-    err = "Google login failure: no code"
+    err = "Google login failure: no code";
     posthog.captureException(err, {
-      source: 'google_oauth_callback'
-    })
+      source: "google_oauth_callback",
+    });
     console.log(err);
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
 
   if (!state) {
-    err = "Google login failure: no state"
+    err = "Google login failure: no state";
     posthog.captureException(err, {
-      source: 'google_oauth_callback'
-    })
+      source: "google_oauth_callback",
+    });
     console.log(err);
     return NextResponse.redirect(errRedirectUrl, { status: 302 });
   }
@@ -42,8 +47,8 @@ export async function GET(request: Request) {
     });
 
     if (!mcpRes.ok) {
-      err = `MCP Google callback failure: ${mcpRes.status}`
-      posthog.captureException(err, { source: 'google_oauth_callback' })
+      err = `MCP Google callback failure: ${mcpRes.status}`;
+      posthog.captureException(err, { source: "google_oauth_callback" });
       console.log(err);
       return NextResponse.redirect(errRedirectUrl, { status: 302 });
     }
@@ -53,7 +58,16 @@ export async function GET(request: Request) {
   }
 
   // Dashboard flow: exchange code via the backend
-  const res = await fetch(`${apiOrigin}/auth/google`, {
+  const cookieHeader = request.headers.get("cookie");
+  const gaClientId = parseGAClientID(parseCookieValue(cookieHeader, "_ga"));
+  const gclid = parseCookieValue(cookieHeader, "gclid");
+  const codeUrl = appendAttributionToURL(
+    `${apiOrigin}/auth/google`,
+    gaClientId,
+    gclid,
+  );
+
+  const res = await fetch(codeUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -75,13 +89,13 @@ export async function GET(request: Request) {
     }
 
     if (body) {
-      err = `Google login failure - post /auth/google returned ${res.status}. Details: ${JSON.stringify(body)}`
+      err = `Google login failure - post /auth/google returned ${res.status}. Details: ${JSON.stringify(body)}`;
     } else {
-      err = `Google login failure: post /auth/google returned ${res.status}`
+      err = `Google login failure: post /auth/google returned ${res.status}`;
     }
     posthog.captureException(err, {
-      source: 'google_oauth_callback'
-    })
+      source: "google_oauth_callback",
+    });
     console.log(err);
 
     return NextResponse.redirect(errRedirectUrl, { status: 302 });

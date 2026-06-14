@@ -270,11 +270,35 @@ export interface TocEntry {
 export function extractTocEntries(content: string): TocEntry[] {
   const entries: TocEntry[] = [];
   const idCounts = new Map<string, number>();
-  const regex = /^(#{1,3})\s+(.+)$/gm;
-  let match;
   let isFirstH1 = true;
+  // Marker of the currently open fenced code block (``` or ~~~), or null. Lines
+  // inside a fence are skipped so `#` comments in shell/code blocks aren't
+  // mistaken for headings — matching the rendered output, where rehype-slug
+  // only ever sees real headings.
+  let fence: string | null = null;
 
-  while ((match = regex.exec(content)) !== null) {
+  for (const line of content.split(/\r?\n/)) {
+    const fenceMatch = line.match(/^\s{0,3}(`{3,}|~{3,})/);
+    if (fence !== null) {
+      // Close on a fence of the same character that is at least as long.
+      if (
+        fenceMatch &&
+        fenceMatch[1][0] === fence[0] &&
+        fenceMatch[1].length >= fence.length
+      ) {
+        fence = null;
+      }
+      continue;
+    }
+    if (fenceMatch) {
+      fence = fenceMatch[1];
+      continue;
+    }
+
+    const match = line.match(/^(#{1,3})\s+(.+)$/);
+    if (!match) {
+      continue;
+    }
     const level = match[1].length;
 
     // Skip the first h1 (page title)
@@ -288,12 +312,21 @@ export function extractTocEntries(content: string): TocEntry[] {
 
     const text = match[2]
       .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // strip markdown links
-      .replace(/[*_`]/g, "") // strip emphasis
+      .replace(/`+([^`]+)`+/g, "$1") // strip inline code
+      .replace(/\*+([^*]+)\*+/g, "$1") // strip * / ** emphasis
+      // Strip _ / __ emphasis only when the markers sit at a word boundary, so
+      // snake_case identifiers (e.g. tool names like `list_apps`) are kept —
+      // github-slugger, which rehype-slug uses, keeps underscores in the id.
+      .replace(/(^|[^\w])_+([^_]+)_+(?=[^\w]|$)/g, "$1$2")
       .trim();
+    // Slug the same way github-slugger (which rehype-slug uses to id headings)
+    // does: drop punctuation, then turn each remaining space into a hyphen
+    // without collapsing runs — so "Key & API" -> "key--api", matching the
+    // double hyphen left where the "&" was removed.
     const baseId = text
       .toLowerCase()
       .replace(/[^\w\s-]/g, "")
-      .replace(/\s+/g, "-");
+      .replace(/ /g, "-");
 
     // Deduplicate IDs the same way rehype-slug does
     const count = idCounts.get(baseId) || 0;

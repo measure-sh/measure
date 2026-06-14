@@ -7,11 +7,16 @@ import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/config/config_provider.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
+import 'package:measure_flutter/src/screenshot/screenshot_mask.dart';
 import 'package:measure_flutter/src/utils/id_provider.dart';
 
 /// A global key used by a [RepaintBoundary] in [MeasureWidget] to allow
 /// taking screenshots.
 final GlobalKey screenshotKey = GlobalKey();
+
+/// Color and corner radius of mask rectangles, matching the Android SDK.
+const Color _maskColor = Color(0xFF222222);
+const double _maskCornerRadius = 8.0;
 
 abstract class ScreenshotCollector {
   Future<MsrAttachment?> capture();
@@ -33,8 +38,11 @@ class DefaultScreenshotCollector extends ScreenshotCollector {
   @override
   Future<MsrAttachment?> capture() async {
     try {
-      final renderObject = screenshotKey.currentContext?.findRenderObject();
-      if (renderObject == null || renderObject is! RenderRepaintBoundary) {
+      final context = screenshotKey.currentContext;
+      final renderObject = context?.findRenderObject();
+      if (context == null ||
+          renderObject == null ||
+          renderObject is! RenderRepaintBoundary) {
         logger.log(
           LogLevel.debug,
           'ScreenshotService: Invalid render object or not a RepaintBoundary',
@@ -42,11 +50,24 @@ class DefaultScreenshotCollector extends ScreenshotCollector {
         return null;
       }
 
-      final ui.Image image = await renderObject.toImage(pixelRatio: 1);
+      // Compute mask regions before the async gap so they align with the
+      // tree state captured by toImage().
+      final rects = ScreenshotMask().findRectsToMask(
+        renderObject,
+        context as Element,
+        configProvider.screenshotMaskLevel,
+      );
+
+      ui.Image image = await renderObject.toImage(pixelRatio: 1);
       final ByteData? rgba;
       final int width;
       final int height;
       try {
+        if (rects.isNotEmpty) {
+          final masked = await _maskImage(image, rects);
+          image.dispose();
+          image = masked;
+        }
         width = image.width;
         height = image.height;
         rgba = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
@@ -75,6 +96,29 @@ class DefaultScreenshotCollector extends ScreenshotCollector {
         'ScreenshotService: Error capturing screenshot: $e',
       );
       return null;
+    }
+  }
+
+  /// Composites [rects] as filled, rounded mask rectangles over [image] in a
+  /// single canvas pass and returns the masked image.
+  Future<ui.Image> _maskImage(ui.Image image, List<Rect> rects) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    canvas.drawImage(image, Offset.zero, Paint());
+    final maskPaint = Paint()
+      ..color = _maskColor
+      ..style = PaintingStyle.fill;
+    for (final rect in rects) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, const Radius.circular(_maskCornerRadius)),
+        maskPaint,
+      );
+    }
+    final picture = recorder.endRecording();
+    try {
+      return await picture.toImage(image.width, image.height);
+    } finally {
+      picture.dispose();
     }
   }
 }

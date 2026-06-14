@@ -1,9 +1,6 @@
 import { Config } from './config/config';
 import { ConfigLoader } from './config/configLoader';
-import {
-  ConfigProvider,
-  type IConfigProvider,
-} from './config/configProvider';
+import { ConfigProvider, type IConfigProvider } from './config/configProvider';
 import { MeasureConfig } from './config/measureConfig';
 import { MeasureLogger, type Logger } from './utils/logger';
 import { MeasureTimeProvider, type TimeProvider } from './utils/timeProvider';
@@ -35,7 +32,10 @@ import {
   BugReportCollector,
   type IBugReportCollector,
 } from './bugReport/bugReportCollector';
-import { ScreenshotCollector, type IScreenshotCollector } from './screenshot/screenshotCollector';
+import {
+  ScreenshotCollector,
+  type IScreenshotCollector,
+} from './screenshot/screenshotCollector';
 import { DefaultConfig } from './config/defaultConfig';
 
 export interface IMeasureInitializer {
@@ -89,7 +89,6 @@ export class MeasureInitializer implements IMeasureInitializer {
     this.config = new Config(
       config?.enableLogging,
       config?.autoStart,
-      config?.enableFullCollectionMode,
       config?.enableDiagnosticMode
     );
     this.configLoader = new ConfigLoader(this.logger);

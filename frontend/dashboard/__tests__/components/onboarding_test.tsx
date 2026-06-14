@@ -211,7 +211,12 @@ jest.mock("@/app/components/tab_select", () => ({
 
 // --- Import after mocks ---
 
-import Onboarding from "@/app/components/onboarding";
+import Onboarding, { REACT_NATIVE_ENABLED } from "@/app/components/onboarding";
+
+// React Native onboarding is gated behind REACT_NATIVE_ENABLED: the RN tab is
+// hidden and its flow unreachable while off. These tests run only when it's
+// enabled, so they come back automatically when the flag flips.
+const describeWhenRNEnabled = REACT_NATIVE_ENABLED ? describe : describe.skip;
 
 // --- Helpers ---
 
@@ -655,6 +660,17 @@ describe("Onboarding — Step 2: Integrate", () => {
       expect(screen.getByTestId("tab-Flutter")).toBeInTheDocument();
     });
 
+    it("shows the React Native tab only when it is enabled", () => {
+      renderOnboarding();
+      if (REACT_NATIVE_ENABLED) {
+        expect(screen.getByTestId("tab-React Native")).toBeInTheDocument();
+      } else {
+        expect(
+          screen.queryByTestId("tab-React Native"),
+        ).not.toBeInTheDocument();
+      }
+    });
+
     it("selects Android by default", () => {
       renderOnboarding();
       expect(screen.getByTestId("tab-Android")).toHaveAttribute(
@@ -886,6 +902,129 @@ describe("Onboarding — Step 2: Integrate", () => {
       expect(screen.getByTestId("snippet-ios-init")).toHaveTextContent(
         "msr_flutter_key",
       );
+    });
+  });
+
+  describeWhenRNEnabled("React Native sub-platform selector", () => {
+    it("does not render the sub-selector on Android, iOS or Flutter tabs", () => {
+      renderOnboarding();
+      expect(
+        screen.queryByTestId("onboarding-react-native-platform-select"),
+      ).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId("tab-iOS"));
+      expect(
+        screen.queryByTestId("onboarding-react-native-platform-select"),
+      ).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId("tab-Flutter"));
+      expect(
+        screen.queryByTestId("onboarding-react-native-platform-select"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("renders the sub-selector when React Native is the active tab", () => {
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-React Native"));
+      expect(
+        screen.getByTestId("onboarding-react-native-platform-Android"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId("onboarding-react-native-platform-iOS"),
+      ).toBeInTheDocument();
+    });
+
+    it("selects Android as the default sub-platform", () => {
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-React Native"));
+      expect(
+        screen.getByTestId("onboarding-react-native-platform-Android"),
+      ).toHaveAttribute("data-selected", "true");
+      expect(
+        screen.getByTestId("onboarding-react-native-platform-iOS"),
+      ).toHaveAttribute("data-selected", "false");
+    });
+
+    it("updates the selected sub-platform indicator on click", () => {
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-React Native"));
+      fireEvent.click(
+        screen.getByTestId("onboarding-react-native-platform-iOS"),
+      );
+      expect(
+        screen.getByTestId("onboarding-react-native-platform-iOS"),
+      ).toHaveAttribute("data-selected", "true");
+      expect(
+        screen.getByTestId("onboarding-react-native-platform-Android"),
+      ).toHaveAttribute("data-selected", "false");
+    });
+
+    it("Android sub-platform shows gradle, manifest, native init, and JS init/crash", () => {
+      mockSelectedApp = makeApp({ api_key: { key: "msr_rn_key" } });
+      mockApps = [mockSelectedApp];
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-React Native"));
+      // Cross-platform install + Gradle dep + manifest + Android native init
+      // + JS init + JS crash.
+      expect(screen.getByTestId("snippet-dependency")).toBeInTheDocument();
+      expect(screen.getByTestId("snippet-android-gradle")).toHaveTextContent(
+        "measure-android",
+      );
+      expect(screen.getByTestId("snippet-manifest")).toHaveTextContent(
+        "msr_rn_key",
+      );
+      expect(screen.getByTestId("snippet-android-init")).toBeInTheDocument();
+      expect(screen.getByTestId("snippet-init")).toHaveTextContent(
+        "@measuresh/react-native",
+      );
+      expect(screen.getByTestId("snippet-crash")).toBeInTheDocument();
+    });
+
+    it("Android sub-platform labels the gradle step with an Expo skip hint", () => {
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-React Native"));
+      const gradleSnippet = screen.getByTestId("snippet-android-gradle");
+      // The label sits in the surrounding SnippetBlock header, not inside
+      // the testId-bearing div, so query by visible text.
+      expect(gradleSnippet.parentElement?.textContent).toMatch(
+        /skip this step if using Expo/,
+      );
+    });
+
+    it("iOS sub-platform shows Podfile, native init, and JS init/crash", () => {
+      mockSelectedApp = makeApp({ api_key: { key: "msr_rn_key" } });
+      mockApps = [mockSelectedApp];
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-React Native"));
+      fireEvent.click(
+        screen.getByTestId("onboarding-react-native-platform-iOS"),
+      );
+      expect(screen.getByTestId("snippet-ios-podfile")).toHaveTextContent(
+        "React Native projects",
+      );
+      expect(screen.getByTestId("snippet-ios-init")).toHaveTextContent(
+        "msr_rn_key",
+      );
+      expect(screen.getByTestId("snippet-init")).toHaveTextContent(
+        "@measuresh/react-native",
+      );
+      expect(screen.getByTestId("snippet-crash")).toBeInTheDocument();
+      expect(screen.queryByTestId("snippet-manifest")).not.toBeInTheDocument();
+    });
+
+    it("keeps Flutter and React Native sub-selections independent", () => {
+      renderOnboarding();
+      // Set Flutter to iOS.
+      fireEvent.click(screen.getByTestId("tab-Flutter"));
+      fireEvent.click(screen.getByTestId("onboarding-flutter-platform-iOS"));
+      // Switch to React Native — should still default to Android.
+      fireEvent.click(screen.getByTestId("tab-React Native"));
+      expect(
+        screen.getByTestId("onboarding-react-native-platform-Android"),
+      ).toHaveAttribute("data-selected", "true");
+      // Switch back to Flutter — its iOS selection survived.
+      fireEvent.click(screen.getByTestId("tab-Flutter"));
+      expect(
+        screen.getByTestId("onboarding-flutter-platform-iOS"),
+      ).toHaveAttribute("data-selected", "true");
     });
   });
 
@@ -1335,6 +1474,7 @@ describe("Onboarding — Persistence", () => {
           step: "integrate",
           platform: "Flutter",
           flutterPlatform: "Android",
+          reactNativePlatform: "Android",
         }),
       );
       onboardingStoreInstance = createOnboardingStore();
@@ -1352,6 +1492,7 @@ describe("Onboarding — Persistence", () => {
           step: "verify",
           platform: "iOS",
           flutterPlatform: "Android",
+          reactNativePlatform: "Android",
         }),
       );
       onboardingStoreInstance = createOnboardingStore();
@@ -1372,6 +1513,7 @@ describe("Onboarding — Persistence", () => {
           step: "integrate",
           platform: "Flutter",
           flutterPlatform: "iOS",
+          reactNativePlatform: "Android",
         }),
       );
       onboardingStoreInstance = createOnboardingStore();
@@ -1430,6 +1572,7 @@ describe("Onboarding — Persistence", () => {
           step: "integrate",
           platform: "Flutter",
           flutterPlatform: "iOS",
+          reactNativePlatform: "Android",
         }),
       );
       render(
@@ -1452,6 +1595,7 @@ describe("Onboarding — Persistence", () => {
           step: "verify",
           platform: "iOS",
           flutterPlatform: "Android",
+          reactNativePlatform: "Android",
         }),
       );
       const { rerender } = renderOnboarding();

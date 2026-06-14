@@ -15,6 +15,7 @@ import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.ExceptionFactory
+import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.exceptions.ExceptionUnit
 import sh.measure.android.exceptions.Frame
 import sh.measure.android.gestures.ClickData
@@ -50,18 +51,18 @@ internal object TestData {
 
     fun getExceptionData(
         exception: Exception = IllegalArgumentException("Test exception"),
-        handled: Boolean = true,
+        severity: ExceptionSeverity = ExceptionSeverity.Handled,
         thread: Thread = Thread.currentThread(),
         foreground: Boolean = true,
     ): ExceptionData = ExceptionFactory.createMeasureException(
         exception,
-        handled,
+        severity,
         thread,
         foreground,
     )
 
     fun getUnObfuscatedFlutterExceptionData(
-        handled: Boolean = false,
+        severity: ExceptionSeverity = ExceptionSeverity.Fatal,
         foreground: Boolean = true,
     ): ExceptionData = ExceptionData(
         exceptions = listOf(
@@ -99,13 +100,13 @@ internal object TestData {
                 ),
             ),
         ),
-        handled = handled,
+        severity = severity,
         threads = listOf(),
         foreground = foreground,
     )
 
     fun getObfuscatedFlutterExceptionData(
-        handled: Boolean = false,
+        severity: ExceptionSeverity = ExceptionSeverity.Fatal,
         foreground: Boolean = true,
     ): ExceptionData = ExceptionData(
         exceptions = listOf(
@@ -126,7 +127,7 @@ internal object TestData {
                 ),
             ),
         ),
-        handled = handled,
+        severity = severity,
         threads = listOf(),
         foreground = foreground,
     )
@@ -134,13 +135,15 @@ internal object TestData {
     fun getClickData(
         target: String = "target",
         targetId: String = "target-id",
+        label: String? = "label",
+        semanticLabel: String? = "semantic-label",
         width: Int = 100,
         height: Int = 200,
         x: Float = 50F,
         y: Float = 50F,
         touchDownTime: Long = 987549876L,
         touchUpTime: Long = 234567609L,
-    ): ClickData = ClickData(target, targetId, width, height, x, y, touchDownTime, touchUpTime)
+    ): ClickData = ClickData(target, targetId, label, semanticLabel, width, height, x, y, touchDownTime, touchUpTime)
 
     fun <T> T.toEvent(
         id: String = "event-id",
@@ -168,13 +171,15 @@ internal object TestData {
     fun getLongClickData(
         target: String = "target",
         targetId: String = "target-id",
+        label: String? = "label",
+        semanticLabel: String? = "semantic-label",
         width: Int = 100,
         height: Int = 200,
         x: Float = 50F,
         y: Float = 50F,
         touchDownTime: Long = 987549876L,
         touchUpTime: Long = 234567609L,
-    ): LongClickData = LongClickData(target, targetId, width, height, x, y, touchDownTime, touchUpTime)
+    ): LongClickData = LongClickData(target, targetId, label, semanticLabel, width, height, x, y, touchDownTime, touchUpTime)
 
     fun getScrollData(
         target: String = "target",

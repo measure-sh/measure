@@ -1,175 +1,210 @@
-'use client'
+"use client";
 
-import { formatToCamelCase } from '../utils/string_utils'
-import { formatDateToHumanReadableDateTime } from '../utils/time_utils'
+import { Camera, ChevronDown } from "lucide-react";
+import { formatToCamelCase } from "../utils/string_utils";
+import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
+import Pill, { PillType } from "./pill";
+import SessionTimelineEventDetails from "./session_timeline_event_details";
 
-type SessionTimelineEventCellProps = {
-  eventType: string
-  eventDetails: any
-  threadName: string
-  timestamp: string
-  index: number
-  selected: boolean
-  onClick: (index: number) => void
+// Maps an event type with a fixed label/colour to its pill type. Errors depend
+// on severity too, so they're resolved in pillTypeForEvent below rather than
+// here.
+const eventPillTypes: Record<string, PillType> = {
+  anr: PillType.SessionEventAnr,
+  bug_report: PillType.SessionEventBugReport,
+  gesture_click: PillType.SessionEventGestureClick,
+  gesture_long_click: PillType.SessionEventGestureLongClick,
+  gesture_scroll: PillType.SessionEventGestureScroll,
+  http: PillType.SessionEventHttp,
+  lifecycle_activity: PillType.SessionEventLifecycleActivity,
+  lifecycle_fragment: PillType.SessionEventLifecycleFragment,
+  lifecycle_view_controller: PillType.SessionEventLifecycleViewController,
+  lifecycle_swift_ui: PillType.SessionEventLifecycleSwiftUI,
+  lifecycle_app: PillType.SessionEventLifecycleApp,
+  app_exit: PillType.SessionEventAppExit,
+  navigation: PillType.SessionEventNavigation,
+  screen_view: PillType.SessionEventScreenView,
+  cold_launch: PillType.SessionEventColdLaunch,
+  warm_launch: PillType.SessionEventWarmLaunch,
+  hot_launch: PillType.SessionEventHotLaunch,
+  low_memory: PillType.SessionEventLowMemory,
+  trim_memory: PillType.SessionEventTrimMemory,
+  trace: PillType.SessionEventTrace,
+  custom: PillType.SessionEventCustom,
+  string: PillType.SessionEventLog,
+};
+
+function pillTypeForEvent(eventType: string, eventDetails: any): PillType {
+  if (eventType === "error") {
+    if (eventDetails.severity === "unhandled") {
+      return PillType.SessionEventUnhandledError;
+    }
+    if (eventDetails.severity === "handled") {
+      return PillType.SessionEventHandledError;
+    }
+    if (eventDetails.severity === "fatal") {
+      return PillType.SessionEventFatalError;
+    }
+    return PillType.SessionEventError;
+  }
+  return eventPillTypes[eventType] ?? PillType.SessionEventDefault;
 }
 
+type SessionTimelineEventCellProps = {
+  teamId: string;
+  appId: string;
+  demo: boolean;
+  eventType: string;
+  eventDetails: any;
+  threadName: string;
+  timestamp: string;
+  expanded: boolean;
+  onToggle: () => void;
+};
+
 export default function SessionTimelineEventCell({
+  teamId,
+  appId,
+  demo,
   eventType,
   eventDetails,
   threadName,
   timestamp,
-  index,
-  selected,
-  onClick
+  expanded,
+  onToggle,
 }: SessionTimelineEventCellProps) {
-
-  function getColorFromEventType() {
-    if ((eventType === "exception" || eventType === "anr") && eventDetails.user_triggered === true) {
-      return "bg-orange-300"
+  function getTitle(): string {
+    if (eventType === "error" || eventType === "anr") {
+      return `${eventDetails.type}${eventDetails.message ? `: ${eventDetails.message}` : ""}`;
     }
-
-    if (eventType === "exception" || eventType === "anr") {
-      return "bg-red-300"
-    }
-
     if (eventType === "bug_report") {
-      return "bg-red-300"
+      return eventDetails.description
+        ? eventDetails.description
+        : eventDetails.bug_report_id;
     }
-
-    if (eventType.includes("gesture")) {
-      return "bg-emerald-300"
-    }
-
-    if (eventType === "navigation" || eventType === "screen_view") {
-      return "bg-fuchsia-300"
-    }
-
-    if (eventType === "http") {
-      return "bg-cyan-300"
-    }
-
-    if (eventType === "trace") {
-      return "bg-pink-300"
-    }
-
-    if (eventType === "custom") {
-      return "bg-purple-300"
-    }
-
-    return "bg-indigo-300"
-  }
-
-  function getTitleFromEventType() {
-    if (eventType === "exception" || eventType === "anr") {
-      return `${eventDetails.type}${eventDetails.message ? `: ${eventDetails.message}` : ""}`
-    }
-
-    if (eventType === "bug_report") {
-      const name = eventDetails.description ? eventDetails.description : eventDetails.bug_report_id
-      return "Bug Report: " + name
-    }
-
     if (eventType === "string") {
-      return 'Log: ' + eventDetails.logLevel ? formatToCamelCase(eventDetails.logLevel) + ': ' + eventDetails.string : eventDetails.string
+      return eventDetails.logLevel
+        ? `${formatToCamelCase(eventDetails.logLevel)}: ${eventDetails.string}`
+        : eventDetails.string;
     }
-
-    if (eventType === "gesture_long_click") {
-      const name = eventDetails.target.includes(".") ? eventDetails.target.split('.').pop()! : eventDetails.target
-      return 'Long Click: ' + name
+    if (
+      eventType === "gesture_click" ||
+      eventType === "gesture_long_click" ||
+      eventType === "gesture_scroll"
+    ) {
+      const target = eventDetails.target.includes(".")
+        ? eventDetails.target.split(".").pop()!
+        : eventDetails.target;
+      const text =
+        eventDetails.label ||
+        eventDetails.semantic_label ||
+        eventDetails.target_id;
+      return text ? `${target}: ${text}` : target;
     }
-
-    if (eventType === "gesture_scroll") {
-      const name = eventDetails.target.includes(".") ? eventDetails.target.split('.').pop()! : eventDetails.target
-      return 'Scroll: ' + name
-    }
-
-    if (eventType === "gesture_click") {
-      const name = eventDetails.target.includes(".") ? eventDetails.target.split('.').pop()! : eventDetails.target
-      return 'Click: ' + name
-    }
-
     if (eventType === "http") {
-      return 'HTTP: ' + eventDetails.method.toUpperCase() + ' ' + eventDetails.status_code + ' ' + eventDetails.url
+      return `${eventDetails.method.toUpperCase()} ${eventDetails.status_code} ${eventDetails.url}`;
     }
-
-    if (eventType === "lifecycle_activity") {
-      const name = eventDetails.class_name.includes(".") ? eventDetails.class_name.split('.').pop()! : eventDetails.class_name
-      return 'Activity ' + formatToCamelCase(eventDetails.type) + ': ' + name
+    if (
+      eventType === "lifecycle_activity" ||
+      eventType === "lifecycle_fragment"
+    ) {
+      const name = eventDetails.class_name.includes(".")
+        ? eventDetails.class_name.split(".").pop()!
+        : eventDetails.class_name;
+      return `${formatToCamelCase(eventDetails.type)}: ${name}`;
     }
-
-    if (eventType === "lifecycle_fragment") {
-      const name = eventDetails.class_name.includes(".") ? eventDetails.class_name.split('.').pop()! : eventDetails.class_name
-      return 'Fragment ' + formatToCamelCase(eventDetails.type) + ': ' + name
+    if (
+      eventType === "lifecycle_view_controller" ||
+      eventType === "lifecycle_swift_ui"
+    ) {
+      return `${eventDetails.class_name}: ${eventDetails.type}`;
     }
-
-    if (eventType === "lifecycle_view_controller") {
-      return eventDetails.class_name + ': ' + eventDetails.type
-    }
-
-    if (eventType === "lifecycle_swift_ui") {
-      return eventDetails.class_name + ': ' + eventDetails.type
-    }
-
     if (eventType === "lifecycle_app") {
-      return 'App ' + formatToCamelCase(eventDetails.type)
+      return formatToCamelCase(eventDetails.type);
     }
-
     if (eventType === "app_exit") {
-      return 'App Exit: ' + eventDetails.reason
+      return eventDetails.reason;
     }
-
     if (eventType === "navigation") {
-      return 'Navigation: ' + eventDetails.to
+      return eventDetails.to;
     }
-
-    if (eventType === "cold_launch") {
-      return 'App Cold Launch'
-    }
-
-    if (eventType === "warm_launch") {
-      return 'App Warm Launch'
-    }
-
-    if (eventType === "hot_launch") {
-      return 'App Hot Launch'
-    }
-
-    if (eventType === "low_memory") {
-      return 'System: Low Memory'
-    }
-
-    if (eventType === "trim_memory") {
-      return 'System: Trim Memory'
-    }
-
     if (eventType === "screen_view") {
-      return 'Screen View: ' + eventDetails.name
+      return eventDetails.name;
     }
-
     if (eventType === "trace") {
-      return 'Trace start: ' + eventDetails.trace_name
+      return eventDetails.trace_name;
     }
-
     if (eventType === "custom") {
-      return eventDetails.name
+      return eventDetails.name;
     }
-
-    return eventType
+    return "";
   }
+
+  function hasSnapshot(): boolean {
+    if (!eventDetails.attachments || eventDetails.attachments.length === 0) {
+      return false;
+    }
+    const isImageEligible =
+      (eventType === "error" && eventDetails.severity === "fatal") ||
+      eventType === "anr" ||
+      eventType === "bug_report" ||
+      eventType.includes("gesture");
+    const isJsonEligible = eventType.includes("gesture");
+    return eventDetails.attachments.some(
+      (a: { type: string }) =>
+        (a.type === "layout_snapshot" && isImageEligible) ||
+        (a.type === "layout_snapshot_json" && isJsonEligible),
+    );
+  }
+
+  const title = getTitle();
+  const snapshot = hasSnapshot();
+  const pillType = pillTypeForEvent(eventType, eventDetails);
 
   return (
-    <button className={`group w-full px-2 py-4 font-display transition-all outline-none hover:bg-accent hover:text-accent-foreground dark:hover:bg-input/50 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] ${selected ? 'bg-accent dark:bg-accent text-accent-foreground dark:text-accent-foreground' : 'bg-background'}`}
-      onClick={() => onClick(index)}>
-      <div className="flex flex-col md:flex-row items-start md:items-center" id={`event-cell-title-${eventType}-${index}`}>
-        <div className={`w-2 h-2 flex-shrink-0 rounded-full ${getColorFromEventType()}`} />
-        <div className="py-1 md:mx-1" />
-        <p className='line-clamp-2 text-left text-sm md:text-base'>{getTitleFromEventType()}</p>
-        <div className="py-1 md:mx-1" />
-        <div className="flex grow" />
-        <div className={`max-w-[10ch] truncate flex-shrink-0 rounded-full border border-border text-xs px-2 py-1 ${selected ? 'border-accent-foreground dark:border-accent-foreground' : ''}`}>{threadName}</div>
-        <div className="py-1 md:mx-1" />
-        <div className={`flex-shrink-0 rounded-full border border-border text-xs px-2 py-1 text-nowrap ${selected ? 'border-accent-foreground dark:border-accent-foreground' : ''}`}>{formatDateToHumanReadableDateTime(timestamp)}</div>
-      </div>
-    </button>
-  )
+    <div className="border-b border-border">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full text-left px-3 py-4 font-display outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-ring/50 focus-visible:ring-[2px] focus-visible:ring-inset"
+      >
+        <div className="flex flex-row items-center gap-3">
+          <Pill type={pillType} className="shrink-0 w-28">
+            {pillType === PillType.SessionEventDefault ? eventType : null}
+          </Pill>
+          {title && (
+            <p className="text-sm line-clamp-2 grow min-w-0 break-words">
+              {title}
+            </p>
+          )}
+          {!title && <div className="grow" />}
+          <Camera
+            className={`size-4 shrink-0 text-muted-foreground ${snapshot ? "" : "invisible"}`}
+            aria-label="Has screenshot or snapshot"
+            aria-hidden={!snapshot}
+          />
+          <span className="text-xs text-muted-foreground shrink-0 w-[14ch] truncate ml-2">
+            {threadName}
+          </span>
+          <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap">
+            {formatDateToHumanReadableDateTime(timestamp)}
+          </span>
+          <ChevronDown
+            className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+          />
+        </div>
+      </button>
+      {expanded && (
+        <div className="px-3 pt-1 pb-3">
+          <SessionTimelineEventDetails
+            teamId={teamId}
+            appId={appId}
+            demo={demo}
+            eventType={eventType}
+            eventDetails={eventDetails}
+          />
+        </div>
+      )}
+    </div>
+  );
 }

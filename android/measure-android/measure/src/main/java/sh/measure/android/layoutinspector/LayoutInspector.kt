@@ -3,6 +3,7 @@
 package sh.measure.android.layoutinspector
 
 import android.content.res.Resources.NotFoundException
+import android.text.InputType
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -41,6 +42,7 @@ import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.utils.ComposeHelper
 
 private const val FLUTTER_VIEW_CLASS_NAME = "io.flutter.embedding.android.FlutterView"
+private const val LABEL_MAX_CHARS = 32
 
 /**
  * Compact bounds representation packed into a single Long value.
@@ -99,6 +101,10 @@ internal data class LayoutElement(
     val bounds: Bounds,
     val flags: ElementFlags,
     private val _children: List<LayoutElement>? = null,
+    // Transient: visible text and accessibility label of this element. Used to derive
+    // the gesture label and never serialized into the layout snapshot attachment.
+    val text: String? = null,
+    val semanticLabel: String? = null,
 ) {
     val children: List<LayoutElement>
         get() = _children ?: emptyList()
@@ -342,6 +348,7 @@ internal object LayoutInspector {
             bounds = Bounds(location[0], location[1], view.width, view.height),
             flags = ElementFlags.create(scrollable = false, highlighted = false),
             _children = composeHierarchy.takeIf { it.isNotEmpty() },
+            semanticLabel = view.contentDescription?.toString(),
         )
     }
 
@@ -381,6 +388,7 @@ internal object LayoutInspector {
             bounds = Bounds(location[0], location[1], width, height),
             flags = ElementFlags.create(scrollable = isScrollable, highlighted = willConsumeGesture),
             _children = children.takeIf { it.isNotEmpty() },
+            semanticLabel = viewGroup.contentDescription?.toString(),
         )
     }
 
@@ -409,6 +417,8 @@ internal object LayoutInspector {
             bounds = Bounds(location[0], location[1], width, height),
             flags = ElementFlags.create(scrollable = false, highlighted = willConsumeGesture),
             _children = null,
+            text = (view as? TextView)?.takeUnless { it.isInputField() }?.text?.toString(),
+            semanticLabel = view.contentDescription?.toString(),
         )
     }
 
@@ -455,6 +465,16 @@ internal object LayoutInspector {
             val isText = semanticsNode.config.getOrNull(SemanticsProperties.Text) != null
             val testTag = semanticsNode.config.getOrNull(SemanticsProperties.TestTag)
             val isScrollable = semanticsNode.config.getOrNull(SemanticsActions.ScrollBy) != null
+            val isEditable =
+                semanticsNode.config.getOrNull(SemanticsProperties.EditableText) != null ||
+                    semanticsNode.config.getOrNull(SemanticsActions.SetText) != null
+            val text = if (isEditable) {
+                null
+            } else {
+                semanticsNode.config.getOrNull(SemanticsProperties.Text)?.firstOrNull()?.text
+            }
+            val semanticLabel =
+                semanticsNode.config.getOrNull(SemanticsProperties.ContentDescription)?.firstOrNull()
 
             val willConsumeGesture = checkComposeGestureConsumption(
                 semanticsNode,
@@ -486,6 +506,8 @@ internal object LayoutInspector {
                     highlighted = willConsumeGesture,
                 ),
                 _children = children.takeIf { it.isNotEmpty() },
+                text = text,
+                semanticLabel = semanticLabel,
             )
         }
     }
@@ -555,4 +577,35 @@ internal object LayoutInspector {
         }
         return null
     }
+
+    private fun TextView.isInputField(): Boolean = inputType != InputType.TYPE_NULL
 }
+
+/**
+ * Returns the first visible text from this element or its descendants in
+ * depth-first order, truncated to [LABEL_MAX_CHARS]. Returns null when no
+ * text is present.
+ */
+internal fun LayoutElement.collectLabel(): String? {
+    fun visit(node: LayoutElement): String? {
+        node.text?.normalizeLabel()?.let { return it }
+        for (child in node.children) {
+            visit(child)?.let { return it }
+        }
+        return null
+    }
+    return visit(this)?.truncateLabel()
+}
+
+/**
+ * Returns this element's accessibility label, truncated to [LABEL_MAX_CHARS].
+ */
+internal fun LayoutElement.collectSemanticLabel(): String? = semanticLabel?.normalizeSemanticLabel()?.truncateLabel()
+
+private fun String.normalizeLabel(): String? = trim().replace(WHITESPACE_REGEX, " ").takeIf { it.isNotEmpty() && it.any { c -> c.isLetterOrDigit() } }
+
+private fun String.normalizeSemanticLabel(): String? = trim().replace(WHITESPACE_REGEX, " ").takeIf { it.isNotEmpty() }
+
+private fun String.truncateLabel(): String = if (length > LABEL_MAX_CHARS) take(LABEL_MAX_CHARS - 1).trimEnd() + "…" else this
+
+private val WHITESPACE_REGEX = Regex("\\s+")

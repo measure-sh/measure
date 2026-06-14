@@ -15,7 +15,7 @@ internal interface ProcessInfoProvider {
     fun getPid(): Int
 
     /**
-     * Returns the process importance of the of the current process.
+     * Returns the process importance of the current process.
      */
     fun getProcessImportance(): Int
 }

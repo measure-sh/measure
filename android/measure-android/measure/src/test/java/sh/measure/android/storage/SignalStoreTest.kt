@@ -15,6 +15,7 @@ import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import sh.measure.android.attributes.StringAttr
 import sh.measure.android.events.EventType
+import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeSampler
@@ -42,7 +43,7 @@ internal class SignalStoreTest {
     @Test
     fun `stores exception event data in file storage and stores the path in database`() {
         // given
-        val exceptionData = TestData.getExceptionData(handled = false)
+        val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Fatal)
         val event = exceptionData.toEvent(type = EventType.EXCEPTION)
         val eventsCaptor = argumentCaptor<EventEntity>()
         `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
@@ -459,7 +460,28 @@ internal class SignalStoreTest {
         // given
         val crashTimelineDuration = 30
         configProvider.crashTimelineDurationSeconds = crashTimelineDuration
-        val exceptionData = TestData.getExceptionData(handled = false)
+        val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Fatal)
+        val event = exceptionData.toEvent(type = EventType.EXCEPTION)
+        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
+        `when`(database.insertEvent(any())).thenReturn(true)
+
+        // when
+        signalStore.store(event)
+
+        // then
+        verify(database).markTimelineForReporting(
+            event.timestamp,
+            crashTimelineDuration,
+            event.sessionId,
+        )
+    }
+
+    @Test
+    fun `marks timeline for reporting when unhandled exception event is stored`() {
+        // given
+        val crashTimelineDuration = 30
+        configProvider.crashTimelineDurationSeconds = crashTimelineDuration
+        val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Unhandled)
         val event = exceptionData.toEvent(type = EventType.EXCEPTION)
         `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
         `when`(database.insertEvent(any())).thenReturn(true)
@@ -585,7 +607,7 @@ internal class SignalStoreTest {
     @Test
     fun `given event insertion in db fails, deletes event and attachment data from file storage`() {
         // given
-        val exceptionData = TestData.getExceptionData(handled = false)
+        val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Fatal)
         val event = exceptionData.toEvent(
             type = EventType.EXCEPTION,
             attachments = mutableListOf(
@@ -607,7 +629,7 @@ internal class SignalStoreTest {
     @Test
     fun `given event data fails to write to file storage, does not insert event in db`() {
         // given
-        val exceptionData = TestData.getExceptionData(handled = false)
+        val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Fatal)
         val event = exceptionData.toEvent(
             type = EventType.EXCEPTION,
             attachments = mutableListOf(
@@ -645,7 +667,7 @@ internal class SignalStoreTest {
     @Test
     fun `stores handled exception event in queue`() {
         // given
-        val exceptionData = TestData.getExceptionData(handled = true)
+        val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Handled)
         val event = exceptionData.toEvent(type = EventType.EXCEPTION)
         `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
 
@@ -665,7 +687,22 @@ internal class SignalStoreTest {
     @Test
     fun `stores unhandled exception event immediately without queuing`() {
         // given
-        val exceptionData = TestData.getExceptionData(handled = false)
+        val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Fatal)
+        val event = exceptionData.toEvent(type = EventType.EXCEPTION)
+        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
+        `when`(database.insertEvent(any())).thenReturn(true)
+
+        // when
+        signalStore.store(event)
+
+        // then - event should be immediately inserted
+        verify(database).insertEvent(any())
+    }
+
+    @Test
+    fun `stores unhandled exception event immediately without queuing when severity is unhandled`() {
+        // given
+        val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Unhandled)
         val event = exceptionData.toEvent(type = EventType.EXCEPTION)
         `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
         `when`(database.insertEvent(any())).thenReturn(true)
@@ -681,7 +718,7 @@ internal class SignalStoreTest {
     fun `marks timeline for reporting on crash`() {
         // given
         sampler.isCrashTimelineSampled = true
-        val exceptionData = TestData.getExceptionData(handled = false)
+        val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Fatal)
         val event = exceptionData.toEvent(type = EventType.EXCEPTION)
         `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
         `when`(database.insertEvent(any())).thenReturn(true)

@@ -79,7 +79,7 @@ final class BaseSignalStoreTests: XCTestCase {
     }
 
     func testMarksTimelineForCrashEvent() {
-        let exception = Exception(handled: false, exceptions: [ExceptionDetail(type: nil, message: nil, frames: nil, signal: nil, threadName: nil, threadSequence: 0, osBuildNumber: nil)], threads: nil, binaryImages: nil, framework: nil, error: nil)
+        let exception = Exception(exceptions: [ExceptionDetail(type: nil, message: nil, frames: nil, signal: nil, threadName: nil, threadSequence: 0, osBuildNumber: nil)], threads: nil, binaryImages: nil, framework: nil, severity: .fatal, isCustom: nil, numCode: nil, code: nil, meta: nil)
 
         let event = makeBaseEvent(type: .exception, data: exception)
 
@@ -101,8 +101,30 @@ final class BaseSignalStoreTests: XCTestCase {
         XCTAssertTrue(events.first!.needsReporting)
     }
 
+    func testMarksTimelineForUnhandledExceptionEvent() {
+        let exception = Exception(exceptions: [ExceptionDetail(type: nil, message: nil, frames: nil, signal: nil, threadName: nil, threadSequence: 0, osBuildNumber: nil)], threads: nil, binaryImages: nil, framework: nil, severity: .unhandled, isCustom: nil, numCode: nil, code: nil, meta: nil)
+
+        let event = makeBaseEvent(type: .exception, data: exception)
+
+        signalStore.store(event, needsReporting: false)
+
+        let events = eventStore.getAllEvents()
+        XCTAssertEqual(events.count, 1)
+        XCTAssertTrue(events.first!.needsReporting)
+    }
+
+    func testUnhandledExceptionUsesCrashTimelineDuration() {
+        let exception = Exception(exceptions: [ExceptionDetail(type: nil, message: nil, frames: nil, signal: nil, threadName: nil, threadSequence: 0, osBuildNumber: nil)], threads: nil, binaryImages: nil, framework: nil, severity: .unhandled, isCustom: nil, numCode: nil, code: nil, meta: nil)
+
+        let event = makeBaseEvent(type: .exception, data: exception)
+
+        signalStore.store(event, needsReporting: false)
+
+        XCTAssertEqual(eventStore.lastMarkTimelineDurationSeconds, config.crashTimelineDurationSeconds)
+    }
+
     func testDoesNotMarkTimelineForHandledException() {
-        let exception = Exception(handled: true, exceptions: [ExceptionDetail(type: nil, message: nil, frames: nil, signal: nil, threadName: nil, threadSequence: 0, osBuildNumber: nil)], threads: nil, binaryImages: nil, framework: nil, error: nil)
+        let exception = Exception(exceptions: [ExceptionDetail(type: nil, message: nil, frames: nil, signal: nil, threadName: nil, threadSequence: 0, osBuildNumber: nil)], threads: nil, binaryImages: nil, framework: nil, severity: .handled, isCustom: nil, numCode: nil, code: nil, meta: nil)
 
         let event = makeBaseEvent(type: .exception, data: exception)
 

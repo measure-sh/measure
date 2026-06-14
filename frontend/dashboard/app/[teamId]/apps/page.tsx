@@ -26,6 +26,7 @@ import DropdownSelect, {
 import Filters, {
   AppVersionsInitialSelectionType,
 } from "@/app/components/filters";
+import InfoTooltip from "@/app/components/info_tooltip";
 import { Input } from "@/app/components/input";
 import SdkConfigNumericInput from "@/app/components/sdk_config_numeric_input";
 import SdkConfigurator from "@/app/components/sdk_configurator";
@@ -35,9 +36,10 @@ import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
 import { toastNegative, toastPositive } from "@/app/utils/use_toast";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { use, useRef, useState } from "react";
 
-export default function Apps({ params }: { params: { teamId: string } }) {
+export default function Apps(props: { params: Promise<{ teamId: string }> }) {
+  const params = use(props.params);
   const filters = useFiltersStore((state) => state.filters);
   const appsApiStatus = useFiltersStore((state) => state.appsApiStatus);
   // No apps yet → render <Onboarding> via Filters and hide the CreateApp
@@ -114,17 +116,22 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
   const filtersRef = useRef<any>(null);
 
-  // Sync app name when filters become ready or change
-  const prevAppNameRef = useRef<string>("");
-  if (
-    filters.ready &&
-    filters.app &&
-    filters.app.name !== prevAppNameRef.current
-  ) {
-    prevAppNameRef.current = filters.app.name;
+  // Sync the editable name input to the selected app. Keyed on name so a
+  // rename (which updates filters.app in place) re-syncs the input to the
+  // server's stored value.
+  const [prevAppName, setPrevAppName] = useState<string>("");
+  if (filters.ready && filters.app && filters.app.name !== prevAppName) {
+    setPrevAppName(filters.app.name);
     setAppName(filters.app.name);
     setSaveAppNameButtonDisabled(true);
-    // Reset editable state when app changes
+  }
+
+  // Drop unsaved retention/threshold edits when the selected app actually
+  // changes. Keyed on id so renaming the current app doesn't discard
+  // in-progress edits.
+  const [prevAppId, setPrevAppId] = useState<string>("");
+  if (filters.ready && filters.app && filters.app.id !== prevAppId) {
+    setPrevAppId(filters.app.id);
     setUpdatedRetention(null);
     setEditableThresholdPrefs(null);
   }
@@ -474,35 +481,44 @@ export default function Apps({ params }: { params: { teamId: string } }) {
 
           <div className="font-body">
             <div className="flex flex-col mt-8">
-              {filters.app!.unique_identifier && filters.app!.os_name && (
-                <p className="font-display text-muted-foreground">
-                  Unique Identifier
-                </p>
-              )}
-              {filters.app!.unique_identifier && filters.app!.os_name && (
-                <p className="text-sm mt-0.5">
-                  {filters.app!.unique_identifier}
-                </p>
-              )}
-              {filters.app!.unique_identifier && filters.app!.os_name && (
-                <p className="font-display text-muted-foreground mt-6">
-                  Operating System
-                </p>
-              )}
-              {filters.app!.unique_identifier && filters.app!.os_name && (
-                <p className="text-sm mt-0.5">{filters.app!.os_name}</p>
-              )}
-              {filters.app!.unique_identifier && filters.app!.os_name && (
-                <p className="font-display text-muted-foreground mt-6">
-                  Created at
-                </p>
-              )}
-              {filters.app!.unique_identifier && filters.app!.os_name && (
-                <p className="text-sm mt-0.5">
-                  {formatDateToHumanReadableDateTime(filters.app!.created_at)}
-                </p>
-              )}
-              {(!filters.app!.unique_identifier || !filters.app!.os_name) && (
+              {filters.app!.unique_identifier &&
+                !!filters.app!.os_names?.length && (
+                  <p className="font-display text-muted-foreground">
+                    Unique Identifier
+                  </p>
+                )}
+              {filters.app!.unique_identifier &&
+                !!filters.app!.os_names?.length && (
+                  <p className="text-sm mt-0.5">
+                    {filters.app!.unique_identifier}
+                  </p>
+                )}
+              {filters.app!.unique_identifier &&
+                !!filters.app!.os_names?.length && (
+                  <p className="font-display text-muted-foreground mt-6">
+                    Operating Systems
+                  </p>
+                )}
+              {filters.app!.unique_identifier &&
+                !!filters.app!.os_names?.length && (
+                  <p className="text-sm mt-0.5">
+                    {filters.app!.os_names?.join(", ")}
+                  </p>
+                )}
+              {filters.app!.unique_identifier &&
+                !!filters.app!.os_names?.length && (
+                  <p className="font-display text-muted-foreground mt-6">
+                    Created at
+                  </p>
+                )}
+              {filters.app!.unique_identifier &&
+                !!filters.app!.os_names?.length && (
+                  <p className="text-sm mt-0.5">
+                    {formatDateToHumanReadableDateTime(filters.app!.created_at)}
+                  </p>
+                )}
+              {(!filters.app!.unique_identifier ||
+                !filters.app!.os_names?.length) && (
                 <p className="font-body text-sm">
                   Follow our{" "}
                   <Link className={underlineLinkStyle} href="/docs">
@@ -566,27 +582,34 @@ export default function Apps({ params }: { params: { teamId: string } }) {
             <SdkConfigurator
               appId={filters.app!.id}
               appName={filters.app!.name}
-              osName={filters.app!.os_name}
+              osNames={filters.app!.os_names}
               initialConfig={sdkConfig!}
               currentUserCanChangeAppSettings={canWriteSdkConfig}
             />
 
             <div className="py-8" />
-            <p className="font-display text-xl max-w-6xl">
-              Change Error Thresholds
-            </p>
-            <p className="mt-2 font-body text-xs text-muted-foreground">
-              Error rate thresholds affect dashboard overview error-rate status
-              and daily summary email/Slack status icons. Anything below{" "}
-              <span className="text-yellow-600 dark:text-yellow-500 font-bold">
-                Caution
-              </span>{" "}
-              level is considered{" "}
-              <span className="text-red-600 dark:text-red-500 font-bold">
-                Poor
-              </span>
-              .
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="font-display text-xl max-w-6xl">
+                Change Error Thresholds
+              </p>
+              <InfoTooltip
+                content={
+                  <>
+                    Error rate thresholds affect dashboard overview error-rate
+                    status and daily summary email/Slack status icons. Anything
+                    below{" "}
+                    <span className="text-yellow-600 dark:text-yellow-500 font-bold">
+                      Caution
+                    </span>{" "}
+                    level is considered{" "}
+                    <span className="text-red-600 dark:text-red-500 font-bold">
+                      Poor
+                    </span>
+                    .
+                  </>
+                }
+              />
+            </div>
             {thresholdPrefsStatus === "pending" && (
               <div className="flex flex-col gap-3 w-full mt-6">
                 <Skeleton className="h-4 w-48" />
@@ -660,15 +683,20 @@ export default function Apps({ params }: { params: { teamId: string } }) {
                     testId="error-caution-threshold-input"
                   />
                 </div>
-                <p className="mt-6 font-body text-xs text-muted-foreground">
-                  An error alert is triggered when an error group reaches the
-                  configured minimum error count and the percentage of sessions
-                  it impacts meets or exceeds the spike threshold within an
-                  hour.
-                </p>
-                <div className="flex flex-row items-center gap-2 mt-2">
+                <div className="flex flex-row items-center gap-2 mt-6">
                   <p className="font-body text-sm w-80">
-                    Minimum error count to trigger a spike alert
+                    Minimum error count to trigger a spike alert{" "}
+                    <InfoTooltip
+                      className="inline-block align-middle mt-0"
+                      content={
+                        <>
+                          An error alert is triggered when an error group
+                          reaches the configured minimum error count and the
+                          percentage of sessions it impacts meets or exceeds the
+                          spike threshold within an hour.
+                        </>
+                      }
+                    />
                   </p>
                   <SdkConfigNumericInput
                     value={
