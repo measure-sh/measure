@@ -30,6 +30,7 @@ describe("onboarding_store", () => {
           platform: "Android",
           flutterPlatform: "Android",
           reactNativePlatform: "Android",
+          reactNativeExpoPlatform: "Android",
         }),
       );
       window.localStorage.setItem(
@@ -39,6 +40,7 @@ describe("onboarding_store", () => {
           platform: "iOS",
           flutterPlatform: "iOS",
           reactNativePlatform: "iOS",
+          reactNativeExpoPlatform: "iOS",
         }),
       );
 
@@ -49,12 +51,14 @@ describe("onboarding_store", () => {
           platform: "Android",
           flutterPlatform: "Android",
           reactNativePlatform: "Android",
+          reactNativeExpoPlatform: "Android",
         },
         "app-2": {
           step: "verify",
           platform: "iOS",
           flutterPlatform: "iOS",
           reactNativePlatform: "iOS",
+          reactNativeExpoPlatform: "iOS",
         },
       });
     });
@@ -68,6 +72,7 @@ describe("onboarding_store", () => {
           platform: "Android",
           flutterPlatform: "Android",
           reactNativePlatform: "Android",
+          reactNativeExpoPlatform: "Android",
         }),
       );
 
@@ -85,11 +90,27 @@ describe("onboarding_store", () => {
           platform: "Android",
           flutterPlatform: "Android",
           reactNativePlatform: "Android",
+          reactNativeExpoPlatform: "Android",
         }),
       );
 
       const store = createOnboardingStore();
       expect(store.getState().onboarding["app-bad"]).toBeUndefined();
+    });
+
+    it("skips entries predating the reactNativeExpoPlatform field", () => {
+      window.localStorage.setItem(
+        key("app-old"),
+        JSON.stringify({
+          step: "integrate",
+          platform: "Android",
+          flutterPlatform: "Android",
+          reactNativePlatform: "Android",
+        }),
+      );
+
+      const store = createOnboardingStore();
+      expect(store.getState().onboarding["app-old"]).toBeUndefined();
     });
 
     it("ignores keys without the onboarding prefix", () => {
@@ -143,6 +164,8 @@ describe("onboarding_store", () => {
         platform: "iOS",
         flutterPlatform: DEFAULT_ONBOARDING_STATE.flutterPlatform,
         reactNativePlatform: DEFAULT_ONBOARDING_STATE.reactNativePlatform,
+        reactNativeExpoPlatform:
+          DEFAULT_ONBOARDING_STATE.reactNativeExpoPlatform,
       });
     });
   });
@@ -158,6 +181,8 @@ describe("onboarding_store", () => {
         platform: "Flutter",
         flutterPlatform: DEFAULT_ONBOARDING_STATE.flutterPlatform,
         reactNativePlatform: DEFAULT_ONBOARDING_STATE.reactNativePlatform,
+        reactNativeExpoPlatform:
+          DEFAULT_ONBOARDING_STATE.reactNativeExpoPlatform,
       });
     });
 
@@ -181,6 +206,8 @@ describe("onboarding_store", () => {
         platform: "Flutter",
         flutterPlatform: "iOS",
         reactNativePlatform: DEFAULT_ONBOARDING_STATE.reactNativePlatform,
+        reactNativeExpoPlatform:
+          DEFAULT_ONBOARDING_STATE.reactNativeExpoPlatform,
       });
     });
   });
@@ -196,6 +223,8 @@ describe("onboarding_store", () => {
         platform: "React Native",
         flutterPlatform: DEFAULT_ONBOARDING_STATE.flutterPlatform,
         reactNativePlatform: "iOS",
+        reactNativeExpoPlatform:
+          DEFAULT_ONBOARDING_STATE.reactNativeExpoPlatform,
       });
     });
 
@@ -206,6 +235,32 @@ describe("onboarding_store", () => {
       expect(
         JSON.parse(window.localStorage.getItem(key("app-1"))!)
           .reactNativePlatform,
+      ).toBe("iOS");
+    });
+  });
+
+  describe("setOnboardingReactNativeExpoPlatform", () => {
+    it("updates reactNativeExpoPlatform without changing other fields", () => {
+      const store = createOnboardingStore();
+      store.getState().setOnboardingPlatform("app-1", "React Native (Expo)");
+      store.getState().setOnboardingReactNativeExpoPlatform("app-1", "iOS");
+
+      expect(store.getState().onboarding["app-1"]).toEqual({
+        step: DEFAULT_ONBOARDING_STATE.step,
+        platform: "React Native (Expo)",
+        flutterPlatform: DEFAULT_ONBOARDING_STATE.flutterPlatform,
+        reactNativePlatform: DEFAULT_ONBOARDING_STATE.reactNativePlatform,
+        reactNativeExpoPlatform: "iOS",
+      });
+    });
+
+    it("persists to localStorage for in-flight steps", () => {
+      const store = createOnboardingStore();
+      store.getState().setOnboardingPlatform("app-1", "React Native (Expo)");
+      store.getState().setOnboardingReactNativeExpoPlatform("app-1", "iOS");
+      expect(
+        JSON.parse(window.localStorage.getItem(key("app-1"))!)
+          .reactNativeExpoPlatform,
       ).toBe("iOS");
     });
   });
@@ -251,11 +306,12 @@ describe("onboarding_store", () => {
       });
     });
 
-    it("preserves platform / flutterPlatform / reactNativePlatform when marking verified", () => {
+    it("preserves platform / sub-platform selections when marking verified", () => {
       const store = createOnboardingStore();
       store.getState().setOnboardingPlatform("app-1", "Flutter");
       store.getState().setOnboardingFlutterPlatform("app-1", "iOS");
       store.getState().setOnboardingReactNativePlatform("app-1", "iOS");
+      store.getState().setOnboardingReactNativeExpoPlatform("app-1", "iOS");
 
       store.getState().markVerified("app-1");
 
@@ -264,6 +320,7 @@ describe("onboarding_store", () => {
         platform: "Flutter",
         flutterPlatform: "iOS",
         reactNativePlatform: "iOS",
+        reactNativeExpoPlatform: "iOS",
       });
     });
   });

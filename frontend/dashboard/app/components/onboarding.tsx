@@ -23,6 +23,7 @@ import {
   DEFAULT_ONBOARDING_STATE,
   type OnboardingFlutterPlatform,
   type OnboardingPlatform,
+  type OnboardingReactNativeExpoPlatform,
   type OnboardingReactNativePlatform,
   type OnboardingStep,
 } from "../stores/onboarding_store";
@@ -39,11 +40,18 @@ import TabSelect from "./tab_select";
 type Platform = OnboardingPlatform;
 type FlutterPlatform = OnboardingFlutterPlatform;
 type ReactNativePlatform = OnboardingReactNativePlatform;
+type ReactNativeExpoPlatform = OnboardingReactNativeExpoPlatform;
 // Cross-platform SDKs all target one of these native sides.
 type NativeTarget = "Android" | "iOS";
 type Step = OnboardingStep;
 
-const PLATFORMS: Platform[] = ["Android", "iOS", "Flutter", "React Native"];
+const PLATFORMS: Platform[] = [
+  "Android",
+  "iOS",
+  "Flutter",
+  "React Native",
+  "React Native (Expo)",
+];
 const NATIVE_TARGETS: NativeTarget[] = ["Android", "iOS"];
 const POLL_INTERVAL_MS = 3000;
 
@@ -243,6 +251,51 @@ setTimeout(() => {
   };
 }
 
+// Expo's config plugin carries the API key/URL for the native side being
+// built, so the snippet only shows the keys for the chosen target — a single
+// Measure app maps to one platform, the same convention as the other
+// cross-platform flows.
+function expoConfigPluginSnippet(
+  target: NativeTarget,
+  apiKey: string,
+  apiUrl: string,
+  label: string,
+): Snippet {
+  const options =
+    target === "Android"
+      ? `          "androidApiKey": "${apiKey}",
+          "androidApiUrl": "${apiUrl}"`
+      : `          "iosApiKey": "${apiKey}",
+          "iosApiUrl": "${apiUrl}"`;
+  return {
+    label,
+    testId: "snippet-expo-config-plugin",
+    language: "json",
+    code: `{
+  "expo": {
+    "plugins": [
+      [
+        "@measuresh/react-native",
+        {
+${options}
+        }
+      ]
+    ]
+  }
+}`,
+  };
+}
+
+function expoPrebuildSnippet(label: string): Snippet {
+  return {
+    label,
+    testId: "snippet-expo-prebuild",
+    language: "shellscript",
+    code: `# In your project root
+npx expo prebuild`,
+  };
+}
+
 // A single ordered step inside a cross-platform integration flow. `body`
 // is the user-visible label minus the leading "N. " prefix — the orchestrator
 // numbers steps in sequence so each cross-platform's nativePrep length can
@@ -252,10 +305,11 @@ interface OrderedStep {
   build: (label: string) => Snippet;
 }
 
-// Describes a cross-platform SDK (Flutter, React Native). The native side
-// holds the API key (via manifest meta-data / Podfile + native init), so each
-// target has its own ordered list of prep snippets that run between the
-// cross-platform dependency install and the cross-platform SDK init.
+// Describes a cross-platform SDK (Flutter, React Native, Expo). The native side
+// holds the API key (via manifest meta-data / Podfile / Expo config plugin +
+// native init), so each target has its own ordered list of prep snippets that
+// run between the cross-platform dependency install and the cross-platform SDK
+// init.
 interface CrossPlatform {
   dep: OrderedStep;
   init: OrderedStep;
@@ -307,10 +361,7 @@ function reactNativeCrossPlatform(
     nativePrep: {
       Android: [
         {
-          // Plain RN needs the Measure Android SDK on the Gradle classpath;
-          // Expo's prebuild handles this so the bracketed note keeps Expo
-          // users from chasing a non-issue.
-          body: "Add the Gradle dependency (skip this step if using Expo)",
+          body: "Add the Gradle dependency",
           build: (l) => androidGradleDepSnippet(l, "snippet-android-gradle"),
         },
         {
@@ -324,7 +375,7 @@ function reactNativeCrossPlatform(
       ],
       iOS: [
         {
-          body: "Configure iOS Podfile for static linkage (skip this step if using Expo)",
+          body: "Configure iOS Podfile for static linkage",
           build: (l) => iosPodfileSnippet(l, "React Native", "<YourAppTarget>"),
         },
         {
@@ -332,6 +383,31 @@ function reactNativeCrossPlatform(
           build: (l) => iosInitSnippet(apiKey, apiUrl, l, "snippet-ios-init"),
         },
       ],
+    },
+  };
+}
+
+function reactNativeExpoCrossPlatform(
+  apiKey: string,
+  apiUrl: string,
+): CrossPlatform {
+  // The config plugin is target-specific (Android vs iOS API key); the package
+  // install, prebuild, and JS init/crash are shared with bare React Native.
+  const prebuild: OrderedStep = {
+    body: "Run prebuild to apply the plugin",
+    build: expoPrebuildSnippet,
+  };
+  const configPlugin = (target: NativeTarget): OrderedStep => ({
+    body: "Add the config plugin to app.json or app.config.js",
+    build: (l) => expoConfigPluginSnippet(target, apiKey, apiUrl, l),
+  });
+  return {
+    dep: { body: "Add the React Native package", build: reactNativeDepSnippet },
+    init: { body: "Initialize the SDK", build: reactNativeInitSnippet },
+    crash: { body: "Trigger a test crash", build: reactNativeCrashSnippet },
+    nativePrep: {
+      Android: [configPlugin("Android"), prebuild],
+      iOS: [configPlugin("iOS"), prebuild],
     },
   };
 }
@@ -348,6 +424,7 @@ function buildSnippets(
   platform: Platform,
   flutterPlatform: FlutterPlatform,
   reactNativePlatform: ReactNativePlatform,
+  reactNativeExpoPlatform: ReactNativeExpoPlatform,
   apiKey: string,
   apiUrl: string,
 ): Snippet[] {
@@ -402,6 +479,11 @@ DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
         reactNativeCrossPlatform(apiKey, apiUrl),
         reactNativePlatform,
       );
+    case "React Native (Expo)":
+      return buildCrossPlatformSnippets(
+        reactNativeExpoCrossPlatform(apiKey, apiUrl),
+        reactNativeExpoPlatform,
+      );
   }
 }
 
@@ -447,6 +529,9 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
   const reactNativePlatform: ReactNativePlatform =
     persistedState?.reactNativePlatform ??
     DEFAULT_ONBOARDING_STATE.reactNativePlatform;
+  const reactNativeExpoPlatform: ReactNativeExpoPlatform =
+    persistedState?.reactNativeExpoPlatform ??
+    DEFAULT_ONBOARDING_STATE.reactNativeExpoPlatform;
 
   // `showStepCreate` is a UI history flag — keep showing the Step 1 header
   // (with a checkmark) once it was the user's starting point, even after
@@ -485,11 +570,22 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
     }
   };
 
+  const setReactNativeExpoPlatform = (
+    newReactNativeExpoPlatform: ReactNativeExpoPlatform,
+  ) => {
+    if (selectedApp) {
+      onboardingStore.setOnboardingReactNativeExpoPlatform(
+        selectedApp.id,
+        newReactNativeExpoPlatform,
+      );
+    }
+  };
+
   // Cross-platform SDKs each keep their own native-target sub-selection.
   // Resolve the active pair (target + setter) up front so the sub-selector
   // UI can be platform-agnostic.
   const crossPlatform: {
-    kind: "Flutter" | "React Native";
+    kind: "Flutter" | "React Native" | "React Native (Expo)";
     target: NativeTarget;
     setTarget: (t: NativeTarget) => void;
     testIdSlug: string;
@@ -508,7 +604,14 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
             setTarget: setReactNativePlatform,
             testIdSlug: "react-native",
           }
-        : null;
+        : platform === "React Native (Expo)"
+          ? {
+              kind: "React Native (Expo)",
+              target: reactNativeExpoPlatform,
+              setTarget: setReactNativeExpoPlatform,
+              testIdSlug: "react-native-expo",
+            }
+          : null;
 
   useEffect(() => {
     if (step !== "verify" || !selectedApp) {
@@ -614,6 +717,7 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
     platform,
     flutterPlatform,
     reactNativePlatform,
+    reactNativeExpoPlatform,
     apiKey,
     apiUrl,
   );
