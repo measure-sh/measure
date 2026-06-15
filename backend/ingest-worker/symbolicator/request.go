@@ -194,11 +194,11 @@ func (sr *SymbolicatorRequest) prepareJvmRequest(js *jvmSymbolicator, origin str
 	}
 
 	if logRequest {
-		var dst bytes.Buffer
-		if err = json.Indent(&dst, reqBytes, "", "  "); err != nil {
-			return
+		logReq := *js.request
+		logReq.Sources = redactSentrySources(logReq.Sources)
+		if out, errLog := json.MarshalIndent(logReq, "", "  "); errLog == nil {
+			fmt.Printf("jvm symbolicator request\n%s\n", out)
 		}
-		fmt.Printf("jvm symbolicator request\n%s\n", dst.String())
 	}
 
 	sr.req, err = http.NewRequest("POST", url, &reqBody)
@@ -225,11 +225,11 @@ func (sr *SymbolicatorRequest) prepareJSRequest(js *jsSymbolicator, origin strin
 	}
 
 	if logRequest {
-		var dst bytes.Buffer
-		if err = json.Indent(&dst, reqBytes, "", "  "); err != nil {
-			return
+		logReq := *js.request
+		logReq.Source = logReq.Source.redactSecrets()
+		if out, errLog := json.MarshalIndent(logReq, "", "  "); errLog == nil {
+			fmt.Printf("js symbolicator request\n%s\n", out)
 		}
-		fmt.Printf("js symbolicator request\n%s\n", dst.String())
 	}
 
 	sr.req, err = http.NewRequest("POST", url, &reqBody)
@@ -259,11 +259,11 @@ func (sr *SymbolicatorRequest) prepareNativeRequest(ns *nativeSymbolicator, orig
 	}
 
 	if logRequest {
-		var dst bytes.Buffer
-		if err = json.Indent(&dst, reqBytes, "", "  "); err != nil {
-			return
+		logReq := *ns.request
+		logReq.Sources = redactSources(logReq.Sources)
+		if out, errLog := json.MarshalIndent(logReq, "", "  "); errLog == nil {
+			fmt.Printf("native symbolicator request\n%s\n", out)
 		}
-		fmt.Printf("native symbolicator request\n%s\n", dst.String())
 	}
 
 	sr.req, err = http.NewRequest("POST", url, &reqBody)
