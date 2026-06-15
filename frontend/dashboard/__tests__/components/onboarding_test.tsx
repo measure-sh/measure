@@ -648,12 +648,13 @@ describe("Onboarding — Step 2: Integrate", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("renders Android, iOS, Flutter, and React Native tabs", () => {
+    it("renders Android, iOS, Flutter, React Native, and React Native (Expo) tabs", () => {
       renderOnboarding();
       expect(screen.getByTestId("tab-Android")).toBeInTheDocument();
       expect(screen.getByTestId("tab-iOS")).toBeInTheDocument();
       expect(screen.getByTestId("tab-Flutter")).toBeInTheDocument();
       expect(screen.getByTestId("tab-React Native")).toBeInTheDocument();
+      expect(screen.getByTestId("tab-React Native (Expo)")).toBeInTheDocument();
     });
 
     it("selects Android by default", () => {
@@ -963,17 +964,6 @@ describe("Onboarding — Step 2: Integrate", () => {
       expect(screen.getByTestId("snippet-crash")).toBeInTheDocument();
     });
 
-    it("Android sub-platform labels the gradle step with an Expo skip hint", () => {
-      renderOnboarding();
-      fireEvent.click(screen.getByTestId("tab-React Native"));
-      const gradleSnippet = screen.getByTestId("snippet-android-gradle");
-      // The label sits in the surrounding SnippetBlock header, not inside
-      // the testId-bearing div, so query by visible text.
-      expect(gradleSnippet.parentElement?.textContent).toMatch(
-        /skip this step if using Expo/,
-      );
-    });
-
     it("iOS sub-platform shows Podfile, native init, and JS init/crash", () => {
       mockSelectedApp = makeApp({ api_key: { key: "msr_rn_key" } });
       mockApps = [mockSelectedApp];
@@ -1009,6 +999,109 @@ describe("Onboarding — Step 2: Integrate", () => {
       fireEvent.click(screen.getByTestId("tab-Flutter"));
       expect(
         screen.getByTestId("onboarding-flutter-platform-iOS"),
+      ).toHaveAttribute("data-selected", "true");
+    });
+  });
+
+  describe("React Native (Expo) sub-platform selector", () => {
+    it("does not render the sub-selector on the bare React Native tab", () => {
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-React Native"));
+      expect(
+        screen.queryByTestId("onboarding-react-native-expo-platform-select"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("renders the sub-selector when React Native (Expo) is the active tab", () => {
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-React Native (Expo)"));
+      expect(
+        screen.getByTestId("onboarding-react-native-expo-platform-Android"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId("onboarding-react-native-expo-platform-iOS"),
+      ).toBeInTheDocument();
+    });
+
+    it("selects Android as the default sub-platform", () => {
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-React Native (Expo)"));
+      expect(
+        screen.getByTestId("onboarding-react-native-expo-platform-Android"),
+      ).toHaveAttribute("data-selected", "true");
+      expect(
+        screen.getByTestId("onboarding-react-native-expo-platform-iOS"),
+      ).toHaveAttribute("data-selected", "false");
+    });
+
+    it("Android sub-platform shows install, config plugin, prebuild, JS init, and crash", () => {
+      mockSelectedApp = makeApp({ api_key: { key: "msr_expo_key" } });
+      mockApps = [mockSelectedApp];
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-React Native (Expo)"));
+      // Step 1 installs the package, same as the bare React Native flow.
+      expect(screen.getByTestId("snippet-dependency")).toHaveTextContent(
+        "npm install @measuresh/react-native",
+      );
+      const configPlugin = screen.getByTestId("snippet-expo-config-plugin");
+      expect(configPlugin).toHaveTextContent("@measuresh/react-native");
+      // Android sub-platform → only the Android keys appear, carrying the key.
+      expect(configPlugin).toHaveTextContent("androidApiKey");
+      expect(configPlugin).toHaveTextContent("msr_expo_key");
+      expect(configPlugin).not.toHaveTextContent("iosApiKey");
+      expect(screen.getByTestId("snippet-expo-prebuild")).toHaveTextContent(
+        "npx expo prebuild",
+      );
+      expect(screen.getByTestId("snippet-init")).toHaveTextContent(
+        "@measuresh/react-native",
+      );
+      expect(screen.getByTestId("snippet-crash")).toHaveTextContent(
+        "Test crash from Measure onboarding",
+      );
+    });
+
+    it("iOS sub-platform shows the iOS keys in the config plugin", () => {
+      mockSelectedApp = makeApp({ api_key: { key: "msr_expo_key" } });
+      mockApps = [mockSelectedApp];
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-React Native (Expo)"));
+      fireEvent.click(
+        screen.getByTestId("onboarding-react-native-expo-platform-iOS"),
+      );
+      const configPlugin = screen.getByTestId("snippet-expo-config-plugin");
+      expect(configPlugin).toHaveTextContent("iosApiKey");
+      expect(configPlugin).toHaveTextContent("msr_expo_key");
+      expect(configPlugin).not.toHaveTextContent("androidApiKey");
+    });
+
+    it("replaces the manual Gradle/manifest/Podfile steps with the config plugin", () => {
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-React Native (Expo)"));
+      expect(
+        screen.queryByTestId("snippet-android-gradle"),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId("snippet-manifest")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("snippet-ios-podfile"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("keeps bare React Native and Expo sub-selections independent", () => {
+      renderOnboarding();
+      // Set bare React Native to iOS.
+      fireEvent.click(screen.getByTestId("tab-React Native"));
+      fireEvent.click(
+        screen.getByTestId("onboarding-react-native-platform-iOS"),
+      );
+      // Switch to Expo — should still default to Android.
+      fireEvent.click(screen.getByTestId("tab-React Native (Expo)"));
+      expect(
+        screen.getByTestId("onboarding-react-native-expo-platform-Android"),
+      ).toHaveAttribute("data-selected", "true");
+      // Switch back to bare React Native — its iOS selection survived.
+      fireEvent.click(screen.getByTestId("tab-React Native"));
+      expect(
+        screen.getByTestId("onboarding-react-native-platform-iOS"),
       ).toHaveAttribute("data-selected", "true");
     });
   });
@@ -1447,6 +1540,17 @@ describe("Onboarding — Persistence", () => {
       expect(stored).not.toBeNull();
       expect(JSON.parse(stored!).flutterPlatform).toBe("iOS");
     });
+
+    it("persists the reactNativeExpoPlatform on sub-selector click", () => {
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-React Native (Expo)"));
+      fireEvent.click(
+        screen.getByTestId("onboarding-react-native-expo-platform-iOS"),
+      );
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      expect(stored).not.toBeNull();
+      expect(JSON.parse(stored!).reactNativeExpoPlatform).toBe("iOS");
+    });
   });
 
   describe("Hydration", () => {
@@ -1460,6 +1564,7 @@ describe("Onboarding — Persistence", () => {
           platform: "Flutter",
           flutterPlatform: "Android",
           reactNativePlatform: "Android",
+          reactNativeExpoPlatform: "Android",
         }),
       );
       onboardingStoreInstance = createOnboardingStore();
@@ -1478,6 +1583,7 @@ describe("Onboarding — Persistence", () => {
           platform: "iOS",
           flutterPlatform: "Android",
           reactNativePlatform: "Android",
+          reactNativeExpoPlatform: "Android",
         }),
       );
       onboardingStoreInstance = createOnboardingStore();
@@ -1499,6 +1605,7 @@ describe("Onboarding — Persistence", () => {
           platform: "Flutter",
           flutterPlatform: "iOS",
           reactNativePlatform: "Android",
+          reactNativeExpoPlatform: "Android",
         }),
       );
       onboardingStoreInstance = createOnboardingStore();
@@ -1558,6 +1665,7 @@ describe("Onboarding — Persistence", () => {
           platform: "Flutter",
           flutterPlatform: "iOS",
           reactNativePlatform: "Android",
+          reactNativeExpoPlatform: "Android",
         }),
       );
       render(
@@ -1581,6 +1689,7 @@ describe("Onboarding — Persistence", () => {
           platform: "iOS",
           flutterPlatform: "Android",
           reactNativePlatform: "Android",
+          reactNativeExpoPlatform: "Android",
         }),
       );
       const { rerender } = renderOnboarding();
