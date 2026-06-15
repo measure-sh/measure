@@ -93,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Skip JVM symbolication when no proguard mapping exists by @abhaysood in #3899
 - (**backend**): Use docker secrets (#3862) by @detj in #3862
 - (**backend**): Make mcp tool description more accurate by @anupcowkur in #3860
 - (**backend**): Update mcp tools by @anupcowkur in #3858
