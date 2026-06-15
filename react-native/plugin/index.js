@@ -7,6 +7,7 @@ const {
   withAndroidManifest,
   withAppDelegate,
 } = require('@expo/config-plugins');
+const { mergeContents, removeContents } = require('@expo/config-plugins/build/utils/generateCode');
 
 // When installed, this file lives at:
 //   node_modules/@measuresh/react-native/plugin/index.js
@@ -64,67 +65,70 @@ function withMeasureAppDelegate(config, { iosApiKey, iosApiUrl }) {
 }
 
 function injectMeasureObjC(contents, apiKey, apiUrl) {
-  // Add imports after the last existing #import line (idempotent)
-  if (!contents.includes('#import <measure-sh/MeasureSDK.h>')) {
-    contents = contents.replace(
-      /(#import\s+["<][^\n]+\n)(?!#import)/,
-      `$1#import <measure-sh/MSRConfig.h>\n#import <measure-sh/MeasureSDK.h>\n`
-    );
-  }
+  // Inject imports after the last #import block
+  contents = mergeContents({
+    src: contents,
+    newSrc: `#import <measure-sh/MSRConfig.h>\n#import <measure-sh/MeasureSDK.h>`,
+    tag: 'measure-imports',
+    anchor: /#import\s+["<][^\n]+/,
+    offset: 1,
+    comment: '//',
+  }).contents;
 
-  // Inject SDK init before `return [super application:application...]` (idempotent)
-  if (!contents.includes('[MeasureSDK initializeWithApiKey:')) {
-    const initCode = [
-      `  MSRConfig *config = [[MSRConfig alloc] initWithEnableLogging:YES`,
-      `                                                     autoStart:YES`,
-      `                                      enableFullCollectionMode:YES`,
-      `                                        requestHeadersProvider:NULL`,
-      `                                              maxDiskUsageInMb:@300`,
-      `                                          enableDiagnosticMode:YES`,
-      `                               enableDiagnosticModeGesture:YES];`,
-      `  [MeasureSDK initializeWithApiKey:@"${apiKey}" apiUrl:@"${apiUrl}" config:config];`,
-    ].join('\n');
+  // Inject SDK init before the final return statement
+  const initCode = [
+    `  MSRConfig *config = [[MSRConfig alloc] initWithEnableLogging:YES`,
+    `                                                     autoStart:YES`,
+    `                                      enableFullCollectionMode:NO`,
+    `                                        requestHeadersProvider:NULL`,
+    `                                              maxDiskUsageInMb:@300`,
+    `                                          enableDiagnosticMode:YES`,
+    `                               enableDiagnosticModeGesture:YES];`,
+    `  [MeasureSDK initializeWithApiKey:@"${apiKey}" apiUrl:@"${apiUrl}" config:config];`,
+  ].join('\n');
 
-    contents = contents.replace(
-      /(\s*return \[super application:application didFinishLaunchingWithOptions:launchOptions\];)/,
-      `\n${initCode}\n$1`
-    );
-  }
+  contents = mergeContents({
+    src: contents,
+    newSrc: initCode,
+    tag: 'measure-init',
+    anchor: /return \[super application:application didFinishLaunchingWithOptions:launchOptions\]/,
+    offset: 0,
+    comment: '//',
+  }).contents;
 
   return contents;
 }
 
 function injectMeasureSwift(contents, apiKey, apiUrl) {
-  // Add `import Measure` after last import line (idempotent)
-  if (!contents.includes('import Measure')) {
-    contents = contents.replace(
-      /(import\s+\w+\n)(?!import)/,
-      `$1import Measure\n`
-    );
-  }
+  // Inject `import Measure` after the last import line
+  contents = mergeContents({
+    src: contents,
+    newSrc: 'import Measure',
+    tag: 'measure-import',
+    anchor: /^import\s+\w+/m,
+    offset: 1,
+    comment: '//',
+  }).contents;
 
-  // Inject SDK init before bindReactNativeFactory (Expo) or window = UIWindow (vanilla RN)
-  if (!contents.includes('Measure.initialize(')) {
-    const initCode = [
-      `    let clientInfo = ClientInfo(apiKey: "${apiKey}", apiUrl: "${apiUrl}")`,
-      `    let measureConfig = BaseMeasureConfig(autoStart: true, enableFullCollectionMode: true)`,
-      `    Measure.initialize(with: clientInfo, config: measureConfig)`,
-    ].join('\n');
+  const initCode = [
+    `    let clientInfo = ClientInfo(apiKey: "${apiKey}", apiUrl: "${apiUrl}")`,
+    `    let measureConfig = BaseMeasureConfig(autoStart: true, enableFullCollectionMode: false)`,
+    `    Measure.initialize(with: clientInfo, config: measureConfig)`,
+  ].join('\n');
 
-    // Expo: insert before bindReactNativeFactory
-    if (contents.includes('bindReactNativeFactory')) {
-      contents = contents.replace(
-        /(\s*bindReactNativeFactory\()/,
-        `\n${initCode}\n$1`
-      );
-    } else {
-      // Vanilla RN: insert before window = UIWindow
-      contents = contents.replace(
-        /(\s*window\s*=\s*UIWindow\()/,
-        `\n${initCode}\n$1`
-      );
-    }
-  }
+  // Expo: anchor on bindReactNativeFactory; vanilla RN: anchor on window = UIWindow
+  const anchor = contents.includes('bindReactNativeFactory')
+    ? /bindReactNativeFactory\(/
+    : /window\s*=\s*UIWindow\(/;
+
+  contents = mergeContents({
+    src: contents,
+    newSrc: initCode,
+    tag: 'measure-init',
+    anchor,
+    offset: 0,
+    comment: '//',
+  }).contents;
 
   return contents;
 }
@@ -226,26 +230,26 @@ function withMeasureAndroidManifest(config, { androidApiKey, androidApiUrl }) {
 
 function withMeasureProjectBuildGradle(config) {
   return withProjectBuildGradle(config, (mod) => {
-    let contents = mod.modResults.contents;
+    // Ensure gradlePluginPortal() is present so the Measure Gradle plugin resolves
+    mod.modResults.contents = mergeContents({
+      src: mod.modResults.contents,
+      newSrc: '    gradlePluginPortal()',
+      tag: 'measure-gradle-portal',
+      anchor: /repositories\s*\{/,
+      offset: 1,
+      comment: '//',
+    }).contents;
 
-    // Ensure gradlePluginPortal() is in the buildscript repositories block
-    // so the Measure Gradle plugin can be resolved.
-    if (!contents.includes('gradlePluginPortal()')) {
-      contents = contents.replace(
-        /buildscript\s*\{([\s\S]*?)repositories\s*\{/,
-        (match) => `${match}\n        gradlePluginPortal()`
-      );
-    }
+    // Add Measure Gradle plugin classpath
+    mod.modResults.contents = mergeContents({
+      src: mod.modResults.contents,
+      newSrc: '    classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.12.0")',
+      tag: 'measure-classpath',
+      anchor: /dependencies\s*\{/,
+      offset: 1,
+      comment: '//',
+    }).contents;
 
-    if (!contents.includes('sh.measure.android.gradle')) {
-      contents = contents.replace(
-        /dependencies\s?{/,
-        `dependencies {
-        classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.12.0")`
-      );
-    }
-
-    mod.modResults.contents = contents;
     return mod;
   });
 }
@@ -254,23 +258,23 @@ function withMeasureProjectBuildGradle(config) {
 
 function withMeasureAppBuildGradle(config) {
   return withAppBuildGradle(config, (mod) => {
-    let contents = mod.modResults.contents;
-
-    if (!contents.includes('sh.measure:measure-android')) {
-      contents = contents.replace(
-        /dependencies\s?{/,
-        `dependencies {
-        implementation("sh.measure:measure-android:0.18.0")`
-      );
-    }
+    // Add measure-android dependency
+    mod.modResults.contents = mergeContents({
+      src: mod.modResults.contents,
+      newSrc: '    implementation("sh.measure:measure-android:0.18.0")',
+      tag: 'measure-dependency',
+      anchor: /dependencies\s*\{/,
+      offset: 1,
+      comment: '//',
+    }).contents;
 
     // Apply the Measure Gradle plugin AFTER all other plugins so that
     // com.android.application is already applied when Measure checks for it.
-    if (!contents.includes(`apply plugin: "sh.measure.android.gradle"`)) {
-      contents = contents.trimEnd() + `\napply plugin: "sh.measure.android.gradle"\n`;
+    if (!mod.modResults.contents.includes('apply plugin: "sh.measure.android.gradle"')) {
+      mod.modResults.contents =
+        mod.modResults.contents.trimEnd() + '\napply plugin: "sh.measure.android.gradle"\n';
     }
 
-    mod.modResults.contents = contents;
     return mod;
   });
 }
@@ -278,6 +282,7 @@ function withMeasureAppBuildGradle(config) {
 // ─── Android: MainApplication ────────────────────────────────────────────────
 
 const ANDROID_IMPORTS = [
+  'import sh.measure.rn.MeasurePackage',
   'import sh.measure.android.Measure',
   'import sh.measure.android.config.MeasureConfig',
   'import okhttp3.OkHttpClient',
@@ -286,61 +291,74 @@ const ANDROID_IMPORTS = [
   'import com.facebook.react.modules.network.ReactCookieJarContainer',
   'import sh.measure.android.okhttp.MeasureOkHttpApplicationInterceptor',
   'import sh.measure.android.okhttp.MeasureEventListenerFactory',
-];
+].join('\n');
 
-const ANDROID_MEASURE_INIT = `    Measure.init(
-      this,
-      measureConfig = MeasureConfig(
-        autoStart = true,
-        enableFullCollectionMode = true,
-      )
-    )
-    OkHttpClientProvider.setOkHttpClientFactory(object : OkHttpClientFactory {
-      override fun createNewNetworkModuleClient(): OkHttpClient {
-        return OkHttpClient.Builder()
-          .cookieJar(ReactCookieJarContainer())
-          .addInterceptor(MeasureOkHttpApplicationInterceptor())
-          .eventListenerFactory(MeasureEventListenerFactory(null))
-          .build()
-      }
-    })`;
+const ANDROID_PACKAGE_REGISTRATION = 'packages.add(MeasurePackage())';
+
+const ANDROID_MEASURE_INIT = [
+  '    Measure.init(',
+  '      this,',
+  '      measureConfig = MeasureConfig(',
+  '        autoStart = true,',
+  '        enableFullCollectionMode = false,',
+  '      )',
+  '    )',
+  '    OkHttpClientProvider.setOkHttpClientFactory(object : OkHttpClientFactory {',
+  '      override fun createNewNetworkModuleClient(): OkHttpClient {',
+  '        return OkHttpClient.Builder()',
+  '          .cookieJar(ReactCookieJarContainer())',
+  '          .addInterceptor(MeasureOkHttpApplicationInterceptor())',
+  '          .eventListenerFactory(MeasureEventListenerFactory(null))',
+  '          .build()',
+  '      }',
+  '    })',
+].join('\n');
 
 function withMeasureMainApplication(config) {
   return withMainApplication(config, (mod) => {
-    let contents = mod.modResults.contents;
+    // Inject all imports after the package declaration
+    mod.modResults.contents = mergeContents({
+      src: mod.modResults.contents,
+      newSrc: ANDROID_IMPORTS,
+      tag: 'measure-imports',
+      anchor: /^package\s+\S+/m,
+      offset: 1,
+      comment: '//',
+    }).contents;
 
-    // Add MeasurePackage
-    if (!contents.includes('import sh.measure.rn.MeasurePackage')) {
-      contents = contents.replace(
-        /(package .*?\n)/,
-        `$1import sh.measure.rn.MeasurePackage\n`
-      );
-    }
-    if (!contents.includes('packages.add(MeasurePackage())')) {
-      contents = contents.replace(
-        /(return\s+packages;?)/,
-        `packages.add(MeasurePackage())\n            $1`
-      );
-    }
-
-    // Add Measure + OkHttp imports after the package declaration (idempotent)
-    const missingImports = ANDROID_IMPORTS.filter((imp) => !contents.includes(imp));
-    if (missingImports.length > 0) {
-      contents = contents.replace(
-        /(package .*?\n)/,
-        `$1${missingImports.join('\n')}\n`
-      );
-    }
-
-    // Inject Measure.init + OkHttp setup after super.onCreate() (idempotent)
-    if (!contents.includes('Measure.init(')) {
-      contents = contents.replace(
-        /(super\.onCreate\(\))/,
-        `$1\n${ANDROID_MEASURE_INIT}`
-      );
+    // Register MeasurePackage — supports both the legacy `return packages` pattern
+    // (older RN / Expo) and the newer `PackageList(this).packages.apply {}` pattern
+    // (Expo 56+ / RN 0.85+).
+    if (mod.modResults.contents.includes('PackageList(this).packages.apply')) {
+      mod.modResults.contents = mergeContents({
+        src: mod.modResults.contents,
+        newSrc: '          add(MeasurePackage())',
+        tag: 'measure-package',
+        anchor: /PackageList\(this\)\.packages\.apply\s*\{/,
+        offset: 1,
+        comment: '//',
+      }).contents;
+    } else {
+      mod.modResults.contents = mergeContents({
+        src: mod.modResults.contents,
+        newSrc: `            ${ANDROID_PACKAGE_REGISTRATION}`,
+        tag: 'measure-package',
+        anchor: /return\s+packages/,
+        offset: 0,
+        comment: '//',
+      }).contents;
     }
 
-    mod.modResults.contents = contents;
+    // Inject Measure.init + OkHttp setup after super.onCreate()
+    mod.modResults.contents = mergeContents({
+      src: mod.modResults.contents,
+      newSrc: ANDROID_MEASURE_INIT,
+      tag: 'measure-init',
+      anchor: /super\.onCreate\(\)/,
+      offset: 1,
+      comment: '//',
+    }).contents;
+
     return mod;
   });
 }
