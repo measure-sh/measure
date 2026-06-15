@@ -374,7 +374,7 @@ export default function Home() {
                     className="h-10 w-auto object-contain"
                   />
                 </div>
-                <span className="font-body text-sm">React Native (soon)</span>
+                <span className="font-body text-sm">React Native</span>
               </div>
             </div>
           </div>
