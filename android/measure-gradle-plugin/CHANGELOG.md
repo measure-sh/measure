@@ -5,10 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [android-gradle-plugin-v0.13.0] - 2026-06-15
+
+### :bug: Bug fixes
+
+- (**gradle**): Remove manual branch step in prepare-next (#3886) by @abhaysood in #3886
+
+### :hammer: Misc
+
+- (**gradle**): Upload RN and Flutter mappings when R8 is disabled by @abhaysood
+- (**gradle**): Prepare next development version of plugin (#3887) by @abhaysood in #3887
+
 ## [android-gradle-plugin-v0.12.0] - 2026-06-11
 
 ### :hammer: Misc
 
+- (**gradle**): Prepare plugin release 0.12.0 (#3885) by @abhaysood in #3885
 - (**gradle**): Fix RN bundle gradle task graph (#3876) by @abhaysood in #3876
 - (**gradle**): Upload empty bundle file for hermes builds (#3875) by @abhaysood in #3875
 - (**gradle**): Strip absolute paths from RN source map (#3873) by @abhaysood in #3873
@@ -47,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [android-gradle-plugin-v0.4.0] - 2024-08-06
 
+[android-gradle-plugin-v0.13.0]: https://github.com/measure-sh/measure/compare/android-gradle-plugin-v0.12.0..android-gradle-plugin-v0.13.0
 [android-gradle-plugin-v0.12.0]: https://github.com/measure-sh/measure/compare/android-gradle-plugin-v0.11.0..android-gradle-plugin-v0.12.0
 [android-gradle-plugin-v0.11.0]: https://github.com/measure-sh/measure/compare/android-gradle-plugin-v0.10.0..android-gradle-plugin-v0.11.0
 [android-gradle-plugin-v0.10.0]: https://github.com/measure-sh/measure/compare/android-gradle-plugin-v0.9.0..android-gradle-plugin-v0.10.0
