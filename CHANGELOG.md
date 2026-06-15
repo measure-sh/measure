@@ -140,6 +140,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Remove "soon" from RN landing icon by @anupcowkur in #3905
+- (**frontend**): Show RN onboarding tab by @anupcowkur
 - (**frontend**): Add posthog sourcemap upload for dashboard (#3857) by @detj in #3857
 - (**frontend**): Format dashboard with new prettier config by @anupcowkur in #3854
 - (**frontend**): Set up prettier formatting for the dashboard by @anupcowkur
