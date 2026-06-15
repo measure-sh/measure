@@ -28,19 +28,15 @@ describe("onboarding_store", () => {
         JSON.stringify({
           step: "integrate",
           platform: "Android",
-          flutterPlatform: "Android",
-          reactNativePlatform: "Android",
-          reactNativeExpoPlatform: "Android",
+          nativeTargets: {},
         }),
       );
       window.localStorage.setItem(
         key("app-2"),
         JSON.stringify({
           step: "verify",
-          platform: "iOS",
-          flutterPlatform: "iOS",
-          reactNativePlatform: "iOS",
-          reactNativeExpoPlatform: "iOS",
+          platform: "React Native",
+          nativeTargets: { "React Native": "iOS" },
         }),
       );
 
@@ -49,16 +45,12 @@ describe("onboarding_store", () => {
         "app-1": {
           step: "integrate",
           platform: "Android",
-          flutterPlatform: "Android",
-          reactNativePlatform: "Android",
-          reactNativeExpoPlatform: "Android",
+          nativeTargets: {},
         },
         "app-2": {
           step: "verify",
-          platform: "iOS",
-          flutterPlatform: "iOS",
-          reactNativePlatform: "iOS",
-          reactNativeExpoPlatform: "iOS",
+          platform: "React Native",
+          nativeTargets: { "React Native": "iOS" },
         },
       });
     });
@@ -70,9 +62,7 @@ describe("onboarding_store", () => {
         JSON.stringify({
           step: "integrate",
           platform: "Android",
-          flutterPlatform: "Android",
-          reactNativePlatform: "Android",
-          reactNativeExpoPlatform: "Android",
+          nativeTargets: {},
         }),
       );
 
@@ -88,9 +78,7 @@ describe("onboarding_store", () => {
         JSON.stringify({
           step: "not-a-step",
           platform: "Android",
-          flutterPlatform: "Android",
-          reactNativePlatform: "Android",
-          reactNativeExpoPlatform: "Android",
+          nativeTargets: {},
         }),
       );
 
@@ -98,7 +86,21 @@ describe("onboarding_store", () => {
       expect(store.getState().onboarding["app-bad"]).toBeUndefined();
     });
 
-    it("skips entries predating the reactNativeExpoPlatform field", () => {
+    it("skips entries with an invalid native target value", () => {
+      window.localStorage.setItem(
+        key("app-bad"),
+        JSON.stringify({
+          step: "integrate",
+          platform: "React Native",
+          nativeTargets: { "React Native": "Windows" },
+        }),
+      );
+
+      const store = createOnboardingStore();
+      expect(store.getState().onboarding["app-bad"]).toBeUndefined();
+    });
+
+    it("skips entries predating the nativeTargets field", () => {
       window.localStorage.setItem(
         key("app-old"),
         JSON.stringify({
@@ -162,10 +164,7 @@ describe("onboarding_store", () => {
       expect(store.getState().onboarding["app-1"]).toEqual({
         step: "verify",
         platform: "iOS",
-        flutterPlatform: DEFAULT_ONBOARDING_STATE.flutterPlatform,
-        reactNativePlatform: DEFAULT_ONBOARDING_STATE.reactNativePlatform,
-        reactNativeExpoPlatform:
-          DEFAULT_ONBOARDING_STATE.reactNativeExpoPlatform,
+        nativeTargets: {},
       });
     });
   });
@@ -179,10 +178,7 @@ describe("onboarding_store", () => {
       expect(store.getState().onboarding["app-1"]).toEqual({
         step: "integrate",
         platform: "Flutter",
-        flutterPlatform: DEFAULT_ONBOARDING_STATE.flutterPlatform,
-        reactNativePlatform: DEFAULT_ONBOARDING_STATE.reactNativePlatform,
-        reactNativeExpoPlatform:
-          DEFAULT_ONBOARDING_STATE.reactNativeExpoPlatform,
+        nativeTargets: {},
       });
     });
 
@@ -195,73 +191,42 @@ describe("onboarding_store", () => {
     });
   });
 
-  describe("setOnboardingFlutterPlatform", () => {
-    it("updates flutterPlatform without changing other fields", () => {
-      const store = createOnboardingStore();
-      store.getState().setOnboardingPlatform("app-1", "Flutter");
-      store.getState().setOnboardingFlutterPlatform("app-1", "iOS");
-
-      expect(store.getState().onboarding["app-1"]).toEqual({
-        step: DEFAULT_ONBOARDING_STATE.step,
-        platform: "Flutter",
-        flutterPlatform: "iOS",
-        reactNativePlatform: DEFAULT_ONBOARDING_STATE.reactNativePlatform,
-        reactNativeExpoPlatform:
-          DEFAULT_ONBOARDING_STATE.reactNativeExpoPlatform,
-      });
-    });
-  });
-
-  describe("setOnboardingReactNativePlatform", () => {
-    it("updates reactNativePlatform without changing other fields", () => {
+  describe("setOnboardingNativeTarget", () => {
+    it("sets the native target for a platform without changing other fields", () => {
       const store = createOnboardingStore();
       store.getState().setOnboardingPlatform("app-1", "React Native");
-      store.getState().setOnboardingReactNativePlatform("app-1", "iOS");
+      store
+        .getState()
+        .setOnboardingNativeTarget("app-1", "React Native", "iOS");
 
       expect(store.getState().onboarding["app-1"]).toEqual({
         step: DEFAULT_ONBOARDING_STATE.step,
         platform: "React Native",
-        flutterPlatform: DEFAULT_ONBOARDING_STATE.flutterPlatform,
-        reactNativePlatform: "iOS",
-        reactNativeExpoPlatform:
-          DEFAULT_ONBOARDING_STATE.reactNativeExpoPlatform,
+        nativeTargets: { "React Native": "iOS" },
+      });
+    });
+
+    it("keeps each platform's native target independent", () => {
+      const store = createOnboardingStore();
+      store
+        .getState()
+        .setOnboardingNativeTarget("app-1", "React Native", "iOS");
+      store.getState().setOnboardingNativeTarget("app-1", "Flutter", "Android");
+
+      expect(store.getState().onboarding["app-1"].nativeTargets).toEqual({
+        "React Native": "iOS",
+        Flutter: "Android",
       });
     });
 
     it("persists to localStorage for in-flight steps", () => {
       const store = createOnboardingStore();
-      store.getState().setOnboardingPlatform("app-1", "React Native");
-      store.getState().setOnboardingReactNativePlatform("app-1", "iOS");
+      store
+        .getState()
+        .setOnboardingNativeTarget("app-1", "React Native (Expo)", "iOS");
       expect(
-        JSON.parse(window.localStorage.getItem(key("app-1"))!)
-          .reactNativePlatform,
-      ).toBe("iOS");
-    });
-  });
-
-  describe("setOnboardingReactNativeExpoPlatform", () => {
-    it("updates reactNativeExpoPlatform without changing other fields", () => {
-      const store = createOnboardingStore();
-      store.getState().setOnboardingPlatform("app-1", "React Native (Expo)");
-      store.getState().setOnboardingReactNativeExpoPlatform("app-1", "iOS");
-
-      expect(store.getState().onboarding["app-1"]).toEqual({
-        step: DEFAULT_ONBOARDING_STATE.step,
-        platform: "React Native (Expo)",
-        flutterPlatform: DEFAULT_ONBOARDING_STATE.flutterPlatform,
-        reactNativePlatform: DEFAULT_ONBOARDING_STATE.reactNativePlatform,
-        reactNativeExpoPlatform: "iOS",
-      });
-    });
-
-    it("persists to localStorage for in-flight steps", () => {
-      const store = createOnboardingStore();
-      store.getState().setOnboardingPlatform("app-1", "React Native (Expo)");
-      store.getState().setOnboardingReactNativeExpoPlatform("app-1", "iOS");
-      expect(
-        JSON.parse(window.localStorage.getItem(key("app-1"))!)
-          .reactNativeExpoPlatform,
-      ).toBe("iOS");
+        JSON.parse(window.localStorage.getItem(key("app-1"))!).nativeTargets,
+      ).toEqual({ "React Native (Expo)": "iOS" });
     });
   });
 
@@ -306,21 +271,17 @@ describe("onboarding_store", () => {
       });
     });
 
-    it("preserves platform / sub-platform selections when marking verified", () => {
+    it("preserves platform and native targets when marking verified", () => {
       const store = createOnboardingStore();
       store.getState().setOnboardingPlatform("app-1", "Flutter");
-      store.getState().setOnboardingFlutterPlatform("app-1", "iOS");
-      store.getState().setOnboardingReactNativePlatform("app-1", "iOS");
-      store.getState().setOnboardingReactNativeExpoPlatform("app-1", "iOS");
+      store.getState().setOnboardingNativeTarget("app-1", "Flutter", "iOS");
 
       store.getState().markVerified("app-1");
 
       expect(store.getState().onboarding["app-1"]).toEqual({
         step: "verified",
         platform: "Flutter",
-        flutterPlatform: "iOS",
-        reactNativePlatform: "iOS",
-        reactNativeExpoPlatform: "iOS",
+        nativeTargets: { Flutter: "iOS" },
       });
     });
   });

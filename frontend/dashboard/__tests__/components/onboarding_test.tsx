@@ -30,7 +30,6 @@ const mockSetSelectedApp = jest.fn();
 const mockMarkAppOnboarded = jest.fn();
 const mockSetOnboardingStep = jest.fn();
 const mockSetOnboardingPlatform = jest.fn();
-const mockSetOnboardingFlutterPlatform = jest.fn();
 const mockMarkVerified = jest.fn();
 const mockPush = jest.fn();
 const mockFetchAppsFromServer = jest.fn();
@@ -302,8 +301,6 @@ beforeEach(() => {
     setOnboardingStep: onboardingStoreInstance.getState().setOnboardingStep,
     setOnboardingPlatform:
       onboardingStoreInstance.getState().setOnboardingPlatform,
-    setOnboardingFlutterPlatform:
-      onboardingStoreInstance.getState().setOnboardingFlutterPlatform,
     markVerified: onboardingStoreInstance.getState().markVerified,
   };
   onboardingStoreInstance.setState({
@@ -314,10 +311,6 @@ beforeEach(() => {
     setOnboardingPlatform: (...args: any[]) => {
       mockSetOnboardingPlatform(...args);
       realActions.setOnboardingPlatform(...(args as [string, any]));
-    },
-    setOnboardingFlutterPlatform: (...args: any[]) => {
-      mockSetOnboardingFlutterPlatform(...args);
-      realActions.setOnboardingFlutterPlatform(...(args as [string, any]));
     },
     markVerified: (...args: any[]) => {
       mockMarkVerified(...args);
@@ -779,7 +772,9 @@ describe("Onboarding — Step 2: Integrate", () => {
     it("switches to Flutter+iOS snippets when sub-platform is iOS", () => {
       renderOnboarding();
       fireEvent.click(screen.getByTestId("tab-Flutter"));
-      fireEvent.click(screen.getByTestId("onboarding-flutter-platform-iOS"));
+      fireEvent.click(
+        screen.getByTestId("onboarding-flutter-native-target-iOS"),
+      );
       expect(screen.getByTestId("snippet-dependency")).toHaveTextContent(
         "measure_flutter",
       );
@@ -832,11 +827,11 @@ describe("Onboarding — Step 2: Integrate", () => {
     it("does not render the sub-selector on Android or iOS tabs", () => {
       renderOnboarding();
       expect(
-        screen.queryByTestId("onboarding-flutter-platform-select"),
+        screen.queryByTestId("onboarding-flutter-native-target-select"),
       ).not.toBeInTheDocument();
       fireEvent.click(screen.getByTestId("tab-iOS"));
       expect(
-        screen.queryByTestId("onboarding-flutter-platform-select"),
+        screen.queryByTestId("onboarding-flutter-native-target-select"),
       ).not.toBeInTheDocument();
     });
 
@@ -844,10 +839,10 @@ describe("Onboarding — Step 2: Integrate", () => {
       renderOnboarding();
       fireEvent.click(screen.getByTestId("tab-Flutter"));
       expect(
-        screen.getByTestId("onboarding-flutter-platform-Android"),
+        screen.getByTestId("onboarding-flutter-native-target-Android"),
       ).toBeInTheDocument();
       expect(
-        screen.getByTestId("onboarding-flutter-platform-iOS"),
+        screen.getByTestId("onboarding-flutter-native-target-iOS"),
       ).toBeInTheDocument();
     });
 
@@ -855,22 +850,24 @@ describe("Onboarding — Step 2: Integrate", () => {
       renderOnboarding();
       fireEvent.click(screen.getByTestId("tab-Flutter"));
       expect(
-        screen.getByTestId("onboarding-flutter-platform-Android"),
+        screen.getByTestId("onboarding-flutter-native-target-Android"),
       ).toHaveAttribute("data-selected", "true");
       expect(
-        screen.getByTestId("onboarding-flutter-platform-iOS"),
+        screen.getByTestId("onboarding-flutter-native-target-iOS"),
       ).toHaveAttribute("data-selected", "false");
     });
 
     it("updates the selected sub-platform indicator on click", () => {
       renderOnboarding();
       fireEvent.click(screen.getByTestId("tab-Flutter"));
-      fireEvent.click(screen.getByTestId("onboarding-flutter-platform-iOS"));
+      fireEvent.click(
+        screen.getByTestId("onboarding-flutter-native-target-iOS"),
+      );
       expect(
-        screen.getByTestId("onboarding-flutter-platform-iOS"),
+        screen.getByTestId("onboarding-flutter-native-target-iOS"),
       ).toHaveAttribute("data-selected", "true");
       expect(
-        screen.getByTestId("onboarding-flutter-platform-Android"),
+        screen.getByTestId("onboarding-flutter-native-target-Android"),
       ).toHaveAttribute("data-selected", "false");
     });
 
@@ -883,7 +880,9 @@ describe("Onboarding — Step 2: Integrate", () => {
       expect(screen.getByTestId("snippet-manifest")).toHaveTextContent(
         "msr_flutter_key",
       );
-      fireEvent.click(screen.getByTestId("onboarding-flutter-platform-iOS"));
+      fireEvent.click(
+        screen.getByTestId("onboarding-flutter-native-target-iOS"),
+      );
       // iOS sub-platform → key passed to ClientInfo() in the iOS native init.
       expect(screen.getByTestId("snippet-ios-init")).toHaveTextContent(
         "msr_flutter_key",
@@ -895,15 +894,15 @@ describe("Onboarding — Step 2: Integrate", () => {
     it("does not render the sub-selector on Android, iOS or Flutter tabs", () => {
       renderOnboarding();
       expect(
-        screen.queryByTestId("onboarding-react-native-platform-select"),
+        screen.queryByTestId("onboarding-react-native-native-target-select"),
       ).not.toBeInTheDocument();
       fireEvent.click(screen.getByTestId("tab-iOS"));
       expect(
-        screen.queryByTestId("onboarding-react-native-platform-select"),
+        screen.queryByTestId("onboarding-react-native-native-target-select"),
       ).not.toBeInTheDocument();
       fireEvent.click(screen.getByTestId("tab-Flutter"));
       expect(
-        screen.queryByTestId("onboarding-react-native-platform-select"),
+        screen.queryByTestId("onboarding-react-native-native-target-select"),
       ).not.toBeInTheDocument();
     });
 
@@ -911,10 +910,10 @@ describe("Onboarding — Step 2: Integrate", () => {
       renderOnboarding();
       fireEvent.click(screen.getByTestId("tab-React Native"));
       expect(
-        screen.getByTestId("onboarding-react-native-platform-Android"),
+        screen.getByTestId("onboarding-react-native-native-target-Android"),
       ).toBeInTheDocument();
       expect(
-        screen.getByTestId("onboarding-react-native-platform-iOS"),
+        screen.getByTestId("onboarding-react-native-native-target-iOS"),
       ).toBeInTheDocument();
     });
 
@@ -922,10 +921,10 @@ describe("Onboarding — Step 2: Integrate", () => {
       renderOnboarding();
       fireEvent.click(screen.getByTestId("tab-React Native"));
       expect(
-        screen.getByTestId("onboarding-react-native-platform-Android"),
+        screen.getByTestId("onboarding-react-native-native-target-Android"),
       ).toHaveAttribute("data-selected", "true");
       expect(
-        screen.getByTestId("onboarding-react-native-platform-iOS"),
+        screen.getByTestId("onboarding-react-native-native-target-iOS"),
       ).toHaveAttribute("data-selected", "false");
     });
 
@@ -933,13 +932,13 @@ describe("Onboarding — Step 2: Integrate", () => {
       renderOnboarding();
       fireEvent.click(screen.getByTestId("tab-React Native"));
       fireEvent.click(
-        screen.getByTestId("onboarding-react-native-platform-iOS"),
+        screen.getByTestId("onboarding-react-native-native-target-iOS"),
       );
       expect(
-        screen.getByTestId("onboarding-react-native-platform-iOS"),
+        screen.getByTestId("onboarding-react-native-native-target-iOS"),
       ).toHaveAttribute("data-selected", "true");
       expect(
-        screen.getByTestId("onboarding-react-native-platform-Android"),
+        screen.getByTestId("onboarding-react-native-native-target-Android"),
       ).toHaveAttribute("data-selected", "false");
     });
 
@@ -970,7 +969,7 @@ describe("Onboarding — Step 2: Integrate", () => {
       renderOnboarding();
       fireEvent.click(screen.getByTestId("tab-React Native"));
       fireEvent.click(
-        screen.getByTestId("onboarding-react-native-platform-iOS"),
+        screen.getByTestId("onboarding-react-native-native-target-iOS"),
       );
       expect(screen.getByTestId("snippet-ios-podfile")).toHaveTextContent(
         "React Native projects",
@@ -989,16 +988,18 @@ describe("Onboarding — Step 2: Integrate", () => {
       renderOnboarding();
       // Set Flutter to iOS.
       fireEvent.click(screen.getByTestId("tab-Flutter"));
-      fireEvent.click(screen.getByTestId("onboarding-flutter-platform-iOS"));
+      fireEvent.click(
+        screen.getByTestId("onboarding-flutter-native-target-iOS"),
+      );
       // Switch to React Native — should still default to Android.
       fireEvent.click(screen.getByTestId("tab-React Native"));
       expect(
-        screen.getByTestId("onboarding-react-native-platform-Android"),
+        screen.getByTestId("onboarding-react-native-native-target-Android"),
       ).toHaveAttribute("data-selected", "true");
       // Switch back to Flutter — its iOS selection survived.
       fireEvent.click(screen.getByTestId("tab-Flutter"));
       expect(
-        screen.getByTestId("onboarding-flutter-platform-iOS"),
+        screen.getByTestId("onboarding-flutter-native-target-iOS"),
       ).toHaveAttribute("data-selected", "true");
     });
   });
@@ -1008,7 +1009,9 @@ describe("Onboarding — Step 2: Integrate", () => {
       renderOnboarding();
       fireEvent.click(screen.getByTestId("tab-React Native"));
       expect(
-        screen.queryByTestId("onboarding-react-native-expo-platform-select"),
+        screen.queryByTestId(
+          "onboarding-react-native-expo-native-target-select",
+        ),
       ).not.toBeInTheDocument();
     });
 
@@ -1016,10 +1019,12 @@ describe("Onboarding — Step 2: Integrate", () => {
       renderOnboarding();
       fireEvent.click(screen.getByTestId("tab-React Native (Expo)"));
       expect(
-        screen.getByTestId("onboarding-react-native-expo-platform-Android"),
+        screen.getByTestId(
+          "onboarding-react-native-expo-native-target-Android",
+        ),
       ).toBeInTheDocument();
       expect(
-        screen.getByTestId("onboarding-react-native-expo-platform-iOS"),
+        screen.getByTestId("onboarding-react-native-expo-native-target-iOS"),
       ).toBeInTheDocument();
     });
 
@@ -1027,10 +1032,12 @@ describe("Onboarding — Step 2: Integrate", () => {
       renderOnboarding();
       fireEvent.click(screen.getByTestId("tab-React Native (Expo)"));
       expect(
-        screen.getByTestId("onboarding-react-native-expo-platform-Android"),
+        screen.getByTestId(
+          "onboarding-react-native-expo-native-target-Android",
+        ),
       ).toHaveAttribute("data-selected", "true");
       expect(
-        screen.getByTestId("onboarding-react-native-expo-platform-iOS"),
+        screen.getByTestId("onboarding-react-native-expo-native-target-iOS"),
       ).toHaveAttribute("data-selected", "false");
     });
 
@@ -1066,7 +1073,7 @@ describe("Onboarding — Step 2: Integrate", () => {
       renderOnboarding();
       fireEvent.click(screen.getByTestId("tab-React Native (Expo)"));
       fireEvent.click(
-        screen.getByTestId("onboarding-react-native-expo-platform-iOS"),
+        screen.getByTestId("onboarding-react-native-expo-native-target-iOS"),
       );
       const configPlugin = screen.getByTestId("snippet-expo-config-plugin");
       expect(configPlugin).toHaveTextContent("iosApiKey");
@@ -1091,17 +1098,19 @@ describe("Onboarding — Step 2: Integrate", () => {
       // Set bare React Native to iOS.
       fireEvent.click(screen.getByTestId("tab-React Native"));
       fireEvent.click(
-        screen.getByTestId("onboarding-react-native-platform-iOS"),
+        screen.getByTestId("onboarding-react-native-native-target-iOS"),
       );
       // Switch to Expo — should still default to Android.
       fireEvent.click(screen.getByTestId("tab-React Native (Expo)"));
       expect(
-        screen.getByTestId("onboarding-react-native-expo-platform-Android"),
+        screen.getByTestId(
+          "onboarding-react-native-expo-native-target-Android",
+        ),
       ).toHaveAttribute("data-selected", "true");
       // Switch back to bare React Native — its iOS selection survived.
       fireEvent.click(screen.getByTestId("tab-React Native"));
       expect(
-        screen.getByTestId("onboarding-react-native-platform-iOS"),
+        screen.getByTestId("onboarding-react-native-native-target-iOS"),
       ).toHaveAttribute("data-selected", "true");
     });
   });
@@ -1532,24 +1541,28 @@ describe("Onboarding — Persistence", () => {
       expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
     });
 
-    it("persists the flutterPlatform on sub-selector click", () => {
+    it("persists the Flutter native target on sub-selector click", () => {
       renderOnboarding();
       fireEvent.click(screen.getByTestId("tab-Flutter"));
-      fireEvent.click(screen.getByTestId("onboarding-flutter-platform-iOS"));
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      expect(stored).not.toBeNull();
-      expect(JSON.parse(stored!).flutterPlatform).toBe("iOS");
-    });
-
-    it("persists the reactNativeExpoPlatform on sub-selector click", () => {
-      renderOnboarding();
-      fireEvent.click(screen.getByTestId("tab-React Native (Expo)"));
       fireEvent.click(
-        screen.getByTestId("onboarding-react-native-expo-platform-iOS"),
+        screen.getByTestId("onboarding-flutter-native-target-iOS"),
       );
       const stored = window.localStorage.getItem(STORAGE_KEY);
       expect(stored).not.toBeNull();
-      expect(JSON.parse(stored!).reactNativeExpoPlatform).toBe("iOS");
+      expect(JSON.parse(stored!).nativeTargets.Flutter).toBe("iOS");
+    });
+
+    it("persists the Expo native target on sub-selector click", () => {
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-React Native (Expo)"));
+      fireEvent.click(
+        screen.getByTestId("onboarding-react-native-expo-native-target-iOS"),
+      );
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      expect(stored).not.toBeNull();
+      expect(JSON.parse(stored!).nativeTargets["React Native (Expo)"]).toBe(
+        "iOS",
+      );
     });
   });
 
@@ -1562,9 +1575,7 @@ describe("Onboarding — Persistence", () => {
         JSON.stringify({
           step: "integrate",
           platform: "Flutter",
-          flutterPlatform: "Android",
-          reactNativePlatform: "Android",
-          reactNativeExpoPlatform: "Android",
+          nativeTargets: {},
         }),
       );
       onboardingStoreInstance = createOnboardingStore();
@@ -1581,9 +1592,7 @@ describe("Onboarding — Persistence", () => {
         JSON.stringify({
           step: "verify",
           platform: "iOS",
-          flutterPlatform: "Android",
-          reactNativePlatform: "Android",
-          reactNativeExpoPlatform: "Android",
+          nativeTargets: {},
         }),
       );
       onboardingStoreInstance = createOnboardingStore();
@@ -1597,23 +1606,21 @@ describe("Onboarding — Persistence", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("restores the flutterPlatform sub-selection from storage on mount", () => {
+    it("restores a cross-platform native target from storage on mount", () => {
       window.localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({
           step: "integrate",
           platform: "Flutter",
-          flutterPlatform: "iOS",
-          reactNativePlatform: "Android",
-          reactNativeExpoPlatform: "Android",
+          nativeTargets: { Flutter: "iOS" },
         }),
       );
       onboardingStoreInstance = createOnboardingStore();
       renderOnboarding();
       expect(
-        screen.getByTestId("onboarding-flutter-platform-iOS"),
+        screen.getByTestId("onboarding-flutter-native-target-iOS"),
       ).toHaveAttribute("data-selected", "true");
-      // Sub-platform iOS → iOS-side Flutter snippets should be visible.
+      // Native target iOS → iOS-side Flutter snippets should be visible.
       expect(screen.getByTestId("snippet-ios-podfile")).toBeInTheDocument();
       expect(screen.queryByTestId("snippet-manifest")).not.toBeInTheDocument();
     });
@@ -1643,7 +1650,7 @@ describe("Onboarding — Persistence", () => {
         JSON.stringify({ step: "verify" }),
       );
       renderOnboarding();
-      // step field is present but platform/flutterPlatform are missing —
+      // step field is present but platform/nativeTargets are missing —
       // entry is rejected, so we fall back to the integrate default rather
       // than partial trust.
       expect(
@@ -1663,9 +1670,7 @@ describe("Onboarding — Persistence", () => {
         JSON.stringify({
           step: "integrate",
           platform: "Flutter",
-          flutterPlatform: "iOS",
-          reactNativePlatform: "Android",
-          reactNativeExpoPlatform: "Android",
+          nativeTargets: { Flutter: "iOS" },
         }),
       );
       render(
@@ -1678,7 +1683,7 @@ describe("Onboarding — Persistence", () => {
       const parsed = JSON.parse(stored!);
       expect(parsed.step).toBe("integrate");
       expect(parsed.platform).toBe("Flutter");
-      expect(parsed.flutterPlatform).toBe("iOS");
+      expect(parsed.nativeTargets.Flutter).toBe("iOS");
     });
 
     it("preserves stored state across a re-render with the same selected app", () => {
@@ -1687,9 +1692,7 @@ describe("Onboarding — Persistence", () => {
         JSON.stringify({
           step: "verify",
           platform: "iOS",
-          flutterPlatform: "Android",
-          reactNativePlatform: "Android",
-          reactNativeExpoPlatform: "Android",
+          nativeTargets: {},
         }),
       );
       const { rerender } = renderOnboarding();
@@ -1698,7 +1701,7 @@ describe("Onboarding — Persistence", () => {
       const parsed = JSON.parse(stored!);
       expect(parsed.step).toBe("verify");
       expect(parsed.platform).toBe("iOS");
-      expect(parsed.flutterPlatform).toBe("Android");
+      expect(parsed.nativeTargets).toEqual({});
     });
   });
 });
