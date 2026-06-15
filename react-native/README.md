@@ -1,6 +1,6 @@
-# @measuresh/react-native
+# React Native SDK for measure.sh
 
-Open source tool to monitor mobile apps
+Mobile apps break, fix issues faster
 
 ## Installation
 
@@ -10,4 +10,4 @@ npm install @measuresh/react-native
 
 ## Documentation
 
-Checkout complete documentation [here](/docs/)
+Checkout complete documentation [here](https://measure.sh/docs)
