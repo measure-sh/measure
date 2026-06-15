@@ -47,19 +47,6 @@ const PLATFORMS: Platform[] = ["Android", "iOS", "Flutter", "React Native"];
 const NATIVE_TARGETS: NativeTarget[] = ["Android", "iOS"];
 const POLL_INTERVAL_MS = 3000;
 
-// React Native onboarding isn't ready to ship yet. While this is false the RN
-// tab is hidden and the flow is unreachable. Flip it to true to show the tab
-// and enable the full flow — the type, snippet builders, and the flag-gated
-// tests all come back with no other changes.
-export const REACT_NATIVE_ENABLED = false;
-
-// Platforms offered as tabs. RN appears only when enabled; the rest of the RN
-// machinery (type, snippet builders) stays intact so the flag is the single
-// switch that brings it back.
-const VISIBLE_PLATFORMS: Platform[] = REACT_NATIVE_ENABLED
-  ? PLATFORMS
-  : PLATFORMS.filter((p) => p !== "React Native");
-
 interface OnboardingProps {
   teamId: string;
   initConfig: InitConfig;
@@ -453,14 +440,8 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
     apps.length === 0
       ? "create"
       : (persistedState?.step ?? DEFAULT_ONBOARDING_STATE.step);
-  const resolvedPlatform: Platform =
-    persistedState?.platform ?? DEFAULT_ONBOARDING_STATE.platform;
-  // If RN is gated off but a user has it persisted from a prior session, fall
-  // back to the default so they don't land on a platform whose tab is hidden.
   const platform: Platform =
-    !REACT_NATIVE_ENABLED && resolvedPlatform === "React Native"
-      ? DEFAULT_ONBOARDING_STATE.platform
-      : resolvedPlatform;
+    persistedState?.platform ?? DEFAULT_ONBOARDING_STATE.platform;
   const flutterPlatform: FlutterPlatform =
     persistedState?.flutterPlatform ?? DEFAULT_ONBOARDING_STATE.flutterPlatform;
   const reactNativePlatform: ReactNativePlatform =
@@ -733,7 +714,7 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
           {step === "integrate" && (
             <div className="ml-11 flex flex-col gap-8">
               <TabSelect
-                items={VISIBLE_PLATFORMS as unknown as string[]}
+                items={PLATFORMS as unknown as string[]}
                 selected={platform}
                 onChangeSelected={(p) => setPlatform(p as Platform)}
               />
