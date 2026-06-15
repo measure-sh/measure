@@ -224,6 +224,12 @@ describe("cleanContent", () => {
   it("handles empty string", () => {
     expect(cleanContent("")).toBe("");
   });
+
+  it("removes comments that a single pass would reintroduce", () => {
+    // One replace turns `<!-<!-- -->->` into `<!-->`, re-forming `<!--`.
+    // Iterating to a fixed point ensures no complete comment survives.
+    expect(cleanContent("<!-<!-- -->->")).not.toMatch(/<!--.*?-->/s);
+  });
 });
 
 describe("extractTitle", () => {
