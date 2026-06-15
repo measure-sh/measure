@@ -64,7 +64,7 @@ class BuildUploadTaskTest {
         task.retriesProperty.set(retriesCount)
         task.httpClientProvider.set(httpClient)
         task.manifestFileProperty.set(manifestDataFile)
-        task.mappingFileProperty.set(mappingFile)
+        task.mappingFiles.setFrom(mappingFile)
         task.buildMetadataFileProperty.set(appSizeFile)
         task.flutterSymbolsFiles.from(project.fileTree(flutterSymbolsDir) { it.include("*.symbols") })
         task.requestHeadersProperty.set(customHeaders)
@@ -152,6 +152,22 @@ class BuildUploadTaskTest {
     }
 
     @Test
+    fun `tolerates a non-existent proguard mapping file`() {
+        val missingMapping = temporaryFolder.root.resolve("does-not-exist/mapping.txt")
+        task.mappingFiles.setFrom(missingMapping)
+
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200).setBody("""{"ok": "uploaded build info"}""")
+        )
+        task.upload()
+        val recordedRequest = mockWebServer.takeRequest()
+        val buildsRequest =
+            Json.decodeFromString(BuildsApiRequest.serializer(), recordedRequest.body.readUtf8())
+
+        assertEquals(0, buildsRequest.mappings.size)
+    }
+
+    @Test
     fun `sends request with React Native bundle and source map archives when available`() {
         val bundleArchive = temporaryFolder.newFile("index.android.bundle.tgz").apply {
             writeText("bundle tarball")
@@ -210,7 +226,7 @@ class BuildUploadTaskTest {
             writeText("source map tarball")
         }
         task.reactNativeBundleArchives.from(bundleArchive, sourceMapArchive)
-        task.mappingFileProperty.set(null as File?)
+        task.mappingFiles.setFrom()
 
         mockWebServer.enqueue(
             MockResponse().setResponseCode(200).setBody("""{"ok": "uploaded build info"}""")
@@ -237,7 +253,7 @@ class BuildUploadTaskTest {
             writeText(sourceMapContent)
         }
         task.reactNativeBundleArchives.from(bundleArchive, sourceMapArchive)
-        task.mappingFileProperty.set(null as File?)
+        task.mappingFiles.setFrom()
 
         val bundleUploadUrl = mockWebServer.url("/upload-rn-bundle").toString()
         val sourceMapUploadUrl = mockWebServer.url("/upload-rn-source-map").toString()
@@ -394,8 +410,7 @@ class BuildUploadTaskTest {
         )
 
         // Clear mapping file to test no-mappings scenario
-        val file: File? = null
-        task.mappingFileProperty.set(file)
+        task.mappingFiles.setFrom()
 
         task.upload()
         val recordedRequest = mockWebServer.takeRequest()

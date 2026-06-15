@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Redact source secrets in symbolicator request logs by @anupcowkur in #3908
 - (**backend**): Restrict bug report status updates roles by @anupcowkur in #3897
 - (**backend**): Cache autumn billing checks in alerts by @anupcowkur in #3863
 - (**backend**): Include message to group js errors (#3865) by @detj in #3865
@@ -62,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Strip HTML comments to a fixed point in docs by @anupcowkur in #3907
 - (**frontend**): Show error code, meta, and num_code when available by @anupcowkur in #3828
 - (**frontend**): Give session timeline events unique React keys by @anupcowkur in #3826
 - (**frontend**): Refresh app display after api key rotation by @anupcowkur in #3819
@@ -93,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Skip JVM symbolication when no proguard mapping exists by @abhaysood in #3899
 - (**backend**): Use docker secrets (#3862) by @detj in #3862
 - (**backend**): Make mcp tool description more accurate by @anupcowkur in #3860
 - (**backend**): Update mcp tools by @anupcowkur in #3858
@@ -139,6 +142,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Remove "soon" from RN landing icon by @anupcowkur in #3905
+- (**frontend**): Show RN onboarding tab by @anupcowkur
 - (**frontend**): Add posthog sourcemap upload for dashboard (#3857) by @detj in #3857
 - (**frontend**): Format dashboard with new prettier config by @anupcowkur in #3854
 - (**frontend**): Set up prettier formatting for the dashboard by @anupcowkur

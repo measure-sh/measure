@@ -50,21 +50,7 @@ This reads the `.env` file and generates:
 * `ios/MeasureDebug.xcconfig` — Measure API keys for the iOS debug build
 * `ios/MeasureRelease.xcconfig` — Measure API keys for the iOS release build
 
-
-#### 2. Build Measure React Native SDK
-
-The React Native SDK is linked from local source (`link:../../../react-native`)
-but the JS entry point is a build artifact (`lib/module/index.js`). Build it
-first:
-
-```bash
-cd ../../react-native
-yarn install
-npx bob build --target module
-cd ../samples/frank
-```
-
-#### 3. Set up Flutter module
+#### 2. Set up Flutter module
 
 ```bash
 cd flutter
@@ -75,7 +61,7 @@ cd ..
 This generates the `.android/` and `.ios/` integration directories required by
 the Gradle and CocoaPods build systems.
 
-#### 4. Set up React Native module
+#### 3. Set up React Native module
 
 ```bash
 cd react_native
@@ -83,7 +69,7 @@ yarn install
 cd ..
 ```
 
-#### 5. Set up iOS dependencies
+#### 4. Set up iOS dependencies
 
 ```bash
 cd ios
@@ -154,10 +140,11 @@ conflicts with the Kotlin plugin's default JVM target.
 "@measuresh/react-native": "link:../../../react-native"
 ```
 
-The symlink means changes to the RN SDK source are visible immediately. The
-native Android code is compiled from source via React Native autolinking
-(configured in `settings.gradle.kts`). The native iOS code is pulled in via
-the SDK's podspec through `use_react_native!` in the Podfile.
+The symlink means SDK changes are picked up on the next build, with no publish
+or `bob build` step (`react_native/metro.config.js` bundles the SDK from
+TypeScript source). The native Android code is compiled from source via React
+Native autolinking (configured in `settings.gradle.kts`). The native iOS code
+is pulled in via the SDK's podspec through `use_react_native!` in the Podfile.
 
 ### Flutter
 

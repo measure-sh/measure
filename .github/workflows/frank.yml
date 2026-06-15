@@ -75,11 +75,6 @@ jobs:
           path: ${{ steps.yarn-cache-dir.outputs.dir }}
           key: yarn-${{ hashFiles('react-native/yarn.lock', 'samples/frank/react_native/yarn.lock') }}
           restore-keys: yarn-
-      - name: Build Measure React Native SDK
-        run: |
-          yarn install
-          npx bob build --target module
-        working-directory: react-native
       - name: Install React Native dependencies
         run: yarn install
         working-directory: samples/frank/react_native
@@ -160,11 +155,6 @@ jobs:
           path: ${{ steps.yarn-cache-dir.outputs.dir }}
           key: yarn-${{ hashFiles('react-native/yarn.lock', 'samples/frank/react_native/yarn.lock') }}
           restore-keys: yarn-
-      - name: Build Measure React Native SDK
-        run: |
-          yarn install
-          npx bob build --target module
-        working-directory: react-native
       - name: Install React Native dependencies
         run: yarn install
         working-directory: samples/frank/react_native

@@ -76,9 +76,21 @@ function slugToFilePath(docsDir: string, slug: string[]): string | null {
 
 /**
  * Strip HTML comments like <!-- omit in toc --> from markdown content.
+ * A single regex pass is incomplete because an input like `<!-<!-- -->->`
+ * leaves `<!-->` behind after one replace — iterating to a fixed point
+ * removes any residue. The regex always consumes ≥7 chars per match, so
+ * the loop is guaranteed to terminate.
  */
 export function cleanContent(content: string): string {
-  return content.replace(/<!--.*?-->/gs, "");
+  let out = content;
+  for (let i = 0; i < 50; i++) {
+    const next = out.replace(/<!--.*?-->/gs, "");
+    if (next === out) {
+      return next;
+    }
+    out = next;
+  }
+  return out;
 }
 
 /**
