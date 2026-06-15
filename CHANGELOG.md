@@ -227,6 +227,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :recycle: Refactor
 
+- (**frontend**): Refactor onboarding and it's store by @anupcowkur in #3912
 - (**frontend**): Rename middleware to proxy for Next 16 by @anupcowkur in #3844
 - (**frontend**): Clarify onboarding first-event poll effect by @anupcowkur in #3843
 - (**frontend**): Consolidate pill styling by @anupcowkur in #3771
