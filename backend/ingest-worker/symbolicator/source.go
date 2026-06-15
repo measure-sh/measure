@@ -159,3 +159,62 @@ func NewSentrySource(id, url, token string) SentrySource {
 	}
 }
 
+// secretPlaceholder is substituted for sensitive source fields
+// before a request is logged. Real values are still sent over
+// the wire; only the logged copy is redacted.
+const secretPlaceholder = "[redacted]"
+
+// maskSecret replaces a non-empty secret with a placeholder,
+// leaving empty values untouched so the redacted shape matches
+// the original.
+func maskSecret(v string) string {
+	if v == "" {
+		return ""
+	}
+	return secretPlaceholder
+}
+
+// redactSecrets returns a copy of the source with its secret fields
+// masked. Identifiers and non-secret fields — id, bucket, region, and
+// the access key ID (the public half of an AWS key pair) — are kept so
+// the log stays useful for debugging.
+func (s Source) redactSecrets() Source {
+	s.SecretKey = maskSecret(s.SecretKey)
+	s.PrivateKey = maskSecret(s.PrivateKey)
+	s.BearerToken = maskSecret(s.BearerToken)
+	s.Token = maskSecret(s.Token)
+	return s
+}
+
+// redactSecrets returns a copy of the Sentry source with its auth
+// token masked, safe for logging.
+func (s SentrySource) redactSecrets() SentrySource {
+	s.Token = maskSecret(s.Token)
+	return s
+}
+
+// redactSources returns a copy of the sources with every credential
+// masked, safe for logging.
+func redactSources(sources []Source) []Source {
+	if sources == nil {
+		return nil
+	}
+	out := make([]Source, len(sources))
+	for i := range sources {
+		out[i] = sources[i].redactSecrets()
+	}
+	return out
+}
+
+// redactSentrySources returns a copy of the Sentry sources with
+// every token masked, safe for logging.
+func redactSentrySources(sources []SentrySource) []SentrySource {
+	if sources == nil {
+		return nil
+	}
+	out := make([]SentrySource, len(sources))
+	for i := range sources {
+		out[i] = sources[i].redactSecrets()
+	}
+	return out
+}
