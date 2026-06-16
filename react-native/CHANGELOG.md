@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [rn-v0.1.1] - 2026-06-16
+
+### :hammer: Misc
+
+
+- (**rn**): Update package.json (#3906)
+- (**rn**): Update expo plugin to add sdk initlaisation code (#3904)
+- (**rn**): Keep React Native view class names for gesture target (#3915)
+
 ## [rn-v0.1.0] - 2026-06-11
 
 ### :bug: Bug fixes
@@ -21,7 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
-- (**rn**): Prepare rn release 0.1.0
+- (**rn**): Prepare rn release 0.1.0 (#3895)
+- (**rn**): Add release workflow (#3893)
 - (**rn**): Fix typescript lint and typecheck error (#3878)
 - (**rn**): Add upload build script (#3874)
 - (**rn**): Remove enableFullCollectionMode from measure config (#3759)
@@ -59,4 +69,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**rn**): Add exception tracking (#2628)
 - (**rn**): Add sdk initialization api (#2505)
 
+[rn-v0.1.1]: https://github.com///compare/rn-v0.1.0..rn-v0.1.1
 
