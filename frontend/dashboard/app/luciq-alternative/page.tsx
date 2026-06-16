@@ -16,15 +16,15 @@ import TrackGithubLink from "../components/analytics/track_github_link";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
 export const metadata: Metadata = {
-  title: "Open Source Luciq (Instabug) Alternative",
+  title: "Open Source Luciq (formerly Instabug) Alternative",
   description:
-    "Mobile focused open source alternative to Luciq (formerly Instabug). Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
+    "Mobile focused, open source alternative to Luciq (formerly Instabug). Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
   alternates: { canonical: "/luciq-alternative" },
   openGraph: {
     ...sharedOpenGraph,
-    title: "Open Source Luciq (Instabug) Alternative | Measure",
+    title: "Open Source Luciq (formerly Instabug) Alternative | Measure",
     description:
-      "Mobile focused open source alternative to Luciq (formerly Instabug). Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
+      "Mobile focused, open source alternative to Luciq (formerly Instabug). Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
     url: "/luciq-alternative",
   },
 };
@@ -37,7 +37,7 @@ const differentiators: AlternativeDifferentiator[] = [
       <>
         Measure and Luciq both record full session replays and attach logs,
         network calls, device details and repro steps to the issues you debug,
-        so both give you far more than a stack trace.
+        giving you far more than a stack trace.
         <br />
         <br />
         Measure captures gestures, navigation, network calls, lifecycle events
@@ -48,11 +48,11 @@ const differentiators: AlternativeDifferentiator[] = [
         on every issue.
         <br />
         <br />
-        The difference is transparency. With Measure, you can audit what happens
-        to those collected sessions since our entire platform is open source.
-        From the SDK to the backend processing and the storage layer, you can
-        see what Measure does with your data and verify it yourself. No need for
-        blind trust, just read the source.
+        The key difference is transparency. With Measure, you can audit what
+        happens to those collected sessions since our entire platform is open
+        source. From the SDK to the backend processing and the storage layer,
+        you can see what Measure does with your data and verify it yourself. No
+        need for blind trust, just read the source.
       </>
     ),
   },
@@ -65,16 +65,16 @@ const differentiators: AlternativeDifferentiator[] = [
         <Link href="/product/adaptive-capture" className={underlineLinkStyle}>
           Adaptive Capture
         </Link>{" "}
-        you tune what you collect remotely, without shipping an app update.
+        you can tune what you collect remotely, without shipping an app update.
         <br />
         <br />
-        Luciq does not give you the same remote control to widen capture while
-        you chase a tricky bug and then pull it back to keep cost and noise
-        down.
+        Luciq does not give you the same remote control to increase capture
+        while you chase a tricky bug and then pull it back to keep cost and
+        noise down.
         <br />
         <br />
-        Turn detail up on a risky release, down afterwards, and change it
-        whenever you need to. With Measure, you always stay in control.
+        Turn detail up on a new release, down afterwards, and change it whenever
+        you need to.
       </>
     ),
   },
@@ -85,7 +85,7 @@ const differentiators: AlternativeDifferentiator[] = [
       <>
         Luciq is proprietary. Its SDK is published on GitHub, but under a
         license that forbids modifying it (use as is, all rights reserved), and
-        the backend and dashboard are a closed SaaS you can neither run nor
+        the backend and dashboard are a closed platform you can neither run nor
         inspect.
         <br />
         <br />
@@ -97,7 +97,7 @@ const differentiators: AlternativeDifferentiator[] = [
         >
           fully open source
         </TrackGithubLink>
-        . Read it, run it, self-host it, audit the pipeline end to end, and if
+        . Read it, run it, self-host it, audit the pipeline, and if you think
         something can be done better, send a pull request.
       </>
     ),
@@ -107,9 +107,10 @@ const differentiators: AlternativeDifferentiator[] = [
     icon: <LucideCircleDollarSign className="w-48 h-48 text-green-500 p-4" />,
     body: (
       <>
-        Luciq charges per daily active user and per seat, and its public pricing
-        routes you to a sales call rather than a number, so what you actually
-        pay comes down to a negotiation.
+        Luciq charges per daily active user and per seat and requires a sales
+        call to get a quote. App users without much activity end up adding to
+        costs, and every team member who needs access to the dashboard increases
+        costs further.
         <br />
         <br />
         Measure has a single, transparent{" "}
@@ -117,7 +118,7 @@ const differentiators: AlternativeDifferentiator[] = [
           price
         </Link>{" "}
         based on how much data you use. No per-seat fees, no per-user charges,
-        no quote required. With{" "}
+        no sales call needed. With{" "}
         <Link href="/product/adaptive-capture" className={underlineLinkStyle}>
           Adaptive Capture
         </Link>{" "}
@@ -130,13 +131,13 @@ const differentiators: AlternativeDifferentiator[] = [
     icon: <LucideSmartphone className="w-48 h-48 text-yellow-500 p-4" />,
     body: (
       <>
-        Luciq, like Measure, is mobile-only, so both are shaped around mobile
-        rather than treating it as one platform among many. The difference is
-        how they are built and run.
+        Luciq and Measure are both mobile first platforms. Luciq is closed
+        source and proprietary.
         <br />
         <br />
         Measure is open source and built in the open, with a public roadmap and
-        issue tracker, made for mobile developers to read, self-host and extend.{" "}
+        issue tracker, made for mobile developers to read, participate and
+        contribute.{" "}
         <Link href="/product/crashes-and-anrs" className={underlineLinkStyle}>
           Crashes &amp; ANRs
         </Link>
@@ -163,11 +164,12 @@ const differentiators: AlternativeDifferentiator[] = [
         <Link href="/product/user-journeys" className={underlineLinkStyle}>
           User Journeys
         </Link>{" "}
-        are all shaped only by how mobile apps break in production.
+        are all shaped by how mobile apps break in production.
         <br />
         <br />
-        Measure is built with the community with constant feedback which we
-        strongly believe leads to a better platform.
+        Measure is built with the community, incorporating continuous feedback
+        which we strongly believe leads to a better platform for mobile
+        developers.
       </>
     ),
   },
@@ -206,7 +208,7 @@ const comparisonRows: AlternativeComparisonRow[] = [
   {
     feature: "Pricing",
     measure: "Simple pricing based on data usage",
-    competitor: "Per active user + seat, contact sales",
+    competitor: "Per active user + seat, sales call needed",
   },
   {
     feature: "Open Source",

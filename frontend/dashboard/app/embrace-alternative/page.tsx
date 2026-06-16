@@ -18,13 +18,13 @@ import { underlineLinkStyle } from "../utils/shared_styles";
 export const metadata: Metadata = {
   title: "Open Source Embrace Alternative",
   description:
-    "Open source, self-hostable alternative to Embrace. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
+    "Mobile focused, open source alternative to Embrace. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
   alternates: { canonical: "/embrace-alternative" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Open Source Embrace Alternative | Measure",
     description:
-      "Open source, self-hostable alternative to Embrace. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
+      "Mobile focused, open source alternative to Embrace. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
     url: "/embrace-alternative",
   },
 };
@@ -35,9 +35,8 @@ const differentiators: AlternativeDifferentiator[] = [
     icon: <LucideFilm className="w-48 h-48 text-rose-600 p-4" />,
     body: (
       <>
-        This is where Embrace and Measure are most alike. Both attach a full
-        session view to every crash, ANR and error, and both capture it
-        automatically.
+        Embrace and Measure both attach a full session view to every crash, ANR
+        and error and capture it automatically.
         <br />
         <br />
         Measure records gestures, navigation, network calls, lifecycle events
@@ -48,10 +47,9 @@ const differentiators: AlternativeDifferentiator[] = [
         on every issue.
         <br />
         <br />
-        The difference is what happens to that data. With Measure the SDK and
-        the backend that stores your timelines are both open source and run
-        wherever you choose, so full session context never means handing your
-        sessions to a proprietary system you cannot see inside.
+        The key difference is transparency. Measure is open source, the platform
+        that stores your user data is transparent, and you never have to send
+        your data to a proprietary, locked platform.
       </>
     ),
   },
@@ -60,21 +58,21 @@ const differentiators: AlternativeDifferentiator[] = [
     icon: <LucideLayers className="w-48 h-48 text-indigo-500 p-4" />,
     body: (
       <>
-        Like Measure, Embrace captures full sessions with no sampling, so
-        neither makes you trade away data to hit a quota. Where they differ is
-        control: Embrace captures everything and bills per session, so full
-        fidelity means paying for every session your app generates.
+        Measure and Embrace both allow you to capture full session data without
+        sampling. Where they differ is control: Embrace captures everything and
+        bills per session, so full context means paying for every session your
+        app generates which can be significant at scale.
         <br />
         <br />
-        Measure captures full session context by default too, but with{" "}
+        Measure captures full session context, but with{" "}
         <Link href="/product/adaptive-capture" className={underlineLinkStyle}>
           Adaptive Capture
         </Link>{" "}
-        you tune what you collect remotely, without shipping an app update.
+        you can tune what you collect remotely, without shipping an app update.
         <br />
         <br />
-        Dial up on a risky release, dial down to cut cost or noise. You decide
-        how much you collect, and change it whenever you need to.
+        Dial up on a new release, dial down to cut cost or noise. You decide how
+        much you collect, and change it whenever you need to.
       </>
     ),
   },
@@ -84,7 +82,8 @@ const differentiators: AlternativeDifferentiator[] = [
     body: (
       <>
         Embrace open sources its SDKs but the backend and dashboard that ingest,
-        store and surface your data are a proprietary SaaS.
+        store and surface your data are locked behind a proprietary platform
+        with no auditability.
         <br />
         <br />
         Measure is{" "}
@@ -95,9 +94,9 @@ const differentiators: AlternativeDifferentiator[] = [
         >
           fully open source
         </TrackGithubLink>
-        . Run the entire stack yourself, audit the pipeline end to end, keep
-        your data on your own infrastructure if you choose, and if something can
-        be done better, send a pull request.
+        . Run the entire stack yourself, audit the pipeline, keep your data on
+        your own infrastructure if you choose, and if something can be done
+        better, send a pull request.
       </>
     ),
   },
@@ -114,10 +113,9 @@ const differentiators: AlternativeDifferentiator[] = [
         <Link href="/pricing" className={underlineLinkStyle}>
           price
         </Link>{" "}
-        based on how much data you actually ingest which is a much simpler and
-        more practical metric since it relates proportionally to usage of the
-        platform without meaningless sessions costing more than they need to.
-        With{" "}
+        based on how much data you actually ingest which is a much more
+        practical metric as it relates directly to usage of the platform without
+        meaningless sessions costing more than they need to. With{" "}
         <Link href="/product/adaptive-capture" className={underlineLinkStyle}>
           Adaptive Capture
         </Link>{" "}
@@ -130,9 +128,10 @@ const differentiators: AlternativeDifferentiator[] = [
     icon: <LucideSmartphone className="w-48 h-48 text-yellow-500 p-4" />,
     body: (
       <>
-        Embrace, like Measure, grew through mobile roots. Embrace has since
-        expanded into web RUM and broader observability that plugs into backend
-        tooling.
+        Embrace supports mobile and web monitoring. Mobile is one of the
+        supported platforms, and the defaults, platform decisions, dashboards
+        and product roadmap are shaped by the whole platform rather than by the
+        needs of mobile devs alone.
         <br />
         <br />
         Measure is mobile first and focused on mobile developers.{" "}
@@ -204,7 +203,7 @@ const comparisonRows: AlternativeComparisonRow[] = [
   {
     feature: "Pricing",
     measure: "Simple pricing based on data usage",
-    competitor: "Per session, retention tied to plan",
+    competitor: "Per session",
   },
   {
     feature: "Open Source",
@@ -220,7 +219,7 @@ const comparisonRows: AlternativeComparisonRow[] = [
   {
     feature: "Mobile focus",
     measure: true,
-    competitor: "Mobile and web",
+    competitor: "Mobile and Web",
   },
 ];
 
@@ -230,8 +229,8 @@ export default function EmbraceAlternative() {
       title="Looking for Embrace alternatives?"
       intro={
         <>
-          Embrace is an observability platform which started out in mobile and
-          has expanded to add web support.
+          Embrace is a mobile and web observability platform that offers crash
+          reporting, ANR tracking, network monitoring and performance traces.
           <br />
           <br />
           Measure is a mobile first, open source Embrace alternative.

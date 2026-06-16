@@ -18,13 +18,13 @@ import { underlineLinkStyle } from "../utils/shared_styles";
 export const metadata: Metadata = {
   title: "Open Source Sentry Alternative",
   description:
-    "Mobile focused open source alternative to Sentry. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
+    "Mobile focused, open source alternative to Sentry. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
   alternates: { canonical: "/sentry-alternative" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Open Source Sentry Alternative | Measure",
     description:
-      "Mobile focused open source alternative to Sentry. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
+      "Mobile focused, open source alternative to Sentry. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
     url: "/sentry-alternative",
   },
 };
@@ -35,11 +35,10 @@ const differentiators: AlternativeDifferentiator[] = [
     icon: <LucideFilm className="w-48 h-48 text-rose-600 p-4" />,
     body: (
       <>
-        With Sentry you get the stack trace and breadcrumbs out of the box. The
-        richer, replay-style view of what the user did comes from Session
-        Replay, which is billed as a separate product. This means you capture a
-        fraction of error sessions when the price gets expensive at scale rather
-        than all of them.
+        Sentry gives you stack traces and breadcrumbs out of the box with
+        Session Replays billed separately. If you want full context on every
+        error, you will need to turn on Session Replays for all of them and
+        accommodate the considerable cost increase.
         <br />
         <br />
         Measure attaches a full{" "}
@@ -52,9 +51,7 @@ const differentiators: AlternativeDifferentiator[] = [
         <br />
         <br />
         You see exactly what the user did and what the app did, on every issue,
-        without deciding in advance which errors are worth attaching full
-        context to. No more ending with a production issue with no visibility
-        because the session context got sampled out.
+        without any compromise on the context.
       </>
     ),
   },
@@ -63,20 +60,19 @@ const differentiators: AlternativeDifferentiator[] = [
     icon: <LucideLayers className="w-48 h-48 text-indigo-500 p-4" />,
     body: (
       <>
-        Sentry uses fixed client-side sampling. You set a sample rate for traces
-        and replays, decide up front what fraction to keep, and the rest is
-        dropped before it ever reaches you.
+        Sentry uses client-side sampling. You set a sample rate for traces and
+        replays and decide up front what fraction to keep.
         <br />
         <br />
         Measure captures full session context by default, and with{" "}
         <Link href="/product/adaptive-capture" className={underlineLinkStyle}>
           Adaptive Capture
         </Link>{" "}
-        you tune what you collect remotely, without shipping an app update.
+        you can tune what you collect remotely, without shipping an app update.
         <br />
         <br />
         Dial up sample rates on new releases or when chasing tricky production
-        issues, dial down whenever you need to. Measure puts you in control.
+        issues, dial down whenever you need to.
       </>
     ),
   },
@@ -87,7 +83,7 @@ const differentiators: AlternativeDifferentiator[] = [
       <>
         Sentry uses a custom source-available rather than OSI open source: its
         main application and dashboard ship under the Functional Source License
-        (FSL) with only SDKs being MIT and the main application only going
+        (FSL) with only the SDKs being MIT and the main application only going
         Apache 2.0 after 2 years.
         <br />
         <br />
@@ -109,9 +105,9 @@ const differentiators: AlternativeDifferentiator[] = [
     icon: <LucideCircleDollarSign className="w-48 h-48 text-green-500 p-4" />,
     body: (
       <>
-        Sentry bills across a stack of separate features — errors, spans,
-        replays all cost different amounts which in practice turns into juggling
-        usage math and potentially unpleasant surprises at billing time.
+        Sentry bills across a range of separate features: errors, spans, replays
+        all cost different amounts across various tiers which makes it harder to
+        predict costs as your app scales up.
         <br />
         <br />
         Measure has a single, transparent{" "}
@@ -134,10 +130,9 @@ const differentiators: AlternativeDifferentiator[] = [
     body: (
       <>
         Sentry monitors servers, cloud, serverless, frontend, games and mobile
-        across dozens of SDKs, so mobile is only one part of its sprawling
-        observability empire. Mobile is one platform among many, and the
-        defaults, dashboards and product roadmap are shaped by the whole
-        platform rather than by mobile alone.
+        across dozens of SDKs. Mobile is one platform among many, and the
+        defaults, platform decisions, dashboards and product roadmap are shaped
+        by the whole platform rather than by the needs of mobile devs alone.
         <br />
         <br />
         Measure is built only for mobile.{" "}
@@ -181,13 +176,12 @@ const comparisonRows: AlternativeComparisonRow[] = [
     feature: "Crash reporting with full session timelines",
     measure: true,
     competitor:
-      "Crash reports with manual breadcrumbs, Session replay billed separately",
+      "Crash reports with breadcrumbs, Session replay billed separately",
   },
   {
     feature: "ANR detection with full session timelines",
     measure: true,
-    competitor:
-      "ANRs with manual breadcrumbs, Session replay billed separately",
+    competitor: "ANRs with breadcrumbs, Session replay billed separately",
   },
   { feature: "Performance traces", measure: true, competitor: true },
   {
@@ -209,7 +203,7 @@ const comparisonRows: AlternativeComparisonRow[] = [
   {
     feature: "Dynamic Sampling with Adaptive Capture",
     measure: true,
-    competitor: "Static client side only sampling",
+    competitor: "Client side only sampling",
   },
   {
     feature: "Auto-captured context",
@@ -237,7 +231,7 @@ const comparisonRows: AlternativeComparisonRow[] = [
   {
     feature: "Mobile focus",
     measure: true,
-    competitor: "One of many Sentry products",
+    competitor: "One of many Sentry platforms",
   },
 ];
 
