@@ -18,13 +18,13 @@ import { underlineLinkStyle } from "../utils/shared_styles";
 export const metadata: Metadata = {
   title: "Open Source Bugsnag Alternative",
   description:
-    "Mobile focused open source alternative to Bugsnag. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
+    "Mobile focused, open source alternative to Bugsnag. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
   alternates: { canonical: "/bugsnag-alternative" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Open Source Bugsnag Alternative | Measure",
     description:
-      "Mobile focused open source alternative to Bugsnag. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
+      "Mobile focused, open source alternative to Bugsnag. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
     url: "/bugsnag-alternative",
   },
 };
@@ -35,9 +35,9 @@ const differentiators: AlternativeDifferentiator[] = [
     icon: <LucideFilm className="w-48 h-48 text-rose-600 p-4" />,
     body: (
       <>
-        With Bugsnag you get the stack trace plus a breadcrumb trail of what
-        happened before the error. Breadcrumbs are limited (25 by default and
-        100 at most) and there is no visual replay of the session.
+        Bugsnag gives you stack traces with breadcrumb trails of what happened
+        before the error. Breadcrumbs have a max limit and there is no visual
+        replay of the session.
         <br />
         <br />
         Measure attaches a full{" "}
@@ -50,7 +50,7 @@ const differentiators: AlternativeDifferentiator[] = [
         <br />
         <br />
         You see exactly what the user did and what the app did, on every issue,
-        not just the last hundred breadcrumbs before it broke.
+        without any compromise on the context.
       </>
     ),
   },
@@ -63,19 +63,18 @@ const differentiators: AlternativeDifferentiator[] = [
         Performance data is sampled server-side so it fits your span quota, and
         errors are metered against a monthly event quota. In case of traffic
         spikes or sudden user growth, you would end up with less visibility into
-        your system, just when you need more.
+        your system when you need more.
         <br />
         <br />
         Measure captures full session context by default, and with{" "}
         <Link href="/product/adaptive-capture" className={underlineLinkStyle}>
           Adaptive Capture
         </Link>{" "}
-        you tune what you collect remotely, without shipping an app update.
+        you can tune what you collect remotely, without shipping an app update.
         <br />
         <br />
         Dial up on new releases or when chasing tricky production issues, dial
-        down whenever you need to. You stay in control, there is no billing
-        tier.
+        down whenever you need to.
       </>
     ),
   },
@@ -85,10 +84,8 @@ const differentiators: AlternativeDifferentiator[] = [
     body: (
       <>
         Bugsnag publishes its notifier SDKs on GitHub under the MIT license, but
-        the backend and dashboard are proprietary. You can read the SDK, but you
-        can&apos;t see or influence what happens to your data once it leaves the
-        device, and self-hosting means running a closed binary on an Enterprise
-        plan.
+        the backend and dashboard are proprietary. You can read the SDK but the
+        rest of the platform is opaque.
         <br />
         <br />
         Measure is{" "}
@@ -110,7 +107,7 @@ const differentiators: AlternativeDifferentiator[] = [
     body: (
       <>
         Bugsnag meters two separate things, error events and performance spans,
-        each against its own monthly quota, and exceeding them means sampling or
+        each against its own monthly quota. Exceeding quotas means sampling or
         overage.
         <br />
         <br />
@@ -134,8 +131,9 @@ const differentiators: AlternativeDifferentiator[] = [
       <>
         Bugsnag monitors mobile, web and backend across 50+ platforms and is now
         one product inside SmartBear&apos;s larger testing and monitoring suite.
-        Mobile is one player among many, and the defaults, dashboards and
-        roadmap are shaped by the whole portfolio rather than by mobile alone.
+        Mobile is one player among many, and the defaults, platform decisions,
+        dashboards and roadmap are shaped by the whole portfolio rather than by
+        the needs of mobile devs alone.
         <br />
         <br />
         Measure is built only for mobile.{" "}
@@ -178,12 +176,12 @@ const comparisonRows: AlternativeComparisonRow[] = [
   {
     feature: "Crash reporting with full session timelines",
     measure: true,
-    competitor: "Crash reports with breadcrumbs, no session timeline",
+    competitor: "Crash reports with limited breadcrumbs",
   },
   {
     feature: "ANR detection with full session timelines",
     measure: true,
-    competitor: "ANRs with breadcrumbs, no session timeline",
+    competitor: "ANRs with limited breadcrumbs",
   },
   { feature: "Performance traces", measure: true, competitor: true },
   { feature: "Network monitoring", measure: true, competitor: true },
@@ -192,7 +190,7 @@ const comparisonRows: AlternativeComparisonRow[] = [
   {
     feature: "Session timeline on every issue",
     measure: true,
-    competitor: "Breadcrumbs only, limited to 100",
+    competitor: "Limited breadcrumbs only",
   },
   {
     feature: "Dynamic Sampling with Adaptive Capture",
@@ -202,7 +200,7 @@ const comparisonRows: AlternativeComparisonRow[] = [
   {
     feature: "Auto-captured context",
     measure: "Gestures, navigation, network, lifecycle",
-    competitor: "Navigation, network, taps via breadcrumbs limited to 100",
+    competitor: "Navigation, network, taps via limited breadcrumbs",
   },
   {
     feature: "Pricing",
@@ -237,9 +235,8 @@ export default function BugsnagAlternative() {
       title="Looking for Bugsnag alternatives?"
       intro={
         <>
-          Bugsnag is an established error monitoring and app stability tool, now
-          part of SmartBear, covering mobile alongside web and backend across
-          dozens of platforms.
+          Bugsnag is an established error monitoring and app stability tool
+          covering mobile alongside web and backend across dozens of platforms.
           <br />
           <br />
           Measure is a mobile first, open source Bugsnag alternative.

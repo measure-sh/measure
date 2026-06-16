@@ -18,13 +18,13 @@ import { underlineLinkStyle } from "../utils/shared_styles";
 export const metadata: Metadata = {
   title: "Open Source Firebase Crashlytics Alternative",
   description:
-    "Open source alternative to Firebase Crashlytics. Unifies crashes, ANRs, performance, network and full session timelines for mobile engineering teams.",
+    "Mobile focused, open source alternative to Firebase Crashlytics. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
   alternates: { canonical: "/crashlytics-alternative" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Open Source Firebase Crashlytics Alternative | Measure",
     description:
-      "Open source alternative to Firebase Crashlytics. Unifies crashes, ANRs, performance, network and full session timelines for mobile engineering teams.",
+      "Mobile focused, open source alternative to Firebase Crashlytics. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
     url: "/crashlytics-alternative",
   },
 };
@@ -39,13 +39,12 @@ const differentiators: AlternativeDifferentiator[] = [
         complete the mobile app monitoring picture.
         <br />
         <br />
-        Want performance traces? You need the Firebase Performance Monitoring
-        add-on. Want to understand what the user was doing when the crash
-        happened? You&apos;ll need to enable Google Analytics and manually
-        instrument breadcrumb logs for every kind of error you care about. Want
-        users to report bugs? Buy a third-party tool or hack your own. Want to
-        analyze your data? Export it to BigQuery and pay per query. The number
-        of SDKs in your app and the tools you need to look at keep expanding.
+        Performance traces need the performance monitoring add-on. Understanding
+        what the user was doing when the crash happened requires enabling Google
+        Analytics and manually instrumenting breadcrumb logs. Bug reporting
+        requires third party tooling. Data analysis needs BigQuery export which
+        is charged separately. The number of SDKs in your app and the tools you
+        need to look at keep expanding.
         <br />
         <br />
         Measure unifies{" "}
@@ -90,11 +89,10 @@ const differentiators: AlternativeDifferentiator[] = [
     icon: <LucideFilm className="w-48 h-48 text-rose-600 p-4" />,
     body: (
       <>
-        When a crash hits in Crashlytics you get the stack trace plus breadcrumb
-        logs. Those logs are powered by Google Analytics, so screen views are
-        captured automatically but anything richer, like taps, navigation
-        timing, network calls or lifecycle events, requires error-prone, manual
-        instrumentation.
+        Crash reports in Crashlytics come with stack traces and manually
+        instrumented breadcrumbs. Taps, navigations, network calls or lifecycle
+        events require manual instrumentation which needs to be updated and
+        synced when your app code changes in new releases.
         <br />
         <br />
         Measure auto-captures gestures, navigation, lifecycle events, network
@@ -105,8 +103,8 @@ const differentiators: AlternativeDifferentiator[] = [
         attached to every crash, ANR or error.
         <br />
         <br />
-        You see exactly what the user did, what the app did and where things
-        went wrong, without instrumenting every screen by hand.
+        Measure makes it easy to see what the user did, what the app did and
+        where things went wrong, without instrumenting every screen by hand.
       </>
     ),
   },
@@ -116,10 +114,8 @@ const differentiators: AlternativeDifferentiator[] = [
     body: (
       <>
         The Crashlytics SDKs are open source on GitHub, but the backend and
-        dashboard are closed and run only on Google&apos;s infrastructure. Your
-        users&apos; stack traces, device info and any breadcrumbs you log all
-        flow through Firebase, and you can&apos;t see or change what happens
-        once the data leaves the SDK.
+        dashboard are closed and run only on Google&apos;s proprietary
+        infrastructure.
         <br />
         <br />
         Measure is{" "}
@@ -130,22 +126,21 @@ const differentiators: AlternativeDifferentiator[] = [
         >
           fully open source
         </TrackGithubLink>
-        . Read the SDK, read the backend, file issues, contribute fixes. Your
-        data is yours, the pipeline is auditable and you can be part of the
-        community and help make it better.
+        . Read it, run it, self-host it, audit the pipeline and if you think
+        something can be done better, send a pull request.
       </>
     ),
   },
   {
-    heading: "Predictable, transparent pricing",
+    heading: "Simple, transparent pricing",
     icon: <LucideCircleDollarSign className="w-48 h-48 text-green-500 p-4" />,
     body: (
       <>
-        Crashlytics itself is free, and if free crash reporting is all you need,
-        that&apos;s a good choice. The catch is that going further usually means
-        stepping into the rest of the Firebase and GCP price list: BigQuery
-        exports for analysis, Cloud Functions for alerting and other paid GCP
-        services for anything you want to do with the data.
+        Crashlytics itself is free. The catch is that going further usually
+        means stepping into the rest of the Firebase and GCP pricing ecosystem.
+        BigQuery exports for data analysis, Cloud Functions for alerting and
+        other paid GCP services require separate payment for advanced operations
+        on your data.
         <br />
         <br />
         Measure has a single, transparent{" "}
@@ -157,7 +152,8 @@ const differentiators: AlternativeDifferentiator[] = [
         <Link href="/product/adaptive-capture" className={underlineLinkStyle}>
           Adaptive Capture
         </Link>{" "}
-        you can dial collection up or down without rolling out app updates.
+        you can dial collection up or down without rolling out app updates to
+        control costs further.
       </>
     ),
   },
@@ -167,22 +163,41 @@ const differentiators: AlternativeDifferentiator[] = [
     body: (
       <>
         Crashlytics sits inside the larger Firebase suite where mobile is one
-        product line among many. The roadmap is opaque, and feature requests
+        product line among many. The product roadmap and platform decisions
         compete with the priorities of a much bigger platform.
         <br />
         <br />
-        Measure is built by a mobile-first team. Every feature, every default
-        and every trade-off is shaped by mobile devs solving real production
-        issues. The roadmap and issue tracker are public on{" "}
-        <TrackGithubLink
-          href="https://github.com/measure-sh/measure"
-          target="_blank"
+        Measure is built only for mobile.{" "}
+        <Link href="/product/crashes-and-anrs" className={underlineLinkStyle}>
+          Crashes &amp; ANRs
+        </Link>
+        ,{" "}
+        <Link href="/product/app-health" className={underlineLinkStyle}>
+          App Health
+        </Link>
+        ,{" "}
+        <Link href="/product/performance-traces" className={underlineLinkStyle}>
+          Performance Traces
+        </Link>
+        ,{" "}
+        <Link
+          href="/product/network-performance"
           className={underlineLinkStyle}
         >
-          GitHub
-        </TrackGithubLink>
-        . If something is missing, you can file a feature request, keep track of
-        updates or send a pull request.
+          Network Performance
+        </Link>
+        ,{" "}
+        <Link href="/product/bug-reports" className={underlineLinkStyle}>
+          Bug Reports
+        </Link>{" "}
+        and{" "}
+        <Link href="/product/user-journeys" className={underlineLinkStyle}>
+          User Journeys
+        </Link>{" "}
+        are all designed around how mobile apps actually break in production.
+        <br />
+        <br />
+        Mobile is not a part of our product, it is the whole product.
       </>
     ),
   },
@@ -202,12 +217,12 @@ const comparisonRows: AlternativeComparisonRow[] = [
   {
     feature: "Performance traces without sampling",
     measure: true,
-    competitor: "Sampled with no control",
+    competitor: "Sampled",
   },
   {
     feature: "Network monitoring without sampling",
     measure: true,
-    competitor: "Sampled with no control",
+    competitor: "Sampled",
   },
   {
     feature: "User journeys",
@@ -229,13 +244,13 @@ const comparisonRows: AlternativeComparisonRow[] = [
     feature: "Auto-captured context",
     measure: "Gestures, navigation, network, lifecycle",
     competitor:
-      "Screen views via Google Analytics but rest needs manual instrumentation",
+      "Screen views if Google Analytics is enabled but rest needs manual instrumentation",
   },
   {
     feature: "Pricing",
-    measure: "Simple pricing on data usage",
+    measure: "Simple pricing based on data usage",
     competitor:
-      "Free crash reporting but complicated Google Analytics + BigQuery pricing for advanced users",
+      "Free crash reporting but complex Google Analytics + BigQuery pricing for advanced users",
   },
   {
     feature: "Open Source",
@@ -251,7 +266,7 @@ const comparisonRows: AlternativeComparisonRow[] = [
   {
     feature: "Raw data access",
     measure: "Data export whenever you need it",
-    competitor: "BigQuery export only, locking you into Google's ecosystem",
+    competitor: "Paid export to BigQuery only",
   },
   {
     feature: "Mobile focus",
@@ -266,14 +281,12 @@ export default function CrashlyticsAlternative() {
       title="Looking for Firebase Crashlytics alternatives?"
       intro={
         <>
-          Firebase Crashlytics gives you basic crash reporting but why the crash
-          happened, what the user was doing, what state the app was in and all
-          the surrounding context is up to you to figure out with additional
-          tools.
+          Firebase Crashlytics is a free and popular crash reporting tool that
+          many apps start with.
           <br />
           <br />
-          Measure is an open-source Crashlytics alternative that gives you the
-          full context you need to fix issues faster.
+          Measure is a mobile first, open source Firebase Crashlytics
+          alternative.
         </>
       }
       differentiators={differentiators}

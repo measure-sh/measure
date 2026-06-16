@@ -18,13 +18,13 @@ import { underlineLinkStyle } from "../utils/shared_styles";
 export const metadata: Metadata = {
   title: "Open Source Datadog Alternative",
   description:
-    "Mobile focused open source alternative to Datadog. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
+    "Mobile focused, open source alternative to Datadog. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
   alternates: { canonical: "/datadog-alternative" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Open Source Datadog Alternative | Measure",
     description:
-      "Mobile focused open source alternative to Datadog. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
+      "Mobile focused, open source alternative to Datadog. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
     url: "/datadog-alternative",
   },
 };
@@ -35,12 +35,10 @@ const differentiators: AlternativeDifferentiator[] = [
     icon: <LucideFilm className="w-48 h-48 text-rose-600 p-4" />,
     body: (
       <>
-        With Datadog you get the stack trace plus the session&apos;s
-        auto-captured actions, views and network requests. The richer,
-        replay-style view of what the user did comes from Mobile Session Replay,
-        which is sampled and billed as a separate product. This means you
-        capture a fraction of sessions when the cost adds up at scale rather
-        than all of them.
+        Datadog gives you stack traces and auto-captured events out of the box
+        with Mobile Session Replays billed separately. If you want full context
+        on every error, you will need to turn on Mobile Session Replays for all
+        of them and accommodate the significant cost increase.
         <br />
         <br />
         Measure attaches a full{" "}
@@ -53,9 +51,7 @@ const differentiators: AlternativeDifferentiator[] = [
         <br />
         <br />
         You see exactly what the user did and what the app did, on every issue,
-        without deciding in advance which sessions are worth recording. No more
-        ending with a production issue with no visibility because the session
-        context got sampled out.
+        without any compromise on the context.
       </>
     ),
   },
@@ -64,20 +60,20 @@ const differentiators: AlternativeDifferentiator[] = [
     icon: <LucideLayers className="w-48 h-48 text-indigo-500 p-4" />,
     body: (
       <>
-        Datadog uses fixed client-side sampling. You set a session sample rate,
-        with a separate replay sample rate applied on top, decide up front what
-        fraction to keep, and the rest is dropped before it ever reaches you.
+        Datadog uses client-side sampling. You set a session sample rate, with a
+        separate replay sample rate applied on top and decide up front what
+        fraction to keep.
         <br />
         <br />
         Measure captures full session context by default, and with{" "}
         <Link href="/product/adaptive-capture" className={underlineLinkStyle}>
           Adaptive Capture
         </Link>{" "}
-        you tune what you collect remotely, without shipping an app update.
+        you can tune what you collect remotely, without shipping an app update.
         <br />
         <br />
         Dial up sample rates on new releases or when chasing tricky production
-        issues, dial down whenever you need to. Measure puts you in control.
+        issues, dial down whenever you need to.
       </>
     ),
   },
@@ -87,9 +83,8 @@ const differentiators: AlternativeDifferentiator[] = [
     body: (
       <>
         Datadog publishes its mobile SDKs as open source, but the backend and
-        dashboard are a proprietary SaaS and there is no self-host option. You
-        can read the SDK, but you can&apos;t see or run the platform that
-        ingests and stores your data.
+        dashboard are proprietary. You can read the SDK, but you can&apos;t see
+        or run the platform that ingests and stores your data.
         <br />
         <br />
         Measure is{" "}
@@ -111,10 +106,8 @@ const differentiators: AlternativeDifferentiator[] = [
     body: (
       <>
         Datadog is metered across a long list of separate SKUs. RUM sessions are
-        split into tiers, Mobile Session Replay is billed on top, and that sits
-        alongside per-host APM and infrastructure and per-gigabyte logs. There
-        are consultants who make a living out of helping you understand and
-        reduce your Datadog bills.
+        split into tiers, Mobile Session Replay is billed on top, and per-host
+        APM, infrastructure and logs have their own price lists.
         <br />
         <br />
         Measure has a single, transparent{" "}
@@ -137,10 +130,10 @@ const differentiators: AlternativeDifferentiator[] = [
     body: (
       <>
         Datadog monitors infrastructure, servers, cloud, APM, logs, security and
-        frontend across hundreds of integrations, so mobile is one small corner
-        of a sprawling observability platform. Mobile is one workload among
-        many, and the defaults, dashboards and roadmap are shaped by the whole
-        platform rather than by mobile alone.
+        frontend across hundreds of integrations. Mobile is one small corner of
+        a sprawling observability platform, and the defaults, dashboards,
+        product decisions and roadmap are shaped by the whole platform rather
+        than by the needs of mobile devs alone.
         <br />
         <br />
         Measure is built only for mobile.{" "}
@@ -183,7 +176,8 @@ const comparisonRows: AlternativeComparisonRow[] = [
   {
     feature: "Crash reporting with full session timelines",
     measure: true,
-    competitor: "Crash reports, session replay sampled & billed separately",
+    competitor:
+      "Crash reports with auto-captured events, session replay sampled & billed separately",
   },
   {
     feature: "ANR detection with full session timelines",
@@ -202,7 +196,7 @@ const comparisonRows: AlternativeComparisonRow[] = [
   {
     feature: "Dynamic Sampling with Adaptive Capture",
     measure: true,
-    competitor: "Static client side only sampling",
+    competitor: "Client side only sampling",
   },
   {
     feature: "Auto-captured context",

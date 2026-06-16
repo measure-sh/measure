@@ -1,6 +1,6 @@
 ---
-title: Open Source Luciq (Instabug) Alternative
-description: Mobile focused open source alternative to Luciq (formerly Instabug). Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.
+title: Open Source Luciq (formerly Instabug) Alternative
+description: Mobile focused, open source alternative to Luciq (formerly Instabug). Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.
 canonical: /luciq-alternative
 ---
 
@@ -12,39 +12,39 @@ Measure is a mobile first, open source Luciq alternative.
 
 ## Full session context on every issue
 
-Measure and Luciq both record full session replays and attach logs, network calls, device details and repro steps to the issues you debug, so both give you far more than a stack trace.
+Measure and Luciq both record full session replays and attach logs, network calls, device details and repro steps to the issues you debug, giving you far more than a stack trace.
 
 Measure captures gestures, navigation, network calls, lifecycle events and custom spans into a full [Session Timeline](/product/session-timelines) on every issue.
 
-The difference is transparency. With Measure, you can audit what happens to those collected sessions since our entire platform is open source. From the SDK to the backend processing and the storage layer, you can see what Measure does with your data and verify it yourself. No need for blind trust, just read the source.
+The key difference is transparency. With Measure, you can audit what happens to those collected sessions since our entire platform is open source. From the SDK to the backend processing and the storage layer, you can see what Measure does with your data and verify it yourself. No need for blind trust, just read the source.
 
 ## Adaptive capture, on your terms
 
-Measure captures full session context by default, and with [Adaptive Capture](/product/adaptive-capture) you tune what you collect remotely, without shipping an app update.
+Measure captures full session context by default, and with [Adaptive Capture](/product/adaptive-capture) you can tune what you collect remotely, without shipping an app update.
 
-Luciq does not give you the same remote control to widen capture while you chase a tricky bug and then pull it back to keep cost and noise down.
+Luciq does not give you the same remote control to increase capture while you chase a tricky bug and then pull it back to keep cost and noise down.
 
-Turn detail up on a risky release, down afterwards, and change it whenever you need to. With Measure, you always stay in control.
+Turn detail up on a new release, down afterwards, and change it whenever you need to.
 
 ## Fully open source
 
-Luciq is proprietary. Its SDK is published on GitHub, but under a license that forbids modifying it (use as is, all rights reserved), and the backend and dashboard are a closed SaaS you can neither run nor inspect.
+Luciq is proprietary. Its SDK is published on GitHub, but under a license that forbids modifying it (use as is, all rights reserved), and the backend and dashboard are a closed platform you can neither run nor inspect.
 
-Measure is [fully open source](https://github.com/measure-sh/measure). Read it, run it, self-host it, audit the pipeline end to end, and if something can be done better, send a pull request.
+Measure is [fully open source](https://github.com/measure-sh/measure). Read it, run it, self-host it, audit the pipeline end to end, and if you think something can be done better, send a pull request.
 
 ## Simple, predictable pricing
 
-Luciq charges per daily active user and per seat, and its public pricing routes you to a sales call rather than a number, so what you actually pay comes down to a negotiation.
+Luciq charges per daily active user and per seat and requires a sales call to get a quote. App users without much activity end up adding to costs, and every team member who needs access to the dashboard increases costs further.
 
-Measure has a single, transparent [price](/pricing) based on how much data you use. No per-seat fees, no per-user charges, no quote required. With [Adaptive Capture](/product/adaptive-capture) you can tune collection to keep costs in check.
+Measure has a single, transparent [price](/pricing) based on how much data you use. No per-seat fees, no per-user charges, no sales call needed. With [Adaptive Capture](/product/adaptive-capture) you can tune collection to keep costs in check.
 
 ## Built for mobile, by mobile devs
 
-Luciq, like Measure, is mobile-only, so both are shaped around mobile rather than treating it as one platform among many. The difference is how they are built and run.
+Luciq and Measure are both mobile first platforms. Luciq is closed source and proprietary.
 
-Measure is open source and built in the open, with a public roadmap and issue tracker, made for mobile developers to read, self-host and extend. [Crashes & ANRs](/product/crashes-and-anrs), [App Health](/product/app-health), [Performance Traces](/product/performance-traces), [Network Performance](/product/network-performance), [Bug Reports](/product/bug-reports) and [User Journeys](/product/user-journeys) are all shaped only by how mobile apps break in production.
+Measure is open source and built in the open, with a public roadmap and issue tracker, made for mobile developers to read, participate and contribute. [Crashes & ANRs](/product/crashes-and-anrs), [App Health](/product/app-health), [Performance Traces](/product/performance-traces), [Network Performance](/product/network-performance), [Bug Reports](/product/bug-reports) and [User Journeys](/product/user-journeys) are all shaped by how mobile apps break in production.
 
-Measure is built with the community with constant feedback which we strongly believe leads to a better platform.
+Measure is built with the community, incorporating continuous feedback which we strongly believe leads to a better platform for mobile developers.
 
 ## Measure vs Luciq
 
@@ -59,7 +59,7 @@ Measure is built with the community with constant feedback which we strongly bel
 | Session timeline on every issue | ✓ | ✓ |
 | Dynamic Sampling with Adaptive Capture | ✓ | ✗ |
 | Auto-captured context | Gestures, navigation, network, lifecycle | Screen changes, interactions, network, logs |
-| Pricing | Simple pricing based on data usage | Per active user + seat, contact sales |
+| Pricing | Simple pricing based on data usage | Per active user + seat, sales call needed |
 | Open Source | Apache 2.0 (OSI open source) | Proprietary |
 | Self-hostable | ✓ | ✗ |
 | Public roadmap & issue tracker | ✓ | ✗ |
