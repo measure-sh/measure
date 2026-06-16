@@ -89,7 +89,7 @@ We would love for you to contribute to Measure by opening issues, sending PRs, â
 
 ## Platforms
 
-Currently, we support Android, iOS and Flutter. React Native SDK is coming soon.
+Measure supports Android, iOS, Flutter and React Native. More platforms may be supported in the future.
 
 ## Roadmap
 
