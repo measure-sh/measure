@@ -481,6 +481,9 @@ The React Native SDK supports both **Expo** and **Vanilla React Native** project
 
 </details>
 
+> [!IMPORTANT]
+> Symbolication support for Over-The-Air (OTA) releases is coming soon.
+
 ### Install the SDK
 
 ```sh
