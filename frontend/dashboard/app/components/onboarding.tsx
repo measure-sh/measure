@@ -3,7 +3,7 @@
 import { Check, ChevronLeft, ChevronRight, Copy, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   App,
   AppsApiStatus,
@@ -21,10 +21,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { type InitConfig } from "../stores/filters_store";
 import {
   DEFAULT_ONBOARDING_STATE,
-  type OnboardingFlutterPlatform,
-  type OnboardingPlatform,
-  type OnboardingReactNativePlatform,
-  type OnboardingStep,
+  NATIVE_TARGETS,
+  PLATFORM_NAMES,
+  type NativeTarget,
+  type PlatformName,
+  type WizardStep,
 } from "../stores/onboarding_store";
 import { useFiltersStore, useOnboardingStore } from "../stores/provider";
 import type { CodeBlockLanguage } from "../utils/highlighter";
@@ -36,15 +37,6 @@ import { Input } from "./input";
 import { SDK_VERSIONS } from "./sdk_versions.generated";
 import TabSelect from "./tab_select";
 
-type Platform = OnboardingPlatform;
-type FlutterPlatform = OnboardingFlutterPlatform;
-type ReactNativePlatform = OnboardingReactNativePlatform;
-// Cross-platform SDKs all target one of these native sides.
-type NativeTarget = "Android" | "iOS";
-type Step = OnboardingStep;
-
-const PLATFORMS: Platform[] = ["Android", "iOS", "Flutter", "React Native"];
-const NATIVE_TARGETS: NativeTarget[] = ["Android", "iOS"];
 const POLL_INTERVAL_MS = 3000;
 
 interface OnboardingProps {
@@ -52,16 +44,36 @@ interface OnboardingProps {
   initConfig: InitConfig;
 }
 
+// The renderable essentials of a code block. The user-facing step title and
+// its "1. " number live on the OnboardingStep that wraps this.
 interface Snippet {
-  label: string;
   code: string;
-  testId: string;
   language: CodeBlockLanguage;
+  testId: string;
 }
 
-function androidGradleDepSnippet(label: string, testId: string): Snippet {
+// One instruction shown during integration (e.g. "Add the dependency"). The
+// leading number is added at render from the step's position, so authors never
+// hand-number.
+interface OnboardingStep {
+  title: string;
+  snippet: Snippet;
+}
+
+// A top-level onboarding tab. Native platforms (Android, iOS) have a single
+// step list; cross-platform platforms (Flutter, React Native, Expo) carry one
+// list per NativeTarget, because the API key lives on the native side and the
+// prep differs between Android and iOS.
+type Platform =
+  | { name: PlatformName; crossPlatform: false; steps: OnboardingStep[] }
+  | {
+      name: PlatformName;
+      crossPlatform: true;
+      steps: Record<NativeTarget, OnboardingStep[]>;
+    };
+
+function androidGradleDepSnippet(testId: string): Snippet {
   return {
-    label,
     testId,
     language: "kotlin",
     code: `// In your app/build.gradle.kts
@@ -71,13 +83,8 @@ dependencies {
   };
 }
 
-function androidManifestSnippet(
-  apiKey: string,
-  apiUrl: string,
-  label: string,
-): Snippet {
+function androidManifestSnippet(apiKey: string, apiUrl: string): Snippet {
   return {
-    label,
     testId: "snippet-manifest",
     language: "xml",
     code: `<!-- Inside the <application> tag -->
@@ -86,9 +93,8 @@ function androidManifestSnippet(
   };
 }
 
-function androidInitSnippet(label: string, testId: string): Snippet {
+function androidInitSnippet(testId: string): Snippet {
   return {
-    label,
     testId,
     language: "kotlin",
     code: `// In your Application.onCreate()
@@ -104,9 +110,24 @@ Measure.init(
   };
 }
 
-function iosSpmDepSnippet(label: string): Snippet {
+function androidCrashSnippet(): Snippet {
   return {
-    label,
+    testId: "snippet-crash",
+    language: "kotlin",
+    code: `import android.os.Handler
+import android.os.Looper
+
+// Add this in Application.onCreate(), after Measure.init().
+// The 2-second delay gives the SDK time to flush the crash event.
+// Remove this code after the crash appears in your dashboard.
+Handler(Looper.getMainLooper()).postDelayed({
+    throw RuntimeException("Test crash from Measure onboarding")
+}, 2000)`,
+  };
+}
+
+function iosSpmDepSnippet(): Snippet {
+  return {
     testId: "snippet-dependency",
     language: "swift",
     code: `// In Package.swift
@@ -117,11 +138,9 @@ function iosSpmDepSnippet(label: string): Snippet {
 function iosInitSnippet(
   apiKey: string,
   apiUrl: string,
-  label: string,
   testId: string,
 ): Snippet {
   return {
-    label,
     testId,
     language: "swift",
     code: `// In your AppDelegate's application(_:didFinishLaunchingWithOptions:)
@@ -136,9 +155,21 @@ Measure.initialize(with: clientInfo, config: config)`,
   };
 }
 
-function flutterDepSnippet(label: string): Snippet {
+function iosCrashSnippet(): Snippet {
   return {
-    label,
+    testId: "snippet-crash",
+    language: "swift",
+    code: `// Add this at your app entry point, after Measure.initialize.
+// The 2-second delay gives the SDK time to flush the crash event.
+// Remove this code after the crash appears in your dashboard.
+DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+    fatalError("Test crash from Measure onboarding")
+}`,
+  };
+}
+
+function flutterDepSnippet(): Snippet {
+  return {
     testId: "snippet-dependency",
     language: "yaml",
     code: `# In pubspec.yaml
@@ -147,9 +178,8 @@ dependencies:
   };
 }
 
-function flutterInitSnippet(label: string): Snippet {
+function flutterInitSnippet(): Snippet {
   return {
-    label,
     testId: "snippet-init",
     language: "dart",
     code: `// In main()
@@ -164,9 +194,8 @@ Future<void> main() async {
   };
 }
 
-function flutterCrashSnippet(label: string): Snippet {
+function flutterCrashSnippet(): Snippet {
   return {
-    label,
     testId: "snippet-crash",
     language: "dart",
     code: `// Add this in main() after Measure.instance.init.
@@ -181,13 +210,8 @@ Future.delayed(const Duration(seconds: 2), () {
 // Shared between cross-platform SDKs (Flutter, React Native) — the iOS side
 // always needs `measure-sh` linked statically. Only the user-visible project
 // name (in the intro) and Podfile target name differ per cross-platform.
-function iosPodfileSnippet(
-  label: string,
-  projectName: string,
-  targetName: string,
-): Snippet {
+function iosPodfileSnippet(projectName: string, targetName: string): Snippet {
   return {
-    label,
     testId: "snippet-ios-podfile",
     language: "ruby",
     code: `# ${projectName} projects default to use_frameworks! but measure-sh must be
@@ -205,9 +229,8 @@ end`,
   };
 }
 
-function reactNativeDepSnippet(label: string): Snippet {
+function reactNativeDepSnippet(): Snippet {
   return {
-    label,
     testId: "snippet-dependency",
     language: "shellscript",
     code: `# In your project root
@@ -215,9 +238,8 @@ npm install @measuresh/react-native@${SDK_VERSIONS.reactNative}`,
   };
 }
 
-function reactNativeInitSnippet(label: string): Snippet {
+function reactNativeInitSnippet(): Snippet {
   return {
-    label,
     testId: "snippet-init",
     language: "typescript",
     code: `// In your app entry (e.g. App.tsx)
@@ -229,9 +251,8 @@ await Measure.init({ config });`,
   };
 }
 
-function reactNativeCrashSnippet(label: string): Snippet {
+function reactNativeCrashSnippet(): Snippet {
   return {
-    label,
     testId: "snippet-crash",
     language: "typescript",
     code: `// Add this after Measure.init.
@@ -243,166 +264,242 @@ setTimeout(() => {
   };
 }
 
-// A single ordered step inside a cross-platform integration flow. `body`
-// is the user-visible label minus the leading "N. " prefix — the orchestrator
-// numbers steps in sequence so each cross-platform's nativePrep length can
-// vary without the snippet authors having to hand-number their labels.
-interface OrderedStep {
-  body: string;
-  build: (label: string) => Snippet;
-}
-
-// Describes a cross-platform SDK (Flutter, React Native). The native side
-// holds the API key (via manifest meta-data / Podfile + native init), so each
-// target has its own ordered list of prep snippets that run between the
-// cross-platform dependency install and the cross-platform SDK init.
-interface CrossPlatform {
-  dep: OrderedStep;
-  init: OrderedStep;
-  crash: OrderedStep;
-  nativePrep: Record<NativeTarget, OrderedStep[]>;
-}
-
-function flutterCrossPlatform(apiKey: string, apiUrl: string): CrossPlatform {
-  return {
-    dep: { body: "Add the Flutter package", build: flutterDepSnippet },
-    init: { body: "Initialize the Flutter SDK", build: flutterInitSnippet },
-    crash: { body: "Trigger a test crash", build: flutterCrashSnippet },
-    nativePrep: {
-      Android: [
-        {
-          body: "Add API key to AndroidManifest.xml",
-          build: (l) => androidManifestSnippet(apiKey, apiUrl, l),
-        },
-        {
-          body: "Initialize the Android native SDK",
-          build: (l) => androidInitSnippet(l, "snippet-android-init"),
-        },
-      ],
-      iOS: [
-        {
-          body: "Configure iOS Podfile for static linkage",
-          build: (l) => iosPodfileSnippet(l, "Flutter", "Runner"),
-        },
-        {
-          body: "Initialize the iOS native SDK",
-          build: (l) => iosInitSnippet(apiKey, apiUrl, l, "snippet-ios-init"),
-        },
-      ],
-    },
-  };
-}
-
-function reactNativeCrossPlatform(
+// Expo's config plugin carries the API key/URL for the native side being
+// built, so the snippet only shows the keys for the chosen target — a single
+// Measure app maps to one platform, the same convention as the other
+// cross-platform flows.
+function expoConfigPluginSnippet(
+  nativeTarget: NativeTarget,
   apiKey: string,
   apiUrl: string,
-): CrossPlatform {
+): Snippet {
+  const options =
+    nativeTarget === "Android"
+      ? `          "androidApiKey": "${apiKey}",
+          "androidApiUrl": "${apiUrl}"`
+      : `          "iosApiKey": "${apiKey}",
+          "iosApiUrl": "${apiUrl}"`;
   return {
-    dep: { body: "Add the React Native package", build: reactNativeDepSnippet },
-    init: {
-      body: "Initialize the React Native SDK",
-      build: reactNativeInitSnippet,
-    },
-    crash: { body: "Trigger a test crash", build: reactNativeCrashSnippet },
-    nativePrep: {
-      Android: [
+    testId: "snippet-expo-config-plugin",
+    language: "json",
+    code: `{
+  "expo": {
+    "plugins": [
+      [
+        "@measuresh/react-native",
         {
-          // Plain RN needs the Measure Android SDK on the Gradle classpath;
-          // Expo's prebuild handles this so the bracketed note keeps Expo
-          // users from chasing a non-issue.
-          body: "Add the Gradle dependency (skip this step if using Expo)",
-          build: (l) => androidGradleDepSnippet(l, "snippet-android-gradle"),
-        },
-        {
-          body: "Add API key to AndroidManifest.xml",
-          build: (l) => androidManifestSnippet(apiKey, apiUrl, l),
-        },
-        {
-          body: "Initialize the Android native SDK",
-          build: (l) => androidInitSnippet(l, "snippet-android-init"),
-        },
-      ],
-      iOS: [
-        {
-          body: "Configure iOS Podfile for static linkage (skip this step if using Expo)",
-          build: (l) => iosPodfileSnippet(l, "React Native", "<YourAppTarget>"),
-        },
-        {
-          body: "Initialize the iOS native SDK",
-          build: (l) => iosInitSnippet(apiKey, apiUrl, l, "snippet-ios-init"),
-        },
-      ],
-    },
-  };
-}
-
-function buildCrossPlatformSnippets(
-  info: CrossPlatform,
-  target: NativeTarget,
-): Snippet[] {
-  const ordered = [info.dep, ...info.nativePrep[target], info.init, info.crash];
-  return ordered.map((step, i) => step.build(`${i + 1}. ${step.body}`));
-}
-
-function buildSnippets(
-  platform: Platform,
-  flutterPlatform: FlutterPlatform,
-  reactNativePlatform: ReactNativePlatform,
-  apiKey: string,
-  apiUrl: string,
-): Snippet[] {
-  switch (platform) {
-    case "Android":
-      return [
-        androidGradleDepSnippet("1. Add the dependency", "snippet-dependency"),
-        androidManifestSnippet(
-          apiKey,
-          apiUrl,
-          "2. Add API key to AndroidManifest.xml",
-        ),
-        androidInitSnippet("3. Initialize the SDK", "snippet-init"),
-        {
-          label: "4. Trigger a test crash",
-          testId: "snippet-crash",
-          language: "kotlin",
-          code: `import android.os.Handler
-import android.os.Looper
-
-// Add this in Application.onCreate(), after Measure.init().
-// The 2-second delay gives the SDK time to flush the crash event.
-// Remove this code after the crash appears in your dashboard.
-Handler(Looper.getMainLooper()).postDelayed({
-    throw RuntimeException("Test crash from Measure onboarding")
-}, 2000)`,
-        },
-      ];
-    case "iOS":
-      return [
-        iosSpmDepSnippet("1. Add the dependency"),
-        iosInitSnippet(apiKey, apiUrl, "2. Initialize the SDK", "snippet-init"),
-        {
-          label: "3. Trigger a test crash",
-          testId: "snippet-crash",
-          language: "swift",
-          code: `// Add this at your app entry point, after Measure.initialize.
-// The 2-second delay gives the SDK time to flush the crash event.
-// Remove this code after the crash appears in your dashboard.
-DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-    fatalError("Test crash from Measure onboarding")
-}`,
-        },
-      ];
-    case "Flutter":
-      return buildCrossPlatformSnippets(
-        flutterCrossPlatform(apiKey, apiUrl),
-        flutterPlatform,
-      );
-    case "React Native":
-      return buildCrossPlatformSnippets(
-        reactNativeCrossPlatform(apiKey, apiUrl),
-        reactNativePlatform,
-      );
+${options}
+        }
+      ]
+    ]
   }
+}`,
+  };
+}
+
+function expoPrebuildSnippet(): Snippet {
+  return {
+    testId: "snippet-expo-prebuild",
+    language: "shellscript",
+    code: `# In your project root
+npx expo prebuild`,
+  };
+}
+
+// --- Per-platform step lists. Each factory bakes the app's API key/URL into
+// its snippets. Cross-platform factories share the dep/init/crash steps across
+// both native targets and only vary the middle (the part that carries the key).
+
+function androidSteps(apiKey: string, apiUrl: string): OnboardingStep[] {
+  return [
+    {
+      title: "Add the dependency",
+      snippet: androidGradleDepSnippet("snippet-dependency"),
+    },
+    {
+      title: "Add API key to AndroidManifest.xml",
+      snippet: androidManifestSnippet(apiKey, apiUrl),
+    },
+    {
+      title: "Initialize the SDK",
+      snippet: androidInitSnippet("snippet-init"),
+    },
+    { title: "Trigger a test crash", snippet: androidCrashSnippet() },
+  ];
+}
+
+function iosSteps(apiKey: string, apiUrl: string): OnboardingStep[] {
+  return [
+    { title: "Add the dependency", snippet: iosSpmDepSnippet() },
+    {
+      title: "Initialize the SDK",
+      snippet: iosInitSnippet(apiKey, apiUrl, "snippet-init"),
+    },
+    { title: "Trigger a test crash", snippet: iosCrashSnippet() },
+  ];
+}
+
+function flutterSteps(
+  apiKey: string,
+  apiUrl: string,
+): Record<NativeTarget, OnboardingStep[]> {
+  const dep = {
+    title: "Add the Flutter package",
+    snippet: flutterDepSnippet(),
+  };
+  const init = {
+    title: "Initialize the Flutter SDK",
+    snippet: flutterInitSnippet(),
+  };
+  const crash = {
+    title: "Trigger a test crash",
+    snippet: flutterCrashSnippet(),
+  };
+  return {
+    Android: [
+      dep,
+      {
+        title: "Add API key to AndroidManifest.xml",
+        snippet: androidManifestSnippet(apiKey, apiUrl),
+      },
+      {
+        title: "Initialize the Android native SDK",
+        snippet: androidInitSnippet("snippet-android-init"),
+      },
+      init,
+      crash,
+    ],
+    iOS: [
+      dep,
+      {
+        title: "Configure iOS Podfile for static linkage",
+        snippet: iosPodfileSnippet("Flutter", "Runner"),
+      },
+      {
+        title: "Initialize the iOS native SDK",
+        snippet: iosInitSnippet(apiKey, apiUrl, "snippet-ios-init"),
+      },
+      init,
+      crash,
+    ],
+  };
+}
+
+function reactNativeSteps(
+  apiKey: string,
+  apiUrl: string,
+): Record<NativeTarget, OnboardingStep[]> {
+  const dep = {
+    title: "Add the React Native package",
+    snippet: reactNativeDepSnippet(),
+  };
+  const init = {
+    title: "Initialize the React Native SDK",
+    snippet: reactNativeInitSnippet(),
+  };
+  const crash = {
+    title: "Trigger a test crash",
+    snippet: reactNativeCrashSnippet(),
+  };
+  return {
+    Android: [
+      dep,
+      {
+        title: "Add the Gradle dependency",
+        snippet: androidGradleDepSnippet("snippet-android-gradle"),
+      },
+      {
+        title: "Add API key to AndroidManifest.xml",
+        snippet: androidManifestSnippet(apiKey, apiUrl),
+      },
+      {
+        title: "Initialize the Android native SDK",
+        snippet: androidInitSnippet("snippet-android-init"),
+      },
+      init,
+      crash,
+    ],
+    iOS: [
+      dep,
+      {
+        title: "Configure iOS Podfile for static linkage",
+        snippet: iosPodfileSnippet("React Native", "<YourAppTarget>"),
+      },
+      {
+        title: "Initialize the iOS native SDK",
+        snippet: iosInitSnippet(apiKey, apiUrl, "snippet-ios-init"),
+      },
+      init,
+      crash,
+    ],
+  };
+}
+
+function expoSteps(
+  apiKey: string,
+  apiUrl: string,
+): Record<NativeTarget, OnboardingStep[]> {
+  // The config plugin is target-specific (Android vs iOS API key); the package
+  // install, prebuild, and JS init/crash are shared with bare React Native.
+  const dep = {
+    title: "Add the React Native package",
+    snippet: reactNativeDepSnippet(),
+  };
+  const prebuild = {
+    title: "Run prebuild to apply the plugin",
+    snippet: expoPrebuildSnippet(),
+  };
+  const init = {
+    title: "Initialize the SDK",
+    snippet: reactNativeInitSnippet(),
+  };
+  const crash = {
+    title: "Trigger a test crash",
+    snippet: reactNativeCrashSnippet(),
+  };
+  const configPlugin = (nativeTarget: NativeTarget): OnboardingStep => ({
+    title: "Add the config plugin to app.json or app.config.js",
+    snippet: expoConfigPluginSnippet(nativeTarget, apiKey, apiUrl),
+  });
+  return {
+    Android: [dep, configPlugin("Android"), prebuild, init, crash],
+    iOS: [dep, configPlugin("iOS"), prebuild, init, crash],
+  };
+}
+
+function buildPlatforms(apiKey: string, apiUrl: string): Platform[] {
+  return [
+    {
+      name: "Android",
+      crossPlatform: false,
+      steps: androidSteps(apiKey, apiUrl),
+    },
+    { name: "iOS", crossPlatform: false, steps: iosSteps(apiKey, apiUrl) },
+    {
+      name: "Flutter",
+      crossPlatform: true,
+      steps: flutterSteps(apiKey, apiUrl),
+    },
+    {
+      name: "React Native",
+      crossPlatform: true,
+      steps: reactNativeSteps(apiKey, apiUrl),
+    },
+    {
+      name: "React Native (Expo)",
+      crossPlatform: true,
+      steps: expoSteps(apiKey, apiUrl),
+    },
+  ];
+}
+
+// "React Native (Expo)" -> "react-native-expo"; namespaces the native-target
+// sub-selector's test ids per cross-platform tab.
+function platformSlug(name: PlatformName): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 }
 
 function resolveApiUrl(): string {
@@ -436,79 +533,62 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
 
   // 'create' is a transient step that only applies before any app exists.
   // Once an app is selected, the onboarding store (or default) drives the UI.
-  const step: Step =
+  const step: WizardStep =
     apps.length === 0
       ? "create"
       : (persistedState?.step ?? DEFAULT_ONBOARDING_STATE.step);
-  const platform: Platform =
+  const platform: PlatformName =
     persistedState?.platform ?? DEFAULT_ONBOARDING_STATE.platform;
-  const flutterPlatform: FlutterPlatform =
-    persistedState?.flutterPlatform ?? DEFAULT_ONBOARDING_STATE.flutterPlatform;
-  const reactNativePlatform: ReactNativePlatform =
-    persistedState?.reactNativePlatform ??
-    DEFAULT_ONBOARDING_STATE.reactNativePlatform;
+  const nativeTargets =
+    persistedState?.nativeTargets ?? DEFAULT_ONBOARDING_STATE.nativeTargets;
 
   // `showStepCreate` is a UI history flag — keep showing the Step 1 header
   // (with a checkmark) once it was the user's starting point, even after
   // they've advanced. Captured at first render and never updated.
   const [showStepCreate] = useState<boolean>(() => apps.length === 0);
 
-  const setStep = (newStep: Step) => {
+  const setStep = (newStep: WizardStep) => {
     if (selectedApp) {
       onboardingStore.setOnboardingStep(selectedApp.id, newStep);
     }
   };
 
-  const setPlatform = (newPlatform: Platform) => {
+  const setPlatform = (newPlatform: PlatformName) => {
     if (selectedApp) {
       onboardingStore.setOnboardingPlatform(selectedApp.id, newPlatform);
     }
   };
 
-  const setFlutterPlatform = (newFlutterPlatform: FlutterPlatform) => {
+  const setNativeTarget = (newNativeTarget: NativeTarget) => {
     if (selectedApp) {
-      onboardingStore.setOnboardingFlutterPlatform(
+      onboardingStore.setOnboardingNativeTarget(
         selectedApp.id,
-        newFlutterPlatform,
+        platform,
+        newNativeTarget,
       );
     }
   };
 
-  const setReactNativePlatform = (
-    newReactNativePlatform: ReactNativePlatform,
-  ) => {
-    if (selectedApp) {
-      onboardingStore.setOnboardingReactNativePlatform(
-        selectedApp.id,
-        newReactNativePlatform,
-      );
-    }
-  };
+  const apiKey = selectedApp?.api_key.key ?? "YOUR_API_KEY";
+  const apiUrl = resolveApiUrl();
+  const platforms = buildPlatforms(apiKey, apiUrl);
+  const active = platforms.find((p) => p.name === platform) ?? platforms[0];
+  const nativeTarget: NativeTarget = nativeTargets[platform] ?? "Android";
+  const steps: OnboardingStep[] = active.crossPlatform
+    ? active.steps[nativeTarget]
+    : active.steps;
 
-  // Cross-platform SDKs each keep their own native-target sub-selection.
-  // Resolve the active pair (target + setter) up front so the sub-selector
-  // UI can be platform-agnostic.
-  const crossPlatform: {
-    kind: "Flutter" | "React Native";
-    target: NativeTarget;
-    setTarget: (t: NativeTarget) => void;
-    testIdSlug: string;
-  } | null =
-    platform === "Flutter"
-      ? {
-          kind: "Flutter",
-          target: flutterPlatform,
-          setTarget: setFlutterPlatform,
-          testIdSlug: "flutter",
-        }
-      : platform === "React Native"
-        ? {
-            kind: "React Native",
-            target: reactNativePlatform,
-            setTarget: setReactNativePlatform,
-            testIdSlug: "react-native",
-          }
-        : null;
+  // Cross-platform tabs render an Android/iOS sub-selector; resolve its state
+  // and setter up front so the sub-selector UI is platform-agnostic. It's null
+  // for native tabs, which have no sub-selector.
+  const crossPlatform = active.crossPlatform
+    ? {
+        kind: active.name,
+        nativeTarget,
+        setNativeTarget,
+        testIdSlug: platformSlug(active.name),
+      }
+    : null;
 
   useEffect(() => {
     if (step !== "verify" || !selectedApp) {
@@ -608,16 +688,6 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
     router.push(`/${teamId}/crashes?${params.toString()}`);
   };
 
-  const apiKey = selectedApp?.api_key.key ?? "YOUR_API_KEY";
-  const apiUrl = resolveApiUrl();
-  const snippets = buildSnippets(
-    platform,
-    flutterPlatform,
-    reactNativePlatform,
-    apiKey,
-    apiUrl,
-  );
-
   const integrateStepNumber = showStepCreate ? 2 : 1;
   const verifyStepNumber = showStepCreate ? 3 : 2;
 
@@ -642,7 +712,7 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
           className="flex flex-col gap-3"
           data-testid="onboarding-step-create"
         >
-          <StepHeader
+          <WizardStepHeader
             number={1}
             title="Create your app"
             active={step === "create"}
@@ -705,7 +775,7 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
           className="flex flex-col gap-3"
           data-testid="onboarding-step-integrate"
         >
-          <StepHeader
+          <WizardStepHeader
             number={integrateStepNumber}
             title="Install the SDK and trigger a test crash"
             active={step === "integrate"}
@@ -714,14 +784,14 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
           {step === "integrate" && (
             <div className="ml-11 flex flex-col gap-8">
               <TabSelect
-                items={PLATFORMS as unknown as string[]}
+                items={[...PLATFORM_NAMES]}
                 selected={platform}
-                onChangeSelected={(p) => setPlatform(p as Platform)}
+                onChangeSelected={(p) => setPlatform(p as PlatformName)}
               />
               {crossPlatform && (
                 <div
                   className="flex flex-col gap-2 mt-2"
-                  data-testid={`onboarding-${crossPlatform.testIdSlug}-platform-select`}
+                  data-testid={`onboarding-${crossPlatform.testIdSlug}-native-target-select`}
                 >
                   <p className="font-body border border-amber-200 text-amber-700 bg-amber-50 dark:border-amber-950 dark:text-amber-400 dark:bg-amber-950/40 p-4 rounded-md">
                     Cross platform apps need to have a unique API key for each
@@ -736,14 +806,14 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
                     {NATIVE_TARGETS.map((p) => (
                       <button
                         key={p}
-                        onClick={() => crossPlatform.setTarget(p)}
+                        onClick={() => crossPlatform.setNativeTarget(p)}
                         className={`font-body cursor-pointer outline-hidden pb-0.5 border-b-2 transition-colors ${
-                          crossPlatform.target === p
+                          crossPlatform.nativeTarget === p
                             ? "border-foreground hover:border-foreground"
                             : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground"
                         }`}
-                        data-testid={`onboarding-${crossPlatform.testIdSlug}-platform-${p}`}
-                        data-selected={crossPlatform.target === p}
+                        data-testid={`onboarding-${crossPlatform.testIdSlug}-native-target-${p}`}
+                        data-selected={crossPlatform.nativeTarget === p}
                       >
                         {p}
                       </button>
@@ -751,16 +821,21 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
                   </div>
                 </div>
               )}
-              {snippets.map((snippet) => (
-                <SnippetBlock
-                  key={snippet.testId}
-                  label={snippet.label}
-                  code={snippet.code}
-                  language={snippet.language}
-                  onCopy={() => handleCopy(snippet.label, snippet.code)}
-                  testId={snippet.testId}
-                />
-              ))}
+              {steps.map((onboardingStep, i) => {
+                const label = `${i + 1}. ${onboardingStep.title}`;
+                return (
+                  <SnippetBlock
+                    key={onboardingStep.snippet.testId}
+                    label={label}
+                    code={onboardingStep.snippet.code}
+                    language={onboardingStep.snippet.language}
+                    onCopy={() =>
+                      handleCopy(label, onboardingStep.snippet.code)
+                    }
+                    testId={onboardingStep.snippet.testId}
+                  />
+                );
+              })}
               <div className="flex flex-row flex-wrap gap-4 mt-2 items-center justify-between">
                 <Button
                   variant="outline"
@@ -787,7 +862,7 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
           className="flex flex-col gap-3"
           data-testid="onboarding-step-verify"
         >
-          <StepHeader
+          <WizardStepHeader
             number={verifyStepNumber}
             title="Verify the first crash"
             active={step === "verify"}
@@ -844,14 +919,19 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
   );
 }
 
-interface StepHeaderProps {
+interface WizardStepHeaderProps {
   number: number;
   title: string;
   active: boolean;
   done: boolean;
 }
 
-function StepHeader({ number, title, active, done }: StepHeaderProps) {
+function WizardStepHeader({
+  number,
+  title,
+  active,
+  done,
+}: WizardStepHeaderProps) {
   const indicatorClass = done
     ? "bg-green-600 text-white"
     : active

@@ -126,7 +126,7 @@ Add the following plugin to your project.
 
 ```kotlin
 plugins {
-    id("sh.measure.android.gradle") version "0.12.0"
+    id("sh.measure.android.gradle") version "0.13.0"
 }
 ```
 
@@ -134,7 +134,7 @@ or, use the following if you're using `build.gradle`.
 
 ```groovy
 plugins {
-    id 'sh.measure.android.gradle' version '0.12.0'
+    id 'sh.measure.android.gradle' version '0.13.0'
 }
 ```
 
@@ -469,9 +469,6 @@ in [Gesture Tracking & Layout Snapshots](features/feature-gesture-tracking.md#fl
 
 ## React Native
 
-> [!IMPORTANT]
-> This is an alpha release of the React Native SDK. Please open an [issue](https://github.com/measure-sh/measure/issues) if you face any problems.
-
 The React Native SDK supports both **Expo** and **Vanilla React Native** projects on Android and iOS.
 
 <details>
@@ -484,16 +481,19 @@ The React Native SDK supports both **Expo** and **Vanilla React Native** project
 
 </details>
 
+> [!IMPORTANT]
+> Symbolication support for Over-The-Air (OTA) releases is coming soon.
+
 ### Install the SDK
 
 ```sh
-npm install @measuresh/react-native@0.1.0
+npm install @measuresh/react-native@0.1.1
 ```
 
 or with yarn:
 
 ```sh
-yarn add @measuresh/react-native@0.1.0
+yarn add @measuresh/react-native@0.1.1
 ```
 
 ---

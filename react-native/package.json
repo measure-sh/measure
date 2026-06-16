@@ -1,8 +1,8 @@
 {
   "name": "@measuresh/react-native",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "react-native": "lib/module/index.js",
-  "description": "Open source tool to monitor mobile apps",
+  "description": "Mobile apps break, get to the root cause faster",
   "main": "lib/module/index.js",
   "types": "lib/typescript/src/index.d.ts",
   "exports": {
@@ -55,15 +55,24 @@
     "mobile",
     "react-native",
     "ios",
-    "android"
+    "android",
+    "open-source",
+    "crash-reporting",
+    "performance-monitoring",
+    "error-tracking",
+    "bug-reporting",
+    "mobile-monitoring",
+    "mobile-observability",
+    "mobile-app-monitoring",
+    "firebase-crashlytics-alternative"
   ],
   "repository": "https://github.com/measure-sh/measure",
-  "author": "measure.sh <adwin@measure.sh> (https://measure.sh/)",
+  "author": "Adwin Ross <adwin@measure.sh> (https://measure.sh/)",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/measure-sh/measure.git/issues"
   },
-  "homepage": "https://github.com/measure-sh/measure.git#readme",
+  "homepage": "https://measure.sh/",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },

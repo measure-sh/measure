@@ -1,52 +1,64 @@
 import { createStore } from "zustand/vanilla";
 
-export type OnboardingStep = "create" | "integrate" | "verify" | "verified";
-export type OnboardingPlatform = "Android" | "iOS" | "Flutter" | "React Native";
-// A Measure app is bound to a single native platform, but cross-platform
-// codebases (Flutter, React Native) often ship to both. The sub-selection
-// picks which native side the user is integrating against right now — they
-// may onboard a second Measure app later for the other side. Each cross-
-// platform keeps its own sub-selection so switching between them doesn't
-// clobber the other's choice.
-export type OnboardingFlutterPlatform = "Android" | "iOS";
-export type OnboardingReactNativePlatform = "Android" | "iOS";
+// Where the user is in the onboarding flow.
+export type WizardStep = "create" | "integrate" | "verify" | "verified";
+
+// The top-level onboarding tabs.
+export const PLATFORM_NAMES = [
+  "Android",
+  "iOS",
+  "Flutter",
+  "React Native",
+  "React Native (Expo)",
+] as const;
+export type PlatformName = (typeof PLATFORM_NAMES)[number];
+
+// The Android/iOS side a cross-platform app compiles down to. A Measure app is
+// bound to a single native platform, so cross-platform codebases (Flutter,
+// React Native, Expo) onboard one app per native target. Only cross-platform
+// Platforms have a NativeTarget; native tabs (Android, iOS) do not.
+export const NATIVE_TARGETS = ["Android", "iOS"] as const;
+export type NativeTarget = (typeof NATIVE_TARGETS)[number];
 
 export interface OnboardingAppState {
-  step: OnboardingStep;
-  platform: OnboardingPlatform;
-  flutterPlatform: OnboardingFlutterPlatform;
-  reactNativePlatform: OnboardingReactNativePlatform;
+  step: WizardStep;
+  platform: PlatformName;
+  // The chosen native target per cross-platform tab, keyed by platform name.
+  // A missing key means the user hasn't chosen yet — treated as "Android".
+  // Each tab keeps its own entry so switching tabs doesn't overwrite the others.
+  nativeTargets: Partial<Record<PlatformName, NativeTarget>>;
 }
 
 export const DEFAULT_ONBOARDING_STATE: OnboardingAppState = {
   step: "integrate",
   platform: "Android",
-  flutterPlatform: "Android",
-  reactNativePlatform: "Android",
+  nativeTargets: {},
 };
 
 const ONBOARDING_STORAGE_PREFIX = "measure_onboarding_";
-const VALID_ONBOARDING_STEPS: OnboardingStep[] = [
+const VALID_WIZARD_STEPS: WizardStep[] = [
   "create",
   "integrate",
   "verify",
   "verified",
 ];
-const VALID_ONBOARDING_PLATFORMS: OnboardingPlatform[] = [
-  "Android",
-  "iOS",
-  "Flutter",
-  "React Native",
-];
-const VALID_ONBOARDING_FLUTTER_PLATFORMS: OnboardingFlutterPlatform[] = [
-  "Android",
-  "iOS",
-];
-const VALID_ONBOARDING_REACT_NATIVE_PLATFORMS: OnboardingReactNativePlatform[] =
-  ["Android", "iOS"];
 
 function onboardingStorageKey(appId: string): string {
   return `${ONBOARDING_STORAGE_PREFIX}${appId}`;
+}
+
+function isNativeTarget(value: unknown): value is NativeTarget {
+  return value === "Android" || value === "iOS";
+}
+
+function isNativeTargetMap(
+  value: unknown,
+): value is Partial<Record<PlatformName, NativeTarget>> {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  // Keys are platform names (not constrained here); only the values matter.
+  return Object.values(value).every(isNativeTarget);
 }
 
 function isOnboardingAppState(parsed: unknown): parsed is OnboardingAppState {
@@ -55,16 +67,11 @@ function isOnboardingAppState(parsed: unknown): parsed is OnboardingAppState {
   }
   const candidate = parsed as Record<string, unknown>;
   return (
-    VALID_ONBOARDING_STEPS.includes(candidate.step as OnboardingStep) &&
-    VALID_ONBOARDING_PLATFORMS.includes(
-      candidate.platform as OnboardingPlatform,
+    VALID_WIZARD_STEPS.includes(candidate.step as WizardStep) &&
+    (PLATFORM_NAMES as readonly string[]).includes(
+      candidate.platform as string,
     ) &&
-    VALID_ONBOARDING_FLUTTER_PLATFORMS.includes(
-      candidate.flutterPlatform as OnboardingFlutterPlatform,
-    ) &&
-    VALID_ONBOARDING_REACT_NATIVE_PLATFORMS.includes(
-      candidate.reactNativePlatform as OnboardingReactNativePlatform,
-    )
+    isNativeTargetMap(candidate.nativeTargets)
   );
 }
 
@@ -132,15 +139,12 @@ interface OnboardingStoreState {
 }
 
 interface OnboardingStoreActions {
-  setOnboardingStep: (appId: string, step: OnboardingStep) => void;
-  setOnboardingPlatform: (appId: string, platform: OnboardingPlatform) => void;
-  setOnboardingFlutterPlatform: (
+  setOnboardingStep: (appId: string, step: WizardStep) => void;
+  setOnboardingPlatform: (appId: string, platform: PlatformName) => void;
+  setOnboardingNativeTarget: (
     appId: string,
-    flutterPlatform: OnboardingFlutterPlatform,
-  ) => void;
-  setOnboardingReactNativePlatform: (
-    appId: string,
-    reactNativePlatform: OnboardingReactNativePlatform,
+    platform: PlatformName,
+    nativeTarget: NativeTarget,
   ) => void;
   clearOnboarding: (appId: string) => void;
   // Advances the wizard to 'verified' for the given app id and clears any
@@ -186,22 +190,12 @@ export function createOnboardingStore() {
       }
     },
 
-    setOnboardingFlutterPlatform: (appId, flutterPlatform) => {
+    setOnboardingNativeTarget: (appId, platform, nativeTarget) => {
       const current = get().onboarding[appId] ?? DEFAULT_ONBOARDING_STATE;
-      const next: OnboardingAppState = { ...current, flutterPlatform };
-      set((state) => ({
-        onboarding: { ...state.onboarding, [appId]: next },
-      }));
-      if (next.step === "verified" || next.step === "create") {
-        removeOnboardingFromStorage(appId);
-      } else {
-        writeOnboardingToStorage(appId, next);
-      }
-    },
-
-    setOnboardingReactNativePlatform: (appId, reactNativePlatform) => {
-      const current = get().onboarding[appId] ?? DEFAULT_ONBOARDING_STATE;
-      const next: OnboardingAppState = { ...current, reactNativePlatform };
+      const next: OnboardingAppState = {
+        ...current,
+        nativeTargets: { ...current.nativeTargets, [platform]: nativeTarget },
+      };
       set((state) => ({
         onboarding: { ...state.onboarding, [appId]: next },
       }));
@@ -230,7 +224,7 @@ export function createOnboardingStore() {
         return {
           onboarding: {
             ...state.onboarding,
-            [appId]: { ...current, step: "verified" as OnboardingStep },
+            [appId]: { ...current, step: "verified" as WizardStep },
           },
         };
       });
