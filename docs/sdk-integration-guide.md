@@ -469,9 +469,6 @@ in [Gesture Tracking & Layout Snapshots](features/feature-gesture-tracking.md#fl
 
 ## React Native
 
-> [!IMPORTANT]
-> This is an alpha release of the React Native SDK. Please open an [issue](https://github.com/measure-sh/measure/issues) if you face any problems.
-
 The React Native SDK supports both **Expo** and **Vanilla React Native** projects on Android and iOS.
 
 <details>
@@ -483,6 +480,9 @@ The React Native SDK supports both **Expo** and **Vanilla React Native** project
 | React        | `18.2.0` |
 
 </details>
+
+> [!IMPORTANT]
+> Symbolication support for Over-The-Air (OTA) releases is coming soon.
 
 ### Install the SDK
 
