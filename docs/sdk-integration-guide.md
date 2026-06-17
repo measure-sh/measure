@@ -597,7 +597,7 @@ In your project-level `build.gradle`:
 ```groovy
 buildscript {
   dependencies {
-    classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.12.0")
+    classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.13.0")
   }
 }
 ```
