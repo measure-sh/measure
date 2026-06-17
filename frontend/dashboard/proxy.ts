@@ -6,8 +6,8 @@
  *   Each public marketing route (homepage, /about, /pricing, /why-measure,
  *   /security, /crashlytics-alternative, /sentry-alternative,
  *   /bugsnag-alternative, /embrace-alternative, /luciq-alternative,
- *   /datadog-alternative, /new-relic-alternative, /product/*) has a
- *   hand-authored `page.md` colocated with its `page.tsx`:
+ *   /datadog-alternative, /new-relic-alternative, /for/*, /product/*) has
+ *   a hand-authored `page.md` colocated with its `page.tsx`:
  *
  *     app/about/page.tsx        ← React component (HTML)
  *     app/about/page.md         ← markdown twin for agents

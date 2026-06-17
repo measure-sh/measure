@@ -330,8 +330,8 @@ export default function Home() {
                   <Image
                     src="/images/android_logo.svg"
                     alt=""
-                    width={48}
-                    height={48}
+                    width={152}
+                    height={89}
                     className="h-8 w-auto object-contain"
                   />
                 </div>
@@ -342,20 +342,20 @@ export default function Home() {
                   <Image
                     src="/images/ios_logo.svg"
                     alt=""
-                    width={56}
+                    width={46}
                     height={56}
-                    className="h-14 w-auto object-contain"
+                    className="h-12 mb-2 w-auto object-contain"
                   />
                 </div>
-                <span className="font-body text-sm">iOS</span>
+                <span className="font-body text-sm">iOS & iPadOS</span>
               </div>
               <div className="flex flex-col items-center gap-3">
                 <div className="h-14 flex items-center">
                   <Image
                     src="/images/flutter_logo.svg"
                     alt=""
-                    width={48}
-                    height={48}
+                    width={300}
+                    height={371}
                     className="h-10 w-auto object-contain"
                   />
                 </div>
@@ -366,8 +366,8 @@ export default function Home() {
                   <Image
                     src="/images/react_native_logo.png"
                     alt=""
-                    width={48}
-                    height={48}
+                    width={500}
+                    height={445}
                     className="h-10 w-auto object-contain"
                   />
                 </div>

@@ -10,8 +10,8 @@ import TrackGithubLink from "./analytics/track_github_link";
 export default function LandingFooter() {
   return (
     <footer className="w-full bg-background text-foreground border-t border-border py-12">
-      <div className="flex flex-col md:flex-row items-center md:items-start gap-16 justify-between w-full px-16">
-        <div className="flex flex-col items-center">
+      <div className="flex flex-col md:flex-row gap-12 md:gap-16 w-full px-16">
+        <div className="flex flex-col items-center shrink-0">
           <Image
             src="/images/measure_logo_horizontal_black.svg"
             width={200}
@@ -54,330 +54,380 @@ export default function LandingFooter() {
           </TrackGithubLink>
         </div>
 
-        <div className="flex flex-col items-center md:items-start gap-4">
-          <p className="font-display text-2xl md:px-2">Product</p>
-          <Link
-            href="/product/session-timelines"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Session Timelines
-          </Link>
-          <Link
-            href="/product/app-health"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            App Health
-          </Link>
-          <Link
-            href="/product/crashes-and-anrs"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Crashes & ANRs
-          </Link>
-          <Link
-            href="/product/performance-traces"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Performance Traces
-          </Link>
-          <Link
-            href="/product/bug-reports"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Bug Reports
-          </Link>
-          <Link
-            href="/product/user-journeys"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            User Journeys
-          </Link>
-          <Link
-            href="/product/network-performance"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Network Performance
-          </Link>
-          <Link
-            href="/product/adaptive-capture"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Adaptive Capture
-          </Link>
-          <Link
-            href="/product/mcp"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            MCP
-          </Link>
-        </div>
-
-        <div className="flex flex-col items-center md:items-start gap-4">
-          <p className="font-display text-2xl md:px-2">Resources</p>
-          <Link
-            href="/why-measure"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Why Measure?
-          </Link>
-          <Link
-            href="/pricing"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Pricing
-          </Link>
-          <Link
-            href="/docs"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Docs
-          </Link>
-          <Link
-            href="https://blog.measure.sh/"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Blog
-          </Link>
-          <TrackGithubLink
-            href="https://github.com/measure-sh/measure"
-            target="_blank"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            GitHub
-          </TrackGithubLink>
-        </div>
-
-        <div className="flex flex-col items-center md:items-start gap-4">
-          <p className="font-display text-2xl md:px-2">Alternatives</p>
-          <Link
-            href="/crashlytics-alternative"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Firebase Crashlytics
-          </Link>
-          <Link
-            href="/sentry-alternative"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Sentry
-          </Link>
-          <Link
-            href="/bugsnag-alternative"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Bugsnag
-          </Link>
-          <Link
-            href="/embrace-alternative"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Embrace
-          </Link>
-          <Link
-            href="/luciq-alternative"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Luciq
-          </Link>
-          <Link
-            href="/datadog-alternative"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Datadog
-          </Link>
-          <Link
-            href="/new-relic-alternative"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            New Relic
-          </Link>
-        </div>
-
-        <div className="flex flex-col items-center md:items-start gap-4">
-          <p className="font-display text-2xl md:px-2">Company</p>
-          <Link
-            href="/about"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            About
-          </Link>
-          <Link
-            href="/security"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Security
-          </Link>
-          <Link
-            href="mailto:hello@measure.sh"
-            target="_blank"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Contact Us
-          </Link>
-          <Link
-            href="/media_kit/measure.sh_media_kit.zip"
-            download={"measure.sh_media_kit.zip"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Media Kit
-          </Link>
-        </div>
-
-        <div className="flex flex-col items-center md:items-start gap-4">
-          <p className="font-display text-2xl md:px-2">Legal</p>
-          <Link
-            href="/privacy-policy"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Privacy Policy
-          </Link>
-          <Link
-            href="/terms-of-service"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "font-display select-none w-full md:w-fit",
-            )}
-          >
-            Terms of Service
-          </Link>
-          <CookiePreferencesLink>
-            <button
-              type="button"
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-x-8 gap-y-12 flex-1 min-w-0">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <p className="font-display text-2xl md:px-2">Product</p>
+            <Link
+              href="/product/session-timelines"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
                 "font-display select-none w-full md:w-fit",
               )}
             >
-              Cookie Preferences
-            </button>
-          </CookiePreferencesLink>
-        </div>
+              Session Timelines
+            </Link>
+            <Link
+              href="/product/app-health"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              App Health
+            </Link>
+            <Link
+              href="/product/crashes-and-anrs"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Crashes & ANRs
+            </Link>
+            <Link
+              href="/product/performance-traces"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Performance Traces
+            </Link>
+            <Link
+              href="/product/bug-reports"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Bug Reports
+            </Link>
+            <Link
+              href="/product/user-journeys"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              User Journeys
+            </Link>
+            <Link
+              href="/product/network-performance"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Network Performance
+            </Link>
+            <Link
+              href="/product/adaptive-capture"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Adaptive Capture
+            </Link>
+            <Link
+              href="/product/mcp"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              MCP
+            </Link>
+          </div>
 
-        <div className="flex flex-col items-center md:items-start gap-4">
-          <p className="font-display text-2xl md:px-2">Connect</p>
-          <Link
-            href="https://www.linkedin.com/company/measure-sh"
-            target="_blank"
-            className={cn(buttonVariants({ variant: "ghost" }), "group w-full")}
-          >
-            <Image
-              src={"/images/linkedin_logo_black.png"}
-              alt="LinkedIn Logo"
-              width={22}
-              height={22}
-              className="dark:hidden"
-            />
-            <Image
-              src={"/images/linkedin_logo_white.png"}
-              alt="LinkedIn Logo"
-              width={22}
-              height={22}
-              className="hidden dark:block"
-            />
-          </Link>
-          <Link
-            href="https://x.com/measure_sh"
-            target="_blank"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "group w-full py-2",
-            )}
-          >
-            <Image
-              src={"/images/x_logo_black.png"}
-              alt="X Logo"
-              width={20}
-              height={20}
-              className="dark:hidden"
-            />
-            <Image
-              src={"/images/x_logo_white.png"}
-              alt="X Logo"
-              width={20}
-              height={20}
-              className="hidden dark:block"
-            />
-          </Link>
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <p className="font-display text-2xl md:px-2">Platforms</p>
+            <Link
+              href="/for/android"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Android
+            </Link>
+            <Link
+              href="/for/ios"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              iOS
+            </Link>
+            <Link
+              href="/for/ipados"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              iPadOS
+            </Link>
+            <Link
+              href="/for/flutter"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Flutter
+            </Link>
+            <Link
+              href="/for/react-native"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              React Native
+            </Link>
+          </div>
+
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <p className="font-display text-2xl md:px-2">Resources</p>
+            <Link
+              href="/why-measure"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Why Measure?
+            </Link>
+            <Link
+              href="/pricing"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Pricing
+            </Link>
+            <Link
+              href="/docs"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Docs
+            </Link>
+            <Link
+              href="https://blog.measure.sh/"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Blog
+            </Link>
+            <TrackGithubLink
+              href="https://github.com/measure-sh/measure"
+              target="_blank"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              GitHub
+            </TrackGithubLink>
+          </div>
+
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <p className="font-display text-2xl md:px-2">Alternatives</p>
+            <Link
+              href="/crashlytics-alternative"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Firebase Crashlytics
+            </Link>
+            <Link
+              href="/sentry-alternative"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Sentry
+            </Link>
+            <Link
+              href="/bugsnag-alternative"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Bugsnag
+            </Link>
+            <Link
+              href="/embrace-alternative"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Embrace
+            </Link>
+            <Link
+              href="/luciq-alternative"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Luciq
+            </Link>
+            <Link
+              href="/datadog-alternative"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Datadog
+            </Link>
+            <Link
+              href="/new-relic-alternative"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              New Relic
+            </Link>
+          </div>
+
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <p className="font-display text-2xl md:px-2">Company</p>
+            <Link
+              href="/about"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              About
+            </Link>
+            <Link
+              href="/security"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Security
+            </Link>
+            <Link
+              href="mailto:hello@measure.sh"
+              target="_blank"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Contact Us
+            </Link>
+            <Link
+              href="/media_kit/measure.sh_media_kit.zip"
+              download={"measure.sh_media_kit.zip"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Media Kit
+            </Link>
+          </div>
+
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <p className="font-display text-2xl md:px-2">Legal</p>
+            <Link
+              href="/privacy-policy"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              href="/terms-of-service"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Terms of Service
+            </Link>
+            <CookiePreferencesLink>
+              <button
+                type="button"
+                className={cn(
+                  buttonVariants({ variant: "ghost" }),
+                  "font-display select-none w-full md:w-fit",
+                )}
+              >
+                Cookie Preferences
+              </button>
+            </CookiePreferencesLink>
+          </div>
+
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <p className="font-display text-2xl md:px-2">Connect</p>
+            <div className="flex flex-row items-center">
+              <Link
+                href="https://www.linkedin.com/company/measure-sh"
+                target="_blank"
+                className={cn(buttonVariants({ variant: "ghost" }), "group")}
+              >
+                <Image
+                  src={"/images/linkedin_logo_black.png"}
+                  alt="LinkedIn Logo"
+                  width={22}
+                  height={22}
+                  className="dark:hidden"
+                />
+                <Image
+                  src={"/images/linkedin_logo_white.png"}
+                  alt="LinkedIn Logo"
+                  width={22}
+                  height={22}
+                  className="hidden dark:block"
+                />
+              </Link>
+              <Link
+                href="https://x.com/measure_sh"
+                target="_blank"
+                className={cn(buttonVariants({ variant: "ghost" }), "group")}
+              >
+                <Image
+                  src={"/images/x_logo_black.png"}
+                  alt="X Logo"
+                  width={20}
+                  height={20}
+                  className="dark:hidden"
+                />
+                <Image
+                  src={"/images/x_logo_white.png"}
+                  alt="X Logo"
+                  width={20}
+                  height={20}
+                  className="hidden dark:block"
+                />
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
