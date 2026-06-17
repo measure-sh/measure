@@ -21,13 +21,13 @@ import { underlineLinkStyle } from "./utils/shared_styles";
 export const metadata: Metadata = {
   title: "Open Source Mobile App Monitoring & Crash Reporting",
   description:
-    "Open source mobile app monitoring — crashes, ANRs, bug reports, performance traces, network and session timelines. A Firebase Crashlytics alternative.",
+    "Measure helps mobile teams monitor and fix crashes, ANRs, bugs, and performance issues. The open source alternative to Firebase Crashlytics.",
   alternates: { canonical: "/" },
   openGraph: {
     ...sharedOpenGraph,
     title: "Open Source Mobile App Monitoring & Crash Reporting | Measure",
     description:
-      "Open source mobile app monitoring — crashes, ANRs, bug reports, performance traces, network and session timelines. A Firebase Crashlytics alternative.",
+      "Measure helps mobile teams monitor and fix crashes, ANRs, bugs, and performance issues. The open source alternative to Firebase Crashlytics.",
     url: "/",
   },
 };
@@ -74,11 +74,8 @@ export default function Home() {
         {/* Main description */}
         <div className="py-8 md:py-14" />
         <h2 className="text-xl font-body md:w-4xl text-center px-4">
-          Complete Mobile App Monitoring platform with Crash Reporting, ANR
-          Tracking, Bug Reporting, Performance Tracing, Logging and more!
-          <br />
-          <br />
-          100% Open Source alternative to{" "}
+          Measure helps mobile teams monitor and fix crashes, ANRs, bugs, and
+          performance issues. The open source alternative to{" "}
           <span className="font-semibold">Firebase Crashlytics</span>.
         </h2>
 
