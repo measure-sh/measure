@@ -11,9 +11,7 @@
 
 ## Mobile apps break, get to the root cause faster
 
-Complete Mobile App Monitoring platform with Crash Reporting, ANR Tracking, Bug Reporting, Performance Tracing, Logging and more!
-
-100% open source alternative to Firebase Crashlytics.
+Measure helps mobile teams monitor and fix crashes, ANRs, bugs, and performance issues. The open source alternative to Firebase Crashlytics.
 
 ## Quick start
 
