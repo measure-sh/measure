@@ -95,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add `data_exports` postgres table (#3902) by @detj in #3902
 - (**backend**): Skip JVM symbolication when no proguard mapping exists by @abhaysood in #3899
 - (**backend**): Use docker secrets (#3862) by @detj in #3862
 - (**backend**): Make mcp tool description more accurate by @anupcowkur in #3860
@@ -142,6 +143,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Update measure description by @anupcowkur in #3921
 - (**frontend**): Update comparison pages by @anupcowkur in #3918
 - (**frontend**): Add expo as separate onboarding tab by @anupcowkur in #3909
 - (**frontend**): Remove "soon" from RN landing icon by @anupcowkur in #3905
