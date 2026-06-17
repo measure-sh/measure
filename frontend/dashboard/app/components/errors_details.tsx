@@ -81,7 +81,7 @@ const demoErrorDetails = {
       },
       anr: null,
       severity: "",
-      num_code: 0,
+      num_code: null,
       code: "",
       meta: null,
       attachments: [
