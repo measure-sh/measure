@@ -1,6 +1,9 @@
 name: Prepare React Native Release
 
 on:
+  push:
+    branches:
+      - rn-add-ci-workflows
   workflow_dispatch:
     inputs:
       version:
@@ -28,6 +31,11 @@ jobs:
       contents: write
       pull-requests: write
     timeout-minutes: 15
+    env:
+      VERSION: ${{ inputs.version || '0.2.0' }}
+      ANDROID_SDK_VERSION: ${{ inputs.android_sdk_version || '0.18.0' }}
+      IOS_SDK_VERSION: ${{ inputs.ios_sdk_version || '0.11.0' }}
+      ANDROID_GRADLE_PLUGIN_VERSION: ${{ inputs.android_gradle_plugin_version || '0.13.0' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -43,59 +51,59 @@ jobs:
 
       - name: Validate version format
         run: |
-          if ! [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if ! [[ "${{ env.VERSION }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Error: Version must match pattern x.y.z (e.g. 1.2.3)"
-            echo "Got: ${{ inputs.version }}"
+            echo "Got: ${{ env.VERSION }}"
             exit 1
           fi
 
       - name: Update package.json version
         run: |
-          jq --arg v "${{ inputs.version }}" '.version = $v' react-native/package.json > /tmp/pkg.json && mv /tmp/pkg.json react-native/package.json
+          jq --arg v "${{ env.VERSION }}" '.version = $v' react-native/package.json > /tmp/pkg.json && mv /tmp/pkg.json react-native/package.json
 
       - name: Update MeasureReactNative.podspec
         run: |
-          sed -i "s/s\.version[[:space:]]*=[[:space:]]*\"[^\"]*\"/s.version          = \"${{ inputs.version }}\"/" react-native/MeasureReactNative.podspec
-          sed -i "s/s\.dependency 'measure-sh', '[^']*'/s.dependency 'measure-sh', '${{ inputs.ios_sdk_version }}'/" react-native/MeasureReactNative.podspec
+          sed -i "s/s\.version[[:space:]]*=[[:space:]]*\"[^\"]*\"/s.version          = \"${{ env.VERSION }}\"/" react-native/MeasureReactNative.podspec
+          sed -i "s/s\.dependency 'measure-sh', '[^']*'/s.dependency 'measure-sh', '${{ env.IOS_SDK_VERSION }}'/" react-native/MeasureReactNative.podspec
 
       - name: Update android/build.gradle.kts
         run: |
-          sed -i "s|compileOnly(\"sh\.measure:measure-android:[^\"]*\")|compileOnly(\"sh.measure:measure-android:${{ inputs.android_sdk_version }}\")| " react-native/android/build.gradle.kts
+          sed -i "s|compileOnly(\"sh\.measure:measure-android:[^\"]*\")|compileOnly(\"sh.measure:measure-android:${{ env.ANDROID_SDK_VERSION }}\")| " react-native/android/build.gradle.kts
 
       - name: Update react-native/README.md
         run: |
-          sed -i "s|sh\.measure:measure-android:[0-9]*\.[0-9]*\.[0-9]*|sh.measure:measure-android:${{ inputs.android_sdk_version }}|g" react-native/README.md
-          sed -i "s|sh\.measure\.android\.gradle:sh\.measure\.android\.gradle\.gradle\.plugin:[0-9]*\.[0-9]*\.[0-9]*|sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:${{ inputs.android_gradle_plugin_version }}|g" react-native/README.md
+          sed -i "s|sh\.measure:measure-android:[0-9]*\.[0-9]*\.[0-9]*|sh.measure:measure-android:${{ env.ANDROID_SDK_VERSION }}|g" react-native/README.md
+          sed -i "s|sh\.measure\.android\.gradle:sh\.measure\.android\.gradle\.gradle\.plugin:[0-9]*\.[0-9]*\.[0-9]*|sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:${{ env.ANDROID_GRADLE_PLUGIN_VERSION }}|g" react-native/README.md
 
       - name: Update docs/sdk-integration-guide.md
         run: |
-          sed -i "s|sh\.measure:measure-android:[0-9]*\.[0-9]*\.[0-9]*|sh.measure:measure-android:${{ inputs.android_sdk_version }}|g" docs/sdk-integration-guide.md
-          sed -i "s|branch: \"ios-v[0-9]*\.[0-9]*\.[0-9]*\"|branch: \"ios-v${{ inputs.ios_sdk_version }}\"|g" docs/sdk-integration-guide.md
-          sed -i "s|sh\.measure\.android\.gradle:sh\.measure\.android\.gradle\.gradle\.plugin:[0-9]*\.[0-9]*\.[0-9]*|sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:${{ inputs.android_gradle_plugin_version }}|g" docs/sdk-integration-guide.md
-          sed -i "s|@measuresh/react-native@[0-9]*\.[0-9]*\.[0-9]*|@measuresh/react-native@${{ inputs.version }}|g" docs/sdk-integration-guide.md
+          sed -i "s|sh\.measure:measure-android:[0-9]*\.[0-9]*\.[0-9]*|sh.measure:measure-android:${{ env.ANDROID_SDK_VERSION }}|g" docs/sdk-integration-guide.md
+          sed -i "s|branch: \"ios-v[0-9]*\.[0-9]*\.[0-9]*\"|branch: \"ios-v${{ env.IOS_SDK_VERSION }}\"|g" docs/sdk-integration-guide.md
+          sed -i "s|sh\.measure\.android\.gradle:sh\.measure\.android\.gradle\.gradle\.plugin:[0-9]*\.[0-9]*\.[0-9]*|sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:${{ env.ANDROID_GRADLE_PLUGIN_VERSION }}|g" docs/sdk-integration-guide.md
+          sed -i "s|@measuresh/react-native@[0-9]*\.[0-9]*\.[0-9]*|@measuresh/react-native@${{ env.VERSION }}|g" docs/sdk-integration-guide.md
 
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
         with:
           config: react-native/cliff.toml
-          args: --output react-native/CHANGELOG.md --tag rn-v${{ inputs.version }} --include-path "react-native/**"
+          args: --output react-native/CHANGELOG.md --tag rn-v${{ env.VERSION }} --include-path "react-native/**"
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.SDK_RELEASE }}
-          commit-message: "chore(rn): prepare release ${{ inputs.version }}"
-          branch: rn-v${{ inputs.version }}
+          commit-message: "chore(rn): prepare release ${{ env.VERSION }}"
+          branch: rn-v${{ env.VERSION }}
           delete-branch: false
-          title: "chore(rn): prepare release ${{ inputs.version }}"
+          title: "chore(rn): prepare release ${{ env.VERSION }}"
           body: |
-            This PR prepares the React Native SDK for release version ${{ inputs.version }}.
+            This PR prepares the React Native SDK for release version ${{ env.VERSION }}.
 
             Changes:
-            - Bumped version to ${{ inputs.version }}
-            - Updated Measure Android SDK to ${{ inputs.android_sdk_version }}
-            - Updated Measure iOS SDK to ${{ inputs.ios_sdk_version }}
-            - Updated Measure Android Gradle Plugin to ${{ inputs.android_gradle_plugin_version }}
+            - Bumped version to ${{ env.VERSION }}
+            - Updated Measure Android SDK to ${{ env.ANDROID_SDK_VERSION }}
+            - Updated Measure iOS SDK to ${{ env.IOS_SDK_VERSION }}
+            - Updated Measure Android Gradle Plugin to ${{ env.ANDROID_GRADLE_PLUGIN_VERSION }}
             - Updated CHANGELOG.md
           base: main
           labels: react-native
