@@ -33,9 +33,9 @@ jobs:
     timeout-minutes: 15
     env:
       VERSION: ${{ inputs.version || '0.2.0' }}
-      ANDROID_SDK_VERSION: ${{ inputs.android_sdk_version || '0.18.0' }}
-      IOS_SDK_VERSION: ${{ inputs.ios_sdk_version || '0.11.0' }}
-      ANDROID_GRADLE_PLUGIN_VERSION: ${{ inputs.android_gradle_plugin_version || '0.13.0' }}
+      ANDROID_SDK_VERSION: ${{ inputs.android_sdk_version || '0.19.0' }}
+      IOS_SDK_VERSION: ${{ inputs.ios_sdk_version || '0.12.0' }}
+      ANDROID_GRADLE_PLUGIN_VERSION: ${{ inputs.android_gradle_plugin_version || '0.14.0' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -69,6 +69,11 @@ jobs:
       - name: Update android/build.gradle.kts
         run: |
           sed -i "s|compileOnly(\"sh\.measure:measure-android:[^\"]*\")|compileOnly(\"sh.measure:measure-android:${{ env.ANDROID_SDK_VERSION }}\")| " react-native/android/build.gradle.kts
+
+      - name: Update plugin/index.js
+        run: |
+          sed -i "s|sh\.measure\.android\.gradle:sh\.measure\.android\.gradle\.gradle\.plugin:[0-9]*\.[0-9]*\.[0-9]*|sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:${{ env.ANDROID_GRADLE_PLUGIN_VERSION }}|g" react-native/plugin/index.js
+          sed -i "s|sh\.measure:measure-android:[0-9]*\.[0-9]*\.[0-9]*|sh.measure:measure-android:${{ env.ANDROID_SDK_VERSION }}|g" react-native/plugin/index.js
 
       - name: Update react-native/README.md
         run: |
