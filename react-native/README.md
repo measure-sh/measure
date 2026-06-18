@@ -84,7 +84,7 @@ buildscript {
         gradlePluginPortal()
     }
     dependencies {
-        classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.13.0")
+        classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.14.0")
     }
 }
 ```
@@ -93,7 +93,7 @@ Add the SDK dependency and apply the plugin in your app-level `build.gradle`:
 
 ```groovy
 dependencies {
-    implementation("sh.measure:measure-android:0.18.0")
+    implementation("sh.measure:measure-android:0.19.0")
 }
 
 apply plugin: "sh.measure.android.gradle"

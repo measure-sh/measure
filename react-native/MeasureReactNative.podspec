@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
     s.name             = "MeasureReactNative"
-    s.version          = "0.1.0"
+    s.version          = "0.2.0"
     s.summary          = "A native bridge for the Measure React Native SDK"
     s.description      = "This pod provides a native bridge for integrating the Measure React Native SDK into iOS applications, allowing developers to utilize Measure's features seamlessly."
     s.homepage         = "https://github.com/measure-sh/measure.git"
@@ -12,5 +12,5 @@ Pod::Spec.new do |s|
     s.static_framework = true
     s.source_files = "ios/**/*.{swift,h,m}"
     s.dependency "React-Core"
-    s.dependency 'measure-sh', '0.11.0'
+    s.dependency 'measure-sh', '0.12.0'
   end

@@ -181,13 +181,13 @@ measure {
 Add the following to your app's `build.gradle.kts` file.
 
 ```kotlin
-implementation("sh.measure:measure-android:0.18.0")
+implementation("sh.measure:measure-android:0.19.0")
 ```
 
 or, add the following to your app's `build.gradle` file.
 
 ```groovy
-implementation 'sh.measure:measure-android:0.18.0'
+implementation 'sh.measure:measure-android:0.19.0'
 ```
 
 ### Initialize the SDK
@@ -290,7 +290,7 @@ Add Measure as a dependency by adding `dependencies` value to your `Package.swif
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.11.0")
+    .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.12.0")
 ]
 ```
 
@@ -487,13 +487,13 @@ The React Native SDK supports both **Expo** and **Vanilla React Native** project
 ### Install the SDK
 
 ```sh
-npm install @measuresh/react-native@0.1.1
+npm install @measuresh/react-native@0.2.0
 ```
 
 or with yarn:
 
 ```sh
-yarn add @measuresh/react-native@0.1.1
+yarn add @measuresh/react-native@0.2.0
 ```
 
 ---
@@ -597,7 +597,7 @@ In your project-level `build.gradle`:
 ```groovy
 buildscript {
   dependencies {
-    classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.13.0")
+    classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.14.0")
   }
 }
 ```

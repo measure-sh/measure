@@ -20,5 +20,5 @@ android {
 
 dependencies {
     implementation("com.facebook.react:react-native:+")
-    compileOnly("sh.measure:measure-android:0.18.0")
+    compileOnly("sh.measure:measure-android:0.19.0")
 }

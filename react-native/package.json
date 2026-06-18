@@ -1,6 +1,6 @@
 {
   "name": "@measuresh/react-native",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "react-native": "lib/module/index.js",
   "description": "Mobile apps break, get to the root cause faster",
   "main": "lib/module/index.js",
