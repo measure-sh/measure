@@ -346,6 +346,23 @@ type requestJS struct {
 	Release string `json:"release,omitempty"`
 }
 
+// AddModule binds a frame's abs_path (code_file) to a debug id
+// so Symbolicator resolves the sourcemap by debug id (the OTA
+// patch_id path on /symbols/js). Duplicate code_files are
+// ignored — all frames of one OTA build share a single debug id.
+func (r *requestJS) AddModule(codeFile, debugID string) {
+	for _, m := range r.Modules {
+		if m.CodeFile == codeFile {
+			return
+		}
+	}
+	r.Modules = append(r.Modules, moduleJS{
+		Type:     "sourcemap",
+		CodeFile: codeFile,
+		DebugID:  debugID,
+	})
+}
+
 // responseJS represents the payload received
 // from Sentry's Symbolicator for JavaScript
 // symbolication.

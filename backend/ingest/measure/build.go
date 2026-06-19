@@ -38,7 +38,7 @@ type Mapping struct {
 	// PatchID echoes the build's optional patch_id back to the
 	// caller so the build script can confirm the value persisted
 	// against this mapping row.
-	PatchID uuid.NullUUID `json:"patch_id,omitempty"`
+	PatchID string `json:"patch_id,omitempty"`
 }
 
 type Build struct {
@@ -50,15 +50,24 @@ type Build struct {
 	Mappings    []*Mapping `json:"mappings" binding:"dive,required"`
 	AppUniqueID string     `json:"app_unique_id"`
 	// PatchID identifies an Over-The-Air patch (e.g. CodePush
-	// for RN, Shorebird for Flutter). Optional — when absent,
-	// the row's patch_id stays NULL and the build is not
-	// findable via patch_id-based symbolication lookup.
-	// Validated by uuid.NullUUID.UnmarshalJSON only if present.
-	PatchID uuid.NullUUID `json:"patch_id"`
+	// for RN, Shorebird for Flutter). Free-form text. Optional on
+	// this endpoint — when empty, the row's patch_id stays empty
+	// and the build is not findable via patch_id-based
+	// symbolication lookup.
+	PatchID string `json:"patch_id"`
 }
 
 type BuildResponse struct {
 	Mappings []*Mapping `json:"mappings"`
+}
+
+// OTABuild is the request body for PUT /builds/ota. It carries
+// only a free-form patch_id and the mapping files — no app
+// version, build number or build size. The app is resolved from
+// the request's API key (like PutBuilds), never from the body.
+type OTABuild struct {
+	PatchID  string     `json:"patch_id" binding:"required"`
+	Mappings []*Mapping `json:"mappings" binding:"required,dive,required"`
 }
 
 func (b Build) hasMapping() bool {
@@ -292,110 +301,213 @@ func PutBuilds(c *gin.Context) {
 		return
 	}
 
-	config := server.Server.Config
+	if err = presignMappings(ctx, server.Server.Config, &build); err != nil {
+		msg := fmt.Sprintf("failed to presign build mappings: %v", err)
 
-	if config.IsCloud() {
-		client, err := objstore.CreateGCSClient(ctx)
-		if err != nil {
-			msg := fmt.Sprintf("failed to create GCS client: %v", err)
+		fmt.Println(msg)
 
-			fmt.Println(msg)
-
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-
-			return
-		}
-
-		// for creating signed URLs, we need to tie the service account
-		// identity along with the credentials. otherwise, the signed
-		// URLs can't be generated and won't work as expected.
-		iamClient, err := credentials.NewIamCredentialsClient(ctx)
-		if err != nil {
-			msg := fmt.Sprintf("failed to create IAM client: %v", err)
-
-			fmt.Println(msg)
-
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-
-			return
-		}
-		defer iamClient.Close()
-
-		signBytes := func(b []byte) ([]byte, error) {
-			resp, err := iamClient.SignBlob(ctx, &credentialspb.SignBlobRequest{
-				Name:    "projects/-/serviceAccounts/" + config.ServiceAccountEmail,
-				Payload: b,
-			})
-			if err != nil {
-				return nil, err
-			}
-			return resp.SignedBlob, nil
-		}
-
-		for _, mapping := range build.Mappings {
-			ext := filepath.Ext(mapping.Filename)
-			key := fmt.Sprintf("incoming/%s%s", mapping.ID.String(), ext)
-			expiry := time.Now().Add(time.Hour)
-			metadata := []string{
-				fmt.Sprintf("x-goog-meta-mapping_id: %s", mapping.ID.String()),
-				fmt.Sprintf("x-goog-meta-original_file_name: %s", mapping.Filename),
-			}
-
-			signOptions := &storage.SignedURLOptions{
-				GoogleAccessID: config.ServiceAccountEmail,
-				SignBytes:      signBytes,
-				Scheme:         storage.SigningSchemeV4,
-				Method:         "PUT",
-				Expires:        expiry,
-				Headers:        metadata,
-			}
-
-			url, err := objstore.CreateGCSPUTPreSignedURL(client, config.SymbolsBucket, key, signOptions)
-			if err != nil {
-				msg := fmt.Sprintf("failed to create PUT pre-signed URL for %v: %v", mapping.Filename, err)
-
-				fmt.Println(msg)
-
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": msg,
-				})
-
-				return
-			}
-
-			mapping.UploadURL = url
-			mapping.ExpiresAt = expiry
-			mapping.PatchID = build.PatchID
-			mapping.Headers = make(map[string]string)
-			mapping.Headers["x-goog-meta-mapping_id"] = mapping.ID.String()
-			mapping.Headers["x-goog-meta-original_file_name"] = mapping.Filename
-		}
-
-		if !build.hasMapping() {
-			c.JSON(http.StatusOK, gin.H{
-				"ok": "build info updated",
-			})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"mappings": build.Mappings,
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
 		})
 
 		return
 	}
 
-	client := objstore.CreateS3Client(ctx, config.SymbolsAccessKey, config.SymbolsSecretAccessKey, config.SymbolsBucketRegion, config.AWSEndpoint)
+	if !build.hasMapping() {
+		c.JSON(http.StatusOK, gin.H{
+			"ok": "build info updated",
+		})
+		return
+	}
 
-	// process build mappings
+	c.JSON(http.StatusOK, gin.H{
+		"mappings": build.Mappings,
+	})
+}
+
+// PutOTABuilds handles uploads of Over-The-Air patch mapping
+// files (CodePush / Shorebird). Unlike PutBuilds it is driven
+// solely by a free-form patch_id — it accepts no app version,
+// build number or build size. The mapping rows are stored with
+// empty version columns and the supplied patch_id, which is the
+// sole key for patch_id-based symbolication lookups.
+func PutOTABuilds(c *gin.Context) {
+	ctx := c.Request.Context()
+	appId, err := uuid.Parse(c.GetString("appId"))
+	if err != nil {
+		msg := `failed to parse app id`
+		fmt.Println(msg, err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+
+		return
+	}
+
+	var ota OTABuild
+	if err := c.ShouldBindJSON(&ota); err != nil {
+		msg := `failed to parse OTA build info`
+		fmt.Println(msg, err)
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+
+		return
+	}
+
+	// model the OTA upload as a build with no version/size; the
+	// patch_id is the sole lookup key for these mapping rows.
+	build := Build{
+		AppID:    appId,
+		PatchID:  ota.PatchID,
+		Mappings: ota.Mappings,
+	}
+
+	// each OTA mapping gets a fresh id; a re-uploaded patch_id
+	// inserts new rows and latest-wins applies at lookup time.
+	for _, m := range build.Mappings {
+		m.ID = uuid.New()
+	}
+
+	tx, err := server.Server.PgPool.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel: pgx.ReadCommitted,
+	})
+	if err != nil {
+		msg := fmt.Sprintf("failed to acquire db transaction while putting OTA builds: %v", err)
+		fmt.Println(msg)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	defer tx.Rollback(ctx)
+
+	if err = build.insertNewMappings(ctx, &tx); err != nil {
+		msg := fmt.Sprintf("failed to insert OTA mappings: %v", err)
+		fmt.Println(msg)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		msg := fmt.Sprintf("failed to commit transaction while putting OTA builds: %v", err)
+		fmt.Println(msg)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	if err = presignMappings(ctx, server.Server.Config, &build); err != nil {
+		msg := fmt.Sprintf("failed to presign OTA mappings: %v", err)
+		fmt.Println(msg)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"mappings": build.Mappings,
+	})
+}
+
+// presignMappings generates presigned PUT upload URLs for each of
+// the build's mapping files and populates UploadURL, ExpiresAt,
+// PatchID and Headers on every mapping. It dispatches to the cloud
+// (GCS) or self-host (S3) implementation. Shared by PutBuilds and
+// PutOTABuilds.
+func presignMappings(ctx context.Context, config *server.ServerConfig, build *Build) (err error) {
+	if config.IsCloud() {
+		return presignMappingsGCS(ctx, config, build)
+	}
+	return presignMappingsS3(ctx, config, build)
+}
+
+// presignMappingsGCS signs each mapping's upload URL via GCS V4
+// signing. The service account identity must be tied to the
+// credentials, otherwise the signed URLs won't work.
+func presignMappingsGCS(ctx context.Context, config *server.ServerConfig, build *Build) (err error) {
+	client, err := objstore.CreateGCSClient(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to create GCS client: %w", err)
+	}
+
+	iamClient, err := credentials.NewIamCredentialsClient(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to create IAM client: %w", err)
+	}
+	defer iamClient.Close()
+
+	signBytes := func(b []byte) ([]byte, error) {
+		resp, signErr := iamClient.SignBlob(ctx, &credentialspb.SignBlobRequest{
+			Name:    "projects/-/serviceAccounts/" + config.ServiceAccountEmail,
+			Payload: b,
+		})
+		if signErr != nil {
+			return nil, signErr
+		}
+		return resp.SignedBlob, nil
+	}
+
 	for _, mapping := range build.Mappings {
 		ext := filepath.Ext(mapping.Filename)
 		key := fmt.Sprintf("incoming/%s%s", mapping.ID.String(), ext)
-		signedUrl, err := objstore.CreateS3PUTPreSignedURL(ctx, client, &s3.PutObjectInput{
+		expiry := time.Now().Add(time.Hour)
+		metadata := []string{
+			fmt.Sprintf("x-goog-meta-mapping_id: %s", mapping.ID.String()),
+			fmt.Sprintf("x-goog-meta-original_file_name: %s", mapping.Filename),
+		}
+
+		signOptions := &storage.SignedURLOptions{
+			GoogleAccessID: config.ServiceAccountEmail,
+			SignBytes:      signBytes,
+			Scheme:         storage.SigningSchemeV4,
+			Method:         "PUT",
+			Expires:        expiry,
+			Headers:        metadata,
+		}
+
+		url, signErr := objstore.CreateGCSPUTPreSignedURL(client, config.SymbolsBucket, key, signOptions)
+		if signErr != nil {
+			return fmt.Errorf("failed to create PUT pre-signed URL for %v: %w", mapping.Filename, signErr)
+		}
+
+		mapping.UploadURL = url
+		mapping.ExpiresAt = expiry
+		mapping.PatchID = build.PatchID
+		mapping.Headers = make(map[string]string)
+		mapping.Headers["x-goog-meta-mapping_id"] = mapping.ID.String()
+		mapping.Headers["x-goog-meta-original_file_name"] = mapping.Filename
+	}
+
+	return
+}
+
+// presignMappingsS3 signs each mapping's upload URL via the S3 SDK
+// presigner, then wraps it in the API proxy URL used on self-host.
+func presignMappingsS3(ctx context.Context, config *server.ServerConfig, build *Build) (err error) {
+	client := objstore.CreateS3Client(ctx, config.SymbolsAccessKey, config.SymbolsSecretAccessKey, config.SymbolsBucketRegion, config.AWSEndpoint)
+
+	for _, mapping := range build.Mappings {
+		ext := filepath.Ext(mapping.Filename)
+		key := fmt.Sprintf("incoming/%s%s", mapping.ID.String(), ext)
+		signedUrl, signErr := objstore.CreateS3PUTPreSignedURL(ctx, client, &s3.PutObjectInput{
 			Bucket: aws.String(config.SymbolsBucket),
 			Key:    aws.String(key),
 			Metadata: map[string]string{
@@ -403,16 +515,8 @@ func PutBuilds(c *gin.Context) {
 				"original_file_name": mapping.Filename,
 			},
 		}, s3.WithPresignExpires(time.Duration(time.Hour)))
-
-		if err != nil {
-			msg := fmt.Sprintf("failed to create PUT pre-signed URL for %v: %v", mapping.Filename, err)
-
-			fmt.Println(msg)
-
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
+		if signErr != nil {
+			return fmt.Errorf("failed to create PUT pre-signed URL for %v: %w", mapping.Filename, signErr)
 		}
 
 		// proxy the url
@@ -426,14 +530,5 @@ func PutBuilds(c *gin.Context) {
 		mapping.Headers["x-amz-meta-original_file_name"] = mapping.Filename
 	}
 
-	if !build.hasMapping() {
-		c.JSON(http.StatusOK, gin.H{
-			"ok": "build info updated",
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"mappings": build.Mappings,
-	})
+	return
 }

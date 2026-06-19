@@ -92,9 +92,10 @@ type resolvedPair struct {
 // we give it via SentrySourceConfig.url. Two lookup paths
 // supported:
 //
-//  1. OTA / patch-id path: ?debug_id=<uuid> (one or more).
-//     Internally maps to a patch_id column lookup. Used when the
-//     SDK supplies a patch_id via a module entry on the event.
+//  1. OTA / patch-id path: ?debug_id=<patch_id> (one or more),
+//     scoped by ?app_id=<uuid>. Internally maps to a patch_id
+//     column lookup. Used when the SDK supplies a patch_id via a
+//     module entry on the event.
 //
 //  2. URL fallback path: ?app_id=<uuid>&version_name=...&
 //     version_code=...&url=... (?url= repeatable). Used when no
@@ -116,7 +117,7 @@ func HandleSymbolsJsRequest(c *gin.Context) {
 	var err error
 
 	if patchIDs := c.QueryArray("debug_id"); len(patchIDs) > 0 {
-		pairs, err = resolveByPatchID(ctx, patchIDs)
+		pairs, err = resolveByPatchID(ctx, c.Query("app_id"), patchIDs)
 	} else if appID := c.Query("app_id"); appID != "" {
 		versionName := c.Query("version_name")
 		versionCode := c.Query("version_code")
@@ -154,13 +155,14 @@ func HandleSymbolsJsRequest(c *gin.Context) {
 	c.JSON(http.StatusOK, results)
 }
 
-// resolveByPatchID handles the OTA path: caller supplies one
-// or more patch_ids; we look up the matching build_mappings
-// rows and pair bundle + sourcemap per patch_id. Filenames are
-// derived from the row's storage key — no HEAD against object
-// metadata.
-func resolveByPatchID(ctx context.Context, patchIDs []string) (pairs []resolvedPair, err error) {
-	rows, err := queryJsBundleRowsByPatchID(ctx, patchIDs)
+// resolveByPatchID handles the OTA path: caller supplies the
+// scoping app_id and one or more patch_ids; we look up the
+// matching build_mappings rows and pair bundle + sourcemap per
+// patch_id. Filenames are derived from the row's storage key —
+// no HEAD against object metadata. Rows arrive ordered
+// last_updated DESC so re-uploads collapse to the newest per role.
+func resolveByPatchID(ctx context.Context, appID string, patchIDs []string) (pairs []resolvedPair, err error) {
+	rows, err := queryJsBundleRowsByPatchID(ctx, appID, patchIDs)
 	if err != nil {
 		return
 	}
@@ -333,13 +335,17 @@ func setupStorageClients(
 
 // classifyRows splits a group of rows for one patch_id into
 // the bundle and sourcemap entries based on the inner filename
-// suffix (`.map` = sourcemap, anything else = bundle).
+// suffix (`.map` = sourcemap, anything else = bundle). Rows are
+// pre-sorted last_updated DESC, so first-seen-wins per role keeps
+// the most recent upload when a patch_id is re-uploaded.
 func classifyRows(rows []jsbundleRow) (bundle, sourcemap *jsbundleRow) {
 	for i := range rows {
 		r := &rows[i]
 		if r.isSourcemap() {
-			sourcemap = r
-		} else {
+			if sourcemap == nil {
+				sourcemap = r
+			}
+		} else if bundle == nil {
 			bundle = r
 		}
 	}
@@ -347,13 +353,14 @@ func classifyRows(rows []jsbundleRow) (bundle, sourcemap *jsbundleRow) {
 }
 
 // queryJsBundleRowsByPatchID returns build_mappings rows for
-// the given patch_ids whose mapping_type is "jsbundle".
+// the given app_id and patch_ids whose mapping_type is "jsbundle",
+// ordered most-recent first so re-uploads dedupe to the latest.
 //
-// The app_id filter is intentionally absent — Symbolicator has
-// no app context at lookup time in the patch_id path. patch_ids
-// are assumed globally unique (generated as UUIDv4 at build
-// time). Revisit if collisions become a concern.
-func queryJsBundleRowsByPatchID(ctx context.Context, patchIDs []string) (rows []jsbundleRow, err error) {
+// patch_ids are free-form developer-supplied text, so the app_id
+// filter is required to avoid cross-app collisions. The app_id
+// reaches this path via the source URL the ingest-worker sets on
+// the Sentry source (configureSource).
+func queryJsBundleRowsByPatchID(ctx context.Context, appID string, patchIDs []string) (rows []jsbundleRow, err error) {
 	placeholders := make([]string, len(patchIDs))
 	args := make([]any, len(patchIDs))
 	for i, d := range patchIDs {
@@ -364,9 +371,10 @@ func queryJsBundleRowsByPatchID(ctx context.Context, patchIDs []string) (rows []
 	stmt := sqlf.PostgreSQL.
 		From("build_mappings").
 		Select("key, patch_id").
+		Where("app_id = ?", appID).
 		Where("mapping_type = ?", symbol.TypeJsBundle.String()).
-		Where("patch_id IS NOT NULL").
-		Where("patch_id IN ("+strings.Join(placeholders, ",")+")", args...)
+		Where("patch_id IN ("+strings.Join(placeholders, ",")+")", args...).
+		OrderBy("last_updated DESC")
 
 	defer stmt.Close()
 
