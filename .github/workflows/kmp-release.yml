@@ -56,6 +56,8 @@ jobs:
             exit 1
           fi
           git worktree add --detach "$RUNNER_TEMP/ios-pinned" "ios-v$IOS_VERSION"
+          # libwebp ships as a submodule; the worktree needs it for MeasureWebP.
+          git -C "$RUNNER_TEMP/ios-pinned" submodule update --init --recursive
           echo "src=$RUNNER_TEMP/ios-pinned/ios" >> $GITHUB_OUTPUT
 
       - name: Build Measure iOS xcframework
