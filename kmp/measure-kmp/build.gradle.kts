@@ -7,7 +7,6 @@ plugins {
     kotlin("multiplatform") version "2.3.20"
     id("com.android.kotlin.multiplatform.library") version "8.13.0"
     id("com.vanniktech.maven.publish") version "0.34.0"
-    id("co.touchlab.kmmbridge.github") version "1.2.1"
     id("com.diffplug.spotless") version "8.0.0"
     id("org.jetbrains.kotlinx.binary-compatibility-validator") version "0.18.1"
 }
@@ -37,11 +36,8 @@ kotlin {
     }
 
     listOf(iosX64(), iosArm64(), iosSimulatorArm64()).forEach { target ->
-        target.binaries.framework {
-            baseName = "MeasureKMP"
-            isStatic = true
-            binaryOption("bundleId", "sh.measure.kmp")
-        }
+        // Binds against the native Measure module headers without embedding its
+        // binary; the consuming app links a single native Measure instance.
         target.compilations.getByName("main").cinterops.create("Measure") {
             defFile(project.file("src/appleMain/cinterop/Measure.def"))
             val slice = if (target.name == "iosArm64") "ios-arm64" else "ios-arm64_x86_64-simulator"
@@ -126,19 +122,5 @@ fun configureSpotlessKotlin(spotlessExtension: SpotlessExtension) {
             )
         }
         target("src/**/*.kt")
-    }
-}
-
-kmmbridge {
-    gitHubReleaseArtifacts()
-    spm(
-        spmDirectory =
-            layout.buildDirectory
-                .dir("measure-kmp-spm")
-                .get()
-                .asFile.absolutePath,
-        swiftToolVersion = "5.7",
-    ) {
-        iOS { v("12") }
     }
 }

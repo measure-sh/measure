@@ -1,25 +1,22 @@
 #!/usr/bin/env bash
 #
-# Builds Measure.xcframework from ios/Sources for measure-kmp's cinterop.
-# Relies on xcodebuild's own DerivedData-based incremental build — no
-# script-level freshness check. Trades ~5–15s on a no-op rerun for "always
-# correct" (the previous bash gate missed Xcode project/workspace edits and
-# script-flag changes, silently shipping stale frameworks).
+# Builds Measure.xcframework from the native iOS SDK sources. measure-kmp's
+# cinterop binds against it for headers only; the binary is not linked (see
+# the cinterop block in build.gradle.kts).
 #
-# Why this is a shell script and not a Gradle task:
-# When invoked from Xcode's Run Script build phase, a child process inherits
-# Xcode's build-system env vars (BUILD_DIR, OBJROOT, BUILT_PRODUCTS_DIR, …).
-# A nested xcodebuild that inherits those vars contends with the parent
-# Xcode IDE's XCBBuildService session and crashes with
-# "The Xcode build system has crashed. Build again to continue."
-# We sidestep this by invoking xcodebuild via `env -i PATH=$PATH HOME=$HOME`
-# so the nested build is fully isolated from the parent Xcode env.
+# Runs as a shell script rather than a Gradle task because Xcode's Run Script
+# phase (used by the Frank sample) exports build-system env vars such as
+# BUILD_DIR and OBJROOT. A nested xcodebuild that inherits them contends with
+# the parent XCBBuildService and crashes, so run_xcodebuild isolates the child
+# with `env -i`.
 #
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KMP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-IOS_SDK_DIR="$(cd "$KMP_DIR/../../ios" && pwd)"
+# Native iOS SDK sources. Defaults to in-repo ios/; release sets MEASURE_IOS_SRC
+# to a pinned ios-v<version> checkout.
+IOS_SDK_DIR="$(cd "${MEASURE_IOS_SRC:-$KMP_DIR/../../ios}" && pwd)"
 OUTPUT_DIR="$KMP_DIR/build/xcframework"
 DEVICE_ARCHIVE="$OUTPUT_DIR/Measure-ios.xcarchive"
 SIMULATOR_ARCHIVE="$OUTPUT_DIR/Measure-sim.xcarchive"
@@ -30,13 +27,11 @@ DERIVED_DATA="$OUTPUT_DIR/DerivedData"
 
 mkdir -p "$OUTPUT_DIR"
 
-# In CI the framework is pre-built and cached before xcodebuild starts.
-# The Xcode build phase still invokes this script, so we exit early when
-# in CI and the xcframework is already present. The cache key is derived
-# from ios/ sources, so a hit means the cached result is correct.
-# Local dev is unaffected: $CI is not set outside GitHub Actions.
+# In CI the xcframework is built once up front; later Xcode Run Script
+# invocations (e.g. the Frank app build) reuse it instead of rebuilding.
+# $CI is unset locally, so local dev always builds.
 if [ -d "$XCFRAMEWORK" ] && [ "${CI:-}" = "true" ]; then
-  echo "Measure.xcframework already present in CI — skipping rebuild"
+  echo "Measure.xcframework already present in CI, skipping rebuild"
   exit 0
 fi
 
@@ -56,7 +51,6 @@ run_xcodebuild archive \
   -archivePath "$DEVICE_ARCHIVE" \
   -derivedDataPath "$DERIVED_DATA" \
   SKIP_INSTALL=NO \
-  BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
   CODE_SIGN_IDENTITY=
@@ -68,7 +62,6 @@ run_xcodebuild archive \
   -archivePath "$SIMULATOR_ARCHIVE" \
   -derivedDataPath "$DERIVED_DATA" \
   SKIP_INSTALL=NO \
-  BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
   CODE_SIGN_IDENTITY=

@@ -1,4 +1,4 @@
-name: Prepare KMP Release
+name: 'KMP: Prepare Release'
 
 on:
   workflow_dispatch:
@@ -11,10 +11,18 @@ on:
         description: 'Next SNAPSHOT version (e.g., 0.2.0-SNAPSHOT)'
         required: true
         type: string
+      android_version:
+        description: 'Native Android SDK version this release builds against (e.g., 0.18.0). Must be a released android-v tag.'
+        required: true
+        type: string
+      ios_version:
+        description: 'Native iOS SDK version this release builds against (e.g., 0.11.0). Must be a released ios-v tag.'
+        required: true
+        type: string
 
 jobs:
   prepare-release:
-    name: Prepare KMP SDK Release
+    name: Prepare release
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -33,18 +41,33 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
 
-      - name: Validate input version format
+      - name: Validate inputs
         run: |
           if ! [[ ${{ inputs.version }} =~ ^[0-9]+\.[0-9]+\.[0-9]+(-((alpha|beta)\.[0-9]+))?$ ]]; then
-            echo "Error: Version must match semantic versioning pattern:"
-            echo "  - x.y.z (e.g. 1.2.3)"
-            echo "Got: ${{ inputs.version }}"
+            echo "Error: version must match x.y.z or x.y.z-(alpha|beta).n. Got: ${{ inputs.version }}"
             exit 1
           fi
+          if ! [[ ${{ inputs.android_version }} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: android_version must match x.y.z. Got: ${{ inputs.android_version }}"
+            exit 1
+          fi
+          if ! [[ ${{ inputs.ios_version }} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: ios_version must match x.y.z. Got: ${{ inputs.ios_version }}"
+            exit 1
+          fi
+          # The KMP release must pin published native versions to build against.
+          for tag in "android-v${{ inputs.android_version }}" "ios-v${{ inputs.ios_version }}"; do
+            if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              echo "Error: tag $tag does not exist."
+              exit 1
+            fi
+          done
 
       - name: Update version in gradle.properties
         run: |
           sed -i "s/MEASURE_KMP_VERSION_NAME=.*/MEASURE_KMP_VERSION_NAME=${{ inputs.version }}/" kmp/measure-kmp/gradle.properties
+          sed -i "s/MEASURE_ANDROID_VERSION=.*/MEASURE_ANDROID_VERSION=${{ inputs.android_version }}/" kmp/measure-kmp/gradle.properties
+          sed -i "s/MEASURE_IOS_VERSION=.*/MEASURE_IOS_VERSION=${{ inputs.ios_version }}/" kmp/measure-kmp/gradle.properties
 
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
@@ -65,6 +88,8 @@ jobs:
 
             Changes:
             - Updated version to ${{ inputs.version }} in gradle.properties
+            - Pinned native Android SDK version to ${{ inputs.android_version }} (android-v${{ inputs.android_version }})
+            - Pinned native iOS SDK version to ${{ inputs.ios_version }} (ios-v${{ inputs.ios_version }})
             - Generated changelog for version ${{ inputs.version }}
 
             <!-- release-meta

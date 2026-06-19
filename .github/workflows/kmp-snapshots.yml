@@ -1,4 +1,4 @@
-name: Publish KMP SDK Snapshots
+name: 'KMP: Publish Snapshots'
 
 on:
   push:
@@ -7,13 +7,17 @@ on:
     paths:
       - 'kmp/**'
 
+concurrency:
+  group: kmp-snapshots-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   JAVA_VERSION: 17
   JAVA_DISTRIBUTION: 'temurin'
 
 jobs:
   publish-snapshots:
-    name: Publish KMP SDK Snapshots
+    name: Publish snapshots
     runs-on: ubuntu-latest
     defaults:
       run:

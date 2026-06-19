@@ -1,4 +1,4 @@
-name: Prepare Next KMP Version
+name: 'KMP: Prepare Next Version'
 on:
   workflow_dispatch:
     inputs:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   prepare-next:
-    name: Prepare Next Development Version
+    name: Prepare next version
     runs-on: ubuntu-latest
     permissions:
       contents: write
