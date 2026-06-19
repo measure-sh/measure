@@ -228,6 +228,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Add tests for user_def_attr_selector component by @anupcowkur in #3439
 - (**frontend**): Add tests for filters component by @anupcowkur in #3438
 - (**frontend**): Add api latency tracking posthog events by @anupcowkur in #3431
+- (**kmp**): Prepare sdk release 0.1.0-alpha.1 (#3935) by @abhaysood in #3935
 - (**kmp**): Pin native SDK versions and simplify CI/release (#3933) by @abhaysood in #3933
 - (**kmp**): Prepare sdk release 0.1.0-alpha.1 (#3932) by @abhaysood in #3932
 - (**kmp**): Update documentation and improve release workflow (#3930) by @abhaysood in #3930
