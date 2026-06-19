@@ -11,6 +11,7 @@ description: "Integrate the Measure SDK on Android, iOS or Flutter to track your
     * [iOS](#ios)
     * [Flutter](#flutter)
     * [React Native](#react-native)
+    * [Kotlin Multiplatform](#kotlin-multiplatform)
 * [3. Verify Installation](#3-verify-installation)
 * [4. Review Configuration Options](#4-review-configuration-options)
 * [Troubleshoot](#troubleshoot)
@@ -30,6 +31,7 @@ in later steps.
 * [iOS](#ios)
 * [Flutter](#flutter)
 * [React Native](#react-native)
+* [Kotlin Multiplatform](#kotlin-multiplatform)
 
 ## Android
 
@@ -692,6 +694,66 @@ See [Navigation Monitoring](features/feature-navigation-lifecycle-tracking.md#re
 ### Track http requests
 
 See [Network Monitoring](features/feature-network-monitoring.md#react-native) for instructions on how to track HTTP requests.
+
+## Kotlin Multiplatform
+
+The KMP SDK provides access to Measure API from shared Kotlin code (`commonMain`) on Android and iOS.
+It is a thin wrapper over the native Android and iOS SDKs, so all the minimum requirements for Android
+and iOS apply to the KMP SDK as well.
+
+<details>
+  <summary>Minimum Requirements</summary>
+
+| Name                  | Version         |
+|-----------------------|-----------------|
+| Kotlin                | `2.x`           |
+| Android Min SDK       | `21` (Lollipop) |
+| iOS Deployment Target | `12.0+`         |
+
+The SDK is built with Kotlin `2.3.20`. Use a compatible Kotlin `2.x` toolchain in your project.
+
+</details>
+
+### Add the Native SDKs
+
+The KMP SDK does not have its own initialization API. You initialize each native SDK in its own platform
+target (as described in the [Android](#android) and [iOS](#ios) sections), and then use
+`sh.measure.kmp.Measure` from shared code.
+
+### Add KMP SDK
+
+Add the dependency to the `commonMain` source set of your shared module's `build.gradle.kts` file:
+
+```kotlin
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation("sh.measure:measure-kmp:0.1.0")
+        }
+    }
+}
+```
+
+### Use the SDK from shared code
+
+Once both native SDKs are initialized, you can call any API from `sh.measure.kmp.Measure` in `commonMain`:
+
+```kotlin
+import sh.measure.kmp.Measure
+import sh.measure.kmp.attributes.StringAttr
+
+Measure.trackScreenView("CheckoutScreen")
+Measure.trackEvent(
+    name = "checkout_completed",
+    attributes = mapOf("source" to StringAttr("kmp")),
+)
+```
+
+### Crashes from shared Kotlin code on iOS
+
+Crashes from unhandled exceptions in shared Kotlin code are captured automatically on iOS, no extra
+setup is required. The SDK installs a Kotlin exception hook on load and forwards the crash, with its
+Kotlin stack frames preserved.
 
 ## 3. Verify Installation
 
