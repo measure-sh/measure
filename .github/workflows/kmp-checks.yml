@@ -1,4 +1,4 @@
-name: KMP Checks
+name: 'KMP: Checks'
 
 on:
   pull_request:
@@ -11,6 +11,10 @@ on:
     paths:
       - 'kmp/**'
       - '!docs/**'
+
+concurrency:
+  group: kmp-checks-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   JAVA_VERSION: 17
