@@ -41,14 +41,6 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode.app
 
-      - name: Clone SPM distribution repo
-        env:
-          GH_TOKEN: ${{ secrets.SDK_RELEASE }}
-        run: |
-          git clone https://x-access-token:${GH_TOKEN}@github.com/${SPM_REPO}.git ${SPM_CHECKOUT_DIR}
-          git -C ${SPM_CHECKOUT_DIR} config user.name "github-actions[bot]"
-          git -C ${SPM_CHECKOUT_DIR} config user.email "github-actions[bot]@users.noreply.github.com"
-
       - name: Extract version from tag
         id: version
         run: |
@@ -58,6 +50,14 @@ jobs:
       - name: Clean Gradle build outputs
         working-directory: kmp/measure-kmp
         run: ./gradlew clean --no-daemon --no-configuration-cache --stacktrace
+
+      - name: Clone SPM distribution repo
+        env:
+          GH_TOKEN: ${{ secrets.SDK_RELEASE }}
+        run: |
+          git clone https://x-access-token:${GH_TOKEN}@github.com/${SPM_REPO}.git ${SPM_CHECKOUT_DIR}
+          git -C ${SPM_CHECKOUT_DIR} config user.name "github-actions[bot]"
+          git -C ${SPM_CHECKOUT_DIR} config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Build Measure iOS xcframework
         run: ./kmp/measure-kmp/Scripts/build-xcframework.sh

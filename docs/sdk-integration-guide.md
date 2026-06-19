@@ -5,16 +5,16 @@ description: "Integrate the Measure SDK on Android, iOS or Flutter to track your
 
 # Getting Started
 
-* [1. Create an App](#1-create-an-app)
-* [2. Set Up the SDK](#2-set-up-the-sdk)
-    * [Android](#android)
-    * [iOS](#ios)
-    * [Flutter](#flutter)
-    * [React Native](#react-native)
-    * [Kotlin Multiplatform](#kotlin-multiplatform)
-* [3. Verify Installation](#3-verify-installation)
-* [4. Review Configuration Options](#4-review-configuration-options)
-* [Troubleshoot](#troubleshoot)
+- [1. Create an App](#1-create-an-app)
+- [2. Set Up the SDK](#2-set-up-the-sdk)
+  - [Android](#android)
+  - [iOS](#ios)
+  - [Flutter](#flutter)
+  - [React Native](#react-native)
+  - [Kotlin Multiplatform](#kotlin-multiplatform)
+- [3. Verify Installation](#3-verify-installation)
+- [4. Review Configuration Options](#4-review-configuration-options)
+- [Troubleshoot](#troubleshoot)
 
 ## 1. Create an App
 
@@ -27,11 +27,11 @@ in later steps.
 
 ## 2. Set Up the SDK
 
-* [Android](#android)
-* [iOS](#ios)
-* [Flutter](#flutter)
-* [React Native](#react-native)
-* [Kotlin Multiplatform](#kotlin-multiplatform)
+- [Android](#android)
+- [iOS](#ios)
+- [Flutter](#flutter)
+- [React Native](#react-native)
+- [Kotlin Multiplatform](#kotlin-multiplatform)
 
 ## Android
 
@@ -39,7 +39,7 @@ in later steps.
   <summary>Minimum Requirements</summary>
 
 | Name                  | Version         |
-|-----------------------|-----------------|
+| --------------------- | --------------- |
 | Android Gradle Plugin | `8.1.0`         |
 | Min SDK               | `21` (Lollipop) |
 | Target SDK            | `35`            |
@@ -50,7 +50,7 @@ in later steps.
     <summary>Self-host Compatibility</summary>
 
 | SDK Version         | Minimum Required Self-host Version |
-|---------------------|------------------------------------|
+| ------------------- | ---------------------------------- |
 | >= `0.16.0`         | `0.10.0`                           |
 | `0.13.0` -`0.15.1`  | `0.9.0`                            |
 | `0.10.0` - `0.12.0` | `0.6.0`                            |
@@ -228,7 +228,7 @@ See the [troubleshooting](#troubleshoot) section if you face any issues.
     <summary>Minimum Requirements</summary>
 
 | Name                    | Version |
-|-------------------------|---------|
+| ----------------------- | ------- |
 | Xcode                   | 15.0+   |
 | Minimum iOS Deployments | 12.0+   |
 | Swift Version           | 5.10+   |
@@ -239,7 +239,7 @@ See the [troubleshooting](#troubleshoot) section if you face any issues.
 <summary>Self-host Compatibility</summary>
 
 | SDK Version | Minimum Required Self-host Version |
-|-------------|------------------------------------|
+| ----------- | ---------------------------------- |
 | >=0.1.0     | 0.6.0                              |
 | >=0.7.0     | 0.9.0                              |
 
@@ -257,6 +257,7 @@ visit their website. To integrate MeasureSDK into your Xcode project using Cocoa
 ```ruby
 pod 'measure-sh'
 ```
+
 > [!NOTE]  
 > MeasureSDK must be linked statically. If you are using `use_frameworks!` in your Podfile, you will need to ensure `measure-sh` is linked statically, as dynamic linking is not supported.
 
@@ -279,6 +280,7 @@ end
 ```
 
 Alternatively, if all your pods can be linked statically, you can use:
+
 ```ruby
 use_frameworks! :linkage => :static
 ```
@@ -360,7 +362,7 @@ Flutter SDK as well.
   <summary>Minimum Requirements</summary>
 
 | Name    | Version |
-|---------|---------|
+| ------- | ------- |
 | Flutter | `3.24`  |
 
 </details>
@@ -369,7 +371,7 @@ Flutter SDK as well.
     <summary>Self-host Compatibility</summary>
 
 | SDK Version | Minimum Required Self-host Version |
-|-------------|------------------------------------|
+| ----------- | ---------------------------------- |
 | >= `0.4.0`  | `0.10.0` (releasing soon)          |
 | >= `0.3.0`  | `0.9.0`                            |
 | >= `0.1.0`  | `0.8.0`                            |
@@ -418,9 +420,9 @@ Future<void> main() async {
 
 This does the following:
 
-* Initializes the Measure SDK with the provided `config`.
-* Wraps your app with the `MeasureWidget` for gesture detection and layout snapshots.
-* Sets up the error handlers to track uncaught exceptions.
+- Initializes the Measure SDK with the provided `config`.
+- Wraps your app with the `MeasureWidget` for gesture detection and layout snapshots.
+- Sets up the error handlers to track uncaught exceptions.
 
 ### Enable Full Collection Mode
 
@@ -434,7 +436,6 @@ that events from your app are reaching the dashboard.
 > builds and rely on sampling instead. See [Configuration Options](features/configuration-options.md) for details.
 
 ### Flutter Android Setup
-
 
 Measure Flutter SDK depends on the native Android SDK, so you need to follow all the steps mentioned in the
 [Android](#android) section to set up the Android SDK properly.
@@ -461,13 +462,13 @@ navigation events.
 See [Network Monitoring](features/feature-network-monitoring.md) for instructions on how to track HTTP requests.
 
 ### Gesture tracking & Layout Snapshots
- 
+
 The Flutter SDK automatically captures gestures like clicks, long clicks and scrolls. It also captures layout snapshots
-on every click to help visualize user interactions. To enable these features, simply wrap your app with the 
+on every click to help visualize user interactions. To enable these features, simply wrap your app with the
 `MeasureWidget` as shown in the initialization step above.
 
 Read more about adding custom widget names in the layout snapshots
-in [Gesture Tracking & Layout Snapshots](features/feature-gesture-tracking.md#flutter). 
+in [Gesture Tracking & Layout Snapshots](features/feature-gesture-tracking.md#flutter).
 
 ## React Native
 
@@ -477,7 +478,7 @@ The React Native SDK supports both **Expo** and **Vanilla React Native** project
   <summary>Minimum Requirements</summary>
 
 | Name         | Version  |
-|--------------|----------|
+| ------------ | -------- |
 | React Native | `0.72.0` |
 | React        | `18.2.0` |
 
@@ -527,11 +528,13 @@ The recommended setup for Expo projects uses the Measure config plugin, which au
 The plugin automatically handles:
 
 **Android**
+
 - Injects `sh.measure.android.API_KEY` and `sh.measure.android.API_URL` into `AndroidManifest.xml`
 - Adds the Measure Gradle plugin to the project build files
 - Adds the `measure-android` dependency to `app/build.gradle`
 
 **iOS**
+
 - Adds the `MeasureReactNative` pod to `Podfile`
 - Adds `export SOURCEMAP_FILE="$(pwd)/main.jsbundle.map"` to the "Bundle React Native code and images" build phase so a sourcemap is generated on every Release build
 - Adds an "Upload Measure Symbol Files" build phase that automatically uploads dSYM files and the JavaScript sourcemap after each Release build
@@ -547,8 +550,8 @@ npx expo prebuild
 Call `Measure.init` as early as possible in your app entry point:
 
 ```typescript
-import { Measure, MeasureConfig } from '@measuresh/react-native';
-import { useEffect } from 'react';
+import { Measure, MeasureConfig } from "@measuresh/react-native";
+import { useEffect } from "react";
 
 export default function App() {
   useEffect(() => {
@@ -650,6 +653,7 @@ This script automatically uploads dSYM files and the JavaScript sourcemap after 
 
 > [!CAUTION]
 > The upload script runs on every build in the configuration you add it to. To restrict it to Archive builds only, wrap the script content in:
+>
 > ```sh
 > if [ "$ACTION" = "archive" ]; then
 >   # script content here
@@ -661,8 +665,8 @@ This script automatically uploads dSYM files and the JavaScript sourcemap after 
 Call `Measure.init` as early as possible in your app entry point:
 
 ```typescript
-import { Measure, MeasureConfig } from '@measuresh/react-native';
-import { useEffect } from 'react';
+import { Measure, MeasureConfig } from "@measuresh/react-native";
+import { useEffect } from "react";
 
 export default function App() {
   useEffect(() => {
@@ -701,14 +705,13 @@ The KMP SDK provides access to Measure API from shared Kotlin code (`commonMain`
 It is a thin wrapper over the native Android and iOS SDKs, so all the minimum requirements for Android
 and iOS apply to the KMP SDK as well.
 
-<details>
-  <summary>Minimum Requirements</summary>
+### Minimum Requirements
 
-| Name                  | Version         |
-|-----------------------|-----------------|
-| Kotlin                | `2.x`           |
-| Android Min SDK       | `21` (Lollipop) |
-| iOS Deployment Target | `12.0+`         |
+| Name                  | Version             |
+| --------------------- | ------------------- |
+| Kotlin                | `2.x`               |
+| Measure Android SDK   | `0.18.0`            |
+| Measure iOS SDK       | `0.11.0`            |
 
 The SDK is built with Kotlin `2.3.20`. Use a compatible Kotlin `2.x` toolchain in your project.
 
@@ -758,11 +761,12 @@ Kotlin stack frames preserved.
 ## 3. Verify Installation
 
 Launch the app with the SDK integrated and navigate through a few screens. The data is sent to the server periodically,
-so it may take a few seconds to appear. Checkout the `Usage` section in the dashboard or navigate to the 
+so it may take a few seconds to appear. Checkout the `Usage` section in the dashboard or navigate to the
 `Session Timelines` tab to see the data.
 
 🎉 Congratulations! You have successfully integrated Measure into your app!
-_______
+
+---
 
 ## 4. Review Configuration Options
 
@@ -771,7 +775,7 @@ initialization, while others can be configured remotely from the dashboard. Revi
 section to learn more about these options and how to use them effectively.
 
 For debug builds, it's recommended to set `enableFullCollectionMode` to `true` during initialization to ensure all data is
-collected for verification purposes. In release builds, you can adjust the sampling rates and other settings as needed 
+collected for verification purposes. In release builds, you can adjust the sampling rates and other settings as needed
 to balance signal vs noise and optimize costs.
 
 ## Troubleshoot
@@ -1048,8 +1052,6 @@ Measure.initialize(with: clientInfo, config: config)
 
 </details>
 
-
-
 #### Step 4: Share the files
 
 Share the pulled log files on [Discord](https://discord.gg/f6zGkBCt42) or send them to us via email
@@ -1060,11 +1062,11 @@ for us to investigate.
 Once you've collected the logs, disable diagnostic mode by removing the `enableDiagnosticMode` flag
 or setting it to `false`. You can also delete the log files from the device:
 
-
 <details>
     <summary>Android</summary>
 
 ```shell
 adb shell run-as <your.package.name> rm -rf files/measure/sdk_debug_logs/
 ```
+
 </details>
