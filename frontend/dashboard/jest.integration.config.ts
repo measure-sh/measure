@@ -39,7 +39,7 @@ const integrationJestConfig = async () => {
       "^.+\\.module\\.(css|sass|scss)$",
     ],
     // Skip Next.js build output so jest-haste-map doesn't see duplicate
-    // package.json from .next/standalone/ (output: "standalone" in next.config.js)
+    // package.json from .next/standalone/ (output: "standalone" in next.config.mjs)
     modulePathIgnorePatterns: ["<rootDir>/.next/"],
     // Only run integration tests
     testMatch: ["**/__tests__/integration/**/*.[jt]s?(x)"],

@@ -7,7 +7,7 @@ import type { Config } from "jest";
 import nextJest from "next/jest";
 
 const createJestConfig = nextJest({
-  // Provide the path to your Next.js app to load next.config.js and .env files in your test environment
+  // Provide the path to your Next.js app to load next.config.mjs and .env files in your test environment
   dir: "./",
 });
 
@@ -104,7 +104,7 @@ const config: Config = {
   },
 
   // Skip Next.js build output so jest-haste-map doesn't see duplicate
-  // package.json from .next/standalone/ (output: "standalone" in next.config.js)
+  // package.json from .next/standalone/ (output: "standalone" in next.config.mjs)
   modulePathIgnorePatterns: ["<rootDir>/.next/"],
 
   // Activates notifications for test results
