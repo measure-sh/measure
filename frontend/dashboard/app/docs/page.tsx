@@ -1,4 +1,4 @@
-import { extractTocEntries, getDocIndex } from "@/app/docs/docs";
+import { getDocIndex } from "@/app/docs/docs";
 import { sharedOpenGraph } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -34,8 +34,6 @@ export default function DocsIndexPage() {
     notFound();
   }
 
-  const tocEntries = extractTocEntries(doc.content);
-
   return (
     <>
       <article className="min-w-0 flex-1">
@@ -48,7 +46,7 @@ export default function DocsIndexPage() {
         </Markdown>
         <DocsNavLinks currentSlug="/docs" />
       </article>
-      <DocsToc entries={tocEntries} />
+      <DocsToc />
     </>
   );
 }

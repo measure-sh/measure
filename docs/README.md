@@ -39,6 +39,7 @@ feature's documentation to understand its underlying mechanism and enhance your 
     * [**Android**](features/feature-bug-report-android.md)
     * [**iOS**](features/feature-bug-report-ios.md)
     * [**Flutter**](features/feature-bug-report-flutter.md)
+    * [**React Native**](features/feature-bug-report-react-native.md)
 * [**Screenshot Masking for SwiftUI**](features/feature-screenshot-masking-swiftui.md) — Mask sensitive content in SwiftUI views when capturing screenshots
 * [**Screenshot Masking for Flutter**](features/feature-screenshot-masking-flutter.md) — Mask sensitive content in Flutter widgets when capturing screenshots
 * [**App Launch Metrics**](features/feature-app-launch-metrics.md) — Measure app launch performance

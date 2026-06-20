@@ -1,9 +1,9 @@
 ---
-title: "In-App Bug Reports — Flutter SDK"
+title: "In-App Bug Reports - Flutter SDK"
 description: "Let users report bugs from inside your Flutter app. Built-in or custom UI, screenshots, attachments, i18n and shake to report."
 ---
 
-# Bug Reports — Flutter
+# Bug Reports - Flutter
 
 Bug reports enable users to report issues directly from the app. Measure SDK provides two approaches to implement bug reporting.
 
@@ -95,7 +95,7 @@ Measure.instance.createBugReportWidget(
 
 Localize widget text using the BugReportTheme object:
 
-```
+```dart
 Measure.instance.createBugReportWidget(
   theme: const BugReportTheme(
     text: BugReportText(
