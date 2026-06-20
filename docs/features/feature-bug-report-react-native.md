@@ -28,8 +28,8 @@ method is called and added to the bug report. Users can choose to remove the scr
 
 |  Platform   | Dark Mode                                    | Light Mode                                     |
 |-------------|----------------------------------------------|------------------------------------------------|
-| iOS         | ![Dark Mode](../assets/ios-bug-report-dark.png) | ![Light Mode](../assets/ios-bug-report-light.png) |
-| Android     | ![Dark Mode](../assets/android-bug-report-dark.png) | ![Light Mode](../assets/android-bug-report-light.png) |
+| iOS         | ![Dark Mode](../assets/ios-bug-report-dark.webp) | ![Light Mode](../assets/ios-bug-report-light.webp) |
+| Android     | ![Dark Mode](../assets/android-bug-report-dark.webp) | ![Light Mode](../assets/android-bug-report-light.webp) |
 
 ```typescript
 import { Measure } from '@measuresh/react-native';

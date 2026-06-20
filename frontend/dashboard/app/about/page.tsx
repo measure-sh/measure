@@ -27,31 +27,31 @@ export default function About() {
   const team = [
     {
       name: "Gandharva Kumar",
-      profile_pic_url: "/images/profile_pics/profile_gandharva.jpeg",
+      profile_pic_url: "/images/profile_pics/profile_gandharva.webp",
       title: "CEO",
       url: "https://www.linkedin.com/in/gandharvakr/",
     },
     {
       name: "Anup Cowkur",
-      profile_pic_url: "/images/profile_pics/profile_anup.jpeg",
+      profile_pic_url: "/images/profile_pics/profile_anup.webp",
       title: "CTO",
       url: "https://www.linkedin.com/in/anupcowkur/",
     },
     {
       name: "Abhay Sood",
-      profile_pic_url: "/images/profile_pics/profile_abhay.jpeg",
+      profile_pic_url: "/images/profile_pics/profile_abhay.webp",
       title: "Head of Mobile",
       url: "https://www.linkedin.com/in/abhaysood/",
     },
     {
       name: "Debjeet Biswas",
-      profile_pic_url: "/images/profile_pics/profile_debjeet.jpg",
+      profile_pic_url: "/images/profile_pics/profile_debjeet.webp",
       title: "Head of Infra",
       url: "https://www.linkedin.com/in/debjeet-biswas-9b4337281/",
     },
     {
       name: "Adwin Ross",
-      profile_pic_url: "/images/profile_pics/profile_adwin.jpeg",
+      profile_pic_url: "/images/profile_pics/profile_adwin.webp",
       title: "Mobile Engineer",
       url: "https://www.linkedin.com/in/adwin-ronald-ross/",
     },
@@ -176,14 +176,14 @@ export default function About() {
           <div className="py-8" />
           <div className="flex flex-col md:flex-row gap-8 p-2 items-center max-w-6xl">
             <Image
-              src="/images/investor_logos/picus_black.png"
+              src="/images/investor_logos/picus_black.webp"
               alt={`Picus Capital Logo`}
               width={200}
               height={100}
               className="w-56 h-8 dark:hidden"
             />
             <Image
-              src="/images/investor_logos/picus_white.png"
+              src="/images/investor_logos/picus_white.webp"
               alt={`Picus Capital Logo`}
               width={200}
               height={100}

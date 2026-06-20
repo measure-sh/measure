@@ -21,7 +21,7 @@ Measure automatically tracks cold, warm and hot app launches along with the time
 
 You can easily track these metrics in the dashboard, allowing you to monitor the performance of your app's launch.
 
-![App Launch Metrics](../assets/app-launch-metrics.png)
+![App Launch Metrics](../assets/app-launch-metrics.webp)
 
 ## Sampling
 

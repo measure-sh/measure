@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 const features: PlatformFeature[] = [
   {
     heading: "Session Timelines",
-    image: "/images/product_screenshots/session_timelines.png",
+    image: "/images/product_screenshots/session_timelines.webp",
     imageAlt: "Session timeline for an iPadOS session in Measure",
     body: (
       <>
@@ -43,7 +43,7 @@ const features: PlatformFeature[] = [
   },
   {
     heading: "Detailed Stack Traces",
-    image: "/images/product_screenshots/ios_ipad_stacktrace.png",
+    image: "/images/product_screenshots/ios_ipad_stacktrace.webp",
     imageAlt:
       "Detailed crash stack trace with all threads for an iPadOS app in Measure",
     body: (
@@ -66,7 +66,7 @@ const features: PlatformFeature[] = [
   },
   {
     heading: "Performance Monitoring",
-    image: "/images/product_screenshots/performance_traces.png",
+    image: "/images/product_screenshots/performance_traces.webp",
     imageAlt: "Performance trace waterfall for an iPadOS app in Measure",
     body: (
       <>
@@ -88,7 +88,7 @@ const features: PlatformFeature[] = [
   },
   {
     heading: "App Health",
-    image: "/images/product_screenshots/app_health.png",
+    image: "/images/product_screenshots/app_health.webp",
     imageAlt: "App health metrics dashboard for an iPadOS app in Measure",
     body: (
       <>
@@ -107,7 +107,7 @@ const features: PlatformFeature[] = [
   },
   {
     heading: "Bug Reports",
-    image: "/images/product_screenshots/bug_reports.png",
+    image: "/images/product_screenshots/bug_reports.webp",
     imageAlt: "Bug report with session context for an iPadOS app in Measure",
     body: (
       <>
@@ -129,7 +129,7 @@ const features: PlatformFeature[] = [
   },
   {
     heading: "User Journeys",
-    image: "/images/product_screenshots/user_journeys.png",
+    image: "/images/product_screenshots/user_journeys.webp",
     imageAlt: "User journey flow diagram for an iPadOS app in Measure",
     body: (
       <>
@@ -149,7 +149,7 @@ const features: PlatformFeature[] = [
   },
   {
     heading: "Network Monitoring",
-    image: "/images/product_screenshots/network_performance.png",
+    image: "/images/product_screenshots/network_performance.webp",
     imageAlt: "Network performance monitoring for an iPadOS app in Measure",
     body: (
       <>

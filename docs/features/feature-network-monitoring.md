@@ -228,7 +228,7 @@ These metrics are computed only for [endpoint patterns](#how-are-endpoint-patter
 automatically generated. New endpoints will appear here once enough traffic has been collected to generate a
 pattern.
 
-![Top Endpoints](../assets/network-top-endpoints.png)
+![Top Endpoints](../assets/network-top-endpoints.webp)
 
 ## Request timeline
 
@@ -241,7 +241,7 @@ in the background?"
 The timeline shows the top [endpoint patterns](#how-are-endpoint-patterns-generated) ranked by request frequency.
 New endpoints will appear here once enough traffic has been collected to generate a pattern.
 
-![Request Timeline](../assets/network-request-timeline.png)
+![Request Timeline](../assets/network-request-timeline.webp)
 
 ## Searching for endpoints
 

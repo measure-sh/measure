@@ -90,7 +90,7 @@ const demoErrorDetails = {
           name: "screenshot.png",
           type: "screenshot",
           key: "85082bcc-8242-4ac3-a03d-17436c87fdb6.png",
-          location: "/images/demo_checkout_screenshot.png",
+          location: "/images/demo_checkout_screenshot.webp",
         },
       ],
       threads: [

@@ -130,7 +130,7 @@ export default function Home() {
                   </div>
                   <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
                     <Image
-                      src="/images/country_delight_logo.png"
+                      src="/images/country_delight_logo.webp"
                       alt="Country Delight Logo"
                       fill
                       className="object-contain grayscale"
@@ -138,7 +138,7 @@ export default function Home() {
                   </div>
                   <div className="w-[140px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
                     <Image
-                      src="/images/dashreels_logo.png"
+                      src="/images/dashreels_logo.webp"
                       alt="Dashreels Logo"
                       fill
                       className="object-contain grayscale brightness-0 dark:invert"
@@ -154,7 +154,7 @@ export default function Home() {
                   </div>
                   <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
                     <Image
-                      src="/images/astro_logo.png"
+                      src="/images/astro_logo.webp"
                       alt="Astro Logo"
                       fill
                       className="object-contain grayscale brightness-0 dark:invert"
@@ -162,7 +162,7 @@ export default function Home() {
                   </div>
                   <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
                     <Image
-                      src="/images/allofresh_logo.png"
+                      src="/images/allofresh_logo.webp"
                       alt="Allofresh Logo"
                       fill
                       className="object-contain grayscale brightness-0 dark:invert"
@@ -170,13 +170,13 @@ export default function Home() {
                   </div>
                   <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
                     <Image
-                      src="/images/smcindia_logo.png"
+                      src="/images/smcindia_logo.webp"
                       alt="SMC India Logo"
                       fill
                       className="object-contain dark:hidden grayscale brightness-0 dark:invert"
                     />
                     <Image
-                      src="/images/smcindia_logo_dark.png"
+                      src="/images/smcindia_logo_dark.webp"
                       alt="SMC India Logo"
                       fill
                       className="object-contain hidden dark:block grayscale brightness-0 dark:invert"
@@ -184,7 +184,7 @@ export default function Home() {
                   </div>
                   <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
                     <Image
-                      src="/images/even_logo.png"
+                      src="/images/even_logo.webp"
                       alt="Even Logo"
                       fill
                       className="object-contain grayscale brightness-0 dark:invert"
@@ -192,7 +192,7 @@ export default function Home() {
                   </div>
                   <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
                     <Image
-                      src="/images/karya_logo.png"
+                      src="/images/karya_logo.webp"
                       alt="Karya Logo"
                       fill
                       className="object-contain grayscale brightness-0 dark:invert"
@@ -364,7 +364,7 @@ export default function Home() {
               <div className="flex flex-col items-center gap-3">
                 <div className="h-14 flex items-center">
                   <Image
-                    src="/images/react_native_logo.png"
+                    src="/images/react_native_logo.webp"
                     alt=""
                     width={500}
                     height={445}

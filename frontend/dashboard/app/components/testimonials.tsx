@@ -14,26 +14,26 @@ const testimonials: Testimonial[] = [
   {
     name: "Mustafa Ali",
     handle: "Head of Mobile, Shopify",
-    avatar: "/images/testimonial_pics/mustafa.jpeg",
+    avatar: "/images/testimonial_pics/mustafa.webp",
     text: "Fixing mobile issues is never the hard part. It's the archaeology. Great to see measure.sh hit GA. A unified session timeline for user actions, network calls, logs, and lifecycle events is the kind of tooling mobile devs have needed for a while.",
   },
   {
     name: "Hussain Mustafa",
     handle: "Developer Support Engineer, RevenueCat",
-    avatar: "/images/testimonial_pics/hussain.jpg",
+    avatar: "/images/testimonial_pics/hussain.webp",
     text: "I've been using measure.sh lately to monitor my mobile apps and host it myself and it has been a delight. Definitely recommend it to anyone looking for an open source mobile app monitoring tool.",
   },
   {
     name: "Landseer Enga",
     handle: "Founder, Revyl.ai",
-    avatar: "/images/testimonial_pics/landseer.jpeg",
+    avatar: "/images/testimonial_pics/landseer.webp",
     text: "This is awesome!",
   },
 
   {
     name: "Sutirth Chakravarty",
     handle: "Architect, Turtlemint",
-    avatar: "/images/testimonial_pics/sutirth.jpeg",
+    avatar: "/images/testimonial_pics/sutirth.webp",
     text: `When I stumbled upon measure.sh, I was blown away!
 
 🚀Crash-free sessions improved dramatically—now hitting a mythical 99.99% consistently.
@@ -43,7 +43,7 @@ const testimonials: Testimonial[] = [
   {
     name: "Raghunath Jawahar",
     handle: "Founder, Legacy Code HQ",
-    avatar: "/images/testimonial_pics/raghunath.jpg",
+    avatar: "/images/testimonial_pics/raghunath.webp",
     text: `The good folks at measure.sh have been working on a mobile app monitoring platform for several months now and have open-sourced it. Do check it out and show it some love!
 
 This is quite a strong team that led several mobile platform initiatives at Gojek.`,
@@ -51,7 +51,7 @@ This is quite a strong team that led several mobile platform initiatives at Goje
   {
     name: "Iniyan Murugavel",
     handle: "Lead Engineer, Circles",
-    avatar: "/images/testimonial_pics/iniyan.jpeg",
+    avatar: "/images/testimonial_pics/iniyan.webp",
     text: `I'm personally a fan. Not just of the product, but of the minds behind it.
 
 It's built by some of the sharpest mobile engineers I've admired for years. Folks who live and breathe performance, scaling, and observability.
@@ -61,19 +61,19 @@ This isn't just another tool. It's crafted with intent, care, and deep expertise
   {
     name: "Aditya Pahilwani",
     handle: "Senior Software Engineer, Quince",
-    avatar: "/images/testimonial_pics/aditya.jpg",
+    avatar: "/images/testimonial_pics/aditya.webp",
     text: "I'm surprised this hasn't gained more attention yet—it's incredibly exciting for the mobile space, where we definitely lack observability and measure addresses so many of those gaps.",
   },
   {
     name: "Tuist",
     handle: "Open Source App Development Platform",
-    avatar: "/images/testimonial_pics/tuist.jpeg",
+    avatar: "/images/testimonial_pics/tuist.webp",
     text: "Looking for a way to keep tabs on your mobile apps? How about using a free and open-source solution? Consider exploring measure.sh!",
   },
   {
     name: "Gaurav Thakkar",
     handle: "Senior Software Engineer, BookMyShow",
-    avatar: "/images/testimonial_pics/gaurav.jpeg",
+    avatar: "/images/testimonial_pics/gaurav.webp",
     text: "Happy to see that a very easy to use and strong competitive tool to Crashlytics is now generally available and out of Beta!",
   },
 ];
