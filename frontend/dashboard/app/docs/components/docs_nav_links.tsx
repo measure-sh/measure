@@ -1,5 +1,4 @@
 import { docsNav, getFlatNavSlugs, type NavItem } from "@/app/docs/docs_nav";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 function findTitle(slug: string): string {
@@ -38,14 +37,18 @@ export default function DocsNavLinks({ currentSlug }: { currentSlug: string }) {
     currentIndex < flatSlugs.length - 1 ? flatSlugs[currentIndex + 1] : null;
 
   return (
-    <div className="flex justify-between items-center mt-12 pt-6 border-t border-border">
+    <div className="grid grid-cols-1 gap-4 mt-16 pt-6 border-t border-border sm:grid-cols-2">
       {prevSlug ? (
         <Link
           href={prevSlug}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors font-body"
+          className="flex flex-col rounded-lg border border-border px-4 py-3 transition-colors hover:border-primary"
         >
-          <ChevronLeft className="h-4 w-4" />
-          {findTitle(prevSlug)}
+          <span className="font-body text-xs font-medium text-muted-foreground">
+            Previous
+          </span>
+          <span className="font-body text-sm font-medium text-foreground">
+            {findTitle(prevSlug)}
+          </span>
         </Link>
       ) : (
         <div />
@@ -53,10 +56,14 @@ export default function DocsNavLinks({ currentSlug }: { currentSlug: string }) {
       {nextSlug ? (
         <Link
           href={nextSlug}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors font-body"
+          className="flex flex-col items-end rounded-lg border border-border px-4 py-3 text-right transition-colors hover:border-primary sm:col-start-2"
         >
-          {findTitle(nextSlug)}
-          <ChevronRight className="h-4 w-4" />
+          <span className="font-body text-xs font-medium text-muted-foreground">
+            Next
+          </span>
+          <span className="font-body text-sm font-medium text-foreground">
+            {findTitle(nextSlug)}
+          </span>
         </Link>
       ) : (
         <div />

@@ -1,9 +1,9 @@
 ---
-title: "In-App Bug Reports — Android SDK"
+title: "In-App Bug Reports - Android SDK"
 description: "Let users report bugs from inside your Android app. Built-in or custom UI, screenshots, layout snapshots and shake to report."
 ---
 
-# Bug Reports — Android
+# Bug Reports - Android
 
 Bug reports enable users to report issues directly from the app. Measure SDK provides two approaches to implement bug reporting.
 

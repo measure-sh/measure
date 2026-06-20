@@ -1,6 +1,10 @@
 import TrackableCodeBlock from "@/app/components/analytics/trackable_code_block";
 import TrackGithubLink from "@/app/components/analytics/track_github_link";
-import type { CodeBlockLanguage } from "@/app/utils/highlighter";
+import {
+  CODE_BLOCK_LANGUAGES,
+  type CodeBlockLanguage,
+  PLAINTEXT_LANGUAGE,
+} from "@/app/utils/highlighter";
 import { cn } from "@/app/utils/shadcn_utils";
 import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import { ChevronRight } from "lucide-react";
@@ -16,22 +20,12 @@ const LANG_ALIASES: Record<string, CodeBlockLanguage> = {
   shell: "shellscript",
   bash: "shellscript",
   objc: "objective-c",
+  ts: "typescript",
 };
 
-const SUPPORTED_LANGUAGES: ReadonlySet<CodeBlockLanguage> =
-  new Set<CodeBlockLanguage>([
-    "kotlin",
-    "xml",
-    "swift",
-    "dart",
-    "yaml",
-    "ruby",
-    "groovy",
-    "json",
-    "jsonc",
-    "objective-c",
-    "shellscript",
-  ]);
+const SUPPORTED_LANGUAGES: ReadonlySet<CodeBlockLanguage> = new Set(
+  CODE_BLOCK_LANGUAGES,
+);
 
 function resolveLanguage(
   className: string | undefined,
@@ -328,33 +322,21 @@ export function createMarkdownComponents(
     },
     pre: ({ children }) => {
       // react-markdown wraps fenced code in <pre><code class="language-X">…</code></pre>.
-      // When we recognize the language, render a syntax-highlighted CodeBlock and let it
-      // own the outer <pre> (Shiki emits its own <pre><code>).
-      const childArray = React.Children.toArray(children);
-      if (childArray.length === 1 && React.isValidElement(childArray[0])) {
-        const child = childArray[0] as React.ReactElement<{
-          children?: React.ReactNode;
-          className?: string;
-        }>;
-        const language = resolveLanguage(child.props.className);
-        if (language) {
-          const code = extractTextContent(child.props.children).replace(
-            /\n$/,
-            "",
-          );
-          return (
-            <TrackableCodeBlock
-              code={code}
-              language={language}
-              className="font-code text-sm leading-relaxed rounded-lg overflow-hidden my-4 [&_pre]:p-4 [&_pre]:overflow-x-auto"
-            />
-          );
-        }
-      }
+      // Render every block through CodeBlock: the inner <code>'s language class
+      // selects the grammar, and anything we don't highlight falls back to
+      // Shiki's no-op "plaintext" so it still gets the same CodeBlock chrome.
+      const child = React.Children.toArray(children)[0];
+      const className = React.isValidElement(child)
+        ? (child.props as { className?: string }).className
+        : undefined;
+      const code = extractTextContent(children).replace(/\n$/, "");
+      const language = resolveLanguage(className) ?? PLAINTEXT_LANGUAGE;
       return (
-        <pre className="font-code bg-muted rounded-lg p-4 my-4 overflow-x-auto text-sm leading-relaxed">
-          {children}
-        </pre>
+        <TrackableCodeBlock
+          code={code}
+          language={language}
+          className="font-code text-sm leading-relaxed rounded-lg overflow-hidden my-4 [&_pre]:p-4 [&_pre]:overflow-x-auto"
+        />
       );
     },
     code: ({ children, className }) => {
@@ -383,7 +365,7 @@ export function createMarkdownComponents(
     ),
     hr: () => <hr className="my-10 border-border" />,
     details: ({ children }) => (
-      <details className="group my-4 border border-border rounded-lg [&>*:not(summary)]:px-4 [&>*:not(summary):last-child]:pb-4">
+      <details className="group my-4 border border-border rounded-lg [&>*:not(summary)]:px-4 [&>summary+*]:pt-2 [&>*:not(summary):last-child]:mb-0 [&>*:not(summary):last-child]:pb-3">
         {children}
       </details>
     ),

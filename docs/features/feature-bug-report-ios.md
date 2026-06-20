@@ -1,9 +1,9 @@
 ---
-title: "In-App Bug Reports — iOS SDK"
+title: "In-App Bug Reports - iOS SDK"
 description: "et users report bugs from inside your iOS app. Built-in or custom UI, screenshots, attachments, theming and shake to report"
 ---
 
-# Bug Reports — iOS
+# Bug Reports - iOS
 
 Bug reports enable users to report issues directly from the app. There are two ways to use the bug reporting feature:
 

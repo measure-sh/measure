@@ -1,8 +1,4 @@
-import {
-  extractTocEntries,
-  getAllDocSlugs,
-  getDocBySlug,
-} from "@/app/docs/docs";
+import { getAllDocSlugs, getDocBySlug } from "@/app/docs/docs";
 import { sharedOpenGraph } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -56,8 +52,6 @@ export default async function DocPage({ params }: PageProps) {
     notFound();
   }
 
-  const tocEntries = extractTocEntries(doc.content);
-
   return (
     <>
       <article className="min-w-0 flex-1">
@@ -70,7 +64,7 @@ export default async function DocPage({ params }: PageProps) {
         </Markdown>
         <DocsNavLinks currentSlug={`/docs/${slug.join("/")}`} />
       </article>
-      <DocsToc entries={tocEntries} />
+      <DocsToc />
     </>
   );
 }

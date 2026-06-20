@@ -1,9 +1,9 @@
 ---
-title: "In-App Bug Reports — React Native Package"
+title: "In-App Bug Reports - React Native Package"
 description: "Let users report bugs from inside your react native app. Built-in or custom UI, screenshots, attachments, i18n and shake to report."
 ---
 
-# Bug Reports — React Native
+# Bug Reports - React Native
 
 Bug reports enable users to report issues directly from the app. Measure SDK provides two approaches to implement bug reporting.
 

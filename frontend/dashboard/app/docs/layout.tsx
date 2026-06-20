@@ -38,7 +38,13 @@ export default function DocsLayout({
   }, [pathname]);
 
   return (
-    <SidebarProvider>
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "17rem",
+        } as React.CSSProperties
+      }
+    >
       <DocsAppSidebar />
       <SidebarInset>
         {/* Mobile header with logo and sidebar trigger. Hidden on medium and larger screens. */}
@@ -46,7 +52,7 @@ export default function DocsLayout({
           <Link
             className={cn(
               buttonVariants({ variant: "ghost" }),
-              "group/logo py-2",
+              "group/logo py-2 px-0",
             )}
             href="/"
           >

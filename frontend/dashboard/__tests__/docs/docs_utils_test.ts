@@ -50,24 +50,8 @@ afterAll(() => {
 
 // We need to test the actual functions from docs.ts, but they use getDocsDirectory()
 // which resolves paths relative to process.cwd(). Instead, we test the exported pure
-// functions (cleanContent, extractTitle, extractTocEntries) and the filesystem functions
+// functions (cleanContent, extractTitle) and the filesystem functions
 // by calling them with our temp directory structure.
-
-// Import the pure functions (already tested in docs_test.ts, but we need getAllDocSlugs etc.)
-// Since docs.ts uses its own getDocsDirectory() internally, we mock fs.existsSync to
-// redirect to our temp dir for the functions that call getDocsDirectory().
-
-// Actually, getDocBySlug, getDocIndex, getAllDocSlugs, and generateSearchIndex all call
-// getDocsDirectory() internally. We need to mock that. Let's use jest.mock to replace
-// the module partially.
-
-// The simplest approach: test the logic by importing and calling with controlled paths.
-// But docs.ts doesn't export slugToFilePath or getDocsDirectory - they're private.
-// The exported functions (getDocBySlug, getDocIndex, getAllDocSlugs, generateSearchIndex)
-// all call getDocsDirectory() internally.
-
-// Let's mock fs.existsSync and fs.readFileSync to redirect docs directory resolution.
-
 describe("docs.ts filesystem functions", () => {
   let originalExistsSync: typeof fs.existsSync;
   let originalReadFileSync: typeof fs.readFileSync;

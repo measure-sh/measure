@@ -24,6 +24,11 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import DocsSearch from "./docs_search";
 
+// Mute the nested sidebar items by default, like the "On this page" outline.
+// Hover and selected states keep the default shadcn pill. Top-level section
+// headers keep their full-strength default styling.
+const navItemClass = "text-muted-foreground";
+
 function NavSection({ item }: { item: NavItem }) {
   const pathname = usePathname();
   const hasChildren = item.children && item.children.length > 0;
@@ -39,7 +44,7 @@ function NavSection({ item }: { item: NavItem }) {
         >
           <Link
             href={item.slug || "/docs"}
-            className="font-body whitespace-normal"
+            className="font-body font-semibold whitespace-normal"
           >
             {item.title}
           </Link>
@@ -77,7 +82,7 @@ function CollapsibleNavItem({
     <SidebarMenuItem>
       <SidebarMenuButton
         onClick={() => setIsOpen(!isOpen)}
-        className="font-body h-auto py-2 whitespace-normal"
+        className="font-body font-semibold h-auto py-2 whitespace-normal"
       >
         {item.title}
         <ChevronRight
@@ -111,7 +116,7 @@ function NavSubItem({ item }: { item: NavItem }) {
       <SidebarMenuSubButton
         asChild
         isActive={item.slug === pathname}
-        className="h-auto py-1"
+        className={cn("h-auto py-1", navItemClass)}
       >
         <Link
           href={item.slug || "/docs"}
@@ -146,7 +151,7 @@ function CollapsibleSubItem({
 
   return (
     <SidebarMenuSubItem>
-      <SidebarMenuSubButton asChild className="h-auto py-1">
+      <SidebarMenuSubButton asChild className={cn("h-auto py-1", navItemClass)}>
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="font-body whitespace-normal"
@@ -189,14 +194,14 @@ export default function DocsAppSidebar() {
   return (
     <>
       <Sidebar variant="sidebar" className="select-none">
-        <SidebarHeader>
+        <SidebarHeader className="px-4">
           <SidebarMenu>
             <SidebarMenuItem>
               <div className="flex items-center justify-between my-2">
                 <Link
                   className={cn(
                     buttonVariants({ variant: "ghost" }),
-                    "group/logo py-2",
+                    "group/logo py-2 px-0 pr-1",
                   )}
                   href="/"
                 >
@@ -241,11 +246,15 @@ export default function DocsAppSidebar() {
           </SidebarMenu>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarMenu>
+          <SidebarGroup className="px-4">
+            <SidebarMenu className="gap-4">
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isDocsIndex}>
-                  <Link href="/docs" className="font-body">
+                <SidebarMenuButton
+                  asChild
+                  isActive={isDocsIndex}
+                  className="h-auto py-2"
+                >
+                  <Link href="/docs" className="font-body font-semibold">
                     Overview
                   </Link>
                 </SidebarMenuButton>
