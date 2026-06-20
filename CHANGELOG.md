@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Support OTA symbolication (#3938) by @detj in #3938
 - (**backend**): Track app OS names as a single-family set) by @anupcowkur in #3839
 - (**backend**): Add unified errors API & react native symbolication support (#3623) by @detj in #3623
 - (**backend**): Use autumn for metering and billing by @anupcowkur in #3534
