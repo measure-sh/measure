@@ -292,6 +292,54 @@ func GetMappings(
 	return
 }
 
+// GetMappingsByPatchID fetches all mapping file keys from
+// database for a given app and Over-The-Air patch_id, returning
+// a map of keys to their mapping types.
+//
+// Used when an event/span carries a patch_id: the lookup is
+// scoped purely by (app_id, patch_id) and ignores the app
+// version/build. Ordered most-recent first so that, for a
+// patch_id re-uploaded with the same logical files, the latest
+// upload wins when keys collapse into the map.
+func GetMappingsByPatchID(
+	ctx context.Context,
+	db *pgxpool.Pool,
+	appId uuid.UUID,
+	patchID string,
+) (keyMap map[string]MappingType, err error) {
+	stmt := sqlf.PostgreSQL.
+		From("build_mappings").
+		Select("key, mapping_type").
+		Where("app_id = ?", appId).
+		Where("patch_id = ?", patchID).
+		Where("key != ''").
+		OrderBy("last_updated desc")
+
+	defer stmt.Close()
+
+	rows, err := db.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	keyMap = make(map[string]MappingType)
+	for rows.Next() {
+		var key string
+		var mTypeStr string
+		if err = rows.Scan(&key, &mTypeStr); err != nil {
+			return nil, err
+		}
+		keyMap[key] = ParseMappingType(mTypeStr)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return
+}
+
 // ParseMappingType converts a string mapping type to MappingType enum
 func ParseMappingType(s string) MappingType {
 	switch s {

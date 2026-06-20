@@ -25,6 +25,13 @@ type Attribute struct {
 	// AppUniqueID is the app's bundle identifier.
 	AppUniqueID string `json:"app_unique_id" binding:"required"`
 
+	// PatchID identifies an Over-The-Air patch (e.g. CodePush
+	// for RN, Shorebird for Flutter). Free-form text supplied by
+	// the mobile team. Optional — when present, symbolication
+	// looks up mapping files by patch_id, ignoring the app
+	// version/build.
+	PatchID string `json:"patch_id"`
+
 	// MeasureSDKVersion is the measure sdk version
 	// identifier.
 	MeasureSDKVersion string `json:"measure_sdk_version" binding:"required"`
@@ -143,6 +150,7 @@ func (a Attribute) Validate() error {
 		maxAppVersionChars         = 128
 		maxAppBuildChars           = 32
 		maxAppUniqueIDChars        = 128
+		maxPatchIDChars            = 1024
 		maxMeasureSDKVersion       = 16
 		maxNetworkTypeChars        = 16
 		maxNetworkGenerationChars  = 8
@@ -193,6 +201,9 @@ func (a Attribute) Validate() error {
 	}
 	if len(a.AppUniqueID) > maxAppUniqueIDChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attrubute.app_unique_id`, maxAppUniqueIDChars)
+	}
+	if len(a.PatchID) > maxPatchIDChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.patch_id`, maxPatchIDChars)
 	}
 	if len(a.Platform) > maxPlatformChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.platform`, maxPlatformChars)

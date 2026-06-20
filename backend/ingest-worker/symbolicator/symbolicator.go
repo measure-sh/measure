@@ -218,10 +218,45 @@ func New(origin, operatingSys string, sources []Source, sentrySources []SentrySo
 	return
 }
 
+// resolveBatchPatchID returns the batch's effective Over-The-Air
+// patch_id. If any event or span attribute carries a non-empty
+// patch_id, the first such value is used for the whole batch. An
+// empty string means no patch_id is in play and version-based
+// mapping lookup applies.
+func resolveBatchPatchID(events []event.EventField, spans []span.SpanField) string {
+	for i := range events {
+		if events[i].Attribute.PatchID != "" {
+			return events[i].Attribute.PatchID
+		}
+	}
+	for i := range spans {
+		if spans[i].Attributes.PatchID != "" {
+			return spans[i].Attributes.PatchID
+		}
+	}
+	return ""
+}
+
 // Symbolicate performs symbolication by retrieving
 // appropriate mapping file and managing symbolicator
 // request to response cycle.
 func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appId uuid.UUID, events []event.EventField, spans []span.SpanField) (err error) {
+	// Resolve the batch's effective Over-The-Air patch_id. When any
+	// event or span attribute carries a non-empty patch_id, the whole
+	// batch symbolicates by patch_id (ignoring app version/build).
+	patchID := resolveBatchPatchID(events, spans)
+
+	// A patch_id resolves to the same mapping set for every event in
+	// the batch, so fetch it once. On error, leave it empty and let
+	// the per-event gate skip symbolication (frames stay raw).
+	var patchMappings map[string]symbol.MappingType
+	if patchID != "" {
+		if patchMappings, err = symbol.GetMappingsByPatchID(ctx, conn, appId, patchID); err != nil {
+			fmt.Printf("Error fetching mapping keys for appId %s, patch_id %s: %v\n", appId, patchID, err)
+			err = nil
+		}
+	}
+
 	for i, ev := range events {
 		if !ev.NeedsSymbolication() {
 			continue
@@ -239,13 +274,21 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 			continue
 		}
 
-		// find the mapping keys and mapping types
-		name := ev.Attribute.AppVersion
-		code := ev.Attribute.AppBuild
-		mappings, keyErr := symbol.GetMappings(ctx, conn, appId, name, code)
-		if keyErr != nil {
-			fmt.Printf("Error fetching mapping keys for appId %s, version %s, build %s: %v\n", appId, name, code, keyErr)
-			continue
+		// find the mapping keys and mapping types. when a patch_id is
+		// in play, use the patch_id-scoped set; otherwise fall back to
+		// the (app_id, version_name, version_code) lookup.
+		var mappings map[string]symbol.MappingType
+		if patchID != "" {
+			mappings = patchMappings
+		} else {
+			name := ev.Attribute.AppVersion
+			code := ev.Attribute.AppBuild
+			keyMap, keyErr := symbol.GetMappings(ctx, conn, appId, name, code)
+			if keyErr != nil {
+				fmt.Printf("Error fetching mapping keys for appId %s, version %s, build %s: %v\n", appId, name, code, keyErr)
+				continue
+			}
+			mappings = keyMap
 		}
 
 		if len(mappings) < 1 {
@@ -293,7 +336,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 				s.jsSymbolicator.ensureRequestInitialized()
 				s.jsSymbolicator.parseExceptions(ev.Exception.Exceptions, i)
 				s.jsSymbolicator.configureSource(s.SymboloaderOrigin, s.SymboloaderToken, appId, ev.Attribute.AppVersion, ev.Attribute.AppBuild)
-				s.jsSymbolicator.populateModules(ev)
+				s.jsSymbolicator.populateModules(ev, patchID)
 			}
 		case event.TypeANR:
 			s.jvmSymbolicator.ensureRequestInitialized()
@@ -1043,17 +1086,26 @@ func (js *jsSymbolicator) configureSource(symboloaderOrigin, token string, appID
 	js.request.Release = versionName + "+" + versionCode
 }
 
-// populateModules emits the modules array that binds
-// frame abs_paths to debug ids. Symbolicator uses these
-// entries to resolve sourcemaps by debug id (the OTA
-// patch_id path on the /symbols/js endpoint).
+// populateModules emits the modules array that binds frame
+// abs_paths to the OTA patch_id (as debug id). Symbolicator uses
+// these entries to resolve sourcemaps by debug id — the patch_id
+// path on the /symbols/js endpoint.
 //
-// Where on the event payload the patch_id surfaces is
-// pending product/SDK design. Until that lands, this is
-// a no-op and Symbolicator's URL-fallback path runs —
-// scoped by the app_id + version params on the source URL.
-func (js *jsSymbolicator) populateModules(ev event.EventField) {
-	_ = ev
+// When patchID is empty (non-OTA build), no modules are emitted
+// and Symbolicator's URL-fallback path runs, scoped by the
+// app_id + version params on the source URL.
+func (js *jsSymbolicator) populateModules(ev event.EventField, patchID string) {
+	if patchID == "" {
+		return
+	}
+	for _, excep := range ev.Exception.Exceptions {
+		for _, frame := range excep.Frames {
+			if frame.FileName == "" {
+				continue
+			}
+			js.request.AddModule(frame.FileName, patchID)
+		}
+	}
 }
 
 // symbolicate performs symbolication for

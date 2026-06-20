@@ -25,12 +25,18 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [Request Body](#request-body-1)
       - [Mappings](#mappings)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-1)
-  - [GET `/config`](#get-config)
+  - [PUT `/builds/ota`](#put-buildsota)
     - [Usage Notes](#usage-notes-2)
     - [Authorization \& Content Type](#authorization--content-type-1)
     - [Response Body](#response-body-2)
-    - [Cache Headers](#cache-headers)
+    - [Request Body](#request-body-2)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-2)
+  - [GET `/config`](#get-config)
+    - [Usage Notes](#usage-notes-3)
+    - [Authorization \& Content Type](#authorization--content-type-2)
+    - [Response Body](#response-body-3)
+    - [Cache Headers](#cache-headers)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-3)
 - [References](#references)
   - [Attributes](#attributes)
   - [User Defined Attributes](#user-defined-attributes)
@@ -73,6 +79,7 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
 
 - [**PUT `/events`**](#put-events) - Send a batch of events, spans, attachments, metrics and traces via this endpoint.
 - [**PUT `/builds`**](#put-builds) - Send build mappings and build sizes via this API.
+- [**PUT `/builds/ota`**](#put-buildsota) - Send Over-The-Air patch mappings (CodePush, Shorebird) keyed by `patch_id` via this API.
 
 ### PUT `/events`
 
@@ -314,7 +321,7 @@ to the returned URLs. For uploading the files, you can issue a standard http req
   - A second `.tgz` containing the matching sourcemap (e.g. `main.jsbundle.map`, `index.android.bundle.map`).
 
   Symbolication pairs the two server-side via the inner filename's `.map` suffix, so the inner filenames must follow the `<bundle>` / `<bundle>.map` convention.
-- `patch_id` is optional. When supplied, it must be a valid UUID. Every mapping in the request is associated with this `patch_id` and the value is echoed back on each mapping object in the response. Use this to tag mappings that belong to an Over-The-Air patch (e.g. CodePush for React Native, Shorebird for Flutter) so the SDK can later refer to the exact mapping at symbolication time. When omitted, mappings are stored without a patch reference and are looked up by `version_name` + `version_code` instead.
+- `patch_id` is optional. Use it to tag mappings that belong to an Over-The-Air patch (e.g. CodePush for React Native, Shorebird for Flutter). The value is echoed back on each mapping in the response. For OTA patches without an associated store build, use [`PUT /builds/ota`](#put-buildsota) instead.
 - For mapping filename, only provide the filename, not a path.
 - When `mappings` is present, the server returns a mappings array containing the pre-signed URL for uploading each mapping file.
 - Each pre-signed mapping file upload URL has an expiry set which is the same as the `expires_at` field.
@@ -426,7 +433,7 @@ Payload must contain the app version info, build info and optional build mapping
 | `version_code` | string | No       | Version code of the build. Like "999"                                                                                                      |
 | `build_size`   | string | No       | Size of app in bytes                                                                                                                       |
 | `build_type`   | string | No       | Type of the build.<br />- `aab`, `apk` for Android<br />- `ipa` for iOS                                                                    |
-| `patch_id`     | string | Yes      | Optional UUID identifying an Over-The-Air patch this build's mappings belong to. Omit when uploading a regular (non-OTA) build's mappings. |
+| `patch_id`     | string | Yes      | Identifier tagging an Over-The-Air patch these mappings belong to. Omit for regular builds.                                                |
 | `mappings`     | array  | Yes      | List of mapping files objects.                                                                                                             |
 
 ##### Mappings
@@ -453,6 +460,114 @@ List of HTTP status codes for success and failures.
 | `400 Bad Request`           | Request body is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
 | `401 Unauthorized`          | Either the Measure API key is not present or has expired.                                                               |
 | `413 Content Too Large`     | Build/mapping file size exceeded maximum allowed limit.                                                                 |
+| `429 Too Many Requests`     | Rate limit has exceeded. Retry request respecting `Retry-After` response header.                                        |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                              |
+| `503 Service Unavailable`   | Measure server is temporarily unavailable. Retry request respecting `Retry-After` response header.                      |
+
+</details>
+
+### PUT `/builds/ota`
+
+Uploads mapping files for an Over-The-Air (OTA) patch — a remote update that ships new code without a new store build (e.g. CodePush for React Native, Shorebird for Flutter). It is driven by a `patch_id` and takes no app version, build number or build size.
+
+Like `PUT /builds`, this API accepts metadata and returns pre-signed URLs for uploading the mapping files directly. Upload each file with a standard HTTP **PUT** using the returned `upload_url` and `headers`.
+
+#### Usage Notes
+
+- `patch_id` is **required**. Tag your OTA patch with any identifier; it is echoed back on each mapping in the response.
+- The app is determined from your API key — do **not** send an app identifier in the body.
+- `mappings` is **required** and must contain at least one mapping. `mapping_type` can be `proguard`, `dsym`, `elf_debug`, or `jsbundle` (React Native).
+- For React Native, upload the JS bundle and its sourcemap as **two separate `jsbundle` mappings in the same request** (same tarball and `<bundle>` / `<bundle>.map` conventions as [`PUT /builds`](#usage-notes-1)).
+- For mapping filename, only provide the filename, not a path.
+- Each pre-signed URL expires at `expires_at`, and includes a `headers` object whose entries must all be added to the upload request, otherwise it will fail.
+- File upload requests must use the **PUT** http method.
+
+#### Authorization \& Content Type
+
+1. Set the Measure API key in `Authorization: Bearer <api-key>` format
+
+2. Set the content type as `Content-Type: application/json`.
+
+#### Response Body
+
+The response contains a `mappings` array with the pre-signed upload URL for each mapping file. Each mapping echoes back the request's `patch_id`.
+
+```json
+{
+  "mappings": [
+    {
+      "id": "e2bbcad8-0566-44ea-af43-9dd114c64e8c",
+      "type": "jsbundle",
+      "filename": "main.jsbundle.tgz",
+      "upload_url": "http://localhost:9119/msr-symbols-sandbox/incoming/e2bbcad8-0566-44ea-af43-9dd114c64e8c.tgz?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio%2F20250813%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250813T005945Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host%3Bx-amz-meta-mapping_id%3Bx-amz-meta-original_file_name&x-id=PutObject&X-Amz-Signature=bc45a536a1660de12cb9056d6b6c978289e49b53fe6807b81662cd61c195caa1",
+      "expires_at": "2025-08-13T01:59:45.577889184Z",
+      "headers": {
+        "x-amz-meta-mapping_id": "e2bbcad8-0566-44ea-af43-9dd114c64e8c",
+        "x-amz-meta-original_file_name": "main.jsbundle.tgz"
+      },
+      "patch_id": "codepush-v1.0.0-patch-3"
+    },
+    {
+      "id": "77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc",
+      "type": "jsbundle",
+      "filename": "main.jsbundle.map.tgz",
+      "upload_url": "http://localhost:9119/msr-symbols-sandbox/incoming/77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc.tgz?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minio%2F20250813%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250813T005945Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host%3Bx-amz-meta-mapping_id%3Bx-amz-meta-original_file_name&x-id=PutObject&X-Amz-Signature=7e2e47a5598d0fe9facf6a3fbf7da5cf93a36866b19d1ff236603015529b0bc7",
+      "expires_at": "2025-08-13T01:59:45.577980476Z",
+      "headers": {
+        "x-amz-meta-mapping_id": "77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc",
+        "x-amz-meta-original_file_name": "main.jsbundle.map.tgz"
+      },
+      "patch_id": "codepush-v1.0.0-patch-3"
+    }
+  ]
+}
+```
+
+#### Request Body
+
+Payload must contain the `patch_id` and at least one mapping.
+
+**Example payload**
+
+<details>
+<summary>Expand</summary>
+
+```json
+{
+  "patch_id": "codepush-v1.0.0-patch-3",
+  "mappings": [
+    {
+      "type": "jsbundle",
+      "filename": "main.jsbundle.tgz"
+    },
+    {
+      "type": "jsbundle",
+      "filename": "main.jsbundle.map.tgz"
+    }
+  ]
+}
+```
+
+| Field      | Type   | Optional | Comment                                                                                                     |
+| ---------- | ------ | -------- | ----------------------------------------------------------------------------------------------------------- |
+| `patch_id` | string | No       | Identifier for the OTA patch.                                                                               |
+| `mappings` | array  | No       | List of mapping file objects (at least one). Same shape as [`PUT /builds` mappings](#mappings).             |
+
+</details>
+
+#### Status Codes \& Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+<summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                             |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | OTA mappings accepted; pre-signed upload URLs returned.                                                                 |
+| `400 Bad Request`           | Request body is malformed or is missing `patch_id`/`mappings`. Check the `"error"` field for more details.              |
+| `401 Unauthorized`          | Either the Measure API key is not present or has expired.                                                               |
+| `413 Content Too Large`     | Mapping file size exceeded maximum allowed limit.                                                                       |
 | `429 Too Many Requests`     | Rate limit has exceeded. Retry request respecting `Retry-After` response header.                                        |
 | `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                              |
 | `503 Service Unavailable`   | Measure server is temporarily unavailable. Retry request respecting `Retry-After` response header.                      |
@@ -573,6 +688,7 @@ Events can contain the following attributes, some of which are mandatory.
 | `app_version`                       | string  | No       | App version identifier                                                      |
 | `app_build`                         | string  | No       | App build identifier                                                        |
 | `app_unique_id`                     | string  | No       | App bundle identifier                                                       |
+| `patch_id`                          | string  | Yes      | Identifier of the Over-The-Air patch the app is running, if any. See [`PUT /builds/ota`](#put-buildsota).    |
 | `platform`                          | string  | No       | One of:<br>- android<br>- ios<br>- flutter                                  |
 | `measure_sdk_version`               | string  | No       | Measure SDK version identifier                                              |
 | `thread_name`                       | string  | Yes      | The thread on which the event was captured                                  |

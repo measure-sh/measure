@@ -60,6 +60,7 @@ func main() {
 	// SDK routes
 	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
 	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuilds)
+	r.PUT("/builds/ota", measure.ValidateAPIKey(), measure.PutOTABuilds)
 	r.GET("/config", measure.ValidateAPIKey(), measure.GetConfigForSdk)
 
 	port := os.Getenv("PORT")
