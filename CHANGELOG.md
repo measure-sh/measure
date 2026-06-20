@@ -145,6 +145,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Convert png + jpeg to webp by @anupcowkur in #3940
 - (**frontend**): Update docs by @anupcowkur in #3939
 - (**frontend**): Update measure description by @anupcowkur in #3921
 - (**frontend**): Update comparison pages by @anupcowkur in #3918
