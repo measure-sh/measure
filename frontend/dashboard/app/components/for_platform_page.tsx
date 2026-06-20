@@ -50,16 +50,20 @@ export default function ForPlatformPage({
         <div className="max-w-6xl mx-auto px-4 py-8 font-body">
           {/* Header */}
           <div className="py-16" />
-          <div className={cn("flex gap-4 mb-2 items-center")}>
+          <h1 className="text-5xl font-display">
+            {title}{" "}
             <Image
               src={logo.src}
               alt=""
               width={logo.width}
               height={logo.height}
-              className={cn("w-auto object-contain", logo.className ?? "h-12")}
+              className={cn(
+                "inline-block w-auto object-contain",
+                logo.className ?? "h-12",
+              )}
             />
-            <h1 className="text-5xl font-display">{title}</h1>
-          </div>
+          </h1>
+
           <div className="py-4" />
           <p className="text-justify text-lg">{intro}</p>
 
