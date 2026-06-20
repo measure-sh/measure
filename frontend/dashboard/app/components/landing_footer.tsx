@@ -392,14 +392,14 @@ export default function LandingFooter() {
                 className={cn(buttonVariants({ variant: "ghost" }), "group")}
               >
                 <Image
-                  src={"/images/linkedin_logo_black.png"}
+                  src={"/images/linkedin_logo_black.webp"}
                   alt="LinkedIn Logo"
                   width={22}
                   height={22}
                   className="dark:hidden"
                 />
                 <Image
-                  src={"/images/linkedin_logo_white.png"}
+                  src={"/images/linkedin_logo_white.webp"}
                   alt="LinkedIn Logo"
                   width={22}
                   height={22}
@@ -412,14 +412,14 @@ export default function LandingFooter() {
                 className={cn(buttonVariants({ variant: "ghost" }), "group")}
               >
                 <Image
-                  src={"/images/x_logo_black.png"}
+                  src={"/images/x_logo_black.webp"}
                   alt="X Logo"
                   width={20}
                   height={20}
                   className="dark:hidden"
                 />
                 <Image
-                  src={"/images/x_logo_white.png"}
+                  src={"/images/x_logo_white.webp"}
                   alt="X Logo"
                   width={20}
                   height={20}

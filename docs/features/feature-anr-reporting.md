@@ -55,7 +55,7 @@ In this example, the “main” thread is blocked, waiting to lock an object hel
 
 ## Metrics
 
-![ANR-Free Rate](../assets/anr-metrics.png)
+![ANR-Free Rate](../assets/anr-metrics.webp)
 
 The ANR-Free Rate measures the percentage of sessions that didn’t experience any ANRs. Here’s how it’s calculated:
 

@@ -35,7 +35,7 @@ A worker thread reads the following properties every 2 seconds and reports them 
 * **Native free heap size** - The amount of memory that is currently free for native code. Collected
   using [Debug.getNativeFreeHeapSize](https://developer.android.com/reference/android/os/Debug#getNativeHeapFreeSize()).
 
-![Memory Usage](../assets/android-memory-usage.png)
+![Memory Usage](../assets/android-memory-usage.webp)
 
 ## iOS
 
@@ -53,7 +53,7 @@ SDK falls back to `resident_size` in below cases:
 - If `phys_footprint` is zero or not available due to system constraints.
 - If the `task_info` API call fails (rare, but possible due to system restrictions or sand-boxing).
 
-![Memory usage](../assets/ios-memory-usage.png)
+![Memory usage](../assets/ios-memory-usage.webp)
 
 #### Impact on Dashboard Metrics
 

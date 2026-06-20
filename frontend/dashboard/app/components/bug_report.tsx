@@ -63,7 +63,7 @@ const demoBugReport = {
       name: "snapshot.svg",
       type: "screenshot",
       key: "f34247a5-f0c1-4808-aa1d-c957e6214743.svg",
-      location: "/images/demo_checkout_screenshot.png",
+      location: "/images/demo_checkout_screenshot.webp",
     },
   ],
 } as any;

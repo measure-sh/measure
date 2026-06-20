@@ -459,7 +459,7 @@ Masks all text, buttons, input fields, image views and video.
 
 Example:
 
-![Mask All Text And Media](../assets/screenshot-mask-all-text-and-media.png)
+![Mask All Text And Media](../assets/screenshot-mask-all-text-and-media.webp)
 
 #### Mask all text
 
@@ -467,7 +467,7 @@ Masks all text, buttons & input fields.
 
 Example:
 
-![Mask All Text](../assets/screenshot-mask-all-text.png)
+![Mask All Text](../assets/screenshot-mask-all-text.webp)
 
 #### Mask text except clickable
 
@@ -475,7 +475,7 @@ Masks all text & input fields except clickable views like buttons.
 
 Example:
 
-![Mask Text Except Clickable](../assets/screenshot-mask-text-except-clickable.png)
+![Mask Text Except Clickable](../assets/screenshot-mask-text-except-clickable.webp)
 
 #### Mask sensitive input fields
 
@@ -483,4 +483,4 @@ Masks sensitive input fields like password, email & phone fields.
 
 Example:
 
-![Mask Sensitive Input Fields](../assets/screenshot-mask-sensitive-input-fields-2.png)
+![Mask Sensitive Input Fields](../assets/screenshot-mask-sensitive-input-fields-2.webp)
