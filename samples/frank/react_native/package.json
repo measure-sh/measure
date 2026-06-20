@@ -2,6 +2,7 @@
   "name": "frankenstein-rn",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "yarn@3.6.1",
   "scripts": {
     "start": "react-native start"
   },

@@ -1075,7 +1075,10 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
       </div>
 
       {/* Events list — natural page-level scroll, no fixed height. */}
-      <div className="flex flex-col w-full">
+      <div
+        data-testid="session-timeline-events"
+        className="flex flex-col w-full"
+      >
         {filteredEvents.map((e, index) => {
           const key = e.key;
           return (

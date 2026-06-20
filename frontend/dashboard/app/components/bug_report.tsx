@@ -201,6 +201,7 @@ export default function BugReport({
         <div>
           <div className="flex flex-wrap gap-2 py-2 pb-12 items-center">
             <Pill
+              data-testid="bug-report-detail-status"
               type={
                 displayBugReport.status === 0
                   ? PillType.OpenStatus
@@ -208,18 +209,23 @@ export default function BugReport({
               }
             />
             <Pill
+              data-testid="bug-report-detail-user-id"
               tooltip
             >{`User ID: ${displayBugReport.attribute.user_id !== "" ? displayBugReport.attribute.user_id : "N/A"}`}</Pill>
             <Pill
+              data-testid="bug-report-detail-timestamp"
               tooltip
             >{`Time: ${formatDateToHumanReadableDateTime(displayBugReport.timestamp)}`}</Pill>
             <Pill
+              data-testid="bug-report-detail-device"
               tooltip
             >{`Device: ${displayBugReport.attribute.device_manufacturer + displayBugReport.attribute.device_model}`}</Pill>
             <Pill
+              data-testid="bug-report-detail-app-version"
               tooltip
             >{`App version: ${displayBugReport.attribute.app_version} (${displayBugReport.attribute.app_build})`}</Pill>
             <Pill
+              data-testid="bug-report-detail-network-type"
               tooltip
             >{`Network type: ${displayBugReport.attribute.network_type}`}</Pill>
             {displayBugReport.user_defined_attribute !== undefined &&
@@ -237,7 +243,12 @@ export default function BugReport({
               )}
           </div>
           {displayBugReport.description && (
-            <p className="font-body text-lg">{displayBugReport.description}</p>
+            <p
+              data-testid="bug-report-detail-description"
+              className="font-body text-lg"
+            >
+              {displayBugReport.description}
+            </p>
           )}
           <div className="py-8" />
           <div className="flex flex-row">

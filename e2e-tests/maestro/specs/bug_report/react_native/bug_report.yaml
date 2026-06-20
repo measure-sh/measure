@@ -1,0 +1,67 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "React Native"
+    timeout: 5000
+- tapOn: "React Native"
+
+- extendedWaitUntil:
+    visible: "Throw JS Exception.*"
+    timeout: 3000
+- scrollUntilVisible:
+    element:
+      text: "Launch Bug Report.*"
+- tapOn: "Launch Bug Report.*"
+
+# launchBugReport shows the native SDK bug report UI, so labels match the native
+# Android / iOS flows. A gallery image is added alongside the auto screenshot.
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - tapOn: "Briefly describe the issue you are facing"
+      - inputText: "e2e-rn-bug-report"
+      # Dismiss the soft keyboard so it doesn't intercept the toolbar tap.
+      - hideKeyboard
+      - tapOn: "Add more images"
+      # The Compose Photo Picker on API 33+ exposes thumbnails via their
+      # content description.
+      - tapOn:
+          text: "Photo taken on.*"
+          index: 0
+      - tapOn:
+          text: "Done"
+          optional: true
+      - tapOn: "Send"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn: "Briefly describe the issue you are facing."
+      - inputText: "e2e-rn-bug-report"
+      - tapOn: "Gallery"
+      - tapOn:
+          text: "Photo, .*"
+          index: 0
+      # Confirms the crop on the Move-and-Scale screen when allowsEditing is on.
+      - tapOn:
+          text: "Choose"
+          optional: true
+      # Returning from the iOS gallery picker re-focuses the description field
+      # (unlike the native iOS flow). The first Send tap only resigns that focus;
+      # the second actually submits. Native iOS isn't focused here, so it sends
+      # on one tap.
+      - tapOn: "Send"
+      - tapOn: "Send"
+
+# Background then foreground to trigger export; wait for attachments to upload
+# before the next flow stops the app.
+- pressKey: "Home"
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible:
+      text: "__upload_settle__"
+    timeout: 5000
+    optional: true

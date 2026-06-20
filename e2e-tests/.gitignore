@@ -1,0 +1,5 @@
+node_modules/
+playwright/.storage-state.json
+.last-run.json
+test-results/
+playwright-report/

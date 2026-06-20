@@ -1,0 +1,48 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Flutter"
+    timeout: 5000
+- tapOn: "Flutter"
+
+- extendedWaitUntil:
+    visible: "Throw Exception"
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Launch Bug Report"
+- tapOn: "Launch Bug Report"
+- tapOn: "Briefly describe the issue you are facing"
+- inputText: "e2e-flutter-bug-report"
+- tapOn: "Add from Gallery"
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - tapOn:
+          text: "Photo taken on.*"
+          index: 0
+      - tapOn:
+          text: "Done"
+          optional: true
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn:
+          text: "Photo, .*"
+          index: 0
+      - tapOn:
+          text: "Add"
+          optional: true
+- tapOn: "Send"
+
+- pressKey: "Home"
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible:
+      text: "__upload_settle__"
+    timeout: 5000
+    optional: true

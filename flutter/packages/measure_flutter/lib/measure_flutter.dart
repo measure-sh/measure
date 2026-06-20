@@ -561,7 +561,7 @@ class Measure implements MeasureApi {
   /// Only use this in development builds for testing crash reporting.
   @override
   void triggerNativeCrash() {
-    if (_isInitialized && kDebugMode) {
+    if (_isInitialized) {
       _measure.triggerNativeCrash();
     }
   }

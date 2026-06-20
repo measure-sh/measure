@@ -1,0 +1,45 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Native iOS"
+    timeout: 5000
+- tapOn: "Native iOS"
+
+- scrollUntilVisible:
+    element:
+      text: "Set User ID"
+- tapOn: "Set User ID"
+
+- scrollUntilVisible:
+    direction: UP
+    element:
+      text: ".*200 OK.*"
+- tapOn: ".*200 OK.*"
+
+- scrollUntilVisible:
+    element:
+      text: "Custom Event"
+- tapOn: "Custom Event"
+
+- scrollUntilVisible:
+    element:
+      text: "Track Error"
+- tapOn: "Track Error"
+
+- scrollUntilVisible:
+    element:
+      text: "Create Span"
+- tapOn: "Create Span"
+
+- scrollUntilVisible:
+    element:
+      text: "Clear User ID"
+- tapOn: "Clear User ID"
+
+- pressKey: Home
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Native iOS"
+    timeout: 5000

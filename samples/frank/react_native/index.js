@@ -42,6 +42,13 @@ const throwJSException = () => {
   throw new Error('Simulated JavaScript exception');
 };
 
+const trackHandledError = () => {
+  Measure.trackError({
+    error: new Error('Simulated handled exception'),
+    attributes: {screen: 'RNDemos'},
+  });
+};
+
 const throwUnhandledRejection = () => {
   Promise.reject(new Error('Simulated unhandled promise rejection'));
 };
@@ -64,8 +71,7 @@ const launchBugReport = () => {
 const trackBugReport = async () => {
   try {
     const screenshot = await Measure.captureScreenshot();
-    const layoutSnapshot = await Measure.captureLayoutSnapshot();
-    const attachments = [screenshot, layoutSnapshot].filter(a => a !== null);
+    const attachments = [screenshot].filter(a => a !== null);
     await Measure.trackBugReport({
       description: 'Bug report from React Native demos',
       attachments,
@@ -199,6 +205,12 @@ const ReactNativeScreen = () => {
           title: 'Throw JS Exception',
           description: 'Throws an uncaught Error',
           onPress: throwJSException,
+        },
+        {
+          id: 'handled-error',
+          title: 'Handled Exception',
+          description: 'Tracks a handled error via the SDK',
+          onPress: trackHandledError,
         },
         {
           id: 'unhandled-rejection',
