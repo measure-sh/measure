@@ -65,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Make layout snapshot drag work inside demo iframe by @anupcowkur in #3943
 - (**frontend**): Strip HTML comments to a fixed point in docs by @anupcowkur in #3907
 - (**frontend**): Show error code, meta, and num_code when available by @anupcowkur in #3828
 - (**frontend**): Give session timeline events unique React keys by @anupcowkur in #3826
