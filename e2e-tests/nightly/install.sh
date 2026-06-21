@@ -6,7 +6,7 @@ set -euo pipefail
 
 NIGHTLY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LABEL="sh.measure.e2e-nightly"
-TEMPLATE="$NIGHTLY_DIR/com.measure.e2e-nightly.plist.template"
+TEMPLATE="$NIGHTLY_DIR/sh.measure.e2e-nightly.plist.template"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 LOG_DIR="$NIGHTLY_DIR/logs"
 
