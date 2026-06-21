@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import SimpleTooltip from "./simple_tooltip";
 
 export type LayoutElementType =
@@ -139,6 +139,11 @@ export default function LayoutSnapshot({
     rotY: number;
   } | null>(null);
   const frame = useRef(0);
+  // Latest rotation, so the once-bound drag handlers can read the current value.
+  const rotRef = useRef(rot);
+  useEffect(() => {
+    rotRef.current = rot;
+  }, [rot]);
 
   useEffect(() => {
     let cancelled = false;
@@ -162,13 +167,23 @@ export default function LayoutSnapshot({
     };
   }, [layoutUrl]);
 
-  useEffect(() => {
-    if (!dragging) {
-      return;
-    }
-
+  // Drag to spin, double-click to reset. The demos render this inside a scaled
+  // iframe; native element listeners plus pointer capture make the drag work
+  // there and keep tracking when the cursor moves off the element.
+  const setDragRef = useCallback((el: HTMLDivElement) => {
     const clamp = (value: number) =>
       Math.max(-MAX_TILT, Math.min(MAX_TILT, value));
+
+    const handleDown = (event: PointerEvent) => {
+      dragStart.current = {
+        pointerX: event.clientX,
+        pointerY: event.clientY,
+        rotX: rotRef.current.x,
+        rotY: rotRef.current.y,
+      };
+      el.setPointerCapture(event.pointerId);
+      setDragging(true);
+    };
 
     const handleMove = (event: PointerEvent) => {
       const start = dragStart.current;
@@ -186,19 +201,32 @@ export default function LayoutSnapshot({
       });
     };
 
-    const handleUp = () => setDragging(false);
+    const handleUp = () => {
+      dragStart.current = null;
+      setDragging(false);
+    };
 
-    window.addEventListener("pointermove", handleMove);
-    window.addEventListener("pointerup", handleUp);
-    window.addEventListener("pointercancel", handleUp);
+    const handleReset = () => {
+      dragStart.current = null;
+      setDragging(false);
+      setRot(DEFAULT_ROT);
+    };
+
+    el.addEventListener("pointerdown", handleDown);
+    el.addEventListener("pointermove", handleMove);
+    el.addEventListener("pointerup", handleUp);
+    el.addEventListener("pointercancel", handleUp);
+    el.addEventListener("dblclick", handleReset);
 
     return () => {
       cancelAnimationFrame(frame.current);
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("pointerup", handleUp);
-      window.removeEventListener("pointercancel", handleUp);
+      el.removeEventListener("pointerdown", handleDown);
+      el.removeEventListener("pointermove", handleMove);
+      el.removeEventListener("pointerup", handleUp);
+      el.removeEventListener("pointercancel", handleUp);
+      el.removeEventListener("dblclick", handleReset);
     };
-  }, [dragging]);
+  }, []);
 
   if (!layout) {
     return null;
@@ -234,23 +262,9 @@ export default function LayoutSnapshot({
   // Whether the user has spun it away from the resting pose (controls the hint).
   const movedFromRest = rot.x !== DEFAULT_ROT.x || rot.y !== DEFAULT_ROT.y;
 
-  const handlePointerDown = (event: React.PointerEvent) => {
-    dragStart.current = {
-      pointerX: event.clientX,
-      pointerY: event.clientY,
-      rotX: rot.x,
-      rotY: rot.y,
-    };
-    setDragging(true);
-  };
-
-  const handleDoubleClick = () => {
-    setDragging(false);
-    setRot(DEFAULT_ROT);
-  };
-
   return (
     <div
+      ref={setDragRef}
       className="relative overflow-hidden select-none"
       style={{
         width,
@@ -259,8 +273,6 @@ export default function LayoutSnapshot({
         cursor: dragging ? "grabbing" : "grab",
         touchAction: "none",
       }}
-      onPointerDown={handlePointerDown}
-      onDoubleClick={handleDoubleClick}
     >
       <div
         className="absolute"
@@ -272,7 +284,7 @@ export default function LayoutSnapshot({
           transformStyle: "preserve-3d",
           transform: `rotateX(${rot.x}deg) rotateY(${rot.y}deg)`,
           transition: dragging ? "none" : "transform 300ms ease-out",
-          // suppress hover/tooltips mid-drag; window listeners still drive rotation
+          // no hover tooltips while dragging
           pointerEvents: dragging ? "none" : "auto",
         }}
       >
