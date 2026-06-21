@@ -9,7 +9,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "../components/collapsible";
-import { Slider } from "../components/slider";
+import { SyncedInputSlider } from "../components/synced_input_slider";
 import TrackCtaLink from "../components/analytics/track_cta_link";
 import { calculate } from "../utils/pricing_calculator";
 import {
@@ -71,11 +71,6 @@ export default function PricingCalculator() {
     return compactFormatter.format(num);
   };
 
-  const formatPercent = (rate: number) => {
-    const pct = rate * 100;
-    return Number.isInteger(pct) ? `${pct}%` : `${parseFloat(pct.toFixed(2))}%`;
-  };
-
   const percentStep = (value: number) => {
     if (value < 1) {
       return 0.01;
@@ -94,36 +89,22 @@ export default function PricingCalculator() {
         </h3>
         <div className="py-6" />
 
-        {/* Daily users slider (single input) */}
-        <div className="mb-10">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <label className="text-2xl font-display">Daily app users</label>
-              <p className="text-sm py-2 text-muted-foreground font-body">
-                Number of users who open your app per day
-              </p>
-            </div>
-            <span className="text-2xl font-display">
-              {formatNumber(dailyUsers)}
-            </span>
-          </div>
-          <Slider
-            value={[dailyUsers]}
-            onValueChange={(value) => setDailyUsers(value[0])}
-            min={0}
-            max={10000000}
-            step={
-              dailyUsers < 10000 ? 1000 : dailyUsers < 100000 ? 10000 : 100000
-            }
-            className="mb-2"
-          />
-          <div className="flex justify-between text-sm text-muted-foreground font-body">
-            <span>0</span>
-            <span>10M+</span>
-          </div>
-        </div>
+        <SyncedInputSlider
+          large
+          className="mb-10"
+          label="Daily app users"
+          description="Number of users who open your app per day"
+          value={dailyUsers}
+          onChange={setDailyUsers}
+          min={0}
+          max={10000000}
+          step={(v) => (v < 10000 ? 1000 : v < 100000 ? 10000 : 100000)}
+          integer
+          suffix="users"
+          rangeStartLabel="0"
+          rangeEndLabel="10M+"
+        />
 
-        {/* Advanced settings dropdown */}
         <Collapsible className="my-8">
           <div className="flex justify-end">
             <CollapsibleTrigger asChild>
@@ -138,184 +119,85 @@ export default function PricingCalculator() {
           </div>
 
           <CollapsibleContent className="mt-8 space-y-8 rounded-lg">
-            {/* App opens per user per day */}
-            <div>
-              <div className="flex justify-between items-center mb-4 gap-2">
-                <div>
-                  <label className="text-xl font-display">
-                    📲 Average app opens by a user per day
-                  </label>
-                  <p className="text-sm py-2 text-muted-foreground font-body">
-                    Average number of times a user opens your app per day
-                  </p>
-                </div>
-                <span className="text-xl font-display">
-                  {averageAppOpens} times
-                </span>
-              </div>
-              <Slider
-                value={[averageAppOpens]}
-                onValueChange={(v) => setAverageAppOpens(v[0])}
-                min={0}
-                max={50}
-                step={1}
-                className="mb-2"
-              />
-              <div className="flex justify-between text-sm text-muted-foreground font-body">
-                <span>0</span>
-                <span>50</span>
-              </div>
-            </div>
+            <SyncedInputSlider
+              label="📲 Average app opens by a user per day"
+              description="Average number of times a user opens your app per day"
+              value={averageAppOpens}
+              onChange={setAverageAppOpens}
+              min={0}
+              max={50}
+              step={1}
+              integer
+              suffix="times"
+              rangeStartLabel="0"
+              rangeEndLabel="50"
+            />
 
-            {/* Launch sample rate */}
-            <div>
-              <div className="flex justify-between items-center mb-4 gap-2">
-                <div>
-                  <label className="text-xl font-display">
-                    🚀 Launch time metrics collection rate
-                  </label>
-                  <p className="text-sm py-2 text-muted-foreground font-body">
-                    Percentage of app opens for which we collect launch timing
-                    metrics
-                  </p>
-                </div>
-                <span className="text-xl font-display">
-                  {formatPercent(launchSamplePercent / 100)}
-                </span>
-              </div>
-              <Slider
-                value={[launchSamplePercent]}
-                onValueChange={(v) => setLaunchSamplePercent(v[0])}
-                min={0}
-                max={100}
-                step={percentStep(launchSamplePercent)}
-                className="mb-2"
-              />
-              <div className="flex justify-between text-sm text-muted-foreground font-body">
-                <span>0%</span>
-                <span>100%</span>
-              </div>
-            </div>
+            <SyncedInputSlider
+              label="🚀 Launch time metrics collection rate"
+              description="Percentage of app opens for which we collect launch timing metrics"
+              value={launchSamplePercent}
+              onChange={setLaunchSamplePercent}
+              min={0}
+              max={100}
+              step={percentStep}
+              suffix="%"
+              rangeStartLabel="0%"
+              rangeEndLabel="100%"
+            />
 
-            {/* Error rate */}
-            <div>
-              <div className="flex justify-between items-center mb-4 gap-2">
-                <div>
-                  <label className="text-xl font-display">
-                    🐞 Error rate (Crashes, ANRs & Bug reports)
-                  </label>
-                  <p className="text-sm py-2 text-muted-foreground font-body">
-                    Percentage of app opens which have Crashes, ANRs & Bug
-                    reports
-                  </p>
-                </div>
-                <span className="text-xl font-display">
-                  {formatPercent(errorRatePercent / 100)}
-                </span>
-              </div>
-              <Slider
-                value={[errorRatePercent]}
-                onValueChange={(v) => setErrorRatePercent(v[0])}
-                min={0}
-                max={100}
-                step={percentStep(errorRatePercent)}
-                className="mb-2"
-              />
-              <div className="flex justify-between text-sm text-muted-foreground font-body">
-                <span>0%</span>
-                <span>100%</span>
-              </div>
-            </div>
+            <SyncedInputSlider
+              label="🐞 Error rate (Crashes, ANRs & Bug reports)"
+              description="Percentage of app opens which have Crashes, ANRs & Bug reports"
+              value={errorRatePercent}
+              onChange={setErrorRatePercent}
+              min={0}
+              max={100}
+              step={percentStep}
+              suffix="%"
+              rangeStartLabel="0%"
+              rangeEndLabel="100%"
+            />
 
-            {/* Performance spans collection rate */}
-            <div>
-              <div className="flex justify-between items-center mb-4 gap-2">
-                <div>
-                  <label className="text-xl font-display">
-                    ⚡️ Performance Spans collection rate
-                  </label>
-                  <p className="text-sm py-2 text-muted-foreground font-body">
-                    Percentage of performance spans collected per session when
-                    sampled (a Trace can have multiple child spans)
-                  </p>
-                </div>
-                <span className="text-xl font-display">
-                  {formatNumber(perfSpanSamplePercent)}%
-                </span>
-              </div>
-              <Slider
-                value={[perfSpanSamplePercent]}
-                onValueChange={(v) => setPerfSpanSamplePercent(v[0])}
-                min={0}
-                max={100}
-                step={percentStep(perfSpanSamplePercent)}
-                className="mb-2"
-              />
-              <div className="flex justify-between text-sm text-muted-foreground font-body">
-                <span>0%</span>
-                <span>100%</span>
-              </div>
-            </div>
+            <SyncedInputSlider
+              label="⚡️ Performance Spans collection rate"
+              description="Percentage of performance spans collected per session when sampled (a Trace can have multiple child spans)"
+              value={perfSpanSamplePercent}
+              onChange={setPerfSpanSamplePercent}
+              min={0}
+              max={100}
+              step={percentStep}
+              suffix="%"
+              rangeStartLabel="0%"
+              rangeEndLabel="100%"
+            />
 
-            {/* Performance spans count */}
-            <div>
-              <div className="flex justify-between items-center mb-4 gap-2">
-                <div>
-                  <label className="text-xl font-display">
-                    ⚡️ Number of Performance Spans in app
-                  </label>
-                  <p className="text-sm py-2 text-muted-foreground font-body">
-                    Number of performance spans collected per session when
-                    sampled (a Trace can have multiple child spans)
-                  </p>
-                </div>
-                <span className="text-xl font-display">
-                  {formatNumber(perfSpanCount)}
-                </span>
-              </div>
-              <Slider
-                value={[perfSpanCount]}
-                onValueChange={(v) => setPerfSpanCount(Math.round(v[0]))}
-                min={0}
-                max={100}
-                step={1}
-                className="mb-2"
-              />
-              <div className="flex justify-between text-sm text-muted-foreground font-body">
-                <span>0</span>
-                <span>100</span>
-              </div>
-            </div>
+            <SyncedInputSlider
+              label="⚡️ Number of Performance Spans in app"
+              description="Number of performance spans collected per session when sampled (a Trace can have multiple child spans)"
+              value={perfSpanCount}
+              onChange={setPerfSpanCount}
+              min={0}
+              max={100}
+              step={1}
+              integer
+              suffix="spans"
+              rangeStartLabel="0"
+              rangeEndLabel="100"
+            />
 
-            {/* User Journey events collection rate */}
-            <div>
-              <div className="flex justify-between items-center mb-4 gap-2">
-                <div>
-                  <label className="text-xl font-display">
-                    🚕 User Journey events collection rate
-                  </label>
-                  <p className="text-sm py-2 text-muted-foreground font-body">
-                    Percentage of user journey events collected per session when
-                    sampled
-                  </p>
-                </div>
-                <span className="text-xl font-display">
-                  {formatNumber(journeySamplePercent)}%
-                </span>
-              </div>
-              <Slider
-                value={[journeySamplePercent]}
-                onValueChange={(v) => setJourneySamplePercent(v[0])}
-                min={0}
-                max={100}
-                step={percentStep(journeySamplePercent)}
-                className="mb-2"
-              />
-              <div className="flex justify-between text-sm text-muted-foreground font-body">
-                <span>0%</span>
-                <span>100%</span>
-              </div>
-            </div>
+            <SyncedInputSlider
+              label="🚕 User Journey events collection rate"
+              description="Percentage of user journey events collected per session when sampled"
+              value={journeySamplePercent}
+              onChange={setJourneySamplePercent}
+              min={0}
+              max={100}
+              step={percentStep}
+              suffix="%"
+              rangeStartLabel="0%"
+              rangeEndLabel="100%"
+            />
           </CollapsibleContent>
         </Collapsible>
 
