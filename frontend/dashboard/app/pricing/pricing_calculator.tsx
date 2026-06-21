@@ -98,7 +98,7 @@ export default function PricingCalculator() {
           onChange={setDailyUsers}
           min={0}
           max={10000000}
-          step={(v) => (v < 10000 ? 1000 : v < 100000 ? 10000 : 100000)}
+          step={(v: number) => (v < 10000 ? 1000 : v < 100000 ? 10000 : 100000)}
           integer
           suffix="users"
           rangeStartLabel="0"
