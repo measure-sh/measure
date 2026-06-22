@@ -170,6 +170,15 @@ export default function LandingFooter() {
               iPadOS
             </Link>
             <Link
+              href="/for/kmp"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Kotlin Multiplatform
+            </Link>
+            <Link
               href="/for/flutter"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
