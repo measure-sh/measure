@@ -18,3 +18,19 @@ func TestResolveUploadPath(t *testing.T) {
 		}
 	}
 }
+
+func TestSafePathComponent(t *testing.T) {
+	// legit app ids & versions pass
+	for _, ok := range []string{"sh.measure.sample", "1.0.0", "100", "com.example"} {
+		if !safePathComponent(ok) {
+			t.Fatalf("expected %q to be accepted", ok)
+		}
+	}
+
+	// separators, traversal & empty are rejected
+	for _, bad := range []string{"", "..", "../etc", "a/b", `a\b`, "..\\x"} {
+		if safePathComponent(bad) {
+			t.Fatalf("expected %q to be rejected", bad)
+		}
+	}
+}

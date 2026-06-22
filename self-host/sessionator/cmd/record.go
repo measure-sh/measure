@@ -245,12 +245,19 @@ func writeEventMultipart(c *gin.Context, reqId string) {
 		return
 	}
 
-	var appDir string
+	var appUniqueID, appVersion string
 	if len(events) > 0 {
-		appDir = filepath.Join(rootDir, events[0].Attribute.AppUniqueID, events[0].Attribute.AppVersion)
+		appUniqueID = events[0].Attribute.AppUniqueID
+		appVersion = events[0].Attribute.AppVersion
 	} else {
-		appDir = filepath.Join(rootDir, spans[0].Attributes.AppUniqueID, spans[0].Attributes.AppVersion)
+		appUniqueID = spans[0].Attributes.AppUniqueID
+		appVersion = spans[0].Attributes.AppVersion
 	}
+	if !safePathComponent(appUniqueID) || !safePathComponent(appVersion) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid app_unique_id or app_version"})
+		return
+	}
+	appDir := filepath.Join(rootDir, appUniqueID, appVersion)
 	batchFile := filepath.Join(appDir, reqId+".json")
 	blobsDir := filepath.Join(appDir, "blobs")
 
@@ -396,6 +403,12 @@ func writeBuildMultipart(c *gin.Context) {
 		})
 		return
 	}
+	if !safePathComponent(appUniqueID) || !safePathComponent(versionName) || !safePathComponent(versionCode) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid app_unique_id, version_name or version_code",
+		})
+		return
+	}
 
 	for i := range mappingTypes {
 		if mappingTypes[i] != "proguard" && mappingTypes[i] != "dsym" && mappingTypes[i] != "elf_debug" {
@@ -451,6 +464,15 @@ func writeBuildMultipart(c *gin.Context) {
 		case "elf_debug":
 			filename = header.Filename
 			filename = strings.ReplaceAll(filename, " ", "")
+		}
+
+		// header.Filename is attacker-controlled; reject any value that
+		// would escape the version directory.
+		if !safePathComponent(filename) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("invalid mapping filename %q", header.Filename),
+			})
+			return
 		}
 
 		mappingFilePath := filepath.Join(outputDir, appUniqueID, versionName, versionCode, filename)
@@ -569,6 +591,11 @@ func writeEventJSON(c *gin.Context, reqId string) {
 		appVersion = s.Attributes.AppVersion
 	}
 
+	if !safePathComponent(appUniqueID) || !safePathComponent(appVersion) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid app_unique_id or app_version"})
+		return
+	}
+
 	rootDir, err := filepath.Abs(outputDir)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to acquire directory: %q", rootDir)})
@@ -635,6 +662,10 @@ func writeBuildJSON(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": `"version_code" is required`})
 		return
 	}
+	if !safePathComponent(req.AppUniqueID) || !safePathComponent(req.VersionName) || !safePathComponent(req.VersionCode) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid app_unique_id, version_name or version_code"})
+		return
+	}
 
 	versionDir := filepath.Join(outputDir, req.AppUniqueID, req.VersionName, req.VersionCode)
 	buildFilePath := filepath.Join(versionDir, "build.toml")
@@ -688,6 +719,16 @@ func writeBuildJSON(c *gin.Context) {
 	fmt.Printf("returning %d mapping upload url(s)\n", len(req.Mappings))
 
 	c.JSON(http.StatusOK, gin.H{"mappings": req.Mappings})
+}
+
+// safePathComponent reports whether v is safe to use as a single path
+// segment built from untrusted request data (app_unique_id, version names,
+// etc.) — it must be non-empty and free of separators or ".." traversal.
+func safePathComponent(v string) bool {
+	if v == "" {
+		return false
+	}
+	return !strings.ContainsAny(v, `/\`) && !strings.Contains(v, "..")
 }
 
 // resolveUploadPath joins dst onto rootDir, rejecting any path that would
