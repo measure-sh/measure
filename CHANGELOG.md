@@ -153,6 +153,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Add KMP landing page (#3956) by @abhaysood in #3956
 - (**frontend**): Add missing type by @anupcowkur in #3945
 - (**frontend**): Rename next.config.js to next.config.mjs by @anupcowkur in #3942
 - (**frontend**): Place icons on right of platform page titles by @anupcowkur in #3941
