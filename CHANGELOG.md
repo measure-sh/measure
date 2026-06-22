@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Update email url to use webp by @anupcowkur in #3955
 - (**backend**): Redact source secrets in symbolicator request logs by @anupcowkur in #3908
 - (**backend**): Restrict bug report status updates roles by @anupcowkur in #3897
 - (**backend**): Cache autumn billing checks in alerts by @anupcowkur in #3863
@@ -101,6 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Extend cleanup to cover all resources (#3954) by @detj in #3954
 - (**backend**): Support JSON ingest APIs in record (#3948) by @detj in #3948
 - (**backend**): Add `data_exports` postgres table (#3902) by @detj in #3902
 - (**backend**): Skip JVM symbolication when no proguard mapping exists by @abhaysood in #3899
