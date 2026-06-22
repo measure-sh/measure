@@ -99,6 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Support JSON ingest APIs in record (#3948) by @detj in #3948
 - (**backend**): Add `data_exports` postgres table (#3902) by @detj in #3902
 - (**backend**): Skip JVM symbolication when no proguard mapping exists by @abhaysood in #3899
 - (**backend**): Use docker secrets (#3862) by @detj in #3862
