@@ -23,49 +23,49 @@ Sign up to [Measure Cloud](https://measure.sh) or [self host](https://measure.sh
 
 Debug issues easily with [session timelines](https://measure.sh/product/session-timelines). Get the complete context with automatic tracking for clicks, navigations, http calls and more.
 
-<img alt="Session Timelines" src="./frontend/dashboard/public/images/product_screenshots/session_timelines.png" />
+<img alt="Session Timelines" src="./frontend/dashboard/public/images/product_screenshots/session_timelines.webp" />
 
 ### App Health 📈
 
 Monitor important metrics to stay on top of [app health](https://measure.sh/product/app-health). Quickly see deltas to make sure you're moving in the right direction.
 
-<img alt="App Health" src="./frontend/dashboard/public/images/product_screenshots/app_health.png" />
+<img alt="App Health" src="./frontend/dashboard/public/images/product_screenshots/app_health.webp" />
 
 ### Crashes 💥 and ANRs ⏳
 
 Automatically track [Crashes and ANRs](https://measure.sh/product/crashes-and-anrs). Dive deeper with screenshots, filters and detailed stacktraces.
 
-<img alt="Crashes and ANRs" src="./frontend/dashboard/public/images/product_screenshots/crashes_and_anrs.png" />
+<img alt="Crashes and ANRs" src="./frontend/dashboard/public/images/product_screenshots/crashes_and_anrs.webp" />
 
 ### Performance Traces ⚡️
 
 Analyze [app performance](https://measure.sh/product/performance-traces) with traces and spans. Break down complex issues and intelligently smoothen out bottlenecks.
 
-<img alt="Performance Traces" src="./frontend/dashboard/public/images/product_screenshots/performance_traces.png" />
+<img alt="Performance Traces" src="./frontend/dashboard/public/images/product_screenshots/performance_traces.webp" />
 
 ### Bug Reports 🐞
 
 Capture [bug reports](https://measure.sh/product/bug-reports) with a device shake or SDK call. Get full history of user actions leading to the bug.
 
-<img alt="Bug Reports" src="./frontend/dashboard/public/images/product_screenshots/bug_reports.png" />
+<img alt="Bug Reports" src="./frontend/dashboard/public/images/product_screenshots/bug_reports.webp" />
 
 ### User Journeys 👣
 
 Understand how [users move](https://measure.sh/product/user-journeys) through your app. Easily visualise screens most affected by issues.
 
-<img alt="User Journeys" src="./frontend/dashboard/public/images/product_screenshots/user_journeys.png" />
+<img alt="User Journeys" src="./frontend/dashboard/public/images/product_screenshots/user_journeys.webp" />
 
 ### Network Performance 📡
 
 Monitor and improve [network performance](https://measure.sh/product/user-journeys) across your app. Identify the slowest and most error-prone endoints for targeted improvements.
 
-<img alt="Network Performance" src="./frontend/dashboard/public/images/product_screenshots/network_performance.png" />
+<img alt="Network Performance" src="./frontend/dashboard/public/images/product_screenshots/network_performance.webp" />
 
 ### Adaptive Capture 💰
 
 [Dynamically adjust](https://measure.sh/product/adaptive-capture) data collection parameters without needing to roll out app updates. Turn up data collection during a new release and turn it down to save on storage and costs when things are running smoothly.
 
-<img alt="Adaptive Capture" src="./frontend/dashboard/public/images/product_screenshots/adaptive_capture.png" />
+<img alt="Adaptive Capture" src="./frontend/dashboard/public/images/product_screenshots/adaptive_capture.webp" />
 
 ## Mission
 
