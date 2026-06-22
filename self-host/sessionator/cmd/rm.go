@@ -198,7 +198,27 @@ func rmAppResources(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
+	if err = j.rmSessionsIndex(ctx); err != nil {
+		return
+	}
+
 	if err = j.rmSessions(ctx); err != nil {
+		return
+	}
+
+	if err = j.rmJourney(ctx); err != nil {
+		return
+	}
+
+	if err = j.rmHTTPEvents(ctx); err != nil {
+		return
+	}
+
+	if err = j.rmHTTPMetrics(ctx); err != nil {
+		return
+	}
+
+	if err = j.rmURLPatterns(ctx); err != nil {
 		return
 	}
 
@@ -317,7 +337,15 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 		}
 	}()
 
+	if err = chconn.Exec(ctx, "truncate table sessions_index;"); err != nil {
+		return
+	}
+
 	if err = chconn.Exec(ctx, "truncate table sessions;"); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table journey;"); err != nil {
 		return
 	}
 
@@ -346,6 +374,22 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 	}
 
 	if err = deleteAllObjects(ctx, attachmentsBucket, attachmentsClient); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table journey;"); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table http_events;"); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table http_metrics;"); err != nil {
+		return
+	}
+
+	if err = chconn.Exec(ctx, "truncate table url_patterns;"); err != nil {
 		return
 	}
 
@@ -932,6 +976,41 @@ func (j *janitor) rmSpans(ctx context.Context) (err error) {
 	return
 }
 
+// rmSessionsIndex removes app's session indexes for apps
+// in config.
+func (j *janitor) rmSessionsIndex(ctx context.Context) (err error) {
+	deleteSessionsIndex := `delete from sessions_index where app_id = toUUID(@app_id);`
+
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return
+	}
+
+	conn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing sessions index")
+
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteSessionsIndex, namedAppId); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
 // rmSessions removes app's sessions for apps
 // in config.
 func (j *janitor) rmSessions(ctx context.Context) (err error) {
@@ -960,6 +1039,146 @@ func (j *janitor) rmSessions(ctx context.Context) (err error) {
 		namedAppId := clickhouse.Named("app_id", j.appIds[i])
 
 		if err := conn.Exec(ctx, deleteSessions, namedAppId); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+// rmJourney removes app's journeys for apps
+// in config.
+func (j *janitor) rmJourney(ctx context.Context) (err error) {
+	deleteJourney := `delete from journey where app_id = toUUID(@app_id);`
+
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return
+	}
+
+	conn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing journey")
+
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteJourney, namedAppId); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+// rmHTTPEvents removes app's HTTP events for apps
+// in config.
+func (j *janitor) rmHTTPEvents(ctx context.Context) (err error) {
+	deleteEvents := `delete from http_events where app_id = toUUID(@app_id);`
+
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return
+	}
+
+	conn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing http events")
+
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteEvents, namedAppId); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+// rmHTTPMetrics removes app's HTTP metrics for apps
+// in config.
+func (j *janitor) rmHTTPMetrics(ctx context.Context) (err error) {
+	deleteMetrics := `delete from http_metrics where app_id = toUUID(@app_id);`
+
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return
+	}
+
+	conn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing http metrics")
+
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteMetrics, namedAppId); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+// rmURLPatterns removes app's HTTP URL patterns for apps
+// in config.
+func (j *janitor) rmURLPatterns(ctx context.Context) (err error) {
+	deleteURLPatterns := `delete from url_patterns where app_id = toUUID(@app_id);`
+
+	dsn := j.config.Storage["clickhouse_dsn"]
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return
+	}
+
+	conn, err := clickhouse.Open(opts)
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			return
+		}
+	}()
+
+	fmt.Println("removing url patterns")
+
+	for i := range j.appIds {
+		namedAppId := clickhouse.Named("app_id", j.appIds[i])
+
+		if err := conn.Exec(ctx, deleteURLPatterns, namedAppId); err != nil {
 			return err
 		}
 	}

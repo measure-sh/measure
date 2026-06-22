@@ -187,7 +187,7 @@ func IngestSerial(apps *app.Apps, origin string) {
 				log.Fatal(err)
 			}
 			base := filepath.Base(eventAndSpanFile)
-			fmt.Printf("%3d) Ingesting events and spans %q...", i+1, base)
+			fmt.Printf("%3d) Ingesting events & spans %q...", i+1, base)
 			reqId := base[:len(base)-len(filepath.Ext(base))]
 			status, err := UploadEventsAndSpans(eventURL, apiKey, reqId, content)
 			if err != nil {
@@ -278,7 +278,7 @@ func IngestParallel(apps *app.Apps, origin string) {
 							log.Fatal(err)
 						}
 						reqId := uuid.New().String()
-						result := fmt.Sprintf("Ingesting virtual events and spans %q...", reqId)
+						result := fmt.Sprintf("Ingesting virtual events & spans %q...", reqId)
 						status, err := UploadEventsAndSpans(eventURL, apiKey, reqId, content)
 						if err != nil {
 							if status == "" {

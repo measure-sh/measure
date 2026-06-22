@@ -72,7 +72,35 @@ func newRemoveAppsCmd() *cobra.Command {
 				}
 			}()
 
+			if err = j.rmIngestedBatches(ctx); err != nil {
+				return
+			}
+
+			if err = j.rmIngestionMetrics(ctx); err != nil {
+				return
+			}
+
+			if err = j.rmSessionsIndex(ctx); err != nil {
+				return
+			}
+
 			if err = j.rmSessions(ctx); err != nil {
+				return
+			}
+
+			if err = j.rmJourney(ctx); err != nil {
+				return
+			}
+
+			if err = j.rmHTTPEvents(ctx); err != nil {
+				return
+			}
+
+			if err = j.rmHTTPMetrics(ctx); err != nil {
+				return
+			}
+
+			if err = j.rmURLPatterns(ctx); err != nil {
 				return
 			}
 
