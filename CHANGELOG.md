@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Track app OS names as a single-family set) by @anupcowkur in #3839
 - (**backend**): Add unified errors API & react native symbolication support (#3623) by @detj in #3623
 - (**backend**): Use autumn for metering and billing by @anupcowkur in #3534
+- (**frontend**): Add KMP logo to supported platforms (#3953) by @abhaysood in #3953
 - (**frontend**): Add KMP onboarding (#3952) by @abhaysood in #3952
 - (**frontend**): Add manual input to pricing calculator by @anupcowkur in #3944
 - (**frontend**): Add platform pages by @anupcowkur in #3934
