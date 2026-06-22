@@ -104,7 +104,7 @@ func newRemoveAppsCmd() *cobra.Command {
 				return
 			}
 
-			if err = j.rmIssueGroups(ctx); err != nil {
+			if err = j.rmErrorGroups(ctx); err != nil {
 				return
 			}
 

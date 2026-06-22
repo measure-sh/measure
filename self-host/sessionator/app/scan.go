@@ -185,6 +185,34 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, "elf_debug")
 			}
 
+			// jsbundle mappings (.tgz) are nested under a jsbundle/ subdir
+			// so their type is recoverable structurally — the .tgz extension
+			// alone is ambiguous with dsym. code is two levels up here.
+			jsBundle, err := filepath.Match("*/*/*/jsbundle/*", rel)
+			if err != nil {
+				return err
+			}
+			if jsBundle {
+				app := apps.Lookup(parts[0], parts[1])
+				info, err := d.Info()
+				if err != nil {
+					return err
+				}
+				if info.Size() < 1 {
+					return fmt.Errorf(`%q has empty jsbundle mapping file. check %q`, app.FullName(), rel)
+				}
+
+				jsCode := filepath.Base(filepath.Dir(filepath.Dir(rel)))
+				if _, ok := app.Builds[jsCode]; !ok {
+					app.Builds[jsCode] = &Build{
+						VersionCode: jsCode,
+					}
+				}
+
+				app.Builds[jsCode].MappingFiles = append(app.Builds[jsCode].MappingFiles, path)
+				app.Builds[jsCode].MappingTypes = append(app.Builds[jsCode].MappingTypes, "jsbundle")
+			}
+
 			blob, err := filepath.Match("*/*/blobs/*", rel)
 			if err != nil {
 				return err

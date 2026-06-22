@@ -10,11 +10,13 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sessionator/app"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -31,6 +33,55 @@ type Batch struct {
 type ErrorResponse struct {
 	Error   string `json:"error"`
 	Message string `json:"message"`
+}
+
+// uploadInfo mirrors the ingest service's attachment upload descriptor: the
+// SDK uploads the file with a plain PUT to UploadURL after the events request
+// returns. See backend/ingest/measure/event.go (AttachmentUploadInfo).
+type uploadInfo struct {
+	ID        string            `json:"id"`
+	Type      string            `json:"type"`
+	Filename  string            `json:"filename"`
+	UploadURL string            `json:"upload_url"`
+	ExpiresAt time.Time         `json:"expires_at"`
+	Headers   map[string]string `json:"headers,omitempty"`
+}
+
+// mapping mirrors the ingest service's build mapping descriptor, used in both
+// the PUT /builds request and response. See backend/ingest/measure/build.go.
+type mapping struct {
+	ID        string            `json:"id"`
+	Type      string            `json:"type"`
+	Filename  string            `json:"filename"`
+	Key       string            `json:"key,omitempty"`
+	Checksum  string            `json:"checksum,omitempty"`
+	Size      int64             `json:"size,omitempty"`
+	UploadURL string            `json:"upload_url,omitempty"`
+	ExpiresAt time.Time         `json:"expires_at"`
+	Headers   map[string]string `json:"headers,omitempty"`
+	PatchID   string            `json:"patch_id,omitempty"`
+}
+
+// buildRequest is the JSON payload PUT /builds accepts from newer SDKs.
+type buildRequest struct {
+	AppUniqueID string     `json:"app_unique_id"`
+	VersionName string     `json:"version_name"`
+	VersionCode string     `json:"version_code"`
+	Type        string     `json:"build_type"`
+	Size        uint       `json:"build_size"`
+	PatchID     string     `json:"patch_id"`
+	Mappings    []*mapping `json:"mappings"`
+}
+
+// uploadExpiry is a cosmetic expiry stamped on the upload URLs we return.
+// record never enforces it — the SDK uploads immediately after the request.
+const uploadExpiry = time.Hour * 24 * 7
+
+// uploadURL builds a presigned-style URL pointing back at this recorder. The
+// destination path (relative to outputDir) is encoded so writeUpload can land
+// the bytes on disk where app/scan.go expects them.
+func uploadURL(c *gin.Context, relPath string) string {
+	return fmt.Sprintf("http://%s/upload?dst=%s", c.Request.Host, url.QueryEscape(relPath))
 }
 
 // The path to output directory
@@ -56,6 +107,7 @@ Structue of "session-data" directory once written:` + "\n" + DirTree() + "\n" + 
 
 		r.PUT("/builds", writeBuild)
 		r.PUT("/events", writeEvent)
+		r.PUT("/upload", writeUpload)
 
 		r.Run(":" + port)
 	},
@@ -78,6 +130,17 @@ func writeEvent(c *gin.Context) {
 		return
 	}
 
+	// newer SDKs send a JSON payload and upload attachments out-of-band via
+	// the presigned URLs we return; older SDKs send everything as multipart.
+	if strings.HasPrefix(c.ContentType(), "application/json") {
+		writeEventJSON(c, reqId)
+		return
+	}
+
+	writeEventMultipart(c, reqId)
+}
+
+func writeEventMultipart(c *gin.Context, reqId string) {
 	pathErr := func(dir string) error {
 		return fmt.Errorf(`failed to acquire directory: %q`, dir)
 	}
@@ -292,6 +355,17 @@ func writeEvent(c *gin.Context) {
 }
 
 func writeBuild(c *gin.Context) {
+	// newer SDKs send a JSON payload and upload mapping files out-of-band via
+	// the presigned URLs we return; older SDKs send everything as multipart.
+	if strings.HasPrefix(c.ContentType(), "application/json") {
+		writeBuildJSON(c)
+		return
+	}
+
+	writeBuildMultipart(c)
+}
+
+func writeBuildMultipart(c *gin.Context) {
 	if err := c.Request.ParseMultipartForm(100 << 20); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "unable to parse multipart form: " + err.Error(),
@@ -444,6 +518,232 @@ func writeBuild(c *gin.Context) {
 		})
 		return
 	}
+
+	c.Status(http.StatusOK)
+}
+
+// writeEventJSON handles the JSON variant of PUT /events. It writes the batch
+// file in the same on-disk format as the multipart path, then returns presigned
+// upload URLs for each attachment. Attachment bytes arrive later via writeUpload.
+func writeEventJSON(c *gin.Context, reqId string) {
+	var req struct {
+		Events []json.RawMessage `json:"events"`
+		Spans  []json.RawMessage `json:"spans"`
+	}
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read request body"})
+		return
+	}
+	if err := json.Unmarshal(body, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse json payload: " + err.Error()})
+		return
+	}
+	if len(req.Events) < 1 && len(req.Spans) < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "payload should contain at least 1 event or span"})
+		return
+	}
+
+	// parse events for app coordinates and attachment metadata
+	events := make([]event.EventField, 0, len(req.Events))
+	for i := range req.Events {
+		var e event.EventField
+		if err := json.Unmarshal(req.Events[i], &e); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse event json: " + err.Error()})
+			return
+		}
+		events = append(events, e)
+	}
+
+	var appUniqueID, appVersion string
+	if len(events) > 0 {
+		appUniqueID = events[0].Attribute.AppUniqueID
+		appVersion = events[0].Attribute.AppVersion
+	} else {
+		var s span.SpanField
+		if err := json.Unmarshal(req.Spans[0], &s); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse span json: " + err.Error()})
+			return
+		}
+		appUniqueID = s.Attributes.AppUniqueID
+		appVersion = s.Attributes.AppVersion
+	}
+
+	rootDir, err := filepath.Abs(outputDir)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to acquire directory: %q", rootDir)})
+		return
+	}
+
+	appDir := filepath.Join(rootDir, appUniqueID, appVersion)
+	if err := os.MkdirAll(appDir, 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to acquire directory: %q", appDir)})
+		return
+	}
+
+	batchFile := filepath.Join(appDir, reqId+".json")
+	jsonBytes, err := json.Marshal(Batch{Events: req.Events, Spans: req.Spans})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to encode event file content as json"})
+		return
+	}
+	if err := os.WriteFile(batchFile, jsonBytes, 0644); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Errorf("failed to write to %q", batchFile).Error()})
+		return
+	}
+	fmt.Printf("written %d event(s) and %d span(s) to %q\n", len(req.Events), len(req.Spans), batchFile)
+
+	// hand out an upload URL per attachment. blobs land at blobs/{id} (no
+	// extension) to match app/scan.go's expectations.
+	attachments := []uploadInfo{}
+	for i := range events {
+		for j := range events[i].Attachments {
+			id := events[i].Attachments[j].ID.String()
+			relPath := filepath.Join(appUniqueID, appVersion, "blobs", id)
+			attachments = append(attachments, uploadInfo{
+				ID:        id,
+				Type:      events[i].Attachments[j].Type,
+				Filename:  events[i].Attachments[j].Name,
+				UploadURL: uploadURL(c, relPath),
+				ExpiresAt: time.Now().Add(uploadExpiry),
+			})
+		}
+	}
+	fmt.Printf("returning %d attachment upload url(s)\n", len(attachments))
+
+	c.JSON(http.StatusAccepted, gin.H{"attachments": attachments})
+}
+
+// writeBuildJSON handles the JSON variant of PUT /builds. It writes build.toml
+// and returns presigned upload URLs for each mapping file. Mapping bytes arrive
+// later via writeUpload.
+func writeBuildJSON(c *gin.Context) {
+	var req buildRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse json payload: " + err.Error()})
+		return
+	}
+	if req.AppUniqueID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "app_unique_id is required"})
+		return
+	}
+	if req.VersionName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": `"version_name" is required`})
+		return
+	}
+	if req.VersionCode == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": `"version_code" is required`})
+		return
+	}
+
+	versionDir := filepath.Join(outputDir, req.AppUniqueID, req.VersionName, req.VersionCode)
+	buildFilePath := filepath.Join(versionDir, "build.toml")
+	if err := os.MkdirAll(filepath.Dir(buildFilePath), 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf(`failed to create directory for build file %q: `, err.Error())})
+		return
+	}
+
+	out, err := os.Create(buildFilePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf(`failed to create build.toml file %q: %v`, buildFilePath, err.Error())})
+		return
+	}
+	defer out.Close()
+
+	if err := toml.NewEncoder(out).Encode(app.BuildInfo{Size: req.Size, Type: req.Type}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create build.toml file: " + err.Error()})
+		return
+	}
+	fmt.Printf("written build.toml to %q\n", buildFilePath)
+
+	if len(req.Mappings) < 1 {
+		c.JSON(http.StatusOK, gin.H{"ok": "build info updated"})
+		return
+	}
+
+	for _, m := range req.Mappings {
+		if m.Type != "proguard" && m.Type != "dsym" && m.Type != "elf_debug" && m.Type != "jsbundle" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf(`"type" should be one of %q, %q, %q or %q`, "proguard", "dsym", "elf_debug", "jsbundle")})
+			return
+		}
+
+		filename := strings.ReplaceAll(m.Filename, " ", "")
+		if m.Type == "proguard" {
+			filename = "mapping.txt"
+		}
+
+		// jsbundle archives are .tgz, same as dsym, and their filenames
+		// differ across platforms (main.jsbundle*.tgz on iOS,
+		// index.android.bundle*.tgz on Android) — so the type can't be
+		// recovered from the extension on replay. Nest them under jsbundle/
+		// so app/scan.go recognizes the type structurally.
+		relPath := filepath.Join(req.AppUniqueID, req.VersionName, req.VersionCode, filename)
+		if m.Type == "jsbundle" {
+			relPath = filepath.Join(req.AppUniqueID, req.VersionName, req.VersionCode, "jsbundle", filename)
+		}
+		m.ID = uuid.NewString()
+		m.UploadURL = uploadURL(c, relPath)
+		m.ExpiresAt = time.Now().Add(uploadExpiry)
+	}
+	fmt.Printf("returning %d mapping upload url(s)\n", len(req.Mappings))
+
+	c.JSON(http.StatusOK, gin.H{"mappings": req.Mappings})
+}
+
+// resolveUploadPath joins dst onto rootDir, rejecting any path that would
+// escape rootDir (absolute paths, traversal via "..").
+func resolveUploadPath(rootDir, dst string) (full string, err error) {
+	clean := filepath.Clean(dst)
+	if filepath.IsAbs(clean) || strings.HasPrefix(clean, "..") {
+		return "", fmt.Errorf("invalid dst path: %q", dst)
+	}
+	full = filepath.Join(rootDir, clean)
+	if !strings.HasPrefix(full, rootDir+string(os.PathSeparator)) {
+		return "", fmt.Errorf("dst path escapes output directory: %q", dst)
+	}
+	return full, nil
+}
+
+// writeUpload is the sink for presigned-style uploads handed out by the JSON
+// event/build handlers. The destination path (relative to outputDir) is taken
+// from the "dst" query param and sanitized to prevent path traversal.
+func writeUpload(c *gin.Context) {
+	dst := c.Query("dst")
+	if dst == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing dst query param"})
+		return
+	}
+
+	rootDir, err := filepath.Abs(outputDir)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve output directory"})
+		return
+	}
+
+	full, err := resolveUploadPath(rootDir, dst)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := os.MkdirAll(filepath.Dir(full), 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create directory for upload"})
+		return
+	}
+
+	file, err := os.Create(full)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create file %q", full)})
+		return
+	}
+	defer file.Close()
+
+	written, err := io.Copy(file, c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to write %q to disk", full)})
+		return
+	}
+	fmt.Printf("written %d bytes to %q\n", written, full)
 
 	c.Status(http.StatusOK)
 }
