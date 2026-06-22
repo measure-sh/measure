@@ -182,7 +182,7 @@ func RenderEmailBody(title, contentHTML, ctaText, ctaURL string) string {
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                         <tr>
                             <td width="32" valign="top" style="vertical-align: top; padding-bottom: 4px; padding-right: 4px;">
-                                <img src="https://measure.sh/images/measure_logo.png" alt="measure" width="32" height="32" style="display: block; height: 32px; width: 32px; border: 0;">
+                                <img src="https://measure.sh/images/measure_logo.webp" alt="measure" width="32" height="32" style="display: block; height: 32px; width: 32px; border: 0;">
                             </td>
                             <td valign="middle" style="vertical-align: middle; color: #ffffff;">
                                 <h1 style="margin: 0; padding: 0; font-size: 20px; line-height: 32px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; color: #ffffff;">%s</h1>
