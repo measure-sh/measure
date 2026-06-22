@@ -641,13 +641,16 @@ describe("Onboarding — Step 2: Integrate", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("renders Android, iOS, Flutter, React Native, and React Native (Expo) tabs", () => {
+    it("renders Android, iOS, Flutter, React Native, React Native (Expo), and Kotlin Multiplatform tabs", () => {
       renderOnboarding();
       expect(screen.getByTestId("tab-Android")).toBeInTheDocument();
       expect(screen.getByTestId("tab-iOS")).toBeInTheDocument();
       expect(screen.getByTestId("tab-Flutter")).toBeInTheDocument();
       expect(screen.getByTestId("tab-React Native")).toBeInTheDocument();
       expect(screen.getByTestId("tab-React Native (Expo)")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("tab-Kotlin Multiplatform"),
+      ).toBeInTheDocument();
     });
 
     it("selects Android by default", () => {
@@ -1111,6 +1114,133 @@ describe("Onboarding — Step 2: Integrate", () => {
       fireEvent.click(screen.getByTestId("tab-React Native"));
       expect(
         screen.getByTestId("onboarding-react-native-native-target-iOS"),
+      ).toHaveAttribute("data-selected", "true");
+    });
+  });
+
+  describe("Kotlin Multiplatform sub-platform selector", () => {
+    it("does not render the sub-selector on Android, iOS or Flutter tabs", () => {
+      renderOnboarding();
+      expect(
+        screen.queryByTestId(
+          "onboarding-kotlin-multiplatform-native-target-select",
+        ),
+      ).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId("tab-iOS"));
+      expect(
+        screen.queryByTestId(
+          "onboarding-kotlin-multiplatform-native-target-select",
+        ),
+      ).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId("tab-Flutter"));
+      expect(
+        screen.queryByTestId(
+          "onboarding-kotlin-multiplatform-native-target-select",
+        ),
+      ).not.toBeInTheDocument();
+    });
+
+    it("renders the sub-selector when Kotlin Multiplatform is the active tab", () => {
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-Kotlin Multiplatform"));
+      expect(
+        screen.getByTestId(
+          "onboarding-kotlin-multiplatform-native-target-Android",
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId("onboarding-kotlin-multiplatform-native-target-iOS"),
+      ).toBeInTheDocument();
+    });
+
+    it("selects Android as the default sub-platform", () => {
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-Kotlin Multiplatform"));
+      expect(
+        screen.getByTestId(
+          "onboarding-kotlin-multiplatform-native-target-Android",
+        ),
+      ).toHaveAttribute("data-selected", "true");
+      expect(
+        screen.getByTestId("onboarding-kotlin-multiplatform-native-target-iOS"),
+      ).toHaveAttribute("data-selected", "false");
+    });
+
+    it("updates the selected sub-platform indicator on click", () => {
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-Kotlin Multiplatform"));
+      fireEvent.click(
+        screen.getByTestId("onboarding-kotlin-multiplatform-native-target-iOS"),
+      );
+      expect(
+        screen.getByTestId("onboarding-kotlin-multiplatform-native-target-iOS"),
+      ).toHaveAttribute("data-selected", "true");
+      expect(
+        screen.getByTestId(
+          "onboarding-kotlin-multiplatform-native-target-Android",
+        ),
+      ).toHaveAttribute("data-selected", "false");
+    });
+
+    it("Android sub-platform shows commonMain dep, manifest, native init, and crash", () => {
+      mockSelectedApp = makeApp({ api_key: { key: "msr_kmp_key" } });
+      mockApps = [mockSelectedApp];
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-Kotlin Multiplatform"));
+      expect(screen.getByTestId("snippet-dependency")).toHaveTextContent(
+        "measure-kmp",
+      );
+      expect(screen.getByTestId("snippet-manifest")).toHaveTextContent(
+        "msr_kmp_key",
+      );
+      expect(screen.getByTestId("snippet-android-init")).toBeInTheDocument();
+      expect(screen.getByTestId("snippet-crash")).toBeInTheDocument();
+      // measure-android comes in transitively via the KMP dep, so there's no
+      // separate Gradle dependency step on this target.
+      expect(
+        screen.queryByTestId("snippet-android-gradle"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("iOS sub-platform shows commonMain dep, SPM dep, native init, and crash", () => {
+      mockSelectedApp = makeApp({ api_key: { key: "msr_kmp_key" } });
+      mockApps = [mockSelectedApp];
+      renderOnboarding();
+      fireEvent.click(screen.getByTestId("tab-Kotlin Multiplatform"));
+      fireEvent.click(
+        screen.getByTestId("onboarding-kotlin-multiplatform-native-target-iOS"),
+      );
+      expect(screen.getByTestId("snippet-dependency")).toHaveTextContent(
+        "measure-kmp",
+      );
+      expect(screen.getByTestId("snippet-ios-dependency")).toHaveTextContent(
+        "Package.swift",
+      );
+      expect(screen.getByTestId("snippet-ios-init")).toHaveTextContent(
+        "msr_kmp_key",
+      );
+      expect(screen.getByTestId("snippet-crash")).toBeInTheDocument();
+      expect(screen.queryByTestId("snippet-manifest")).not.toBeInTheDocument();
+    });
+
+    it("keeps Flutter and Kotlin Multiplatform sub-selections independent", () => {
+      renderOnboarding();
+      // Set Flutter to iOS.
+      fireEvent.click(screen.getByTestId("tab-Flutter"));
+      fireEvent.click(
+        screen.getByTestId("onboarding-flutter-native-target-iOS"),
+      );
+      // Switch to Kotlin Multiplatform — should still default to Android.
+      fireEvent.click(screen.getByTestId("tab-Kotlin Multiplatform"));
+      expect(
+        screen.getByTestId(
+          "onboarding-kotlin-multiplatform-native-target-Android",
+        ),
+      ).toHaveAttribute("data-selected", "true");
+      // Switch back to Flutter — its iOS selection survived.
+      fireEvent.click(screen.getByTestId("tab-Flutter"));
+      expect(
+        screen.getByTestId("onboarding-flutter-native-target-iOS"),
       ).toHaveAttribute("data-selected", "true");
     });
   });

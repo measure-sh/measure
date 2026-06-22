@@ -126,9 +126,9 @@ Handler(Looper.getMainLooper()).postDelayed({
   };
 }
 
-function iosSpmDepSnippet(): Snippet {
+function iosSpmDepSnippet(testId: string): Snippet {
   return {
-    testId: "snippet-dependency",
+    testId,
     language: "swift",
     code: `// In Package.swift
 .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v${SDK_VERSIONS.iosSdk}")`,
@@ -306,6 +306,21 @@ npx expo prebuild`,
   };
 }
 
+function kmpDepSnippet(): Snippet {
+  return {
+    testId: "snippet-dependency",
+    language: "kotlin",
+    code: `// In your shared module's build.gradle.kts
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation("sh.measure:measure-kmp:${SDK_VERSIONS.kmp}")
+        }
+    }
+}`,
+  };
+}
+
 // --- Per-platform step lists. Each factory bakes the app's API key/URL into
 // its snippets. Cross-platform factories share the dep/init/crash steps across
 // both native targets and only vary the middle (the part that carries the key).
@@ -330,7 +345,10 @@ function androidSteps(apiKey: string, apiUrl: string): OnboardingStep[] {
 
 function iosSteps(apiKey: string, apiUrl: string): OnboardingStep[] {
   return [
-    { title: "Add the dependency", snippet: iosSpmDepSnippet() },
+    {
+      title: "Add the dependency",
+      snippet: iosSpmDepSnippet("snippet-dependency"),
+    },
     {
       title: "Initialize the SDK",
       snippet: iosInitSnippet(apiKey, apiUrl, "snippet-init"),
@@ -467,6 +485,45 @@ function expoSteps(
   };
 }
 
+// The KMP SDK has no init API of its own, so each native SDK is initialized in
+// its own target. Compose Multiplatform integrates the same way and shares
+// this tab.
+function kmpSteps(
+  apiKey: string,
+  apiUrl: string,
+): Record<NativeTarget, OnboardingStep[]> {
+  const dep = {
+    title: "Add the KMP dependency to commonMain",
+    snippet: kmpDepSnippet(),
+  };
+  return {
+    Android: [
+      dep,
+      {
+        title: "Add API key to AndroidManifest.xml",
+        snippet: androidManifestSnippet(apiKey, apiUrl),
+      },
+      {
+        title: "Initialize the Android native SDK",
+        snippet: androidInitSnippet("snippet-android-init"),
+      },
+      { title: "Trigger a test crash", snippet: androidCrashSnippet() },
+    ],
+    iOS: [
+      dep,
+      {
+        title: "Add the iOS dependency",
+        snippet: iosSpmDepSnippet("snippet-ios-dependency"),
+      },
+      {
+        title: "Initialize the iOS native SDK",
+        snippet: iosInitSnippet(apiKey, apiUrl, "snippet-ios-init"),
+      },
+      { title: "Trigger a test crash", snippet: iosCrashSnippet() },
+    ],
+  };
+}
+
 function buildPlatforms(apiKey: string, apiUrl: string): Platform[] {
   return [
     {
@@ -489,6 +546,11 @@ function buildPlatforms(apiKey: string, apiUrl: string): Platform[] {
       name: "React Native (Expo)",
       crossPlatform: true,
       steps: expoSteps(apiKey, apiUrl),
+    },
+    {
+      name: "Kotlin Multiplatform",
+      crossPlatform: true,
+      steps: kmpSteps(apiKey, apiUrl),
     },
   ];
 }
