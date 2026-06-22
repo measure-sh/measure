@@ -10,6 +10,7 @@ export const PLATFORM_NAMES = [
   "Flutter",
   "React Native",
   "React Native (Expo)",
+  "Kotlin Multiplatform",
 ] as const;
 export type PlatformName = (typeof PLATFORM_NAMES)[number];
 

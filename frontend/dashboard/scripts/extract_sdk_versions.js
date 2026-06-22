@@ -33,6 +33,7 @@ const PATTERNS = {
   iosSdk: /branch:\s*["']ios-v(\d+\.\d+\.\d+)["']/,
   flutter: /measure_flutter:\s*\^(\d+\.\d+\.\d+)/,
   reactNative: /@measuresh\/react-native@(\d+\.\d+\.\d+)/,
+  kmp: /measure-kmp:(\d+\.\d+\.\d+)/,
 };
 
 function findSource() {
@@ -72,6 +73,7 @@ export const SDK_VERSIONS = {
   iosSdk: ${JSON.stringify(versions.iosSdk)},
   flutter: ${JSON.stringify(versions.flutter)},
   reactNative: ${JSON.stringify(versions.reactNative)},
+  kmp: ${JSON.stringify(versions.kmp)},
 } as const
 `;
 }
