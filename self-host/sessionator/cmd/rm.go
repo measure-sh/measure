@@ -230,7 +230,7 @@ func rmAppResources(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
-	if err = j.rmIssueGroups(ctx); err != nil {
+	if err = j.rmErrorGroups(ctx); err != nil {
 		return
 	}
 
@@ -479,8 +479,8 @@ func (j *janitor) resolveAppIds(ctx context.Context, conn *pgx.Conn, apps []stri
 	return
 }
 
-// rmIssueGroups removes exception and ANR groups for apps in config.
-func (j *janitor) rmIssueGroups(ctx context.Context) (err error) {
+// rmErrorGroups removes error and ANR groups for apps in config.
+func (j *janitor) rmErrorGroups(ctx context.Context) (err error) {
 	deleteFatalExceptionGroups := `delete from fatal_exception_groups where app_id = @app_id;`
 	deleteNonFatalExceptionGroups := `delete from nonfatal_exception_groups where app_id = @app_id;`
 	deleteAnrGroups := `delete from anr_groups where app_id = @app_id;`

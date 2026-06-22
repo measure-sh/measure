@@ -13,7 +13,10 @@ func DirTree() string {
 │     ├── 203334e1-2a7a-466b-b968-506ec3e23615.json
 │     └── 1000/
 │     	 ├── build.toml
-│        ├── mapping.txt`
+│        ├── mapping.txt
+│        └── jsbundle/
+│           ├── main.jsbundle.tgz
+│           └── main.jsbundle.map.tgz`
 }
 
 // ValidNote provides note about validity of files
