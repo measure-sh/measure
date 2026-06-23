@@ -31,7 +31,7 @@ internal class MsrHttpsURLConnection(
     @Volatile private var wrappedErrorStream: ResponseInputStream? = null
 
     private fun startRecording() {
-        recorder.onRequestStart(delegate.requestMethod ?: "")
+        recorder.onRequestStart(delegate)
     }
 
     override fun getCipherSuite(): String = delegate.cipherSuite

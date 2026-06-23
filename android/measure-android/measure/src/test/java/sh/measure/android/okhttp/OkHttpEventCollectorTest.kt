@@ -581,6 +581,54 @@ class OkHttpEventCollectorTest {
         Assert.assertNull(actualData.response_body)
     }
 
+    @Test
+    fun `does not track request body if content type is not json`() {
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest(requestContentType = "application/octet-stream")
+
+        // Then
+        verify(signalProcessor).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        Assert.assertNull(captor.firstValue.request_body)
+    }
+
+    @Test
+    fun `does not track response body if content type is not json`() {
+        val captor = argumentCaptor<HttpData>()
+        okHttpEventCollector.register()
+
+        // When
+        simulateSuccessfulPostRequest(responseContentType = "image/png")
+
+        // Then
+        verify(signalProcessor).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = any(),
+            attributes = eq(mutableMapOf()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = eq(mutableListOf()),
+            threadName = eq(null),
+            sessionId = eq(null),
+            userTriggered = eq(false),
+            isSampled = any(),
+        )
+        Assert.assertNull(captor.firstValue.response_body)
+    }
+
     /**
      * Creates a mock server and enqueues a successful response for a POST request.
      * Then consumes the response to ensure all events for EventFactory are triggered.
@@ -599,18 +647,20 @@ class OkHttpEventCollectorTest {
         url: String = "http://localhost:8080/",
         requestBody: String = "{ \"key\": \"value\" }",
         responseBody: String = "{ \"key\": \"value\" }",
+        requestContentType: String = "application/json",
+        responseContentType: String = "application/json",
     ) {
         mockWebServer.let {
             it.enqueue(
                 MockResponse().setResponseCode(statusCode).setBody(responseBody)
-                    .setHeader("Content-Type", "application/json")
+                    .setHeader("Content-Type", responseContentType)
                     .setHeader(responseHeader.first, responseHeader.second),
             )
             it.start(8080)
         }
         val response = client.newCall(
             Request.Builder().url(url)
-                .header("Content-Type", "application/json")
+                .header("Content-Type", requestContentType)
                 .header(requestHeader.first, requestHeader.second)
                 .post(requestBody.toRequestBody()).build(),
         ).execute()

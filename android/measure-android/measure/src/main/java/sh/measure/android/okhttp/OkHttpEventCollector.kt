@@ -122,7 +122,10 @@ internal class OkHttpEventCollectorImpl(
     }
 
     override fun request(call: Call, request: Request) {
-        if (configProvider.shouldTrackHttpRequestBody(request.url.toString())) {
+        val contentType = request.header("Content-Type") ?: request.body?.contentType()?.toString()
+        if (configProvider.shouldTrackHttpRequestBody(request.url.toString()) &&
+            isJsonContentType(contentType)
+        ) {
             val key = getIdentityHash(call)
             val builder = httpDataBuilders[key]
             val requestBody = getRequestBodyByteArray(request)
@@ -132,7 +135,9 @@ internal class OkHttpEventCollectorImpl(
     }
 
     override fun response(call: Call, request: Request, response: Response) {
-        if (configProvider.shouldTrackHttpResponseBody(request.url.toString())) {
+        if (configProvider.shouldTrackHttpResponseBody(request.url.toString()) &&
+            isJsonContentType(response.header("Content-Type"))
+        ) {
             val key = getIdentityHash(call)
             val builder = httpDataBuilders[key]
             val responseBody = getResponseBodyByteString(response)
