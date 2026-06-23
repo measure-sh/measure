@@ -179,16 +179,7 @@ func RenderEmailBody(title, contentHTML, ctaText, ctaURL string) string {
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%%" style="background-color: #000000;">
             <tr>
                 <td style="padding: 20px;">
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                        <tr>
-                            <td width="32" valign="top" style="vertical-align: top; padding-bottom: 4px; padding-right: 4px;">
-                                <img src="https://measure.sh/images/measure_email_logo.png" alt="measure" width="32" height="32" style="display: block; height: 32px; width: 32px; border: 0;">
-                            </td>
-                            <td valign="middle" style="vertical-align: middle; color: #ffffff;">
-                                <h1 style="margin: 0; padding: 0; font-size: 20px; line-height: 32px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; color: #ffffff;">%s</h1>
-                            </td>
-                        </tr>
-                    </table>
+                    <h1 style="margin: 0; padding: 0; font-size: 20px; line-height: 32px; font-weight: 600; letter-spacing: -0.5px; font-family: 'Josefin Sans', sans-serif; color: #ffffff;">%s</h1>
                 </td>
             </tr>
         </table>
@@ -206,12 +197,22 @@ func RenderEmailBody(title, contentHTML, ctaText, ctaURL string) string {
 
         <!-- Footer -->
         <div style="background-color: #f8f9fa; padding: 20px 30px; border-top: 1px solid #e2e8f0; text-align: center;">
-            <p style="margin: 0; font-size: 14px; color: #718096;">
-                This notification was sent from <a href="https://measure.sh" style="text-decoration: none; color: inherit; cursor: pointer;"><strong>measure.sh</strong></a>
-            </p>
-            <p style="margin: 4px 0 0 0; font-size: 12px; color: #a0aec0;">
-            	Mobile apps break, get to the root cause faster
-            </p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto;">
+                <tr>
+                    <td valign="middle" style="vertical-align: middle; padding-right: 16px;">
+                        <!-- 60px keeps the logo above Gmail dark mode's small-image inversion threshold; increase if logos invert in dark mode -->
+                        <img src="https://measure.sh/images/measure_logo.png" alt="measure" width="60" height="60" style="display: block; height: 60px; width: 60px; border: 0;">
+                    </td>
+                    <td valign="middle" style="vertical-align: middle; text-align: left;">
+                        <p style="margin: 0; font-size: 14px; color: #718096;">
+                            This notification was sent from <a href="https://measure.sh" style="text-decoration: none; color: inherit; cursor: pointer;"><strong>measure.sh</strong></a>
+                        </p>
+                        <p style="margin: 4px 0 0 0; font-size: 12px; color: #a0aec0;">
+                            Mobile apps break, get to the root cause faster
+                        </p>
+                    </td>
+                </tr>
+            </table>
         </div>
     </div>
 </body>
