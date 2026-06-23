@@ -346,6 +346,59 @@ void main() {
         // Response body kept
         expect(httpData.responseBody, '{"id": 1}');
       });
+
+      test('removes request body when content type is not json', () {
+        configProvider.shouldTrackHttpRequestBodyResult = true;
+        collector.register();
+
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.post,
+          requestHeaders: {'content-type': 'application/octet-stream'},
+          startTime: 1234567890,
+          statusCode: 201,
+          requestBody: 'binary-blob',
+        );
+
+        final httpData = signalProcessor.trackedEvents.first.data as HttpData;
+        expect(httpData.requestBody, null);
+      });
+
+      test('removes response body when content type is not json', () {
+        configProvider.shouldTrackHttpResponseBodyResult = true;
+        collector.register();
+
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.get,
+          responseHeaders: {'content-type': 'image/png'},
+          startTime: 1234567890,
+          statusCode: 200,
+          responseBody: 'binary-blob',
+        );
+
+        final httpData = signalProcessor.trackedEvents.first.data as HttpData;
+        expect(httpData.responseBody, null);
+      });
+
+      test('removes bodies when content type header is absent', () {
+        configProvider.shouldTrackHttpRequestBodyResult = true;
+        configProvider.shouldTrackHttpResponseBodyResult = true;
+        collector.register();
+
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.post,
+          startTime: 1234567890,
+          statusCode: 201,
+          requestBody: '{"name": "John"}',
+          responseBody: '{"id": 1}',
+        );
+
+        final httpData = signalProcessor.trackedEvents.first.data as HttpData;
+        expect(httpData.requestBody, null);
+        expect(httpData.responseBody, null);
+      });
     });
 
     group('registration state', () {

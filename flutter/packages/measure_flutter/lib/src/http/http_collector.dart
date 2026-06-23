@@ -61,11 +61,13 @@ class HttpCollector {
         );
     }
 
-    if (!configProvider.shouldTrackHttpRequestBody(url)) {
+    if (!configProvider.shouldTrackHttpRequestBody(url) ||
+        !_isJsonContentType(requestHeaders)) {
       requestBody = null;
     }
 
-    if (!configProvider.shouldTrackHttpResponseBody(url)) {
+    if (!configProvider.shouldTrackHttpResponseBody(url) ||
+        !_isJsonContentType(responseHeaders)) {
       responseBody = null;
     }
 
@@ -90,5 +92,19 @@ class HttpCollector {
       userDefinedAttrs: {},
       userTriggered: false,
     );
+  }
+
+  // Only collect JSON bodies. Non-JSON bodies (images, protobuf, gzip, etc.)
+  // are binary and render as garbled text in the timeline.
+  bool _isJsonContentType(Map<String, String>? headers) {
+    if (headers == null) {
+      return false;
+    }
+    for (final entry in headers.entries) {
+      if (entry.key.toLowerCase() == 'content-type') {
+        return entry.value.toLowerCase().startsWith('application/json');
+      }
+    }
+    return false;
   }
 }
