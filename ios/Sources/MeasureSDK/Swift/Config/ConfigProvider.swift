@@ -170,9 +170,16 @@ final class BaseConfigProvider: ConfigProvider {
     }
 
     func shouldTrackHttpBody(url: String, contentType: String?) -> Bool {
+        // Only collect JSON bodies. Non-JSON bodies (images, protobuf, gzip, etc.)
+        // are binary and render as garbled text in the timeline.
+        guard let contentType = contentType,
+              contentType.lowercased().hasPrefix("application/json") else {
+            return false
+        }
+
         let state = httpPatternState
         let range = NSRange(location: 0, length: url.utf16.count)
-        
+
         return state.trackRequestPatterns.contains {
             $0.firstMatch(in: url, options: [], range: range) != nil
         } || state.trackResponsePatterns.contains {

@@ -84,22 +84,31 @@ final class ConfigProviderTests: XCTestCase {
         XCTAssertTrue(provider.shouldTrackHttpUrl(url: "https://api.example.com/data"))
     }
 
-    func testShouldTrackHttpBody_returnsFalseWhenEmpty() {
-        XCTAssertFalse(provider.shouldTrackHttpBody(url: "https://api.example.com/data", contentType: nil))
+    func testShouldTrackHttpBody_returnsFalseWhenContentTypeMissing() {
+        provider.setDynamicConfig(copy(BaseDynamicConfig(), request: ["https://api.example.com/*"]))
+
+        XCTAssertFalse(provider.shouldTrackHttpBody(url: "https://api.example.com/users", contentType: nil))
+    }
+
+    func testShouldTrackHttpBody_returnsFalseWhenContentTypeNotJson() {
+        provider.setDynamicConfig(copy(BaseDynamicConfig(), request: ["https://api.example.com/*"]))
+
+        XCTAssertFalse(provider.shouldTrackHttpBody(url: "https://api.example.com/users", contentType: "image/png"))
     }
 
     func testRequestBodyMatch() {
         provider.setDynamicConfig(copy(BaseDynamicConfig(), request: ["https://api.example.com/*"]))
 
-        XCTAssertTrue(provider.shouldTrackHttpBody(url: "https://api.example.com/users", contentType: nil))
-        XCTAssertFalse(provider.shouldTrackHttpBody(url: "https://other.example.com/data", contentType: nil))
+        XCTAssertTrue(provider.shouldTrackHttpBody(url: "https://api.example.com/users", contentType: "application/json"))
+        XCTAssertTrue(provider.shouldTrackHttpBody(url: "https://api.example.com/users", contentType: "application/json; charset=utf-8"))
+        XCTAssertFalse(provider.shouldTrackHttpBody(url: "https://other.example.com/data", contentType: "application/json"))
     }
 
     func testResponseBodyMatch() {
         provider.setDynamicConfig(copy(BaseDynamicConfig(), response: ["https://api.example.com/*"]))
 
-        XCTAssertTrue(provider.shouldTrackHttpBody(url: "https://api.example.com/users", contentType: nil))
-        XCTAssertFalse(provider.shouldTrackHttpBody(url: "https://other.example.com/data", contentType: nil))
+        XCTAssertTrue(provider.shouldTrackHttpBody(url: "https://api.example.com/users", contentType: "application/json"))
+        XCTAssertFalse(provider.shouldTrackHttpBody(url: "https://other.example.com/data", contentType: "application/json"))
     }
 
     func testRequestAndResponseIndependent() {
@@ -107,8 +116,8 @@ final class ConfigProviderTests: XCTestCase {
                                        request: ["https://request.example.com/*"],
                                        response: ["https://response.example.com/*"]))
 
-        XCTAssertTrue(provider.shouldTrackHttpBody(url: "https://request.example.com/data", contentType: nil))
-        XCTAssertFalse(provider.shouldTrackHttpBody(url: "https://other.example.com/data", contentType: nil))
+        XCTAssertTrue(provider.shouldTrackHttpBody(url: "https://request.example.com/data", contentType: "application/json"))
+        XCTAssertFalse(provider.shouldTrackHttpBody(url: "https://other.example.com/data", contentType: "application/json"))
     }
 
     func testDefaultBlockedHeaders() {
