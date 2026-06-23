@@ -5,6 +5,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.okhttp.HttpClientName
 import sh.measure.android.okhttp.HttpData
+import sh.measure.android.okhttp.isJsonContentType
 import sh.measure.android.utils.TimeProvider
 import java.net.HttpURLConnection
 import java.util.concurrent.atomic.AtomicBoolean
@@ -34,17 +35,24 @@ internal class HttpUrlConnectionRecorder(
     private val responseHeadersCaptured = AtomicBoolean(false)
     private val shipped = AtomicBoolean(false)
 
+    @Volatile
+    private var requestContentType: String? = null
+
+    @Volatile
+    private var responseContentType: String? = null
+
     fun isTracked(): Boolean = tracked && collector.isEnabled()
 
-    fun shouldCaptureRequestBody(): Boolean = isTracked() && configProvider.shouldTrackHttpRequestBody(url)
+    fun shouldCaptureRequestBody(): Boolean = isTracked() && configProvider.shouldTrackHttpRequestBody(url) && isJsonContentType(requestContentType)
 
-    fun shouldCaptureResponseBody(): Boolean = isTracked() && configProvider.shouldTrackHttpResponseBody(url)
+    fun shouldCaptureResponseBody(): Boolean = isTracked() && configProvider.shouldTrackHttpResponseBody(url) && isJsonContentType(responseContentType)
 
-    fun onRequestStart(method: String) {
+    fun onRequestStart(connection: HttpURLConnection) {
         if (!isTracked()) return
         if (started.compareAndSet(false, true)) {
+            requestContentType = readRequestContentTypeOrNull(connection)
             builder
-                .method(method.lowercase())
+                .method((connection.requestMethod ?: "").lowercase())
                 .startTime(timeProvider.elapsedRealtime)
         }
     }
@@ -53,7 +61,9 @@ internal class HttpUrlConnectionRecorder(
         if (!isTracked()) return
         if (!responseHeadersCaptured.compareAndSet(false, true)) return
 
-        val statusCode = readResponseCodeQuietly(connection)
+        responseContentType = readResponseContentTypeOrNull(connection)
+
+        val statusCode = readResponseCodeOrNull(connection)
         if (statusCode != null) {
             builder.statusCode(statusCode)
         }
@@ -133,9 +143,22 @@ internal class HttpUrlConnectionRecorder(
         emptyMap()
     }
 
-    private fun readResponseCodeQuietly(connection: HttpURLConnection): Int? = try {
+    private fun readResponseCodeOrNull(connection: HttpURLConnection): Int? = try {
         val code = connection.responseCode
         if (code <= 0) null else code
+    } catch (e: Throwable) {
+        null
+    }
+
+    private fun readRequestContentTypeOrNull(connection: HttpURLConnection): String? = try {
+        connection.getRequestProperty("Content-Type")
+    } catch (e: Throwable) {
+        // Already connected and the impl forbids requestProperties access in this state.
+        null
+    }
+
+    private fun readResponseContentTypeOrNull(connection: HttpURLConnection): String? = try {
+        connection.contentType
     } catch (e: Throwable) {
         null
     }

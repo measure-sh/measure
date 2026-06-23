@@ -46,6 +46,9 @@ class HttpUrlConnectionEventCollectorTest {
         server.shutdown()
     }
 
+    private fun jsonResponse(code: Int, body: String): MockResponse = MockResponse().setResponseCode(code).setBody(body)
+        .addHeader("Content-Type", "application/json")
+
     private fun open(path: String = "/"): HttpURLConnection {
         val url = URL(server.url(path).toString())
         val raw = url.openConnection() as HttpURLConnection
@@ -91,7 +94,7 @@ class HttpUrlConnectionEventCollectorTest {
 
     @Test
     fun `captures method url status timings client and ships event on stream close`() {
-        server.enqueue(MockResponse().setResponseCode(200).setBody("ok"))
+        server.enqueue(jsonResponse(200, "ok"))
 
         val conn = open("/path")
         conn.responseCode
@@ -107,11 +110,12 @@ class HttpUrlConnectionEventCollectorTest {
 
     @Test
     fun `captures request body when POST`() {
-        server.enqueue(MockResponse().setResponseCode(201).setBody("created"))
+        server.enqueue(jsonResponse(201, "created"))
 
         val conn = open("/post")
         conn.requestMethod = "POST"
         conn.doOutput = true
+        conn.setRequestProperty("Content-Type", "application/json")
         conn.outputStream.use { os: OutputStream ->
             os.write("hello".toByteArray())
         }
@@ -125,7 +129,7 @@ class HttpUrlConnectionEventCollectorTest {
 
     @Test
     fun `captures status and error body on 4xx`() {
-        server.enqueue(MockResponse().setResponseCode(404).setBody("not found"))
+        server.enqueue(jsonResponse(404, "not found"))
 
         val conn = open("/missing")
         conn.responseCode
@@ -168,11 +172,12 @@ class HttpUrlConnectionEventCollectorTest {
     @Test
     fun `request body capture disabled by config`() {
         configProvider.shouldTrackHttpRequestBodyResult = false
-        server.enqueue(MockResponse().setResponseCode(200).setBody("ok"))
+        server.enqueue(jsonResponse(200, "ok"))
 
         val conn = open("/post")
         conn.requestMethod = "POST"
         conn.doOutput = true
+        conn.setRequestProperty("Content-Type", "application/json")
         conn.outputStream.use { it.write("body".toByteArray()) }
         conn.inputStream.use { it.readBytes() }
 
@@ -183,7 +188,37 @@ class HttpUrlConnectionEventCollectorTest {
     @Test
     fun `response body capture disabled by config`() {
         configProvider.shouldTrackHttpResponseBodyResult = false
-        server.enqueue(MockResponse().setResponseCode(200).setBody("hidden"))
+        server.enqueue(jsonResponse(200, "hidden"))
+
+        val conn = open("/x")
+        conn.responseCode
+        conn.inputStream.use { it.readBytes() }
+
+        val data = verifyTracked()
+        assertNull(data.response_body)
+    }
+
+    @Test
+    fun `does not capture request body when content type is not json`() {
+        server.enqueue(jsonResponse(200, "ok"))
+
+        val conn = open("/post")
+        conn.requestMethod = "POST"
+        conn.doOutput = true
+        conn.setRequestProperty("Content-Type", "application/octet-stream")
+        conn.outputStream.use { it.write("hello".toByteArray()) }
+        conn.inputStream.use { it.readBytes() }
+
+        val data = verifyTracked()
+        assertNull(data.request_body)
+    }
+
+    @Test
+    fun `does not capture response body when content type is not json`() {
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody("binary")
+                .addHeader("Content-Type", "image/png"),
+        )
 
         val conn = open("/x")
         conn.responseCode
@@ -208,7 +243,10 @@ class HttpUrlConnectionEventCollectorTest {
     @Test
     fun `truncates oversized response body and appends marker`() {
         val big = ByteArray((MAX_BODY_SIZE_BYTES + 10).toInt()) { 'a'.code.toByte() }
-        server.enqueue(MockResponse().setResponseCode(200).setBody(okio.Buffer().write(big)))
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(okio.Buffer().write(big))
+                .addHeader("Content-Type", "application/json"),
+        )
 
         val conn = open("/big")
         conn.responseCode

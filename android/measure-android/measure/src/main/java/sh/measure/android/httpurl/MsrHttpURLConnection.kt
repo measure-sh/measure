@@ -26,7 +26,7 @@ internal open class MsrHttpURLConnection(
     @Volatile private var wrappedErrorStream: ResponseInputStream? = null
 
     private fun startRecording() {
-        recorder.onRequestStart(delegate.requestMethod ?: "")
+        recorder.onRequestStart(delegate)
     }
 
     // ----- HttpURLConnection-specific -----
