@@ -19,7 +19,7 @@ jobs:
       run:
         working-directory: react-native
     permissions:
-      contents: read
+      contents: write
       id-token: write
     timeout-minutes: 15
 
@@ -52,6 +52,16 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Generate release notes
+        if: ${{ inputs.dry_run != true }}
+        uses: orhun/git-cliff-action@v4
+        id: release-notes
+        with:
+          config: react-native/cliff.toml
+          args: --latest --strip header --include-path "react-native/**"
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+
       - name: Create GitHub release
         if: ${{ inputs.dry_run != true }}
         env:
@@ -61,4 +71,5 @@ jobs:
             --title "${{ github.ref_name }}" \
             --draft \
             ${{ contains(github.ref_name, '-') && '--prerelease' || ''}} \
+            --notes "${{ steps.release-notes.outputs.content }}" \
             --verify-tag
