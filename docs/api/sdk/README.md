@@ -321,7 +321,7 @@ to the returned URLs. For uploading the files, you can issue a standard http req
   - A second `.tgz` containing the matching sourcemap (e.g. `main.jsbundle.map`, `index.android.bundle.map`).
 
   Symbolication pairs the two server-side via the inner filename's `.map` suffix, so the inner filenames must follow the `<bundle>` / `<bundle>.map` convention.
-- `patch_id` is optional. Use it to tag mappings that belong to an Over-The-Air patch (e.g. CodePush for React Native, Shorebird for Flutter). The value is echoed back on each mapping in the response. For OTA patches without an associated store build, use [`PUT /builds/ota`](#put-buildsota) instead.
+- For Over-The-Air patches (e.g. CodePush for React Native, Shorebird for Flutter), use [`PUT /builds/ota`](#put-buildsota) instead.
 - For mapping filename, only provide the filename, not a path.
 - When `mappings` is present, the server returns a mappings array containing the pre-signed URL for uploading each mapping file.
 - Each pre-signed mapping file upload URL has an expiry set which is the same as the `expires_at` field.
@@ -369,8 +369,7 @@ curl -X PUT \
         "headers": {
           "x-amz-meta-mapping_id": "e2bbcad8-0566-44ea-af43-9dd114c64e8c",
           "x-amz-meta-original_file_name": "DemoApp.app.dSYM.tgz"
-        },
-        "patch_id": "550e8400-e29b-41d4-a716-446655440000"
+        }
       },
       {
         "id": "77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc",
@@ -381,14 +380,11 @@ curl -X PUT \
         "headers": {
           "x-amz-meta-mapping_id": "77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc",
           "x-amz-meta-original_file_name": "app.symbols"
-        },
-        "patch_id": "550e8400-e29b-41d4-a716-446655440000"
+        }
       }
     ]
   }
   ```
-
-  Each mapping object includes a `patch_id` field only when the request supplied one. It is omitted otherwise.
 
 #### Request Body
 
@@ -405,7 +401,6 @@ Payload must contain the app version info, build info and optional build mapping
   "version_code": "10",
   "build_size": 10241024,
   "build_type": "ipa",
-  "patch_id": "550e8400-e29b-41d4-a716-446655440000",
   "mappings": [
     {
       "type": "dsym",
@@ -433,7 +428,6 @@ Payload must contain the app version info, build info and optional build mapping
 | `version_code` | string | No       | Version code of the build. Like "999"                                                                                                      |
 | `build_size`   | string | No       | Size of app in bytes                                                                                                                       |
 | `build_type`   | string | No       | Type of the build.<br />- `aab`, `apk` for Android<br />- `ipa` for iOS                                                                    |
-| `patch_id`     | string | Yes      | Identifier tagging an Over-The-Air patch these mappings belong to. Omit for regular builds.                                                |
 | `mappings`     | array  | Yes      | List of mapping files objects.                                                                                                             |
 
 ##### Mappings

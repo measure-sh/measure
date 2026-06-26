@@ -49,12 +49,10 @@ type Build struct {
 	Size        int        `json:"build_size" binding:"required,gt=0"`
 	Mappings    []*Mapping `json:"mappings" binding:"dive,required"`
 	AppUniqueID string     `json:"app_unique_id"`
-	// PatchID identifies an Over-The-Air patch (e.g. CodePush
-	// for RN, Shorebird for Flutter). Free-form text. Optional on
-	// this endpoint — when empty, the row's patch_id stays empty
-	// and the build is not findable via patch_id-based
-	// symbolication lookup.
-	PatchID string `json:"patch_id"`
+	// PatchID identifies an Over-The-Air patch. It is set only by
+	// the OTA handler (PutOTABuilds); PUT /builds neither accepts
+	// nor returns it.
+	PatchID string `json:"-"`
 }
 
 type BuildResponse struct {
