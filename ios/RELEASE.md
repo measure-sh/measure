@@ -4,18 +4,15 @@
 
 To release the iOS SDK, follow the below steps.
 
-1. Checkout a new branch named `origin/ios-release-vx.x.x` based on the latest commit from the main branch.
-2. Build and run tests before releasing.
-3. Run `./ios/Scripts/release.sh <major/minor/patch>`. This script is executed in below 2 steps:
-   1. Update local versions
-        - First the script will get the current SDK version from `FrameworkInfo.swift` and increment it.
-        - It will then update the SDK versions in `measure-sh.podspec`, `FrameworkInfo.swift` and `README.md`.
-        - Verify these before moving forward.
-   2. Update CHANGELOG.md
-        - We use git-cliff to generate change logs. This step might require you to add github-token with `public_repo` permission if the changes are too long.
-4. Commit the changes with the message `chore(ios): prepare sdk release x.x.x`
-5. Create a PR and merge.
-6. Go to the releases tab and create a new release.
-7. Run `pod trunk register <email> 'measure.sh' --description='<description>'` to authenticate to the cocoapod server.
-8. Run `pod spec lint measure-sh.podspec` which will check if the current configuration of podspec is correct.
-9. Run `pod trunk push measure-sh.podspec` to push the pod to cocoapods.
+1. Go to **Actions → Prepare iOS Release → Run workflow** and enter the version number (e.g. `0.9.0`).
+   - The workflow will run the test suite, bump versions in all relevant files, generate the changelog, and open a PR.
+2. Review and merge the PR.
+3. Push the release tag:
+   ```
+   git tag ios-v<version>
+   git push origin ios-v<version>
+   ```
+4. Run `pod trunk register <email> 'measure.sh' --description='<description>'` to authenticate to the CocoaPods server.
+5. Run `pod spec lint measure-sh.podspec` to check the podspec configuration is correct.
+6. Run `pod trunk push measure-sh.podspec` to push the pod to CocoaPods.
+7. Go to the releases tab and create a new release using the pushed tag.
