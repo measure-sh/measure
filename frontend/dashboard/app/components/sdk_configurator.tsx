@@ -60,6 +60,7 @@ export default function SdkConfigurator({
     bugReports: "idle",
     traces: "idle",
     launch: "idle",
+    profiling: "idle",
     journey: "idle",
     http: "idle",
     masking: "idle",
@@ -75,6 +76,7 @@ export default function SdkConfigurator({
   const [bugReportsConfirmOpen, setBugReportsConfirmOpen] = useState(false);
   const [tracesConfirmOpen, setTracesConfirmOpen] = useState(false);
   const [launchConfirmOpen, setLaunchConfirmOpen] = useState(false);
+  const [profilingConfirmOpen, setProfilingConfirmOpen] = useState(false);
   const [journeyConfirmOpen, setJourneyConfirmOpen] = useState(false);
   const [httpConfirmOpen, setHttpConfirmOpen] = useState(false);
   const [maskingConfirmOpen, setMaskingConfirmOpen] = useState(false);
@@ -121,6 +123,10 @@ export default function SdkConfigurator({
     !!sdkConfig &&
     !!originalSdkConfig &&
     sdkConfig.launch_sampling_rate !== originalSdkConfig.launch_sampling_rate;
+  const profilingChanged =
+    !!sdkConfig &&
+    !!originalSdkConfig &&
+    sdkConfig.profile_sampling_rate !== originalSdkConfig.profile_sampling_rate;
   const journeyChanged =
     !!sdkConfig &&
     !!originalSdkConfig &&
@@ -206,6 +212,11 @@ export default function SdkConfigurator({
   const handleSaveLaunch = () => {
     saveSection("launch", {
       launch_sampling_rate: sdkConfig.launch_sampling_rate,
+    });
+  };
+  const handleSaveProfiling = () => {
+    saveSection("profiling", {
+      profile_sampling_rate: sdkConfig.profile_sampling_rate,
     });
   };
   const handleSaveJourney = () => {
@@ -435,6 +446,34 @@ export default function SdkConfigurator({
           </li>
         </ul>
         <p className="mt-4">These changes will apply to all new launches.</p>
+      </div>
+    );
+  };
+
+  const getProfilingConfirmBody = () => {
+    return (
+      <div className="font-body">
+        <p>
+          Are you sure you want to update{" "}
+          <span className="font-display font-bold">Profiling settings</span> for
+          app <span className="font-display font-bold">{appName}</span>?
+        </p>
+        <p className="mt-4">The following changes will be applied:</p>
+        <ul className="mt-2 space-y-1 list-disc list-inside">
+          <li>
+            Sampling rate:{" "}
+            <span className="font-display font-bold">
+              {originalSdkConfig.profile_sampling_rate}%
+            </span>{" "}
+            →{" "}
+            <span className="font-display font-bold">
+              {sdkConfig.profile_sampling_rate}%
+            </span>
+          </li>
+        </ul>
+        <p className="mt-4">
+          These changes will apply to all new profiling results.
+        </p>
       </div>
     );
   };
@@ -806,6 +845,50 @@ export default function SdkConfigurator({
             </AccordionContent>
           </AccordionItem>
 
+          {/* Profiling Accordion */}
+          <AccordionItem value="profiling" className="mt-2">
+            <AccordionTrigger className="font-body text-base">
+              Profiling
+            </AccordionTrigger>
+            <AccordionContent className={accordionContentStyle}>
+              <div className="mt-2 space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-body text-sm">
+                    Collect profiling traces at
+                  </span>
+                  <SdkConfigNumericInput
+                    testId="profiling-sampling-rate-input"
+                    value={sdkConfig.profile_sampling_rate}
+                    minValue={0}
+                    maxValue={100}
+                    step={0.01}
+                    type="float"
+                    onChange={(value) =>
+                      updateSdkConfig({
+                        profile_sampling_rate: value,
+                      })
+                    }
+                    disabled={!currentUserCanChangeAppSettings}
+                  />
+                  <span className="font-body text-sm">% sampling rate</span>
+                </div>
+                <div className="flex justify-end mt-2">
+                  <Button
+                    data-testid="profiling-save-button"
+                    variant="outline"
+                    disabled={
+                      !currentUserCanChangeAppSettings || !profilingChanged
+                    }
+                    loading={sectionStatuses.profiling === "saving"}
+                    onClick={() => setProfilingConfirmOpen(true)}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
           {/* User Journeys Accordion */}
           <AccordionItem value="journeys" className="mt-2">
             <AccordionTrigger className="font-body text-base">
@@ -1126,6 +1209,18 @@ export default function SdkConfigurator({
           handleSaveLaunch();
         }}
         onCancelAction={() => setLaunchConfirmOpen(false)}
+      />
+
+      <DangerConfirmationDialog
+        body={getProfilingConfirmBody()}
+        open={profilingConfirmOpen}
+        affirmativeText="Yes, I'm sure"
+        cancelText="Cancel"
+        onAffirmativeAction={() => {
+          setProfilingConfirmOpen(false);
+          handleSaveProfiling();
+        }}
+        onCancelAction={() => setProfilingConfirmOpen(false)}
       />
 
       <DangerConfirmationDialog
