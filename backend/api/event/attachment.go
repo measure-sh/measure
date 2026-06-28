@@ -39,7 +39,7 @@ type UploadConfig struct {
 }
 
 // attachmentTypes is a list of all valid attachment types.
-var attachmentTypes = []string{"screenshot", "android_method_trace", "layout_snapshot", "layout_snapshot_json"}
+var attachmentTypes = []string{"screenshot", "android_method_trace", "layout_snapshot", "layout_snapshot_json", "perfetto_trace", "heap_dump", "heap_profile"}
 
 // isNotFound checks if error is a googleapi
 // not found error.

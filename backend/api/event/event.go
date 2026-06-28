@@ -104,6 +104,7 @@ const TypeNavigation = "navigation"
 const TypeScreenView = "screen_view"
 const TypeBugReport = "bug_report"
 const TypeSessionStart = "session_start"
+const TypeProfile = "profile"
 
 const NetworkGeneration2G = "2g"
 const NetworkGeneration3G = "3g"
@@ -171,6 +172,7 @@ var androidValidTypes = []string{
 	TypeCustom,
 	TypeBugReport,
 	TypeSessionStart,
+	TypeProfile,
 }
 
 // iOSValidTypes defines a whitelist for all
@@ -678,6 +680,11 @@ type SessionStart struct {
 	// No fields are required for this event.
 }
 
+type Profile struct {
+	Reason string `json:"reason" binding:"required"`
+	Format string `json:"format" binding:"required"`
+}
+
 type EventField struct {
 	ID                      uuid.UUID                `json:"id"`
 	IPv4                    net.IP                   `json:"inet_ipv4"`
@@ -718,6 +725,7 @@ type EventField struct {
 	BugReport               *BugReport               `json:"bug_report,omitempty"`
 	Custom                  *Custom                  `json:"custom,omitempty"`
 	SessionStart            *SessionStart            `json:"session_start,omitempty"`
+	Profile                 *Profile                 `json:"profile,omitempty"`
 }
 
 // Validate validates the event for data
@@ -783,6 +791,10 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		if len(e.ANR.Exceptions) < 1 || len(e.ANR.Threads) < 1 {
 			return fmt.Errorf(`%q must contain at least one anr & thread`, `anr`)
 		}
+	}
+
+	if e.IsProfile() && e.Profile == nil {
+		return fmt.Errorf(`%q must not be empty`, TypeProfile)
 	}
 
 	if e.IsException() {
@@ -1327,6 +1339,11 @@ func (e EventField) IsLifecycleApp() bool {
 // launch event.
 func (e EventField) IsColdLaunch() bool {
 	return e.Type == TypeColdLaunch
+}
+
+// IsProfile returns true for profile event.
+func (e EventField) IsProfile() bool {
+	return e.Type == TypeProfile
 }
 
 // IsWarmLaunch returns true for warm
