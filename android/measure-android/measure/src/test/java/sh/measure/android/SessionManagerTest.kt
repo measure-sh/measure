@@ -11,10 +11,12 @@ import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import sh.measure.android.config.DefaultConfig
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakePackageInfoProvider
+import sh.measure.android.fakes.FakePrefsStorage
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeSampler
 import sh.measure.android.fakes.ImmediateExecutorService
@@ -37,6 +39,7 @@ class SessionManagerTest {
     private val timeProvider = AndroidTimeProvider(testClock)
     private val configProvider = FakeConfigProvider()
     private val packageInfoProvider = FakePackageInfoProvider()
+    private val prefsStorage = FakePrefsStorage()
 
     private val sessionManager = SessionManagerImpl(
         logger = logger,
@@ -48,6 +51,7 @@ class SessionManagerTest {
         ioExecutor = executorService,
         packageInfoProvider = packageInfoProvider,
         sampler = sampler,
+        prefsStorage = prefsStorage,
     )
 
     @Test
@@ -84,6 +88,32 @@ class SessionManagerTest {
 
         val newStartTime = sessionManager.getSessionStartTime()
         assert(newStartTime > initialStartTime)
+    }
+
+    @Test
+    fun `records the prior session as previous when a new session is created`() {
+        // rotateSession only runs once the session is persisted successfully.
+        whenever(database.insertSession(any())).thenReturn(true)
+        processInfo.id = 1111
+        sessionManager.init()
+        val firstSessionId = sessionManager.getSessionId()
+        val firstSessionStartTime = sessionManager.getSessionStartTime()
+
+        // no previous session exists after only the first session
+        assertEquals(null, prefsStorage.getPreviousSession())
+
+        // create a second session when the app returns to foreground after the timeout
+        sessionManager.onAppBackground()
+        testClock.advance(Duration.ofMillis(configProvider.sessionBackgroundTimeoutThresholdMs + 1))
+        idProvider.id = "next-uuid"
+        sessionManager.onAppForeground()
+
+        val previous = prefsStorage.getPreviousSession()
+        assertEquals(firstSessionId, previous?.id)
+        assertEquals(firstSessionStartTime, previous?.startTime)
+        assertEquals(1111, previous?.pid)
+        assertEquals(packageInfoProvider.appVersion, previous?.appVersion)
+        assertEquals(packageInfoProvider.getVersionCode(), previous?.appBuild)
     }
 
     @Test

@@ -8,6 +8,7 @@ import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Database
+import sh.measure.android.storage.PrefsStorage
 import sh.measure.android.storage.SessionEntity
 import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.IdProvider
@@ -89,6 +90,7 @@ internal class SessionManagerImpl(
     private val configProvider: ConfigProvider,
     private val packageInfoProvider: PackageInfoProvider,
     private val sampler: Sampler,
+    private val prefsStorage: PrefsStorage,
 ) : SessionManager {
     private var sessionStartListener: SessionStartListener? = null
     private var sessionId: String? = null
@@ -197,6 +199,13 @@ internal class SessionManagerImpl(
                         if (!success) {
                             logger.log(LogLevel.Debug, "SessionManager: Failed to store session")
                         } else {
+                            prefsStorage.rotateSession(
+                                id = id,
+                                startTime = startTime,
+                                pid = pid,
+                                appVersion = packageInfoProvider.appVersion,
+                                appBuild = packageInfoProvider.getVersionCode(),
+                            )
                             logger.log(
                                 LogLevel.Debug,
                                 "SessionManager: Session ID stored successfully in DB",

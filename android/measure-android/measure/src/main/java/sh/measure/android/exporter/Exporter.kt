@@ -7,6 +7,7 @@ import sh.measure.android.config.ConfigProvider
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.profiling.ProfileUploadScheduler
 import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.storage.Database
 import sh.measure.android.storage.FileStorage
@@ -43,6 +44,7 @@ internal class ExporterImpl(
     private val httpClient: HttpClient,
     private val configProvider: ConfigProvider,
     private val eventExportService: MeasureExecutorService,
+    private val profileUploadScheduler: ProfileUploadScheduler? = null,
 ) : Exporter {
     @VisibleForTesting
     internal val isExporting = AtomicBoolean(false)
@@ -54,6 +56,7 @@ internal class ExporterImpl(
                     try {
                         exportEvents()
                         exportAttachments()
+                        handoffProfileUploads()
                     } finally {
                         isExporting.set(false)
                     }
@@ -73,6 +76,7 @@ internal class ExporterImpl(
                     try {
                         exportExistingBatches()
                         exportAttachments()
+                        handoffProfileUploads()
                     } finally {
                         isExporting.set(false)
                     }
@@ -220,6 +224,18 @@ internal class ExporterImpl(
                     sleeper.sleep(configProvider.attachmentExportIntervalMs)
                 }
             }
+        }
+    }
+
+    /**
+     * Schedules the profile upload worker when any profiles are pending. Called at the tail of every
+     * export; the unique work coalesces repeated calls onto a single worker.
+     */
+    private fun handoffProfileUploads() {
+        val scheduler = profileUploadScheduler ?: return
+        val hasPendingProfiles = database.getProfileAttachmentsToUpload(1).isNotEmpty()
+        if (hasPendingProfiles) {
+            scheduler.schedule()
         }
     }
 

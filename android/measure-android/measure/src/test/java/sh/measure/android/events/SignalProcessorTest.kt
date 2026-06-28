@@ -2,6 +2,7 @@ package sh.measure.android.events
 
 import androidx.concurrent.futures.ResolvableFuture
 import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertNull
 import junit.framework.TestCase.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -152,6 +153,56 @@ internal class SignalProcessorTest {
 
         assertEquals(1, signalStore.trackedEvents.size)
         assertEquals(customSessionId, signalStore.trackedEvents.first().sessionId)
+    }
+
+    @Test
+    fun `trackProfile pins session, start time and version when attributed to another session`() {
+        val profileData = TestData.getProfileData()
+        val timestamp = 1710746412L
+        val sessionStartTime = 1710746000L
+
+        signalProcessor.trackProfile(
+            data = profileData,
+            timestamp = timestamp,
+            attachments = mutableListOf(),
+            sessionId = "custom-session-id",
+            sessionStartTime = sessionStartTime,
+            appVersion = "1.2.3",
+            appBuild = "123",
+        )
+
+        assertEquals(1, signalStore.trackedEvents.size)
+        val event = signalStore.trackedEvents.first()
+        assertEquals(EventType.PROFILE, event.type)
+        assertEquals("custom-session-id", event.sessionId)
+        assertEquals(
+            sessionStartTime.iso8601Timestamp(),
+            event.attributes[Attribute.SESSION_START_TIME_KEY],
+        )
+        assertEquals("1.2.3", event.attributes[Attribute.APP_VERSION_KEY])
+        assertEquals("123", event.attributes[Attribute.APP_BUILD_KEY])
+    }
+
+    @Test
+    fun `trackProfile uses current session and does not pin attributes when not provided`() {
+        val profileData = TestData.getProfileData()
+
+        signalProcessor.trackProfile(
+            data = profileData,
+            timestamp = 1710746412L,
+            attachments = mutableListOf(),
+            sessionId = null,
+            sessionStartTime = null,
+            appVersion = null,
+            appBuild = null,
+        )
+
+        assertEquals(1, signalStore.trackedEvents.size)
+        val event = signalStore.trackedEvents.first()
+        assertEquals(sessionManager.getSessionId(), event.sessionId)
+        assertNull(event.attributes[Attribute.SESSION_START_TIME_KEY])
+        assertNull(event.attributes[Attribute.APP_VERSION_KEY])
+        assertNull(event.attributes[Attribute.APP_BUILD_KEY])
     }
 
     @Test

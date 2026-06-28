@@ -57,4 +57,46 @@ class PrefsStorageTest {
 
         assertNull(result)
     }
+
+    @Test
+    fun `returns null previous session when none has been recorded`() {
+        assertNull(prefsStorage.getPreviousSession())
+    }
+
+    @Test
+    fun `returns null previous session after only one session is recorded`() {
+        prefsStorage.rotateSession("session-1", 1000L, 111, "1.0.0", "100")
+
+        assertNull(prefsStorage.getPreviousSession())
+    }
+
+    @Test
+    fun `rotateSession moves the prior current session into the previous slot`() {
+        prefsStorage.rotateSession("session-1", 1000L, 111, "1.0.0", "100")
+        prefsStorage.rotateSession("session-2", 2000L, 222, "2.0.0", "200")
+
+        assertEquals(
+            PreviousSession(
+                id = "session-1",
+                startTime = 1000L,
+                pid = 111,
+                appVersion = "1.0.0",
+                appBuild = "100",
+            ),
+            prefsStorage.getPreviousSession(),
+        )
+
+        prefsStorage.rotateSession("session-3", 3000L, 333, "3.0.0", "300")
+
+        assertEquals(
+            PreviousSession(
+                id = "session-2",
+                startTime = 2000L,
+                pid = 222,
+                appVersion = "2.0.0",
+                appBuild = "200",
+            ),
+            prefsStorage.getPreviousSession(),
+        )
+    }
 }

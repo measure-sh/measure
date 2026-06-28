@@ -58,6 +58,23 @@ internal interface SignalProcessor {
     )
 
     /**
+     * Tracks a trigger based profiling result as an [EventType.PROFILE] event.
+     *
+     * An ANR profile may belong to an earlier session than the current one (see ProfileCollector).
+     * When [sessionId] is provided the event is attributed to that session and [sessionStartTime],
+     * [appVersion] and [appBuild] are pinned to it; otherwise the current session is used.
+     */
+    fun <T> trackProfile(
+        data: T,
+        timestamp: Long,
+        attachments: MutableList<Attachment>,
+        sessionId: String?,
+        sessionStartTime: Long?,
+        appVersion: String?,
+        appBuild: String?,
+    )
+
+    /**
      * App exit events can be triggered for an older session. This method is used to track app exit
      * events for a specific session with the attributes provided.
      */
@@ -184,6 +201,51 @@ internal class SignalProcessorImpl(
             }
         } catch (e: RejectedExecutionException) {
             logger.log(LogLevel.Error, "Failed to process event", e)
+        }
+    }
+
+    override fun <T> trackProfile(
+        data: T,
+        timestamp: Long,
+        attachments: MutableList<Attachment>,
+        sessionId: String?,
+        sessionStartTime: Long?,
+        appVersion: String?,
+        appBuild: String?,
+    ) {
+        val threadName = Thread.currentThread().name
+        try {
+            ioExecutor.submit {
+                InternalTrace.trace(
+                    label = { "msr-trackEvent" },
+                    block = {
+                        val attributes = mutableMapOf<String, Any?>()
+                        val event = createEvent(
+                            data = data,
+                            timestamp = timestamp,
+                            type = EventType.PROFILE,
+                            attachments = attachments,
+                            attributes = attributes,
+                            userTriggered = false,
+                            userDefinedAttributes = mutableMapOf(),
+                            sessionId = sessionId,
+                            isSampled = true,
+                        ) ?: return@trace
+                        applyAttributes(attributes, event, threadName)
+                        // Pin attributes to the original session when attributing to another session.
+                        if (sessionStartTime != null) {
+                            event.updateSessionStartTimeAttribute(sessionStartTime)
+                        }
+                        event.updateVersionAttribute(appVersion, appBuild)
+                        InternalTrace.trace(label = { "msr-store-event" }, block = {
+                            signalStore.store(event)
+                            onEventTracked(event)
+                        })
+                    },
+                )
+            }
+        } catch (e: RejectedExecutionException) {
+            logger.log(LogLevel.Error, "Failed to process profile", e)
         }
     }
 
@@ -372,11 +434,9 @@ internal class SignalProcessorImpl(
         })
     }
 
-    // This is a quick way to update the version attributes for app exit events.
-    // AppExit events are tracked for older sessions, and the version attributes are not
-    // available at that time. Instead of changing the flow of tracking events, we apply the
-    // attributes as is and then mutate them here.
-    private fun Event<AppExit>.updateVersionAttribute(appVersion: String?, appBuild: String?) {
+    // Attribute processors stamp the current session's values; for events tracked against another
+    // session (app exit, ANR profiles) we overwrite the affected attributes afterwards.
+    private fun <T> Event<T>.updateVersionAttribute(appVersion: String?, appBuild: String?) {
         if (appVersion != null) {
             attributes[Attribute.APP_VERSION_KEY] = appVersion
         }
@@ -385,7 +445,7 @@ internal class SignalProcessorImpl(
         }
     }
 
-    private fun Event<AppExit>.updateSessionStartTimeAttribute(sessionStartTime: Long) {
+    private fun <T> Event<T>.updateSessionStartTimeAttribute(sessionStartTime: Long) {
         attributes[Attribute.SESSION_START_TIME_KEY] = sessionStartTime.iso8601Timestamp()
     }
 

@@ -14,6 +14,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import sh.measure.android.config.DefaultConfig
+import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.EventType
 import sh.measure.android.exporter.EventPacket
 import sh.measure.android.exporter.SignedAttachment
@@ -1971,6 +1972,60 @@ class DatabaseTest {
         assertEquals("2025-01-15T10:00:00.000Z", attachment.expiresAt)
         assertEquals("session-id", attachment.sessionId)
         assertEquals(mapOf("Authorization" to "Bearer token"), attachment.headers)
+    }
+
+    @Test
+    fun `getAttachmentsToUpload excludes profiles, getProfileAttachmentsToUpload returns only them`() {
+        database.insertSession(TestData.getSessionEntity(id = "session-id"))
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-1",
+                sessionId = "session-id",
+                attachmentEntities = listOf(
+                    TestData.getAttachmentEntity(id = "screenshot", type = AttachmentType.SCREENSHOT),
+                    TestData.getAttachmentEntity(id = "profile", type = AttachmentType.PERFETTO_TRACE),
+                ),
+            ),
+        )
+        database.updateAttachmentUrls(
+            listOf(
+                SignedAttachment(
+                    id = "screenshot",
+                    type = AttachmentType.SCREENSHOT,
+                    filename = "screenshot.png",
+                    uploadUrl = "https://example.com/screenshot",
+                    expiresAt = "2025-01-15T10:00:00.000Z",
+                    headers = emptyMap(),
+                ),
+                SignedAttachment(
+                    id = "profile",
+                    type = AttachmentType.PERFETTO_TRACE,
+                    filename = "profile.perfetto-trace",
+                    uploadUrl = "https://example.com/profile",
+                    expiresAt = "2025-01-15T10:00:00.000Z",
+                    headers = emptyMap(),
+                ),
+            ),
+        )
+
+        assertEquals(listOf("screenshot"), database.getAttachmentsToUpload(10).map { it.id })
+        assertEquals(listOf("profile"), database.getProfileAttachmentsToUpload(10).map { it.id })
+    }
+
+    @Test
+    fun `getProfileAttachmentsToUpload returns nothing for unsigned profile attachments`() {
+        database.insertSession(TestData.getSessionEntity(id = "session-id"))
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-1",
+                sessionId = "session-id",
+                attachmentEntities = listOf(
+                    TestData.getAttachmentEntity(id = "profile", type = AttachmentType.PERFETTO_TRACE),
+                ),
+            ),
+        )
+
+        assertTrue(database.getProfileAttachmentsToUpload(10).isEmpty())
     }
 
     @Test
