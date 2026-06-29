@@ -49,6 +49,7 @@ feature's documentation to understand its underlying mechanism and enhance your 
   lifecycle events
 * [**CPU Monitoring**](features/feature-cpu-monitoring.md) — Monitor CPU usage for every session
 * [**Memory Monitoring**](features/feature-memory-monitoring.md) — Monitor memory usage for every session
+* [**Profiling**](features/feature-profiling.md) — Capture system traces and heap dumps on Android
 * [**Identify Users**](features/feature-identify-users.md) — Correlate sessions with a user ID
 * [**Manually Start or Stop the SDK**](features/feature-manually-start-stop-sdk.md) — Control when data collection
   happens
