@@ -105,6 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Drop `patch_id` from `PUT /builds` (#3968) by @detj in #3968
 - (**backend**): Extend cleanup to cover all resources (#3954) by @detj in #3954
 - (**backend**): Support JSON ingest APIs in record (#3948) by @detj in #3948
 - (**backend**): Add `data_exports` postgres table (#3902) by @detj in #3902
