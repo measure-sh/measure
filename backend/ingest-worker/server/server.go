@@ -11,11 +11,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"cloud.google.com/go/cloudsqlconn"
 	"cloud.google.com/go/pubsub/v2"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -359,6 +361,31 @@ func Init(config *ServerConfig) {
 	}
 
 	oConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+
+	// IAM auth in Cloud with a passwordless DSN; a password DSN uses the plain path.
+	if config.IsCloud() && oConfig.ConnConfig.Password == "" {
+		d, err := cloudsqlconn.NewDialer(ctx,
+			// Always use IAM authentication.
+			cloudsqlconn.WithIAMAuthN(),
+			// In Cloud Run CPU is throttled outside of a request
+			// context causing the backend refresh to fail, hence
+			// the need for `WithLazyRefresh()` option.
+			cloudsqlconn.WithLazyRefresh(),
+		)
+		if err != nil {
+			fmt.Println("Failed to dial postgres connection.")
+		}
+
+		csqlConnName := os.Getenv("CSQL_CONN_NAME")
+		if csqlConnName == "" {
+			// Fail closed: IAM auth has no instance to dial.
+			log.Fatal("CSQL_CONN_NAME is not set but POSTGRES_DSN is in IAM form")
+		}
+
+		oConfig.ConnConfig.DialFunc = func(ctx context.Context, network string, address string) (net.Conn, error) {
+			return d.Dial(ctx, csqlConnName, cloudsqlconn.WithPrivateIP())
+		}
+	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, oConfig)
 	if err != nil {
