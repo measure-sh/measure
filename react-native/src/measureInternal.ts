@@ -10,6 +10,7 @@ import {
   disableNativeModule,
   start as nativeStart,
   stop as nativeStop,
+  setPatchId as nativeSetPatchId,
 } from './native/measureBridge';
 import type { Span } from './tracing/span';
 import type { SpanBuilder } from './tracing/spanBuilder';
@@ -62,6 +63,10 @@ export class MeasureInternal {
         console.error('Failed to load dynamic config', error);
         this.measureInitializer.spanProcessor.onConfigLoaded();
       });
+
+    if (config?.patchId) {
+      nativeSetPatchId(config.patchId);
+    }
 
     if (config?.autoStart) {
       this.started = true;

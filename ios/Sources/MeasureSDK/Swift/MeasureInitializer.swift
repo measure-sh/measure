@@ -23,6 +23,7 @@ protocol MeasureInitializer {
     var installationIdAttributeProcessor: InstallationIdAttributeProcessor { get }
     var networkStateAttributeProcessor: NetworkStateAttributeProcessor { get }
     var userAttributeProcessor: UserAttributeProcessor { get }
+    var patchIdAttributeProcessor: PatchIdAttributeProcessor { get }
     var sessionAttributeProcessor: SessionAttributeProcessor { get }
     var attributeProcessors: [AttributeProcessor] { get }
     var signalProcessor: SignalProcessor { get }
@@ -158,6 +159,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     let installationIdAttributeProcessor: InstallationIdAttributeProcessor
     let networkStateAttributeProcessor: NetworkStateAttributeProcessor
     let userAttributeProcessor: UserAttributeProcessor
+    let patchIdAttributeProcessor: PatchIdAttributeProcessor
     let sessionAttributeProcessor: SessionAttributeProcessor
     let attributeProcessors: [AttributeProcessor]
     let signalProcessor: SignalProcessor
@@ -276,12 +278,14 @@ final class BaseMeasureInitializer: MeasureInitializer {
         self.networkStateAttributeProcessor = NetworkStateAttributeProcessor(measureDispatchQueue: measureDispatchQueue)
         self.userAttributeProcessor = UserAttributeProcessor(userDefaultStorage: userDefaultStorage,
                                                              measureDispatchQueue: measureDispatchQueue)
+        self.patchIdAttributeProcessor = PatchIdAttributeProcessor()
         self.sessionAttributeProcessor = SessionAttributeProcessor(sessionManager: sessionManager, timeProvider: timeProvider)
         self.attributeProcessors = [appAttributeProcessor,
                                     deviceAttributeProcessor,
                                     installationIdAttributeProcessor,
                                     networkStateAttributeProcessor,
                                     userAttributeProcessor,
+                                    patchIdAttributeProcessor,
                                     sessionAttributeProcessor]
         self.crashDataPersistence = BaseCrashDataPersistence(logger: logger,
                                                              systemFileManager: systemFileManager)

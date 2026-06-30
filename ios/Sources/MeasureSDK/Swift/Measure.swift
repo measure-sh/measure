@@ -170,6 +170,12 @@ import UIKit
         measureInternal.clearUserId()
     }
 
+    
+    @objc func setPatchId(_ patchId: String) {
+        guard let measureInternal = measureInternal else { return }
+        measureInternal.setPatchId(patchId)
+    }
+
     @objc func getCurrentTime() -> Int64 {
         guard let measureInternal = self.measureInternal else { return 0 }
         return measureInternal.timeProvider.now()
@@ -616,6 +622,11 @@ extension Measure {
     /// ```
     @objc public static func clearUserId() {
         Measure.shared.clearUserId()
+    }
+
+    
+    @objc public static func setPatchId(_ patchId: String) {
+        Measure.shared.setPatchId(patchId)
     }
 
     /// Returns the current time in milliseconds since epoch.

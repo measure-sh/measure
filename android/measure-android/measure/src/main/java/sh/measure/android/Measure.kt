@@ -134,6 +134,13 @@ object Measure {
         }
     }
 
+    @JvmStatic
+    fun setPatchId(patchId: String) {
+        if (isInitialized.get()) {
+            measure.setPatchId(patchId)
+        }
+    }
+
     /**
      * Clears the user ID, if previously set by [setUserId].
      */

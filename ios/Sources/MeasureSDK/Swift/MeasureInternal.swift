@@ -165,6 +165,9 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     var systemCrashReporter: SystemCrashReporter {
         return measureInitializer.systemCrashReporter
     }
+    var patchIdAttributeProcessor: PatchIdAttributeProcessor {
+        return measureInitializer.patchIdAttributeProcessor
+    }
     private let lifecycleObserver: LifecycleObserver
     var isStarted: Bool = false
     var previousSessionCrashed = false
@@ -315,6 +318,10 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
 
     func setUserId(_ userId: String) {
         userAttributeProcessor.setUserId(userId)
+    }
+
+    func setPatchId(_ patchId: String) {
+        patchIdAttributeProcessor.setPatchId(patchId)
     }
 
     func clearUserId() {

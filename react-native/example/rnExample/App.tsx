@@ -15,6 +15,7 @@ import {
   Measure,
   MeasureConfig,
 } from '@measuresh/react-native';
+import measure_patch_id from './measurePatchId';
 
 
 const App = (): React.JSX.Element => {
@@ -33,6 +34,7 @@ const App = (): React.JSX.Element => {
         enableLogging: true,
         autoStart: true,
         enableDiagnosticMode: true,
+        patchId: measure_patch_id
       });
 
     await Measure.init({ config: measureConfig });

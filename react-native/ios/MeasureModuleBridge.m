@@ -58,6 +58,7 @@ RCT_EXTERN_METHOD(launchBugReport:(BOOL)takeScreenshot
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(setShakeListener:(BOOL)enable)
+RCT_EXTERN_METHOD(setPatchId:(NSString *)patchId)
 RCT_EXTERN_METHOD(captureScreenshot:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(trackBugReport:(NSString *)description

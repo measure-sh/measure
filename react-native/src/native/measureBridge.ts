@@ -248,6 +248,13 @@ export function internalAddLog(
   return MeasureModule.internalAddLog(platform, message);
 }
 
+export function setPatchId(patchId: string): Promise<void> {
+  if (!MeasureModule.setPatchId) {
+    return Promise.resolve();
+  }
+  return Promise.resolve(MeasureModule.setPatchId(patchId));
+}
+
 export function getSessionId(): Promise<string | null> {
   if (!MeasureModule.getSessionId || isDisabled()) {
     return Promise.reject(

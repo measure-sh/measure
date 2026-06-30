@@ -15,6 +15,7 @@ import sh.measure.android.attributes.NetworkStateAttributeProcessor
 import sh.measure.android.attributes.PowerStateAttributeProcessor
 import sh.measure.android.attributes.SessionAttributeProcessor
 import sh.measure.android.attributes.SpanDeviceAttributeProcessor
+import sh.measure.android.attributes.PatchIdAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.bugreport.AccelerometerShakeDetector
 import sh.measure.android.bugreport.BugReportCollector
@@ -204,6 +205,7 @@ internal class MeasureInitializerImpl(
         prefsStorage,
         executorServiceRegistry.ioExecutor(),
     ),
+    override val patchIdAttributeProcessor: PatchIdAttributeProcessor = PatchIdAttributeProcessor(),
     private val deviceAttributeProcessor: DeviceAttributeProcessor = DeviceAttributeProcessor(
         context = application,
         localeProvider = localeProvider,
@@ -228,6 +230,7 @@ internal class MeasureInitializerImpl(
     ),
     private val attributeProcessors: List<AttributeProcessor> = listOf(
         userAttributeProcessor,
+        patchIdAttributeProcessor,
         deviceAttributeProcessor,
         appAttributeProcessor,
         installationIdAttributeProcessor,
@@ -509,6 +512,7 @@ internal interface MeasureInitializer {
     val exporter: Exporter
     val workManagerAvailable: Boolean
     val userAttributeProcessor: UserAttributeProcessor
+    val patchIdAttributeProcessor: PatchIdAttributeProcessor
     val screenshotCollector: ScreenshotCollector
     val dataCleanupService: DataCleanupService
     val processInfoProvider: ProcessInfoProvider

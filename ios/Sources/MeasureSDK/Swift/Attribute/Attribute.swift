@@ -49,6 +49,7 @@ class Attributes: Codable {
     var networkProvider: String?
     var installationId: String = ""
     var userId: String?
+    var patchId: String?
     var deviceCpuArch: String?
     var appVersion: String = ""
     var appBuild: String = ""
@@ -80,6 +81,7 @@ class Attributes: Codable {
         case networkProvider = "network_provider"
         case installationId = "installation_id"
         case userId = "user_id"
+        case patchId = "patch_id"
         case deviceCpuArch = "device_cpu_arch"
         case appVersion = "app_version"
         case appBuild = "app_build"
@@ -112,6 +114,7 @@ class Attributes: Codable {
         networkProvider: String? = nil,
         installationId: String = "",
         userId: String? = nil,
+        patchId: String? = nil,
         deviceCpuArch: String? = nil,
         appVersion: String = "",
         appBuild: String = "",
@@ -141,6 +144,7 @@ class Attributes: Codable {
            self.networkProvider = networkProvider
            self.installationId = installationId
            self.userId = userId
+           self.patchId = patchId
            self.deviceCpuArch = deviceCpuArch
            self.appVersion = appVersion
            self.appBuild = appBuild
@@ -173,6 +177,7 @@ class Attributes: Codable {
         self.networkProvider = dict["network_provider"] as? String
         self.installationId = dict["installation_id"] as? String ?? ""
         self.userId = dict["user_id"] as? String
+        self.patchId = dict["patch_id"] as? String
         self.deviceCpuArch = dict["device_cpu_arch"] as? String
         self.appVersion = dict["app_version"] as? String ?? ""
         self.appBuild = dict["app_build"] as? String ?? ""

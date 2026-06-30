@@ -9,6 +9,7 @@ import {
 } from '@measuresh/react-native';
 import TracesScreen from './TracesScreen';
 import ComponentScreen from './ComponentScreen';
+import measure_patch_id from './measurePatchId';
 
 export type RootStackParamList = {
   HomeScreen: undefined;
@@ -25,6 +26,7 @@ export default function App() {
         enableLogging: true,
         autoStart: false,
         enableDiagnosticMode: true,
+        patchId: measure_patch_id
       });
 
       await Measure.init({ config: measureConfig });
