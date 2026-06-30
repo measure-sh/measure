@@ -37,6 +37,7 @@ internal class AppExitCollector(
                     appExit.app_exit_time_ms,
                     EventType.APP_EXIT,
                     sessionId = session.id,
+                    sessionStartTime = session.createdAt,
                     appVersion = session.appVersion,
                     appBuild = session.appBuild,
                     threadName = Thread.currentThread().name,

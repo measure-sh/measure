@@ -412,11 +412,12 @@ internal class SignalProcessorTest {
     }
 
     @Test
-    fun `trackAppExit stores event with provided sessionId and version attributes`() {
+    fun `trackAppExit stores event with provided sessionId, session start time and version attributes`() {
         val appExit = TestData.getAppExit()
         val timestamp = 1710746412L
         val type = EventType.APP_EXIT
         val sessionId = "session-id-app-exit"
+        val sessionStartTime = 1710746000L
         val appVersion = "app-version"
         val appBuild = "1000"
         val isSampled = true
@@ -426,6 +427,7 @@ internal class SignalProcessorTest {
             timestamp = timestamp,
             type = type,
             sessionId = sessionId,
+            sessionStartTime = sessionStartTime,
             appVersion = appVersion,
             appBuild = appBuild,
             threadName = "thread-name",
@@ -436,6 +438,10 @@ internal class SignalProcessorTest {
         val event = signalStore.trackedEvents.first()
         assertEquals(type, event.type)
         assertEquals(sessionId, event.sessionId)
+        assertEquals(
+            sessionStartTime.iso8601Timestamp(),
+            event.attributes[Attribute.SESSION_START_TIME_KEY],
+        )
         assertEquals(appVersion, event.attributes[Attribute.APP_VERSION_KEY])
         assertEquals(appBuild, event.attributes[Attribute.APP_BUILD_KEY])
     }

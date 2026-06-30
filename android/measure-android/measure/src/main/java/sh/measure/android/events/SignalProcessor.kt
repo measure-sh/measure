@@ -67,6 +67,7 @@ internal interface SignalProcessor {
         type: EventType,
         threadName: String,
         sessionId: String,
+        sessionStartTime: Long,
         appVersion: String?,
         appBuild: String?,
         isSampled: Boolean = true,
@@ -192,6 +193,7 @@ internal class SignalProcessorImpl(
         type: EventType,
         threadName: String,
         sessionId: String,
+        sessionStartTime: Long,
         appVersion: String?,
         appBuild: String?,
         isSampled: Boolean,
@@ -213,6 +215,7 @@ internal class SignalProcessorImpl(
                 ) ?: return@trace
                 applyAttributes(attributes, event, threadName)
                 event.updateVersionAttribute(appVersion, appBuild)
+                event.updateSessionStartTimeAttribute(sessionStartTime)
                 InternalTrace.trace(label = { "msr-store-event" }, block = {
                     signalStore.store(event)
                 })
@@ -380,6 +383,10 @@ internal class SignalProcessorImpl(
         if (appBuild != null) {
             attributes[Attribute.APP_BUILD_KEY] = appBuild
         }
+    }
+
+    private fun Event<AppExit>.updateSessionStartTimeAttribute(sessionStartTime: Long) {
+        attributes[Attribute.SESSION_START_TIME_KEY] = sessionStartTime.iso8601Timestamp()
     }
 
     private fun validateUserDefinedAttributes(
