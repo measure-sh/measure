@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	"backend/api/server"
@@ -175,6 +176,22 @@ func (a *Attachment) Upload(ctx context.Context, config UploadConfig) (err error
 	return
 }
 
+// buildContentDisposition builds a Content-Disposition
+// header value that forces the attachment to download
+// under its original file name.
+//
+// Browsers ignore the frontend's download filename hint
+// on cross-origin presigned URLs, so without this the
+// file saves as a generic "attachment" with no extension.
+func buildContentDisposition(name string) string {
+	name = filepath.Base(strings.TrimSpace(name))
+	if name == "" || name == "." || name == string(filepath.Separator) {
+		name = "attachment"
+	}
+
+	return mime.FormatMediaType("attachment", map[string]string{"filename": name})
+}
+
 // PreSignURL generates a S3-compatible
 // pre-signed URL for the attachment.
 func (a *Attachment) PreSignURL(ctx context.Context) (err error) {
@@ -191,10 +208,13 @@ func (a *Attachment) PreSignURL(ctx context.Context) (err error) {
 
 		defer client.Close()
 
-		url, errStorage := client.Bucket(config.AttachmentsBucket).SignedURL(a.Key, &storage.SignedURLOptions{
+		signedURL, errStorage := client.Bucket(config.AttachmentsBucket).SignedURL(a.Key, &storage.SignedURLOptions{
 			Scheme:  storage.SigningSchemeV4,
 			Method:  "GET",
 			Expires: time.Now().Add(expires),
+			QueryParameters: url.Values{
+				"response-content-disposition": []string{buildContentDisposition(a.Name)},
+			},
 		})
 
 		if errStorage != nil {
@@ -202,7 +222,7 @@ func (a *Attachment) PreSignURL(ctx context.Context) (err error) {
 			return
 		}
 
-		a.Location = url
+		a.Location = signedURL
 		return
 	}
 
@@ -217,8 +237,9 @@ func (a *Attachment) PreSignURL(ctx context.Context) (err error) {
 	})
 
 	getObjectInput := &s3.GetObjectInput{
-		Bucket: aws.String(config.AttachmentsBucket),
-		Key:    aws.String(a.Key),
+		Bucket:                     aws.String(config.AttachmentsBucket),
+		Key:                        aws.String(a.Key),
+		ResponseContentDisposition: aws.String(buildContentDisposition(a.Name)),
 	}
 
 	req, err := presignClient.PresignGetObject(ctx, getObjectInput)
