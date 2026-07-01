@@ -127,7 +127,8 @@ func Init(config *ServerConfig) {
 	// See https://pkg.go.dev/github.com/jackc/pgx/v5#QueryExecMode
 	oConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 
-	if config.IsCloud() {
+	// IAM auth in Cloud with a passwordless DSN; a password DSN uses the plain path.
+	if config.IsCloud() && oConfig.ConnConfig.Password == "" {
 		d, err := cloudsqlconn.NewDialer(ctx,
 			// Always use IAM authentication.
 			cloudsqlconn.WithIAMAuthN(),
@@ -142,7 +143,8 @@ func Init(config *ServerConfig) {
 
 		csqlConnName := os.Getenv("CSQL_CONN_NAME")
 		if csqlConnName == "" {
-			fmt.Println("CSQL_CONN_NAME environment variable is not set.")
+			// Fail closed: IAM auth has no instance to dial.
+			log.Fatal("CSQL_CONN_NAME is not set but POSTGRES_DSN is in IAM form")
 		}
 
 		oConfig.ConnConfig.DialFunc = func(ctx context.Context, network string, address string) (net.Conn, error) {
