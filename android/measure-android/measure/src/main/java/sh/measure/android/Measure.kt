@@ -7,7 +7,6 @@ import android.net.Uri
 import androidx.annotation.MainThread
 import androidx.annotation.VisibleForTesting
 import org.jetbrains.annotations.TestOnly
-import sh.measure.android.Measure.captureLayoutSnapshot
 import sh.measure.android.Measure.captureScreenshot
 import sh.measure.android.Measure.clearUserId
 import sh.measure.android.Measure.createSpanBuilder
@@ -389,7 +388,6 @@ object Measure {
      * following APIs to create an attachment:
      *
      * @see [captureScreenshot] For capturing screen images
-     * @see [captureLayoutSnapshot] For capturing view hierarchy information
      * @see [imageUriToAttachment] For converting image URIs to attachments
      *
      * @param description Description of the bug. Max characters 4000.
@@ -426,31 +424,6 @@ object Measure {
     ) {
         if (isInitialized.get()) {
             return measure.captureScreenshot(activity, onComplete, onError)
-        }
-    }
-
-    /**
-     * Takes a snapshot of the current activity's view hierarchy layout. This method must be called
-     * from the main thread.
-     *
-     * The snapshot captures information about visible elements including their position and
-     * dimensions. It works with both traditional Android Views and Jetpack Compose hierarchies.
-     * These are cheaper to capture and take less storage than screenshots.
-     *
-     * See [docs/android/features/feature_layout_snapshots.md] for more details on layout snapshots.
-     *
-     * @param activity The activity to capture
-     * @param onComplete Callback invoked with the layout snapshot attachment when successful
-     * @param onError Callback invoked if snapshot capture fails
-     */
-    @MainThread
-    fun captureLayoutSnapshot(
-        activity: Activity,
-        onComplete: (attachment: MsrAttachment) -> Unit,
-        onError: (() -> Unit)? = null,
-    ) {
-        if (isInitialized.get()) {
-            return measure.takeLayoutSnapshot(activity, onComplete, onError)
         }
     }
 

@@ -34,9 +34,7 @@ import kotlinx.serialization.serializer
 import okio.Buffer
 import okio.GzipSink
 import okio.buffer
-import sh.measure.android.MsrAttachment
 import sh.measure.android.events.Attachment
-import sh.measure.android.events.AttachmentType
 import sh.measure.android.gestures.DetectedGesture
 import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.utils.ComposeHelper
@@ -254,25 +252,6 @@ internal data class LayoutSnapshot(
             bytes = bytes,
             path = null,
             type = attachmentType,
-        )
-    }
-
-    /**
-     * Converts a layout snapshot to a [MsrAttachment].
-     */
-    @OptIn(ExperimentalSerializationApi::class)
-    fun compressToMsrAttachment(): MsrAttachment {
-        val bytes = Buffer().use { buffer ->
-            GzipSink(buffer).buffer().use { gzip ->
-                jsonSerializer.encodeToStream(root, gzip.outputStream())
-            }
-            buffer.readByteArray()
-        }
-        return MsrAttachment(
-            name = "snapshot.json.gz",
-            bytes = bytes,
-            path = null,
-            type = AttachmentType.LAYOUT_SNAPSHOT,
         )
     }
 }

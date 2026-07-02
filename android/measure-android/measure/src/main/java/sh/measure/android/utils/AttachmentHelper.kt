@@ -10,7 +10,6 @@ import sh.measure.android.bugreport.BugReportCollector.Companion.MAX_OUTPUT_IMAG
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.AttachmentType
 import sh.measure.android.executors.MeasureExecutorService
-import sh.measure.android.layoutinspector.LayoutInspector
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.mainHandler
@@ -78,41 +77,6 @@ internal class AttachmentHelper(
         } catch (_: RejectedExecutionException) {
             onError?.invoke()
         }
-    }
-
-    @MainThread
-    fun captureLayoutSnapshot(
-        activity: Activity,
-        onComplete: (attachment: MsrAttachment) -> Unit,
-        onError: (() -> Unit)?,
-    ) {
-        val window = activity.window ?: run {
-            logger.log(LogLevel.Debug, "Failed to take screenshot, window is null")
-            onError?.invoke()
-            return
-        }
-
-        val decorView = window.peekDecorView() ?: run {
-            logger.log(LogLevel.Debug, "Failed to take screenshot, decor view is null")
-            onError?.invoke()
-            return
-        }
-
-        val view = decorView.rootView ?: run {
-            logger.log(LogLevel.Debug, "Failed to take screenshot, root view is null")
-            onError?.invoke()
-            return
-        }
-
-        val width = view.width
-        val height = view.height
-        if (width <= 0 || height <= 0) {
-            logger.log(LogLevel.Debug, "Failed to take screenshot, invalid view bounds")
-            onError?.invoke()
-            return
-        }
-        val snapshot = LayoutInspector.capture(view)
-        onComplete(snapshot.compressToMsrAttachment())
     }
 
     fun imageUriToAttachment(
