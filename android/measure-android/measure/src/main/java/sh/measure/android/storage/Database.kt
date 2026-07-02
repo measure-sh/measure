@@ -190,11 +190,21 @@ internal interface Database : Closeable {
     fun getAttachmentsForEvents(events: List<String>): List<String>
 
     /**
-     * Returns attachments ready for upload (have signed URLs that haven't expired).
+     * Returns non-profile attachments ready for upload (have a signed URL). Profiles are excluded
+     * because they are uploaded by their own WorkManager worker; see [getProfileAttachmentsToUpload].
      *
      * @param maxCount Maximum number of attachments to return.
      */
     fun getAttachmentsToUpload(maxCount: Int): List<AttachmentPacket>
+
+    /**
+     * Returns profile attachments ready for upload (have a signed URL). Counterpart to
+     * [getAttachmentsToUpload]; the exporter drains these, handing each to the WorkManager-based
+     * profile upload subsystem and then deleting the row.
+     *
+     * @param maxCount Maximum number of attachments to return.
+     */
+    fun getProfileAttachmentsToUpload(maxCount: Int): List<AttachmentPacket>
 
     /**
      * Updates attachment records with signed upload URLs and expiration timestamps.
@@ -894,10 +904,14 @@ internal class DatabaseImpl(
         return attachmentIds
     }
 
-    override fun getAttachmentsToUpload(maxCount: Int): List<AttachmentPacket> {
+    override fun getAttachmentsToUpload(maxCount: Int): List<AttachmentPacket> = queryAttachmentsToUpload(Sql.getAttachmentsToUpload(maxCount))
+
+    override fun getProfileAttachmentsToUpload(maxCount: Int): List<AttachmentPacket> = queryAttachmentsToUpload(Sql.getProfileAttachmentsToUpload(maxCount))
+
+    private fun queryAttachmentsToUpload(sql: String): List<AttachmentPacket> {
         val attachments = mutableListOf<AttachmentPacket>()
         try {
-            readableDatabase.rawQuery(Sql.getAttachmentsToUpload(maxCount), null).use {
+            readableDatabase.rawQuery(sql, null).use {
                 while (it.moveToNext()) {
                     val idIndex = it.getColumnIndex(AttachmentV1Table.COL_ID)
                     val urlIndex = it.getColumnIndex(AttachmentV1Table.COL_UPLOAD_URL)

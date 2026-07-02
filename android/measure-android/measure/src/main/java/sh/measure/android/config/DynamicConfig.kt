@@ -110,6 +110,13 @@ internal interface IDynamicConfig {
      * * X-Api-Key
      */
     val httpBlockedHeaders: List<String>
+
+    /**
+     * Sampling rate in percentage for profile events. Defaults to 100%, i.e. every profile that
+     * survives the system's own throttling is collected. The OS already rate limits these, so this
+     * is an additional, remotely tunable cap on top of that.
+     */
+    val profileSamplingRate: Float
 }
 
 @Serializable
@@ -175,4 +182,7 @@ internal data class DynamicConfig(
         "WWW-Authenticate",
         "X-Api-Key",
     ),
+
+    @SerialName("profile_sampling_rate")
+    override val profileSamplingRate: Float = 100f,
 ) : IDynamicConfig

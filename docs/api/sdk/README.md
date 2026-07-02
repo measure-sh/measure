@@ -73,6 +73,7 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [**`screen_view`**](#screen_view)
     - [**`custom`**](#custom)
     - [**`session_start`**](#session_start)
+    - [**`profile`**](#profile)
   - [Traces](#traces)
 
 ## Resources
@@ -591,6 +592,7 @@ Fetches the latest SDK configuration for the app.
 | http_track_request_for_urls  | URLs to capture full HTTP request (body and headers)                                                                                                 |
 | http_track_response_for_urls | URLs to capture full HTTP response (body and headers)                                                                                                |
 | http_blocked_headers         | HTTP header names to never capture                                                                                                                   |
+| profile_sampling_rate        | Sampling rate for `profile` events (percentage, 0-100). Defaults to 100                                                                              |
 
 #### Usage Notes
 - Successful response returns `200 OK`.
@@ -630,7 +632,8 @@ Fetches the latest SDK configuration for the app.
     "http_disable_event_for_urls": [],
     "http_track_request_for_urls": [],
     "http_track_response_for_urls": [],
-    "http_blocked_headers": []
+    "http_blocked_headers": [],
+    "profile_sampling_rate": 100
   }
   ```
 
@@ -755,7 +758,7 @@ Attachments are arbitrary files associated with the session each having the foll
 | ------ | ------ | -------- | ------------------------------------------------------------------------------------------------ |
 | `id`   | string | No       | id of the attachment                                                                             |
 | `name` | string | No       | name of the attachment                                                                           |
-| `type` | string | No       | One of the following:<br />- `screenshot`<br />- `android_method_trace`<br />- `layout_snapshot` |
+| `type` | string | No       | One of the following:<br />- `screenshot`<br />- `android_method_trace`<br />- `layout_snapshot`<br />- `perfetto_trace`<br />- `heap_dump`<br />- `heap_profile` |
 
 ### Events
 
@@ -1302,6 +1305,41 @@ Use the `custom` type for custom events.
 Use the `session_start` type to mark begining of a new session. This must be the first _event_ by time in a session.
 
 This event has no additional fields.
+
+#### **`profile`**
+
+Use the `profile` type to report a profiling result. The captured artifact (for example a Perfetto system trace or a heap dump) is not inlined in the event; it is uploaded as an [attachment](#attachments) whose `type` matches the event's `format`.
+
+| Field    | Type   | Optional | Comment                                                                                                                                                            |
+| -------- | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reason` | string | No       | The occasion that produced the profile. One of:<br />- `app_launch`<br />- `anr`<br />- `error`<br />- `manual`<br />- `interval`                                  |
+| `format` | string | No       | Format of the attached profile artifact. Matches the attachment `type`. One of:<br />- `perfetto_trace`<br />- `heap_dump`<br />- `heap_profile`                  |
+
+Example `profile` event:
+
+```jsonc
+{
+  "id": "1c8a5e51-4d7d-4b2c-9be8-1abb31d38f90",
+  "type": "profile",
+  "session_id": "633a2fbc-a0d1-4912-a92f-9e43e72afbc6",
+  "timestamp": "2023-08-24T14:51:41.000000534Z",
+  "user_triggered": false,
+  "profile": {
+    "reason": "app_launch",
+    "format": "perfetto_trace"
+  },
+  "attribute": {
+    // snip attributes fields
+  },
+  "attachments": [
+    {
+      "id": "9e45a0bc-9277-468c-92f6-5eba2afc26e8",
+      "name": "profile.perfetto-trace",
+      "type": "perfetto_trace"
+    }
+  ]
+}
+```
 
 ### Traces
 

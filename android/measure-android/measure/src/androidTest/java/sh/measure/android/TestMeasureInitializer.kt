@@ -56,6 +56,7 @@ import sh.measure.android.performance.CpuUsageCollector
 import sh.measure.android.performance.DefaultMemoryReader
 import sh.measure.android.performance.MemoryReader
 import sh.measure.android.performance.MemoryUsageCollector
+import sh.measure.android.profiling.ProfileCollector
 import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.screenshot.ScreenshotCollectorImpl
 import sh.measure.android.storage.DataCleanupService
@@ -151,6 +152,7 @@ internal class TestMeasureInitializer(
         ioExecutor = executorServiceRegistry.ioExecutor(),
         packageInfoProvider = packageInfoProvider,
         sampler = sampler,
+        prefsStorage = prefsStorage,
     ),
     private val procProvider: ProcProvider = ProcProviderImpl(),
     private val debugProvider: DebugProvider = DefaultDebugProvider(),
@@ -365,6 +367,7 @@ internal class TestMeasureInitializer(
         launchTracker = launchTracker,
         sampler = sampler,
     ),
+    override val profileCollector: ProfileCollector? = null,
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
         context = application,
         signalProcessor = signalProcessor,

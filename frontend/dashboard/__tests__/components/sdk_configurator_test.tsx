@@ -120,6 +120,7 @@ const mockInitialConfig = {
   http_track_response_for_urls: [],
   http_blocked_headers: [],
   screenshot_mask_level: "sensitive_fields_only",
+  profile_sampling_rate: 100,
 };
 
 // Helper: simulate the mutation.mutate call succeeding
@@ -165,6 +166,7 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByText("Bug Reports")).toBeInTheDocument();
     expect(screen.getByText("Traces")).toBeInTheDocument();
     expect(screen.getByText("Launch Metrics")).toBeInTheDocument();
+    expect(screen.getByText("Profiling")).toBeInTheDocument();
     expect(screen.getByText("User Journeys")).toBeInTheDocument();
     expect(screen.getByText("HTTP")).toBeInTheDocument();
     expect(screen.getByText("Screenshot Masking")).toBeInTheDocument();

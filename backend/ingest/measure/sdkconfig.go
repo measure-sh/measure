@@ -62,6 +62,7 @@ type SdkConfig struct {
 	HTTPTrackRequestForURLs   []string            `json:"http_track_request_for_urls"`
 	HTTPTrackResponseForURLs  []string            `json:"http_track_response_for_urls"`
 	HTTPBlockedHeaders        []string            `json:"http_blocked_headers"`
+	ProfileSamplingRate       float64             `json:"profile_sampling_rate"`
 	UpdatedAt                 *time.Time          `json:"-"`
 	UpdatedBy                 *uuid.UUID          `json:"-"`
 }
@@ -129,6 +130,7 @@ func createDefaultConfig() SdkConfig {
 		HTTPTrackRequestForURLs:   []string{},
 		HTTPTrackResponseForURLs:  []string{},
 		HTTPBlockedHeaders:        []string{},
+		ProfileSamplingRate:       100,
 	}
 }
 
@@ -209,6 +211,7 @@ func getConfigFromDb(ctx context.Context, appID uuid.UUID) (*SdkConfig, error) {
 		Select("http_track_request_for_urls").
 		Select("http_track_response_for_urls").
 		Select("http_blocked_headers").
+		Select("profile_sampling_rate").
 		Select("updated_at").
 		Select("updated_by").
 		From("measure.sdk_config").
@@ -236,6 +239,7 @@ func getConfigFromDb(ctx context.Context, appID uuid.UUID) (*SdkConfig, error) {
 		&sdkConfig.HTTPTrackRequestForURLs,
 		&sdkConfig.HTTPTrackResponseForURLs,
 		&sdkConfig.HTTPBlockedHeaders,
+		&sdkConfig.ProfileSamplingRate,
 		&sdkConfig.UpdatedAt,
 		&sdkConfig.UpdatedBy,
 	)

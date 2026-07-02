@@ -12,6 +12,10 @@ import java.util.concurrent.TimeUnit
  */
 internal class ImmediateExecutorService(private val resolvableFuture: ResolvableFuture<Any?>) : MeasureExecutorService {
 
+    override fun execute(command: Runnable) {
+        command.run()
+    }
+
     @Suppress("UNCHECKED_CAST")
     override fun <T> submit(callable: Callable<T>): Future<T> {
         val future = ResolvableFuture.create<T>()

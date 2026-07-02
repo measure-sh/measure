@@ -58,6 +58,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override val launchSamplingRate: Float = 1f
     override val gestureClickTakeSnapshot: Boolean = true
     override val httpSamplingRate: Float = 1f
+    override val profileSamplingRate: Float = 100f
     override val httpDisableEventForUrls: List<String> = emptyList()
     override val httpTrackRequestForUrls: List<String> = emptyList()
     override val httpTrackResponseForUrls: List<String> = emptyList()

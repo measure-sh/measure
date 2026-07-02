@@ -128,6 +128,11 @@ describe("SessionTimelineEventCell", () => {
         "SwiftUI",
       ],
       ["string", { string: "a log line" }, "Log"],
+      [
+        "profile",
+        { reason: "app_launch", format: "perfetto_trace" },
+        "Profile",
+      ],
       ["unknown_event_type", {}, "unknown_event_type"],
     ])("shows %s pill label", (eventType, eventDetails, expectedLabel) => {
       renderCell({ eventType, eventDetails });
@@ -182,6 +187,11 @@ describe("SessionTimelineEventCell", () => {
       ["trace", { trace_name: "checkout" }, "bg-pink-100"],
       ["custom", { name: "event" }, "bg-purple-100"],
       ["string", { string: "a log line" }, "bg-indigo-100"],
+      [
+        "profile",
+        { reason: "app_launch", format: "perfetto_trace" },
+        "bg-teal-100",
+      ],
       ["unknown_event_type", {}, "bg-indigo-100"],
     ])("applies %s pill bg", (eventType, eventDetails, expectedClass) => {
       const { container } = renderCell({ eventType, eventDetails });

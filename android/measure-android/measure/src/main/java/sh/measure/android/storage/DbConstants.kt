@@ -1,5 +1,6 @@
 package sh.measure.android.storage
 
+import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.EventType
 
 internal object DbConstants {
@@ -373,6 +374,13 @@ internal object Sql {
                 IN (${batchIds.joinToString(", ") { "'$it'" }})
     """.trimIndent()
 
+    // Profiles are uploaded by their own WorkManager worker, not the in-process drain.
+    private val profileTypesList = listOf(
+        AttachmentType.PERFETTO_TRACE,
+        AttachmentType.HEAP_DUMP,
+        AttachmentType.HEAP_PROFILE,
+    ).joinToString(", ") { "'$it'" }
+
     fun getAttachmentsToUpload(maxCount: Int): String = """
             SELECT
                 ${AttachmentV1Table.COL_ID},
@@ -389,6 +397,28 @@ internal object Sql {
                 ${AttachmentV1Table.TABLE_NAME}
             WHERE
                 ${AttachmentV1Table.COL_UPLOAD_URL} IS NOT NULL
+                AND ${AttachmentV1Table.COL_TYPE} NOT IN ($profileTypesList)
+            LIMIT
+                $maxCount
+    """.trimIndent()
+
+    fun getProfileAttachmentsToUpload(maxCount: Int): String = """
+            SELECT
+                ${AttachmentV1Table.COL_ID},
+                ${AttachmentV1Table.COL_EVENT_ID},
+                ${AttachmentV1Table.COL_SESSION_ID},
+                ${AttachmentV1Table.COL_TIMESTAMP},
+                ${AttachmentV1Table.COL_TYPE},
+                ${AttachmentV1Table.COL_FILE_PATH},
+                ${AttachmentV1Table.COL_NAME},
+                ${AttachmentV1Table.COL_UPLOAD_URL},
+                ${AttachmentV1Table.COL_URL_EXPIRES_AT},
+                ${AttachmentV1Table.COL_URL_HEADERS}
+            FROM
+                ${AttachmentV1Table.TABLE_NAME}
+            WHERE
+                ${AttachmentV1Table.COL_UPLOAD_URL} IS NOT NULL
+                AND ${AttachmentV1Table.COL_TYPE} IN ($profileTypesList)
             LIMIT
                 $maxCount
     """.trimIndent()

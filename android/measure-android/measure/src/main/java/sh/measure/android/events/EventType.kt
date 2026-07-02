@@ -23,6 +23,7 @@ internal enum class EventType(val value: String) {
     CUSTOM("custom"),
     BUG_REPORT("bug_report"),
     SESSION_START("session_start"),
+    PROFILE("profile"),
     ;
 
     companion object {

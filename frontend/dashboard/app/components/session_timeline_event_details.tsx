@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ReactNode, useState } from "react";
+import { formatBytesBinary } from "../utils/number_utils";
 import { cn } from "../utils/shadcn_utils";
 import {
   formatDateToHumanReadableDateTime,
@@ -16,6 +17,21 @@ import LayoutSnapshot from "./layout_snapshot";
 // dominate the rest of the event detail.
 const stacktraceClassName =
   "font-code text-xs leading-relaxed rounded-sm overflow-hidden [&_pre]:p-4 [&_pre]:overflow-x-auto";
+
+// Human-readable names for the fixed, SDK-defined set of profile formats
+// (see AttachmentType).
+const profileFormatNames: Record<string, string> = {
+  perfetto_trace: "Perfetto Trace",
+  heap_dump: "Heap Dump",
+  heap_profile: "Heap Profile",
+};
+
+function formatProfileName(format: unknown): string {
+  if (typeof format === "string" && profileFormatNames[format]) {
+    return profileFormatNames[format];
+  }
+  return "Profile";
+}
 
 function renderAttributeRow(key: string, value: unknown): ReactNode {
   const isObject = typeof value === "object" && value !== null;
@@ -283,12 +299,65 @@ export default function SessionTimelineEventDetails({
     }
   }
 
+  function getDownloadFromEventDetails(): ReactNode {
+    if (eventType !== "profile") {
+      return null;
+    }
+    if (
+      eventDetails.attachments === undefined ||
+      eventDetails.attachments === null ||
+      eventDetails.attachments.length === 0
+    ) {
+      return null;
+    }
+    const linkStyle = cn(
+      buttonVariants({ variant: "secondary" }),
+      "justify-center w-fit",
+    );
+    const profileName = formatProfileName(eventDetails.format);
+    const getLabel = (size?: number) => {
+      const base = `Download ${profileName}`;
+      return typeof size === "number" && size > 0
+        ? `${base} (${formatBytesBinary(size)})`
+        : base;
+    };
+    return (
+      <div className="flex flex-wrap gap-3">
+        {eventDetails.attachments.map(
+          (attachment: {
+            key: string;
+            name: string;
+            location: string;
+            size?: number;
+          }) =>
+            demo ? (
+              <div key={attachment.key} className={linkStyle}>
+                {getLabel(attachment.size)}
+              </div>
+            ) : (
+              <a
+                key={attachment.key}
+                href={attachment.location}
+                download={attachment.name}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={linkStyle}
+              >
+                {getLabel(attachment.size)}
+              </a>
+            ),
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-3 font-display break-words">
       {getJsonLayoutSnapshotsFromEventDetails()}
       {getImageLayoutSnapshotsFromEventDetails()}
       {getBodyFromEventDetails()}
       {getDetailsLinkFromEventDetails()}
+      {getDownloadFromEventDetails()}
     </div>
   );
 }

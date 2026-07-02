@@ -32,6 +32,7 @@ const eventPillTypes: Record<string, PillType> = {
   trace: PillType.SessionEventTrace,
   custom: PillType.SessionEventCustom,
   string: PillType.SessionEventLog,
+  profile: PillType.SessionEventProfile,
 };
 
 function pillTypeForEvent(eventType: string, eventDetails: any): PillType {
@@ -136,6 +137,9 @@ export default function SessionTimelineEventCell({
     }
     if (eventType === "custom") {
       return eventDetails.name;
+    }
+    if (eventType === "profile") {
+      return String(eventDetails.reason);
     }
     return "";
   }

@@ -404,6 +404,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.spanCollector.register()
         measure.customEventCollector.register()
         measure.periodicSignalStoreScheduler.register()
+        measure.profileCollector?.register()
     }
 
     private fun unregisterCollectors() {
@@ -421,6 +422,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.spanCollector.unregister()
         measure.customEventCollector.unregister()
         measure.periodicSignalStoreScheduler.unregister()
+        measure.profileCollector?.unregister()
     }
 
     private fun pauseCollectorsOnBackground() {

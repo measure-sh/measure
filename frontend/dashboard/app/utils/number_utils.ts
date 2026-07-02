@@ -22,6 +22,23 @@ export function formatBytesSI(bytes: number): string {
   return `${bytes} B`;
 }
 
+// formatBytesBinary formats a byte count using binary (1024-based) magnitudes
+// with KB/MB/GB labels, showing one fractional digit below 100 and none above.
+export function formatBytesBinary(bytes: number): string {
+  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+  if (Math.abs(bytes) < 1024) {
+    return `${bytes} B`;
+  }
+  let value = bytes;
+  let unit = 0;
+  while (Math.abs(value) >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  const fractionDigits = Math.abs(value) < 100 ? 1 : 0;
+  return `${value.toFixed(fractionDigits)} ${units[unit]}`;
+}
+
 export function kilobytesToMegabytes(bytes: number): number {
   return bytes / 1024;
 }

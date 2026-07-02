@@ -4930,6 +4930,8 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			`navigation.to`,
 			`navigation.from`,
 			`navigation.source`,
+			`profile.reason`,
+			`profile.format`,
 		}...)
 	case opsys.AppleFamily:
 		cols = append(cols, []string{
@@ -5007,6 +5009,7 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 		var userDefAttr map[string][]any
 		var bugReport event.BugReport
 		var custom event.Custom
+		var profile event.Profile
 
 		var coldLaunchDuration uint32
 		var warmLaunchDuration uint32
@@ -5243,6 +5246,10 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 				&navigation.To,
 				&navigation.From,
 				&navigation.Source,
+
+				// profile
+				&profile.Reason,
+				&profile.Format,
 			}...)
 		case opsys.AppleFamily:
 			dest = append(dest, []any{
@@ -5426,6 +5433,15 @@ func (a *App) GetSessionEvents(ctx context.Context, sessionId uuid.UUID) (*Sessi
 			session.Events = append(session.Events, ev)
 		case event.TypeMemoryUsageAbs:
 			ev.MemoryUsageAbs = &memoryUsageAbs
+			session.Events = append(session.Events, ev)
+		case event.TypeProfile:
+			// only unmarshal attachments if more than 8 characters
+			if len(attachments) > 8 {
+				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
+					return nil, err
+				}
+			}
+			ev.Profile = &profile
 			session.Events = append(session.Events, ev)
 		default:
 			continue
@@ -9005,6 +9021,7 @@ func GetSession(c *gin.Context) {
 		event.TypeScreenView,
 		event.TypeBugReport,
 		event.TypeCustom,
+		event.TypeProfile,
 	}
 
 	eventMap := session.EventsOfTypes(typeList...)
@@ -9078,6 +9095,13 @@ func GetSession(c *gin.Context) {
 		coldLaunches := timeline.ComputeColdLaunches(coldLaunchEvents)
 		threadedColdLaunches := timeline.GroupByThreads(coldLaunches)
 		threads.Organize(event.TypeColdLaunch, threadedColdLaunches)
+	}
+
+	profileEvents := eventMap[event.TypeProfile]
+	if len(profileEvents) > 0 {
+		profiles := timeline.ComputeProfiles(profileEvents)
+		threadedProfiles := timeline.GroupByThreads(profiles)
+		threads.Organize(event.TypeProfile, threadedProfiles)
 	}
 
 	warmLaunchEvents := eventMap[event.TypeWarmLaunch]
