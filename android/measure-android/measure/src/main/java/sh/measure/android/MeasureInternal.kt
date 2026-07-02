@@ -164,6 +164,10 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.patchIdAttributeProcessor.setPatchId(patchId)
     }
 
+    fun setPatchVersion(patchVersion: String) {
+        measure.patchIdAttributeProcessor.setPatchVersion(patchVersion)
+    }
+
     fun clearUserId() {
         measure.userAttributeProcessor.clearUserId()
     }

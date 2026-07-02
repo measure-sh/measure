@@ -37,10 +37,19 @@ export interface IMeasureConfig {
    * systems (e.g. EAS Update) so that crash stack traces can be symbolicated against the
    * correct source maps uploaded for this patch.
    *
-   * The value can be any string, for example the EAS update group ID or a human-readable
-   * label like "release v1.0.3". It is optional and only required for apps using OTA updates.
+   * The value must be a valid UUID, for example the EAS update group ID.
+   * It is optional and only required for apps using OTA updates.
    */
   patchId?: string;
+
+  /**
+   * A human-readable version label for the current OTA patch. Used alongside `patchId`
+   * to make it easier to identify a patch in the Measure dashboard.
+   *
+   * The value can be any string, for example "v1.0.3-hotfix" or "release-2024-06-30".
+   * It is optional.
+   */
+  patchVersion?: string;
 }
 
 /**
@@ -51,6 +60,7 @@ export class MeasureConfig implements IMeasureConfig {
   autoStart: boolean;
   enableDiagnosticMode: boolean;
   patchId?: string;
+  patchVersion?: string;
 
   /**
    * Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -58,7 +68,8 @@ export class MeasureConfig implements IMeasureConfig {
    * @param enableLogging Enable or disable internal SDK logs. Defaults to `false`.
    * @param autoStart Set this to false to delay starting the SDK, by default initializing the SDK also starts tracking.
    * @param enableDiagnosticMode Enables diagnostic mode which writes all SDK logs to a file.
-   * @param patchId Optional OTA patch identifier for sourcemap symbolication.
+   * @param patchId Optional OTA patch UUID for sourcemap symbolication.
+   * @param patchVersion Optional human-readable label for the OTA patch (e.g. "v1.0.3-hotfix").
    */
   constructor(options: Partial<IMeasureConfig> = {}) {
     this.enableLogging = options.enableLogging ?? DefaultConfig.enableLogging;
@@ -66,5 +77,6 @@ export class MeasureConfig implements IMeasureConfig {
     this.enableDiagnosticMode =
       options.enableDiagnosticMode ?? DefaultConfig.enableDiagnosticMode;
     this.patchId = options.patchId;
+    this.patchVersion = options.patchVersion;
   }
 }

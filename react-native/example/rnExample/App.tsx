@@ -34,7 +34,8 @@ const App = (): React.JSX.Element => {
         enableLogging: true,
         autoStart: true,
         enableDiagnosticMode: true,
-        patchId: measure_patch_id
+        patchId: measure_patch_id,
+        patchVersion: "1.0.0"
       });
 
     await Measure.init({ config: measureConfig });

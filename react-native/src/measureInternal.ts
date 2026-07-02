@@ -11,6 +11,7 @@ import {
   start as nativeStart,
   stop as nativeStop,
   setPatchId as nativeSetPatchId,
+  setPatchVersion as nativeSetPatchVersion,
 } from './native/measureBridge';
 import type { Span } from './tracing/span';
 import type { SpanBuilder } from './tracing/spanBuilder';
@@ -66,6 +67,10 @@ export class MeasureInternal {
 
     if (config?.patchId) {
       nativeSetPatchId(config.patchId);
+    }
+
+    if (config?.patchVersion) {
+      nativeSetPatchVersion(config.patchVersion);
     }
 
     if (config?.autoStart) {

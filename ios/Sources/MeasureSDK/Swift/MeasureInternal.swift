@@ -324,6 +324,10 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         patchIdAttributeProcessor.setPatchId(patchId)
     }
 
+    func setPatchVersion(_ patchVersion: String) {
+        patchIdAttributeProcessor.setPatchVersion(patchVersion)
+    }
+
     func clearUserId() {
         userAttributeProcessor.clearUserId()
     }

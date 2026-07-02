@@ -162,6 +162,11 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun setPatchVersion(patchVersion: String) {
+        Measure.setPatchVersion(patchVersion)
+    }
+
+    @ReactMethod
     fun clearUserId(promise: Promise) {
         try {
             Measure.clearUserId()

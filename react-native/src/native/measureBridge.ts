@@ -255,6 +255,13 @@ export function setPatchId(patchId: string): Promise<void> {
   return Promise.resolve(MeasureModule.setPatchId(patchId));
 }
 
+export function setPatchVersion(patchVersion: string): Promise<void> {
+  if (!MeasureModule.setPatchVersion) {
+    return Promise.resolve();
+  }
+  return Promise.resolve(MeasureModule.setPatchVersion(patchVersion));
+}
+
 export function getSessionId(): Promise<string | null> {
   if (!MeasureModule.getSessionId || isDisabled()) {
     return Promise.reject(

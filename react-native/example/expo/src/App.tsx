@@ -26,7 +26,8 @@ export default function App() {
         enableLogging: true,
         autoStart: false,
         enableDiagnosticMode: true,
-        patchId: measure_patch_id
+        patchId: measure_patch_id,
+        patchVersion: "OTA_1.0.0"
       });
 
       await Measure.init({ config: measureConfig });

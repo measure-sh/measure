@@ -141,6 +141,13 @@ object Measure {
         }
     }
 
+    @JvmStatic
+    fun setPatchVersion(patchVersion: String) {
+        if (isInitialized.get()) {
+            measure.setPatchVersion(patchVersion)
+        }
+    }
+
     /**
      * Clears the user ID, if previously set by [setUserId].
      */
