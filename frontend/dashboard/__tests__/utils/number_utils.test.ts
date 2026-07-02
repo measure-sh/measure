@@ -1,4 +1,5 @@
 import {
+  formatBytesBinary,
   formatBytesSI,
   kilobytesToMegabytes,
   numberToKMB,
@@ -86,6 +87,47 @@ describe("number_utils", () => {
       expect(formatBytesSI(-1_000_000_000)).toBe("-1.00 GB");
       expect(formatBytesSI(-1e12)).toBe("-1.00 TB");
       expect(formatBytesSI(-1e15)).toBe("-1.00 PB");
+    });
+  });
+
+  describe("formatBytesBinary", () => {
+    it("should format bytes", () => {
+      expect(formatBytesBinary(0)).toBe("0 B");
+      expect(formatBytesBinary(512)).toBe("512 B");
+      expect(formatBytesBinary(1023)).toBe("1023 B");
+    });
+
+    it("should format kilobytes (binary: 1 KB = 1024 B)", () => {
+      expect(formatBytesBinary(1024)).toBe("1.0 KB");
+      expect(formatBytesBinary(1536)).toBe("1.5 KB");
+      expect(formatBytesBinary(51200)).toBe("50.0 KB");
+    });
+
+    it("should format megabytes (binary: 1 MB = 1024^2 B)", () => {
+      expect(formatBytesBinary(1024 ** 2)).toBe("1.0 MB");
+      expect(formatBytesBinary(26_881_903)).toBe("25.6 MB");
+    });
+
+    it("should format gigabytes (binary: 1 GB = 1024^3 B)", () => {
+      expect(formatBytesBinary(1024 ** 3)).toBe("1.0 GB");
+      expect(formatBytesBinary(2.5 * 1024 ** 3)).toBe("2.5 GB");
+    });
+
+    it("should format terabytes (binary: 1 TB = 1024^4 B)", () => {
+      expect(formatBytesBinary(1024 ** 4)).toBe("1.0 TB");
+    });
+
+    it("should format petabytes (binary: 1 PB = 1024^5 B)", () => {
+      expect(formatBytesBinary(1024 ** 5)).toBe("1.0 PB");
+    });
+
+    it("should drop the fractional digit at or above 100 in a unit", () => {
+      expect(formatBytesBinary(100 * 1024 ** 2)).toBe("100 MB");
+    });
+
+    it("should handle negative values", () => {
+      expect(formatBytesBinary(-1024)).toBe("-1.0 KB");
+      expect(formatBytesBinary(-(1024 ** 2))).toBe("-1.0 MB");
     });
   });
 

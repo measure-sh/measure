@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ReactNode, useState } from "react";
-import { formatBytesSI } from "../utils/number_utils";
+import { formatBytesBinary } from "../utils/number_utils";
 import { cn } from "../utils/shadcn_utils";
 import {
   formatDateToHumanReadableDateTime,
@@ -318,7 +318,7 @@ export default function SessionTimelineEventDetails({
     const getLabel = (size?: number) => {
       const base = `Download ${profileName}`;
       return typeof size === "number" && size > 0
-        ? `${base} (${formatBytesSI(size)})`
+        ? `${base} (${formatBytesBinary(size)})`
         : base;
     };
     return (
