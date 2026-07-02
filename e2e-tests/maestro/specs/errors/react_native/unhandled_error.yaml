@@ -1,0 +1,26 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "React Native"
+    timeout: 5000
+- tapOn: "React Native"
+
+- extendedWaitUntil:
+    visible: "Throw JS Exception.*"
+    timeout: 3000
+- scrollUntilVisible:
+    element:
+      text: "Unhandled Promise Rejection.*"
+- tapOn: "Unhandled Promise Rejection.*"
+
+# Unhandled rejections report asynchronously (the tracker waits for a possible
+# catch), so stay foregrounded for a settle window before backgrounding.
+- extendedWaitUntil:
+    visible:
+      text: "__rejection_settle__"
+    timeout: 5000
+    optional: true
+
+# Background so the SDK persists the error before the next launchApp stops it.
+- pressKey: "Home"

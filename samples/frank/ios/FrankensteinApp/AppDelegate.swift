@@ -17,7 +17,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             enableLogging: true,
             enableFullCollectionMode: true,
             enableDiagnosticMode: true,
-            enableDiagnosticModeGesture: true
+            enableDiagnosticModeGesture: false
         )
         Measure.initialize(with: clientInfo, config: config)
 

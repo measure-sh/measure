@@ -1,0 +1,6 @@
+node_modules
+test-results
+playwright-report
+.storage-state.json
+package-lock.json
+maestro

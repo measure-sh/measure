@@ -117,8 +117,8 @@
 				6FDDDBB1E19272F994356C88 /* [CP] Embed Pods Frameworks */,
 				49CBE5D7DB28E4478043067F /* [CP] Copy Pods Resources */,
 				C93F44ABE8A2B0937E2509B5 /* [CP-User] Embed Flutter Build flutter_module Script */,
-				7B68B4EEBE77C7C454C73CA6 /* [CP-User] Upload dSYMs to Measure */,
 				F94CEC5D57067D9193FEBEBD /* [CP-User] Upload dSYMs to Firebase Crashlytics */,
+				591D13273BAE367EBA975BE4 /* [CP-User] Upload dSYMs and RN sourcemap to Measure */,
 			);
 			buildRules = (
 			);
@@ -237,7 +237,17 @@
 			name = "[CP-User] Bundle React Native JS";
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nexport PATH=\"/opt/homebrew/bin:$PATH\"\nif [[ \"$CONFIGURATION\" == \"Debug\" ]]; then\n  BUNDLE_CONFIG=\"--dev true\"\nelse\n  BUNDLE_CONFIG=\"--dev false\"\nfi\nREACT_NATIVE_DIR=\"$SRCROOT/../react_native\"\nDEST_DIR=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\nmkdir -p \"$DEST_DIR\"\ncd \"$REACT_NATIVE_DIR\"\nnpx react-native bundle   --platform ios   $BUNDLE_CONFIG   --entry-file index.js   --bundle-output \"$DEST_DIR/main.jsbundle\"   --assets-dest \"$DEST_DIR\"\n";
+			shellScript = "set -e\nexport PATH=\"/opt/homebrew/bin:$PATH\"\nREACT_NATIVE_DIR=\"$SRCROOT/../react_native\"\nDEST_DIR=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\nmkdir -p \"$DEST_DIR\"\ncd \"$REACT_NATIVE_DIR\"\n\n# Always bundle in production mode. The packaged jsbundle is only used\n# when Metro is not running (e2e, standalone), where a non-dev bundle\n# parses far faster; a developer running Metro still gets the live dev\n# bundle, so hot reload is unaffected.\nif [[ \"$CONFIGURATION\" == \"Debug\" ]]; then\n  # Plain JS bundle (matches Android's bundleReactNativeDebug task).\n  # Hermes loads plain JS directly, so no hermesc step is needed.\n  npx react-native bundle     --platform ios     --dev false     --entry-file index.js     --bundle-output \"$DEST_DIR/main.jsbundle\"     --sourcemap-output \"$DEST_DIR/main.jsbundle.map\"     --assets-dest \"$DEST_DIR\"\nelse\n  # Compile to Hermes bytecode and compose the packager and Hermes\n  # sourcemaps (matches Android's RNGP release bundling).\n  HERMES_CLI=\"$PODS_ROOT/hermes-engine/destroot/bin/hermesc\"\n  COMPOSE_SOURCEMAP=\"$REACT_NATIVE_DIR/node_modules/react-native/scripts/compose-source-maps.js\"\n  PLAIN_BUNDLE=\"$DEST_DIR/main.jsbundle.plain\"\n  PACKAGER_SOURCEMAP=\"$DEST_DIR/main.jsbundle.packager.map\"\n  HBC_SOURCEMAP=\"$DEST_DIR/main.jsbundle.hbc.map\"\n\n  npx react-native bundle     --platform ios     --dev false     --minify false     --entry-file index.js     --bundle-output \"$PLAIN_BUNDLE\"     --sourcemap-output \"$PACKAGER_SOURCEMAP\"     --assets-dest \"$DEST_DIR\"\n\n  \"$HERMES_CLI\" -emit-binary -max-diagnostic-width=80 -O -output-source-map     -out \"$DEST_DIR/main.jsbundle\" \"$PLAIN_BUNDLE\"\n  mv \"$DEST_DIR/main.jsbundle.map\" \"$HBC_SOURCEMAP\"\n\n  node \"$COMPOSE_SOURCEMAP\" \"$PACKAGER_SOURCEMAP\" \"$HBC_SOURCEMAP\" -o \"$DEST_DIR/main.jsbundle.map\"\n  rm -f \"$PLAIN_BUNDLE\" \"$PACKAGER_SOURCEMAP\" \"$HBC_SOURCEMAP\"\nfi\n";
+		};
+		591D13273BAE367EBA975BE4 /* [CP-User] Upload dSYMs and RN sourcemap to Measure */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			name = "[CP-User] Upload dSYMs and RN sourcemap to Measure";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nif [[ -z \"$MEASURE_API_KEY\" || -z \"$MEASURE_API_URL\" ]]; then\n  echo \"warning: MEASURE_API_KEY or MEASURE_API_URL not set, skipping Measure upload\"\n  exit 0\nfi\n\n# Debug builds use DEBUG_INFORMATION_FORMAT=dwarf and produce no dSYMs, so\n# the folder may be missing. Create it so the upload script can still run\n# and ship the JS sourcemap (it uploads JS-only when no dSYMs are present).\nDSYM_FOLDER=\"${DWARF_DSYM_FOLDER_PATH}\"\nmkdir -p \"$DSYM_FOLDER\"\n\nDEST_DIR=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\nJS_BUNDLE=\"$DEST_DIR/main.jsbundle\"\nJS_SOURCEMAP=\"$DEST_DIR/main.jsbundle.map\"\n\nVERSION_NAME=\"${MARKETING_VERSION}\"\nVERSION_CODE=\"${CURRENT_PROJECT_VERSION}\"\nAPP_ID=\"${PRODUCT_BUNDLE_IDENTIFIER}\"\nBUILD_SIZE=$(stat -f%z \"${BUILT_PRODUCTS_DIR}/${EXECUTABLE_PATH}\" 2>/dev/null || echo \"0\")\n\nUPLOAD_SCRIPT=\"$SRCROOT/Scripts/upload_to_measure.sh\"\nif [[ ! -f \"$UPLOAD_SCRIPT\" ]]; then\n  echo \"error: upload_to_measure.sh not found at $UPLOAD_SCRIPT\"\n  exit 1\nfi\n\nJS_ARGS=()\nif [[ -f \"$JS_BUNDLE\" ]]; then\n  JS_ARGS+=(--bundle \"$JS_BUNDLE\")\nfi\nif [[ -f \"$JS_SOURCEMAP\" ]]; then\n  JS_ARGS+=(--mapping \"$JS_SOURCEMAP\")\nfi\n\nbash \"$UPLOAD_SCRIPT\"   \"$DSYM_FOLDER\"   \"$MEASURE_API_URL\"   \"$MEASURE_API_KEY\"   \"$VERSION_NAME\"   \"$VERSION_CODE\"   \"$APP_ID\"   \"$BUILD_SIZE\"   \"${JS_ARGS[@]}\"\n";
 		};
 		6FDDDBB1E19272F994356C88 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -255,16 +265,6 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-FrankensteinApp/Pods-FrankensteinApp-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
-		};
-		7B68B4EEBE77C7C454C73CA6 /* [CP-User] Upload dSYMs to Measure */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			name = "[CP-User] Upload dSYMs to Measure";
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "set -e\nif [[ -z \"$MEASURE_API_KEY\" || -z \"$MEASURE_API_URL\" ]]; then\n  echo \"warning: MEASURE_API_KEY or MEASURE_API_URL not set, skipping dSYM upload\"\n  exit 0\nfi\n\nDSYM_FOLDER=\"${DWARF_DSYM_FOLDER_PATH}\"\nif [[ ! -d \"$DSYM_FOLDER\" ]] || [[ -z \"$(ls -A \"$DSYM_FOLDER\"/*.dSYM 2>/dev/null)\" ]]; then\n  echo \"warning: No dSYMs found at $DSYM_FOLDER, skipping upload\"\n  exit 0\nfi\n\nVERSION_NAME=\"${MARKETING_VERSION}\"\nVERSION_CODE=\"${CURRENT_PROJECT_VERSION}\"\nAPP_ID=\"${PRODUCT_BUNDLE_IDENTIFIER}\"\nBUILD_SIZE=$(stat -f%z \"${BUILT_PRODUCTS_DIR}/${EXECUTABLE_PATH}\" 2>/dev/null || echo \"0\")\n\nUPLOAD_SCRIPT=\"$SRCROOT/../../../ios/Scripts/upload_dsym_manual.sh\"\nif [[ ! -f \"$UPLOAD_SCRIPT\" ]]; then\n  echo \"error: upload_dsym_manual.sh not found at $UPLOAD_SCRIPT\"\n  exit 1\nfi\n\nbash \"$UPLOAD_SCRIPT\"   \"$DSYM_FOLDER\"   \"$MEASURE_API_URL\"   \"$MEASURE_API_KEY\"   \"$VERSION_NAME\"   \"$VERSION_CODE\"   \"$APP_ID\"   \"$BUILD_SIZE\"\n";
 		};
 		A4000004 /* Build Shared KMP Framework */ = {
 			isa = PBXShellScriptBuildPhase;

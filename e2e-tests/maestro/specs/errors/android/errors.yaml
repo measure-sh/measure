@@ -1,0 +1,21 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Native Android"
+    timeout: 5000
+- tapOn: "Native Android"
+- scrollUntilVisible:
+    element:
+      text: "Track Handled Exception"
+- tapOn: "Track Handled Exception"
+- scrollUntilVisible:
+    element:
+      text: "Single Exception"
+    direction: UP
+- tapOn: "Single Exception"
+
+- launchApp
+- extendedWaitUntil:
+    visible: "Native Android"
+    timeout: 10000

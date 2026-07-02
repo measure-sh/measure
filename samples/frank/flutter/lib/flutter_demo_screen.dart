@@ -590,10 +590,12 @@ class _DemoCard extends StatelessWidget {
                     color: theme.colorScheme.onSurface,
                   ),
                 ),
-                Text(
-                  demo.description,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                ExcludeSemantics(
+                  child: Text(
+                    demo.description,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],
@@ -635,10 +637,12 @@ class _ShakeToggleCard extends StatelessWidget {
                         color: theme.colorScheme.onSurface,
                       ),
                     ),
-                    Text(
-                      'Shake device to open bug report',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    ExcludeSemantics(
+                      child: Text(
+                        'Shake device to open bug report',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ],

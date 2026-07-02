@@ -1,0 +1,37 @@
+appId: ${APP_ID}
+---
+- clearState
+
+# Warm up once: the first cold launch loads the RN runtime and renders the home
+# screen, which can exceed a single flow's wait. This primes the OS file caches
+# so each sub-flow's own launch is fast.
+- launchApp
+- extendedWaitUntil:
+    visible: "Native iOS"
+    timeout: 30000
+
+- runFlow: errors.yaml
+- runFlow: ../kmp/errors.yaml
+- runFlow: ../flutter/errors.yaml
+- runFlow: ../react_native/errors.yaml
+
+- pressKey: "Home"
+- launchApp:
+    appId: ${APP_ID}
+- extendedWaitUntil:
+    visible:
+      text: "__maestro_wait_sentinel__"
+    timeout: 5000
+    optional: true
+
+- pressKey: "Home"
+- launchApp:
+    appId: ${APP_ID}
+    stopApp: false
+- extendedWaitUntil:
+    visible:
+      text: "__maestro_wait_sentinel__"
+    timeout: 5000
+    optional: true
+
+- pressKey: "Home"

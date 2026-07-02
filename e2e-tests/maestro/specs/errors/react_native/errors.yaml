@@ -1,0 +1,17 @@
+appId: ${APP_ID}
+---
+- runFlow: fatal_error.yaml
+- runFlow: handled_error.yaml
+- runFlow: unhandled_error.yaml
+
+- pressKey: "Home"
+- launchApp:
+    appId: ${APP_ID}
+    stopApp: false
+- extendedWaitUntil:
+    visible:
+      text: "__maestro_wait_sentinel__"
+    timeout: 5000
+    optional: true
+
+- pressKey: "Home"

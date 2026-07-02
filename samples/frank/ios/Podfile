@@ -72,30 +72,42 @@ target 'FrankensteinApp' do
     SCRIPT
     :execution_position => :after_compile
 
-  # Upload dSYMs to Measure after each build
-  script_phase :name => 'Upload dSYMs to Measure',
+  # Upload dSYMs and the React Native JS sourcemap to Measure after each build
+  script_phase :name => 'Upload dSYMs and RN sourcemap to Measure',
     :script => <<~SCRIPT,
       set -e
       if [[ -z "$MEASURE_API_KEY" || -z "$MEASURE_API_URL" ]]; then
-        echo "warning: MEASURE_API_KEY or MEASURE_API_URL not set, skipping dSYM upload"
+        echo "warning: MEASURE_API_KEY or MEASURE_API_URL not set, skipping Measure upload"
         exit 0
       fi
 
+      # Debug builds use DEBUG_INFORMATION_FORMAT=dwarf and produce no dSYMs, so
+      # the folder may be missing. Create it so the upload script can still run
+      # and ship the JS sourcemap (it uploads JS-only when no dSYMs are present).
       DSYM_FOLDER="${DWARF_DSYM_FOLDER_PATH}"
-      if [[ ! -d "$DSYM_FOLDER" ]] || [[ -z "$(ls -A "$DSYM_FOLDER"/*.dSYM 2>/dev/null)" ]]; then
-        echo "warning: No dSYMs found at $DSYM_FOLDER, skipping upload"
-        exit 0
-      fi
+      mkdir -p "$DSYM_FOLDER"
+
+      DEST_DIR="${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
+      JS_BUNDLE="$DEST_DIR/main.jsbundle"
+      JS_SOURCEMAP="$DEST_DIR/main.jsbundle.map"
 
       VERSION_NAME="${MARKETING_VERSION}"
       VERSION_CODE="${CURRENT_PROJECT_VERSION}"
       APP_ID="${PRODUCT_BUNDLE_IDENTIFIER}"
       BUILD_SIZE=$(stat -f%z "${BUILT_PRODUCTS_DIR}/${EXECUTABLE_PATH}" 2>/dev/null || echo "0")
 
-      UPLOAD_SCRIPT="$SRCROOT/../../../ios/Scripts/upload_dsym_manual.sh"
+      UPLOAD_SCRIPT="$SRCROOT/Scripts/upload_to_measure.sh"
       if [[ ! -f "$UPLOAD_SCRIPT" ]]; then
-        echo "error: upload_dsym_manual.sh not found at $UPLOAD_SCRIPT"
+        echo "error: upload_to_measure.sh not found at $UPLOAD_SCRIPT"
         exit 1
+      fi
+
+      JS_ARGS=()
+      if [[ -f "$JS_BUNDLE" ]]; then
+        JS_ARGS+=(--bundle "$JS_BUNDLE")
+      fi
+      if [[ -f "$JS_SOURCEMAP" ]]; then
+        JS_ARGS+=(--mapping "$JS_SOURCEMAP")
       fi
 
       bash "$UPLOAD_SCRIPT" \
@@ -105,7 +117,8 @@ target 'FrankensteinApp' do
         "$VERSION_NAME" \
         "$VERSION_CODE" \
         "$APP_ID" \
-        "$BUILD_SIZE"
+        "$BUILD_SIZE" \
+        "${JS_ARGS[@]}"
     SCRIPT
     :execution_position => :after_compile
 
@@ -114,21 +127,50 @@ target 'FrankensteinApp' do
     :script => <<~SCRIPT,
       set -e
       export PATH="/opt/homebrew/bin:$PATH"
-      if [[ "$CONFIGURATION" == "Debug" ]]; then
-        BUNDLE_CONFIG="--dev true"
-      else
-        BUNDLE_CONFIG="--dev false"
-      fi
       REACT_NATIVE_DIR="$SRCROOT/../react_native"
       DEST_DIR="${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
       mkdir -p "$DEST_DIR"
       cd "$REACT_NATIVE_DIR"
-      npx react-native bundle \
-        --platform ios \
-        $BUNDLE_CONFIG \
-        --entry-file index.js \
-        --bundle-output "$DEST_DIR/main.jsbundle" \
-        --assets-dest "$DEST_DIR"
+
+      # Always bundle in production mode. The packaged jsbundle is only used
+      # when Metro is not running (e2e, standalone), where a non-dev bundle
+      # parses far faster; a developer running Metro still gets the live dev
+      # bundle, so hot reload is unaffected.
+      if [[ "$CONFIGURATION" == "Debug" ]]; then
+        # Plain JS bundle (matches Android's bundleReactNativeDebug task).
+        # Hermes loads plain JS directly, so no hermesc step is needed.
+        npx react-native bundle \
+          --platform ios \
+          --dev false \
+          --entry-file index.js \
+          --bundle-output "$DEST_DIR/main.jsbundle" \
+          --sourcemap-output "$DEST_DIR/main.jsbundle.map" \
+          --assets-dest "$DEST_DIR"
+      else
+        # Compile to Hermes bytecode and compose the packager and Hermes
+        # sourcemaps (matches Android's RNGP release bundling).
+        HERMES_CLI="$PODS_ROOT/hermes-engine/destroot/bin/hermesc"
+        COMPOSE_SOURCEMAP="$REACT_NATIVE_DIR/node_modules/react-native/scripts/compose-source-maps.js"
+        PLAIN_BUNDLE="$DEST_DIR/main.jsbundle.plain"
+        PACKAGER_SOURCEMAP="$DEST_DIR/main.jsbundle.packager.map"
+        HBC_SOURCEMAP="$DEST_DIR/main.jsbundle.hbc.map"
+
+        npx react-native bundle \
+          --platform ios \
+          --dev false \
+          --minify false \
+          --entry-file index.js \
+          --bundle-output "$PLAIN_BUNDLE" \
+          --sourcemap-output "$PACKAGER_SOURCEMAP" \
+          --assets-dest "$DEST_DIR"
+
+        "$HERMES_CLI" -emit-binary -max-diagnostic-width=80 -O -output-source-map \
+          -out "$DEST_DIR/main.jsbundle" "$PLAIN_BUNDLE"
+        mv "$DEST_DIR/main.jsbundle.map" "$HBC_SOURCEMAP"
+
+        node "$COMPOSE_SOURCEMAP" "$PACKAGER_SOURCEMAP" "$HBC_SOURCEMAP" -o "$DEST_DIR/main.jsbundle.map"
+        rm -f "$PLAIN_BUNDLE" "$PACKAGER_SOURCEMAP" "$HBC_SOURCEMAP"
+      fi
     SCRIPT
     :execution_position => :before_compile
 end

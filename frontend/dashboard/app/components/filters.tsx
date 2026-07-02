@@ -1662,7 +1662,10 @@ const FiltersComponent = forwardRef<
                 showErrorTypesPill) && (
                 <>
                   <div className="py-4" />
-                  <div className="flex flex-wrap gap-2 items-center">
+                  <div
+                    data-testid="applied-filters"
+                    className="flex flex-wrap gap-2 items-center"
+                  >
                     {showAppVersions &&
                       (() => {
                         const { label, tooltip } = chipLabels(

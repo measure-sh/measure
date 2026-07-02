@@ -1,0 +1,29 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "React Native"
+    timeout: 5000
+- tapOn: "React Native"
+
+# RN merges each card's title + description into one iOS a11y label, so match
+# the title with a trailing .*.
+- extendedWaitUntil:
+    visible: "Throw JS Exception.*"
+    timeout: 3000
+- tapOn: "Throw JS Exception.*"
+
+# The JS error is captured on the JS thread and handed to the native SDK on a
+# background queue. Give that store a moment, then background the app so the SDK
+# exports it while alive: applicationWillTerminate does not export, so a bare
+# relaunch would terminate the app mid-store and the event would be lost.
+- extendedWaitUntil:
+    visible:
+      text: "__fatal_settle__"
+    timeout: 5000
+    optional: true
+- pressKey: "Home"
+- launchApp
+- extendedWaitUntil:
+    visible: "React Native"
+    timeout: 10000
