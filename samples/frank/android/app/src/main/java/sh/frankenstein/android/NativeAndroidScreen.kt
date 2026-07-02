@@ -105,13 +105,13 @@ fun NativeAndroidScreen() {
         ),
         DemoItem(
             title = "Submit Bug Report",
-            description = "Captures layout snapshot and submits report",
+            description = "Captures screenshot and submits report",
             category = DemoCategory.BUG_REPORTS,
             action = {
-                Measure.captureLayoutSnapshot(context as Activity, onComplete = { snapshot ->
+                Measure.captureScreenshot(context as Activity, onComplete = { screenshot ->
                     Measure.trackBugReport(
                         "Custom bug report",
-                        attachments = listOf(snapshot),
+                        attachments = listOf(screenshot),
                         attributes = AttributesBuilder().put("is_premium", true).build(),
                     )
                     Toast.makeText(context, "Bug report submitted", Toast.LENGTH_SHORT).show()

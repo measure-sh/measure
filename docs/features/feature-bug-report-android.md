@@ -1,6 +1,6 @@
 ---
 title: "In-App Bug Reports - Android SDK"
-description: "Let users report bugs from inside your Android app. Built-in or custom UI, screenshots, layout snapshots and shake to report."
+description: "Let users report bugs from inside your Android app. Built-in or custom UI, screenshots and shake to report."
 ---
 
 # Bug Reports - Android
@@ -14,7 +14,6 @@ Bug reports enable users to report issues directly from the app. Measure SDK pro
 * [Custom Experience](#custom-experience)
     * [Attachments](#attachments)
       * [Capture Screenshot](#capture-screenshot)
-      * [Capture Layout Snapshot](#capture-layout-snapshot)
     * [Add Image from Gallery](#add-image-from-gallery)
     * [Limits](#limits)
 * [Add Attributes](#add-attributes)
@@ -86,7 +85,6 @@ Bug reports can be enhanced with attachments. A maximum of `5` attachments can b
 You can add attachments to bug reports in the following ways:
 
 * [Capture Screenshot](#capture-screenshot)
-* [Capture Layout Snapshot](#capture-layout-snapshot)
 * [Add Image from Gallery](#add-image-from-gallery)
 
 
@@ -109,23 +107,6 @@ Measure.trackBugReport(
 
 > [!IMPORTANT]
 > For privacy, screenshots can be masked with the same configuration provided during SDK initialization. See all the configuration options [here](configuration-options.md#screenshot-mask-level).
-
-#### Capture Layout Snapshot
-
-Capture a layout snapshot using `captureLayoutSnapshot`. This function must be called from the main thread.
-
-```kotlin
-private val attachments = mutableListOf<MsrAttachment>()
-
-Measure.captureLayoutSnapshot(activity, onComplete = { attachment ->
-    attachments.add(attachment)
-})
-
-Measure.trackBugReport(
-    description = "Items from cart disappear after reopening the app",
-    attachments = attachments
-)
-```
 
 #### Add Image from Gallery
 

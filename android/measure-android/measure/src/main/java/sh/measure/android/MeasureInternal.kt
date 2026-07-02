@@ -217,18 +217,6 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         ).captureScreenshot(activity, onComplete, onError)
     }
 
-    fun takeLayoutSnapshot(
-        activity: Activity,
-        onComplete: (attachment: MsrAttachment) -> Unit,
-        onError: (() -> Unit)?,
-    ) {
-        AttachmentHelper(
-            measure.logger,
-            measure.executorServiceRegistry.ioExecutor(),
-            measure.configProvider,
-        ).captureLayoutSnapshot(activity, onComplete, onError)
-    }
-
     fun imageUriToAttachment(
         context: Context,
         uri: Uri,

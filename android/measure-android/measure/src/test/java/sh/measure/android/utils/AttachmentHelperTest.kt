@@ -53,26 +53,6 @@ class AttachmentHelperTest {
     }
 
     @Test
-    fun `captureLayoutSnapshot triggers onComplete on successful capture`() {
-        var attachment: MsrAttachment? = null
-        controller.setup()
-        attachmentHelper.captureLayoutSnapshot(controller.get(), { a ->
-            attachment = a
-        }, {})
-        Assert.assertNotNull(attachment)
-    }
-
-    @Test
-    fun `captureLayoutSnapshot triggers onError on unsuccessful capture`() {
-        var onErrorCalled = false
-        // Do not launch the activity, thereby failing to capture a snapshot
-        attachmentHelper.captureLayoutSnapshot(controller.get(), {}, {
-            onErrorCalled = true
-        })
-        Assert.assertEquals(true, onErrorCalled)
-    }
-
-    @Test
     fun `imageUriToAttachment triggers onComplete on successful conversion`() {
         val uri = Uri.fromFile(createTestImage())
         var attachment: MsrAttachment? = null
