@@ -174,7 +174,7 @@ internal class SignalProcessorImpl(
                             sessionId = sessionId,
                             isSampled = isSampled,
                         ) ?: return@trace
-                        applyAttributes(attributes, event, resolvedThreadName)
+                        applyAttributes(event, resolvedThreadName)
                         InternalTrace.trace(label = { "msr-store-event" }, block = {
                             signalStore.store(event)
                             onEventTracked(event)
@@ -213,7 +213,7 @@ internal class SignalProcessorImpl(
                     sessionId = sessionId,
                     isSampled = isSampled,
                 ) ?: return@trace
-                applyAttributes(attributes, event, threadName)
+                applyAttributes(event, threadName)
                 event.updateVersionAttribute(appVersion, appBuild)
                 event.updateSessionStartTimeAttribute(sessionStartTime)
                 InternalTrace.trace(label = { "msr-store-event" }, block = {
@@ -255,7 +255,7 @@ internal class SignalProcessorImpl(
             }
         }
 
-        applyAttributes(attributes, event, thread)
+        applyAttributes(event, thread)
         signalStore.store(event)
         onEventTracked(event)
         exporter.export()
@@ -299,7 +299,7 @@ internal class SignalProcessorImpl(
                 userDefinedAttributes = userDefinedAttributes,
                 isSampled = true,
             ) ?: return@submit
-            applyAttributes(attributes, event, thread)
+            applyAttributes(event, thread)
             signalStore.store(event)
             onEventTracked(event)
             exporter.export()
@@ -344,15 +344,11 @@ internal class SignalProcessorImpl(
     }
 
     private fun <T> applyAttributes(
-        attributes: MutableMap<String, Any?>,
         event: Event<T>,
         threadName: String,
     ) {
         InternalTrace.trace(label = { "msr-apply-attributes" }, block = {
             event.appendAttribute(Attribute.THREAD_NAME, threadName)
-            if (!attributes.contains(Attribute.PLATFORM_KEY)) {
-                event.appendAttribute(Attribute.PLATFORM_KEY, "android")
-            }
             event.appendAttributes(attributeProcessors)
         })
     }
