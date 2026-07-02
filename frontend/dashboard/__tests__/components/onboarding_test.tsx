@@ -691,10 +691,10 @@ describe("Onboarding — Step 2: Integrate", () => {
       );
     });
 
-    it("enables full collection mode in the Android init snippet", () => {
+    it("renders the Android init snippet", () => {
       renderOnboarding();
       expect(screen.getByTestId("snippet-init")).toHaveTextContent(
-        "enableFullCollectionMode = true",
+        "MeasureConfig()",
       );
     });
 
@@ -733,7 +733,7 @@ describe("Onboarding — Step 2: Integrate", () => {
         "Measure.initialize",
       );
       expect(screen.getByTestId("snippet-init")).toHaveTextContent(
-        "enableFullCollectionMode: true",
+        "BaseMeasureConfig()",
       );
       expect(screen.getByTestId("snippet-crash")).toHaveTextContent(
         "fatalError",
@@ -758,7 +758,7 @@ describe("Onboarding — Step 2: Integrate", () => {
         "sh.measure.android.API_KEY",
       );
       expect(screen.getByTestId("snippet-android-init")).toHaveTextContent(
-        "enableFullCollectionMode = true",
+        "MeasureConfig()",
       );
       expect(screen.getByTestId("snippet-init")).toHaveTextContent(
         "Measure.instance.init",
@@ -785,7 +785,7 @@ describe("Onboarding — Step 2: Integrate", () => {
         ":linkage => :static",
       );
       expect(screen.getByTestId("snippet-ios-init")).toHaveTextContent(
-        "enableFullCollectionMode: true",
+        "BaseMeasureConfig()",
       );
       expect(screen.getByTestId("snippet-init")).toHaveTextContent(
         "Measure.instance.init",

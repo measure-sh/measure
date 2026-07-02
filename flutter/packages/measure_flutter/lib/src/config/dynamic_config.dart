@@ -6,7 +6,7 @@ part 'dynamic_config.g.dart';
 
 /// Interface exposing dynamic configuration values for the SDK.
 abstract interface class IDynamicConfig {
-  /// Sampling rate for traces. Defaults to 0.01%, which means one in 10000 traces will be sampled.
+  /// Sampling rate for traces. Defaults to 100%, which means all traces will be sampled.
   double get traceSamplingRate;
 
   /// The screenshot mask level to be applied to screenshots. Defaults
@@ -90,7 +90,7 @@ class DynamicConfig implements IDynamicConfig {
 
   /// Creates a [DynamicConfig] with default values.
   factory DynamicConfig.defaults() => const DynamicConfig(
-    traceSamplingRate: 0.01,
+    traceSamplingRate: 100,
     screenshotMaskLevel: ScreenshotMaskLevel.allTextAndMedia,
     crashTakeScreenshot: true,
     gestureClickTakeSnapshot: true,
