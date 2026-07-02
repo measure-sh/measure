@@ -47,6 +47,17 @@ internal class ExporterImpl(
     @VisibleForTesting
     internal val isExporting = AtomicBoolean(false)
 
+    companion object {
+        // Upper bound on the serialized size of a single batch's upload payload.
+        // Batches are split so that no batch exceeds this size, keeping each export
+        // request small enough to upload reliably.
+        private const val MAX_BATCH_PAYLOAD_SIZE_BYTES = 10 * 1024 * 1024
+
+        // Rough estimate of a single signal's (event or span) serialized size, used to
+        // convert the payload size limit into a maximum number of signals per batch.
+        private const val ESTIMATED_SIGNAL_SIZE_BYTES = 1024
+    }
+
     override fun export() {
         if (isExporting.compareAndSet(false, true)) {
             try {
@@ -90,11 +101,17 @@ internal class ExporterImpl(
             // First export existing batches
             if (exportExistingBatches()) return
 
-            // Then create new batches and export
+            // Create new batches and export them. The number of signals (events and
+            // spans) per batch is capped by both the configured limit and a limit
+            // derived from the max payload size, so a single batch never exceeds
+            // MAX_BATCH_PAYLOAD_SIZE_BYTES. Sessions larger than the cap are split
+            // across multiple batches.
+            val payloadSignalLimit = MAX_BATCH_PAYLOAD_SIZE_BYTES / ESTIMATED_SIGNAL_SIZE_BYTES
+            val maxSignalsPerBatch = minOf(configProvider.maxEventsInBatch, payloadSignalLimit)
             val batchesCreatedCount = database.batchSessions(
                 idProvider,
                 timeProvider,
-                configProvider.maxEventsInBatch,
+                maxSignalsPerBatch,
                 1000,
             )
             if (batchesCreatedCount > 0) {
