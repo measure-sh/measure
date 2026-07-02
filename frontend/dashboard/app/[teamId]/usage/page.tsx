@@ -18,7 +18,7 @@ import {
   useUsageQuery,
 } from "@/app/query/hooks";
 import { isBillingEnabled } from "@/app/utils/feature_flag_utils";
-import { formatBytesSI } from "@/app/utils/number_utils";
+import { formatBytesSI, numberToKMB } from "@/app/utils/number_utils";
 import {
   FREE_GB,
   FREE_RETENTION_DAYS,
@@ -72,6 +72,37 @@ function formatDataLine(billingInfo: {
   const base = `${formatBytesSI(used)} of ${formatBytesSI(granted)} used`;
   if (billingInfo?.bytes_overage_allowed && used > granted) {
     return `${base}, ${formatBytesSI(used - granted)} overage`;
+  }
+  return base;
+}
+
+// formatTokenCreditsLine renders the "Token credits" line shown on the current
+// plan card. agent_tokens is an Autumn credit system, so the balance is in
+// credits (token usage priced into credits), not raw token counts.
+// Mirrors formatDataLine; the caller only shows the line once credits have been
+// used, so the zero case never reaches here.
+//
+//   - token_credits_unlimited      → "Unlimited"
+//   - no granted allowance         → "X used"
+//   - else, with overage usage     → "X of Y used, Z overage"
+//   - else                         → "X of Y used"
+function formatTokenCreditsLine(billingInfo: {
+  token_credits_used?: number;
+  token_credits_granted?: number;
+  token_credits_unlimited?: boolean;
+  token_credits_overage_allowed?: boolean;
+}): string {
+  if (billingInfo?.token_credits_unlimited) {
+    return "Unlimited";
+  }
+  const used = billingInfo?.token_credits_used ?? 0;
+  const granted = billingInfo?.token_credits_granted ?? 0;
+  if (granted <= 0) {
+    return `${numberToKMB(used)} used`;
+  }
+  const base = `${numberToKMB(used)} of ${numberToKMB(granted)} used`;
+  if (billingInfo?.token_credits_overage_allowed && used > granted) {
+    return `${base}, ${numberToKMB(used - granted)} overage`;
   }
   return base;
 }
@@ -517,9 +548,15 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
                         <li className="font-body">
                           Data: {formatDataLine(billingInfo)}
                         </li>
+                        {(billingInfo?.token_credits_used ?? 0) > 0 && (
+                          <li className="font-body">
+                            Token credits: {formatTokenCreditsLine(billingInfo)}
+                          </li>
+                        )}
                         <li className="font-body">
                           {FREE_RETENTION_DAYS} days retention
                         </li>
+                        <li className="font-body">MCP server</li>
                       </ul>
                     </div>
                   </Card>
@@ -548,8 +585,15 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
                             {PRO_RETENTION_DAYS} days retention
                           </li>
                           <li className="font-body text-green-900 dark:text-foreground">
+                            MCP server and Measure Agent
+                          </li>
+                          <li className="font-body text-green-900 dark:text-foreground">
                             Extra data charged at $
                             {PRICE_PER_GB_MONTH.toFixed(2)} per GB/month
+                          </li>
+                          <li className="font-body text-green-900 dark:text-foreground">
+                            Agent usage at provider token rates + a percentage
+                            markup for compute
                           </li>
                         </ul>
                       )}
@@ -592,6 +636,14 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
                                   {formatDataLine(billingInfo)}
                                 </span>
                               </li>
+                              {(billingInfo?.token_credits_used ?? 0) > 0 && (
+                                <li className="text-green-900 dark:text-foreground">
+                                  Token credits:{" "}
+                                  <span className="font-semibold">
+                                    {formatTokenCreditsLine(billingInfo)}
+                                  </span>
+                                </li>
+                              )}
                             </ul>
                           </div>
                         )}
@@ -689,6 +741,14 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
                               {formatDataLine(billingInfo)}
                             </span>
                           </li>
+                          {(billingInfo?.token_credits_used ?? 0) > 0 ? (
+                            <li className="text-green-900 dark:text-foreground">
+                              Token credits:{" "}
+                              <span className="font-semibold">
+                                {formatTokenCreditsLine(billingInfo)}
+                              </span>
+                            </li>
+                          ) : null}
                           {billingInfo?.retention_days ? (
                             <li className="text-green-900 dark:text-foreground">
                               Retention:{" "}
@@ -766,6 +826,7 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
               <li>At cycle end, you&apos;ll be moved to the Free plan</li>
               <li>App retention will be reset to {FREE_RETENTION_DAYS} days</li>
               <li>Data will be limited to {FREE_GB} GB per month</li>
+              <li>You will lose access to Measure Agent</li>
               <li>You can undo this anytime before the cycle ends</li>
             </ul>
           </div>
@@ -785,7 +846,7 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
 
 function showCurrentPlanBadge() {
   return (
-    <div className="absolute top-4 right-4 bg-green-700 dark:bg-accent text-white dark:text-accent-foreground text-xs font-display px-2 py-1 rounded">
+    <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs font-display px-2 py-1 rounded">
       Current Plan
     </div>
   );

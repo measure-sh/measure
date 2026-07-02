@@ -10,7 +10,7 @@ import HandDrawnUnderline from "./components/hand_drawn_underline";
 import LandingFooter from "./components/landing_footer";
 import LandingHeader from "./components/landing_header";
 import LandingHeroAnimation from "./components/landing_hero_animation";
-import MCPDemo from "./components/mcp_demo";
+import AIDemoCarousel from "./components/ai_demo_carousel";
 import Testimonials from "./components/testimonials";
 import TrackCtaLink from "./components/analytics/track_cta_link";
 import TrackGithubLink from "./components/analytics/track_github_link";
@@ -214,6 +214,15 @@ export default function Home() {
           <FeatureDemoCarousel />
         </div>
 
+        {/* Intelligent debugging — Measure Agent + MCP Server */}
+        <div className="w-full flex items-center flex-col py-16 md:py-24">
+          <h2 className="font-display font-regular text-4xl max-w-4xl text-center px-4">
+            Intelligent debugging, Seamless integration
+          </h2>
+          <div className="py-2 md:py-4" />
+          <AIDemoCarousel />
+        </div>
+
         {/* Adaptive Capture */}
         <div className="w-full flex items-center flex-col py-16 md:py-24">
           <h2 className="font-display font-regular text-4xl max-w-4xl text-center px-4">
@@ -235,26 +244,6 @@ export default function Home() {
           <div className="py-8" />
           <div className="max-w-6xl">
             <AdaptiveCaptureDemo showTitle={false} />
-          </div>
-        </div>
-
-        {/* MCP */}
-        <div className="w-full flex items-center flex-col py-16 md:py-24">
-          <h2 className="font-display font-regular text-4xl max-w-4xl text-center px-4">
-            Intelligent debugging, Seamless integration
-          </h2>
-          <div className="py-4" />
-          <p className="text-lg font-body text-justify max-w-4xl px-4">
-            Connect Measure with your favorite coding agents through our{" "}
-            <Link href="/product/mcp" className={underlineLinkStyle}>
-              MCP
-            </Link>{" "}
-            server. Let your coding agent query errors, traces and session
-            timelines directly in your development workflow.
-          </p>
-          <div className="py-8" />
-          <div className="w-full md:w-6xl">
-            <MCPDemo />
           </div>
         </div>
 

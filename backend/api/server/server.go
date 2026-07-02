@@ -1,3 +1,11 @@
+// Package server is api's boot layer. It owns api's runtime Config and Deps
+// types, reads and builds them (NewConfig, Connect), and api's main threads a
+// *Deps explicitly into the handlers and domain code. It also wires the bus
+// producer that ships Slack events to the agent service.
+//
+// Each service owns its copy of this boot code: the shared libs carry only
+// domain logic and the plain Config/Deps data types, never the construction.
+// Kept in sync with the other services' server packages by hand.
 package server
 
 import (
@@ -9,13 +17,16 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
-	"backend/autumn"
+	"backend/libs/autumn"
+	"backend/libs/bus"
 	"backend/libs/ga4"
 	"backend/libs/inet"
 	"backend/libs/posthog"
 	"backend/libs/secret"
+	"backend/libs/slack"
 
 	"cloud.google.com/go/cloudsqlconn"
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -37,17 +48,6 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-var Server *server
-
-type server struct {
-	PgPool  *pgxpool.Pool
-	ChPool  driver.Conn
-	RchPool driver.Conn
-	Mail    *mail.Client
-	Config  *ServerConfig
-	VK      redis.Client
-}
-
 type PostgresConfig struct {
 	/* connection string of the postgres instance */
 	DSN string
@@ -64,10 +64,19 @@ type RedisConfig struct {
 	Port int
 }
 
-type ServerConfig struct {
+type IggyConfig struct {
+	Addr     string
+	Username string
+	Password string
+}
+
+// Config is api's parsed runtime configuration. The server package owns it
+// (built by NewConfig) and threads it explicitly into the code that needs it.
+type Config struct {
 	PG                           PostgresConfig
 	CH                           ClickhouseConfig
 	RD                           RedisConfig
+	IG                           IggyConfig
 	ServiceAccountEmail          string
 	SymbolsBucket                string
 	SymbolsBucketRegion          string
@@ -81,6 +90,7 @@ type ServerConfig struct {
 	AttachmentOrigin             string
 	SiteOrigin                   string
 	APIOrigin                    string
+	AgentOrigin                  string
 	SymbolicatorOrigin           string
 	OAuthGitHubKey               string
 	OAuthGitHubSecret            string
@@ -111,25 +121,35 @@ type ServerConfig struct {
 
 // IsCloud is true if the service is
 // running on a cloud environment.
-func (sc *ServerConfig) IsCloud() bool {
-	if sc.CloudEnv {
-		return true
-	}
-
-	return false
+func (c *Config) IsCloud() bool {
+	return c.CloudEnv
 }
 
 // IsBillingEnabled is true if the service has
 // billing feature enabled.
-func (sc *ServerConfig) IsBillingEnabled() bool {
-	if sc.BillingEnabled {
-		return true
-	}
-
-	return false
+func (c *Config) IsBillingEnabled() bool {
+	return c.BillingEnabled
 }
 
-func NewConfig() *ServerConfig {
+// Deps holds the live infrastructure handles api uses at runtime. NewConfig +
+// Connect build one in this package; it is threaded explicitly into the
+// handlers and domain code that need a handle, rather than reached via a
+// global.
+type Deps struct {
+	PgPool  *pgxpool.Pool
+	ChPool  driver.Conn
+	RchPool driver.Conn
+	Mail    *mail.Client
+	Config  *Config
+	VK      redis.Client
+}
+
+// NewConfig reads the shared environment contract once and returns the parsed
+// configuration. It is the single source of the env contract for every
+// service: never fork it per service, or the contract drifts. It also
+// performs the package-level inits that read the same env (billing, GA4,
+// PostHog), keeping those side effects in one place.
+func NewConfig() *Config {
 	cloudEnv := false
 	if os.Getenv("K_SERVICE") != "" && os.Getenv("K_REVISION") != "" {
 		cloudEnv = true
@@ -210,6 +230,11 @@ func NewConfig() *ServerConfig {
 	apiOrigin := os.Getenv("API_ORIGIN")
 	if apiOrigin == "" {
 		log.Println("API_ORIGIN env var not set. Need for proxying session attachments.")
+	}
+
+	agentOrigin := os.Getenv("AGENT_ORIGIN")
+	if agentOrigin == "" {
+		log.Println("AGENT_ORIGIN env var not set. MCP tombstone responses will omit the new MCP URL.")
 	}
 
 	symbolicatorOrigin := os.Getenv("SYMBOLICATOR_ORIGIN")
@@ -296,6 +321,22 @@ func NewConfig() *ServerConfig {
 	redisPort, err := strconv.Atoi(redisPortStr)
 	if err != nil {
 		log.Fatalf("Invalid REDIS_PORT value: %v", err)
+	}
+
+	// Iggy backs the message bus on self-host only; cloud uses Pub/Sub.
+	iggyAddr := os.Getenv("IGGY_ADDR")
+	if iggyAddr == "" && !cloudEnv {
+		log.Println("IGGY_ADDR env var is not set, the Slack query agent will not work")
+	}
+
+	iggyUsername := os.Getenv("IGGY_USERNAME")
+	if iggyUsername == "" && !cloudEnv {
+		log.Println("IGGY_USERNAME env var is not set, the Slack query agent will not work")
+	}
+
+	iggyPassword := os.Getenv("IGGY_PASSWORD")
+	if iggyPassword == "" && !cloudEnv {
+		log.Println("IGGY_PASSWORD env var is not set, the Slack query agent will not work")
 	}
 
 	smtpHost := os.Getenv("SMTP_HOST")
@@ -413,7 +454,7 @@ func NewConfig() *ServerConfig {
 	endpoint := os.Getenv("AWS_ENDPOINT_URL")
 	enforceIngestTimeWindow := os.Getenv("INGEST_ENFORCE_TIME_WINDOW") != ""
 
-	return &ServerConfig{
+	return &Config{
 		PG: PostgresConfig{
 			DSN: postgresDSN,
 		},
@@ -424,6 +465,11 @@ func NewConfig() *ServerConfig {
 		RD: RedisConfig{
 			Host: redisHost,
 			Port: redisPort,
+		},
+		IG: IggyConfig{
+			Addr:     iggyAddr,
+			Username: iggyUsername,
+			Password: iggyPassword,
 		},
 		ServiceAccountEmail:          serviceAccountEmail,
 		SymbolsBucket:                symbolsBucket,
@@ -438,6 +484,7 @@ func NewConfig() *ServerConfig {
 		AttachmentOrigin:             attachmentOrigin,
 		SiteOrigin:                   siteOrigin,
 		APIOrigin:                    apiOrigin,
+		AgentOrigin:                  agentOrigin,
 		SymbolicatorOrigin:           symbolicatorOrigin,
 		OAuthGitHubKey:               oauthGitHubKey,
 		OAuthGitHubSecret:            oauthGitHubSecret,
@@ -489,7 +536,10 @@ func WaitForPg(ctx context.Context, pgPool *pgxpool.Pool, timeout time.Duration)
 	}
 }
 
-func Init(config *ServerConfig) {
+// Connect opens every infrastructure handle named in the config and returns
+// them bundled in a Deps. Connection failures are logged but not fatal, so a
+// service starts and degrades rather than refusing to come up.
+func Connect(config *Config) *Deps {
 	ctx := context.Background()
 	var pgPool *pgxpool.Pool
 
@@ -608,7 +658,7 @@ func Init(config *ServerConfig) {
 		}
 	}
 
-	Server = &server{
+	return &Deps{
 		PgPool:  pgPool,
 		ChPool:  chPool,
 		RchPool: rChPool,
@@ -618,21 +668,11 @@ func Init(config *ServerConfig) {
 	}
 }
 
-func InitForTest(config *ServerConfig, pgPool *pgxpool.Pool, chReader driver.Conn, vk redis.Client) {
-	Server = &server{
-		PgPool:  pgPool,
-		ChPool:  chReader,
-		RchPool: chReader,
-		Config:  config,
-		VK:      vk,
-	}
-}
-
-func (sc ServerConfig) InitTracing() func(context.Context) error {
+func InitTracing(c *Config) func(context.Context) error {
 	otelCollectorURL := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	otelProtocol := os.Getenv("OTEL_EXPORTER_OTLP_PROTOCOL")
 	otelInsecureMode := os.Getenv("OTEL_INSECURE_MODE")
-	otelServiceName := sc.OtelServiceName
+	otelServiceName := c.OtelServiceName
 
 	isInsecure := strings.ToLower(otelInsecureMode) != "false" &&
 		otelInsecureMode != "0" &&
@@ -705,4 +745,104 @@ func (sc ServerConfig) InitTracing() func(context.Context) error {
 		}
 		return nil
 	}
+}
+
+// NewAgentEventsProducer builds the bus producer that carries Slack events to
+// the agent service. Call it from api's main only, since api is the only service
+// that publishes. A failed build is not fatal: the wrapper retries it on the
+// next publish. It returns nil when no bus is configured at all; the Slack
+// agent is then off by design.
+func NewAgentEventsProducer(config *Config) bus.Producer {
+	if !config.IsCloud() && config.IG.Addr == "" {
+		return nil
+	}
+
+	producer := &agentEventsProducer{build: func() (bus.Producer, error) {
+		return buildAgentEventsProducer(config)
+	}}
+	if _, err := producer.swap(nil); err != nil {
+		log.Printf("failed to create agent events producer, will retry on publish: %v\n", err)
+	}
+	return producer
+}
+
+// buildAgentEventsProducer creates the raw producer for the configured bus
+// backend.
+func buildAgentEventsProducer(config *Config) (bus.Producer, error) {
+	if config.IsCloud() {
+		return bus.NewPubSubProducer(context.Background(), slack.AgentEventsTopic)
+	}
+	return bus.NewIggyProducer(
+		config.IG.Addr,
+		config.IG.Username,
+		config.IG.Password,
+		"api-service",
+		bus.DefaultStreamName,
+		slack.AgentEventsTopic,
+	)
+}
+
+// agentEventsProducer wraps the bus producer and rebuilds it when a publish
+// fails. The Iggy client cannot reconnect or re-authenticate once its TCP
+// session dies (a broker restart kills it for good), so recovery means
+// building a fresh client.
+type agentEventsProducer struct {
+	mu    sync.Mutex
+	p     bus.Producer
+	build func() (bus.Producer, error)
+}
+
+func (a *agentEventsProducer) Publish(ctx context.Context, data []byte) error {
+	a.mu.Lock()
+	p := a.p
+	a.mu.Unlock()
+
+	var firstErr error
+	if p != nil {
+		if firstErr = p.Publish(ctx, data); firstErr == nil {
+			return nil
+		}
+		log.Printf("agent events producer publish failed, rebuilding: %v\n", firstErr)
+	}
+
+	p, err := a.swap(p)
+	if err != nil {
+		log.Printf("agent events producer rebuild failed: %v\n", err)
+		if firstErr != nil {
+			return firstErr
+		}
+		return err
+	}
+	return p.Publish(ctx, data)
+}
+
+// swap replaces a broken producer with a freshly built one, unless another
+// publisher already replaced it.
+func (a *agentEventsProducer) swap(broken bus.Producer) (bus.Producer, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if a.p != broken && a.p != nil {
+		return a.p, nil
+	}
+	if a.p != nil {
+		a.p.Close()
+		a.p = nil
+	}
+
+	p, err := a.build()
+	if err != nil {
+		return nil, err
+	}
+	a.p = p
+	return p, nil
+}
+
+func (a *agentEventsProducer) Close() error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.p == nil {
+		return nil
+	}
+	return a.p.Close()
 }

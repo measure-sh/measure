@@ -1,7 +1,7 @@
 package server
 
 import (
-	"backend/autumn"
+	"backend/libs/autumn"
 	"backend/libs/bus"
 	"backend/libs/ga4"
 	"backend/libs/inet"

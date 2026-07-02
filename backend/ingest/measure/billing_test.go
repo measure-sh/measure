@@ -7,9 +7,9 @@ import (
 	"errors"
 	"testing"
 
-	"backend/autumn"
-	autumntest "backend/autumn/testhelpers"
 	"backend/ingest/server"
+	"backend/libs/autumn"
+	autumntest "backend/libs/autumn/testhelpers"
 
 	"github.com/google/uuid"
 )

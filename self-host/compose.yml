@@ -39,12 +39,14 @@ services:
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
       - API_BASE_URL=${API_BASE_URL}
+      - AGENT_BASE_URL=${AGENT_BASE_URL}
       - SLACK_CLIENT_ID=${SLACK_CLIENT_ID}
       - SLACK_OAUTH_STATE_SALT=${SLACK_OAUTH_STATE_SALT}
       - POSTHOG_HOST=${POSTHOG_HOST}
       - POSTHOG_API_KEY=${POSTHOG_API_KEY}
       - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
       - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+      - NEXT_PUBLIC_AGENT_BASE_URL=${NEXT_PUBLIC_AGENT_BASE_URL}
       - NEXT_PUBLIC_INGEST_BASE_URL=${NEXT_PUBLIC_INGEST_BASE_URL}
       - NEXT_PUBLIC_IS_CLOUD=${NEXT_PUBLIC_IS_CLOUD}
       - NEXT_PUBLIC_BILLING_ENABLED=${BILLING_ENABLED}
@@ -74,8 +76,6 @@ services:
       context: ../backend/api
       additional_contexts:
         libs: ../backend/libs
-        email: ../backend/email
-        autumn: ../backend/autumn
       args:
         TARGETTYPE: debug
     ports:
@@ -105,6 +105,9 @@ services:
       - CLICKHOUSE_READER_DSN_FILE=/run/secrets/clickhouse-reader-dsn
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_HOST=${REDIS_HOST}
+      - IGGY_ADDR=${IGGY_ADDR}
+      - IGGY_USERNAME=${IGGY_USERNAME}
+      - IGGY_PASSWORD=${IGGY_PASSWORD}
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
       - SYMBOLS_S3_BUCKET=${SYMBOLS_S3_BUCKET}
       - SYMBOLS_S3_BUCKET_REGION=${SYMBOLS_S3_BUCKET_REGION}
@@ -118,6 +121,7 @@ services:
       - ATTACHMENTS_SECRET_ACCESS_KEY_FILE=/run/secrets/attachments-secret-access-key
       - SITE_ORIGIN=${NEXT_PUBLIC_SITE_URL}
       - API_ORIGIN=${NEXT_PUBLIC_API_BASE_URL}
+      - AGENT_ORIGIN=${NEXT_PUBLIC_AGENT_BASE_URL}
       - OAUTH_GOOGLE_KEY=${OAUTH_GOOGLE_KEY}
       - OAUTH_GOOGLE_SECRET_FILE=/run/secrets/oauth-google-secret
       - OAUTH_GITHUB_KEY=${OAUTH_GITHUB_KEY}
@@ -143,11 +147,7 @@ services:
       - PORT=8080
     develop:
       watch:
-        - path: ../backend/api
-          action: rebuild
-        - path: ../backend/autumn
-          action: rebuild
-        - path: ../backend/email
+        - path: ../backend/libs
           action: rebuild
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/ping"]
@@ -161,6 +161,9 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      iggy:
+        condition: service_healthy
+        required: false
       dbmate-postgres:
         condition: service_completed_successfully
         required: false
@@ -177,14 +180,89 @@ services:
       redis:
         condition: service_healthy
 
+  agent:
+    build:
+      dockerfile: dockerfile
+      context: ../backend/agent
+      additional_contexts:
+        libs: ../backend/libs
+        testinfra: ../backend/testinfra
+      args:
+        TARGETTYPE: debug
+    ports:
+      - "8084:8084"
+    environment:
+      - BILLING_ENABLED=${BILLING_ENABLED}
+      - AUTUMN_SECRET_KEY=${AUTUMN_SECRET_KEY}
+      - POSTGRES_DSN=${POSTGRES_DSN}
+      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
+      - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_HOST=${REDIS_HOST}
+      - IGGY_ADDR=${IGGY_ADDR}
+      - IGGY_USERNAME=${IGGY_USERNAME}
+      - IGGY_PASSWORD=${IGGY_PASSWORD}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
+      - ATTACHMENTS_S3_ORIGIN=${ATTACHMENTS_S3_ORIGIN:-}
+      - ATTACHMENTS_S3_BUCKET=${ATTACHMENTS_S3_BUCKET}
+      - ATTACHMENTS_S3_BUCKET_REGION=${ATTACHMENTS_S3_BUCKET_REGION}
+      - ATTACHMENTS_ACCESS_KEY=${ATTACHMENTS_ACCESS_KEY}
+      - ATTACHMENTS_SECRET_ACCESS_KEY=${ATTACHMENTS_SECRET_ACCESS_KEY}
+      - SITE_ORIGIN=${NEXT_PUBLIC_SITE_URL}
+      - API_ORIGIN=${NEXT_PUBLIC_AGENT_BASE_URL}
+      - OAUTH_GOOGLE_KEY=${OAUTH_GOOGLE_KEY}
+      - OAUTH_GOOGLE_SECRET=${OAUTH_GOOGLE_SECRET}
+      - OAUTH_GITHUB_KEY=${OAUTH_GITHUB_KEY}
+      - OAUTH_GITHUB_SECRET=${OAUTH_GITHUB_SECRET}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - EMAIL_DOMAIN=${EMAIL_DOMAIN}
+      - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
+      - POSTHOG_HOST=${POSTHOG_HOST:-}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
+      - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_MODEL_SMALL=${OPENROUTER_MODEL_SMALL:-}
+      - OPENROUTER_MODEL_MEDIUM=${OPENROUTER_MODEL_MEDIUM:-}
+      - OPENROUTER_MODEL_LARGE=${OPENROUTER_MODEL_LARGE:-}
+      - PORT=8084
+    develop:
+      watch:
+        - path: ../backend/agent
+          action: rebuild
+        - path: ../backend/libs
+          action: rebuild
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8084/ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      iggy:
+        condition: service_healthy
+        required: false
+      dbmate-postgres:
+        condition: service_completed_successfully
+        required: false
+      dbmate-clickhouse:
+        condition: service_completed_successfully
+        required: false
+
   ingest-worker:
     build:
       dockerfile: dockerfile
       context: ../backend/ingest-worker
       additional_contexts:
         libs: ../backend/libs
-        api: ../backend/api
-        autumn: ../backend/autumn
       args:
         TARGETTYPE: debug
     ports:
@@ -233,10 +311,6 @@ services:
       watch:
         - path: ../backend/ingest-worker
           action: rebuild
-        - path: ../backend/api
-          action: rebuild
-        - path: ../backend/autumn
-          action: rebuild
         - path: ../backend/libs
           action: rebuild
     healthcheck:
@@ -275,9 +349,6 @@ services:
       context: ../backend/ingest
       additional_contexts:
         libs: ../backend/libs
-        api: ../backend/api
-        email: ../backend/email
-        autumn: ../backend/autumn
       args:
         TARGETTYPE: debug
     ports:
@@ -315,12 +386,6 @@ services:
     develop:
       watch:
         - path: ../backend/ingest
-          action: rebuild
-        - path: ../backend/api
-          action: rebuild
-        - path: ../backend/autumn
-          action: rebuild
-        - path: ../backend/email
           action: rebuild
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8085/ping"]
@@ -414,8 +479,6 @@ services:
       context: ../backend/alerts
       additional_contexts:
         libs: ../backend/libs
-        email: ../backend/email
-        autumn: ../backend/autumn
       args:
         TARGETTYPE: debug
     ports:
@@ -444,10 +507,6 @@ services:
     develop:
       watch:
         - path: ../backend/alerts
-          action: rebuild
-        - path: ../backend/email
-          action: rebuild
-        - path: ../backend/autumn
           action: rebuild
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8082/ping"]
@@ -659,6 +718,10 @@ services:
       iggy -u ${IGGY_USERNAME} -p ${IGGY_PASSWORD} topic create measure ingest-batch 9 gzip 7d || true;
 
       iggy -u ${IGGY_USERNAME} -p ${IGGY_PASSWORD} consumer-group create measure ingest-batch ingest-batch-consumer || true;
+
+      iggy -u ${IGGY_USERNAME} -p ${IGGY_PASSWORD} topic create measure agent-slack 1 gzip 7d || true;
+
+      iggy -u ${IGGY_USERNAME} -p ${IGGY_PASSWORD} consumer-group create measure agent-slack agent-slack-consumer || true;
 
       wait %1
       "

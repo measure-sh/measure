@@ -1,5 +1,6 @@
 process.env.NEXT_PUBLIC_SITE_URL = "http://localhost:3000";
 process.env.API_BASE_URL = "http://localhost:8080";
+process.env.AGENT_BASE_URL = "http://localhost:8084";
 
 import { beforeAll, beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -85,7 +86,7 @@ describe("Google Callback Route", () => {
 
     // Should POST to MCP callback with state prefix stripped
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:8080/mcp/auth/callback",
+      "http://localhost:8084/mcp/auth/callback",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ code: "google-code", state: "xyz789" }),
@@ -267,7 +268,7 @@ describe("Google Callback Route", () => {
     );
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:8080/mcp/auth/callback",
+      "http://localhost:8084/mcp/auth/callback",
       expect.anything(),
     );
   });

@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 const origin = process.env.NEXT_PUBLIC_SITE_URL;
 const apiOrigin = process.env.API_BASE_URL;
+const agentOrigin = process.env.AGENT_BASE_URL;
 const posthog = getPosthogServer();
 
 export async function GET(request: Request) {
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
 
   // MCP flow: state starts with "mcp_" — forward to the MCP callback endpoint
   if (state.startsWith("mcp_")) {
-    const mcpRes = await fetch(`${apiOrigin}/mcp/auth/callback`, {
+    const mcpRes = await fetch(`${agentOrigin}/mcp/auth/callback`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code, state: state.slice(4) }),

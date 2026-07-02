@@ -10,8 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"backend/api/measure"
+	"backend/api/handlers"
 	"backend/api/server"
+	"backend/api/slackwebhook"
 	"backend/libs/concur"
 	"backend/libs/inet"
 	"backend/libs/posthog"
@@ -23,20 +24,24 @@ import (
 
 func main() {
 	config := server.NewConfig()
-	server.Init(config)
+	deps := server.Connect(config)
+	producer := server.NewAgentEventsProducer(config)
 
-	defer server.Server.PgPool.Close()
-	if server.Server.VK != nil {
-		defer server.Server.VK.Close()
+	defer deps.PgPool.Close()
+	if deps.VK != nil {
+		defer deps.VK.Close()
+	}
+	if producer != nil {
+		defer producer.Close()
 	}
 
 	// Close ClickHouse connection pool at shutdown
 	defer func() {
-		if err := server.Server.ChPool.Close(); err != nil {
+		if err := deps.ChPool.Close(); err != nil {
 			log.Fatalf("Unable to close clickhouse connection: %v", err)
 		}
 
-		if err := server.Server.RchPool.Close(); err != nil {
+		if err := deps.RchPool.Close(); err != nil {
 			log.Fatalf("Unable to close clickhouse readonly connection: %v", err)
 		}
 	}()
@@ -50,7 +55,12 @@ func main() {
 
 	r := gin.Default()
 
-	closeTracer := config.InitTracing()
+	// Handlers bound to the process infrastructure; their methods are the
+	// HTTP route handlers and middleware registered below.
+	hdl := handlers.New(deps)
+	sh := slackwebhook.New(deps, producer)
+
+	closeTracer := server.InitTracing(config)
 	// Close OTel tracer
 	defer func() {
 		if err := closeTracer(context.Background()); err != nil {
@@ -69,164 +79,170 @@ func main() {
 	})
 
 	// SDK routes
-	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
-	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuilds)
-	r.GET("/config", measure.ValidateAPIKey(), measure.GetConfigForSdk)
+	r.PUT("/events", hdl.ValidateAPIKey(), hdl.PutEvents)
+	r.PUT("/builds", hdl.ValidateAPIKey(), hdl.PutBuilds)
+	r.GET("/config", hdl.ValidateAPIKey(), hdl.GetConfigForSdk)
 
 	// Proxy routes
-	r.GET("/proxy/attachments", measure.ProxyAttachment)
-	r.PUT("/proxy/attachments", measure.ProxyAttachment)
+	r.GET("/proxy/attachments", hdl.ProxyAttachment)
+	r.PUT("/proxy/attachments", hdl.ProxyAttachment)
 	if !config.IsCloud() {
-		r.PUT("/proxy/symbols", measure.ProxySymbol)
+		r.PUT("/proxy/symbols", hdl.ProxySymbol)
 	}
 
 	// Auth routes
 	auth := r.Group("/auth")
 	{
-		auth.POST("github", measure.SigninGitHub)
-		auth.POST("google", measure.SigninGoogle)
-		auth.POST("validateInvite", measure.ValidateInvite)
-		auth.POST("refresh", measure.ValidateRefreshToken(), measure.RefreshToken)
-		auth.GET("session", measure.ValidateAccessToken(), measure.GetAuthSession)
-		auth.DELETE("signout", measure.ValidateRefreshToken(), measure.Signout)
+		auth.POST("github", hdl.SigninGitHub)
+		auth.POST("google", hdl.SigninGoogle)
+		auth.POST("validateInvite", hdl.ValidateInvite)
+		auth.POST("refresh", hdl.ValidateRefreshToken(), hdl.RefreshToken)
+		auth.GET("session", hdl.ValidateAccessToken(), hdl.GetAuthSession)
+		auth.DELETE("signout", hdl.ValidateRefreshToken(), hdl.Signout)
 	}
 
 	// Dashboard routes
-	apps := r.Group("/apps", measure.ValidateAccessToken())
+	apps := r.Group("/apps", hdl.ValidateAccessToken())
 	{
-		apps.GET(":id/journey", measure.GetAppJourney)
-		apps.GET(":id/metrics", measure.GetAppMetrics)
-		apps.GET(":id/health/plots/instances", measure.GetHealthOverviewPlotInstances)
-		apps.GET(":id/filters", measure.GetAppFilters)
+		apps.GET(":id/journey", hdl.GetAppJourney)
+		apps.GET(":id/metrics", hdl.GetAppMetrics)
+		apps.GET(":id/health/plots/instances", hdl.GetHealthOverviewPlotInstances)
+		apps.GET(":id/filters", hdl.GetAppFilters)
 
 		// crashes
-		apps.GET(":id/crashGroups", measure.GetCrashOverview)
-		apps.GET(":id/crashGroups/plots/instances", measure.GetCrashOverviewPlotInstances)
-		apps.GET(":id/crashGroups/:crashGroupId/crashes", measure.GetCrashDetailCrashes)
-		apps.GET(":id/crashGroups/:crashGroupId/path", measure.GetCrashGroupCommonPath)
-		apps.GET(":id/crashGroups/:crashGroupId/plots/instances", measure.GetCrashDetailPlotInstances)
-		apps.GET(":id/crashGroups/:crashGroupId/plots/distribution", measure.GetCrashDetailAttributeDistribution)
+		apps.GET(":id/crashGroups", hdl.GetCrashOverview)
+		apps.GET(":id/crashGroups/plots/instances", hdl.GetCrashOverviewPlotInstances)
+		apps.GET(":id/crashGroups/:crashGroupId/crashes", hdl.GetCrashDetailCrashes)
+		apps.GET(":id/crashGroups/:crashGroupId/path", hdl.GetCrashGroupCommonPath)
+		apps.GET(":id/crashGroups/:crashGroupId/plots/instances", hdl.GetCrashDetailPlotInstances)
+		apps.GET(":id/crashGroups/:crashGroupId/plots/distribution", hdl.GetCrashDetailAttributeDistribution)
 
 		// ANRs
-		apps.GET(":id/anrGroups", measure.GetANROverview)
-		apps.GET(":id/anrGroups/plots/instances", measure.GetANROverviewPlotInstances)
-		apps.GET(":id/anrGroups/:anrGroupId/anrs", measure.GetANRDetailANRs)
-		apps.GET(":id/anrGroups/:anrGroupId/path", measure.GetANRGroupCommonPath)
-		apps.GET(":id/anrGroups/:anrGroupId/plots/instances", measure.GetANRDetailPlotInstances)
-		apps.GET(":id/anrGroups/:anrGroupId/plots/distribution", measure.GetANRDetailAttributeDistribution)
+		apps.GET(":id/anrGroups", hdl.GetANROverview)
+		apps.GET(":id/anrGroups/plots/instances", hdl.GetANROverviewPlotInstances)
+		apps.GET(":id/anrGroups/:anrGroupId/anrs", hdl.GetANRDetailANRs)
+		apps.GET(":id/anrGroups/:anrGroupId/path", hdl.GetANRGroupCommonPath)
+		apps.GET(":id/anrGroups/:anrGroupId/plots/instances", hdl.GetANRDetailPlotInstances)
+		apps.GET(":id/anrGroups/:anrGroupId/plots/distribution", hdl.GetANRDetailAttributeDistribution)
 
 		// errors
-		apps.GET(":id/errorGroups", measure.GetErrorOverview)
-		apps.GET(":id/errorGroups/plots/instances", measure.GetErrorOverviewPlotInstances)
-		apps.GET(":id/errorGroups/:errorGroupId/errors", measure.GetErrorDetailErrors)
-		apps.GET(":id/errorGroups/:errorGroupId/path", measure.GetErrorGroupCommonPath)
-		apps.GET(":id/errorGroups/:errorGroupId/plots/instances", measure.GetErrorDetailPlotInstances)
-		apps.GET(":id/errorGroups/:errorGroupId/plots/distribution", measure.GetErrorDetailAttributeDistribution)
+		apps.GET(":id/errorGroups", hdl.GetErrorOverview)
+		apps.GET(":id/errorGroups/plots/instances", hdl.GetErrorOverviewPlotInstances)
+		apps.GET(":id/errorGroups/:errorGroupId/errors", hdl.GetErrorDetailErrors)
+		apps.GET(":id/errorGroups/:errorGroupId/path", hdl.GetErrorGroupCommonPath)
+		apps.GET(":id/errorGroups/:errorGroupId/plots/instances", hdl.GetErrorDetailPlotInstances)
+		apps.GET(":id/errorGroups/:errorGroupId/plots/distribution", hdl.GetErrorDetailAttributeDistribution)
 
 		// sessions
-		apps.GET(":id/sessions", measure.GetSessionsOverview)
-		apps.GET(":id/sessions/:sessionId", measure.GetSession)
-		apps.GET(":id/sessions/plots/instances", measure.GetSessionsOverviewPlotInstances)
+		apps.GET(":id/sessions", hdl.GetSessionsOverview)
+		apps.GET(":id/sessions/:sessionId", hdl.GetSession)
+		apps.GET(":id/sessions/plots/instances", hdl.GetSessionsOverviewPlotInstances)
 
 		// spans & traces
-		apps.GET(":id/spans/roots/names", measure.GetRootSpanNames)
-		apps.GET(":id/spans", measure.GetSpansForSpanName)
-		apps.GET(":id/spans/plots/metrics", measure.GetMetricsPlotForSpanName)
-		apps.GET(":id/traces/:traceId", measure.GetTrace)
+		apps.GET(":id/spans/roots/names", hdl.GetRootSpanNames)
+		apps.GET(":id/spans", hdl.GetSpansForSpanName)
+		apps.GET(":id/spans/plots/metrics", hdl.GetMetricsPlotForSpanName)
+		apps.GET(":id/traces/:traceId", hdl.GetTrace)
 
 		// bug reports
-		apps.GET(":id/bugReports", measure.GetBugReportsOverview)
-		apps.GET(":id/bugReports/plots/instances", measure.GetBugReportsInstancesPlot)
-		apps.GET(":id/bugReports/:bugReportId", measure.GetBugReport)
-		apps.PATCH(":id/bugReports/:bugReportId", measure.UpdateBugReportStatus)
+		apps.GET(":id/bugReports", hdl.GetBugReportsOverview)
+		apps.GET(":id/bugReports/plots/instances", hdl.GetBugReportsInstancesPlot)
+		apps.GET(":id/bugReports/:bugReportId", hdl.GetBugReport)
+		apps.PATCH(":id/bugReports/:bugReportId", hdl.UpdateBugReportStatus)
 
 		// alerts
-		apps.GET(":id/alerts", measure.GetAlertsOverview)
+		apps.GET(":id/alerts", hdl.GetAlertsOverview)
 
 		// threshold preferences
-		apps.GET(":id/thresholdPrefs", measure.GetAppThresholdPrefs)
-		apps.PATCH(":id/thresholdPrefs", measure.UpdateAppThresholdPrefs)
+		apps.GET(":id/thresholdPrefs", hdl.GetAppThresholdPrefs)
+		apps.PATCH(":id/thresholdPrefs", hdl.UpdateAppThresholdPrefs)
 
 		// app management
-		apps.GET(":id/config", measure.GetConfig)
-		apps.PATCH(":id/config", measure.PatchConfig)
-		apps.GET(":id/retention", measure.GetAppRetention)
-		apps.PATCH(":id/retention", measure.UpdateAppRetention)
+		apps.GET(":id/config", hdl.GetConfig)
+		apps.PATCH(":id/config", hdl.PatchConfig)
+		apps.GET(":id/retention", hdl.GetAppRetention)
+		apps.PATCH(":id/retention", hdl.UpdateAppRetention)
 
 		// network requests
-		apps.GET(":id/networkRequests/domains", measure.GetNetworkRequestsDomains)
-		apps.GET(":id/networkRequests/paths", measure.GetNetworkRequestsPaths)
-		apps.GET(":id/networkRequests/trends", measure.GetNetworkRequestsTrends)
-		apps.GET(":id/networkRequests/plots/overviewStatusCodes", measure.GetNetworkOverviewStatusCodesPlot)
-		apps.GET(":id/networkRequests/plots/overviewTimeline", measure.GetNetworkOverviewTimelinePlot)
-		apps.GET(":id/networkRequests/plots/endpointLatency", measure.GetNetworkEndpointLatencyPlot)
-		apps.GET(":id/networkRequests/plots/endpointStatusCodes", measure.GetNetworkEndpointStatusCodesPlot)
-		apps.GET(":id/networkRequests/plots/endpointTimeline", measure.GetNetworkEndpointTimelinePlot)
+		apps.GET(":id/networkRequests/domains", hdl.GetNetworkRequestsDomains)
+		apps.GET(":id/networkRequests/paths", hdl.GetNetworkRequestsPaths)
+		apps.GET(":id/networkRequests/trends", hdl.GetNetworkRequestsTrends)
+		apps.GET(":id/networkRequests/plots/overviewStatusCodes", hdl.GetNetworkOverviewStatusCodesPlot)
+		apps.GET(":id/networkRequests/plots/overviewTimeline", hdl.GetNetworkOverviewTimelinePlot)
+		apps.GET(":id/networkRequests/plots/endpointLatency", hdl.GetNetworkEndpointLatencyPlot)
+		apps.GET(":id/networkRequests/plots/endpointStatusCodes", hdl.GetNetworkEndpointStatusCodesPlot)
+		apps.GET(":id/networkRequests/plots/endpointTimeline", hdl.GetNetworkEndpointTimelinePlot)
 
 		// misc
-		apps.PATCH(":id/rename", measure.RenameApp)
-		apps.PATCH(":id/apiKey", measure.RotateApiKey)
+		apps.PATCH(":id/rename", hdl.RenameApp)
+		apps.PATCH(":id/apiKey", hdl.RotateApiKey)
 
 		// filters
-		apps.POST(":id/shortFilters", measure.CreateShortFilters)
+		apps.POST(":id/shortFilters", hdl.CreateShortFilters)
 	}
 
-	teams := r.Group("/teams", measure.ValidateAccessToken())
+	teams := r.Group("/teams", hdl.ValidateAccessToken())
 	{
-		teams.POST("", measure.CreateTeam)
-		teams.GET("", measure.GetTeams)
-		teams.GET(":id/apps", measure.GetTeamApps)
-		teams.GET(":id/apps/:appId", measure.GetTeamApp)
-		teams.POST(":id/apps", measure.CreateApp)
-		teams.GET(":id/invites", measure.GetValidTeamInvites)
-		teams.POST(":id/invite", measure.InviteMembers)
-		teams.PATCH(":id/invite/:inviteId", measure.ResendInvite)
-		teams.DELETE(":id/invite/:inviteId", measure.RemoveInvite)
-		teams.PATCH(":id/rename", measure.RenameTeam)
-		teams.PATCH(":id/members/:memberId/role", measure.ChangeMemberRole)
-		teams.GET(":id/authz", measure.GetAuthzRoles)
-		teams.GET(":id/members", measure.GetTeamMembers)
-		teams.DELETE(":id/members/:memberId", measure.RemoveTeamMember)
-		teams.GET(":id/usage", measure.GetUsage)
-		teams.GET(":id/slack", measure.GetTeamSlack)
-		teams.PATCH(":id/slack/status", measure.UpdateTeamSlackStatus)
-		teams.POST(":id/slack/test", measure.SendTestSlackAlert)
-		teams.GET(":id/billing/info", measure.GetTeamBilling)
-		teams.PATCH(":id/billing/checkout", measure.CreateCheckoutSession)
-		teams.PATCH(":id/billing/downgrade", measure.CancelAndDowngradeToFreePlan)
-		teams.PATCH(":id/billing/undo-downgrade", measure.UndoDowngradeToFreePlan)
-		teams.POST(":id/billing/portal", measure.CreateCustomerPortalSession)
+		teams.POST("", hdl.CreateTeam)
+		teams.GET("", hdl.GetTeams)
+		teams.GET(":id/apps", hdl.GetTeamApps)
+		teams.GET(":id/apps/:appId", hdl.GetTeamApp)
+		teams.POST(":id/apps", hdl.CreateApp)
+		teams.GET(":id/invites", hdl.GetValidTeamInvites)
+		teams.POST(":id/invite", hdl.InviteMembers)
+		teams.PATCH(":id/invite/:inviteId", hdl.ResendInvite)
+		teams.DELETE(":id/invite/:inviteId", hdl.RemoveInvite)
+		teams.PATCH(":id/rename", hdl.RenameTeam)
+		teams.PATCH(":id/members/:memberId/role", hdl.ChangeMemberRole)
+		teams.GET(":id/authz", hdl.GetAuthzRoles)
+		teams.GET(":id/members", hdl.GetTeamMembers)
+		teams.DELETE(":id/members/:memberId", hdl.RemoveTeamMember)
+		teams.GET(":id/usage", hdl.GetUsage)
+		teams.GET(":id/slack", hdl.GetTeamSlack)
+		teams.PATCH(":id/slack/status", hdl.UpdateTeamSlackStatus)
+		teams.POST(":id/slack/test", hdl.SendTestSlackAlert)
+		teams.GET(":id/billing/info", hdl.GetTeamBilling)
+		teams.PATCH(":id/billing/checkout", hdl.CreateCheckoutSession)
+		teams.PATCH(":id/billing/downgrade", hdl.CancelAndDowngradeToFreePlan)
+		teams.PATCH(":id/billing/undo-downgrade", hdl.UndoDowngradeToFreePlan)
+		teams.POST(":id/billing/portal", hdl.CreateCustomerPortalSession)
 	}
 
 	// Preferences
-	prefs := r.Group("/prefs", measure.ValidateAccessToken())
+	prefs := r.Group("/prefs", hdl.ValidateAccessToken())
 	{
-		prefs.GET("notifPrefs", measure.GetNotifPrefs)
-		prefs.PATCH("notifPrefs", measure.UpdateNotifPrefs)
+		prefs.GET("notifPrefs", hdl.GetNotifPrefs)
+		prefs.PATCH("notifPrefs", hdl.UpdateNotifPrefs)
 	}
 
 	slack := r.Group("/slack")
 	{
-		slack.POST("/connect", measure.ConnectTeamSlack)
-		slack.POST("/events", measure.HandleSlackEvents)
+		slack.POST("/connect", hdl.ConnectTeamSlack)
+		slack.POST("/events", sh.HandleSlackEvents)
 	}
 
 	autumn := r.Group("/autumn")
 	{
-		autumn.POST("/webhook", measure.HandleAutumnWebhook)
+		autumn.POST("/webhook", hdl.HandleAutumnWebhook)
 	}
 
-	// MCP OAuth 2.0 Authorization Server endpoints
-	r.GET("/.well-known/oauth-authorization-server", measure.MCPOAuthMetadata)
-	r.POST("/oauth/register", measure.MCPRegisterClient)
-	r.GET("/oauth/authorize", measure.MCPAuthorize)
-	r.POST("/mcp/auth/callback", measure.MCPCallbackExchange)
-	r.POST("/oauth/token", measure.MCPToken)
-
-	// MCP Streamable HTTP transport
-	mcpHandler := measure.NewMCPHandler()
-	r.POST("/mcp", measure.ValidateMCPToken(), gin.WrapH(mcpHandler))
-	r.GET("/mcp", measure.ValidateMCPToken(), gin.WrapH(mcpHandler))
+	// The MCP endpoints live in the agent service. Clients still pointing
+	// here get an error that says where to go, instead of a plain 404.
+	mcpMoved := func(c *gin.Context) {
+		msg := "The Measure MCP server has moved"
+		if config.AgentOrigin != "" {
+			msg = fmt.Sprintf("%s to %s/mcp", msg, config.AgentOrigin)
+		}
+		msg += ". Update your MCP client's server URL and re-authenticate."
+		c.JSON(http.StatusGone, gin.H{"error": msg})
+	}
+	r.GET("/.well-known/oauth-authorization-server", mcpMoved)
+	r.POST("/oauth/register", mcpMoved)
+	r.GET("/oauth/authorize", mcpMoved)
+	r.POST("/mcp/auth/callback", mcpMoved)
+	r.POST("/oauth/token", mcpMoved)
+	r.POST("/mcp", mcpMoved)
+	r.GET("/mcp", mcpMoved)
 
 	port := os.Getenv("PORT")
 	if port == "" {

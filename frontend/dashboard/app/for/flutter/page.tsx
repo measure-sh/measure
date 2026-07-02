@@ -5,6 +5,7 @@ import ForPlatformPage, {
   type PlatformFeature,
 } from "../../components/for_platform_page";
 import { underlineLinkStyle } from "../../utils/shared_styles";
+import { codingAgents } from "../../utils/coding_agents";
 
 export const metadata: Metadata = {
   title: "Flutter Crash Reporting and Performance Monitoring",
@@ -171,16 +172,7 @@ const features: PlatformFeature[] = [
   },
   {
     heading: "Coding Agents",
-    logos: [
-      { src: "/images/coding_agents/claudecode.svg", alt: "Claude Code" },
-      { src: "/images/coding_agents/cursor.svg", alt: "Cursor" },
-      { src: "/images/coding_agents/codex.svg", alt: "Codex" },
-      { src: "/images/coding_agents/gemini.svg", alt: "Gemini CLI" },
-      { src: "/images/coding_agents/windsurf.svg", alt: "Windsurf" },
-      { src: "/images/coding_agents/cline.svg", alt: "Cline" },
-      { src: "/images/coding_agents/opencode.svg", alt: "opencode" },
-      { src: "/images/coding_agents/kilocode.svg", alt: "Kilo Code" },
-    ],
+    logos: codingAgents,
     body: (
       <>
         Bring Measure&apos;s full context into the coding agents you already
@@ -193,9 +185,13 @@ const features: PlatformFeature[] = [
         <br />
         <br />
         Point it at a crash, work through user sessions, or build it into an
-        agentic triage and debugging pipeline. Whether you&apos;re on Claude
-        Code or Codex, or you prefer open source agents and models, Measure
-        drops straight into your workflow.
+        agentic triage and debugging pipeline. Whether you prefer commercial
+        tools or open source agents and models, Measure drops straight into your
+        workflow.
+        <br />
+        <br />
+        Works great with Claude Code, OpenAI Codex, Google Antigravity, Cursor,
+        OpenCode, Pi, Devin, Kilo Code, Cline, Roo Code and others.
       </>
     ),
   },

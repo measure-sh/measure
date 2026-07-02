@@ -169,6 +169,12 @@ Optionally, you can set up a Slack app if you want to receive alert notification
 
 Once your slack integration is set up, copy the values and enter in the relevant prompts. If you wish to ignore it, enter empty values and proceed.
 
+Optionally, you can set up Measure Agent so you can debug your app from your coding agent or Slack. Follow the below link to configure it:
+
+- [Set up Measure Agent](./agent.md)
+
+Once set up, copy the OpenRouter values and enter them in the relevant prompts. If you wish to ignore it, enter empty values and proceed.
+
 Once completed, the install script will attempt to start all the Measure docker compose services. You should see a similar output.
 
 <p align="center">

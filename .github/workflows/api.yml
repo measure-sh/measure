@@ -112,8 +112,6 @@ jobs:
           file: backend/api/dockerfile
           build-contexts: |
             libs=backend/libs
-            email=backend/email
-            autumn=backend/autumn
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |

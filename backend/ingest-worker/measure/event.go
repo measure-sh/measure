@@ -1,15 +1,15 @@
 package measure
 
 import (
-	"backend/api/event"
-	"backend/api/group"
-	"backend/api/span"
 	"backend/ingest-worker/server"
 	"backend/ingest-worker/symbolicator"
 	"backend/libs/ambient"
 	"backend/libs/chrono"
+	"backend/libs/event"
+	"backend/libs/group"
 	"backend/libs/inet"
 	"backend/libs/opsys"
+	"backend/libs/span"
 	"context"
 	"database/sql"
 	"encoding/base64"

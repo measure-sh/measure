@@ -56,6 +56,7 @@ feature's documentation to understand its underlying mechanism and enhance your 
 * [**Alert Notifications**](features/feature-alerts.md) — Receive Crash & ANR spike alerts and Daily Summaries for core app metrics.
 * [**Slack Integration**](features/feature-slack-integration.md) — Connect Slack to receive alert notifications and daily summaries
 * [**MCP Server**](features/feature-mcp.md) — Let AI tools like Claude Code query your app's crash and error data
+* [**Measure Agent**](features/feature-agent.md) — Debug your app with full context, from your coding agent or Slack
 
 # Configuration Options
 

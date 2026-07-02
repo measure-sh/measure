@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"log"
 
-	"backend/autumn"
 	"backend/ingest/server"
+	"backend/libs/autumn"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"

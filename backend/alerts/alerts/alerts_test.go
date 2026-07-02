@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"backend/alerts/server"
-	"backend/autumn"
-	autumntest "backend/autumn/testhelpers"
-	"backend/email"
+	"backend/libs/autumn"
+	autumntest "backend/libs/autumn/testhelpers"
+	"backend/libs/email"
 
 	"github.com/google/uuid"
 )

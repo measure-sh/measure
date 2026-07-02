@@ -1,7 +1,7 @@
 package symbolicator
 
 import (
-	"backend/api/event"
+	"backend/libs/event"
 	"testing"
 	"time"
 

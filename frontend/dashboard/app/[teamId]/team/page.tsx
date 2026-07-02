@@ -37,13 +37,17 @@ import {
   TableRow,
 } from "@/app/components/table";
 import { isCloud } from "@/app/utils/env_utils";
-import { underlineLinkStyle } from "@/app/utils/shared_styles";
+import { slackConnectionNeedsReauth } from "@/app/utils/slack_scopes";
+import {
+  underlineLinkStyle,
+  warningCalloutStyle,
+} from "@/app/utils/shared_styles";
 import { formatToCamelCase } from "@/app/utils/string_utils";
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
 import { toastNegative, toastPositive } from "@/app/utils/use_toast";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 
 export default function TeamOverview(props: {
@@ -87,6 +91,12 @@ export default function TeamOverview(props: {
 
   // Use authzAndMembers data or fallback defaults
   const authz = authzAndMembers ?? defaultAuthzAndMembers;
+
+  // A team that connected Slack before newer scopes were added keeps a token
+  // frozen at the old scopes. Slack never prompts existing installs, so we detect
+  // the gap and prompt an admin to reconnect.
+  const needsSlackReauth =
+    teamSlack != null && slackConnectionNeedsReauth(teamSlack.scopes);
 
   // TanStack Query: mutations
   const changeTeamNameMutation = useChangeTeamNameMutation();
@@ -144,29 +154,43 @@ export default function TeamOverview(props: {
   ] = useState(false);
 
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  if (typeof window !== "undefined") {
-    const errorMsgParam = "error";
-    const errorMsg = searchParams.get(errorMsgParam);
-    if (errorMsg) {
-      toastNegative(`${errorMsg}`);
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete(errorMsgParam);
-      const newUrl = `${window.location.pathname}?${params.toString()}`;
-      window.history.replaceState({}, "", newUrl);
-    }
+  // Show a toast for an error or success message passed as a query param, for
+  // example after the Slack OAuth redirect, then strip it from the URL. This runs
+  // in an effect so the toast dispatch never happens during render. The params
+  // are read from window.location rather than useSearchParams: they only arrive
+  // on a full-page redirect, so a one-time read at mount always sees them, and
+  // nothing rendered depends on them, so there is no param change to subscribe to.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
 
-    const successMsgParam = "success";
-    const successMsg = searchParams.get(successMsgParam);
-    if (successMsg) {
-      toastPositive(`${successMsg}`);
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete(successMsgParam);
-      const newUrl = `${window.location.pathname}?${params.toString()}`;
-      window.history.replaceState({}, "", newUrl);
-    }
-  }
+      const errorMsg = params.get("error");
+      if (errorMsg) {
+        toastNegative(`${errorMsg}`);
+        params.delete("error");
+      }
+
+      const successMsg = params.get("success");
+      if (successMsg) {
+        toastPositive(`${successMsg}`);
+        params.delete("success");
+      }
+
+      if (errorMsg || successMsg) {
+        const query = params.toString();
+        window.history.replaceState(
+          {},
+          "",
+          query
+            ? `${window.location.pathname}?${query}`
+            : window.location.pathname,
+        );
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const teamNameChangeSessionKey = "teamNameChanged";
 
@@ -500,7 +524,8 @@ export default function TeamOverview(props: {
                 <span className="font-display font-bold">{team!.name}</span>?
                 <br />
                 <br />
-                This will stop all Slack notifications for this team.
+                This will stop all Slack alerts and Measure Agent&apos;s replies
+                in Slack.
               </p>
             }
             open={disableSlackConfirmationDialogOpen}
@@ -940,6 +965,29 @@ export default function TeamOverview(props: {
             slackStatusQueryStatus === "success" &&
             teamSlack !== null && (
               <div className="flex flex-col w-full">
+                {needsSlackReauth && (
+                  <div
+                    className={`${warningCalloutStyle} mb-6 flex flex-col gap-2`}
+                  >
+                    <span>
+                      This Slack connection is missing newer permissions.
+                      Reconnect to enable Measure Agent. Slack does not prompt
+                      existing connections about new permissions.
+                    </span>
+                    {authz.can_manage_slack ? (
+                      <Link
+                        href={teamSlackConnectUrl!}
+                        className="font-semibold underline w-fit whitespace-nowrap"
+                      >
+                        Reconnect Slack →
+                      </Link>
+                    ) : (
+                      <span className="whitespace-nowrap italic">
+                        Ask a team admin to reconnect.
+                      </span>
+                    )}
+                  </div>
+                )}
                 <div className="flex flex-row w-full items-center justify-between">
                   <p className="font-body">
                     Connected to{" "}

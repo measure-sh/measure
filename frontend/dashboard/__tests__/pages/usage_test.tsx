@@ -1342,6 +1342,83 @@ describe("Usage Page", () => {
     ).toBeInTheDocument();
   });
 
+  it("Pro plan Token credits line shows 'X of Y used' when agent credits have been used", async () => {
+    useUsageStore.setState({
+      fetchBillingInfoApiStatus: 1,
+      billingInfo: {
+        ...proBillingInfo,
+        token_credits_used: 1_500_000,
+        token_credits_granted: 10_000_000,
+      },
+      currentUserCanChangePlan: true,
+    });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    expect(screen.getByText(/^Token credits:/)).toBeInTheDocument();
+    expect(screen.getByText(/1\.5M of 10M used/)).toBeInTheDocument();
+  });
+
+  it("Pro plan Token credits line is hidden when no agent credits have been used", async () => {
+    // proBillingInfo carries no token credit fields, so usage is zero and the
+    // line must not render — we only surface credits once the agent has run.
+    useUsageStore.setState({
+      fetchBillingInfoApiStatus: 1,
+      billingInfo: proBillingInfo,
+      currentUserCanChangePlan: true,
+    });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    // Data still renders; Token credits does not.
+    expect(screen.getByText(/^Data:/)).toBeInTheDocument();
+    expect(screen.queryByText(/^Token credits:/)).not.toBeInTheDocument();
+  });
+
+  it("Pro plan Token credits line reads 'X used' when the plan grants no credit allowance", async () => {
+    useUsageStore.setState({
+      fetchBillingInfoApiStatus: 1,
+      billingInfo: {
+        ...proBillingInfo,
+        token_credits_used: 1_500_000,
+        token_credits_granted: 0,
+      },
+      currentUserCanChangePlan: true,
+    });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    expect(screen.getByText(/^Token credits:/)).toBeInTheDocument();
+    expect(screen.getByText(/^1\.5M used$/)).toBeInTheDocument();
+    // No granted allowance, so it must not fall into the "X of Y used" form.
+    expect(screen.queryByText(/1\.5M of/)).not.toBeInTheDocument();
+  });
+
+  it("Pro plan Token credits line appends ', Z overage' when used > granted and overage is allowed", async () => {
+    useUsageStore.setState({
+      fetchBillingInfoApiStatus: 1,
+      billingInfo: {
+        ...proBillingInfo,
+        token_credits_used: 12_000_000,
+        token_credits_granted: 10_000_000,
+        token_credits_overage_allowed: true,
+      },
+      currentUserCanChangePlan: true,
+    });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    expect(screen.getByText(/12M of 10M used, 2M overage/)).toBeInTheDocument();
+  });
+
   it("Subscription block (Status/Cycle/Data) is hidden on pro when status is missing", async () => {
     // The Data line on Pro lives inside the subscription block; if status
     // isn't populated yet the whole block is omitted, so "Data:" must not
