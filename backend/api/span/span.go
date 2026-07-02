@@ -67,7 +67,7 @@ const (
 	maxAppVersionChars         = 128
 	maxAppBuildChars           = 32
 	maxAppUniqueIDChars        = 128
-	maxPatchIDChars            = 1024
+	maxPatchVersionChars       = 256
 	maxMeasureSDKVersion       = 16
 	maxNetworkTypeChars        = 16
 	maxNetworkGenerationChars  = 8
@@ -83,7 +83,8 @@ type CheckPointField struct {
 type SpanAttributes struct {
 	AppUniqueID              string    `json:"app_unique_id" binding:"required"`
 	InstallationID           uuid.UUID `json:"installation_id" binding:"required"`
-	PatchID                  string    `json:"patch_id"`
+	PatchID                  uuid.UUID `json:"patch_id"`
+	PatchVersion             string    `json:"patch_version"`
 	UserID                   string    `json:"user_id"`
 	MeasureSDKVersion        string    `json:"measure_sdk_version" binding:"required"`
 	AppVersion               string    `json:"app_version" binding:"required"`
@@ -286,8 +287,8 @@ func (s *SpanField) Validate(opts ...ingest.ValidationOptions) error {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.app_unique_id`, maxAppUniqueIDChars)
 	}
 
-	if len(s.Attributes.PatchID) > maxPatchIDChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.patch_id`, maxPatchIDChars)
+	if len(s.Attributes.PatchVersion) > maxPatchVersionChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.patch_version`, maxPatchVersionChars)
 	}
 
 	if len(s.Attributes.UserID) > maxUserIDChars {
