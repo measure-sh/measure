@@ -202,23 +202,9 @@ Add the following to your app's Application class `onCreate` method.
 
 ```kotlin
 Measure.init(
-    context, MeasureConfig(
-        // Enable full collection in debug mode
-        // to verify installation
-        enableFullCollectionMode = true,
-    )
+    context, MeasureConfig()
 )
 ```
-
-### Enable Full Collection Mode
-
-The init snippet above sets `enableFullCollectionMode = true`, which forces all data to be sent to the server
-regardless of sampling. This makes it easy to verify the installation by confirming that events from your app
-are reaching the dashboard.
-
-> [!IMPORTANT]
-> Enabling full collection mode in production can lead to high costs. Disable or remove this flag for release
-> builds and rely on sampling instead. See [Configuration Options](features/configuration-options.md) for details.
 
 See the [troubleshooting](#troubleshoot) section if you face any issues.
 
@@ -312,11 +298,7 @@ import Measure
 
 func application(_ application: UIApplication,
                  didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-    let config = BaseMeasureConfig(
-        // Set to true to track all sessions
-        // useful to verify the installation
-        enableFullCollectionMode: true
-    )
+    let config = BaseMeasureConfig()
     let clientInfo = ClientInfo(apiKey: "<apiKey>", apiUrl: "<apiUrl>")
     Measure.initialize(with: clientInfo, config: config)
     return true
@@ -333,7 +315,7 @@ func application(_ application: UIApplication,
                                                            autoStart:YES
                                                            requestHeadersProvider:NULL
                                                            maxDiskUsageInMb:50
-                                                           enableFullCollectionMode:YES
+                                                           enableFullCollectionMode:NO
                                                            enableDiagnosticMode:NO
                                                            enableDiagnosticModeGesture:NO];
     [Measure initializeWith:clientInfo config:config];
@@ -341,16 +323,6 @@ func application(_ application: UIApplication,
   }
 
 ```
-
-### Enable Full Collection Mode
-
-The init snippet above sets `enableFullCollectionMode` to `true`, which forces all data to be sent to the
-server regardless of sampling. This makes it easy to verify the installation by confirming that events from
-your app are reaching the dashboard.
-
-> [!IMPORTANT]
-> Enabling full collection mode in production can lead to high costs. Disable or remove this flag for release
-> builds and rely on sampling instead. See [Configuration Options](features/configuration-options.md) for details.
 
 ## Flutter
 
@@ -423,17 +395,6 @@ This does the following:
 - Initializes the Measure SDK with the provided `config`.
 - Wraps your app with the `MeasureWidget` for gesture detection and layout snapshots.
 - Sets up the error handlers to track uncaught exceptions.
-
-### Enable Full Collection Mode
-
-The Flutter SDK depends on the native SDKs, so `enableFullCollectionMode` must be set to `true` in both the
-Android and iOS native SDK initializations (see the Android and iOS sections above). This forces all data to
-be sent to the server regardless of sampling, which makes it easy to verify the installation by confirming
-that events from your app are reaching the dashboard.
-
-> [!IMPORTANT]
-> Enabling full collection mode in production can lead to high costs. Disable or remove this flag for release
-> builds and rely on sampling instead. See [Configuration Options](features/configuration-options.md) for details.
 
 ### Flutter Android Setup
 
@@ -774,48 +735,11 @@ There are several configuration options available to customize the SDK behavior.
 initialization, while others can be configured remotely from the dashboard. Review the [Configuration Options](features/configuration-options.md)
 section to learn more about these options and how to use them effectively.
 
-For debug builds, it's recommended to set `enableFullCollectionMode` to `true` during initialization to ensure all data is
-collected for verification purposes. In release builds, you can adjust the sampling rates and other settings as needed
-to balance signal vs noise and optimize costs.
+By default, all data is collected without sampling, so you can verify your installation right away. In release
+builds, you can adjust the sampling rates and other settings as needed to balance signal vs noise and optimize
+costs.
 
 ## Troubleshoot
-
-### Enable full collection mode for debug builds
-
-Set `enableFullCollectionMode` to `true`, which would enforce all data to be sent to the server. Do note that for
-production this can lead to high costs, so it should only be used for debugging purposes.
-
-<details>
-    <summary>Android</summary>
-
-```kotlin
-val config = MeasureConfig(
-  enableFullCollectionMode = true,
-)
-Measure.init(context, config)
-```
-
-</details>
-
-<details>
-    <summary>iOS</summary>
-
-```swift
-let config = BaseMeasureConfig(
-    enableFullCollectionMode: true
-)
-Measure.initialize(with: clientInfo, config: config)
-```
-
-</details>
-
-<details>
-    <summary>Flutter</summary>
-
-Flutter SDK depends on the native SDKs, so you need to set `enableFullCollectionMode` to `true` in both
-Android and iOS native SDK initializations.
-
-</details>
 
 ### Verify API URL and API Key
 

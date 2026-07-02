@@ -25,13 +25,13 @@ internal interface IDynamicConfig {
     val bugReportTimelineDurationSeconds: Int
 
     /**
-     * Sampling rate for traces. Defaults to 0.01%, which means one in 10000 traces will be sampled.
+     * Sampling rate for traces. Defaults to 100%, which means all traces will be sampled.
      */
     val traceSamplingRate: Float
 
     /**
      * Sampling rate in percentage for sessions that should track journey events. Defaults
-     * to 0.01%, which means one in 10000 sessions will track journey events.
+     * to 100%, which means all sessions will track journey events.
      */
     val journeySamplingRate: Float
 
@@ -62,7 +62,7 @@ internal interface IDynamicConfig {
     val anrTakeScreenshot: Boolean
 
     /**
-     * Sampling rate for launch metrics in percentage. Defaults to 0.01%, i.e., 1 in 10000.
+     * Sampling rate for launch metrics in percentage. Defaults to 100%, i.e., all launches.
      */
     val launchSamplingRate: Float
 
@@ -72,8 +72,8 @@ internal interface IDynamicConfig {
     val gestureClickTakeSnapshot: Boolean
 
     /**
-     * Sampling rate for HTTP events. Defaults to 0.01%, which means
-     * one in 10000 HTTP events will be sampled.
+     * Sampling rate for HTTP events. Defaults to 100%, which means
+     * all HTTP events will be sampled.
      */
     val httpSamplingRate: Float
 
@@ -127,10 +127,10 @@ internal data class DynamicConfig(
     override val bugReportTimelineDurationSeconds: Int = 300,
 
     @SerialName("trace_sampling_rate")
-    override val traceSamplingRate: Float = 0.01f,
+    override val traceSamplingRate: Float = 100f,
 
     @SerialName("journey_sampling_rate")
-    override val journeySamplingRate: Float = 0.01f,
+    override val journeySamplingRate: Float = 100f,
 
     @SerialName("screenshot_mask_level")
     override val screenshotMaskLevel: ScreenshotMaskLevel =
@@ -149,13 +149,13 @@ internal data class DynamicConfig(
     override val anrTakeScreenshot: Boolean = true,
 
     @SerialName("launch_sampling_rate")
-    override val launchSamplingRate: Float = 0.01f,
+    override val launchSamplingRate: Float = 100f,
 
     @SerialName("gesture_click_take_snapshot")
     override val gestureClickTakeSnapshot: Boolean = true,
 
     @SerialName("http_sampling_rate")
-    override val httpSamplingRate: Float = 0.01f,
+    override val httpSamplingRate: Float = 100f,
 
     @SerialName("http_disable_event_for_urls")
     override val httpDisableEventForUrls: List<String> = emptyList(),

@@ -25,11 +25,11 @@ protocol DynamicConfig {
     var bugReportTimelineDurationSeconds: Number { get }
 
     /// Sampling rate for traces.
-    /// Defaults to 0.01%, i.e. 1 in 10,000 traces.
+    /// Defaults to 100%, i.e. all traces.
     var traceSamplingRate: Float { get }
 
     /// Sampling rate for sessions that should track journey events.
-    /// Defaults to 0.01%, i.e. 1 in 10,000 sessions.
+    /// Defaults to 100%, i.e. all sessions.
     var journeySamplingRate: Float { get }
 
     /// Screenshot masking level.
@@ -52,7 +52,7 @@ protocol DynamicConfig {
     var anrTakeScreenshot: Bool { get }
 
     /// Sampling rate for launch metrics.
-    /// Defaults to 0.01%.
+    /// Defaults to 100%.
     var launchSamplingRate: Float { get }
 
     /// Whether to take a layout snapshot on gesture click.
@@ -60,7 +60,7 @@ protocol DynamicConfig {
     var gestureClickTakeSnapshot: Bool { get }
 
     /// Sampling rate for htto events.
-    /// Defaults to 0.01%.
+    /// Defaults to 100%.
     var httpSamplingRate: Float { get }
     
     /// URLs for which HTTP events should be disabled.

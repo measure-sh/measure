@@ -13,10 +13,10 @@ export interface IDynamicConfig {
   /** Duration of session timeline collected with a bug report, in seconds. Defaults to 300. */
   bugReportTimelineDurationSeconds: number;
 
-  /** Sampling rate for traces. Defaults to 0.01 */
+  /** Sampling rate for traces. Defaults to 100 */
   traceSamplingRate: number;
 
-  /** Sampling rate for sessions that should track journey events. Defaults to 0.01 */
+  /** Sampling rate for sessions that should track journey events. Defaults to 100 */
   journeySamplingRate: number;
 
   /** Screenshot masking level */
@@ -34,7 +34,7 @@ export interface IDynamicConfig {
   /** Whether to take a screenshot on ANR. Defaults to true. */
   anrTakeScreenshot: boolean;
 
-  /** Sampling rate for launch metrics. Defaults to 0.01 */
+  /** Sampling rate for launch metrics. Defaults to 100 */
   launchSamplingRate: number;
 
   /** Whether to take a layout snapshot on gesture click. Defaults to true. */
@@ -99,14 +99,14 @@ export class DynamicConfig implements IDynamicConfig {
       crashTimelineDurationSeconds: 300,
       anrTimelineDurationSeconds: 300,
       bugReportTimelineDurationSeconds: 300,
-      traceSamplingRate: 0.01,
-      journeySamplingRate: 0.01,
+      traceSamplingRate: 100,
+      journeySamplingRate: 100,
       screenshotMaskLevel: ScreenshotMaskLevel.allTextAndMedia,
       cpuUsageInterval: 5,
       memoryUsageInterval: 5,
       crashTakeScreenshot: true,
       anrTakeScreenshot: true,
-      launchSamplingRate: 0.01,
+      launchSamplingRate: 100,
       gestureClickTakeSnapshot: true,
       httpDisableEventForUrls: [],
       httpTrackRequestForUrls: [],

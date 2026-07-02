@@ -102,10 +102,7 @@ import sh.measure.android.Measure
 import sh.measure.android.config.MeasureConfig
 
 Measure.init(
-    this, MeasureConfig(
-        // Collect all data without sampling. You can adjust sample rates later if you choose to.
-        enableFullCollectionMode = true,
-    )
+    this, MeasureConfig()
 )`,
   };
 }
@@ -147,10 +144,7 @@ function iosInitSnippet(
 import Measure
 
 let clientInfo = ClientInfo(apiKey: "${apiKey}", apiUrl: "${apiUrl}")
-let config = BaseMeasureConfig(
-    // Collect all data without sampling. You can adjust sample rates later if you choose to.
-    enableFullCollectionMode: true
-)
+let config = BaseMeasureConfig()
 Measure.initialize(with: clientInfo, config: config)`,
   };
 }
