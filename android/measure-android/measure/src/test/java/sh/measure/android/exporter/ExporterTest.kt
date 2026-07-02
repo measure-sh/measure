@@ -17,8 +17,10 @@ import org.mockito.Mockito.never
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argThat
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.inOrder
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoMoreInteractions
 import org.mockito.kotlin.whenever
@@ -44,7 +46,7 @@ internal class ExporterTest {
     private val logger = NoopLogger()
     private val attachmentExecutorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val eventExecutorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
-    private val idProvider = FakeIdProvider()
+    private val idProvider = FakeIdProvider(autoIncrement = true)
     private val context =
         InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
     private val database = DatabaseImpl(context, logger)
@@ -195,6 +197,43 @@ internal class ExporterTest {
             any(),
             any(),
         )
+    }
+
+    @Test
+    fun `caps batch size at payload limit when config limit is larger`() {
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
+        // Payload limit: 10 MB / 1 KB estimated per signal = 10_240 signals per batch.
+        // The config limit is set higher, so the payload limit should take effect.
+        configProvider.maxEventsInBatch = 20_000
+
+        insertSessionInDb("session1")
+        insertEventsInDb("session1", count = 10_241)
+
+        exporter.export()
+
+        // 10_241 events split into batches of 10_240 and 1.
+        val eventsCaptor = argumentCaptor<List<EventPacket>>()
+        verify(networkClient, times(2)).execute(any(), eventsCaptor.capture(), any())
+        val batchSizes = eventsCaptor.allValues.map { it.size }.sortedDescending()
+        assertEquals(listOf(10_240, 1), batchSizes)
+    }
+
+    @Test
+    fun `uses config limit when smaller than payload limit`() {
+        whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
+        // Config limit (5) is smaller than the payload limit (10_240), so it wins.
+        configProvider.maxEventsInBatch = 5
+
+        insertSessionInDb("session1")
+        insertEventsInDb("session1", count = 6)
+
+        exporter.export()
+
+        // 6 events split into batches of 5 and 1.
+        val eventsCaptor = argumentCaptor<List<EventPacket>>()
+        verify(networkClient, times(2)).execute(any(), eventsCaptor.capture(), any())
+        val batchSizes = eventsCaptor.allValues.map { it.size }.sortedDescending()
+        assertEquals(listOf(5, 1), batchSizes)
     }
 
     @Test
@@ -805,6 +844,20 @@ internal class ExporterTest {
                 isSampled = sampled,
             ),
         )
+    }
+
+    private fun insertEventsInDb(sessionId: String, count: Int) {
+        // Wrap in a single transaction so bulk inserts stay fast.
+        val db = database.writableDatabase
+        db.beginTransaction()
+        try {
+            for (i in 0 until count) {
+                insertEventInDb(sessionId, "event$i", sampled = true)
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
     }
 
     private fun insertBatchInDb(
