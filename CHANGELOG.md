@@ -105,6 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Change sampling rate defaults for SDK config (#3982) by @abhaysood in #3982
 - (**backend**): Add cloud sql iam database authn (#3975) by @detj in #3975
 - (**backend**): Drop `patch_id` from `PUT /builds` (#3968) by @detj in #3968
 - (**backend**): Extend cleanup to cover all resources (#3954) by @detj in #3954
