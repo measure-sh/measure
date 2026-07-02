@@ -335,7 +335,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         startTime: Long,
         endTime: Long,
         statusCode: Int?,
-        error: Exception?,
+        error: Throwable?,
         requestHeaders: MutableMap<String, String>?,
         responseHeaders: MutableMap<String, String>?,
         requestBody: String?,

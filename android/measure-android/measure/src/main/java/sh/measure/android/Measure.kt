@@ -497,7 +497,7 @@ object Measure {
      * @param endTime The time when the HTTP request ended, it is recommended to use `SystemClock.elapsedRealtime()`
      * @param client The name of the HTTP client used, optional
      * @param statusCode The HTTP status code of the response received
-     * @param error The exception if the request fails.
+     * @param error The throwable if the request fails.
      * @param requestHeaders The HTTP headers in the request
      * @param responseHeaders The HTTP headers in the response
      * @param requestBody An optional request body
@@ -509,7 +509,7 @@ object Measure {
         startTime: Long,
         endTime: Long,
         statusCode: Int? = null,
-        error: Exception? = null,
+        error: Throwable? = null,
         requestHeaders: MutableMap<String, String>? = null,
         responseHeaders: MutableMap<String, String>? = null,
         requestBody: String? = null,
