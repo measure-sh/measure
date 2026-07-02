@@ -3,8 +3,8 @@
 package measure
 
 import (
-	"backend/autumn"
 	"backend/ingest-worker/server"
+	"backend/libs/autumn"
 	"backend/testinfra"
 	"context"
 	"fmt"
@@ -65,4 +65,3 @@ func seedApp(ctx context.Context, t *testing.T, appID, teamID uuid.UUID, retenti
 func seedTeamAutumnCustomer(ctx context.Context, t *testing.T, teamID uuid.UUID, autumnCustomerID string) {
 	th.SeedTeamAutumnCustomer(ctx, t, teamID.String(), autumnCustomerID)
 }
-

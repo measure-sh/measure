@@ -4,6 +4,8 @@ import TrackCtaLink from "@/app/components/analytics/track_cta_link";
 import { sharedOpenGraph } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import type { Metadata } from "next";
+import Image from "next/image";
+import { codingAgents } from "@/app/utils/coding_agents";
 import LandingFooter from "../../components/landing_footer";
 import LandingHeader from "../../components/landing_header";
 
@@ -27,25 +29,59 @@ export default function ProductMCP() {
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
         <div className="py-16" />
-        <h1 className="text-6xl font-display w-full md:w-6xl px-4">MCP</h1>
+        <h1 className="text-6xl font-display w-full md:w-6xl px-4">
+          MCP Server
+        </h1>
         <div className="py-2" />
         <p className="text-lg font-body md:w-6xl text-justify px-4">
           Connect Measure with your favorite coding agents through the Model
           Context Protocol.
           <br />
           <br />
-          MCP lets AI coding assistants like Claude, Codex and Gemini access
-          your errors, performance traces, session timelines and bug reports
-          directly in your development workflow.
+          MCP lets AI coding agent access your errors, performance traces,
+          session timelines and bug reports directly in your development
+          workflow.
           <br />
           <br />
           With MCP, you can simply ask your AI assistant to look up an error,
-          get the full context including stack traces and session timelines
-          leading to the issue and harness the power of AI to ship fixes faster
-          than ever before.
+          let it fetch stack traces, session timelines and related context, and
+          ship fixes faster than ever before.
         </p>
-        <div className="w-full md:w-6xl mt-12 mb-32">
+        <div className="w-full md:w-6xl mt-12 mb-24">
           <MCPDemo />
+        </div>
+
+        {/* Coding agents */}
+        <div className="w-full md:w-6xl px-4 mb-32">
+          <h2 className="text-3xl font-display mb-4">
+            Works with your favorite coding agents
+          </h2>
+          <p className="text-justify text-lg">
+            Built on an open standard, Measure plugs into whatever coding agent
+            you already use. Connect your agent to the Measure MCP server and it
+            can pull your app telemetry, then help you debug an issue, walk a
+            user session, or run an agentic triage and debugging pipeline.
+            <br />
+            <br />
+            Works great with Claude Code, OpenAI Codex, Google Antigravity,
+            Cursor, OpenCode, Pi, Devin, Kilo Code, Cline, Roo Code and others.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-12">
+            {codingAgents.map((agent) => (
+              <div
+                key={agent.alt}
+                className="relative h-16 rounded-xl border border-border"
+              >
+                <Image
+                  src={agent.src}
+                  alt={agent.alt}
+                  fill
+                  sizes="(min-width: 768px) 220px, 40vw"
+                  className="object-contain p-5 brightness-0 dark:invert"
+                />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* CTA */}

@@ -1336,30 +1336,39 @@ describe("Team Page", () => {
   });
 
   it("shows toast from error query param and clears it from URL", async () => {
-    mockSearchParamsGet.mockImplementation((key: string) =>
-      key === "error" ? "Boom" : null,
-    );
-    mockSearchParamsToString.mockImplementation(() => "error=Boom");
+    // The page reads window.location.search on a short timer after render.
+    // beforeEach replaces window.location with a plain mutable snapshot, so
+    // set the query on it directly and observe the strip via replaceState.
+    window.location.search = "?error=Boom";
     const replaceStateSpy = jest.spyOn(window.history, "replaceState");
 
     await renderPage();
 
-    expect(mockToastNegative).toHaveBeenCalledWith("Boom");
-    expect(replaceStateSpy).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockToastNegative).toHaveBeenCalledWith("Boom");
+    });
+    expect(replaceStateSpy).toHaveBeenCalledWith(
+      {},
+      "",
+      window.location.pathname,
+    );
     replaceStateSpy.mockRestore();
   });
 
   it("shows toast from success query param and clears it from URL", async () => {
-    mockSearchParamsGet.mockImplementation((key: string) =>
-      key === "success" ? "Nice" : null,
-    );
-    mockSearchParamsToString.mockImplementation(() => "success=Nice");
+    window.location.search = "?success=Nice";
     const replaceStateSpy = jest.spyOn(window.history, "replaceState");
 
     await renderPage();
 
-    expect(mockToastPositive).toHaveBeenCalledWith("Nice");
-    expect(replaceStateSpy).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockToastPositive).toHaveBeenCalledWith("Nice");
+    });
+    expect(replaceStateSpy).toHaveBeenCalledWith(
+      {},
+      "",
+      window.location.pathname,
+    );
     replaceStateSpy.mockRestore();
   });
 

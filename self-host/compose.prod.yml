@@ -6,6 +6,7 @@ services:
         - NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED:-1}
         - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
         - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+        - NEXT_PUBLIC_AGENT_BASE_URL=${NEXT_PUBLIC_AGENT_BASE_URL}
         - NEXT_PUBLIC_INGEST_BASE_URL=${NEXT_PUBLIC_INGEST_BASE_URL}
         - NEXT_PUBLIC_OAUTH_GOOGLE_KEY=${OAUTH_GOOGLE_KEY}
         - NEXT_PUBLIC_OAUTH_GITHUB_KEY=${OAUTH_GITHUB_KEY}
@@ -27,6 +28,20 @@ services:
         max-size: 10m
 
   api:
+    build:
+      args:
+        TARGETTYPE: ${TARGETTYPE:-production}
+    environment:
+      - GIN_MODE=release
+    develop: !reset null
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 5
+
+  agent:
     build:
       args:
         TARGETTYPE: ${TARGETTYPE:-production}

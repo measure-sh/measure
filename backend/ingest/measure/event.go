@@ -1,10 +1,10 @@
 package measure
 
 import (
-	"backend/api/event"
-	"backend/api/span"
 	"backend/ingest/server"
+	"backend/libs/event"
 	"backend/libs/objstore"
+	"backend/libs/span"
 	"context"
 	"database/sql"
 	"encoding/json"

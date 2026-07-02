@@ -241,9 +241,11 @@ DRIVE_API_KEY=change-this
 
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+NEXT_PUBLIC_AGENT_BASE_URL=http://localhost:8084
 NEXT_PUBLIC_INGEST_BASE_URL=http://localhost:8085
 NEXT_PUBLIC_IS_CLOUD=false
 API_BASE_URL=http://api:8080
+AGENT_BASE_URL=http://agent:8084
 
 ########
 # Auth #
@@ -281,6 +283,15 @@ SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
 
 POSTHOG_HOST=
 POSTHOG_API_KEY=
+
+#########
+# Agent #
+#########
+
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL_SMALL=
+OPENROUTER_MODEL_MEDIUM=
+OPENROUTER_MODEL_LARGE=
 
 ######################
 # Google Tag Manager #
@@ -388,9 +399,11 @@ DRIVE_API_KEY=change-this
 
 NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+NEXT_PUBLIC_AGENT_BASE_URL=$NEXT_PUBLIC_AGENT_BASE_URL
 NEXT_PUBLIC_INGEST_BASE_URL=$NEXT_PUBLIC_INGEST_BASE_URL
 NEXT_PUBLIC_IS_CLOUD=false
 API_BASE_URL=http://api:8080
+AGENT_BASE_URL=http://agent:8084
 
 ########
 # Auth #
@@ -428,6 +441,15 @@ SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
 
 POSTHOG_HOST=
 POSTHOG_API_KEY=
+
+#########
+# Agent #
+#########
+
+OPENROUTER_API_KEY=$OPENROUTER_API_KEY
+OPENROUTER_MODEL_SMALL=$OPENROUTER_MODEL_SMALL
+OPENROUTER_MODEL_MEDIUM=$OPENROUTER_MODEL_MEDIUM
+OPENROUTER_MODEL_LARGE=$OPENROUTER_MODEL_LARGE
 
 ######################
 # Google Tag Manager #
@@ -587,6 +609,10 @@ END
     echo -e "Example: https://measure-api.yourcompany.com"
     NEXT_PUBLIC_API_BASE_URL=$(prompt_value_manual "Enter URL to Measure API service: ")
 
+    echo -e "\nSet Measure Agent service URL"
+    echo -e "Example: https://measure-agent.yourcompany.com"
+    NEXT_PUBLIC_AGENT_BASE_URL=$(prompt_value_manual "Enter URL to Measure Agent service: ")
+
     echo -e "\nSet Measure Ingest service URL"
     echo -e "Example: https://measure-ingest.yourcompany.com"
     NEXT_PUBLIC_INGEST_BASE_URL=$(prompt_value_manual "Enter URL to Measure Ingest service: ")
@@ -618,6 +644,13 @@ END
     SLACK_SIGNING_SECRET=$(prompt_optional_value_manual "Enter Slack signing secret: ")
     echo -e "Generated secure Slack OAuth State Salt"
     SLACK_OAUTH_STATE_SALT=$(generate_password 44)
+
+    echo -e "\nSet OpenRouter credentials and models"
+    echo -e "Used by the Measure agent service to answer natural language questions. See https://github.com/measure-sh/measure/blob/main/docs/hosting/agent.md for more details. If you wish to ignore this, enter an empty value."
+    OPENROUTER_API_KEY=$(prompt_optional_value_manual "Enter OpenRouter API key (optional): ")
+    OPENROUTER_MODEL_SMALL=$(prompt_optional_value_manual "Enter small model id, used for light tasks like summarization (optional): ")
+    OPENROUTER_MODEL_MEDIUM=$(prompt_optional_value_manual "Enter medium model id, used to answer questions (optional): ")
+    OPENROUTER_MODEL_LARGE=$(prompt_optional_value_manual "Enter large model id, reserved for future heavy tasks (optional): ")
 
     write_prod_env
   fi
@@ -792,6 +825,15 @@ ensure() {
 
       add_env_variable "NEXT_PUBLIC_INGEST_BASE_URL" "$NEXT_PUBLIC_INGEST_BASE_URL" "API_BASE_URL"
     fi
+
+    # Prompt & save agent service base url if it doesn't exist
+    if ! check_env_variable "NEXT_PUBLIC_AGENT_BASE_URL"; then
+      echo -e "\nSet Measure Agent service URL"
+      echo -e "Example: https://measure-agent.yourcompany.com"
+      NEXT_PUBLIC_AGENT_BASE_URL=$(prompt_value_manual "Enter URL to Measure Agent service: ")
+
+      add_env_variable "NEXT_PUBLIC_AGENT_BASE_URL" "$NEXT_PUBLIC_AGENT_BASE_URL" "NEXT_PUBLIC_API_BASE_URL"
+    fi
   fi
 
   # set the common variables across environments
@@ -805,6 +847,10 @@ ensure() {
 
   if ! check_env_variable "SYMBOLOADER_ORIGIN"; then
     add_env_variable "SYMBOLOADER_ORIGIN" "$symboloader_origin" "API_BASE_URL"
+  fi
+
+  if ! check_env_variable "AGENT_BASE_URL"; then
+    add_env_variable "AGENT_BASE_URL" "http://agent:8084" "API_BASE_URL"
   fi
 
   # Redis configuration checks
@@ -879,6 +925,22 @@ ensure() {
 
   if ! check_env_variable "POSTHOG_API_KEY"; then
     add_env_variable "POSTHOG_API_KEY" ""
+  fi
+
+  if ! check_env_variable "OPENROUTER_API_KEY"; then
+    add_env_variable "OPENROUTER_API_KEY" ""
+  fi
+
+  if ! check_env_variable "OPENROUTER_MODEL_SMALL"; then
+    add_env_variable "OPENROUTER_MODEL_SMALL" ""
+  fi
+
+  if ! check_env_variable "OPENROUTER_MODEL_MEDIUM"; then
+    add_env_variable "OPENROUTER_MODEL_MEDIUM" ""
+  fi
+
+  if ! check_env_variable "OPENROUTER_MODEL_LARGE"; then
+    add_env_variable "OPENROUTER_MODEL_LARGE" ""
   fi
 
   if ! check_env_variable "GTM_ID"; then

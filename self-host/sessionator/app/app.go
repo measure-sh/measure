@@ -1,9 +1,9 @@
 package app
 
 import (
-	"backend/api/event"
-	"backend/api/span"
+	"backend/libs/event"
 	"backend/libs/opsys"
+	"backend/libs/span"
 	"encoding/json"
 	"errors"
 	"fmt"

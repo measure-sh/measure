@@ -1,6 +1,4 @@
 // Pricing constants.
-// Pro plan: $50/mo minimum, 25 GB included, $2/GB overage (same rate as the
-// included tier — $50 / 25 GB = $2/GB).
 //
 // IMPORTANT: these mirror the Measure Pro plan items configured in the Autumn
 // dashboard (https://app.useautumn.com → Plans → measure_pro). When pricing

@@ -14,13 +14,15 @@ Kuku FM, Hoichoi, Country Delight, Dashreels, Turtlemint, Astro, Allofresh, SMC 
 
 ## One dashboard, Complete context
 
+## Intelligent debugging, Seamless integration
+
+Debug with [Measure Agent](/product/agent) right inside Slack or your coding agent. Ask about a crash, error or slow endpoint and it digs through your telemetry to find the answer.
+
+Connect Measure with your favorite coding agents through our [MCP Server](/product/mcp). Let your coding agent query errors, traces and session timelines directly in your development workflow.
+
 ## Collect what you need, Only when you need it
 
 Most monitoring data rots away in a warehouse and runs up your costs 💰. Our [Adaptive Capture](/product/adaptive-capture) feature lets you control and dynamically change what data to collect without needing to roll out app updates.
-
-## Intelligent debugging, Seamless integration
-
-Connect Measure with your favorite coding agents through our [MCP](/product/mcp) server. Let your coding agent query errors, traces and session timelines directly in your development workflow.
 
 ## Tried it, Loved it ❤️
 

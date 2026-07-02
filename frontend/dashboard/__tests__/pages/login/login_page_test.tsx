@@ -85,6 +85,7 @@ describe("Login Page", () => {
     mockFetchCurrentSession.mockResolvedValue(null);
     mockResetAllStores.mockClear();
     process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.com";
+    process.env.NEXT_PUBLIC_AGENT_BASE_URL = "https://agent.example.com";
   });
 
   it("fetches the current session when mcp param is absent", async () => {
@@ -149,7 +150,7 @@ describe("Login Page", () => {
 
     expect(mockAssign).toHaveBeenCalledTimes(1);
     const url = new URL(mockAssign.mock.calls[0][0] as string);
-    expect(url.origin).toBe("https://api.example.com");
+    expect(url.origin).toBe("https://agent.example.com");
     expect(url.pathname).toBe("/oauth/authorize");
     expect(url.searchParams.get("provider")).toBe("github");
     expect(url.searchParams.get("response_type")).toBe("code");
@@ -180,7 +181,7 @@ describe("Login Page", () => {
 
     expect(mockAssign).toHaveBeenCalledTimes(1);
     const url = new URL(mockAssign.mock.calls[0][0] as string);
-    expect(url.origin).toBe("https://api.example.com");
+    expect(url.origin).toBe("https://agent.example.com");
     expect(url.pathname).toBe("/oauth/authorize");
     expect(url.searchParams.get("provider")).toBe("google");
     expect(url.searchParams.get("client_id")).toBe("my_client");

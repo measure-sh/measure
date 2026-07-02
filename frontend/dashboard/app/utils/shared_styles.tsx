@@ -1,6 +1,12 @@
 export const underlineLinkStyle =
   "underline decoration-2 underline-offset-2 decoration-green-400 hover:decoration-green-500 dark:decoration-green-300 dark:hover:decoration-green-400";
 
+// Amber warning callout for inline notices, such as the cross-platform note in
+// onboarding and the Slack reconnect prompt. Callers add their own layout
+// classes (flex, spacing) alongside it.
+export const warningCalloutStyle =
+  "font-body border border-amber-200 text-amber-700 bg-amber-50 dark:border-amber-950 dark:text-amber-400 dark:bg-amber-950/40 p-4 rounded-md";
+
 // Shared palette for charts: Tailwind -400 in both themes, matching the
 // `--chart-*` tokens in globals.css, the pill/trace ladder, and the hero
 // animation. Use `useChartColor().<name>` for semantic mappings (Sessions

@@ -54,8 +54,8 @@ Spot failing endpoints early and tune the API calls that matter most to your use
 
 Pull all of Measure's context into the coding agents you already use. The [Measure MCP server](/product/mcp) opens up your crashes, performance traces and session timelines to any agent, right from your IDE, editor or terminal.
 
-Have it dig into a crash, walk through user sessions, or wire it into an agentic triage and debugging pipeline. Whether you lean on Claude Code or Codex, or prefer open source agents and models, Measure slots straight into your workflow.
+Have it dig into a crash, walk through user sessions, or wire it into an agentic triage and debugging pipeline. Whether you prefer commercial tools or open source agents and models, Measure slots straight into your workflow.
 
-Works with Claude Code, Cursor, Codex, Gemini CLI, Windsurf, Cline, opencode and Kilo Code.
+Works great with Claude Code, OpenAI Codex, Google Antigravity, Cursor, OpenCode, Pi, Devin, Kilo Code, Cline, Roo Code and others.
 
 Get started: <https://measure.sh/auth/login>

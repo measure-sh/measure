@@ -1,0 +1,128 @@
+name: Agent
+on:
+  pull_request:
+    paths:
+      - .github/workflows/agent.yml
+      - backend/agent/dockerfile
+      - backend/agent/**/*.go
+      - backend/agent/**/*.mod
+      - backend/agent/**/*.sum
+  push:
+    branches:
+      - "main"
+    paths:
+      - .github/workflows/agent.yml
+      - backend/agent/dockerfile
+      - backend/agent/**/*.go
+      - backend/agent/**/*.mod
+      - backend/agent/**/*.sum
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: measure-sh/agent
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.25.x", "1.26.x"]
+    defaults:
+      run:
+        working-directory: backend/agent
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Setup go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ matrix.go-version }}
+          check-latest: true
+          cache-dependency-path: backend/agent/go.sum
+      - name: Display go version
+        run: go version
+      - name: Install dependencies
+        run: go get .
+      - name: Build with ${{ matrix.go-version }}
+        run: go build -v ./...
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.25.x", "1.26.x"]
+    defaults:
+      run:
+        working-directory: backend/agent
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Setup go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ matrix.go-version }}
+          check-latest: true
+          cache-dependency-path: backend/agent/go.sum
+      - name: Display go version
+        run: go version
+      - name: Install dependencies
+        run: go get .
+      - name: Test with ${{ matrix.go-version }}
+        run: go test -tags=integration ./...
+
+  push:
+    name: Build and push image
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
+    needs: [build, test]
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build and push OCI image
+        id: push
+        uses: docker/build-push-action@v7
+        with:
+          context: backend/agent
+          file: backend/agent/dockerfile
+          build-contexts: |
+            libs=backend/libs
+            testinfra=backend/testinfra
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/backend/agent/dockerfile
+            org.opencontainers.image.description=Measure Agent Server
+            org.opencontainers.image.licenses=Apache-2.0
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true

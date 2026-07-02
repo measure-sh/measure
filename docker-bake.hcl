@@ -5,8 +5,6 @@ target "api" {
   context = "backend/api"
   contexts = {
     libs = "backend/libs"
-    email = "backend/email"
-    autumn = "backend/autumn"
   }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
@@ -19,8 +17,6 @@ target "ingest-worker" {
   context = "backend/ingest-worker"
   contexts = {
     libs = "backend/libs"
-    api = "backend/api"
-    autumn = "backend/autumn"
   }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
@@ -33,9 +29,6 @@ target "ingest" {
   context = "backend/ingest"
   contexts = {
     libs = "backend/libs"
-    api = "backend/api"
-    email = "backend/email"
-    autumn = "backend/autumn"
   }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]
@@ -48,8 +41,6 @@ target "alerts" {
   context = "backend/alerts"
   contexts = {
     libs = "backend/libs"
-    email = "backend/email"
-    autumn = "backend/autumn"
   }
   dockerfile = "dockerfile"
   cache-from = ["type=gha"]

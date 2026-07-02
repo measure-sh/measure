@@ -168,10 +168,10 @@ func (m *mockIggyClient) LoginWithPersonalAccessToken(string) (*iggcon.IdentityI
 func (m *mockIggyClient) LoginUser(string, string) (*iggcon.IdentityInfo, error) {
 	panic("not implemented")
 }
-func (m *mockIggyClient) LogoutUser() error                           { panic("not implemented") }
-func (m *mockIggyClient) GetStats() (*iggcon.Stats, error)            { panic("not implemented") }
-func (m *mockIggyClient) Ping() error                                 { panic("not implemented") }
-func (m *mockIggyClient) GetClients() ([]iggcon.ClientInfo, error)    { panic("not implemented") }
+func (m *mockIggyClient) LogoutUser() error                        { panic("not implemented") }
+func (m *mockIggyClient) GetStats() (*iggcon.Stats, error)         { panic("not implemented") }
+func (m *mockIggyClient) Ping() error                              { panic("not implemented") }
+func (m *mockIggyClient) GetClients() ([]iggcon.ClientInfo, error) { panic("not implemented") }
 func (m *mockIggyClient) GetClient(uint32) (*iggcon.ClientInfoDetails, error) {
 	panic("not implemented")
 }

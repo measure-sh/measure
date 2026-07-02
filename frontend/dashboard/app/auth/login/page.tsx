@@ -23,7 +23,7 @@ function buildMcpAuthorizeUrl(
   searchParams: { [key: string]: string | string[] | undefined },
   provider: string,
 ): string {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  const agentBaseUrl = process.env.NEXT_PUBLIC_AGENT_BASE_URL || "";
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(searchParams)) {
     if (key === "mcp" || value === undefined) {
@@ -32,7 +32,7 @@ function buildMcpAuthorizeUrl(
     params.set(key, Array.isArray(value) ? value[0] : value);
   }
   params.set("provider", provider);
-  return `${apiBaseUrl}/oauth/authorize?${params.toString()}`;
+  return `${agentBaseUrl}/oauth/authorize?${params.toString()}`;
 }
 
 export default function Login(props: {

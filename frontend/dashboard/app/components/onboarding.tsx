@@ -29,7 +29,10 @@ import {
 } from "../stores/onboarding_store";
 import { useFiltersStore, useOnboardingStore } from "../stores/provider";
 import type { CodeBlockLanguage } from "../utils/highlighter";
-import { underlineLinkStyle } from "../utils/shared_styles";
+import {
+  underlineLinkStyle,
+  warningCalloutStyle,
+} from "../utils/shared_styles";
 import { toastNegative, toastPositive } from "../utils/use_toast";
 import { Button } from "./button";
 import CodeBlock from "./code_block";
@@ -849,7 +852,7 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
                   className="flex flex-col gap-2 mt-2"
                   data-testid={`onboarding-${crossPlatform.testIdSlug}-native-target-select`}
                 >
-                  <p className="font-body border border-amber-200 text-amber-700 bg-amber-50 dark:border-amber-950 dark:text-amber-400 dark:bg-amber-950/40 p-4 rounded-md">
+                  <p className={warningCalloutStyle}>
                     Cross platform apps need to have a unique API key for each
                     platform they target. To integrate on another platform, you
                     will create a new app on Measure with a different API key.

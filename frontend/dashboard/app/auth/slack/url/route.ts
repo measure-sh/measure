@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getPosthogServer } from "../../../posthog-server";
+import { slackScopeParam } from "../../../utils/slack_scopes";
 
 export const dynamic = "force-dynamic";
 
@@ -49,10 +50,7 @@ export async function POST(req: NextRequest) {
 
     const slackUrl = new URL("https://slack.com/oauth/v2/authorize");
     slackUrl.searchParams.set("client_id", process.env.SLACK_CLIENT_ID!);
-    slackUrl.searchParams.set(
-      "scope",
-      "chat:write,channels:read,groups:read,commands",
-    );
+    slackUrl.searchParams.set("scope", slackScopeParam());
     slackUrl.searchParams.set("redirect_uri", redirectUrl);
     slackUrl.searchParams.set("state", state);
 

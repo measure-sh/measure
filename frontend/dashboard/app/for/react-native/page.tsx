@@ -5,6 +5,7 @@ import ForPlatformPage, {
   type PlatformFeature,
 } from "../../components/for_platform_page";
 import { underlineLinkStyle } from "../../utils/shared_styles";
+import { codingAgents } from "../../utils/coding_agents";
 
 export const metadata: Metadata = {
   title: "React Native Error Tracking and Performance Monitoring",
@@ -174,16 +175,7 @@ const features: PlatformFeature[] = [
   },
   {
     heading: "Coding Agents",
-    logos: [
-      { src: "/images/coding_agents/claudecode.svg", alt: "Claude Code" },
-      { src: "/images/coding_agents/cursor.svg", alt: "Cursor" },
-      { src: "/images/coding_agents/codex.svg", alt: "Codex" },
-      { src: "/images/coding_agents/gemini.svg", alt: "Gemini CLI" },
-      { src: "/images/coding_agents/windsurf.svg", alt: "Windsurf" },
-      { src: "/images/coding_agents/cline.svg", alt: "Cline" },
-      { src: "/images/coding_agents/opencode.svg", alt: "opencode" },
-      { src: "/images/coding_agents/kilocode.svg", alt: "Kilo Code" },
-    ],
+    logos: codingAgents,
     body: (
       <>
         Bring all of Measure&apos;s context into the coding agents you already
@@ -196,9 +188,13 @@ const features: PlatformFeature[] = [
         <br />
         <br />
         Have it dig into a crash, work through user sessions, or wire it into an
-        agentic triage and debugging pipeline. Whether you lean on Claude Code
-        or Codex, or prefer open source agents and models, Measure fits right
-        into your workflow.
+        agentic triage and debugging pipeline. Whether you prefer commercial
+        tools or open source agents and models, Measure fits right into your
+        workflow.
+        <br />
+        <br />
+        Works great with Claude Code, OpenAI Codex, Google Antigravity, Cursor,
+        OpenCode, Pi, Devin, Kilo Code, Cline, Roo Code and others.
       </>
     ),
   },

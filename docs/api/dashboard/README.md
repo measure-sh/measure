@@ -9074,7 +9074,7 @@ List of HTTP status codes for success and failures.
 
 ### GET `/teams/:id/slack`
 
-Fetch Slack details for a team. Returns Slack workspace name and active or inactive status if team has slack connected. Returns null if team doesn't have Slack connected.
+Fetch Slack details for a team. Returns the Slack workspace name, active or inactive status and the comma-separated bot scopes granted at authorization time if team has slack connected. Returns null if team doesn't have Slack connected.
 
 #### Usage Notes
 
@@ -9107,7 +9107,8 @@ The required headers must be present in each request.
   ```json
     {
       "slack_team_name":"Measure",
-      "is_active":true
+      "is_active":true,
+      "scopes":"app_mentions:read,assistant:write,chat:write,chat:write.public,channels:read,groups:read,channels:history,groups:history,im:history,im:write,commands,files:write,links:read,links:write,reactions:read,reactions:write,users:read,users:read.email"
     }
   ```
 
