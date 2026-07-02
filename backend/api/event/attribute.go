@@ -26,11 +26,15 @@ type Attribute struct {
 	AppUniqueID string `json:"app_unique_id" binding:"required"`
 
 	// PatchID identifies an Over-The-Air patch (e.g. CodePush
-	// for RN, Shorebird for Flutter). Free-form text supplied by
-	// the mobile team. Optional — when present, symbolication
-	// looks up mapping files by patch_id, ignoring the app
-	// version/build.
-	PatchID string `json:"patch_id"`
+	// for RN, Shorebird for Flutter). Optional UUID — when
+	// present (non-nil), symbolication looks up mapping files by
+	// patch_id, ignoring the app version/build.
+	PatchID uuid.UUID `json:"patch_id"`
+
+	// PatchVersion is the human-facing version of the OTA
+	// patch the app is running, if any. Free-form text,
+	// optional. Not used for symbolication.
+	PatchVersion string `json:"patch_version"`
 
 	// MeasureSDKVersion is the measure sdk version
 	// identifier.
@@ -150,7 +154,7 @@ func (a Attribute) Validate() error {
 		maxAppVersionChars         = 128
 		maxAppBuildChars           = 32
 		maxAppUniqueIDChars        = 128
-		maxPatchIDChars            = 1024
+		maxPatchVersionChars       = 256
 		maxMeasureSDKVersion       = 16
 		maxNetworkTypeChars        = 16
 		maxNetworkGenerationChars  = 8
@@ -202,8 +206,8 @@ func (a Attribute) Validate() error {
 	if len(a.AppUniqueID) > maxAppUniqueIDChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attrubute.app_unique_id`, maxAppUniqueIDChars)
 	}
-	if len(a.PatchID) > maxPatchIDChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.patch_id`, maxPatchIDChars)
+	if len(a.PatchVersion) > maxPatchVersionChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.patch_version`, maxPatchVersionChars)
 	}
 	if len(a.Platform) > maxPlatformChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.platform`, maxPlatformChars)

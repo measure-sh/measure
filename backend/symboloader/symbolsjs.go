@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/leporo/sqlf"
 )
 
@@ -55,7 +56,7 @@ type lookupFile struct {
 // the handler boundary.
 type jsbundleRow struct {
 	Key     string
-	PatchID string
+	PatchID uuid.UUID
 }
 
 // filename returns the inner filename embedded in the row's
@@ -167,7 +168,7 @@ func resolveByPatchID(ctx context.Context, appID string, patchIDs []string) (pai
 		return
 	}
 
-	byPatchID := make(map[string][]jsbundleRow)
+	byPatchID := make(map[uuid.UUID][]jsbundleRow)
 	for _, r := range rows {
 		byPatchID[r.PatchID] = append(byPatchID[r.PatchID], r)
 	}
@@ -356,16 +357,27 @@ func classifyRows(rows []jsbundleRow) (bundle, sourcemap *jsbundleRow) {
 // the given app_id and patch_ids whose mapping_type is "jsbundle",
 // ordered most-recent first so re-uploads dedupe to the latest.
 //
-// patch_ids are free-form developer-supplied text, so the app_id
-// filter is required to avoid cross-app collisions. The app_id
-// reaches this path via the source URL the ingest-worker sets on
-// the Sentry source (configureSource).
+// patch_ids are UUIDs; the app_id filter is still required to
+// avoid cross-app collisions. The app_id reaches this path via
+// the source URL the ingest-worker sets on the Sentry source
+// (configureSource). Inbound ?debug_id= values arrive as strings
+// and are parsed to UUIDs here; non-UUID values are skipped so a
+// malformed query param can't error the whole lookup at the DB.
 func queryJsBundleRowsByPatchID(ctx context.Context, appID string, patchIDs []string) (rows []jsbundleRow, err error) {
-	placeholders := make([]string, len(patchIDs))
-	args := make([]any, len(patchIDs))
-	for i, d := range patchIDs {
-		placeholders[i] = "?"
-		args[i] = d
+	placeholders := make([]string, 0, len(patchIDs))
+	args := make([]any, 0, len(patchIDs))
+	for _, d := range patchIDs {
+		id, parseErr := uuid.Parse(d)
+		if parseErr != nil {
+			continue
+		}
+		placeholders = append(placeholders, "?")
+		args = append(args, id)
+	}
+
+	// No valid UUID patch_ids to look up.
+	if len(args) == 0 {
+		return
 	}
 
 	stmt := sqlf.PostgreSQL.

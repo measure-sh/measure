@@ -462,13 +462,13 @@ List of HTTP status codes for success and failures.
 
 ### PUT `/builds/ota`
 
-Uploads mapping files for an Over-The-Air (OTA) patch — a remote update that ships new code without a new store build (e.g. CodePush for React Native, Shorebird for Flutter). It is driven by a `patch_id` and takes no app version, build number or build size.
+Uploads mapping files for an Over-The-Air (OTA) patch — a remote update that ships new code without a new store build (e.g. CodePush for React Native, Shorebird for Flutter). It is driven by a `patch_id` (a UUID) and takes no app version, build number or build size.
 
 Like `PUT /builds`, this API accepts metadata and returns pre-signed URLs for uploading the mapping files directly. Upload each file with a standard HTTP **PUT** using the returned `upload_url` and `headers`.
 
 #### Usage Notes
 
-- `patch_id` is **required**. Tag your OTA patch with any identifier; it is echoed back on each mapping in the response.
+- `patch_id` is **required** and must be a **UUID**. Tag your OTA patch with a UUID; it is echoed back on each mapping in the response.
 - The app is determined from your API key — do **not** send an app identifier in the body.
 - `mappings` is **required** and must contain at least one mapping. `mapping_type` can be `proguard`, `dsym`, `elf_debug`, or `jsbundle` (React Native).
 - For React Native, upload the JS bundle and its sourcemap as **two separate `jsbundle` mappings in the same request** (same tarball and `<bundle>` / `<bundle>.map` conventions as [`PUT /builds`](#usage-notes-1)).
@@ -499,7 +499,7 @@ The response contains a `mappings` array with the pre-signed upload URL for each
         "x-amz-meta-mapping_id": "e2bbcad8-0566-44ea-af43-9dd114c64e8c",
         "x-amz-meta-original_file_name": "main.jsbundle.tgz"
       },
-      "patch_id": "codepush-v1.0.0-patch-3"
+      "patch_id": "550e8400-e29b-41d4-a716-446655440000"
     },
     {
       "id": "77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc",
@@ -511,7 +511,7 @@ The response contains a `mappings` array with the pre-signed upload URL for each
         "x-amz-meta-mapping_id": "77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc",
         "x-amz-meta-original_file_name": "main.jsbundle.map.tgz"
       },
-      "patch_id": "codepush-v1.0.0-patch-3"
+      "patch_id": "550e8400-e29b-41d4-a716-446655440000"
     }
   ]
 }
@@ -528,7 +528,7 @@ Payload must contain the `patch_id` and at least one mapping.
 
 ```json
 {
-  "patch_id": "codepush-v1.0.0-patch-3",
+  "patch_id": "550e8400-e29b-41d4-a716-446655440000",
   "mappings": [
     {
       "type": "jsbundle",
@@ -544,7 +544,7 @@ Payload must contain the `patch_id` and at least one mapping.
 
 | Field      | Type   | Optional | Comment                                                                                                     |
 | ---------- | ------ | -------- | ----------------------------------------------------------------------------------------------------------- |
-| `patch_id` | string | No       | Identifier for the OTA patch.                                                                               |
+| `patch_id` | string (UUID) | No       | UUID identifier for the OTA patch.                                                                   |
 | `mappings` | array  | No       | List of mapping file objects (at least one). Same shape as [`PUT /builds` mappings](#mappings).             |
 
 </details>
@@ -682,7 +682,8 @@ Events can contain the following attributes, some of which are mandatory.
 | `app_version`                       | string  | No       | App version identifier                                                      |
 | `app_build`                         | string  | No       | App build identifier                                                        |
 | `app_unique_id`                     | string  | No       | App bundle identifier                                                       |
-| `patch_id`                          | string  | Yes      | Identifier of the Over-The-Air patch the app is running, if any. See [`PUT /builds/ota`](#put-buildsota).    |
+| `patch_id`                          | string (UUID) | Yes      | UUID of the Over-The-Air patch the app is running, if any. See [`PUT /builds/ota`](#put-buildsota).    |
+| `patch_version`                     | string  | Yes      | Human-facing version of the Over-The-Air patch the app is running, if any.  |
 | `platform`                          | string  | No       | One of:<br>- android<br>- ios<br>- flutter                                  |
 | `measure_sdk_version`               | string  | No       | Measure SDK version identifier                                              |
 | `thread_name`                       | string  | Yes      | The thread on which the event was captured                                  |

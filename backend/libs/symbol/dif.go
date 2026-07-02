@@ -305,7 +305,7 @@ func GetMappingsByPatchID(
 	ctx context.Context,
 	db *pgxpool.Pool,
 	appId uuid.UUID,
-	patchID string,
+	patchID uuid.UUID,
 ) (keyMap map[string]MappingType, err error) {
 	stmt := sqlf.PostgreSQL.
 		From("build_mappings").

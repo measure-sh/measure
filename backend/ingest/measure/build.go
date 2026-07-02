@@ -38,7 +38,7 @@ type Mapping struct {
 	// PatchID echoes the build's optional patch_id back to the
 	// caller so the build script can confirm the value persisted
 	// against this mapping row.
-	PatchID string `json:"patch_id,omitempty"`
+	PatchID uuid.UUID `json:"patch_id,omitempty"`
 }
 
 type Build struct {
@@ -52,7 +52,7 @@ type Build struct {
 	// PatchID identifies an Over-The-Air patch. It is set only by
 	// the OTA handler (PutOTABuilds); PUT /builds neither accepts
 	// nor returns it.
-	PatchID string `json:"-"`
+	PatchID uuid.UUID `json:"-"`
 }
 
 type BuildResponse struct {
@@ -60,11 +60,11 @@ type BuildResponse struct {
 }
 
 // OTABuild is the request body for PUT /builds/ota. It carries
-// only a free-form patch_id and the mapping files — no app
-// version, build number or build size. The app is resolved from
-// the request's API key (like PutBuilds), never from the body.
+// only a patch_id (UUID) and the mapping files — no app version,
+// build number or build size. The app is resolved from the
+// request's API key (like PutBuilds), never from the body.
 type OTABuild struct {
-	PatchID  string     `json:"patch_id" binding:"required"`
+	PatchID  uuid.UUID  `json:"patch_id" binding:"required"`
 	Mappings []*Mapping `json:"mappings" binding:"required,dive,required"`
 }
 
@@ -325,7 +325,7 @@ func PutBuilds(c *gin.Context) {
 
 // PutOTABuilds handles uploads of Over-The-Air patch mapping
 // files (CodePush / Shorebird). Unlike PutBuilds it is driven
-// solely by a free-form patch_id — it accepts no app version,
+// solely by a patch_id (UUID) — it accepts no app version,
 // build number or build size. The mapping rows are stored with
 // empty version columns and the supplied patch_id, which is the
 // sole key for patch_id-based symbolication lookups.
