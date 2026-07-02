@@ -41,15 +41,15 @@ checkoutButton.isEnabled = selectedPaymentMethod != null
 This prevents users from reaching the invalid state entirely, eliminating the crash.`;
 
 // Animation phase timings
-const INITIAL_PAUSE = 1000;
-const TYPING_SPEED = 35; // ms per character for user prompt
-const POST_PROMPT_PAUSE = 800;
-const THINKING_DURATION = 1500;
-const TOOL_CALL_FADE = 400;
-const TOOL_RESULT_FADE = 600;
-const RESPONSE_SPEED = 15; // ms per character for Claude response
-const HOLD_DURATION = 5000;
-const FADE_OUT_DURATION = 500;
+const INITIAL_PAUSE = 500;
+const TYPING_SPEED = 18; // ms per character for user prompt
+const POST_PROMPT_PAUSE = 300;
+const THINKING_DURATION = 800;
+const TOOL_CALL_FADE = 250;
+const TOOL_RESULT_FADE = 300;
+const RESPONSE_SPEED = 8; // ms per character for Claude response
+const HOLD_DURATION = 2500;
+const FADE_OUT_DURATION = 400;
 
 enum Phase {
   InitialPause,
@@ -166,7 +166,7 @@ export default function MCPDemo() {
 
     while (remaining.length > 0) {
       // Check for code block
-      const codeBlockMatch = remaining.match(/^```(\w*)\n([\s\S]*?)```/);
+      const codeBlockMatch = remaining.match(/^```(\w*)\n([\s\S]*?)```\n?/);
       if (codeBlockMatch) {
         parts.push(
           <div key={key++} className="my-2 rounded bg-muted/50 px-3 py-2">
@@ -232,13 +232,13 @@ export default function MCPDemo() {
   const isTypingResponse = phase === Phase.TypingResponse;
 
   return (
-    <div className="w-full font-display px-8 md:px-0">
+    <div className="w-full select-none font-display px-8 md:px-0">
       {/* Terminal window */}
       <div
-        className={`w-full rounded-lg border border-border bg-card shadow-2xl overflow-hidden transition-opacity duration-500 ${visible ? "opacity-100" : "opacity-0"}`}
+        className={`flex h-[520px] w-full flex-col overflow-hidden rounded-lg border border-border bg-card shadow-2xl transition-opacity duration-500 md:h-[600px] ${visible ? "opacity-100" : "opacity-0"}`}
       >
         {/* Title bar */}
-        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+        <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
           <div className="flex gap-1.5">
             <div className="h-3 w-3 rounded-full bg-[#ff5f57]" />
             <div className="h-3 w-3 rounded-full bg-[#febc2e]" />
@@ -249,7 +249,7 @@ export default function MCPDemo() {
         {/* Terminal content */}
         <div
           ref={containerRef}
-          className="h-[400px] md:h-[500px] min-w-0 overflow-y-auto overflow-x-hidden p-4 md:p-6 font-code text-xs md:text-sm leading-relaxed"
+          className="min-w-0 flex-1 overflow-hidden p-4 md:p-6 font-code text-xs md:text-sm leading-relaxed"
         >
           {/* User prompt */}
           {showPrompt && (

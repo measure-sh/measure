@@ -112,8 +112,6 @@ jobs:
           file: backend/ingest-worker/dockerfile
           build-contexts: |
             libs=backend/libs
-            api=backend/api
-            autumn=backend/autumn
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |

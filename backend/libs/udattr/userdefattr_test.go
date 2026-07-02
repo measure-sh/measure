@@ -872,15 +872,15 @@ func TestMarshalJSON(t *testing.T) {
 		ud := UDAttribute{
 			rawAttrs: map[string]any{
 				"app_startup_first_viewcontroller": true,
-				"retry_count":                     float64(3),
-				"load_time_ms":                    float64(1.5),
-				"label":                           "home",
+				"retry_count":                      float64(3),
+				"load_time_ms":                     float64(1.5),
+				"label":                            "home",
 			},
 			keyTypes: map[string]AttrType{
 				"app_startup_first_viewcontroller": AttrBool,
-				"retry_count":                     AttrInt64,
-				"load_time_ms":                    AttrFloat64,
-				"label":                           AttrString,
+				"retry_count":                      AttrInt64,
+				"load_time_ms":                     AttrFloat64,
+				"label":                            AttrString,
 			},
 		}
 

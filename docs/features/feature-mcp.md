@@ -1,6 +1,6 @@
 ---
 title: "MCP Server for Mobile App Monitoring"
-description: "Connect Measure to Claude Code, Codex, Cursor, Gemini and other AI coding agents. Query crashes, traces, sessions and bug reports from your editor or AI agent workflows."
+description: "Connect Measure to Claude Code, OpenAI Codex, Google Antigravity, Cursor and other AI coding agents. Query crashes, traces, sessions and bug reports from your editor or AI agent workflows."
 ---
 
 # MCP Server
@@ -10,6 +10,7 @@ Measure exposes a [Model Context Protocol](https://modelcontextprotocol.io) (MCP
 * [**What is MCP?**](#what-is-mcp)
 * [**Connecting to MCP via Coding Agents**](#connecting-to-mcp-via-coding-agents)
 * [**Available Tools**](#available-tools)
+  * [`ask_question`](#ask_question)
   * [`list_apps`](#list_apps)
   * [`get_filters`](#get_filters)
   * [`get_metrics`](#get_metrics)
@@ -46,22 +47,24 @@ The MCP endpoint is available at:
 
 | Version     | Endpoint                                      |
 | ----------- | --------------------------------------------- |
-| Cloud       | `https://api.measure.sh/mcp`                  |
-| Self Hosted | `https://[your-measure-api-domain]/mcp`       |
+| Cloud       | `https://agent.measure.sh/mcp`                |
+| Self Hosted | `https://[your-measure-agent-domain]/mcp`     |
 
 Refer to your coding agent's documentation for the specific steps to add a remote MCP server. A few popular agent docs are linked here:
 - [**Claude Code**](https://code.claude.com/docs/en/mcp)
 - [**OpenAI Codex**](https://developers.openai.com/codex/mcp/)
-- [**Gemini CLI**](https://geminicli.com/docs/tools/mcp-server/)
-- [**XCode**](https://code.visualstudio.com/docs/copilot/customization/mcp-servers)
+- [**Google Antigravity**](https://antigravity.google/docs/mcp)
 - [**Android Studio**](https://developer.android.com/studio/gemini/add-mcp-server)
-- [**VSCode**](https://code.visualstudio.com/docs/copilot/customization/mcp-servers)
+- [**VS Code**](https://code.visualstudio.com/docs/agent-customization/mcp-servers)
 - [**Cursor**](https://cursor.com/docs/context/mcp)
-- [**Windsurf**](https://docs.windsurf.com/windsurf/cascade/mcp)
 
 When you first use a Measure tool, your coding agent will open a browser window for you to sign in to Measure. After authenticating subsequent requests will work automatically.
 
 ## Available Tools
+
+### `ask_question`
+
+Ask a natural language question to help debug an app and let [Measure Agent](./feature-agent.md) work out the answer using the app's telemetry data.
 
 ### `list_apps`
 

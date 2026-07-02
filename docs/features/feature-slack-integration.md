@@ -1,13 +1,14 @@
 ---
 title: "Slack Integration — Crash, ANR, Bug Report Alerts and Daily Summaries"
-description: "Receive Measure crash spike, ANR spike, bug report alerts and daily summaries in Slack. Manage subscriptions, list channels and stop alerts via slash commands."
+description: "Receive Measure crash spike, ANR spike, bug report alerts and daily summaries in Slack, and debug your app with Measure Agent. Manage subscriptions, list channels and stop alerts via slash commands."
 ---
 
 # Slack Integration
 
-Measure's Slack integration lets you receive alert notifications and daily summaries directly in your Slack workspace.
+Measure's Slack integration lets you get debugging help from [Measure Agent](./feature-agent.md) using your app's telemetry get alert notifications and receive daily summaries in your Slack workspace.
 
 * [**Connecting Your Slack Workspace**](#connecting-your-slack-workspace)
+* [**Debugging with Measure Agent**](#debugging-with-measure-agent)
 * [**Slash Commands**](#slash-commands)
   * [`/subscribe-alerts`](#subscribe-alerts)
   * [`/stop-alerts`](#stop-alerts)
@@ -27,6 +28,15 @@ Measure's Slack integration lets you receive alert notifications and daily summa
 Navigate to the **Team** settings page on the Measure dashboard and click the **Add to Slack** button. This will start an OAuth flow to authorize the Measure Slack app for your workspace.
 
 Once connected, you will see a toggle to enable or disable the integration and a **Send Test Alert** button to verify the connection is working.
+
+## Debugging with Measure Agent
+
+Once your workspace is connected, you can debug with [Measure Agent](./feature-agent.md) without leaving Slack, asking in plain language:
+
+* **In a channel** — invite the Measure bot to the channel, then @mention it with your question, for example "@Measure how many crashes today?". The agent replies in the thread and you can ask follow up questions with full conversational context.
+* **In a direct message** — message the Measure bot directly in Slack. Begin with starter prompts or ask your own questions and follow up with full conversational context.
+
+See the [Measure Agent](./feature-agent.md) guide for what you can ask and how it works.
 
 ## Slash Commands
 

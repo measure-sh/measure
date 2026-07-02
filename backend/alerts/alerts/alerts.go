@@ -9,8 +9,8 @@ import (
 
 	"backend/alerts/server"
 	"backend/alerts/slack"
-	"backend/autumn"
-	"backend/email"
+	"backend/libs/autumn"
+	"backend/libs/email"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"

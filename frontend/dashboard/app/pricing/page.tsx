@@ -59,6 +59,7 @@ export default function Pricing() {
                 <li className="font-body">
                   {FREE_RETENTION_DAYS} days retention
                 </li>
+                <li className="font-body">MCP server</li>
                 <li className="font-body">No credit card needed</li>
               </ul>
             </div>
@@ -79,8 +80,15 @@ export default function Pricing() {
                   {PRO_RETENTION_DAYS} days retention
                 </li>
                 <li className="font-body text-green-900 dark:text-foreground">
+                  MCP server and Measure Agent
+                </li>
+                <li className="font-body text-green-900 dark:text-foreground">
                   Extra data charged at ${PRICE_PER_GB_MONTH.toFixed(2)} per
                   GB/month
+                </li>
+                <li className="font-body text-green-900 dark:text-foreground">
+                  Agent usage at provider token rates + a percentage markup for
+                  compute
                 </li>
               </ul>
             </div>

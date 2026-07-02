@@ -3,7 +3,7 @@
 package symbolicator
 
 import (
-	"backend/api/event"
+	"backend/libs/event"
 	"backend/libs/symbol"
 	"backend/testinfra"
 	"bytes"

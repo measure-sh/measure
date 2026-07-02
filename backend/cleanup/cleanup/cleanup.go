@@ -35,6 +35,12 @@ func DeleteStaleData(ctx context.Context) {
 	// delete stale auth sessions
 	deleteStaleAuthSessions(ctx)
 
+	// delete stale mcp auth codes
+	deleteStaleMCPAuthCodes(ctx)
+
+	// delete stale mcp access tokens
+	deleteStaleMCPAccessTokens(ctx)
+
 	// delete shortened filters
 	deleteStaleShortenedFilters(ctx)
 
@@ -99,6 +105,9 @@ func DeleteStaleData(ctx context.Context) {
 	// delete stale alerts
 	deleteStaleAlerts(ctx, appRetentions)
 
+	// delete stale agent conversations
+	deleteStaleAgentConversations(ctx, appRetentions)
+
 	fmt.Println("Finished cleaning up stale data")
 }
 
@@ -118,6 +127,42 @@ func deleteStaleAuthSessions(ctx context.Context) {
 	}
 
 	fmt.Printf("Succesfully deleted stale auth sessions\n")
+}
+
+// deleteStaleMCPAuthCodes deletes MCP OAuth authorization codes that
+// have passed the expiry time
+func deleteStaleMCPAuthCodes(ctx context.Context) {
+	threshold := time.Now()
+	stmt := sqlf.PostgreSQL.DeleteFrom("mcp_auth_codes").
+		Where("expires_at < ?", threshold)
+
+	defer stmt.Close()
+
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		fmt.Printf("Failed to delete stale mcp auth codes: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Successfully deleted stale mcp auth codes\n")
+}
+
+// deleteStaleMCPAccessTokens deletes MCP access tokens that have expired
+// or been revoked
+func deleteStaleMCPAccessTokens(ctx context.Context) {
+	threshold := time.Now()
+	stmt := sqlf.PostgreSQL.DeleteFrom("mcp_access_tokens").
+		Where("(expires_at < ? or revoked)", threshold)
+
+	defer stmt.Close()
+
+	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		fmt.Printf("Failed to delete stale mcp access tokens: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Successfully deleted stale mcp access tokens\n")
 }
 
 // deleteStaleShortenedFilters deletes stale shortened filters that
@@ -683,6 +728,27 @@ func deleteStaleAlerts(ctx context.Context, retentions []AppRetention) {
 	}
 
 	fmt.Printf("Succesfully deleted stale alerts\n")
+}
+
+// deleteStaleAgentConversations deletes agent conversations whose last
+// activity is past each app's retention threshold. Their messages go with
+// them via the foreign key cascade.
+func deleteStaleAgentConversations(ctx context.Context, retentions []AppRetention) {
+	for _, retention := range retentions {
+		stmt := sqlf.PostgreSQL.DeleteFrom("agent_conversations").
+			Where("app_id = ?", retention.AppID).
+			Where("updated_at < ?", retention.Threshold)
+
+		defer stmt.Close()
+
+		_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+		if err != nil {
+			fmt.Printf("Failed to delete stale agent conversations: %v\n", err)
+			return
+		}
+	}
+
+	fmt.Printf("Successfully deleted stale agent conversations\n")
 }
 
 // deleteStalePendingAlertMessages deletes stale pending alert messages

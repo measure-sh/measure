@@ -1,11 +1,10 @@
 go 1.25.8
 
 use (
+	./backend/agent
 	./backend/alerts
 	./backend/api
-	./backend/autumn
 	./backend/cleanup
-	./backend/email
 	./backend/ingest
 	./backend/ingest-worker
 	./backend/libs

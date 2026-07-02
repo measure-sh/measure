@@ -130,13 +130,22 @@ export default function LandingFooter() {
               Adaptive Capture
             </Link>
             <Link
+              href="/product/agent"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit",
+              )}
+            >
+              Measure Agent
+            </Link>
+            <Link
               href="/product/mcp"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
                 "font-display select-none w-full md:w-fit",
               )}
             >
-              MCP
+              MCP Server
             </Link>
           </div>
 

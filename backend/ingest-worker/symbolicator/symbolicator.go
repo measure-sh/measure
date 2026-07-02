@@ -1,9 +1,9 @@
 package symbolicator
 
 import (
-	"backend/api/event"
-	"backend/api/span"
+	"backend/libs/event"
 	"backend/libs/opsys"
+	"backend/libs/span"
 	"backend/libs/symbol"
 	"context"
 	"encoding/json"
