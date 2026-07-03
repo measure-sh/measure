@@ -186,17 +186,26 @@ services:
       context: ../backend/agent
       additional_contexts:
         libs: ../backend/libs
-        testinfra: ../backend/testinfra
       args:
         TARGETTYPE: debug
     ports:
       - "8084:8084"
+    secrets:
+      - postgres-dsn
+      - clickhouse-dsn
+      - clickhouse-reader-dsn
+      - attachments-secret-access-key
+      - smtp-password
+      - autumn-secret-key
+      - oauth-google-secret
+      - oauth-github-secret
+      - openrouter-api-key
     environment:
       - BILLING_ENABLED=${BILLING_ENABLED}
-      - AUTUMN_SECRET_KEY=${AUTUMN_SECRET_KEY}
-      - POSTGRES_DSN=${POSTGRES_DSN}
-      - CLICKHOUSE_DSN=${CLICKHOUSE_DSN}
-      - CLICKHOUSE_READER_DSN=${CLICKHOUSE_READER_DSN}
+      - AUTUMN_SECRET_KEY_FILE=/run/secrets/autumn-secret-key
+      - POSTGRES_DSN_FILE=/run/secrets/postgres-dsn
+      - CLICKHOUSE_DSN_FILE=/run/secrets/clickhouse-dsn
+      - CLICKHOUSE_READER_DSN_FILE=/run/secrets/clickhouse-reader-dsn
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_HOST=${REDIS_HOST}
       - IGGY_ADDR=${IGGY_ADDR}
@@ -207,24 +216,24 @@ services:
       - ATTACHMENTS_S3_BUCKET=${ATTACHMENTS_S3_BUCKET}
       - ATTACHMENTS_S3_BUCKET_REGION=${ATTACHMENTS_S3_BUCKET_REGION}
       - ATTACHMENTS_ACCESS_KEY=${ATTACHMENTS_ACCESS_KEY}
-      - ATTACHMENTS_SECRET_ACCESS_KEY=${ATTACHMENTS_SECRET_ACCESS_KEY}
+      - ATTACHMENTS_SECRET_ACCESS_KEY_FILE=/run/secrets/attachments-secret-access-key
       - SITE_ORIGIN=${NEXT_PUBLIC_SITE_URL}
       - API_ORIGIN=${NEXT_PUBLIC_AGENT_BASE_URL}
       - OAUTH_GOOGLE_KEY=${OAUTH_GOOGLE_KEY}
-      - OAUTH_GOOGLE_SECRET=${OAUTH_GOOGLE_SECRET}
+      - OAUTH_GOOGLE_SECRET_FILE=/run/secrets/oauth-google-secret
       - OAUTH_GITHUB_KEY=${OAUTH_GITHUB_KEY}
-      - OAUTH_GITHUB_SECRET=${OAUTH_GITHUB_SECRET}
+      - OAUTH_GITHUB_SECRET_FILE=/run/secrets/oauth-github-secret
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
       - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_PASSWORD_FILE=/run/secrets/smtp-password
       - EMAIL_DOMAIN=${EMAIL_DOMAIN}
       - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
       - POSTHOG_HOST=${POSTHOG_HOST:-}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
       - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_API_KEY_FILE=/run/secrets/openrouter-api-key
       - OPENROUTER_MODEL_SMALL=${OPENROUTER_MODEL_SMALL:-}
       - OPENROUTER_MODEL_MEDIUM=${OPENROUTER_MODEL_MEDIUM:-}
       - OPENROUTER_MODEL_LARGE=${OPENROUTER_MODEL_LARGE:-}
@@ -875,3 +884,5 @@ secrets:
     environment: "OAUTH_GOOGLE_SECRET"
   oauth-github-secret:
     environment: "OAUTH_GITHUB_SECRET"
+  openrouter-api-key:
+    environment: "OPENROUTER_API_KEY"

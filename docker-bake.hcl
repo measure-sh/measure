@@ -72,6 +72,18 @@ target "cleanup" {
   platforms = ["linux/amd64"]
 }
 
+target "agent" {
+  inherits = ["docker-metadata-action"]
+  context = "backend/agent"
+  contexts = {
+    libs = "backend/libs"
+  }
+  dockerfile = "dockerfile"
+  cache-from = ["type=gha"]
+  cache-to = ["type=gha,mode=max"]
+  platforms = ["linux/amd64"]
+}
+
 target "dashboard" {
   inherits = ["docker-metadata-action"]
   context = "frontend/dashboard"

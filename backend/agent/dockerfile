@@ -7,14 +7,12 @@ WORKDIR /go/src
 
 # Copy dependency modules first for caching
 COPY --from=libs go.mod go.sum ../libs/
-COPY --from=testinfra go.mod go.sum ../testinfra/
 COPY ["go.mod", "go.sum", "./"]
 
 RUN go mod download
 
 # Copy source
 COPY --from=libs . ../libs/
-COPY --from=testinfra . ../testinfra/
 COPY . .
 
 # Build statically linked binary
