@@ -106,6 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Make agent service deploy ready (#3987) by @detj in #3987
 - (**backend**): Modify ota symbolication (#3985) by @detj in #3985
 - (**backend**): Change sampling rate defaults for SDK config (#3982) by @abhaysood in #3982
 - (**backend**): Add cloud sql iam database authn (#3975) by @detj in #3975
