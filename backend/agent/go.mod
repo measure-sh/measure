@@ -4,7 +4,6 @@ go 1.25.8
 
 require (
 	backend/libs v0.0.0
-	backend/testinfra v0.0.0-00010101000000-000000000000
 	cloud.google.com/go/pubsub/v2 v2.5.1
 	github.com/ClickHouse/clickhouse-go/v2 v2.44.0
 	github.com/gin-gonic/gin v1.12.0
@@ -184,5 +183,4 @@ require (
 
 replace (
 	backend/libs => ../libs
-	backend/testinfra => ../testinfra
 )

@@ -112,7 +112,6 @@ jobs:
           file: backend/agent/dockerfile
           build-contexts: |
             libs=backend/libs
-            testinfra=backend/testinfra
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |

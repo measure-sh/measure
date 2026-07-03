@@ -14,6 +14,7 @@ import (
 
 	"backend/agent/server"
 	"backend/libs/opsys"
+	"backend/libs/secret"
 
 	"github.com/google/uuid"
 	"github.com/leporo/sqlf"
@@ -112,7 +113,10 @@ func NewConfig() *Config {
 	}
 	baseURL = strings.TrimSuffix(baseURL, "/")
 
-	apiKey := os.Getenv("OPENROUTER_API_KEY")
+	apiKey, err := secret.FromEnvOrFile("OPENROUTER_API_KEY")
+	if err != nil {
+		log.Printf("failed to read OPENROUTER_API_KEY: %v", err)
+	}
 	if apiKey == "" {
 		log.Println("OPENROUTER_API_KEY env var not set, the ask_question tool will return errors")
 	}
