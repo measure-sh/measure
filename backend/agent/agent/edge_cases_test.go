@@ -322,6 +322,38 @@ func TestSlackQuestionNotMember(t *testing.T) {
 	}
 }
 
+// TestSlackQuestionWithFiles checks a message carrying attachments is answered
+// with the paste-the-contents reply instead of running a turn, including a
+// bare file drop with no text, which must not get the greeting.
+func TestSlackQuestionWithFiles(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+	teamID, _, _ := seedTeamUserApp(ctx, t)
+	seedTeamSlack(ctx, t, teamID, []string{"C1"})
+
+	slacktest.MockUserEmail(t, func(context.Context, string, string) (string, error) { return "", nil })
+	delivered := captureSlackDelivery(t)
+	c, stub := newTestAgent(t)
+
+	ev := slackQuestionEvent(teamID, slack.SurfaceAssistant, "what does this crash log say?", "Ev-files")
+	ev.HasFiles = true
+	handleSlackQuestion(t, c, ev)
+	if !strings.Contains(*delivered, "can't read file attachments") {
+		t.Errorf("delivered = %q, want the paste-the-contents reply", *delivered)
+	}
+
+	bare := slackQuestionEvent(teamID, slack.SurfaceAssistant, "", "Ev-files-bare")
+	bare.HasFiles = true
+	handleSlackQuestion(t, c, bare)
+	if !strings.Contains(*delivered, "can't read file attachments") {
+		t.Errorf("delivered = %q, want the paste-the-contents reply for a bare file drop", *delivered)
+	}
+
+	if stub.callCount() != 0 {
+		t.Errorf("llm called %d times for file-carrying messages, want 0", stub.callCount())
+	}
+}
+
 // TestSlackQuestionEmpty checks a mention with no question text gets the
 // greeting rather than running a turn.
 func TestSlackQuestionEmpty(t *testing.T) {
