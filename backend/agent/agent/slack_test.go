@@ -2,10 +2,10 @@ package agent
 
 import (
 	"context"
-	"slices"
 	"strings"
 	"testing"
 
+	"backend/agent/server"
 	"backend/libs/slack"
 
 	"github.com/google/uuid"
@@ -20,13 +20,6 @@ func slackTestApps(names ...[2]string) []slackApp {
 }
 
 func TestPickMeasureApp(t *testing.T) {
-	t.Run("no apps", func(t *testing.T) {
-		_, clarify := pickMeasureApp(nil, "any crashes?")
-		if clarify == "" {
-			t.Fatal("expected a clarifying reply for a team without apps")
-		}
-	})
-
 	t.Run("single app wins by default", func(t *testing.T) {
 		apps := slackTestApps([2]string{"Wikipedia", "org.wikipedia"})
 		app, clarify := pickMeasureApp(apps, "any crashes?")
@@ -190,7 +183,9 @@ func TestClarifyLeads(t *testing.T) {
 func TestNoAppsLeads(t *testing.T) {
 	// The zero-apps leads greet a mention from a team with nothing set up.
 	// They must point at the dashboard, the one action that unblocks the user,
-	// and never ask which app, since there are none.
+	// and never ask which app, since there are none. Each lead carries exactly
+	// one %s slot for the dashboard link and no stray %, so the Sprintf in
+	// noAppsReply can't misfire.
 	if len(noAppsLeads) < 10 {
 		t.Fatalf("expected a healthy set of no-apps leads, got %d", len(noAppsLeads))
 	}
@@ -198,15 +193,51 @@ func TestNoAppsLeads(t *testing.T) {
 		if strings.TrimSpace(lead) == "" {
 			t.Fatalf("no-apps lead %d is empty", i)
 		}
-		if !strings.Contains(lead, "dashboard") {
-			t.Fatalf("no-apps lead %d should point at the dashboard, got %q", i, lead)
+		if strings.Count(lead, "%") != 1 || !strings.Contains(lead, "%s") {
+			t.Fatalf("no-apps lead %d should carry exactly one dashboard %%s slot, got %q", i, lead)
 		}
 	}
 
-	// A team with no apps gets one of these leads back, with no app list.
-	_, clarify := pickMeasureApp(nil, "hey there")
-	if !slices.Contains(noAppsLeads, clarify) {
-		t.Fatalf("a team with no apps should get a no-apps lead, got %q", clarify)
+	// A team with no apps gets one of these leads back with the dashboard
+	// link spliced in.
+	link := "[dashboard](https://app.example.com/9db1a316-6bb2-4bd7-9088-8f5a97966373/apps)"
+	reply := noAppsReply(link)
+	if !strings.Contains(reply, link) {
+		t.Fatalf("noAppsReply should splice the dashboard link, got %q", reply)
+	}
+	if strings.Contains(reply, "%") {
+		t.Fatalf("noAppsReply left format residue, got %q", reply)
+	}
+}
+
+func TestDashboardLink(t *testing.T) {
+	teamID := uuid.MustParse("9db1a316-6bb2-4bd7-9088-8f5a97966373")
+
+	c := &Config{Deps: &server.Deps{Config: &server.Config{SiteOrigin: "https://app.example.com"}}}
+	want := "[dashboard](https://app.example.com/9db1a316-6bb2-4bd7-9088-8f5a97966373/team)"
+	if got := c.dashboardLink(teamID, "team"); got != want {
+		t.Errorf("dashboardLink = %q, want %q", got, want)
+	}
+
+	// A trailing slash on the configured origin must not double up.
+	c = &Config{Deps: &server.Deps{Config: &server.Config{SiteOrigin: "https://app.example.com/"}}}
+	if got := c.dashboardLink(teamID, "team"); got != want {
+		t.Errorf("dashboardLink with trailing slash = %q, want %q", got, want)
+	}
+
+	// Without a site origin there is nothing to point at: degrade to the
+	// plain word so replies still read correctly.
+	c = &Config{Deps: &server.Deps{Config: &server.Config{}}}
+	if got := c.dashboardLink(teamID, "team"); got != "dashboard" {
+		t.Errorf("dashboardLink without origin = %q, want plain word", got)
+	}
+
+	// The link must survive the Slack conversion as a clickable mrkdwn link.
+	c = &Config{Deps: &server.Deps{Config: &server.Config{SiteOrigin: "https://app.example.com"}}}
+	got := toMrkdwn(noAppsReply(c.dashboardLink(teamID, "apps")))
+	wantLink := "<https://app.example.com/9db1a316-6bb2-4bd7-9088-8f5a97966373/apps|dashboard>"
+	if !strings.Contains(got, wantLink) {
+		t.Errorf("slack reply should carry the mrkdwn link %q, got %q", wantLink, got)
 	}
 }
 

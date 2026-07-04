@@ -37,7 +37,11 @@ const somethingWentWrong = "Something went wrong on my side. Please try again."
 
 // slackDisabledNotice is the reply when a team has paused its Slack
 // integration: the agent stops answering and points the asker at the switch.
-const slackDisabledNotice = "Slack integration is disabled for this workspace. An admin can re-enable it in the Measure dashboard -> Team settings."
+// dashboard is the word "dashboard", linked to the team page holding the
+// switch (dashboardLink).
+func slackDisabledNotice(dashboard string) string {
+	return fmt.Sprintf("Slack integration is disabled for this workspace. An admin can re-enable it under Team settings in the Measure %s.", dashboard)
+}
 
 // HandleSlackEvent consumes one normalized Slack event from the bus.
 // Questions run inline: the event is acked only when its turn has fully run
@@ -179,7 +183,8 @@ func (c *Config) answerSlackQuestion(ctx context.Context, ev slack.AgentEvent) {
 		// why and how to re-enable it. Mark it answered so Slack retries don't
 		// repost the notice.
 		outcome = "integration_disabled"
-		if _, err := slack.PostMessage(ctx, token, ev.Channel, ev.ThreadTS, slackDisabledNotice); err != nil {
+		notice := toMrkdwn(slackDisabledNotice(c.dashboardLink(teamID, "team")))
+		if _, err := slack.PostMessage(ctx, token, ev.Channel, ev.ThreadTS, notice); err != nil {
 			log.Printf("agent: failed to post slack disabled notice: %v", err)
 		}
 		c.markSlackEventAnswered(ctx, ev.EventID)
@@ -282,12 +287,13 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 	}
 	if userID == uuid.Nil {
 		log.Printf("agent: slack question rejected event=%s reason=not_team_member", ev.EventID)
+		dashboard := c.dashboardLink(teamID, "team")
 		// Name the email only in the user's own assistant pane; in a channel
 		// it would disclose a possibly hidden profile email to everyone.
 		if ev.Surface == slack.SurfaceAssistant {
-			return fmt.Sprintf("I couldn't find a Measure team member with the email %s. Please ask your Measure admin to add you to the team with that email and try again.", email)
+			return fmt.Sprintf("I couldn't find a Measure team member with the email %s. Please ask your Measure admin to add you to the team in the %s with that email and try again.", email, dashboard)
 		}
-		return "I couldn't find a Measure team member matching your Slack profile email. Please ask your Measure admin to add you to the team with your Slack profile email and try again."
+		return fmt.Sprintf("I couldn't find a Measure team member matching your Slack profile email. Please ask your Measure admin to add you to the team in the %s with your Slack profile email and try again.", dashboard)
 	}
 
 	conv, err := c.findSlackConversation(ctx, ev.Channel, ev.ThreadTS)
@@ -313,6 +319,10 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 		if err != nil {
 			log.Printf("agent: failed to list team apps: %v", err)
 			return somethingWentWrong
+		}
+		if len(apps) == 0 {
+			log.Printf("agent: slack question from team with no apps event=%s", ev.EventID)
+			return noAppsReply(c.dashboardLink(teamID, "apps"))
 		}
 		app, clarify := pickMeasureApp(apps, question)
 		if clarify != "" {
@@ -343,7 +353,7 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 	trackAgentTokens(c.Deps, customerID, c.ModelSmall, callUsage(resolveUsage))
 	if err := c.checkAgentAllowed(ctx, customerID); err != nil {
 		log.Printf("agent: slack question rejected event=%s reason=usage_blocked", ev.EventID)
-		return agentNotAllowedReply
+		return agentNotAllowedReply(c.dashboardLink(turnTeamID, "usage"))
 	}
 
 	if conv == nil {
@@ -582,12 +592,9 @@ var internalBuildMarkers = []string{".dev", ".debug", ".staging", ".qa", ".test"
 // pickMeasureApp chooses which of a team's apps a question is about: an app
 // named in the question wins, a lone app is it, and internal builds lose to
 // the production one. When it can't choose, it returns a clarifying reply
-// instead.
+// instead. Callers guarantee apps is non-empty; a team with no apps at all is
+// answered with noAppsReply before app picking begins.
 func pickMeasureApp(apps []slackApp, question string) (slackApp, string) {
-	if len(apps) == 0 {
-		return slackApp{}, noAppsLeads[rand.IntN(len(noAppsLeads))]
-	}
-
 	q := strings.ToLower(question)
 	var named []slackApp
 	for _, app := range apps {
@@ -844,22 +851,31 @@ var clarifyLeads = []string{
 // Measure at all. Like clarifyLeads they stay neutral so any mention, greeting
 // or off-topic, reads correctly, but instead of asking which app they point at
 // the dashboard to set one up; one is picked at random. No app list follows.
+// Each lead carries exactly one %s slot where noAppsReply splices the word
+// "dashboard", linked to the team's apps page.
 var noAppsLeads = []string{
-	"Hi! I can help you debug your app's crashes, errors and sessions. Your team doesn't have any apps in Measure yet, so set one up in the dashboard and I'll be ready to help.",
-	"Hey there! I'm the Measure bot, here to help you debug your app's crashes, errors and slow sessions. There are no apps set up for your team yet. Add one in the dashboard and mention me again.",
-	"Hello! I help you dig into how your apps are doing. It looks like your team hasn't set up an app in Measure yet. Create one in the dashboard and I can take it from there.",
-	"Hi there! I help you debug your app, from crashes to slow sessions. Your team has no apps in Measure so far. Set one up in the dashboard whenever you're ready.",
-	"Hey! I'm your Measure helper for app telemetry. There aren't any apps under your team yet, so head to the dashboard to add one and I'll be glad to dig in.",
-	"Hi! I can look into errors, crashes and sessions for your apps. Your team doesn't have any apps in Measure yet. Set one up in the dashboard and mention me again.",
-	"Hello! I'm here to help you debug your app. It seems your team hasn't added an app to Measure yet. Create one in the dashboard and I'll be ready.",
-	"Hey there! I can tell you how your apps are doing once they're in Measure. Your team has no apps set up yet, so add one in the dashboard to get started.",
-	"Hi! I can help you debug app crashes, errors and sessions. There are no apps under your team in Measure yet. Set one up in the dashboard and I'll dig in.",
-	"Hello! I'm the Measure bot for debugging your apps. Your team hasn't set up an app yet. Add one in the dashboard and I can start helping.",
-	"Hey! I can help you keep an eye on crashes, errors and session trends. Your team doesn't have any apps in Measure yet, so set one up in the dashboard first.",
-	"Hi there! I cover crashes, errors and sessions for your apps. It looks like there are no apps set up for your team yet. Create one in the dashboard and mention me again.",
-	"Hello! I'm here to help with your app's health. Your team has no apps in Measure at the moment. Set one up in the dashboard and I'll be ready to dig in.",
-	"Hey there! I help you debug your apps. There aren't any apps under your team yet, so add one in the dashboard to begin.",
-	"Hi! I can dig into crashes, errors and sessions for your apps. Your team hasn't set up an app in Measure yet. Create one in the dashboard whenever you're ready.",
+	"Hi! I can help you debug your app's crashes, errors and sessions. Your team doesn't have any apps in Measure yet, so set one up in the %s and I'll be ready to help.",
+	"Hey there! I'm the Measure bot, here to help you debug your app's crashes, errors and slow sessions. There are no apps set up for your team yet. Add one in the %s and mention me again.",
+	"Hello! I help you dig into how your apps are doing. It looks like your team hasn't set up an app in Measure yet. Create one in the %s and I can take it from there.",
+	"Hi there! I help you debug your app, from crashes to slow sessions. Your team has no apps in Measure so far. Set one up in the %s whenever you're ready.",
+	"Hey! I'm your Measure helper for app telemetry. There aren't any apps under your team yet, so head to the %s to add one and I'll be glad to dig in.",
+	"Hi! I can look into errors, crashes and sessions for your apps. Your team doesn't have any apps in Measure yet. Set one up in the %s and mention me again.",
+	"Hello! I'm here to help you debug your app. It seems your team hasn't added an app to Measure yet. Create one in the %s and I'll be ready.",
+	"Hey there! I can tell you how your apps are doing once they're in Measure. Your team has no apps set up yet, so add one in the %s to get started.",
+	"Hi! I can help you debug app crashes, errors and sessions. There are no apps under your team in Measure yet. Set one up in the %s and I'll dig in.",
+	"Hello! I'm the Measure bot for debugging your apps. Your team hasn't set up an app yet. Add one in the %s and I can start helping.",
+	"Hey! I can help you keep an eye on crashes, errors and session trends. Your team doesn't have any apps in Measure yet, so set one up in the %s first.",
+	"Hi there! I cover crashes, errors and sessions for your apps. It looks like there are no apps set up for your team yet. Create one in the %s and mention me again.",
+	"Hello! I'm here to help with your app's health. Your team has no apps in Measure at the moment. Set one up in the %s and I'll be ready to dig in.",
+	"Hey there! I help you debug your apps. There aren't any apps under your team yet, so add one in the %s to begin.",
+	"Hi! I can dig into crashes, errors and sessions for your apps. Your team hasn't set up an app in Measure yet. Create one in the %s whenever you're ready.",
+}
+
+// noAppsReply picks a no-apps lead and fills its slot with dashboard, the
+// word "dashboard" linked to the team's apps page (dashboardLink), where an
+// app can be created.
+func noAppsReply(dashboard string) string {
+	return fmt.Sprintf(noAppsLeads[rand.IntN(len(noAppsLeads))], dashboard)
 }
 
 // clarifyApps asks which app the question meant, opening with a random

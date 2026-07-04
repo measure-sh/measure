@@ -120,7 +120,9 @@ func TestSlackDisabledIntegrationPostsNotice(t *testing.T) {
 	if len(posts) != 1 {
 		t.Fatalf("PostMessage calls = %d, want 1 (the disabled notice): %v", len(posts), posts)
 	}
-	if posts[0] != slackDisabledNotice {
+	// The shared test deps configure no site origin, so the notice carries
+	// the plain word rather than a dashboard link.
+	if posts[0] != slackDisabledNotice("dashboard") {
 		t.Errorf("notice = %q, want the disabled notice", posts[0])
 	}
 
