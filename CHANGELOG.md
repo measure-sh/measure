@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Link dashboard mentions in agent replies by @anupcowkur in #3990
 - (**backend**): Implement agent by @anupcowkur in #3986
 - (**backend**): Support OTA symbolication (#3938) by @detj in #3938
 - (**backend**): Track app OS names as a single-family set) by @anupcowkur in #3839
