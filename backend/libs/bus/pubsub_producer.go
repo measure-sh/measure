@@ -46,6 +46,10 @@ func NewPubSubProducer(ctx context.Context, topic string, opts ...PubSubOption) 
 	if cfg.publishSettings != nil {
 		publisher.PublishSettings = *cfg.publishSettings
 	}
+	// The client rejects keyed messages (PublishOrdered) unless ordering is
+	// enabled up front; keyless publishes are unaffected by the flag, so it
+	// is always on rather than another option.
+	publisher.EnableMessageOrdering = true
 
 	return &pubSubProducer{client: client, publisher: publisher}, nil
 }
@@ -54,6 +58,19 @@ func (p *pubSubProducer) Publish(ctx context.Context, data []byte) error {
 	result := p.publisher.Publish(ctx, &pubsub.Message{Data: data})
 	if _, err := result.Get(ctx); err != nil {
 		return fmt.Errorf("bus: pubsub publish failed: %w", err)
+	}
+	return nil
+}
+
+func (p *pubSubProducer) PublishOrdered(ctx context.Context, orderingKey string, data []byte) error {
+	result := p.publisher.Publish(ctx, &pubsub.Message{Data: data, OrderingKey: orderingKey})
+	if _, err := result.Get(ctx); err != nil {
+		// After a failed keyed publish the client fails every later
+		// message on the same key until told to resume. The bus contract is
+		// per-message error reporting with the caller owning retries, so
+		// resume immediately or one failure would wedge the key for good.
+		p.publisher.ResumePublish(orderingKey)
+		return fmt.Errorf("bus: pubsub ordered publish failed: %w", err)
 	}
 	return nil
 }

@@ -793,13 +793,23 @@ type agentEventsProducer struct {
 }
 
 func (a *agentEventsProducer) Publish(ctx context.Context, data []byte) error {
+	return a.publish(func(p bus.Producer) error { return p.Publish(ctx, data) })
+}
+
+func (a *agentEventsProducer) PublishOrdered(ctx context.Context, orderingKey string, data []byte) error {
+	return a.publish(func(p bus.Producer) error { return p.PublishOrdered(ctx, orderingKey, data) })
+}
+
+// publish runs send through the current producer, rebuilding it and retrying
+// once when the attempt fails.
+func (a *agentEventsProducer) publish(send func(bus.Producer) error) error {
 	a.mu.Lock()
 	p := a.p
 	a.mu.Unlock()
 
 	var firstErr error
 	if p != nil {
-		if firstErr = p.Publish(ctx, data); firstErr == nil {
+		if firstErr = send(p); firstErr == nil {
 			return nil
 		}
 		log.Printf("agent events producer publish failed, rebuilding: %v\n", firstErr)
@@ -813,7 +823,7 @@ func (a *agentEventsProducer) Publish(ctx context.Context, data []byte) error {
 		}
 		return err
 	}
-	return p.Publish(ctx, data)
+	return send(p)
 }
 
 // swap replaces a broken producer with a freshly built one, unless another

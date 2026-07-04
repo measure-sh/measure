@@ -52,9 +52,11 @@ func slackDisabledNotice(dashboard string) string {
 // Questions run inline: the event is acked only when its turn has fully run
 // (the nil return), so a crash or shutdown mid-turn leaves it on the bus to
 // re-run after restart. The consumer sets the concurrency: Iggy delivers
-// strictly one at a time, Pub/Sub a bounded handful. A turn that ran but
-// failed answers with an error message in the thread rather than nacking;
-// redelivery would only repeat the failure.
+// strictly one at a time, Pub/Sub a bounded handful. Events are published
+// with a per-thread ordering key, so what runs concurrently is always
+// different threads; one thread's events arrive one at a time, in order. A
+// turn that ran but failed answers with an error message in the thread
+// rather than nacking; redelivery would only repeat the failure.
 func (c *Config) HandleSlackEvent(ctx context.Context, data []byte) error {
 	var ev slack.AgentEvent
 	if err := json.Unmarshal(data, &ev); err != nil {
@@ -319,7 +321,7 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 	continued := conv != nil
 	var appID uuid.UUID
 	var resolveUsage chatUsage
-	if conv != nil {
+	if continued {
 		// Assistant threads stay private to whoever started them. Channel
 		// threads are open to the whole team; resolveSlackUser already
 		// required team membership.
@@ -370,7 +372,7 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 		return agentNotAllowedReply(c.dashboardLink(turnTeamID, "usage"))
 	}
 
-	if conv == nil {
+	if !continued {
 		conv = &conversation{
 			UserID:         userID,
 			AppID:          appID,
@@ -381,23 +383,8 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 			SlackUserID:    ev.SlackUserID,
 		}
 		if err := c.createConversation(ctx, conv, conversationTitle(question)); err != nil {
-			// Two near-simultaneous messages in one thread can race on the
-			// unique index; the loser continues the winner's conversation,
-			// including the winner's app choice.
-			existing, ferr := c.findSlackConversation(ctx, ev.Channel, ev.ThreadTS)
-			if ferr != nil || existing == nil {
-				log.Printf("agent: failed to create slack conversation: %v", err)
-				return somethingWentWrong
-			}
-			conv, continued = existing, true
-			if conv.AppID != appID {
-				appID = conv.AppID
-				turnTeamID, customerID, err = c.resolveAppAccess(ctx, userID, appID)
-				if err != nil {
-					log.Printf("agent: slack app access check failed: %v", err)
-					return somethingWentWrong
-				}
-			}
+			log.Printf("agent: failed to create slack conversation: %v", err)
+			return somethingWentWrong
 		}
 		if ev.Surface == slack.SurfaceAssistant {
 			if err := slack.SetAssistantTitle(ctx, botToken, ev.Channel, ev.ThreadTS, conversationTitle(question)); err != nil {

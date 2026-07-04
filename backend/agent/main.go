@@ -26,8 +26,11 @@ import (
 )
 
 // maxConcurrentSlackTurns caps how many questions Pub/Sub hands the agent at
-// once; each one runs a full LLM turn in its handler. Iggy (self-host)
-// delivers strictly one at a time, so no cap is needed there.
+// once; each one runs a full LLM turn in its handler. Events carry per-thread
+// ordering keys, so the concurrent questions are always from different
+// threads; this needs the subscription created with message ordering
+// enabled. Iggy (self-host) delivers strictly one at a time, so no cap is
+// needed there.
 const maxConcurrentSlackTurns = 4
 
 // newSlackConsumer builds the bus consumer carrying Slack events published
