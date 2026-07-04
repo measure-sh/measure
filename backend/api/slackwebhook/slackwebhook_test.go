@@ -180,12 +180,51 @@ func TestNormalizeSlackAgentEvent(t *testing.T) {
 			Text:        "what does this crash mean?",
 			TS:          "1718000555.000500",
 			Channel:     "D123",
+			Files:       []json.RawMessage{json.RawMessage(`{"id":"F1"}`)},
 		})
 		if !ok {
 			t.Fatal("expected a file_share message with text to normalize")
 		}
 		if event.Kind != slack.KindQuestion {
 			t.Fatalf("got kind=%q", event.Kind)
+		}
+		if !event.HasFiles {
+			t.Fatal("expected the attachment to be flagged on the event")
+		}
+	})
+
+	t.Run("file-only message survives the empty-text drop", func(t *testing.T) {
+		event, ok := normalizeSlackAgentEvent(envelope, slackInnerEvent{
+			Type:        "message",
+			ChannelType: "im",
+			Subtype:     "file_share",
+			User:        "U111",
+			TS:          "1718000556.000500",
+			Channel:     "D123",
+			Files:       []json.RawMessage{json.RawMessage(`{"id":"F1"}`)},
+		})
+		if !ok {
+			t.Fatal("expected a textless file message to normalize; the agent asks for the contents")
+		}
+		if !event.HasFiles {
+			t.Fatal("expected the attachment to be flagged on the event")
+		}
+	})
+
+	t.Run("mention with files sets the flag without a subtype", func(t *testing.T) {
+		event, ok := normalizeSlackAgentEvent(envelope, slackInnerEvent{
+			Type:    "app_mention",
+			User:    "U111",
+			Text:    "<@U999> what does this log say?",
+			TS:      "1718000557.000500",
+			Channel: "C123",
+			Files:   []json.RawMessage{json.RawMessage(`{"id":"F1"}`)},
+		})
+		if !ok {
+			t.Fatal("expected mention with files to normalize")
+		}
+		if !event.HasFiles {
+			t.Fatal("expected the attachment to be flagged on the event")
 		}
 	})
 

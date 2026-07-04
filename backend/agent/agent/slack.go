@@ -35,6 +35,11 @@ const slackTurnTimeout = 15 * time.Minute
 // somethingWentWrong is the reply for failures the asker can't act on.
 const somethingWentWrong = "Something went wrong on my side. Please try again."
 
+// fileAttachmentsReply is the reply when the triggering message carries file
+// attachments. The agent can't read files yet, so asking for the contents as
+// text beats answering with the attachment silently ignored.
+const fileAttachmentsReply = "I can't read file attachments yet. Please paste the relevant contents directly as text in your message and ask again."
+
 // slackDisabledNotice is the reply when a team has paused its Slack
 // integration: the agent stops answering and points the asker at the switch.
 // dashboard is the word "dashboard", linked to the team page holding the
@@ -270,6 +275,15 @@ func channelUnreachable(err error) bool {
 // runs the turn, and returns the text to post: the answer or a message the
 // asker can act on.
 func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uuid.UUID, botToken, botUserID string) string {
+	// Attachments never make it past the edge, only the typed text does, so
+	// answering the text alone could silently miss the point of the question.
+	// Checked before the empty-question greeting: a bare file drop should ask
+	// for its contents, not say hello.
+	if ev.HasFiles {
+		log.Printf("agent: slack question rejected event=%s reason=file_attachments", ev.EventID)
+		return fileAttachmentsReply
+	}
+
 	question := strings.TrimSpace(slackMentionRE.ReplaceAllString(ev.Text, ""))
 	question = slackUnescaper.Replace(question)
 	if question == "" {

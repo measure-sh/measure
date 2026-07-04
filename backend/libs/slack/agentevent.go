@@ -41,6 +41,9 @@ type AgentEvent struct {
 	SlackUserID string `json:"slack_user_id"`
 	Text        string `json:"text"`
 	EventID     string `json:"event_id"`
+	// HasFiles marks a message that carried file attachments. Only the typed
+	// text rides on the event; the files themselves are never fetched.
+	HasFiles bool `json:"has_files,omitempty"`
 	// Traceparent carries the W3C trace context of the HTTP request that
 	// received the event, so the consumer's spans join the same trace.
 	Traceparent string `json:"traceparent,omitempty"`

@@ -192,6 +192,9 @@ type slackInnerEvent struct {
 	ThreadTS    string `json:"thread_ts"`
 	Channel     string `json:"channel"`
 	ChannelType string `json:"channel_type"`
+	// Files is the message's file attachments. Only their presence matters
+	// here, so the entries stay unparsed.
+	Files []json.RawMessage `json:"files"`
 	// Tab is set on app_home_opened: "messages" when the user opens the
 	// agent's DM (the greeting trigger in Agent view), or "home" for the App
 	// Home tab, which we ignore.
@@ -324,6 +327,9 @@ func normalizeSlackAgentEvent(envelope slackEventEnvelope, inner slackInnerEvent
 		Channel:     inner.Channel,
 		EventTS:     inner.TS,
 		ThreadTS:    inner.ThreadTS,
+		// The files array and the file_share subtype both mark attachments;
+		// DM messages carry both, mentions only the array.
+		HasFiles: len(inner.Files) > 0 || inner.Subtype == "file_share",
 	}
 	if event.ThreadTS == "" {
 		// A message outside a thread roots its own; replies target it.
@@ -349,7 +355,10 @@ func normalizeSlackAgentEvent(envelope slackEventEnvelope, inner slackInnerEvent
 		return event, false
 	}
 
-	if event.Kind == slack.KindQuestion && strings.TrimSpace(event.Text) == "" {
+	// A question needs text to answer, so textless messages are dropped,
+	// except ones carrying files: those get a reply asking for the contents
+	// as text, where silence would read as the agent ignoring the file.
+	if event.Kind == slack.KindQuestion && strings.TrimSpace(event.Text) == "" && !event.HasFiles {
 		return event, false
 	}
 	return event, true
