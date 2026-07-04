@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Give agent ability to reply with graphs by @anupcowkur in #3995
 - (**backend**): Raise agent turn budget to 25 calls with a forced answer by @anupcowkur in #3994
 - (**backend**): Deliver slack agent events in per-thread order by @anupcowkur in #3992
 - (**backend**): Ask for content on slack file attachments by @anupcowkur in #3991
@@ -37,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Change agent tools' version default from latest to all versions by @anupcowkur
 - (**backend**): Prevent email logo inversion in gmail dark mode by @anupcowkur in #3965
 - (**backend**): Adds experimental gmail logo fix by @anupcowkur in #3960
 - (**backend**): Restore measure logo png by @anupcowkur in #3957
