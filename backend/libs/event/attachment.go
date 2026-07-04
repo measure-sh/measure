@@ -47,7 +47,7 @@ type PreSignConfig struct {
 	AttachmentsAccessKey       string
 	AttachmentsSecretAccessKey string
 	AttachmentOrigin           string
-	APIOrigin                  string
+	Origin                     string
 }
 
 // attachmentTypes is a list of all valid attachment types.
@@ -240,7 +240,7 @@ func (a *Attachment) PreSignURL(ctx context.Context, config PreSignConfig) (err 
 	urlStr := req.URL
 
 	if shouldProxy {
-		endpoint, err := url.JoinPath(config.APIOrigin, "proxy", "attachments")
+		endpoint, err := url.JoinPath(config.Origin, "proxy", "attachments")
 		if err != nil {
 			return err
 		}

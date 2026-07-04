@@ -186,7 +186,7 @@ func TestMCPWithUserIDContext(t *testing.T) {
 // ==========================================================================
 
 func TestMCPOAuthMetadata(t *testing.T) {
-	deps.Config.APIOrigin = "https://api.example.com"
+	deps.Config.AgentOrigin = "https://api.example.com"
 
 	c, w := newTestGinContext("GET", "/.well-known/oauth-authorization-server", nil)
 	h.MCPOAuthMetadata(c)
@@ -397,7 +397,7 @@ func TestMCPAuthorize(t *testing.T) {
 	t.Run("missing code_challenge returns 400", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		deps.Config.OAuthGitHubKey = "test_gh_key"
-		deps.Config.APIOrigin = "https://api.example.com"
+		deps.Config.AgentOrigin = "https://api.example.com"
 		seedMCPClient(ctx, t, "client_pkce", "MyApp", []string{"http://localhost:9999/cb"}, "secret")
 
 		params := url.Values{
@@ -471,7 +471,7 @@ func TestMCPAuthorize(t *testing.T) {
 	t.Run("provider=github redirects to GitHub OAuth with unified callback and mcp_ prefix", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		deps.Config.OAuthGitHubKey = "test_gh_key"
-		deps.Config.APIOrigin = "https://api.example.com"
+		deps.Config.AgentOrigin = "https://api.example.com"
 		deps.Config.SiteOrigin = "https://app.example.com"
 		seedMCPClient(ctx, t, "client2", "MyApp", []string{"http://localhost:9999/cb"}, "secret")
 
@@ -517,7 +517,7 @@ func TestMCPAuthorize(t *testing.T) {
 		cleanupAll(ctx, t)
 		deps.Config.OAuthGoogleKey = "test_google_key"
 		deps.Config.OAuthGoogleSecret = "test_google_secret"
-		deps.Config.APIOrigin = "https://api.example.com"
+		deps.Config.AgentOrigin = "https://api.example.com"
 		deps.Config.SiteOrigin = "https://app.example.com"
 		seedMCPClient(ctx, t, "client_google", "MyApp", []string{"http://localhost:9999/cb"}, "secret")
 
