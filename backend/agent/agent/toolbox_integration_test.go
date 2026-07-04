@@ -4,6 +4,7 @@ package agent
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -79,4 +80,37 @@ func TestRunSQLIntegration(t *testing.T) {
 			t.Error("expected error for raw table name, got nil")
 		}
 	})
+}
+
+// TestMCPBuildAppFilterCoversAllVersions checks the version default: with no
+// version filter the query covers every version seen in the requested range
+// rather than narrowing to the latest one, which made turns report "no data"
+// for questions spanning versions.
+func TestMCPBuildAppFilterCoversAllVersions(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+	teamID, _, appID := seedTeamUserApp(ctx, t)
+	now := time.Now().UTC()
+	th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1,
+		testinfra.EventRow{Timestamp: now.Add(-2 * time.Hour), AppVersion: "1.0.1", AppBuild: "1"})
+	th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1,
+		testinfra.EventRow{Timestamp: now.Add(-time.Hour), AppVersion: "1.0.2", AppBuild: "2"})
+	th.SeedAppFilters(ctx, t, teamID.String(), appID.String(), now, [][2]string{{"1.0.1", "1"}, {"1.0.2", "2"}})
+
+	c, _ := newTestAgent(t)
+	af, err := c.mcpBuildAppFilter(ctx, appID, mcpCommonFilters{
+		From: now.Add(-24 * time.Hour).Format(time.RFC3339),
+		To:   now.Format(time.RFC3339),
+	})
+	if err != nil {
+		t.Fatalf("mcpBuildAppFilter: %v", err)
+	}
+	for _, v := range []string{"1.0.1", "1.0.2"} {
+		if !slices.Contains(af.Versions, v) {
+			t.Errorf("versions %v missing %s", af.Versions, v)
+		}
+	}
+	if len(af.VersionCodes) < 2 {
+		t.Errorf("version codes %v, want both builds", af.VersionCodes)
+	}
 }
