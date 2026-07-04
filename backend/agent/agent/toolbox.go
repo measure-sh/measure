@@ -538,7 +538,10 @@ func askQuestionTool(cfg *Config) Tool {
 }
 
 // commonTools returns the tools served on both surfaces: to MCP clients and
-// to the agent's own loop. Purpose-built, one per dashboard question.
+// to the agent's own loop. Purpose-built, one per dashboard question. The
+// render_chart tool is not one of them: it produces an artifact for the turn
+// rather than a result for the model, and only Slack can deliver it, so it
+// lives in graph.go and the turn loop offers and dispatches it itself.
 func commonTools(cfg *Config) []Tool {
 	return []Tool{
 		// list_apps

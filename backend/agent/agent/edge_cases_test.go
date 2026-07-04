@@ -3,10 +3,12 @@
 package agent
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image/png"
 	"strconv"
 	"strings"
 	"testing"
@@ -111,7 +113,7 @@ func TestRunTurnLLMFailure(t *testing.T) {
 		t.Fatalf("createConversation: %v", err)
 	}
 
-	if _, err := c.runTurn(ctx, turn{userID: userID, appID: appID, teamID: teamID, conv: conv, question: "boom", entryPoint: "mcp"}); err == nil {
+	if _, _, err := c.runTurn(ctx, turn{userID: userID, appID: appID, teamID: teamID, conv: conv, question: "boom", entryPoint: "mcp"}); err == nil {
 		t.Fatal("want error on llm failure, got nil")
 	}
 
@@ -147,7 +149,7 @@ func TestRunTurnBudgetExhausted(t *testing.T) {
 		t.Fatalf("createConversation: %v", err)
 	}
 
-	_, err := c.runTurn(ctx, turn{userID: userID, appID: appID, teamID: teamID, conv: conv, question: "loop", entryPoint: "mcp"})
+	_, _, err := c.runTurn(ctx, turn{userID: userID, appID: appID, teamID: teamID, conv: conv, question: "loop", entryPoint: "mcp"})
 	if !errors.Is(err, errNoAnswer) {
 		t.Errorf("want errNoAnswer, got %v", err)
 	}
@@ -205,7 +207,7 @@ func TestRunTurnBudgetExhaustedAnswer(t *testing.T) {
 		t.Fatalf("createConversation: %v", err)
 	}
 
-	answer, err := c.runTurn(ctx, turn{userID: userID, appID: appID, teamID: teamID, conv: conv, question: "loop", entryPoint: "mcp"})
+	answer, _, err := c.runTurn(ctx, turn{userID: userID, appID: appID, teamID: teamID, conv: conv, question: "loop", entryPoint: "mcp"})
 	if err != nil {
 		t.Fatalf("runTurn: %v", err)
 	}
@@ -267,7 +269,7 @@ func TestRunTurnCompactsLongHistory(t *testing.T) {
 		t.Fatalf("append turn 2: %v", err)
 	}
 
-	answer, err := c.runTurn(ctx, turn{userID: userID, appID: appID, teamID: teamID, conv: conv, question: "new question", entryPoint: "mcp"})
+	answer, _, err := c.runTurn(ctx, turn{userID: userID, appID: appID, teamID: teamID, conv: conv, question: "new question", entryPoint: "mcp"})
 	if err != nil {
 		t.Fatalf("runTurn: %v", err)
 	}
@@ -480,6 +482,89 @@ func TestAnswerSlackQuestionMention(t *testing.T) {
 	}
 	if stub.callCount() != 1 {
 		t.Errorf("llm calls = %d, want 1", stub.callCount())
+	}
+}
+
+// TestSlackQuestionRendersChart checks the chart path end to end on the Slack
+// surface: the turn offers render_chart, the model calls it, the text answer
+// is delivered, and the PNG lands in the same thread right after.
+func TestSlackQuestionRendersChart(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+	const email = "charter@test.dev"
+	teamID, userID, appID := uuid.New(), uuid.New(), uuid.New()
+	seedTeam(ctx, t, teamID, "team")
+	seedUser(ctx, t, userID, email)
+	seedTeamMembership(ctx, t, teamID, userID, "owner")
+	seedApp(ctx, t, appID, teamID, "soleapp", 30)
+	seedTeamSlack(ctx, t, teamID, []string{"C1"})
+
+	slacktest.MockUserEmail(t, func(context.Context, string, string) (string, error) { return email, nil })
+	delivered := captureSlackDelivery(t)
+	type upload struct {
+		channel, threadTS, filename, title string
+		content                            []byte
+	}
+	var uploads []upload
+	slacktest.MockUploadFile(t, func(_ context.Context, _, channel, threadTS, filename, title string, content []byte) error {
+		uploads = append(uploads, upload{channel, threadTS, filename, title, content})
+		return nil
+	})
+
+	toolCall := `{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"c1","type":"function","function":{"name":"render_chart","arguments":"{\"chart_type\":\"line\",\"title\":\"Sessions over time\",\"x_labels\":[\"Jun 1\",\"Jun 2\",\"Jun 3\"],\"series\":[{\"name\":\"Sessions\",\"values\":[10,20,15]}]}"}}]}}],"usage":{"prompt_tokens":20,"completion_tokens":5}}`
+	c, stub := newTestAgent(t, toolCall,
+		`{"choices":[{"message":{"role":"assistant","content":"Sessions are trending up."}}],"usage":{"prompt_tokens":20,"completion_tokens":5}}`)
+
+	handleSlackQuestion(t, c, slackQuestionEvent(teamID, slack.SurfaceAssistant, "how are sessions trending?", "Ev-chart"))
+
+	if !strings.Contains(*delivered, "Sessions are trending up") {
+		t.Errorf("delivered = %q, want the answer", *delivered)
+	}
+	if len(uploads) != 1 {
+		t.Fatalf("uploads = %d, want 1", len(uploads))
+	}
+	up := uploads[0]
+	if up.channel != "C1" || up.threadTS != "1700000000.1" {
+		t.Errorf("upload target = %s/%s, want the question's thread", up.channel, up.threadTS)
+	}
+	if up.filename != "sessions-over-time.png" || up.title != "Sessions over time" {
+		t.Errorf("upload named %q titled %q", up.filename, up.title)
+	}
+	if _, err := png.Decode(bytes.NewReader(up.content)); err != nil {
+		t.Errorf("uploaded content is not a decodable png: %v", err)
+	}
+
+	// The Slack turn's requests offer the chart tool to the model.
+	stub.mu.Lock()
+	first := stub.requests[0]
+	stub.mu.Unlock()
+	if !bytes.Contains(first, []byte(renderChartToolName)) {
+		t.Error("slack turn request should offer render_chart")
+	}
+}
+
+// TestRunTurnChartToolMCPScoped checks MCP turns are not offered the chart
+// tool: their answers are plain text with nowhere to deliver an image.
+func TestRunTurnChartToolMCPScoped(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+	teamID, userID, appID := seedTeamUserApp(ctx, t)
+
+	c, stub := newTestAgent(t,
+		`{"choices":[{"message":{"role":"assistant","content":"ok"}}],"usage":{"prompt_tokens":10,"completion_tokens":2}}`)
+	conv := &conversation{UserID: userID, AppID: appID, TeamID: teamID, Surface: "mcp"}
+	if err := c.createConversation(ctx, conv, "q"); err != nil {
+		t.Fatalf("createConversation: %v", err)
+	}
+	if _, _, err := c.runTurn(ctx, turn{userID: userID, appID: appID, teamID: teamID, conv: conv, question: "q", entryPoint: "mcp"}); err != nil {
+		t.Fatalf("runTurn: %v", err)
+	}
+
+	stub.mu.Lock()
+	first := stub.requests[0]
+	stub.mu.Unlock()
+	if bytes.Contains(first, []byte(renderChartToolName)) {
+		t.Error("mcp turn request must not offer render_chart")
 	}
 }
 

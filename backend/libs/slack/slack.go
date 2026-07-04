@@ -156,6 +156,7 @@ var (
 	SetAssistantStatus           = setAssistantStatus
 	SetAssistantTitle            = setAssistantTitle
 	SetAssistantSuggestedPrompts = setAssistantSuggestedPrompts
+	UploadFile                   = uploadFile
 )
 
 // PostMessage posts text to a channel, inside a thread when threadTS is
@@ -279,6 +280,49 @@ func conversationHistory(ctx context.Context, token, channel string, limit int) 
 		return nil, err
 	}
 	return resp.Messages, nil
+}
+
+// UploadFile shares a file into a channel, inside a thread when threadTS is
+// non-empty, via Slack's external upload flow: reserve an upload URL, send
+// the bytes, then complete the upload against the channel. Needs the
+// files:write scope.
+func uploadFile(ctx context.Context, token, channel, threadTS, filename, title string, content []byte) error {
+	query := url.Values{}
+	query.Set("filename", filename)
+	query.Set("length", strconv.Itoa(len(content)))
+	var reserve struct {
+		UploadURL string `json:"upload_url"`
+		FileID    string `json:"file_id"`
+	}
+	if err := getJSON(ctx, token, "files.getUploadURLExternal", query, &reserve); err != nil {
+		return err
+	}
+
+	// The reserved URL is pre-authorized, so this POST carries no token; the
+	// bytes go up as the raw request body.
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reserve.UploadURL, bytes.NewReader(content))
+	if err != nil {
+		return fmt.Errorf("slack file upload: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/octet-stream")
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("slack file upload: %w", err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("slack file upload: status %d: %s", resp.StatusCode, body)
+	}
+
+	payload := map[string]any{
+		"files":      []map[string]string{{"id": reserve.FileID, "title": title}},
+		"channel_id": channel,
+	}
+	if threadTS != "" {
+		payload["thread_ts"] = threadTS
+	}
+	return postJSON(ctx, token, "files.completeUploadExternal", payload, nil)
 }
 
 // SetAssistantStatus shows a transient status line (e.g. "is thinking...")

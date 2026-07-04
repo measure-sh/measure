@@ -7,6 +7,7 @@ require (
 	cloud.google.com/go/pubsub/v2 v2.5.1
 	github.com/ClickHouse/clickhouse-go/v2 v2.44.0
 	github.com/gin-gonic/gin v1.12.0
+	github.com/go-analyze/charts v0.6.0
 	github.com/google/jsonschema-go v0.4.2
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
@@ -26,8 +27,12 @@ require (
 )
 
 require (
+	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/go-analyze/bulk v0.1.4 // indirect
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/wneessen/go-mail v0.7.3 // indirect
+	golang.org/x/image v0.43.0 // indirect
 )
 
 require (

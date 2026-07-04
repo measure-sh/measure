@@ -15,6 +15,7 @@ import (
 	"backend/agent/server"
 	"backend/libs/opsys"
 	"backend/libs/secret"
+	"backend/libs/slack"
 
 	"github.com/google/uuid"
 	"github.com/leporo/sqlf"
@@ -339,7 +340,8 @@ func (c *Config) askQuestion(ctx context.Context, in askQuestionInput) (out askQ
 	}
 
 	turnRan = true
-	answer, err := c.runTurn(ctx, turn{
+	// MCP turns are not offered the chart tool, so no charts come back.
+	answer, _, err := c.runTurn(ctx, turn{
 		userID:     userID,
 		appID:      appID,
 		teamID:     teamID,
@@ -388,8 +390,10 @@ type turn struct {
 
 // runTurn executes one question in a resolved conversation: load the
 // history, run the LLM/tool loop, save the transcript, report usage and
-// analytics.
-func (c *Config) runTurn(ctx context.Context, t turn) (answer string, err error) {
+// analytics. charts are the images the turn rendered for delivery alongside
+// the answer; only Slack turns can produce them, since only that surface
+// offers the render_chart tool.
+func (c *Config) runTurn(ctx context.Context, t turn) (answer string, chartsOut []renderedChart, err error) {
 	start := time.Now()
 	llmCalls := 0
 	// budgetExhaustedAnswer marks an answer produced by the final forced call
@@ -472,7 +476,7 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, err error)
 
 	history, err := c.loadMessages(ctx, t.conv.ID)
 	if err != nil {
-		return "", fmt.Errorf("failed to load conversation: %w", err)
+		return "", nil, fmt.Errorf("failed to load conversation: %w", err)
 	}
 	elideOldToolResults(history)
 	history, comp = c.compactIfNeeded(ctx, t.conv.ID, history)
@@ -510,6 +514,16 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, err error)
 	messages = append(messages, userMsg)
 	newMessages := []storedMessage{{msg: userMsg}}
 
+	// Charts can only be delivered on Slack, uploaded into the thread, so
+	// only Slack turns offer the tool; MCP output stays text. A conversation
+	// is bound to one surface, so the tool list is stable across its turns
+	// and the cached prompt prefix holds.
+	tools := c.modelTools
+	if t.entryPoint == slack.SurfaceMention || t.entryPoint == slack.SurfaceAssistant {
+		tools = append(slices.Clone(c.modelTools), renderChartTool)
+	}
+	var charts []renderedChart
+
 	for i := range maxLLMCalls {
 		// The last call is the budget-exhausted answer: the model is told the
 		// budget is spent and, via tool_choice "none", can only answer in
@@ -536,7 +550,7 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, err error)
 		}
 
 		llmCalls++
-		resp, err := c.chat(ctx, c.ModelMedium, messages, c.modelTools, toolChoice)
+		resp, err := c.chat(ctx, c.ModelMedium, messages, tools, toolChoice)
 		if err != nil {
 			// Cap the failed turn with a neutral assistant note so a later
 			// retry has a well-formed turn to answer against. The question is
@@ -546,7 +560,7 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, err error)
 			})
 			c.persistTurn(ctx, t.conv.ID, newMessages)
 			trackAgentTokens(c.Deps, t.customerID, c.ModelMedium, turn)
-			return "", err
+			return "", nil, err
 		}
 
 		usage := resp.Usage
@@ -576,7 +590,21 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, err error)
 		}
 
 		for _, tc := range assistant.ToolCalls {
-			result := c.dispatchTool(ctx, tc, t.teamID, t.appID)
+			var result string
+			if tc.Function.Name == renderChartToolName {
+				// Chart rendering is turn state, not a data tool: the image
+				// stays with the turn for delivery, the model only hears
+				// whether it worked.
+				chart, errText := renderChartCall(tc.Function.Arguments, len(charts))
+				if errText != "" {
+					result = errText
+				} else {
+					charts = append(charts, chart)
+					result = fmt.Sprintf("Chart %q rendered. It is posted below this reply: mention it as the chart below, never as an image above, and don't repeat every value from it.", chart.title)
+				}
+			} else {
+				result = c.dispatchTool(ctx, tc, t.teamID, t.appID)
+			}
 			toolMsg := chatMessage{
 				Role:       "tool",
 				Content:    result,
@@ -591,9 +619,9 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, err error)
 	trackAgentTokens(c.Deps, t.customerID, c.ModelMedium, turn)
 
 	if answer == "" {
-		return "", errNoAnswer
+		return "", nil, errNoAnswer
 	}
-	return answer, nil
+	return answer, charts, nil
 }
 
 // dispatchTool wraps runTool with a span and a log line per tool call.
