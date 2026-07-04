@@ -561,7 +561,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_metrics
 		newTool(&mcpsdk.Tool{
 			Name:        "get_metrics",
-			Description: "Get app metrics including adoption, crash-free/ANR-free sessions, and launch performance (cold/warm/hot p95). Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+			Description: "Get app metrics including adoption, crash-free/ANR-free sessions, and launch performance (cold/warm/hot p95). Covers all app versions unless versions/version_codes narrow it; adoption is only meaningful against a specific version, so pass one when reading it. get_filters lists the versions.",
 			InputSchema: mcpMustInferSchema[mcpGetMetricsInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetMetricsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetMetrics(ctx, in)
@@ -570,7 +570,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_app_health_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_app_health_over_time",
-			Description: "Get the app health timeline: sessions, crashes (fatal exceptions) and ANRs bucketed over time. This is the overview health plot. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+			Description: "Get the app health timeline: sessions, crashes (fatal exceptions) and ANRs bucketed over time. This is the overview health plot. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
 			InputSchema: mcpMustInferSchema[mcpGetAppHealthOverTimeInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetAppHealthOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetAppHealthOverTime(ctx, in)
@@ -579,7 +579,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_errors
 		newTool(&mcpsdk.Tool{
 			Name:        "get_errors",
-			Description: "Get error groups (crashes, non-fatal exceptions and ANRs) for an app. Filter by error_types and severities (e.g. error_types=[\"error\"]+severities=[\"fatal\"] for crashes, error_types=[\"anr\"] for ANRs). Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+			Description: "Get error groups (crashes, non-fatal exceptions and ANRs) for an app. Filter by error_types and severities (e.g. error_types=[\"error\"]+severities=[\"fatal\"] for crashes, error_types=[\"anr\"] for ANRs). Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
 			InputSchema: mcpMustInferErrorFilterSchema[mcpGetErrorsInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrors(ctx, in)
@@ -588,7 +588,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_error
 		newTool(&mcpsdk.Tool{
 			Name:        "get_error",
-			Description: "Get individual error events (exception or ANR) for a specific error group. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+			Description: "Get individual error events (exception or ANR) for a specific error group. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
 			InputSchema: mcpMustInferSchema[mcpGetErrorInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetError(ctx, in)
@@ -597,7 +597,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_errors_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_errors_over_time",
-			Description: "Get time-series of error occurrences across all error groups. Filter by error_types and severities. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+			Description: "Get time-series of error occurrences across all error groups. Filter by error_types and severities. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
 			InputSchema: mcpMustInferErrorFilterSchema[mcpGetErrorsOverTimeInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrorsOverTime(ctx, in)
@@ -606,7 +606,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_error_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_error_over_time",
-			Description: "Get time-series of occurrences for a specific error group. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+			Description: "Get time-series of occurrences for a specific error group. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
 			InputSchema: mcpMustInferSchema[mcpGetErrorOverTimeInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrorOverTime(ctx, in)
@@ -615,7 +615,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_error_distribution
 		newTool(&mcpsdk.Tool{
 			Name:        "get_error_distribution",
-			Description: "Get attribute distribution (OS, device, version, country) for a specific error group. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+			Description: "Get attribute distribution (OS, device, version, country) for a specific error group. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
 			InputSchema: mcpMustInferSchema[mcpGetErrorDistributionInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorDistributionInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrorDistribution(ctx, in)
@@ -624,7 +624,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_sessions
 		newTool(&mcpsdk.Tool{
 			Name:        "get_sessions",
-			Description: "Get sessions for an app, ordered by most recent first. Filter to sessions containing errors via error_types and severities. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+			Description: "Get sessions for an app, ordered by most recent first. Filter to sessions containing errors via error_types and severities. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
 			InputSchema: mcpMustInferErrorFilterSchema[mcpGetSessionsInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSessionsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSessions(ctx, in)
@@ -633,7 +633,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_sessions_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_sessions_over_time",
-			Description: "Get time-series of session counts. Filter to sessions containing errors via error_types and severities. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+			Description: "Get time-series of session counts. Filter to sessions containing errors via error_types and severities. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
 			InputSchema: mcpMustInferErrorFilterSchema[mcpGetSessionsOverTimeInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSessionsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSessionsOverTime(ctx, in)
@@ -651,7 +651,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_bug_reports
 		newTool(&mcpsdk.Tool{
 			Name:        "get_bug_reports",
-			Description: "Get bug reports for an app, ordered by most recent first. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+			Description: "Get bug reports for an app, ordered by most recent first. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
 			InputSchema: mcpMustInferSchema[mcpGetBugReportsInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetBugReportsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetBugReports(ctx, in)
@@ -660,7 +660,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_bug_reports_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_bug_reports_over_time",
-			Description: "Get time-series of bug report counts. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+			Description: "Get time-series of bug report counts. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
 			InputSchema: mcpMustInferSchema[mcpGetBugReportsOverTimeInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetBugReportsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetBugReportsOverTime(ctx, in)
@@ -696,7 +696,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_span_instances
 		newTool(&mcpsdk.Tool{
 			Name:        "get_span_instances",
-			Description: "Get span instances for a root span name. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+			Description: "Get span instances for a root span name. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
 			InputSchema: mcpMustInferSchema[mcpGetSpanInstancesInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSpanInstancesInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSpanInstances(ctx, in)
@@ -705,7 +705,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_span_metrics_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_span_metrics_over_time",
-			Description: "Get p50/p90/p95/p99 duration metrics over time for a span name. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+			Description: "Get p50/p90/p95/p99 duration metrics over time for a span name. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
 			InputSchema: mcpMustInferSchema[mcpGetSpanMetricsOverTimeInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSpanMetricsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSpanMetricsOverTime(ctx, in)
@@ -732,7 +732,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_journey
 		newTool(&mcpsdk.Tool{
 			Name:        "get_journey",
-			Description: "Get user navigation journey graph with session counts between screens. Defaults to the latest app version if versions/version_codes are not specified. Use get_filters to see all available versions.",
+			Description: "Get user navigation journey graph with session counts between screens. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
 			InputSchema: mcpMustInferSchema[mcpGetJourneyInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetJourney(ctx, in)
@@ -1113,8 +1113,11 @@ func (c *Config) mcpResolveAppAccess(ctx context.Context, rawAppID string) (uuid
 }
 
 // mcpBuildAppFilter populates a filter.AppFilter from mcpCommonFilters.
-// When no versions/version_codes are provided, it fetches the latest version
-// from the app's filter list (matching frontend behavior).
+// When no versions/version_codes are provided, the query covers every app
+// version: the underlying queries want an explicit version list, so the
+// versions seen in the requested time range are fetched and all of them are
+// passed through. Narrowing silently (for example to the latest version)
+// makes the model report "no data" for questions that span versions.
 func (c *Config) mcpBuildAppFilter(ctx context.Context, appID uuid.UUID, cf mcpCommonFilters) (*filter.AppFilter, error) {
 	deps := c.Deps
 	af := &filter.AppFilter{AppID: appID}
@@ -1159,24 +1162,22 @@ func (c *Config) mcpBuildAppFilter(ctx context.Context, appID uuid.UUID, cf mcpC
 		af.DeviceNames = cf.DeviceNames
 	}
 
-	// Default to latest version if none specified.
 	if len(af.Versions) == 0 && len(af.VersionCodes) == 0 {
 		app, selectErr := measure.SelectApp(ctx, deps.PgPool, appID)
 		if selectErr != nil {
-			return nil, fmt.Errorf("failed to fetch default version: %v", selectErr)
+			return nil, fmt.Errorf("failed to fetch versions: %v", selectErr)
 		}
-		filtersAF := &filter.AppFilter{AppID: appID}
-		filtersAF.SetDefaultTimeRange()
+		// The version list comes from the query's own time range, so versions
+		// only seen outside some default window still count.
+		filtersAF := &filter.AppFilter{AppID: appID, From: af.From, To: af.To}
 		filterCtx := ambient.WithTeamId(ctx, app.TeamId)
 
 		var fl filter.FilterList
 		if err := filtersAF.GetGenericFilters(filterCtx, deps.RchPool, &fl, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode); err != nil {
-			return nil, fmt.Errorf("failed to fetch default version: %v", err)
+			return nil, fmt.Errorf("failed to fetch versions: %v", err)
 		}
-		if len(fl.Versions) > 0 && len(fl.VersionCodes) > 0 {
-			af.Versions = fl.Versions[:1]
-			af.VersionCodes = fl.VersionCodes[:1]
-		}
+		af.Versions = fl.Versions
+		af.VersionCodes = fl.VersionCodes
 	}
 
 	return af, nil

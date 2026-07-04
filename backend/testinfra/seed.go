@@ -605,10 +605,10 @@ func (h *TestHelper) SeedAppMetrics(ctx context.Context, t *testing.T, teamID, a
 	if genericCount > 0 {
 		h.SeedGenericEvents(ctx, t, teamID, appID, genericCount, ts)
 	}
-	for i := 0; i < crashCount; i++ {
+	for range crashCount {
 		h.SeedIssueEvent(ctx, t, teamID, appID, "exception", "", false, ts)
 	}
-	for i := 0; i < anrCount; i++ {
+	for range anrCount {
 		h.SeedIssueEvent(ctx, t, teamID, appID, "anr", "", false, ts)
 	}
 }
@@ -673,9 +673,29 @@ func (h *TestHelper) SeedAppThresholdPrefs(ctx context.Context, t *testing.T, ap
 
 func (h *TestHelper) SeedSpans(ctx context.Context, t *testing.T, teamID, appID string, count int) {
 	t.Helper()
-	for i := 0; i < count; i++ {
+	for i := range count {
 		ts := time.Now().UTC().Add(time.Duration(i) * time.Second)
 		h.SeedSpan(ctx, t, teamID, appID, "test", 1, ts, ts, "v1", "1")
+	}
+}
+
+// SeedAppFilters inserts one app_filters row per version. Real ingest fills
+// the table through app_filters_mv, whose source query requires every device
+// and network attribute to be non-empty, which SeedEventRows rows are not;
+// tests that need the derived version list seed it directly.
+func (h *TestHelper) SeedAppFilters(ctx context.Context, t *testing.T, teamID, appID string, at time.Time, versions [][2]string) {
+	t.Helper()
+	for _, v := range versions {
+		query := fmt.Sprintf(
+			`INSERT INTO measure.app_filters (team_id, app_id, end_of_month, app_version, os_version, `+
+				`country_code, network_provider, network_type, network_generation, device_locale, `+
+				`device_manufacturer, device_name, exception, anr) `+
+				`VALUES ('%s', '%s', '%s', ('%s','%s'), ('Android','14'), 'US', 'carrier', 'wifi', '4g', 'en-US', 'TestCo', 'pixel', false, false)`,
+			teamID, appID, at.UTC().Format("2006-01-02 15:04:05"), v[0], v[1],
+		)
+		if err := h.ChConn.Exec(ctx, query); err != nil {
+			t.Fatalf("seed app filters: %v", err)
+		}
 	}
 }
 
