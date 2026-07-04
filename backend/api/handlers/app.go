@@ -45,7 +45,7 @@ func presignConfig(deps *server.Deps) event.PreSignConfig {
 		AttachmentsAccessKey:       deps.Config.AttachmentsAccessKey,
 		AttachmentsSecretAccessKey: deps.Config.AttachmentsSecretAccessKey,
 		AttachmentOrigin:           deps.Config.AttachmentOrigin,
-		APIOrigin:                  deps.Config.APIOrigin,
+		Origin:                     deps.Config.APIOrigin,
 	}
 }
 

@@ -83,7 +83,6 @@ type Config struct {
 	AWSEndpoint                  string
 	AttachmentOrigin             string
 	SiteOrigin                   string
-	APIOrigin                    string
 	AgentOrigin                  string
 	SymbolicatorOrigin           string
 	OAuthGitHubKey               string
@@ -214,14 +213,9 @@ func NewConfig() *Config {
 		log.Println("SITE_ORIGIN env var not set. Authentication and emails might not work.")
 	}
 
-	apiOrigin := os.Getenv("API_ORIGIN")
-	if apiOrigin == "" {
-		log.Println("API_ORIGIN env var not set. Need for proxying session attachments.")
-	}
-
 	agentOrigin := os.Getenv("AGENT_ORIGIN")
 	if agentOrigin == "" {
-		log.Println("AGENT_ORIGIN env var not set. MCP tombstone responses will omit the new MCP URL.")
+		log.Println("AGENT_ORIGIN env var not set. Needed for proxying attachments and MCP OAuth metadata.")
 	}
 
 	symbolicatorOrigin := os.Getenv("SYMBOLICATOR_ORIGIN")
@@ -431,7 +425,6 @@ func NewConfig() *Config {
 		AWSEndpoint:                  endpoint,
 		AttachmentOrigin:             attachmentOrigin,
 		SiteOrigin:                   siteOrigin,
-		APIOrigin:                    apiOrigin,
 		AgentOrigin:                  agentOrigin,
 		SymbolicatorOrigin:           symbolicatorOrigin,
 		OAuthGitHubKey:               oauthGitHubKey,

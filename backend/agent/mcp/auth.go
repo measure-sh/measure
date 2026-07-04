@@ -589,7 +589,7 @@ func mcpParseBearerToken(authHeader string) (string, error) {
 // MCPOAuthMetadata handles GET /.well-known/oauth-authorization-server.
 func (h Handlers) MCPOAuthMetadata(c *gin.Context) {
 	deps := h.Deps
-	c.JSON(http.StatusOK, mcpOAuthMetadata(deps.Config.APIOrigin))
+	c.JSON(http.StatusOK, mcpOAuthMetadata(deps.Config.AgentOrigin))
 }
 
 // MCPRegisterClient handles POST /oauth/register.
