@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -31,7 +30,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	redis "github.com/valkey-io/valkey-go"
-	"github.com/wneessen/go-mail"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
@@ -94,12 +92,6 @@ type Config struct {
 	OAuthGoogleSecret            string
 	AccessTokenSecret            []byte
 	RefreshTokenSecret           []byte
-	SmtpHost                     string
-	SmtpPort                     string
-	SmtpUser                     string
-	SmtpPassword                 string
-	EmailDomain                  string
-	TxEmailAddress               string
 	SlackClientID                string
 	SlackClientSecret            string
 	SlackSigningSecret           string
@@ -135,7 +127,6 @@ type Deps struct {
 	PgPool  *pgxpool.Pool
 	ChPool  driver.Conn
 	RchPool driver.Conn
-	Mail    *mail.Client
 	Config  *Config
 	VK      redis.Client
 }
@@ -335,45 +326,6 @@ func NewConfig() *Config {
 		log.Println("IGGY_PASSWORD env var is not set, the Slack query agent will not work")
 	}
 
-	smtpHost := os.Getenv("SMTP_HOST")
-	if smtpHost == "" {
-		log.Println("SMTP_HOST env var is not set, emails will not work")
-	}
-
-	smtpPort := os.Getenv("SMTP_PORT")
-	if smtpPort == "" {
-		log.Println("SMTP_PORT env var is not set, emails will not work")
-	}
-
-	smtpUser := os.Getenv("SMTP_USER")
-	if smtpUser == "" {
-		log.Println("SMTP_USER env var is not set, emails will not work")
-	}
-
-	smtpPassword, secErr := secret.FromEnvOrFile("SMTP_PASSWORD")
-	if secErr != nil {
-		log.Printf("failed to read SMTP_PASSWORD: %v", secErr)
-	}
-	if smtpPassword == "" {
-		log.Println("SMTP_PASSWORD env var is not set, emails will not work")
-	}
-
-	emailDomain := os.Getenv("EMAIL_DOMAIN")
-	if emailDomain == "" {
-		log.Println("EMAIL_DOMAIN env var is not set, emails will use SITE_ORIGIN as domain")
-	}
-
-	var txEmailAddress string
-	if emailDomain != "" {
-		txEmailAddress = "noreply@" + emailDomain
-	} else {
-		parsedSiteOrigin, err := url.Parse(siteOrigin)
-		if err != nil {
-			log.Printf("Error parsing SITE_ORIGIN: %v\n", err)
-		}
-		txEmailAddress = "noreply@" + parsedSiteOrigin.Hostname()
-	}
-
 	slackClientID := os.Getenv("SLACK_CLIENT_ID")
 	if slackClientID == "" {
 		log.Println("SLACK_CLIENT_ID env var is not set, Slack integration will not work")
@@ -488,12 +440,6 @@ func NewConfig() *Config {
 		OAuthGoogleSecret:            oauthGoogleSecret,
 		AccessTokenSecret:            []byte(atSecret),
 		RefreshTokenSecret:           []byte(rtSecret),
-		SmtpHost:                     smtpHost,
-		SmtpPort:                     smtpPort,
-		SmtpUser:                     smtpUser,
-		SmtpPassword:                 smtpPassword,
-		EmailDomain:                  emailDomain,
-		TxEmailAddress:               txEmailAddress,
 		SlackClientID:                slackClientID,
 		SlackClientSecret:            slackClientSecret,
 		SlackSigningSecret:           slackSigningSecret,
@@ -639,28 +585,12 @@ func Connect(config *Config) *Deps {
 		log.Printf("failed to create redis client: %v\n", err)
 	}
 
-	// init email client
-	var mailClient *mail.Client
-	if config.SmtpHost != "" || config.SmtpPort != "" || config.SmtpUser != "" || config.SmtpPassword != "" {
-		smtpConfigPort, err := strconv.Atoi(config.SmtpPort)
-		if err != nil {
-			log.Printf("Invalid smtp port: %v\n", err)
-		}
-
-		mailClient, err = mail.NewClient(config.SmtpHost, mail.WithPort(smtpConfigPort), mail.WithSMTPAuth(mail.SMTPAuthPlain),
-			mail.WithUsername(config.SmtpUser), mail.WithPassword(config.SmtpPassword))
-		if err != nil {
-			log.Printf("failed to create email client: %v\n", err)
-		}
-	}
-
 	return &Deps{
 		PgPool:  pgPool,
 		ChPool:  chPool,
 		RchPool: rChPool,
 		Config:  config,
 		VK:      vkClient,
-		Mail:    mailClient,
 	}
 }
 
