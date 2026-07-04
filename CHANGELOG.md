@@ -110,6 +110,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Rename agent origin env var (#3993) by @detj in #3993
 - (**backend**): Remove deprecated platform attribute (#3989) by @abhaysood in #3989
 - (**backend**): Drop unused config from agent (#3988) by @detj in #3988
 - (**backend**): Make agent service deploy ready (#3987) by @detj in #3987
