@@ -176,6 +176,22 @@ $ENV_HEADER
 # Unified Measure Configuration
 # Contains environment variables shared across Measure components.
 
+####################
+# Measure Services #
+####################
+
+SYMBOLICATOR_ORIGIN=http://symbolicator:3021
+SYMBOLOADER_ORIGIN=http://symboloader:8083
+DRIVE_API_KEY=change-this
+
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+NEXT_PUBLIC_AGENT_BASE_URL=http://localhost:8084
+NEXT_PUBLIC_INGEST_BASE_URL=http://localhost:8085
+NEXT_PUBLIC_IS_CLOUD=false
+API_BASE_URL=http://api:8080
+AGENT_BASE_URL=http://agent:8084
+
 #############
 # Databases #
 #############
@@ -231,22 +247,6 @@ ATTACHMENTS_S3_BUCKET_REGION=us-east-1
 ATTACHMENTS_ACCESS_KEY=minio
 ATTACHMENTS_SECRET_ACCESS_KEY=minio123
 
-####################
-# Measure Services #
-####################
-
-SYMBOLICATOR_ORIGIN=http://symbolicator:3021
-SYMBOLOADER_ORIGIN=http://symboloader:8083
-DRIVE_API_KEY=change-this
-
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
-NEXT_PUBLIC_AGENT_BASE_URL=http://localhost:8084
-NEXT_PUBLIC_INGEST_BASE_URL=http://localhost:8085
-NEXT_PUBLIC_IS_CLOUD=false
-API_BASE_URL=http://api:8080
-AGENT_BASE_URL=http://agent:8084
-
 ########
 # Auth #
 ########
@@ -268,43 +268,6 @@ SMTP_USER=payton68@ethereal.email
 SMTP_PASSWORD=Bf1Qq34KhTpFV4AAu2
 EMAIL_DOMAIN=
 
-#########
-# Slack #
-#########
-
-SLACK_CLIENT_ID=$SLACK_CLIENT_ID
-SLACK_CLIENT_SECRET=$SLACK_CLIENT_SECRET
-SLACK_SIGNING_SECRET=$SLACK_SIGNING_SECRET
-SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
-
-###########
-# PostHog #
-###########
-
-POSTHOG_HOST=
-POSTHOG_API_KEY=
-
-#########
-# Agent #
-#########
-
-OPENROUTER_API_KEY=
-OPENROUTER_MODEL_SMALL=
-OPENROUTER_MODEL_MEDIUM=
-OPENROUTER_MODEL_LARGE=
-
-######################
-# Google Tag Manager #
-######################
-
-GTM_ID=
-
-########
-# c15t #
-########
-
-NEXT_PUBLIC_C15T_BACKEND_URL=
-
 ###########
 # Billing #
 ###########
@@ -321,6 +284,43 @@ OTEL_SERVICE_NAME=$NAMESPACE
 OTEL_INSECURE_MODE=true
 OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317
 
+#########
+# Slack #
+#########
+
+SLACK_CLIENT_ID=$SLACK_CLIENT_ID
+SLACK_CLIENT_SECRET=$SLACK_CLIENT_SECRET
+SLACK_SIGNING_SECRET=$SLACK_SIGNING_SECRET
+SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
+
+###########
+# PostHog #
+###########
+
+POSTHOG_HOST=
+POSTHOG_API_KEY=
+
+######################
+# Google Tag Manager #
+######################
+
+GTM_ID=
+
+########
+# c15t #
+########
+
+NEXT_PUBLIC_C15T_BACKEND_URL=
+
+##############
+# OpenRouter #
+##############
+
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL_SMALL=
+OPENROUTER_MODEL_MEDIUM=
+OPENROUTER_MODEL_LARGE=
+
 EOF
 }
 
@@ -336,6 +336,22 @@ $ENV_HEADER
 
 # Unified Measure Configuration
 # Contains environment variables shared across Measure components.
+
+####################
+# Measure Services #
+####################
+
+SYMBOLICATOR_ORIGIN=http://symbolicator:3021
+SYMBOLOADER_ORIGIN=http://symboloader:8083
+DRIVE_API_KEY=change-this
+
+NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+NEXT_PUBLIC_AGENT_BASE_URL=$NEXT_PUBLIC_AGENT_BASE_URL
+NEXT_PUBLIC_INGEST_BASE_URL=$NEXT_PUBLIC_INGEST_BASE_URL
+NEXT_PUBLIC_IS_CLOUD=false
+API_BASE_URL=http://api:8080
+AGENT_BASE_URL=http://agent:8084
 
 #############
 # Databases #
@@ -389,22 +405,6 @@ ATTACHMENTS_S3_BUCKET_REGION=$ATTACHMENTS_S3_BUCKET_REGION
 ATTACHMENTS_ACCESS_KEY=$ATTACHMENTS_ACCESS_KEY
 ATTACHMENTS_SECRET_ACCESS_KEY=$ATTACHMENTS_SECRET_ACCESS_KEY
 
-####################
-# Measure Services #
-####################
-
-SYMBOLICATOR_ORIGIN=http://symbolicator:3021
-SYMBOLOADER_ORIGIN=http://symboloader:8083
-DRIVE_API_KEY=change-this
-
-NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
-NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
-NEXT_PUBLIC_AGENT_BASE_URL=$NEXT_PUBLIC_AGENT_BASE_URL
-NEXT_PUBLIC_INGEST_BASE_URL=$NEXT_PUBLIC_INGEST_BASE_URL
-NEXT_PUBLIC_IS_CLOUD=false
-API_BASE_URL=http://api:8080
-AGENT_BASE_URL=http://agent:8084
-
 ########
 # Auth #
 ########
@@ -426,6 +426,22 @@ SMTP_USER=$SMTP_USER
 SMTP_PASSWORD=$SMTP_PASSWORD
 EMAIL_DOMAIN=$EMAIL_DOMAIN
 
+###########
+# Billing #
+###########
+
+BILLING_ENABLED=false
+AUTUMN_SECRET_KEY=
+AUTUMN_WEBHOOK_SECRET=
+
+########
+# OTEL #
+########
+
+OTEL_SERVICE_NAME=$NAMESPACE
+OTEL_INSECURE_MODE=true
+OTEL_EXPORTER_OTLP_ENDPOINT=signoz.measure.sh:4317
+
 #########
 # Slack #
 #########
@@ -442,14 +458,6 @@ SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
 POSTHOG_HOST=
 POSTHOG_API_KEY=
 
-#########
-# Agent #
-#########
-
-OPENROUTER_API_KEY=$OPENROUTER_API_KEY
-OPENROUTER_MODEL_SMALL=$OPENROUTER_MODEL_SMALL
-OPENROUTER_MODEL_MEDIUM=$OPENROUTER_MODEL_MEDIUM
-OPENROUTER_MODEL_LARGE=$OPENROUTER_MODEL_LARGE
 
 ######################
 # Google Tag Manager #
@@ -463,21 +471,14 @@ GTM_ID=
 
 NEXT_PUBLIC_C15T_BACKEND_URL=
 
-###########
-# Billing #
-###########
+##############
+# OpenRouter #
+##############
 
-BILLING_ENABLED=false
-AUTUMN_SECRET_KEY=
-AUTUMN_WEBHOOK_SECRET=
-
-########
-# OTEL #
-########
-
-OTEL_SERVICE_NAME=$NAMESPACE
-OTEL_INSECURE_MODE=true
-OTEL_EXPORTER_OTLP_ENDPOINT=signoz.measure.sh:4317
+OPENROUTER_API_KEY=$OPENROUTER_API_KEY
+OPENROUTER_MODEL_SMALL=$OPENROUTER_MODEL_SMALL
+OPENROUTER_MODEL_MEDIUM=$OPENROUTER_MODEL_MEDIUM
+OPENROUTER_MODEL_LARGE=$OPENROUTER_MODEL_LARGE
 
 EOF
 }

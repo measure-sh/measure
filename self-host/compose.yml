@@ -195,7 +195,6 @@ services:
       - clickhouse-dsn
       - clickhouse-reader-dsn
       - attachments-secret-access-key
-      - smtp-password
       - autumn-secret-key
       - oauth-google-secret
       - oauth-github-secret
@@ -223,11 +222,6 @@ services:
       - OAUTH_GOOGLE_SECRET_FILE=/run/secrets/oauth-google-secret
       - OAUTH_GITHUB_KEY=${OAUTH_GITHUB_KEY}
       - OAUTH_GITHUB_SECRET_FILE=/run/secrets/oauth-github-secret
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD_FILE=/run/secrets/smtp-password
-      - EMAIL_DOMAIN=${EMAIL_DOMAIN}
       - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
       - POSTHOG_HOST=${POSTHOG_HOST:-}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
