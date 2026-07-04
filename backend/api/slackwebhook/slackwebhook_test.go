@@ -393,6 +393,10 @@ func TestHandleSlackEventsPublishesMention(t *testing.T) {
 	if ev.EventID != "Ev-mention" || ev.SlackUserID != "U1" || ev.Channel != "C1" {
 		t.Errorf("event fields not carried over: %+v", ev)
 	}
+	// Same thread → same key, so the agent consumes a thread's events in order.
+	if want := "C1:1718000000.000100"; fp.keys[0] != want {
+		t.Errorf("ordering key = %q, want %q", fp.keys[0], want)
+	}
 }
 
 // TestHandleSlackEventsGreetsOnMessagesTabOpen checks that opening the DM's

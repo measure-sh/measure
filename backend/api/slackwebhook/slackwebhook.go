@@ -296,7 +296,10 @@ func (s *Webhook) handleSlackEventsAPI(c *gin.Context, body []byte) {
 		return
 	}
 
-	if err := s.producer.Publish(ctx, data); err != nil {
+	// Key delivery by thread: the agent then receives one thread's events one
+	// at a time, in order, while different threads still run in parallel.
+	orderingKey := event.Channel + ":" + event.ThreadTS
+	if err := s.producer.PublishOrdered(ctx, orderingKey, data); err != nil {
 		fmt.Println("slack events: failed to publish agent event:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to process event"})
 		return

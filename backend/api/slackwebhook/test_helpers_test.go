@@ -88,7 +88,10 @@ func slackTeamIDFor(teamID uuid.UUID) string {
 // can assert what would reach the agent.
 type fakeProducer struct {
 	published [][]byte
-	err       error
+	// keys[i] is the ordering key published[i] was sent with, "" for a plain
+	// publish.
+	keys []string
+	err  error
 }
 
 func (f *fakeProducer) Publish(_ context.Context, data []byte) error {
@@ -96,6 +99,16 @@ func (f *fakeProducer) Publish(_ context.Context, data []byte) error {
 		return f.err
 	}
 	f.published = append(f.published, data)
+	f.keys = append(f.keys, "")
+	return nil
+}
+
+func (f *fakeProducer) PublishOrdered(_ context.Context, orderingKey string, data []byte) error {
+	if f.err != nil {
+		return f.err
+	}
+	f.published = append(f.published, data)
+	f.keys = append(f.keys, orderingKey)
 	return nil
 }
 

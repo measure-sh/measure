@@ -586,6 +586,26 @@ func TestIggyProducerPublish(t *testing.T) {
 	})
 }
 
+// TestIggyProducerPublishOrdered checks the ordering key is ignored on Iggy:
+// the message goes out like a plain publish.
+func TestIggyProducerPublishOrdered(t *testing.T) {
+	mock := &mockIggyClient{}
+	p := newTestProducer(mock)
+
+	if err := p.PublishOrdered(context.Background(), "C1:1718000000.1", []byte("hello")); err != nil {
+		t.Fatalf("PublishOrdered() error = %v", err)
+	}
+
+	mock.mu.Lock()
+	defer mock.mu.Unlock()
+	if len(mock.sentMessages) != 1 {
+		t.Fatalf("sentMessages = %d, want 1", len(mock.sentMessages))
+	}
+	if !bytes.Equal(mock.sentMessages[0].Messages[0].Payload, []byte("hello")) {
+		t.Errorf("payload = %q, want %q", mock.sentMessages[0].Messages[0].Payload, "hello")
+	}
+}
+
 func TestIggyProducerClose(t *testing.T) {
 	mock := &mockIggyClient{}
 	p := newTestProducer(mock)

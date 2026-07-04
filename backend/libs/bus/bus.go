@@ -16,6 +16,13 @@ type Producer interface {
 	// Publish sends data to the configured topic/stream. Blocks until the
 	// backend confirms delivery or ctx is cancelled.
 	Publish(ctx context.Context, data []byte) error
+	// PublishOrdered sends data like Publish, additionally asking the backend
+	// to deliver messages sharing an orderingKey one at a time, in publish
+	// order. On Pub/Sub the guarantee also needs the subscription created
+	// with message ordering enabled; a subscription without it accepts the
+	// key but delivers unordered. Iggy delivers to its consumers serially
+	// already, so there the key is ignored.
+	PublishOrdered(ctx context.Context, orderingKey string, data []byte) error
 	// Close flushes any pending messages and releases backend resources.
 	Close() error
 }

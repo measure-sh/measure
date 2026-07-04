@@ -86,6 +86,13 @@ func (p *iggyProducer) Publish(_ context.Context, data []byte) error {
 	return nil
 }
 
+// PublishOrdered ignores the ordering key: Iggy's ordering comes from the
+// topic's partitioning and its serial consumers, not from a per-message key,
+// so a plain publish already carries the guarantee the key asks for.
+func (p *iggyProducer) PublishOrdered(ctx context.Context, _ string, data []byte) error {
+	return p.Publish(ctx, data)
+}
+
 func (p *iggyProducer) Close() error {
 	return p.client.Close()
 }
