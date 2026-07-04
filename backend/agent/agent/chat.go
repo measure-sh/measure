@@ -51,6 +51,10 @@ type chatRequest struct {
 	Model    string        `json:"model"`
 	Messages []chatMessage `json:"messages"`
 	Tools    []chatTool    `json:"tools,omitempty"`
+	// ToolChoice steers tool use; "none" forbids tool calls while the tool
+	// definitions stay in the prompt, keeping the cached prefix intact.
+	// Empty means the provider default (auto when tools are present).
+	ToolChoice string `json:"tool_choice,omitempty"`
 	// SessionID is OpenRouter's sticky-routing key: requests sharing it route to
 	// the same provider, keeping that provider's prompt cache warm across a
 	// conversation's turns. We pass the conversation id.
@@ -130,8 +134,10 @@ type chatResponse struct {
 
 var chatHTTPClient = &http.Client{Timeout: 180 * time.Second}
 
-// chat makes one chat-completions call with the given model.
-func (c *Config) chat(ctx context.Context, model string, messages []chatMessage, tools []chatTool) (_ *chatResponse, err error) {
+// chat makes one chat-completions call with the given model. toolChoice
+// steers tool use: "none" forces a text answer while the tool definitions
+// stay in the prompt; empty leaves it to the provider default.
+func (c *Config) chat(ctx context.Context, model string, messages []chatMessage, tools []chatTool, toolChoice string) (_ *chatResponse, err error) {
 	start := time.Now()
 	ctx, span := tracer.Start(ctx, "agent.llm_call")
 	defer span.End()
@@ -151,10 +157,11 @@ func (c *Config) chat(ctx context.Context, model string, messages []chatMessage,
 
 	conversationID, _ := conversationIDFromContext(ctx)
 	body, err := json.Marshal(chatRequest{
-		Model:     model,
-		Messages:  messages,
-		Tools:     tools,
-		SessionID: conversationID,
+		Model:      model,
+		Messages:   messages,
+		Tools:      tools,
+		ToolChoice: toolChoice,
+		SessionID:  conversationID,
 	})
 	if err != nil {
 		return nil, err

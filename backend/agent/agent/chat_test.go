@@ -27,7 +27,7 @@ func TestChatRateLimited(t *testing.T) {
 	t.Run("429 with provider message", func(t *testing.T) {
 		c := chatTestConfig(t, http.StatusTooManyRequests,
 			`{"error":{"message":"Provider returned error"}}`)
-		_, err := c.chat(context.Background(), "test-model", nil, nil)
+		_, err := c.chat(context.Background(), "test-model", nil, nil, "")
 		if !errors.Is(err, errLLMRateLimited) {
 			t.Fatalf("expected errLLMRateLimited, got %v", err)
 		}
@@ -39,7 +39,7 @@ func TestChatRateLimited(t *testing.T) {
 	t.Run("429 with unparseable body", func(t *testing.T) {
 		// Proxies can answer 429 with HTML; the sentinel must still fire.
 		c := chatTestConfig(t, http.StatusTooManyRequests, "<html>slow down</html>")
-		_, err := c.chat(context.Background(), "test-model", nil, nil)
+		_, err := c.chat(context.Background(), "test-model", nil, nil, "")
 		if !errors.Is(err, errLLMRateLimited) {
 			t.Fatalf("expected errLLMRateLimited, got %v", err)
 		}
@@ -48,7 +48,7 @@ func TestChatRateLimited(t *testing.T) {
 	t.Run("other provider errors are not rate limits", func(t *testing.T) {
 		c := chatTestConfig(t, http.StatusInternalServerError,
 			`{"error":{"message":"upstream exploded"}}`)
-		_, err := c.chat(context.Background(), "test-model", nil, nil)
+		_, err := c.chat(context.Background(), "test-model", nil, nil, "")
 		if err == nil || errors.Is(err, errLLMRateLimited) {
 			t.Fatalf("expected a plain llm error, got %v", err)
 		}
@@ -57,7 +57,7 @@ func TestChatRateLimited(t *testing.T) {
 	t.Run("success decodes", func(t *testing.T) {
 		c := chatTestConfig(t, http.StatusOK,
 			`{"choices":[{"message":{"role":"assistant","content":"hi"}}],"usage":{"prompt_tokens":3,"completion_tokens":1,"total_tokens":4}}`)
-		resp, err := c.chat(context.Background(), "test-model", nil, nil)
+		resp, err := c.chat(context.Background(), "test-model", nil, nil, "")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -79,7 +79,7 @@ func TestChatParsesCacheAndReasoningTokens(t *testing.T) {
 			"completion_tokens_details":{"reasoning_tokens":5}
 		}
 	}`)
-	resp, err := c.chat(context.Background(), "test-model", nil, nil)
+	resp, err := c.chat(context.Background(), "test-model", nil, nil, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -153,7 +153,7 @@ func TestChatSendsSessionID(t *testing.T) {
 
 	t.Run("sent from context", func(t *testing.T) {
 		ctx := withConversationID(context.Background(), "conv-123")
-		if _, err := c.chat(ctx, "test-model", nil, nil); err != nil {
+		if _, err := c.chat(ctx, "test-model", nil, nil, ""); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		if got := decode(t)["session_id"]; got != "conv-123" {
@@ -162,7 +162,7 @@ func TestChatSendsSessionID(t *testing.T) {
 	})
 
 	t.Run("omitted when absent", func(t *testing.T) {
-		if _, err := c.chat(context.Background(), "test-model", nil, nil); err != nil {
+		if _, err := c.chat(context.Background(), "test-model", nil, nil, ""); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		if _, present := decode(t)["session_id"]; present {

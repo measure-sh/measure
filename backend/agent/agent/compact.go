@@ -111,7 +111,7 @@ func (c *Config) compactIfNeeded(ctx context.Context, conversationID uuid.UUID, 
 	resp, err := c.chat(ctx, c.ModelSmall, []chatMessage{
 		{Role: "system", Content: compactionPrompt},
 		{Role: "user", Content: renderTranscript(head)},
-	}, nil)
+	}, nil, "")
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		log.Printf("agent: compaction failed for conversation %s: %v", conversationID, err)
