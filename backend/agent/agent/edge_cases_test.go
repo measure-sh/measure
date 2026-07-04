@@ -125,7 +125,9 @@ func TestRunTurnLLMFailure(t *testing.T) {
 }
 
 // TestRunTurnBudgetExhausted checks a model that keeps calling a tool runs out
-// of the LLM-call budget and returns errNoAnswer.
+// of the LLM-call budget: the low-budget warning and the exhausted notice are
+// injected on the right calls, the final call forbids tools, and a model that
+// still returns only tool calls there yields errNoAnswer.
 func TestRunTurnBudgetExhausted(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
@@ -151,6 +153,85 @@ func TestRunTurnBudgetExhausted(t *testing.T) {
 	}
 	if stub.callCount() != maxLLMCalls {
 		t.Errorf("llm calls = %d, want maxLLMCalls=%d", stub.callCount(), maxLLMCalls)
+	}
+
+	stub.mu.Lock()
+	warnReq, finalReq := stub.requests[maxLLMCalls-1-lowBudgetWarningAt], stub.requests[maxLLMCalls-1]
+	stub.mu.Unlock()
+
+	var warn chatRequest
+	if err := json.Unmarshal(warnReq, &warn); err != nil {
+		t.Fatalf("decode warning request: %v", err)
+	}
+	if last := warn.Messages[len(warn.Messages)-1]; last.Role != "system" || last.Content != lowBudgetNotice {
+		t.Errorf("warning call should end with the low-budget notice, got role=%q content=%q", last.Role, last.Content)
+	}
+
+	var final chatRequest
+	if err := json.Unmarshal(finalReq, &final); err != nil {
+		t.Fatalf("decode final request: %v", err)
+	}
+	if final.ToolChoice != "none" {
+		t.Errorf("final call tool_choice = %q, want none", final.ToolChoice)
+	}
+	if last := final.Messages[len(final.Messages)-1]; last.Role != "system" || last.Content != budgetExhaustedNotice {
+		t.Errorf("final call should end with the exhausted notice, got role=%q content=%q", last.Role, last.Content)
+	}
+}
+
+// TestRunTurnBudgetExhaustedAnswer checks the final forced call turns a
+// budget-exhausted turn into an answer: 24 tool rounds, then the model
+// answers in text and the turn succeeds with the notices persisted.
+func TestRunTurnBudgetExhaustedAnswer(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+	teamID, userID, appID := seedTeamUserApp(ctx, t)
+	now := time.Now().UTC()
+	th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{Timestamp: now})
+
+	args := fmt.Sprintf(`{"query":"select count(*) as n from {{events}}","from":"%s","to":"%s"}`,
+		now.Add(-time.Hour).Format(time.RFC3339), now.Add(time.Hour).Format(time.RFC3339))
+	toolCall := fmt.Sprintf(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"c","type":"function","function":{"name":"run_sql","arguments":%s}}]}}],"usage":{"prompt_tokens":10,"completion_tokens":2}}`,
+		strconv.Quote(args))
+	responses := make([]string, 0, maxLLMCalls)
+	for range maxLLMCalls - 1 {
+		responses = append(responses, toolCall)
+	}
+	responses = append(responses, `{"choices":[{"message":{"role":"assistant","content":"Partial: found the top error."}}],"usage":{"prompt_tokens":10,"completion_tokens":5}}`)
+	c, stub := newTestAgent(t, responses...)
+
+	conv := &conversation{UserID: userID, AppID: appID, TeamID: teamID, Surface: "mcp"}
+	if err := c.createConversation(ctx, conv, "q"); err != nil {
+		t.Fatalf("createConversation: %v", err)
+	}
+
+	answer, err := c.runTurn(ctx, turn{userID: userID, appID: appID, teamID: teamID, conv: conv, question: "loop", entryPoint: "mcp"})
+	if err != nil {
+		t.Fatalf("runTurn: %v", err)
+	}
+	if answer != "Partial: found the top error." {
+		t.Errorf("answer = %q, want the forced final answer", answer)
+	}
+	if stub.callCount() != maxLLMCalls {
+		t.Errorf("llm calls = %d, want maxLLMCalls=%d", stub.callCount(), maxLLMCalls)
+	}
+
+	// Both notices are part of the turn and must be stored with it, so the
+	// next turn's replayed transcript matches what the model saw.
+	loaded, err := c.loadMessages(ctx, conv.ID)
+	if err != nil {
+		t.Fatalf("loadMessages: %v", err)
+	}
+	var sawWarning, sawExhausted bool
+	for _, m := range loaded {
+		if m.msg.Role != "system" {
+			continue
+		}
+		sawWarning = sawWarning || m.msg.Content == lowBudgetNotice
+		sawExhausted = sawExhausted || m.msg.Content == budgetExhaustedNotice
+	}
+	if !sawWarning || !sawExhausted {
+		t.Errorf("persisted transcript missing notices: warning=%v exhausted=%v", sawWarning, sawExhausted)
 	}
 }
 

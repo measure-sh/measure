@@ -721,7 +721,7 @@ func (c *Config) approximateAppFromMessages(ctx context.Context, msgs []slack.Me
 	resp, err := c.chat(ctx, c.ModelSmall, []chatMessage{
 		{Role: "system", Content: appResolutionPrompt},
 		{Role: "user", Content: prompt},
-	}, nil)
+	}, nil, "")
 	if err != nil {
 		log.Printf("agent: slack app approximation failed: %v", err)
 		return slackApp{}, chatUsage{}, false
@@ -1337,7 +1337,7 @@ func (c *Config) summarizeSlackContext(ctx context.Context, msgs []slack.Message
 	resp, err := c.chat(ctx, c.ModelSmall, []chatMessage{
 		{Role: "system", Content: slackContextSummaryPrompt},
 		{Role: "user", Content: rendered},
-	}, nil)
+	}, nil, "")
 	if err != nil {
 		return "", "", chatUsage{}, err
 	}

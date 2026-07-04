@@ -57,11 +57,34 @@ func conversationIDFromContext(ctx context.Context) (string, bool) {
 	return v, ok && v != ""
 }
 
-// maxLLMCalls bounds the number of model calls in a single ask_question turn.
-const maxLLMCalls = 12
+// maxLLMCalls bounds the number of model calls in a single ask_question turn:
+// the first maxLLMCalls-1 calls may use tools, the last one is the
+// budget-exhausted answer, forced to text (tool_choice "none") so the turn
+// ends with whatever was gathered instead of nothing.
+const maxLLMCalls = 25
 
-// errNoAnswer marks a turn that ran out of LLM calls before producing an
-// answer. Surfaces match on it to show budgetExhaustedReply.
+// lowBudgetWarningAt is how many tool rounds remain when lowBudgetNotice is
+// injected, early enough for the model to prioritize and batch what's left
+// rather than being cut off mid-investigation.
+const lowBudgetWarningAt = 4
+
+// budgetRule is appended to the system prompt so the model knows its tool
+// budget up front and can plan its rounds; lowBudgetNotice and
+// budgetExhaustedNotice then mark the moments that matter during the turn.
+// Derived from maxLLMCalls so the prompt and the loop cannot drift apart.
+var budgetRule = fmt.Sprintf("- You have a budget of %d tool-call rounds for each question and are warned when it runs low. Batch independent tool calls into one round and answer as soon as you have enough data. This budget is internal: never mention it, remaining rounds, or these limits in your answers.", maxLLMCalls-1)
+
+// lowBudgetNotice warns the model its tool budget is nearly spent so it can
+// prioritize the essential lookups while it still has rounds to spend.
+var lowBudgetNotice = fmt.Sprintf("Budget update: %d tool-call rounds remain for this question, then you must answer from what you have. Prioritize the essential lookups and batch independent tool calls into one round. Do not mention this budget in your answer.", lowBudgetWarningAt)
+
+// budgetExhaustedNotice precedes a turn's final call, which carries
+// tool_choice "none": no more tools, answer now from what was gathered.
+const budgetExhaustedNotice = "Your analysis budget for this question is exhausted. Answer now using only what you have already gathered. Plainly state anything you could not determine. Do not mention this budget or that you ran out of it in your answer."
+
+// errNoAnswer marks a turn that produced no answer even from its final
+// budget-exhausted call (the call failed or returned empty content).
+// Surfaces match on it to show budgetExhaustedReply.
 var errNoAnswer = errors.New("analysis budget exhausted before reaching an answer")
 
 // budgetExhaustedReply is what both Slack and MCP show the user when a turn
@@ -368,6 +391,10 @@ type turn struct {
 func (c *Config) runTurn(ctx context.Context, t turn) (answer string, err error) {
 	start := time.Now()
 	llmCalls := 0
+	// budgetExhaustedAnswer marks an answer produced by the final forced call
+	// rather than by the model stopping on its own; its rate is the signal
+	// for whether maxLLMCalls is sized right.
+	budgetExhaustedAnswer := false
 	// Token usage split by the model that produced it: compaction runs on the
 	// small model, the turn's own calls on the medium model. Reported together
 	// for observability, billed per model. Reasoning tokens (a subset of
@@ -407,6 +434,9 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, err error)
 		if total.cacheWrite > 0 {
 			extra += fmt.Sprintf(" cache_write_tokens=%d", total.cacheWrite)
 		}
+		if budgetExhaustedAnswer {
+			extra += " budget_exhausted_answer=true"
+		}
 		span.SetAttributes(
 			attribute.Int("agent.llm_calls", llmCalls),
 			attribute.Int("agent.prompt_tokens", total.prompt),
@@ -414,6 +444,7 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, err error)
 			attribute.Int("agent.reasoning_tokens", total.reasoning),
 			attribute.Int("agent.cache_read_tokens", total.cacheRead),
 			attribute.Int("agent.cache_write_tokens", total.cacheWrite),
+			attribute.Bool("agent.budget_exhausted_answer", budgetExhaustedAnswer),
 		)
 		if err != nil {
 			span.SetStatus(codes.Error, err.Error())
@@ -421,19 +452,20 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, err error)
 		log.Printf("agent: turn entry_point=%s conversation=%q llm_calls=%d prompt_tokens=%d completion_tokens=%d%s duration=%s err=%v",
 			t.entryPoint, convID, llmCalls, total.prompt, total.completion, extra, time.Since(start).Round(time.Millisecond), err)
 		fireAgentQueryEvent(t.userID.String(), agentQueryEvent{
-			appID:            t.appID.String(),
-			teamID:           t.teamID.String(),
-			conversationID:   convID,
-			continued:        t.continued,
-			entryPoint:       t.entryPoint,
-			llmCalls:         llmCalls,
-			promptTokens:     total.prompt,
-			completionTokens: total.completion,
-			reasoningTokens:  total.reasoning,
-			cacheReadTokens:  total.cacheRead,
-			cacheWriteTokens: total.cacheWrite,
-			duration:         time.Since(start),
-			success:          err == nil,
+			appID:                 t.appID.String(),
+			teamID:                t.teamID.String(),
+			conversationID:        convID,
+			continued:             t.continued,
+			entryPoint:            t.entryPoint,
+			llmCalls:              llmCalls,
+			promptTokens:          total.prompt,
+			completionTokens:      total.completion,
+			reasoningTokens:       total.reasoning,
+			cacheReadTokens:       total.cacheRead,
+			cacheWriteTokens:      total.cacheWrite,
+			budgetExhaustedAnswer: budgetExhaustedAnswer,
+			duration:              time.Since(start),
+			success:               err == nil,
 		})
 	}()
 
@@ -463,8 +495,8 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, err error)
 	} else {
 		platform = platformNote(osNames)
 	}
-	sysMsg := fmt.Sprintf("%s\n\nThe question is about the app with app_id %s; pass it to tools that take an app_id.%s",
-		systemPrompt, t.appID, platform)
+	sysMsg := fmt.Sprintf("%s\n%s\n\nThe question is about the app with app_id %s; pass it to tools that take an app_id.%s",
+		systemPrompt, budgetRule, t.appID, platform)
 	messages = append(messages, chatMessage{Role: "system", Content: sysMsg})
 	for _, m := range history {
 		messages = append(messages, m.msg)
@@ -477,9 +509,33 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, err error)
 	messages = append(messages, userMsg)
 	newMessages := []storedMessage{{msg: userMsg}}
 
-	for range maxLLMCalls {
+	for i := range maxLLMCalls {
+		// The last call is the budget-exhausted answer: the model is told the
+		// budget is spent and, via tool_choice "none", can only answer in
+		// text. The warning lands a few rounds earlier so the model can wind
+		// the investigation down instead of being cut off mid-plan. Both
+		// notices are persisted like everything else, keeping the stored
+		// transcript identical to what the model saw.
+		final := i == maxLLMCalls-1
+		notice := ""
+		switch {
+		case final:
+			notice = budgetExhaustedNotice
+		case maxLLMCalls-1-i == lowBudgetWarningAt:
+			notice = lowBudgetNotice
+		}
+		if notice != "" {
+			msg := chatMessage{Role: "system", Content: notice}
+			messages = append(messages, msg)
+			newMessages = append(newMessages, storedMessage{msg: msg})
+		}
+		toolChoice := ""
+		if final {
+			toolChoice = "none"
+		}
+
 		llmCalls++
-		resp, err := c.chat(ctx, c.ModelMedium, messages, c.modelTools)
+		resp, err := c.chat(ctx, c.ModelMedium, messages, c.modelTools, toolChoice)
 		if err != nil {
 			// Cap the failed turn with a neutral assistant note so a later
 			// retry has a well-formed turn to answer against. The question is
@@ -506,6 +562,15 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, err error)
 
 		if len(assistant.ToolCalls) == 0 {
 			answer = assistant.Content
+			budgetExhaustedAnswer = final && answer != ""
+			break
+		}
+		if final {
+			// tool_choice "none" makes tool calls here unexpected, but a
+			// provider may ignore it. Execute nothing, no later call would
+			// read the results, and salvage any text sent alongside.
+			answer = assistant.Content
+			budgetExhaustedAnswer = answer != ""
 			break
 		}
 
