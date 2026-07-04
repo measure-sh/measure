@@ -501,7 +501,6 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			Set(`attribute.app_unique_id`, e.events[i].Attribute.AppUniqueID).
 			Set(`attribute.patch_id`, e.events[i].Attribute.PatchID).
 			Set(`attribute.patch_version`, strings.TrimSpace(e.events[i].Attribute.PatchVersion)).
-			Set(`attribute.platform`, e.events[i].Attribute.Platform).
 			Set(`attribute.measure_sdk_version`, e.events[i].Attribute.MeasureSDKVersion).
 			Set(`attribute.thread_name`, e.events[i].Attribute.ThreadName).
 			Set(`attribute.user_id`, e.events[i].Attribute.UserID).
@@ -1050,7 +1049,6 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 			Set(`attribute.measure_sdk_version`, e.spans[i].Attributes.MeasureSDKVersion).
 			Set(`attribute.app_version`, appVersionTuple).
 			Set(`attribute.os_version`, osVersionTuple).
-			Set(`attribute.platform`, e.spans[i].Attributes.Platform).
 			Set(`attribute.thread_name`, e.spans[i].Attributes.ThreadName).
 			Set(`attribute.country_code`, e.spans[i].Attributes.CountryCode).
 			Set(`attribute.network_provider`, e.spans[i].Attributes.NetworkProvider).

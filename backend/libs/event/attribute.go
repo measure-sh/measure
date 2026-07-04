@@ -40,14 +40,6 @@ type Attribute struct {
 	// identifier.
 	MeasureSDKVersion string `json:"measure_sdk_version" binding:"required"`
 
-	// Platform is the client's platform, like:
-	// - android
-	// - ios
-	// - flutter
-	//
-	// Deprecated: Use OSName instead.
-	Platform string `json:"platform" binding:"required"`
-
 	// ThreadName is the thread on which the
 	// event was captured.
 	ThreadName string `json:"thread_name"`
@@ -150,7 +142,6 @@ func (a Attribute) Validate() error {
 		maxDeviceTypeChars         = 32
 		maxOSNameChars             = 32
 		maxOSVersionChars          = 32
-		maxPlatformChars           = 32
 		maxAppVersionChars         = 128
 		maxAppBuildChars           = 32
 		maxAppUniqueIDChars        = 128
@@ -209,9 +200,6 @@ func (a Attribute) Validate() error {
 	if len(a.PatchVersion) > maxPatchVersionChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.patch_version`, maxPatchVersionChars)
 	}
-	if len(a.Platform) > maxPlatformChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.platform`, maxPlatformChars)
-	}
 	if len(a.MeasureSDKVersion) > maxMeasureSDKVersion {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.measure_sdk_version`, maxMeasureSDKVersion)
 	}
@@ -238,9 +226,6 @@ func (a Attribute) Validate() error {
 	}
 	if len(a.DeviceCPUArch) > maxDeviceCPUArchChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.device_cpu_arch`, maxDeviceCPUArchChars)
-	}
-	if a.Platform != "android" && a.Platform != "ios" {
-		return fmt.Errorf(`%q does not contain a valid platform value`, `attribute.platform`)
 	}
 	if len(a.OSVersion) > maxOSVersionChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.os_version`, maxOSVersionChars)
