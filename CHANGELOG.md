@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Ask for content on slack file attachments by @anupcowkur in #3991
 - (**backend**): Link dashboard mentions in agent replies by @anupcowkur in #3990
 - (**backend**): Implement agent by @anupcowkur in #3986
 - (**backend**): Support OTA symbolication (#3938) by @detj in #3938
