@@ -49,7 +49,7 @@ func TestRunTurnToolLoop(t *testing.T) {
 		t.Fatalf("createConversation: %v", err)
 	}
 
-	answer, err := c.runTurn(ctx, turn{
+	answer, _, err := c.runTurn(ctx, turn{
 		userID: userID, appID: appID, teamID: teamID,
 		conv: conv, question: "how many crashes?", entryPoint: "mcp",
 	})

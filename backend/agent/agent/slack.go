@@ -222,7 +222,8 @@ func (c *Config) answerSlackQuestion(ctx context.Context, ev slack.AgentEvent) {
 		}
 	}
 
-	reply := toMrkdwn(c.slackReply(ctx, ev, teamID, token, botUserID))
+	replyText, charts := c.slackReply(ctx, ev, teamID, token, botUserID)
+	reply := toMrkdwn(replyText)
 
 	if errors.Is(ctx.Err(), context.Canceled) {
 		// Shutdown interrupted the turn. Deliver nothing and leave the
@@ -239,8 +240,23 @@ func (c *Config) answerSlackQuestion(ctx context.Context, ev slack.AgentEvent) {
 	if err := c.deliverSlackReply(deliverCtx, token, ev, ackTS, reply); err != nil {
 		outcome = "delivery_failed"
 		span.SetStatus(codes.Error, err.Error())
+	} else {
+		// Charts follow the text they illustrate; without the text they
+		// would be context-free images, so an undelivered reply skips them.
+		uploadSlackCharts(deliverCtx, token, ev, charts)
 	}
 	c.markSlackEventAnswered(deliverCtx, ev.EventID)
+}
+
+// uploadSlackCharts shares a turn's rendered charts into the thread after the
+// reply text. Best-effort: the answer already landed, so a failed upload only
+// logs and the text stands on its own.
+func uploadSlackCharts(ctx context.Context, token string, ev slack.AgentEvent, charts []renderedChart) {
+	for _, chart := range charts {
+		if err := slack.UploadFile(ctx, token, ev.Channel, ev.ThreadTS, chart.filename, chart.title, chart.png); err != nil {
+			log.Printf("agent: failed to upload chart %q: %v", chart.filename, err)
+		}
+	}
 }
 
 // deliverSlackReply replaces the ack placeholder with the reply, or posts
@@ -274,32 +290,33 @@ func channelUnreachable(err error) bool {
 }
 
 // slackReply resolves who is asking about which app in which conversation,
-// runs the turn, and returns the text to post: the answer or a message the
-// asker can act on.
-func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uuid.UUID, botToken, botUserID string) string {
+// runs the turn, and returns the text to post, the answer or a message the
+// asker can act on, plus any charts the turn rendered for upload after the
+// text.
+func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uuid.UUID, botToken, botUserID string) (string, []renderedChart) {
 	// Attachments never make it past the edge, only the typed text does, so
 	// answering the text alone could silently miss the point of the question.
 	// Checked before the empty-question greeting: a bare file drop should ask
 	// for its contents, not say hello.
 	if ev.HasFiles {
 		log.Printf("agent: slack question rejected event=%s reason=file_attachments", ev.EventID)
-		return fileAttachmentsReply
+		return fileAttachmentsReply, nil
 	}
 
 	question := strings.TrimSpace(slackMentionRE.ReplaceAllString(ev.Text, ""))
 	question = slackUnescaper.Replace(question)
 	if question == "" {
-		return "Hey! I can help you debug your app, from crashes and errors to slow sessions and network issues. What are you looking into?"
+		return "Hey! I can help you debug your app, from crashes and errors to slow sessions and network issues. What are you looking into?", nil
 	}
 
 	userID, email, err := c.resolveSlackUser(ctx, botToken, ev.SlackTeamID, ev.SlackUserID, teamID)
 	if err != nil {
 		log.Printf("agent: slack identity resolution failed: %v", err)
-		return somethingWentWrong
+		return somethingWentWrong, nil
 	}
 	if email == "" {
 		log.Printf("agent: slack question rejected event=%s reason=email_hidden", ev.EventID)
-		return "I couldn't read an email from your Slack profile, so I can't match you to a Measure account."
+		return "I couldn't read an email from your Slack profile, so I can't match you to a Measure account.", nil
 	}
 	if userID == uuid.Nil {
 		log.Printf("agent: slack question rejected event=%s reason=not_team_member", ev.EventID)
@@ -307,15 +324,15 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 		// Name the email only in the user's own assistant pane; in a channel
 		// it would disclose a possibly hidden profile email to everyone.
 		if ev.Surface == slack.SurfaceAssistant {
-			return fmt.Sprintf("I couldn't find a Measure team member with the email %s. Please ask your Measure admin to add you to the team in the %s with that email and try again.", email, dashboard)
+			return fmt.Sprintf("I couldn't find a Measure team member with the email %s. Please ask your Measure admin to add you to the team in the %s with that email and try again.", email, dashboard), nil
 		}
-		return fmt.Sprintf("I couldn't find a Measure team member matching your Slack profile email. Please ask your Measure admin to add you to the team in the %s with your Slack profile email and try again.", dashboard)
+		return fmt.Sprintf("I couldn't find a Measure team member matching your Slack profile email. Please ask your Measure admin to add you to the team in the %s with your Slack profile email and try again.", dashboard), nil
 	}
 
 	conv, err := c.findSlackConversation(ctx, ev.Channel, ev.ThreadTS)
 	if err != nil {
 		log.Printf("agent: failed to look up slack conversation: %v", err)
-		return somethingWentWrong
+		return somethingWentWrong, nil
 	}
 
 	continued := conv != nil
@@ -327,18 +344,18 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 		// required team membership.
 		if conv.Surface == slack.SurfaceAssistant && conv.UserID != userID {
 			log.Printf("agent: slack question rejected event=%s reason=foreign_assistant_thread", ev.EventID)
-			return "This chat belongs to another user, please start another thread with me."
+			return "This chat belongs to another user, please start another thread with me.", nil
 		}
 		appID = conv.AppID
 	} else {
 		apps, err := c.getTeamApps(ctx, teamID)
 		if err != nil {
 			log.Printf("agent: failed to list team apps: %v", err)
-			return somethingWentWrong
+			return somethingWentWrong, nil
 		}
 		if len(apps) == 0 {
 			log.Printf("agent: slack question from team with no apps event=%s", ev.EventID)
-			return noAppsReply(c.dashboardLink(teamID, "apps"))
+			return noAppsReply(c.dashboardLink(teamID, "apps")), nil
 		}
 		app, clarify := pickMeasureApp(apps, question)
 		if clarify != "" {
@@ -348,7 +365,7 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 			resolved, usage, ok := c.resolveAppFromContext(ctx, botToken, botUserID, ev, apps)
 			if !ok {
 				log.Printf("agent: slack question needs clarification event=%s apps=%d", ev.EventID, len(apps))
-				return clarify
+				return clarify, nil
 			}
 			log.Printf("agent: slack app resolved from context event=%s app=%s", ev.EventID, resolved.id)
 			app = resolved
@@ -363,13 +380,13 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 	turnTeamID, customerID, err := c.resolveAppAccess(ctx, userID, appID)
 	if err != nil {
 		log.Printf("agent: slack app access check failed: %v", err)
-		return somethingWentWrong
+		return somethingWentWrong, nil
 	}
 	// Meter any model call the app resolution above made. No-ops on zero.
 	trackAgentTokens(c.Deps, customerID, c.ModelSmall, callUsage(resolveUsage))
 	if err := c.checkAgentAllowed(ctx, customerID); err != nil {
 		log.Printf("agent: slack question rejected event=%s reason=usage_blocked", ev.EventID)
-		return agentNotAllowedReply(c.dashboardLink(turnTeamID, "usage"))
+		return agentNotAllowedReply(c.dashboardLink(turnTeamID, "usage")), nil
 	}
 
 	if !continued {
@@ -384,7 +401,7 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 		}
 		if err := c.createConversation(ctx, conv, conversationTitle(question)); err != nil {
 			log.Printf("agent: failed to create slack conversation: %v", err)
-			return somethingWentWrong
+			return somethingWentWrong, nil
 		}
 		if ev.Surface == slack.SurfaceAssistant {
 			if err := slack.SetAssistantTitle(ctx, botToken, ev.Channel, ev.ThreadTS, conversationTitle(question)); err != nil {
@@ -402,7 +419,7 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 		c.ingestSlackContext(ctx, conv, ev, botToken, botUserID, customerID)
 	}
 
-	answer, err := c.runTurn(ctx, turn{
+	answer, charts, err := c.runTurn(ctx, turn{
 		userID:     userID,
 		appID:      appID,
 		teamID:     turnTeamID,
@@ -414,14 +431,14 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 	})
 	if err != nil {
 		if errors.Is(err, errNoAnswer) {
-			return budgetExhaustedReply
+			return budgetExhaustedReply, nil
 		}
 		if errors.Is(err, errLLMRateLimited) {
-			return "We seem to have hit model provider rate-limits. Please try again in some time."
+			return "We seem to have hit model provider rate-limits. Please try again in some time.", nil
 		}
-		return somethingWentWrong
+		return somethingWentWrong, nil
 	}
-	return answer
+	return answer, charts
 }
 
 // resolveSlackUser maps a Slack user to a Measure team member via the email

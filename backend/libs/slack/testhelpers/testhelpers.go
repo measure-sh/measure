@@ -76,6 +76,14 @@ func MockSetAssistantTitle(t *testing.T, fn func(ctx context.Context, token, cha
 	t.Cleanup(func() { slack.SetAssistantTitle = orig })
 }
 
+// MockUploadFile swaps slack.UploadFile for the duration of the test.
+func MockUploadFile(t *testing.T, fn func(ctx context.Context, token, channel, threadTS, filename, title string, content []byte) error) {
+	t.Helper()
+	orig := slack.UploadFile
+	slack.UploadFile = fn
+	t.Cleanup(func() { slack.UploadFile = orig })
+}
+
 // MockSetAssistantSuggestedPrompts swaps slack.SetAssistantSuggestedPrompts for the duration of the test.
 func MockSetAssistantSuggestedPrompts(t *testing.T, fn func(ctx context.Context, token, channelID string, prompts []slack.SuggestedPrompt) error) {
 	t.Helper()
