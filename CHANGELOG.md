@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Raise agent turn budget to 25 calls with a forced answer by @anupcowkur in #3994
 - (**backend**): Deliver slack agent events in per-thread order by @anupcowkur in #3992
 - (**backend**): Ask for content on slack file attachments by @anupcowkur in #3991
 - (**backend**): Link dashboard mentions in agent replies by @anupcowkur in #3990
