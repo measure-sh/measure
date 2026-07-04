@@ -17,13 +17,17 @@ import (
 )
 
 // agentNotAllowedReply is shown on both surfaces (Slack and MCP) when the team
-// has reached its agent usage allowance.
-const agentNotAllowedReply = "Your team has reached its agent usage limit. Please go to the Measure dashboard to see plan upgrade options."
+// has reached its agent usage allowance. dashboard is the word "dashboard",
+// linked to the team's usage page (dashboardLink).
+func agentNotAllowedReply(dashboard string) string {
+	return fmt.Sprintf("Your team has reached its agent usage limit. Please go to the Measure %s to see plan upgrade options.", dashboard)
+}
 
 // checkAgentAllowed asks Autumn whether the team is allowed to use the agent.
 // Returns nil if allowed; fail-open on any dependency error so a transient
-// Autumn outage does not block customers. The verdict is cached
-// (autumn.CheckCached).
+// Autumn outage does not block customers. A non-nil return always means the
+// limit is reached; surfaces answer it with agentNotAllowedReply. The verdict
+// is cached (autumn.CheckCached).
 func (c *Config) checkAgentAllowed(ctx context.Context, customerID string) error {
 	deps := c.Deps
 	if !deps.Config.IsBillingEnabled() || customerID == "" {
@@ -41,7 +45,7 @@ func (c *Config) checkAgentAllowed(ctx context.Context, customerID string) error
 	}
 	if !allowed {
 		log.Printf("agent: usage blocked, plan limit reached (customer=%s)", customerID)
-		return errors.New(agentNotAllowedReply)
+		return errors.New("agent usage limit reached")
 	}
 	return nil
 }

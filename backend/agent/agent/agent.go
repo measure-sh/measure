@@ -156,6 +156,19 @@ func NewConfig() *Config {
 	return cfg
 }
 
+// dashboardLink returns the word "dashboard" as a markdown link to one of the
+// team's dashboard pages ("team", "apps", "usage"). Slack replies convert it
+// to mrkdwn via toMrkdwn; MCP clients render the markdown as is. Without a
+// configured site origin there is no address to point at, so it degrades to
+// the plain word.
+func (c *Config) dashboardLink(teamID uuid.UUID, page string) string {
+	origin := strings.TrimSuffix(c.Deps.Config.SiteOrigin, "/")
+	if origin == "" {
+		return "dashboard"
+	}
+	return fmt.Sprintf("[dashboard](%s/%s/%s)", origin, teamID, page)
+}
+
 type askQuestionInput struct {
 	AppID          string `json:"app_id" jsonschema:"UUID of the app to query"`
 	Question       string `json:"question" jsonschema:"Natural-language question about the app's telemetry"`
@@ -281,7 +294,7 @@ func (c *Config) askQuestion(ctx context.Context, in askQuestionInput) (out askQ
 	)
 
 	if err := c.checkAgentAllowed(ctx, customerID); err != nil {
-		return out, err
+		return out, errors.New(agentNotAllowedReply(c.dashboardLink(teamID, "usage")))
 	}
 
 	var conv *conversation
