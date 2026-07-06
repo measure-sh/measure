@@ -103,11 +103,10 @@ type eventreq struct {
 	seen bool
 	// osName is operating system runtime of the SDK
 	osName string
-	// size keeps track of the ingest payload size
-	size uint64
-	// attachmentsSize is the portion of size that comes
-	// from attachments. It is excluded from the payload
-	// size-limit validation but still counts toward billing.
+	// payloadSize is the size in bytes of the event and span
+	// payload.
+	payloadSize uint64
+	// attachmentsSize is the total size in bytes of attachments.
 	attachmentsSize uint64
 	// events is the list of events in the ingest
 	// batch
@@ -222,18 +221,22 @@ func (e *eventreq) uploadAttachments() error {
 	return nil
 }
 
-// bumpSize increases the payload size of
-// events in bytes.
-func (e *eventreq) bumpSize(n uint64) {
-	e.size = e.size + n
+// bumpPayloadSize increases the event and span payload size
+// in bytes.
+func (e *eventreq) bumpPayloadSize(n uint64) {
+	e.payloadSize += n
 }
 
-// bumpAttachmentSize increases the payload size in bytes
-// and tracks the attachment portion separately so it can
-// be excluded from the payload size-limit validation.
-func (e *eventreq) bumpAttachmentSize(n uint64) {
-	e.size = e.size + n
-	e.attachmentsSize = e.attachmentsSize + n
+// bumpAttachmentsSize increases the tracked attachments size
+// in bytes.
+func (e *eventreq) bumpAttachmentsSize(n uint64) {
+	e.attachmentsSize += n
+}
+
+// billableSize is the total size in bytes counted toward billing:
+// the event and span payload plus all attachments.
+func (e *eventreq) billableSize() uint64 {
+	return e.payloadSize + e.attachmentsSize
 }
 
 // estimateAttachmentSize returns an estimated size in bytes
@@ -362,7 +365,7 @@ func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 			dupEvent[ev.ID] = struct{}{}
 		}
 
-		e.bumpSize(uint64(len(bytes)))
+		e.bumpPayloadSize(uint64(len(bytes)))
 		ev.AppID = e.appId
 
 		// partially prepare list of attachments
@@ -414,7 +417,7 @@ func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 			dupSpan[sp.SpanID] = struct{}{}
 		}
 
-		e.bumpSize(uint64(len(bytes)))
+		e.bumpPayloadSize(uint64(len(bytes)))
 		sp.AppID = e.appId
 
 		e.spans = append(e.spans, sp)
@@ -436,7 +439,7 @@ func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 		if header == nil {
 			continue
 		}
-		e.bumpAttachmentSize(uint64(header.Size))
+		e.bumpAttachmentsSize(uint64(header.Size))
 
 		// inject the form field header to
 		// the previously constructed partial
@@ -508,7 +511,7 @@ func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
 			return err
 		}
 
-		e.bumpSize(uint64(len(bytes)))
+		e.bumpPayloadSize(uint64(len(bytes)))
 		ev.AppID = e.appId
 
 		for _, attachment := range ev.Attachments {
@@ -524,9 +527,9 @@ func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
 			// by newer SDKs. Fall back to estimates for older
 			// SDKs that don't send size.
 			if attachment.Size > 0 {
-				e.bumpAttachmentSize(attachment.Size)
+				e.bumpAttachmentsSize(attachment.Size)
 			} else {
-				e.bumpAttachmentSize(estimateAttachmentSize(attachment.Name))
+				e.bumpAttachmentsSize(estimateAttachmentSize(attachment.Name))
 			}
 		}
 
@@ -553,7 +556,7 @@ func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
 			return err
 		}
 
-		e.bumpSize(uint64(len(bytes)))
+		e.bumpPayloadSize(uint64(len(bytes)))
 		sp.AppID = e.appId
 
 		e.spans = append(e.spans, sp)
@@ -761,10 +764,10 @@ func (e eventreq) validate() error {
 		}
 	}
 
-	// attachments are excluded from the size limit; they are
-	// uploaded directly to storage and are not part of the
-	// event payload. they only count toward billing.
-	if e.size-e.attachmentsSize >= uint64(maxBatchSize) {
+	// only the event payload counts toward the size limit.
+	// attachments upload directly to storage and are not part
+	// of the payload.
+	if e.payloadSize >= uint64(maxBatchSize) {
 		return fmt.Errorf(`payload cannot exceed maximum allowed size of %d`, maxBatchSize)
 	}
 
@@ -1021,7 +1024,7 @@ func PutEvents(c *gin.Context) {
 		TeamID:   eventReq.teamId.String(),
 		OsName:   eventReq.osName,
 		ClientIP: c.ClientIP(),
-		Size:     eventReq.size,
+		Size:     eventReq.billableSize(),
 		Events:   eventReq.events,
 		Spans:    eventReq.spans,
 	}
