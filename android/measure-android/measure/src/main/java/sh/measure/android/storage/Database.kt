@@ -88,9 +88,11 @@ internal interface Database : Closeable {
      * Inserts an event and its associated attachments in a single transaction.
      *
      * @param event The event entity to insert.
+     * @param sessionAnrTimeMs When non-null, records this ANR time against the event's
+     * session in the same transaction. See [setSessionAnrTime].
      * @return `true` if successful, `false` otherwise.
      */
-    fun insertEvent(event: EventEntity): Boolean
+    fun insertEvent(event: EventEntity, sessionAnrTimeMs: Long? = null): Boolean
 
     /**
      * Retrieves event packets for the given event IDs.
@@ -523,7 +525,7 @@ internal class DatabaseImpl(
     // ========================================================================================
 
     @SuppressLint("UseKtx")
-    override fun insertEvent(event: EventEntity): Boolean {
+    override fun insertEvent(event: EventEntity, sessionAnrTimeMs: Long?): Boolean {
         writableDatabase.beginTransaction()
         try {
             val values = ContentValues().apply {
@@ -569,6 +571,11 @@ internal class DatabaseImpl(
                     )
                     return false
                 }
+            }
+            if (sessionAnrTimeMs != null) {
+                writableDatabase
+                    .compileStatement(Sql.setSessionAnrTime(event.sessionId, sessionAnrTimeMs))
+                    .use { it.executeUpdateDelete() }
             }
             writableDatabase.setTransactionSuccessful()
             return true

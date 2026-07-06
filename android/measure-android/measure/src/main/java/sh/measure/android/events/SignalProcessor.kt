@@ -312,7 +312,10 @@ internal class SignalProcessorImpl(
         }
 
         applyAttributes(event, thread)
-        signalStore.store(event)
+        signalStore.store(
+            event,
+            sessionAnrTimeMs = if (event.type == EventType.ANR) timestamp else null,
+        )
         onEventTracked(event)
         exporter.export()
     }

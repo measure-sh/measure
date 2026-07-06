@@ -8,6 +8,7 @@ import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
@@ -56,7 +57,7 @@ internal class SignalStoreTest {
             event.id,
             event.serializeDataToString(),
         )
-        verify(database).insertEvent(eventsCaptor.capture())
+        verify(database).insertEvent(eventsCaptor.capture(), anyOrNull())
         val eventEntity = eventsCaptor.firstValue
         assertEquals("fake-file-path", eventEntity.filePath)
     }
@@ -77,9 +78,21 @@ internal class SignalStoreTest {
             event.id,
             event.serializeDataToString(),
         )
-        verify(database).insertEvent(eventsCaptor.capture())
+        verify(database).insertEvent(eventsCaptor.capture(), anyOrNull())
         val eventEntity = eventsCaptor.firstValue
         assertEquals("fake-file-path", eventEntity.filePath)
+    }
+
+    @Test
+    fun `forwards session ANR time to insertEvent`() {
+        val exceptionData = TestData.getExceptionData()
+        val event = exceptionData.toEvent(type = EventType.ANR)
+        val anrTimeMs = 987654321L
+        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
+
+        signalStore.store(event, sessionAnrTimeMs = anrTimeMs)
+
+        verify(database).insertEvent(any(), eq(anrTimeMs))
     }
 
     @Test
@@ -88,14 +101,14 @@ internal class SignalStoreTest {
         val bugReportData = TestData.getBugReportData()
         val event = bugReportData.toEvent(type = EventType.BUG_REPORT)
         val eventsCaptor = argumentCaptor<EventEntity>()
-        `when`(database.insertEvent(any())).thenReturn(true)
+        `when`(database.insertEvent(any(), anyOrNull())).thenReturn(true)
 
         // when
         signalStore.store(event)
 
         // then
         verify(fileStorage, never()).writeEventData(any(), any())
-        verify(database).insertEvent(eventsCaptor.capture())
+        verify(database).insertEvent(eventsCaptor.capture(), anyOrNull())
         val eventEntity = eventsCaptor.firstValue
         assertNull(eventEntity.filePath)
         assertNotNull(eventEntity.serializedData)
@@ -463,7 +476,7 @@ internal class SignalStoreTest {
         val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Fatal)
         val event = exceptionData.toEvent(type = EventType.EXCEPTION)
         `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
-        `when`(database.insertEvent(any())).thenReturn(true)
+        `when`(database.insertEvent(any(), anyOrNull())).thenReturn(true)
 
         // when
         signalStore.store(event)
@@ -484,7 +497,7 @@ internal class SignalStoreTest {
         val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Unhandled)
         val event = exceptionData.toEvent(type = EventType.EXCEPTION)
         `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
-        `when`(database.insertEvent(any())).thenReturn(true)
+        `when`(database.insertEvent(any(), anyOrNull())).thenReturn(true)
 
         // when
         signalStore.store(event)
@@ -505,7 +518,7 @@ internal class SignalStoreTest {
         val exceptionData = TestData.getExceptionData()
         val event = exceptionData.toEvent(type = EventType.ANR)
         `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
-        `when`(database.insertEvent(any())).thenReturn(true)
+        `when`(database.insertEvent(any(), anyOrNull())).thenReturn(true)
 
         // when
         signalStore.store(event)
@@ -525,7 +538,7 @@ internal class SignalStoreTest {
         configProvider.bugReportTimelineDurationSeconds = bugReportTimelineDuration
         val bugReportData = TestData.getBugReportData()
         val event = bugReportData.toEvent(type = EventType.BUG_REPORT)
-        `when`(database.insertEvent(any())).thenReturn(true)
+        `when`(database.insertEvent(any(), anyOrNull())).thenReturn(true)
 
         // when
         signalStore.store(event)
@@ -576,7 +589,7 @@ internal class SignalStoreTest {
         // then
         val eventsCaptor = argumentCaptor<List<EventEntity>>()
         val spansCaptor = argumentCaptor<List<SpanEntity>>()
-        verify(database, times(1)).insertEvent(any())
+        verify(database, times(1)).insertEvent(any(), anyOrNull())
         verify(database, times(1)).insertSignals(eventsCaptor.capture(), spansCaptor.capture())
         assertEquals(1, eventsCaptor.firstValue.size)
         assertEquals(1, spansCaptor.firstValue.size)
@@ -616,7 +629,7 @@ internal class SignalStoreTest {
             ),
         )
         `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
-        `when`(database.insertEvent(any())).thenReturn(false)
+        `when`(database.insertEvent(any(), anyOrNull())).thenReturn(false)
 
         // when
         signalStore.store(event)
@@ -643,7 +656,7 @@ internal class SignalStoreTest {
         signalStore.flush()
 
         // then
-        verify(database, never()).insertEvent(any())
+        verify(database, never()).insertEvent(any(), anyOrNull())
         verify(database, never()).insertSignals(any(), any())
     }
 
@@ -675,7 +688,7 @@ internal class SignalStoreTest {
         signalStore.store(event)
 
         // then - event should be queued, not immediately inserted
-        verify(database, never()).insertEvent(any())
+        verify(database, never()).insertEvent(any(), anyOrNull())
 
         // when flushed
         signalStore.flush()
@@ -690,13 +703,13 @@ internal class SignalStoreTest {
         val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Fatal)
         val event = exceptionData.toEvent(type = EventType.EXCEPTION)
         `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
-        `when`(database.insertEvent(any())).thenReturn(true)
+        `when`(database.insertEvent(any(), anyOrNull())).thenReturn(true)
 
         // when
         signalStore.store(event)
 
         // then - event should be immediately inserted
-        verify(database).insertEvent(any())
+        verify(database).insertEvent(any(), anyOrNull())
     }
 
     @Test
@@ -705,13 +718,13 @@ internal class SignalStoreTest {
         val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Unhandled)
         val event = exceptionData.toEvent(type = EventType.EXCEPTION)
         `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
-        `when`(database.insertEvent(any())).thenReturn(true)
+        `when`(database.insertEvent(any(), anyOrNull())).thenReturn(true)
 
         // when
         signalStore.store(event)
 
         // then - event should be immediately inserted
-        verify(database).insertEvent(any())
+        verify(database).insertEvent(any(), anyOrNull())
     }
 
     @Test
@@ -721,7 +734,7 @@ internal class SignalStoreTest {
         val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Fatal)
         val event = exceptionData.toEvent(type = EventType.EXCEPTION)
         `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
-        `when`(database.insertEvent(any())).thenReturn(true)
+        `when`(database.insertEvent(any(), anyOrNull())).thenReturn(true)
 
         // when
         signalStore.store(event)
@@ -737,7 +750,7 @@ internal class SignalStoreTest {
         val exceptionData = TestData.getExceptionData()
         val event = exceptionData.toEvent(type = EventType.ANR)
         `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
-        `when`(database.insertEvent(any())).thenReturn(true)
+        `when`(database.insertEvent(any(), anyOrNull())).thenReturn(true)
 
         // when
         signalStore.store(event)
@@ -755,7 +768,7 @@ internal class SignalStoreTest {
         configProvider.bugReportTimelineDurationSeconds = bugReportTimelineDuration
         val bugReportData = TestData.getBugReportData()
         val event = bugReportData.toEvent(type = EventType.BUG_REPORT)
-        `when`(database.insertEvent(any())).thenReturn(true)
+        `when`(database.insertEvent(any(), anyOrNull())).thenReturn(true)
 
         // when
         signalStore.store(event)

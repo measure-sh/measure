@@ -7,9 +7,11 @@ import sh.measure.android.tracing.SpanData
 internal class FakeSignalStore : SignalStore {
     val trackedEvents = mutableListOf<Event<*>>()
     val trackedSpans = mutableListOf<SpanData>()
+    val trackedSessionAnrTimes = mutableListOf<Long?>()
 
-    override fun <T> store(event: Event<T>) {
+    override fun <T> store(event: Event<T>, sessionAnrTimeMs: Long?) {
         trackedEvents.add(event)
+        trackedSessionAnrTimes.add(sessionAnrTimeMs)
     }
 
     override fun store(spanData: SpanData) {

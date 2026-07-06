@@ -292,6 +292,7 @@ internal class SignalProcessorTest {
         )
 
         assertEquals(1, signalStore.trackedEvents.size)
+        assertEquals(null, signalStore.trackedSessionAnrTimes.first())
         verify(exporter).export()
     }
 
@@ -309,6 +310,7 @@ internal class SignalProcessorTest {
         )
 
         assertEquals(1, signalStore.trackedEvents.size)
+        assertEquals(timestamp, signalStore.trackedSessionAnrTimes.first())
         verify(exporter).export()
     }
 

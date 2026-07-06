@@ -323,8 +323,6 @@ internal class MeasureInitializerImpl(
         processInfo = processInfoProvider,
         signalProcessor = signalProcessor,
         nativeBridge = nativeBridgeImpl,
-        database = database,
-        sessionManager = sessionManager,
     ),
     private val appExitProvider: AppExitProvider = AppExitProviderImpl(
         logger = logger,
