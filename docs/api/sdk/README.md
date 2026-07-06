@@ -1308,7 +1308,7 @@ Use the `profile` type for a performance profile captured by the SDK, such as a 
 
 | Field    | Type   | Optional | Comment                                                                                                                            |
 | -------- | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `reason` | string | No       | The occasion that produced the profile. One of:<br />- `app_launch`<br />- `anr`                                                   |
+| `reason` | string | No       | The occasion that produced the profile. One of:<br />- `app_fully_drawn`<br />- `anr`                                                   |
 | `format` | string | No       | Format of the attached profile artifact, mirroring the attachment `type`. One of:<br />- `perfetto_trace`<br />- `heap_dump`<br />- `heap_profile` |
 
 ### Traces

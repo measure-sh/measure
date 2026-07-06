@@ -39,7 +39,7 @@ A trigger describes an occasion on which the operating system may capture a prof
 > Android 17 (API level 37) adds more profiling triggers like out-of-memory, cold start and excessive CPU usage.
 > Registering these requires compiling against the Android 17 SDK (`compileSdk 37`); support is coming soon.
 
-### App fully drawn (`app_launch`)
+### App fully drawn (`app_fully_drawn`)
 
 Captured once the app reports that it has finished drawing its first meaningful content. This is not automatic: your app
 must signal the moment by calling [`Activity.reportFullyDrawn()`](https://developer.android.com/reference/android/app/Activity#reportFullyDrawn()).
