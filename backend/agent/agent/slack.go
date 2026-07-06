@@ -360,6 +360,10 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 	continued := conv != nil
 	var appID uuid.UUID
 	var resolveUsage chatUsage
+	// Set when the app was resolved from the discussion rather than named in
+	// the question; the turn then tells the model to open its reply by naming
+	// the app.
+	var contextAppLabel string
 	if continued {
 		// Assistant threads stay private to whoever started them. Channel
 		// threads are open to the whole team; resolveSlackUser already
@@ -382,9 +386,9 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 		app, clarify := pickMeasureApp(apps, question)
 		if clarify != "" {
 			// The current message names no app on its own. The surrounding
-			// discussion often does, so read it and try to resolve from there,
-			// by exact name or by approximation, before asking which app.
-			resolved, usage, ok := c.resolveAppFromContext(ctx, botToken, botUserID, ev, apps)
+			// discussion often points to one, so read it and let the model
+			// resolve the app before falling back to asking.
+			resolved, usage, ok := c.resolveAppFromContext(ctx, botToken, botUserID, ev, question, apps)
 			if !ok {
 				log.Printf("agent: slack question needs clarification event=%s apps=%d", ev.EventID, len(apps))
 				return clarify, nil
@@ -392,6 +396,7 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 			log.Printf("agent: slack app resolved from context event=%s app=%s", ev.EventID, resolved.id)
 			app = resolved
 			resolveUsage = usage
+			contextAppLabel = resolved.label()
 		}
 		appID = app.id
 	}
@@ -442,14 +447,15 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 	}
 
 	answer, charts, err := c.runTurn(ctx, turn{
-		userID:     userID,
-		appID:      appID,
-		teamID:     turnTeamID,
-		customerID: customerID,
-		conv:       conv,
-		continued:  continued,
-		question:   question,
-		entryPoint: ev.Surface,
+		userID:          userID,
+		appID:           appID,
+		teamID:          turnTeamID,
+		customerID:      customerID,
+		conv:            conv,
+		continued:       continued,
+		question:        question,
+		entryPoint:      ev.Surface,
+		contextAppLabel: contextAppLabel,
 	})
 	if err != nil {
 		if errors.Is(err, errNoAnswer) {
@@ -591,14 +597,24 @@ func (c *Config) getSlackIntegration(ctx context.Context, teamID uuid.UUID) (tok
 	return token, botUserID, active, err
 }
 
-// slackApp is one of a team's apps, as app selection sees it.
-type slackApp struct {
+// measureApp is one of a team's apps, as app selection sees it.
+type measureApp struct {
 	id               uuid.UUID
 	name             string
 	uniqueIdentifier string
 }
 
-func (c *Config) getTeamApps(ctx context.Context, teamID uuid.UUID) ([]slackApp, error) {
+// label renders the app as its name with the unique identifier appended when
+// present. Teams often name the iOS and Android builds identically, and the
+// identifier is then what tells them apart.
+func (app measureApp) label() string {
+	if app.uniqueIdentifier != "" {
+		return fmt.Sprintf("%s (%s)", app.name, app.uniqueIdentifier)
+	}
+	return app.name
+}
+
+func (c *Config) getTeamApps(ctx context.Context, teamID uuid.UUID) ([]measureApp, error) {
 	deps := c.Deps
 	stmt := sqlf.PostgreSQL.
 		Select("id, coalesce(app_name, ''), coalesce(unique_identifier, '')").
@@ -613,9 +629,9 @@ func (c *Config) getTeamApps(ctx context.Context, teamID uuid.UUID) ([]slackApp,
 	}
 	defer rows.Close()
 
-	var apps []slackApp
+	var apps []measureApp
 	for rows.Next() {
-		var app slackApp
+		var app measureApp
 		if err := rows.Scan(&app.id, &app.name, &app.uniqueIdentifier); err != nil {
 			return nil, err
 		}
@@ -623,6 +639,15 @@ func (c *Config) getTeamApps(ctx context.Context, teamID uuid.UUID) ([]slackApp,
 	}
 	return apps, rows.Err()
 }
+
+// contextAppNote tells the turn's model that the app was resolved from the
+// surrounding discussion rather than named by the user, and that its reply
+// must open by saying which app it is answering about, so the asker can
+// catch a wrong pick. The phrasing is left to the model; the app itself is
+// written in the label form, the same way the clarify reply lists apps, and
+// how the app was chosen stays out of replies. Both placeholders take the
+// label.
+const contextAppNote = "The user's message did not name an app; the conversation was matched to the app %s. Open your reply by telling the user, in your own words, which app you are answering about, so they can correct you if it is the wrong one. Write the app exactly as %s. Do not mention how the app was determined."
 
 // internalBuildMarkers tag internal builds by unique-identifier suffix, so
 // the production app wins when a team tracks both. Suffix only: ".test"
@@ -634,9 +659,9 @@ var internalBuildMarkers = []string{".dev", ".debug", ".staging", ".qa", ".test"
 // the production one. When it can't choose, it returns a clarifying reply
 // instead. Callers guarantee apps is non-empty; a team with no apps at all is
 // answered with noAppsReply before app picking begins.
-func pickMeasureApp(apps []slackApp, question string) (slackApp, string) {
+func pickMeasureApp(apps []measureApp, question string) (measureApp, string) {
 	q := strings.ToLower(question)
-	var named []slackApp
+	var named []measureApp
 	for _, app := range apps {
 		if questionNamesApp(q, app) {
 			named = append(named, app)
@@ -647,14 +672,14 @@ func pickMeasureApp(apps []slackApp, question string) (slackApp, string) {
 		return named[0], ""
 	}
 	if len(named) > 1 {
-		return slackApp{}, clarifyApps(named)
+		return measureApp{}, clarifyApps(named)
 	}
 
 	if len(apps) == 1 {
 		return apps[0], ""
 	}
 
-	var production []slackApp
+	var production []measureApp
 	for _, app := range apps {
 		uid := strings.ToLower(app.uniqueIdentifier)
 		internal := false
@@ -672,25 +697,24 @@ func pickMeasureApp(apps []slackApp, question string) (slackApp, string) {
 		return production[0], ""
 	}
 
-	return slackApp{}, clarifyApps(apps)
+	return measureApp{}, clarifyApps(apps)
 }
 
 // resolveAppFromContext picks the app a mention is about when the mention text
 // itself names none. It reads the surrounding discussion, the same recent
-// channel or thread messages the bot summarizes for context, then resolves in
-// two steps. First an exact match on the text, the way the mention itself is
-// matched: a user may have answered an earlier clarification with "Wikipedia"
-// or "org.wikipedia.android". If that is still ambiguous, an approximate match,
-// where the small model maps a loose description like "prod android app" onto
-// one of the team's apps. ok is false when the discussion can't be read or
-// neither step settles on a single app, leaving the caller to ask which one.
-// promptTokens and completionTokens are the model usage to meter once the
-// chosen app's customer is known, and are zero when no model call was made.
-func (c *Config) resolveAppFromContext(ctx context.Context, botToken, botUserID string, ev slack.AgentEvent, apps []slackApp) (app slackApp, usage chatUsage, ok bool) {
+// channel or thread messages the bot summarizes for context, and asks the
+// small model which of the team's apps the question is about: the discussion
+// may name one outright, perhaps answering an earlier clarification with
+// "Wikipedia" or "org.wikipedia.android", or describe one loosely like "prod
+// android app". ok is false when the discussion can't be read or the model
+// doesn't settle on a single app, leaving the caller to ask which one. usage
+// is the model usage to meter once the chosen app's customer is known, and is
+// zero when no model call was made.
+func (c *Config) resolveAppFromContext(ctx context.Context, botToken, botUserID string, ev slack.AgentEvent, question string, apps []measureApp) (app measureApp, usage chatUsage, ok bool) {
 	// With fewer than two apps there is nothing to disambiguate: a lone app is
 	// already chosen on the current message, and no apps has its own reply.
 	if len(apps) < 2 {
-		return slackApp{}, chatUsage{}, false
+		return measureApp{}, chatUsage{}, false
 	}
 
 	// The fetch and the possible approximation LLM call both cost time on the
@@ -710,52 +734,41 @@ func (c *Config) resolveAppFromContext(ctx context.Context, botToken, botUserID 
 		outcome = "fetch_failed"
 		span.SetStatus(codes.Error, err.Error())
 		log.Printf("agent: slack context app scan failed event=%s: %v", ev.EventID, err)
-		return slackApp{}, chatUsage{}, false
+		return measureApp{}, chatUsage{}, false
 	}
 	picked := selectContextMessages(msgs, botUserID, ev.EventTS, "", slackContextMessageLimit)
 	if len(picked) == 0 {
 		outcome = "no_messages"
-		return slackApp{}, chatUsage{}, false
+		return measureApp{}, chatUsage{}, false
 	}
 
-	// Exact: the discussion may name an app outright. pickMeasureApp's "single
-	// app" and "sole production app" fallbacks already failed on the current
-	// message, so over this text it can succeed only by finding a name.
-	var b strings.Builder
-	for _, m := range picked {
-		b.WriteString(slackUnescaper.Replace(m.Text))
-		b.WriteByte(' ')
-	}
-	if exact, clarify := pickMeasureApp(apps, b.String()); clarify == "" {
-		outcome = "exact"
-		return exact, chatUsage{}, true
-	}
-
-	// Approximate: let the small model read the discussion and choose.
-	app, usage, ok = c.approximateAppFromMessages(ctx, picked, apps)
+	// Every pick goes through the model, even when the discussion names an
+	// app outright: a literal name may be chatter unrelated to the question,
+	// like a release announcement or social talk, and only the model can
+	// judge that relevance.
+	app, usage, ok = c.approximateAppFromMessages(ctx, question, picked, apps)
 	if ok {
 		outcome = "approximated"
 	}
 	return app, usage, ok
 }
 
-// appResolutionPrompt steers the small model to map a Slack discussion onto one
-// of a team's apps when none was named outright.
-const appResolutionPrompt = `You match a Slack discussion to one app from a list. People are asking a telemetry agent about one of their apps but may describe it loosely, like "the android app", "our prod build", or "the iOS one". Each app is listed as "<number>. <name> (<unique identifier>)". The unique identifier often signals the platform (for example .android or .ios) and whether a build is internal (.dev, .debug, .staging, .qa, .test, .beta) rather than production. Decide which single app the discussion is about and reply with only that app's number. If it does not point clearly to one app, reply with only 0.`
+// appResolutionPrompt steers the small model that maps a Slack question onto
+// one of a team's apps when none was named outright.
+const appResolutionPrompt = `You match a question asked in Slack to one app from a list. People ask a telemetry agent about one of their apps but may describe an app loosely, like "the android app", "our prod build", or "the iOS one". Each app is listed as "<number>. <name> (<unique identifier>)". The unique identifier often signals the platform (for example .android or .ios) and whether a build is internal (.dev, .debug, .staging, .qa, .test, .beta) rather than production. Decide which single listed app the question is about, using the discussion around it only to interpret the question. The list holds every app the team has, so an app named in the discussion but absent from the list belongs to someone else; it is never the answer and never evidence for a listed app. A listed app named in messages unrelated to the question is not evidence either. Reply with only the chosen app's number. If the question does not point clearly to one listed app, reply with only 0.`
 
-// approximateAppFromMessages asks the small model which app a discussion is
-// about when nothing named one outright. It returns the chosen app with ok true
-// only on a confident single pick, along with the call's token usage to meter.
-func (c *Config) approximateAppFromMessages(ctx context.Context, msgs []slack.Message, apps []slackApp) (app slackApp, usage chatUsage, ok bool) {
+// approximateAppFromMessages asks the small model which app the question is
+// about. The question is presented apart from the discussion so that app
+// names in unrelated chatter don't decide the pick. It returns the chosen
+// app with ok true only on a confident single pick, along with the call's
+// token usage to meter.
+func (c *Config) approximateAppFromMessages(ctx context.Context, question string, msgs []slack.Message, apps []measureApp) (app measureApp, usage chatUsage, ok bool) {
 	var list strings.Builder
 	for i, app := range apps {
-		label := app.name
-		if app.uniqueIdentifier != "" {
-			label = fmt.Sprintf("%s (%s)", app.name, app.uniqueIdentifier)
-		}
-		fmt.Fprintf(&list, "%d. %s\n", i+1, label)
+		fmt.Fprintf(&list, "%d. %s\n", i+1, app.label())
 	}
-	prompt := fmt.Sprintf("Apps:\n%sDiscussion:\n%s", list.String(), renderSlackContext(msgs))
+	prompt := fmt.Sprintf("Apps:\n%sQuestion:\n%s\nDiscussion (recent messages, oldest first):\n%s",
+		list.String(), question, renderSlackContext(msgs))
 
 	resp, err := c.chat(ctx, c.ModelSmall, []chatMessage{
 		{Role: "system", Content: appResolutionPrompt},
@@ -763,14 +776,14 @@ func (c *Config) approximateAppFromMessages(ctx context.Context, msgs []slack.Me
 	}, nil, "")
 	if err != nil {
 		log.Printf("agent: slack app approximation failed: %v", err)
-		return slackApp{}, chatUsage{}, false
+		return measureApp{}, chatUsage{}, false
 	}
 	if len(resp.Choices) == 0 {
-		return slackApp{}, resp.Usage, false
+		return measureApp{}, resp.Usage, false
 	}
 	idx := parseAppChoice(resp.Choices[0].Message.Content, len(apps))
 	if idx < 0 {
-		return slackApp{}, resp.Usage, false
+		return measureApp{}, resp.Usage, false
 	}
 	return apps[idx], resp.Usage, true
 }
@@ -798,7 +811,7 @@ func parseAppChoice(reply string, n int) int {
 // by name or unique identifier. Names match on word boundaries (an app
 // called "Ace" is not named by the word "trace"), and names under three
 // characters never match; they would catch ordinary words constantly.
-func questionNamesApp(q string, app slackApp) bool {
+func questionNamesApp(q string, app measureApp) bool {
 	name := strings.ToLower(app.name)
 	if len(name) >= 3 && containsWord(q, name) {
 		return true
@@ -833,8 +846,8 @@ func isWordRune(r rune) bool {
 // mostSpecificNames removes matches whose name sits inside another match's
 // name: a question naming "Measure Pro" unavoidably also matches "Measure",
 // and the longer, more specific name is the one the question meant.
-func mostSpecificNames(matches []slackApp) []slackApp {
-	var kept []slackApp
+func mostSpecificNames(matches []measureApp) []measureApp {
+	var kept []measureApp
 	for _, m := range matches {
 		insideAnother := false
 		for _, other := range matches {
@@ -923,16 +936,12 @@ func noAppsReply(dashboard string) string {
 // than a blunt prompt. Each app is listed with its unique identifier, since
 // teams often name the iOS and Android builds identically, and the identifier
 // is then the only usable handle.
-func clarifyApps(apps []slackApp) string {
+func clarifyApps(apps []measureApp) string {
 	var b strings.Builder
 	b.WriteString(clarifyLeads[rand.IntN(len(clarifyLeads))])
 	for _, app := range apps {
-		name := app.name
-		if app.uniqueIdentifier != "" {
-			name = fmt.Sprintf("%s (%s)", app.name, app.uniqueIdentifier)
-		}
 		b.WriteString("\n• ")
-		b.WriteString(name)
+		b.WriteString(app.label())
 	}
 	return b.String()
 }

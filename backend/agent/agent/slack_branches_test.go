@@ -279,12 +279,12 @@ func TestSlackDisabledIntegrationPostsNotice(t *testing.T) {
 func TestResolveAppFromContextUsesModel(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
-	apps := []slackApp{
+	apps := []measureApp{
 		{id: uuid.New(), name: "alpha", uniqueIdentifier: "com.x.alpha"},
 		{id: uuid.New(), name: "bravo", uniqueIdentifier: "com.x.bravo"},
 	}
-	// The discussion names no app outright, so the exact match fails and the
-	// small model decides from the loose description.
+	// The discussion names no app outright; the small model decides from the
+	// loose description.
 	msgs := []slack.Message{{User: "U2", Text: "the prod build keeps crashing on startup", TS: "1"}}
 	slacktest.MockConversationHistory(t, func(context.Context, string, string, int) ([]slack.Message, error) { return msgs, nil })
 	slacktest.MockConversationReplies(t, func(context.Context, string, string, string, string, int) ([]slack.Message, error) { return msgs, nil })
@@ -292,7 +292,7 @@ func TestResolveAppFromContextUsesModel(t *testing.T) {
 	c, stub := newTestAgent(t, `{"choices":[{"message":{"role":"assistant","content":"2"}}],"usage":{"prompt_tokens":15,"completion_tokens":1}}`)
 	ev := slack.AgentEvent{Surface: slack.SurfaceMention, Channel: "C1", ThreadTS: "1.1", EventTS: "9", SlackUserID: "U1"}
 
-	resolved, _, ok := c.resolveAppFromContext(ctx, "tok", "Ubot", ev, apps)
+	resolved, _, ok := c.resolveAppFromContext(ctx, "tok", "Ubot", ev, "why does it crash?", apps)
 	if !ok {
 		t.Fatal("expected the model to resolve an app from context")
 	}
@@ -301,5 +301,84 @@ func TestResolveAppFromContextUsesModel(t *testing.T) {
 	}
 	if stub.callCount() != 1 {
 		t.Errorf("llm calls = %d, want 1 (the app-resolution call)", stub.callCount())
+	}
+	// The model must see the question apart from the discussion, so it can
+	// judge which app the question itself is about.
+	req := string(stub.requests[0])
+	for _, want := range []string{"Question:", "why does it crash?", "Discussion (recent messages, oldest first):"} {
+		if !strings.Contains(req, want) {
+			t.Errorf("app-resolution request should contain %q, got %s", want, req)
+		}
+	}
+}
+
+// TestResolveAppFromContextNamedAppStillGoesToModel checks that the model is
+// consulted even when the discussion names an app outright, since a literal
+// name may be chatter unrelated to the question, and that a 0 from it falls
+// back to asking which app.
+func TestResolveAppFromContextNamedAppStillGoesToModel(t *testing.T) {
+	ctx := context.Background()
+	apps := []measureApp{
+		{id: uuid.New(), name: "alpha", uniqueIdentifier: "com.x.alpha"},
+		{id: uuid.New(), name: "bravo", uniqueIdentifier: "com.x.bravo"},
+	}
+	ev := slack.AgentEvent{Surface: slack.SurfaceMention, Channel: "C1", ThreadTS: "9", EventTS: "9", SlackUserID: "U1"}
+	msgs := []slack.Message{
+		{User: "U2", Text: "bravo release party is tomorrow", TS: "1"},
+		{User: "U2", Text: "bring cake", TS: "2"},
+	}
+	slacktest.MockConversationHistory(t, func(context.Context, string, string, int) ([]slack.Message, error) { return msgs, nil })
+
+	c, stub := newTestAgent(t, `{"choices":[{"message":{"role":"assistant","content":"0"}}],"usage":{"prompt_tokens":10,"completion_tokens":1}}`)
+	_, _, ok := c.resolveAppFromContext(ctx, "tok", "Ubot", ev, "how many crashes this week?", apps)
+	if ok {
+		t.Fatal("expected no pick when the model answers 0")
+	}
+	if stub.callCount() != 1 {
+		t.Errorf("llm calls = %d, want 1 (a named app still goes through the model)", stub.callCount())
+	}
+}
+
+// TestSlackContextResolvedAppNoteReachesTurn checks that when the app was
+// resolved from the discussion rather than named in the question, the turn's
+// model is told which app was picked and to open its reply by naming it; the
+// announcement wording is the model's own.
+func TestSlackContextResolvedAppNoteReachesTurn(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+	const email = "ctxapp@test.dev"
+	teamID, userID := uuid.New(), uuid.New()
+	seedTeam(ctx, t, teamID, "team")
+	seedUser(ctx, t, userID, email)
+	seedTeamMembership(ctx, t, teamID, userID, "owner")
+	seedApp(ctx, t, uuid.New(), teamID, "alpha", 30)
+	seedApp(ctx, t, uuid.New(), teamID, "bravo", 30)
+	seedTeamSlack(ctx, t, teamID, []string{"C1"})
+
+	slacktest.MockUserEmail(t, func(context.Context, string, string) (string, error) { return email, nil })
+	delivered := captureSlackDelivery(t)
+	// The question names no app; the discussion describes one loosely.
+	msgs := []slack.Message{{User: "U2", Text: "the second app keeps crashing", TS: "1"}}
+	slacktest.MockConversationHistory(t, func(context.Context, string, string, int) ([]slack.Message, error) { return msgs, nil })
+
+	// Three model calls, in order: the app resolution picks bravo, the
+	// context summary, and the turn's answer.
+	c, stub := newTestAgent(t,
+		`{"choices":[{"message":{"role":"assistant","content":"2"}}],"usage":{"prompt_tokens":10,"completion_tokens":1}}`,
+		`{"choices":[{"message":{"role":"assistant","content":"They said the second app keeps crashing."}}],"usage":{"prompt_tokens":10,"completion_tokens":5}}`,
+		`{"choices":[{"message":{"role":"assistant","content":"You're asking about bravo. 12 crashes this week."}}],"usage":{"prompt_tokens":10,"completion_tokens":5}}`,
+	)
+	handleSlackQuestion(t, c, slackQuestionEvent(teamID, slack.SurfaceMention, "how many crashes this week?", "Ev-ctx-app"))
+
+	if stub.callCount() != 3 {
+		t.Fatalf("llm calls = %d, want 3 (resolution, summary, turn)", stub.callCount())
+	}
+	turnReq := string(stub.requests[2])
+	if !strings.Contains(turnReq, "did not name an app") ||
+		!strings.Contains(turnReq, "Write the app exactly as bravo (bravo)") {
+		t.Errorf("turn request should carry the note with the app in label form, got %s", turnReq)
+	}
+	if !strings.Contains(*delivered, "12 crashes this week.") {
+		t.Errorf("reply should carry the model's answer, got %q", *delivered)
 	}
 }
