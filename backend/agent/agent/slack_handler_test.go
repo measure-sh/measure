@@ -67,6 +67,7 @@ func TestAnswerSlackQuestionAssistant(t *testing.T) {
 	slacktest.MockSetAssistantTitle(t, func(context.Context, string, string, string, string) error { return nil })
 	slacktest.MockConversationHistory(t, func(context.Context, string, string, int) ([]slack.Message, error) { return nil, nil })
 	slacktest.MockConversationReplies(t, func(context.Context, string, string, string, string, int) ([]slack.Message, error) { return nil, nil })
+	slacktest.MockThreadMessageExists(t, func(context.Context, string, string, string, string) (bool, error) { return true, nil })
 
 	var delivered string
 	capture := func(text string) { delivered = text }
