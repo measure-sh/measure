@@ -112,6 +112,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add topic guidance to agent system prompt by @anupcowkur in #4003
 - (**backend**): Add AGENT_ENABLED flag by @anupcowkur in #4002
 - (**backend**): Improve slack app resolution and name the app in replies by @anupcowkur in #3999
 - (**backend**): Consume Slack events via push (#3998) by @detj in #3998
