@@ -8,6 +8,8 @@ import {
   formatDateToHumanReadableDateTime,
   formatMillisToHumanReadable,
 } from "../utils/time_utils";
+import { openTraceInPerfetto } from "../utils/perfetto_utils";
+import { toastNegative } from "../utils/use_toast";
 import { buttonVariants } from "./button_variants";
 import CodeBlock from "./code_block";
 import LayoutSnapshot from "./layout_snapshot";
@@ -283,12 +285,82 @@ export default function SessionTimelineEventDetails({
     }
   }
 
+  function getDownloadFromEventDetails(): ReactNode {
+    if (eventType !== "profile") {
+      return null;
+    }
+    if (
+      eventDetails.attachments === undefined ||
+      eventDetails.attachments === null ||
+      eventDetails.attachments.length === 0
+    ) {
+      return null;
+    }
+    const linkStyle = cn(
+      buttonVariants({ variant: "secondary" }),
+      "justify-center w-fit",
+    );
+    return (
+      <div className="flex flex-wrap gap-3">
+        {eventDetails.attachments.map(
+          (attachment: {
+            key: string;
+            name: string;
+            location: string;
+            type: string;
+          }) => (
+            <div key={attachment.key} className="flex flex-wrap gap-3">
+              {attachment.type === "perfetto_trace" &&
+                (demo ? (
+                  <div className={linkStyle}>Open in Perfetto</div>
+                ) : (
+                  <button
+                    type="button"
+                    className={linkStyle}
+                    onClick={() =>
+                      openTraceInPerfetto(
+                        attachment.location,
+                        attachment.name,
+                      ).catch((error) =>
+                        toastNegative(
+                          "Failed to open trace in Perfetto",
+                          error instanceof Error
+                            ? error.message
+                            : String(error),
+                        ),
+                      )
+                    }
+                  >
+                    Open in Perfetto
+                  </button>
+                ))}
+              {demo ? (
+                <div className={linkStyle}>Download</div>
+              ) : (
+                <a
+                  href={attachment.location}
+                  download={attachment.name}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={linkStyle}
+                >
+                  Download
+                </a>
+              )}
+            </div>
+          ),
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-3 font-display break-words">
       {getJsonLayoutSnapshotsFromEventDetails()}
       {getImageLayoutSnapshotsFromEventDetails()}
       {getBodyFromEventDetails()}
       {getDetailsLinkFromEventDetails()}
+      {getDownloadFromEventDetails()}
     </div>
   );
 }
