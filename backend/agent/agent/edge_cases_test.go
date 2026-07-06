@@ -347,6 +347,7 @@ func captureSlackDelivery(t *testing.T) *string {
 	slacktest.MockSetAssistantTitle(t, func(context.Context, string, string, string, string) error { return nil })
 	slacktest.MockConversationHistory(t, func(context.Context, string, string, int) ([]slack.Message, error) { return nil, nil })
 	slacktest.MockConversationReplies(t, func(context.Context, string, string, string, string, int) ([]slack.Message, error) { return nil, nil })
+	slacktest.MockThreadMessageExists(t, func(context.Context, string, string, string, string) (bool, error) { return true, nil })
 	slacktest.MockPostMessage(t, func(_ context.Context, _, _, _, text string) (string, error) { delivered = text; return "ack.1", nil })
 	slacktest.MockUpdateMessage(t, func(_ context.Context, _, _, _, text string) error { delivered = text; return nil })
 	return &delivered

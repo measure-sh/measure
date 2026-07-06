@@ -36,6 +36,14 @@ func MockUpdateMessage(t *testing.T, fn func(ctx context.Context, token, channel
 	t.Cleanup(func() { slack.UpdateMessage = orig })
 }
 
+// MockDeleteMessage swaps slack.DeleteMessage for the duration of the test.
+func MockDeleteMessage(t *testing.T, fn func(ctx context.Context, token, channel, ts string) error) {
+	t.Helper()
+	orig := slack.DeleteMessage
+	slack.DeleteMessage = fn
+	t.Cleanup(func() { slack.DeleteMessage = orig })
+}
+
 // MockUserEmail swaps slack.UserEmail for the duration of the test.
 func MockUserEmail(t *testing.T, fn func(ctx context.Context, token, slackUserID string) (string, error)) {
 	t.Helper()
@@ -50,6 +58,14 @@ func MockConversationReplies(t *testing.T, fn func(ctx context.Context, token, c
 	orig := slack.ConversationReplies
 	slack.ConversationReplies = fn
 	t.Cleanup(func() { slack.ConversationReplies = orig })
+}
+
+// MockThreadMessageExists swaps slack.ThreadMessageExists for the duration of the test.
+func MockThreadMessageExists(t *testing.T, fn func(ctx context.Context, token, channel, threadRootTS, messageTS string) (bool, error)) {
+	t.Helper()
+	orig := slack.ThreadMessageExists
+	slack.ThreadMessageExists = fn
+	t.Cleanup(func() { slack.ThreadMessageExists = orig })
 }
 
 // MockConversationHistory swaps slack.ConversationHistory for the duration of the test.

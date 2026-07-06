@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -150,9 +151,11 @@ func retryAfterDelay(header string) time.Duration {
 var (
 	PostMessage                  = postMessage
 	UpdateMessage                = updateMessage
+	DeleteMessage                = deleteMessage
 	UserEmail                    = userEmail
 	ConversationReplies          = conversationReplies
 	ConversationHistory          = conversationHistory
+	ThreadMessageExists          = threadMessageExists
 	SetAssistantStatus           = setAssistantStatus
 	SetAssistantTitle            = setAssistantTitle
 	SetAssistantSuggestedPrompts = setAssistantSuggestedPrompts
@@ -186,6 +189,15 @@ func updateMessage(ctx context.Context, token, channel, ts, text string) error {
 		"text":    text,
 	}
 	return postJSON(ctx, token, "chat.update", payload, nil)
+}
+
+// DeleteMessage removes a previously posted message.
+func deleteMessage(ctx context.Context, token, channel, ts string) error {
+	payload := map[string]any{
+		"channel": channel,
+		"ts":      ts,
+	}
+	return postJSON(ctx, token, "chat.delete", payload, nil)
 }
 
 // UserEmail returns the email on a Slack user's profile. Workspaces can hide
@@ -265,6 +277,48 @@ func conversationReplies(ctx context.Context, token, channel, threadTS, oldest s
 		}
 	}
 	return tail, nil
+}
+
+// ThreadMessageExists reports whether the message with timestamp messageTS,
+// in the thread whose root message has timestamp threadRootTS, still exists.
+// For a message outside any thread the two timestamps are the same. Callers
+// use it to detect a question that was deleted while its answer was being
+// prepared; only the message is checked, so a thread whose root was
+// deleted still reports true for a surviving reply in it. Slack replaces a
+// deleted root that has replies with a tombstone message, which counts as
+// deleted here. The error is non-nil only when the check itself failed, in
+// which case the boolean is meaningless.
+func threadMessageExists(ctx context.Context, token, channel, threadRootTS, messageTS string) (bool, error) {
+	query := url.Values{}
+	query.Set("channel", channel)
+	query.Set("ts", threadRootTS)
+	query.Set("oldest", messageTS)
+	query.Set("inclusive", "true")
+	// Replies are returned oldest first, so a live message is the first one
+	// at or after its own timestamp, except that Slack can include the
+	// thread's root in front of it even when the oldest filter excludes the
+	// root. A limit of 2 covers both positions; the root's inclusion is
+	// observed rather than documented behavior, and a limit that is too
+	// small reports a live message as deleted, so one extra slot guards a
+	// miscount there.
+	query.Set("limit", "3")
+	var resp struct {
+		Messages []Message `json:"messages"`
+	}
+	if err := getJSON(ctx, token, "conversations.replies", query, &resp); err != nil {
+		if strings.Contains(err.Error(), "thread_not_found") {
+			return false, nil
+		}
+		return false, err
+	}
+	// Matched by timestamp rather than by position, so it does not matter
+	// whether the root was included.
+	for _, m := range resp.Messages {
+		if m.TS == messageTS {
+			return m.Subtype != "tombstone", nil
+		}
+	}
+	return false, nil
 }
 
 // ConversationHistory returns a channel's most recent messages. Slack returns

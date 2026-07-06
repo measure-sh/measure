@@ -52,6 +52,74 @@ func TestConversationRepliesPaginatesToNewest(t *testing.T) {
 	}
 }
 
+// TestThreadMessageExists checks the aliveness verdicts: a live message
+// counts wherever it exists in the thread, deletion is recognized both as a
+// missing message and as a root's tombstone, other messages' fates don't
+// matter, and an unrelated API failure is reported as an error rather than a
+// verdict.
+func TestThreadMessageExists(t *testing.T) {
+	orig := httpClient
+	defer func() { httpClient = orig }()
+
+	cases := map[string]struct {
+		threadTS, ts string
+		body         string
+		exists       bool
+		wantsError   bool
+	}{
+		"live root, no thread": {
+			threadTS: "1.0", ts: "1.0",
+			body:   `{"ok":true,"messages":[{"ts":"1.0","text":"the question"}]}`,
+			exists: true,
+		},
+		"root tombstoned by deletion": {
+			threadTS: "1.0", ts: "1.0",
+			body:   `{"ok":true,"messages":[{"ts":"1.0","subtype":"tombstone","text":"This message was deleted."},{"ts":"1.5","text":"the ack"}]}`,
+			exists: false,
+		},
+		"reply alive under deleted root": {
+			threadTS: "1.0", ts: "1.4",
+			body:   `{"ok":true,"messages":[{"ts":"1.0","subtype":"tombstone","text":"This message was deleted."},{"ts":"1.4","text":"the question"},{"ts":"1.6","text":"later chatter"}]}`,
+			exists: true,
+		},
+		"reply deleted": {
+			threadTS: "1.0", ts: "1.4",
+			body:   `{"ok":true,"messages":[{"ts":"1.0","text":"the root"},{"ts":"1.6","text":"later chatter"}]}`,
+			exists: false,
+		},
+		"thread not found": {
+			threadTS: "1.0", ts: "1.0",
+			body:   `{"ok":false,"error":"thread_not_found"}`,
+			exists: false,
+		},
+		"api failure": {
+			threadTS: "1.0", ts: "1.0",
+			body:   `{"ok":false,"error":"fatal_error"}`,
+			exists: false, wantsError: true,
+		},
+	}
+	for name, tc := range cases {
+		httpClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			q := r.URL.Query()
+			if q.Get("ts") != tc.threadTS || q.Get("oldest") != tc.ts || q.Get("inclusive") != "true" {
+				t.Errorf("%s: query = %s, want ts=%s oldest=%s inclusive=true", name, q.Encode(), tc.threadTS, tc.ts)
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(tc.body)),
+				Header:     make(http.Header),
+			}, nil
+		})}
+		exists, err := ThreadMessageExists(context.Background(), "tok", "C1", tc.threadTS, tc.ts)
+		if tc.wantsError != (err != nil) {
+			t.Errorf("%s: err = %v, wantsError = %v", name, err, tc.wantsError)
+		}
+		if exists != tc.exists {
+			t.Errorf("%s: exists = %v, want %v", name, exists, tc.exists)
+		}
+	}
+}
+
 // TestConversationRepliesStopsWithoutCursor checks the loop ends on a single
 // page that reports no more.
 func TestConversationRepliesStopsWithoutCursor(t *testing.T) {

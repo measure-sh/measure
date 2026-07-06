@@ -31,6 +31,7 @@ func TestDeliverSlackReplyFallsBackToFreshPost(t *testing.T) {
 	slacktest.MockSetAssistantStatus(t, func(context.Context, string, string, string, string) error { return nil })
 	slacktest.MockConversationHistory(t, func(context.Context, string, string, int) ([]slack.Message, error) { return nil, nil })
 	slacktest.MockConversationReplies(t, func(context.Context, string, string, string, string, int) ([]slack.Message, error) { return nil, nil })
+	slacktest.MockThreadMessageExists(t, func(context.Context, string, string, string, string) (bool, error) { return true, nil })
 
 	var posts []string
 	slacktest.MockPostMessage(t, func(_ context.Context, _, _, _, text string) (string, error) {
@@ -55,6 +56,144 @@ func TestDeliverSlackReplyFallsBackToFreshPost(t *testing.T) {
 	}
 	if !strings.Contains(posts[1], "Fresh answer") {
 		t.Errorf("fresh post = %q, want the answer", posts[1])
+	}
+}
+
+// TestSlackQuestionDeletedStaysSilent checks that a question deleted while
+// the turn ran gets no reply: the ack placeholder is removed, nothing else is
+// posted, and a redelivery of the event posts nothing either. What is checked
+// is the question's own message, so a question inside a thread is dropped
+// only when it is itself deleted, not when the thread's root is.
+func TestSlackQuestionDeletedStaysSilent(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+	const email = "deleter@test.dev"
+	teamID, userID, appID := uuid.New(), uuid.New(), uuid.New()
+	seedTeam(ctx, t, teamID, "team")
+	seedUser(ctx, t, userID, email)
+	seedTeamMembership(ctx, t, teamID, userID, "owner")
+	seedApp(ctx, t, appID, teamID, "soleapp", 30)
+	seedTeamSlack(ctx, t, teamID, []string{"C1"})
+
+	slacktest.MockUserEmail(t, func(context.Context, string, string) (string, error) { return email, nil })
+	slacktest.MockConversationHistory(t, func(context.Context, string, string, int) ([]slack.Message, error) { return nil, nil })
+	slacktest.MockConversationReplies(t, func(context.Context, string, string, string, string, int) ([]slack.Message, error) { return nil, nil })
+	var checkedThreadRootTS, checkedMessageTS string
+	slacktest.MockThreadMessageExists(t, func(_ context.Context, _, _, threadRootTS, messageTS string) (bool, error) {
+		checkedThreadRootTS, checkedMessageTS = threadRootTS, messageTS
+		return false, nil
+	})
+
+	var posts []string
+	slacktest.MockPostMessage(t, func(_ context.Context, _, _, _, text string) (string, error) {
+		posts = append(posts, text)
+		return "ack.1", nil
+	})
+	updated := false
+	slacktest.MockUpdateMessage(t, func(context.Context, string, string, string, string) error {
+		updated = true
+		return nil
+	})
+	var deletedTS string
+	slacktest.MockDeleteMessage(t, func(_ context.Context, _, _, ts string) error {
+		deletedTS = ts
+		return nil
+	})
+
+	// A question asked as a reply inside an existing thread: what must be
+	// checked is the question's own message, not the thread's root.
+	ev := slackQuestionEvent(teamID, slack.SurfaceMention, "how is the app?", "Ev-deleted")
+	ev.EventTS = "1700000000.5"
+
+	c, stub := newTestAgent(t, `{"choices":[{"message":{"role":"assistant","content":"Too late."}}],"usage":{"prompt_tokens":10,"completion_tokens":2}}`)
+	handleSlackQuestion(t, c, ev)
+
+	if stub.callCount() != 1 {
+		t.Errorf("llm calls = %d, want 1 (the turn still ran)", stub.callCount())
+	}
+	if checkedThreadRootTS != ev.ThreadTS || checkedMessageTS != "1700000000.5" {
+		t.Errorf("checked thread root=%q message=%q, want the question's own message in its thread", checkedThreadRootTS, checkedMessageTS)
+	}
+	if len(posts) != 1 {
+		t.Fatalf("PostMessage calls = %d, want 1 (the ack only): %v", len(posts), posts)
+	}
+	if updated {
+		t.Error("the ack must not be edited into an answer")
+	}
+	if deletedTS != "ack.1" {
+		t.Errorf("deleted message ts = %q, want the ack placeholder", deletedTS)
+	}
+
+	// A redelivery finds the event marked answered and posts nothing.
+	posts = nil
+	handleSlackQuestion(t, c, ev)
+	if stub.callCount() != 1 || len(posts) != 0 {
+		t.Errorf("redelivery ran again: llm calls = %d, posts = %v", stub.callCount(), posts)
+	}
+}
+
+// TestSlackQuestionDeletedClearsAssistantStatus checks the assistant surface
+// counterpart: there is no ack to remove, so the "digging" status is cleared
+// explicitly and nothing is posted.
+func TestSlackQuestionDeletedClearsAssistantStatus(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+	const email = "dm-deleter@test.dev"
+	teamID, userID, appID := uuid.New(), uuid.New(), uuid.New()
+	seedTeam(ctx, t, teamID, "team")
+	seedUser(ctx, t, userID, email)
+	seedTeamMembership(ctx, t, teamID, userID, "owner")
+	seedApp(ctx, t, appID, teamID, "soleapp", 30)
+	seedTeamSlack(ctx, t, teamID, []string{"C1"})
+
+	slacktest.MockUserEmail(t, func(context.Context, string, string) (string, error) { return email, nil })
+	delivered := captureSlackDelivery(t)
+	var statuses []string
+	slacktest.MockSetAssistantStatus(t, func(_ context.Context, _, _, _, status string) error {
+		statuses = append(statuses, status)
+		return nil
+	})
+	slacktest.MockThreadMessageExists(t, func(context.Context, string, string, string, string) (bool, error) { return false, nil })
+
+	c, stub := newTestAgent(t, `{"choices":[{"message":{"role":"assistant","content":"Too late."}}],"usage":{"prompt_tokens":10,"completion_tokens":2}}`)
+	handleSlackQuestion(t, c, slackQuestionEvent(teamID, slack.SurfaceAssistant, "how is the app?", "Ev-dm-deleted"))
+
+	if stub.callCount() != 1 {
+		t.Errorf("llm calls = %d, want 1 (the turn still ran)", stub.callCount())
+	}
+	if *delivered != "" {
+		t.Errorf("delivered = %q, want nothing", *delivered)
+	}
+	if len(statuses) == 0 || statuses[len(statuses)-1] != "" {
+		t.Errorf("statuses = %v, want a final empty status clearing the thread", statuses)
+	}
+}
+
+// TestSlackQuestionDeletionCheckFailsOpen checks that when the deletion check
+// itself errors, the answer is still delivered; a transient API failure must
+// not drop answers.
+func TestSlackQuestionDeletionCheckFailsOpen(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+	const email = "blipped@test.dev"
+	teamID, userID, appID := uuid.New(), uuid.New(), uuid.New()
+	seedTeam(ctx, t, teamID, "team")
+	seedUser(ctx, t, userID, email)
+	seedTeamMembership(ctx, t, teamID, userID, "owner")
+	seedApp(ctx, t, appID, teamID, "soleapp", 30)
+	seedTeamSlack(ctx, t, teamID, []string{"C1"})
+
+	slacktest.MockUserEmail(t, func(context.Context, string, string) (string, error) { return email, nil })
+	delivered := captureSlackDelivery(t)
+	slacktest.MockThreadMessageExists(t, func(context.Context, string, string, string, string) (bool, error) {
+		return false, errors.New("ratelimited")
+	})
+
+	c, _ := newTestAgent(t, `{"choices":[{"message":{"role":"assistant","content":"Still delivered."}}],"usage":{"prompt_tokens":10,"completion_tokens":2}}`)
+	handleSlackQuestion(t, c, slackQuestionEvent(teamID, slack.SurfaceAssistant, "how is the app?", "Ev-check-blip"))
+
+	if !strings.Contains(*delivered, "Still delivered") {
+		t.Errorf("delivered = %q, want the answer despite the failed check", *delivered)
 	}
 }
 

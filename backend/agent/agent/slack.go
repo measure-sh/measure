@@ -237,6 +237,28 @@ func (c *Config) answerSlackQuestion(ctx context.Context, ev slack.AgentEvent) {
 	deliverCtx, deliverCancel := context.WithTimeout(context.WithoutCancel(ctx), time.Minute)
 	defer deliverCancel()
 
+	// The asker may have deleted the question while the turn ran, and the
+	// reply would then be posted with no question above it: inside the thread
+	// when the question was a thread reply, at channel level when the question
+	// rooted its own thread. We drop the reply, clean up the ack, and mark
+	// the event answered. When the check itself fails the answer still goes out.
+	if exists, err := slack.ThreadMessageExists(deliverCtx, token, ev.Channel, ev.ThreadTS, ev.EventTS); err == nil && !exists {
+		outcome = "question_deleted"
+		if ev.Surface == slack.SurfaceMention {
+			if ackTS != "" {
+				if err := slack.DeleteMessage(deliverCtx, token, ev.Channel, ackTS); err != nil {
+					log.Printf("agent: failed to delete slack ack after question deletion: %v", err)
+				}
+			}
+		} else if err := slack.SetAssistantStatus(deliverCtx, token, ev.Channel, ev.ThreadTS, ""); err != nil {
+			// Nothing will be posted, so the status must be cleared
+			// explicitly or it stays visible in the thread.
+			log.Printf("agent: failed to clear assistant status after question deletion: %v", err)
+		}
+		c.markSlackEventAnswered(deliverCtx, ev.EventID)
+		return
+	}
+
 	if err := c.deliverSlackReply(deliverCtx, token, ev, ackTS, reply); err != nil {
 		outcome = "delivery_failed"
 		span.SetStatus(codes.Error, err.Error())
