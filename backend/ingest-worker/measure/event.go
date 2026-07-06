@@ -998,6 +998,17 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			row.
 				Set(`custom.name`, nil)
 		}
+
+		// profile
+		if e.events[i].IsProfile() {
+			row.
+				Set(`profile.reason`, e.events[i].Profile.Reason).
+				Set(`profile.format`, e.events[i].Profile.Format)
+		} else {
+			row.
+				Set(`profile.reason`, nil).
+				Set(`profile.format`, nil)
+		}
 	}
 
 	asyncCtx := clickhouse.Context(ctx, clickhouse.WithAsync(true))

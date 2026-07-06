@@ -105,6 +105,10 @@ type eventreq struct {
 	osName string
 	// size keeps track of the ingest payload size
 	size uint64
+	// attachmentsSize is the portion of size that comes
+	// from attachments. It is excluded from the payload
+	// size-limit validation but still counts toward billing.
+	attachmentsSize uint64
 	// events is the list of events in the ingest
 	// batch
 	events []event.EventField
@@ -222,6 +226,14 @@ func (e *eventreq) uploadAttachments() error {
 // events in bytes.
 func (e *eventreq) bumpSize(n uint64) {
 	e.size = e.size + n
+}
+
+// bumpAttachmentSize increases the payload size in bytes
+// and tracks the attachment portion separately so it can
+// be excluded from the payload size-limit validation.
+func (e *eventreq) bumpAttachmentSize(n uint64) {
+	e.size = e.size + n
+	e.attachmentsSize = e.attachmentsSize + n
 }
 
 // estimateAttachmentSize returns an estimated size in bytes
@@ -424,7 +436,7 @@ func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 		if header == nil {
 			continue
 		}
-		e.bumpSize(uint64(header.Size))
+		e.bumpAttachmentSize(uint64(header.Size))
 
 		// inject the form field header to
 		// the previously constructed partial
@@ -512,9 +524,9 @@ func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
 			// by newer SDKs. Fall back to estimates for older
 			// SDKs that don't send size.
 			if attachment.Size > 0 {
-				e.bumpSize(attachment.Size)
+				e.bumpAttachmentSize(attachment.Size)
 			} else {
-				e.bumpSize(estimateAttachmentSize(attachment.Name))
+				e.bumpAttachmentSize(estimateAttachmentSize(attachment.Name))
 			}
 		}
 
@@ -749,7 +761,10 @@ func (e eventreq) validate() error {
 		}
 	}
 
-	if e.size >= uint64(maxBatchSize) {
+	// attachments are excluded from the size limit; they are
+	// uploaded directly to storage and are not part of the
+	// event payload. they only count toward billing.
+	if e.size-e.attachmentsSize >= uint64(maxBatchSize) {
 		return fmt.Errorf(`payload cannot exceed maximum allowed size of %d`, maxBatchSize)
 	}
 
