@@ -15,23 +15,22 @@ export async function openTraceInPerfetto(
     throw new Error("could not open Perfetto UI, check your popup blocker");
   }
 
-  let buffer: ArrayBuffer;
   try {
     const response = await fetch(traceUrl);
     if (!response.ok) {
       throw new Error(`fetching trace failed with status ${response.status}`);
     }
-    buffer = await response.arrayBuffer();
+    const buffer = await response.arrayBuffer();
+
+    await waitForPerfettoReady(perfettoWindow);
+    perfettoWindow.postMessage(
+      { perfetto: { buffer, title } },
+      PERFETTO_UI_ORIGIN,
+    );
   } catch (error) {
     perfettoWindow.close();
     throw error;
   }
-
-  await waitForPerfettoReady(perfettoWindow);
-  perfettoWindow.postMessage(
-    { perfetto: { buffer, title } },
-    PERFETTO_UI_ORIGIN,
-  );
 }
 
 // Perfetto's message channel is not buffered, so we PING until the UI answers
@@ -39,7 +38,11 @@ export async function openTraceInPerfetto(
 function waitForPerfettoReady(perfettoWindow: Window): Promise<void> {
   return new Promise((resolve, reject) => {
     const onMessage = (event: MessageEvent) => {
-      if (event.origin === PERFETTO_UI_ORIGIN && event.data === "PONG") {
+      if (
+        event.source === perfettoWindow &&
+        event.origin === PERFETTO_UI_ORIGIN &&
+        event.data === "PONG"
+      ) {
         cleanup();
         resolve();
       }
@@ -53,6 +56,11 @@ function waitForPerfettoReady(perfettoWindow: Window): Promise<void> {
 
     window.addEventListener("message", onMessage);
     const pingInterval = window.setInterval(() => {
+      if (perfettoWindow.closed) {
+        cleanup();
+        reject(new Error("Perfetto UI was closed before the trace loaded"));
+        return;
+      }
       perfettoWindow.postMessage("PING", PERFETTO_UI_ORIGIN);
     }, 100);
     const timeout = window.setTimeout(() => {
