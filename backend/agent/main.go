@@ -186,13 +186,24 @@ func main() {
 	r.POST("/mcp", mcpH.ValidateMCPToken(), gin.WrapH(mcpHandler))
 	r.GET("/mcp", mcpH.ValidateMCPToken(), gin.WrapH(mcpHandler))
 
+	// Slack events arrive either by push to an HTTP endpoint or by a background
+	// pull consumer. Exactly one is active.
+	pushEnabled := os.Getenv("AGENT_SLACK_PUBSUB_PUSH_ENABLED") == "true"
+
 	// Consume Slack questions the api service publishes to the bus.
 	// runSlackConsumer supervises the consumer, rebuilding it whenever the
 	// connection dies, and runs until consumerCtx is cancelled. stopConsumer is
 	// that cancel, called on shutdown below to bring the supervisor down.
 	consumerCtx, stopConsumer := context.WithCancel(context.Background())
 	defer stopConsumer()
-	go runSlackConsumer(consumerCtx, config, agentConfig.HandleSlackEvent)
+
+	if config.IsCloud() && pushEnabled {
+		// The token audience is this service's origin plus the push path.
+		audience := config.AgentOrigin + "/subscribe/slack"
+		r.POST("/subscribe/slack", slackPushHandler(agentConfig, audience))
+	} else {
+		go runSlackConsumer(consumerCtx, config, agentConfig.HandleSlackEvent)
+	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
