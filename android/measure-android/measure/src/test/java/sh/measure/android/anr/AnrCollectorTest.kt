@@ -16,16 +16,20 @@ import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.fakes.FakeProcessInfoProvider
+import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.NoopLogger
+import sh.measure.android.storage.Database
 
 class AnrCollectorTest {
     private val logger = NoopLogger()
     private val processInfo = FakeProcessInfoProvider()
     private val signalProcessor = mock<SignalProcessor>()
     private val nativeBridge = mock<NativeBridge>()
+    private val database = mock<Database>()
+    private val sessionManager = FakeSessionManager()
     private val looper = mock<Looper>()
     private val anrCollector =
-        AnrCollector(processInfo, signalProcessor, nativeBridge, looper)
+        AnrCollector(processInfo, signalProcessor, nativeBridge, database, sessionManager, looper)
 
     @Test
     fun `register enables anr reporting and registers itself as listener`() {
@@ -77,5 +81,16 @@ class AnrCollectorTest {
         assertEquals(expectedAnrError.timestamp, timestampCaptor.firstValue)
         assertEquals(null, dataCaptor.firstValue.severity)
         assertEquals(processInfo.isForegroundProcess(), dataCaptor.firstValue.foreground)
+    }
+
+    @Test
+    fun `records the ANR time against the current session`() {
+        val thread = Thread.currentThread()
+        `when`(looper.thread).thenReturn(thread)
+        val timestamp = 876544454L
+
+        anrCollector.onAnrDetected(timestamp)
+
+        verify(database).setSessionAnrTime(sessionManager.getSessionId(), timestamp)
     }
 }

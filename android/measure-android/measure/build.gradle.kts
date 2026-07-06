@@ -162,6 +162,11 @@ dependencies {
     compileOnly(libs.androidx.navigation.fragment)
     compileOnly(libs.squareup.okhttp)
 
+    // Compile only, so consumers who do not need ProfilingManager uploads are not forced to
+    // pull WorkManager (and its transitive Room dependency). Profiling is enabled only when the
+    // consumer adds androidx.work themselves; see WorkManagerAvailability.
+    compileOnly(libs.androidx.work.runtime)
+
     implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.androidx.annotation)
@@ -180,6 +185,8 @@ dependencies {
     testImplementation(libs.androidx.compose.ui)
     testImplementation(libs.androidx.material3)
     testImplementation(libs.squareup.okhttp.mockwebserver)
+    testImplementation(libs.androidx.work.runtime)
+    testImplementation(libs.androidx.work.testing)
 
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.4.3") {
         isTransitive = false

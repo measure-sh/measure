@@ -21,6 +21,7 @@ import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
 import sh.measure.android.fakes.TestData.toEvent
+import sh.measure.android.profiling.ProfileData
 import sh.measure.android.screenshot.Screenshot
 import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.utils.iso8601Timestamp
@@ -440,6 +441,62 @@ internal class SignalProcessorTest {
         )
         assertEquals(appVersion, event.attributes[Attribute.APP_VERSION_KEY])
         assertEquals(appBuild, event.attributes[Attribute.APP_BUILD_KEY])
+    }
+
+    @Test
+    fun `trackProfile stores event with provided sessionId, session start time and version attributes`() {
+        val profileData = ProfileData(reason = "anr", format = "perfetto_trace")
+        val timestamp = 1710746412L
+        val sessionId = "session-id-profile"
+        val sessionStartTime = 1710746000L
+
+        signalProcessor.trackProfile(
+            data = profileData,
+            timestamp = timestamp,
+            type = EventType.PROFILE,
+            attachments = mutableListOf(),
+            sessionId = sessionId,
+            sessionStartTime = sessionStartTime,
+            appVersion = "app-version",
+            appBuild = "1000",
+            isSampled = true,
+        )
+
+        assertEquals(1, signalStore.trackedEvents.size)
+        val event = signalStore.trackedEvents.first()
+        assertEquals(EventType.PROFILE, event.type)
+        assertEquals(sessionId, event.sessionId)
+        assertEquals(timestamp.iso8601Timestamp(), event.timestamp)
+        assertEquals(
+            sessionStartTime.iso8601Timestamp(),
+            event.attributes[Attribute.SESSION_START_TIME_KEY],
+        )
+        assertEquals("app-version", event.attributes[Attribute.APP_VERSION_KEY])
+        assertEquals("1000", event.attributes[Attribute.APP_BUILD_KEY])
+    }
+
+    @Test
+    fun `trackProfile leaves session attributes untouched when they are unknown`() {
+        val profileData = ProfileData(reason = "anr", format = "perfetto_trace")
+
+        signalProcessor.trackProfile(
+            data = profileData,
+            timestamp = 1710746412L,
+            type = EventType.PROFILE,
+            attachments = mutableListOf(),
+            sessionId = "session-id-profile",
+            sessionStartTime = null,
+            appVersion = null,
+            appBuild = null,
+            isSampled = true,
+        )
+
+        assertEquals(1, signalStore.trackedEvents.size)
+        val event = signalStore.trackedEvents.first()
+        assertEquals("session-id-profile", event.sessionId)
+        assertEquals(null, event.attributes[Attribute.SESSION_START_TIME_KEY])
+        assertEquals(null, event.attributes[Attribute.APP_VERSION_KEY])
+        assertEquals(null, event.attributes[Attribute.APP_BUILD_KEY])
     }
 
     @Test

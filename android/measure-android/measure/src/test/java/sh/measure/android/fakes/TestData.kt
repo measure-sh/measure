@@ -35,6 +35,7 @@ import sh.measure.android.okhttp.HttpData
 import sh.measure.android.performance.CpuUsageData
 import sh.measure.android.performance.MemoryUsageData
 import sh.measure.android.performance.TrimMemoryData
+import sh.measure.android.profiling.ProfileData
 import sh.measure.android.storage.AttachmentEntity
 import sh.measure.android.storage.EventEntity
 import sh.measure.android.storage.SessionEntity
@@ -265,6 +266,14 @@ internal object TestData {
         intentData,
     )
 
+    fun getProfileData(
+        reason: String = "app_launch",
+        format: String = AttachmentType.PERFETTO_TRACE,
+    ): ProfileData = ProfileData(
+        reason = reason,
+        format = format,
+    )
+
     fun getNetworkChangeData(
         previousNetworkType: String = "cellular",
         networkType: String = "wifi",
@@ -415,7 +424,6 @@ internal object TestData {
         createdAt: Long = 987654321L,
         prioritySession: Boolean = false,
         crashed: Boolean = false,
-        supportsAppExit: Boolean = false,
         appVersion: String? = "1.0.0",
         appBuild: String? = "100",
         trackJourney: Boolean = false,
@@ -425,7 +433,6 @@ internal object TestData {
         createdAt = createdAt,
         prioritySession = prioritySession,
         crashed = crashed,
-        supportsAppExit = supportsAppExit,
         appVersion = appVersion,
         appBuild = appBuild,
         trackJourney = trackJourney,

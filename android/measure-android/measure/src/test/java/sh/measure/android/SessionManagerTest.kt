@@ -1,6 +1,5 @@
 package sh.measure.android
 
-import android.os.Build
 import androidx.concurrent.futures.ResolvableFuture
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
@@ -103,7 +102,6 @@ class SessionManagerTest {
             createdAt = timeProvider.now(),
             prioritySession = false,
             crashed = false,
-            supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
             trackJourney = false,
             appBuild = packageInfoProvider.getVersionCode(),
             appVersion = packageInfoProvider.appVersion,

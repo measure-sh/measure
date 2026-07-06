@@ -9,7 +9,6 @@ import android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE
 import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
 import kotlinx.serialization.encodeToString
-import sh.measure.android.appexit.AppExitCollector
 import sh.measure.android.events.EventType
 import sh.measure.android.exporter.AttachmentPacket
 import sh.measure.android.exporter.Batch
@@ -58,9 +57,23 @@ internal interface Database : Closeable {
     fun getSessionIds(excludeSessionId: String): List<String>
 
     /**
-     * Returns the session ID of the oldest session, or `null` if no sessions exist.
+     * Returns session IDs of the [count] most recently created sessions.
      */
-    fun getOldestSession(): String?
+    fun getRecentSessionIds(count: Int): List<String>
+
+    /**
+     * Returns the session ID of the oldest session which still has events or
+     * spans, or `null` if no such session exists.
+     */
+    fun getOldestSessionWithSignals(): String?
+
+    /**
+     * Deletes all events, spans and attachments for a session while keeping the
+     * session row, so late-delivered signals can still be attributed to it.
+     *
+     * @param sessionId The session ID whose data should be deleted.
+     */
+    fun deleteSessionData(sessionId: String)
 
     /**
      * Updates all journey events for a given session as sampled.
@@ -190,11 +203,21 @@ internal interface Database : Closeable {
     fun getAttachmentsForEvents(events: List<String>): List<String>
 
     /**
-     * Returns attachments ready for upload (have signed URLs that haven't expired).
+     * Returns non-profile attachments ready for upload (have a signed URL). Profiles are excluded
+     * because they are uploaded by their own WorkManager worker; see [getProfileAttachmentsToUpload].
      *
      * @param maxCount Maximum number of attachments to return.
      */
     fun getAttachmentsToUpload(maxCount: Int): List<AttachmentPacket>
+
+    /**
+     * Returns profile attachments ready for upload (have a signed URL). Counterpart to
+     * [getAttachmentsToUpload]; the exporter drains these, handing each to the WorkManager-based
+     * profile upload subsystem and then deleting the row.
+     *
+     * @param maxCount Maximum number of attachments to return.
+     */
+    fun getProfileAttachmentsToUpload(maxCount: Int): List<AttachmentPacket>
 
     /**
      * Updates attachment records with signed upload URLs and expiration timestamps.
@@ -283,20 +306,53 @@ internal interface Database : Closeable {
 
     /**
      * Returns session data for app exit attribution based on process ID.
+     * Sessions already marked by [markSessionsAppExitTracked] are ignored.
      * If multiple sessions share the same PID, returns the most recent one.
      *
      * @param pid The process ID to look up.
      * @return Session data if found, `null` otherwise.
      */
-    fun getSessionForAppExit(pid: Int): AppExitCollector.Session?
+    fun getSessionForAppExit(pid: Int): SessionRecord?
 
     /**
-     * Deletes all app exit records in AppExit table except for the
-     * provided [excludeSessionId].
+     * Returns the session that was active at the given time, based on session
+     * start times.
      *
-     * @param excludeSessionId The session ID to exclude from deletion.
+     * @param timeMs Time in milliseconds since epoch.
+     * @return Session data if a session started at or before [timeMs], `null` otherwise.
      */
-    fun clearAppExitRecords(excludeSessionId: String)
+    fun getSessionForTime(timeMs: Long): SessionRecord?
+
+    /**
+     * Records that an ANR occurred in the given session, for attributing
+     * late-delivered ANR profiles. Keeps the latest ANR time if called
+     * multiple times for a session.
+     *
+     * @param sessionId The session the ANR occurred in.
+     * @param anrTimeMs The ANR time in milliseconds since epoch.
+     */
+    fun setSessionAnrTime(sessionId: String, anrTimeMs: Long)
+
+    /**
+     * Returns the most recent session that had an ANR at or before [timeMs] and
+     * within [maxGapMs] of it. Used to attribute an ANR profile back to the
+     * session where the ANR happened, even after a relaunch. The gap bounds the
+     * lookup so a profile is never attributed to a stale, unrelated ANR.
+     *
+     * @param timeMs The profile's capture time in milliseconds since epoch.
+     * @param maxGapMs The maximum allowed gap between the ANR and [timeMs].
+     * @return Session data if a matching ANR session is found, `null` otherwise.
+     */
+    fun getSessionForAnr(timeMs: Long, maxGapMs: Long): SessionRecord?
+
+    /**
+     * Marks all sessions except the provided [excludeSessionId] as having had
+     * their app exit tracked, hiding them from [getSessionForAppExit] so an
+     * app exit is never reported twice.
+     *
+     * @param excludeSessionId The session ID to exclude from marking.
+     */
+    fun markSessionsAppExitTracked(excludeSessionId: String)
 }
 
 /**
@@ -318,7 +374,6 @@ internal class DatabaseImpl(
             db.execSQL(Sql.CREATE_ATTACHMENTS_V1_TABLE)
             db.execSQL(Sql.CREATE_BATCHES_TABLE)
             db.execSQL(Sql.CREATE_EVENTS_BATCH_TABLE)
-            db.execSQL(Sql.CREATE_APP_EXIT_TABLE)
             db.execSQL(Sql.CREATE_SPANS_TABLE)
             db.execSQL(Sql.CREATE_SPANS_BATCH_TABLE)
             db.execSQL(Sql.CREATE_EVENTS_TIMESTAMP_INDEX)
@@ -327,7 +382,7 @@ internal class DatabaseImpl(
             db.execSQL(Sql.CREATE_SESSIONS_CREATED_AT_INDEX)
             db.execSQL(Sql.CREATE_SPANS_SESSION_SAMPLED_INDEX)
             db.execSQL(Sql.CREATE_SPANS_BATCH_SPAN_ID_INDEX)
-            db.execSQL(Sql.CREATE_APP_EXIT_PID_INDEX)
+            db.execSQL(Sql.CREATE_SESSIONS_PID_INDEX)
         } catch (e: SQLiteException) {
             logger.log(LogLevel.Debug, "Failed to create database", e)
         }
@@ -348,45 +403,27 @@ internal class DatabaseImpl(
 
     @SuppressLint("UseKtx")
     override fun insertSession(session: SessionEntity): Boolean {
-        writableDatabase.beginTransaction()
         try {
             val sessionValues = ContentValues().apply {
                 put(SessionsTable.COL_SESSION_ID, session.sessionId)
-                put(SessionsTable.COL_PID, 0)
+                put(SessionsTable.COL_PID, session.pid)
                 put(SessionsTable.COL_CREATED_AT, session.createdAt)
                 put(SessionsTable.COL_PRIORITY_SESSION, session.prioritySession)
                 put(SessionsTable.COL_CRASHED, false)
                 put(SessionsTable.COL_TRACK_JOURNEY, session.trackJourney)
+                put(SessionsTable.COL_APP_VERSION, session.appVersion)
+                put(SessionsTable.COL_APP_BUILD, session.appBuild)
             }
-            if (session.supportsAppExit) {
-                val appExitValues = ContentValues().apply {
-                    put(AppExitTable.COL_SESSION_ID, session.sessionId)
-                    put(AppExitTable.COL_PID, session.pid)
-                    put(AppExitTable.COL_CREATED_AT, session.createdAt)
-                    put(AppExitTable.COL_APP_VERSION, session.appVersion)
-                    put(AppExitTable.COL_APP_BUILD, session.appBuild)
-                }
-                writableDatabase.insertWithOnConflict(
-                    AppExitTable.TABLE_NAME,
-                    null,
-                    appExitValues,
-                    CONFLICT_IGNORE,
-                )
-            }
-
             val sessionsResult =
                 writableDatabase.insert(SessionsTable.TABLE_NAME, null, sessionValues)
             if (sessionsResult == -1L) {
                 logger.log(LogLevel.Debug, "Failed to insert session(${session.sessionId})")
                 return false
             }
-            writableDatabase.setTransactionSuccessful()
             return true
         } catch (e: Exception) {
             logger.log(LogLevel.Debug, "Failed to insert session(${session.sessionId})", e)
             return false
-        } finally {
-            writableDatabase.endTransaction()
         }
     }
 
@@ -415,9 +452,20 @@ internal class DatabaseImpl(
         return sessionIds
     }
 
-    override fun getOldestSession(): String? {
+    override fun getRecentSessionIds(count: Int): List<String> {
+        val sessionIds = mutableListOf<String>()
+        readableDatabase.rawQuery(Sql.getRecentSessionIds(count), null).use {
+            while (it.moveToNext()) {
+                val sessionIdIndex = it.getColumnIndex(SessionsTable.COL_SESSION_ID)
+                sessionIds.add(it.getString(sessionIdIndex))
+            }
+        }
+        return sessionIds
+    }
+
+    override fun getOldestSessionWithSignals(): String? {
         val sessionId: String
-        readableDatabase.rawQuery(Sql.getOldestSession(), null).use {
+        readableDatabase.rawQuery(Sql.getOldestSessionWithSignals(), null).use {
             if (it.count == 0) {
                 return null
             }
@@ -426,6 +474,32 @@ internal class DatabaseImpl(
             sessionId = it.getString(sessionIdIndex)
         }
         return sessionId
+    }
+
+    override fun deleteSessionData(sessionId: String) {
+        writableDatabase.beginTransaction()
+        try {
+            writableDatabase.delete(
+                EventTable.TABLE_NAME,
+                "${EventTable.COL_SESSION_ID} = ?",
+                arrayOf(sessionId),
+            )
+            writableDatabase.delete(
+                SpansTable.TABLE_NAME,
+                "${SpansTable.COL_SESSION_ID} = ?",
+                arrayOf(sessionId),
+            )
+            writableDatabase.delete(
+                AttachmentV1Table.TABLE_NAME,
+                "${AttachmentV1Table.COL_SESSION_ID} = ?",
+                arrayOf(sessionId),
+            )
+            writableDatabase.setTransactionSuccessful()
+        } catch (e: Exception) {
+            logger.log(LogLevel.Debug, "Failed to delete data for session($sessionId)", e)
+        } finally {
+            writableDatabase.endTransaction()
+        }
     }
 
     override fun sampleJourneyEvents(sessionId: String, journeyEventTypes: List<EventType>) {
@@ -894,10 +968,14 @@ internal class DatabaseImpl(
         return attachmentIds
     }
 
-    override fun getAttachmentsToUpload(maxCount: Int): List<AttachmentPacket> {
+    override fun getAttachmentsToUpload(maxCount: Int): List<AttachmentPacket> = queryAttachmentsToUpload(Sql.getAttachmentsToUpload(maxCount))
+
+    override fun getProfileAttachmentsToUpload(maxCount: Int): List<AttachmentPacket> = queryAttachmentsToUpload(Sql.getProfileAttachmentsToUpload(maxCount))
+
+    private fun queryAttachmentsToUpload(sql: String): List<AttachmentPacket> {
         val attachments = mutableListOf<AttachmentPacket>()
         try {
-            readableDatabase.rawQuery(Sql.getAttachmentsToUpload(maxCount), null).use {
+            readableDatabase.rawQuery(sql, null).use {
                 while (it.moveToNext()) {
                     val idIndex = it.getColumnIndex(AttachmentV1Table.COL_ID)
                     val urlIndex = it.getColumnIndex(AttachmentV1Table.COL_UPLOAD_URL)
@@ -1212,36 +1290,42 @@ internal class DatabaseImpl(
     // App Exit Tracking
     // ========================================================================================
 
-    override fun getSessionForAppExit(pid: Int): AppExitCollector.Session? {
-        readableDatabase.rawQuery(Sql.getSessionForAppExit(pid), null).use {
-            if (it.count == 0) {
+    override fun getSessionForAppExit(pid: Int): SessionRecord? = querySessionRecord(Sql.getSessionForAppExit(pid))
+
+    override fun getSessionForTime(timeMs: Long): SessionRecord? = querySessionRecord(Sql.getSessionForTime(timeMs))
+
+    override fun getSessionForAnr(timeMs: Long, maxGapMs: Long): SessionRecord? = querySessionRecord(Sql.getSessionForAnr(timeMs, maxGapMs))
+
+    private fun querySessionRecord(query: String): SessionRecord? {
+        readableDatabase.rawQuery(query, null).use {
+            if (!it.moveToFirst()) {
                 return null
             }
-            it.moveToFirst()
-            val sessionIdIndex = it.getColumnIndex(AppExitTable.COL_SESSION_ID)
-            val createdAtIndex = it.getColumnIndex(AppExitTable.COL_CREATED_AT)
-            val appVersionIndex = it.getColumnIndex(AppExitTable.COL_APP_VERSION)
-            val appBuildIndex = it.getColumnIndex(AppExitTable.COL_APP_BUILD)
-
-            val sessionId = it.getString(sessionIdIndex)
-            val createdAt = it.getLong(createdAtIndex)
-            val appVersion: String? = it.getString(appVersionIndex)
-            val appBuild: String? = it.getString(appBuildIndex)
-
-            return AppExitCollector.Session(
-                id = sessionId,
-                createdAt = createdAt,
-                pid = pid,
-                appVersion = appVersion,
-                appBuild = appBuild,
+            val lastAnrTimeIndex = it.getColumnIndexOrThrow(SessionsTable.COL_LAST_ANR_TIME)
+            return SessionRecord(
+                id = it.getString(it.getColumnIndexOrThrow(SessionsTable.COL_SESSION_ID)),
+                createdAt = it.getLong(it.getColumnIndexOrThrow(SessionsTable.COL_CREATED_AT)),
+                appVersion = it.getString(it.getColumnIndexOrThrow(SessionsTable.COL_APP_VERSION)),
+                appBuild = it.getString(it.getColumnIndexOrThrow(SessionsTable.COL_APP_BUILD)),
+                lastAnrTime = if (it.isNull(lastAnrTimeIndex)) null else it.getLong(lastAnrTimeIndex),
             )
         }
     }
 
-    override fun clearAppExitRecords(excludeSessionId: String) {
-        writableDatabase.delete(
-            AppExitTable.TABLE_NAME,
-            "${AppExitTable.COL_SESSION_ID} != ?",
+    override fun setSessionAnrTime(sessionId: String, anrTimeMs: Long) {
+        writableDatabase.compileStatement(Sql.setSessionAnrTime(sessionId, anrTimeMs)).use {
+            it.executeUpdateDelete()
+        }
+    }
+
+    override fun markSessionsAppExitTracked(excludeSessionId: String) {
+        val values = ContentValues().apply {
+            put(SessionsTable.COL_APP_EXIT_TRACKED, 1)
+        }
+        writableDatabase.update(
+            SessionsTable.TABLE_NAME,
+            values,
+            "${SessionsTable.COL_SESSION_ID} != ?",
             arrayOf(excludeSessionId),
         )
     }

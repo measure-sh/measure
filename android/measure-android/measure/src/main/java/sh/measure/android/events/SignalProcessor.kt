@@ -17,6 +17,7 @@ import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.exporter.Exporter
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.profiling.ProfileData
 import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.storage.SignalStore
 import sh.measure.android.tracing.InternalTrace
@@ -68,6 +69,23 @@ internal interface SignalProcessor {
         threadName: String,
         sessionId: String,
         sessionStartTime: Long,
+        appVersion: String?,
+        appBuild: String?,
+        isSampled: Boolean = true,
+    )
+
+    /**
+     * Profile events can be delivered by the OS after the session they were captured in has
+     * ended. This method is used to track profile events for a specific session with the
+     * attributes provided. The session attributes are left untouched when they are unknown.
+     */
+    fun trackProfile(
+        data: ProfileData,
+        timestamp: Long,
+        type: EventType,
+        attachments: MutableList<Attachment>,
+        sessionId: String,
+        sessionStartTime: Long?,
         appVersion: String?,
         appBuild: String?,
         isSampled: Boolean = true,
@@ -223,6 +241,44 @@ internal class SignalProcessorImpl(
         )
     }
 
+    override fun trackProfile(
+        data: ProfileData,
+        timestamp: Long,
+        type: EventType,
+        attachments: MutableList<Attachment>,
+        sessionId: String,
+        sessionStartTime: Long?,
+        appVersion: String?,
+        appBuild: String?,
+        isSampled: Boolean,
+    ) {
+        InternalTrace.trace(
+            label = { "msr-trackEvent" },
+            block = {
+                val event = createEvent(
+                    data = data,
+                    timestamp = timestamp,
+                    type = type,
+                    attachments = attachments,
+                    attributes = mutableMapOf(),
+                    userTriggered = false,
+                    userDefinedAttributes = mutableMapOf(),
+                    sessionId = sessionId,
+                    isSampled = isSampled,
+                ) ?: return@trace
+                applyAttributes(event, Thread.currentThread().name)
+                event.updateVersionAttribute(appVersion, appBuild)
+                if (sessionStartTime != null) {
+                    event.updateSessionStartTimeAttribute(sessionStartTime)
+                }
+                InternalTrace.trace(label = { "msr-store-event" }, block = {
+                    signalStore.store(event)
+                    onEventTracked(event)
+                })
+            },
+        )
+    }
+
     override fun trackCrash(
         data: ExceptionData,
         timestamp: Long,
@@ -368,11 +424,11 @@ internal class SignalProcessorImpl(
         })
     }
 
-    // This is a quick way to update the version attributes for app exit events.
-    // AppExit events are tracked for older sessions, and the version attributes are not
-    // available at that time. Instead of changing the flow of tracking events, we apply the
+    // This is a quick way to update the session attributes for events tracked against an
+    // older session, like app exits and profiles. The attribute processors only know the
+    // current session, so instead of changing the flow of tracking events, we apply the
     // attributes as is and then mutate them here.
-    private fun Event<AppExit>.updateVersionAttribute(appVersion: String?, appBuild: String?) {
+    private fun Event<*>.updateVersionAttribute(appVersion: String?, appBuild: String?) {
         if (appVersion != null) {
             attributes[Attribute.APP_VERSION_KEY] = appVersion
         }
@@ -381,7 +437,7 @@ internal class SignalProcessorImpl(
         }
     }
 
-    private fun Event<AppExit>.updateSessionStartTimeAttribute(sessionStartTime: Long) {
+    private fun Event<*>.updateSessionStartTimeAttribute(sessionStartTime: Long) {
         attributes[Attribute.SESSION_START_TIME_KEY] = sessionStartTime.iso8601Timestamp()
     }
 

@@ -2,6 +2,7 @@ package sh.measure.android.executors
 
 import org.jetbrains.annotations.TestOnly
 import java.util.concurrent.Callable
+import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.RejectedExecutionException
@@ -9,7 +10,7 @@ import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ThreadFactory
 import java.util.concurrent.TimeUnit
 
-internal interface MeasureExecutorService {
+internal interface MeasureExecutorService : Executor {
     @Throws(RejectedExecutionException::class)
     fun <T> submit(callable: Callable<T>): Future<T>
 
@@ -32,6 +33,8 @@ internal class MeasureExecutorServiceImpl @TestOnly constructor(private val exec
     constructor(threadFactory: ThreadFactory) : this(
         Executors.newSingleThreadScheduledExecutor(threadFactory),
     )
+
+    override fun execute(command: Runnable) = executorService.execute(command)
 
     override fun <T> submit(callable: Callable<T>): Future<T> = executorService.submit(callable)
 

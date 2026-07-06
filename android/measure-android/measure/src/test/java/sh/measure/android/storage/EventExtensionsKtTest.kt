@@ -95,6 +95,10 @@ class EventExtensionsKtTest {
 
         val screenViewEvent = TestData.getScreenViewData().toEvent(type = EventType.SCREEN_VIEW)
         assert(screenViewEvent.serializeDataToString().isNotEmpty())
+
+        val profileEvent = TestData.getProfileData()
+            .toEvent(type = EventType.PROFILE)
+        assert(profileEvent.serializeDataToString().isNotEmpty())
     }
 
     @Test

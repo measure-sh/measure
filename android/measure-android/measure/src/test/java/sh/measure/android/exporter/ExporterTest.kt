@@ -2,7 +2,6 @@
 
 package sh.measure.android.exporter
 
-import android.os.Build
 import androidx.concurrent.futures.ResolvableFuture
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -808,7 +807,6 @@ internal class ExporterTest {
                 pid = 12345,
                 createdAt = 12345,
                 prioritySession = prioritySession,
-                supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
                 appVersion = "1.0.0",
                 appBuild = "100",
                 trackJourney = false,
