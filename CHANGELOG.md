@@ -112,6 +112,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Consume Slack events via push (#3998) by @detj in #3998
 - (**backend**): Do not reply to deleted agent slack msgs by @anupcowkur in #3997
 - (**backend**): Rename agent origin env var (#3993) by @detj in #3993
 - (**backend**): Remove deprecated platform attribute (#3989) by @abhaysood in #3989
