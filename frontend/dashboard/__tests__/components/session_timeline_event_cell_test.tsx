@@ -130,7 +130,7 @@ describe("SessionTimelineEventCell", () => {
       ["string", { string: "a log line" }, "Log"],
       [
         "profile",
-        { reason: "app_launch", format: "perfetto_trace" },
+        { reason: "app_fully_drawn", format: "perfetto_trace" },
         "Profile",
       ],
       ["unknown_event_type", {}, "unknown_event_type"],
@@ -189,7 +189,7 @@ describe("SessionTimelineEventCell", () => {
       ["string", { string: "a log line" }, "bg-indigo-100"],
       [
         "profile",
-        { reason: "app_launch", format: "perfetto_trace" },
+        { reason: "app_fully_drawn", format: "perfetto_trace" },
         "bg-teal-100",
       ],
       ["unknown_event_type", {}, "bg-indigo-100"],
