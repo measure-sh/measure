@@ -27,13 +27,7 @@ in the background.
 To avoid pulling WorkManager and its transitive dependencies into apps that don't need profiling,
 Measure does not bundle it. Profiling is enabled only when WorkManager is present as a dependency.
 
-To enable profiling, add the WorkManager dependency to your app's `build.gradle.kts` (use the latest available version):
-
-```kotlin
-dependencies {
-    implementation("androidx.work:work-runtime:2.10.0")
-}
-```
+To enable profiling, add the [WorkManager dependency](https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started) to your app's `build.gradle.kts`.
 
 When WorkManager is not present, the profiling collector is never registered and no profiling data is collected.
 
@@ -42,7 +36,7 @@ When WorkManager is not present, the profiling collector is never registered and
 A trigger describes an occasion on which the operating system may capture a profile. Measure currently registers two.
 
 > [!NOTE]  
-> Android 17 (API level 37) adds further profiling triggers, such as out-of-memory, cold start and excessive CPU usage.
+> Android 17 (API level 37) adds more profiling triggers like out-of-memory, cold start and excessive CPU usage.
 > Registering these requires compiling against the Android 17 SDK (`compileSdk 37`); support is coming soon.
 
 ### App fully drawn (`app_launch`)

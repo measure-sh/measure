@@ -73,6 +73,7 @@ Find all the endpoints, resources and detailed documentation for Measure SDK RES
     - [**`screen_view`**](#screen_view)
     - [**`custom`**](#custom)
     - [**`session_start`**](#session_start)
+    - [**`profile`**](#profile)
   - [Traces](#traces)
 
 ## Resources
@@ -753,7 +754,7 @@ Attachments are arbitrary files associated with the session each having the foll
 | ------ | ------ | -------- | ------------------------------------------------------------------------------------------------ |
 | `id`   | string | No       | id of the attachment                                                                             |
 | `name` | string | No       | name of the attachment                                                                           |
-| `type` | string | No       | One of the following:<br />- `screenshot`<br />- `android_method_trace`<br />- `layout_snapshot` |
+| `type` | string | No       | One of the following:<br />- `screenshot`<br />- `android_method_trace`<br />- `layout_snapshot`<br />- `perfetto_trace`<br />- `heap_dump`<br />- `heap_profile` |
 
 ### Events
 
@@ -1300,6 +1301,15 @@ Use the `custom` type for custom events.
 Use the `session_start` type to mark begining of a new session. This must be the first _event_ by time in a session.
 
 This event has no additional fields.
+
+#### **`profile`**
+
+Use the `profile` type for a performance profile captured by the SDK, such as a [Perfetto](https://perfetto.dev/) trace or heap dump. The profile artifact itself is sent as an [attachment](#attachments) on the event whose `type` matches the event's `format`.
+
+| Field    | Type   | Optional | Comment                                                                                                                            |
+| -------- | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `reason` | string | No       | The occasion that produced the profile. One of:<br />- `app_launch`<br />- `anr`                                                   |
+| `format` | string | No       | Format of the attached profile artifact, mirroring the attachment `type`. One of:<br />- `perfetto_trace`<br />- `heap_dump`<br />- `heap_profile` |
 
 ### Traces
 
