@@ -28,9 +28,9 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 )
 
-// slackTurnTimeout bounds one Slack-originated turn. Generous because a
-// turn can chain a dozen LLM calls plus tool work.
-const slackTurnTimeout = 15 * time.Minute
+// slackTurnTimeout bounds one Slack turn. A turn chains many LLM & tool
+// calls; keep it modest so a turn completes within a single delivery attempt.
+const slackTurnTimeout = 9 * time.Minute
 
 // somethingWentWrong is the reply for failures the asker can't act on.
 const somethingWentWrong = "Something went wrong on my side. Please try again."
