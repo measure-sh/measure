@@ -66,6 +66,16 @@ func (c *Config) HandleSlackEvent(ctx context.Context, data []byte) error {
 
 	log.Printf("agent: slack event received id=%s kind=%s surface=%s", ev.EventID, ev.Kind, ev.Surface)
 
+	// The one gate for the whole Slack surface: with the agent disabled,
+	// questions get the canned notice and greetings are dropped.
+	if !c.Deps.Config.IsAgentEnabled() {
+		if ev.Kind == slack.KindQuestion {
+			c.answerSlackUnavailable(ctx, ev)
+			return ctx.Err()
+		}
+		return nil
+	}
+
 	switch ev.Kind {
 	case slack.KindGreeting:
 		// Greeting is cheap and touches no transcript; keep the queue
@@ -138,6 +148,33 @@ func (c *Config) greetAssistantThread(ctx context.Context, ev slack.AgentEvent) 
 	if err := slack.SetAssistantSuggestedPrompts(ctx, token, ev.Channel, prompts); err != nil {
 		log.Printf("agent: failed to set suggested prompts: %v", err)
 	}
+}
+
+// answerSlackUnavailable replies to a question with the canned notice while
+// the agent is disabled; no turn runs. The event is marked answered so Slack
+// retries don't repost the notice.
+func (c *Config) answerSlackUnavailable(ctx context.Context, ev slack.AgentEvent) {
+	defer recoverSlackPanic("unavailable notice")
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
+	teamID, err := uuid.Parse(ev.TeamID)
+	if err != nil {
+		log.Printf("agent: slack event with invalid team id %q", ev.TeamID)
+		return
+	}
+	if c.slackEventAnswered(ctx, ev.EventID) {
+		return
+	}
+	token, _, _, err := c.getSlackIntegration(ctx, teamID)
+	if err != nil || token == "" {
+		log.Printf("agent: no usable slack integration for team %s: %v", teamID, err)
+		return
+	}
+	if _, err := slack.PostMessage(ctx, token, ev.Channel, ev.ThreadTS, UnavailableReply); err != nil {
+		log.Printf("agent: failed to post agent unavailable notice: %v", err)
+	}
+	c.markSlackEventAnswered(ctx, ev.EventID)
 }
 
 // answerSlackQuestion runs one Slack question end to end: skip it if a

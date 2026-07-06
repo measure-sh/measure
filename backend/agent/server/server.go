@@ -104,6 +104,7 @@ type Config struct {
 	CloudEnv                     bool
 	IngestEnforceTimeWindow      bool
 	BillingEnabled               bool
+	AgentEnabled                 bool
 }
 
 // IsCloud is true if the service is
@@ -116,6 +117,12 @@ func (c *Config) IsCloud() bool {
 // billing feature enabled.
 func (c *Config) IsBillingEnabled() bool {
 	return c.BillingEnabled
+}
+
+// IsAgentEnabled is true if the service has
+// the agent feature enabled.
+func (c *Config) IsAgentEnabled() bool {
+	return c.AgentEnabled
 }
 
 // Deps holds the live infrastructure handles the agent uses at runtime. NewConfig +
@@ -144,6 +151,14 @@ func NewConfig() *Config {
 	billingEnabled := false
 	if os.Getenv("BILLING_ENABLED") == "true" {
 		billingEnabled = true
+	}
+
+	agentEnabled := false
+	if os.Getenv("AGENT_ENABLED") == "true" {
+		agentEnabled = true
+	}
+	if !agentEnabled {
+		log.Println("AGENT_ENABLED env var not set to true, agent surfaces reply with an unavailability notice")
 	}
 
 	// capture google service account email when running in
@@ -446,6 +461,7 @@ func NewConfig() *Config {
 		CloudEnv:                     cloudEnv,
 		IngestEnforceTimeWindow:      enforceIngestTimeWindow,
 		BillingEnabled:               billingEnabled,
+		AgentEnabled:                 agentEnabled,
 	}
 }
 

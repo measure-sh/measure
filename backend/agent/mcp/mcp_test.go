@@ -1528,6 +1528,42 @@ func TestMCPToolsList(t *testing.T) {
 	}
 }
 
+// TestMCPAskQuestionAgentDisabled checks that with the agent disabled,
+// ask_question returns the unavailability notice while the plain data tools
+// keep working.
+func TestMCPAskQuestionAgentDisabled(t *testing.T) {
+	ctx := context.Background()
+	cleanupAll(ctx, t)
+
+	userID := uuid.New()
+	seedUser(ctx, t, userID.String(), "agentoff@mcp.test")
+	rawToken := "msr_agentofftoken"
+	seedMCPAccessToken(ctx, t, rawToken, userID.String(), "client1", time.Now().Add(90*24*time.Hour))
+
+	orig := deps.Config.AgentEnabled
+	deps.Config.AgentEnabled = false
+	t.Cleanup(func() { deps.Config.AgentEnabled = orig })
+
+	resp := callMCPTool(t, rawToken, "ask_question", map[string]any{
+		"app_id":   uuid.New().String(),
+		"question": "how is the app?",
+	})
+	if text := extractTextContent(t, resp); text != agent.UnavailableReply {
+		t.Errorf("ask_question text = %q, want %q", text, agent.UnavailableReply)
+	}
+
+	// A data tool is not agent-dependent: list_apps still answers normally.
+	resp = callMCPTool(t, rawToken, "list_apps", nil)
+	content := extractTextContent(t, resp)
+	if content == agent.UnavailableReply {
+		t.Fatalf("list_apps returned the unavailability notice, want a normal answer")
+	}
+	var apps []any
+	if err := json.Unmarshal([]byte(content), &apps); err != nil {
+		t.Errorf("list_apps content = %q, want a JSON app list: %v", content, err)
+	}
+}
+
 func TestMCPListApps(t *testing.T) {
 	ctx := context.Background()
 

@@ -321,6 +321,12 @@ OPENROUTER_MODEL_SMALL=
 OPENROUTER_MODEL_MEDIUM=
 OPENROUTER_MODEL_LARGE=
 
+#########
+# Agent #
+#########
+
+AGENT_ENABLED=false
+
 EOF
 }
 
@@ -479,6 +485,12 @@ OPENROUTER_API_KEY=$OPENROUTER_API_KEY
 OPENROUTER_MODEL_SMALL=$OPENROUTER_MODEL_SMALL
 OPENROUTER_MODEL_MEDIUM=$OPENROUTER_MODEL_MEDIUM
 OPENROUTER_MODEL_LARGE=$OPENROUTER_MODEL_LARGE
+
+#########
+# Agent #
+#########
+
+AGENT_ENABLED=false
 
 EOF
 }
@@ -942,6 +954,10 @@ ensure() {
 
   if ! check_env_variable "OPENROUTER_MODEL_LARGE"; then
     add_env_variable "OPENROUTER_MODEL_LARGE" ""
+  fi
+
+  if ! check_env_variable "AGENT_ENABLED"; then
+    add_env_variable "AGENT_ENABLED" "false"
   fi
 
   if ! check_env_variable "GTM_ID"; then

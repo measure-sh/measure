@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"backend/libs/concur"
 	"backend/libs/slack"
 	slacktest "backend/libs/slack/testhelpers"
 
@@ -41,6 +42,41 @@ func TestGreetAssistantThread(t *testing.T) {
 	}
 	if len(gotPrompts) == 0 {
 		t.Error("expected starter prompts to be set")
+	}
+}
+
+// TestGreetAssistantThreadAgentDisabled checks that with the agent disabled,
+// a greeting event is dropped and no starter prompts are set.
+func TestGreetAssistantThreadAgentDisabled(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+	teamID, _, _ := seedTeamUserApp(ctx, t)
+	seedTeamSlack(ctx, t, teamID, []string{"C123"})
+
+	orig := deps.Config.AgentEnabled
+	deps.Config.AgentEnabled = false
+	t.Cleanup(func() { deps.Config.AgentEnabled = orig })
+
+	promptCalls := 0
+	slacktest.MockSetAssistantSuggestedPrompts(t, func(context.Context, string, string, []slack.SuggestedPrompt) error {
+		promptCalls++
+		return nil
+	})
+
+	c := &Config{Deps: deps}
+	data, _ := json.Marshal(slack.AgentEvent{
+		Kind: slack.KindGreeting, Surface: slack.SurfaceAssistant,
+		TeamID: teamID.String(), Channel: "C123", EventID: "Ev-greetoff",
+	})
+	if err := c.HandleSlackEvent(ctx, data); err != nil {
+		t.Fatalf("HandleSlackEvent: %v", err)
+	}
+	// Greetings run on a background goroutine when dispatched; wait so a
+	// wrongly dispatched one is caught rather than racing the assertion.
+	concur.GlobalWg.Wait()
+
+	if promptCalls != 0 {
+		t.Errorf("suggested prompts set %d times, want 0 when the agent is off", promptCalls)
 	}
 }
 
