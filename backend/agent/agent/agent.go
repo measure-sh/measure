@@ -27,6 +27,10 @@ import (
 
 var tracer = otel.Tracer("agent")
 
+// UnavailableReply is the canned reply every surface returns while the agent
+// is disabled (AGENT_ENABLED is not "true").
+const UnavailableReply = "Measure Agent is unavailable at the moment. Please try again later."
+
 // userIDKey carries the authenticated user id in a context.
 type userIDKey struct{}
 

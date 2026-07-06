@@ -273,6 +273,46 @@ func TestSlackDisabledIntegrationPostsNotice(t *testing.T) {
 	}
 }
 
+// TestSlackAgentDisabledPostsNotice checks that with the agent disabled, a
+// question gets the unavailability notice instead of a turn, and a redelivery
+// of the same event doesn't repost it.
+func TestSlackAgentDisabledPostsNotice(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+	teamID, _, _ := seedTeamUserApp(ctx, t)
+	seedTeamSlack(ctx, t, teamID, []string{"C1"})
+
+	orig := deps.Config.AgentEnabled
+	deps.Config.AgentEnabled = false
+	t.Cleanup(func() { deps.Config.AgentEnabled = orig })
+
+	var posts []string
+	slacktest.MockPostMessage(t, func(_ context.Context, _, _, _, text string) (string, error) {
+		posts = append(posts, text)
+		return "notice.1", nil
+	})
+
+	c, stub := newTestAgent(t) // no scripted responses; the turn must not start
+	handleSlackQuestion(t, c, slackQuestionEvent(teamID, slack.SurfaceMention, "how is the app?", "Ev-agentoff"))
+
+	if stub.callCount() != 0 {
+		t.Errorf("llm called %d times, want 0 (turn must not run when the agent is off)", stub.callCount())
+	}
+	if len(posts) != 1 {
+		t.Fatalf("PostMessage calls = %d, want 1 (the unavailability notice): %v", len(posts), posts)
+	}
+	if posts[0] != UnavailableReply {
+		t.Errorf("notice = %q, want %q", posts[0], UnavailableReply)
+	}
+
+	// Redelivery of the same event is deduped: no second notice.
+	posts = nil
+	handleSlackQuestion(t, c, slackQuestionEvent(teamID, slack.SurfaceMention, "how is the app?", "Ev-agentoff"))
+	if len(posts) != 0 {
+		t.Errorf("redelivery posted %v, want nothing (deduped)", posts)
+	}
+}
+
 // TestResolveAppFromContextUsesModel checks the LLM-driven app resolution: when
 // the team has several apps and the discussion describes one only loosely, the
 // small model picks it from the surrounding context.

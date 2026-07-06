@@ -805,9 +805,7 @@ func (h Handlers) ValidateMCPToken() gin.HandlerFunc {
 				}
 				providerToken := *info.ProviderToken
 				tokenID := info.TokenID
-				concur.GlobalWg.Add(1)
-				go func() {
-					defer concur.GlobalWg.Done()
+				concur.GlobalWg.Go(func() {
 					if valErr := mcpValidateProviderTokenFn(provider, providerToken, deps.Config.OAuthGoogleKey, deps.Config.OAuthGoogleSecret); valErr != nil {
 						fmt.Printf("mcp: revoking token %s, provider token check failed: %v\n", tokenID, valErr)
 						if revokeErr := mcpRevokeToken(context.Background(), deps, tokenID); revokeErr != nil {
@@ -818,7 +816,7 @@ func (h Handlers) ValidateMCPToken() gin.HandlerFunc {
 							fmt.Println("mcp: failed to update provider_token_checked_at:", updErr)
 						}
 					}
-				}()
+				})
 			}
 		}
 

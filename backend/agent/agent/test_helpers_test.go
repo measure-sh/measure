@@ -41,7 +41,7 @@ func TestMain(m *testing.M) {
 		ChPool:  chConn,
 		RchPool: chConn,
 		VK:      vk,
-		Config:  &server.Config{BillingEnabled: true},
+		Config:  &server.Config{BillingEnabled: true, AgentEnabled: true},
 	}
 
 	// Background token tracking must never reach the network in tests. Tests

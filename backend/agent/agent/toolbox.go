@@ -529,6 +529,12 @@ func askQuestionTool(cfg *Config) Tool {
 			"Use list_apps to discover app ids. Pass conversation_id from a previous answer to continue that conversation.",
 		InputSchema: mcpMustInferSchema[askQuestionInput](),
 	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in askQuestionInput) (*mcpsdk.CallToolResult, any, error) {
+		// The one agent-backed tool: while the agent is disabled it returns
+		// the unavailability notice. The plain data tools are not
+		// agent-dependent and keep working.
+		if !cfg.Deps.Config.IsAgentEnabled() {
+			return mcpTextResult(UnavailableReply), nil, nil
+		}
 		out, err := cfg.askQuestion(ctx, in)
 		if err != nil {
 			return nil, nil, err

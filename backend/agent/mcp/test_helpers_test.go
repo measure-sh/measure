@@ -44,6 +44,7 @@ func TestMain(m *testing.M) {
 		VK:      vk,
 		Config: &server.Config{
 			BillingEnabled: true,
+			AgentEnabled:   true,
 		},
 	}
 	h = NewHandlers(deps)

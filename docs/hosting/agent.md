@@ -14,6 +14,7 @@ The agent runs as a separate `agent` service and sends prompts to a language mod
 - [Choose the models](#choose-the-models)
 - [Configure for a new installation](#configure-for-a-new-installation)
 - [Configure for an existing installation](#configure-for-an-existing-installation)
+- [Turn the agent on](#turn-the-agent-on)
 - [Make the agent reachable over MCP](#make-the-agent-reachable-over-mcp)
 
 ## Get an OpenRouter API key
@@ -39,7 +40,7 @@ You can use the same model for both, as long as it supports tool calling. Browse
 
 ## Configure for a new installation
 
-During installation, the configuration wizard prompts for the agent settings. At the **OpenRouter credentials and models** prompts, paste your API key and the small and medium model ids. Leaving them empty disables the agent.
+During installation, the configuration wizard prompts for the agent settings. At the **OpenRouter credentials and models** prompts, paste your API key and the small and medium model ids. The wizard writes `AGENT_ENABLED=false`, so once installation finishes, turn the agent on as described in [Turn the agent on](#turn-the-agent-on).
 
 The wizard also asks for the **Measure Agent service URL**, for example `https://measure-agent.yourcompany.com`. This is the public address coding agents use to reach the MCP endpoint. See [Make the agent reachable over MCP](#make-the-agent-reachable-over-mcp).
 
@@ -47,9 +48,10 @@ The wizard also asks for the **Measure Agent service URL**, for example `https:/
 
 If your instance is already running and you want to enable or change the agent, update the environment variables manually.
 
-1. **Agent Credentials**. Open the `self-host/.env` file & add the following environment variables as obtained from OpenRouter.
+1. **Agent Credentials**. Open the `self-host/.env` file & add the following environment variables. Set the credentials and models as obtained from OpenRouter, and set `AGENT_ENABLED=true` to turn the agent on.
 
     ```sh
+    AGENT_ENABLED=true
     OPENROUTER_API_KEY=your-openrouter-api-key        # change this
     OPENROUTER_MODEL_SMALL=deepseek/deepseek-v4-pro   # change this
     OPENROUTER_MODEL_MEDIUM=deepseek/deepseek-v4-pro  # change this
@@ -66,6 +68,18 @@ If your instance is already running and you want to enable or change the agent, 
     ```sh
     sudo ./install.sh
     ```
+
+## Turn the agent on
+
+The agent is off by default. It answers only when `AGENT_ENABLED` is set to `true` in `self-host/.env`; with any other value, or with the variable missing, Slack questions and the MCP `ask_question` tool receive a short notice that the agent is unavailable instead of an answer. The other MCP tools read data directly without the agent, so they keep working.
+
+To turn the agent on, set the variable and restart the services as described above.
+
+```sh
+AGENT_ENABLED=true
+```
+
+Set it back to `false` and restart to take the agent out of service without removing its configuration.
 
 ## Make the agent reachable over MCP
 

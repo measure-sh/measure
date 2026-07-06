@@ -200,6 +200,7 @@ services:
       - oauth-github-secret
       - openrouter-api-key
     environment:
+      - AGENT_ENABLED=${AGENT_ENABLED}
       - BILLING_ENABLED=${BILLING_ENABLED}
       - AUTUMN_SECRET_KEY_FILE=/run/secrets/autumn-secret-key
       - POSTGRES_DSN_FILE=/run/secrets/postgres-dsn
