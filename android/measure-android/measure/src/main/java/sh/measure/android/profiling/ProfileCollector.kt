@@ -194,7 +194,7 @@ internal class ProfileCollector(
     }
 
     private fun reasonFor(triggerType: Int): String? = when (triggerType) {
-        ProfilingTrigger.TRIGGER_TYPE_APP_FULLY_DRAWN -> REASON_APP_LAUNCH
+        ProfilingTrigger.TRIGGER_TYPE_APP_FULLY_DRAWN -> REASON_APP_FULLY_DRAWN
         ProfilingTrigger.TRIGGER_TYPE_ANR -> REASON_ANR
         else -> null
     }
@@ -206,7 +206,7 @@ internal class ProfileCollector(
         private const val HEAP_PROFILE_EXTENSION = ".heapprofd"
         private const val TIMESTAMP_PATTERN = "yyyy-MM-dd-HH-mm-ss-SSS"
         private val TIMESTAMP_REGEX = Regex("\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{3}")
-        private const val REASON_APP_LAUNCH = "app_launch"
+        private const val REASON_APP_FULLY_DRAWN = "app_fully_drawn"
         private const val REASON_ANR = "anr"
 
         // Bounds how far before a profile's capture time an ANR may have occurred

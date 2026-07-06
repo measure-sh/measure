@@ -135,7 +135,7 @@ class ProfileCollectorTest {
 
         verify(database, never()).getSessionForAnr(any(), any())
         verify(signalProcessor).trackProfile(
-            data = eq(ProfileData(reason = "app_launch", format = "perfetto_trace")),
+            data = eq(ProfileData(reason = "app_fully_drawn", format = "perfetto_trace")),
             timestamp = eq(profileTime),
             type = eq(EventType.PROFILE),
             attachments = any(),

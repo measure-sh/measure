@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 internal data class ProfileData(
     /**
-     * The occasion that produced the profile, e.g. "app_launch" or "anr". For profiles captured by
+     * The occasion that produced the profile, e.g. "app_fully_drawn" or "anr". For profiles captured by
      * the platform [android.os.ProfilingManager] this is derived from the trigger that fired.
      */
     val reason: String,

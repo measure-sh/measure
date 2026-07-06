@@ -267,7 +267,7 @@ internal object TestData {
     )
 
     fun getProfileData(
-        reason: String = "app_launch",
+        reason: String = "app_fully_drawn",
         format: String = AttachmentType.PERFETTO_TRACE,
     ): ProfileData = ProfileData(
         reason = reason,
