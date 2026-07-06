@@ -386,6 +386,10 @@ type turn struct {
 	continued  bool
 	question   string
 	entryPoint string
+	// contextAppLabel is set when the app was resolved from the surrounding
+	// discussion rather than named by the user; the model is then told to
+	// open its reply by naming the app.
+	contextAppLabel string
 }
 
 // runTurn executes one question in a resolved conversation: load the
@@ -507,12 +511,21 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, chartsOut 
 		messages = append(messages, m.msg)
 	}
 
+	var newMessages []storedMessage
+	if t.contextAppLabel != "" {
+		// Persisted with the turn so the stored transcript stays identical to
+		// what the model saw.
+		msg := chatMessage{Role: "system", Content: fmt.Sprintf(contextAppNote, t.contextAppLabel, t.contextAppLabel)}
+		messages = append(messages, msg)
+		newMessages = append(newMessages, storedMessage{msg: msg})
+	}
+
 	// The common tools need absolute time ranges, so the model is told the
 	// current time on the user turn. It is stored exactly as sent, so once this
 	// turn becomes history the cached prefix still matches on the next turn.
 	userMsg := chatMessage{Role: "user", Content: fmt.Sprintf("%s\n\ncurrent UTC time: %s", t.question, time.Now().UTC().Format(time.RFC3339))}
 	messages = append(messages, userMsg)
-	newMessages := []storedMessage{{msg: userMsg}}
+	newMessages = append(newMessages, storedMessage{msg: userMsg})
 
 	// Charts can only be delivered on Slack, uploaded into the thread, so
 	// only Slack turns offer the tool; MCP output stays text. A conversation

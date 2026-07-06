@@ -11,10 +11,10 @@ import (
 	"github.com/google/uuid"
 )
 
-func slackTestApps(names ...[2]string) []slackApp {
-	apps := make([]slackApp, 0, len(names))
+func slackTestApps(names ...[2]string) []measureApp {
+	apps := make([]measureApp, 0, len(names))
 	for _, n := range names {
-		apps = append(apps, slackApp{id: uuid.New(), name: n[0], uniqueIdentifier: n[1]})
+		apps = append(apps, measureApp{id: uuid.New(), name: n[0], uniqueIdentifier: n[1]})
 	}
 	return apps
 }
@@ -276,7 +276,7 @@ func TestApproximateAppFromMessages(t *testing.T) {
 	t.Run("confident pick maps to that app", func(t *testing.T) {
 		c := chatTestConfig(t, 200, `{"choices":[{"message":{"content":"1"}}],"usage":{"prompt_tokens":12,"completion_tokens":1}}`)
 		c.ModelSmall = "test-model"
-		app, usage, ok := c.approximateAppFromMessages(context.Background(), msgs, apps)
+		app, usage, ok := c.approximateAppFromMessages(context.Background(), "how many crashes today?", msgs, apps)
 		if !ok || app.uniqueIdentifier != "org.wikipedia.android" {
 			t.Fatalf("expected the android app, got ok=%v app=%q", ok, app.uniqueIdentifier)
 		}
@@ -288,7 +288,7 @@ func TestApproximateAppFromMessages(t *testing.T) {
 	t.Run("zero means unclear but still reports tokens", func(t *testing.T) {
 		c := chatTestConfig(t, 200, `{"choices":[{"message":{"content":"0"}}],"usage":{"prompt_tokens":12,"completion_tokens":1}}`)
 		c.ModelSmall = "test-model"
-		_, usage, ok := c.approximateAppFromMessages(context.Background(), msgs, apps)
+		_, usage, ok := c.approximateAppFromMessages(context.Background(), "how many crashes today?", msgs, apps)
 		if ok {
 			t.Fatal("expected unclear, got a pick")
 		}
