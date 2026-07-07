@@ -12,10 +12,10 @@ import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.DeviceAttributeProcessor
 import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
+import sh.measure.android.attributes.PatchIdAttributeProcessor
 import sh.measure.android.attributes.PowerStateAttributeProcessor
 import sh.measure.android.attributes.SessionAttributeProcessor
 import sh.measure.android.attributes.SpanDeviceAttributeProcessor
-import sh.measure.android.attributes.PatchIdAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.bugreport.AccelerometerShakeDetector
 import sh.measure.android.bugreport.BugReportCollector
