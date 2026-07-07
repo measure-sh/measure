@@ -65,8 +65,12 @@ export class MeasureInternal {
         this.measureInitializer.spanProcessor.onConfigLoaded();
       });
 
-    if (config?.patchId) {
-      nativeSetPatchId(config.patchId);
+    // config.patchId takes priority (manual / CodePush approach).
+    // Falls back to global.__measurePatchId injected by withMeasureConfig()
+    // in metro.config.js (automated approach).
+    const patchId = config?.patchId ?? (global as any).__measurePatchId;
+    if (patchId) {
+      nativeSetPatchId(patchId);
     }
 
     if (config?.patchVersion) {

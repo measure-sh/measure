@@ -5,13 +5,18 @@
 #
 # Run this after publishing an OTA update, once per platform.
 #
-# Usage:
+# Usage (automated — Metro plugin):
+#   upload_patch.sh <api_key> <api_url> <path_to_sourcemap>
+#
+# Usage (manual — CodePush or no Metro plugin):
 #   upload_patch.sh <api_key> <api_url> <patch_id> <path_to_sourcemap>
 #
 # Arguments:
 #   api_key            Measure API key
 #   api_url            Measure API URL (e.g. https://measure.example.com)
-#   patch_id           OTA patch UUID — must be a valid UUID (e.g. EAS update group ID)
+#   patch_id           OTA patch UUID (manual mode only). Omit when using
+#                      withMeasureConfig() in metro.config.js — the patch ID
+#                      is read automatically from the sourcemap's debugId field.
 #   path_to_sourcemap  Path to the .hbc.map from 'expo export --source-maps'
 #                      Must contain /ios/ or /android/ in the path to detect platform.
 #
@@ -26,28 +31,37 @@
 # last-uploaded platform will be symbolicated. Use separate patch_id UUIDs
 # per platform if you need both to work simultaneously.
 #
-# Example:
+# Examples:
+#   # Automated (Metro plugin — patch_id read from sourcemap debugId field):
+#   ./upload_patch.sh "msr_key_..." "https://measure.example.com" \
+#     "./dist/_expo/static/js/ios/entry-abc123.hbc.map"
+#
+#   # Manual (CodePush or no Metro plugin):
 #   ./upload_patch.sh "msr_key_..." "https://measure.example.com" \
 #     "32d4e57e-6259-40ee-9b02-40aafeefcafd" \
 #     "./dist/_expo/static/js/ios/entry-abc123.hbc.map"
 
 set -euo pipefail
 
-if [ "$#" -lt 4 ]; then
-  echo "Usage: $0 <api_key> <api_url> <patch_id> <path_to_sourcemap>"
+if [ "$#" -eq 4 ]; then
+  API_KEY="$1"
+  API_URL="${2%/}"
+  PATCH_ID="$3"
+  SOURCEMAP_PATH="$4"
+elif [ "$#" -eq 3 ]; then
+  API_KEY="$1"
+  API_URL="${2%/}"
+  PATCH_ID=""
+  SOURCEMAP_PATH="$3"
+else
+  echo "Usage: $0 <api_key> <api_url> [<patch_id>] <path_to_sourcemap>"
   exit 1
 fi
-
-API_KEY="$1"
-API_URL="${2%/}"
-PATCH_ID="$3"
-SOURCEMAP_PATH="$4"
 
 MAX_ATTEMPTS=3
 
 # --- Validate ---
 
-echo "patch_id:  $PATCH_ID"
 echo "api_url:   $API_URL"
 echo "sourcemap: $SOURCEMAP_PATH"
 echo ""
@@ -56,6 +70,21 @@ if [ ! -f "$SOURCEMAP_PATH" ]; then
   echo "Error: sourcemap file not found: $SOURCEMAP_PATH"
   exit 1
 fi
+
+# In automated mode (3 args), read the patch ID from the sourcemap's debugId
+# field — written there by withMeasureConfig() in metro.config.js.
+if [ -z "$PATCH_ID" ]; then
+  PATCH_ID=$(grep -o '"debugId":"[^"]*"' "$SOURCEMAP_PATH" \
+    | sed 's/"debugId":"//;s/"//' | head -1 || true)
+  if [ -z "$PATCH_ID" ]; then
+    echo "Error: sourcemap has no debugId field and no patch_id argument was given."
+    echo "Either add withMeasureConfig() to metro.config.js, or pass patch_id as the 3rd argument."
+    exit 1
+  fi
+fi
+
+echo "patch_id:  $PATCH_ID"
+echo ""
 
 # --- Detect platform from sourcemap path ---
 
@@ -105,6 +134,17 @@ echo "Working directory: $TEMP_DIR"
 
 touch "$TEMP_DIR/$BUNDLE_CANONICAL"
 cp "$SOURCEMAP_PATH" "$TEMP_DIR/$MAP_CANONICAL"
+
+# Strip the debugId field injected by the Metro plugin before packaging.
+# The backend does not expect it; we only needed it to auto-detect PATCH_ID above.
+# This modifies the temp copy only — the original sourcemap is untouched.
+MEASURE_MAP_PATH="$TEMP_DIR/$MAP_CANONICAL" node << 'STRIP_DEBUG_ID'
+var fs = require('fs');
+var p = process.env.MEASURE_MAP_PATH;
+var m = JSON.parse(fs.readFileSync(p, 'utf8'));
+delete m.debugId;
+fs.writeFileSync(p, JSON.stringify(m));
+STRIP_DEBUG_ID
 
 # --- Package as .tgz (file at archive root, no path prefix) ---
 

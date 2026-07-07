@@ -33,12 +33,13 @@ export interface IMeasureConfig {
   enableDiagnosticMode: boolean;
 
   /**
-   * An identifier for the current Over-The-Air (OTA) patch. Set this when using OTA update
-   * systems (e.g. EAS Update) so that crash stack traces can be symbolicated against the
-   * correct source maps uploaded for this patch.
+   * An identifier for the current Over-The-Air (OTA) patch.
    *
-   * The value must be a valid UUID, for example the EAS update group ID.
-   * It is optional and only required for apps using OTA updates.
+   * When using withMeasureConfig() in metro.config.js, this is detected
+   * automatically — you do not need to set it.
+   *
+   * Set this manually when using OTA systems that bypass Metro (e.g. CodePush),
+   * or if you prefer not to use the Metro plugin. The value must be a valid UUID.
    */
   patchId?: string;
 

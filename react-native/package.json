@@ -4,12 +4,17 @@
   "react-native": "lib/module/index.js",
   "description": "Mobile apps break, get to the root cause faster",
   "main": "lib/module/index.js",
-  "types": "lib/typescript/src/index.d.ts",
+  "types": "lib/typescript/module/src/index.d.ts",
   "exports": {
     ".": {
       "source": "./src/index.ts",
-      "types": "./lib/typescript/src/index.d.ts",
+      "types": "./lib/typescript/module/src/index.d.ts",
       "default": "./lib/module/index.js"
+    },
+    "./metro": {
+      "source": "./src/metro/index.ts",
+      "types": "./lib/typescript/module/src/metro/index.d.ts",
+      "require": "./lib/commonjs/metro/index.js"
     },
     "./app.plugin.js": "./app.plugin.js",
     "./package.json": "./package.json"
@@ -86,6 +91,7 @@
     "@react-native/eslint-config": "^0.78.0",
     "@release-it/conventional-changelog": "^9.0.2",
     "@types/jest": "^29.5.5",
+    "@types/node": "^22.0.0",
     "@types/react": "^19.0.12",
     "commitlint": "^19.6.1",
     "del-cli": "^5.1.0",
@@ -163,6 +169,7 @@
           "esm": true
         }
       ],
+      "commonjs",
       [
         "typescript",
         {
