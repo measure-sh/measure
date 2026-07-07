@@ -56,6 +56,7 @@ import sh.measure.android.performance.CpuUsageCollector
 import sh.measure.android.performance.DefaultMemoryReader
 import sh.measure.android.performance.MemoryReader
 import sh.measure.android.performance.MemoryUsageCollector
+import sh.measure.android.profiling.ProfileCollector
 import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.screenshot.ScreenshotCollectorImpl
 import sh.measure.android.storage.DataCleanupService
@@ -237,6 +238,7 @@ internal class TestMeasureInitializer(
         lowMemoryCheck = lowMemoryCheck,
         config = configProvider,
     ),
+    override val workManagerAvailable: Boolean = false,
     override val exporter: Exporter = ExporterImpl(
         logger = logger,
         database = database,
@@ -279,6 +281,8 @@ internal class TestMeasureInitializer(
         processInfo = processInfoProvider,
         signalProcessor = signalProcessor,
         nativeBridge = nativeBridgeImpl,
+        database = database,
+        sessionManager = sessionManager,
     ),
     private val appExitProvider: AppExitProvider = AppExitProviderImpl(
         logger = logger,
@@ -364,6 +368,16 @@ internal class TestMeasureInitializer(
         timeProvider = timeProvider,
         launchTracker = launchTracker,
         sampler = sampler,
+    ),
+    override val profileCollector: ProfileCollector = ProfileCollector(
+        logger = logger,
+        systemServiceProvider = systemServiceProvider,
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        ioExecutor = executorServiceRegistry.ioExecutor(),
+        sampler = sampler,
+        database = database,
+        sessionManager = sessionManager,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
         context = application,

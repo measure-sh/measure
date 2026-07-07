@@ -6,6 +6,7 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
@@ -13,6 +14,7 @@ import sh.measure.android.fakes.FakeAppExitProvider
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.TestData
 import sh.measure.android.storage.Database
+import sh.measure.android.storage.SessionRecord
 
 class AppExitCollectorTest {
     private val appExitProvider = FakeAppExitProvider()
@@ -53,6 +55,7 @@ class AppExitCollectorTest {
             appBuild = eq("1000"),
             isSampled = any(),
         )
+        verify(database).setSessionAnrTime(session.id, appExit.app_exit_time_ms)
     }
 
     @Test
@@ -98,7 +101,31 @@ class AppExitCollectorTest {
     }
 
     @Test
-    fun `clears sessions that happened before the latest app exit`() {
+    fun `given no session is available for given pid, does not track app exit event`() {
+        // Given
+        val appExit = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_ANR)
+        appExitProvider.appExits = mapOf(1 to appExit)
+        `when`(database.getSessionForAppExit(1)).thenReturn(null)
+
+        // When
+        appExitCollector.collect()
+
+        // Then
+        verify(signalProcessor, never()).trackAppExit(
+            any(),
+            any(),
+            any(),
+            threadName = any(),
+            sessionId = any(),
+            sessionStartTime = any(),
+            appVersion = any(),
+            appBuild = any(),
+            isSampled = any(),
+        )
+    }
+
+    @Test
+    fun `marks all sessions except the current one as app exit tracked`() {
         // Given
         val appExit1 = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_ANR)
         val session1 = getSession(sessionId = "session-1", pid = 1, createdAt = 1000)
@@ -113,7 +140,7 @@ class AppExitCollectorTest {
         appExitCollector.collect()
 
         // Then
-        verify(database).clearAppExitRecords(sessionManager.getSessionId())
+        verify(database).markSessionsAppExitTracked(sessionManager.getSessionId())
     }
 
     private fun getSession(
@@ -122,9 +149,8 @@ class AppExitCollectorTest {
         createdAt: Long = 98765,
         appVersion: String = "1.0.0",
         appBuild: String = "1000",
-    ) = AppExitCollector.Session(
+    ) = SessionRecord(
         id = sessionId,
-        pid = pid,
         createdAt = createdAt,
         appVersion = appVersion,
         appBuild = appBuild,

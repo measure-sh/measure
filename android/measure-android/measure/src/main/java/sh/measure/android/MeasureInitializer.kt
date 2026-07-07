@@ -63,6 +63,8 @@ import sh.measure.android.performance.CpuUsageCollector
 import sh.measure.android.performance.DefaultMemoryReader
 import sh.measure.android.performance.MemoryReader
 import sh.measure.android.performance.MemoryUsageCollector
+import sh.measure.android.profiling.ProfileCollector
+import sh.measure.android.profiling.ProfileUploadScheduler
 import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.screenshot.ScreenshotCollectorImpl
 import sh.measure.android.storage.DataCleanupService
@@ -110,6 +112,7 @@ import sh.measure.android.utils.SamplerImpl
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.SystemServiceProviderImpl
 import sh.measure.android.utils.TimeProvider
+import sh.measure.android.utils.isClassAvailable
 
 internal class MeasureInitializerImpl(
     private val application: Application,
@@ -252,6 +255,9 @@ internal class MeasureInitializerImpl(
         config = configProvider,
     ),
     private val httpClient: HttpClient = HttpUrlConnectionClient(logger),
+    override val workManagerAvailable: Boolean = isClassAvailable("androidx.work.WorkManager"),
+    private val profileUploadScheduler: ProfileUploadScheduler? =
+        if (workManagerAvailable) ProfileUploadScheduler(application, logger) else null,
     override val dataCleanupService: DataCleanupService = DataCleanupServiceImpl(
         logger = logger,
         fileStorage = fileStorage,
@@ -271,6 +277,7 @@ internal class MeasureInitializerImpl(
         httpClient = httpClient,
         configProvider = configProvider,
         eventExportService = executorServiceRegistry.eventExportExecutor(),
+        profileUploadScheduler = profileUploadScheduler,
     ),
     override val signalProcessor: SignalProcessor = SignalProcessorImpl(
         logger = logger,
@@ -414,6 +421,16 @@ internal class MeasureInitializerImpl(
         launchTracker = launchTracker,
         sampler = sampler,
     ),
+    override val profileCollector: ProfileCollector = ProfileCollector(
+        logger = logger,
+        systemServiceProvider = systemServiceProvider,
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        ioExecutor = executorServiceRegistry.ioExecutor(),
+        sampler = sampler,
+        database = database,
+        sessionManager = sessionManager,
+    ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(
         context = application,
         signalProcessor = signalProcessor,
@@ -487,8 +504,10 @@ internal interface MeasureInitializer {
     val appLifecycleCollector: AppLifecycleCollector
     val gestureCollector: GestureCollector
     val appLaunchCollector: AppLaunchCollector
+    val profileCollector: ProfileCollector
     val networkChangesCollector: NetworkChangesCollector
     val exporter: Exporter
+    val workManagerAvailable: Boolean
     val userAttributeProcessor: UserAttributeProcessor
     val screenshotCollector: ScreenshotCollector
     val dataCleanupService: DataCleanupService

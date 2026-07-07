@@ -98,6 +98,12 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 	if patch.HTTPBlockedHeaders != nil {
 		stmt.Set("http_blocked_headers", *patch.HTTPBlockedHeaders)
 	}
+	if patch.ProfileSamplingRate != nil {
+		if *patch.ProfileSamplingRate < 0 || *patch.ProfileSamplingRate > 100 {
+			return fmt.Errorf("profile_sampling_rate must be between 0-100")
+		}
+		stmt.Set("profile_sampling_rate", *patch.ProfileSamplingRate)
+	}
 	stmt.Set("updated_at", time.Now())
 	stmt.Set("updated_by", &userIdUUID)
 	stmt.Where("app_id = ?", appID)

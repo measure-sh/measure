@@ -1,6 +1,5 @@
 package sh.measure.android
 
-import android.os.Build
 import androidx.annotation.VisibleForTesting
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.DefaultConfig
@@ -189,7 +188,6 @@ internal class SessionManagerImpl(
                                 id,
                                 pid,
                                 startTime,
-                                supportsAppExit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
                                 appVersion = packageInfoProvider.appVersion,
                                 appBuild = packageInfoProvider.getVersionCode(),
                             ),

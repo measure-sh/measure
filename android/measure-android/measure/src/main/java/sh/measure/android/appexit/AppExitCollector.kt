@@ -22,11 +22,10 @@ internal class AppExitCollector(
     @RequiresApi(Build.VERSION_CODES.R)
     private fun trackANRFromAppExit() {
         val appExitsMap: Map<Int, AppExit> = appExitProvider.get() ?: return
-        val trackedSessions = mutableListOf<Session>()
         appExitsMap.forEach {
             val pid = it.key
             val appExit = it.value
-            val session = getSessionForAppExit(pid)
+            val session = database.getSessionForAppExit(pid)
             // Limiting tracking of app exit events to just
             // ANRs for now.
             if (session != null && appExit.isANR()) {
@@ -43,19 +42,11 @@ internal class AppExitCollector(
                     threadName = Thread.currentThread().name,
                     isSampled = true,
                 )
-                trackedSessions.add(session)
+                // backfills the ANR time for a session where the real-time
+                // detector's write may have been lost to a fast kill.
+                database.setSessionAnrTime(session.id, appExit.app_exit_time_ms)
             }
         }
-        database.clearAppExitRecords(excludeSessionId = sessionManager.getSessionId())
+        database.markSessionsAppExitTracked(excludeSessionId = sessionManager.getSessionId())
     }
-
-    private fun getSessionForAppExit(pid: Int): Session? = database.getSessionForAppExit(pid)
-
-    internal data class Session(
-        val id: String,
-        val pid: Int,
-        val createdAt: Long,
-        val appVersion: String?,
-        val appBuild: String?,
-    )
 }

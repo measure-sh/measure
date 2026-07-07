@@ -7,6 +7,8 @@ import sh.measure.android.config.ConfigProvider
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.profiling.EnqueueResult
+import sh.measure.android.profiling.ProfileUploadScheduler
 import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.storage.Database
 import sh.measure.android.storage.FileStorage
@@ -43,6 +45,7 @@ internal class ExporterImpl(
     private val httpClient: HttpClient,
     private val configProvider: ConfigProvider,
     private val eventExportService: MeasureExecutorService,
+    private val profileUploadScheduler: ProfileUploadScheduler? = null,
 ) : Exporter {
     @VisibleForTesting
     internal val isExporting = AtomicBoolean(false)
@@ -56,6 +59,8 @@ internal class ExporterImpl(
         // Rough estimate of a single signal's (event or span) serialized size, used to
         // convert the payload size limit into a maximum number of signals per batch.
         private const val ESTIMATED_SIGNAL_SIZE_BYTES = 1024
+
+        private const val MAX_PROFILE_UPLOADS_PER_BATCH = 5
     }
 
     override fun export() {
@@ -65,6 +70,7 @@ internal class ExporterImpl(
                     try {
                         exportEvents()
                         exportAttachments()
+                        handoffProfileUploads()
                     } finally {
                         isExporting.set(false)
                     }
@@ -84,6 +90,7 @@ internal class ExporterImpl(
                     try {
                         exportExistingBatches()
                         exportAttachments()
+                        handoffProfileUploads()
                     } finally {
                         isExporting.set(false)
                     }
@@ -236,6 +243,40 @@ internal class ExporterImpl(
                 if (index < attachments.size - 1) {
                     sleeper.sleep(configProvider.attachmentExportIntervalMs)
                 }
+            }
+        }
+    }
+
+    /**
+     * Hands every signed profile attachment to the WorkManager and removes its row
+     * from the database.
+     */
+    private fun handoffProfileUploads() {
+        val scheduler = profileUploadScheduler ?: return
+        while (true) {
+            val profiles = database.getProfileAttachmentsToUpload(MAX_PROFILE_UPLOADS_PER_BATCH)
+            if (profiles.isEmpty()) {
+                return
+            }
+            var madeProgress = false
+            for (attachment in profiles) {
+                when (scheduler.enqueue(attachment)) {
+                    EnqueueResult.ENQUEUED -> {
+                        database.deleteAttachment(attachment.id)
+                        madeProgress = true
+                    }
+
+                    EnqueueResult.DROP -> {
+                        fileStorage.deleteFilePaths(listOf(attachment.path))
+                        database.deleteAttachment(attachment.id)
+                        madeProgress = true
+                    }
+
+                    EnqueueResult.RETRY -> Unit
+                }
+            }
+            if (!madeProgress) {
+                return
             }
         }
     }

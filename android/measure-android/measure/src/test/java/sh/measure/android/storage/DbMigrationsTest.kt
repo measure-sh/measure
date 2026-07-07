@@ -264,4 +264,93 @@ class DbMigrationsTest {
 
         db.close()
     }
+
+    @Test
+    fun `migration v7 to v8 folds app exit data into sessions and drops app exit table`() {
+        val db = TestDatabaseHelper.createDatabase(DbVersion.V7)
+
+        // Insert a session with a pending app_exit row and one without
+        db.execSQL(
+            "INSERT INTO sessions (session_id, pid, created_at) VALUES ('unreported-session', 0, 1000)",
+        )
+        db.execSQL(
+            """
+            INSERT INTO app_exit (session_id, pid, created_at, app_build, app_version)
+            VALUES ('unreported-session', 111, 1000, '100', '1.0.0')
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "INSERT INTO sessions (session_id, pid, created_at) VALUES ('reported-session', 0, 2000)",
+        )
+
+        // Perform migration
+        DbMigrations.apply(logger, db, DbVersion.V7, DbVersion.V8)
+
+        // Verify new columns exist on sessions
+        val tableInfoCursor = db.queryTableInfo("sessions")
+        val columnNames = mutableListOf<String>()
+        if (tableInfoCursor.moveToFirst()) {
+            do {
+                columnNames.add(tableInfoCursor.getString(tableInfoCursor.getColumnIndexOrThrow("name")))
+            } while (tableInfoCursor.moveToNext())
+        }
+        tableInfoCursor.close()
+        assertTrue(columnNames.contains(SessionsTable.COL_APP_VERSION))
+        assertTrue(columnNames.contains(SessionsTable.COL_APP_BUILD))
+
+        // Verify pid and versions backfilled for the session with a pending app_exit row
+        db.rawQuery(
+            "SELECT pid, app_version, app_build, app_exit_tracked FROM sessions WHERE session_id = 'unreported-session'",
+            null,
+        ).use {
+            assertTrue(it.moveToFirst())
+            assertEquals(111, it.getInt(0))
+            assertEquals("1.0.0", it.getString(1))
+            assertEquals("100", it.getString(2))
+            assertEquals(0, it.getInt(3))
+        }
+
+        // Verify the session without an app_exit row is marked tracked
+        db.rawQuery(
+            "SELECT pid, app_version, app_build, app_exit_tracked FROM sessions WHERE session_id = 'reported-session'",
+            null,
+        ).use {
+            assertTrue(it.moveToFirst())
+            assertEquals(0, it.getInt(0))
+            assertEquals(null, it.getString(1))
+            assertEquals(null, it.getString(2))
+            assertEquals(1, it.getInt(3))
+        }
+
+        // Verify app_exit table no longer exists
+        db.rawQuery(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='app_exit'",
+            null,
+        ).use {
+            assertEquals(0, it.count)
+        }
+
+        db.close()
+    }
+
+    @Test
+    fun `migration v8 to v9 adds last_anr_time column to sessions`() {
+        val db = TestDatabaseHelper.createDatabase(DbVersion.V8)
+
+        // Perform migration
+        DbMigrations.apply(logger, db, DbVersion.V8, DbVersion.V9)
+
+        // Verify the new column exists on sessions
+        val tableInfoCursor = db.queryTableInfo("sessions")
+        val columnNames = mutableListOf<String>()
+        if (tableInfoCursor.moveToFirst()) {
+            do {
+                columnNames.add(tableInfoCursor.getString(tableInfoCursor.getColumnIndexOrThrow("name")))
+            } while (tableInfoCursor.moveToNext())
+        }
+        tableInfoCursor.close()
+        assertTrue(columnNames.contains(SessionsTable.COL_LAST_ANR_TIME))
+
+        db.close()
+    }
 }

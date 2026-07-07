@@ -129,6 +129,9 @@ afterEvaluate {
 
 dependencies {
     implementation("sh.measure:measure-android:0.18.0-SNAPSHOT")
+    // Opt into ProfilingManager uploads: the Measure SDK keeps WorkManager as a compileOnly
+    // dependency, so the app must add it to enable the profiling feature.
+    implementation("androidx.work:work-runtime:2.9.1")
     implementation(project(":kmp"))
     implementation(project(":flutter"))
     implementation(libs.androidx.activity.compose)

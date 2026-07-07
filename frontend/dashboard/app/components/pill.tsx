@@ -53,6 +53,7 @@ export enum PillType {
   SessionEventTrace = "session_event_trace",
   SessionEventCustom = "session_event_custom",
   SessionEventLog = "session_event_log",
+  SessionEventProfile = "session_event_profile",
   SessionEventDefault = "session_event_default",
 }
 
@@ -97,6 +98,8 @@ const sessionPink =
   "rounded-sm border-pink-400 text-pink-700 bg-pink-100 dark:border-pink-400 dark:text-pink-400 dark:bg-pink-950/40";
 const sessionPurple =
   "rounded-sm border-purple-400 text-purple-700 bg-purple-100 dark:border-purple-400 dark:text-purple-400 dark:bg-purple-950/40";
+const sessionTeal =
+  "rounded-sm border-teal-400 text-teal-700 bg-teal-100 dark:border-teal-400 dark:text-teal-400 dark:bg-teal-950/40";
 // Indigo is the catch-all for lifecycle, launches, memory, logs and any
 // otherwise-unmapped event.
 const sessionIndigo =
@@ -214,6 +217,10 @@ const pillDefaults: Record<PillType, { label?: string; tint: string }> = {
   [PillType.SessionEventTrace]: { label: "Trace", tint: sessionPink },
   [PillType.SessionEventCustom]: { label: "Custom", tint: sessionPurple },
   [PillType.SessionEventLog]: { label: "Log", tint: sessionIndigo },
+  [PillType.SessionEventProfile]: {
+    label: "Profile",
+    tint: sessionTeal,
+  },
   // No label: the cell passes the raw event type as children for unknown
   // events, mirroring the old `return eventType` fallback.
   [PillType.SessionEventDefault]: { tint: sessionIndigo },

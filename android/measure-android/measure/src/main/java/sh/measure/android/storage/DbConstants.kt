@@ -1,10 +1,11 @@
 package sh.measure.android.storage
 
+import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.EventType
 
 internal object DbConstants {
     const val DATABASE_NAME = "measure.db"
-    const val DATABASE_VERSION = DbVersion.V7
+    const val DATABASE_VERSION = DbVersion.V9
 }
 
 internal object DbVersion {
@@ -15,6 +16,8 @@ internal object DbVersion {
     const val V5 = 5
     const val V6 = 6
     const val V7 = 7
+    const val V8 = 8
+    const val V9 = 9
 }
 
 internal object EventTable {
@@ -81,14 +84,13 @@ internal object SpansBatchTable {
 internal object SessionsTable {
     const val TABLE_NAME = "sessions"
     const val COL_SESSION_ID = "session_id"
-
-    @Deprecated("Use AppExitTable instead")
     const val COL_PID = "pid"
     const val COL_CREATED_AT = "created_at"
-
-    @Deprecated("Use AppExitTable instead")
     const val COL_APP_EXIT_TRACKED = "app_exit_tracked"
     const val COL_PRIORITY_SESSION = "needs_reporting"
+    const val COL_APP_VERSION = "app_version"
+    const val COL_APP_BUILD = "app_build"
+    const val COL_LAST_ANR_TIME = "last_anr_time"
 
     @Deprecated("No longer used")
     const val COL_CRASHED = "crashed"
@@ -97,6 +99,9 @@ internal object SessionsTable {
     const val COL_TRACK_JOURNEY = "track_journey"
 }
 
+/**
+ * Dropped in [DbVersion.V8]; referenced only by migrations.
+ */
 internal object AppExitTable {
     const val TABLE_NAME = "app_exit"
     const val COL_SESSION_ID = "session_id"
@@ -199,7 +204,10 @@ internal object Sql {
             ${SessionsTable.COL_APP_EXIT_TRACKED} INTEGER DEFAULT 0,
             ${SessionsTable.COL_PRIORITY_SESSION} INTEGER DEFAULT 0,
             ${SessionsTable.COL_CRASHED} INTEGER DEFAULT 0,
-            ${SessionsTable.COL_TRACK_JOURNEY} INTEGER DEFAULT 0
+            ${SessionsTable.COL_TRACK_JOURNEY} INTEGER DEFAULT 0,
+            ${SessionsTable.COL_APP_VERSION} TEXT DEFAULT NULL,
+            ${SessionsTable.COL_APP_BUILD} TEXT DEFAULT NULL,
+            ${SessionsTable.COL_LAST_ANR_TIME} INTEGER DEFAULT NULL
         )
     """
 
@@ -259,9 +267,9 @@ internal object Sql {
         ON ${SpansBatchTable.TABLE_NAME}(${SpansBatchTable.COL_SPAN_ID})
     """
 
-    const val CREATE_APP_EXIT_PID_INDEX = """
-        CREATE INDEX IF NOT EXISTS idx_app_exit_pid_created 
-        ON ${AppExitTable.TABLE_NAME}(${AppExitTable.COL_PID}, ${AppExitTable.COL_CREATED_AT} DESC)
+    const val CREATE_SESSIONS_PID_INDEX = """
+        CREATE INDEX IF NOT EXISTS sessions_pid_created_at_index
+        ON ${SessionsTable.TABLE_NAME}(${SessionsTable.COL_PID}, ${SessionsTable.COL_CREATED_AT} DESC)
     """
 
     fun getEventsForIds(eventIds: List<String>): String = """
@@ -310,9 +318,23 @@ internal object Sql {
             WHERE ${AttachmentV1Table.COL_EVENT_ID} IN (${events.joinToString(", ") { "\'$it\'" }})
     """.trimIndent()
 
-    fun getOldestSession(): String = """
+    fun getRecentSessionIds(count: Int): String = """
             SELECT ${SessionsTable.COL_SESSION_ID}
             FROM ${SessionsTable.TABLE_NAME}
+            ORDER BY ${SessionsTable.COL_CREATED_AT} DESC
+            LIMIT $count
+    """.trimIndent()
+
+    fun getOldestSessionWithSignals(): String = """
+            SELECT ${SessionsTable.COL_SESSION_ID}
+            FROM ${SessionsTable.TABLE_NAME}
+            WHERE EXISTS (
+                SELECT 1 FROM ${EventTable.TABLE_NAME}
+                WHERE ${EventTable.TABLE_NAME}.${EventTable.COL_SESSION_ID} = ${SessionsTable.TABLE_NAME}.${SessionsTable.COL_SESSION_ID}
+            ) OR EXISTS (
+                SELECT 1 FROM ${SpansTable.TABLE_NAME}
+                WHERE ${SpansTable.TABLE_NAME}.${SpansTable.COL_SESSION_ID} = ${SessionsTable.TABLE_NAME}.${SessionsTable.COL_SESSION_ID}
+            )
             ORDER BY ${SessionsTable.COL_CREATED_AT} ASC
             LIMIT 1
     """.trimIndent()
@@ -339,16 +361,46 @@ internal object Sql {
             FROM ${SpansTable.TABLE_NAME}
     """.trimIndent()
 
+    // Columns read into a SessionRecord; all getSessionFor* queries select these.
+    private val SESSION_RECORD_COLUMNS = listOf(
+        SessionsTable.COL_SESSION_ID,
+        SessionsTable.COL_CREATED_AT,
+        SessionsTable.COL_APP_VERSION,
+        SessionsTable.COL_APP_BUILD,
+        SessionsTable.COL_LAST_ANR_TIME,
+    ).joinToString(", ")
+
     fun getSessionForAppExit(pid: Int): String = """
-            SELECT
-                ${AppExitTable.COL_SESSION_ID},
-                ${AppExitTable.COL_CREATED_AT},
-                ${AppExitTable.COL_APP_VERSION},
-                ${AppExitTable.COL_APP_BUILD}
-            FROM ${AppExitTable.TABLE_NAME}
-            WHERE ${AppExitTable.COL_PID} = $pid 
-            ORDER BY ${AppExitTable.COL_CREATED_AT} DESC
+            SELECT $SESSION_RECORD_COLUMNS
+            FROM ${SessionsTable.TABLE_NAME}
+            WHERE ${SessionsTable.COL_PID} = $pid AND ${SessionsTable.COL_APP_EXIT_TRACKED} = 0
+            ORDER BY ${SessionsTable.COL_CREATED_AT} DESC
             LIMIT 1
+    """.trimIndent()
+
+    fun getSessionForTime(timeMs: Long): String = """
+            SELECT $SESSION_RECORD_COLUMNS
+            FROM ${SessionsTable.TABLE_NAME}
+            WHERE ${SessionsTable.COL_CREATED_AT} <= $timeMs
+            ORDER BY ${SessionsTable.COL_CREATED_AT} DESC
+            LIMIT 1
+    """.trimIndent()
+
+    fun getSessionForAnr(timeMs: Long, maxGapMs: Long): String = """
+            SELECT $SESSION_RECORD_COLUMNS
+            FROM ${SessionsTable.TABLE_NAME}
+            WHERE ${SessionsTable.COL_LAST_ANR_TIME} IS NOT NULL
+                AND ${SessionsTable.COL_LAST_ANR_TIME} <= $timeMs
+                AND $timeMs - ${SessionsTable.COL_LAST_ANR_TIME} <= $maxGapMs
+            ORDER BY ${SessionsTable.COL_LAST_ANR_TIME} DESC
+            LIMIT 1
+    """.trimIndent()
+
+    fun setSessionAnrTime(sessionId: String, anrTimeMs: Long): String = """
+            UPDATE ${SessionsTable.TABLE_NAME}
+            SET ${SessionsTable.COL_LAST_ANR_TIME} = $anrTimeMs
+            WHERE ${SessionsTable.COL_SESSION_ID} = '$sessionId'
+                AND (${SessionsTable.COL_LAST_ANR_TIME} IS NULL OR ${SessionsTable.COL_LAST_ANR_TIME} < $anrTimeMs)
     """.trimIndent()
 
     fun getBatchedEventIds(batchIds: List<String>): String = """
@@ -373,6 +425,13 @@ internal object Sql {
                 IN (${batchIds.joinToString(", ") { "'$it'" }})
     """.trimIndent()
 
+    // Profiles are uploaded by their own WorkManager worker, not the in-process drain.
+    private val profileTypesList = listOf(
+        AttachmentType.PERFETTO_TRACE,
+        AttachmentType.HEAP_DUMP,
+        AttachmentType.HEAP_PROFILE,
+    ).joinToString(", ") { "'$it'" }
+
     fun getAttachmentsToUpload(maxCount: Int): String = """
             SELECT
                 ${AttachmentV1Table.COL_ID},
@@ -389,6 +448,28 @@ internal object Sql {
                 ${AttachmentV1Table.TABLE_NAME}
             WHERE
                 ${AttachmentV1Table.COL_UPLOAD_URL} IS NOT NULL
+                AND ${AttachmentV1Table.COL_TYPE} NOT IN ($profileTypesList)
+            LIMIT
+                $maxCount
+    """.trimIndent()
+
+    fun getProfileAttachmentsToUpload(maxCount: Int): String = """
+            SELECT
+                ${AttachmentV1Table.COL_ID},
+                ${AttachmentV1Table.COL_EVENT_ID},
+                ${AttachmentV1Table.COL_SESSION_ID},
+                ${AttachmentV1Table.COL_TIMESTAMP},
+                ${AttachmentV1Table.COL_TYPE},
+                ${AttachmentV1Table.COL_FILE_PATH},
+                ${AttachmentV1Table.COL_NAME},
+                ${AttachmentV1Table.COL_UPLOAD_URL},
+                ${AttachmentV1Table.COL_URL_EXPIRES_AT},
+                ${AttachmentV1Table.COL_URL_HEADERS}
+            FROM
+                ${AttachmentV1Table.TABLE_NAME}
+            WHERE
+                ${AttachmentV1Table.COL_UPLOAD_URL} IS NOT NULL
+                AND ${AttachmentV1Table.COL_TYPE} IN ($profileTypesList)
             LIMIT
                 $maxCount
     """.trimIndent()

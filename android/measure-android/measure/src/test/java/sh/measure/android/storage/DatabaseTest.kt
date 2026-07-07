@@ -14,6 +14,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import sh.measure.android.config.DefaultConfig
+import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.EventType
 import sh.measure.android.exporter.EventPacket
 import sh.measure.android.exporter.SignedAttachment
@@ -57,8 +58,6 @@ class DatabaseTest {
             assertEquals(BatchesTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
             assertEquals(EventsBatchTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
-            it.moveToNext()
-            assertEquals(AppExitTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
             assertEquals(SpansTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
@@ -1274,12 +1273,80 @@ class DatabaseTest {
     }
 
     @Test
-    fun `getOldestSession returns null when no sessions exist`() {
+    fun `getRecentSessionIds returns the most recently created sessions`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-1", createdAt = 1000L))
+        database.insertSession(TestData.getSessionEntity(id = "session-2", createdAt = 2000L))
+        database.insertSession(TestData.getSessionEntity(id = "session-3", createdAt = 3000L))
+
         // when
-        val sessionId = database.getOldestSession()
+        val sessionIds = database.getRecentSessionIds(2)
+
+        // then
+        assertEquals(listOf("session-3", "session-2"), sessionIds)
+    }
+
+    @Test
+    fun `getOldestSessionWithSignals returns the oldest session with events or spans`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "empty-session", createdAt = 1000L))
+        database.insertSession(TestData.getSessionEntity(id = "session-with-event", createdAt = 2000L))
+        database.insertSession(TestData.getSessionEntity(id = "session-with-span", createdAt = 3000L))
+        database.insertEvent(
+            TestData.getEventEntity(eventId = "event-1", sessionId = "session-with-event"),
+        )
+        database.insertSpan(
+            TestData.getSpanEntity(spanId = "span-1", sessionId = "session-with-span"),
+        )
+
+        // when
+        val sessionId = database.getOldestSessionWithSignals()
+
+        // then
+        assertEquals("session-with-event", sessionId)
+    }
+
+    @Test
+    fun `getOldestSessionWithSignals returns null when no session has events or spans`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "empty-session", createdAt = 1000L))
+
+        // when
+        val sessionId = database.getOldestSessionWithSignals()
 
         // then
         assertNull(sessionId)
+    }
+
+    @Test
+    fun `deleteSessionData deletes events, spans and attachments but keeps the session`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-1", createdAt = 1000L))
+        database.insertSession(TestData.getSessionEntity(id = "session-2", createdAt = 2000L))
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-1",
+                sessionId = "session-1",
+                attachmentEntities = listOf(TestData.getAttachmentEntity(id = "attachment-1")),
+            ),
+        )
+        database.insertSpan(TestData.getSpanEntity(spanId = "span-1", sessionId = "session-1"))
+        database.insertEvent(
+            TestData.getEventEntity(eventId = "event-2", sessionId = "session-2"),
+        )
+
+        // when
+        database.deleteSessionData("session-1")
+
+        // then
+        assertEquals(0, database.getEventsCount("session-1"))
+        assertEquals(0, database.getSpansCount("session-1"))
+        database.readableDatabase.rawQuery(
+            "SELECT * FROM ${AttachmentV1Table.TABLE_NAME} WHERE ${AttachmentV1Table.COL_SESSION_ID} = 'session-1'",
+            null,
+        ).use { assertEquals(0, it.count) }
+        assertEquals(listOf("session-2", "session-1"), database.getRecentSessionIds(2))
+        assertEquals(1, database.getEventsCount("session-2"))
     }
 
     @Test
@@ -1974,6 +2041,60 @@ class DatabaseTest {
     }
 
     @Test
+    fun `getAttachmentsToUpload excludes profiles, getProfileAttachmentsToUpload returns only them`() {
+        database.insertSession(TestData.getSessionEntity(id = "session-id"))
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-1",
+                sessionId = "session-id",
+                attachmentEntities = listOf(
+                    TestData.getAttachmentEntity(id = "screenshot", type = AttachmentType.SCREENSHOT),
+                    TestData.getAttachmentEntity(id = "profile", type = AttachmentType.PERFETTO_TRACE),
+                ),
+            ),
+        )
+        database.updateAttachmentUrls(
+            listOf(
+                SignedAttachment(
+                    id = "screenshot",
+                    type = AttachmentType.SCREENSHOT,
+                    filename = "screenshot.png",
+                    uploadUrl = "https://example.com/screenshot",
+                    expiresAt = "2025-01-15T10:00:00.000Z",
+                    headers = emptyMap(),
+                ),
+                SignedAttachment(
+                    id = "profile",
+                    type = AttachmentType.PERFETTO_TRACE,
+                    filename = "profile.perfetto-trace",
+                    uploadUrl = "https://example.com/profile",
+                    expiresAt = "2025-01-15T10:00:00.000Z",
+                    headers = emptyMap(),
+                ),
+            ),
+        )
+
+        assertEquals(listOf("screenshot"), database.getAttachmentsToUpload(10).map { it.id })
+        assertEquals(listOf("profile"), database.getProfileAttachmentsToUpload(10).map { it.id })
+    }
+
+    @Test
+    fun `getProfileAttachmentsToUpload returns nothing for unsigned profile attachments`() {
+        database.insertSession(TestData.getSessionEntity(id = "session-id"))
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-1",
+                sessionId = "session-id",
+                attachmentEntities = listOf(
+                    TestData.getAttachmentEntity(id = "profile", type = AttachmentType.PERFETTO_TRACE),
+                ),
+            ),
+        )
+
+        assertTrue(database.getProfileAttachmentsToUpload(10).isEmpty())
+    }
+
+    @Test
     fun `updateAttachmentUrls returns false when attachment missing`() {
         // given
         database.insertSession(TestData.getSessionEntity(id = "session-id"))
@@ -2189,7 +2310,6 @@ class DatabaseTest {
                 createdAt = 1000L,
                 appVersion = "1.0.0",
                 appBuild = "100",
-                supportsAppExit = true,
             ),
         )
 
@@ -2199,7 +2319,6 @@ class DatabaseTest {
         // then
         assertNotNull(session)
         assertEquals("session-id", session!!.id)
-        assertEquals(pid, session.pid)
         assertEquals(1000L, session.createdAt)
         assertEquals("1.0.0", session.appVersion)
         assertEquals("100", session.appBuild)
@@ -2214,7 +2333,6 @@ class DatabaseTest {
                 id = "older-session",
                 pid = pid,
                 createdAt = 1000L,
-                supportsAppExit = true,
             ),
         )
         database.insertSession(
@@ -2222,7 +2340,6 @@ class DatabaseTest {
                 id = "newer-session",
                 pid = pid,
                 createdAt = 2000L,
-                supportsAppExit = true,
             ),
         )
         database.insertSession(
@@ -2230,7 +2347,6 @@ class DatabaseTest {
                 id = "newest-session",
                 pid = pid,
                 createdAt = 3000L,
-                supportsAppExit = true,
             ),
         )
 
@@ -2250,7 +2366,6 @@ class DatabaseTest {
             TestData.getSessionEntity(
                 id = "session-id",
                 pid = 12345,
-                supportsAppExit = true,
             ),
         )
 
@@ -2262,54 +2377,194 @@ class DatabaseTest {
     }
 
     @Test
-    fun `clearAppExitRecords removes all records except for current session`() {
+    fun `getSessionForAppExit returns null for sessions marked as app exit tracked`() {
         // given
+        val pid = 111
         database.insertSession(
-            TestData.getSessionEntity(
-                id = "old-session",
-                pid = 111,
-                createdAt = 1000L,
-                supportsAppExit = true,
-            ),
+            TestData.getSessionEntity(id = "rotated-1", pid = pid, createdAt = 1000L),
         )
         database.insertSession(
-            TestData.getSessionEntity(
-                id = "boundary-session",
-                pid = 222,
-                createdAt = 2000L,
-                supportsAppExit = true,
-            ),
-        )
-        database.insertSession(
-            TestData.getSessionEntity(
-                id = "current-session",
-                pid = 333,
-                createdAt = 3000L,
-                supportsAppExit = true,
-            ),
+            TestData.getSessionEntity(id = "rotated-2", pid = pid, createdAt = 2000L),
         )
 
         // when
-        database.clearAppExitRecords("current-session")
+        database.markSessionsAppExitTracked(excludeSessionId = "current-session")
 
         // then
-        val db = database.readableDatabase
-        db.query(
-            AppExitTable.TABLE_NAME,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-        ).use { cursor ->
-            assertEquals(1, cursor.count)
-            assertTrue(cursor.moveToFirst())
-            assertEquals(
-                "current-session",
-                cursor.getString(cursor.getColumnIndex(AppExitTable.COL_SESSION_ID)),
-            )
-        }
+        assertNull(database.getSessionForAppExit(pid))
+    }
+
+    @Test
+    fun `getSessionForTime returns the session active at the given time`() {
+        // given
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = "session-1",
+                createdAt = 1000L,
+                appVersion = "1.0.0",
+                appBuild = "100",
+            ),
+        )
+        database.insertSession(TestData.getSessionEntity(id = "session-2", createdAt = 2000L))
+
+        // when
+        val session = database.getSessionForTime(1500L)
+
+        // then
+        assertNotNull(session)
+        assertEquals("session-1", session!!.id)
+        assertEquals(1000L, session.createdAt)
+        assertEquals("1.0.0", session.appVersion)
+        assertEquals("100", session.appBuild)
+    }
+
+    @Test
+    fun `getSessionForTime returns the latest session when the time is after all sessions`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-1", createdAt = 1000L))
+        database.insertSession(TestData.getSessionEntity(id = "session-2", createdAt = 2000L))
+
+        // when
+        val session = database.getSessionForTime(3000L)
+
+        // then
+        assertEquals("session-2", session!!.id)
+    }
+
+    @Test
+    fun `getSessionForTime returns null when the time is before all sessions`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-1", createdAt = 1000L))
+
+        // when
+        val session = database.getSessionForTime(500L)
+
+        // then
+        assertNull(session)
+    }
+
+    @Test
+    fun `getSessionForAnr returns the most recent session that had an ANR within the gap`() {
+        // given
+        database.insertSession(
+            TestData.getSessionEntity(
+                id = "anr-session",
+                createdAt = 1000L,
+                appVersion = "1.0.0",
+                appBuild = "100",
+            ),
+        )
+        database.insertSession(TestData.getSessionEntity(id = "relaunch-session", createdAt = 6000L))
+        database.setSessionAnrTime("anr-session", 5000L)
+
+        // when: the profile finalized 3s after the ANR, resolved-by-time would be relaunch-session
+        val session = database.getSessionForAnr(timeMs = 8000L, maxGapMs = 60_000L)
+
+        // then
+        assertNotNull(session)
+        assertEquals("anr-session", session!!.id)
+        assertEquals(5000L, session.lastAnrTime)
+        assertEquals("1.0.0", session.appVersion)
+    }
+
+    @Test
+    fun `getSessionForAnr keeps the latest ANR time when set multiple times`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-1", createdAt = 1000L))
+        database.setSessionAnrTime("session-1", 5000L)
+        database.setSessionAnrTime("session-1", 2000L) // earlier, must not overwrite
+        database.setSessionAnrTime("session-1", 7000L) // later, must win
+
+        // when
+        val session = database.getSessionForAnr(timeMs = 8000L, maxGapMs = 60_000L)
+
+        // then
+        assertEquals(7000L, session!!.lastAnrTime)
+    }
+
+    @Test
+    fun `getSessionForAnr ignores a stale ANR outside the gap`() {
+        // given a session whose ANR is far in the past
+        database.insertSession(TestData.getSessionEntity(id = "old-anr-session", createdAt = 1000L))
+        database.setSessionAnrTime("old-anr-session", 2000L)
+
+        // when the profile time is well beyond the gap
+        val session = database.getSessionForAnr(timeMs = 200_000L, maxGapMs = 60_000L)
+
+        // then
+        assertNull(session)
+    }
+
+    @Test
+    fun `getSessionForAnr ignores ANRs after the profile time`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-1", createdAt = 1000L))
+        database.setSessionAnrTime("session-1", 9000L)
+
+        // when the profile time is before the ANR
+        val session = database.getSessionForAnr(timeMs = 8000L, maxGapMs = 60_000L)
+
+        // then
+        assertNull(session)
+    }
+
+    @Test
+    fun `getSessionForAnr returns null when no session had an ANR`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-1", createdAt = 1000L))
+
+        // when
+        val session = database.getSessionForAnr(timeMs = 8000L, maxGapMs = 60_000L)
+
+        // then
+        assertNull(session)
+    }
+
+    @Test
+    fun `insertEvent records the session ANR time when sessionAnrTimeMs is set`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "anr-session", createdAt = 1000L))
+        val event = TestData.getEventEntity(type = EventType.ANR, sessionId = "anr-session")
+
+        // when
+        database.insertEvent(event, sessionAnrTimeMs = 5000L)
+
+        // then
+        val session = database.getSessionForAnr(timeMs = 8000L, maxGapMs = 60_000L)
+        assertNotNull(session)
+        assertEquals("anr-session", session!!.id)
+        assertEquals(5000L, session.lastAnrTime)
+    }
+
+    @Test
+    fun `insertEvent does not record a session ANR time when sessionAnrTimeMs is null`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "anr-session", createdAt = 1000L))
+        val event = TestData.getEventEntity(type = EventType.ANR, sessionId = "anr-session")
+
+        // when
+        database.insertEvent(event, sessionAnrTimeMs = null)
+
+        // then
+        assertNull(database.getSessionForAnr(timeMs = 8000L, maxGapMs = 60_000L))
+    }
+
+    @Test
+    fun `markSessionsAppExitTracked does not mark the excluded session`() {
+        // given
+        database.insertSession(
+            TestData.getSessionEntity(id = "old-session", pid = 111, createdAt = 1000L),
+        )
+        database.insertSession(
+            TestData.getSessionEntity(id = "current-session", pid = 222, createdAt = 2000L),
+        )
+
+        // when
+        database.markSessionsAppExitTracked(excludeSessionId = "current-session")
+
+        // then
+        assertNull(database.getSessionForAppExit(111))
+        assertEquals("current-session", database.getSessionForAppExit(222)!!.id)
     }
 
     @Test

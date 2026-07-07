@@ -44,6 +44,7 @@ type SdkConfig struct {
 	HTTPTrackRequestForURLs   []string            `json:"http_track_request_for_urls"`
 	HTTPTrackResponseForURLs  []string            `json:"http_track_response_for_urls"`
 	HTTPBlockedHeaders        []string            `json:"http_blocked_headers"`
+	ProfileSamplingRate       float64             `json:"profile_sampling_rate"`
 	UpdatedAt                 *time.Time          `json:"-"`
 	UpdatedBy                 *uuid.UUID          `json:"-"`
 }
@@ -67,6 +68,7 @@ type ConfigPatch struct {
 	HTTPTrackRequestForURLs   *[]string            `json:"http_track_request_for_urls,omitempty"`
 	HTTPTrackResponseForURLs  *[]string            `json:"http_track_response_for_urls,omitempty"`
 	HTTPBlockedHeaders        *[]string            `json:"http_blocked_headers,omitempty"`
+	ProfileSamplingRate       *float64             `json:"profile_sampling_rate,omitempty"`
 }
 
 func (s ScreenshotMaskLevel) IsValid() bool {
@@ -100,6 +102,7 @@ func createDefaultConfig() SdkConfig {
 		HTTPTrackRequestForURLs:   []string{},
 		HTTPTrackResponseForURLs:  []string{},
 		HTTPBlockedHeaders:        []string{},
+		ProfileSamplingRate:       100,
 	}
 }
 
@@ -127,6 +130,7 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 		Select("http_track_request_for_urls").
 		Select("http_track_response_for_urls").
 		Select("http_blocked_headers").
+		Select("profile_sampling_rate").
 		Select("updated_at").
 		Select("updated_by").
 		From("measure.sdk_config").
@@ -155,6 +159,7 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 		&sdkConfig.HTTPTrackRequestForURLs,
 		&sdkConfig.HTTPTrackResponseForURLs,
 		&sdkConfig.HTTPBlockedHeaders,
+		&sdkConfig.ProfileSamplingRate,
 		&sdkConfig.UpdatedAt,
 		&sdkConfig.UpdatedBy,
 	)
@@ -205,6 +210,7 @@ func CreateConfig(ctx context.Context, tx pgx.Tx, teamID, appID uuid.UUID, creat
 		Set("http_track_request_for_urls", config.HTTPTrackRequestForURLs).
 		Set("http_track_response_for_urls", config.HTTPTrackResponseForURLs).
 		Set("http_blocked_headers", config.HTTPBlockedHeaders).
+		Set("profile_sampling_rate", config.ProfileSamplingRate).
 		Set("updated_at", time.Now()).
 		Set("updated_by", createdBy)
 

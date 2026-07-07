@@ -19,6 +19,8 @@ internal object DbMigrations {
                             DbVersion.V5 -> migrateToV5(this)
                             DbVersion.V6 -> migrateToV6(this)
                             DbVersion.V7 -> migrateToV7(this)
+                            DbVersion.V8 -> migrateToV8(this)
+                            DbVersion.V9 -> migrateToV9(this)
                             else -> logger.log(
                                 LogLevel.Debug,
                                 "Db migration failed: $version not found ",
@@ -106,5 +108,45 @@ internal object DbMigrations {
     private fun migrateToV7(db: SQLiteDatabase) {
         db.execSQL("ALTER TABLE ${EventTable.TABLE_NAME} ADD COLUMN ${EventTable.COL_SAMPLED} INTEGER DEFAULT 0;")
         db.execSQL("DROP INDEX IF EXISTS sessions_needs_reporting_index")
+    }
+
+    private fun migrateToV8(db: SQLiteDatabase) {
+        db.execSQL("ALTER TABLE ${SessionsTable.TABLE_NAME} ADD COLUMN ${SessionsTable.COL_APP_VERSION} TEXT DEFAULT NULL;")
+        db.execSQL("ALTER TABLE ${SessionsTable.TABLE_NAME} ADD COLUMN ${SessionsTable.COL_APP_BUILD} TEXT DEFAULT NULL;")
+        db.execSQL(
+            """
+            UPDATE ${SessionsTable.TABLE_NAME}
+            SET ${SessionsTable.COL_PID} = (
+                    SELECT ${AppExitTable.COL_PID} FROM ${AppExitTable.TABLE_NAME}
+                    WHERE ${AppExitTable.TABLE_NAME}.${AppExitTable.COL_SESSION_ID} = ${SessionsTable.TABLE_NAME}.${SessionsTable.COL_SESSION_ID}
+                ),
+                ${SessionsTable.COL_APP_VERSION} = (
+                    SELECT ${AppExitTable.COL_APP_VERSION} FROM ${AppExitTable.TABLE_NAME}
+                    WHERE ${AppExitTable.TABLE_NAME}.${AppExitTable.COL_SESSION_ID} = ${SessionsTable.TABLE_NAME}.${SessionsTable.COL_SESSION_ID}
+                ),
+                ${SessionsTable.COL_APP_BUILD} = (
+                    SELECT ${AppExitTable.COL_APP_BUILD} FROM ${AppExitTable.TABLE_NAME}
+                    WHERE ${AppExitTable.TABLE_NAME}.${AppExitTable.COL_SESSION_ID} = ${SessionsTable.TABLE_NAME}.${SessionsTable.COL_SESSION_ID}
+                )
+            WHERE ${SessionsTable.COL_SESSION_ID} IN (
+                SELECT ${AppExitTable.COL_SESSION_ID} FROM ${AppExitTable.TABLE_NAME}
+            );
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            UPDATE ${SessionsTable.TABLE_NAME}
+            SET ${SessionsTable.COL_APP_EXIT_TRACKED} = 1
+            WHERE ${SessionsTable.COL_SESSION_ID} NOT IN (
+                SELECT ${AppExitTable.COL_SESSION_ID} FROM ${AppExitTable.TABLE_NAME}
+            );
+            """.trimIndent(),
+        )
+        db.execSQL(Sql.CREATE_SESSIONS_PID_INDEX)
+        db.execSQL("DROP TABLE IF EXISTS ${AppExitTable.TABLE_NAME}")
+    }
+
+    private fun migrateToV9(db: SQLiteDatabase) {
+        db.execSQL("ALTER TABLE ${SessionsTable.TABLE_NAME} ADD COLUMN ${SessionsTable.COL_LAST_ANR_TIME} INTEGER DEFAULT NULL;")
     }
 }

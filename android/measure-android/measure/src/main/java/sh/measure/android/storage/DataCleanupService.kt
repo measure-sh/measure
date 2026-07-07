@@ -15,13 +15,16 @@ internal interface DataCleanupService {
 
 private const val DB_DELETION_BATCH_SIZE = 1000
 private const val MAX_SDK_DEBUG_LOG_FILES = 5
+private const val MAX_SESSIONS_TO_RETAIN = 5
 
 /**
  * Cleans up stale data from the database and file storage.
  *
  * This service deletes all events, attachments, and sessions that
  * are not marked for reporting. It also deletes events for the oldest session if
- * the total number of events in database exceeds the maximum allowed.
+ * the total number of events in database exceeds the maximum allowed. The rows of
+ * the most recently created sessions are always retained, so late-delivered
+ * signals can be attributed to the session they occurred in.
  */
 internal class DataCleanupServiceImpl(
     private val logger: Logger,
@@ -151,7 +154,9 @@ internal class DataCleanupServiceImpl(
         InternalTrace.trace(
             { "msr-deleteEmptySessions" },
             {
+                val retainedSessionIds = database.getRecentSessionIds(MAX_SESSIONS_TO_RETAIN).toSet()
                 val sessionIds = database.getSessionIds(excludeSessionId = currentSessionId)
+                    .filterNot { it in retainedSessionIds }
                 val sessionsToDelete = mutableListOf<String>()
                 for (sessionId in sessionIds) {
                     val events = database.getEventsCount(sessionId)
@@ -203,19 +208,19 @@ internal class DataCleanupServiceImpl(
         if (estimatedSizeInMb <= configProvider.maxDiskUsageInMb.coerceIn(20, 1500)) {
             return
         }
-        database.getOldestSession()?.let {
+        database.getOldestSessionWithSignals()?.let {
             if (it != currentSessionId) {
                 val eventIds = database.getEventsForSession(it)
                 fileStorage.deleteEventsIfExist(eventIds)
                 val attachmentIds = database.getAttachmentsForEvents(eventIds)
                 fileStorage.deleteAttachmentsIfExist(attachmentIds)
 
-                // deleting sessions from db will also delete events, spans and attachments for the session
-                // as they are cascaded deletes.
-                database.deleteSession(it)
+                // the session row is kept so late-delivered signals can still be
+                // attributed to it, deleteEmptySessions prunes it eventually.
+                database.deleteSessionData(it)
                 logger.log(
                     LogLevel.Debug,
-                    "DataCleanup: deleted session $it estimated storage: $estimatedSizeInMb, maxAllowed: ${configProvider.maxDiskUsageInMb}",
+                    "DataCleanup: deleted data for session $it estimated storage: $estimatedSizeInMb, maxAllowed: ${configProvider.maxDiskUsageInMb}",
                 )
             }
         }

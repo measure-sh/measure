@@ -49,6 +49,7 @@ class MeasureInternalTest {
         `when`(initializer.appLifecycleCollector).thenReturn(mock())
         `when`(initializer.gestureCollector).thenReturn(mock())
         `when`(initializer.appLaunchCollector).thenReturn(mock())
+        `when`(initializer.profileCollector).thenReturn(mock())
         `when`(initializer.networkChangesCollector).thenReturn(mock())
         `when`(initializer.appExitCollector).thenReturn(mock())
         `when`(initializer.userAttributeProcessor).thenReturn(mock())

@@ -8,6 +8,7 @@ androidx-lifecycle = "2.9.4"
 androidx-appcompat = "1.7.1"
 androidx-constraintlayout = "2.2.1"
 androidx-core-ktx = "1.16.0"
+androidx-work = "2.9.1"
 androidx-compose-ui = "1.9.4"
 androidx-compose-material3 = "1.4.0"
 androidx-runtime-android = "1.9.4"
@@ -50,6 +51,8 @@ androidx-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-j
 androidx-junit-ktx = { module = "androidx.test.ext:junit-ktx", version.ref = "androidx-junit" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "androidx-compose-ui" }
 androidx-lifecycle-common = { module = "androidx.lifecycle:lifecycle-common", version.ref = "androidx-lifecycle" }
+androidx-work-runtime = { module = "androidx.work:work-runtime", version.ref = "androidx-work" }
+androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "androidx-work" }
 androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "androidx-lifecycle" }
 androidx-material3 = { module = "androidx.compose.material3:material3", version.ref = "androidx-compose-material3" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "androidx-navigation" }

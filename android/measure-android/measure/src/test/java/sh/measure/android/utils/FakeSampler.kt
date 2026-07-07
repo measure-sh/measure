@@ -5,4 +5,5 @@ class FakeSampler : Sampler {
     override fun shouldSampleLaunchEvent(): Boolean = true
     override fun shouldTrackJourneyForSession(sessionId: String): Boolean = true
     override fun shouldSampleHttpEvent(): Boolean = true
+    override fun shouldSampleProfile(): Boolean = true
 }

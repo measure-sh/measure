@@ -141,13 +141,28 @@ class DataCleanupServiceTest {
     }
 
     @Test
-    fun `trimMemoryUsage deletes oldest session when disk usage exceeds limit`() {
+    fun `deleteEmptySessions does not delete recently created sessions`() {
+        setupDefaultMocks()
+        `when`(database.getSessionIds(sessionManager.getSessionId()))
+            .thenReturn(listOf("empty-session", "recent-empty-session"))
+        `when`(database.getRecentSessionIds(5)).thenReturn(listOf("recent-empty-session"))
+        `when`(database.getEventsCount("empty-session")).thenReturn(0)
+        `when`(database.getSpansCount("empty-session")).thenReturn(0)
+
+        dataCleanupService.cleanup()
+
+        verify(database, times(1)).deleteSession("empty-session")
+        verify(database, never()).deleteSession("recent-empty-session")
+    }
+
+    @Test
+    fun `trimMemoryUsage deletes data of the oldest session with signals when disk usage exceeds limit`() {
         setupDefaultMocks()
         `when`(database.getEventsCount()).thenReturn(100)
         `when`(database.getSpansCount()).thenReturn(0)
         configProvider.estimatedEventSizeInKb = 1024
         configProvider.maxDiskUsageInMb = 50
-        `when`(database.getOldestSession()).thenReturn("oldest-session")
+        `when`(database.getOldestSessionWithSignals()).thenReturn("oldest-session")
         `when`(database.getEventsForSession("oldest-session")).thenReturn(listOf("event1", "event2"))
         `when`(database.getAttachmentsForEvents(listOf("event1", "event2"))).thenReturn(listOf("attachment1"))
 
@@ -155,11 +170,12 @@ class DataCleanupServiceTest {
 
         verify(fileStorage, times(1)).deleteEventsIfExist(listOf("event1", "event2"))
         verify(fileStorage, times(1)).deleteAttachmentsIfExist(listOf("attachment1"))
-        verify(database, times(1)).deleteSession("oldest-session")
+        verify(database, times(1)).deleteSessionData("oldest-session")
+        verify(database, never()).deleteSession("oldest-session")
     }
 
     @Test
-    fun `trimMemoryUsage does not delete session when disk usage is within limit`() {
+    fun `trimMemoryUsage does not delete data when disk usage is within limit`() {
         // (100 * 15) / 1024 ≈ 1.5MB < 50MB limit
         setupDefaultMocks()
         `when`(database.getEventsCount()).thenReturn(100)
@@ -167,19 +183,19 @@ class DataCleanupServiceTest {
 
         dataCleanupService.cleanup()
 
-        verify(database, never()).getOldestSession()
+        verify(database, never()).getOldestSessionWithSignals()
     }
 
     @Test
-    fun `trimMemoryUsage does not delete current session even if it is oldest`() {
+    fun `trimMemoryUsage does not delete data of the current session even if it is oldest`() {
         setupDefaultMocks()
         `when`(database.getEventsCount()).thenReturn(3500)
         `when`(database.getSpansCount()).thenReturn(0)
-        `when`(database.getOldestSession()).thenReturn(sessionManager.getSessionId())
+        `when`(database.getOldestSessionWithSignals()).thenReturn(sessionManager.getSessionId())
 
         dataCleanupService.cleanup()
 
-        verify(database, never()).deleteSession(sessionManager.getSessionId())
+        verify(database, never()).deleteSessionData(sessionManager.getSessionId())
     }
 
     @Test
@@ -274,6 +290,7 @@ class DataCleanupServiceTest {
 
         // Default mocks for deleteEmptySessions
         `when`(database.getSessionIds(any())).thenReturn(emptyList())
+        `when`(database.getRecentSessionIds(any())).thenReturn(emptyList())
 
         // Default mocks for trimMemoryUsage
         `when`(database.getEventsCount()).thenReturn(100)

@@ -392,6 +392,11 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.spanCollector.register()
         measure.customEventCollector.register()
         measure.periodicSignalStoreScheduler.register()
+        // Profiling relies on WorkManager to upload its results durably, so it is enabled only when
+        // the consumer has added WorkManager to the classpath.
+        if (measure.workManagerAvailable) {
+            measure.profileCollector.register()
+        }
     }
 
     private fun unregisterCollectors() {
@@ -409,6 +414,9 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.spanCollector.unregister()
         measure.customEventCollector.unregister()
         measure.periodicSignalStoreScheduler.unregister()
+        if (measure.workManagerAvailable) {
+            measure.profileCollector.unregister()
+        }
     }
 
     private fun pauseCollectorsOnBackground() {

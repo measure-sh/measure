@@ -1,6 +1,14 @@
-import { describe, expect, it } from "@jest/globals";
+import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+
+const mockOpenTraceInPerfetto = jest.fn(
+  (_url: string, _title: string): Promise<void> => Promise.resolve(),
+);
+jest.mock("@/app/utils/perfetto_utils", () => ({
+  openTraceInPerfetto: (url: string, title: string) =>
+    mockOpenTraceInPerfetto(url, title),
+}));
 
 jest.mock("@/app/utils/time_utils", () => ({
   formatDateToHumanReadableDateTime: (ts: string) => `formatted:${ts}`,
@@ -440,6 +448,72 @@ describe("SessionTimelineEventDetails", () => {
         },
       });
       expect(screen.getByTestId("layout-snapshot")).toBeInTheDocument();
+    });
+  });
+
+  describe("Profile attachments", () => {
+    const traceEventDetails = {
+      format: "perfetto_trace",
+      attachments: [
+        {
+          key: "trace-1",
+          name: "profile.perfetto-trace",
+          location: "https://example.com/profile.perfetto-trace",
+          type: "perfetto_trace",
+        },
+      ],
+    };
+
+    beforeEach(() => {
+      mockOpenTraceInPerfetto.mockClear();
+    });
+
+    it("renders a download link for profile attachments", () => {
+      renderDetails({ eventType: "profile", eventDetails: traceEventDetails });
+      expect(screen.getByText("Download").closest("a")).toHaveAttribute(
+        "href",
+        "https://example.com/profile.perfetto-trace",
+      );
+    });
+
+    it("opens perfetto traces in the Perfetto UI on click", () => {
+      renderDetails({ eventType: "profile", eventDetails: traceEventDetails });
+      fireEvent.click(screen.getByText("Open in Perfetto"));
+      expect(mockOpenTraceInPerfetto).toHaveBeenCalledWith(
+        "https://example.com/profile.perfetto-trace",
+        "profile.perfetto-trace",
+      );
+    });
+
+    it("does not show the Perfetto button for non-trace attachments", () => {
+      renderDetails({
+        eventType: "profile",
+        eventDetails: {
+          format: "heap_profile",
+          attachments: [
+            {
+              key: "heap-1",
+              name: "profile.heapprofd",
+              location: "https://example.com/profile.heapprofd",
+              type: "heap_profile",
+            },
+          ],
+        },
+      });
+      expect(screen.getByText("Download")).toBeInTheDocument();
+      expect(screen.queryByText("Open in Perfetto")).not.toBeInTheDocument();
+    });
+
+    it("renders a non-clickable Perfetto label in demo mode", () => {
+      renderDetails({
+        demo: true,
+        eventType: "profile",
+        eventDetails: traceEventDetails,
+      });
+      const perfetto = screen.getByText("Open in Perfetto");
+      expect(perfetto.tagName).toBe("DIV");
+      fireEvent.click(perfetto);
+      expect(mockOpenTraceInPerfetto).not.toHaveBeenCalled();
     });
   });
 });

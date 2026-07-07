@@ -113,11 +113,22 @@ internal data class SessionEntity(
     val prioritySession: Boolean = false,
     @Deprecated("No longer used")
     val crashed: Boolean = false,
-    val supportsAppExit: Boolean,
     val appVersion: String?,
     val appBuild: String?,
     @Deprecated("No longer used")
     val trackJourney: Boolean = false,
+)
+
+/**
+ * A session row read back from the sessions table, used to attribute
+ * late-delivered signals to the session active when they originated.
+ */
+internal data class SessionRecord(
+    val id: String,
+    val createdAt: Long,
+    val appVersion: String?,
+    val appBuild: String?,
+    val lastAnrTime: Long? = null,
 )
 
 internal data class BatchEntity(

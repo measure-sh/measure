@@ -3567,6 +3567,7 @@ func (h Handlers) GetSession(c *gin.Context) {
 		event.TypeScreenView,
 		event.TypeBugReport,
 		event.TypeCustom,
+		event.TypeProfile,
 	}
 
 	eventMap := session.EventsOfTypes(typeList...)
@@ -3640,6 +3641,13 @@ func (h Handlers) GetSession(c *gin.Context) {
 		coldLaunches := timeline.ComputeColdLaunches(coldLaunchEvents)
 		threadedColdLaunches := timeline.GroupByThreads(coldLaunches)
 		threads.Organize(event.TypeColdLaunch, threadedColdLaunches)
+	}
+
+	profileEvents := eventMap[event.TypeProfile]
+	if len(profileEvents) > 0 {
+		profiles := timeline.ComputeProfiles(profileEvents)
+		threadedProfiles := timeline.GroupByThreads(profiles)
+		threads.Organize(event.TypeProfile, threadedProfiles)
 	}
 
 	warmLaunchEvents := eventMap[event.TypeWarmLaunch]
