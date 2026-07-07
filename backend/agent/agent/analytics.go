@@ -8,7 +8,9 @@ import (
 
 // agentQueryEvent carries the metadata for one agent turn.
 type agentQueryEvent struct {
-	appID            string
+	// appIDs is the comma-separated set the MCP caller named; empty on
+	// Slack, where the model picks apps per question.
+	appIDs           string
 	teamID           string
 	conversationID   string
 	continued        bool
@@ -32,7 +34,7 @@ type agentQueryEvent struct {
 func fireAgentQueryEvent(userID string, e agentQueryEvent) {
 	posthog.Capture(userID, "agent_query_made", map[string]any{
 		"schema_version":          "v1",
-		"app_id":                  e.appID,
+		"app_ids":                 e.appIDs,
 		"team_id":                 e.teamID,
 		"conversation_id":         e.conversationID,
 		"conversation_continued":  e.continued,

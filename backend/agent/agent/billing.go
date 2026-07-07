@@ -12,7 +12,6 @@ import (
 	"backend/libs/concur"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 )
 
@@ -93,31 +92,58 @@ func trackAgentTokens(deps *server.Deps, customerID, model string, usage tokenUs
 	})
 }
 
-// resolveAppAccess verifies the user belongs to the team owning the app and
-// returns that team's id and Autumn customer id.
-func (c *Config) resolveAppAccess(ctx context.Context, userID, appID uuid.UUID) (teamID uuid.UUID, customerID string, err error) {
+// resolveAppsAccess verifies every app exists, all belong to one team, and
+// the user is a member of that team. It returns the team's id and Autumn
+// customer id.
+func (c *Config) resolveAppsAccess(ctx context.Context, userID uuid.UUID, appIDs []uuid.UUID) (teamID uuid.UUID, customerID string, err error) {
+	if len(appIDs) == 0 {
+		return uuid.Nil, "", fmt.Errorf("no apps given")
+	}
+
 	deps := c.Deps
+	// pgx has no encode plan for []uuid.UUID; pass strings and cast.
+	ids := uuid.UUIDs(appIDs).Strings()
 	stmt := sqlf.PostgreSQL.
-		Select("t.id, t.autumn_customer_id").
+		Select("a.id, t.id, t.autumn_customer_id").
 		From("apps a").
 		Join("teams t", "a.team_id = t.id").
 		Join("team_membership tm", "tm.team_id = t.id").
-		Where("a.id = ?", appID).
+		Where("a.id = any(?::uuid[])", ids).
 		Where("tm.user_id = ?", userID)
 	defer stmt.Close()
 
-	var autumnCustomerID *string
-	err = deps.PgPool.
-		QueryRow(ctx, stmt.String(), stmt.Args()...).
-		Scan(&teamID, &autumnCustomerID)
+	rows, err := deps.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return uuid.Nil, "", fmt.Errorf("app not found or access denied")
-		}
 		return uuid.Nil, "", err
 	}
-	if autumnCustomerID != nil {
-		customerID = *autumnCustomerID
+	defer rows.Close()
+
+	found := map[uuid.UUID]bool{}
+	teams := map[uuid.UUID]bool{}
+	for rows.Next() {
+		var appID, appTeamID uuid.UUID
+		var autumnCustomerID *string
+		if err := rows.Scan(&appID, &appTeamID, &autumnCustomerID); err != nil {
+			return uuid.Nil, "", err
+		}
+		found[appID] = true
+		teams[appTeamID] = true
+		teamID = appTeamID
+		if autumnCustomerID != nil {
+			customerID = *autumnCustomerID
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return uuid.Nil, "", err
+	}
+
+	for _, appID := range appIDs {
+		if !found[appID] {
+			return uuid.Nil, "", fmt.Errorf("app not found or access denied")
+		}
+	}
+	if len(teams) > 1 {
+		return uuid.Nil, "", fmt.Errorf("all apps must belong to one team")
 	}
 	return teamID, customerID, nil
 }

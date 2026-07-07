@@ -140,7 +140,7 @@ var renderChartTool = chatTool{
 	Type: "function",
 	Function: chatToolFunction{
 		Name:        renderChartToolName,
-		Description: "Render a line or bar chart image that is posted below your reply. When the user asks to see, show or plot something, always render one, however little data there is. Otherwise use your judgment: chart when the answer centers on a trend over time or a comparison across categories with at least three data points, and skip it for single numbers or tiny lists. Mention it as the chart below, never as an image above, and refer to it instead of repeating every value.",
+		Description: "Render a line or bar chart image that is posted below your reply. When the user asks to see, show or plot something, always render one, however little data there is. Otherwise use your judgment: chart when the answer centers on a trend over time or a comparison across categories with at least three data points, and skip it for single numbers or tiny lists. When a chart covers more than one app, plot one series per app, name each series after its app, and let the title say what is compared. Mention it as the chart below, never as an image above, and refer to it instead of repeating every value.",
 		Parameters: json.RawMessage(`{
 			"type": "object",
 			"properties": {

@@ -12,12 +12,12 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-// conversation is one question thread. It belongs to one user and one app;
-// the team id is kept for usage metering.
+// conversation is one question thread. It belongs to one user and one team;
+// which of the team's apps a question is about is decided per turn by the
+// model.
 type conversation struct {
 	ID      uuid.UUID
 	UserID  uuid.UUID
-	AppID   uuid.UUID
 	TeamID  uuid.UUID
 	Surface string
 	// Slack thread coordinates, set on Slack surfaces only.
@@ -57,7 +57,6 @@ func (c *Config) createConversation(ctx context.Context, conv *conversation, tit
 		InsertInto("agent_conversations").
 		Set("id", conv.ID).
 		Set("user_id", conv.UserID).
-		Set("app_id", conv.AppID).
 		Set("team_id", conv.TeamID).
 		Set("title", title).
 		Set("surface", conv.Surface)
@@ -75,11 +74,11 @@ func (c *Config) createConversation(ctx context.Context, conv *conversation, tit
 	return nil
 }
 
-const conversationColumns = "id, user_id, app_id, team_id, surface, coalesce(slack_channel_id, ''), coalesce(slack_thread_ts, ''), coalesce(slack_user_id, ''), coalesce(slack_context_through_ts, '')"
+const conversationColumns = "id, user_id, team_id, surface, coalesce(slack_channel_id, ''), coalesce(slack_thread_ts, ''), coalesce(slack_user_id, ''), coalesce(slack_context_through_ts, '')"
 
 func scanConversation(row pgx.Row) (*conversation, error) {
 	conv := &conversation{}
-	err := row.Scan(&conv.ID, &conv.UserID, &conv.AppID, &conv.TeamID,
+	err := row.Scan(&conv.ID, &conv.UserID, &conv.TeamID,
 		&conv.Surface, &conv.SlackChannelID, &conv.SlackThreadTS, &conv.SlackUserID,
 		&conv.SlackContextThroughTS)
 	if err != nil {

@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"backend/testinfra"
+
+	"github.com/google/uuid"
 )
 
 // TestGetSchemaIntegration checks getSchema introspects the real ClickHouse and
@@ -43,7 +45,7 @@ func TestRunSQLIntegration(t *testing.T) {
 	from, to := now.Add(-time.Hour), now.Add(time.Hour)
 
 	t.Run("counts scoped events", func(t *testing.T) {
-		out, err := c.runSQL(ctx, `select count(*) as n from {{events}}`, teamID, appID, from, to)
+		out, err := c.runSQL(ctx, `select count(*) as n from {{events}}`, teamID, []uuid.UUID{appID}, from, to)
 		if err != nil {
 			t.Fatalf("runSQL: %v", err)
 		}
@@ -56,7 +58,7 @@ func TestRunSQLIntegration(t *testing.T) {
 		otherTeam, _, otherApp := seedTeamUserApp(ctx, t)
 		th.SeedEventRows(ctx, t, otherTeam.String(), otherApp.String(), 5, testinfra.EventRow{Timestamp: now})
 		// Our scope still counts only our 3, never the other team's 5 (or 8 total).
-		out, err := c.runSQL(ctx, `select count(*) as n from {{events}}`, teamID, appID, from, to)
+		out, err := c.runSQL(ctx, `select count(*) as n from {{events}}`, teamID, []uuid.UUID{appID}, from, to)
 		if err != nil {
 			t.Fatalf("runSQL: %v", err)
 		}
@@ -66,7 +68,7 @@ func TestRunSQLIntegration(t *testing.T) {
 	})
 
 	t.Run("excludes events outside the time range", func(t *testing.T) {
-		out, err := c.runSQL(ctx, `select count(*) as n from {{events}}`, teamID, appID, now.Add(time.Hour), now.Add(2*time.Hour))
+		out, err := c.runSQL(ctx, `select count(*) as n from {{events}}`, teamID, []uuid.UUID{appID}, now.Add(time.Hour), now.Add(2*time.Hour))
 		if err != nil {
 			t.Fatalf("runSQL: %v", err)
 		}
@@ -76,8 +78,38 @@ func TestRunSQLIntegration(t *testing.T) {
 	})
 
 	t.Run("rejects a raw (non-placeholder) table name", func(t *testing.T) {
-		if _, err := c.runSQL(ctx, `select count(*) from events`, teamID, appID, from, to); err == nil {
+		if _, err := c.runSQL(ctx, `select count(*) from events`, teamID, []uuid.UUID{appID}, from, to); err == nil {
 			t.Error("expected error for raw table name, got nil")
+		}
+	})
+
+	t.Run("multi-app team splits counts per app", func(t *testing.T) {
+		secondApp := uuid.New()
+		seedApp(ctx, t, secondApp, teamID, "second", 30)
+		th.SeedEventRows(ctx, t, teamID.String(), secondApp.String(), 5, testinfra.EventRow{Timestamp: now})
+
+		// Grouped by app_id it runs and keeps the apps' counts apart. Rows
+		// render as tab-separated columns, so each app id must appear in the
+		// same row as its own count; a digit-only check would match inside
+		// the UUIDs.
+		out, err := c.runSQL(ctx, `select app_id, count(*) as n from {{events}} group by app_id order by n`, teamID, []uuid.UUID{appID, secondApp}, from, to)
+		if err != nil {
+			t.Fatalf("runSQL: %v", err)
+		}
+		for _, want := range []string{appID.String() + "\t3", secondApp.String() + "\t5"} {
+			if !strings.Contains(out, want) {
+				t.Errorf("grouped output missing row %q, got:\n%s", want, out)
+			}
+		}
+
+		// Scoped to one app, a plain count needs no app_id in the query text
+		// and returns only that app's rows: the scope is in the subquery.
+		out, err = c.runSQL(ctx, `select count(*) as n from {{events}}`, teamID, []uuid.UUID{secondApp}, from, to)
+		if err != nil {
+			t.Fatalf("runSQL: %v", err)
+		}
+		if !strings.Contains(out, "5") || strings.Contains(out, "8") {
+			t.Errorf("app-scoped count should be 5, not 8 across apps, got:\n%s", out)
 		}
 	})
 }

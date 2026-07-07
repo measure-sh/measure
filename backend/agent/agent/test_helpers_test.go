@@ -145,11 +145,13 @@ func newTestAgent(t *testing.T, responses ...string) (*Config, *stubLLM) {
 	stub := &stubLLM{responses: responses}
 	srv := httptest.NewServer(stub)
 	t.Cleanup(srv.Close)
-	return &Config{
+	cfg := &Config{
 		Deps:        deps,
 		BaseURL:     srv.URL,
 		APIKey:      "test-key",
 		ModelSmall:  "test-small",
 		ModelMedium: "test-medium",
-	}, stub
+	}
+	cfg.initTools()
+	return cfg, stub
 }

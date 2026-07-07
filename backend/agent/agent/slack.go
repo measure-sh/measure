@@ -13,10 +13,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 	"unicode/utf8"
 
 	"backend/libs/concur"
+	"backend/libs/measure"
 	"backend/libs/slack"
 
 	"github.com/google/uuid"
@@ -252,8 +252,10 @@ func (c *Config) answerSlackQuestion(ctx context.Context, ev slack.AgentEvent) {
 			log.Printf("agent: failed to post slack ack: %v", err)
 		}
 	} else {
-		// In Agent view, setStatus also opens the DM thread so the conversation
-		// continues in it. Keep this call for that reason too, not only status.
+		// setStatus drives the assistant pane's working indicator: Slack shows
+		// its own animated phrases at the top and this text under the
+		// composer, neither when the status is empty. The call also opens the
+		// DM thread so the conversation continues in it.
 		if err := slack.SetAssistantStatus(ctx, token, ev.Channel, ev.ThreadTS, "is digging through the telemetry..."); err != nil {
 			log.Printf("agent: failed to set assistant status: %v", err)
 		}
@@ -348,10 +350,9 @@ func channelUnreachable(err error) bool {
 	return false
 }
 
-// slackReply resolves who is asking about which app in which conversation,
-// runs the turn, and returns the text to post, the answer or a message the
-// asker can act on, plus any charts the turn rendered for upload after the
-// text.
+// slackReply resolves who is asking in which conversation, runs the turn,
+// and returns the text to post, the answer or a message the asker can act
+// on, plus any charts the turn rendered for upload after the text.
 func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uuid.UUID, botToken, botUserID string) (string, []renderedChart) {
 	// Attachments never make it past the edge, only the typed text does, so
 	// answering the text alone could silently miss the point of the question.
@@ -395,13 +396,14 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 	}
 
 	continued := conv != nil
-	var appID uuid.UUID
-	var resolveUsage chatUsage
-	// Set when the app was resolved from the discussion rather than named in
-	// the question; the turn then tells the model to open its reply by naming
-	// the app.
-	var contextAppLabel string
 	if continued {
+		// Threads are matched by channel and timestamp alone, and a workspace
+		// can be relinked to another Measure team; the previous team's
+		// transcript must not leak into or be written by the new team's turns.
+		if conv.TeamID != teamID {
+			log.Printf("agent: slack question rejected event=%s reason=conversation_team_mismatch", ev.EventID)
+			return "This thread belongs to a previous Measure connection. Please start a new thread.", nil
+		}
 		// Assistant threads stay private to whoever started them. Channel
 		// threads are open to the whole team; resolveSlackUser already
 		// required team membership.
@@ -409,7 +411,6 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 			log.Printf("agent: slack question rejected event=%s reason=foreign_assistant_thread", ev.EventID)
 			return "This chat belongs to another user, please start another thread with me.", nil
 		}
-		appID = conv.AppID
 	} else {
 		apps, err := c.getTeamApps(ctx, teamID)
 		if err != nil {
@@ -420,44 +421,24 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 			log.Printf("agent: slack question from team with no apps event=%s", ev.EventID)
 			return noAppsReply(c.dashboardLink(teamID, "apps")), nil
 		}
-		app, clarify := pickMeasureApp(apps, question)
-		if clarify != "" {
-			// The current message names no app on its own. The surrounding
-			// discussion often points to one, so read it and let the model
-			// resolve the app before falling back to asking.
-			resolved, usage, ok := c.resolveAppFromContext(ctx, botToken, botUserID, ev, question, apps)
-			if !ok {
-				log.Printf("agent: slack question needs clarification event=%s apps=%d", ev.EventID, len(apps))
-				return clarify, nil
-			}
-			log.Printf("agent: slack app resolved from context event=%s app=%s", ev.EventID, resolved.id)
-			app = resolved
-			resolveUsage = usage
-			contextAppLabel = resolved.label()
-		}
-		appID = app.id
 	}
 
-	// Re-verifies team membership and fetches the billing customer. The
-	// returned team is the app's owning team, the one the turn must scope
-	// queries and metering to.
-	turnTeamID, customerID, err := c.resolveAppAccess(ctx, userID, appID)
+	// resolveSlackUser verified team membership; the customer id is all that
+	// is left to fetch for billing.
+	customerID, err := measure.GetAutumnCustomerID(ctx, c.Deps.PgPool, teamID)
 	if err != nil {
-		log.Printf("agent: slack app access check failed: %v", err)
+		log.Printf("agent: slack team customer lookup failed: %v", err)
 		return somethingWentWrong, nil
 	}
-	// Meter any model call the app resolution above made. No-ops on zero.
-	trackAgentTokens(c.Deps, customerID, c.ModelSmall, callUsage(resolveUsage))
 	if err := c.checkAgentAllowed(ctx, customerID); err != nil {
 		log.Printf("agent: slack question rejected event=%s reason=usage_blocked", ev.EventID)
-		return agentNotAllowedReply(c.dashboardLink(turnTeamID, "usage")), nil
+		return agentNotAllowedReply(c.dashboardLink(teamID, "usage")), nil
 	}
 
 	if !continued {
 		conv = &conversation{
 			UserID:         userID,
-			AppID:          appID,
-			TeamID:         turnTeamID,
+			TeamID:         teamID,
 			Surface:        ev.Surface,
 			SlackChannelID: ev.Channel,
 			SlackThreadTS:  ev.ThreadTS,
@@ -483,16 +464,18 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 		c.ingestSlackContext(ctx, conv, ev, botToken, botUserID, customerID)
 	}
 
+	// Slack replies are read by the workspace's team, so the turn's tools are
+	// restricted to that team's apps.
+	ctx = withTeamScope(ctx, teamID)
+
 	answer, charts, err := c.runTurn(ctx, turn{
-		userID:          userID,
-		appID:           appID,
-		teamID:          turnTeamID,
-		customerID:      customerID,
-		conv:            conv,
-		continued:       continued,
-		question:        question,
-		entryPoint:      ev.Surface,
-		contextAppLabel: contextAppLabel,
+		userID:     userID,
+		teamID:     teamID,
+		customerID: customerID,
+		conv:       conv,
+		continued:  continued,
+		question:   question,
+		entryPoint: ev.Surface,
 	})
 	if err != nil {
 		if errors.Is(err, errNoAnswer) {
@@ -634,11 +617,13 @@ func (c *Config) getSlackIntegration(ctx context.Context, teamID uuid.UUID) (tok
 	return token, botUserID, active, err
 }
 
-// measureApp is one of a team's apps, as app selection sees it.
+// measureApp is one of a team's apps: id, name, unique identifier and the
+// platforms it reports telemetry for, as the turn's app list shows it.
 type measureApp struct {
 	id               uuid.UUID
 	name             string
 	uniqueIdentifier string
+	osNames          []string
 }
 
 // label renders the app as its name with the unique identifier appended when
@@ -651,298 +636,11 @@ func (app measureApp) label() string {
 	return app.name
 }
 
-func (c *Config) getTeamApps(ctx context.Context, teamID uuid.UUID) ([]measureApp, error) {
-	deps := c.Deps
-	stmt := sqlf.PostgreSQL.
-		Select("id, coalesce(app_name, ''), coalesce(unique_identifier, '')").
-		From("apps").
-		Where("team_id = ?", teamID).
-		OrderBy("created_at")
-	defer stmt.Close()
-
-	rows, err := deps.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var apps []measureApp
-	for rows.Next() {
-		var app measureApp
-		if err := rows.Scan(&app.id, &app.name, &app.uniqueIdentifier); err != nil {
-			return nil, err
-		}
-		apps = append(apps, app)
-	}
-	return apps, rows.Err()
-}
-
-// contextAppNote tells the turn's model that the app was resolved from the
-// surrounding discussion rather than named by the user, and that its reply
-// must open by saying which app it is answering about, so the asker can
-// catch a wrong pick. The phrasing is left to the model; the app itself is
-// written in the label form, the same way the clarify reply lists apps, and
-// how the app was chosen stays out of replies. Both placeholders take the
-// label.
-const contextAppNote = "The user's message did not name an app; the conversation was matched to the app %s. Open your reply by telling the user, in your own words, which app you are answering about, so they can correct you if it is the wrong one. Write the app exactly as %s. Do not mention how the app was determined."
-
-// internalBuildMarkers tag internal builds by unique-identifier suffix, so
-// the production app wins when a team tracks both. Suffix only: ".test"
-// must not catch a production id like com.testdrive.app.
-var internalBuildMarkers = []string{".dev", ".debug", ".staging", ".qa", ".test", ".beta"}
-
-// pickMeasureApp chooses which of a team's apps a question is about: an app
-// named in the question wins, a lone app is it, and internal builds lose to
-// the production one. When it can't choose, it returns a clarifying reply
-// instead. Callers guarantee apps is non-empty; a team with no apps at all is
-// answered with noAppsReply before app picking begins.
-func pickMeasureApp(apps []measureApp, question string) (measureApp, string) {
-	q := strings.ToLower(question)
-	var named []measureApp
-	for _, app := range apps {
-		if questionNamesApp(q, app) {
-			named = append(named, app)
-		}
-	}
-	named = mostSpecificNames(named)
-	if len(named) == 1 {
-		return named[0], ""
-	}
-	if len(named) > 1 {
-		return measureApp{}, clarifyApps(named)
-	}
-
-	if len(apps) == 1 {
-		return apps[0], ""
-	}
-
-	var production []measureApp
-	for _, app := range apps {
-		uid := strings.ToLower(app.uniqueIdentifier)
-		internal := false
-		for _, marker := range internalBuildMarkers {
-			if strings.HasSuffix(uid, marker) {
-				internal = true
-				break
-			}
-		}
-		if !internal {
-			production = append(production, app)
-		}
-	}
-	if len(production) == 1 {
-		return production[0], ""
-	}
-
-	return measureApp{}, clarifyApps(apps)
-}
-
-// resolveAppFromContext picks the app a mention is about when the mention text
-// itself names none. It reads the surrounding discussion, the same recent
-// channel or thread messages the bot summarizes for context, and asks the
-// small model which of the team's apps the question is about: the discussion
-// may name one outright, perhaps answering an earlier clarification with
-// "Wikipedia" or "org.wikipedia.android", or describe one loosely like "prod
-// android app". ok is false when the discussion can't be read or the model
-// doesn't settle on a single app, leaving the caller to ask which one. usage
-// is the model usage to meter once the chosen app's customer is known, and is
-// zero when no model call was made.
-func (c *Config) resolveAppFromContext(ctx context.Context, botToken, botUserID string, ev slack.AgentEvent, question string, apps []measureApp) (app measureApp, usage chatUsage, ok bool) {
-	// With fewer than two apps there is nothing to disambiguate: a lone app is
-	// already chosen on the current message, and no apps has its own reply.
-	if len(apps) < 2 {
-		return measureApp{}, chatUsage{}, false
-	}
-
-	// The fetch and the possible approximation LLM call both cost time on the
-	// clarify path, so group them under one span with a duration log.
-	ctx, span := tracer.Start(ctx, "agent.slack_app_resolve")
-	defer span.End()
-	start := time.Now()
-	outcome := "unclear"
-	defer func() {
-		span.SetAttributes(attribute.String("agent.outcome", outcome))
-		log.Printf("agent: slack app resolve event=%s outcome=%s duration=%s",
-			ev.EventID, outcome, time.Since(start).Round(time.Millisecond))
-	}()
-
-	msgs, err := c.fetchSlackContext(ctx, ev, botToken, "")
-	if err != nil {
-		outcome = "fetch_failed"
-		span.SetStatus(codes.Error, err.Error())
-		log.Printf("agent: slack context app scan failed event=%s: %v", ev.EventID, err)
-		return measureApp{}, chatUsage{}, false
-	}
-	picked := selectContextMessages(msgs, botUserID, ev.EventTS, "", slackContextMessageLimit)
-	if len(picked) == 0 {
-		outcome = "no_messages"
-		return measureApp{}, chatUsage{}, false
-	}
-
-	// Every pick goes through the model, even when the discussion names an
-	// app outright: a literal name may be chatter unrelated to the question,
-	// like a release announcement or social talk, and only the model can
-	// judge that relevance.
-	app, usage, ok = c.approximateAppFromMessages(ctx, question, picked, apps)
-	if ok {
-		outcome = "approximated"
-	}
-	return app, usage, ok
-}
-
-// appResolutionPrompt steers the small model that maps a Slack question onto
-// one of a team's apps when none was named outright.
-const appResolutionPrompt = `You match a question asked in Slack to one app from a list. People ask a telemetry agent about one of their apps but may describe an app loosely, like "the android app", "our prod build", or "the iOS one". Each app is listed as "<number>. <name> (<unique identifier>)". The unique identifier often signals the platform (for example .android or .ios) and whether a build is internal (.dev, .debug, .staging, .qa, .test, .beta) rather than production. Decide which single listed app the question is about, using the discussion around it only to interpret the question. The list holds every app the team has, so an app named in the discussion but absent from the list belongs to someone else; it is never the answer and never evidence for a listed app. A listed app named in messages unrelated to the question is not evidence either. Reply with only the chosen app's number. If the question does not point clearly to one listed app, reply with only 0.`
-
-// approximateAppFromMessages asks the small model which app the question is
-// about. The question is presented apart from the discussion so that app
-// names in unrelated chatter don't decide the pick. It returns the chosen
-// app with ok true only on a confident single pick, along with the call's
-// token usage to meter.
-func (c *Config) approximateAppFromMessages(ctx context.Context, question string, msgs []slack.Message, apps []measureApp) (app measureApp, usage chatUsage, ok bool) {
-	var list strings.Builder
-	for i, app := range apps {
-		fmt.Fprintf(&list, "%d. %s\n", i+1, app.label())
-	}
-	prompt := fmt.Sprintf("Apps:\n%sQuestion:\n%s\nDiscussion (recent messages, oldest first):\n%s",
-		list.String(), question, renderSlackContext(msgs))
-
-	resp, err := c.chat(ctx, c.ModelSmall, []chatMessage{
-		{Role: "system", Content: appResolutionPrompt},
-		{Role: "user", Content: prompt},
-	}, nil, "")
-	if err != nil {
-		log.Printf("agent: slack app approximation failed: %v", err)
-		return measureApp{}, chatUsage{}, false
-	}
-	if len(resp.Choices) == 0 {
-		return measureApp{}, resp.Usage, false
-	}
-	idx := parseAppChoice(resp.Choices[0].Message.Content, len(apps))
-	if idx < 0 {
-		return measureApp{}, resp.Usage, false
-	}
-	return apps[idx], resp.Usage, true
-}
-
-// appChoiceDigits grabs the first run of digits in the model's reply.
-var appChoiceDigits = regexp.MustCompile(`\d+`)
-
-// parseAppChoice reads the app-resolution reply: the 1-based number of the
-// chosen app, or 0 (or anything without a usable number) for "no clear pick".
-// It returns a 0-based index, or -1 when unclear. Scanning for the first run of
-// digits tolerates a stray word around the number.
-func parseAppChoice(reply string, n int) int {
-	digits := appChoiceDigits.FindString(reply)
-	if digits == "" {
-		return -1
-	}
-	num, err := strconv.Atoi(digits)
-	if err != nil || num < 1 || num > n {
-		return -1
-	}
-	return num - 1
-}
-
-// questionNamesApp reports whether the lowercased question mentions the app
-// by name or unique identifier. Names match on word boundaries (an app
-// called "Ace" is not named by the word "trace"), and names under three
-// characters never match; they would catch ordinary words constantly.
-func questionNamesApp(q string, app measureApp) bool {
-	name := strings.ToLower(app.name)
-	if len(name) >= 3 && containsWord(q, name) {
-		return true
-	}
-	uid := strings.ToLower(app.uniqueIdentifier)
-	return uid != "" && strings.Contains(q, uid)
-}
-
-// containsWord reports whether sub occurs in s with no letter or digit
-// directly before or after it.
-func containsWord(s, sub string) bool {
-	for start := 0; ; start++ {
-		i := strings.Index(s[start:], sub)
-		if i < 0 {
-			return false
-		}
-		start += i
-		before, _ := utf8.DecodeLastRuneInString(s[:start])
-		after, _ := utf8.DecodeRuneInString(s[start+len(sub):])
-		if !isWordRune(before) && !isWordRune(after) {
-			return true
-		}
-	}
-}
-
-// isWordRune treats utf8.RuneError (returned at the edges of the string) as
-// a non-word rune, so matches at the start or end of the text count.
-func isWordRune(r rune) bool {
-	return unicode.IsLetter(r) || unicode.IsDigit(r)
-}
-
-// mostSpecificNames removes matches whose name sits inside another match's
-// name: a question naming "Measure Pro" unavoidably also matches "Measure",
-// and the longer, more specific name is the one the question meant.
-func mostSpecificNames(matches []measureApp) []measureApp {
-	var kept []measureApp
-	for _, m := range matches {
-		insideAnother := false
-		for _, other := range matches {
-			if m.id != other.id && len(m.name) < len(other.name) &&
-				strings.Contains(strings.ToLower(other.name), strings.ToLower(m.name)) {
-				insideAnother = true
-				break
-			}
-		}
-		if !insideAnother {
-			kept = append(kept, m)
-		}
-	}
-	return kept
-}
-
-// clarifyLeads open the reply a mention gets when the team has apps but the
-// message does not pin down a single one. Each introduces what the bot does,
-// helping you debug an app using its telemetry, and ends by asking which app;
-// one is picked at random so repeats in a busy channel stay fresh. The leads
-// stay neutral on purpose: a mention can be a greeting, a real question, or
-// something off-topic like "who is the president of Rwanda?", so none of them
-// presume the message was a request the bot agreed to. The matching app list
-// is appended below the chosen lead.
-var clarifyLeads = []string{
-	"Hi! I can help you debug your app's crashes, errors, sessions and more. Which app would you like to look at?",
-	"Hey there! I can dig into your app's health with you. Which app should I focus on?",
-	"Hello! I can tell you how your apps are doing, from crashes to slow sessions. Which one are you curious about?",
-	"Hi! I'm here to help you debug your app. Which app would you like to talk about?",
-	"Hey! I can look into crashes, errors, sessions and other telemetry for your apps. Which app do you have in mind?",
-	"I'm the Measure bot, here to help you debug your apps. Which app should I look at?",
-	"Hi there! I can pull up crashes, errors, sessions and trends for your apps. Which one would you like to explore?",
-	"Hello! Tell me what you're debugging and I'll dig in. First, which app are we talking about?",
-	"Hey! I'm here to help with your app telemetry. Which of your apps would you like to look into?",
-	"Hi! I can help you debug crashes, errors, slow sessions and more across your apps. Which app should I start with?",
-	"Hey! I cover crashes, errors, sessions and other telemetry for your apps. Which app do you want to know about?",
-	"Hey there! Tell me what you'd like to know about your app's health. Which app would you like to ask about?",
-	"Hello! I can surface crashes, slow sessions and other signals from your apps. Which one would you like to check?",
-	"Hi! I'm your Measure helper for debugging your apps. Which app should I dig into?",
-	"Hey! I can walk through crashes, errors and session trends with you. Which app would you like to look at?",
-	"Hello! I can dig into how your apps are doing. Which app are you interested in?",
-	"Hi there! I can help you understand your app's crashes, errors and sessions. Which app should I focus on?",
-	"Hello! Point me at an issue and I'll take a look. Which app do you want to investigate?",
-	"Hey! I can report on errors, crashes, sessions and more for your apps. Which one would you like to explore?",
-	"Hi! I can look into your app's health with you. Which app should I check?",
-	"Hi there! I help you debug your apps. Which app would you like to talk about?",
-	"Hey! I can pull crashes, errors and session data for any of your apps. Which one are you curious about?",
-	"Hello! I'm here to help you debug, big issues or small. Which app should I look at?",
-	"Hi! I can help you keep an eye on crashes, errors and sessions. Which app would you like to start with?",
-	"Hey there! Tell me what's on your mind about your app's health. Which app are you asking about?",
-}
-
 // noAppsLeads open the reply a mention gets when the team has no apps in
-// Measure at all. Like clarifyLeads they stay neutral so any mention, greeting
-// or off-topic, reads correctly, but instead of asking which app they point at
-// the dashboard to set one up; one is picked at random. No app list follows.
-// Each lead carries exactly one %s slot where noAppsReply splices the word
-// "dashboard", linked to the team's apps page.
+// Measure at all. The leads stay neutral so any mention, greeting or
+// off-topic, reads correctly, and point at the dashboard to set an app up;
+// one is picked at random. Each lead carries exactly one %s slot where
+// noAppsReply splices the word "dashboard", linked to the team's apps page.
 var noAppsLeads = []string{
 	"Hi! I can help you debug your app's crashes, errors and sessions. Your team doesn't have any apps in Measure yet, so set one up in the %s and I'll be ready to help.",
 	"Hey there! I'm the Measure bot, here to help you debug your app's crashes, errors and slow sessions. There are no apps set up for your team yet. Add one in the %s and mention me again.",
@@ -968,27 +666,12 @@ func noAppsReply(dashboard string) string {
 	return fmt.Sprintf(noAppsLeads[rand.IntN(len(noAppsLeads))], dashboard)
 }
 
-// clarifyApps asks which app the question meant, opening with a random
-// friendly lead so a greeting or vague mention gets a welcoming reply rather
-// than a blunt prompt. Each app is listed with its unique identifier, since
-// teams often name the iOS and Android builds identically, and the identifier
-// is then the only usable handle.
-func clarifyApps(apps []measureApp) string {
-	var b strings.Builder
-	b.WriteString(clarifyLeads[rand.IntN(len(clarifyLeads))])
-	for _, app := range apps {
-		b.WriteString("\n• ")
-		b.WriteString(app.label())
-	}
-	return b.String()
-}
-
 // slackMentionRE matches user mentions like <@U12345> in message text.
 var slackMentionRE = regexp.MustCompile(`<@[^>]+>`)
 
 // slackUnescaper undoes the HTML escaping Slack applies to message text on
-// the way in. Without it an app named "Food & Drink" never matches the
-// question text, and the model reads "&gt;" where the user typed ">".
+// the way in, so the model reads ">" where the user typed it instead of
+// "&gt;".
 var slackUnescaper = strings.NewReplacer("&lt;", "<", "&gt;", ">", "&amp;", "&")
 
 // slackEscaper escapes the three characters Slack parses as markup. Replies
@@ -1347,7 +1030,6 @@ func (c *Config) ingestSlackContext(ctx context.Context, conv *conversation, ev 
 // fetchSlackContext reads the recent Slack messages around a mention: a
 // top-level mention pulls the channel's recent history, a threaded mention the
 // thread replies after the given high-water mark (empty for all recent ones).
-// Both app resolution and context summarization read the same window this way.
 func (c *Config) fetchSlackContext(ctx context.Context, ev slack.AgentEvent, botToken, through string) ([]slack.Message, error) {
 	// A top-level mention roots its own thread, so thread_ts equals the
 	// message ts; anything else sits inside an existing thread.

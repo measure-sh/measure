@@ -24,6 +24,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/google/uuid"
+	"github.com/leporo/sqlf"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.opentelemetry.io/otel/codes"
 )
@@ -76,8 +77,13 @@ func (c *Config) loadTableSets(ctx context.Context) (*tableSets, error) {
 		sets.scoped[t] = true
 	}
 
-	allRows, err := deps.RchPool.Query(ctx,
-		`select name from system.tables where database = currentDatabase()`)
+	stmt := sqlf.
+		Select("name").
+		From("system.tables").
+		Where("database = currentDatabase()")
+	defer stmt.Close()
+
+	allRows, err := deps.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return nil, fmt.Errorf("schema introspection failed: %w", err)
 	}
@@ -128,11 +134,15 @@ func (c *Config) getSchema(ctx context.Context) (string, error) {
 	}
 	sort.Strings(names)
 
-	query := fmt.Sprintf(
-		`select table, name, type, comment from system.columns where database = currentDatabase() and table in (%s) order by table, position`,
-		strings.Join(names, ","))
+	stmt := sqlf.
+		Select("table, name, type, comment").
+		From("system.columns").
+		Where("database = currentDatabase()").
+		Where(fmt.Sprintf("table in (%s)", strings.Join(names, ","))).
+		OrderBy("table, position")
+	defer stmt.Close()
 
-	rows, err := deps.RchPool.Query(ctx, query)
+	rows, err := deps.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return "", err
 	}
@@ -323,16 +333,22 @@ func skipAlias(s string, i int) int {
 	return j + len(word)
 }
 
-// expandPlaceholders rewrites {{table}} into a subquery scoped to the team
-// and app pair and bounded to the from/to range on the table's time column,
-// so a query can never scan outside its time range.
-func expandPlaceholders(query string, teamID, appID uuid.UUID, from, to time.Time) string {
+// expandPlaceholders rewrites {{table}} into a subquery scoped to the team,
+// the given apps and the from/to range on the table's time column, so a query
+// can never scan outside its scope. app_id stays selectable so queries can
+// group by it.
+func expandPlaceholders(query string, teamID uuid.UUID, appIDs []uuid.UUID, from, to time.Time) string {
+	quoted := make([]string, len(appIDs))
+	for i, id := range appIDs {
+		quoted[i] = fmt.Sprintf("toUUID('%s')", id)
+	}
+	appScope := fmt.Sprintf(" and app_id in (%s)", strings.Join(quoted, ", "))
 	return placeholderRe.ReplaceAllStringFunc(query, func(m string) string {
 		name := placeholderRe.FindStringSubmatch(m)[1]
 		timeCol := agentTables[name]
 		return fmt.Sprintf(
-			"(select * from %s where team_id = toUUID('%s') and app_id = toUUID('%s') and %s >= %s and %s <= %s)",
-			name, teamID, appID, timeCol, chTime(from), timeCol, chTime(to))
+			"(select * from %s where team_id = toUUID('%s')%s and %s >= %s and %s <= %s)",
+			name, teamID, appScope, timeCol, chTime(from), timeCol, chTime(to))
 	})
 }
 
@@ -341,15 +357,16 @@ func chTime(t time.Time) string {
 	return fmt.Sprintf("toDateTime64('%s', 3, 'UTC')", t.UTC().Format("2006-01-02 15:04:05.000"))
 }
 
-// runSQL validates the query, scopes it to the team, app and time range,
-// runs it read-only and renders the rows as text for the LLM.
-func (c *Config) runSQL(ctx context.Context, query string, teamID, appID uuid.UUID, from, to time.Time) (string, error) {
-	// Fail closed on an incomplete scope: a nil team or app id would expand
-	// into an unscoped or wrong-team subquery and could cross team boundaries.
-	// resolveAppAccess derives both from the app upstream, so this should never
-	// fire; it guards against a future caller that forgets to.
-	if teamID == uuid.Nil || appID == uuid.Nil {
-		log.Printf("ERROR agent: run_sql refused, incomplete scope (team=%s app=%s)", teamID, appID)
+// runSQL validates the query, scopes it to the team, the given apps and the
+// time range, runs it read-only and renders the rows as text for the LLM.
+// Callers validate appIDs against the team's apps.
+func (c *Config) runSQL(ctx context.Context, query string, teamID uuid.UUID, appIDs []uuid.UUID, from, to time.Time) (string, error) {
+	// Fail closed on an incomplete scope: a nil team or empty app set would
+	// expand into a wider subquery than any caller may run. Upstream derives
+	// both from access checks and the team's app list; this guards a future caller
+	// that forgets to.
+	if teamID == uuid.Nil || len(appIDs) == 0 {
+		log.Printf("ERROR agent: run_sql refused, incomplete scope (team=%s apps=%d)", teamID, len(appIDs))
 		return "", fmt.Errorf("internal error: query scope is incomplete")
 	}
 
@@ -363,7 +380,7 @@ func (c *Config) runSQL(ctx context.Context, query string, teamID, appID uuid.UU
 		return "", err
 	}
 
-	expanded := expandPlaceholders(query, teamID, appID, from, to)
+	expanded := expandPlaceholders(query, teamID, appIDs, from, to)
 
 	chCtx := clickhouse.Context(ctx, clickhouse.WithSettings(clickhouse.Settings{
 		"readonly":             1,
@@ -523,10 +540,11 @@ func MCPTools(cfg *Config) []Tool {
 func askQuestionTool(cfg *Config) Tool {
 	return newTool(&mcpsdk.Tool{
 		Name: "ask_question",
-		Description: "Ask a natural-language question about an app's telemetry (crashes, ANRs, errors, sessions, " +
-			"spans, network) that the other Measure tools don't cover. The agent picks the right tool or explores " +
-			"the raw data with read-only SQL and answers with concrete numbers. " +
-			"Use list_apps to discover app ids. Pass conversation_id from a previous answer to continue that conversation.",
+		Description: "Ask a natural-language question about the telemetry of one or more apps (crashes, ANRs, errors, " +
+			"sessions, spans, network) that the other Measure tools don't cover. The agent picks the right tool or explores " +
+			"the raw data with read-only SQL and answers with concrete numbers, including comparisons across apps. " +
+			"Pass the app_ids the question is about; all must belong to one team. Use list_apps to discover app ids. " +
+			"Pass conversation_id from a previous answer to continue that conversation.",
 		InputSchema: mcpMustInferSchema[askQuestionInput](),
 	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in askQuestionInput) (*mcpsdk.CallToolResult, any, error) {
 		// The one agent-backed tool: while the agent is disabled it returns
@@ -1095,13 +1113,16 @@ func (c *Config) mcpResolveAppAccess(ctx context.Context, rawAppID string) (uuid
 	}
 
 	pgPool := deps.PgPool
+	stmt := sqlf.PostgreSQL.
+		Select("count(*)").
+		From("apps a").
+		Join("team_membership tm", "a.team_id = tm.team_id").
+		Where("a.id = ?", appID).
+		Where("tm.user_id = ?", userID)
+	defer stmt.Close()
+
 	var count int
-	err = pgPool.QueryRow(ctx,
-		`SELECT count(*)
-		 FROM measure.apps a
-		 JOIN measure.team_membership tm ON a.team_id = tm.team_id
-		 WHERE a.id = $1 AND tm.user_id = $2`,
-		appID, userID).Scan(&count)
+	err = pgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&count)
 	if err != nil {
 		return uuid.UUID{}, uuid.UUID{}, fmt.Errorf("failed to check app access: %w", err)
 	}
@@ -1116,6 +1137,13 @@ func (c *Config) mcpResolveAppAccess(ctx context.Context, rawAppID string) (uuid
 	}
 	if team == nil {
 		return uuid.UUID{}, uuid.UUID{}, fmt.Errorf("no team exists for app %s", appID)
+	}
+
+	// A team-scoped turn may only touch the scoped team's apps, even when
+	// the asker belongs to the app's team: the reply is read by the scoped
+	// team's channel.
+	if scopeTeamID, ok := teamScopeFromContext(ctx); ok && *team.ID != scopeTeamID {
+		return uuid.UUID{}, uuid.UUID{}, fmt.Errorf("app not found or access denied")
 	}
 
 	return appID, *team.ID, nil
@@ -1271,13 +1299,19 @@ func (c *Config) mcpListApps(ctx context.Context, _ mcpListAppsInput) (*mcpsdk.C
 		OsNames          []string `json:"os_names"`
 		UniqueIdentifier string   `json:"unique_identifier"`
 	}
-	rows, err := pgPool.Query(ctx,
-		`SELECT a.id, coalesce(a.app_name, ''), a.os_names, coalesce(a.unique_identifier, '')
-		 FROM measure.apps a
-		 JOIN measure.team_membership tm ON a.team_id = tm.team_id
-		 WHERE tm.user_id = $1
-		 ORDER BY a.created_at DESC`,
-		userID)
+	stmt := sqlf.PostgreSQL.
+		Select("a.id, coalesce(a.app_name, ''), a.os_names, coalesce(a.unique_identifier, '')").
+		From("apps a").
+		Join("team_membership tm", "a.team_id = tm.team_id").
+		Where("tm.user_id = ?", userID).
+		OrderBy("a.created_at desc")
+	defer stmt.Close()
+	// A team-scoped turn (Slack) lists only that team's apps; without a
+	// scope (MCP) the user sees every team's.
+	if teamID, ok := teamScopeFromContext(ctx); ok {
+		stmt.Where("a.team_id = ?", teamID)
+	}
+	rows, err := pgPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to query apps: %v", err)
 	}
