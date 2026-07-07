@@ -1545,7 +1545,7 @@ func TestMCPAskQuestionAgentDisabled(t *testing.T) {
 	t.Cleanup(func() { deps.Config.AgentEnabled = orig })
 
 	resp := callMCPTool(t, rawToken, "ask_question", map[string]any{
-		"app_id":   uuid.New().String(),
+		"app_ids":  []string{uuid.New().String()},
 		"question": "how is the app?",
 	})
 	if text := extractTextContent(t, resp); text != agent.UnavailableReply {

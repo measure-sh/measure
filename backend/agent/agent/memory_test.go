@@ -14,10 +14,10 @@ import (
 func TestConversationRoundtrip(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
-	teamID, userID, appID := seedTeamUserApp(ctx, t)
+	teamID, userID, _ := seedTeamUserApp(ctx, t)
 	c := &Config{Deps: deps}
 
-	conv := &conversation{UserID: userID, AppID: appID, TeamID: teamID, Surface: "mcp"}
+	conv := &conversation{UserID: userID, TeamID: teamID, Surface: "mcp"}
 	if err := c.createConversation(ctx, conv, "first question"); err != nil {
 		t.Fatalf("createConversation: %v", err)
 	}
@@ -29,7 +29,7 @@ func TestConversationRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("getConversation: %v", err)
 	}
-	if got.UserID != userID || got.AppID != appID || got.TeamID != teamID || got.Surface != "mcp" {
+	if got.UserID != userID || got.TeamID != teamID || got.Surface != "mcp" {
 		t.Errorf("roundtrip mismatch: got %+v", got)
 	}
 }
@@ -39,11 +39,11 @@ func TestConversationRoundtrip(t *testing.T) {
 func TestFindSlackConversation(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
-	teamID, userID, appID := seedTeamUserApp(ctx, t)
+	teamID, userID, _ := seedTeamUserApp(ctx, t)
 	c := &Config{Deps: deps}
 
 	conv := &conversation{
-		UserID: userID, AppID: appID, TeamID: teamID,
+		UserID: userID, TeamID: teamID,
 		Surface:        "slack_assistant",
 		SlackChannelID: "C123", SlackThreadTS: "1700000000.0001", SlackUserID: "U123",
 	}
@@ -77,11 +77,11 @@ func TestFindSlackConversation(t *testing.T) {
 func TestSetSlackContextThrough(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
-	teamID, userID, appID := seedTeamUserApp(ctx, t)
+	teamID, userID, _ := seedTeamUserApp(ctx, t)
 	c := &Config{Deps: deps}
 
 	conv := &conversation{
-		UserID: userID, AppID: appID, TeamID: teamID,
+		UserID: userID, TeamID: teamID,
 		Surface:        "slack_assistant",
 		SlackChannelID: "C1", SlackThreadTS: "1.1", SlackUserID: "U1",
 	}
@@ -107,10 +107,10 @@ func TestSetSlackContextThrough(t *testing.T) {
 func TestAppendAndLoadMessages(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
-	teamID, userID, appID := seedTeamUserApp(ctx, t)
+	teamID, userID, _ := seedTeamUserApp(ctx, t)
 	c := &Config{Deps: deps}
 
-	conv := &conversation{UserID: userID, AppID: appID, TeamID: teamID, Surface: "mcp"}
+	conv := &conversation{UserID: userID, TeamID: teamID, Surface: "mcp"}
 	if err := c.createConversation(ctx, conv, "q"); err != nil {
 		t.Fatalf("createConversation: %v", err)
 	}
@@ -164,10 +164,10 @@ func TestAppendAndLoadMessages(t *testing.T) {
 func TestCompactionSkipsSummarizedMessages(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
-	teamID, userID, appID := seedTeamUserApp(ctx, t)
+	teamID, userID, _ := seedTeamUserApp(ctx, t)
 	c := &Config{Deps: deps}
 
-	conv := &conversation{UserID: userID, AppID: appID, TeamID: teamID, Surface: "mcp"}
+	conv := &conversation{UserID: userID, TeamID: teamID, Surface: "mcp"}
 	if err := c.createConversation(ctx, conv, "q"); err != nil {
 		t.Fatalf("createConversation: %v", err)
 	}

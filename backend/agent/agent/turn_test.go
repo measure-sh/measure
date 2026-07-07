@@ -35,8 +35,8 @@ func TestRunTurnToolLoop(t *testing.T) {
 	now := time.Now().UTC()
 	th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 3, testinfra.EventRow{Timestamp: now})
 
-	args := fmt.Sprintf(`{"query":"select count(*) as n from {{events}}","from":"%s","to":"%s"}`,
-		now.Add(-time.Hour).Format(time.RFC3339), now.Add(time.Hour).Format(time.RFC3339))
+	args := fmt.Sprintf(`{"query":"select count(*) as n from {{events}}","app_ids":["%s"],"from":"%s","to":"%s"}`,
+		appID, now.Add(-time.Hour).Format(time.RFC3339), now.Add(time.Hour).Format(time.RFC3339))
 	toolCall := fmt.Sprintf(
 		`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"call_1","type":"function","function":{"name":"run_sql","arguments":%s}}]}}],"usage":{"prompt_tokens":50,"completion_tokens":10}}`,
 		strconv.Quote(args))
@@ -44,13 +44,13 @@ func TestRunTurnToolLoop(t *testing.T) {
 
 	c, stub := newTestAgent(t, toolCall, finalAnswer)
 
-	conv := &conversation{UserID: userID, AppID: appID, TeamID: teamID, Surface: "mcp"}
+	conv := &conversation{UserID: userID, TeamID: teamID, Surface: "mcp"}
 	if err := c.createConversation(ctx, conv, "crashes?"); err != nil {
 		t.Fatalf("createConversation: %v", err)
 	}
 
 	answer, _, err := c.runTurn(ctx, turn{
-		userID: userID, appID: appID, teamID: teamID,
+		userID: userID, teamID: teamID,
 		conv: conv, question: "how many crashes?", entryPoint: "mcp",
 	})
 	if err != nil {
@@ -96,7 +96,7 @@ func TestAskQuestionEndToEnd(t *testing.T) {
 	)
 	ctx = WithUserID(ctx, userID.String())
 
-	out, err := c.askQuestion(ctx, askQuestionInput{AppID: appID.String(), Question: "how is the app?"})
+	out, err := c.askQuestion(ctx, askQuestionInput{AppIDs: []string{appID.String()}, Question: "how is the app?"})
 	if err != nil {
 		t.Fatalf("askQuestion: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestAskQuestionEndToEnd(t *testing.T) {
 	}
 
 	out2, err := c.askQuestion(ctx, askQuestionInput{
-		AppID: appID.String(), Question: "and now?", ConversationID: out.ConversationID,
+		AppIDs: []string{appID.String()}, Question: "and now?", ConversationID: out.ConversationID,
 	})
 	if err != nil {
 		t.Fatalf("askQuestion follow-up: %v", err)
@@ -120,7 +120,9 @@ func TestAskQuestionEndToEnd(t *testing.T) {
 		t.Errorf("follow-up started a new conversation: %s vs %s", out2.ConversationID, out.ConversationID)
 	}
 
-	// The continued conversation holds both turns: 2 questions + 2 answers.
+	// The continued conversation holds both turns: 2 questions + 2 answers,
+	// with the caller's focus appended to each question rather than stored
+	// as its own row.
 	cid, _ := uuid.Parse(out.ConversationID)
 	loaded, err := c.loadMessages(ctx, cid)
 	if err != nil {
@@ -128,5 +130,45 @@ func TestAskQuestionEndToEnd(t *testing.T) {
 	}
 	if got := len(loaded); got != 4 {
 		t.Errorf("persisted messages = %d, want 4 (two q/a turns): %v", got, msgRoles(loaded))
+	}
+	if loaded[0].msg.Role != "user" || !strings.Contains(loaded[0].msg.Content, "The caller asked about these apps") {
+		t.Errorf("the question should carry the focus note, got role %q content %q", loaded[0].msg.Role, loaded[0].msg.Content)
+	}
+}
+
+// TestAskQuestionMultiApp drives ask_question with two apps of one team: the
+// turn's system message lists both and the focus note names
+// both, so the model can compare them in one turn.
+func TestAskQuestionMultiApp(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+	teamID, userID, appID := seedTeamUserApp(ctx, t)
+	secondApp := uuid.New()
+	seedApp(ctx, t, secondApp, teamID, "second", 30)
+
+	c, stub := newTestAgent(t,
+		`{"choices":[{"message":{"role":"assistant","content":"App one: 3, second: 5."}}],"usage":{"prompt_tokens":20,"completion_tokens":5}}`,
+	)
+	ctx = WithUserID(ctx, userID.String())
+
+	out, err := c.askQuestion(ctx, askQuestionInput{
+		AppIDs:   []string{appID.String(), secondApp.String()},
+		Question: "compare crashes across both apps",
+	})
+	if err != nil {
+		t.Fatalf("askQuestion: %v", err)
+	}
+	if out.Answer == "" {
+		t.Fatal("expected an answer")
+	}
+
+	req := string(stub.requests[0])
+	for _, want := range []string{"The team's apps", appID.String(), secondApp.String(), "The caller asked about these apps"} {
+		if !strings.Contains(req, want) {
+			t.Errorf("turn request missing %q", want)
+		}
+	}
+	if !strings.Contains(req, "second (second)") {
+		t.Errorf("focus note should carry the second app's label, got request without it")
 	}
 }

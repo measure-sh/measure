@@ -4,7 +4,10 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -133,7 +136,7 @@ func TestSlackQuestionDeletedStaysSilent(t *testing.T) {
 }
 
 // TestSlackQuestionDeletedClearsAssistantStatus checks the assistant surface
-// counterpart: there is no ack to remove, so the "digging" status is cleared
+// counterpart: there is no ack to remove, so the thread status is cleared
 // explicitly and nothing is posted.
 func TestSlackQuestionDeletedClearsAssistantStatus(t *testing.T) {
 	ctx := context.Background()
@@ -313,87 +316,139 @@ func TestSlackAgentDisabledPostsNotice(t *testing.T) {
 	}
 }
 
-// TestResolveAppFromContextUsesModel checks the LLM-driven app resolution: when
-// the team has several apps and the discussion describes one only loosely, the
-// small model picks it from the surrounding context.
-func TestResolveAppFromContextUsesModel(t *testing.T) {
+// TestSlackConversationTeamMismatchRejected checks that a thread whose stored
+// conversation belongs to a different team is not continued: a workspace can
+// be relinked to another team, and the old team's transcript must not reach
+// the new team's turns.
+func TestSlackConversationTeamMismatchRejected(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
-	apps := []measureApp{
-		{id: uuid.New(), name: "alpha", uniqueIdentifier: "com.x.alpha"},
-		{id: uuid.New(), name: "bravo", uniqueIdentifier: "com.x.bravo"},
-	}
-	// The discussion names no app outright; the small model decides from the
-	// loose description.
-	msgs := []slack.Message{{User: "U2", Text: "the prod build keeps crashing on startup", TS: "1"}}
-	slacktest.MockConversationHistory(t, func(context.Context, string, string, int) ([]slack.Message, error) { return msgs, nil })
-	slacktest.MockConversationReplies(t, func(context.Context, string, string, string, string, int) ([]slack.Message, error) { return msgs, nil })
+	const email = "relink@test.dev"
+	teamA, teamB, userID := uuid.New(), uuid.New(), uuid.New()
+	seedTeam(ctx, t, teamA, "team a")
+	seedTeam(ctx, t, teamB, "team b")
+	seedUser(ctx, t, userID, email)
+	seedTeamMembership(ctx, t, teamA, userID, "owner")
+	seedTeamMembership(ctx, t, teamB, userID, "owner")
+	seedApp(ctx, t, uuid.New(), teamA, "appa", 30)
+	seedApp(ctx, t, uuid.New(), teamB, "appb", 30)
+	seedTeamSlack(ctx, t, teamA, []string{"C1"})
+	seedTeamSlack(ctx, t, teamB, []string{"C1"})
 
-	c, stub := newTestAgent(t, `{"choices":[{"message":{"role":"assistant","content":"2"}}],"usage":{"prompt_tokens":15,"completion_tokens":1}}`)
-	ev := slack.AgentEvent{Surface: slack.SurfaceMention, Channel: "C1", ThreadTS: "1.1", EventTS: "9", SlackUserID: "U1"}
+	slacktest.MockUserEmail(t, func(context.Context, string, string) (string, error) { return email, nil })
+	delivered := captureSlackDelivery(t)
 
-	resolved, _, ok := c.resolveAppFromContext(ctx, "tok", "Ubot", ev, "why does it crash?", apps)
-	if !ok {
-		t.Fatal("expected the model to resolve an app from context")
-	}
-	if resolved.id != apps[1].id {
-		t.Errorf("resolved %s, want bravo %s", resolved.id, apps[1].id)
-	}
+	c, stub := newTestAgent(t,
+		`{"choices":[{"message":{"role":"assistant","content":"Team A answer."}}],"usage":{"prompt_tokens":10,"completion_tokens":3}}`,
+	)
+
+	// The first question creates the thread's conversation under team A.
+	handleSlackQuestion(t, c, slackQuestionEvent(teamA, slack.SurfaceMention, "how is the app?", "Ev-team-a"))
 	if stub.callCount() != 1 {
-		t.Errorf("llm calls = %d, want 1 (the app-resolution call)", stub.callCount())
+		t.Fatalf("llm calls = %d, want 1 (team A's turn)", stub.callCount())
 	}
-	// The model must see the question apart from the discussion, so it can
-	// judge which app the question itself is about.
-	req := string(stub.requests[0])
-	for _, want := range []string{"Question:", "why does it crash?", "Discussion (recent messages, oldest first):"} {
-		if !strings.Contains(req, want) {
-			t.Errorf("app-resolution request should contain %q, got %s", want, req)
-		}
+
+	// The same thread under team B is refused without a turn.
+	handleSlackQuestion(t, c, slackQuestionEvent(teamB, slack.SurfaceMention, "and now?", "Ev-team-b"))
+	if stub.callCount() != 1 {
+		t.Errorf("llm calls = %d, want 1 (team B must not get a turn)", stub.callCount())
+	}
+	if !strings.Contains(*delivered, "previous Measure connection") {
+		t.Errorf("delivered = %q, want the team mismatch reply", *delivered)
 	}
 }
 
-// TestResolveAppFromContextNamedAppStillGoesToModel checks that the model is
-// consulted even when the discussion names an app outright, since a literal
-// name may be chatter unrelated to the question, and that a 0 from it falls
-// back to asking which app.
-func TestResolveAppFromContextNamedAppStillGoesToModel(t *testing.T) {
+// TestSlackTurnScopedToTeam checks that a Slack turn only exposes the
+// connected team's apps even when the asker belongs to other teams: list_apps
+// omits the other teams' apps and a typed tool call naming another team's
+// app is denied, since the reply is read by the workspace's channel.
+func TestSlackTurnScopedToTeam(t *testing.T) {
 	ctx := context.Background()
-	apps := []measureApp{
-		{id: uuid.New(), name: "alpha", uniqueIdentifier: "com.x.alpha"},
-		{id: uuid.New(), name: "bravo", uniqueIdentifier: "com.x.bravo"},
-	}
-	ev := slack.AgentEvent{Surface: slack.SurfaceMention, Channel: "C1", ThreadTS: "9", EventTS: "9", SlackUserID: "U1"}
-	msgs := []slack.Message{
-		{User: "U2", Text: "bravo release party is tomorrow", TS: "1"},
-		{User: "U2", Text: "bring cake", TS: "2"},
-	}
-	slacktest.MockConversationHistory(t, func(context.Context, string, string, int) ([]slack.Message, error) { return msgs, nil })
+	defer cleanupAll(ctx, t)
+	const email = "twoteams@test.dev"
+	teamA, teamB, userID := uuid.New(), uuid.New(), uuid.New()
+	alphaID, bravoID := uuid.New(), uuid.New()
+	seedTeam(ctx, t, teamA, "team a")
+	seedTeam(ctx, t, teamB, "team b")
+	seedUser(ctx, t, userID, email)
+	seedTeamMembership(ctx, t, teamA, userID, "owner")
+	seedTeamMembership(ctx, t, teamB, userID, "owner")
+	seedApp(ctx, t, alphaID, teamA, "alpha", 30)
+	seedApp(ctx, t, bravoID, teamB, "bravo", 30)
+	seedTeamSlack(ctx, t, teamA, []string{"C1"})
 
-	c, stub := newTestAgent(t, `{"choices":[{"message":{"role":"assistant","content":"0"}}],"usage":{"prompt_tokens":10,"completion_tokens":1}}`)
-	_, _, ok := c.resolveAppFromContext(ctx, "tok", "Ubot", ev, "how many crashes this week?", apps)
-	if ok {
-		t.Fatal("expected no pick when the model answers 0")
+	slacktest.MockUserEmail(t, func(context.Context, string, string) (string, error) { return email, nil })
+	delivered := captureSlackDelivery(t)
+
+	// Three model calls: list apps, try the other team's app, answer.
+	getFiltersArgs := fmt.Sprintf(`{"app_id":%q}`, bravoID)
+	c, stub := newTestAgent(t,
+		`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"c1","type":"function","function":{"name":"list_apps","arguments":"{}"}}]}}],"usage":{"prompt_tokens":10,"completion_tokens":2}}`,
+		fmt.Sprintf(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"c2","type":"function","function":{"name":"get_filters","arguments":%s}}]}}],"usage":{"prompt_tokens":10,"completion_tokens":2}}`, strconv.Quote(getFiltersArgs)),
+		`{"choices":[{"message":{"role":"assistant","content":"Only alpha here."}}],"usage":{"prompt_tokens":10,"completion_tokens":3}}`,
+	)
+	handleSlackQuestion(t, c, slackQuestionEvent(teamA, slack.SurfaceMention, "what apps do we have?", "Ev-scope"))
+
+	if stub.callCount() != 3 {
+		t.Fatalf("llm calls = %d, want 3", stub.callCount())
 	}
-	if stub.callCount() != 1 {
-		t.Errorf("llm calls = %d, want 1 (a named app still goes through the model)", stub.callCount())
+	// The list_apps result carries team A's app and not team B's. The whole
+	// request carries alphaID in the app list, so the check reads the tool
+	// message itself.
+	var second chatRequest
+	if err := json.Unmarshal(stub.requests[1], &second); err != nil {
+		t.Fatalf("decode second request: %v", err)
+	}
+	listResult := second.Messages[len(second.Messages)-1]
+	if listResult.Role != "tool" {
+		t.Fatalf("last message of second call = %q, want the tool result", listResult.Role)
+	}
+	if !strings.Contains(listResult.Content, alphaID.String()) {
+		t.Errorf("list_apps result missing the connected team's app %s: %q", alphaID, listResult.Content)
+	}
+	if strings.Contains(listResult.Content, bravoID.String()) {
+		t.Errorf("list_apps result leaked another team's app %s: %q", bravoID, listResult.Content)
+	}
+	// The typed tool call for team B's app is denied; the result is the tool
+	// message of the third call.
+	var third chatRequest
+	if err := json.Unmarshal(stub.requests[2], &third); err != nil {
+		t.Fatalf("decode third request: %v", err)
+	}
+	denied := third.Messages[len(third.Messages)-1]
+	if !strings.Contains(denied.Content, "access denied") {
+		t.Errorf("get_filters on another team's app should be denied, got %q", denied.Content)
+	}
+	if !strings.Contains(*delivered, "Only alpha here.") {
+		t.Errorf("delivered = %q, want the model's answer", *delivered)
 	}
 }
 
-// TestSlackContextResolvedAppNoteReachesTurn checks that when the app was
-// resolved from the discussion rather than named in the question, the turn's
-// model is told which app was picked and to open its reply by naming it; the
-// announcement wording is the model's own.
-func TestSlackContextResolvedAppNoteReachesTurn(t *testing.T) {
+// TestSlackTurnCarriesAppList checks that a mention's turn gets the team's
+// full app list in its system message, with the thread context summarized
+// beside it, so the model can pick apps from the discussion on its own.
+func TestSlackTurnCarriesAppList(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
 	const email = "ctxapp@test.dev"
 	teamID, userID := uuid.New(), uuid.New()
+	alphaID, bravoID := uuid.New(), uuid.New()
 	seedTeam(ctx, t, teamID, "team")
 	seedUser(ctx, t, userID, email)
 	seedTeamMembership(ctx, t, teamID, userID, "owner")
-	seedApp(ctx, t, uuid.New(), teamID, "alpha", 30)
-	seedApp(ctx, t, uuid.New(), teamID, "bravo", 30)
+	seedApp(ctx, t, alphaID, teamID, "alpha", 30)
+	seedApp(ctx, t, bravoID, teamID, "bravo", 30)
+	charlieID := uuid.New()
+	seedApp(ctx, t, charlieID, teamID, "charlie", 30)
 	seedTeamSlack(ctx, t, teamID, []string{"C1"})
+	// bravo is an iOS build and charlie has no telemetry, exercising the
+	// per-app platform notes beside the android default.
+	if _, err := deps.PgPool.Exec(ctx, "UPDATE measure.apps SET os_names = '{ios}' WHERE id = $1", bravoID); err != nil {
+		t.Fatalf("set bravo os_names: %v", err)
+	}
+	if _, err := deps.PgPool.Exec(ctx, "UPDATE measure.apps SET os_names = '{}' WHERE id = $1", charlieID); err != nil {
+		t.Fatalf("clear charlie os_names: %v", err)
+	}
 
 	slacktest.MockUserEmail(t, func(context.Context, string, string) (string, error) { return email, nil })
 	delivered := captureSlackDelivery(t)
@@ -401,22 +456,29 @@ func TestSlackContextResolvedAppNoteReachesTurn(t *testing.T) {
 	msgs := []slack.Message{{User: "U2", Text: "the second app keeps crashing", TS: "1"}}
 	slacktest.MockConversationHistory(t, func(context.Context, string, string, int) ([]slack.Message, error) { return msgs, nil })
 
-	// Three model calls, in order: the app resolution picks bravo, the
-	// context summary, and the turn's answer.
+	// Two model calls, in order: the context summary, then the turn's answer.
 	c, stub := newTestAgent(t,
-		`{"choices":[{"message":{"role":"assistant","content":"2"}}],"usage":{"prompt_tokens":10,"completion_tokens":1}}`,
 		`{"choices":[{"message":{"role":"assistant","content":"They said the second app keeps crashing."}}],"usage":{"prompt_tokens":10,"completion_tokens":5}}`,
-		`{"choices":[{"message":{"role":"assistant","content":"You're asking about bravo. 12 crashes this week."}}],"usage":{"prompt_tokens":10,"completion_tokens":5}}`,
+		`{"choices":[{"message":{"role":"assistant","content":"For bravo: 12 crashes this week."}}],"usage":{"prompt_tokens":10,"completion_tokens":5}}`,
 	)
 	handleSlackQuestion(t, c, slackQuestionEvent(teamID, slack.SurfaceMention, "how many crashes this week?", "Ev-ctx-app"))
 
-	if stub.callCount() != 3 {
-		t.Fatalf("llm calls = %d, want 3 (resolution, summary, turn)", stub.callCount())
+	if stub.callCount() != 2 {
+		t.Fatalf("llm calls = %d, want 2 (summary, turn)", stub.callCount())
 	}
-	turnReq := string(stub.requests[2])
-	if !strings.Contains(turnReq, "did not name an app") ||
-		!strings.Contains(turnReq, "Write the app exactly as bravo (bravo)") {
-		t.Errorf("turn request should carry the note with the app in label form, got %s", turnReq)
+	turnReq := string(stub.requests[1])
+	for _, want := range []string{
+		"The team's apps", alphaID.String(), bravoID.String(), charlieID.String(),
+		"runs on android", "runs on ios (no ANRs)", "platform unknown (no telemetry yet)",
+		"second app keeps crashing",
+	} {
+		if !strings.Contains(turnReq, want) {
+			t.Errorf("turn request missing %q", want)
+		}
+	}
+	// The ANR caveat applies per app: the android line must not carry it.
+	if strings.Contains(turnReq, "runs on android (no ANRs)") {
+		t.Error("the android line should not carry the ANR caveat")
 	}
 	if !strings.Contains(*delivered, "12 crashes this week.") {
 		t.Errorf("reply should carry the model's answer, got %q", *delivered)

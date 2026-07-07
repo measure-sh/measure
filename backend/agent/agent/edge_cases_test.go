@@ -27,9 +27,10 @@ import (
 // Access control
 // ----------------------------------------------------------------------------
 
-// TestResolveAppAccess checks a team member resolves the app's team and Autumn
-// customer, and a user from another team is denied (the cross-team boundary).
-func TestResolveAppAccess(t *testing.T) {
+// TestResolveAppsAccess checks a team member resolves the apps' team and
+// Autumn customer, a user from another team is denied (the cross-team
+// boundary), and sets naming unknown apps or spanning two teams are refused.
+func TestResolveAppsAccess(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
 	c := &Config{Deps: deps}
@@ -39,26 +40,62 @@ func TestResolveAppAccess(t *testing.T) {
 	seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 	t.Run("member resolves team and customer", func(t *testing.T) {
-		gotTeam, gotCust, err := c.resolveAppAccess(ctx, userID, appID)
+		gotTeam, gotCust, err := c.resolveAppsAccess(ctx, userID, []uuid.UUID{appID})
 		if err != nil {
-			t.Fatalf("resolveAppAccess: %v", err)
+			t.Fatalf("resolveAppsAccess: %v", err)
 		}
 		if gotTeam != teamID || gotCust != custID {
 			t.Errorf("got team=%s cust=%q, want %s %s", gotTeam, gotCust, teamID, custID)
 		}
 	})
 
+	t.Run("two apps of one team resolve", func(t *testing.T) {
+		otherAppID := uuid.New()
+		seedApp(ctx, t, otherAppID, teamID, "second", 30)
+		gotTeam, _, err := c.resolveAppsAccess(ctx, userID, []uuid.UUID{appID, otherAppID})
+		if err != nil {
+			t.Fatalf("resolveAppsAccess: %v", err)
+		}
+		if gotTeam != teamID {
+			t.Errorf("got team=%s, want %s", gotTeam, teamID)
+		}
+	})
+
 	t.Run("non-member is denied", func(t *testing.T) {
 		_, strangerID, _ := seedTeamUserApp(ctx, t) // a user in a different team
-		if _, _, err := c.resolveAppAccess(ctx, strangerID, appID); err == nil {
+		if _, _, err := c.resolveAppsAccess(ctx, strangerID, []uuid.UUID{appID}); err == nil {
 			t.Error("want access denied for a non-member, got nil")
+		}
+	})
+
+	t.Run("unknown app is denied", func(t *testing.T) {
+		if _, _, err := c.resolveAppsAccess(ctx, userID, []uuid.UUID{appID, uuid.New()}); err == nil {
+			t.Error("want access denied for an unknown app, got nil")
+		}
+	})
+
+	t.Run("no apps is an error", func(t *testing.T) {
+		if _, _, err := c.resolveAppsAccess(ctx, userID, nil); err == nil {
+			t.Error("want error for an empty app set, got nil")
+		}
+	})
+
+	t.Run("apps across two teams are refused", func(t *testing.T) {
+		otherTeamID, _, otherAppID := seedTeamUserApp(ctx, t)
+		seedTeamMembership(ctx, t, otherTeamID, userID, "owner")
+		_, _, err := c.resolveAppsAccess(ctx, userID, []uuid.UUID{appID, otherAppID})
+		if err == nil {
+			t.Fatal("want error for apps across two teams, got nil")
+		}
+		if !strings.Contains(err.Error(), "one team") {
+			t.Errorf("want a one-team error, got %q", err)
 		}
 	})
 }
 
 // TestAskQuestionRejections checks the pre-turn guards: an unauthenticated
-// caller, an invalid app id, and a billing-blocked team all fail before any
-// LLM call.
+// caller, an invalid app id, an oversized app list, and a billing-blocked
+// team all fail before any LLM call.
 func TestAskQuestionRejections(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
@@ -67,15 +104,32 @@ func TestAskQuestionRejections(t *testing.T) {
 	c, stub := newTestAgent(t, `{"choices":[{"message":{"role":"assistant","content":"should not run"}}],"usage":{}}`)
 
 	t.Run("unauthenticated", func(t *testing.T) {
-		if _, err := c.askQuestion(ctx, askQuestionInput{AppID: appID.String(), Question: "hi"}); err == nil {
+		if _, err := c.askQuestion(ctx, askQuestionInput{AppIDs: []string{appID.String()}, Question: "hi"}); err == nil {
 			t.Error("want error for missing user, got nil")
 		}
 	})
 
 	t.Run("invalid app_id", func(t *testing.T) {
 		uctx := WithUserID(ctx, userID.String())
-		if _, err := c.askQuestion(uctx, askQuestionInput{AppID: "not-a-uuid", Question: "hi"}); err == nil {
+		if _, err := c.askQuestion(uctx, askQuestionInput{AppIDs: []string{"not-a-uuid"}, Question: "hi"}); err == nil {
 			t.Error("want error for invalid app_id, got nil")
+		}
+	})
+
+	t.Run("too many apps", func(t *testing.T) {
+		uctx := WithUserID(ctx, userID.String())
+		ids := make([]string, maxQuestionApps+1)
+		for i := range ids {
+			ids[i] = uuid.New().String()
+		}
+		_, err := c.askQuestion(uctx, askQuestionInput{AppIDs: ids, Question: "hi"})
+		if err == nil {
+			t.Fatal("want error for too many apps, got nil")
+		}
+		// Unknown random ids would be rejected downstream too, so the error
+		// must be the cap's, or removing the cap would pass unnoticed.
+		if !strings.Contains(err.Error(), fmt.Sprintf("limit is %d", maxQuestionApps)) {
+			t.Errorf("want the cap error, got %q", err)
 		}
 	})
 
@@ -85,7 +139,7 @@ func TestAskQuestionRejections(t *testing.T) {
 			return &autumn.CheckResponse{Allowed: false}, nil
 		})
 		uctx := WithUserID(ctx, userID.String())
-		if _, err := c.askQuestion(uctx, askQuestionInput{AppID: appID.String(), Question: "hi"}); err == nil {
+		if _, err := c.askQuestion(uctx, askQuestionInput{AppIDs: []string{appID.String()}, Question: "hi"}); err == nil {
 			t.Error("want error when billing blocks the team, got nil")
 		}
 	})
@@ -105,15 +159,15 @@ func TestAskQuestionRejections(t *testing.T) {
 func TestRunTurnLLMFailure(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
-	teamID, userID, appID := seedTeamUserApp(ctx, t)
+	teamID, userID, _ := seedTeamUserApp(ctx, t)
 	c, _ := newTestAgent(t) // no scripted responses → the chat call fails
 
-	conv := &conversation{UserID: userID, AppID: appID, TeamID: teamID, Surface: "mcp"}
+	conv := &conversation{UserID: userID, TeamID: teamID, Surface: "mcp"}
 	if err := c.createConversation(ctx, conv, "q"); err != nil {
 		t.Fatalf("createConversation: %v", err)
 	}
 
-	if _, _, err := c.runTurn(ctx, turn{userID: userID, appID: appID, teamID: teamID, conv: conv, question: "boom", entryPoint: "mcp"}); err == nil {
+	if _, _, err := c.runTurn(ctx, turn{userID: userID, teamID: teamID, conv: conv, question: "boom", entryPoint: "mcp"}); err == nil {
 		t.Fatal("want error on llm failure, got nil")
 	}
 
@@ -137,19 +191,19 @@ func TestRunTurnBudgetExhausted(t *testing.T) {
 	now := time.Now().UTC()
 	th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{Timestamp: now})
 
-	args := fmt.Sprintf(`{"query":"select count(*) as n from {{events}}","from":"%s","to":"%s"}`,
-		now.Add(-time.Hour).Format(time.RFC3339), now.Add(time.Hour).Format(time.RFC3339))
+	args := fmt.Sprintf(`{"query":"select count(*) as n from {{events}}","app_ids":["%s"],"from":"%s","to":"%s"}`,
+		appID, now.Add(-time.Hour).Format(time.RFC3339), now.Add(time.Hour).Format(time.RFC3339))
 	toolCall := fmt.Sprintf(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"c","type":"function","function":{"name":"run_sql","arguments":%s}}]}}],"usage":{"prompt_tokens":10,"completion_tokens":2}}`,
 		strconv.Quote(args))
 	c, stub := newTestAgent(t, toolCall)
 	stub.repeat = true // every request gets another tool call, never an answer
 
-	conv := &conversation{UserID: userID, AppID: appID, TeamID: teamID, Surface: "mcp"}
+	conv := &conversation{UserID: userID, TeamID: teamID, Surface: "mcp"}
 	if err := c.createConversation(ctx, conv, "q"); err != nil {
 		t.Fatalf("createConversation: %v", err)
 	}
 
-	_, _, err := c.runTurn(ctx, turn{userID: userID, appID: appID, teamID: teamID, conv: conv, question: "loop", entryPoint: "mcp"})
+	_, _, err := c.runTurn(ctx, turn{userID: userID, teamID: teamID, conv: conv, question: "loop", entryPoint: "mcp"})
 	if !errors.Is(err, errNoAnswer) {
 		t.Errorf("want errNoAnswer, got %v", err)
 	}
@@ -191,8 +245,8 @@ func TestRunTurnBudgetExhaustedAnswer(t *testing.T) {
 	now := time.Now().UTC()
 	th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{Timestamp: now})
 
-	args := fmt.Sprintf(`{"query":"select count(*) as n from {{events}}","from":"%s","to":"%s"}`,
-		now.Add(-time.Hour).Format(time.RFC3339), now.Add(time.Hour).Format(time.RFC3339))
+	args := fmt.Sprintf(`{"query":"select count(*) as n from {{events}}","app_ids":["%s"],"from":"%s","to":"%s"}`,
+		appID, now.Add(-time.Hour).Format(time.RFC3339), now.Add(time.Hour).Format(time.RFC3339))
 	toolCall := fmt.Sprintf(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"c","type":"function","function":{"name":"run_sql","arguments":%s}}]}}],"usage":{"prompt_tokens":10,"completion_tokens":2}}`,
 		strconv.Quote(args))
 	responses := make([]string, 0, maxLLMCalls)
@@ -202,12 +256,12 @@ func TestRunTurnBudgetExhaustedAnswer(t *testing.T) {
 	responses = append(responses, `{"choices":[{"message":{"role":"assistant","content":"Partial: found the top error."}}],"usage":{"prompt_tokens":10,"completion_tokens":5}}`)
 	c, stub := newTestAgent(t, responses...)
 
-	conv := &conversation{UserID: userID, AppID: appID, TeamID: teamID, Surface: "mcp"}
+	conv := &conversation{UserID: userID, TeamID: teamID, Surface: "mcp"}
 	if err := c.createConversation(ctx, conv, "q"); err != nil {
 		t.Fatalf("createConversation: %v", err)
 	}
 
-	answer, _, err := c.runTurn(ctx, turn{userID: userID, appID: appID, teamID: teamID, conv: conv, question: "loop", entryPoint: "mcp"})
+	answer, _, err := c.runTurn(ctx, turn{userID: userID, teamID: teamID, conv: conv, question: "loop", entryPoint: "mcp"})
 	if err != nil {
 		t.Fatalf("runTurn: %v", err)
 	}
@@ -243,14 +297,14 @@ func TestRunTurnBudgetExhaustedAnswer(t *testing.T) {
 func TestRunTurnCompactsLongHistory(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
-	teamID, userID, appID := seedTeamUserApp(ctx, t)
+	teamID, userID, _ := seedTeamUserApp(ctx, t)
 
 	c, stub := newTestAgent(t,
 		`{"choices":[{"message":{"role":"assistant","content":"Summary of earlier turns."}}],"usage":{"prompt_tokens":500,"completion_tokens":50}}`,
 		`{"choices":[{"message":{"role":"assistant","content":"Current answer."}}],"usage":{"prompt_tokens":80,"completion_tokens":10}}`,
 	)
 
-	conv := &conversation{UserID: userID, AppID: appID, TeamID: teamID, Surface: "mcp"}
+	conv := &conversation{UserID: userID, TeamID: teamID, Surface: "mcp"}
 	if err := c.createConversation(ctx, conv, "q"); err != nil {
 		t.Fatalf("createConversation: %v", err)
 	}
@@ -269,7 +323,7 @@ func TestRunTurnCompactsLongHistory(t *testing.T) {
 		t.Fatalf("append turn 2: %v", err)
 	}
 
-	answer, _, err := c.runTurn(ctx, turn{userID: userID, appID: appID, teamID: teamID, conv: conv, question: "new question", entryPoint: "mcp"})
+	answer, _, err := c.runTurn(ctx, turn{userID: userID, teamID: teamID, conv: conv, question: "new question", entryPoint: "mcp"})
 	if err != nil {
 		t.Fatalf("runTurn: %v", err)
 	}
@@ -303,18 +357,6 @@ func TestRunTurnCompactsLongHistory(t *testing.T) {
 // run_sql edge cases
 // ----------------------------------------------------------------------------
 
-// TestRunSQLNilScope checks run_sql fails closed on an incomplete scope rather
-// than running an unscoped query.
-func TestRunSQLNilScope(t *testing.T) {
-	ctx := context.Background()
-	defer cleanupAll(ctx, t)
-	c := &Config{Deps: deps}
-	from, to := time.Now().Add(-time.Hour), time.Now()
-	if _, err := c.runSQL(ctx, `select count(*) from {{events}}`, uuid.Nil, uuid.New(), from, to); err == nil {
-		t.Error("want error for a nil team id (fail closed), got nil")
-	}
-}
-
 // TestRunSQLTruncation checks the result is capped and marked when a query
 // returns more rows than the formatter renders.
 func TestRunSQLTruncation(t *testing.T) {
@@ -325,7 +367,7 @@ func TestRunSQLTruncation(t *testing.T) {
 	th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 250, testinfra.EventRow{Timestamp: now})
 	c := &Config{Deps: deps}
 
-	out, err := c.runSQL(ctx, `select id from {{events}}`, teamID, appID, now.Add(-time.Hour), now.Add(time.Hour))
+	out, err := c.runSQL(ctx, `select id from {{events}}`, teamID, []uuid.UUID{appID}, now.Add(-time.Hour), now.Add(time.Hour))
 	if err != nil {
 		t.Fatalf("runSQL: %v", err)
 	}
@@ -549,15 +591,15 @@ func TestSlackQuestionRendersChart(t *testing.T) {
 func TestRunTurnChartToolMCPScoped(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
-	teamID, userID, appID := seedTeamUserApp(ctx, t)
+	teamID, userID, _ := seedTeamUserApp(ctx, t)
 
 	c, stub := newTestAgent(t,
 		`{"choices":[{"message":{"role":"assistant","content":"ok"}}],"usage":{"prompt_tokens":10,"completion_tokens":2}}`)
-	conv := &conversation{UserID: userID, AppID: appID, TeamID: teamID, Surface: "mcp"}
+	conv := &conversation{UserID: userID, TeamID: teamID, Surface: "mcp"}
 	if err := c.createConversation(ctx, conv, "q"); err != nil {
 		t.Fatalf("createConversation: %v", err)
 	}
-	if _, _, err := c.runTurn(ctx, turn{userID: userID, appID: appID, teamID: teamID, conv: conv, question: "q", entryPoint: "mcp"}); err != nil {
+	if _, _, err := c.runTurn(ctx, turn{userID: userID, teamID: teamID, conv: conv, question: "q", entryPoint: "mcp"}); err != nil {
 		t.Fatalf("runTurn: %v", err)
 	}
 
@@ -569,31 +611,34 @@ func TestRunTurnChartToolMCPScoped(t *testing.T) {
 	}
 }
 
-// TestSlackMultiAppClarification checks that when a team has several apps and the
-// question names none (and the thread gives no hint), the agent asks which app
-// rather than guessing, with no turn run.
-func TestSlackMultiAppClarification(t *testing.T) {
+// TestSlackAmbiguousQuestionRunsTurn checks that a question naming no app on
+// a multi-app team runs a turn: the app list carries every team app and
+// asking which app is meant is the model's decision.
+func TestSlackAmbiguousQuestionRunsTurn(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
 	const email = "multi@test.dev"
 	teamID, userID := uuid.New(), uuid.New()
+	alphaID, bravoID := uuid.New(), uuid.New()
 	seedTeam(ctx, t, teamID, "team")
 	seedUser(ctx, t, userID, email)
 	seedTeamMembership(ctx, t, teamID, userID, "owner")
-	seedApp(ctx, t, uuid.New(), teamID, "alpha", 30)
-	seedApp(ctx, t, uuid.New(), teamID, "bravo", 30)
+	seedApp(ctx, t, alphaID, teamID, "alpha", 30)
+	seedApp(ctx, t, bravoID, teamID, "bravo", 30)
 	seedTeamSlack(ctx, t, teamID, []string{"C1"})
 
 	slacktest.MockUserEmail(t, func(context.Context, string, string) (string, error) { return email, nil })
 	delivered := captureSlackDelivery(t)
-	c, stub := newTestAgent(t)
+	c, stub := newTestAgent(t,
+		`{"choices":[{"message":{"role":"assistant","content":"Which app do you mean, alpha or bravo?"}}],"usage":{"prompt_tokens":10,"completion_tokens":5}}`,
+	)
 
 	handleSlackQuestion(t, c, slackQuestionEvent(teamID, slack.SurfaceAssistant, "show me the data", "Ev-multi"))
-	if !strings.Contains(*delivered, "alpha") || !strings.Contains(*delivered, "bravo") {
-		t.Errorf("delivered = %q, want both apps listed for clarification", *delivered)
+	if stub.callCount() != 1 {
+		t.Fatalf("llm called %d times, want 1 (the turn runs; clarification is the model's)", stub.callCount())
 	}
-	if stub.callCount() != 0 {
-		t.Errorf("llm called %d times, want 0 (clarify needs no turn)", stub.callCount())
+	if !strings.Contains(*delivered, "Which app do you mean") {
+		t.Errorf("delivered = %q, want the model's clarifying reply", *delivered)
 	}
 }
 

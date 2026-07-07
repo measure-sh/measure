@@ -68,21 +68,36 @@ func TestValidateAgentSQL(t *testing.T) {
 
 func TestExpandPlaceholders(t *testing.T) {
 	teamID := uuid.MustParse("0196792a-0000-7000-8000-000000000000")
-	appID := uuid.MustParse("0196792b-0000-7000-8000-000000000000")
 	from := time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC)
 	to := time.Date(2025, 4, 1, 0, 0, 0, 0, time.UTC)
 
-	got := expandPlaceholders(`select count(*) from {{events}} e join {{ spans }} s on 1=1`, teamID, appID, from, to)
-	want := `select count(*) from ` +
-		`(select * from events where team_id = toUUID('0196792a-0000-7000-8000-000000000000') and app_id = toUUID('0196792b-0000-7000-8000-000000000000') and timestamp >= toDateTime64('2025-03-01 00:00:00.000', 3, 'UTC') and timestamp <= toDateTime64('2025-04-01 00:00:00.000', 3, 'UTC')) e join ` +
-		`(select * from spans where team_id = toUUID('0196792a-0000-7000-8000-000000000000') and app_id = toUUID('0196792b-0000-7000-8000-000000000000') and start_time >= toDateTime64('2025-03-01 00:00:00.000', 3, 'UTC') and start_time <= toDateTime64('2025-04-01 00:00:00.000', 3, 'UTC')) s on 1=1`
-	if got != want {
-		t.Errorf("expandPlaceholders mismatch:\n got: %s\nwant: %s", got, want)
-	}
+	t.Run("one app across a join", func(t *testing.T) {
+		appA := uuid.MustParse("0196792b-0000-7000-8000-000000000001")
+		got := expandPlaceholders(`select count(*) from {{events}} e join {{ spans }} s on 1=1`, teamID, []uuid.UUID{appA}, from, to)
+		want := `select count(*) from ` +
+			`(select * from events where team_id = toUUID('0196792a-0000-7000-8000-000000000000') and app_id in (toUUID('0196792b-0000-7000-8000-000000000001')) and timestamp >= toDateTime64('2025-03-01 00:00:00.000', 3, 'UTC') and timestamp <= toDateTime64('2025-04-01 00:00:00.000', 3, 'UTC')) e join ` +
+			`(select * from spans where team_id = toUUID('0196792a-0000-7000-8000-000000000000') and app_id in (toUUID('0196792b-0000-7000-8000-000000000001')) and start_time >= toDateTime64('2025-03-01 00:00:00.000', 3, 'UTC') and start_time <= toDateTime64('2025-04-01 00:00:00.000', 3, 'UTC')) s on 1=1`
+		if got != want {
+			t.Errorf("expandPlaceholders mismatch:\n got: %s\nwant: %s", got, want)
+		}
+	})
+
+	t.Run("scoped to apps", func(t *testing.T) {
+		appA := uuid.MustParse("0196792b-0000-7000-8000-000000000001")
+		appB := uuid.MustParse("0196792b-0000-7000-8000-000000000002")
+		got := expandPlaceholders(`select count(*) from {{events}}`, teamID, []uuid.UUID{appA, appB}, from, to)
+		want := `select count(*) from ` +
+			`(select * from events where team_id = toUUID('0196792a-0000-7000-8000-000000000000')` +
+			` and app_id in (toUUID('0196792b-0000-7000-8000-000000000001'), toUUID('0196792b-0000-7000-8000-000000000002'))` +
+			` and timestamp >= toDateTime64('2025-03-01 00:00:00.000', 3, 'UTC') and timestamp <= toDateTime64('2025-04-01 00:00:00.000', 3, 'UTC'))`
+		if got != want {
+			t.Errorf("expandPlaceholders mismatch:\n got: %s\nwant: %s", got, want)
+		}
+	})
 }
 
-// A nil team or app id must be refused before the query reaches ClickHouse,
-// so an incomplete scope can never run as an unscoped or wrong-team query.
+// An incomplete scope (nil team, empty app set) is refused before the query
+// reaches ClickHouse or any dependency.
 func TestRunSQLRejectsIncompleteScope(t *testing.T) {
 	teamID := uuid.MustParse("0196792a-0000-7000-8000-000000000000")
 	appID := uuid.MustParse("0196792b-0000-7000-8000-000000000000")
@@ -92,16 +107,16 @@ func TestRunSQLRejectsIncompleteScope(t *testing.T) {
 	cases := []struct {
 		name   string
 		teamID uuid.UUID
-		appID  uuid.UUID
+		appIDs []uuid.UUID
 	}{
-		{"nil team", uuid.Nil, appID},
-		{"nil app", teamID, uuid.Nil},
-		{"both nil", uuid.Nil, uuid.Nil},
+		{"nil team", uuid.Nil, []uuid.UUID{appID}},
+		{"no apps", teamID, nil},
+		{"both missing", uuid.Nil, nil},
 	}
 
 	c := &Config{}
 	for _, tc := range cases {
-		_, err := c.runSQL(context.Background(), `select count(*) from {{events}}`, tc.teamID, tc.appID, from, to)
+		_, err := c.runSQL(context.Background(), `select count(*) from {{events}}`, tc.teamID, tc.appIDs, from, to)
 		if err == nil {
 			t.Errorf("%s: expected refusal, got nil", tc.name)
 			continue

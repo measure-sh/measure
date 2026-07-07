@@ -731,13 +731,21 @@ func deleteStaleAlerts(ctx context.Context, retentions []AppRetention) {
 }
 
 // deleteStaleAgentConversations deletes agent conversations whose last
-// activity is past each app's retention threshold. Their messages go with
-// them via the foreign key cascade.
+// activity is past the team's retention. A conversation can span any of the
+// team's apps, so the cutoff is the earliest threshold among them (the
+// longest retention). Messages cascade with them.
 func deleteStaleAgentConversations(ctx context.Context, retentions []AppRetention) {
+	cutoffs := map[string]time.Time{}
 	for _, retention := range retentions {
+		if current, ok := cutoffs[retention.TeamID]; !ok || retention.Threshold.Before(current) {
+			cutoffs[retention.TeamID] = retention.Threshold
+		}
+	}
+
+	for teamID, threshold := range cutoffs {
 		stmt := sqlf.PostgreSQL.DeleteFrom("agent_conversations").
-			Where("app_id = ?", retention.AppID).
-			Where("updated_at < ?", retention.Threshold)
+			Where("team_id = ?", teamID).
+			Where("updated_at < ?", threshold)
 
 		defer stmt.Close()
 
