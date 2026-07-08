@@ -1,5 +1,5 @@
 # Uncomment this line to define a global platform for your project
-# platform :ios, '12.0'
+platform :ios, '13.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -29,9 +29,13 @@ flutter_ios_podfile_setup
 
 target 'Runner' do
   use_frameworks! :linkage => :static
+  use_modular_headers!
 
+  # measure-sh is provided by the measure_flutter plugin (via its Package.swift
+  # under SPM, or its podspec under CocoaPods). Don't add `pod 'measure-sh'` here;
+  # under SPM it links the Measure module twice. To build against a local native
+  # SDK, add `pod 'measure-sh', :path => '<path to repo root>'` temporarily.
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-  pod 'measure-sh'
   target 'RunnerTests' do
     inherit! :search_paths
   end
@@ -40,5 +44,10 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+
+    target.build_configurations.each do |config|
+      config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
+    end
   end
 end

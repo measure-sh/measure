@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -15,6 +15,8 @@
 		A1000006 /* FlutterScreenViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000007 /* FlutterScreenViewController.swift */; };
 		A1000007 /* ReactNativeScreenViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000008 /* ReactNativeScreenViewController.swift */; };
 		A1000008 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000009 /* Assets.xcassets */; };
+		AE000001 /* FlutterNativeIntegration in Frameworks */ = {isa = PBXBuildFile; productRef = AD000001 /* FlutterNativeIntegration */; };
+		AE000002 /* Measure in Frameworks */ = {isa = PBXBuildFile; productRef = AD000002 /* Measure */; };
 		B4719E5BF6EE52BCB48B49E0 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 89F7A703A916868C58983EB6 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
@@ -40,6 +42,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				2CD7EAF6C752243A488A4005 /* Pods_FrankensteinApp.framework in Frameworks */,
+				AE000001 /* FlutterNativeIntegration in Frameworks */,
+				AE000002 /* Measure in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -108,7 +112,6 @@
 				AB000001 /* Set Version from version.properties */,
 				A4000005 /* Build Measure iOS XCFramework */,
 				A4000004 /* Build Shared KMP Framework */,
-				1D1237A2FFE4BD867DAC99C8 /* [CP-User] Run Flutter Build flutter_module Script */,
 				5863A4CC57FE30DA3960D472 /* [CP-User] Bundle React Native JS */,
 				370E3F0E5AE78409671CCA9B /* [CP-User] Copy GoogleService-Info.plist */,
 				A4000002 /* Sources */,
@@ -116,7 +119,7 @@
 				A4000003 /* Resources */,
 				6FDDDBB1E19272F994356C88 /* [CP] Embed Pods Frameworks */,
 				49CBE5D7DB28E4478043067F /* [CP] Copy Pods Resources */,
-				C93F44ABE8A2B0937E2509B5 /* [CP-User] Embed Flutter Build flutter_module Script */,
+				AF000001 /* Run Flutter Assemble */,
 				F94CEC5D57067D9193FEBEBD /* [CP-User] Upload dSYMs to Firebase Crashlytics */,
 				591D13273BAE367EBA975BE4 /* [CP-User] Upload dSYMs and RN sourcemap to Measure */,
 			);
@@ -125,6 +128,10 @@
 			dependencies = (
 			);
 			name = FrankensteinApp;
+			packageProductDependencies = (
+				AD000001 /* FlutterNativeIntegration */,
+				AD000002 /* Measure */,
+			);
 			productName = FrankensteinApp;
 			productReference = A3000001 /* FrankensteinApp.app */;
 			productType = "com.apple.product-type.application";
@@ -148,6 +155,10 @@
 				Base,
 			);
 			mainGroup = A5000001;
+			packageReferences = (
+				AC000001 /* XCLocalSwiftPackageReference "FlutterNativeIntegration" */,
+				AC000002 /* XCLocalSwiftPackageReference ".." */,
+			);
 			productRefGroup = A5000003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -170,16 +181,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		1D1237A2FFE4BD867DAC99C8 /* [CP-User] Run Flutter Build flutter_module Script */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			name = "[CP-User] Run Flutter Build flutter_module Script";
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "set -e\nset -u\nsource \"${SRCROOT}/../flutter/.ios/Flutter/flutter_export_environment.sh\"\nexport VERBOSE_SCRIPT_LOGGING=1 && \"$FLUTTER_ROOT\"/packages/flutter_tools/bin/xcode_backend.sh build";
-		};
 		262695435E3F01B60ABD70F1 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -317,15 +318,25 @@
 			shellPath = /bin/sh;
 			shellScript = "set -e\nVERSION_FILE=\"${SRCROOT}/../version.properties\"\nVERSION_NAME=$(grep '^VERSION_NAME=' \"$VERSION_FILE\" | cut -d= -f2)\nVERSION_CODE=$(git -C \"${SRCROOT}\" rev-list --count HEAD)\nGENERATED_XCCONFIG=\"${SRCROOT}/Generated.xcconfig\"\necho \"// Auto-generated — do not edit\" > \"$GENERATED_XCCONFIG\"\necho \"MARKETING_VERSION = $VERSION_NAME\" >> \"$GENERATED_XCCONFIG\"\necho \"CURRENT_PROJECT_VERSION = $VERSION_CODE\" >> \"$GENERATED_XCCONFIG\"\n";
 		};
-		C93F44ABE8A2B0937E2509B5 /* [CP-User] Embed Flutter Build flutter_module Script */ = {
+		AF000001 /* Run Flutter Assemble */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
-			name = "[CP-User] Embed Flutter Build flutter_module Script";
+			inputFileListPaths = (
+				"$(FLUTTER_SWIFT_PACKAGE_OUTPUT)/Scripts/FlutterAssembleInputs.xcfilelist",
+			);
+			inputPaths = (
+			);
+			name = "Run Flutter Assemble";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nset -u\nsource \"${SRCROOT}/../flutter/.ios/Flutter/flutter_export_environment.sh\"\nexport VERBOSE_SCRIPT_LOGGING=1 && \"$FLUTTER_ROOT\"/packages/flutter_tools/bin/xcode_backend.sh embed_and_thin";
+			shellScript = "/bin/sh $FLUTTER_SWIFT_PACKAGE_OUTPUT/Scripts/flutter_integration.sh assemble\n";
 		};
 		F94CEC5D57067D9193FEBEBD /* [CP-User] Upload dSYMs to Firebase Crashlytics */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -335,7 +346,7 @@
 			name = "[CP-User] Upload dSYMs to Firebase Crashlytics";
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nif [[ \"$CONFIGURATION\" == \"Debug\" ]]; then\n  PLIST=\"$SRCROOT/FrankensteinApp/Firebase/Debug/GoogleService-Info.plist\"\nelse\n  PLIST=\"$SRCROOT/FrankensteinApp/Firebase/Release/GoogleService-Info.plist\"\nfi\n\nif [[ ! -f \"$PLIST\" ]]; then\n  echo \"warning: GoogleService-Info.plist not found at $PLIST, skipping dSYM upload\"\n  exit 0\nfi\n\nPROJECT_ID=$(/usr/libexec/PlistBuddy -c \"Print :PROJECT_ID\" \"$PLIST\" 2>/dev/null || true)\nif [[ \"$PROJECT_ID\" == \"frank-sample-placeholder\" ]]; then\n  echo \"warning: placeholder Firebase config, skipping dSYM upload\"\n  exit 0\nfi\n\n\"${PODS_ROOT}/FirebaseCrashlytics/upload-symbols\"   -gsp \"$PLIST\"   -p ios   \"${DWARF_DSYM_FOLDER_PATH}\"\n";
+			shellScript = "set -e\nif [[ \"$CONFIGURATION\" == \"Debug\" ]]; then\n  PLIST=\"$SRCROOT/FrankensteinApp/Firebase/Debug/GoogleService-Info.plist\"\nelse\n  PLIST=\"$SRCROOT/FrankensteinApp/Firebase/Release/GoogleService-Info.plist\"\nfi\n\nif [[ ! -f \"$PLIST\" ]]; then\n  echo \"warning: GoogleService-Info.plist not found at $PLIST, skipping dSYM upload\"\n  exit 0\nfi\n\nPROJECT_ID=$(/usr/libexec/PlistBuddy -c \"Print :PROJECT_ID\" \"$PLIST\" 2>/dev/null || true)\nif [[ \"$PROJECT_ID\" == \"frank-sample-placeholder\" ]]; then\n  echo \"warning: placeholder Firebase config, skipping dSYM upload\"\n  exit 0\nfi\n\n# Firebase ships via SPM (through the Flutter plugins), so upload-symbols\n# lives in the SPM checkout, not in Pods.\nUPLOAD_SYMBOLS=\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols\"\nif [[ ! -x \"$UPLOAD_SYMBOLS\" ]]; then\n  echo \"warning: upload-symbols not found at $UPLOAD_SYMBOLS, skipping dSYM upload\"\n  exit 0\nfi\n\n\"$UPLOAD_SYMBOLS\"   -gsp \"$PLIST\"   -p ios   \"${DWARF_DSYM_FOLDER_PATH}\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -492,6 +503,9 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = FZ7UUKUP84;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				FLUTTER_APPLICATION_PATH = "$(SRCROOT)/../flutter";
+				FLUTTER_SWIFT_PACKAGE_OUTPUT = "$(SRCROOT)/../flutter/build/ios/SwiftPackages";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/../kmp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
@@ -523,6 +537,9 @@
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = FZ7UUKUP84;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				FLUTTER_APPLICATION_PATH = "$(SRCROOT)/../flutter";
+				FLUTTER_SWIFT_PACKAGE_OUTPUT = "$(SRCROOT)/../flutter/build/ios/SwiftPackages";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/../kmp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
@@ -567,6 +584,28 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		AC000001 /* XCLocalSwiftPackageReference "FlutterNativeIntegration" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../flutter/build/ios/SwiftPackages/FlutterNativeIntegration;
+		};
+		AC000002 /* XCLocalSwiftPackageReference ".." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../..;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AD000001 /* FlutterNativeIntegration */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FlutterNativeIntegration;
+		};
+		AD000002 /* Measure */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Measure;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A7000001 /* Project object */;
 }

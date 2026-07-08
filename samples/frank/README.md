@@ -55,11 +55,21 @@ This reads the `.env` file and generates:
 ```bash
 cd flutter
 flutter pub get
+rm -f .ios/Podfile
+flutter build swift-package --platform ios --no-codesign
 cd ..
 ```
 
-This generates the `.android/` and `.ios/` integration directories required by
-the Gradle and CocoaPods build systems.
+`flutter pub get` generates the `.android/` directory the Gradle build needs.
+`flutter build swift-package` (Flutter 3.44 or later) builds the
+`FlutterNativeIntegration` Swift package under `flutter/build/ios/SwiftPackages`,
+which is how the iOS app consumes the Flutter module.
+
+Deleting `.ios/Podfile` turns off the CocoaPods fallback that builds plugins
+without Swift Package Manager support. Every plugin here supports it, so the
+fallback would only slow the build down, and its generated Podfile targets an
+iOS version too low for Firebase. The Podfile only comes back when `.ios/` is
+regenerated from scratch, so repeat the `rm` after a clean checkout.
 
 #### 3. Set up React Native module
 
@@ -77,9 +87,14 @@ pod install
 cd ..
 ```
 
-CocoaPods pulls in the Flutter pods, React Native pods, the KMP shared
-framework, and the Measure SDK. Always open the **workspace**
-(`ios/FrankensteinApp.xcworkspace`), not the `.xcodeproj`.
+CocoaPods installs the React Native pods only. The Flutter module and the
+Measure SDK come in through Swift Package Manager: the Xcode project
+references the generated `FlutterNativeIntegration` package and the local
+Measure package at the repo root. The local package overrides the remote
+`measure` references declared by `measure_flutter` and `MeasureReactNative`,
+so the app builds against your working tree instead of a released tag. Always
+open the **workspace** (`ios/FrankensteinApp.xcworkspace`), not the
+`.xcodeproj`.
 
 ## Building
 
@@ -158,8 +173,11 @@ measure_dio:
 ```
 
 On Android, the Flutter module is included as a Gradle subproject via
-Flutter's plugin loader (`settings.gradle.kts`). On iOS, it's integrated
-through CocoaPods via `install_all_flutter_pods` in the Podfile.
+Flutter's plugin loader (`settings.gradle.kts`). On iOS, it comes in through
+Swift Package Manager: `flutter build swift-package` generates the
+`FlutterNativeIntegration` package, and each Xcode build runs
+`flutter_integration.sh` (a scheme pre-action plus the `Run Flutter Assemble`
+build phase) to rebuild and embed the Dart side.
 
 ### Kotlin Multiplatform
 
