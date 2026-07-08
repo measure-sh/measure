@@ -98,33 +98,33 @@ describe('withMeasureConfig', () => {
       expect(result).toEqual({ code: 'var x = 1;', map: '{"version":3,"mappings":""}' });
     });
 
-    it('does not inject debugId into sourcemap', async () => {
+    it('does not inject x-measure-patch-id into sourcemap', async () => {
       const config = makeConfig('var x = 1;');
       const wrapped = withMeasureConfig(config);
       const result = await wrapped.serializer!.customSerializer!(
         'index.js', [], makeGraph(true), {}
       ) as { code: string; map: string };
-      expect(JSON.parse(result.map).debugId).toBeUndefined();
+      expect(JSON.parse(result.map)['x-measure-patch-id']).toBeUndefined();
     });
   });
 
   describe('customSerializer — production { code, map } mode', () => {
-    it('injects a valid UUID v4 as debugId in sourcemap', async () => {
+    it('injects a valid UUID v4 as x-measure-patch-id in sourcemap', async () => {
       const config = makeConfig('var x = 1;');
       const wrapped = withMeasureConfig(config);
       const result = await wrapped.serializer!.customSerializer!(
         'index.js', [], makeGraph(false), {}
       ) as { code: string; map: string };
-      expect(JSON.parse(result.map).debugId).toMatch(UUID_PATTERN);
+      expect(JSON.parse(result.map)['x-measure-patch-id']).toMatch(UUID_PATTERN);
     });
 
-    it('debugId matches the UUID written to the prelude file', async () => {
+    it('x-measure-patch-id matches the UUID written to the prelude file', async () => {
       const config = makeConfig('var x = 1;');
       const wrapped = withMeasureConfig(config);
       const result = await wrapped.serializer!.customSerializer!(
         'index.js', [], makeGraph(false), {}
       ) as { code: string; map: string };
-      expect(JSON.parse(result.map).debugId).toBe(capturedPatchId());
+      expect(JSON.parse(result.map)['x-measure-patch-id']).toBe(capturedPatchId());
     });
 
     it('does not modify the bundle code', async () => {
@@ -151,24 +151,24 @@ describe('withMeasureConfig', () => {
   });
 
   describe('customSerializer — production { artifacts } mode (expo export)', () => {
-    it('injects debugId into the map artifact source', async () => {
+    it('injects x-measure-patch-id into the map artifact source', async () => {
       const config = makeArtifactsConfig('{"version":3,"mappings":""}');
       const wrapped = withMeasureConfig(config);
       const result = await wrapped.serializer!.customSerializer!(
         'index.js', [], makeGraph(false), {}
       ) as { artifacts: Array<{ type: string; source: string }> };
       const mapArtifact = result.artifacts.find((a) => a.type === 'map')!;
-      expect(JSON.parse(mapArtifact.source).debugId).toMatch(UUID_PATTERN);
+      expect(JSON.parse(mapArtifact.source)['x-measure-patch-id']).toMatch(UUID_PATTERN);
     });
 
-    it('debugId in map artifact matches the UUID written to the prelude file', async () => {
+    it('x-measure-patch-id in map artifact matches the UUID written to the prelude file', async () => {
       const config = makeArtifactsConfig('{"version":3,"mappings":""}');
       const wrapped = withMeasureConfig(config);
       const result = await wrapped.serializer!.customSerializer!(
         'index.js', [], makeGraph(false), {}
       ) as { artifacts: Array<{ type: string; source: string }> };
       const mapArtifact = result.artifacts.find((a) => a.type === 'map')!;
-      expect(JSON.parse(mapArtifact.source).debugId).toBe(capturedPatchId());
+      expect(JSON.parse(mapArtifact.source)['x-measure-patch-id']).toBe(capturedPatchId());
     });
 
     it('does not modify the JS artifact source', async () => {
@@ -189,7 +189,7 @@ describe('withMeasureConfig', () => {
       expect(jsArtifact.source).toBe(hbc);
     });
 
-    it('overwrites an existing debugId in the map artifact', async () => {
+    it('preserves existing debugId and sets x-measure-patch-id in the map artifact', async () => {
       const mapWithExistingDebugId = '{"version":3,"mappings":"","debugId":"old-uuid"}';
       const config = makeArtifactsConfig(mapWithExistingDebugId);
       const wrapped = withMeasureConfig(config);
@@ -198,8 +198,8 @@ describe('withMeasureConfig', () => {
       ) as { artifacts: Array<{ type: string; source: string }> };
       const mapArtifact = result.artifacts.find((a) => a.type === 'map')!;
       const sm = JSON.parse(mapArtifact.source);
-      expect(sm.debugId).not.toBe('old-uuid');
-      expect(sm.debugId).toMatch(UUID_PATTERN);
+      expect(sm.debugId).toBe('old-uuid');
+      expect(sm['x-measure-patch-id']).toMatch(UUID_PATTERN);
     });
   });
 

@@ -16,7 +16,7 @@
 #   api_url            Measure API URL (e.g. https://measure.example.com)
 #   patch_id           OTA patch UUID (manual mode only). Omit when using
 #                      withMeasureConfig() in metro.config.js — the patch ID
-#                      is read automatically from the sourcemap's debugId field.
+#                      is read automatically from the sourcemap's x-measure-patch-id field.
 #   path_to_sourcemap  Path to the .hbc.map from 'expo export --source-maps'
 #                      Must contain /ios/ or /android/ in the path to detect platform.
 #
@@ -32,7 +32,7 @@
 # per platform if you need both to work simultaneously.
 #
 # Examples:
-#   # Automated (Metro plugin — patch_id read from sourcemap debugId field):
+#   # Automated (Metro plugin — patch_id read from sourcemap x-measure-patch-id field):
 #   ./upload_patch.sh "msr_key_..." "https://measure.example.com" \
 #     "./dist/_expo/static/js/ios/entry-abc123.hbc.map"
 #
@@ -71,13 +71,13 @@ if [ ! -f "$SOURCEMAP_PATH" ]; then
   exit 1
 fi
 
-# In automated mode (3 args), read the patch ID from the sourcemap's debugId
-# field — written there by withMeasureConfig() in metro.config.js.
+# In automated mode, read the patch ID from the sourcemap's
+# x-measure-patch-id field — written there by withMeasureConfig() in metro.config.js.
 if [ -z "$PATCH_ID" ]; then
-  PATCH_ID=$(grep -o '"debugId":"[^"]*"' "$SOURCEMAP_PATH" \
-    | sed 's/"debugId":"//;s/"//' | head -1 || true)
+  PATCH_ID=$(grep -o '"x-measure-patch-id":"[^"]*"' "$SOURCEMAP_PATH" \
+    | sed 's/"x-measure-patch-id":"//;s/"//' | head -1 || true)
   if [ -z "$PATCH_ID" ]; then
-    echo "Error: sourcemap has no debugId field and no patch_id argument was given."
+    echo "Error: sourcemap has no x-measure-patch-id field and no patch_id argument was given."
     echo "Either add withMeasureConfig() to metro.config.js, or pass patch_id as the 3rd argument."
     exit 1
   fi
@@ -135,16 +135,16 @@ echo "Working directory: $TEMP_DIR"
 touch "$TEMP_DIR/$BUNDLE_CANONICAL"
 cp "$SOURCEMAP_PATH" "$TEMP_DIR/$MAP_CANONICAL"
 
-# Strip the debugId field injected by the Metro plugin before packaging.
+# Strip the x-measure-patch-id field injected by the Metro plugin before packaging.
 # The backend does not expect it; we only needed it to auto-detect PATCH_ID above.
 # This modifies the temp copy only — the original sourcemap is untouched.
-MEASURE_MAP_PATH="$TEMP_DIR/$MAP_CANONICAL" node << 'STRIP_DEBUG_ID'
+MEASURE_MAP_PATH="$TEMP_DIR/$MAP_CANONICAL" node << 'STRIP_PATCH_ID'
 var fs = require('fs');
 var p = process.env.MEASURE_MAP_PATH;
 var m = JSON.parse(fs.readFileSync(p, 'utf8'));
-delete m.debugId;
+delete m['x-measure-patch-id'];
 fs.writeFileSync(p, JSON.stringify(m));
-STRIP_DEBUG_ID
+STRIP_PATCH_ID
 
 # --- Package as .tgz (file at archive root, no path prefix) ---
 

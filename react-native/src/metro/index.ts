@@ -51,10 +51,10 @@ function generateUUID(): string {
   ].join('-');
 }
 
-function injectDebugId(mapSource: string, uuid: string): string {
+function injectPatchId(mapSource: string, uuid: string): string {
   try {
     const sm = JSON.parse(mapSource) as Record<string, unknown>;
-    sm.debugId = uuid;
+    sm['x-measure-patch-id'] = uuid;
     return JSON.stringify(sm);
   } catch (_) {
     return mapSource;
@@ -71,8 +71,8 @@ function injectDebugId(mapSource: string, uuid: string): string {
  *     entry point. Using polyfillModuleNames (not getModulesRunBeforeMainModule)
  *     ensures Metro compiles the file as a js/script polyfill directly into the
  *     HBC prepend section, so the UUID is available at runtime.
- *   - Injects `"debugId": "<UUID>"` into the sourcemap artifact so that
- *     upload_patch.sh can read the patch ID in automated (3-arg) mode.
+ *   - Injects `"x-measure-patch-id": "<UUID>"` into the sourcemap artifact so
+ *     that upload_patch.sh can read the patch ID in automated (3-arg) mode.
  *
  * Usage in metro.config.js:
  *   const { getDefaultConfig } = require('expo/metro-config');
@@ -128,8 +128,8 @@ export function withMeasureConfig(config: MetroConfig): MetroConfig {
               const assets = result as SerialAssets;
               const mapArtifact = assets.artifacts.find((a) => a.type === 'map');
               if (mapArtifact?.source) {
-                mapArtifact.source = injectDebugId(mapArtifact.source, patchId);
-                console.log('[Measure] debugId injected into', mapArtifact.filename, '=', patchId);
+                mapArtifact.source = injectPatchId(mapArtifact.source, patchId);
+                console.log('[Measure] patch-id injected into', mapArtifact.filename, '=', patchId);
               }
               return result;
             }
@@ -140,7 +140,7 @@ export function withMeasureConfig(config: MetroConfig): MetroConfig {
 
             const r = result as { code: string; map: string };
             if (r.map) {
-              return { code: r.code, map: injectDebugId(r.map, patchId) };
+              return { code: r.code, map: injectPatchId(r.map, patchId) };
             }
 
             return result;
