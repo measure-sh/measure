@@ -126,3 +126,53 @@ func TestRunSQLRejectsIncompleteScope(t *testing.T) {
 		}
 	}
 }
+
+// One-sided or length-mismatched paired filters are refused before the
+// filter reaches any dependency.
+func TestMCPBuildAppFilterRejectsUnpairedFilters(t *testing.T) {
+	appID := uuid.MustParse("0196792b-0000-7000-8000-000000000000")
+
+	rejected := []struct {
+		name string
+		cf   mcpCommonFilters
+		want string
+	}{
+		{"versions only", mcpCommonFilters{Versions: []string{"1.0"}}, "versions and version_codes"},
+		{"version_codes only", mcpCommonFilters{VersionCodes: []string{"1"}}, "versions and version_codes"},
+		{"version length mismatch", mcpCommonFilters{Versions: []string{"1.0", "1.1"}, VersionCodes: []string{"1"}}, "versions and version_codes"},
+		{"os_versions only", mcpCommonFilters{OsVersions: []string{"26.1"}}, "os_versions must be paired with os_names"},
+		{"os length mismatch", mcpCommonFilters{OsNames: []string{"ios"}, OsVersions: []string{"26.0", "26.1"}}, "os_versions must be paired with os_names"},
+	}
+
+	c := &Config{}
+	for _, tc := range rejected {
+		_, err := c.mcpBuildAppFilter(context.Background(), appID, tc.cf)
+		if err == nil {
+			t.Errorf("%s: expected refusal, got nil", tc.name)
+			continue
+		}
+		if !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: expected error containing %q, got %q", tc.name, tc.want, err)
+		}
+	}
+
+	accepted := []struct {
+		name string
+		cf   mcpCommonFilters
+	}{
+		{"paired versions", mcpCommonFilters{Versions: []string{"1.0"}, VersionCodes: []string{"1"}}},
+		{"os_names alone", mcpCommonFilters{Versions: []string{"1.0"}, VersionCodes: []string{"1"}, OsNames: []string{"android", "ios"}}},
+		{"paired os_versions", mcpCommonFilters{Versions: []string{"1.0"}, VersionCodes: []string{"1"}, OsNames: []string{"ios", "ios"}, OsVersions: []string{"26.0", "26.1"}}},
+	}
+
+	for _, tc := range accepted {
+		af, err := c.mcpBuildAppFilter(context.Background(), appID, tc.cf)
+		if err != nil {
+			t.Errorf("%s: expected success, got %q", tc.name, err)
+			continue
+		}
+		if len(af.Versions) != len(af.VersionCodes) {
+			t.Errorf("%s: filter has unpaired versions", tc.name)
+		}
+	}
+}
