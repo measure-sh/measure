@@ -51,6 +51,12 @@ function verifyTimeBasedState(state: string) {
 }
 
 export async function GET(request: Request) {
+  // Checked outside the try below so a missing variable surfaces as a
+  // named 500 instead of the "Invalid or expired OAuth state" redirect.
+  if (!SALT) {
+    throw new Error("SLACK_OAUTH_STATE_SALT is not set");
+  }
+
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const state = searchParams.get("state");
@@ -115,6 +121,9 @@ export async function GET(request: Request) {
   }
 
   // Exchange code for Slack installation
+  if (!apiOrigin) {
+    throw new Error("API_BASE_URL is not set");
+  }
   const res = await fetch(`${apiOrigin}/slack/connect`, {
     method: "POST",
     headers: {

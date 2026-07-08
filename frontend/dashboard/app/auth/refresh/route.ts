@@ -12,6 +12,9 @@ const posthog = getPosthogServer();
 const errRedirectUrl = `${origin}/auth/login`;
 
 export async function POST(request: Request) {
+  if (!apiOrigin) {
+    throw new Error("API_BASE_URL is not set");
+  }
   const cookies = request.headers.get("cookie");
   const headers = new Headers(request.headers);
   headers.set("cookie", cookies || "");

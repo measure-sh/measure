@@ -40,7 +40,10 @@ export function proxy(request: NextRequest) {
 
   if (pathname.startsWith("/api")) {
     // reverse proxy all API requests
-    const apiOrigin = process.env.API_BASE_URL || "http://api:8080";
+    const apiOrigin = process.env.API_BASE_URL;
+    if (!apiOrigin) {
+      throw new Error("API_BASE_URL is not set");
+    }
     const apiOriginUrl = new URL(apiOrigin);
 
     const url = request.nextUrl.clone();

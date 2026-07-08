@@ -36,7 +36,7 @@ describe("proxy", () => {
   const originalPosthog = process.env.POSTHOG_HOST;
 
   beforeEach(() => {
-    delete process.env.API_BASE_URL;
+    process.env.API_BASE_URL = "http://api:8080";
     delete process.env.POSTHOG_HOST;
   });
 
@@ -54,7 +54,7 @@ describe("proxy", () => {
   });
 
   describe("/api proxy", () => {
-    it("rewrites /api/foo to the default API origin", () => {
+    it("rewrites /api/foo to the API origin", () => {
       const result: any = proxy(makeRequest("/api/foo"));
       expect(result.type).toBe("rewrite");
       expect(result.url).toBe("http://api:8080/foo");
@@ -92,10 +92,18 @@ describe("proxy", () => {
       expect(result.url).toBe("http://api:8080/teams/abc/apps/xyz/sessions");
     });
 
-    it("falls back to http://api:8080 when API_BASE_URL is empty string", () => {
+    it("throws when API_BASE_URL is unset", () => {
+      delete process.env.API_BASE_URL;
+      expect(() => proxy(makeRequest("/api/foo"))).toThrow(
+        "API_BASE_URL is not set",
+      );
+    });
+
+    it("throws when API_BASE_URL is an empty string", () => {
       process.env.API_BASE_URL = "";
-      const result: any = proxy(makeRequest("/api/foo"));
-      expect(result.url).toBe("http://api:8080/foo");
+      expect(() => proxy(makeRequest("/api/foo"))).toThrow(
+        "API_BASE_URL is not set",
+      );
     });
   });
 
