@@ -157,13 +157,13 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun setPatchId(patchId: String) {
-        Measure.setPatchId(patchId)
+    fun internalSetPatchId(patchId: String) {
+        Measure.internalSetPatchId(patchId)
     }
 
     @ReactMethod
-    fun setPatchVersion(patchVersion: String) {
-        Measure.setPatchVersion(patchVersion)
+    fun internalSetPatchVersion(patchVersion: String) {
+        Measure.internalSetPatchVersion(patchVersion)
     }
 
     @ReactMethod

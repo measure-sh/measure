@@ -630,11 +630,23 @@ extension Measure {
     }
 
     
-    @objc public static func setPatchId(_ patchId: String) {
+    /// An internal method to set the OTA patch ID for the current bundle, used by cross-platform
+    /// frameworks like React Native.
+    ///
+    /// This method is not intended for public usage and can change in future versions.
+    ///
+    /// - Parameter patchId: A UUID string identifying the OTA patch.
+    @objc public static func internalSetPatchId(_ patchId: String) {
         Measure.shared.setPatchId(patchId)
     }
 
-    @objc public static func setPatchVersion(_ patchVersion: String) {
+    /// An internal method to set a human-readable version label for the current OTA patch, used
+    /// by cross-platform frameworks like React Native.
+    ///
+    /// This method is not intended for public usage and can change in future versions.
+    ///
+    /// - Parameter patchVersion: A human-readable label for the OTA patch.
+    @objc public static func internalSetPatchVersion(_ patchVersion: String) {
         Measure.shared.setPatchVersion(patchVersion)
     }
 

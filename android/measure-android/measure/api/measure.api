@@ -30,8 +30,8 @@ public final class sh/measure/android/Measure {
 	public final fun internalTrackSpan (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JJJILjava/util/Map;Ljava/util/Map;Ljava/util/Map;ZZ)V
 	public final fun launchBugReportActivity (ZLjava/util/Map;)V
 	public static synthetic fun launchBugReportActivity$default (Lsh/measure/android/Measure;ZLjava/util/Map;ILjava/lang/Object;)V
-	public static final fun setPatchId (Ljava/lang/String;)V
-	public static final fun setPatchVersion (Ljava/lang/String;)V
+	public static final fun internalSetPatchId (Ljava/lang/String;)V
+	public static final fun internalSetPatchVersion (Ljava/lang/String;)V
 	public final fun setShakeListener (Lsh/measure/android/bugreport/MsrShakeListener;)V
 	public static final fun setUserId (Ljava/lang/String;)V
 	public final fun start ()V

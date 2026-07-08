@@ -134,15 +134,31 @@ object Measure {
         }
     }
 
+    /**
+     * Internal method to set the OTA patch ID for the current bundle, used by cross-platform
+     * frameworks like React Native.
+     *
+     * This method is not intended for public usage and can change in future versions.
+     *
+     * @param patchId A UUID string identifying the OTA patch.
+     */
     @JvmStatic
-    fun setPatchId(patchId: String) {
+    fun internalSetPatchId(patchId: String) {
         if (isInitialized.get()) {
             measure.setPatchId(patchId)
         }
     }
 
+    /**
+     * Internal method to set a human-readable version label for the current OTA patch, used by
+     * cross-platform frameworks like React Native.
+     *
+     * This method is not intended for public usage and can change in future versions.
+     *
+     * @param patchVersion A human-readable label for the OTA patch.
+     */
     @JvmStatic
-    fun setPatchVersion(patchVersion: String) {
+    fun internalSetPatchVersion(patchVersion: String) {
         if (isInitialized.get()) {
             measure.setPatchVersion(patchVersion)
         }

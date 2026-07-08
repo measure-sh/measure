@@ -108,13 +108,13 @@ class MeasureModule: NSObject, RCTBridgeModule {
     }
 
     @objc
-    func setPatchId(_ patchId: NSString) {
-        Measure.setPatchId(patchId as String)
+    func internalSetPatchId(_ patchId: NSString) {
+        Measure.internalSetPatchId(patchId as String)
     }
 
     @objc
-    func setPatchVersion(_ patchVersion: NSString) {
-        Measure.setPatchVersion(patchVersion as String)
+    func internalSetPatchVersion(_ patchVersion: NSString) {
+        Measure.internalSetPatchVersion(patchVersion as String)
     }
 
     @objc

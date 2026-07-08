@@ -10,8 +10,8 @@ import {
   disableNativeModule,
   start as nativeStart,
   stop as nativeStop,
-  setPatchId as nativeSetPatchId,
-  setPatchVersion as nativeSetPatchVersion,
+  internalSetPatchId as nativeSetPatchId,
+  internalSetPatchVersion as nativeSetPatchVersion,
 } from './native/measureBridge';
 import type { Span } from './tracing/span';
 import type { SpanBuilder } from './tracing/spanBuilder';
