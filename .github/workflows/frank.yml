@@ -20,7 +20,7 @@ on:
 
 env:
   JAVA_VERSION: '21'
-  FLUTTER_VERSION: '3.41.9'
+  FLUTTER_VERSION: '3.44.7'
   YARN_VERSION: '3.6.1'
 
 concurrency:
@@ -165,6 +165,11 @@ jobs:
         working-directory: samples/frank/react_native
       - name: Generate Flutter module files
         run: flutter pub get
+        working-directory: samples/frank/flutter
+      - name: Build Flutter Swift package
+        run: |
+          rm -f .ios/Podfile
+          flutter build swift-package --platform ios --no-codesign
         working-directory: samples/frank/flutter
       - name: Override GoogleService-Info.plist with real Firebase config
         env:

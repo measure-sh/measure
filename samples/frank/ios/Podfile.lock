@@ -1,117 +1,10 @@
 PODS:
   - FBLazyVector (0.84.1)
-  - Firebase/CoreOnly (12.9.0):
-    - FirebaseCore (~> 12.9.0)
-  - Firebase/Crashlytics (12.9.0):
-    - Firebase/CoreOnly
-    - FirebaseCrashlytics (~> 12.9.0)
-  - firebase_core (4.6.0):
-    - Firebase/CoreOnly (= 12.9.0)
-    - Flutter
-  - firebase_crashlytics (5.1.0):
-    - Firebase/Crashlytics (= 12.9.0)
-    - firebase_core
-    - Flutter
-  - FirebaseCore (12.9.0):
-    - FirebaseCoreInternal (~> 12.9.0)
-    - GoogleUtilities/Environment (~> 8.1)
-    - GoogleUtilities/Logger (~> 8.1)
-  - FirebaseCoreExtension (12.9.0):
-    - FirebaseCore (~> 12.9.0)
-  - FirebaseCoreInternal (12.9.0):
-    - "GoogleUtilities/NSData+zlib (~> 8.1)"
-  - FirebaseCrashlytics (12.9.0):
-    - FirebaseCore (~> 12.9.0)
-    - FirebaseInstallations (~> 12.9.0)
-    - FirebaseRemoteConfigInterop (~> 12.9.0)
-    - FirebaseSessions (~> 12.9.0)
-    - GoogleDataTransport (~> 10.1)
-    - GoogleUtilities/Environment (~> 8.1)
-    - nanopb (~> 3.30910.0)
-    - PromisesObjC (~> 2.4)
-  - FirebaseInstallations (12.9.0):
-    - FirebaseCore (~> 12.9.0)
-    - GoogleUtilities/Environment (~> 8.1)
-    - GoogleUtilities/UserDefaults (~> 8.1)
-    - PromisesObjC (~> 2.4)
-  - FirebaseRemoteConfigInterop (12.9.0)
-  - FirebaseSessions (12.9.0):
-    - FirebaseCore (~> 12.9.0)
-    - FirebaseCoreExtension (~> 12.9.0)
-    - FirebaseInstallations (~> 12.9.0)
-    - GoogleDataTransport (~> 10.1)
-    - GoogleUtilities/Environment (~> 8.1)
-    - GoogleUtilities/UserDefaults (~> 8.1)
-    - nanopb (~> 3.30910.0)
-    - PromisesSwift (~> 2.1)
-  - Flutter (1.0.0)
-  - FlutterPluginRegistrant (0.0.1):
-    - firebase_core
-    - firebase_crashlytics
-    - Flutter
-    - image_picker_ios
-    - measure_flutter
-  - GoogleDataTransport (10.1.0):
-    - nanopb (~> 3.30910.0)
-    - PromisesObjC (~> 2.4)
-  - GoogleUtilities/Environment (8.1.0):
-    - GoogleUtilities/Privacy
-  - GoogleUtilities/Logger (8.1.0):
-    - GoogleUtilities/Environment
-    - GoogleUtilities/Privacy
-  - "GoogleUtilities/NSData+zlib (8.1.0)":
-    - GoogleUtilities/Privacy
-  - GoogleUtilities/Privacy (8.1.0)
-  - GoogleUtilities/UserDefaults (8.1.0):
-    - GoogleUtilities/Logger
-    - GoogleUtilities/Privacy
   - hermes-engine (250829098.0.9):
     - hermes-engine/Pre-built (= 250829098.0.9)
   - hermes-engine/Pre-built (250829098.0.9)
-  - image_picker_ios (0.0.1):
-    - Flutter
-  - KSCrash (2.5.1):
-    - KSCrash/Installations (= 2.5.1)
-  - KSCrash/Core (2.5.1)
-  - KSCrash/DemangleFilter (2.5.1):
-    - KSCrash/Recording
-  - KSCrash/Filters (2.5.1):
-    - KSCrash/Recording
-    - KSCrash/RecordingCore
-    - KSCrash/ReportingCore
-  - KSCrash/Installations (2.5.1):
-    - KSCrash/DemangleFilter
-    - KSCrash/Filters
-    - KSCrash/Recording
-    - KSCrash/Sinks
-  - KSCrash/Recording (2.5.1):
-    - KSCrash/RecordingCore
-  - KSCrash/RecordingCore (2.5.1):
-    - KSCrash/Core
-  - KSCrash/ReportingCore (2.5.1):
-    - KSCrash/Core
-  - KSCrash/Sinks (2.5.1):
-    - KSCrash/Filters
-    - KSCrash/Recording
-  - measure-sh (0.11.0):
-    - KSCrash (~> 2.5)
-    - measure-sh/WebP (= 0.11.0)
-  - measure-sh/WebP (0.11.0):
-    - KSCrash (~> 2.5)
-  - measure_flutter (0.3.0):
-    - Flutter
-    - measure-sh
-  - MeasureReactNative (0.1.0):
-    - measure-sh (= 0.11.0)
+  - MeasureReactNative (0.1.1):
     - React-Core
-  - nanopb (3.30910.0):
-    - nanopb/decode (= 3.30910.0)
-    - nanopb/encode (= 3.30910.0)
-  - nanopb/decode (3.30910.0)
-  - nanopb/encode (3.30910.0)
-  - PromisesObjC (2.4.0)
-  - PromisesSwift (2.4.0):
-    - PromisesObjC (= 2.4.0)
   - RCTDeprecation (0.84.1)
   - RCTRequired (0.84.1)
   - RCTSwiftUI (0.84.1)
@@ -1898,14 +1791,7 @@ PODS:
 
 DEPENDENCIES:
   - FBLazyVector (from `../react_native/node_modules/react-native/Libraries/FBLazyVector`)
-  - firebase_core (from `../flutter/.ios/.symlinks/plugins/firebase_core/ios`)
-  - firebase_crashlytics (from `../flutter/.ios/.symlinks/plugins/firebase_crashlytics/ios`)
-  - Flutter (from `../flutter/.ios/Flutter`)
-  - FlutterPluginRegistrant (from `../flutter/.ios/Flutter/FlutterPluginRegistrant`)
   - hermes-engine (from `../react_native/node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
-  - image_picker_ios (from `../flutter/.ios/.symlinks/plugins/image_picker_ios/ios`)
-  - measure-sh (from `../../..`)
-  - measure_flutter (from `../flutter/.ios/.symlinks/plugins/measure_flutter/ios`)
   - "MeasureReactNative (from `../react_native/node_modules/@measuresh/react-native`)"
   - RCTDeprecation (from `../react_native/node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
   - RCTRequired (from `../react_native/node_modules/react-native/Libraries/Required`)
@@ -1980,43 +1866,12 @@ DEPENDENCIES:
   - ReactNativeDependencies (from `../react_native/node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`)
   - Yoga (from `../react_native/node_modules/react-native/ReactCommon/yoga`)
 
-SPEC REPOS:
-  trunk:
-    - Firebase
-    - FirebaseCore
-    - FirebaseCoreExtension
-    - FirebaseCoreInternal
-    - FirebaseCrashlytics
-    - FirebaseInstallations
-    - FirebaseRemoteConfigInterop
-    - FirebaseSessions
-    - GoogleDataTransport
-    - GoogleUtilities
-    - KSCrash
-    - nanopb
-    - PromisesObjC
-    - PromisesSwift
-
 EXTERNAL SOURCES:
   FBLazyVector:
     :path: "../react_native/node_modules/react-native/Libraries/FBLazyVector"
-  firebase_core:
-    :path: "../flutter/.ios/.symlinks/plugins/firebase_core/ios"
-  firebase_crashlytics:
-    :path: "../flutter/.ios/.symlinks/plugins/firebase_crashlytics/ios"
-  Flutter:
-    :path: "../flutter/.ios/Flutter"
-  FlutterPluginRegistrant:
-    :path: "../flutter/.ios/Flutter/FlutterPluginRegistrant"
   hermes-engine:
     :podspec: "../react_native/node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec"
     :tag: hermes-v250829098.0.9
-  image_picker_ios:
-    :path: "../flutter/.ios/.symlinks/plugins/image_picker_ios/ios"
-  measure-sh:
-    :path: "../../.."
-  measure_flutter:
-    :path: "../flutter/.ios/.symlinks/plugins/measure_flutter/ios"
   MeasureReactNative:
     :path: "../react_native/node_modules/@measuresh/react-native"
   RCTDeprecation:
@@ -2164,29 +2019,8 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   FBLazyVector: e97c19a5a442429d1988f182a1940fb08df514da
-  Firebase: 065f2bb395062046623036d8e6dc857bc2521d56
-  firebase_core: 8e6f58412ca227827c366b92e7cee047a2148c60
-  firebase_crashlytics: c399f9682c474beb06a89c11dfab04db537f3cd2
-  FirebaseCore: 428912f751178b06bef0a1793effeb4a5e09a9b8
-  FirebaseCoreExtension: e911052d59cd0da237a45d706fc0f81654f035c1
-  FirebaseCoreInternal: b321eafae5362113bc182956fafc9922cfc77b72
-  FirebaseCrashlytics: 43913d587ef07beaf5db703baa61eacf9554658c
-  FirebaseInstallations: 7b64ffd006032b2b019a59b803858df5112d9eaa
-  FirebaseRemoteConfigInterop: 765ee19cd2bfa8e54937c8dae901eb634ad6787d
-  FirebaseSessions: a2d06fd980431fda934c7a543901aca05fc4edcc
-  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  FlutterPluginRegistrant: 01160e8af7df47e77a86aca8b735d0a3054aa2cd
-  GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
-  GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   hermes-engine: 0d3f5af9c6b6e59a5e181d0472f0332b0185d247
-  image_picker_ios: e0ece4aa2a75771a7de3fa735d26d90817041326
-  KSCrash: 8c4464fd5da7de520f2ce4a00fdf63f169a80f18
-  measure-sh: 653622eb0cf3ca79dd81d1a6f541b26f8814d392
-  measure_flutter: a0499a08f607a1c0eb922400a5a20cb92e7e601f
-  MeasureReactNative: c85a77ac6c9e6f20bcc42640387a7390f5e6101d
-  nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
-  PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
-  PromisesSwift: 9d77319bbe72ebf6d872900551f7eeba9bce2851
+  MeasureReactNative: f515441fe3b6d72fb90ffb1e788240d9d9768b98
   RCTDeprecation: af44b104091a34482596cd9bd7e8d90c4e9b4bd7
   RCTRequired: bb77b070f75f53398ce43c0aaaa58337cebe2bf6
   RCTSwiftUI: afc0a0a635860da1040a0b894bfd529da06d7810
@@ -2259,6 +2093,6 @@ SPEC CHECKSUMS:
   ReactNativeDependencies: 2ae92dcff72f77096fdec77c230739694c7316bb
   Yoga: 846fbe6f595136be802ad81d05688ff748839764
 
-PODFILE CHECKSUM: 3a70000ba38a541020d56f72d9a62bf8933587f8
+PODFILE CHECKSUM: d65ce5599c2b434cff80e16858e85bd612dd1a1e
 
 COCOAPODS: 1.16.2

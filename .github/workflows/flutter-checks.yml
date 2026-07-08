@@ -55,3 +55,80 @@ jobs:
 
       - name: Run all tests
         run: melos run test:all
+
+  ios-sdk-pins:
+    name: iOS SDK pin consistency
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Check native SDK pins
+        run: flutter/scripts/check-ios-pins.sh
+
+  flutter-ios-integration:
+    name: Flutter iOS integration (${{ matrix.mode }}, Flutter ${{ matrix.flutter-version }})
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: SwiftPM
+            flutter-version: "3.44.7"
+          - mode: CocoaPods
+            flutter-version: "3.44.7"
+          - mode: CocoaPods
+            flutter-version: "3.24.0"
+    defaults:
+      run:
+        working-directory: flutter/packages/measure_flutter/example
+    timeout-minutes: 45
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@f2c4f6686ca8e8d6e6d0f28410eeef506ed66aff
+        with:
+          channel: stable
+          flutter-version: ${{ matrix.flutter-version }}
+          cache: true
+
+      - name: Disable Swift Package Manager
+        if: matrix.mode == 'CocoaPods'
+        run: flutter config --no-enable-swift-package-manager
+
+      - name: Build example app
+        run: |
+          flutter pub get
+          flutter build ios --release --no-codesign
+
+      - name: Assert plugin integrated via Swift Package Manager
+        if: matrix.mode == 'SwiftPM'
+        run: |
+          if [ -f ios/Podfile.lock ] && grep -q "measure_flutter" ios/Podfile.lock; then
+            echo "error: measure_flutter was integrated via CocoaPods in the SPM build"
+            exit 1
+          fi
+          grep -q "ios-v" ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved
+
+      - name: Assert plugin integrated via CocoaPods
+        if: matrix.mode == 'CocoaPods'
+        run: |
+          grep -q "measure_flutter" ios/Podfile.lock
+          grep -q "measure-sh" ios/Podfile.lock
+
+      - name: Assert privacy manifest bundled
+        run: |
+          APP=build/ios/iphoneos/Runner.app
+          if [ "${{ matrix.mode }}" = "SwiftPM" ]; then
+            test -f "$APP/measure_flutter_measure_flutter.bundle/PrivacyInfo.xcprivacy"
+          else
+            test -f "$APP/measure_flutter_privacy.bundle/PrivacyInfo.xcprivacy"
+          fi
+
+      - name: Lint podspec
+        if: matrix.mode == 'CocoaPods' && matrix.flutter-version != '3.24.0'
+        working-directory: flutter/packages/measure_flutter
+        run: pod lib lint ios/measure_flutter.podspec --configuration=Debug --skip-tests --use-modular-headers

@@ -1,22 +1,17 @@
 platform :ios, '16.0'
 
-# Flutter module integration
-flutter_application_path = '../flutter'
-load File.join(flutter_application_path, '.ios', 'Flutter', 'podhelper.rb')
+# The Flutter module and the Measure SDK are integrated via Swift Package
+# Manager, not CocoaPods: the Xcode project references the generated
+# FlutterNativeIntegration package (../flutter/build/ios/SwiftPackages) and
+# the local Measure package at the repo root. The local package overrides the
+# remote measure-sh SPM references declared by measure_flutter and
+# MeasureReactNative.
 
 # React Native integration
 require_relative '../react_native/node_modules/react-native/scripts/react_native_pods'
 
 target 'FrankensteinApp' do
   use_frameworks! :linkage => :static
-
-  $MeasureDisableSPM = true
-
-  # Measure SDK (local)
-  pod 'measure-sh', :path => '../../..'
-
-  # Flutter pods
-  install_all_flutter_pods(flutter_application_path)
 
   # React Native pods
   use_react_native!(
@@ -67,7 +62,15 @@ target 'FrankensteinApp' do
         exit 0
       fi
 
-      "${PODS_ROOT}/FirebaseCrashlytics/upload-symbols" \
+      # Firebase ships via SPM (through the Flutter plugins), so upload-symbols
+      # lives in the SPM checkout, not in Pods.
+      UPLOAD_SYMBOLS="${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols"
+      if [[ ! -x "$UPLOAD_SYMBOLS" ]]; then
+        echo "warning: upload-symbols not found at $UPLOAD_SYMBOLS, skipping dSYM upload"
+        exit 0
+      fi
+
+      "$UPLOAD_SYMBOLS" \
         -gsp "$PLIST" \
         -p ios \
         "${DWARF_DSYM_FOLDER_PATH}"
@@ -178,8 +181,36 @@ target 'FrankensteinApp' do
 end
 
 post_install do |installer|
-  flutter_post_install(installer)
   react_native_post_install(installer, '../react_native/node_modules/react-native')
+
+  # MeasureReactNative's SPM dependency on Measure exists so its Swift compiles
+  # against the module, but a linked package product gets merged into the static
+  # pod archive by libtool, duplicating every Measure and KSCrash symbol the app
+  # already links from the package graph. Convert the product link into a plain
+  # target dependency: build order still guarantees Measure.swiftmodule exists
+  # before the pod compiles (found via the SWIFT_INCLUDE_PATHS that
+  # react_native_post_install adds), and the app link provides the single copy.
+  measure_rn = installer.pods_project.targets.find { |t| t.name == 'MeasureReactNative' }
+  if measure_rn
+    measure_rn.package_product_dependencies.dup.each do |product|
+      next unless product.product_name == 'Measure'
+      measure_rn.package_product_dependencies.delete(product)
+      order_dep = installer.pods_project.new(Xcodeproj::Project::Object::PBXTargetDependency)
+      order_dep.product_ref = product
+      measure_rn.dependencies << order_dep
+    end
+
+    # Loading Measure.swiftmodule needs the module maps of Measure's C
+    # dependencies, which Xcode only passes along with a linked product.
+    module_maps = %w[KSCrashRecording KSCrashRecordingCore KSCrashCore third-party-IsAppEncrypted]
+      .map { |m| "$(OBJROOT)/GeneratedModuleMaps$(EFFECTIVE_PLATFORM_NAME)/#{m}.modulemap" }
+    module_maps << File.expand_path('../../../ios/Sources/MeasureWebP/include/module.modulemap', __dir__)
+    measure_rn.build_configurations.each do |config|
+      flags = Array(config.build_settings['OTHER_SWIFT_FLAGS'] || '$(inherited)')
+      module_maps.each { |map| flags.push('-Xcc', "-fmodule-map-file=#{map}") }
+      config.build_settings['OTHER_SWIFT_FLAGS'] = flags
+    end
+  end
 
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|

@@ -17,7 +17,36 @@ graph LR
 ## Pre-release Checklist
 
 - Ensure Measure Android SDK has been released and is available in Maven Central.
-- Ensure Measure iOS SDK has been released and is available in CocoaPods.
+- Ensure Measure iOS SDK has been released and is available in CocoaPods, and that
+  its `ios-v<version>` git tag exists (Swift Package Manager resolves `measure_flutter`'s
+  `Package.swift` against that tag).
+- Run `flutter/scripts/check-ios-pins.sh` to confirm the `Package.swift` tag and the
+  podspec's `measure-sh` pin agree and that the tag exists on GitHub. CI runs the
+  same check.
+
+## Testing both iOS dependency managers
+
+Clients get the plugin through Swift Package Manager (the default since Flutter
+3.44) or CocoaPods (older Flutter versions and projects that opted out), so a
+change is only safe once it builds both ways. CI does this on every change: the
+`flutter-ios-integration` job in `flutter-checks.yml` builds
+`packages/measure_flutter/example` in each mode. Reproduce a client setup
+locally with:
+
+```bash
+cd flutter/packages/measure_flutter/example
+
+# Swift Package Manager (the default)
+flutter build ios --release --no-codesign
+
+# CocoaPods
+flutter config --no-enable-swift-package-manager
+flutter build ios --release --no-codesign
+flutter config --enable-swift-package-manager
+```
+
+Both modes resolve the released native SDK, so a passing build reflects what
+clients get.
 
 ## Releasing a package
 
