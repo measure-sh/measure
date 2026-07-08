@@ -1,0 +1,16 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Native Android"
+    timeout: 5000
+- tapOn: "Native Android"
+- scrollUntilVisible:
+    element:
+      text: "Infinite Loop"
+- tapOn: "Infinite Loop"
+
+- launchApp
+- extendedWaitUntil:
+    visible: "Native Android"
+    timeout: 10000

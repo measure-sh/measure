@@ -131,7 +131,10 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
   const plotKeys = demo ? demoParsedPlotKeys : queryData?.plotKeys;
 
   return (
-    <div className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]">
+    <div
+      data-testid="exception-distribution-plot"
+      className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]"
+    >
       {effectiveStatus === "pending" && <SkeletonPlot />}
       {effectiveStatus === "error" && (
         <p className="text-lg font-display text-center p-4">
@@ -140,12 +143,20 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
         </p>
       )}
       {effectiveStatus === "success" && queryData === null && !demo && (
-        <p className="text-lg font-display text-center p-4">No Data</p>
+        <p
+          data-testid="exception-distribution-plot-no-data"
+          className="text-lg font-display text-center p-4"
+        >
+          No Data
+        </p>
       )}
       {effectiveStatus === "success" &&
         plot !== undefined &&
         plotKeys !== undefined && (
-          <div className="size-full">
+          <div
+            data-testid="exception-distribution-plot-data"
+            className="size-full"
+          >
             <ResponsiveBar
               data={plot}
               keys={plotKeys}

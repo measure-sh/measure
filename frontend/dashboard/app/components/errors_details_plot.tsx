@@ -115,7 +115,10 @@ const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
   const plot = demo ? demoPlot : queryPlot;
 
   return (
-    <div className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]">
+    <div
+      data-testid="exception-detail-plot"
+      className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]"
+    >
       {effectiveStatus === "pending" && <SkeletonPlot />}
       {effectiveStatus === "error" && (
         <p className="text-lg font-display text-center p-4">
@@ -124,10 +127,15 @@ const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
         </p>
       )}
       {effectiveStatus === "success" && plot === null && (
-        <p className="text-lg font-display text-center p-4">No Data</p>
+        <p
+          data-testid="exception-detail-plot-no-data"
+          className="text-lg font-display text-center p-4"
+        >
+          No Data
+        </p>
       )}
       {effectiveStatus === "success" && plot !== null && plot !== undefined && (
-        <div className="size-full">
+        <div data-testid="exception-detail-plot-data" className="size-full">
           <ResponsiveLine
             data={plot}
             curve="monotoneX"

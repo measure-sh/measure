@@ -1,0 +1,26 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Native iOS"
+    timeout: 5000
+- tapOn: "Native iOS"
+- scrollUntilVisible:
+    element:
+      text: "Track Error"
+- tapOn: "Track Error"
+
+- launchApp
+- extendedWaitUntil:
+    visible: "Native iOS"
+    timeout: 5000
+- tapOn: "Native iOS"
+- scrollUntilVisible:
+    element:
+      text: "NSException"
+- tapOn: "NSException"
+
+- launchApp
+- extendedWaitUntil:
+    visible: "Native iOS"
+    timeout: 10000

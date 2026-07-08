@@ -1,0 +1,36 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Native iOS"
+    timeout: 5000
+- tapOn: "Native iOS"
+- scrollUntilVisible:
+    element:
+      text: "Launch Bug Report"
+- tapOn: "Launch Bug Report"
+- tapOn: "Briefly describe the issue you are facing."
+- inputText: "e2e-bug-report"
+- tapOn: "Gallery"
+- tapOn:
+    text: "Photo, .*"
+    index: 0
+- tapOn:
+    text: "Choose"
+    optional: true
+- tapOn: "Send"
+
+- extendedWaitUntil:
+    visible:
+      text: "__upload_settle__"
+    timeout: 5000
+    optional: true
+
+- pressKey: "Home"
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible:
+      text: "__upload_settle__"
+    timeout: 5000
+    optional: true

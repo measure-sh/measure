@@ -13,7 +13,7 @@ fi
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 
-# Android: Measure config in local.properties
+# Android: Measure config in local.properties.
 LOCAL_PROPS="$SCRIPT_DIR/local.properties"
 if [ -f "$LOCAL_PROPS" ]; then
   # Remove existing measure.* lines (portable across macOS and Linux)

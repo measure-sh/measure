@@ -272,12 +272,12 @@ private struct NativeIOSScreen: View {
             Measure.launchBugReport(takeScreenshot: true)
         case .trackBugReport:
             guard let vc = holder.viewController else { return }
-                Measure.captureScreenshot(for: vc) { screenshot in
-                    Measure.trackBugReport(
-                        description: "Bug report from native iOS demos",
-                        attachments: [screenshot].compactMap { $0 }
-                    )
-                }
+            Measure.captureScreenshot(for: vc) { screenshot in
+                Measure.trackBugReport(
+                    description: "Bug report from native iOS demos",
+                    attachments: screenshot.map { [$0] } ?? []
+                )
+            }
         case .shakeToReport:
             break // handled by toggle
 
@@ -368,7 +368,7 @@ private struct NativeIOSScreen: View {
                 span.end()
             }
         case .setUserId:
-            Measure.setUserId("user-131351")
+            Measure.setUserId("session_timeline_test_user")
         case .clearUserId:
             Measure.clearUserId()
         }

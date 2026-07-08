@@ -94,7 +94,10 @@ const ErrorGroupCommonPath: React.FC<ErrorGroupCommonPathProps> = ({
   }, [errorGroupCommonPath, confidenceThreshold]);
 
   return (
-    <div className="flex flex-col font-body w-full">
+    <div
+      data-testid="exception-detail-common-path"
+      className="flex flex-col font-body w-full"
+    >
       <p className="text-3xl">
         Common Path <BetaBadge />
       </p>

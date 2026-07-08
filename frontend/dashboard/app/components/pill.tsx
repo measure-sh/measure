@@ -77,6 +77,7 @@ interface PillProps {
   // make a two-zone interactive pill.
   action?: PillAction;
   className?: string;
+  "data-testid"?: string;
 }
 
 // Session-event tints. Shared by colour family across the per-event types
@@ -238,6 +239,7 @@ const Pill: React.FC<PillProps> = ({
   onClick,
   action,
   className,
+  "data-testid": testId,
 }) => {
   const defaults = pillDefaults[type];
   const body = children ?? defaults.label;
@@ -350,6 +352,7 @@ const Pill: React.FC<PillProps> = ({
   return wrapTip(
     <Badge
       variant="outline"
+      data-testid={testId}
       className={cn("select-none", defaults.tint, className)}
     >
       {body}

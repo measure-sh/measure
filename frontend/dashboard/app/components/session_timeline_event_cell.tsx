@@ -169,6 +169,8 @@ export default function SessionTimelineEventCell({
     <div className="border-b border-border">
       <button
         type="button"
+        data-testid="session-timeline-event"
+        data-event-type={eventType}
         onClick={onToggle}
         className="w-full text-left px-3 py-4 font-display outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-ring/50 focus-visible:ring-[2px] focus-visible:ring-inset"
       >
@@ -199,7 +201,10 @@ export default function SessionTimelineEventCell({
         </div>
       </button>
       {expanded && (
-        <div className="px-3 pt-1 pb-3">
+        <div
+          data-testid="session-timeline-event-details"
+          className="px-3 pt-1 pb-3"
+        >
           <SessionTimelineEventDetails
             teamId={teamId}
             appId={appId}

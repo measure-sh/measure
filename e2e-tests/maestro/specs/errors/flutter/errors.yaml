@@ -1,0 +1,18 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Flutter"
+    timeout: 5000
+- tapOn: "Flutter"
+
+- extendedWaitUntil:
+    visible: "Throw Exception"
+    timeout: 5000
+- tapOn: "Throw Exception"
+- scrollUntilVisible:
+    element:
+      text: "Handled Error"
+- tapOn: "Handled Error"
+
+- pressKey: "Home"

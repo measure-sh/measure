@@ -33,3 +33,9 @@ xcuserdata/
 
 # repo-root scratch space (design docs, debug dumps)
 /tmp/
+
+# gradle / android build
+**/.gradle/
+android/**/build/
+android/**/.cxx/
+android/**/.externalNativeBuild/
