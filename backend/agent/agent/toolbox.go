@@ -588,7 +588,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_metrics
 		newTool(&mcpsdk.Tool{
 			Name:        "get_metrics",
-			Description: "Get app metrics including adoption, crash-free/ANR-free sessions, and launch performance (cold/warm/hot p95). Covers all app versions unless versions/version_codes narrow it; adoption is only meaningful against a specific version, so pass one when reading it. get_filters lists the versions.",
+			Description: "Get app metrics including adoption, crash-free/ANR-free sessions, and launch performance (cold/warm/hot p95). Covers all app versions unless versions/version_codes narrow it; adoption is only meaningful against a specific version, so pass one with its version_code when reading it. get_filters lists the versions.",
 			InputSchema: mcpMustInferSchema[mcpGetMetricsInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetMetricsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetMetrics(ctx, in)
@@ -892,10 +892,10 @@ type mcpCommonFilters struct {
 	AppID               string   `json:"app_id" jsonschema:"UUID of the app to query"`
 	From                string   `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
 	To                  string   `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
-	Versions            []string `json:"versions,omitempty" jsonschema:"Filter by app version strings"`
-	VersionCodes        []string `json:"version_codes,omitempty" jsonschema:"Filter by app version codes"`
+	Versions            []string `json:"versions,omitempty" jsonschema:"Filter by app version strings. Pass together with version_codes as same-length index-aligned pairs; get_filters lists both"`
+	VersionCodes        []string `json:"version_codes,omitempty" jsonschema:"Filter by app version codes. Pass together with versions as same-length index-aligned pairs; get_filters lists both"`
 	OsNames             []string `json:"os_names,omitempty" jsonschema:"Filter by OS names (e.g. android, ios)"`
-	OsVersions          []string `json:"os_versions,omitempty" jsonschema:"Filter by OS versions"`
+	OsVersions          []string `json:"os_versions,omitempty" jsonschema:"Filter by OS versions. Pass together with os_names as same-length index-aligned pairs (one OS name per version); os_names alone works without this"`
 	Countries           []string `json:"countries,omitempty" jsonschema:"Filter by country codes (e.g. US, IN)"`
 	NetworkProviders    []string `json:"network_providers,omitempty" jsonschema:"Filter by network providers"`
 	NetworkTypes        []string `json:"network_types,omitempty" jsonschema:"Filter by network types (e.g. wifi, cellular)"`
@@ -1026,8 +1026,8 @@ type mcpGetJourneyInput struct {
 	AppID        string   `json:"app_id" jsonschema:"UUID of the app to query"`
 	From         string   `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
 	To           string   `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
-	Versions     []string `json:"versions,omitempty" jsonschema:"Filter by app version strings"`
-	VersionCodes []string `json:"version_codes,omitempty" jsonschema:"Filter by app version codes"`
+	Versions     []string `json:"versions,omitempty" jsonschema:"Filter by app version strings. Pass together with version_codes as same-length index-aligned pairs; get_filters lists both"`
+	VersionCodes []string `json:"version_codes,omitempty" jsonschema:"Filter by app version codes. Pass together with versions as same-length index-aligned pairs; get_filters lists both"`
 }
 type mcpGetErrorCommonPathInput struct {
 	AppID        string `json:"app_id" jsonschema:"UUID of the app to query"`
@@ -1158,6 +1158,17 @@ func (c *Config) mcpResolveAppAccess(ctx context.Context, rawAppID string) (uuid
 func (c *Config) mcpBuildAppFilter(ctx context.Context, appID uuid.UUID, cf mcpCommonFilters) (*filter.AppFilter, error) {
 	deps := c.Deps
 	af := &filter.AppFilter{AppID: appID}
+
+	// The query layer consumes versions/version_codes and os_names/os_versions
+	// as index-aligned pairs. One-sided or mismatched input has to be rejected
+	// here: deeper down it either fails with an internal pairing error or the
+	// filter is silently dropped, depending on the query.
+	if len(cf.Versions) != len(cf.VersionCodes) {
+		return nil, fmt.Errorf("versions and version_codes must be passed together as same-length index-aligned pairs, each version with its version code; get_filters lists both")
+	}
+	if len(cf.OsVersions) > 0 && len(cf.OsNames) != len(cf.OsVersions) {
+		return nil, fmt.Errorf("os_versions must be paired with os_names of the same length, one OS name per OS version; get_filters lists both")
+	}
 
 	from, to, err := mcpParseTimeRangeStrings(cf.From, cf.To)
 	if err != nil {
