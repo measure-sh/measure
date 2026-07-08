@@ -804,7 +804,7 @@ class TracingInterceptor: NSObject, URLSessionTaskDelegate {
 let session = URLSession(configuration: .default, delegate: TracingInterceptor(), delegateQueue: nil)
 ```
 
-h3: ### Distributed Tracing with Dio Interceptor
+### Distributed Tracing with Dio Interceptor
 
 ```dart
 class TraceHeaderInterceptor extends Interceptor {

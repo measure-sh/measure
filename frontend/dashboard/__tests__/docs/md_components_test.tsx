@@ -284,7 +284,6 @@ describe("createMarkdownComponents", () => {
       "pre",
       "code",
       "table",
-      "thead",
       "th",
       "td",
       "hr",
@@ -452,17 +451,85 @@ describe("createMarkdownComponents", () => {
       expect(container.querySelector("blockquote")).toBeInTheDocument();
     });
 
-    it("renders a NOTE admonition", () => {
+    it("renders a NOTE admonition as a callout with the marker stripped", () => {
       const components = createMarkdownComponents([]);
       const BlockquoteComponent = components.blockquote as React.FC<{
         children?: React.ReactNode;
       }>;
 
-      render(
+      const { container } = render(
         <BlockquoteComponent>[!NOTE] This is important</BlockquoteComponent>,
       );
 
-      expect(screen.getByText("Note")).toBeInTheDocument();
+      expect(screen.getByText("This is important")).toBeInTheDocument();
+      expect(container.textContent).not.toContain("[!NOTE]");
+      expect(container.firstElementChild).toHaveClass("border-blue-500/20");
+    });
+
+    it("detects the marker behind layout whitespace and drops its hard break", () => {
+      const components = createMarkdownComponents([]);
+      const BlockquoteComponent = components.blockquote as React.FC<{
+        children?: React.ReactNode;
+      }>;
+
+      // Mirrors react-markdown's children shape for "> [!NOTE]  \n> text":
+      // newline text nodes around the paragraph, marker followed by a <br>.
+      const { container } = render(
+        <BlockquoteComponent>
+          {"\n"}
+          <p>
+            {"[!NOTE]"}
+            <br />
+            {"\nActual content"}
+          </p>
+          {"\n"}
+        </BlockquoteComponent>,
+      );
+
+      expect(container.firstElementChild).toHaveClass("border-blue-500/20");
+      expect(container.textContent).not.toContain("[!NOTE]");
+      expect(container.querySelector("br")).toBeNull();
+      expect(container.textContent).toContain("Actual content");
+    });
+
+    it("drops the paragraph when the marker was its only content", () => {
+      const components = createMarkdownComponents([]);
+      const BlockquoteComponent = components.blockquote as React.FC<{
+        children?: React.ReactNode;
+      }>;
+
+      // Mirrors "> [!NOTE]" on its own line followed by a blank "> " line:
+      // the marker gets a paragraph of its own before the real content.
+      const { container } = render(
+        <BlockquoteComponent>
+          {"\n"}
+          <p>{"[!NOTE]"}</p>
+          {"\n"}
+          <p>Real content</p>
+          {"\n"}
+        </BlockquoteComponent>,
+      );
+
+      const paragraphs = container.querySelectorAll("p");
+      expect(paragraphs.length).toBe(1);
+      expect(paragraphs[0].textContent).toBe("Real content");
+      expect(container.firstElementChild).toHaveClass("border-blue-500/20");
+    });
+
+    it("strips the marker inside nested paragraph children", () => {
+      const components = createMarkdownComponents([]);
+      const BlockquoteComponent = components.blockquote as React.FC<{
+        children?: React.ReactNode;
+      }>;
+
+      const { container } = render(
+        <BlockquoteComponent>
+          <p>{"[!NOTE]\nWrapped content"}</p>
+        </BlockquoteComponent>,
+      );
+
+      expect(container.textContent).not.toContain("[!NOTE]");
+      expect(container.textContent).toContain("Wrapped content");
     });
 
     it("renders a WARNING admonition", () => {
@@ -471,9 +538,12 @@ describe("createMarkdownComponents", () => {
         children?: React.ReactNode;
       }>;
 
-      render(<BlockquoteComponent>[!WARNING] Be careful</BlockquoteComponent>);
+      const { container } = render(
+        <BlockquoteComponent>[!WARNING] Be careful</BlockquoteComponent>,
+      );
 
-      expect(screen.getByText("Warning")).toBeInTheDocument();
+      expect(screen.getByText("Be careful")).toBeInTheDocument();
+      expect(container.firstElementChild).toHaveClass("border-yellow-500/20");
     });
 
     it("renders a TIP admonition", () => {
@@ -482,9 +552,12 @@ describe("createMarkdownComponents", () => {
         children?: React.ReactNode;
       }>;
 
-      render(<BlockquoteComponent>[!TIP] Helpful tip</BlockquoteComponent>);
+      const { container } = render(
+        <BlockquoteComponent>[!TIP] Helpful tip</BlockquoteComponent>,
+      );
 
-      expect(screen.getByText("Tip")).toBeInTheDocument();
+      expect(screen.getByText("Helpful tip")).toBeInTheDocument();
+      expect(container.firstElementChild).toHaveClass("border-green-500/20");
     });
 
     it("renders an IMPORTANT admonition", () => {
@@ -493,9 +566,12 @@ describe("createMarkdownComponents", () => {
         children?: React.ReactNode;
       }>;
 
-      render(<BlockquoteComponent>[!IMPORTANT] Do this</BlockquoteComponent>);
+      const { container } = render(
+        <BlockquoteComponent>[!IMPORTANT] Do this</BlockquoteComponent>,
+      );
 
-      expect(screen.getByText("Important")).toBeInTheDocument();
+      expect(screen.getByText("Do this")).toBeInTheDocument();
+      expect(container.firstElementChild).toHaveClass("border-purple-500/20");
     });
 
     it("renders a CAUTION admonition", () => {
@@ -504,9 +580,12 @@ describe("createMarkdownComponents", () => {
         children?: React.ReactNode;
       }>;
 
-      render(<BlockquoteComponent>[!CAUTION] Danger zone</BlockquoteComponent>);
+      const { container } = render(
+        <BlockquoteComponent>[!CAUTION] Danger zone</BlockquoteComponent>,
+      );
 
-      expect(screen.getByText("Caution")).toBeInTheDocument();
+      expect(screen.getByText("Danger zone")).toBeInTheDocument();
+      expect(container.firstElementChild).toHaveClass("border-red-500/20");
     });
   });
 
@@ -521,7 +600,7 @@ describe("createMarkdownComponents", () => {
       const { container } = render(<CodeComponent>inline</CodeComponent>);
 
       const code = container.querySelector("code");
-      expect(code).toHaveClass("font-code", "bg-muted");
+      expect(code).toHaveClass("font-code", "bg-muted/50", "border-border");
     });
 
     it("renders code block with language className", () => {
