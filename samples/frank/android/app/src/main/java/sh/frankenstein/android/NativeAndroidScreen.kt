@@ -253,11 +253,34 @@ fun NativeAndroidScreen() {
             },
         ),
         DemoItem(
+            title = "Track Handled Exception",
+            description = "Catches a chained exception and reports it with custom attributes",
+            category = DemoCategory.MISC,
+            action = {
+                try {
+                    throw IOException("This is a handled exception").initCause(
+                        CustomException(message = "Caused by a custom nested exception")
+                    )
+                } catch (e: Exception) {
+                    val attributes = AttributesBuilder()
+                        .put("string_attr", "hello")
+                        .put("int_attr", 42)
+                        .put("long_attr", 9_000_000_000L)
+                        .put("double_attr", 3.141592653589793)
+                        .put("float_attr", 2.718f)
+                        .put("boolean_attr", true)
+                        .build()
+                    Measure.trackHandledException(e, attributes)
+                    Toast.makeText(context, "Handled exception tracked", Toast.LENGTH_SHORT).show()
+                }
+            },
+        ),
+        DemoItem(
             title = "Set User ID",
             description = "Sets a dummy user ID on the SDK",
             category = DemoCategory.MISC,
             action = {
-                Measure.setUserId("dummy-user-id")
+                Measure.setUserId("session_timeline_test_user")
                 Toast.makeText(context, "User ID set", Toast.LENGTH_SHORT).show()
             },
         ),

@@ -1,0 +1,34 @@
+appId: ${APP_ID}
+---
+- clearState
+
+- launchApp
+- extendedWaitUntil:
+    visible: "Native iOS"
+    timeout: 30000
+
+- runFlow: errors.yaml
+- runFlow: ../kmp/errors.yaml
+- runFlow: ../flutter/errors.yaml
+- runFlow: ../react_native/errors.yaml
+
+- pressKey: "Home"
+- launchApp:
+    appId: ${APP_ID}
+- extendedWaitUntil:
+    visible:
+      text: "__maestro_wait_sentinel__"
+    timeout: 5000
+    optional: true
+
+- pressKey: "Home"
+- launchApp:
+    appId: ${APP_ID}
+    stopApp: false
+- extendedWaitUntil:
+    visible:
+      text: "__maestro_wait_sentinel__"
+    timeout: 5000
+    optional: true
+
+- pressKey: "Home"

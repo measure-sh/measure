@@ -1,0 +1,24 @@
+appId: ${APP_ID}
+---
+- clearState
+
+- launchApp
+- extendedWaitUntil:
+    visible: "Native Android"
+    timeout: 30000
+
+- runFlow: bug_report.yaml
+- runFlow: ../flutter/bug_report.yaml
+- runFlow: ../react_native/bug_report.yaml
+
+- pressKey: "Home"
+- launchApp:
+    appId: ${APP_ID}
+    stopApp: false
+- extendedWaitUntil:
+    visible:
+      text: "__maestro_wait_sentinel__"
+    timeout: 10000
+    optional: true
+
+- pressKey: "Home"

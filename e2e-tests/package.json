@@ -1,0 +1,28 @@
+{
+  "name": "measure-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx runner/main.ts",
+    "playwright": "playwright test --config playwright/playwright.config.ts",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@playwright/test": "^1.49.0",
+    "execa": "^9.6.1",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.11.10",
+    "eslint": "^10.4.0",
+    "prettier": "^3.8.3",
+    "typescript-eslint": "^8.59.4"
+  }
+}

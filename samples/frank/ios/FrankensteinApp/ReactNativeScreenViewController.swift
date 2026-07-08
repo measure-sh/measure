@@ -24,7 +24,31 @@ class ReactNativeScreenViewController: UIViewController {
 
 class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
     override func bundleURL() -> URL? {
-        RCTBundleURLProvider.sharedSettings()
-            .jsBundleURL(forBundleRoot: "index", fallbackExtension: "jsbundle")
+        // Use Metro only when a developer is actually running it. Otherwise
+        // (e2e, standalone launches) load the packaged production bundle
+        // directly. Going through RCTBundleURLProvider in a Debug build keeps
+        // native dev support on, so the "Connect to Metro" banner and redbox
+        // appear; the banner shifts the UI and breaks automation taps.
+        if isMetroRunning() {
+            return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
+        }
+        return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+    }
+
+    private func isMetroRunning() -> Bool {
+        guard let url = URL(string: "http://localhost:8081/status") else { return false }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 1
+        let semaphore = DispatchSemaphore(value: 0)
+        var running = false
+        let task = URLSession.shared.dataTask(with: request) { data, _, _ in
+            if let data, let body = String(data: data, encoding: .utf8) {
+                running = body.contains("packager-status:running")
+            }
+            semaphore.signal()
+        }
+        task.resume()
+        _ = semaphore.wait(timeout: .now() + 1.5)
+        return running
     }
 }

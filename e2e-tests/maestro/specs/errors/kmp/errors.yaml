@@ -1,0 +1,55 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Compose Multiplatform"
+    timeout: 5000
+- tapOn: "Compose Multiplatform"
+- scrollUntilVisible:
+    element:
+      text: "Unhandled Exception"
+    centerElement: true
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Unhandled Exception"
+
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - launchApp:
+          stopApp: false
+      - assertNotVisible: "Unhandled Exception"
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - launchApp
+
+- extendedWaitUntil:
+    visible: "Compose Multiplatform"
+    timeout: 10000
+
+- tapOn: "Compose Multiplatform"
+- scrollUntilVisible:
+    element:
+      text: "Handled Exception"
+- tapOn: "Handled Exception"
+
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Compose Multiplatform"
+    timeout: 5000
+
+- pressKey: "Home"
+- launchApp:
+    appId: ${APP_ID}
+    stopApp: false
+- extendedWaitUntil:
+    visible:
+      text: "__maestro_wait_sentinel__"
+    timeout: 5000
+    optional: true
+
+- pressKey: "Home"

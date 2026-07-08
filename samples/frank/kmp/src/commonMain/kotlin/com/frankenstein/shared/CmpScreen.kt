@@ -122,7 +122,10 @@ private fun DemoListScreen(onOpenHttp: () -> Unit, onClose: (() -> Unit)?) {
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
+                // Generous bottom space so the last item ("Unhandled Exception")
+                // can scroll clear of the bottom safe area; otherwise it stays
+                // pinned to the edge and e2e taps land on it unreliably.
+                contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 240.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(demos(onOpenHttp), key = { it.title }) { demo ->

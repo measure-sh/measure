@@ -1,0 +1,25 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "React Native"
+    timeout: 5000
+- tapOn: "React Native"
+
+# RN merges each card's title + description into one iOS a11y label, so match
+# the title with a trailing .*.
+- extendedWaitUntil:
+    visible: "Throw JS Exception.*"
+    timeout: 3000
+- tapOn: "Throw JS Exception.*"
+
+- extendedWaitUntil:
+    visible:
+      text: "__fatal_settle__"
+    timeout: 5000
+    optional: true
+- pressKey: "Home"
+- launchApp
+- extendedWaitUntil:
+    visible: "React Native"
+    timeout: 10000
