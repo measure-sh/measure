@@ -132,6 +132,44 @@ describe("Login Page", () => {
     expect(screen.getByText("Sign in with Google")).toBeInTheDocument();
   });
 
+  it("throws in MCP mode when NEXT_PUBLIC_AGENT_BASE_URL is missing", () => {
+    process.env.NEXT_PUBLIC_AGENT_BASE_URL = "";
+
+    // Silence React's console.error report of the uncaught render error
+    const consoleError = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    try {
+      expect(() =>
+        render(
+          <Login
+            searchParams={promiseParams({
+              mcp: "1",
+              response_type: "code",
+              client_id: "test_client",
+              redirect_uri: "http://localhost/cb",
+              state: "s",
+              code_challenge: "ch",
+            })}
+          />,
+        ),
+      ).toThrow("NEXT_PUBLIC_AGENT_BASE_URL is not set");
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("normal sign-in is unaffected by a missing NEXT_PUBLIC_AGENT_BASE_URL", async () => {
+    process.env.NEXT_PUBLIC_AGENT_BASE_URL = "";
+
+    await act(async () => {
+      render(<Login searchParams={promiseParams({})} />);
+    });
+
+    expect(screen.getByText("Sign in with GitHub")).toBeInTheDocument();
+    expect(screen.getByText("Sign in with Google")).toBeInTheDocument();
+  });
+
   it("constructs correct GitHub authorize URL in MCP mode", () => {
     render(
       <Login

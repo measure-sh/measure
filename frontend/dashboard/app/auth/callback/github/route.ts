@@ -41,6 +41,9 @@ export async function GET(request: Request) {
 
   // MCP flow: state starts with "mcp_" — forward to the MCP callback endpoint
   if (state.startsWith("mcp_")) {
+    if (!agentOrigin) {
+      throw new Error("AGENT_BASE_URL is not set");
+    }
     const mcpRes = await fetch(`${agentOrigin}/mcp/auth/callback`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -58,6 +61,9 @@ export async function GET(request: Request) {
     return NextResponse.redirect(mcpData.redirect_url, { status: 302 });
   }
 
+  if (!apiOrigin) {
+    throw new Error("API_BASE_URL is not set");
+  }
   const cookieHeader = request.headers.get("cookie");
   const gaClientId = parseGAClientID(parseCookieValue(cookieHeader, "_ga"));
   const gclid = parseCookieValue(cookieHeader, "gclid");

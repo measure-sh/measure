@@ -23,7 +23,10 @@ function buildMcpAuthorizeUrl(
   searchParams: { [key: string]: string | string[] | undefined },
   provider: string,
 ): string {
-  const agentBaseUrl = process.env.NEXT_PUBLIC_AGENT_BASE_URL || "";
+  const agentBaseUrl = process.env.NEXT_PUBLIC_AGENT_BASE_URL;
+  if (!agentBaseUrl) {
+    throw new Error("NEXT_PUBLIC_AGENT_BASE_URL is not set");
+  }
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(searchParams)) {
     if (key === "mcp" || value === undefined) {

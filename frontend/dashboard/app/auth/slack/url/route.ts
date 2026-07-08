@@ -27,6 +27,15 @@ function createTimeBasedState(userData: any): string {
 }
 
 export async function POST(req: NextRequest) {
+  // Checked outside the try below so a missing variable surfaces as a
+  // named 500, not the catch-all 400 "Invalid request body".
+  if (!process.env.SLACK_CLIENT_ID) {
+    throw new Error("SLACK_CLIENT_ID is not set");
+  }
+  if (!SALT) {
+    throw new Error("SLACK_OAUTH_STATE_SALT is not set");
+  }
+
   let err = "";
   try {
     const { userId, teamId, redirectUrl } = await req.json();

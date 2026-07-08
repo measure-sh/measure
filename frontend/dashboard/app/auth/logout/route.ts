@@ -9,6 +9,9 @@ const apiOrigin = process.env.API_BASE_URL;
 const posthog = getPosthogServer();
 
 export async function DELETE(request: Request) {
+  if (!apiOrigin) {
+    throw new Error("API_BASE_URL is not set");
+  }
   const cookies = request.headers.get("cookie");
   const headers = new Headers(request.headers);
   headers.set("cookie", cookies || "");
