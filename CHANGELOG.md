@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Validate paired version filters in MCP tools by @anupcowkur in #4010
 - (**backend**): Change agent tools' version default from latest to all versions by @anupcowkur
 - (**backend**): Prevent email logo inversion in gmail dark mode by @anupcowkur in #3965
 - (**backend**): Adds experimental gmail logo fix by @anupcowkur in #3960
