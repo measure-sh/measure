@@ -74,7 +74,6 @@ func (a *App) Attribute() (attribute *event.Attribute, err error) {
 			AppBuild:           spanAttr.AppBuild,
 			AppUniqueID:        spanAttr.AppUniqueID,
 			MeasureSDKVersion:  spanAttr.MeasureSDKVersion,
-			Platform:           spanAttr.Platform,
 			ThreadName:         spanAttr.ThreadName,
 			UserID:             spanAttr.UserID,
 			DeviceName:         spanAttr.DeviceName,
