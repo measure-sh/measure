@@ -31,8 +31,11 @@ target 'Runner' do
   use_frameworks! :linkage => :static
   use_modular_headers!
 
+  # measure-sh is provided by the measure_flutter plugin (via its Package.swift
+  # under SPM, or its podspec under CocoaPods). Don't add `pod 'measure-sh'` here;
+  # under SPM it links the Measure module twice. To build against a local native
+  # SDK, add `pod 'measure-sh', :path => '<path to repo root>'` temporarily.
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-  pod 'measure-sh', :path => '../../../'
   target 'RunnerTests' do
     inherit! :search_paths
   end

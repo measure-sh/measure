@@ -74,7 +74,11 @@ Measure.init(this, MeasureConfig())
 
 ### iOS
 
-Measure's iOS SDK links statically. In `ios/Podfile`, set your `Runner` target to static linkage and add the pod:
+Measure's iOS SDK must be linked statically and will not work correctly with dynamic linking. How this is handled depends on the iOS dependency manager.
+
+With Swift Package Manager (default from Flutter 3.44), `measure-sh` is linked statically by default and no extra configuration is required.
+
+With CocoaPods, set your `Runner` target in `ios/Podfile` to static linkage and add the pod, then run `pod install` from the `ios` directory:
 
 ```ruby
 target 'Runner' do
@@ -83,7 +87,7 @@ target 'Runner' do
 end
 ```
 
-Run `pod install` from the `ios` directory, then initialize the SDK in `application(_:didFinishLaunchingWithOptions:)` in `ios/Runner/AppDelegate.swift`:
+Initialize the SDK in `application(_:didFinishLaunchingWithOptions:)` in `ios/Runner/AppDelegate.swift`:
 
 ```swift
 import Measure
