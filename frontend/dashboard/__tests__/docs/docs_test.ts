@@ -3,9 +3,83 @@ import {
   extractDescription,
   extractTitle,
   parseFrontmatter,
+  splitLeadingHeading,
+  stripAnchorOutline,
   stripSearchContent,
 } from "@/app/docs/docs";
 import { describe, expect, it } from "@jest/globals";
+
+describe("splitLeadingHeading", () => {
+  it("splits a leading H1 from the body", () => {
+    const { heading, body } = splitLeadingHeading(
+      "# Crash Reporting\n\nIntro paragraph.",
+    );
+    expect(heading).toBe("Crash Reporting");
+    expect(body).toBe("\nIntro paragraph.");
+  });
+
+  it("tolerates blank lines before the heading", () => {
+    const { heading } = splitLeadingHeading("\n\n# Title\nBody");
+    expect(heading).toBe("Title");
+  });
+
+  it("returns null heading when content does not start with an H1", () => {
+    const { heading, body } = splitLeadingHeading("Paragraph first\n\n# Later");
+    expect(heading).toBeNull();
+    expect(body).toBe("Paragraph first\n\n# Later");
+  });
+});
+
+describe("stripAnchorOutline", () => {
+  it("removes a leading list of same-page anchor links", () => {
+    const md = [
+      "Intro paragraph.",
+      "",
+      "- [Metrics](#metrics)",
+      "  - [Crash-Free Rate](#crash-free-rate)",
+      "- [How It Works](#how-it-works)",
+      "",
+      "## Metrics",
+      "Body.",
+    ].join("\n");
+    const out = stripAnchorOutline(md);
+    expect(out).not.toContain("(#metrics)");
+    expect(out).toContain("Intro paragraph.");
+    expect(out).toContain("## Metrics");
+  });
+
+  it("removes a Table of Contents heading together with its list", () => {
+    const md = [
+      "### Table of Contents",
+      "",
+      "- [Features](#features)",
+      "",
+      "# Features",
+      "Body.",
+    ].join("\n");
+    const out = stripAnchorOutline(md);
+    expect(out).not.toContain("Table of Contents");
+    expect(out).not.toContain("(#features)");
+    expect(out).toContain("# Features");
+  });
+
+  it("keeps lists that link to other pages", () => {
+    const md = [
+      "- [Android](feature-bug-report-android.md)",
+      "- [iOS](feature-bug-report-ios.md)",
+      "",
+      "## Section",
+    ].join("\n");
+    expect(stripAnchorOutline(md)).toContain("feature-bug-report-android.md");
+  });
+
+  it("keeps anchor-link lists after the first section heading", () => {
+    const md = ["Intro.", "", "## Section", "", "- [Jump](#somewhere)"].join(
+      "\n",
+    );
+    expect(stripAnchorOutline(md)).toContain("(#somewhere)");
+  });
+});
 
 describe("cleanContent", () => {
   it("strips single-line HTML comments", () => {

@@ -41,7 +41,7 @@ export default function DocsLayout({
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "17rem",
+          "--sidebar-width": "14rem",
         } as React.CSSProperties
       }
     >
@@ -73,9 +73,7 @@ export default function DocsLayout({
           </Link>
           <SidebarTrigger />
         </header>
-        <div className="flex py-8 px-4 sm:px-8 md:px-16 max-w-6xl mx-auto w-full">
-          {children}
-        </div>
+        <div className="flex w-full px-4 pt-6 pb-16 sm:px-6">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

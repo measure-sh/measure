@@ -16,9 +16,20 @@ interface TrackableCodeBlockProps {
   section?: string;
   /** Optional override for source_page. Defaults to the current pathname. */
   sourcePage?: string;
+  /** Passed through to CodeBlock. */
+  variant?: "plain" | "framed";
+  /** Passed through to CodeBlock; header text for the framed variant. */
+  label?: string;
 }
 
-function defaultSection(pathname: string, language: string): string {
+/**
+ * Section identifier sent with code_copied events. Also used by CodeTabs,
+ * which tracks copies itself.
+ */
+export function defaultCodeCopySection(
+  pathname: string,
+  language: string,
+): string {
   const trimmed = pathname.replace(/^\/+/, "").replace(/\/+$/, "");
   const segments = trimmed.split("/").filter(Boolean);
   // For docs pages, skip the leading "docs" segment so sections track per topic
@@ -34,6 +45,8 @@ export default function TrackableCodeBlock({
   className,
   section,
   sourcePage,
+  variant,
+  label,
 }: TrackableCodeBlockProps) {
   const pathname = usePathname() ?? "";
   return (
@@ -41,11 +54,13 @@ export default function TrackableCodeBlock({
       code={code}
       language={language}
       className={className}
+      variant={variant}
+      label={label}
       showCopyButton
       onCopy={() => {
         track("code_copied", {
           source_page: sourcePage ?? pathname,
-          section: section ?? defaultSection(pathname, language),
+          section: section ?? defaultCodeCopySection(pathname, language),
         });
       }}
     />

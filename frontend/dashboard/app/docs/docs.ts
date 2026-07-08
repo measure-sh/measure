@@ -13,7 +13,11 @@ function getDocsDirectory(): string {
 
 export interface DocPage {
   slug: string[];
+  /** Markdown body without the leading `# ` title; the page header renders it. */
   content: string;
+  /** Visible page title, from the body's leading H1. */
+  heading: string;
+  /** SEO title for metadata, from frontmatter (usually longer than the H1). */
   title: string;
   description: string;
   isIndex: boolean;
@@ -137,6 +141,59 @@ export function stripSearchContent(content: string): string {
 }
 
 /**
+ * Split the body into its leading `# ` title and the remaining markdown.
+ * Only a heading that is the first non-blank content counts; documents
+ * without one keep their body untouched.
+ */
+export function splitLeadingHeading(content: string): {
+  heading: string | null;
+  body: string;
+} {
+  const match = content.match(/^\s*#[ \t]+(.+?)[ \t]*(?:\r?\n|$)/);
+  if (!match) {
+    return { heading: null, body: content };
+  }
+  return { heading: match[1], body: content.slice(match[0].length) };
+}
+
+/**
+ * Remove a page-outline list from the region before the first section
+ * heading: a bullet list whose items are all same-page anchor links, plus a
+ * "Table of Contents" heading introducing one. The rendered page gets its
+ * outline from the "On this page" rail, so these lists only duplicate it.
+ * Lists that link to other pages, and anything after the first section
+ * heading, are kept.
+ */
+export function stripAnchorOutline(content: string): string {
+  const lines = content.split(/\r?\n/);
+  const out: string[] = [];
+  const anchorItem = /^\s*[-*+]\s+\[[^\]]*\]\(#[^)]*\)\s*$/;
+  const tocHeading = /^#{2,6}\s+table of contents\s*$/i;
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (/^#{1,6}\s/.test(line) && !tocHeading.test(line)) {
+      out.push(...lines.slice(i));
+      break;
+    }
+    if (tocHeading.test(line) || anchorItem.test(line)) {
+      i++;
+      while (
+        i < lines.length &&
+        (anchorItem.test(lines[i]) || lines[i].trim() === "")
+      ) {
+        i++;
+      }
+      continue;
+    }
+    out.push(line);
+    i++;
+  }
+  return out.join("\n");
+}
+
+/**
  * Extract title from the first # heading in markdown content
  */
 export function extractTitle(content: string): string {
@@ -206,11 +263,13 @@ export function getDocBySlug(slug: string[]): DocPage | null {
   const raw = fs.readFileSync(filePath, "utf-8");
   const { frontmatter, body } = parseFrontmatter(raw);
   const cleaned = cleanContent(body);
+  const { heading, body: content } = splitLeadingHeading(cleaned);
 
   return {
     slug,
-    content: cleaned,
-    title: frontmatter.title || extractTitle(cleaned),
+    content: stripAnchorOutline(content),
+    heading: heading || frontmatter.title || "Documentation",
+    title: frontmatter.title || heading || "Documentation",
     description: frontmatter.description || extractDescription(cleaned),
     isIndex: filePath.endsWith(`${path.sep}README.md`),
   };
@@ -227,11 +286,13 @@ export function getDocIndex(): DocPage | null {
   const raw = fs.readFileSync(filePath, "utf-8");
   const { frontmatter, body } = parseFrontmatter(raw);
   const cleaned = cleanContent(body);
+  const { heading, body: content } = splitLeadingHeading(cleaned);
 
   return {
     slug: [],
-    content: cleaned,
-    title: frontmatter.title || extractTitle(cleaned),
+    content: stripAnchorOutline(content),
+    heading: heading || frontmatter.title || "Documentation",
+    title: frontmatter.title || heading || "Documentation",
     description: frontmatter.description || extractDescription(cleaned),
     isIndex: true,
   };

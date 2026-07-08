@@ -5,175 +5,131 @@ import { Input } from "@/app/components/input";
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from "@/app/components/sidebar";
 import { ThemeToggle } from "@/app/components/theme_toggle";
-import { docsNav, type NavItem } from "@/app/docs/docs_nav";
+import { buildClusters, docsNav, type NavItem } from "@/app/docs/docs_nav";
 import { cn } from "@/app/utils/shadcn_utils";
+import { accentGreenTextStyle } from "@/app/utils/shared_styles";
 import { ChevronRight, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import DocsSearch from "./docs_search";
 
-// Mute the nested sidebar items by default, like the "On this page" outline.
-// Hover and selected states keep the default shadcn pill. Top-level section
-// headers keep their full-strength default styling.
-const navItemClass = "text-muted-foreground";
+// Rows are plain text: muted by default, full-strength on hover, and the
+// active page in brand green. The text-shadow fakes a bolder weight without
+// changing glyph widths, so rows don't reflow when the active page changes.
+const activeRowClass = cn(
+  accentGreenTextStyle,
+  "[text-shadow:-0.2px_0_0_currentColor,0.2px_0_0_currentColor]",
+);
+const idleRowClass = "text-muted-foreground hover:text-foreground";
 
-function NavSection({ item }: { item: NavItem }) {
-  const pathname = usePathname();
-  const hasChildren = item.children && item.children.length > 0;
-  const isChildActive = hasChildren && hasChildActive(item, pathname);
-
-  if (!hasChildren) {
-    return (
-      <SidebarMenuItem>
-        <SidebarMenuButton
-          asChild
-          isActive={item.slug === pathname}
-          className="h-auto py-2"
-        >
-          <Link
-            href={item.slug || "/docs"}
-            className="font-body font-semibold whitespace-normal"
-          >
-            {item.title}
-          </Link>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-    );
+// Nested rows indent one step per level below a group's children.
+function depthClass(depth: number): string | undefined {
+  if (depth === 1) {
+    return "pl-3";
   }
+  if (depth >= 2) {
+    return "pl-6";
+  }
+  return undefined;
+}
+
+function NavLeafRow({ item, depth }: { item: NavItem; depth: number }) {
+  const pathname = usePathname();
+  const isActive = item.slug === pathname;
+  const linkRef = useRef<HTMLAnchorElement>(null);
+
+  // The sidebar doesn't scroll on its own when navigation comes from
+  // elsewhere (prev/next links, search, deep links), so the row that just
+  // became active brings itself into view.
+  useEffect(() => {
+    if (isActive) {
+      linkRef.current?.scrollIntoView?.({ block: "nearest" });
+    }
+  }, [isActive]);
 
   return (
-    <CollapsibleNavItem item={item} defaultOpen={isChildActive || false} />
+    <Link
+      ref={linkRef}
+      href={item.slug || "/docs"}
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        "flex items-start break-words py-1.5 leading-snug transition-colors",
+        depthClass(depth),
+        isActive ? activeRowClass : idleRowClass,
+      )}
+    >
+      {item.title}
+    </Link>
   );
 }
 
-function CollapsibleNavItem({
+function CollapsibleNavGroup({
   item,
-  defaultOpen,
+  depth,
 }: {
   item: NavItem;
-  defaultOpen: boolean;
+  depth: number;
 }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const pathname = usePathname();
+  const isChildActive = hasChildActive(item, pathname);
+  const [isOpen, setIsOpen] = useState(isChildActive);
 
   // Re-expand when client-side navigation makes a child the active page — the
   // sidebar persists across docs routes, so the useState seed alone would stay
   // stale.
-  const [prevDefaultOpen, setPrevDefaultOpen] = useState(defaultOpen);
-  if (defaultOpen !== prevDefaultOpen) {
-    setPrevDefaultOpen(defaultOpen);
-    if (defaultOpen) {
+  const [prevChildActive, setPrevChildActive] = useState(isChildActive);
+  if (isChildActive !== prevChildActive) {
+    setPrevChildActive(isChildActive);
+    if (isChildActive) {
       setIsOpen(true);
     }
   }
 
   return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
+    <div>
+      <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="font-body font-semibold h-auto py-2 whitespace-normal"
+        className={cn(
+          "flex w-full items-center gap-1 py-1.5 text-left leading-snug transition-colors",
+          depthClass(depth),
+          idleRowClass,
+        )}
       >
-        {item.title}
+        <span className="flex-1 break-words">{item.title}</span>
         <ChevronRight
-          className={cn("ml-auto transition-transform", isOpen && "rotate-90")}
+          className={cn(
+            "h-3.5 w-3.5 shrink-0 transition-transform",
+            isOpen && "rotate-90",
+          )}
+          aria-hidden="true"
         />
-      </SidebarMenuButton>
+      </button>
       {isOpen && (
-        <SidebarMenuSub className="mx-2 px-2">
+        <div className="flex flex-col">
           {item.children!.map((child) => (
-            <NavSubItem key={child.slug || child.title} item={child} />
+            <NavNode
+              key={child.slug || child.title}
+              item={child}
+              depth={depth + 1}
+            />
           ))}
-        </SidebarMenuSub>
+        </div>
       )}
-    </SidebarMenuItem>
+    </div>
   );
 }
 
-function NavSubItem({ item }: { item: NavItem }) {
-  const pathname = usePathname();
-  const hasChildren = item.children && item.children.length > 0;
-
-  if (hasChildren) {
-    const isChildActive = hasChildActive(item, pathname);
-    return (
-      <CollapsibleSubItem item={item} defaultOpen={isChildActive || false} />
-    );
+function NavNode({ item, depth }: { item: NavItem; depth: number }) {
+  if (item.children && item.children.length > 0) {
+    return <CollapsibleNavGroup item={item} depth={depth} />;
   }
-
-  return (
-    <SidebarMenuSubItem>
-      <SidebarMenuSubButton
-        asChild
-        isActive={item.slug === pathname}
-        className={cn("h-auto py-1", navItemClass)}
-      >
-        <Link
-          href={item.slug || "/docs"}
-          className="font-body whitespace-normal"
-        >
-          {item.title}
-        </Link>
-      </SidebarMenuSubButton>
-    </SidebarMenuSubItem>
-  );
-}
-
-function CollapsibleSubItem({
-  item,
-  defaultOpen,
-}: {
-  item: NavItem;
-  defaultOpen: boolean;
-}) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-
-  // Re-expand when client-side navigation makes a child the active page — the
-  // sidebar persists across docs routes, so the useState seed alone would stay
-  // stale.
-  const [prevDefaultOpen, setPrevDefaultOpen] = useState(defaultOpen);
-  if (defaultOpen !== prevDefaultOpen) {
-    setPrevDefaultOpen(defaultOpen);
-    if (defaultOpen) {
-      setIsOpen(true);
-    }
-  }
-
-  return (
-    <SidebarMenuSubItem>
-      <SidebarMenuSubButton asChild className={cn("h-auto py-1", navItemClass)}>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="font-body whitespace-normal"
-        >
-          {item.title}
-          <ChevronRight
-            className={cn(
-              "ml-auto transition-transform",
-              isOpen && "rotate-90",
-            )}
-          />
-        </button>
-      </SidebarMenuSubButton>
-      {isOpen && (
-        <SidebarMenuSub className="mx-2 px-2">
-          {item.children!.map((child) => (
-            <NavSubItem key={child.slug || child.title} item={child} />
-          ))}
-        </SidebarMenuSub>
-      )}
-    </SidebarMenuSubItem>
-  );
+  return <NavLeafRow item={item} depth={depth} />;
 }
 
 function hasChildActive(item: NavItem, pathname: string): boolean {
@@ -187,83 +143,91 @@ function hasChildActive(item: NavItem, pathname: string): boolean {
 }
 
 export default function DocsAppSidebar() {
-  const pathname = usePathname();
-  const isDocsIndex = pathname === "/docs";
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
     <>
-      <Sidebar variant="sidebar" className="select-none">
+      {/* border-sidebar-border lightens the divider in light mode
+          (#e7e7e7 vs the default #d8d8d8); dark keeps the regular border. */}
+      <Sidebar
+        variant="sidebar"
+        className="select-none border-sidebar-border dark:border-border"
+      >
         <SidebarHeader className="px-4">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <div className="flex items-center justify-between my-2">
-                <Link
-                  className={cn(
-                    buttonVariants({ variant: "ghost" }),
-                    "group/logo py-2 px-0 pr-1",
-                  )}
-                  href="/"
-                >
-                  <Image
-                    src="/images/measure_logo_horizontal_black.svg"
-                    width={120}
-                    height={40}
-                    alt="Measure logo"
-                    className="dark:hidden"
-                  />
-                  <Image
-                    src="/images/measure_logo_horizontal_white.svg"
-                    width={120}
-                    height={40}
-                    alt="Measure logo"
-                    className="hidden dark:block"
-                  />
-                </Link>
-                <ThemeToggle />
-              </div>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <div
-                className="relative cursor-pointer"
-                onClick={() => setIsSearchOpen(true)}
-              >
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  readOnly
-                  placeholder="Search docs..."
-                  className="pl-9 pr-12 cursor-pointer font-body border-0 shadow-none focus-visible:ring-0"
-                  onFocus={(e) => {
-                    e.target.blur();
-                    setIsSearchOpen(true);
-                  }}
-                />
-                <kbd className="absolute right-3 top-1/2 -translate-y-1/2 font-sans text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded pointer-events-none">
-                  &#8984;K
-                </kbd>
-              </div>
-            </SidebarMenuItem>
-          </SidebarMenu>
+          <div className="flex items-center justify-between my-2">
+            <Link
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "group/logo py-2 px-0 pr-1",
+              )}
+              href="/"
+            >
+              <Image
+                src="/images/measure_logo_horizontal_black.svg"
+                width={120}
+                height={40}
+                alt="Measure logo"
+                className="dark:hidden"
+              />
+              <Image
+                src="/images/measure_logo_horizontal_white.svg"
+                width={120}
+                height={40}
+                alt="Measure logo"
+                className="hidden dark:block"
+              />
+            </Link>
+            <ThemeToggle />
+          </div>
+          <div
+            className="relative cursor-pointer"
+            onClick={() => setIsSearchOpen(true)}
+          >
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              readOnly
+              placeholder="Search docs..."
+              className="h-8 cursor-pointer rounded-lg pl-9 pr-12 font-body text-sm focus-visible:ring-0"
+              onFocus={(e) => {
+                e.target.blur();
+                setIsSearchOpen(true);
+              }}
+            />
+            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 font-sans text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded pointer-events-none">
+              &#8984;K
+            </kbd>
+          </div>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarGroup className="px-4">
-            <SidebarMenu className="gap-4">
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isDocsIndex}
-                  className="h-auto py-2"
-                >
-                  <Link href="/docs" className="font-body font-semibold">
-                    Overview
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              {docsNav.map((item) => (
-                <NavSection key={item.slug || item.title} item={item} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
+          <nav
+            aria-label="Docs"
+            className="flex flex-col px-4 pb-8 pt-2 font-body text-sm"
+          >
+            {buildClusters([
+              { title: "Overview", slug: "/docs" },
+              ...docsNav,
+            ]).map((cluster, i) => (
+              <div
+                key={cluster.label ?? `pages-${i}`}
+                className={i > 0 ? "mt-7" : undefined}
+              >
+                {cluster.label !== undefined && (
+                  <p className="mb-2 text-xs font-semibold text-foreground">
+                    {cluster.label}
+                  </p>
+                )}
+                <div className="flex flex-col">
+                  {cluster.items.map((item) => (
+                    <NavNode
+                      key={item.slug || item.title}
+                      item={item}
+                      depth={0}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </nav>
         </SidebarContent>
       </Sidebar>
 

@@ -10,8 +10,8 @@ jest.mock("next/navigation", () => ({
 
 jest.mock("next/link", () => ({
   __esModule: true,
-  default: ({ href, children, className }: any) => (
-    <a href={href} className={className}>
+  default: ({ href, children, className, ...props }: any) => (
+    <a href={href} className={className} {...props}>
       {children}
     </a>
   ),
@@ -46,37 +46,9 @@ jest.mock("@/app/components/theme_toggle", () => ({
 jest.mock("@/app/components/sidebar", () => ({
   Sidebar: ({ children }: any) => <div data-testid="sidebar">{children}</div>,
   SidebarContent: ({ children }: any) => <div>{children}</div>,
-  SidebarGroup: ({ children }: any) => <div>{children}</div>,
   SidebarHeader: ({ children }: any) => (
     <div data-testid="sidebar-header">{children}</div>
   ),
-  SidebarMenu: ({ children }: any) => <ul>{children}</ul>,
-  SidebarMenuButton: ({
-    children,
-    onClick,
-    isActive,
-    asChild,
-    ...props
-  }: any) => (
-    <div
-      data-testid="menu-button"
-      data-active={isActive}
-      onClick={onClick}
-      {...props}
-    >
-      {children}
-    </div>
-  ),
-  SidebarMenuItem: ({ children }: any) => <li>{children}</li>,
-  SidebarMenuSub: ({ children }: any) => (
-    <ul data-testid="menu-sub">{children}</ul>
-  ),
-  SidebarMenuSubButton: ({ children, isActive, asChild, ...props }: any) => (
-    <div data-testid="menu-sub-button" data-active={isActive} {...props}>
-      {children}
-    </div>
-  ),
-  SidebarMenuSubItem: ({ children }: any) => <li>{children}</li>,
 }));
 
 jest.mock("@/app/docs/components/docs_search", () => ({
@@ -85,19 +57,20 @@ jest.mock("@/app/docs/components/docs_search", () => ({
     open ? <div data-testid="docs-search-open" /> : null,
 }));
 
-// Mock docsNav with test data that covers all branching: leaf, parent with children, nested children
+// Mock docsNav with test data that covers all branching: top-level leaf,
+// top-level group (always open), nested collapsible group. buildClusters
+// stays real so the sidebar clusters the mock data exactly like production.
 jest.mock("@/app/docs/docs_nav", () => ({
+  ...jest.requireActual("@/app/docs/docs_nav"),
   docsNav: [
     { title: "Getting Started", slug: "/docs/getting-started" },
     {
       title: "Features",
-      slug: "/docs/features",
       children: [
         { title: "Crash Reporting", slug: "/docs/features/crash-reporting" },
         { title: "Performance", slug: "/docs/features/performance" },
         {
           title: "Advanced",
-          slug: "/docs/features/advanced",
           children: [
             {
               title: "Custom Events",
@@ -148,9 +121,16 @@ describe("DocsAppSidebar", () => {
       );
     });
 
-    it("renders parent nav items with chevron", () => {
+    it("renders top-level groups as labels with children visible", () => {
       render(<DocsAppSidebar />);
       expect(screen.getByText("Features")).toBeInTheDocument();
+      expect(screen.getByText("Crash Reporting")).toBeInTheDocument();
+      expect(screen.getByText("Performance")).toBeInTheDocument();
+    });
+
+    it("does not render top-level group labels as links", () => {
+      render(<DocsAppSidebar />);
+      expect(screen.getByText("Features").closest("a")).toBeNull();
     });
   });
 
@@ -158,99 +138,48 @@ describe("DocsAppSidebar", () => {
     it("marks Overview as active when on /docs", () => {
       mockPathname = "/docs";
       render(<DocsAppSidebar />);
-      const overviewButton = screen
-        .getByText("Overview")
-        .closest('[data-testid="menu-button"]');
-      expect(overviewButton).toHaveAttribute("data-active", "true");
+      const overviewLink = screen.getByText("Overview").closest("a");
+      expect(overviewLink).toHaveAttribute("aria-current", "page");
     });
 
     it("does not mark Overview as active on other pages", () => {
       mockPathname = "/docs/getting-started";
       render(<DocsAppSidebar />);
-      const overviewButton = screen
-        .getByText("Overview")
-        .closest('[data-testid="menu-button"]');
-      expect(overviewButton).toHaveAttribute("data-active", "false");
+      const overviewLink = screen.getByText("Overview").closest("a");
+      expect(overviewLink).not.toHaveAttribute("aria-current");
     });
   });
 
-  describe("Collapsible nav items", () => {
-    it("expands parent item on click to show children", () => {
-      render(<DocsAppSidebar />);
-      // Features should be collapsed initially (no child active)
-      expect(screen.queryByText("Crash Reporting")).not.toBeInTheDocument();
-
-      // Click to expand
-      fireEvent.click(screen.getByText("Features"));
-      expect(screen.getByText("Crash Reporting")).toBeInTheDocument();
-      expect(screen.getByText("Performance")).toBeInTheDocument();
-    });
-
-    it("collapses parent item on second click", () => {
-      render(<DocsAppSidebar />);
-      fireEvent.click(screen.getByText("Features"));
-      expect(screen.getByText("Crash Reporting")).toBeInTheDocument();
-
-      fireEvent.click(screen.getByText("Features"));
-      expect(screen.queryByText("Crash Reporting")).not.toBeInTheDocument();
-    });
-
-    it("auto-expands parent when child is active", () => {
+  describe("Active page highlighting", () => {
+    it("marks the active page link", () => {
       mockPathname = "/docs/features/crash-reporting";
       render(<DocsAppSidebar />);
-      // Features should be auto-expanded because a child is active
-      expect(screen.getByText("Crash Reporting")).toBeInTheDocument();
+      const link = screen.getByText("Crash Reporting").closest("a");
+      expect(link).toHaveAttribute("aria-current", "page");
     });
 
-    it("expands a collapsed parent when navigation activates a child", () => {
-      mockPathname = "/docs";
-      const { rerender } = render(<DocsAppSidebar />);
-      // Features starts collapsed — nothing under it is active
-      expect(screen.queryByText("Crash Reporting")).not.toBeInTheDocument();
-
-      // Client-side navigation: pathname changes, sidebar does not remount
-      mockPathname = "/docs/features/crash-reporting";
-      rerender(<DocsAppSidebar />);
-      expect(screen.getByText("Crash Reporting")).toBeInTheDocument();
-    });
-
-    it("marks active child link", () => {
+    it("does not mark inactive page links", () => {
       mockPathname = "/docs/features/crash-reporting";
       render(<DocsAppSidebar />);
-      const subButton = screen
-        .getByText("Crash Reporting")
-        .closest('[data-testid="menu-sub-button"]');
-      expect(subButton).toHaveAttribute("data-active", "true");
-    });
-
-    it("does not mark inactive child link", () => {
-      mockPathname = "/docs/features/crash-reporting";
-      render(<DocsAppSidebar />);
-      const subButton = screen
-        .getByText("Performance")
-        .closest('[data-testid="menu-sub-button"]');
-      expect(subButton).toHaveAttribute("data-active", "false");
+      const link = screen.getByText("Performance").closest("a");
+      expect(link).not.toHaveAttribute("aria-current");
     });
   });
 
-  describe("Nested collapsible sub-items", () => {
-    it("renders nested parent with chevron", () => {
-      mockPathname = "/docs/features/crash-reporting";
+  describe("Nested collapsible groups", () => {
+    it("renders nested group collapsed when no child is active", () => {
       render(<DocsAppSidebar />);
-      // Features is expanded, Advanced should be visible but collapsed
       expect(screen.getByText("Advanced")).toBeInTheDocument();
       expect(screen.queryByText("Custom Events")).not.toBeInTheDocument();
     });
 
-    it("expands nested sub-item on click", () => {
-      mockPathname = "/docs/features/crash-reporting";
+    it("expands nested group on click", () => {
       render(<DocsAppSidebar />);
       fireEvent.click(screen.getByText("Advanced"));
       expect(screen.getByText("Custom Events")).toBeInTheDocument();
     });
 
-    it("collapses nested sub-item on second click", () => {
-      mockPathname = "/docs/features/crash-reporting";
+    it("collapses nested group on second click", () => {
       render(<DocsAppSidebar />);
       fireEvent.click(screen.getByText("Advanced"));
       expect(screen.getByText("Custom Events")).toBeInTheDocument();
@@ -259,12 +188,36 @@ describe("DocsAppSidebar", () => {
       expect(screen.queryByText("Custom Events")).not.toBeInTheDocument();
     });
 
-    it("auto-expands nested parent when deep child is active", () => {
+    it("auto-expands nested group when a child is active", () => {
       mockPathname = "/docs/features/advanced/custom-events";
       render(<DocsAppSidebar />);
-      // Both Features and Advanced should be auto-expanded
-      expect(screen.getByText("Advanced")).toBeInTheDocument();
       expect(screen.getByText("Custom Events")).toBeInTheDocument();
+    });
+
+    it("expands a collapsed group when navigation activates a child", () => {
+      mockPathname = "/docs";
+      const { rerender } = render(<DocsAppSidebar />);
+      expect(screen.queryByText("Custom Events")).not.toBeInTheDocument();
+
+      // Client-side navigation: pathname changes, sidebar does not remount
+      mockPathname = "/docs/features/advanced/custom-events";
+      rerender(<DocsAppSidebar />);
+      expect(screen.getByText("Custom Events")).toBeInTheDocument();
+    });
+  });
+
+  describe("Active row visibility", () => {
+    it("scrolls the row that becomes active into view on navigation", () => {
+      const scrollSpy = jest.fn();
+      window.HTMLElement.prototype.scrollIntoView = scrollSpy;
+
+      mockPathname = "/docs";
+      const { rerender } = render(<DocsAppSidebar />);
+      scrollSpy.mockClear();
+
+      mockPathname = "/docs/features/crash-reporting";
+      rerender(<DocsAppSidebar />);
+      expect(scrollSpy).toHaveBeenCalledWith({ block: "nearest" });
     });
   });
 

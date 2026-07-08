@@ -43,6 +43,38 @@ export const CODE_BLOCK_LANGUAGES = Object.keys(
 export const CODE_BLOCK_THEME_LIGHT = "vitesse-light";
 export const CODE_BLOCK_THEME_DARK = "vitesse-dark";
 
+// Map markdown fence aliases to the Shiki language names we load grammars for.
+const LANG_ALIASES: Record<string, CodeBlockLanguage> = {
+  sh: "shellscript",
+  shell: "shellscript",
+  bash: "shellscript",
+  objc: "objective-c",
+  ts: "typescript",
+};
+
+const SUPPORTED_LANGUAGES: ReadonlySet<CodeBlockLanguage> = new Set(
+  CODE_BLOCK_LANGUAGES,
+);
+
+/**
+ * Resolve a fenced block's `language-*` class to a supported highlight
+ * language, or null when we don't load a grammar for it.
+ */
+export function resolveLanguage(
+  className: string | undefined,
+): CodeBlockLanguage | null {
+  if (!className) {
+    return null;
+  }
+  const match = className.match(/(?:^|\s)language-(\S+)/);
+  if (!match) {
+    return null;
+  }
+  const raw = match[1].toLowerCase();
+  const mapped = (LANG_ALIASES[raw] ?? raw) as CodeBlockLanguage;
+  return SUPPORTED_LANGUAGES.has(mapped) ? mapped : null;
+}
+
 let highlighterPromise: Promise<HighlighterCore> | null = null;
 let resolvedHighlighter: HighlighterCore | null = null;
 

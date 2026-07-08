@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/app/utils/shadcn_utils";
+import { accentGreenTextStyle } from "@/app/utils/shared_styles";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -156,34 +157,37 @@ export default function DocsToc() {
     // page has none) so the article width never shifts as the outline loads.
     <aside className="hidden xl:block w-56 shrink-0 ml-auto">
       {items.length > 0 && (
-        // Align the outline with the page <h1>: container py-8 (2rem) + h1 mt-12 (3rem).
+        // Align the outline with the page header: container pt-6 (1.5rem).
+        // The list scrolls internally on long pages; its scrollbar is hidden
+        // so it doesn't stack next to the window's.
         <div
           ref={scrollRef}
-          className="fixed top-20 right-8 w-56 overflow-y-auto max-h-[calc(100vh-7rem)]"
+          className="fixed top-6 right-6 w-56 overflow-y-auto max-h-[calc(100vh-3rem)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          <div className="border-l border-border">
-            <p className="text-sm font-body font-medium text-foreground mb-3 pl-4">
-              On this page
-            </p>
-            <nav className="flex flex-col">
-              {items.map((item) => (
-                <a
-                  key={item.id}
-                  data-toc-id={item.id}
-                  href={`#${item.id}`}
-                  className={cn(
-                    "-ml-px border-l-2 py-1.5 pl-4 text-sm font-body leading-snug transition-colors",
-                    item.level === 3 && "pl-8",
-                    activeId === item.id
-                      ? "border-primary text-foreground font-medium"
-                      : "border-transparent text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {item.text}
-                </a>
-              ))}
-            </nav>
-          </div>
+          <p className="text-sm font-body font-medium text-foreground mb-2">
+            On this page
+          </p>
+          <nav className="flex flex-col">
+            {items.map((item) => (
+              <a
+                key={item.id}
+                data-toc-id={item.id}
+                href={`#${item.id}`}
+                className={cn(
+                  "py-1 text-sm font-body leading-6 transition-colors",
+                  item.level === 3 && "pl-4",
+                  activeId === item.id
+                    ? cn(
+                        accentGreenTextStyle,
+                        "[text-shadow:-0.2px_0_0_currentColor,0.2px_0_0_currentColor]",
+                      )
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {item.text}
+              </a>
+            ))}
+          </nav>
         </div>
       )}
     </aside>

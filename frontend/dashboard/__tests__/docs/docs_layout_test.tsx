@@ -119,20 +119,20 @@ describe("DocsLayout", () => {
       </DocsLayout>,
     );
 
-    const contentDiv = container.querySelector(".max-w-6xl");
+    const contentDiv = container.querySelector(".pt-6");
     expect(contentDiv).toBeInTheDocument();
-    expect(contentDiv).toHaveClass("px-4", "sm:px-8", "md:px-16");
+    expect(contentDiv).toHaveClass("px-4", "sm:px-6", "pb-16");
   });
 
-  it("renders content wrapper centered with mx-auto", () => {
+  it("renders content wrapper at full width", () => {
     const { container } = render(
       <DocsLayout>
         <p>Content</p>
       </DocsLayout>,
     );
 
-    const contentDiv = container.querySelector(".max-w-6xl");
-    expect(contentDiv).toHaveClass("mx-auto", "w-full");
+    const contentDiv = container.querySelector(".pt-6");
+    expect(contentDiv).toHaveClass("flex", "w-full");
   });
 
   it("wraps everything in SidebarProvider", () => {

@@ -1,5 +1,71 @@
-import { docsNav, getFlatNavSlugs, type NavItem } from "@/app/docs/docs_nav";
+import {
+  buildClusters,
+  docsNav,
+  findSectionTitle,
+  getFlatNavSlugs,
+  type NavItem,
+} from "@/app/docs/docs_nav";
 import { describe, expect, it } from "@jest/globals";
+
+describe("buildClusters", () => {
+  it("labels group clusters and merges leading leaves into an unlabeled cluster", () => {
+    const clusters = buildClusters([
+      { title: "Overview", slug: "/docs" },
+      { title: "Getting Started", slug: "/docs/start" },
+      { title: "Features", children: [{ title: "A", slug: "/docs/f/a" }] },
+    ]);
+    expect(clusters.length).toBe(2);
+    expect(clusters[0].label).toBeUndefined();
+    expect(clusters[0].items.map((i) => i.title)).toEqual([
+      "Overview",
+      "Getting Started",
+    ]);
+    expect(clusters[1].label).toBe("Features");
+  });
+
+  it("merges trailing leaves into the previous labeled cluster", () => {
+    const clusters = buildClusters([
+      { title: "Features", children: [{ title: "A", slug: "/docs/f/a" }] },
+      { title: "Configuration Options", slug: "/docs/f/config" },
+    ]);
+    expect(clusters.length).toBe(1);
+    expect(clusters[0].label).toBe("Features");
+    expect(clusters[0].items.map((i) => i.title)).toEqual([
+      "A",
+      "Configuration Options",
+    ]);
+  });
+});
+
+describe("findSectionTitle", () => {
+  it("returns the cluster label for pages inside a labeled cluster", () => {
+    expect(findSectionTitle("/docs/features/feature-crash-reporting")).toBe(
+      "Features",
+    );
+  });
+
+  it("returns the label for trailing leaves merged into the previous cluster", () => {
+    expect(findSectionTitle("/docs/features/configuration-options")).toBe(
+      "Features",
+    );
+    expect(findSectionTitle("/docs/features/performance-impact")).toBe(
+      "Features",
+    );
+  });
+
+  it("returns the label for nested group children", () => {
+    const title = findSectionTitle("/docs/features/feature-bug-report-android");
+    expect(title).toBe("Features");
+  });
+
+  it("returns null for pages in the unlabeled lead cluster", () => {
+    expect(findSectionTitle("/docs/sdk-integration-guide")).toBeNull();
+  });
+
+  it("returns null for slugs missing from the nav", () => {
+    expect(findSectionTitle("/docs/not-a-real-page")).toBeNull();
+  });
+});
 
 describe("docsNav", () => {
   it("is a non-empty array", () => {
