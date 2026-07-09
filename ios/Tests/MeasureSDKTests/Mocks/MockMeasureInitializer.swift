@@ -25,7 +25,6 @@ final class MockMeasureInitializer: MeasureInitializer {
     let networkStateAttributeProcessor: NetworkStateAttributeProcessor
     let userAttributeProcessor: UserAttributeProcessor
     let sessionAttributeProcessor: SessionAttributeProcessor
-    let patchIdAttributeProcessor: PatchIdAttributeProcessor
     let attributeProcessors: [AttributeProcessor]
     let signalProcessor: SignalProcessor
     let crashReportManager: CrashReportManager
@@ -124,7 +123,6 @@ final class MockMeasureInitializer: MeasureInitializer {
          installationIdAttributeProcessor: InstallationIdAttributeProcessor? = nil,
          networkStateAttributeProcessor: NetworkStateAttributeProcessor? = nil,
          sessionAttributeProcessor: SessionAttributeProcessor? = nil,
-         patchIdAttributeProcessor: PatchIdAttributeProcessor? = nil,
          userAttributeProcessor: UserAttributeProcessor? = nil,
          randomizer: Randomizer? = nil,
          spanProcessor: SpanProcessor? = nil,
@@ -194,15 +192,13 @@ final class MockMeasureInitializer: MeasureInitializer {
         self.userAttributeProcessor = userAttributeProcessor ?? UserAttributeProcessor(userDefaultStorage: self.userDefaultStorage,
                                                              measureDispatchQueue: self.measureDispatchQueue)
         self.sessionAttributeProcessor = sessionAttributeProcessor ?? SessionAttributeProcessor(sessionManager: self.sessionManager, timeProvider: self.timeProvider)
-        self.patchIdAttributeProcessor = patchIdAttributeProcessor ?? PatchIdAttributeProcessor()
         self.attributeProcessors = [
             self.appAttributeProcessor,
             self.deviceAttributeProcessor,
             self.installationIdAttributeProcessor,
             self.networkStateAttributeProcessor,
             self.userAttributeProcessor,
-            self.sessionAttributeProcessor,
-            self.patchIdAttributeProcessor
+            self.sessionAttributeProcessor
         ]
         self.crashDataPersistence = crashDataPersistence ?? BaseCrashDataPersistence(logger: logger ?? MockLogger(),
                                                              systemFileManager: self.systemFileManager)

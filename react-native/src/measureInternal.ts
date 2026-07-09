@@ -10,8 +10,6 @@ import {
   disableNativeModule,
   start as nativeStart,
   stop as nativeStop,
-  internalSetPatchId as nativeSetPatchId,
-  internalSetPatchVersion as nativeSetPatchVersion,
 } from './native/measureBridge';
 import type { Span } from './tracing/span';
 import type { SpanBuilder } from './tracing/spanBuilder';
@@ -68,13 +66,14 @@ export class MeasureInternal {
     // config.patchId takes priority (manual / CodePush approach).
     // Falls back to global.__measurePatchId injected by withMeasureConfig()
     // in metro.config.js (automated approach).
+    // The patch identifiers are attached to every RN-originated event and span
+    // by the signal processor, keeping them scoped to the React Native layer.
     const patchId = config?.patchId ?? (global as any).__measurePatchId;
-    if (patchId) {
-      nativeSetPatchId(patchId);
-    }
-
-    if (config?.patchVersion) {
-      nativeSetPatchVersion(config.patchVersion);
+    if (patchId || config?.patchVersion) {
+      this.measureInitializer.signalProcessor.setPatchInfo(
+        patchId,
+        config?.patchVersion
+      );
     }
 
     if (config?.autoStart) {

@@ -157,16 +157,6 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun internalSetPatchId(patchId: String) {
-        Measure.internalSetPatchId(patchId)
-    }
-
-    @ReactMethod
-    fun internalSetPatchVersion(patchVersion: String) {
-        Measure.internalSetPatchVersion(patchVersion)
-    }
-
-    @ReactMethod
     fun clearUserId(promise: Promise) {
         try {
             Measure.clearUserId()

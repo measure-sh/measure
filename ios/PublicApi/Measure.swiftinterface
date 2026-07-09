@@ -354,8 +354,6 @@ extension Measure.Measure {
   @objc public static func trackScreenView(_ screenName: Swift.String, attributes: [Swift.String : Any]?)
   @objc public static func setUserId(_ userId: Swift.String)
   @objc public static func clearUserId()
-  @objc public static func internalSetPatchId(_ patchId: Swift.String)
-  @objc public static func internalSetPatchVersion(_ patchVersion: Swift.String)
   @objc public static func getCurrentTime() -> Swift.Int64
   public static func startSpan(name: Swift.String) -> any Measure.Span
   public static func startSpan(name: Swift.String, timestamp: Swift.Int64) -> any Measure.Span

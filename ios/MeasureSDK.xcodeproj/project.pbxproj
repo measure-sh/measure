@@ -303,7 +303,6 @@
 		CFF77E672FB6CEE600564FDA /* AttachmentProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFF77E662FB6CEE600564FDA /* AttachmentProcessorTests.swift */; };
 		CFF77E692FB6CEFF00564FDA /* SystemFileManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFF77E682FB6CEFF00564FDA /* SystemFileManagerTests.swift */; };
 		CFF77E6C2FB6CFE500564FDA /* WebPEncoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFF77E6A2FB6CFE500564FDA /* WebPEncoderTests.swift */; };
-		CFFB8C2F2FF62CBA00AEB62C /* PatchIdAttributeProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFFB8C2E2FF62CBA00AEB62C /* PatchIdAttributeProcessor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -677,7 +676,6 @@
 		CFF77E662FB6CEE600564FDA /* AttachmentProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentProcessorTests.swift; sourceTree = "<group>"; };
 		CFF77E682FB6CEFF00564FDA /* SystemFileManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemFileManagerTests.swift; sourceTree = "<group>"; };
 		CFF77E6A2FB6CFE500564FDA /* WebPEncoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPEncoderTests.swift; sourceTree = "<group>"; };
-		CFFB8C2E2FF62CBA00AEB62C /* PatchIdAttributeProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatchIdAttributeProcessor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -772,7 +770,6 @@
 		526D17A42D5A1913009A2E90 /* Attribute */ = {
 			isa = PBXGroup;
 			children = (
-				CFFB8C2E2FF62CBA00AEB62C /* PatchIdAttributeProcessor.swift */,
 				526D179B2D5A1913009A2E90 /* AppAttributeProcessor.swift */,
 				526D179C2D5A1913009A2E90 /* Attribute.swift */,
 				526D179D2D5A1913009A2E90 /* AttributeProcessor.swift */,
@@ -1862,7 +1859,6 @@
 				CFD88D012DA4D4910095115E /* SpanData.swift in Sources */,
 				526D18752D5A1913009A2E90 /* MemoryUsageCollector.swift in Sources */,
 				CF1BB49C2DCDF4DF00588506 /* AccelerometerShakeDetector.swift in Sources */,
-				CFFB8C2F2FF62CBA00AEB62C /* PatchIdAttributeProcessor.swift in Sources */,
 				526D18942D5A1913009A2E90 /* SessionManager.swift in Sources */,
 				CFD88D112DA797A00095115E /* Tracer.swift in Sources */,
 				526D183C2D5A1913009A2E90 /* DataCleanupService.swift in Sources */,

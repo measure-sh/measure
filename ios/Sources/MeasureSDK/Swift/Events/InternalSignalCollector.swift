@@ -111,7 +111,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector {
     ) {
         guard isEnabled.get() else { return }
 
-        let evaluatedAttributes = Attributes(threadName: threadName)
+        let evaluatedAttributes = Attributes(dict: attributes)
         let serializedUserDefinedAttributes = EventSerializer.serializeUserDefinedAttribute(userDefinedAttrs)
 
         do {

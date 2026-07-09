@@ -248,20 +248,6 @@ export function internalAddLog(
   return MeasureModule.internalAddLog(platform, message);
 }
 
-export function internalSetPatchId(patchId: string): Promise<void> {
-  if (!MeasureModule.internalSetPatchId) {
-    return Promise.resolve();
-  }
-  return Promise.resolve(MeasureModule.internalSetPatchId(patchId));
-}
-
-export function internalSetPatchVersion(patchVersion: string): Promise<void> {
-  if (!MeasureModule.internalSetPatchVersion) {
-    return Promise.resolve();
-  }
-  return Promise.resolve(MeasureModule.internalSetPatchVersion(patchVersion));
-}
-
 export function getSessionId(): Promise<string | null> {
   if (!MeasureModule.getSessionId || isDisabled()) {
     return Promise.reject(

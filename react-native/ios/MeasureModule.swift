@@ -108,16 +108,6 @@ class MeasureModule: NSObject, RCTBridgeModule {
     }
 
     @objc
-    func internalSetPatchId(_ patchId: NSString) {
-        Measure.internalSetPatchId(patchId as String)
-    }
-
-    @objc
-    func internalSetPatchVersion(_ patchVersion: NSString) {
-        Measure.internalSetPatchVersion(patchVersion as String)
-    }
-
-    @objc
     func clearUserId(_ resolve: @escaping RCTPromiseResolveBlock,
                      rejecter reject: @escaping RCTPromiseRejectBlock) {
         Measure.clearUserId()

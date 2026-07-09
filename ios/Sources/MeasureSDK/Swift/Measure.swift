@@ -170,17 +170,6 @@ import UIKit
         measureInternal.clearUserId()
     }
 
-    
-    @objc func setPatchId(_ patchId: String) {
-        guard let measureInternal = measureInternal else { return }
-        measureInternal.setPatchId(patchId)
-    }
-
-    @objc func setPatchVersion(_ patchVersion: String) {
-        guard let measureInternal = measureInternal else { return }
-        measureInternal.setPatchVersion(patchVersion)
-    }
-
     @objc func getCurrentTime() -> Int64 {
         guard let measureInternal = self.measureInternal else { return 0 }
         return measureInternal.timeProvider.now()
@@ -627,27 +616,6 @@ extension Measure {
     /// ```
     @objc public static func clearUserId() {
         Measure.shared.clearUserId()
-    }
-
-    
-    /// An internal method to set the OTA patch ID for the current bundle, used by cross-platform
-    /// frameworks like React Native.
-    ///
-    /// This method is not intended for public usage and can change in future versions.
-    ///
-    /// - Parameter patchId: A UUID string identifying the OTA patch.
-    @objc public static func internalSetPatchId(_ patchId: String) {
-        Measure.shared.setPatchId(patchId)
-    }
-
-    /// An internal method to set a human-readable version label for the current OTA patch, used
-    /// by cross-platform frameworks like React Native.
-    ///
-    /// This method is not intended for public usage and can change in future versions.
-    ///
-    /// - Parameter patchVersion: A human-readable label for the OTA patch.
-    @objc public static func internalSetPatchVersion(_ patchVersion: String) {
-        Measure.shared.setPatchVersion(patchVersion)
     }
 
     /// Returns the current time in milliseconds since epoch.
