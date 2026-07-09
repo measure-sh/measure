@@ -68,7 +68,7 @@ export default async function DocPage({ params }: PageProps) {
           />
           {/* Anything directly after a heading or rule hugs it: the heading's
               bottom margin alone sets that gap, like prose's h2+* rules. */}
-          <div className="mt-8 font-body text-gray-700 dark:text-gray-400 [&>:first-child]:mt-0 [&>h1+*]:mt-0 [&>h2+*]:mt-0 [&>h3+*]:mt-0 [&>h4+*]:mt-0 [&>hr+*]:mt-0">
+          <div className="mt-8 font-body [&>:first-child]:mt-0 [&>h1+*]:mt-0 [&>h2+*]:mt-0 [&>h3+*]:mt-0 [&>h4+*]:mt-0 [&>hr+*]:mt-0">
             <Markdown
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeRaw, rehypeCodeTabs, rehypeSlug]}
