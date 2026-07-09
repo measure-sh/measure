@@ -9,16 +9,16 @@
 #   upload_patch.sh <api_key> <api_url> <path_to_sourcemap>
 #
 # Usage (manual — CodePush or no Metro plugin):
-#   upload_patch.sh <api_key> <api_url> <patch_id> <path_to_sourcemap>
+#   upload_patch.sh <api_key> <api_url> <path_to_sourcemap> <patch_id>
 #
 # Arguments:
 #   api_key            Measure API key
 #   api_url            Measure API URL (e.g. https://measure.example.com)
-#   patch_id           OTA patch UUID (manual mode only). Omit when using
-#                      withMeasureConfig() in metro.config.js — the patch ID
-#                      is read automatically from the sourcemap's x-measure-patch-id field.
 #   path_to_sourcemap  Path to the .hbc.map from 'expo export --source-maps'
 #                      Must contain /ios/ or /android/ in the path to detect platform.
+#   patch_id           OTA patch UUID (optional, manual mode only). Omit when using
+#                      withMeasureConfig() in metro.config.js — the patch ID
+#                      is read automatically from the sourcemap's x-measure-patch-id field.
 #
 # Platform detection:
 #   Files are stored under canonical React Native bundle names:
@@ -38,23 +38,23 @@
 #
 #   # Manual (CodePush or no Metro plugin):
 #   ./upload_patch.sh "msr_key_..." "https://measure.example.com" \
-#     "32d4e57e-6259-40ee-9b02-40aafeefcafd" \
-#     "./dist/_expo/static/js/ios/entry-abc123.hbc.map"
+#     "./dist/_expo/static/js/ios/entry-abc123.hbc.map" \
+#     "32d4e57e-6259-40ee-9b02-40aafeefcafd"
 
 set -euo pipefail
 
 if [ "$#" -eq 4 ]; then
   API_KEY="$1"
   API_URL="${2%/}"
-  PATCH_ID="$3"
-  SOURCEMAP_PATH="$4"
+  SOURCEMAP_PATH="$3"
+  PATCH_ID="$4"
 elif [ "$#" -eq 3 ]; then
   API_KEY="$1"
   API_URL="${2%/}"
-  PATCH_ID=""
   SOURCEMAP_PATH="$3"
+  PATCH_ID=""
 else
-  echo "Usage: $0 <api_key> <api_url> [<patch_id>] <path_to_sourcemap>"
+  echo "Usage: $0 <api_key> <api_url> <path_to_sourcemap> [<patch_id>]"
   exit 1
 fi
 

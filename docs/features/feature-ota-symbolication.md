@@ -122,8 +122,8 @@ Use this when you set `patchId` manually in `MeasureConfig`.
 ./node_modules/@measuresh/react-native/scripts/upload_patch.sh \
   "your-api-key" \
   "https://your-measure-url" \
-  "your-patch-uuid" \
-  "./path/to/main.jsbundle.map"
+  "./path/to/main.jsbundle.map" \
+  "your-patch-uuid"
 ```
 
 ## Uploading for Both Platforms
