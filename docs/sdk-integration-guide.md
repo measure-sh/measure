@@ -445,9 +445,6 @@ The React Native SDK supports both **Expo** and **Vanilla React Native** project
 
 </details>
 
-> [!NOTE]
-> To symbolicate crashes from OTA updates, see [OTA Symbolication](features/feature-ota-symbolication.md).
-
 ### Install the SDK
 
 ```sh
