@@ -14,6 +14,7 @@ description: "Integrate the Measure SDK on Android, iOS or Flutter to track your
   - [Kotlin Multiplatform](#kotlin-multiplatform)
 - [3. Verify Installation](#3-verify-installation)
 - [4. Review Configuration Options](#4-review-configuration-options)
+- [5. Uploading Symbols](#5-uploading-symbols)
 - [Troubleshoot](#troubleshoot)
 
 ## 1. Create an App
@@ -445,9 +446,6 @@ The React Native SDK supports both **Expo** and **Vanilla React Native** project
 
 </details>
 
-> [!IMPORTANT]
-> Symbolication support for Over-The-Air (OTA) releases is coming soon.
-
 ### Install the SDK
 
 ```sh
@@ -738,6 +736,16 @@ section to learn more about these options and how to use them effectively.
 By default, all data is collected without sampling, so you can verify your installation right away. In release
 builds, you can adjust the sampling rates and other settings as needed to balance signal vs noise and optimize
 costs.
+
+---
+
+## 5. Uploading Symbols
+
+Stack traces from crashes are obfuscated and need to be symbolicated. To symbolicate them, you need to
+upload the relevant mapping or symbol files, ProGuard/R8 mappings on Android, dSYMs on iOS and JavaScript
+sourcemaps for React Native (including Over-The-Air updates).
+
+See [Uploading Symbols](features/feature-upload-symbols.md) for platform-specific setup.
 
 ## Troubleshoot
 

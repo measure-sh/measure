@@ -29,7 +29,7 @@ how to leverage different features in your mobile applications. Also, review the
 feature's documentation to understand its underlying mechanism and enhance your ability to use it effectively.
 
 * [**Session Timelines**](features/feature-session-timelines.md) — Find and view session timelines
-* [**Crash Reporting**](features/feature-crash-reporting.md) — Analyze app crashes
+* [**Crash Reporting**](features/feature-upload-symbols.md) — Analyze app crashes
 * [**ANR Reporting**](features/feature-anr-reporting.md) — Analyze Application Not Responding (ANR) issues
 * [**Error Tracking**](features/feature-error-tracking.md) — Track and analyze handled errors in your app
 * [**Gesture Tracking**](features/feature-gesture-tracking.md) — Automatically track user gestures in your app

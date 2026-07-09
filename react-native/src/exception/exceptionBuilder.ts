@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { parseStacktrace } from './stacktraceParser';
 
 const isHermesEnabled = (): boolean => !!(global as any).HermesInternal;
@@ -32,9 +33,32 @@ function rewriteFilename(filename: string | undefined): string | undefined {
   }
 
   const appPrefix = 'app://';
-  rewritten = rewritten.startsWith('/')
-    ? `${appPrefix}${rewritten}`
-    : `${appPrefix}/${rewritten}`;
+  if (!rewritten.startsWith(appPrefix)) {
+    rewritten = rewritten.startsWith('/')
+      ? `${appPrefix}${rewritten}`
+      : `${appPrefix}/${rewritten}`;
+  }
+
+  // Normalize OTA bundle filenames to canonical React Native names.
+  // OTA providers rename the bundle on-device with unpredictable names.
+  // Use the platform to hardcode the canonical name instead of pattern-matching.
+  const bundlePath = rewritten.slice('app:///'.length);
+  if (Platform.OS === 'ios') {
+    if (
+      (rewritten.endsWith('.jsbundle') || rewritten.endsWith('.bundle')) &&
+      rewritten !== 'app:///main.jsbundle'
+    ) {
+      return 'app:///main.jsbundle';
+    }
+  } else {
+    // Android: OTA bundles either end in .bundle or have no extension (bare hash)
+    if (
+      rewritten !== 'app:///index.android.bundle' &&
+      (rewritten.endsWith('.bundle') || !bundlePath.includes('.'))
+    ) {
+      return 'app:///index.android.bundle';
+    }
+  }
 
   return rewritten;
 }

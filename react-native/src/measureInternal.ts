@@ -63,6 +63,19 @@ export class MeasureInternal {
         this.measureInitializer.spanProcessor.onConfigLoaded();
       });
 
+    // config.patchId takes priority (manual / CodePush approach).
+    // Falls back to global.__measurePatchId injected by withMeasureConfig()
+    // in metro.config.js (automated approach).
+    // The patch identifiers are attached to every RN-originated event and span
+    // by the signal processor, keeping them scoped to the React Native layer.
+    const patchId = config?.patchId ?? (global as any).__measurePatchId;
+    if (patchId || config?.patchVersion) {
+      this.measureInitializer.signalProcessor.setPatchInfo(
+        patchId,
+        config?.patchVersion
+      );
+    }
+
     if (config?.autoStart) {
       this.started = true;
       this.registerCollectors();
