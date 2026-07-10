@@ -34,6 +34,7 @@ class MeasureInternalTest {
         `when`(initializer.bugReportCollector).thenReturn(mock())
         `when`(initializer.spanCollector).thenReturn(mock())
         `when`(initializer.customEventCollector).thenReturn(mock())
+        `when`(initializer.logEventCollector).thenReturn(mock())
         `when`(initializer.sessionManager).thenReturn(sessionManager)
         `when`(initializer.userTriggeredEventCollector).thenReturn(mock())
         `when`(initializer.resumedActivityProvider).thenReturn(mock())
@@ -307,6 +308,7 @@ class MeasureInternalTest {
         verify(initializer.powerStateProvider).register()
         verify(initializer.spanCollector).register()
         verify(initializer.customEventCollector).register()
+        verify(initializer.logEventCollector).register()
         verify(initializer.periodicSignalStoreScheduler).register()
     }
 
@@ -353,6 +355,7 @@ class MeasureInternalTest {
         verify(initializer.powerStateProvider).unregister()
         verify(initializer.spanCollector).unregister()
         verify(initializer.customEventCollector).unregister()
+        verify(initializer.logEventCollector).unregister()
         verify(initializer.periodicSignalStoreScheduler).unregister()
     }
 

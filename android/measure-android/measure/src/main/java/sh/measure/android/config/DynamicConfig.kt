@@ -42,6 +42,24 @@ internal interface IDynamicConfig {
     val screenshotMaskLevel: ScreenshotMaskLevel
 
     /**
+     * Whether the SDK automatically collects logs from the platform's logging APIs.
+     * Manually tracked logs are always collected. Defaults to false.
+     */
+    val logAutocollectEnabled: Boolean
+
+    /**
+     * Minimum severity number of logs to collect. Logs below this number are dropped.
+     * Defaults to 16 (warning).
+     */
+    val logMinSeverity: Int
+
+    /**
+     * Regex patterns matched against the log body. A log whose body matches any of the
+     * patterns is dropped before it is tracked. Defaults to empty list.
+     */
+    val logIgnorePatterns: List<String>
+
+    /**
      * Interval in seconds to collect CPU usage. Defaults to 5 seconds.
      */
     val cpuUsageInterval: Long
@@ -142,6 +160,15 @@ internal data class DynamicConfig(
     @SerialName("screenshot_mask_level")
     override val screenshotMaskLevel: ScreenshotMaskLevel =
         ScreenshotMaskLevel.AllTextAndMedia,
+
+    @SerialName("log_autocollect_enabled")
+    override val logAutocollectEnabled: Boolean = false,
+
+    @SerialName("log_min_severity")
+    override val logMinSeverity: Int = 16,
+
+    @SerialName("log_ignore_patterns")
+    override val logIgnorePatterns: List<String> = emptyList(),
 
     @SerialName("cpu_usage_interval")
     override val cpuUsageInterval: Long = 5,

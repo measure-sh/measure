@@ -10,6 +10,7 @@ import sh.measure.android.events.EventType
 import sh.measure.android.lifecycle.AppLifecycleListener
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.SdkDebugLogWriter
+import sh.measure.android.logs.LogSeverity
 import sh.measure.android.tracing.Span
 import sh.measure.android.tracing.SpanBuilder
 import sh.measure.android.utils.AttachmentHelper
@@ -28,6 +29,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
     val bugReportCollector = measure.bugReportCollector
     val httpEventCollector = measure.httpEventCollector
     val httpUrlConnectionEventCollector = measure.httpUrlConnectionEventCollector
+    val logEventCollector = measure.logEventCollector
     val signalProcessor = measure.signalProcessor
 
     @Volatile
@@ -188,6 +190,14 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
 
     fun trackEvent(name: String, attributes: Map<String, AttributeValue>, timestamp: Long?) {
         measure.customEventCollector.trackEvent(name, attributes, timestamp)
+    }
+
+    fun log(
+        body: String,
+        severity: LogSeverity,
+        attributes: Map<String, AttributeValue>,
+    ) {
+        measure.logEventCollector.trackLog(body, severity, attributes)
     }
 
     fun startBugReportFlow(
@@ -391,6 +401,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.powerStateProvider.register()
         measure.spanCollector.register()
         measure.customEventCollector.register()
+        measure.logEventCollector.register()
         measure.periodicSignalStoreScheduler.register()
         // Profiling relies on WorkManager to upload its results durably, so it is enabled only when
         // the consumer has added WorkManager to the classpath.
@@ -413,6 +424,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.powerStateProvider.unregister()
         measure.spanCollector.unregister()
         measure.customEventCollector.unregister()
+        measure.logEventCollector.unregister()
         measure.periodicSignalStoreScheduler.unregister()
         if (measure.workManagerAvailable) {
             measure.profileCollector.unregister()

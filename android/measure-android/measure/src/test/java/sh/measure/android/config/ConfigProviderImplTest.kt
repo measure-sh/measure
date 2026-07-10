@@ -23,6 +23,31 @@ class ConfigProviderImplTest {
     }
 
     @Test
+    fun `shouldDiscardLog returns false when no discard patterns are configured`() {
+        assertFalse(configProvider.shouldDiscardLog("some log body"))
+    }
+
+    @Test
+    fun `shouldDiscardLog returns true when body matches a configured pattern`() {
+        configProvider.setDynamicConfig(
+            DynamicConfig().copy(logIgnorePatterns = listOf("secret")),
+        )
+
+        assertTrue(configProvider.shouldDiscardLog("this contains a secret value"))
+        assertFalse(configProvider.shouldDiscardLog("nothing sensitive here"))
+    }
+
+    @Test
+    fun `shouldDiscardLog ignores invalid regex patterns`() {
+        configProvider.setDynamicConfig(
+            DynamicConfig().copy(logIgnorePatterns = listOf("[invalid(", "token")),
+        )
+
+        assertTrue(configProvider.shouldDiscardLog("has a token"))
+        assertFalse(configProvider.shouldDiscardLog("no match"))
+    }
+
+    @Test
     fun `shouldTrackHttpEvent returns false for exact match in block list`() {
         val dynamicConfig = DynamicConfig().copy(
             httpDisableEventForUrls = mutableListOf("https://api.example.com/data"),

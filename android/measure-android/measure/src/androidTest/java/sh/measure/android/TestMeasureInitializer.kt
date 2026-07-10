@@ -38,12 +38,15 @@ import sh.measure.android.exporter.HttpUrlConnectionClient
 import sh.measure.android.exporter.NetworkClient
 import sh.measure.android.exporter.NetworkClientImpl
 import sh.measure.android.gestures.GestureCollector
+import sh.measure.android.httpurl.HttpUrlConnectionEventCollector
+import sh.measure.android.httpurl.HttpUrlConnectionEventCollectorImpl
 import sh.measure.android.layoutinspector.LayoutSnapshotThrottler
 import sh.measure.android.lifecycle.AppLifecycleCollector
 import sh.measure.android.lifecycle.AppLifecycleManager
 import sh.measure.android.lifecycle.DefaultActivityLifecycleCollector
 import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.logger.Logger
+import sh.measure.android.logs.LogEventCollector
 import sh.measure.android.networkchange.InitialNetworkStateProvider
 import sh.measure.android.networkchange.InitialNetworkStateProviderImpl
 import sh.measure.android.networkchange.NetworkChangesCollector
@@ -393,6 +396,19 @@ internal class TestMeasureInitializer(
         timeProvider = timeProvider,
     ),
     override val httpEventCollector: HttpEventCollector = OkHttpEventCollectorImpl(
+        logger = logger,
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        configProvider = configProvider,
+    ),
+    override val httpUrlConnectionEventCollector: HttpUrlConnectionEventCollector =
+        HttpUrlConnectionEventCollectorImpl(
+            logger = logger,
+            signalProcessor = signalProcessor,
+            timeProvider = timeProvider,
+            configProvider = configProvider,
+        ),
+    override val logEventCollector: LogEventCollector = LogEventCollector(
         logger = logger,
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,

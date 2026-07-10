@@ -1,5 +1,7 @@
 package sh.measure.android.config
 
+import java.util.regex.PatternSyntaxException
+
 internal interface ConfigProvider :
     IMeasureConfig,
     InternalConfig,
@@ -8,6 +10,12 @@ internal interface ConfigProvider :
     fun shouldTrackHttpRequestBody(url: String): Boolean
     fun shouldTrackHttpResponseBody(url: String): Boolean
     fun shouldTrackHttpHeader(key: String): Boolean
+
+    /**
+     * Whether a log with the given body should be dropped because it matches one of the
+     * configured [IDynamicConfig.logIgnorePatterns] patterns.
+     */
+    fun shouldDiscardLog(body: String): Boolean
 
     fun setDynamicConfig(config: DynamicConfig)
 }
@@ -60,6 +68,9 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
         blockedHeaders = emptyList(),
     )
 
+    @Volatile
+    private var logIgnoreRegexes: List<Regex> = emptyList()
+
     override val enableLogging: Boolean = defaultConfig.enableLogging
     override val screenshotMaskHexColor: String = defaultConfig.screenshotMaskHexColor
     override val screenshotCompressionQuality: Int = defaultConfig.screenshotCompressionQuality
@@ -91,6 +102,7 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
     override val shakeSlop: Int = defaultConfig.shakeSlop
     override val disallowedCustomHeaders: List<String> = defaultConfig.disallowedCustomHeaders
     override val estimatedEventSizeInKb: Int = defaultConfig.estimatedEventSizeInKb
+    override val maxLogBodyLength: Int = defaultConfig.maxLogBodyLength
     override val autoStart: Boolean = defaultConfig.autoStart
     override val maxDiskUsageInMb: Int = defaultConfig.maxDiskUsageInMb
     override val trackActivityIntentData: Boolean = defaultConfig.trackActivityIntentData
@@ -114,6 +126,12 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
         get() = dynamicConfig.journeySamplingRate
     override val screenshotMaskLevel: ScreenshotMaskLevel
         get() = dynamicConfig.screenshotMaskLevel
+    override val logAutocollectEnabled: Boolean
+        get() = dynamicConfig.logAutocollectEnabled
+    override val logMinSeverity: Int
+        get() = dynamicConfig.logMinSeverity
+    override val logIgnorePatterns: List<String>
+        get() = dynamicConfig.logIgnorePatterns
     override val cpuUsageInterval: Long
         get() = dynamicConfig.cpuUsageInterval
     override val memoryUsageInterval: Long
@@ -160,6 +178,11 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
             state.blockedHeaders.none { it.equals(key, ignoreCase = true) }
     }
 
+    override fun shouldDiscardLog(body: String): Boolean {
+        val patterns = logIgnoreRegexes
+        return patterns.any { it.containsMatchIn(body) }
+    }
+
     override fun setDynamicConfig(config: DynamicConfig) {
         synchronized(lock) {
             dynamicConfig = config
@@ -169,6 +192,7 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
                 trackResponsePatterns = config.httpTrackResponseForUrls.map { compilePattern(it) },
                 blockedHeaders = config.httpBlockedHeaders.toList(),
             )
+            logIgnoreRegexes = config.logIgnorePatterns.mapNotNull { compileLogIgnorePattern(it) }
         }
     }
 
@@ -179,5 +203,11 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
             Regex.escape(pattern)
         }
         return Regex("^$regexPattern$", RegexOption.IGNORE_CASE)
+    }
+
+    private fun compileLogIgnorePattern(pattern: String): Regex? = try {
+        Regex(pattern)
+    } catch (e: PatternSyntaxException) {
+        null
     }
 }

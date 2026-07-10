@@ -42,5 +42,6 @@ internal data class Config(
     override val shakeMinTimeIntervalMs: Long = 5000
     override val shakeSlop: Int = 2
     override val estimatedEventSizeInKb: Int = 2 // 2KB
+    override val maxLogBodyLength: Int = 1000 // 1000 chars
     override val disallowedCustomHeaders: List<String> = DefaultConfig.DISALLOWED_CUSTOM_HEADERS
 }

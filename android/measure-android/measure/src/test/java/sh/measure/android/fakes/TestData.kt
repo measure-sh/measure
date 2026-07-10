@@ -390,7 +390,7 @@ internal object TestData {
 
     fun getEventEntity(
         eventId: String = "event-id",
-        type: EventType = EventType.STRING,
+        type: EventType = EventType.LOG,
         sessionId: String = "session-id",
         userTriggered: Boolean = false,
         timestamp: String = "2024-03-18T12:50:12.62600000Z",

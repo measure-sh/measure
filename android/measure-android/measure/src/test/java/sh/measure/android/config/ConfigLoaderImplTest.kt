@@ -110,6 +110,7 @@ internal class ConfigLoaderImplTest {
                 "trace_sampling_rate": 0.5,
                 "journey_sampling_rate": 1.0,
                 "screenshot_mask_level": "all_text_and_media",
+                "log_min_severity": 16,
                 "cpu_usage_interval": 3000,
                 "memory_usage_interval": 3000,
                 "crash_take_screenshot": true,
@@ -141,6 +142,7 @@ internal class ConfigLoaderImplTest {
         assertEquals(100, result?.maxEventsInBatch)
         assertEquals(0.5f, result?.traceSamplingRate)
         assertEquals(true, result?.crashTakeScreenshot)
+        assertEquals(16, result?.logMinSeverity)
         configFile.delete()
     }
 

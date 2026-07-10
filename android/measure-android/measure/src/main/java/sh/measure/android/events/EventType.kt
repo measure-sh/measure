@@ -1,7 +1,7 @@
 package sh.measure.android.events
 
 internal enum class EventType(val value: String) {
-    STRING("string"),
+    LOG("log"),
     EXCEPTION("exception"),
     ANR("anr"),
     APP_EXIT("app_exit"),
