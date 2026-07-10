@@ -113,6 +113,7 @@ export 'src/events/msr_attachment.dart';
 export 'src/gestures/layout_snapshot_capture.dart';
 export 'src/gestures/snapshot_node.dart';
 export 'src/http/http_method.dart';
+export 'src/logs/log_severity.dart';
 export 'src/measure_api.dart';
 export 'src/measure_widget.dart';
 export 'src/navigation/navigator_observer.dart';
@@ -372,6 +373,64 @@ class Measure implements MeasureApi {
     if (_isInitialized) {
       _measure.trackCustomEvent(name, timestamp, attributes);
     }
+  }
+
+  /// Tracks a log with a severity level and optional attributes.
+  ///
+  /// Logs appear in the session timeline and provide context when debugging
+  /// issues. Messages longer than 4000 characters are truncated.
+  ///
+  /// **Parameters:**
+  /// - [body]: The log body to track
+  /// - [severity]: The severity of the log, defaults to [LogSeverity.info]
+  /// - [attributes]: Optional key-value pairs providing additional context
+  ///
+  /// **Example:**
+  /// ```dart
+  /// Measure.instance.log(
+  ///   'Payment failed, retrying',
+  ///   severity: LogSeverity.warning,
+  /// );
+  /// ```
+  @override
+  void log(
+    String body, {
+    LogSeverity severity = LogSeverity.info,
+    Map<String, AttributeValue> attributes = const {},
+  }) {
+    if (_isInitialized) {
+      _measure.log(body, severity, attributes);
+    }
+  }
+
+  @override
+  void logDebug(String body,
+      {Map<String, AttributeValue> attributes = const {}}) {
+    log(body, severity: LogSeverity.debug, attributes: attributes);
+  }
+
+  @override
+  void logInfo(String body,
+      {Map<String, AttributeValue> attributes = const {}}) {
+    log(body, severity: LogSeverity.info, attributes: attributes);
+  }
+
+  @override
+  void logWarning(String body,
+      {Map<String, AttributeValue> attributes = const {}}) {
+    log(body, severity: LogSeverity.warning, attributes: attributes);
+  }
+
+  @override
+  void logError(String body,
+      {Map<String, AttributeValue> attributes = const {}}) {
+    log(body, severity: LogSeverity.error, attributes: attributes);
+  }
+
+  @override
+  void logFatal(String body,
+      {Map<String, AttributeValue> attributes = const {}}) {
+    log(body, severity: LogSeverity.fatal, attributes: attributes);
   }
 
   /// Tracks when a user views a screen or page in your application.

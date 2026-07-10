@@ -10,6 +10,7 @@ import 'package:measure_flutter/src/isolate/file_processing_isolate.dart';
 import 'package:measure_flutter/src/isolate/file_processor.dart';
 import 'package:measure_flutter/src/logger/flutter_logger.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
+import 'package:measure_flutter/src/logs/log_collector.dart';
 import 'package:measure_flutter/src/method_channel/method_channel_callbacks.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
@@ -35,6 +36,7 @@ final class MeasureInitializer {
   late final MsrMethodChannel _methodChannel;
   late final MethodChannelCallbacks _methodChannelCallbacks;
   late final CustomEventCollector _customEventCollector;
+  late final LogCollector _logCollector;
   late final ExceptionCollector _exceptionCollector;
   late final NavigationCollector _navigationCollector;
   late final BugReportCollector _bugReportCollector;
@@ -59,6 +61,8 @@ final class MeasureInitializer {
   MethodChannelCallbacks get methodChannelCallbacks => _methodChannelCallbacks;
 
   CustomEventCollector get customEventCollector => _customEventCollector;
+
+  LogCollector get logCollector => _logCollector;
 
   ExceptionCollector get exceptionCollector => _exceptionCollector;
 
@@ -125,6 +129,12 @@ final class MeasureInitializer {
       configProvider: _configProvider,
     );
     _customEventCollector = CustomEventCollector(
+      logger: logger,
+      signalProcessor: signalProcessor,
+      timeProvider: timeProvider,
+      configProvider: configProvider,
+    );
+    _logCollector = LogCollector(
       logger: logger,
       signalProcessor: signalProcessor,
       timeProvider: timeProvider,

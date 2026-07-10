@@ -7,4 +7,5 @@ final class EventType {
   static final String gestureClick = "gesture_click";
   static final String gestureScroll = "gesture_scroll";
   static final String gestureLongClick = "gesture_long_click";
+  static final String log = "log";
 }

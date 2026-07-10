@@ -6,6 +6,7 @@ void main() {
   Map<String, dynamic> baseJson(String maskLevel) => {
         'trace_sampling_rate': 0.01,
         'screenshot_mask_level': maskLevel,
+        'log_min_severity': 20,
         'crash_take_screenshot': true,
         'gesture_click_take_snapshot': true,
         'http_disable_event_for_urls': <String>[],
@@ -27,6 +28,31 @@ void main() {
         final config = DynamicConfig.fromJson(baseJson(json));
         expect(config.screenshotMaskLevel, expected);
       });
+    });
+  });
+
+  group('DynamicConfig log_min_severity', () {
+    test('decodes log_min_severity', () {
+      final json = baseJson('all_text_and_media')..['log_min_severity'] = 16;
+      final config = DynamicConfig.fromJson(json);
+      expect(config.logMinSeverity, 16);
+    });
+
+    test('defaults to 16 (warning)', () {
+      expect(DynamicConfig.defaults().logMinSeverity, 16);
+    });
+  });
+
+  group('DynamicConfig log filters', () {
+    test('decodes log_ignore_patterns', () {
+      final json = baseJson('all_text_and_media')
+        ..['log_ignore_patterns'] = ['secret'];
+      final config = DynamicConfig.fromJson(json);
+      expect(config.logIgnorePatterns, ['secret']);
+    });
+
+    test('defaults discard to empty', () {
+      expect(DynamicConfig.defaults().logIgnorePatterns, isEmpty);
     });
   });
 }

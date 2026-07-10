@@ -13,6 +13,14 @@ abstract interface class IDynamicConfig {
   /// to [ScreenshotMaskLevel.allTextAndMedia].
   ScreenshotMaskLevel get screenshotMaskLevel;
 
+  /// Minimum severity number of logs to collect. Logs below this number are
+  /// dropped. Defaults to 16 (warning).
+  int get logMinSeverity;
+
+  /// Regex patterns matched against the log body. A log whose body matches any
+  /// of the patterns is dropped. Defaults to empty list.
+  List<String> get logIgnorePatterns;
+
   /// Whether to take a screenshot when a crash occurs. Defaults to true.
   bool get crashTakeScreenshot;
 
@@ -54,6 +62,14 @@ class DynamicConfig implements IDynamicConfig {
   final ScreenshotMaskLevel screenshotMaskLevel;
 
   @override
+  @JsonKey(name: 'log_min_severity', defaultValue: 16)
+  final int logMinSeverity;
+
+  @override
+  @JsonKey(name: 'log_ignore_patterns', defaultValue: [])
+  final List<String> logIgnorePatterns;
+
+  @override
   @JsonKey(name: 'crash_take_screenshot')
   final bool crashTakeScreenshot;
 
@@ -80,6 +96,8 @@ class DynamicConfig implements IDynamicConfig {
   const DynamicConfig({
     required this.traceSamplingRate,
     required this.screenshotMaskLevel,
+    required this.logMinSeverity,
+    required this.logIgnorePatterns,
     required this.crashTakeScreenshot,
     required this.gestureClickTakeSnapshot,
     required this.httpDisableEventForUrls,
@@ -92,6 +110,8 @@ class DynamicConfig implements IDynamicConfig {
   factory DynamicConfig.defaults() => const DynamicConfig(
     traceSamplingRate: 100,
     screenshotMaskLevel: ScreenshotMaskLevel.allTextAndMedia,
+    logMinSeverity: 16,
+    logIgnorePatterns: [],
     crashTakeScreenshot: true,
     gestureClickTakeSnapshot: true,
     httpDisableEventForUrls: [],
@@ -111,6 +131,8 @@ class DynamicConfig implements IDynamicConfig {
   DynamicConfig copyWith({
     double? traceSamplingRate,
     ScreenshotMaskLevel? screenshotMaskLevel,
+    int? logMinSeverity,
+    List<String>? logIgnorePatterns,
     bool? crashTakeScreenshot,
     bool? gestureClickTakeSnapshot,
     List<String>? httpDisableEventForUrls,
@@ -121,6 +143,8 @@ class DynamicConfig implements IDynamicConfig {
     return DynamicConfig(
       traceSamplingRate: traceSamplingRate ?? this.traceSamplingRate,
       screenshotMaskLevel: screenshotMaskLevel ?? this.screenshotMaskLevel,
+      logMinSeverity: logMinSeverity ?? this.logMinSeverity,
+      logIgnorePatterns: logIgnorePatterns ?? this.logIgnorePatterns,
       crashTakeScreenshot: crashTakeScreenshot ?? this.crashTakeScreenshot,
       gestureClickTakeSnapshot: gestureClickTakeSnapshot ?? this.gestureClickTakeSnapshot,
       httpDisableEventForUrls: httpDisableEventForUrls ?? this.httpDisableEventForUrls,

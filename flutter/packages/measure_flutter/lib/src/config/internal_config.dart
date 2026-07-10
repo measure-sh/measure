@@ -39,4 +39,7 @@ abstract class InternalConfig {
 
   /// The maximum length of a user defined attribute value. Defaults to 256 chars.
   int get maxUserDefinedAttributeValueLength;
+
+  /// The maximum length of a log message. Defaults to 1000 chars.
+  int get maxLogBodyLength;
 }

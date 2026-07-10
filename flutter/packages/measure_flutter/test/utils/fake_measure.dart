@@ -28,6 +28,45 @@ class FakeMeasure implements MeasureApi {
   }
 
   @override
+  void log(
+    String body, {
+    LogSeverity severity = LogSeverity.info,
+    Map<String, AttributeValue> attributes = const {},
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void logDebug(String body,
+      {Map<String, AttributeValue> attributes = const {}}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void logInfo(String body,
+      {Map<String, AttributeValue> attributes = const {}}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void logWarning(String body,
+      {Map<String, AttributeValue> attributes = const {}}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void logError(String body,
+      {Map<String, AttributeValue> attributes = const {}}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void logFatal(String body,
+      {Map<String, AttributeValue> attributes = const {}}) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<void> trackHandledError(
     Object error,
     StackTrace stack, {

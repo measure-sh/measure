@@ -14,6 +14,30 @@ abstract class MeasureApi {
     int? timestamp,
   });
 
+  void log(
+    String body, {
+    LogSeverity severity = LogSeverity.info,
+    Map<String, AttributeValue> attributes = const {},
+  });
+
+  /// Tracks a log with [LogSeverity.debug]. See [log] for details.
+  void logDebug(String body, {Map<String, AttributeValue> attributes = const {}});
+
+  /// Tracks a log with [LogSeverity.info]. See [log] for details.
+  void logInfo(String body, {Map<String, AttributeValue> attributes = const {}});
+
+  /// Tracks a log with [LogSeverity.warning]. See [log] for details.
+  void logWarning(String body,
+      {Map<String, AttributeValue> attributes = const {}});
+
+  /// Tracks a log with [LogSeverity.error]. See [log] for details.
+  void logError(String body,
+      {Map<String, AttributeValue> attributes = const {}});
+
+  /// Tracks a log with [LogSeverity.fatal]. See [log] for details.
+  void logFatal(String body,
+      {Map<String, AttributeValue> attributes = const {}});
+
   Future<void> init(
     FutureOr<void> Function() action, {
     MeasureConfig config = const MeasureConfig(),
