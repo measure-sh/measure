@@ -5,6 +5,11 @@ import platform.Foundation.NSNumber
 import platform.Foundation.numberWithInt
 import platform.Foundation.numberWithLongLong
 import sh.measure.ios.bindings.BugReportConfig
+import sh.measure.ios.bindings.LogSeverityDebug
+import sh.measure.ios.bindings.LogSeverityError
+import sh.measure.ios.bindings.LogSeverityFatal
+import sh.measure.ios.bindings.LogSeverityInfo
+import sh.measure.ios.bindings.LogSeverityWarning
 import sh.measure.ios.bindings.clearUserId
 import sh.measure.ios.bindings.createSpanBuilderWithName
 import sh.measure.ios.bindings.getCurrentTime
@@ -12,6 +17,7 @@ import sh.measure.ios.bindings.getSessionId
 import sh.measure.ios.bindings.getTraceParentHeaderKey
 import sh.measure.ios.bindings.getTraceParentHeaderValueForSpan
 import sh.measure.ios.bindings.launchBugReportWithTakeScreenshot
+import sh.measure.ios.bindings.log
 import sh.measure.ios.bindings.setUserId
 import sh.measure.ios.bindings.start
 import sh.measure.ios.bindings.startSpanWithName
@@ -23,6 +29,7 @@ import sh.measure.ios.bindings.trackHttpEventObjcWithUrl
 import sh.measure.ios.bindings.trackScreenView
 import sh.measure.kmp.attributes.AttributeValue
 import sh.measure.kmp.attributes.toNative
+import sh.measure.kmp.logs.LogSeverity
 import sh.measure.kmp.nsexception.asNSError
 import sh.measure.kmp.nsexception.asNSException
 import sh.measure.kmp.tracing.IosSpan
@@ -70,6 +77,18 @@ actual object Measure {
             name,
             attributes.toNative(),
             timestamp?.let { NSNumber.numberWithLongLong(it) },
+        )
+    }
+
+    actual fun log(
+        body: String,
+        severity: LogSeverity,
+        attributes: Map<String, AttributeValue>,
+    ) {
+        IosMeasure.log(
+            body,
+            severity.toIos(),
+            attributes.toNative(),
         )
     }
 
@@ -140,4 +159,13 @@ actual object Measure {
             responseBody = responseBody,
         )
     }
+}
+
+@OptIn(ExperimentalForeignApi::class)
+private fun LogSeverity.toIos(): Long = when (this) {
+    LogSeverity.Debug -> LogSeverityDebug
+    LogSeverity.Info -> LogSeverityInfo
+    LogSeverity.Warning -> LogSeverityWarning
+    LogSeverity.Error -> LogSeverityError
+    LogSeverity.Fatal -> LogSeverityFatal
 }

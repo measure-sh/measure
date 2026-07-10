@@ -15,6 +15,8 @@ public final class sh/measure/kmp/Measure {
 	public final fun getTraceParentHeaderValue (Lsh/measure/kmp/tracing/Span;)Ljava/lang/String;
 	public final fun launchBugReport (ZLjava/util/Map;)V
 	public static synthetic fun launchBugReport$default (Lsh/measure/kmp/Measure;ZLjava/util/Map;ILjava/lang/Object;)V
+	public final fun log (Ljava/lang/String;Lsh/measure/kmp/logs/LogSeverity;Ljava/util/Map;)V
+	public static synthetic fun log$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Lsh/measure/kmp/logs/LogSeverity;Ljava/util/Map;ILjava/lang/Object;)V
 	public final fun setUserId (Ljava/lang/String;)V
 	public final fun start ()V
 	public final fun startSpan (Ljava/lang/String;)Lsh/measure/kmp/tracing/Span;
@@ -30,6 +32,19 @@ public final class sh/measure/kmp/Measure {
 	public static synthetic fun trackHttpEvent$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/lang/String;JJLjava/lang/Integer;Ljava/lang/Exception;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
 	public final fun trackScreenView (Ljava/lang/String;Ljava/util/Map;)V
 	public static synthetic fun trackScreenView$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+}
+
+public final class sh/measure/kmp/MeasureKt {
+	public static final fun logDebug (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun logDebug$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public static final fun logError (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun logError$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public static final fun logFatal (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun logFatal$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public static final fun logInfo (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun logInfo$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public static final fun logWarning (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun logWarning$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
 }
 
 public abstract interface class sh/measure/kmp/attributes/AttributeValue {
@@ -135,6 +150,17 @@ public final class sh/measure/kmp/attributes/StringAttr : sh/measure/kmp/attribu
 	public fun toString ()Ljava/lang/String;
 	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
 	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public final class sh/measure/kmp/logs/LogSeverity : java/lang/Enum {
+	public static final field Debug Lsh/measure/kmp/logs/LogSeverity;
+	public static final field Error Lsh/measure/kmp/logs/LogSeverity;
+	public static final field Fatal Lsh/measure/kmp/logs/LogSeverity;
+	public static final field Info Lsh/measure/kmp/logs/LogSeverity;
+	public static final field Warning Lsh/measure/kmp/logs/LogSeverity;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lsh/measure/kmp/logs/LogSeverity;
+	public static fun values ()[Lsh/measure/kmp/logs/LogSeverity;
 }
 
 public abstract interface class sh/measure/kmp/tracing/Span {
