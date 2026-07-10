@@ -1,5 +1,6 @@
 import { MeasureConfig } from './config/measureConfig';
 import type { MsrAttachment } from './events/msrAttachment';
+import type { LogSeverity } from './events/logSeverity';
 import { ErrorReportingManager } from './exception/errorReportingManager';
 import { buildExceptionPayload } from './exception/exceptionBuilder';
 import type { MeasureInitializer } from './measureInitializer';
@@ -35,6 +36,7 @@ export class MeasureInternal {
   registerCollectors(): void {
     this.measureInitializer.customEventCollector.register();
     this.measureInitializer.userTriggeredEventCollector.register();
+    this.measureInitializer.logCollector.register();
     this.measureInitializer.spanCollector.register();
     this.measureInitializer.bugReportCollector.register();
   }
@@ -42,6 +44,7 @@ export class MeasureInternal {
   unregisterCollectors(): void {
     this.measureInitializer.customEventCollector.unregister();
     this.measureInitializer.userTriggeredEventCollector.unregister();
+    this.measureInitializer.logCollector.unregister();
     this.measureInitializer.spanCollector.unregister();
     this.measureInitializer.bugReportCollector.unregister();
   }
@@ -59,7 +62,11 @@ export class MeasureInternal {
         this.measureInitializer.spanProcessor.onConfigLoaded();
       })
       .catch((error) => {
-        console.error('Failed to load dynamic config', error);
+        this.measureInitializer.logger.log(
+          'error',
+          'Failed to load dynamic config',
+          error
+        );
         this.measureInitializer.spanProcessor.onConfigLoaded();
       });
 
@@ -127,6 +134,21 @@ export class MeasureInternal {
       name,
       attributes,
       timestamp,
+    });
+
+  log = ({
+    body,
+    severity,
+    attributes,
+  }: {
+    body: string;
+    severity?: LogSeverity;
+    attributes?: Record<string, ValidAttributeValue>;
+  }): void =>
+    this.measureInitializer.logCollector.trackLog({
+      body,
+      severity,
+      attributes,
     });
 
   getCurrentTime(): number {

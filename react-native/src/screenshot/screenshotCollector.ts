@@ -1,3 +1,4 @@
+import { internalConsole } from '../utils/internalConsole';
 import type { MsrAttachment } from '../events/msrAttachment';
 import { captureScreenshot } from '../native/measureBridge';
 
@@ -12,7 +13,7 @@ export class ScreenshotCollector implements IScreenshotCollector {
 
       return attachment as MsrAttachment;
     } catch (err) {
-      console.warn('[ScreenshotCollector] capture failed:', err);
+      internalConsole.warn('[ScreenshotCollector] capture failed:', err);
       return null;
     }
   }
