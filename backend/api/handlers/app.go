@@ -3558,6 +3558,7 @@ func (h Handlers) GetSession(c *gin.Context) {
 		event.TypeGestureScroll,
 		event.TypeNavigation,
 		event.TypeString,
+		event.TypeLog,
 		event.TypeNetworkChange,
 		event.TypeColdLaunch,
 		event.TypeWarmLaunch,
@@ -3631,11 +3632,18 @@ func (h Handlers) GetSession(c *gin.Context) {
 		threads.Organize(event.TypeCustom, threadedCustoms)
 	}
 
-	logEvents := eventMap[event.TypeString]
+	stringEvents := eventMap[event.TypeString]
+	if len(stringEvents) > 0 {
+		strings := timeline.ComputeLogString(stringEvents)
+		threadedStrings := timeline.GroupByThreads(strings)
+		threads.Organize(event.TypeString, threadedStrings)
+	}
+
+	logEvents := eventMap[event.TypeLog]
 	if len(logEvents) > 0 {
-		logs := timeline.ComputeLogString(logEvents)
+		logs := timeline.ComputeLogs(logEvents)
 		threadedLogs := timeline.GroupByThreads(logs)
-		threads.Organize(event.TypeString, threadedLogs)
+		threads.Organize(event.TypeLog, threadedLogs)
 	}
 
 	netChangeEvents := eventMap[event.TypeNetworkChange]

@@ -608,6 +608,19 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`string.string`, nil)
 		}
 
+		// log
+		if e.events[i].IsLog() {
+			row.
+				Set(`log.severity_text`, e.events[i].Log.SeverityText).
+				Set(`log.severity_number`, e.events[i].Log.SeverityNumber).
+				Set(`log.body`, e.events[i].Log.Body)
+		} else {
+			row.
+				Set(`log.severity_text`, nil).
+				Set(`log.severity_number`, nil).
+				Set(`log.body`, nil)
+		}
+
 		// gesture long click
 		if e.events[i].IsGestureLongClick() {
 			row.

@@ -2780,6 +2780,7 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, rch driver.Conn, af *
 			Select("groupUniqArrayArray(unique_types) as unique_types").
 			Select("groupUniqArrayArray(unique_custom_type_names) as unique_custom_type_names").
 			Select("groupUniqArrayArray(unique_strings) as unique_strings").
+			Select("groupUniqArrayArray(unique_logs) as unique_logs").
 			Select("groupUniqArrayArray(unique_view_classnames) as unique_view_classnames").
 			Select("groupUniqArrayArray(unique_subview_classnames) as unique_subview_classnames").
 			Select("groupUniqArrayArray(unique_fatal_exceptions) as unique_fatal_exceptions").
@@ -2958,6 +2959,8 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, rch driver.Conn, af *
 				Clause("or").
 				Clause("arrayExists(x -> x ilike ?, unique_strings)", partial).
 				Clause("or").
+				Clause("arrayExists(x -> x ilike ?, unique_logs)", partial).
+				Clause("or").
 				Clause("arrayExists(x -> x ilike ?, unique_view_classnames)", partial).
 				Clause("or").
 				Clause("arrayExists(x -> x ilike ?, unique_subview_classnames)", partial).
@@ -3028,6 +3031,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, af *fil
 			Select("groupUniqArrayArray(unique_types) as unique_types").
 			Select("groupUniqArrayArray(unique_custom_type_names) as unique_custom_type_names").
 			Select("groupUniqArrayArray(unique_strings) as unique_strings").
+			Select("groupUniqArrayArray(unique_logs) as unique_logs").
 			Select("groupUniqArrayArray(unique_view_classnames) as unique_view_classnames").
 			Select("groupUniqArrayArray(unique_subview_classnames) as unique_subview_classnames").
 			Select("groupUniqArrayArray(unique_fatal_exceptions) as unique_fatal_exceptions").
@@ -3236,6 +3240,8 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, af *fil
 				Clause("or").
 				Clause("arrayExists(x -> x ilike ?, unique_strings)", partial).
 				Clause("or").
+				Clause("arrayExists(x -> x ilike ?, unique_logs)", partial).
+				Clause("or").
 				Clause("arrayExists(x -> x ilike ?, unique_view_classnames)", partial).
 				Clause("or").
 				Clause("arrayExists(x -> x ilike ?, unique_subview_classnames)", partial).
@@ -3261,6 +3267,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, af *fil
 			Select("unique_types").
 			Select("unique_custom_type_names").
 			Select("unique_strings").
+			Select("unique_logs").
 			Select("unique_view_classnames").
 			Select("unique_subview_classnames").
 			Select("unique_fatal_exceptions").
@@ -3282,7 +3289,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, af *fil
 
 	for rows.Next() {
 		var uniqueUserIds, uniqueTypes, uniqueCustomTypeNames,
-			uniqueStrings, uniqueViewClassnames, uniqueSubviewClassnames, uniqueErrors []string
+			uniqueStrings, uniqueLogs, uniqueViewClassnames, uniqueSubviewClassnames, uniqueErrors []string
 		uniqueFatalExceptions := []map[string]string{}
 		uniqueUnhandledExceptions := []map[string]string{}
 		uniqueHandledExceptions := []map[string]string{}
@@ -3316,6 +3323,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, af *fil
 				&uniqueTypes,
 				&uniqueCustomTypeNames,
 				&uniqueStrings,
+				&uniqueLogs,
 				&uniqueViewClassnames,
 				&uniqueSubviewClassnames,
 				&uniqueFatalExceptions,
@@ -3369,6 +3377,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, af *fil
 			uniqueTypes,
 			uniqueCustomTypeNames,
 			uniqueStrings,
+			uniqueLogs,
 			uniqueViewClassnames,
 			uniqueSubviewClassnames,
 			uniqueErrors,
@@ -4907,6 +4916,9 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 		`screen_view.name `,
 		`bug_report.description`,
 		`custom.name`,
+		`log.severity_text`,
+		`log.severity_number`,
+		`log.body`,
 	}
 
 	switch a.Family() {
@@ -5010,6 +5022,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 
 		var appExit event.AppExit
 		var logString event.LogString
+		var logData event.Log
 		var gestureLongClick event.GestureLongClick
 		var gestureClick event.GestureClick
 		var gestureScroll event.GestureScroll
@@ -5205,6 +5218,11 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 
 			// custom
 			&custom.Name,
+
+			// log
+			&logData.SeverityText,
+			&logData.SeverityNumber,
+			&logData.Body,
 		}
 
 		switch a.Family() {
@@ -5357,6 +5375,9 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			session.Events = append(session.Events, ev)
 		case event.TypeString:
 			ev.LogString = &logString
+			session.Events = append(session.Events, ev)
+		case event.TypeLog:
+			ev.Log = &logData
 			session.Events = append(session.Events, ev)
 		case event.TypeGestureLongClick:
 			// only unmarshal attachments if more than

@@ -59,6 +59,15 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		}
 		stmt.Set("screenshot_mask_level", string(*patch.ScreenshotMaskLevel))
 	}
+	if patch.LogAutocollectEnabled != nil {
+		stmt.Set("log_autocollect_enabled", *patch.LogAutocollectEnabled)
+	}
+	if patch.LogMinSeverity != nil {
+		stmt.Set("log_min_severity", *patch.LogMinSeverity)
+	}
+	if patch.LogIgnorePatterns != nil {
+		stmt.Set("log_ignore_patterns", *patch.LogIgnorePatterns)
+	}
 	if patch.CPUUsageInterval != nil {
 		stmt.Set("cpu_usage_interval", *patch.CPUUsageInterval)
 	}

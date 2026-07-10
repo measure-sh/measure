@@ -1030,6 +1030,44 @@ func TestValidateAttachmentLimit(t *testing.T) {
 	})
 }
 
+func TestValidateLogSeverity(t *testing.T) {
+	makeLog := func(severityText string, severityNumber int32) EventField {
+		return EventField{
+			ID:        uuid.New(),
+			AppID:     uuid.New(),
+			Type:      TypeLog,
+			Timestamp: time.Now(),
+			Attribute: Attribute{OSName: "android"},
+			Log: &Log{
+				SeverityText:   severityText,
+				SeverityNumber: severityNumber,
+				Body:           "something happened",
+			},
+		}
+	}
+
+	t.Run("Accepts fatal severity", func(t *testing.T) {
+		ev := makeLog("fatal", 24)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for fatal severity, got %v", err)
+		}
+	})
+
+	t.Run("Rejects unknown severity", func(t *testing.T) {
+		ev := makeLog("verbose", 4)
+		if err := ev.Validate(); err == nil {
+			t.Error("Expected validation error for unknown severity, got nil")
+		}
+	})
+
+	t.Run("Rejects severity_number that does not match severity_text", func(t *testing.T) {
+		ev := makeLog("fatal", 20)
+		if err := ev.Validate(); err == nil {
+			t.Error("Expected validation error for mismatched severity_number, got nil")
+		}
+	})
+}
+
 func TestComputeFingerprint(t *testing.T) {
 	t.Run("FrameworkJS with message", func(t *testing.T) {
 		e := Exception{

@@ -11,7 +11,7 @@ import (
 // events or user's id.
 func ExtractMatches(
 	needle, userId, sessionId string,
-	types, customTypeNames, logStrings,
+	types, customTypeNames, logStrings, logs,
 	viewClassnames, subviewClassnames, exceptionErrors []string,
 	fatalExceptions, unhandledExceptions, handledExceptions, anrs []map[string]string,
 	clickTargets, longclickTargets, scrollTargets [][]string,
@@ -52,6 +52,14 @@ func ExtractMatches(
 	for i := range logStrings {
 		if strings.Contains(strings.ToLower(logStrings[i]), strings.ToLower(needle)) {
 			buff = append(buff, fmt.Sprintf("Log: %s", logStrings[i]))
+			break
+		}
+	}
+
+	// logs
+	for i := range logs {
+		if strings.Contains(strings.ToLower(logs[i]), strings.ToLower(needle)) {
+			buff = append(buff, fmt.Sprintf("Log: %s", logs[i]))
 			break
 		}
 	}
