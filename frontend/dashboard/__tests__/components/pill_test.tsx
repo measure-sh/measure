@@ -126,6 +126,25 @@ describe("Pill", () => {
       },
     );
 
+    const logSeverityCases: Array<[PillType, RegExp]> = [
+      [PillType.SessionEventLogDebug, /border-teal-400/],
+      [PillType.SessionEventLogInfo, /border-indigo-400/],
+      [PillType.SessionEventLogWarning, /border-amber-400/],
+      [PillType.SessionEventLogError, /border-red-400/],
+      [PillType.SessionEventLogFatal, /border-red-400/],
+    ];
+
+    it.each(logSeverityCases)(
+      "tints the log severity pill %s from its type",
+      (type, tintPattern) => {
+        render(<Pill type={type}>Log X</Pill>);
+        const badge = findBadge("Log X");
+        expect(badge).not.toBeNull();
+        expect(badge!.className).toMatch(tintPattern);
+        expect(badge!.className).toMatch(/rounded-sm/);
+      },
+    );
+
     it("renders SessionEventDefault from children with indigo tint", () => {
       render(<Pill type={PillType.SessionEventDefault}>weird_event</Pill>);
       const badge = findBadge("weird_event");

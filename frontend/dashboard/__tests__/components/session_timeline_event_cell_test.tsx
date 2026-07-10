@@ -128,6 +128,7 @@ describe("SessionTimelineEventCell", () => {
         "SwiftUI",
       ],
       ["string", { string: "a log line" }, "Log"],
+      ["log", { body: "a log line", severity_text: "info" }, "Log Info"],
       [
         "profile",
         { reason: "app_fully_drawn", format: "perfetto_trace" },
@@ -187,6 +188,7 @@ describe("SessionTimelineEventCell", () => {
       ["trace", { trace_name: "checkout" }, "bg-pink-100"],
       ["custom", { name: "event" }, "bg-purple-100"],
       ["string", { string: "a log line" }, "bg-indigo-100"],
+      ["log", { body: "a log line" }, "bg-indigo-100"],
       [
         "profile",
         { reason: "app_fully_drawn", format: "perfetto_trace" },
@@ -205,6 +207,52 @@ describe("SessionTimelineEventCell", () => {
         eventDetails: { name: "event" },
       });
       expect(container.querySelector(".rounded-sm")).not.toBeNull();
+    });
+  });
+
+  describe("Log severity pill", () => {
+    it.each([
+      ["debug", "Log Debug", "bg-teal-100"],
+      ["info", "Log Info", "bg-indigo-100"],
+      ["warning", "Log Warning", "bg-amber-100"],
+      ["error", "Log Error", "bg-red-100"],
+      ["fatal", "Log Fatal", "bg-red-100"],
+    ])(
+      "renders a log %s event as a single '%s' pill",
+      (severity, label, bg) => {
+        const { container } = renderCell({
+          eventType: "log",
+          eventDetails: { body: "a log line", severity_text: severity },
+        });
+        expect(screen.getByText(label)).toBeInTheDocument();
+        expect(container.querySelector(`.${bg}`)).not.toBeNull();
+      },
+    );
+
+    it.each([
+      ["debug", "Log Debug"],
+      ["info", "Log Info"],
+      ["warning", "Log Warning"],
+      ["error", "Log Error"],
+      ["fatal", "Log Fatal"],
+    ])(
+      "renders a legacy string %s event as a single '%s' pill",
+      (logLevel, label) => {
+        renderCell({
+          eventType: "string",
+          eventDetails: { string: "a log line", logLevel },
+        });
+        expect(screen.getByText(label)).toBeInTheDocument();
+      },
+    );
+
+    it("falls back to a plain indigo Log pill when severity is missing", () => {
+      const { container } = renderCell({
+        eventType: "log",
+        eventDetails: { body: "a log line" },
+      });
+      expect(screen.getByText("Log")).toBeInTheDocument();
+      expect(container.querySelector(".bg-indigo-100")).not.toBeNull();
     });
   });
 
@@ -394,6 +442,22 @@ describe("SessionTimelineEventCell", () => {
         eventDetails: { name: "purchase_completed" },
       });
       expect(screen.getByText("purchase_completed")).toBeInTheDocument();
+    });
+
+    it("shows the log body without a severity prefix", () => {
+      renderCell({
+        eventType: "log",
+        eventDetails: { body: "a log line", severity_text: "error" },
+      });
+      expect(screen.getByText("a log line")).toBeInTheDocument();
+    });
+
+    it("shows the legacy string body without a level prefix", () => {
+      renderCell({
+        eventType: "string",
+        eventDetails: { string: "a log line", logLevel: "warning" },
+      });
+      expect(screen.getByText("a log line")).toBeInTheDocument();
     });
   });
 });

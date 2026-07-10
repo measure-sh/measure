@@ -1282,6 +1282,9 @@ export function makeSdkConfigFixture(overrides: Record<string, any> = {}) {
     http_track_response_for_urls: [],
     http_blocked_headers: [],
     screenshot_mask_level: "all_text_and_media",
+    log_autocollect_enabled: true,
+    log_min_severity: 12,
+    log_ignore_patterns: [],
     ...overrides,
   };
 }

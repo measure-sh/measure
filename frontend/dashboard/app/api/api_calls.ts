@@ -1193,6 +1193,9 @@ export type SdkConfig = {
   http_blocked_headers: string[];
   screenshot_mask_level: string;
   profile_sampling_rate: number;
+  log_autocollect_enabled: boolean;
+  log_min_severity: number;
+  log_ignore_patterns: string[];
 };
 export class AppVersion {
   name: string;

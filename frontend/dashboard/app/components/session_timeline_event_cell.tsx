@@ -32,6 +32,7 @@ const eventPillTypes: Record<string, PillType> = {
   trace: PillType.SessionEventTrace,
   custom: PillType.SessionEventCustom,
   string: PillType.SessionEventLog,
+  log: PillType.SessionEventLog,
   profile: PillType.SessionEventProfile,
 };
 
@@ -50,6 +51,38 @@ function pillTypeForEvent(eventType: string, eventDetails: any): PillType {
   }
   return eventPillTypes[eventType] ?? PillType.SessionEventDefault;
 }
+
+const logSeverityPillTypes: Record<string, PillType> = {
+  debug: PillType.SessionEventLogDebug,
+  info: PillType.SessionEventLogInfo,
+  warning: PillType.SessionEventLogWarning,
+  error: PillType.SessionEventLogError,
+  fatal: PillType.SessionEventLogFatal,
+};
+
+export const canonicalLogSeverities = [
+  "debug",
+  "info",
+  "warning",
+  "error",
+  "fatal",
+];
+
+export function logSeverity(eventType: string, eventDetails: any): string {
+  const raw =
+    eventType === "log" ? eventDetails.severity_text : eventDetails.logLevel;
+  const normalized = typeof raw === "string" ? raw.toLowerCase() : "";
+  return canonicalLogSeverities.includes(normalized) ? normalized : "";
+}
+
+export function logFilterKey(severity: string): string {
+  return severity ? `log: ${severity}` : "log";
+}
+
+export const logFilterKeys = [
+  logFilterKey(""),
+  ...canonicalLogSeverities.map(logFilterKey),
+];
 
 type SessionTimelineEventCellProps = {
   teamId: string;
@@ -84,9 +117,10 @@ export default function SessionTimelineEventCell({
         : eventDetails.bug_report_id;
     }
     if (eventType === "string") {
-      return eventDetails.logLevel
-        ? `${formatToCamelCase(eventDetails.logLevel)}: ${eventDetails.string}`
-        : eventDetails.string;
+      return eventDetails.string;
+    }
+    if (eventType === "log") {
+      return eventDetails.body;
     }
     if (
       eventType === "gesture_click" ||
@@ -164,6 +198,8 @@ export default function SessionTimelineEventCell({
   const title = getTitle();
   const snapshot = hasSnapshot();
   const pillType = pillTypeForEvent(eventType, eventDetails);
+  const isLog = eventType === "log" || eventType === "string";
+  const severity = isLog ? logSeverity(eventType, eventDetails) : "";
 
   return (
     <div className="border-b border-border">
@@ -175,9 +211,18 @@ export default function SessionTimelineEventCell({
         className="w-full text-left px-3 py-4 font-display outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-ring/50 focus-visible:ring-[2px] focus-visible:ring-inset"
       >
         <div className="flex flex-row items-center gap-3">
-          <Pill type={pillType} className="shrink-0 w-28">
-            {pillType === PillType.SessionEventDefault ? eventType : null}
-          </Pill>
+          {isLog ? (
+            <Pill
+              type={logSeverityPillTypes[severity] ?? PillType.SessionEventLog}
+              className="shrink-0 w-28"
+            >
+              {severity ? `Log: ${formatToCamelCase(severity)}` : "Log"}
+            </Pill>
+          ) : (
+            <Pill type={pillType} className="shrink-0 w-28">
+              {pillType === PillType.SessionEventDefault ? eventType : null}
+            </Pill>
+          )}
           {title && (
             <p className="text-sm line-clamp-2 grow min-w-0 break-words">
               {title}
