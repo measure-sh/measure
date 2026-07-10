@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AB10C0022F62000000000002 /* LogData.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10C0012F62000000000001 /* LogData.swift */; };
+		AB10C0042F62000000000004 /* LogSeverity.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10C0032F62000000000003 /* LogSeverity.swift */; };
+		AB10C0062F62000000000006 /* LogEventCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10C0052F62000000000005 /* LogEventCollector.swift */; };
+		AB10C00A2F6200000000000A /* LogEventCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10C0092F62000000000009 /* LogEventCollectorTests.swift */; };
 		520C23962D65EBFD00F1C680 /* MeasureModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 520C23942D65EBFC00F1C680 /* MeasureModel.xcdatamodeld */; };
 		520C23972D65EBFD00F1C680 /* MeasureModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 520C23942D65EBFC00F1C680 /* MeasureModel.xcdatamodeld */; };
 		524CC5C32C6A4B12001AB506 /* Measure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 524CC5BA2C6A4B11001AB506 /* Measure.framework */; };
@@ -622,6 +626,10 @@
 		CF86818D2DB6541F00C62DA5 /* SpanId.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanId.swift; sourceTree = "<group>"; };
 		CF86818E2DB6541F00C62DA5 /* TraceId.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceId.swift; sourceTree = "<group>"; };
 		CF893DD02E95096B00D99D45 /* MeasureModelV2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MeasureModelV2.xcdatamodel; sourceTree = "<group>"; };
+		AB10C0012F62000000000001 /* LogData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogData.swift; sourceTree = "<group>"; };
+		AB10C0032F62000000000003 /* LogSeverity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogSeverity.swift; sourceTree = "<group>"; };
+		AB10C0052F62000000000005 /* LogEventCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogEventCollector.swift; sourceTree = "<group>"; };
+		AB10C0092F62000000000009 /* LogEventCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogEventCollectorTests.swift; sourceTree = "<group>"; };
 		CF893DD12E950A7E00D99D45 /* MeasureModelV1ToV2.xcmappingmodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcmappingmodel; path = MeasureModelV1ToV2.xcmappingmodel; sourceTree = "<group>"; };
 		CF893DD42E950BF000D99D45 /* EventToAttachmentMigrationPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventToAttachmentMigrationPolicy.swift; sourceTree = "<group>"; };
 		CF893DDA2E950DEE00D99D45 /* EventOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
@@ -855,6 +863,9 @@
 				526D17C32D5A1913009A2E90 /* Event.swift */,
 				526D17C52D5A1913009A2E90 /* EventType.swift */,
 				69C449682DA9266400E44CF4 /* InternalSignalCollector.swift */,
+				AB10C0012F62000000000001 /* LogData.swift */,
+				AB10C0052F62000000000005 /* LogEventCollector.swift */,
+				AB10C0032F62000000000003 /* LogSeverity.swift */,
 				526D17C62D5A1913009A2E90 /* ScreenViewData.swift */,
 				526D17C42D5A1913009A2E90 /* SignalProcessor.swift */,
 				CF041C422ED437F6004B4D28 /* SignalSampler.swift */,
@@ -1139,6 +1150,7 @@
 				52B7F0F22D757F81001498BC /* CustomEventCollectorTests.swift */,
 				52B7F0F32D757F81001498BC /* EventProcessorTests.swift */,
 				69C4496A2DACC7BE00E44CF4 /* InternalSignalCollectorTests.swift */,
+				AB10C0092F62000000000009 /* LogEventCollectorTests.swift */,
 				CF4EA2D42EA243EB0020FC71 /* UserTriggeredEventCollectorTests.swift */,
 			);
 			path = Event;
@@ -1865,6 +1877,9 @@
 				CF893DD52E950BF000D99D45 /* EventToAttachmentMigrationPolicy.swift in Sources */,
 				526D182F2D5A1913009A2E90 /* UserAttributeProcessor.swift in Sources */,
 				526D18482D5A1913009A2E90 /* CustomEventCollector.swift in Sources */,
+				AB10C0022F62000000000002 /* LogData.swift in Sources */,
+				AB10C0042F62000000000004 /* LogSeverity.swift in Sources */,
+				AB10C0062F62000000000006 /* LogEventCollector.swift in Sources */,
 				CFB8382C2DB1597B0023592B /* SpanOb+CoreDataClass.swift in Sources */,
 				CFB8382D2DB1597B0023592B /* SpanOb+CoreDataProperties.swift in Sources */,
 				526D18622D5A1913009A2E90 /* MSRNetworkInterceptor.swift in Sources */,
@@ -1939,6 +1954,7 @@
 				52B7F1492D757F81001498BC /* HttpClientTests.swift in Sources */,
 				52B7F14E2D757F81001498BC /* Exception+Extension.swift in Sources */,
 				52B7F1432D757F81001498BC /* CustomEventCollectorTests.swift in Sources */,
+				AB10C00A2F6200000000000A /* LogEventCollectorTests.swift in Sources */,
 				CF3C913B2F6B17FA00AE7378 /* LayoutSnapshotGeneratorTests.swift in Sources */,
 				52B7F1472D757F81001498BC /* EventSerializerTests.swift in Sources */,
 				52B7F1662D757F81001498BC /* MockSessionManager.swift in Sources */,

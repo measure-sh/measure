@@ -222,6 +222,24 @@ final class ConfigProviderTests: XCTestCase {
         XCTAssertTrue(provider.shouldTrackHttpUrl(url: "not a url"))
     }
 
+    func testShouldDiscardLog_returnsFalseWhenNoPatternsConfigured() {
+        XCTAssertFalse(provider.shouldDiscardLog(body: "some log body"))
+    }
+
+    func testShouldDiscardLog_returnsTrueWhenBodyMatchesPattern() {
+        provider.setDynamicConfig(BaseDynamicConfig(logIgnorePatterns: ["secret"]))
+
+        XCTAssertTrue(provider.shouldDiscardLog(body: "this contains a secret value"))
+        XCTAssertFalse(provider.shouldDiscardLog(body: "nothing sensitive here"))
+    }
+
+    func testShouldDiscardLog_ignoresInvalidRegexPatterns() {
+        provider.setDynamicConfig(BaseDynamicConfig(logIgnorePatterns: ["[invalid(", "token"]))
+
+        XCTAssertTrue(provider.shouldDiscardLog(body: "has a token"))
+        XCTAssertFalse(provider.shouldDiscardLog(body: "no match"))
+    }
+
     private func copy(
         _ base: BaseDynamicConfig,
         disable: [String] = [],

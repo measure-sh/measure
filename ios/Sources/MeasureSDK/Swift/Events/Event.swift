@@ -87,6 +87,9 @@ final class Event<T: Codable>: Codable {
     /// Data related to bug report events.
     let bugReport: BugReportData?
 
+    /// Data related to log events.
+    let log: LogData?
+
     init(id: String,
          sessionId: String,
          timestamp: String,
@@ -123,6 +126,7 @@ final class Event<T: Codable>: Codable {
         self.custom = data as? CustomEventData
         self.screenView = data as? ScreenViewData
         self.bugReport = data as? BugReportData
+        self.log = data as? LogData
     }
 
     enum CodingKeys: String, CodingKey {
@@ -152,6 +156,7 @@ final class Event<T: Codable>: Codable {
         case custom
         case screenView = "screen_view"
         case bugReport = "bug_report"
+        case log
     }
 
     /// Appends additional attributes to the event using the provided attribute processors.

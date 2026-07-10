@@ -148,6 +148,18 @@ import UIKit
         measureInternal.trackEvent(name, attributes: attributes, timestamp: timestamp)
     }
 
+    func log(_ body: String, severity: LogSeverity, attributes: [String: AttributeValue]) {
+        guard let measureInternal = measureInternal else { return }
+
+        measureInternal.log(body, severity: severity, attributes: attributes)
+    }
+
+    @objc func log(_ body: String, severity: LogSeverity, attributes: [String: Any]) {
+        guard let measureInternal = measureInternal else { return }
+
+        measureInternal.log(body, severity: severity, attributes: attributes)
+    }
+
     func trackScreenView(_ screenName: String, attributes: [String: AttributeValue]?) {
         guard let measureInternal = measureInternal else { return }
 
@@ -544,6 +556,91 @@ extension Measure {
     ///   - timestamp: Optional timestamp for the event, defaults to current time
     @objc public static func trackEvent(_ name: String, attributes: [String: Any], timestamp: NSNumber? = nil) {
         Measure.shared.trackEvent(name, attributes: attributes, timestamp: timestamp)
+    }
+
+    /// Tracks a log message with optional severity and attributes.
+    ///
+    /// Log messages longer than 1000 characters are truncated. Logs are not collected
+    /// automatically on iOS, use this method to track them.
+    ///
+    ///   ```swift
+    ///   Measure.log("user signed in", severity: .info, attributes: ["user_name": .string("Alice")])
+    ///   ```
+    /// - Parameters:
+    ///   - body: The log message (max 1000 characters)
+    ///   - severity: Severity of the log, defaults to `.info`
+    ///   - attributes: Key-value pairs providing additional context
+    public static func log(_ body: String, severity: LogSeverity = .info, attributes: [String: AttributeValue] = [:]) {
+        Measure.shared.log(body, severity: severity, attributes: attributes)
+    }
+
+    /// Tracks a log message with optional severity and attributes.
+    ///
+    /// Log messages longer than 1000 characters are truncated. Logs are not collected
+    /// automatically on iOS, use this method to track them.
+    ///
+    /// Note:
+    /// This method is primarily intended for Objective-C use.
+    ///
+    ///   ```objc
+    ///   [Measure log:@"user signed in" severity:LogSeverityInfo attributes:@{@"user_name": @"Alice"}];
+    ///   ```
+    /// - Parameters:
+    ///   - body: The log message (max 1000 characters)
+    ///   - severity: Severity of the log, defaults to `.info`
+    ///   - attributes: Key-value pairs providing additional context
+    @objc public static func log(_ body: String, severity: LogSeverity = .info, attributes: [String: Any]) {
+        Measure.shared.log(body, severity: severity, attributes: attributes)
+    }
+
+    /// Tracks a log with `.debug` severity. See ``log(_:severity:attributes:)`` for details.
+    public static func logDebug(_ body: String, attributes: [String: AttributeValue] = [:]) {
+        Measure.shared.log(body, severity: .debug, attributes: attributes)
+    }
+
+    /// Tracks a log with `.debug` severity. Primarily intended for Objective-C use.
+    @objc public static func logDebug(_ body: String, attributes: [String: Any]) {
+        Measure.shared.log(body, severity: .debug, attributes: attributes)
+    }
+
+    /// Tracks a log with `.info` severity. See ``log(_:severity:attributes:)`` for details.
+    public static func logInfo(_ body: String, attributes: [String: AttributeValue] = [:]) {
+        Measure.shared.log(body, severity: .info, attributes: attributes)
+    }
+
+    /// Tracks a log with `.info` severity. Primarily intended for Objective-C use.
+    @objc public static func logInfo(_ body: String, attributes: [String: Any]) {
+        Measure.shared.log(body, severity: .info, attributes: attributes)
+    }
+
+    /// Tracks a log with `.warning` severity. See ``log(_:severity:attributes:)`` for details.
+    public static func logWarning(_ body: String, attributes: [String: AttributeValue] = [:]) {
+        Measure.shared.log(body, severity: .warning, attributes: attributes)
+    }
+
+    /// Tracks a log with `.warning` severity. Primarily intended for Objective-C use.
+    @objc public static func logWarning(_ body: String, attributes: [String: Any]) {
+        Measure.shared.log(body, severity: .warning, attributes: attributes)
+    }
+
+    /// Tracks a log with `.error` severity. See ``log(_:severity:attributes:)`` for details.
+    public static func logError(_ body: String, attributes: [String: AttributeValue] = [:]) {
+        Measure.shared.log(body, severity: .error, attributes: attributes)
+    }
+
+    /// Tracks a log with `.error` severity. Primarily intended for Objective-C use.
+    @objc public static func logError(_ body: String, attributes: [String: Any]) {
+        Measure.shared.log(body, severity: .error, attributes: attributes)
+    }
+
+    /// Tracks a log with `.fatal` severity. See ``log(_:severity:attributes:)`` for details.
+    public static func logFatal(_ body: String, attributes: [String: AttributeValue] = [:]) {
+        Measure.shared.log(body, severity: .fatal, attributes: attributes)
+    }
+
+    /// Tracks a log with `.fatal` severity. Primarily intended for Objective-C use.
+    @objc public static func logFatal(_ body: String, attributes: [String: Any]) {
+        Measure.shared.log(body, severity: .fatal, attributes: attributes)
     }
 
     /// Call when a screen is viewed by the user.

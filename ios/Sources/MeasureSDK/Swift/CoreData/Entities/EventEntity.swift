@@ -37,6 +37,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
     var needsReporting: Bool
     let bugReport: Data?
     let sessionStartData: Data?
+    let log: Data?
 
     init<T: Codable>(_ event: Event<T>, needsReporting: Bool) { // swiftlint:disable:this cyclomatic_complexity function_body_length
         self.id = event.id
@@ -259,6 +260,17 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         } else {
             self.sessionStartData = nil
         }
+
+        if let log = event.log {
+            do {
+                let data = try JSONEncoder().encode(log)
+                self.log = data
+            } catch {
+                self.log = nil
+            }
+        } else {
+            self.log = nil
+        }
     }
 
     init(id: String,
@@ -289,6 +301,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
          screenView: Data?,
          bugReport: Data?,
          sessionStartData: Data?,
+         log: Data?,
          needsReporting: Bool) {
         self.id = id
         self.sessionId = sessionId
@@ -319,6 +332,7 @@ struct EventEntity { // swiftlint:disable:this type_body_length
         self.needsReporting = needsReporting
         self.bugReport = bugReport
         self.sessionStartData = sessionStartData
+        self.log = log
     }
 
     func getEvent<T: Codable>() -> Event<T> { // swiftlint:disable:this cyclomatic_complexity function_body_length
@@ -441,6 +455,14 @@ struct EventEntity { // swiftlint:disable:this type_body_length
             if let customEventData = self.customEvent {
                 do {
                     decodedData = try JSONDecoder().decode(T.self, from: customEventData)
+                } catch {
+                    decodedData = nil
+                }
+            }
+        case .log:
+            if let logData = self.log {
+                do {
+                    decodedData = try JSONDecoder().decode(T.self, from: logData)
                 } catch {
                     decodedData = nil
                 }

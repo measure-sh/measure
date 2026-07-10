@@ -58,6 +58,34 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
         XCTAssertNotNil(signalProcessor.data)
     }
 
+    func testTrackEvent_tracksLogEvent() {
+        eventCollector.enable()
+        var eventData: [String: Any?] = ["severity_text": "info", "severity_number": 12, "body": "something happened"]
+        let type = EventType.log.rawValue
+
+        eventCollector.trackEvent(
+            data: &eventData,
+            type: type,
+            timestamp: 1234567890,
+            attributes: [:],
+            userDefinedAttrs: [:],
+            userTriggered: true,
+            sessionId: nil,
+            threadName: nil,
+            attachments: []
+        )
+
+        guard let data = signalProcessor.data as? LogData else {
+            XCTFail("Expected signalProcessor.data to be of type LogData")
+            return
+        }
+
+        XCTAssertEqual(data.severityText, "info")
+        XCTAssertEqual(data.severityNumber, 12)
+        XCTAssertEqual(data.body, "something happened")
+        XCTAssertEqual(signalProcessor.type, .log)
+    }
+
     func testTrackEvent_tracksScreenViewEvent() {
         eventCollector.enable()
         var eventData: [String: Any?] = ["name": "home"]

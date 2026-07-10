@@ -30,6 +30,9 @@ struct DefaultConfig {
     static let traceSamplingRate: Float = 100
     static let journeySamplingRate: Float = 100
     static let screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia
+    static let logAutocollectEnabled: Bool = false
+    static let logMinSeverity: Int = 16
+    static let logIgnorePatterns: [String] = []
     static let cpuUsageInterval: Number = 5
     static let memoryUsageInterval: Number = 5
     static let crashTakeScreenshot: Bool = true

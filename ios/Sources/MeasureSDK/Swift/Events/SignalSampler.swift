@@ -78,7 +78,6 @@ final class BaseSignalSampler: SignalSampler {
         return shouldTrack(configProvider.httpSamplingRate / 100)
     }
 
-
     /// Generates a stable sampling value in [0, 1] from a session ID.
     ///
     /// Uses FNV-1a 64-bit hash for deterministic, uniformly distributed output.
