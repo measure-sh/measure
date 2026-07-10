@@ -18,6 +18,7 @@ class Config implements InternalConfig, IMeasureConfig {
     this.maxUserDefinedAttributeKeyLength = DefaultConfig.maxUserDefinedAttributeKeyLength,
     this.maxUserDefinedAttributeValueLength = DefaultConfig.maxUserDefinedAttributeValueLength,
     this.maxUserDefinedAttributesPerEvent = DefaultConfig.maxUserDefinedAttributesPerEvent,
+    this.maxLogBodyLength = DefaultConfig.maxLogBodyLength,
     this.widgetFilter = DefaultConfig.widgetFilter,
   });
 
@@ -49,6 +50,8 @@ class Config implements InternalConfig, IMeasureConfig {
   final int maxUserDefinedAttributeKeyLength;
   @override
   final int maxUserDefinedAttributeValueLength;
+  @override
+  final int maxLogBodyLength;
   @override
   final Map<Type, String> widgetFilter;
 

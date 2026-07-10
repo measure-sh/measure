@@ -19,11 +19,14 @@ class FakeConfigProvider implements ConfigProvider {
   int _maxUserDefinedAttributeValueLength = 100;
   int _maxUserDefinedAttributeKeyLength = 256;
   int _maxUserDefinedAttributesPerEvent = 256;
+  int _maxLogBodyLength = 4000;
   double _traceSamplingRate = 100;
   bool _crashTakeScreenshot = true;
   bool _gestureClickTakeSnapshot = true;
   ScreenshotMaskLevel _screenshotMaskLevel =
       ScreenshotMaskLevel.allTextAndMedia;
+  int _logMinSeverity = 8;
+  List<String> _logIgnorePatterns = [];
   final List<String> _httpDisableEventForUrls = [];
   final List<String> _httpTrackRequestForUrls = [];
   final List<String> _httpTrackResponseForUrls = [];
@@ -81,6 +84,9 @@ class FakeConfigProvider implements ConfigProvider {
   int get maxUserDefinedAttributesPerEvent => _maxUserDefinedAttributesPerEvent;
 
   @override
+  int get maxLogBodyLength => _maxLogBodyLength;
+
+  @override
   bool get crashTakeScreenshot => _crashTakeScreenshot;
 
   @override
@@ -100,6 +106,12 @@ class FakeConfigProvider implements ConfigProvider {
 
   @override
   ScreenshotMaskLevel get screenshotMaskLevel => _screenshotMaskLevel;
+
+  @override
+  int get logMinSeverity => _logMinSeverity;
+
+  @override
+  List<String> get logIgnorePatterns => _logIgnorePatterns;
 
   @override
   double get traceSamplingRate => _traceSamplingRate;
@@ -135,6 +147,17 @@ class FakeConfigProvider implements ConfigProvider {
   @override
   bool shouldTrackHttpResponseBody(String url) {
     return shouldTrackHttpResponseBodyResult;
+  }
+
+  @override
+  bool shouldDiscardLog(String body) {
+    return _logIgnorePatterns.any((pattern) {
+      try {
+        return RegExp(pattern).hasMatch(body);
+      } on FormatException {
+        return false;
+      }
+    });
   }
 
   // Setters
@@ -173,6 +196,8 @@ class FakeConfigProvider implements ConfigProvider {
 
   set maxUserDefinedAttributesPerEvent(int value) => _maxUserDefinedAttributesPerEvent = value;
 
+  set maxLogBodyLength(int value) => _maxLogBodyLength = value;
+
   set crashTakeScreenshot(bool value) => _crashTakeScreenshot = value;
 
   set gestureClickTakeSnapshot(bool value) => _gestureClickTakeSnapshot = value;
@@ -180,6 +205,10 @@ class FakeConfigProvider implements ConfigProvider {
   set traceSamplingRate(double value) => _traceSamplingRate = value;
 
   set screenshotMaskLevel(ScreenshotMaskLevel value) => _screenshotMaskLevel = value;
+
+  set logMinSeverity(int value) => _logMinSeverity = value;
+
+  set logIgnorePatterns(List<String> value) => _logIgnorePatterns = value;
 
   set httpBlockedHeaders(List<String> value) => _httpBlockedHeaders = value;
 }

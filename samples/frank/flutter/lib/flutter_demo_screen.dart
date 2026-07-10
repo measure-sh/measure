@@ -10,6 +10,7 @@ import 'package:stack_trace/stack_trace.dart';
 
 import 'bottom_nav_demo.dart';
 import 'layout_snapshot_page.dart';
+import 'log_screen.dart';
 import 'masking_demo_page.dart';
 
 class _CustomException implements Exception {
@@ -213,6 +214,16 @@ class _FlutterDemoScreenState extends State<FlutterDemoScreen>
       ..add('integer', 1)
       ..add('string', 'string');
     Measure.instance.trackEvent(name: 'event', attributes: attrs.build());
+  }
+
+  void _navigateToLogScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute<Widget>(
+        builder: (context) => const LogScreen(),
+        settings: const RouteSettings(name: '/log_screen'),
+      ),
+    );
   }
 
   void _dioGet() async {
@@ -442,6 +453,12 @@ class _FlutterDemoScreenState extends State<FlutterDemoScreen>
           description: 'Tracks an event with attributes',
           category: _DemoCategory.misc,
           action: _trackCustomEvent,
+        ),
+        _DemoItem(
+          title: 'Track Logs',
+          description: 'Enter a body, pick a severity, and send',
+          category: _DemoCategory.misc,
+          action: _navigateToLogScreen,
         ),
         // HTTP
         _DemoItem(

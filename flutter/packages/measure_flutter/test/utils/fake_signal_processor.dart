@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/events/custom_event_data.dart';
 import 'package:measure_flutter/src/exception/exception_data.dart';
+import 'package:measure_flutter/src/logs/log_data.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 import 'package:measure_flutter/src/navigation/screen_view_data.dart';
 import 'package:measure_flutter/src/serialization/json_serializable.dart';
@@ -31,6 +32,7 @@ class TrackedEvent<T extends JsonSerialized> {
 class FakeSignalProcessor implements SignalProcessor {
   final trackedExceptions = <ExceptionData>[];
   final trackedCustomEvents = <CustomEventData>[];
+  final trackedLogs = <LogData>[];
   final trackedScreenViewEvents = <ScreenViewData>[];
   final List<SpanData> trackedSpans = [];
   final List<TrackedEvent> trackedEvents = [];
@@ -60,6 +62,9 @@ class FakeSignalProcessor implements SignalProcessor {
     }
     if (data is CustomEventData) {
       trackedCustomEvents.add(data);
+    }
+    if (data is LogData) {
+      trackedLogs.add(data);
     }
     if (data is ScreenViewData) {
       trackedScreenViewEvents.add(data);

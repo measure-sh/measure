@@ -330,4 +330,29 @@ void main() {
       expect(provider.shouldTrackHttpEvent('HTTPS://api.example.com/path'), isFalse);
     });
   });
+
+  group('shouldDiscardLog', () {
+    test('returns false when no discard patterns are configured', () {
+      expect(provider.shouldDiscardLog('some log body'), isFalse);
+    });
+
+    test('returns true when body matches a configured pattern', () {
+      provider.setDynamicConfig(
+        DynamicConfig.defaults().copyWith(logIgnorePatterns: ['secret']),
+      );
+
+      expect(provider.shouldDiscardLog('this contains a secret value'), isTrue);
+      expect(provider.shouldDiscardLog('nothing sensitive here'), isFalse);
+    });
+
+    test('ignores invalid regex patterns', () {
+      provider.setDynamicConfig(
+        DynamicConfig.defaults()
+            .copyWith(logIgnorePatterns: ['[invalid(', 'token']),
+      );
+
+      expect(provider.shouldDiscardLog('has a token'), isTrue);
+      expect(provider.shouldDiscardLog('no match'), isFalse);
+    });
+  });
 }

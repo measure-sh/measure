@@ -14,6 +14,10 @@ abstract class ConfigProvider implements IMeasureConfig, InternalConfig, IDynami
 
   bool shouldTrackHttpHeader(String key);
 
+  /// Whether a log with the given body should be dropped because it matches one
+  /// of the configured [IDynamicConfig.logIgnorePatterns] patterns.
+  bool shouldDiscardLog(String body);
+
   void setMeasureUrl(String url);
 
   void setDynamicConfig(DynamicConfig dynamicConfig);
@@ -87,6 +91,7 @@ class ConfigProviderImpl implements ConfigProvider {
     blockedHeaders: [],
     measureUrl: null,
   );
+  List<RegExp> _logIgnoreRegexes = [];
 
   @override
   bool get enableLogging => _defaultConfig.enableLogging;
@@ -137,6 +142,9 @@ class ConfigProviderImpl implements ConfigProvider {
   int get maxUserDefinedAttributesPerEvent => _defaultConfig.maxUserDefinedAttributesPerEvent;
 
   @override
+  int get maxLogBodyLength => _defaultConfig.maxLogBodyLength;
+
+  @override
   Map<Type, String> get widgetFilter => _defaultConfig.widgetFilter;
 
   @override
@@ -144,6 +152,12 @@ class ConfigProviderImpl implements ConfigProvider {
 
   @override
   ScreenshotMaskLevel get screenshotMaskLevel => _dynamicConfig.screenshotMaskLevel;
+
+  @override
+  int get logMinSeverity => _dynamicConfig.logMinSeverity;
+
+  @override
+  List<String> get logIgnorePatterns => _dynamicConfig.logIgnorePatterns;
 
   @override
   bool get crashTakeScreenshot => _dynamicConfig.crashTakeScreenshot;
@@ -190,6 +204,12 @@ class ConfigProviderImpl implements ConfigProvider {
   }
 
   @override
+  bool shouldDiscardLog(String body) {
+    final patterns = _logIgnoreRegexes;
+    return patterns.any((pattern) => pattern.hasMatch(body));
+  }
+
+  @override
   void setMeasureUrl(String url) {
     final currentState = _httpPatternState;
     _httpPatternState = currentState.copyWith(
@@ -215,6 +235,10 @@ class ConfigProviderImpl implements ConfigProvider {
       blockedHeaders: List.unmodifiable(dynamicConfig.httpBlockedHeaders),
       measureUrl: currentMeasureUrl,
     );
+    _logIgnoreRegexes = dynamicConfig.logIgnorePatterns
+        .map(_compileLogIgnorePattern)
+        .whereType<RegExp>()
+        .toList();
   }
 
   List<RegExp> _buildDisableEventPatterns(List<String> configUrls, String? measureUrl) {
@@ -236,5 +260,13 @@ class ConfigProviderImpl implements ConfigProvider {
       regexPattern = RegExp.escape(pattern);
     }
     return RegExp('^$regexPattern\$', caseSensitive: false);
+  }
+
+  RegExp? _compileLogIgnorePattern(String pattern) {
+    try {
+      return RegExp(pattern);
+    } on FormatException {
+      return null;
+    }
   }
 }
