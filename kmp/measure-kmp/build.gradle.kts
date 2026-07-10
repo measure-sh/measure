@@ -1,7 +1,9 @@
 import com.diffplug.gradle.spotless.SpotlessExtension
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
+import org.gradle.api.tasks.PathSensitivity
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
 
 plugins {
     kotlin("multiplatform") version "2.3.20"
@@ -58,6 +60,18 @@ kotlin {
             implementation(kotlin("test-junit"))
         }
     }
+}
+
+// The xcframework is built outside Gradle, so cinterop can't depend on it and by default
+// fingerprints only the .def file. A change to the iOS SDK's @objc surface then leaves the
+// cached klib stale and the shared build cache re-serves it (e.g. "Unresolved reference
+// 'LogSeverityFatal'"). Fingerprinting the framework headers makes cinterop re-run whenever
+// that surface changes.
+tasks.withType<CInteropProcess>().configureEach {
+    inputs
+        .files(xcfDir.map { it.asFileTree.matching { include("**/*.h", "**/*.modulemap") } })
+        .withPropertyName("measureXcframeworkHeaders")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 mavenPublishing {

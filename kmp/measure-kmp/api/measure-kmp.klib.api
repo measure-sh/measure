@@ -6,6 +6,20 @@
 // - Show declarations: true
 
 // Library unique name: <sh.measure:measure-kmp>
+final enum class sh.measure.kmp.logs/LogSeverity : kotlin/Enum<sh.measure.kmp.logs/LogSeverity> { // sh.measure.kmp.logs/LogSeverity|null[0]
+    enum entry Debug // sh.measure.kmp.logs/LogSeverity.Debug|null[0]
+    enum entry Error // sh.measure.kmp.logs/LogSeverity.Error|null[0]
+    enum entry Fatal // sh.measure.kmp.logs/LogSeverity.Fatal|null[0]
+    enum entry Info // sh.measure.kmp.logs/LogSeverity.Info|null[0]
+    enum entry Warning // sh.measure.kmp.logs/LogSeverity.Warning|null[0]
+
+    final val entries // sh.measure.kmp.logs/LogSeverity.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<sh.measure.kmp.logs/LogSeverity> // sh.measure.kmp.logs/LogSeverity.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): sh.measure.kmp.logs/LogSeverity // sh.measure.kmp.logs/LogSeverity.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<sh.measure.kmp.logs/LogSeverity> // sh.measure.kmp.logs/LogSeverity.values|values#static(){}[0]
+}
+
 final enum class sh.measure.kmp.tracing/SpanStatus : kotlin/Enum<sh.measure.kmp.tracing/SpanStatus> { // sh.measure.kmp.tracing/SpanStatus|null[0]
     enum entry Error // sh.measure.kmp.tracing/SpanStatus.Error|null[0]
     enum entry Ok // sh.measure.kmp.tracing/SpanStatus.Ok|null[0]
@@ -153,6 +167,7 @@ final object sh.measure.kmp/Measure { // sh.measure.kmp/Measure|null[0]
     final fun getTraceParentHeaderKey(): kotlin/String // sh.measure.kmp/Measure.getTraceParentHeaderKey|getTraceParentHeaderKey(){}[0]
     final fun getTraceParentHeaderValue(sh.measure.kmp.tracing/Span): kotlin/String // sh.measure.kmp/Measure.getTraceParentHeaderValue|getTraceParentHeaderValue(sh.measure.kmp.tracing.Span){}[0]
     final fun launchBugReport(kotlin/Boolean = ..., kotlin.collections/Map<kotlin/String, sh.measure.kmp.attributes/AttributeValue> = ...) // sh.measure.kmp/Measure.launchBugReport|launchBugReport(kotlin.Boolean;kotlin.collections.Map<kotlin.String,sh.measure.kmp.attributes.AttributeValue>){}[0]
+    final fun log(kotlin/String, sh.measure.kmp.logs/LogSeverity = ..., kotlin.collections/Map<kotlin/String, sh.measure.kmp.attributes/AttributeValue> = ...) // sh.measure.kmp/Measure.log|log(kotlin.String;sh.measure.kmp.logs.LogSeverity;kotlin.collections.Map<kotlin.String,sh.measure.kmp.attributes.AttributeValue>){}[0]
     final fun setUserId(kotlin/String) // sh.measure.kmp/Measure.setUserId|setUserId(kotlin.String){}[0]
     final fun start() // sh.measure.kmp/Measure.start|start(){}[0]
     final fun startSpan(kotlin/String): sh.measure.kmp.tracing/Span // sh.measure.kmp/Measure.startSpan|startSpan(kotlin.String){}[0]
@@ -164,3 +179,9 @@ final object sh.measure.kmp/Measure { // sh.measure.kmp/Measure|null[0]
     final fun trackHttpEvent(kotlin/String, kotlin/String, kotlin/Long, kotlin/Long, kotlin/Int? = ..., kotlin/Exception? = ..., kotlin.collections/Map<kotlin/String, kotlin/String>? = ..., kotlin.collections/Map<kotlin/String, kotlin/String>? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String = ...) // sh.measure.kmp/Measure.trackHttpEvent|trackHttpEvent(kotlin.String;kotlin.String;kotlin.Long;kotlin.Long;kotlin.Int?;kotlin.Exception?;kotlin.collections.Map<kotlin.String,kotlin.String>?;kotlin.collections.Map<kotlin.String,kotlin.String>?;kotlin.String?;kotlin.String?;kotlin.String){}[0]
     final fun trackScreenView(kotlin/String, kotlin.collections/Map<kotlin/String, sh.measure.kmp.attributes/AttributeValue> = ...) // sh.measure.kmp/Measure.trackScreenView|trackScreenView(kotlin.String;kotlin.collections.Map<kotlin.String,sh.measure.kmp.attributes.AttributeValue>){}[0]
 }
+
+final fun (sh.measure.kmp/Measure).sh.measure.kmp/logDebug(kotlin/String, kotlin.collections/Map<kotlin/String, sh.measure.kmp.attributes/AttributeValue> = ...) // sh.measure.kmp/logDebug|logDebug@sh.measure.kmp.Measure(kotlin.String;kotlin.collections.Map<kotlin.String,sh.measure.kmp.attributes.AttributeValue>){}[0]
+final fun (sh.measure.kmp/Measure).sh.measure.kmp/logError(kotlin/String, kotlin.collections/Map<kotlin/String, sh.measure.kmp.attributes/AttributeValue> = ...) // sh.measure.kmp/logError|logError@sh.measure.kmp.Measure(kotlin.String;kotlin.collections.Map<kotlin.String,sh.measure.kmp.attributes.AttributeValue>){}[0]
+final fun (sh.measure.kmp/Measure).sh.measure.kmp/logFatal(kotlin/String, kotlin.collections/Map<kotlin/String, sh.measure.kmp.attributes/AttributeValue> = ...) // sh.measure.kmp/logFatal|logFatal@sh.measure.kmp.Measure(kotlin.String;kotlin.collections.Map<kotlin.String,sh.measure.kmp.attributes.AttributeValue>){}[0]
+final fun (sh.measure.kmp/Measure).sh.measure.kmp/logInfo(kotlin/String, kotlin.collections/Map<kotlin/String, sh.measure.kmp.attributes/AttributeValue> = ...) // sh.measure.kmp/logInfo|logInfo@sh.measure.kmp.Measure(kotlin.String;kotlin.collections.Map<kotlin.String,sh.measure.kmp.attributes.AttributeValue>){}[0]
+final fun (sh.measure.kmp/Measure).sh.measure.kmp/logWarning(kotlin/String, kotlin.collections/Map<kotlin/String, sh.measure.kmp.attributes/AttributeValue> = ...) // sh.measure.kmp/logWarning|logWarning@sh.measure.kmp.Measure(kotlin.String;kotlin.collections.Map<kotlin.String,sh.measure.kmp.attributes.AttributeValue>){}[0]

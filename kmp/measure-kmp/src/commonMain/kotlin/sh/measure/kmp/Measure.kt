@@ -1,6 +1,7 @@
 package sh.measure.kmp
 
 import sh.measure.kmp.attributes.AttributeValue
+import sh.measure.kmp.logs.LogSeverity
 import sh.measure.kmp.tracing.Span
 import sh.measure.kmp.tracing.SpanBuilder
 
@@ -52,6 +53,23 @@ expect object Measure {
         name: String,
         attributes: Map<String, AttributeValue> = emptyMap(),
         timestamp: Long? = null,
+    )
+
+    /**
+     * Tracks a log with the given severity and attributes.
+     *
+     * Logs appear in the session timeline and provide context when debugging issues. Bodies
+     * longer than 1000 characters are truncated. On Android, logs written to logcat by the app
+     * are also collected automatically; iOS collects only logs tracked using this method.
+     *
+     * @param body The log body to track.
+     * @param severity The severity of the log, defaults to [LogSeverity.Info].
+     * @param attributes Optional key-value pairs providing additional context to the log.
+     */
+    fun log(
+        body: String,
+        severity: LogSeverity = LogSeverity.Info,
+        attributes: Map<String, AttributeValue> = emptyMap(),
     )
 
     /**
@@ -134,3 +152,28 @@ expect object Measure {
         client: String = "unknown",
     )
 }
+
+/**
+ * Tracks a log with [LogSeverity.Debug]. See [Measure.log] for details.
+ */
+fun Measure.logDebug(body: String, attributes: Map<String, AttributeValue> = emptyMap()) = log(body, LogSeverity.Debug, attributes)
+
+/**
+ * Tracks a log with [LogSeverity.Info]. See [Measure.log] for details.
+ */
+fun Measure.logInfo(body: String, attributes: Map<String, AttributeValue> = emptyMap()) = log(body, LogSeverity.Info, attributes)
+
+/**
+ * Tracks a log with [LogSeverity.Warning]. See [Measure.log] for details.
+ */
+fun Measure.logWarning(body: String, attributes: Map<String, AttributeValue> = emptyMap()) = log(body, LogSeverity.Warning, attributes)
+
+/**
+ * Tracks a log with [LogSeverity.Error]. See [Measure.log] for details.
+ */
+fun Measure.logError(body: String, attributes: Map<String, AttributeValue> = emptyMap()) = log(body, LogSeverity.Error, attributes)
+
+/**
+ * Tracks a log with [LogSeverity.Fatal]. See [Measure.log] for details.
+ */
+fun Measure.logFatal(body: String, attributes: Map<String, AttributeValue> = emptyMap()) = log(body, LogSeverity.Fatal, attributes)

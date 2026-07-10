@@ -1,17 +1,23 @@
 package com.frankenstein.shared
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -33,7 +39,9 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import sh.measure.kmp.Measure
+import sh.measure.kmp.attributes.IntAttr
 import sh.measure.kmp.attributes.StringAttr
+import sh.measure.kmp.logs.LogSeverity
 
 private val MeasureLightColors = lightColorScheme(
     primary = Color(0xFF2E7D32),
@@ -77,6 +85,7 @@ private typealias Notify = (String) -> Unit
 private sealed interface CmpRoute {
     data object Demos : CmpRoute
     data object Http : CmpRoute
+    data object Log : CmpRoute
 }
 
 @Composable
@@ -88,16 +97,18 @@ fun CmpScreen(onClose: (() -> Unit)? = null) {
         when (route) {
             CmpRoute.Demos -> DemoListScreen(
                 onOpenHttp = { route = CmpRoute.Http },
+                onOpenLog = { route = CmpRoute.Log },
                 onClose = onClose,
             )
             CmpRoute.Http -> HttpClientScreen(onBack = { route = CmpRoute.Demos })
+            CmpRoute.Log -> LogScreen(onBack = { route = CmpRoute.Demos })
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DemoListScreen(onOpenHttp: () -> Unit, onClose: (() -> Unit)?) {
+private fun DemoListScreen(onOpenHttp: () -> Unit, onOpenLog: () -> Unit, onClose: (() -> Unit)?) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val notify: Notify = { msg -> showSnackbar(scope, snackbarHostState, msg) }
@@ -128,7 +139,7 @@ private fun DemoListScreen(onOpenHttp: () -> Unit, onClose: (() -> Unit)?) {
                 contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 240.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(demos(onOpenHttp), key = { it.title }) { demo ->
+                items(demos(onOpenHttp, onOpenLog), key = { it.title }) { demo ->
                     when (demo) {
                         is ActionDemo -> ActionCard(demo, notify)
                     }
@@ -170,7 +181,70 @@ private fun ActionCard(demo: ActionDemo, notify: Notify) {
     }
 }
 
-private fun demos(onOpenHttp: () -> Unit): List<DemoItem> = listOf(
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LogScreen(onBack: () -> Unit) {
+    var body by remember { mutableStateOf("manual log from kmp") }
+    var severity by remember { mutableStateOf(LogSeverity.Info) }
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            TopAppBar(
+                title = { Text("Track Logs") },
+                navigationIcon = {
+                    TextButton(onClick = onBack) { Text("Back") }
+                },
+            )
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            OutlinedTextField(
+                value = body,
+                onValueChange = { body = it },
+                label = { Text("Log body") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                text = "Severity",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                LogSeverity.entries.forEach { option ->
+                    FilterChip(
+                        selected = option == severity,
+                        onClick = { severity = option },
+                        label = { Text(option.name) },
+                    )
+                }
+            }
+            Button(
+                onClick = {
+                    Measure.log(
+                        body = body,
+                        severity = severity,
+                        attributes = mapOf("retry_count" to IntAttr(3)),
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Track Log Manually")
+            }
+        }
+    }
+}
+
+private fun demos(onOpenHttp: () -> Unit, onOpenLog: () -> Unit): List<DemoItem> = listOf(
     ActionDemo(
         title = "Set User ID",
         description = "Sets a dummy user ID on the SDK",
@@ -197,6 +271,12 @@ private fun demos(onOpenHttp: () -> Unit): List<DemoItem> = listOf(
             name = "kmp_event",
             attributes = mapOf("from" to StringAttr("kmp")),
         )
+    },
+    ActionDemo(
+        title = "Track Logs",
+        description = "Enter a body, pick a severity, and send",
+    ) { _ ->
+        onOpenLog()
     },
     ActionDemo(
         title = "Track Screen View",

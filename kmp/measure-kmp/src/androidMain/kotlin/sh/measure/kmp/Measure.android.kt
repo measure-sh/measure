@@ -2,12 +2,14 @@ package sh.measure.kmp
 
 import sh.measure.kmp.attributes.AttributeValue
 import sh.measure.kmp.attributes.toAndroid
+import sh.measure.kmp.logs.LogSeverity
 import sh.measure.kmp.tracing.Span
 import sh.measure.kmp.tracing.SpanBuilder
 import sh.measure.kmp.tracing.toKmp
 import sh.measure.kmp.tracing.unwrap
 import sh.measure.android.Measure as AndroidMeasure
 import sh.measure.android.MsrAttachment as AndroidMsrAttachment
+import sh.measure.android.logs.LogSeverity as AndroidLogSeverity
 
 actual object Measure {
     actual fun start() = AndroidMeasure.start()
@@ -32,6 +34,14 @@ actual object Measure {
         timestamp: Long?,
     ) {
         AndroidMeasure.trackEvent(name, attributes.toAndroid(), timestamp)
+    }
+
+    actual fun log(
+        body: String,
+        severity: LogSeverity,
+        attributes: Map<String, AttributeValue>,
+    ) {
+        AndroidMeasure.log(body, severity.toAndroid(), attributes.toAndroid())
     }
 
     actual fun startSpan(name: String): Span = AndroidMeasure.startSpan(name).toKmp()
@@ -100,3 +110,11 @@ actual object Measure {
 }
 
 private fun Attachment.toAndroid(): AndroidMsrAttachment = AndroidMsrAttachment(name = name, path = path, type = type)
+
+private fun LogSeverity.toAndroid(): AndroidLogSeverity = when (this) {
+    LogSeverity.Debug -> AndroidLogSeverity.Debug
+    LogSeverity.Info -> AndroidLogSeverity.Info
+    LogSeverity.Warning -> AndroidLogSeverity.Warning
+    LogSeverity.Error -> AndroidLogSeverity.Error
+    LogSeverity.Fatal -> AndroidLogSeverity.Fatal
+}
