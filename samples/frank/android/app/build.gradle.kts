@@ -93,6 +93,15 @@ kotlin {
     }
 }
 
+measure {
+    logsAutoCollectPackageNames = listOf(
+        "com.facebook.soloader",
+        "com.google.firebase",
+        "io.flutter",
+        "androidx.work",
+    )
+}
+
 react {
     reactNativeDir = file("${rootDir}/react_native/node_modules/react-native")
     codegenDir = file("${rootDir}/react_native/node_modules/@react-native/codegen")

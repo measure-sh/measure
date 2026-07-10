@@ -22,6 +22,24 @@ import javax.inject.Inject
 open class MeasurePluginExtension @Inject constructor(objects: ObjectFactory) {
     var httpHeaders: Map<String, String> = emptyMap()
 
+    /**
+     * Additional packages whose `android.util.Log` calls are auto-collected as log events,
+     * on top of the application's own package, which is always collected.
+     *
+     * Entries are matched as package prefixes: a class is included when its fully qualified
+     * name equals an entry or starts with it followed by a dot. Listing `com.example.network`
+     * therefore also covers `com.example.network.http`, `com.example.network.ws`, and so on;
+     * use a longer prefix to narrow the set. Only calls that go through `android.util.Log`
+     * are collected. Defaults to empty, collecting only the application's own package.
+     *
+     * ```kotlin
+     * measure {
+     *   logsAutoCollectPackageNames = listOf("com.example.network")
+     * }
+     * ```
+     */
+    var logsAutoCollectPackageNames: List<String> = emptyList()
+
     internal var filter: Action<VariantFilter> = Action {
         if (it.name.lowercase().contains("debug")) {
             it.enabled = true
