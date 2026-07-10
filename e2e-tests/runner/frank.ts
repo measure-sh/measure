@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { rmSync, writeFileSync } from "node:fs";
 import { runOrThrow } from "./exec.ts";
 import { log } from "./log.ts";
 import type { AppKeys } from "./setup-apps.ts";
@@ -26,6 +26,17 @@ export async function buildAndInstallAndroid(repoRoot: string): Promise<void> {
   const label = "build: android";
   const logger = log.scope(label);
   const frankDir = `${repoRoot}/samples/frank`;
+  // The RN bundling task's up-to-date check doesn't follow the symlinked Measure
+  // SDK source, so edits to it are silently ignored across runs. Delete the
+  // generated bundle so assembleRelease always re-bundles the JS from source.
+  rmSync(`${frankDir}/android/app/build/generated/assets/react`, {
+    recursive: true,
+    force: true,
+  });
+  rmSync(`${frankDir}/android/app/build/generated/res/react`, {
+    recursive: true,
+    force: true,
+  });
   logger.info("assembling Frankenstein Android (release)");
   await runOrThrow(frankDir, { label })`./gradlew :android:app:assembleRelease`;
   const apk = `${frankDir}/android/app/build/outputs/apk/release/app-release.apk`;
@@ -47,6 +58,18 @@ export async function buildAndInstallIOS(repoRoot: string): Promise<void> {
   const logger = log.scope(label);
   const iosDir = `${repoRoot}/samples/frank/ios`;
   const hostArch = process.arch === "arm64" ? "arm64" : "x86_64";
+  // Rebuild the xcframework to ensure latest configuration is used for builds
+  logger.info("clearing stale KMP xcframework build");
+  rmSync(`${repoRoot}/kmp/measure-kmp/build/xcframework`, {
+    recursive: true,
+    force: true,
+  });
+  const xccurrentversion =
+    "ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModel.xcdatamodeld/.xccurrentversion";
+  logger.info("restoring CoreData model version");
+  await runOrThrow(repoRoot, { label })`git checkout -- ${xccurrentversion}`;
+  logger.info("installing CocoaPods for Frankenstein iOS");
+  await runOrThrow(iosDir, { label })`pod install`;
   logger.info("building Frankenstein iOS (debug)");
   await runOrThrow(iosDir, { label })`
     xcodebuild
