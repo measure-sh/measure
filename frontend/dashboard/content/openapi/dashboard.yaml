@@ -4187,6 +4187,16 @@ paths:
                               type: screenshot
                               key: 63fb0950-faff-4028-bf3d-354559e4e540.png
                               location: http://localhost:9111/msr-attachments-sandbox/63fb0950-faff-4028-bf3d-354559e4e540.png
+                      main:
+                        - event_type: log
+                          user_defined_attribute:
+                            username: alice
+                            paid_user: true
+                          thread_name: main
+                          severity_text: info
+                          severity_number: 12
+                          body: Loading user profile
+                          timestamp: "2024-05-03T23:34:17.75Z"
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
@@ -6115,6 +6125,14 @@ paths:
                     type: number
                   screenshot_mask_level:
                     type: string
+                  log_autocollect_enabled:
+                    type: boolean
+                  log_min_severity:
+                    type: integer
+                  log_ignore_patterns:
+                    type: array
+                    items:
+                      type: string
                   cpu_usage_interval:
                     type: integer
                   memory_usage_interval:
@@ -6153,6 +6171,9 @@ paths:
                     trace_sampling_rate: 0.001
                     journey_sampling_rate: 0.001
                     screenshot_mask_level: all_text
+                    log_autocollect_enabled: false
+                    log_min_severity: 16
+                    log_ignore_patterns: []
                     cpu_usage_interval: 5
                     memory_usage_interval: 5
                     crash_take_screenshot: true

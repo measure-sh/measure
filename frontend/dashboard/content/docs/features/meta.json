@@ -9,6 +9,7 @@
     "feature-gesture-tracking",
     "feature-performance-tracing",
     "feature-custom-events",
+    "feature-logs",
     "(bug-reporting)",
     "feature-screenshot-masking-swiftui",
     "feature-screenshot-masking-flutter",

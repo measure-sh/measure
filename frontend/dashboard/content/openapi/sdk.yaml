@@ -139,7 +139,7 @@ paths:
                         description: >
                           Type of the event. Matches the name of the event payload
                           field present on the event. One of `anr`, `exception`,
-                          `string`, `gesture_long_click`, `gesture_scroll`,
+                          `log`, `gesture_long_click`, `gesture_scroll`,
                           `gesture_click`, `http`, `network_change`, `app_exit`,
                           `lifecycle_activity`, `lifecycle_fragment`,
                           `lifecycle_view_controller`, `lifecycle_swift_ui`,
@@ -623,23 +623,28 @@ paths:
                             description: >
                               Object containing arbitrary fields for the exception's
                               metadata. Should not exceed 4096 bytes.
-                      "string":
+                      "log":
                         type: object
                         description: >
-                          Use the `string` type when sending unstructured or
+                          Use the `log` type when sending unstructured or
                           structured logs. Make sure structured logs are in
                           stringified JSON format.
                         required:
-                          - string
+                          - body
                         properties:
                           severity_text:
                             type: string
                             description: >
                               Log level. One of `info`, `warning`, `error`, `fatal`,
                               `debug`.
-                          "string":
+                          severity_number:
+                            type: integer
+                            description: >
+                              Numeric severity. `debug` 8, `info` 12, `warning` 16,
+                              `error` 20, `fatal` 24.
+                          body:
                             type: string
-                            description: Log message text.
+                            description: Log body text.
                       gesture_long_click:
                         type: object
                         description: >
@@ -1609,7 +1614,7 @@ paths:
                 --SDKBoundary
                 Content-Disposition: form-data; name="event"
 
-                {"type":"string","id":"233a2fbc-a0d1-4912-a92f-9e43e72afbc6","session_id":"633a2fbc-a0d1-4912-a92f-9e43e72afbc6","string":{"severity_text":"INFO","string":"This is a log from the Android logcat"},"timestamp":"2023-08-24T14:51:38.000000534Z","attribute":{"user_id":null,"installation_id":"322a2fbc-a0d1-1212-a92f-9e43e72afbc7","device_name":"sunfish","os_name":"android","os_version":"31","app_version":"1.0.1","app_build":"576358","app_unique_id":"com.example.app","network_type":"cellular","network_provider":"airtel","network_generation":"4g","measure_sdk_version":"0.0.1","thread_name":"main"},"user_defined_attribute":{"username":"alice","paid_user":true},"attachments":[]}
+                {"type":"log","id":"233a2fbc-a0d1-4912-a92f-9e43e72afbc6","session_id":"633a2fbc-a0d1-4912-a92f-9e43e72afbc6","log":{"severity_text":"info","severity_number":12,"body":"This is a log written by the app"},"timestamp":"2023-08-24T14:51:38.000000534Z","attribute":{"user_id":null,"installation_id":"322a2fbc-a0d1-1212-a92f-9e43e72afbc7","device_name":"sunfish","os_name":"android","os_version":"31","app_version":"1.0.1","app_build":"576358","app_unique_id":"com.example.app","network_type":"cellular","network_provider":"airtel","network_generation":"4g","measure_sdk_version":"0.0.1","thread_name":"main"},"user_defined_attribute":{"username":"alice","paid_user":true},"attachments":[]}
                 --SDKBoundary
                 Content-Disposition: form-data; name="event"
 
@@ -2353,6 +2358,24 @@ paths:
                       - all_text_except_clickable
                       - sensitive_fields_only
                     description: Screenshot masking level.
+                  log_autocollect_enabled:
+                    type: boolean
+                    description: >
+                      Whether the SDK automatically collects platform logs. Defaults
+                      to `false`.
+                  log_min_severity:
+                    type: integer
+                    description: >
+                      Minimum severity number of logs to collect. Logs below this
+                      number are dropped. `debug` 8, `info` 12, `warning` 16, `error`
+                      20, `fatal` 24.
+                  log_ignore_patterns:
+                    type: array
+                    items:
+                      type: string
+                    description: >
+                      Regex patterns. Logs whose body matches any pattern are
+                      discarded.
                   cpu_usage_interval:
                     type: integer
                     description: CPU usage measurement interval.
@@ -2406,6 +2429,9 @@ paths:
                 trace_sampling_rate: 0.001
                 journey_sampling_rate: 0.001
                 screenshot_mask_level: all_text
+                log_autocollect_enabled: false
+                log_min_severity: 16
+                log_ignore_patterns: []
                 cpu_usage_interval: 5
                 memory_usage_interval: 5
                 crash_take_screenshot: true
