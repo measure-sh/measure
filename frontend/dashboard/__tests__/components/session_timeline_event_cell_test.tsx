@@ -128,7 +128,7 @@ describe("SessionTimelineEventCell", () => {
         "SwiftUI",
       ],
       ["string", { string: "a log line" }, "Log"],
-      ["log", { body: "a log line", severity_text: "info" }, "Log Info"],
+      ["log", { body: "a log line", severity_text: "info" }, "Log: Info"],
       [
         "profile",
         { reason: "app_fully_drawn", format: "perfetto_trace" },
@@ -212,11 +212,11 @@ describe("SessionTimelineEventCell", () => {
 
   describe("Log severity pill", () => {
     it.each([
-      ["debug", "Log Debug", "bg-teal-100"],
-      ["info", "Log Info", "bg-indigo-100"],
-      ["warning", "Log Warning", "bg-amber-100"],
-      ["error", "Log Error", "bg-red-100"],
-      ["fatal", "Log Fatal", "bg-red-100"],
+      ["debug", "Log: Debug", "bg-teal-100"],
+      ["info", "Log: Info", "bg-indigo-100"],
+      ["warning", "Log: Warning", "bg-amber-100"],
+      ["error", "Log: Error", "bg-red-100"],
+      ["fatal", "Log: Fatal", "bg-red-100"],
     ])(
       "renders a log %s event as a single '%s' pill",
       (severity, label, bg) => {
@@ -230,11 +230,11 @@ describe("SessionTimelineEventCell", () => {
     );
 
     it.each([
-      ["debug", "Log Debug"],
-      ["info", "Log Info"],
-      ["warning", "Log Warning"],
-      ["error", "Log Error"],
-      ["fatal", "Log Fatal"],
+      ["debug", "Log: Debug"],
+      ["info", "Log: Info"],
+      ["warning", "Log: Warning"],
+      ["error", "Log: Error"],
+      ["fatal", "Log: Fatal"],
     ])(
       "renders a legacy string %s event as a single '%s' pill",
       (logLevel, label) => {

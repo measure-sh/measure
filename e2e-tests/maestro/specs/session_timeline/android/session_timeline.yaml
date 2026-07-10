@@ -14,6 +14,17 @@ appId: ${APP_ID}
 - scrollUntilVisible:
     direction: UP
     element:
+      text: ".*Track Logs.*"
+- tapOn: ".*Track Logs.*"
+- runFlow:
+    file: ../send_logs.yaml
+- tapOn: "Info"
+- tapOn: "Track Logcat Log"
+- back
+
+- scrollUntilVisible:
+    direction: UP
+    element:
       text: "Compose Navigation"
 - tapOn: "Compose Navigation"
 - tapOn: "Checkout"
@@ -53,10 +64,49 @@ appId: ${APP_ID}
       text: "Track Handled Exception"
 - tapOn: "Track Handled Exception"
 
+- back
+
+- extendedWaitUntil:
+    visible: "React Native"
+    timeout: 10000
+- tapOn: "React Native"
 - scrollUntilVisible:
     element:
-      text: "Clear User ID"
-- tapOn: "Clear User ID"
+      text: ".*Track Logs.*"
+- tapOn: ".*Track Logs.*"
+- runFlow:
+    file: ../send_logs.yaml
+- tapOn: "Info"
+- tapOn: "Track Console Log"
+- tapOn: "Back"
+- back
+
+- extendedWaitUntil:
+    visible: "Flutter"
+    timeout: 10000
+- tapOn: "Flutter"
+- scrollUntilVisible:
+    element:
+      text: ".*Track Logs.*"
+- tapOn: ".*Track Logs.*"
+- runFlow:
+    file: ../send_logs.yaml
+- back
+- back
+
+- extendedWaitUntil:
+    visible: "Compose Multiplatform"
+    timeout: 10000
+- tapOn: "Compose Multiplatform"
+- scrollUntilVisible:
+    element:
+      text: ".*Track Logs.*"
+    centerElement: true
+- tapOn: ".*Track Logs.*"
+- runFlow:
+    file: ../send_logs.yaml
+- tapOn: "Back"
+- tapOn: "Back"
 
 - pressKey: Home
 - launchApp:

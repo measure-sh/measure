@@ -64,6 +64,21 @@ async function waitForApiKey(page: Page): Promise<string> {
   return page.getByTestId("api-key-input").inputValue({ timeout: 15_000 });
 }
 
+// Automatic log collection is off by default (log_autocollect_enabled=false),
+// so enable it for the test apps. log_min_severity=8 (debug) lets every
+// severity through, so the flow can exercise the full debug..fatal range.
+export async function enableLogCollection(
+  pool: pg.Pool,
+  appIds: AppIds,
+): Promise<void> {
+  const ids = Object.values(appIds).filter((id): id is string => !!id);
+  if (ids.length === 0) return;
+  await pool.query(
+    "update sdk_config set log_autocollect_enabled = true, log_min_severity = 8 where app_id = any($1)",
+    [ids],
+  );
+}
+
 export async function fetchAppIds(
   pool: pg.Pool,
   teamId: string,

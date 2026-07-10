@@ -1,0 +1,16 @@
+appId: ${APP_ID}
+---
+# Sends one manual log per severity from the Track Logs screen. Each sample app
+# pre-fills the log body, so this flow only drives the severity chips and the
+# send button. Callers open the screen first; the controls use identical labels
+# on every platform.
+- tapOn: "Debug"
+- tapOn: "Track Log Manually"
+- tapOn: "Info"
+- tapOn: "Track Log Manually"
+- tapOn: "Warning"
+- tapOn: "Track Log Manually"
+- tapOn: "Error"
+- tapOn: "Track Log Manually"
+- tapOn: "Fatal"
+- tapOn: "Track Log Manually"

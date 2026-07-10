@@ -384,6 +384,8 @@ describe('LogCollector - automatic console capture', () => {
   });
 
   it('does not capture synchronous re-entrant console calls', () => {
+    // If tracking a log calls console.log, capturing it would loop forever.
+    // The captureInProgress guard drops the nested call, so trackLog fires once.
     trackLogSpy.mockImplementation(() => {
       console.log('from inside tracking');
     });

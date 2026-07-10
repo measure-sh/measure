@@ -27,6 +27,7 @@ import {
 } from "./playwright-result.ts";
 import {
   createAppsViaDashboard,
+  enableLogCollection,
   fetchAppIds,
   type AppKeys,
   type Device,
@@ -219,6 +220,7 @@ async function createTargets(
   const keys = await createApps(account.teamId, storageStatePath, flags);
   await writeFrankSecrets(repoRoot, keys);
   const appIds = await fetchAppIds(pool, account.teamId, flags.devices);
+  await enableLogCollection(pool, appIds);
 
   return flags.devices.map((device) => ({
     device,

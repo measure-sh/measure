@@ -14,6 +14,19 @@ async function expectEvent(
   await expect(timeline.selectEventPill(event, pill)).toBeVisible();
 }
 
+const LOG_SEVERITIES = ["Debug", "Info", "Warning", "Error", "Fatal"];
+
+function selectLog(
+  timeline: SessionTimelinePage,
+  body: string,
+  severity: string,
+) {
+  return timeline
+    .selectEvent("log", new RegExp(body))
+    .filter({ hasText: `Log: ${severity}` })
+    .first();
+}
+
 test.describe("session timeline", () => {
   let timeline: SessionTimelinePage;
 
@@ -37,6 +50,7 @@ test.describe("session timeline", () => {
     await expectEvent(timeline, "custom", "Custom");
     await expectEvent(timeline, "trace", "Trace");
     await expectEvent(timeline, "lifecycle_app", "App");
+    await expect(timeline.selectEvent("log").first()).toBeVisible();
   });
 
   test("http event shows the method and opens details", async () => {
@@ -84,6 +98,48 @@ test.describe("session timeline", () => {
     await expect(timeline.eventDetails).toContainText(/foreground|background/);
   });
 
+  test("react native manual logs render at every severity", async () => {
+    for (const severity of LOG_SEVERITIES) {
+      await expect(
+        selectLog(timeline, "manual log from react native", severity),
+      ).toBeVisible();
+    }
+  });
+
+  test("react native manual log expands to show its attributes", async () => {
+    const log = selectLog(timeline, "manual log from react native", "Warning");
+    await log.click();
+    await expect(timeline.eventDetails).toContainText("retry_count");
+  });
+
+  test("react native automatically collected log renders", async () => {
+    await expect(
+      selectLog(timeline, "console log from react native", "Info"),
+    ).toBeVisible();
+  });
+
+  test("flutter manual logs render at every severity", async () => {
+    for (const severity of LOG_SEVERITIES) {
+      await expect(
+        selectLog(timeline, "manual log from flutter", severity),
+      ).toBeVisible();
+    }
+  });
+
+  test("flutter manual log expands to show its attributes", async () => {
+    const log = selectLog(timeline, "manual log from flutter", "Warning");
+    await log.click();
+    await expect(timeline.eventDetails).toContainText("retry_count");
+  });
+
+  test("kmp manual logs render at every severity", async () => {
+    for (const severity of LOG_SEVERITIES) {
+      await expect(
+        selectLog(timeline, "manual log from kmp", severity),
+      ).toBeVisible();
+    }
+  });
+
   test("event type filter narrows the timeline to one type", async () => {
     await timeline.filterByEventType("http");
     await expect(timeline.selectEvent("http").first()).toBeVisible();
@@ -121,6 +177,34 @@ test.describe("session timeline", () => {
         "sh.frankenstein.android",
       );
     });
+
+    test("native manual logs render at every severity", async () => {
+      for (const severity of LOG_SEVERITIES) {
+        await expect(
+          selectLog(timeline, "manual log from android native", severity),
+        ).toBeVisible();
+      }
+    });
+
+    test("native manual log expands to show its attributes", async () => {
+      const log = selectLog(
+        timeline,
+        "manual log from android native",
+        "Warning",
+      );
+      await log.click();
+      await expect(timeline.eventDetails).toContainText("retry_count");
+    });
+
+    test("automatically collected logcat log renders with its tag", async () => {
+      await expect(
+        selectLog(
+          timeline,
+          "NativeAndroid: logcat log from android native",
+          "Info",
+        ),
+      ).toBeVisible();
+    });
   });
 
   test.describe("ios", { tag: "@ios" }, () => {
@@ -153,6 +237,20 @@ test.describe("session timeline", () => {
       await expect(timeline.eventDetails).toContainText(
         "NativeIOSViewController",
       );
+    });
+
+    test("native manual logs render at every severity", async () => {
+      for (const severity of LOG_SEVERITIES) {
+        await expect(
+          selectLog(timeline, "manual log from ios native", severity),
+        ).toBeVisible();
+      }
+    });
+
+    test("native manual log expands to show its attributes", async () => {
+      const log = selectLog(timeline, "manual log from ios native", "Warning");
+      await log.click();
+      await expect(timeline.eventDetails).toContainText("retry_count");
     });
   });
 });
