@@ -35,6 +35,18 @@ abstract class AsmBytecodeTransformer : BytecodeTransformer {
     abstract val minVersion: SemVer
     abstract val maxVersion: SemVer
 
+    /**
+     * Hook for subclasses to set transformer-specific instrumentation [params]. Called for
+     * each variant while the instrumentation is configured, so the values may depend on the
+     * [variant] or [project] (e.g. the app's namespace or plugin extension). Default no-op.
+     */
+    protected open fun configureParameters(
+        params: TransformerParameters,
+        variant: Variant,
+        project: Project,
+    ) {
+    }
+
     override fun transform(
         variant: Variant,
         project: Project,
@@ -45,6 +57,7 @@ abstract class AsmBytecodeTransformer : BytecodeTransformer {
         ) {
             it.minVersion.set(minVersion)
             it.maxVersion.set(maxVersion)
+            configureParameters(it, variant, project)
             project.configurations.named("${variant.name}RuntimeClasspath")
                 .configure { configuration ->
                     val map = configuration.incoming.resolutionResult.rootComponent.map { result ->
