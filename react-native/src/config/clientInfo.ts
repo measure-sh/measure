@@ -1,3 +1,4 @@
+import { internalConsole } from '../utils/internalConsole';
 /**
  * Default API URL for the Measure backend.
  */
@@ -51,7 +52,7 @@ class ClientInfo implements Client {
    */
   constructor(apiKeyIos: string, apiKeyAndroid: string, apiUrl: string) {
     if (!apiKeyIos || !apiKeyAndroid) {
-      console.debug('Measure apiKey is missing, skipping initialization.');
+      internalConsole.debug('Measure apiKey is missing, skipping initialization.');
     }
 
     try {
@@ -59,7 +60,7 @@ class ClientInfo implements Client {
       new URL(apiUrl);
       this.apiUrl = apiUrl;
     } catch (e) {
-      console.debug(
+      internalConsole.debug(
         'Measure apiUrl is invalid, falling back to default.',
         apiUrl
       );

@@ -22,6 +22,15 @@ export interface IDynamicConfig {
   /** Screenshot masking level */
   screenshotMaskLevel: ScreenshotMaskLevel;
 
+  /** Whether the SDK automatically collects logs from the platform's logging APIs. Manually tracked logs are always collected. Defaults to false. */
+  logAutocollectEnabled: boolean;
+
+  /** Minimum severity number of logs to collect. Logs below this number are dropped. Defaults to 16 (warning). */
+  logMinSeverity: number;
+
+  /** Regex patterns matched against the log body. A log whose body matches any of the patterns is dropped. Defaults to empty list. */
+  logIgnorePatterns: string[];
+
   /** Interval in seconds to collect CPU usage. Defaults to 5. */
   cpuUsageInterval: number;
 
@@ -61,6 +70,9 @@ export class DynamicConfig implements IDynamicConfig {
   traceSamplingRate: number;
   journeySamplingRate: number;
   screenshotMaskLevel: ScreenshotMaskLevel;
+  logAutocollectEnabled: boolean;
+  logMinSeverity: number;
+  logIgnorePatterns: string[];
   cpuUsageInterval: number;
   memoryUsageInterval: number;
   crashTakeScreenshot: boolean;
@@ -81,6 +93,9 @@ export class DynamicConfig implements IDynamicConfig {
     this.traceSamplingRate = values.traceSamplingRate;
     this.journeySamplingRate = values.journeySamplingRate;
     this.screenshotMaskLevel = values.screenshotMaskLevel;
+    this.logAutocollectEnabled = values.logAutocollectEnabled;
+    this.logMinSeverity = values.logMinSeverity;
+    this.logIgnorePatterns = values.logIgnorePatterns;
     this.cpuUsageInterval = values.cpuUsageInterval;
     this.memoryUsageInterval = values.memoryUsageInterval;
     this.crashTakeScreenshot = values.crashTakeScreenshot;
@@ -102,6 +117,9 @@ export class DynamicConfig implements IDynamicConfig {
       traceSamplingRate: 100,
       journeySamplingRate: 100,
       screenshotMaskLevel: ScreenshotMaskLevel.allTextAndMedia,
+      logAutocollectEnabled: false,
+      logMinSeverity: 16,
+      logIgnorePatterns: [],
       cpuUsageInterval: 5,
       memoryUsageInterval: 5,
       crashTakeScreenshot: true,
@@ -138,6 +156,9 @@ export class DynamicConfig implements IDynamicConfig {
       traceSamplingRate: obj['trace_sampling_rate'],
       journeySamplingRate: obj['journey_sampling_rate'],
       screenshotMaskLevel: obj['screenshot_mask_level'],
+      logAutocollectEnabled: obj['log_autocollect_enabled'] ?? false,
+      logMinSeverity: obj['log_min_severity'] ?? 16,
+      logIgnorePatterns: obj['log_ignore_patterns'] || [],
       cpuUsageInterval: obj['cpu_usage_interval'],
       memoryUsageInterval: obj['memory_usage_interval'],
       crashTakeScreenshot: obj['crash_take_screenshot'],

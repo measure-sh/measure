@@ -14,6 +14,12 @@ export interface IConfigProvider
   extends IMeasureConfig,
     InternalConfig,
     IDynamicConfig {
+  /**
+   * Whether a log with the given body should be dropped because it matches one
+   * of the configured `logIgnorePatterns`.
+   */
+  shouldDiscardLog(body: string): boolean;
+
   setDynamicConfig(config: IDynamicConfig): void;
 }
 
@@ -30,6 +36,9 @@ export interface IConfigProvider
 export class ConfigProvider implements IConfigProvider {
   private defaultConfig: Config;
   private dynamicConfig: IDynamicConfig = DynamicConfig.default();
+  // Compiled once when the dynamic config changes, to avoid recompiling the
+  // patterns on every log.
+  private logIgnoreRegexes: RegExp[] = [];
 
   constructor(defaultConfig: Config) {
     this.defaultConfig = defaultConfig;
@@ -61,6 +70,18 @@ export class ConfigProvider implements IConfigProvider {
 
   get screenshotMaskLevel(): ScreenshotMaskLevel {
     return this.dynamicConfig.screenshotMaskLevel;
+  }
+
+  get logAutocollectEnabled(): boolean {
+    return this.dynamicConfig.logAutocollectEnabled;
+  }
+
+  get logMinSeverity(): number {
+    return this.dynamicConfig.logMinSeverity;
+  }
+
+  get logIgnorePatterns(): string[] {
+    return this.dynamicConfig.logIgnorePatterns;
   }
 
   get cpuUsageInterval(): number {
@@ -135,7 +156,26 @@ export class ConfigProvider implements IConfigProvider {
     return this.defaultConfig.maxCheckpointsPerSpan;
   }
 
+  get maxLogBodyLength(): number {
+    return this.defaultConfig.maxLogBodyLength;
+  }
+
+  shouldDiscardLog(body: string): boolean {
+    return this.logIgnoreRegexes.some((regex) => regex.test(body));
+  }
+
   setDynamicConfig(config: IDynamicConfig): void {
     this.dynamicConfig = config;
+    this.logIgnoreRegexes = config.logIgnorePatterns
+      .map((pattern) => this.compileLogIgnorePattern(pattern))
+      .filter((regex): regex is RegExp => regex !== null);
+  }
+
+  private compileLogIgnorePattern(pattern: string): RegExp | null {
+    try {
+      return new RegExp(pattern);
+    } catch {
+      return null;
+    }
   }
 }

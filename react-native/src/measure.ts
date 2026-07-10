@@ -1,4 +1,6 @@
+import { internalConsole } from './utils/internalConsole';
 import { MeasureConfig } from './config/measureConfig';
+import { LogSeverity } from './events/logSeverity';
 import type { MsrAttachment } from './events/msrAttachment';
 import {
   MeasureInitializer,
@@ -48,12 +50,14 @@ export const Measure = {
    */
   init({ config }: { config: MeasureConfig | null }): Promise<any> {
     if (_initializationPromise) {
-      console.warn('Measure SDK is already initialized or being initialized.');
+      internalConsole.warn(
+        'Measure SDK is already initialized or being initialized.'
+      );
       return _initializationPromise;
     }
 
     _initializationPromise = (async () => {
-      console.info('Initializing Measure SDK ...');
+      internalConsole.info('Initializing Measure SDK ...');
 
       _measureInitializer = new MeasureInitializer(config);
       _measureInternal = new MeasureInternal(_measureInitializer);
@@ -72,7 +76,7 @@ export const Measure = {
    */
   start(): Promise<void> {
     if (!_measureInternal) {
-      console.warn('Measure is not initialized. Call init() first.');
+      internalConsole.warn('Measure is not initialized. Call init() first.');
       return Promise.resolve();
     }
     return _measureInternal.start();
@@ -83,7 +87,7 @@ export const Measure = {
    */
   stop(): Promise<void> {
     if (!_measureInternal) {
-      console.warn('Measure is not initialized. Call init() first.');
+      internalConsole.warn('Measure is not initialized. Call init() first.');
       return Promise.resolve();
     }
     return _measureInternal.stop();
@@ -129,6 +133,92 @@ export const Measure = {
   },
 
   /**
+   * Tracks a log with a severity level and optional attributes.
+   *
+   * Logs appear in the session timeline and provide context when debugging issues.
+   * Messages longer than 1000 characters are truncated.
+   *
+   * @param params.body - The log body to track.
+   * @param params.severity - Optional severity of the log (defaults to `LogSeverity.Info`).
+   * @param params.attributes - Optional key-value pairs providing additional context.
+   *
+   * @example
+   * ```ts
+   * import { Measure, LogSeverity } from '@measure/react-native';
+   *
+   * Measure.log({
+   *   body: "Payment failed, retrying",
+   *   severity: LogSeverity.Warning,
+   *   attributes: {
+   *     screen: "Checkout",
+   *   },
+   * });
+   * ```
+   */
+  log(params: {
+    body: string;
+    severity?: LogSeverity;
+    attributes?: Record<string, ValidAttributeValue>;
+  }): void {
+    if (!_measureInternal) {
+      internalConsole.warn('Measure is not initialized. Call init() first.');
+      return;
+    }
+
+    _measureInternal.log(params);
+  },
+
+  /**
+   * Tracks a log with `LogSeverity.Debug`. See {@link Measure.log} for details.
+   */
+  logDebug(params: {
+    body: string;
+    attributes?: Record<string, ValidAttributeValue>;
+  }): void {
+    this.log({ ...params, severity: LogSeverity.Debug });
+  },
+
+  /**
+   * Tracks a log with `LogSeverity.Info`. See {@link Measure.log} for details.
+   */
+  logInfo(params: {
+    body: string;
+    attributes?: Record<string, ValidAttributeValue>;
+  }): void {
+    this.log({ ...params, severity: LogSeverity.Info });
+  },
+
+  /**
+   * Tracks a log with `LogSeverity.Warning`. See {@link Measure.log} for details.
+   */
+  logWarning(params: {
+    body: string;
+    attributes?: Record<string, ValidAttributeValue>;
+  }): void {
+    this.log({ ...params, severity: LogSeverity.Warning });
+  },
+
+  /**
+   * Tracks a log with `LogSeverity.Error`. See {@link Measure.log} for details.
+   */
+  logError(params: {
+    body: string;
+    attributes?: Record<string, ValidAttributeValue>;
+  }): void {
+    this.log({ ...params, severity: LogSeverity.Error });
+  },
+
+  /**
+   * Tracks a log with `LogSeverity.Fatal`. See {@link Measure.log} for details.
+   */
+  logFatal(params: {
+    body: string;
+    attributes?: Record<string, ValidAttributeValue>;
+  }): void {
+    this.log({ ...params, severity: LogSeverity.Fatal });
+  },
+
+  /**
    * Tracks a screen view event with optional attributes.
    *
    * This method should be used if your app uses a custom navigation system
@@ -170,7 +260,7 @@ export const Measure = {
    */
   getCurrentTime(): number {
     if (!_measureInternal) {
-      console.warn(
+      internalConsole.warn(
         'Measure is not initialized. Returning standard Date.now().'
       );
       return Date.now();
@@ -255,12 +345,12 @@ export const Measure = {
    */
   setUserId({ userId }: { userId: string }): void {
     if (!_measureInternal) {
-      console.warn('Measure is not initialized. Call init() first.');
+      internalConsole.warn('Measure is not initialized. Call init() first.');
       return;
     }
 
     if (typeof userId !== 'string' || userId.trim().length === 0) {
-      console.warn('Measure.setUserId requires a non-empty string.');
+      internalConsole.warn('Measure.setUserId requires a non-empty string.');
       return;
     }
 
@@ -272,7 +362,7 @@ export const Measure = {
    */
   clearUserId(): void {
     if (!_measureInternal) {
-      console.warn('Measure is not initialized. Call init() first.');
+      internalConsole.warn('Measure is not initialized. Call init() first.');
       return;
     }
 
@@ -369,7 +459,7 @@ export const Measure = {
    */
   onShake({ handler }: { handler?: (() => void) | null }): void {
     if (!_measureInternal) {
-      console.warn('Measure is not initialized. Call init() first.');
+      internalConsole.warn('Measure is not initialized. Call init() first.');
       return;
     }
 

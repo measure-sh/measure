@@ -24,6 +24,19 @@ export default defineConfig([
     },
   },
   {
+    // SDK code must write through internalConsole so LogCollector never
+    // captures the SDK's own output.
+    files: ['src/**/*.ts', 'src/**/*.tsx'],
+    ignores: [
+      'src/__tests__/**',
+      'src/events/logCollector.ts',
+      'src/utils/internalConsole.ts',
+    ],
+    rules: {
+      'no-console': 'error',
+    },
+  },
+  {
     ignores: ['node_modules/', 'lib/', 'example/', 'scripts/', 'plugin/'],
   },
 ]);

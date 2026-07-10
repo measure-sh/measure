@@ -3,6 +3,7 @@ import {
   AppRegistry,
   BackHandler,
   Image,
+  Modal,
   Platform,
   Pressable,
   SafeAreaView,
@@ -11,10 +12,11 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
   useColorScheme,
 } from 'react-native';
-import {Measure, MeasureConfig} from '@measuresh/react-native';
+import {LogSeverity, Measure, MeasureConfig} from '@measuresh/react-native';
 
 const lightColors = {
   background: '#FAFAFA',
@@ -134,6 +136,121 @@ const trackCustomEvent = () => {
   });
 };
 
+const severityOptions = [
+  LogSeverity.Debug,
+  LogSeverity.Info,
+  LogSeverity.Warning,
+  LogSeverity.Error,
+  LogSeverity.Fatal,
+];
+
+const severityLabel = value => value.charAt(0).toUpperCase() + value.slice(1);
+
+const LogScreen = ({visible, colors, onClose}) => {
+  const [body, setBody] = useState('manual log from react native');
+  const [severity, setSeverity] = useState(LogSeverity.Info);
+
+  const sendLog = () => {
+    Measure.log({body, severity, attributes: {retry_count: 3}});
+  };
+
+  const autoCollect = () => {
+    const consoleBody = 'console log from react native';
+    switch (severity) {
+      case LogSeverity.Debug:
+        console.debug(consoleBody);
+        break;
+      case LogSeverity.Warning:
+        console.warn(consoleBody);
+        break;
+      case LogSeverity.Error:
+      case LogSeverity.Fatal:
+        console.error(consoleBody);
+        break;
+      default:
+        console.info(consoleBody);
+    }
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}>
+      <SafeAreaView style={[styles.container, {backgroundColor: colors.background}]}>
+        <View style={[styles.toolbar, {backgroundColor: colors.toolbar}]}>
+          <Pressable
+            onPress={onClose}
+            accessibilityLabel="Back"
+            style={styles.backButton}
+            android_ripple={{color: colors.onSurfaceVariant, borderless: true, radius: 20}}>
+            <Text style={[styles.backArrow, {color: colors.onSurface}]}>{'‹'}</Text>
+          </Pressable>
+          <Text style={[styles.toolbarTitle, {color: colors.onSurface}]}>
+            Track Logs
+          </Text>
+        </View>
+        <View style={styles.list}>
+          <TextInput
+            style={[
+              styles.input,
+              {
+                color: colors.onSurface,
+                borderColor: colors.onSurfaceVariant,
+                backgroundColor: colors.surface,
+              },
+            ]}
+            placeholder="Log body"
+            placeholderTextColor={colors.onSurfaceVariant}
+            value={body}
+            onChangeText={setBody}
+          />
+          <Text style={[styles.sectionHeader, {color: colors.onSurfaceVariant}]}>
+            Severity
+          </Text>
+          <View style={styles.chipRow}>
+            {severityOptions.map(option => {
+              const selected = option === severity;
+              return (
+                <Pressable
+                  key={option}
+                  onPress={() => setSeverity(option)}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: selected ? colors.primary : colors.surface,
+                      borderColor: colors.onSurfaceVariant,
+                    },
+                  ]}>
+                  <Text
+                    style={{color: selected ? colors.onPrimary : colors.onSurface}}>
+                    {severityLabel(option)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Pressable
+            onPress={sendLog}
+            style={[styles.primaryButton, {backgroundColor: colors.primary}]}>
+            <Text style={[styles.primaryButtonText, {color: colors.onPrimary}]}>
+              Track Log Manually
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={autoCollect}
+            style={[styles.secondaryButton, {borderColor: colors.primary}]}>
+            <Text style={[styles.primaryButtonText, {color: colors.onSurface}]}>
+              Track Console Log
+            </Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+};
+
 const createSpan = () => {
   const span = Measure.startSpan({name: 'load-data'});
   span.setCheckpoint('on-start');
@@ -161,6 +278,7 @@ const ReactNativeScreen = () => {
   const colors = colorScheme === 'dark' ? darkColors : lightColors;
   const [shakeEnabled, setShakeEnabled] = useState(false);
   const [screenshotPath, setScreenshotPath] = useState(null);
+  const [logVisible, setLogVisible] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -269,6 +387,17 @@ const ReactNativeScreen = () => {
           title: 'Track HTTP Manually',
           description: 'Tracks a synthetic HTTP event',
           onPress: trackHttpManually,
+        },
+      ],
+    },
+    {
+      title: 'Logs',
+      data: [
+        {
+          id: 'logs',
+          title: 'Track Logs',
+          description: 'Enter a body, pick a severity, and send',
+          onPress: () => setLogVisible(true),
         },
       ],
     },
@@ -404,6 +533,11 @@ const ReactNativeScreen = () => {
           />
         </Pressable>
       )}
+      <LogScreen
+        visible={logVisible}
+        colors={colors}
+        onClose={() => setLogVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -476,6 +610,43 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '80%',
     borderRadius: 12,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 8,
+  },
+  chip: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  primaryButton: {
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 12,
   },
 });
 

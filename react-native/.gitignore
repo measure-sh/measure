@@ -3,6 +3,7 @@ lib/
 lib-commonjs/
 lib-module/
 node_modules/
+tsconfig.tsbuildinfo
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
