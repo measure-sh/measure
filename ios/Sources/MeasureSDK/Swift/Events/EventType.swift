@@ -23,6 +23,7 @@ enum EventType: String, Codable {
     case http
     case networkChange = "network_change"
     case custom
+    case log
     case screenView = "screen_view"
     case bugReport = "bug_report"
     case sessionStart = "session_start"

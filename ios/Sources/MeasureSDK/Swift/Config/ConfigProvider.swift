@@ -13,6 +13,10 @@ protocol ConfigProvider: MeasureConfig, InternalConfig, DynamicConfig {
     func shouldTrackHttpUrl(url: String) -> Bool
     func shouldTrackHttpHeader(key: String) -> Bool
 
+    /// Whether a log with the given body should be dropped because it matches one of the
+    /// configured `logIgnorePatterns` patterns.
+    func shouldDiscardLog(body: String) -> Bool
+
     /// Sets the measure URL so that it can be added to the httpUrlBlocklist. Required as it can be any
     /// URL when the SDK is running in self-hosted mode.
     /// - Parameter url: The base URL of the Measure service.
@@ -51,6 +55,7 @@ final class BaseConfigProvider: ConfigProvider {
         blockedHeaders: [],
         measureUrl: nil
     )
+    private var logIgnoreRegexes: [NSRegularExpression] = []
 
     init(defaultConfig: Config) {
         self.defaultConfig = defaultConfig
@@ -73,6 +78,7 @@ final class BaseConfigProvider: ConfigProvider {
                 blockedHeaders: config.httpBlockedHeaders,
                 measureUrl: measureUrl
             )
+            self.logIgnoreRegexes = config.logIgnorePatterns.compactMap(self.compileLogIgnorePattern)
         }
     }
 
@@ -93,6 +99,7 @@ final class BaseConfigProvider: ConfigProvider {
     var defaultHttpHeadersBlocklist: [String] { defaultConfig.defaultHttpHeadersBlocklist }
     var sessionBackgroundTimeoutThresholdMs: Number { defaultConfig.sessionBackgroundTimeoutThresholdMs }
     var maxEventNameLength: Number { defaultConfig.maxEventNameLength }
+    var maxLogBodyLength: Number { defaultConfig.maxLogBodyLength }
     var maxUserDefinedAttributesPerEvent: Number { defaultConfig.maxUserDefinedAttributesPerEvent }
     var customEventNameRegex: String { defaultConfig.customEventNameRegex }
     var maxUserDefinedAttributeKeyLength: Number { defaultConfig.maxUserDefinedAttributeKeyLength }
@@ -128,6 +135,9 @@ final class BaseConfigProvider: ConfigProvider {
     var traceSamplingRate: Float { dynamicConfig.traceSamplingRate }
     var journeySamplingRate: Float { dynamicConfig.journeySamplingRate }
     var screenshotMaskLevel: ScreenshotMaskLevel { dynamicConfig.screenshotMaskLevel }
+    var logAutocollectEnabled: Bool { dynamicConfig.logAutocollectEnabled }
+    var logMinSeverity: Int { dynamicConfig.logMinSeverity }
+    var logIgnorePatterns: [String] { dynamicConfig.logIgnorePatterns }
     var cpuUsageInterval: Number { dynamicConfig.cpuUsageInterval }
     var memoryUsageInterval: Number { dynamicConfig.memoryUsageInterval }
     var crashTakeScreenshot: Bool { dynamicConfig.crashTakeScreenshot }
@@ -201,6 +211,17 @@ final class BaseConfigProvider: ConfigProvider {
         return !blockedByDefault && !blockedByConfig
     }
 
+    func shouldDiscardLog(body: String) -> Bool {
+        let patterns = logIgnoreRegexes
+        guard !patterns.isEmpty else {
+            return false
+        }
+        let range = NSRange(location: 0, length: body.utf16.count)
+        return patterns.contains {
+            $0.firstMatch(in: body, options: [], range: range) != nil
+        }
+    }
+
     func setMeasureUrl(url: String) {
         lockQueue.sync {
             let currentState = self.httpPatternState
@@ -238,5 +259,9 @@ final class BaseConfigProvider: ConfigProvider {
         } catch {
             return NSRegularExpression()
         }
+    }
+
+    private func compileLogIgnorePattern(_ pattern: String) -> NSRegularExpression? {
+        return try? NSRegularExpression(pattern: pattern)
     }
 }

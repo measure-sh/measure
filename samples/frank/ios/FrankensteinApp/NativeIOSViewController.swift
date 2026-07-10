@@ -50,7 +50,7 @@ private enum DemoAction: String {
     // HTTP
     case httpGet200, httpPost201, httpPut400, httpGetError, httpGetNonJson
     // Misc
-    case customEvent, trackError, createSpan, setUserId, clearUserId
+    case customEvent, openLogs, trackError, createSpan, setUserId, clearUserId
 }
 
 private struct DemoItem: Identifiable {
@@ -90,6 +90,7 @@ private let demos: [DemoItem] = [
     DemoItem(id: "http-get-nonjson", title: "GET — Non-JSON Response", description: "HTML content type response", category: .http, action: .httpGetNonJson),
     // Misc
     DemoItem(id: "custom-event", title: "Custom Event", description: "Tracks an event with attributes", category: .misc, action: .customEvent),
+    DemoItem(id: "logs", title: "Track Logs", description: "Enter a body, pick a severity, and send", category: .misc, action: .openLogs),
     DemoItem(id: "track-error", title: "Track Error", description: "Tracks a file-not-found error", category: .misc, action: .trackError),
     DemoItem(id: "create-span", title: "Create Span", description: "Span with checkpoints and attributes", category: .misc, action: .createSpan),
     DemoItem(id: "set-user", title: "Set User ID", description: "Sets a dummy user ID on the SDK", category: .misc, action: .setUserId),
@@ -350,6 +351,13 @@ private struct NativeIOSScreen: View {
                 "action": .string("Track Custom Event"),
             ]
             Measure.trackEvent(name: "button_click", attributes: attributes, timestamp: nil)
+        case .openLogs:
+            guard let vc = holder.viewController else { return }
+            let logVC = UIHostingController(
+                rootView: LogScreen(onClose: { vc.dismiss(animated: true) })
+            )
+            logVC.modalPresentationStyle = .fullScreen
+            vc.present(logVC, animated: true)
         case .trackError:
             do {
                 _ = try String(contentsOfFile: "/nonexistent/path.txt", encoding: .utf8)
@@ -372,6 +380,79 @@ private struct NativeIOSScreen: View {
         case .clearUserId:
             Measure.clearUserId()
         }
+    }
+}
+
+// MARK: - Log Screen
+
+private struct LogScreen: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let onClose: () -> Void
+    @State private var logBody: String = "manual log from ios native"
+    @State private var severity: LogSeverity = .info
+
+    private let severities: [(String, LogSeverity)] = [
+        ("Debug", .debug),
+        ("Info", .info),
+        ("Warning", .warning),
+        ("Error", .error),
+        ("Fatal", .fatal),
+    ]
+
+    private let accent = Color(red: 0x2E / 255.0, green: 0x7D / 255.0, blue: 0x32 / 255.0)
+
+    private var colors: NativeScreenColors {
+        colorScheme == .dark ? .dark : .light
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button("Close") { onClose() }
+                    .foregroundStyle(accent)
+                Spacer()
+                Text("Track Logs")
+                    .font(.headline)
+                    .foregroundStyle(colors.onSurface)
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                TextField("Log body", text: $logBody)
+                    .textFieldStyle(.roundedBorder)
+                Text("Severity")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(colors.onSurfaceVariant)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(severities, id: \.0) { label, value in
+                            Button(label) { severity = value }
+                                .font(.subheadline)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(severity == value ? accent : colors.surface.opacity(0.6))
+                                .foregroundStyle(severity == value ? Color.white : colors.onSurface)
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+                Button {
+                    Measure.log(logBody, severity: severity, attributes: ["retry_count": .int(3)])
+                } label: {
+                    Text("Track Log Manually")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(accent)
+                        .foregroundStyle(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+            }
+            .padding(16)
+            }
+        }
+        .background(colors.background.ignoresSafeArea())
     }
 }
 

@@ -1,6 +1,6 @@
 // swift-interface-format-version: 1.0
 // swift-compiler-version: Apple Swift version 6.3.2 effective-5.10 (swiftlang-6.3.2.1.108 clang-2100.1.1.101)
-// swift-module-flags: -target arm64-apple-ios12-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -Onone -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name Measure
+// swift-module-flags: -target arm64-apple-ios12-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -O -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name Measure
 // swift-module-flags-ignorable: -no-verify-emitted-module-interface -formal-cxx-interoperability-mode=off -interface-compiler-version 6.3.2
 import AVKit
 import CoreData
@@ -350,6 +350,18 @@ extension Measure.Measure {
   public static func internalTrackSpan(name: Swift.String, traceId: Swift.String, spanId: Swift.String, parentId: Swift.String?, startTime: Swift.Int64, endTime: Swift.Int64, duration: Swift.Int64, status: Swift.Int64, attributes: [Swift.String : Any?], userDefinedAttrs: [Swift.String : Measure.AttributeValue], checkpoints: [Swift.String : Swift.Int64], hasEnded: Swift.Bool, isSampled: Swift.Bool)
   public static func trackEvent(name: Swift.String, attributes: [Swift.String : Measure.AttributeValue], timestamp: Swift.Int64? = nil)
   @objc public static func trackEvent(_ name: Swift.String, attributes: [Swift.String : Any], timestamp: Foundation.NSNumber? = nil)
+  public static func log(_ body: Swift.String, severity: Measure.LogSeverity = .info, attributes: [Swift.String : Measure.AttributeValue] = [:])
+  @objc public static func log(_ body: Swift.String, severity: Measure.LogSeverity = .info, attributes: [Swift.String : Any])
+  public static func logDebug(_ body: Swift.String, attributes: [Swift.String : Measure.AttributeValue] = [:])
+  @objc public static func logDebug(_ body: Swift.String, attributes: [Swift.String : Any])
+  public static func logInfo(_ body: Swift.String, attributes: [Swift.String : Measure.AttributeValue] = [:])
+  @objc public static func logInfo(_ body: Swift.String, attributes: [Swift.String : Any])
+  public static func logWarning(_ body: Swift.String, attributes: [Swift.String : Measure.AttributeValue] = [:])
+  @objc public static func logWarning(_ body: Swift.String, attributes: [Swift.String : Any])
+  public static func logError(_ body: Swift.String, attributes: [Swift.String : Measure.AttributeValue] = [:])
+  @objc public static func logError(_ body: Swift.String, attributes: [Swift.String : Any])
+  public static func logFatal(_ body: Swift.String, attributes: [Swift.String : Measure.AttributeValue] = [:])
+  @objc public static func logFatal(_ body: Swift.String, attributes: [Swift.String : Any])
   public static func trackScreenView(_ screenName: Swift.String, attributes: [Swift.String : Measure.AttributeValue]?)
   @objc public static func trackScreenView(_ screenName: Swift.String, attributes: [Swift.String : Any]?)
   @objc public static func setUserId(_ userId: Swift.String)
@@ -379,6 +391,18 @@ extension Measure.Measure {
   public static func internalGetDynamicConfigPath() -> Swift.String?
   public static func trackHttpEvent(url: Swift.String, method: Swift.String, startTime: Swift.UInt64, endTime: Swift.UInt64, client: Swift.String = "unknown", statusCode: Swift.Int? = nil, error: (any Swift.Error)? = nil, requestHeaders: [Swift.String : Swift.String]? = nil, responseHeaders: [Swift.String : Swift.String]? = nil, requestBody: Swift.String? = nil, responseBody: Swift.String? = nil)
   @objc public static func trackHttpEventObjc(url: Swift.String, method: Swift.String, startTime: Swift.UInt64, endTime: Swift.UInt64, client: Swift.String, statusCode: Foundation.NSNumber?, error: (any Swift.Error)?, requestHeaders: [Swift.String : Swift.String]?, responseHeaders: [Swift.String : Swift.String]?, requestBody: Swift.String?, responseBody: Swift.String?)
+}
+@objc public enum LogSeverity : Swift.Int {
+  case debug
+  case info
+  case warning
+  case error
+  case fatal
+  public init?(rawValue: Swift.Int)
+  public typealias RawValue = Swift.Int
+  public var rawValue: Swift.Int {
+    get
+  }
 }
 @_inheritsConvenienceInitializers @objc public class MSRNetworkInterceptor : ObjectiveC.NSObject {
   @objc(enableOn:) public static func enable(on sessionConfiguration: Foundation.URLSessionConfiguration)
@@ -418,6 +442,9 @@ extension Measure.VCLifecycleEventType : Swift.Hashable {}
 extension Measure.VCLifecycleEventType : Swift.RawRepresentable {}
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 extension Measure.MsrMoniterView : Swift.Sendable {}
+extension Measure.LogSeverity : Swift.Equatable {}
+extension Measure.LogSeverity : Swift.Hashable {}
+extension Measure.LogSeverity : Swift.RawRepresentable {}
 extension Measure.AttachmentType : Swift.Equatable {}
 extension Measure.AttachmentType : Swift.Hashable {}
 extension Measure.AttachmentType : Swift.RawRepresentable {}

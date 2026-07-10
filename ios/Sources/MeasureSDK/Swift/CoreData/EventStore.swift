@@ -67,6 +67,7 @@ final class BaseEventStore: EventStore {
             eventOb.customEvent = event.customEvent
             eventOb.screenView = event.screenView
             eventOb.bugReport = event.bugReport
+            eventOb.log = event.log
             eventOb.needsReporting = event.needsReporting
 
             if let attachments = event.attachments {
@@ -446,6 +447,7 @@ extension EventOb {
             screenView: screenView,
             bugReport: bugReport,
             sessionStartData: nil,
+            log: log,
             needsReporting: needsReporting
         )
     }

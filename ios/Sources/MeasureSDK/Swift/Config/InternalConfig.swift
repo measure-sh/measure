@@ -25,6 +25,9 @@ protocol InternalConfig {
     /// The maximum length of a custom event. Defaults to 64 chars.
     var maxEventNameLength: Number { get }
 
+    /// The maximum length of a log message. Defaults to 1000 chars.
+    var maxLogBodyLength: Number { get }
+
     /// The maximum number of user defined attributes for an event. Defaults to 100.
     var maxUserDefinedAttributesPerEvent: Number { get }
 

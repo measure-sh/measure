@@ -35,6 +35,18 @@ protocol DynamicConfig {
     /// Screenshot masking level.
     var screenshotMaskLevel: ScreenshotMaskLevel { get }
 
+    /// Whether the SDK automatically collects logs from the platform's logging APIs.
+    /// Manually tracked logs are always collected. Defaults to false.
+    var logAutocollectEnabled: Bool { get }
+
+    /// Minimum severity number of logs to collect. Logs below this number are dropped.
+    /// Defaults to 16 (warning).
+    var logMinSeverity: Int { get }
+
+    /// Regex patterns matched against the log body. A log whose body matches any of the
+    /// patterns is dropped before it is tracked. Defaults to empty list.
+    var logIgnorePatterns: [String] { get }
+
     /// Interval in seconds to collect CPU usage.
     /// Defaults to 5 seconds.
     var cpuUsageInterval: Number { get }
@@ -84,6 +96,9 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
     let traceSamplingRate: Float
     let journeySamplingRate: Float
     let screenshotMaskLevel: ScreenshotMaskLevel
+    let logAutocollectEnabled: Bool
+    let logMinSeverity: Int
+    let logIgnorePatterns: [String]
     let cpuUsageInterval: Number
     let memoryUsageInterval: Number
     let crashTakeScreenshot: Bool
@@ -103,6 +118,9 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
          traceSamplingRate: Float = DefaultConfig.traceSamplingRate,
          journeySamplingRate: Float = DefaultConfig.journeySamplingRate,
          screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel,
+         logAutocollectEnabled: Bool = DefaultConfig.logAutocollectEnabled,
+         logMinSeverity: Int = DefaultConfig.logMinSeverity,
+         logIgnorePatterns: [String] = DefaultConfig.logIgnorePatterns,
          cpuUsageInterval: Number = DefaultConfig.cpuUsageInterval,
          memoryUsageInterval: Number = DefaultConfig.memoryUsageInterval,
          crashTakeScreenshot: Bool = DefaultConfig.crashTakeScreenshot,
@@ -122,6 +140,9 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         self.traceSamplingRate = traceSamplingRate
         self.journeySamplingRate = journeySamplingRate
         self.screenshotMaskLevel = screenshotMaskLevel
+        self.logAutocollectEnabled = logAutocollectEnabled
+        self.logMinSeverity = logMinSeverity
+        self.logIgnorePatterns = logIgnorePatterns
         self.cpuUsageInterval = cpuUsageInterval
         self.memoryUsageInterval = memoryUsageInterval
         self.crashTakeScreenshot = crashTakeScreenshot
@@ -145,6 +166,9 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         traceSamplingRate = try c.decodeIfPresent(Float.self, forKey: .traceSamplingRate) ?? DefaultConfig.traceSamplingRate
         journeySamplingRate = try c.decodeIfPresent(Float.self, forKey: .journeySamplingRate) ?? DefaultConfig.journeySamplingRate
         screenshotMaskLevel = try c.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
+        logAutocollectEnabled = try c.decodeIfPresent(Bool.self, forKey: .logAutocollectEnabled) ?? DefaultConfig.logAutocollectEnabled
+        logMinSeverity = try c.decodeIfPresent(Int.self, forKey: .logMinSeverity) ?? DefaultConfig.logMinSeverity
+        logIgnorePatterns = try c.decodeIfPresent([String].self, forKey: .logIgnorePatterns) ?? DefaultConfig.logIgnorePatterns
         cpuUsageInterval = try c.decodeIfPresent(Number.self, forKey: .cpuUsageInterval) ?? DefaultConfig.cpuUsageInterval
         memoryUsageInterval = try c.decodeIfPresent(Number.self, forKey: .memoryUsageInterval) ?? DefaultConfig.memoryUsageInterval
         crashTakeScreenshot = try c.decodeIfPresent(Bool.self, forKey: .crashTakeScreenshot) ?? DefaultConfig.crashTakeScreenshot
@@ -166,6 +190,9 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         case traceSamplingRate = "trace_sampling_rate"
         case journeySamplingRate = "journey_sampling_rate"
         case screenshotMaskLevel = "screenshot_mask_level"
+        case logAutocollectEnabled = "log_autocollect_enabled"
+        case logMinSeverity = "log_min_severity"
+        case logIgnorePatterns = "log_ignore_patterns"
         case cpuUsageInterval = "cpu_usage_interval"
         case memoryUsageInterval = "memory_usage_interval"
         case crashTakeScreenshot = "crash_take_screenshot"

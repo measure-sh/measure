@@ -54,6 +54,7 @@ final class MockMeasureInitializer: MeasureInitializer {
     var httpEventCollector: HttpEventCollector
     let networkChangeCollector: NetworkChangeCollector
     let customEventCollector: CustomEventCollector
+    let logEventCollector: LogEventCollector
     let userTriggeredEventCollector: UserTriggeredEventCollector
     let dataCleanupService: DataCleanupService
     let attachmentProcessor: AttachmentProcessor
@@ -112,6 +113,7 @@ final class MockMeasureInitializer: MeasureInitializer {
          appLaunchCollector: AppLaunchCollector? = nil,
          networkChangeCollector: NetworkChangeCollector? = nil,
          customEventCollector: CustomEventCollector? = nil,
+         logEventCollector: LogEventCollector? = nil,
          userTriggeredEventCollector: UserTriggeredEventCollector? = nil,
          dataCleanupService: DataCleanupService? = nil,
          userPermissionManager: UserPermissionManager? = nil,
@@ -304,6 +306,11 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                              timeProvider: self.timeProvider,
                                                              configProvider: self.configProvider,
                                                              attributeValueValidator: self.attributeValueValidator)
+        self.logEventCollector = logEventCollector ?? BaseLogEventCollector(logger: self.logger,
+                                                                            signalProcessor: self.signalProcessor,
+                                                                            timeProvider: self.timeProvider,
+                                                                            configProvider: self.configProvider,
+                                                                            attributeValueValidator: self.attributeValueValidator)
         self.exceptionGenerator = exceptionGenerator ?? BaseExceptionGenerator(logger: self.logger,
                                                                                crashDataPersistence: self.crashDataPersistence,
                                                                                sysCtl: self.sysCtl)

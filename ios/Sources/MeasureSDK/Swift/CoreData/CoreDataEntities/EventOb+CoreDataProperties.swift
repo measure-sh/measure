@@ -34,6 +34,7 @@ extension EventOb {
     @NSManaged var lifecycleApp: Data?
     @NSManaged var lifecycleSwiftUI: Data?
     @NSManaged var lifecycleViewController: Data?
+    @NSManaged var log: Data?
     @NSManaged var memoryUsage: Data?
     @NSManaged var needsReporting: Bool
     @NSManaged var networkChange: Data?

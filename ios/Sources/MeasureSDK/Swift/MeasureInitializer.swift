@@ -52,6 +52,7 @@ protocol MeasureInitializer {
     var httpEventCollector: HttpEventCollector { get }
     var networkChangeCollector: NetworkChangeCollector { get }
     var customEventCollector: CustomEventCollector { get }
+    var logEventCollector: LogEventCollector { get }
     var userTriggeredEventCollector: UserTriggeredEventCollector { get }
     var dataCleanupService: DataCleanupService { get }
     var attachmentProcessor: AttachmentProcessor { get }
@@ -119,6 +120,7 @@ protocol MeasureInitializer {
 /// - `cpuUsageCalculator`: `CpuUsageCalculator` object that generates CPU usage data.
 /// - `memoryUsageCalculator`: `MemoryUsageCalculator` object that generates memory usage data.
 /// - `customEventCollector`: `CustomEventCollector` object that triggers custom events.
+/// - `logEventCollector`: `LogEventCollector` object that tracks log events.
 /// - `spanCollector`: `SpanCollector`object that generates span data.
 /// - `bugReportCollector`: `BugReportCollector` object which is responsible to managing bug report collection.
 /// - `shakeBugReportCollector`: `ShakeBugReportCollector` object which is responsible to managing bug report collection when shake gesture in enabled.
@@ -187,6 +189,7 @@ final class BaseMeasureInitializer: MeasureInitializer {
     var httpEventCollector: HttpEventCollector
     let networkChangeCollector: NetworkChangeCollector
     let customEventCollector: CustomEventCollector
+    let logEventCollector: LogEventCollector
     let userTriggeredEventCollector: UserTriggeredEventCollector
     let dataCleanupService: DataCleanupService
     let attachmentProcessor: AttachmentProcessor
@@ -398,6 +401,11 @@ final class BaseMeasureInitializer: MeasureInitializer {
                                                              timeProvider: timeProvider,
                                                              configProvider: configProvider,
                                                              attributeValueValidator: attributeValueValidator)
+        self.logEventCollector = BaseLogEventCollector(logger: logger,
+                                                       signalProcessor: signalProcessor,
+                                                       timeProvider: timeProvider,
+                                                       configProvider: configProvider,
+                                                       attributeValueValidator: attributeValueValidator)
         self.exceptionGenerator = BaseExceptionGenerator(logger: logger,
                                                          crashDataPersistence: crashDataPersistence,
                                                          sysCtl: sysCtl)
