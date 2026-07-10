@@ -1,0 +1,92 @@
+-- migrate:up
+alter table sessions_span_mv
+modify query
+select
+    session_id,
+    team_id,
+    app_id,
+    minSimpleState(start_time)                                                              as first_event_timestamp,
+    maxSimpleState(end_time)                                                                as last_event_timestamp,
+    argMax(attribute.app_version, start_time)                                               as app_version,
+    argMax(attribute.os_version, start_time)                                                as os_version,
+    groupUniqArrayArraySimpleState([attribute.country_code])                                as country_codes,
+    groupUniqArrayArraySimpleState([attribute.network_provider])                            as network_providers,
+    groupUniqArrayArraySimpleState([attribute.network_type])                                as network_types,
+    groupUniqArrayArraySimpleState([attribute.network_generation])                          as network_generations,
+    groupUniqArrayArraySimpleState([attribute.device_locale])                               as device_locales,
+    argMax(attribute.device_manufacturer, start_time)                                       as device_manufacturer,
+    argMax(attribute.device_name, start_time)                                               as device_name,
+    argMax(attribute.device_model, start_time)                                              as device_model,
+    groupUniqArrayArraySimpleState([attribute.user_id])                                     as user_ids,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_types,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_custom_type_names,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_strings,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_logs,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_view_classnames,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_subview_classnames,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(Tuple(String, String, String, String, String))')) as unique_unhandled_exceptions,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(Tuple(String, String, String, String, String))')) as unique_handled_exceptions,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_errors,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(Tuple(String, String, String, String, String))')) as unique_anrs,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_click_targets,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_longclick_targets,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_scroll_targets,
+    sumSimpleState(toUInt64(0))                                                             as event_count,
+    sumSimpleState(toUInt64(0))                                                             as crash_count,
+    sumSimpleState(toUInt64(0))                                                             as anr_count,
+    sumSimpleState(toUInt64(0))                                                             as bug_report_count,
+    sumSimpleState(toUInt64(0))                                                             as background_count,
+    sumSimpleState(toUInt64(0))                                                             as foreground_count,
+    sumMapSimpleState(cast(map(), 'Map(String, UInt64)'))                                   as event_type_counts
+from spans
+group by
+    team_id,
+    app_id,
+    attribute.app_version,
+    session_id;
+
+-- migrate:down
+alter table sessions_span_mv
+modify query
+select
+    session_id,
+    team_id,
+    app_id,
+    minSimpleState(start_time)                                                              as first_event_timestamp,
+    maxSimpleState(end_time)                                                                as last_event_timestamp,
+    argMax(attribute.app_version, start_time)                                               as app_version,
+    argMax(attribute.os_version, start_time)                                                as os_version,
+    groupUniqArrayArraySimpleState([attribute.country_code])                                as country_codes,
+    groupUniqArrayArraySimpleState([attribute.network_provider])                            as network_providers,
+    groupUniqArrayArraySimpleState([attribute.network_type])                                as network_types,
+    groupUniqArrayArraySimpleState([attribute.network_generation])                          as network_generations,
+    groupUniqArrayArraySimpleState([attribute.device_locale])                               as device_locales,
+    argMax(attribute.device_manufacturer, start_time)                                       as device_manufacturer,
+    argMax(attribute.device_name, start_time)                                               as device_name,
+    argMax(attribute.device_model, start_time)                                              as device_model,
+    groupUniqArrayArraySimpleState([attribute.user_id])                                     as user_ids,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_types,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_custom_type_names,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_strings,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_view_classnames,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_subview_classnames,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(Tuple(String, String, String, String, String))')) as unique_unhandled_exceptions,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(Tuple(String, String, String, String, String))')) as unique_handled_exceptions,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_errors,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(Tuple(String, String, String, String, String))')) as unique_anrs,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_click_targets,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_longclick_targets,
+    groupUniqArrayArraySimpleState(cast('[]', 'Array(String)'))                             as unique_scroll_targets,
+    sumSimpleState(toUInt64(0))                                                             as event_count,
+    sumSimpleState(toUInt64(0))                                                             as crash_count,
+    sumSimpleState(toUInt64(0))                                                             as anr_count,
+    sumSimpleState(toUInt64(0))                                                             as bug_report_count,
+    sumSimpleState(toUInt64(0))                                                             as background_count,
+    sumSimpleState(toUInt64(0))                                                             as foreground_count,
+    sumMapSimpleState(cast(map(), 'Map(String, UInt64)'))                                   as event_type_counts
+from spans
+group by
+    team_id,
+    app_id,
+    attribute.app_version,
+    session_id;
