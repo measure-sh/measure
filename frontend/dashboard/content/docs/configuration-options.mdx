@@ -284,14 +284,17 @@ The following defaults are set for each app:
 | Take screenshot on ANR               | true                                                                                |
 | ANR session timeline duration        | 300 seconds (5 minutes)                                                             |
 | Bug Report session timeline duration | 300                                                                                 |
-| Trace sampling rate                  | 0.01%                                                                               |
-| Journey sampling rate                | 0.01%                                                                               |
-| Launch Metrics sampling rate         | 0.01%                                                                               |
+| Trace sampling rate                  | 100%                                                                                |
+| Journey sampling rate                | 100%                                                                                |
+| Launch Metrics sampling rate         | 100%                                                                                |
 | Disable HTTP event for URLs          | (empty)                                                                             |
 | Track HTTP request body for URLs     | (empty)                                                                             |
 | Track HTTP response body for URLs    | (empty)                                                                             |
 | Blocked HTTP headers                 | Authorization, Cookie, Set-Cookie, Proxy-Authorization, WWW-Authenticate, X-Api-Key |
 | Screenshot mask level                | AllTextAndMedia                                                                     |
+| Automatic log collection             | false                                                                               |
+| Minimum log severity                 | Warning                                                                             |
+| Log ignore patterns                  | (empty)                                                                             |
 
 ## Crash Reporting
 
@@ -335,7 +338,7 @@ duration to control the amount of data collected.
 
 ## Trace Sampling
 
-By default, 0.01% (1 in 10000) traces are reported. You can adjust this percentage from 0.001% to 100% to control
+By default, 100% of traces are reported. You can adjust this percentage from 0.001% to 100% to control
 the amount of data collected.
 
 ## Launch Metrics Sampling
@@ -343,7 +346,7 @@ the amount of data collected.
 Launch metrics include Cold Launch, Warm Launch and Hot Launch metrics shown on the Overview page on the dashboard. A
 sampling rate can be configured to control the number of sessions for whom these launch metrics are collected.
 
-By default, 0.01% (1 in 10000) of sessions will have launch metrics collected. You can adjust this percentage
+By default, 100% of sessions will have launch metrics collected. You can adjust this percentage
 from 0.001% to 100% to control the amount of data collected.
 
 ## Journey Sampling
@@ -352,7 +355,7 @@ Journey events are used to construct the Journey view in the Measure dashboard. 
 Lifecycle events, Fragment Lifecycle events and Screen View events. A sampling rate can be configured to control
 the number of sessions for whom these Journey events are collected.
 
-By default, 0.01% (1 in 10000) of sessions will have Journey events collected. You can adjust this percentage from
+By default, 100% of sessions will have Journey events collected. You can adjust this percentage from
 0.001% to 100% to control the amount of data collected.
 
 ## HTTP Events
@@ -371,7 +374,7 @@ Required minimum SDK versions: Android 0.16.1 and iOS 0.9.2
 
 A sampling rate can be configured to control how often HTTP events are collected.
 
-By default, 0.01% (1 in 10000) of HTTP events are collected. You can adjust this percentage from
+By default, 100% of HTTP events are collected. You can adjust this percentage from
 0.001% to 100% to control the amount of data collected.
 
 ### Enable/Disable HTTP events
@@ -469,3 +472,31 @@ Masks sensitive input fields like password, email & phone fields.
 Example:
 
 ![Mask Sensitive Input Fields](/docs/assets/screenshot-mask-sensitive-input-fields-2.webp)
+
+## Logs
+
+The **Logs** section controls how logs are collected.
+
+### Automatic Log Collection
+
+Applies only to Android and React Native.
+
+Controls whether the SDK automatically collects logs written to the platform's standard log
+streams. Logs tracked manually with the `log` API are always collected regardless of this setting.
+
+Defaults to off.
+
+### Minimum Log Level
+
+The minimum severity of logs to collect. Logs below the chosen severity are
+dropped at the source. This applies to both automatically collected logs and
+logs tracked manually with the `Measure.log` API.
+
+By default, logs at `warning` severity and above are collected (`warning`, `error` and
+`fatal`) while `debug` and `info` logs are dropped. The available levels in increasing
+severity are `debug`, `info`, `warning`, `error` and `fatal`.
+
+### Ignore Patterns
+
+A list of regular expressions matched against the log body. Logs whose body matches any
+pattern are discarded at source.

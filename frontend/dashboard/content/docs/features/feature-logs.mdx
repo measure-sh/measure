@@ -1,0 +1,353 @@
+---
+title: "Logs"
+description: "Track logs with severity level and control log collection using Adaptive Capture on dashboard."
+---
+
+## Introduction
+
+Logs capture a raw text body with a severity level. They're great for recording any
+unstructured message from your app, like the logs you already have in your code.
+You can track a log with a severity level using the following methods:
+
+<Tabs groupId="platform" items={["Android", "iOS (Swift)", "iOS (ObjC)", "React Native", "KMP", "Flutter"]} persist>
+<Tab value="Android">
+
+```kotlin
+// Debug
+Measure.logDebug("Cache miss for user profile")
+
+// Info
+Measure.logInfo("User signed in")
+
+// Warning
+Measure.logWarning("Payment failed, retrying")
+
+// Error
+Measure.logError("Failed to load checkout")
+
+// Fatal
+Measure.logFatal("Unrecoverable error, shutting down")
+```
+
+</Tab>
+<Tab value="iOS (Swift)">
+
+```swift
+// Debug
+Measure.logDebug("Cache miss for user profile")
+
+// Info
+Measure.logInfo("User signed in")
+
+// Warning
+Measure.logWarning("Payment failed, retrying")
+
+// Error
+Measure.logError("Failed to load checkout")
+
+// Fatal
+Measure.logFatal("Unrecoverable error, shutting down")
+```
+
+</Tab>
+<Tab value="iOS (ObjC)">
+
+```objc
+// Debug
+[Measure logDebug:@"Cache miss for user profile" attributes:@{}];
+
+// Info
+[Measure logInfo:@"User signed in" attributes:@{}];
+
+// Warning
+[Measure logWarning:@"Payment failed, retrying" attributes:@{}];
+
+// Error
+[Measure logError:@"Failed to load checkout" attributes:@{}];
+
+// Fatal
+[Measure logFatal:@"Unrecoverable error, shutting down" attributes:@{}];
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+// Debug
+Measure.logDebug({ body: 'Cache miss for user profile' });
+
+// Info
+Measure.logInfo({ body: 'User signed in' });
+
+// Warning
+Measure.logWarning({ body: 'Payment failed, retrying' });
+
+// Error
+Measure.logError({ body: 'Failed to load checkout' });
+
+// Fatal
+Measure.logFatal({ body: 'Unrecoverable error, shutting down' });
+```
+
+</Tab>
+<Tab value="KMP">
+
+```kotlin
+// Debug
+Measure.logDebug("Cache miss for user profile")
+
+// Info
+Measure.logInfo("User signed in")
+
+// Warning
+Measure.logWarning("Payment failed, retrying")
+
+// Error
+Measure.logError("Failed to load checkout")
+
+// Fatal
+Measure.logFatal("Unrecoverable error, shutting down")
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+// Debug
+Measure.instance.logDebug("Cache miss for user profile");
+
+// Info
+Measure.instance.logInfo("User signed in");
+
+// Warning
+Measure.instance.logWarning("Payment failed, retrying");
+
+// Error
+Measure.instance.logError("Failed to load checkout");
+
+// Fatal
+Measure.instance.logFatal("Unrecoverable error, shutting down");
+```
+
+</Tab>
+</Tabs>
+
+<Callout type="warn">
+
+Log bodies longer than 1000 characters are truncated.
+
+</Callout>
+
+**Consider a more specific API**
+
+If you're tracking a specific, named thing you want to search and analyze later, like a user
+action or feature usage, use a [Custom Event](/docs/features/feature-custom-events) instead. Custom 
+events have a name, which makes them easier to query than free-form logs.
+
+To track errors or exceptions, use the [error tracking](/docs/features/feature-error-tracking)
+APIs instead of logging them. They capture the stack trace and group related
+errors, unlike free-form logs.
+
+## Add Attributes
+
+Every log method takes an optional set of attributes, key-value pairs that add context
+to the log:
+
+<Tabs groupId="platform" items={["Android", "iOS (Swift)", "iOS (ObjC)", "React Native", "KMP", "Flutter"]} persist>
+<Tab value="Android">
+
+```kotlin
+val attributes = AttributesBuilder()
+    .put("retry_count", 3)
+    .put("order_id", "1234")
+    .build()
+Measure.logWarning("Payment failed, retrying", attributes)
+```
+
+</Tab>
+<Tab value="iOS (Swift)">
+
+```swift
+Measure.logWarning(
+    "Payment failed, retrying",
+    attributes: ["retry_count": .int(3), "order_id": .string("1234")]
+)
+```
+
+</Tab>
+<Tab value="iOS (ObjC)">
+
+```objc
+[Measure logWarning:@"Payment failed, retrying"
+         attributes:@{@"retry_count": @3, @"order_id": @"1234"}];
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+Measure.logWarning({
+  body: 'Payment failed, retrying',
+  attributes: { retry_count: 3, order_id: '1234' },
+});
+```
+
+</Tab>
+<Tab value="KMP">
+
+```kotlin
+val attributes = AttributesBuilder()
+    .put("retry_count", 3)
+    .put("order_id", "1234")
+    .build()
+Measure.logWarning("Payment failed, retrying", attributes)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+final attributes = AttributeBuilder()
+    .add("retry_count", 3)
+    .add("order_id", "1234")
+    .build();
+Measure.instance.logWarning("Payment failed, retrying", attributes: attributes);
+```
+
+</Tab>
+</Tabs>
+
+<Callout type="info">
+
+- Attribute keys must be strings with a maximum length of `256` characters.
+- Attribute keys must only contain alphabets, numbers, hyphens and underscores.
+- Attribute values must be a `string`, `int`, `long`, `double`, `float` or `boolean`.
+- String attribute values can have a maximum length of `256` characters.
+
+</Callout>
+
+## Automatic Log Collection
+
+The SDK can collect the logs your app already writes, so you don't have to route every log
+through Measure by hand. It's **off by default** and turned on with the
+**Automatically collect logs** setting in the dashboard. 
+
+<Callout type="info">
+
+Automatic collection is available on Android and React Native only.
+
+</Callout>
+
+### Android
+
+Android uses ASM to automatically instrument logs from `android.util.Log`.
+
+By default, logs from your application's own package are collected. To
+also collect logs from libraries or other packages, list them with
+`logsAutoCollectPackageNames` in your `build.gradle.kts`.
+
+Entries match as package prefixes, so `androidx.media3` also covers
+`androidx.media3.exoplayer`, `androidx.media3.common`, and so on:
+
+```kotlin
+measure {
+    logsAutoCollectPackageNames = listOf("androidx.media3")
+}
+```
+
+### React Native
+
+When automatic collection is enabled, `console` output (`console.debug`, `console.log`,
+`console.info`, `console.warn` and `console.error`) is collected on both Android and iOS, with
+no extra setup.
+
+## Integrations
+
+iOS and Flutter don't collect logs automatically. You can bridge your existing logging framework
+to Measure so you don't have to change every call site.
+
+### iOS
+
+Apple's unified logging (`os.Logger`, `os_log` and `NSLog`) writes to out-of-process system
+daemons with no public hook to observe it, so the SDK cannot intercept your existing logs.
+
+If your app uses [swift-log](https://github.com/apple/swift-log), register a `LogHandler` that
+forwards every log to Measure. Bootstrap it once, before any logging:
+
+```swift
+import Logging
+import Measure
+
+struct MeasureLogHandler: LogHandler {
+    var metadata = Logger.Metadata()
+    var logLevel: Logger.Level = .info
+
+    subscript(metadataKey key: String) -> Logger.Metadata.Value? {
+        get { metadata[key] }
+        set { metadata[key] = newValue }
+    }
+
+    func log(level: Logger.Level, message: Logger.Message, metadata: Logger.Metadata?,
+             source: String, file: String, function: String, line: UInt) {
+        Measure.log("\(message)", severity: level.measureSeverity)
+    }
+}
+
+private extension Logger.Level {
+    var measureSeverity: LogSeverity {
+        switch self {
+        case .trace, .debug: return .debug
+        case .info, .notice: return .info
+        case .warning: return .warning
+        case .error: return .error
+        case .critical: return .fatal
+        }
+    }
+}
+
+// Call once during startup, e.g. in your AppDelegate.
+LoggingSystem.bootstrap { _ in MeasureLogHandler() }
+```
+
+### Flutter
+
+Dart `print` output and logs from Dart logging frameworks are not captured automatically.
+
+If your app uses the [`logging`](https://pub.dev/packages/logging) package, forward its records
+to Measure to capture every log in the app. Set this up once during startup.
+
+Most other logging packages provide a similar API which you can use.
+
+```dart
+import 'package:logging/logging.dart';
+import 'package:measure_flutter/measure_flutter.dart';
+
+void bootstrapMeasureLogging() {
+  Logger.root.onRecord.listen((record) {
+    Measure.instance.log(record.message, severity: record.level.measureSeverity);
+  });
+}
+
+extension on Level {
+  LogSeverity get measureSeverity {
+    if (this >= Level.SHOUT) return LogSeverity.fatal;
+    if (this >= Level.SEVERE) return LogSeverity.error;
+    if (this >= Level.WARNING) return LogSeverity.warning;
+    if (this >= Level.INFO) return LogSeverity.info;
+    return LogSeverity.debug;
+  }
+}
+```
+
+## Configuration Options
+
+You can use the dashboard settings to configure which logs get collected. They apply without a 
+new app release.
+
+| Option | Default | Description |
+|---|---|---|
+| **Automatically collect logs** | Off | Collects the logs your app already writes, see [Automatic Log Collection](#automatic-log-collection). Applies to Android and React Native only. |
+| **Minimum log level** | Warning | The minimum severity of logs to collect. Logs below the selected severity are dropped at the source. |
+| **Ignore patterns** | (empty) | A list of regular expressions matched against the log body. Logs whose body matches any pattern are dropped at the source. |
+
+See [Configuration Options](/docs/configuration-options) for more details.
