@@ -48,6 +48,7 @@ private enum class DemoCategory(val label: String) {
     BUG_REPORTS("Bug Reports"),
     NAVIGATION("Navigation"),
     SCREENSHOTS("Screenshots"),
+    LOGS("Logs"),
     MISC("Misc"),
 }
 
@@ -274,6 +275,12 @@ fun NativeAndroidScreen() {
                     Toast.makeText(context, "Handled exception tracked", Toast.LENGTH_SHORT).show()
                 }
             },
+        ),
+        DemoItem(
+            title = "Track Logs",
+            description = "Enter a body, pick a severity, and send",
+            category = DemoCategory.LOGS,
+            action = { launchActivity(context, LogActivity::class.java) },
         ),
         DemoItem(
             title = "Set User ID",

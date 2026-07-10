@@ -825,7 +825,7 @@ internal class ExporterTest {
             EventEntity(
                 id = eventId,
                 timestamp = "23456789",
-                type = EventType.STRING,
+                type = EventType.LOG,
                 userTriggered = false,
                 serializedData = if (serializedDataFilePath == null) "data" else null,
                 filePath = serializedDataFilePath,

@@ -24,6 +24,7 @@ import sh.measure.android.gestures.ScrollData
 import sh.measure.android.lifecycle.ActivityLifecycleData
 import sh.measure.android.lifecycle.ApplicationLifecycleData
 import sh.measure.android.lifecycle.FragmentLifecycleData
+import sh.measure.android.logs.LogData
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.networkchange.NetworkChangeData
 import sh.measure.android.okhttp.HttpData
@@ -162,8 +163,8 @@ internal fun <T> Event<T>.serializeDataToString(): String = when (type) {
         json.encodeToString(BugReportData.serializer(), data as BugReportData)
     }
 
-    EventType.STRING -> {
-        json.encodeToString(String.serializer(), data as String)
+    EventType.LOG -> {
+        json.encodeToString(LogData.serializer(), data as LogData)
     }
 
     EventType.SESSION_START -> {

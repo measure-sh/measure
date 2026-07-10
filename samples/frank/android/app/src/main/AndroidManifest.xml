@@ -44,6 +44,10 @@
             android:name=".OkHttpActivity"
             android:theme="@style/Theme.FrankensteinApp" />
         <activity
+            android:name=".LogActivity"
+            android:theme="@style/Theme.FrankensteinApp"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".ReactNativeScreenActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
             android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"

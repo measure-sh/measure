@@ -35,6 +35,7 @@ internal class FakeConfigProvider : ConfigProvider {
         listOf("Content-Type", "msr-req-id", "Authorization", "Content-Length")
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null
     override var estimatedEventSizeInKb: Int = 2
+    override var maxLogBodyLength: Int = 4000
     override var maxDiskUsageInMb: Int = 50
     override var enableFullCollectionMode: Boolean = true
     override var enableDiagnosticMode: Boolean = false
@@ -45,6 +46,9 @@ internal class FakeConfigProvider : ConfigProvider {
     override var traceSamplingRate: Float = 1f
     override var journeySamplingRate: Float = 1f
     override var screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.AllTextAndMedia
+    override var logAutocollectEnabled: Boolean = true
+    override var logMinSeverity: Int = 8
+    override var logIgnorePatterns: List<String> = emptyList()
     override var cpuUsageInterval: Long = 3
     override var memoryUsageInterval: Long = 3
     override var crashTakeScreenshot: Boolean = true
@@ -71,6 +75,8 @@ internal class FakeConfigProvider : ConfigProvider {
     var shouldTrackHttpEventForUrl = true
 
     override fun shouldTrackHttpEvent(url: String): Boolean = shouldTrackHttpEventForUrl
+
+    override fun shouldDiscardLog(body: String): Boolean = logIgnorePatterns.any { runCatching { Regex(it).containsMatchIn(body) }.getOrDefault(false) }
 
     var dynamicConfig: DynamicConfig? = null
         private set

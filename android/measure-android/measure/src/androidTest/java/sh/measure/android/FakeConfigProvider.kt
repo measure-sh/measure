@@ -9,9 +9,7 @@ import sh.measure.android.config.ScreenshotMaskLevel
 internal class FakeConfigProvider : ConfigProvider {
     override fun shouldTrackHttpEvent(url: String): Boolean = false
 
-    override fun setMeasureUrl(url: String) {
-        // No-op
-    }
+    override fun shouldDiscardLog(body: String): Boolean = logIgnorePatterns.any { runCatching { Regex(it).containsMatchIn(body) }.getOrDefault(false) }
 
     override var enableLogging: Boolean = true
     override var screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.AllText
@@ -59,6 +57,10 @@ internal class FakeConfigProvider : ConfigProvider {
     override val gestureClickTakeSnapshot: Boolean = true
     override val httpSamplingRate: Float = 1f
     override val profileSamplingRate: Float = 100f
+    override val logAutocollectEnabled: Boolean = true
+    override val logMinSeverity: Int = 8
+    override val maxLogBodyLength: Int = 1000
+    override val logIgnorePatterns: List<String> = emptyList()
     override val httpDisableEventForUrls: List<String> = emptyList()
     override val httpTrackRequestForUrls: List<String> = emptyList()
     override val httpTrackResponseForUrls: List<String> = emptyList()
