@@ -16,7 +16,18 @@ import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
 import { useTheme } from "next-themes";
 import Pill from "./pill";
 import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
-import SessionTimelineEventCell from "./session_timeline_event_cell";
+import SessionTimelineEventCell, {
+  logSeverity,
+  logFilterKey,
+  logFilterKeys,
+} from "./session_timeline_event_cell";
+
+function eventFilterKey(eventType: string, details: any): string {
+  if (eventType === "log" || eventType === "string") {
+    return logFilterKey(logSeverity(eventType, details));
+  }
+  return eventType;
+}
 
 const demoTimelineLastEventTime = DateTime.now().toUTC();
 const demoTimeline: typeof emptySessionTimeline = {
@@ -365,6 +376,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
       timestamp: string;
       thread: string;
       details: any;
+      filterKey: string;
     }[] = [];
     const threadsSet = new Set<string>();
     const eventTypesSet = new Set<string>();
@@ -373,14 +385,16 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
     Object.keys(sessionTimeline.threads).forEach((item) =>
       // @ts-ignore
       sessionTimeline.threads[item].forEach((subItem: any) => {
+        const filterKey = eventFilterKey(subItem.event_type, subItem);
         collected.push({
           eventType: subItem.event_type,
           timestamp: subItem.timestamp,
           thread: item,
           details: subItem,
+          filterKey,
         });
         threadsSet.add(item);
-        eventTypesSet.add(subItem.event_type);
+        eventTypesSet.add(filterKey);
       }),
     );
 
@@ -392,6 +406,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
           timestamp: item.start_time,
           thread: item.thread_name,
           details: item,
+          filterKey: traceEventType,
         });
 
         threadsSet.add(item.thread_name);
@@ -413,10 +428,19 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
       key: `${e.eventType}|${e.thread}|${e.timestamp}|${index}`,
     }));
 
+    // Show the log-severity filters grouped at the end. Non-log
+    // types keep the order they were first seen; logs
+    // follow in the fixed severity order of logFilterKeys.
+    const nonLogEventTypes = Array.from(eventTypesSet).filter(
+      (key) => !logFilterKeys.includes(key),
+    );
+    const logEventTypes = logFilterKeys.filter((key) => eventTypesSet.has(key));
+    const eventTypes = [...nonLogEventTypes, ...logEventTypes];
+
     return {
       events,
       threads: Array.from(threadsSet),
-      eventTypes: Array.from(eventTypesSet),
+      eventTypes,
     };
   }, [sessionTimeline]);
 
@@ -703,7 +727,7 @@ const SessionTimeline: React.FC<SessionTimelineProps> = ({
       events.filter(
         (e) =>
           selectedThreads.includes(e.thread) &&
-          selectedEventTypes.includes(e.eventType),
+          selectedEventTypes.includes(e.filterKey),
       ),
     [events, selectedThreads, selectedEventTypes],
   );

@@ -53,6 +53,11 @@ export enum PillType {
   SessionEventTrace = "session_event_trace",
   SessionEventCustom = "session_event_custom",
   SessionEventLog = "session_event_log",
+  SessionEventLogDebug = "session_event_log_debug",
+  SessionEventLogInfo = "session_event_log_info",
+  SessionEventLogWarning = "session_event_log_warning",
+  SessionEventLogError = "session_event_log_error",
+  SessionEventLogFatal = "session_event_log_fatal",
   SessionEventProfile = "session_event_profile",
   SessionEventDefault = "session_event_default",
 }
@@ -218,6 +223,11 @@ const pillDefaults: Record<PillType, { label?: string; tint: string }> = {
   [PillType.SessionEventTrace]: { label: "Trace", tint: sessionPink },
   [PillType.SessionEventCustom]: { label: "Custom", tint: sessionPurple },
   [PillType.SessionEventLog]: { label: "Log", tint: sessionIndigo },
+  [PillType.SessionEventLogDebug]: { tint: sessionTeal },
+  [PillType.SessionEventLogInfo]: { tint: sessionIndigo },
+  [PillType.SessionEventLogWarning]: { tint: sessionAmber },
+  [PillType.SessionEventLogError]: { tint: sessionRed },
+  [PillType.SessionEventLogFatal]: { tint: sessionRed },
   [PillType.SessionEventProfile]: {
     label: "Profile",
     tint: sessionTeal,
