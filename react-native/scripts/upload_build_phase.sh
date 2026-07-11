@@ -15,7 +15,7 @@
 # code and images" build phase:
 #   export SOURCEMAP_FILE="$(pwd)/main.jsbundle.map"
 #
-# See https://github.com/measure-sh/measure/blob/main/docs/features/feature-crash-reporting.md
+# See https://github.com/measure-sh/measure/blob/main/docs/features/feature-upload-symbols.md#react-native
 
 if [ "$#" -lt 2 ]; then
   echo "Usage: $0 <api_url> <api_key>"

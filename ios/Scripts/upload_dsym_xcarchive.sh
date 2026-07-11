@@ -4,7 +4,7 @@
 #   ./upload_dsym.sh <path_to_xcarchive> <api_url> <api_key> [custom_headers] [ipa_path]
 # Example:
 #   ./upload_dsym.sh MyApp.xcarchive https://api.example.com abc123 'X-Custom-1: val1|X-Custom-2: val2' ./MyApp.ipa
-# Checkout the documentation for more details https://github.com/measure-sh/measure/blob/main/docs/features/feature-crash-reporting.md#ios-1.
+# Checkout the documentation for more details https://github.com/measure-sh/measure/blob/main/docs/features/feature-upload-symbols.md#ios.
 
 if [ "$#" -lt 3 ]; then
   echo "Usage: $0 <path_to_xcarchive> <api_url> <api_key> [custom_headers] [ipa_path]"
