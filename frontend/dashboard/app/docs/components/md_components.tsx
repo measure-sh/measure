@@ -129,7 +129,15 @@ function stripAdmonitionMarker(children: React.ReactNode): React.ReactNode {
           }
           continue;
         }
-        out.push(transformed);
+        // The rebuilt array renders as dynamic children, so element entries
+        // need keys. react-markdown keys its elements, but children can also
+        // arrive unkeyed. The source index is a stable identity here because
+        // the transform never reorders entries.
+        out.push(
+          React.isValidElement(transformed) && transformed.key === null
+            ? React.cloneElement(transformed, { key: i })
+            : transformed,
+        );
       }
       return out;
     }
