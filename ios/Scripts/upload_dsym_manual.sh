@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# Checkout the documentation for more details https://github.com/measure-sh/measure/blob/main/docs/features/feature-upload-symbols.md#ios.
-
 if [ "$#" -lt 7 ]; then
   echo "Usage: $0 <path_to_dsym_folder> <api_url> <api_key> <version_name> <version_code> <app_unique_id> <build_size> [options]"
   echo ""
