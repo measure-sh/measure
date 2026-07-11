@@ -110,7 +110,7 @@ describe("isExcluded", () => {
 
   it("returns false for docs routes", () => {
     expect(isExcluded("/docs")).toBe(false);
-    expect(isExcluded("/docs/features/feature-crash-reporting")).toBe(false);
+    expect(isExcluded("/docs/features/feature-example")).toBe(false);
   });
 });
 
@@ -180,22 +180,54 @@ describe("getDocsSlugs", () => {
     });
 
     it("includes subdirectory README.md as directory slug", () => {
+      // A subdirectory README maps to the directory's own slug
+      const dirWithReadme = fs
+        .readdirSync(contentDir, { withFileTypes: true })
+        .find(
+          (e) =>
+            e.isDirectory() &&
+            e.name !== "assets" &&
+            fs.existsSync(path.join(contentDir, e.name, "README.md")),
+        );
+      expect(dirWithReadme).toBeDefined();
+
       const slugs = getDocsSlugs();
 
-      // hosting/README.md should produce /docs/hosting
-      expect(slugs).toContain("/docs/hosting");
+      expect(slugs).toContain(`/docs/${dirWithReadme!.name}`);
     });
 
     it("includes regular .md files as page slugs", () => {
+      const topLevelMd = fs
+        .readdirSync(contentDir)
+        .find((f) => f.endsWith(".md") && f !== "README.md");
+      expect(topLevelMd).toBeDefined();
+
       const slugs = getDocsSlugs();
 
-      expect(slugs).toContain("/docs/sdk-integration-guide");
+      expect(slugs).toContain(`/docs/${topLevelMd!.replace(/\.md$/, "")}`);
     });
 
     it("includes nested .md files with full path", () => {
+      // Derive the expected slug from a real nested .md file so the test
+      // does not depend on a particular doc file existing
+      let expected: string | null = null;
+      const subDirs = fs
+        .readdirSync(contentDir, { withFileTypes: true })
+        .filter((e) => e.isDirectory() && e.name !== "assets");
+      for (const dir of subDirs) {
+        const mdFile = fs
+          .readdirSync(path.join(contentDir, dir.name))
+          .find((f) => f.endsWith(".md") && f !== "README.md");
+        if (mdFile) {
+          expected = `/docs/${dir.name}/${mdFile.replace(/\.md$/, "")}`;
+          break;
+        }
+      }
+      expect(expected).not.toBeNull();
+
       const slugs = getDocsSlugs();
 
-      expect(slugs).toContain("/docs/features/feature-crash-reporting");
+      expect(slugs).toContain(expected);
     });
 
     it("does not include assets directory contents", () => {
@@ -347,13 +379,13 @@ describe("main", () => {
 
     main();
 
-    expect(writtenContent).toContain(
-      `<loc>${SITE_URL}/docs/sdk-integration-guide</loc>`,
-    );
-    expect(writtenContent).toContain(`<loc>${SITE_URL}/docs/hosting</loc>`);
-    expect(writtenContent).toContain(
-      `<loc>${SITE_URL}/docs/features/feature-crash-reporting</loc>`,
-    );
+    // getDocsSlugs is itself validated against the filesystem above, so
+    // checking every slug it returns keeps this free of hardcoded pages
+    const docSlugs = getDocsSlugs();
+    expect(docSlugs.length).toBeGreaterThan(0);
+    for (const slug of docSlugs) {
+      expect(writtenContent).toContain(`<loc>${SITE_URL}${slug}</loc>`);
+    }
   });
 
   it("produces sorted URLs", () => {
