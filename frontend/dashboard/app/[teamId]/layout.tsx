@@ -107,6 +107,12 @@ function buildInitNavData() {
             external: false,
           },
           {
+            title: "Builds",
+            url: "builds",
+            isActive: false,
+            external: false,
+          },
+          {
             title: "Team",
             url: "team",
             isActive: false,

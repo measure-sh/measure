@@ -67,6 +67,17 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+// setConfig applies overrides to the shared test config and restores the
+// previous values when the test finishes, so config changes never leak
+// across tests and the suite stays order-independent. Tests must use this
+// instead of assigning deps.Config fields directly.
+func setConfig(t *testing.T, mutate func(c *server.Config)) {
+	t.Helper()
+	orig := *deps.Config
+	mutate(deps.Config)
+	t.Cleanup(func() { *deps.Config = orig })
+}
+
 // --------------------------------------------------------------------------
 // Thin wrappers delegating to testinfra.TestHelper
 // --------------------------------------------------------------------------
@@ -112,6 +123,10 @@ func seedSpan(
 
 func seedEventWithSession(ctx context.Context, t *testing.T, teamID, appID, sessionID string, ts time.Time) {
 	th.SeedEventWithSession(ctx, t, teamID, appID, sessionID, ts)
+}
+
+func seedBuildMapping(ctx context.Context, t *testing.T, mappingID, appID, versionName, versionCode, mappingType string, lastUpdated time.Time) {
+	th.SeedBuildMapping(ctx, t, mappingID, appID, versionName, versionCode, mappingType, lastUpdated)
 }
 
 // --------------------------------------------------------------------------

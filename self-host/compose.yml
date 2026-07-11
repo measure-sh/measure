@@ -147,6 +147,8 @@ services:
       - PORT=8080
     develop:
       watch:
+        - path: ../backend/api
+          action: rebuild
         - path: ../backend/libs
           action: rebuild
     healthcheck:

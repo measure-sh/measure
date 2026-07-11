@@ -254,164 +254,174 @@ Find all the endpoints, resources and detailed documentation for Measure Dashboa
     - [Authorization \& Content Type](#authorization--content-type-43)
     - [Response Body](#response-body-46)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-46)
-  - [GET `/apps/:id/config`](#get-appsidconfig)
+  - [GET `/apps/:id/builds`](#get-appsidbuilds)
     - [Usage Notes](#usage-notes-47)
     - [Authorization \& Content Type](#authorization--content-type-44)
     - [Response Body](#response-body-47)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-47)
-  - [PATCH `/apps/:id/config`](#patch-appsidconfig)
+  - [GET `/apps/:id/builds/:buildId/download`](#get-appsidbuildsbuildiddownload)
     - [Usage Notes](#usage-notes-48)
     - [Authorization \& Content Type](#authorization--content-type-45)
     - [Response Body](#response-body-48)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-48)
-  - [GET `/apps/:id/networkRequests/domains`](#get-appsidnetworkrequestsdomains)
+  - [GET `/apps/:id/config`](#get-appsidconfig)
     - [Usage Notes](#usage-notes-49)
     - [Authorization \& Content Type](#authorization--content-type-46)
     - [Response Body](#response-body-49)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-49)
-  - [GET `/apps/:id/networkRequests/paths`](#get-appsidnetworkrequestspaths)
+  - [PATCH `/apps/:id/config`](#patch-appsidconfig)
     - [Usage Notes](#usage-notes-50)
     - [Authorization \& Content Type](#authorization--content-type-47)
     - [Response Body](#response-body-50)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-50)
-  - [GET `/apps/:id/networkRequests/trends`](#get-appsidnetworkrequeststrends)
+  - [GET `/apps/:id/networkRequests/domains`](#get-appsidnetworkrequestsdomains)
     - [Usage Notes](#usage-notes-51)
     - [Authorization \& Content Type](#authorization--content-type-48)
     - [Response Body](#response-body-51)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-51)
-  - [GET `/apps/:id/networkRequests/plots/overviewStatusCodes`](#get-appsidnetworkrequestsplotsoverviewstatuscodes)
+  - [GET `/apps/:id/networkRequests/paths`](#get-appsidnetworkrequestspaths)
     - [Usage Notes](#usage-notes-52)
     - [Authorization \& Content Type](#authorization--content-type-49)
     - [Response Body](#response-body-52)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-52)
-  - [GET `/apps/:id/networkRequests/plots/endpointLatency`](#get-appsidnetworkrequestsplotsendpointlatency)
+  - [GET `/apps/:id/networkRequests/trends`](#get-appsidnetworkrequeststrends)
     - [Usage Notes](#usage-notes-53)
     - [Authorization \& Content Type](#authorization--content-type-50)
     - [Response Body](#response-body-53)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-53)
-  - [GET `/apps/:id/networkRequests/plots/endpointStatusCodes`](#get-appsidnetworkrequestsplotsendpointstatuscodes)
+  - [GET `/apps/:id/networkRequests/plots/overviewStatusCodes`](#get-appsidnetworkrequestsplotsoverviewstatuscodes)
     - [Usage Notes](#usage-notes-54)
     - [Authorization \& Content Type](#authorization--content-type-51)
     - [Response Body](#response-body-54)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-54)
-  - [GET `/apps/:id/networkRequests/plots/overviewTimeline`](#get-appsidnetworkrequestsplotsoverviewtimeline)
+  - [GET `/apps/:id/networkRequests/plots/endpointLatency`](#get-appsidnetworkrequestsplotsendpointlatency)
     - [Usage Notes](#usage-notes-55)
     - [Authorization \& Content Type](#authorization--content-type-52)
     - [Response Body](#response-body-55)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-55)
-  - [GET `/apps/:id/networkRequests/plots/endpointTimeline`](#get-appsidnetworkrequestsplotsendpointtimeline)
+  - [GET `/apps/:id/networkRequests/plots/endpointStatusCodes`](#get-appsidnetworkrequestsplotsendpointstatuscodes)
     - [Usage Notes](#usage-notes-56)
     - [Authorization \& Content Type](#authorization--content-type-53)
     - [Response Body](#response-body-56)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-56)
-- [Teams](#teams)
-  - [POST `/teams`](#post-teams)
-    - [Authorization \& Content Type](#authorization--content-type-54)
-    - [Request Body](#request-body-8)
+  - [GET `/apps/:id/networkRequests/plots/overviewTimeline`](#get-appsidnetworkrequestsplotsoverviewtimeline)
     - [Usage Notes](#usage-notes-57)
+    - [Authorization \& Content Type](#authorization--content-type-54)
     - [Response Body](#response-body-57)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-57)
-  - [GET `/teams`](#get-teams)
+  - [GET `/apps/:id/networkRequests/plots/endpointTimeline`](#get-appsidnetworkrequestsplotsendpointtimeline)
+    - [Usage Notes](#usage-notes-58)
     - [Authorization \& Content Type](#authorization--content-type-55)
     - [Response Body](#response-body-58)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-58)
-  - [GET `/teams/:id/apps`](#get-teamsidapps)
-    - [Usage Notes](#usage-notes-58)
+- [Teams](#teams)
+  - [POST `/teams`](#post-teams)
     - [Authorization \& Content Type](#authorization--content-type-56)
+    - [Request Body](#request-body-8)
+    - [Usage Notes](#usage-notes-59)
     - [Response Body](#response-body-59)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-59)
-  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
-    - [Usage Notes](#usage-notes-59)
+  - [GET `/teams`](#get-teams)
     - [Authorization \& Content Type](#authorization--content-type-57)
     - [Response Body](#response-body-60)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-60)
-  - [POST `/teams/:id/apps`](#post-teamsidapps)
+  - [GET `/teams/:id/apps`](#get-teamsidapps)
     - [Usage Notes](#usage-notes-60)
-    - [Request body](#request-body-9)
     - [Authorization \& Content Type](#authorization--content-type-58)
     - [Response Body](#response-body-61)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-61)
-  - [GET `/teams/:id/invites`](#get-teamsidinvites)
+  - [GET `/teams/:id/apps/:id`](#get-teamsidappsid)
     - [Usage Notes](#usage-notes-61)
     - [Authorization \& Content Type](#authorization--content-type-59)
     - [Response Body](#response-body-62)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-62)
-  - [POST `/teams/:id/invite`](#post-teamsidinvite)
+  - [POST `/teams/:id/apps`](#post-teamsidapps)
     - [Usage Notes](#usage-notes-62)
-    - [Request body](#request-body-10)
+    - [Request body](#request-body-9)
     - [Authorization \& Content Type](#authorization--content-type-60)
     - [Response Body](#response-body-63)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-63)
-  - [PATCH `/teams/:id/invite/:id`](#patch-teamsidinviteid)
+  - [GET `/teams/:id/invites`](#get-teamsidinvites)
     - [Usage Notes](#usage-notes-63)
     - [Authorization \& Content Type](#authorization--content-type-61)
     - [Response Body](#response-body-64)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-64)
-  - [DELETE `/teams/:id/invite/:id`](#delete-teamsidinviteid)
+  - [POST `/teams/:id/invite`](#post-teamsidinvite)
     - [Usage Notes](#usage-notes-64)
+    - [Request body](#request-body-10)
     - [Authorization \& Content Type](#authorization--content-type-62)
     - [Response Body](#response-body-65)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-65)
-  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
+  - [PATCH `/teams/:id/invite/:id`](#patch-teamsidinviteid)
     - [Usage Notes](#usage-notes-65)
-    - [Request body](#request-body-11)
     - [Authorization \& Content Type](#authorization--content-type-63)
     - [Response Body](#response-body-66)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-66)
-  - [GET `/teams/:id/members`](#get-teamsidmembers)
+  - [DELETE `/teams/:id/invite/:id`](#delete-teamsidinviteid)
     - [Usage Notes](#usage-notes-66)
     - [Authorization \& Content Type](#authorization--content-type-64)
     - [Response Body](#response-body-67)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-67)
-  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
+  - [PATCH `/teams/:id/rename`](#patch-teamsidrename)
     - [Usage Notes](#usage-notes-67)
+    - [Request body](#request-body-11)
     - [Authorization \& Content Type](#authorization--content-type-65)
     - [Response Body](#response-body-68)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-68)
-  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
+  - [GET `/teams/:id/members`](#get-teamsidmembers)
     - [Usage Notes](#usage-notes-68)
-    - [Request body](#request-body-12)
     - [Authorization \& Content Type](#authorization--content-type-66)
     - [Response Body](#response-body-69)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-69)
-  - [GET `/teams/:id/authz`](#get-teamsidauthz)
+  - [DELETE `/teams/:id/members/:id`](#delete-teamsidmembersid)
     - [Usage Notes](#usage-notes-69)
     - [Authorization \& Content Type](#authorization--content-type-67)
     - [Response Body](#response-body-70)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-70)
-  - [GET `/teams/:id/usage`](#get-teamsidusage)
+  - [PATCH `/teams/:id/members/:id/role`](#patch-teamsidmembersidrole)
     - [Usage Notes](#usage-notes-70)
+    - [Request body](#request-body-12)
     - [Authorization \& Content Type](#authorization--content-type-68)
     - [Response Body](#response-body-71)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-71)
-  - [GET `/teams/:id/slack`](#get-teamsidslack)
+  - [GET `/teams/:id/authz`](#get-teamsidauthz)
     - [Usage Notes](#usage-notes-71)
     - [Authorization \& Content Type](#authorization--content-type-69)
     - [Response Body](#response-body-72)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-72)
-  - [PATCH `/teams/:id/slack/status`](#patch-teamsidslackstatus)
+  - [GET `/teams/:id/usage`](#get-teamsidusage)
     - [Usage Notes](#usage-notes-72)
-    - [Request body](#request-body-13)
     - [Authorization \& Content Type](#authorization--content-type-70)
     - [Response Body](#response-body-73)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-73)
-  - [POST `/teams/:id/slack/test`](#post-teamsidslacktest)
+  - [GET `/teams/:id/slack`](#get-teamsidslack)
     - [Usage Notes](#usage-notes-73)
     - [Authorization \& Content Type](#authorization--content-type-71)
     - [Response Body](#response-body-74)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-74)
-- [Prefs](#prefs)
-  - [GET `/prefs/notifPrefs`](#get-prefsnotifprefs)
+  - [PATCH `/teams/:id/slack/status`](#patch-teamsidslackstatus)
     - [Usage Notes](#usage-notes-74)
+    - [Request body](#request-body-13)
     - [Authorization \& Content Type](#authorization--content-type-72)
     - [Response Body](#response-body-75)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-75)
-  - [PATCH `/prefs/notifPrefs`](#patch-prefsnotifprefs)
+  - [POST `/teams/:id/slack/test`](#post-teamsidslacktest)
     - [Usage Notes](#usage-notes-75)
-    - [Request body](#request-body-14)
     - [Authorization \& Content Type](#authorization--content-type-73)
     - [Response Body](#response-body-76)
     - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-76)
+- [Prefs](#prefs)
+  - [GET `/prefs/notifPrefs`](#get-prefsnotifprefs)
+    - [Usage Notes](#usage-notes-76)
+    - [Authorization \& Content Type](#authorization--content-type-74)
+    - [Response Body](#response-body-77)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-77)
+  - [PATCH `/prefs/notifPrefs`](#patch-prefsnotifprefs)
+    - [Usage Notes](#usage-notes-77)
+    - [Request body](#request-body-14)
+    - [Authorization \& Content Type](#authorization--content-type-75)
+    - [Response Body](#response-body-78)
+    - [Status Codes \& Troubleshooting](#status-codes--troubleshooting-78)
 
 ## Auth
 
@@ -870,7 +880,7 @@ List of HTTP status codes for success and failures.
 - [**GET `/apps/:id/anrGroups/:id/plots/instances`**](#get-appsidanrgroupsidplotsinstances) - _(deprecated)_ Fetch an app's ANR detail instances aggregated by date range & version.
 - [**GET `/apps/:id/anrGroups/:id/plots/journey`**](#get-appsidanrgroupsidplotsjourney) - _(deprecated)_ Fetch an app's ANR journey map.
 - [**GET `/apps/:id/errorGroups`**](#get-appsiderrorgroups) - Fetch an app's error overview.
-- [**GET `/apps/:id/errorGroups/plots/instances`**](#get-appsiderrorGroupsplotsinstances) - Fetch an app's error overview instances plot aggregated by date range & version.
+- [**GET `/apps/:id/errorGroups/plots/instances`**](#get-appsiderrorgroupsplotsinstances) - Fetch an app's error overview instances plot aggregated by date range & version.
 - [**GET `/apps/:id/errorGroups/:errorGroupId/errors`**](#get-appsiderrorgroupserrorgroupiderrors) - Fetch an app's error detail.
 - [**GET `/apps/:id/errorGroups/:errorGroupId/path`**](#get-appsiderrorgroupserrorgroupidpath) - Fetch an error group's common path.
 - [**GET `/apps/:id/errorGroups/:errorGroupId/plots/instances`**](#get-appsiderrorgroupserrorgroupidplotsinstances) - Fetch an app's error detail instances aggregated by date range & version.
@@ -892,6 +902,8 @@ List of HTTP status codes for success and failures.
 - [**GET `/apps/:id/bugReports/:bugReportId`**](#get-appsidbugreportsbugreportid) - Fetch a bug report.
 - [**PATCH `/apps/:id/bugReports/:bugReportId`**](#patch-appsidbugreportsbugreportid) - Update a bug report's status.
 - [**GET `/apps/:id/alerts`**](#get-appsidalerts) - Fetch an app's alerts with optional filters.
+- [**GET `/apps/:id/builds`**](#get-appsidbuilds) - Fetch an app's builds with optional filters.
+- [**GET `/apps/:id/builds/:buildId/download`**](#get-appsidbuildsbuildiddownload) - Download a build's mapping file packaged for its platform tooling.
 - [**GET `/apps/:id/config`**](#get-appsidconfig) - Fetch an app's config.
 - [**PATCH `/apps/:id/config`**](#patch-appsidconfig) - Update an app's config.
 - [**GET `/apps/:id/networkRequests/domains`**](#get-appsidnetworkrequestsdomains) - Fetch an app's unique network request domains.
@@ -1284,7 +1296,9 @@ Fetch an app's filters.
 - Pass `type=anr` to only return filters relevant to ANR events
 - Pass `type=error,anr` to return filters relevant to both exceptions and ANRs
 - Pass `ud_attr_keys=1` as query string parameter to return user defined attribute keys
-- If `type` is omitted, filters are computed from all events
+- Pass `span=1` to return filters computed from span data instead of event data
+- Pass `builds=1` to return version filters computed from uploaded build mappings instead of event data
+- If `type`, `span` and `builds` are omitted, filters are computed from all events
 
 #### Authorization & Content Type
 
@@ -1590,7 +1604,7 @@ List of HTTP status codes for success and failures.
 
 Fetch an app's crash overview instances plot aggregated by date range & version.
 
-> **Deprecated:** Use [`GET /apps/:id/errorGroups/plots/instances`](#get-appsiderrorGroupsplotsinstances) instead.
+> **Deprecated:** Use [`GET /apps/:id/errorGroups/plots/instances`](#get-appsiderrorgroupsplotsinstances) instead.
 
 #### Usage Notes
 
@@ -2417,7 +2431,7 @@ List of HTTP status codes for success and failures.
 
 Fetch an app's ANR overview instances plot aggregated by date range & version.
 
-> **Deprecated:** Use [`GET /apps/:id/errorGroups/plots/instances`](#get-appsiderrorGroupsplotsinstances) instead.
+> **Deprecated:** Use [`GET /apps/:id/errorGroups/plots/instances`](#get-appsiderrorgroupsplotsinstances) instead.
 
 #### Usage Notes
 
@@ -6652,6 +6666,187 @@ List of HTTP status codes for success and failures.
 | `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
 | `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
 | `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+
+### GET `/apps/:id/builds`
+
+Fetch an app's builds by applying various optional filters.
+
+#### Usage Notes
+
+- App's UUID must be passed in the URI
+- Accepted query parameters
+  - `from` (_optional_) - ISO8601 timestamp to include builds uploaded after this time.
+  - `to` (_optional_) - ISO8601 timestamp to include builds uploaded before this time.
+  - `versions` (_optional_) - List of comma separated version identifier strings to return only matching builds.
+  - `version_codes` (_optional_) - List of comma separated version codes to return only matching builds.
+  - `offset` (_optional_) - Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
+  - `limit` (_optional_) - Number of items to return. Used for pagination. Should be used along with `offset`.
+  - `filter_short_code` (_optional_) - Code representing combination of filters.
+- Both `versions` &amp; `version_codes` should be present if any one of them is present.
+- Number of items in `versions` &amp; `version_codes` must be same.
+- Builds are ordered by upload time, newest first.
+- Each build's `download_url` is the path of the [download endpoint](#get-appsidbuildsbuildiddownload) serving the build's mapping file.
+- For multiple comma separated fields, make sure no whitespace characters exist before or after comma.
+- Pass `limit` and `offset` values to paginate results
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Response
+
+  <details>
+    <summary>Click to expand</summary>
+
+  ```json
+  {
+    "meta": {
+        "next": true,
+        "previous": false
+    },
+    "results": [
+        {
+            "id": "8bd23e1c-71f0-4a94-9c9c-d5b9b1f27b30",
+            "version_name": "1.2.0",
+            "version_code": "1200",
+            "mapping_type": "proguard",
+            "download_url": "/apps/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/builds/8bd23e1c-71f0-4a94-9c9c-d5b9b1f27b30/download",
+            "filesize": 8712174,
+            "last_updated": "2025-07-08T09:14:33.712Z"
+        },
+        {
+            "id": "38c4d1a9-9153-4f81-b2e8-63f4a1c05d9b",
+            "version_name": "1.2.0",
+            "version_code": "1200",
+            "mapping_type": "elf_debug",
+            "download_url": "/apps/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/builds/38c4d1a9-9153-4f81-b2e8-63f4a1c05d9b/download",
+            "filesize": 24509831,
+            "last_updated": "2025-07-08T09:14:32.409Z"
+        },
+        {
+            "id": "f3b7c2e5-0d64-4a1f-9c3a-7e85d20b41ac",
+            "version_name": "1.1.0",
+            "version_code": "1100",
+            "mapping_type": "proguard",
+            "download_url": "/apps/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/builds/f3b7c2e5-0d64-4a1f-9c3a-7e85d20b41ac/download",
+            "filesize": 8532117,
+            "last_updated": "2025-06-24T14:02:11.108Z"
+        }
+    ]
+  }
+  ```
+
+  </details>
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
+| `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
+
+</details>
+
+
+### GET `/apps/:id/builds/:buildId/download`
+
+Download a build's mapping file, packaged the way its platform tooling expects.
+
+#### Usage Notes
+
+- App's UUID and the build's UUID must be passed in the URI
+- The response is the mapping file itself with a `Content-Disposition` filename, not JSON
+- Packaging depends on the build's `mapping_type`
+  - `proguard` - the mapping file as stored, named `mapping.txt`
+  - `elf_debug` - the debug file as stored, named with its uploaded filename
+  - `jsbundle` - the bundle or sourcemap file as stored, named with its uploaded filename
+  - `dsym` - a zip of the `.dSYM` bundle reconstructed around the stored DWARF binary, named `<binary>.dSYM.zip`
+
+#### Authorization & Content Type
+
+1. (Optional) Set the sessions's access token in `Authorization: Bearer <access-token>` format unless you are using cookies to send access tokens.
+
+2. Set content type as `Content-Type: application/json; charset=utf-8`
+
+The required headers must be present in each request.
+
+<details>
+  <summary>Request Headers - Click to expand</summary>
+
+| **Name**        | **Value**                        |
+| --------------- | -------------------------------- |
+| `Authorization` | Bearer &lt;user-access-token&gt; |
+| `Content-Type`  | application/json; charset=utf-8  |
+</details>
+
+#### Response Body
+
+- Successful responses stream the file's bytes with download headers, for example
+
+  ```
+  Content-Disposition: attachment; filename="mapping.txt"
+  Content-Type: text/plain
+  ```
+
+- Failed requests have the following response shape
+
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+#### Status Codes &amp; Troubleshooting
+
+List of HTTP status codes for success and failures.
+
+<details>
+  <summary>Status Codes - Click to expand</summary>
+
+| **Status**                  | **Meaning**                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `200 Ok`                    | Successful response, no errors.                                                                                        |
+| `400 Bad Request`           | Request URI is malformed or does not meet one or more acceptance criteria. Check the `"error"` field for more details. |
+| `401 Unauthorized`          | Either the user's access token is invalid or has expired.                                                              |
+| `403 Forbidden`             | Requester does not have access to this resource.                                                                       |
+| `404 Not Found`             | No build with this id exists for this app.                                                                             |
 | `429 Too Many Requests`     | Rate limit of the requester has crossed maximum limits.                                                                |
 | `500 Internal Server Error` | Measure server encountered an unfortunate error. Report this to your server administrator.                             |
 

@@ -1,15 +1,271 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
+	"mime"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strconv"
 
+	"backend/api/server"
+	"backend/libs/filter"
+	"backend/libs/measure"
 	"backend/libs/objstore"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
+
+// buildDownloadConfig builds the storage config measure.OpenBuildDownload
+// needs from the process config.
+func buildDownloadConfig(deps *server.Deps) measure.BuildDownloadConfig {
+	return measure.BuildDownloadConfig{
+		IsCloud:                deps.Config.IsCloud(),
+		AWSEndpoint:            deps.Config.AWSEndpoint,
+		SymbolsBucket:          deps.Config.SymbolsBucket,
+		SymbolsBucketRegion:    deps.Config.SymbolsBucketRegion,
+		SymbolsAccessKey:       deps.Config.SymbolsAccessKey,
+		SymbolsSecretAccessKey: deps.Config.SymbolsSecretAccessKey,
+	}
+}
+
+func (h Handlers) GetBuilds(c *gin.Context) {
+	deps := h.Deps
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	af := filter.AppFilter{
+		AppID: id,
+		Limit: filter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&af); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if err := af.Expand(ctx, deps.PgPool); err != nil {
+		msg := `failed to expand filters`
+		fmt.Println(msg, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, pgx.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	msg := "builds overview request validation failed"
+	if err := af.Validate(); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
+		if err := af.ValidateVersions(); err != nil {
+			fmt.Println(msg, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   msg,
+				"details": err.Error(),
+			})
+			return
+		}
+	}
+
+	if !af.HasTimeRange() {
+		af.SetDefaultTimeRange()
+	}
+
+	app := measure.App{
+		ID: &id,
+	}
+	team, err := app.GetTeam(ctx, deps.PgPool)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	builds, next, previous, err := measure.GetBuildsWithFilter(ctx, deps.PgPool, &af)
+	if err != nil {
+		msg := "failed to get app's builds"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	// Downloads are served by the authenticated download endpoint, which
+	// packages the artifact the way its platform tooling expects.
+	for i := range builds {
+		builds[i].DownloadURL = fmt.Sprintf("/apps/%s/builds/%s/download", id, builds[i].ID)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"results": builds,
+		"meta": gin.H{
+			"next":     next,
+			"previous": previous,
+		},
+	})
+}
+
+func (h Handlers) DownloadBuild(c *gin.Context) {
+	deps := h.Deps
+	ctx := c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	buildId, err := uuid.Parse(c.Param("buildId"))
+	if err != nil {
+		msg := `build id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	app := measure.App{
+		ID: &id,
+	}
+	team, err := app.GetTeam(ctx, deps.PgPool)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	build, err := measure.GetBuild(ctx, deps.PgPool, id, buildId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			msg := fmt.Sprintf("no build [%s] exists for app [%s]", buildId, id)
+			c.JSON(http.StatusNotFound, gin.H{"error": msg})
+			return
+		}
+		msg := "failed to get app's build"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	download, err := measure.OpenBuildDownload(ctx, buildDownloadConfig(deps), build)
+	if err != nil {
+		msg := "failed to open build download"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	defer func() {
+		if err := download.Close(); err != nil {
+			fmt.Println("failed to close build download:", err)
+		}
+	}()
+
+	c.Header("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": download.Filename}))
+	c.Header("Content-Type", download.ContentType)
+	if download.ContentLength >= 0 {
+		c.Header("Content-Length", strconv.FormatInt(download.ContentLength, 10))
+	}
+	c.Status(http.StatusOK)
+
+	// The response is already streaming, so a failure here can no longer
+	// produce an error status. The connection has to die abruptly instead:
+	// a chunked response that returns normally ends with a valid terminator,
+	// so a truncated download would look complete to the client. The stdlib
+	// abort for this is panic(http.ErrAbortHandler), but CapturePanic
+	// recovers every panic and would finish the response cleanly, so the
+	// connection is hijacked and closed directly.
+	if err := download.Stream(c.Writer); err != nil {
+		fmt.Println("failed to stream build download:", err)
+		if hijacker, ok := c.Writer.(http.Hijacker); ok {
+			if conn, _, hijackErr := hijacker.Hijack(); hijackErr == nil {
+				conn.Close()
+			}
+		}
+	}
+}
 
 func (h Handlers) PutBuilds(c *gin.Context) {
 	deps := h.Deps

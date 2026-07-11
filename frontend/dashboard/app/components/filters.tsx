@@ -87,6 +87,7 @@ interface FiltersProps {
   appVersionsInitialSelectionType: AppVersionsInitialSelectionType;
   showNoData: boolean;
   showNotOnboarded: boolean;
+  showNoBuilds?: boolean;
   showAppSelector: boolean;
   showDates: boolean;
   showAppVersions: boolean;
@@ -505,6 +506,7 @@ const FiltersComponent = forwardRef<
       appVersionsInitialSelectionType,
       showNoData,
       showNotOnboarded,
+      showNoBuilds = false,
       showAppSelector,
       showDates,
       showAppVersions,
@@ -559,6 +561,7 @@ const FiltersComponent = forwardRef<
         filterSource,
         showNoData,
         showNotOnboarded,
+        showNoBuilds,
         showAppSelector,
         showDates,
         showAppVersions,
@@ -580,6 +583,7 @@ const FiltersComponent = forwardRef<
       filterSource,
       showNoData,
       showNotOnboarded,
+      showNoBuilds,
       showAppSelector,
       showDates,
       showAppVersions,
@@ -1422,6 +1426,12 @@ const FiltersComponent = forwardRef<
                     No{" "}
                     {filterSource === FilterSource.Errors ? "errors" : "data"}{" "}
                     received for this app yet
+                  </p>
+                )}
+              {showNoBuilds &&
+                store.filtersApiStatus === FiltersApiStatus.NoBuilds && (
+                  <p className="font-body text-sm">
+                    No builds uploaded for this app yet
                   </p>
                 )}
               {showNotOnboarded &&

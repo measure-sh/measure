@@ -8,6 +8,7 @@ import {
   BugReportApiStatus,
   BugReportsOverviewApiStatus,
   BugReportsOverviewPlotApiStatus,
+  BuildsApiStatus,
   CreateAppApiStatus,
   CreateTeamApiStatus,
   DowngradeToFreeApiStatus,
@@ -81,6 +82,7 @@ import {
   fetchBugReportFromServer,
   fetchBugReportsOverviewFromServer,
   fetchBugReportsOverviewPlotFromServer,
+  fetchBuildsFromServer,
   fetchCheckoutSessionFromServer,
   fetchCustomerPortalUrlFromServer,
   fetchErrorGroupCommonPathFromServer,
@@ -233,8 +235,10 @@ export function useFilterOptionsQuery(
     ] as const,
     queryFn: async () => {
       // Fast path: never-onboarded apps return NotOnboarded for every
-      // filterSource. Skip the network round-trip.
-      if (!app!.onboarded) {
+      // event-derived filterSource, skipping the network round-trip. Builds
+      // can be uploaded before an app is onboarded, so the Builds source
+      // always asks the server.
+      if (!app!.onboarded && filterSource !== FilterSource.Builds) {
         return { status: FiltersApiStatus.NotOnboarded, data: null };
       }
       const r = await fetchFiltersFromServer(app!, filterSource);
@@ -847,6 +851,30 @@ export function useBugReportsOverviewQuery(paginationOffset: number) {
       );
       if (result.status === BugReportsOverviewApiStatus.Error) {
         throw new Error("Failed to fetch bug reports");
+      }
+      return result.data;
+    },
+    enabled: filters.ready,
+  });
+}
+
+// ─── Paginated: Builds ───────────────────────────────────────────────────
+
+const BUILDS_LIMIT = 10;
+
+export function useBuildsQuery(paginationOffset: number) {
+  const filters = useFiltersStore((s) => s.filters);
+  return useQuery({
+    queryKey: ["builds", filters.serialisedFilters, paginationOffset] as const,
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const result = await fetchBuildsFromServer(
+        filters,
+        BUILDS_LIMIT,
+        paginationOffset,
+      );
+      if (result.status === BuildsApiStatus.Error) {
+        throw new Error("Failed to fetch builds");
       }
       return result.data;
     },

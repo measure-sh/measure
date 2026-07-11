@@ -69,6 +69,7 @@ export enum FiltersApiStatus {
   Error,
   NotOnboarded,
   NoData,
+  NoBuilds,
   Cancelled,
 }
 export enum SaveFiltersApiStatus {
@@ -82,6 +83,7 @@ export enum FilterSource {
   Events,
   Spans,
   Errors,
+  Builds,
 }
 
 export enum AppHealthPlotApiStatus {
@@ -417,6 +419,11 @@ export enum UpdateBugReportStatusApiStatus {
   Success,
   Error,
   Cancelled,
+}
+
+export enum BuildsApiStatus {
+  Success,
+  Error,
 }
 
 export enum AlertsOverviewApiStatus {
@@ -1087,6 +1094,22 @@ export const emptyBugReportsOverviewResponse = {
   }[],
 };
 
+export const emptyBuildsResponse = {
+  meta: {
+    next: false,
+    previous: false,
+  },
+  results: [] as {
+    id: string;
+    version_name: string;
+    version_code: string;
+    mapping_type: string;
+    download_url: string;
+    filesize: number;
+    last_updated: string;
+  }[],
+};
+
 export const emptyBugReport = {
   session_id: "",
   app_id: "",
@@ -1728,11 +1751,14 @@ export const fetchFiltersFromServer = async (
   // fetch the user defined attributes
   url += "?ud_attr_keys=1";
 
-  // if filter is for Spans or Errors we append a query param indicating it
+  // if filter is for Spans, Errors or Builds we append a query param
+  // indicating it
   if (filterSource === FilterSource.Spans) {
     url += "&span=1";
   } else if (filterSource === FilterSource.Errors) {
     url += "&type=error,anr";
+  } else if (filterSource === FilterSource.Builds) {
+    url += "&builds=1";
   }
 
   try {
@@ -1745,6 +1771,12 @@ export const fetchFiltersFromServer = async (
     const data = await res.json();
 
     if (data.versions === null) {
+      // Builds are uploaded independently of event data, so an empty
+      // builds source means no builds; the event-derived NoData and
+      // NotOnboarded split does not apply to it.
+      if (filterSource === FilterSource.Builds) {
+        return { status: FiltersApiStatus.NoBuilds, data: null };
+      }
       if (!selectedApp.onboarded) {
         return { status: FiltersApiStatus.NotOnboarded, data: null };
       } else {
@@ -2860,6 +2892,54 @@ export const updateBugReportStatusFromServer = async (
     return { status: UpdateBugReportStatusApiStatus.Success };
   } catch {
     return { status: UpdateBugReportStatusApiStatus.Cancelled };
+  }
+};
+
+// downloadBuild triggers a build mapping download. The download is a plain
+// browser navigation, which bypasses apiClient's 401 refresh interceptor, so
+// an authenticated endpoint is touched through apiClient first: an expired
+// access token gets refreshed before the navigation instead of failing it.
+export const downloadBuild = async (downloadUrl: string) => {
+  try {
+    const res = await apiClient.fetch(`/api/auth/session`);
+    if (!res.ok) {
+      // A non-ok probe means the refresh failed too: the session is dead
+      // and apiClient has already started the redirect to login. A hard
+      // navigation now would override that redirect and land the browser
+      // on the api's raw 401 body instead of the login page.
+      return;
+    }
+  } catch {
+    // A thrown probe is a network failure, not an auth failure. The
+    // session state is unknown rather than known-dead, so attempt the
+    // navigation anyway; the worst case is a failed download the user
+    // can retry.
+  }
+
+  window.location.assign(downloadUrl);
+};
+
+export const fetchBuildsFromServer = async (
+  filters: Filters,
+  limit: number,
+  offset: number,
+) => {
+  var url = `/api/apps/${filters.app!.id}/builds?`;
+
+  url = await applyGenericFiltersToUrl(url, filters, limit, offset);
+
+  try {
+    const res = await apiClient.fetch(url);
+
+    if (!res.ok) {
+      return { status: BuildsApiStatus.Error, data: null };
+    }
+
+    const data = await res.json();
+
+    return { status: BuildsApiStatus.Success, data: data };
+  } catch {
+    return { status: BuildsApiStatus.Error, data: null };
   }
 };
 

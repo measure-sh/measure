@@ -166,6 +166,11 @@ type AppFilter struct {
 	// consider spans.
 	Span bool `form:"span"`
 
+	// Builds indicates the filter options should
+	// come from build mappings instead of event
+	// data.
+	Builds bool `form:"builds"`
+
 	// SpanStatuses represents the list of status of
 	// a span to be filtered on.
 	SpanStatuses []int8 `form:"span_statuses"`
@@ -883,6 +888,49 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 	if err := filterGroup.Wait(); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// GetBuildFilters finds distinct pairs of app versions & app build
+// no from an app's uploaded build mappings. It backs the builds
+// filter source, which lists versions that have uploaded builds
+// rather than versions seen in event data.
+func (af AppFilter) GetBuildFilters(ctx context.Context, pg *pgxpool.Pool, fl *FilterList) error {
+	stmt := sqlf.PostgreSQL.From("build_mappings").
+		Select("version_name").
+		Select("version_code").
+		Where("app_id = ?", af.AppID).
+		GroupBy("version_name").
+		GroupBy("version_code")
+
+	defer stmt.Close()
+
+	rows, err := pg.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	v := &Versions{}
+
+	for rows.Next() {
+		var name, code string
+		if err := rows.Scan(&name, &code); err != nil {
+			return err
+		}
+		v.Add(name, code)
+	}
+
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	// intelligently sort versions
+	v.Sort()
+
+	fl.Versions = append(fl.Versions, v.Versions()...)
+	fl.VersionCodes = append(fl.VersionCodes, v.Codes()...)
 
 	return nil
 }

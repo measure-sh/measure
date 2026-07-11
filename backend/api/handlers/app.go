@@ -720,7 +720,15 @@ func (h Handlers) GetAppFilters(c *gin.Context) {
 
 	var fl filter.FilterList
 
-	if err := af.GetGenericFilters(ctx, deps.RchPool, &fl, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode); err != nil {
+	// The builds filter source reads version options from uploaded build
+	// mappings; every other source derives its options from event data.
+	if af.Builds {
+		err = af.GetBuildFilters(ctx, deps.PgPool, &fl)
+	} else {
+		err = af.GetGenericFilters(ctx, deps.RchPool, &fl, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode)
+	}
+
+	if err != nil {
 		msg := `failed to query app filters`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{

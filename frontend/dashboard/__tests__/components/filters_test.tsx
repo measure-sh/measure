@@ -144,6 +144,7 @@ function defaultProps(overrides: Record<string, any> = {}) {
     appVersionsInitialSelectionType: AppVersionsInitialSelectionType.Latest,
     showNoData: false,
     showNotOnboarded: false,
+    showNoBuilds: false,
     showAppSelector: true,
     showDates: true,
     showAppVersions: true,
@@ -217,6 +218,12 @@ function setFiltersNoData() {
   filterOptionsQueryState = {
     status: "success",
     data: { status: FiltersApiStatus.NoData, data: null },
+  };
+}
+function setFiltersNoBuilds() {
+  filterOptionsQueryState = {
+    status: "success",
+    data: { status: FiltersApiStatus.NoBuilds, data: null },
   };
 }
 function setFiltersNotOnboarded() {
@@ -355,6 +362,16 @@ describe("Filters — filter options states", () => {
     await waitFor(() => {
       expect(
         screen.getByText(/No .* received for this app yet/),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('renders the "no builds" message when showNoBuilds is true and status is NoBuilds', async () => {
+    setFiltersNoBuilds();
+    await renderFilters({ showNoBuilds: true });
+    await waitFor(() => {
+      expect(
+        screen.getByText(/No builds uploaded for this app yet/),
       ).toBeInTheDocument();
     });
   });

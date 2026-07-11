@@ -72,7 +72,7 @@ List all apps the authenticated user has access to.
 
 ### `get_filters`
 
-Get available filter options (versions, OS, countries, devices, etc.) for an app.
+Get available filter options (versions, OS, countries, devices, etc.) for an app. 
 
 ### `get_metrics`
 
