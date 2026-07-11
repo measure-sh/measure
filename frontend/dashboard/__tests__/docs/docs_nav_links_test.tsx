@@ -1,5 +1,5 @@
 import DocsNavLinks from "@/app/docs/components/docs_nav_links";
-import { getFlatNavSlugs } from "@/app/docs/docs_nav";
+import { docsNav, getFlatNavSlugs } from "@/app/docs/docs_nav";
 import { describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import "@testing-library/jest-dom/jest-globals";
@@ -29,9 +29,10 @@ describe("DocsNavLinks", () => {
     const links = screen.getAllByRole("link");
     expect(links).toHaveLength(1);
 
-    // Next link should point to Getting Started
-    expect(links[0]).toHaveAttribute("href", "/docs/sdk-integration-guide");
-    expect(links[0]).toHaveTextContent("Getting Started");
+    // Next link should point to the second page in nav order
+    expect(links[0]).toHaveAttribute("href", getFlatNavSlugs()[1]);
+    expect(links[0].textContent).toBeTruthy();
+    expect(links[0].textContent).not.toContain("Documentation");
   });
 
   it("renders only previous link on the last page", () => {
@@ -49,44 +50,52 @@ describe("DocsNavLinks", () => {
   });
 
   it("renders both previous and next links for a middle page", () => {
-    render(
-      <DocsNavLinks currentSlug="/docs/features/feature-crash-reporting" />,
-    );
+    // Any slug that is neither first nor last in the nav order works here
+    const flatSlugs = getFlatNavSlugs();
+    const middleSlug = flatSlugs[Math.floor(flatSlugs.length / 2)];
+    render(<DocsNavLinks currentSlug={middleSlug} />);
 
     const links = screen.getAllByRole("link");
     expect(links).toHaveLength(2);
   });
 
   it("shows correct previous and next titles", () => {
-    render(<DocsNavLinks currentSlug="/docs/sdk-integration-guide" />);
+    // The second page's previous link is the docs root, whose "Overview"
+    // title is a component constant rather than a nav title
+    const flatSlugs = getFlatNavSlugs();
+    render(<DocsNavLinks currentSlug={flatSlugs[1]} />);
 
     const links = screen.getAllByRole("link");
     expect(links).toHaveLength(2);
 
-    // Previous should be Overview (/docs)
     expect(links[0]).toHaveTextContent("Overview");
     expect(links[0]).toHaveAttribute("href", "/docs");
 
-    // Next should be the first Features item
-    expect(links[1]).toHaveTextContent("Session Timeline");
-    expect(links[1]).toHaveAttribute(
-      "href",
-      "/docs/features/feature-session-timelines",
-    );
+    expect(links[1]).toHaveAttribute("href", flatSlugs[2]);
+    expect(links[1].textContent).toBeTruthy();
+    expect(links[1].textContent).not.toContain("Documentation");
   });
 
   it("resolves nested nav item titles correctly", () => {
-    // Bug Reports > Android is a deeply nested item
-    render(
-      <DocsNavLinks currentSlug="/docs/features/feature-bug-report-android" />,
+    // A leaf two levels deep exercises the recursive title lookup
+    const outerGroup = docsNav.find((item) =>
+      (item.children ?? []).some((child) => (child.children ?? []).length > 0),
     );
+    expect(outerGroup).toBeDefined();
+    const nestedGroup = outerGroup!.children!.find(
+      (child) => (child.children ?? []).length > 0,
+    );
+    const nestedLeaf = nestedGroup!.children!.find((child) => child.slug);
+    expect(nestedLeaf).toBeDefined();
+
+    render(<DocsNavLinks currentSlug={nestedLeaf!.slug!} />);
 
     const links = screen.getAllByRole("link");
     expect(links.length).toBeGreaterThanOrEqual(1);
 
     // Verify that link text is a real title, not "Documentation" fallback
     for (const link of links) {
-      expect(link.textContent).not.toBe("Documentation");
+      expect(link.textContent).not.toContain("Documentation");
     }
   });
 });

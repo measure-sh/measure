@@ -39,27 +39,66 @@ describe("buildClusters", () => {
 
 describe("findSectionTitle", () => {
   it("returns the cluster label for pages inside a labeled cluster", () => {
-    expect(findSectionTitle("/docs/features/feature-crash-reporting")).toBe(
-      "Features",
-    );
+    // Samples are derived from the nav so a doc rename cannot break the test
+    const pairs = docsNav
+      .filter((item) => (item.children ?? []).length > 0)
+      .map((group) => ({
+        label: group.title,
+        leaf: group.children!.find((child) => child.slug),
+      }))
+      .filter((pair) => pair.leaf);
+    expect(pairs.length).toBeGreaterThan(0);
+
+    for (const { label, leaf } of pairs) {
+      expect(findSectionTitle(leaf!.slug!)).toBe(label);
+    }
   });
 
   it("returns the label for trailing leaves merged into the previous cluster", () => {
-    expect(findSectionTitle("/docs/features/configuration-options")).toBe(
-      "Features",
-    );
-    expect(findSectionTitle("/docs/features/performance-impact")).toBe(
-      "Features",
-    );
+    // Top-level leaves that follow a labeled group belong to that group's cluster
+    let lastGroupTitle: string | null = null;
+    const trailing: Array<{ slug: string; label: string }> = [];
+    for (const item of docsNav) {
+      if ((item.children ?? []).length > 0) {
+        lastGroupTitle = item.title;
+      } else if (lastGroupTitle && item.slug) {
+        trailing.push({ slug: item.slug, label: lastGroupTitle });
+      }
+    }
+    expect(trailing.length).toBeGreaterThan(0);
+
+    for (const { slug, label } of trailing) {
+      expect(findSectionTitle(slug)).toBe(label);
+    }
   });
 
   it("returns the label for nested group children", () => {
-    const title = findSectionTitle("/docs/features/feature-bug-report-android");
-    expect(title).toBe("Features");
+    const outerGroup = docsNav.find((item) =>
+      (item.children ?? []).some((child) => (child.children ?? []).length > 0),
+    );
+    expect(outerGroup).toBeDefined();
+    const nestedGroup = outerGroup!.children!.find(
+      (child) => (child.children ?? []).length > 0,
+    );
+    const leaf = nestedGroup!.children!.find((child) => child.slug);
+    expect(leaf).toBeDefined();
+
+    expect(findSectionTitle(leaf!.slug!)).toBe(outerGroup!.title);
   });
 
   it("returns null for pages in the unlabeled lead cluster", () => {
-    expect(findSectionTitle("/docs/sdk-integration-guide")).toBeNull();
+    const firstGroupIndex = docsNav.findIndex(
+      (item) => (item.children ?? []).length > 0,
+    );
+    expect(firstGroupIndex).toBeGreaterThan(0);
+    const leadLeaves = docsNav
+      .slice(0, firstGroupIndex)
+      .filter((item) => item.slug);
+    expect(leadLeaves.length).toBeGreaterThan(0);
+
+    for (const leaf of leadLeaves) {
+      expect(findSectionTitle(leaf.slug!)).toBeNull();
+    }
   });
 
   it("returns null for slugs missing from the nav", () => {
@@ -191,23 +230,21 @@ describe("getFlatNavSlugs", () => {
   });
 
   it("preserves depth-first traversal order", () => {
-    const slugs = getFlatNavSlugs();
+    function collectDfs(items: NavItem[]): string[] {
+      const slugs: string[] = [];
+      for (const item of items) {
+        if (item.slug) {
+          slugs.push(item.slug);
+        }
+        if (item.children) {
+          slugs.push(...collectDfs(item.children));
+        }
+      }
+      return slugs;
+    }
 
-    // Getting Started should come before Features children
-    const gettingStarted = slugs.indexOf("/docs/sdk-integration-guide");
-    const sessionTimelines = slugs.indexOf(
-      "/docs/features/feature-session-timelines",
-    );
-
-    expect(gettingStarted).toBeLessThan(sessionTimelines);
-
-    // SDK Upgrade Guides should come after Performance Impact
-    const performanceImpact = slugs.indexOf(
-      "/docs/features/performance-impact",
-    );
-    const upgradeGuides = slugs.indexOf("/docs/sdk-upgrade-guides");
-
-    expect(performanceImpact).toBeLessThan(upgradeGuides);
+    // The flat list is the docs root followed by a depth-first walk of the tree
+    expect(getFlatNavSlugs()).toEqual(["/docs", ...collectDfs(docsNav)]);
   });
 
   it("contains more entries than top-level nav items due to nested children", () => {
