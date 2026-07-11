@@ -82,6 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Strip HTML tags iteratively in docs link test by @anupcowkur in #4018
+- (**frontend**): Add missing React keys when rendering docs callouts by @anupcowkur
 - (**frontend**): Make layout snapshot drag work inside demo iframe by @anupcowkur in #3943
 - (**frontend**): Strip HTML comments to a fixed point in docs by @anupcowkur in #3907
 - (**frontend**): Show error code, meta, and num_code when available by @anupcowkur in #3828
@@ -179,6 +181,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Verify internal docs links resolve by @anupcowkur
+- (**frontend**): Derive docs test samples instead of hardcoding page names by @anupcowkur
 - (**frontend**): Remove custom text colours for docs by @anupcowkur in #4013
 - (**frontend**): Throw when required env vars are missing by @anupcowkur in #4009
 - (**frontend**): Add KMP landing page (#3956) by @abhaysood in #3956
@@ -292,6 +296,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add usage notes for patch_id (#3793) by @detj in #3793
 - (**backend**): Add error fields matrix (#3701) by @detj in #3701
 - (**backend**): Update dashboard api docs (#3686) by @detj in #3686
+- Keep repo file links relative and drop docs backlinks from scripts by @anupcowkur
+- Move symbol upload instructions to a new Uploading Symbols page by @anupcowkur
 - Update readme image links by @anupcowkur in #3958
 - Add RN support in README by @anupcowkur in #3917
 - Consolidate contributing guide into repo root by @anupcowkur in #3798
