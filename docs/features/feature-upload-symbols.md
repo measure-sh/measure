@@ -1,147 +1,27 @@
 ---
-title: "Mobile Crash Reporting (Android, iOS, Flutter, React Native)"
-description: "Track crashes in Android, iOS, Flutter and React Native apps. Crash-free rate, perceived crash rate, UI snapshots, crash grouping and symbolicated stack traces."
+title: "Uploading Symbols (Android, iOS, Flutter, React Native)"
+description: "Upload ProGuard/R8 mapping files, dSYM files and JavaScript sourcemaps to symbolicate stack traces from crashes, ANRs and errors in Android, iOS, Flutter and React Native apps."
 ---
 
-# Crash Reporting
+# Uploading Symbols
 
-Crashes are automatically tracked, optionally with a snapshot of the app's UI at the time of the crash.
+Stack traces from crashes, ANRs and errors may be obfuscated or contain memory addresses. To convert the stack traces to a human-readable format, you need to upload the mapping or symbol files based on the platform.
 
-* [**Metrics**](#metrics)
-    * [Crash-Free Rate](#crash-free-rate)
-    * [Perceived Crash Rate](#perceived-crash-rate)
-* [**Get a UI Snapshot**](#get-a-ui-snapshot)
-* [**Crash Grouping**](#crash-grouping)
-* [**API Reference**](#api-reference)
-  * [**Symbolicate Stacktrace**](#symbolicate-stacktrace)
-* [**How It Works**](#how-it-works)
+* [**Android**](#android)
+* [**iOS**](#ios)
+* [**React Native**](#react-native)
+  * [Over the Air Update Symbolication](#over-the-air-update-symbolication)
+* [**Flutter**](#flutter)
 
-> [!NOTE]  
-> Crash reporting for native crashes (from C/C++/etc.) is not yet supported. Track the progress [here](https://github.com/measure-sh/measure/issues/103). Upvote and comment on the issue if you are looking forward to this feature.
-
-## Metrics
-
-Metrics related to crashes are automatically computed and shown on the dashboard.
-
-![Crash metrics](../assets/crash-metrics.webp)
-
-### Crash-Free Rate
-
-The crash-free rate indicates the percentage of sessions that did not experience any crashes. It is calculated as follows:
-
-```
-Crash-Free Rate = (Total Sessions - Crashed Sessions) / Total Sessions * 100
-```
-
-Where:
-
-- **Total Sessions**: The total number of sessions recorded.
-- **Crashed Sessions**: The number of sessions that experienced a crash.
-- **Crash-Free Rate**: The percentage of sessions that did not crash.
-
-The crash-free rate is a key metric to monitor the stability of your app. A higher crash-free rate indicates a more stable app, while a lower rate suggests that users are experiencing issues that need to be addressed.
-
-### Perceived Crash Rate
-
-The perceived crash rate indicates the percentage of sessions that experienced a crash when the user was actively using the app. It is calculated as follows:
-
-```
-Perceived Crash Rate = Crashed Sessions When App Is in Foreground / Total Sessions * 100
-```
-
-Where:
-
-- **Crashed Sessions When App Is in Foreground**: The number of sessions that experienced a crash while the app was actively being used by the user.
-- **Total Sessions**: The total number of sessions recorded.
-
-## Get a UI Snapshot
-
-A screenshot of the app is captured when an app crashes. This feature is enabled by default and can be
-remotely configured on the dashboard under the "Apps" section. The following configuration options are available:
-
-- `Capture Screenshot on Crash` — Enables or disables the automatic screenshot capture on crash. It is enabled by default.
-- `Mask Sensitive Information` — Masks sensitive information in the screenshot by blurring text fields and
-  password fields. It is disabled by default.
-
-Note that on iOS a screenshot cannot be captured reliably at the time of crash, it instead captures a layout snapshot.
-
-## Crash Grouping
-
-Crashes are grouped to help you identify the most common issues in your app. Each group represents a unique crash, identified by the exception type and the stack trace. A percentage contribution of each crash group is also shown on the dashboard to get a quick idea about the impact of the issue.
-
-### Android
-
-Exceptions in Android (JVM) are grouped based on the exception type and the stack trace. Crashes with the same type and the same method name and file name from the _first frame_ of the stack trace are grouped together.
-
-For example, for the following crash, the exception type is `java.lang.NullPointerException`, the method name of the first frame is `onCreate` and the file name is `MainActivity.kt`:
-
-```
-java.lang.NullPointerException: Attempt to invoke virtual method 'void com.example.app.MainActivity.onCreate(android.os.Bundle)' on a null object reference
-    at com.example.app.MainActivity.onCreate(MainActivity.kt:10)
-    at android.app.Activity.performCreate(Activity.java:8000)
-    ...
-```
-
-### iOS
-
-Exceptions in iOS (Objective-C/Swift) are grouped based on the exception signal and the stack trace. Crashes with the same signal, for example, `SIGABRT`, the same method name and file name from the _first frame belonging to the application binary_ are grouped together.
-
-For example, for the following crash, the signal is `SIGABRT`, the method name of the first relevant frame is `-viewDidLoad` and the file name is `MainViewController.m`:
-
-```
-Exception Type: EXC_CRASH (SIGABRT)
-Exception Codes: 0x0000000000000000, 0x0000000000000000
-Crashed Thread: 0
-
-Application Specific Information:
-*** Terminating app due to uncaught exception 'NSInvalidArgumentException', reason: '-[MainViewController viewDidLoad]: unrecognized selector sent to instance 0x600000e2c0c0'
-
-First Throw Call Stack:
-(
-    0   CoreFoundation                      0x000000010a2f3b6c __exceptionPreprocess + 220
-    1   libobjc.A.dylib                     0x0000000109d8e5e1 objc_exception_throw + 48
-    2   MainViewController.m                0x000000010a2f3b6c -[MainViewController viewDidLoad] + 0
-    ...
-)
-```
-
-### Flutter
-
-In Flutter, crashes are grouped based on the exception type and the stack trace. Crashes with the same exception type
-and the same method name and file name from the _first frame_ of the stack trace are grouped together.
-
-For example, for the following crash, the exception type is `FlutterError`, the method name of the first frame
-is `_incrementCounter` and the file name is `main.dart`:
-
-```
-FlutterError (setState() called after dispose(): _MyHomePageState#12345(ticker: _TickerModeEnabled))
-  at _MyHomePageState._incrementCounter (package:my_app/main.dart:42:9)
-  at _MyHomePageState.build (package:my_app/main.dart:30:5)
-  at StatelessElement.build (package:flutter/src/widgets/framework.dart:4620:27)
-  ...
-```
-
-### React Native
-
-In React Native, JS exceptions are grouped based on the error message and the stack trace. Crashes with the same
-message and the same function name and file name from the _first frame_ of the stack trace are grouped together.
-
-
-## API Reference
-
-### Symbolicate Stacktrace
-
-Stack traces from crashes may be obfuscated or contain memory addresses. To convert the stack traces to a human-readable format, you need to upload the mapping or symbol files based on the platform.
-
-#### Android
+## Android
 
 If you are using ProGuard or R8 to obfuscate your code, you need to upload the mapping files to de-obfuscate the stack traces. Measure's Android Gradle Plugin automatically uploads the ProGuard/R8 mapping file to the Measure server when you run an `assemble` gradle task.
 
-#### iOS
+## iOS
 
 To symbolicate stack traces for iOS, you need to upload the dSYM files to map the memory addresses to a human-readable format. There are two ways to upload dSYM files:
 
-##### Using Shell Script
+### Using Shell Script
 
 Run the [`upload_dsym_manual.sh`](../../ios/Scripts/upload_dsym_manual.sh) script to manually upload dSYM files after building your app.
 
@@ -149,7 +29,7 @@ Run the [`upload_dsym_manual.sh`](../../ios/Scripts/upload_dsym_manual.sh) scrip
 ./upload_dsym_manual.sh <path_to_dsym_folder> <api_url> <api_key> <version_name> <version_code> <app_unique_id> <build_size> [custom_headers]
 ```
 
-##### Using XCArchive
+### Using XCArchive
 
 Run the [`upload_dsym_xcarchive.sh`](../../ios/Scripts/upload_dsym_xcarchive.sh) script to automatically upload dSYMs using `xcarchive` file. This script automatically extracts all necessary build metadata (version, build size, dSYM paths, etc.) directly from the generated .xcarchive. the `ipa` file is necessary to generate the build size info. If the ipa_path is not provided, the script uses the application binary to generate build size.
 
@@ -160,18 +40,18 @@ Run the [`upload_dsym_xcarchive.sh`](../../ios/Scripts/upload_dsym_xcarchive.sh)
 > [!CAUTION]  
 > If you are using Build Phases to upload DSYMs, make sure to **upload DSYMs only for release builds**.
 
-#### React Native
+## React Native
 
 React Native apps require sourcemaps to symbolicate JavaScript stack traces. The setup differs slightly between Android and iOS.
 
-##### Android
+### Android
 
 The Measure Android Gradle Plugin automatically captures and uploads the composed JavaScript sourcemap when you run `assembleRelease` or `bundleRelease`. No additional steps are required.
 
 > [!IMPORTANT]
 > Always use the sourcemap from the Gradle build output. Generating the sourcemap separately (e.g. via `npx react-native bundle`) produces a different bundle than what is embedded in the APK and will result in incorrect symbolication.
 
-##### iOS
+### iOS
 
 Add the `upload_build_phase.sh` script as a Run Script Build Phase in Xcode. It automatically uploads dSYM files and JavaScript sourcemaps in one step.
 
@@ -206,7 +86,7 @@ Replace the API URL and API key with your values from the Measure dashboard.
 > fi
 > ```
 
-##### Over the Air Update symbolication
+### Over the Air Update Symbolication
 
 Over-The-Air (OTA) updates let you ship JavaScript changes without a full native app release. When a crash occurs in a patched bundle, Measure needs the corresponding sourcemap to symbolicate the JavaScript stack trace.
 
@@ -216,7 +96,7 @@ The patch ID can be set in two ways:
 
 * **Manual** — You generate the patch ID yourself and pass it to `MeasureConfig`.
 
-###### Automated - Metro plugin (Expo)
+#### Automated - Metro Plugin (Expo)
 
 With this approach you only need to update the Metro config, the patch ID is injected into the bundle at build time, with no changes to your SDK initialisation code.
 
@@ -241,7 +121,7 @@ The export produces `.hbc.map` files under `dist/_expo/static/js/ios/` and `dist
 > [!IMPORTANT]
 > Always upload the sourcemaps from the same `expo export` run that produced the bundle. Generating the sourcemap separately produces a different bundle and will result in incorrect symbolication.
 
-###### Manual
+#### Manual
 
 Use this approach when you manage the OTA update yourself and do not use the Expo/Metro build pipeline.
 
@@ -282,7 +162,7 @@ npx react-native bundle \
   --sourcemap-output main.jsbundle.map
 ```
 
-###### Upload the Sourcemap
+#### Upload the Sourcemap
 
 Run `upload_patch.sh` after deploying each OTA update. The script is included with the SDK package.
 
@@ -309,7 +189,7 @@ Use this when you set `patchId` manually in `MeasureConfig`.
   "your-patch-uuid"
 ```
 
-#### Flutter
+## Flutter
 
 When obfuscating your Flutter app using --obfuscate and --split-debug-info options:
 
@@ -317,29 +197,3 @@ When obfuscating your Flutter app using --obfuscate and --split-debug-info optio
 * **iOS** — You need to upload the dSYM files as described in the iOS section above. After building
   with `flutter build ipa`, run the `upload_dsyms.sh` script using the IPA path and the path to the dSYM folder
   (typically under _/build/ios/Release-iphoneos/_)
-
-## How It Works
-
-### Android
-
-When an unhandled exception occurs, it is intercepted by Measure using an `UncaughtExceptionHandler`. The exception is then parsed and sent as an `exception` event. Crashes are attempted to be sent immediately, but if the app is terminated before the event is sent, it is stored locally and sent on the next app launch.
-
-### iOS
-
-We rely on [PLCrashReporter](https://github.com/microsoft/plcrashreporter) to detect crashes. When a crash occurs, a crash report is generated and stored locally on the device. On the next launch, the crash report is prepared and sent to the server.
-
-### Flutter
-
-When the SDK is initialized, it automatically sets up both `FlutterError.onError`
-and `PlatformDispatcher.instance.onError` callbacks. Any errors are forwarded to the server. Internally, we rely
-on [stack_trace](https://pub.dev/packages/stack_trace) to parse the stack trace and send it as an `exception` event. 
-
-All crashes captured by the native Android or iOS SDK are also tracked for Flutter apps.
-
-### React Native
-
-When the SDK is initialized, it automatically installs a global error handler via React Native's `ErrorUtils`
-and sets up an unhandled Promise rejection tracker. Any unhandled JS exceptions and promise rejections are captured
-and sent as `exception` events.
-
-All crashes captured by the underlying native Android or iOS SDKs are also tracked for React Native apps.
