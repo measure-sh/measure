@@ -4,6 +4,7 @@ package mcp
 
 import (
 	"backend/agent/agent"
+	"backend/agent/server"
 	"backend/libs/authsession"
 	"bytes"
 	"context"
@@ -15,6 +16,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -186,7 +188,9 @@ func TestMCPWithUserIDContext(t *testing.T) {
 // ==========================================================================
 
 func TestMCPOAuthMetadata(t *testing.T) {
-	deps.Config.AgentOrigin = "https://api.example.com"
+	setConfig(t, func(c *server.Config) {
+		c.AgentOrigin = "https://api.example.com"
+	})
 
 	c, w := newTestGinContext("GET", "/.well-known/oauth-authorization-server", nil)
 	h.MCPOAuthMetadata(c)
@@ -396,8 +400,10 @@ func TestMCPAuthorize(t *testing.T) {
 
 	t.Run("missing code_challenge returns 400", func(t *testing.T) {
 		cleanupAll(ctx, t)
-		deps.Config.OAuthGitHubKey = "test_gh_key"
-		deps.Config.AgentOrigin = "https://api.example.com"
+		setConfig(t, func(c *server.Config) {
+			c.OAuthGitHubKey = "test_gh_key"
+			c.AgentOrigin = "https://api.example.com"
+		})
 		seedMCPClient(ctx, t, "client_pkce", "MyApp", []string{"http://localhost:9999/cb"}, "secret")
 
 		params := url.Values{
@@ -417,7 +423,9 @@ func TestMCPAuthorize(t *testing.T) {
 
 	t.Run("no provider redirects to login page", func(t *testing.T) {
 		cleanupAll(ctx, t)
-		deps.Config.SiteOrigin = "https://app.example.com"
+		setConfig(t, func(c *server.Config) {
+			c.SiteOrigin = "https://app.example.com"
+		})
 
 		params := url.Values{
 			"response_type":  {"code"},
@@ -470,9 +478,11 @@ func TestMCPAuthorize(t *testing.T) {
 
 	t.Run("provider=github redirects to GitHub OAuth with unified callback and mcp_ prefix", func(t *testing.T) {
 		cleanupAll(ctx, t)
-		deps.Config.OAuthGitHubKey = "test_gh_key"
-		deps.Config.AgentOrigin = "https://api.example.com"
-		deps.Config.SiteOrigin = "https://app.example.com"
+		setConfig(t, func(c *server.Config) {
+			c.OAuthGitHubKey = "test_gh_key"
+			c.AgentOrigin = "https://api.example.com"
+			c.SiteOrigin = "https://app.example.com"
+		})
 		seedMCPClient(ctx, t, "client2", "MyApp", []string{"http://localhost:9999/cb"}, "secret")
 
 		params := url.Values{
@@ -515,10 +525,12 @@ func TestMCPAuthorize(t *testing.T) {
 
 	t.Run("provider=google redirects to Google OAuth with unified callback and mcp_ prefix", func(t *testing.T) {
 		cleanupAll(ctx, t)
-		deps.Config.OAuthGoogleKey = "test_google_key"
-		deps.Config.OAuthGoogleSecret = "test_google_secret"
-		deps.Config.AgentOrigin = "https://api.example.com"
-		deps.Config.SiteOrigin = "https://app.example.com"
+		setConfig(t, func(c *server.Config) {
+			c.OAuthGoogleKey = "test_google_key"
+			c.OAuthGoogleSecret = "test_google_secret"
+			c.AgentOrigin = "https://api.example.com"
+			c.SiteOrigin = "https://app.example.com"
+		})
 		seedMCPClient(ctx, t, "client_google", "MyApp", []string{"http://localhost:9999/cb"}, "secret")
 
 		params := url.Values{
@@ -1540,9 +1552,9 @@ func TestMCPAskQuestionAgentDisabled(t *testing.T) {
 	rawToken := "msr_agentofftoken"
 	seedMCPAccessToken(ctx, t, rawToken, userID.String(), "client1", time.Now().Add(90*24*time.Hour))
 
-	orig := deps.Config.AgentEnabled
-	deps.Config.AgentEnabled = false
-	t.Cleanup(func() { deps.Config.AgentEnabled = orig })
+	setConfig(t, func(c *server.Config) {
+		c.AgentEnabled = false
+	})
 
 	resp := callMCPTool(t, rawToken, "ask_question", map[string]any{
 		"app_ids":  []string{uuid.New().String()},
@@ -2213,6 +2225,76 @@ func TestMCPGetFilters(t *testing.T) {
 		})
 		if !isToolError(resp) {
 			t.Error("want tool error when span and error_types are both set")
+		}
+	})
+
+	t.Run("builds and span are mutually exclusive", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "filtbldmutex@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "filtbldmutex team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := "msr_filtbldmutextok"
+		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+
+		resp := callMCPTool(t, rawToken, "get_filters", map[string]any{
+			"app_id": appID.String(),
+			"builds": true,
+			"span":   true,
+		})
+		if !isToolError(resp) {
+			t.Error("want tool error when builds and span are both set")
+		}
+	})
+
+	t.Run("builds source lists versions from build mappings", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "filtbld@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "filtbld team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := "msr_filtbldtok"
+		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+
+		// no event data seeded: build versions must surface regardless
+		now := time.Now().UTC()
+		seedBuildMapping(ctx, t, uuid.New().String(), appID.String(), "1.0.1", "1", "proguard", now.Add(-2*time.Hour))
+		seedBuildMapping(ctx, t, uuid.New().String(), appID.String(), "1.0.1", "1", "elf_debug", now.Add(-2*time.Hour))
+		seedBuildMapping(ctx, t, uuid.New().String(), appID.String(), "1.0.2", "2", "proguard", now.Add(-time.Hour))
+
+		resp := callMCPTool(t, rawToken, "get_filters", map[string]any{
+			"app_id": appID.String(),
+			"builds": true,
+		})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+
+		var fl struct {
+			Versions     []string `json:"versions"`
+			VersionCodes []string `json:"version_codes"`
+			OsNames      []string `json:"os_names"`
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &fl); err != nil {
+			t.Fatalf("parse filters response: %v", err)
+		}
+
+		wantVersions := []string{"1.0.2", "1.0.1"}
+		wantCodes := []string{"2", "1"}
+		if !reflect.DeepEqual(fl.Versions, wantVersions) {
+			t.Errorf("want versions %v, got %v", wantVersions, fl.Versions)
+		}
+		if !reflect.DeepEqual(fl.VersionCodes, wantCodes) {
+			t.Errorf("want version codes %v, got %v", wantCodes, fl.VersionCodes)
+		}
+		if len(fl.OsNames) != 0 {
+			t.Errorf("want no os_names for builds source, got %v", fl.OsNames)
 		}
 	})
 

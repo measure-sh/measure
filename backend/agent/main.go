@@ -170,9 +170,12 @@ func main() {
 		c.String(http.StatusOK, "pong")
 	})
 
-	// Attachment URLs in tool results point at this service's origin, so it
-	// serves the same read proxy as api.
-	r.GET("/proxy/attachments", proxyAttachment(deps))
+	// Attachment URLs in tool results point at this service's origin only
+	// outside cloud; in cloud PreSignURL returns direct GCS signed URLs, so
+	// the read proxy is registered for self-host only.
+	if !config.IsCloud() {
+		r.GET("/proxy/attachments", proxyAttachment(deps))
+	}
 
 	// MCP OAuth 2.0 Authorization Server endpoints
 	r.GET("/.well-known/oauth-authorization-server", mcpH.MCPOAuthMetadata)

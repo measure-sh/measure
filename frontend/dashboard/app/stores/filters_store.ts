@@ -32,6 +32,7 @@ export type FilterConfig = {
   filterSource: FilterSource;
   showNoData: boolean;
   showNotOnboarded: boolean;
+  showNoBuilds: boolean;
   showAppSelector: boolean;
   showDates: boolean;
   showAppVersions: boolean;
@@ -488,40 +489,25 @@ function computeFilters(state: FiltersStoreState): Filters {
 
   const config = state.config;
 
-  let ready = false;
-  if (config.showNoData && config.showNotOnboarded) {
-    ready =
-      state.appsApiStatus === AppsApiStatus.Success &&
-      ((config.filterSource === FilterSource.Spans &&
-        state.rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
-        config.filterSource !== FilterSource.Spans) &&
-      state.filtersApiStatus === FiltersApiStatus.Success;
-  } else if (config.showNoData) {
-    ready =
-      state.appsApiStatus === AppsApiStatus.Success &&
-      ((config.filterSource === FilterSource.Spans &&
-        state.rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
-        config.filterSource !== FilterSource.Spans) &&
-      (state.filtersApiStatus === FiltersApiStatus.Success ||
-        state.filtersApiStatus === FiltersApiStatus.NotOnboarded);
-  } else if (config.showNotOnboarded) {
-    ready =
-      state.appsApiStatus === AppsApiStatus.Success &&
-      ((config.filterSource === FilterSource.Spans &&
-        state.rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
-        config.filterSource !== FilterSource.Spans) &&
-      (state.filtersApiStatus === FiltersApiStatus.Success ||
-        state.filtersApiStatus === FiltersApiStatus.NoData);
-  } else {
-    ready =
-      state.appsApiStatus === AppsApiStatus.Success &&
-      ((config.filterSource === FilterSource.Spans &&
-        state.rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
-        config.filterSource !== FilterSource.Spans) &&
-      (state.filtersApiStatus === FiltersApiStatus.Success ||
-        state.filtersApiStatus === FiltersApiStatus.NoData ||
-        state.filtersApiStatus === FiltersApiStatus.NotOnboarded);
-  }
+  // A filter options status counts toward ready when it is Success, or an
+  // empty state the page does not surface (its show* flag is false).
+  // Surfaced empty states hold ready back so the page renders the
+  // explanation instead of an empty view.
+  const filtersReady =
+    state.filtersApiStatus === FiltersApiStatus.Success ||
+    (!config.showNoData &&
+      state.filtersApiStatus === FiltersApiStatus.NoData) ||
+    (!config.showNotOnboarded &&
+      state.filtersApiStatus === FiltersApiStatus.NotOnboarded) ||
+    (!config.showNoBuilds &&
+      state.filtersApiStatus === FiltersApiStatus.NoBuilds);
+
+  const ready =
+    state.appsApiStatus === AppsApiStatus.Success &&
+    ((config.filterSource === FilterSource.Spans &&
+      state.rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
+      config.filterSource !== FilterSource.Spans) &&
+    filtersReady;
 
   const updatedUrlFilters: URLFilters = {
     appId: state.selectedApp.id,

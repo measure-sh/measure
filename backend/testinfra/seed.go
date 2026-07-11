@@ -150,6 +150,22 @@ func (h *TestHelper) SeedApp(ctx context.Context, t *testing.T, appID, teamID, a
 	}
 }
 
+// SeedBuildMapping inserts a single build mapping file row.
+func (h *TestHelper) SeedBuildMapping(ctx context.Context, t *testing.T, mappingID, appID, versionName, versionCode, mappingType string, lastUpdated time.Time) {
+	t.Helper()
+
+	_, err := h.PgPool.Exec(ctx,
+		`INSERT INTO build_mappings (id, app_id, version_name, version_code, mapping_type, key, location, fnv1_hash, file_size, last_updated)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+		mappingID, appID, versionName, versionCode, mappingType,
+		fmt.Sprintf("test/%s", mappingID),
+		fmt.Sprintf("http://minio.test:9000/msr-symbols-test/test/%s", mappingID),
+		"0xtesthash", 100, lastUpdated)
+	if err != nil {
+		t.Fatalf("seed build mapping: %v", err)
+	}
+}
+
 func (h *TestHelper) SeedAPIKey(
 	ctx context.Context,
 	t *testing.T,

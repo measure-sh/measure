@@ -27,6 +27,7 @@ import {
   BugReportsOverviewApiStatus,
   BugReportsOverviewPlotApiStatus,
   BugReportStatus,
+  BuildsApiStatus,
   buildShortFiltersPostBody,
   changeAppApiKeyFromServer,
   changeAppNameFromServer,
@@ -37,6 +38,7 @@ import {
   defaultFilters,
   DowngradeToFreeApiStatus,
   downgradeToFreeFromServer,
+  downloadBuild,
   UndoDowngradeApiStatus,
   undoDowngradeFromServer,
   fetchAlertsOverviewFromServer,
@@ -51,6 +53,7 @@ import {
   fetchBugReportFromServer,
   fetchBugReportsOverviewFromServer,
   fetchBugReportsOverviewPlotFromServer,
+  fetchBuildsFromServer,
   fetchErrorGroupCommonPathFromServer,
   fetchErrorsDetailsFromServer,
   fetchErrorsDetailsPlotFromServer,
@@ -459,6 +462,17 @@ describe("fetchFiltersFromServer", () => {
     expect(result.status).toBe(FiltersApiStatus.Success);
   });
 
+  it("returns NoBuilds for the Builds source when the app has no builds", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse({ versions: null }),
+    );
+    const result = await fetchFiltersFromServer(
+      onboardedApp,
+      FilterSource.Builds,
+    );
+    expect(result.status).toBe(FiltersApiStatus.NoBuilds);
+  });
+
   it("returns NoData when the app is onboarded but has no versions", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ versions: null }),
@@ -856,6 +870,83 @@ describe("sessions, bug reports, alerts", () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
     await fetchAlertsOverviewFromServer(makeFilters(), 20, 0);
     expect(lastFetchUrl()).toContain("/api/apps/app-a/alerts");
+  });
+
+  it("fetchBuildsFromServer hits /builds with filters and pagination", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await fetchBuildsFromServer(makeFilters(), 10, 20);
+    const url = lastFetchUrl();
+    expect(url).toContain("/api/apps/app-a/builds");
+    expect(url).toContain("filter_short_code=code-123");
+    expect(url).toContain("from=");
+    expect(url).toContain("to=");
+    expect(url).toContain("limit=10");
+    expect(url).toContain("offset=20");
+  });
+
+  it("fetchBuildsFromServer returns Error on a non-ok response", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(errorResponse());
+    const result = await fetchBuildsFromServer(makeFilters(), 10, 0);
+    expect(result.status).toBe(BuildsApiStatus.Error);
+  });
+
+  it("fetchBuildsFromServer returns Error when the request throws", async () => {
+    mockApiClientFetch.mockRejectedValueOnce(new Error("boom"));
+    const result = await fetchBuildsFromServer(makeFilters(), 10, 0);
+    expect(result.status).toBe(BuildsApiStatus.Error);
+  });
+});
+
+// ========================================================================
+// downloadBuild
+// ========================================================================
+describe("downloadBuild", () => {
+  const originalLocation = window.location;
+  const assignMock = jest.fn();
+
+  beforeAll(() => {
+    delete (window as any).location;
+    (window as any).location = {
+      origin: originalLocation.origin,
+      href: originalLocation.href,
+      assign: assignMock,
+    };
+  });
+
+  afterAll(() => {
+    (window as any).location = originalLocation;
+  });
+
+  it("refreshes the session through apiClient before navigating", async () => {
+    assignMock.mockClear();
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
+    await downloadBuild("/api/apps/app-a/builds/b-1/download");
+    expect(lastFetchUrl()).toBe("/api/auth/session");
+    expect(assignMock).toHaveBeenCalledWith(
+      "/api/apps/app-a/builds/b-1/download",
+    );
+  });
+
+  it("navigates even when the session touch fails", async () => {
+    // A thrown probe is a network failure, not an auth failure: the
+    // session state is unknown rather than known-dead, so the download
+    // is still attempted; the worst case is a retryable failure.
+    assignMock.mockClear();
+    mockApiClientFetch.mockRejectedValueOnce(new Error("offline"));
+    await downloadBuild("/api/apps/app-a/builds/b-1/download");
+    expect(assignMock).toHaveBeenCalledWith(
+      "/api/apps/app-a/builds/b-1/download",
+    );
+  });
+
+  it("does not navigate when the session is dead", async () => {
+    // A non-ok probe means the refresh failed too: apiClient has already
+    // started the redirect to login, and a hard navigation would override
+    // it and land the browser on the api's raw 401 body.
+    assignMock.mockClear();
+    mockApiClientFetch.mockResolvedValueOnce(errorResponse(401));
+    await downloadBuild("/api/apps/app-a/builds/b-1/download");
+    expect(assignMock).not.toHaveBeenCalled();
   });
 });
 

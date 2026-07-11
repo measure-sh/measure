@@ -579,7 +579,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_filters
 		newTool(&mcpsdk.Tool{
 			Name:        "get_filters",
-			Description: "Get available filter options (versions, OS, countries, devices, etc.) for an app. Optionally scope to errors (error_types) or spans (span).",
+			Description: "Get available filter options (versions, OS, countries, devices, etc.) for an app. Events, spans and builds are separate sources: options derive from events by default, from span data with span. The builds source lists versions only, taken from uploaded build mappings. error_types narrows the event-derived options to errors/ANRs.",
 			InputSchema: mcpMustInferErrorFilterSchema[mcpGetFiltersInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFiltersInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetFilters(ctx, in)
@@ -723,7 +723,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_span_instances
 		newTool(&mcpsdk.Tool{
 			Name:        "get_span_instances",
-			Description: "Get span instances for a root span name. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
+			Description: "Get span instances for a root span name. Covers all app versions unless versions/version_codes narrow it; get_filters with span=true lists the versions seen in span data.",
 			InputSchema: mcpMustInferSchema[mcpGetSpanInstancesInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSpanInstancesInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSpanInstances(ctx, in)
@@ -732,7 +732,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_span_metrics_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_span_metrics_over_time",
-			Description: "Get p50/p90/p95/p99 duration metrics over time for a span name. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
+			Description: "Get p50/p90/p95/p99 duration metrics over time for a span name. Covers all app versions unless versions/version_codes narrow it; get_filters with span=true lists the versions seen in span data.",
 			InputSchema: mcpMustInferSchema[mcpGetSpanMetricsOverTimeInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSpanMetricsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSpanMetricsOverTime(ctx, in)
@@ -918,8 +918,9 @@ type mcpErrorFilters struct {
 type mcpListAppsInput struct{}
 type mcpGetFiltersInput struct {
 	AppID      string   `json:"app_id" jsonschema:"UUID of the app to query"`
-	ErrorTypes []string `json:"error_types,omitempty" jsonschema:"Scope filter options to errors of these types: 'error' (exceptions) and/or 'anr'. Mutually exclusive with span. Omit for all data."`
-	Span       bool     `json:"span,omitempty" jsonschema:"Scope filter options to spans"`
+	ErrorTypes []string `json:"error_types,omitempty" jsonschema:"Narrow the event-derived options to errors of these types: 'error' (exceptions) and/or 'anr'. Mutually exclusive with span and builds. Omitted, options cover all events, not only errors"`
+	Span       bool     `json:"span,omitempty" jsonschema:"Scope filter options to span data. Required for span-relevant options; omitted, options derive from event data, not spans. Mutually exclusive with error_types and builds"`
+	Builds     bool     `json:"builds,omitempty" jsonschema:"Scope filter options to uploaded builds. Required for build-relevant versions; omitted, versions derive from event data, not build mappings. Mutually exclusive with span and error_types"`
 }
 type mcpGetMetricsInput struct {
 	mcpCommonFilters
@@ -1362,6 +1363,9 @@ func (c *Config) mcpGetFilters(ctx context.Context, in mcpGetFiltersInput) (*mcp
 	if in.Span && len(in.ErrorTypes) > 0 {
 		return nil, nil, fmt.Errorf("span and error_types are mutually exclusive")
 	}
+	if in.Builds && (in.Span || len(in.ErrorTypes) > 0) {
+		return nil, nil, fmt.Errorf("builds is mutually exclusive with span and error_types")
+	}
 	if in.Span {
 		af.Span = true
 	}
@@ -1376,7 +1380,16 @@ func (c *Config) mcpGetFilters(ctx context.Context, in mcpGetFiltersInput) (*mcp
 	filterCtx := ambient.WithTeamId(ctx, app.TeamId)
 
 	var fl filter.FilterList
-	if err := af.GetGenericFilters(filterCtx, deps.RchPool, &fl, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode); err != nil {
+
+	// The builds scope reads version options from uploaded build mappings;
+	// every other scope derives its options from event data.
+	if in.Builds {
+		err = af.GetBuildFilters(ctx, deps.PgPool, &fl)
+	} else {
+		err = af.GetGenericFilters(filterCtx, deps.RchPool, &fl, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode)
+	}
+
+	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get filters: %v", err)
 	}
 	data, _ := json.Marshal(fl)

@@ -56,6 +56,7 @@ const baseConfig = {
   filterSource: FilterSource.Errors,
   showNoData: false,
   showNotOnboarded: false,
+  showNoBuilds: false,
   showAppSelector: true,
   showDates: true,
   showAppVersions: true,
@@ -714,6 +715,24 @@ describe("computed filters object", () => {
     store.getState().setSelectedApp(makeApp("a"));
     store.getState().setFilterOptions(null, FiltersApiStatus.NoData);
     expect(store.getState().filters.ready).toBe(false);
+  });
+
+  it("filters.ready is false on NoBuilds when showNoBuilds is set (filters component renders the NoBuilds UI)", () => {
+    const store = createFiltersStore();
+    store.getState().setConfig({ ...baseConfig, showNoBuilds: true });
+    store.getState().setApps([makeApp("a")], AppsApiStatus.Success);
+    store.getState().setSelectedApp(makeApp("a"));
+    store.getState().setFilterOptions(null, FiltersApiStatus.NoBuilds);
+    expect(store.getState().filters.ready).toBe(false);
+  });
+
+  it("filters.ready is true on NoBuilds when showNoBuilds is not set", () => {
+    const store = createFiltersStore();
+    store.getState().setConfig(baseConfig);
+    store.getState().setApps([makeApp("a")], AppsApiStatus.Success);
+    store.getState().setSelectedApp(makeApp("a"));
+    store.getState().setFilterOptions(null, FiltersApiStatus.NoBuilds);
+    expect(store.getState().filters.ready).toBe(true);
   });
 
   it("filters.ready is false on NoData when showNoData is set (filters component renders the NoData UI)", () => {

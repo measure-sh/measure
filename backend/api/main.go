@@ -157,6 +157,10 @@ func main() {
 		apps.GET(":id/thresholdPrefs", hdl.GetAppThresholdPrefs)
 		apps.PATCH(":id/thresholdPrefs", hdl.UpdateAppThresholdPrefs)
 
+		// builds
+		apps.GET(":id/builds", hdl.GetBuilds)
+		apps.GET(":id/builds/:buildId/download", hdl.DownloadBuild)
+
 		// app management
 		apps.GET(":id/config", hdl.GetConfig)
 		apps.PATCH(":id/config", hdl.PatchConfig)

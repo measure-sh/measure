@@ -5,6 +5,7 @@ import React from "react";
 
 import {
   AppsApiStatus,
+  BuildsApiStatus,
   ErrorGroupCommonPathApiStatus,
   ErrorsDetailsApiStatus,
   ErrorsDetailsPlotApiStatus,
@@ -21,6 +22,7 @@ jest.mock("@/app/api/api_calls", () => {
   return {
     ...actual,
     fetchAppsFromServer: jest.fn(),
+    fetchBuildsFromServer: jest.fn(),
     fetchFiltersFromServer: jest.fn(),
     fetchRootSpanNamesFromServer: jest.fn(),
     fetchErrorsOverviewFromServer: jest.fn(),
@@ -54,6 +56,7 @@ jest.mock("@/app/api/api_client", () => ({
 
 import {
   fetchAppsFromServer,
+  fetchBuildsFromServer,
   fetchErrorGroupCommonPathFromServer,
   fetchErrorsDetailsFromServer,
   fetchErrorsDetailsPlotFromServer,
@@ -68,6 +71,7 @@ import {
   fetchCurrentSession,
   signOut,
   useAppsQuery,
+  useBuildsQuery,
   useErrorGroupCommonPathQuery,
   useErrorsDetailsPlotQuery,
   useErrorsDetailsQuery,
@@ -80,6 +84,7 @@ import {
 } from "@/app/query/hooks";
 
 const mockFetchApps = fetchAppsFromServer as jest.Mock;
+const mockFetchBuilds = fetchBuildsFromServer as jest.Mock;
 const mockFetchFilters = fetchFiltersFromServer as jest.Mock;
 const mockFetchRootSpanNames = fetchRootSpanNamesFromServer as jest.Mock;
 const mockFetchErrorsOverview = fetchErrorsOverviewFromServer as jest.Mock;
@@ -209,6 +214,39 @@ describe("useFilterOptionsQuery", () => {
       data: null,
     });
     expect(mockFetchFilters).not.toHaveBeenCalled();
+  });
+
+  it("fetches for the Builds source even when the app is never onboarded", async () => {
+    mockFetchFilters.mockResolvedValueOnce({
+      status: FiltersApiStatus.Success,
+      data: {
+        versions: [{ name: "1.0.2", code: "2" }],
+        os_versions: null,
+        countries: null,
+        network_providers: null,
+        network_types: null,
+        network_generations: null,
+        locales: null,
+        device_manufacturers: null,
+        device_names: null,
+        ud_attrs: null,
+      },
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useFilterOptionsQuery(notOnboardedApp, FilterSource.Builds),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
+    expect(mockFetchFilters).toHaveBeenCalledWith(
+      notOnboardedApp,
+      FilterSource.Builds,
+    );
+    expect(result.current.data?.status).toBe(FiltersApiStatus.Success);
+    expect(result.current.data?.data?.versions).toHaveLength(1);
   });
 
   it("fetches and parses on Success when app is onboarded", async () => {
@@ -527,6 +565,52 @@ describe("useErrorsOverviewQuery", () => {
     await waitFor(() => expect(result.current.status).toBe("error"));
     expect((result.current.error as Error).message).toMatch(
       /Failed to fetch errors overview/,
+    );
+  });
+});
+
+describe("useBuildsQuery", () => {
+  it("is disabled when filters.ready is false", () => {
+    mockFiltersState = { ready: false };
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useBuildsQuery(0), { wrapper });
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchBuilds).not.toHaveBeenCalled();
+  });
+
+  it("returns success with data once the fetch resolves", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchBuilds.mockResolvedValueOnce({
+      status: BuildsApiStatus.Success,
+      data: {
+        results: [{ id: "b1" }],
+        meta: { next: false, previous: false },
+      },
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useBuildsQuery(20), { wrapper });
+
+    expect(result.current.status).toBe("pending");
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
+    expect(mockFetchBuilds).toHaveBeenCalledWith(mockFiltersState, 10, 20);
+    expect((result.current.data as any).results[0].id).toBe("b1");
+  });
+
+  it("throws on Error status", async () => {
+    mockFiltersState = readyFilters();
+    mockFetchBuilds.mockResolvedValueOnce({
+      status: BuildsApiStatus.Error,
+      data: null,
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useBuildsQuery(0), { wrapper });
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect((result.current.error as Error).message).toMatch(
+      /Failed to fetch builds/,
     );
   });
 });
