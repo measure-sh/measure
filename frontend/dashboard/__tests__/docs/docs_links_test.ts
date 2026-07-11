@@ -76,14 +76,31 @@ function githubSlugs(headings: string[]): Set<string> {
 }
 
 /**
+ * Strip HTML tags iteratively until the string stops changing, like
+ * stripHtmlTags in scripts/copy_docs.js: a single pass leaves a partial
+ * tag behind for nested input like `<scr<script>ipt>`. The regex always
+ * consumes at least 3 chars per match, so the loop terminates.
+ */
+function stripHtmlTags(input: string): string {
+  let out = input;
+  for (let i = 0; i < 50; i++) {
+    const next = out.replace(/<[^>]+>/g, "");
+    if (next === out) {
+      return next;
+    }
+    out = next;
+  }
+  return out;
+}
+
+/**
  * Reduce a heading line to the text GitHub slugs: inline code keeps its
  * text, links keep their label, emphasis markers and HTML tags drop.
  */
 function headingText(line: string): string {
-  return line
-    .replace(/`([^`]*)`/g, "$1")
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/<[^>]+>/g, "")
+  return stripHtmlTags(
+    line.replace(/`([^`]*)`/g, "$1").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1"),
+  )
     .replace(/\*/g, "")
     .replace(/\b_+|_+\b/g, "");
 }
