@@ -5,12 +5,16 @@ on:
     paths:
       - .github/workflows/dashboard.yml
       - "frontend/dashboard/**"
+      # The dashboard renders the docs: its prebuild copies docs/ into the
+      # site and several test suites run against that content
+      - "docs/**"
   push:
     branches:
       - "main"
     paths:
       - .github/workflows/dashboard.yml
       - "frontend/dashboard/**"
+      - "docs/**"
     tags:
       - "v*"
 
