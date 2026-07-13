@@ -18,7 +18,7 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface SignalStore {
-    fun <T> store(event: Event<T>, sessionAnrTimeMs: Long? = null)
+    fun <T> store(event: Event<T>)
     fun store(spanData: SpanData)
     fun flush()
 }
@@ -66,7 +66,7 @@ internal class SignalStoreImpl(
         }
     }
 
-    override fun <T> store(event: Event<T>, sessionAnrTimeMs: Long?) {
+    override fun <T> store(event: Event<T>) {
         try {
             val eventEntity = event.toEventEntity()
             if (eventEntity == null) {
@@ -88,7 +88,7 @@ internal class SignalStoreImpl(
 
             when {
                 collectTimeline -> {
-                    val success = database.insertEvent(eventEntity, sessionAnrTimeMs)
+                    val success = database.insertEvent(eventEntity)
                     flush()
                     if (!success) {
                         handleEventInsertionFailure(eventEntity)

@@ -312,10 +312,12 @@ internal class SignalProcessorImpl(
         }
 
         applyAttributes(event, thread)
-        signalStore.store(
-            event,
-            sessionAnrTimeMs = if (event.type == EventType.ANR) timestamp else null,
-        )
+        if (event.type == EventType.ANR) {
+            // Stamped before the store so a profile can be attributed to this session even
+            // if the event insert fails or the process dies mid-store.
+            sessionManager.markSessionWithAnr(event.sessionId, timestamp)
+        }
+        signalStore.store(event)
         onEventTracked(event)
         exporter.export()
     }

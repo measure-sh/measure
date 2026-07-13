@@ -243,4 +243,13 @@ class SessionManagerTest {
         assertEquals(updatedSessionId, callbackSessionId)
         assertEquals(sessionManager.getSessionStartTime(), callbackSessionTime)
     }
+
+    @Test
+    fun `markSessionsAppExitTracked marks all sessions except the current one`() {
+        val sessionId = sessionManager.init()
+
+        sessionManager.markSessionsAppExitTracked()
+
+        verify(database).markSessionsAppExitTracked(excludeSessionId = sessionId)
+    }
 }

@@ -2521,29 +2521,13 @@ class DatabaseTest {
     }
 
     @Test
-    fun `insertEvent records the session ANR time when sessionAnrTimeMs is set`() {
+    fun `insertEvent does not record a session ANR time`() {
         // given
         database.insertSession(TestData.getSessionEntity(id = "anr-session", createdAt = 1000L))
         val event = TestData.getEventEntity(type = EventType.ANR, sessionId = "anr-session")
 
         // when
-        database.insertEvent(event, sessionAnrTimeMs = 5000L)
-
-        // then
-        val session = database.getSessionForAnr(timeMs = 8000L, maxGapMs = 60_000L)
-        assertNotNull(session)
-        assertEquals("anr-session", session!!.id)
-        assertEquals(5000L, session.lastAnrTime)
-    }
-
-    @Test
-    fun `insertEvent does not record a session ANR time when sessionAnrTimeMs is null`() {
-        // given
-        database.insertSession(TestData.getSessionEntity(id = "anr-session", createdAt = 1000L))
-        val event = TestData.getEventEntity(type = EventType.ANR, sessionId = "anr-session")
-
-        // when
-        database.insertEvent(event, sessionAnrTimeMs = null)
+        database.insertEvent(event)
 
         // then
         assertNull(database.getSessionForAnr(timeMs = 8000L, maxGapMs = 60_000L))

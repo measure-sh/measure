@@ -13,7 +13,6 @@ import sh.measure.android.events.SignalProcessor
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
-import sh.measure.android.storage.Database
 import sh.measure.android.utils.Sampler
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.TimeProvider
@@ -37,7 +36,6 @@ internal class ProfileCollector(
     private val timeProvider: TimeProvider,
     private val ioExecutor: MeasureExecutorService,
     private val sampler: Sampler,
-    private val database: Database,
     private val sessionManager: SessionManager,
 ) {
     private var resultCallback: Consumer<ProfilingResult>? = null
@@ -98,6 +96,7 @@ internal class ProfileCollector(
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.BAKLAVA)
     private fun triggerTypes(): IntArray = intArrayOf(
         ProfilingTrigger.TRIGGER_TYPE_APP_FULLY_DRAWN,
         ProfilingTrigger.TRIGGER_TYPE_ANR,
@@ -141,17 +140,25 @@ internal class ProfileCollector(
             return
         }
         val profileTimeMs = profileTimeFor(file)
-        // An ANR profile's file time is the trace finalization time, which can drift
-        // past a relaunch, so attribute it to the session that actually had an ANR near
-        // that time, and stamp it with the ANR time so it lands in that session's window.
-        // Other profiles are captured while the app is alive, so the session active at
-        // the profile time is correct.
+        // Matching a received profile to the correct session is based on
+        // the following heuristics. This applies to ANRs as the profiles
+        // for an ANR may arrive in the next app launch.
+        //
+        // 1. When an ANR happens the time is written to the sessions table.
+        // 2. When an ANR profile is received, the session with the most recent
+        //    ANR marked in the sessions table (including the current session)
+        //    is returned, provided that ANR happened at most
+        //    MAX_ANR_TO_PROFILE_GAP_MS before the profile time — a profile is
+        //    created within seconds of its ANR, so an older match would be a
+        //    stale, unrelated ANR.
+        // 3. Otherwise, and for all other profile types, the profile is
+        //    attributed to the active session.
         val anrSession = if (reason == REASON_ANR) {
-            database.getSessionForAnr(profileTimeMs, MAX_ANR_TO_PROFILE_GAP_MS)
+            sessionManager.getSessionForAnr(profileTimeMs, MAX_ANR_TO_PROFILE_GAP_MS)
         } else {
             null
         }
-        val session = anrSession ?: database.getSessionForTime(profileTimeMs)
+        val session = anrSession ?: sessionManager.getSessionForTime(profileTimeMs)
         signalProcessor.trackProfile(
             data = ProfileData(reason = reason, format = format),
             timestamp = anrSession?.lastAnrTime ?: profileTimeMs,
@@ -166,24 +173,19 @@ internal class ProfileCollector(
         )
     }
 
+    // the platform stamps the file name with device-local wall clock time.
+    // e.g. profile_trigger-type-2_2026-07-13-18-52-49.perfetto-trace.
     private fun profileTimeFor(file: File): Long {
-        parseProfileTimestamp(file.name)?.let { return it }
-        val lastModified = file.lastModified()
-        if (lastModified > 0) {
-            return lastModified
+        val timestamp = TIMESTAMP_REGEX.find(file.name)?.value?.let {
+            try {
+                SimpleDateFormat(TIMESTAMP_PATTERN, Locale.US).parse(it)?.time
+            } catch (_: ParseException) {
+                null
+            }
         }
-        return timeProvider.now()
-    }
-
-    // the platform stamps the file name with device-local wall clock time,
-    // e.g. profile_trigger-type-2_2026-07-05-17-51-56-124_uid-10229.perfetto-trace
-    private fun parseProfileTimestamp(fileName: String): Long? {
-        val timestamp = TIMESTAMP_REGEX.find(fileName)?.value ?: return null
-        return try {
-            SimpleDateFormat(TIMESTAMP_PATTERN, Locale.US).parse(timestamp)?.time
-        } catch (e: ParseException) {
-            null
-        }
+        return timestamp
+            ?: file.lastModified().takeIf { it > 0 }
+            ?: timeProvider.now()
     }
 
     private fun formatFor(fileName: String): String? = when {
@@ -204,13 +206,10 @@ internal class ProfileCollector(
         private const val PERFETTO_TRACE_EXTENSION = ".perfetto-trace"
         private const val HEAP_DUMP_EXTENSION = ".hprof"
         private const val HEAP_PROFILE_EXTENSION = ".heapprofd"
-        private const val TIMESTAMP_PATTERN = "yyyy-MM-dd-HH-mm-ss-SSS"
-        private val TIMESTAMP_REGEX = Regex("\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{3}")
+        private const val TIMESTAMP_PATTERN = "yyyy-MM-dd-HH-mm-ss"
+        private val TIMESTAMP_REGEX = Regex("\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{2}")
         private const val REASON_APP_FULLY_DRAWN = "app_fully_drawn"
         private const val REASON_ANR = "anr"
-
-        // Bounds how far before a profile's capture time an ANR may have occurred
-        // to be considered its origin, so a stale, unrelated ANR is never matched.
         private const val MAX_ANR_TO_PROFILE_GAP_MS = 3 * 60 * 1000L
     }
 }
