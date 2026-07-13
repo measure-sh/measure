@@ -331,7 +331,6 @@ internal class MeasureInitializerImpl(
     override val appExitCollector: AppExitCollector = AppExitCollector(
         appExitProvider = appExitProvider,
         signalProcessor = signalProcessor,
-        database = database,
         sessionManager = sessionManager,
     ),
     override val cpuUsageCollector: CpuUsageCollector = CpuUsageCollector(
@@ -428,7 +427,6 @@ internal class MeasureInitializerImpl(
         timeProvider = timeProvider,
         ioExecutor = executorServiceRegistry.ioExecutor(),
         sampler = sampler,
-        database = database,
         sessionManager = sessionManager,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(

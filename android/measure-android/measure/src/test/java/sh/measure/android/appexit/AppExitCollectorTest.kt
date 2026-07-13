@@ -1,9 +1,9 @@
 package sh.measure.android.appexit
 
 import android.app.ApplicationExitInfo
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
@@ -13,18 +13,15 @@ import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeAppExitProvider
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.TestData
-import sh.measure.android.storage.Database
 import sh.measure.android.storage.SessionRecord
 
 class AppExitCollectorTest {
     private val appExitProvider = FakeAppExitProvider()
-    private val database = mock<Database>()
     private val signalProcessor = mock<SignalProcessor>()
     private val sessionManager = FakeSessionManager()
 
     private val appExitCollector = AppExitCollector(
         appExitProvider,
-        database,
         signalProcessor,
         sessionManager,
     )
@@ -38,7 +35,7 @@ class AppExitCollectorTest {
         val appExits = mapOf(pidToAppExit)
         appExitProvider.appExits = appExits
         val session = getSession(pid)
-        `when`(database.getSessionForAppExit(pid)).thenReturn(session)
+        sessionManager.appExitSessions[pid] = session
 
         // When
         appExitCollector.collect()
@@ -55,7 +52,10 @@ class AppExitCollectorTest {
             appBuild = eq("1000"),
             isSampled = any(),
         )
-        verify(database).setSessionAnrTime(session.id, appExit.app_exit_time_ms)
+        assertEquals(
+            session.id to appExit.app_exit_time_ms,
+            sessionManager.markedAnrSessions.single(),
+        )
     }
 
     @Test
@@ -69,8 +69,8 @@ class AppExitCollectorTest {
             getSession(sessionId = "session-2", pid = 2, appVersion = "1.1.2", appBuild = "112")
 
         appExitProvider.appExits = mapOf(1 to appExit1, 2 to appExit2)
-        `when`(database.getSessionForAppExit(1)).thenReturn(session1)
-        `when`(database.getSessionForAppExit(2)).thenReturn(session2)
+        sessionManager.appExitSessions[1] = session1
+        sessionManager.appExitSessions[2] = session2
 
         // When
         appExitCollector.collect()
@@ -105,7 +105,6 @@ class AppExitCollectorTest {
         // Given
         val appExit = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_ANR)
         appExitProvider.appExits = mapOf(1 to appExit)
-        `when`(database.getSessionForAppExit(1)).thenReturn(null)
 
         // When
         appExitCollector.collect()
@@ -125,7 +124,7 @@ class AppExitCollectorTest {
     }
 
     @Test
-    fun `marks all sessions except the current one as app exit tracked`() {
+    fun `marks sessions as app exit tracked after collection`() {
         // Given
         val appExit1 = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_ANR)
         val session1 = getSession(sessionId = "session-1", pid = 1, createdAt = 1000)
@@ -133,14 +132,14 @@ class AppExitCollectorTest {
         val session2 = getSession(sessionId = "session-2", pid = 2, createdAt = 2000)
 
         appExitProvider.appExits = mapOf(1 to appExit1, 2 to appExit2)
-        `when`(database.getSessionForAppExit(1)).thenReturn(session1)
-        `when`(database.getSessionForAppExit(2)).thenReturn(session2)
+        sessionManager.appExitSessions[1] = session1
+        sessionManager.appExitSessions[2] = session2
 
         // When
         appExitCollector.collect()
 
         // Then
-        verify(database).markSessionsAppExitTracked(sessionManager.getSessionId())
+        assertEquals(1, sessionManager.appExitTrackedCount)
     }
 
     private fun getSession(

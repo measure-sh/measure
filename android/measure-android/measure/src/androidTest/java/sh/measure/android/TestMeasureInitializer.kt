@@ -281,8 +281,6 @@ internal class TestMeasureInitializer(
         processInfo = processInfoProvider,
         signalProcessor = signalProcessor,
         nativeBridge = nativeBridgeImpl,
-        database = database,
-        sessionManager = sessionManager,
     ),
     private val appExitProvider: AppExitProvider = AppExitProviderImpl(
         logger = logger,
@@ -291,7 +289,6 @@ internal class TestMeasureInitializer(
     override val appExitCollector: AppExitCollector = AppExitCollector(
         appExitProvider = appExitProvider,
         signalProcessor = signalProcessor,
-        database = database,
         sessionManager = sessionManager,
     ),
     override val cpuUsageCollector: CpuUsageCollector = CpuUsageCollector(
@@ -376,7 +373,6 @@ internal class TestMeasureInitializer(
         timeProvider = timeProvider,
         ioExecutor = executorServiceRegistry.ioExecutor(),
         sampler = sampler,
-        database = database,
         sessionManager = sessionManager,
     ),
     override val networkChangesCollector: NetworkChangesCollector = NetworkChangesCollector(

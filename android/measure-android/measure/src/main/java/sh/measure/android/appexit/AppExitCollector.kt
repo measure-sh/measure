@@ -5,11 +5,9 @@ import androidx.annotation.RequiresApi
 import sh.measure.android.SessionManager
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
-import sh.measure.android.storage.Database
 
 internal class AppExitCollector(
     private val appExitProvider: AppExitProvider,
-    private val database: Database,
     private val signalProcessor: SignalProcessor,
     private val sessionManager: SessionManager,
 ) {
@@ -25,7 +23,7 @@ internal class AppExitCollector(
         appExitsMap.forEach {
             val pid = it.key
             val appExit = it.value
-            val session = database.getSessionForAppExit(pid)
+            val session = sessionManager.getSessionForAppExit(pid)
             // Limiting tracking of app exit events to just
             // ANRs for now.
             if (session != null && appExit.isANR()) {
@@ -44,9 +42,9 @@ internal class AppExitCollector(
                 )
                 // backfills the ANR time for a session where the real-time
                 // detector's write may have been lost to a fast kill.
-                database.setSessionAnrTime(session.id, appExit.app_exit_time_ms)
+                sessionManager.markSessionWithAnr(session.id, appExit.app_exit_time_ms)
             }
         }
-        database.markSessionsAppExitTracked(excludeSessionId = sessionManager.getSessionId())
+        sessionManager.markSessionsAppExitTracked()
     }
 }

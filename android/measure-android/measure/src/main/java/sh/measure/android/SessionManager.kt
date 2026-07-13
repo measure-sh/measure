@@ -8,6 +8,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.Database
 import sh.measure.android.storage.SessionEntity
+import sh.measure.android.storage.SessionRecord
 import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.PackageInfoProvider
@@ -63,6 +64,52 @@ internal interface SessionManager {
      * Called when config is loaded.
      */
     fun onConfigLoaded()
+
+    /**
+     * Records that [sessionId] experienced an ANR at [anrTimeMs], so that signals delivered
+     * later (e.g. profiles finalized after a relaunch) can be attributed to the session that
+     * was live when the ANR occurred. Runs synchronously as it is called on the ANR'd thread,
+     * which may not survive.
+     */
+    fun markSessionWithAnr(sessionId: String, anrTimeMs: Long)
+
+    /**
+     * Returns the session to attribute an app exit to, given the process ID the
+     * exit was reported for. Sessions already marked by [markSessionsAppExitTracked]
+     * are ignored.
+     *
+     * @param pid The process ID the app exit was reported for.
+     * @return Session data if found, `null` otherwise.
+     */
+    fun getSessionForAppExit(pid: Int): SessionRecord?
+
+    /**
+     * Marks all sessions except the current one as having had their app exit
+     * tracked, hiding them from [getSessionForAppExit] so an app exit is never
+     * reported twice.
+     */
+    fun markSessionsAppExitTracked()
+
+    /**
+     * Returns the session that was active at the given time, based on session
+     * start times.
+     *
+     * @param timeMs Time in milliseconds since epoch.
+     * @return Session data if a session started at or before [timeMs], `null` otherwise.
+     */
+    fun getSessionForTime(timeMs: Long): SessionRecord?
+
+    /**
+     * Returns the most recent session that had an ANR at or before [timeMs] and
+     * within [maxGapMs] of it. Used to attribute an ANR profile back to the
+     * session where the ANR happened, even after a relaunch. The gap bounds the
+     * lookup so a profile is never attributed to a stale, unrelated ANR.
+     *
+     * @param timeMs The profile's capture time in milliseconds since epoch.
+     * @param maxGapMs The maximum allowed gap between the ANR and [timeMs].
+     * @return Session data if a matching ANR session is found, `null` otherwise.
+     */
+    fun getSessionForAnr(timeMs: Long, maxGapMs: Long): SessionRecord?
 
     /**
      * Sets a listener to be called when a new session is created.
@@ -161,6 +208,20 @@ internal class SessionManagerImpl(
             }
         }
     }
+
+    override fun markSessionWithAnr(sessionId: String, anrTimeMs: Long) {
+        database.setSessionAnrTime(sessionId, anrTimeMs)
+    }
+
+    override fun getSessionForAppExit(pid: Int): SessionRecord? = database.getSessionForAppExit(pid)
+
+    override fun markSessionsAppExitTracked() {
+        database.markSessionsAppExitTracked(excludeSessionId = getSessionId())
+    }
+
+    override fun getSessionForTime(timeMs: Long): SessionRecord? = database.getSessionForTime(timeMs)
+
+    override fun getSessionForAnr(timeMs: Long, maxGapMs: Long): SessionRecord? = database.getSessionForAnr(timeMs, maxGapMs)
 
     override fun setSessionStartListener(listener: SessionStartListener) {
         this.sessionStartListener = listener

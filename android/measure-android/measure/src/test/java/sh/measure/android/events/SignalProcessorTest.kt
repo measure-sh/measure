@@ -292,7 +292,7 @@ internal class SignalProcessorTest {
         )
 
         assertEquals(1, signalStore.trackedEvents.size)
-        assertEquals(null, signalStore.trackedSessionAnrTimes.first())
+        assertEquals(0, sessionManager.markedAnrSessions.size)
         verify(exporter).export()
     }
 
@@ -310,7 +310,12 @@ internal class SignalProcessorTest {
         )
 
         assertEquals(1, signalStore.trackedEvents.size)
-        assertEquals(timestamp, signalStore.trackedSessionAnrTimes.first())
+        // The session is marked with the ANR time so late-delivered profiles can be
+        // attributed to it.
+        assertEquals(
+            sessionManager.getSessionId() to timestamp,
+            sessionManager.markedAnrSessions.single(),
+        )
         verify(exporter).export()
     }
 
