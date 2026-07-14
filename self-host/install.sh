@@ -476,8 +476,6 @@ start_docker_compose() {
 # ALTER ROLE ... SET, GRANT).
 # ------------------------------------------------------------------------------
 ensure_clickhouse_init() {
-  info "Ensuring ClickHouse users and roles are up to date"
-
   $DOCKER_COMPOSE_CMD \
     --progress plain \
     --file compose.yml \
