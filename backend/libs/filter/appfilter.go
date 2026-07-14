@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"backend/libs/ambient"
+	"backend/libs/chctx"
 	"backend/libs/config"
 	"backend/libs/event"
 	"backend/libs/logcomment"
@@ -671,6 +672,11 @@ func (af AppFilter) LimitAbs() int {
 // network provider and other such event parameters from available events
 // with appropriate filters applied.
 func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *FilterList, releaseMode, debugMode bool) error {
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return err
+	}
+
 	var filterGroup errgroup.Group
 
 	// each go routine isolates log comment &
@@ -683,8 +689,9 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			// not at session level.
 			"use_query_cache": releaseMode,
 			// cache for 10 mins
-			"query_cache_ttl":   int(config.DefaultQueryCacheTTL.Seconds()),
-			"force_primary_key": debugMode,
+			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
+			"force_primary_key":  debugMode,
+			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "app_versions")
 
@@ -704,7 +711,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": releaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
+			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "os_versions")
 
@@ -724,7 +732,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": releaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
+			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "countries")
 
@@ -743,7 +752,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": releaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
+			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_providers")
 
@@ -762,7 +772,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": releaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
+			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_types")
 
@@ -781,7 +792,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": releaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
+			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_generations")
 
@@ -800,7 +812,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": releaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
+			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_locales")
 
@@ -819,7 +832,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": releaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
+			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_manufacturers")
 
@@ -838,7 +852,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": releaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
+			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
+			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_names")
 
@@ -863,7 +878,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 				"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 				"use_query_cache": releaseMode,
 				// cache filters for 10 mins
-				"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
+				"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
+				"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 			}
 
 			name := "ud_attr_keys_events"
@@ -940,6 +956,12 @@ func (af AppFilter) GetBuildFilters(ctx context.Context, pg *pgxpool.Pool, fl *F
 // filters.
 func (af AppFilter) GetUserDefinedAttrKeys(ctx context.Context, rch driver.Conn, fl *FilterList) (err error) {
 	if af.UDAttrKeys {
+		teamId, err := ambient.TeamId(ctx)
+		if err != nil {
+			return err
+		}
+		ctx = chctx.WithReaderTeamScope(ctx, teamId)
+
 		keytypes, err := af.getUDAttrKeys(ctx, rch)
 		if err != nil {
 			return err
@@ -966,7 +988,6 @@ func (af AppFilter) getAppVersions(ctx context.Context, rch driver.Conn) (versio
 	if err != nil {
 		return
 	}
-
 	stmt := sqlf.
 		From(table).
 		Select("app_version.1 as version").
@@ -1034,7 +1055,6 @@ func (af AppFilter) getOSVersions(ctx context.Context, rch driver.Conn) (osNames
 	if err != nil {
 		return
 	}
-
 	stmt := sqlf.
 		From(table).
 		Select("os_version.1 as name").
@@ -1094,7 +1114,6 @@ func (af AppFilter) getCountries(ctx context.Context, rch driver.Conn) (countrie
 	if err != nil {
 		return
 	}
-
 	stmt := sqlf.
 		From(table).
 		Select("country_code").
@@ -1150,7 +1169,6 @@ func (af AppFilter) getNetworkProviders(ctx context.Context, rch driver.Conn) (n
 	if err != nil {
 		return
 	}
-
 	stmt := sqlf.
 		From(table).
 		Select("network_provider").
@@ -1206,7 +1224,6 @@ func (af AppFilter) getNetworkTypes(ctx context.Context, rch driver.Conn) (netwo
 	if err != nil {
 		return
 	}
-
 	stmt := sqlf.
 		From(table).
 		Select("network_type").
@@ -1262,7 +1279,6 @@ func (af AppFilter) getNetworkGenerations(ctx context.Context, rch driver.Conn) 
 	if err != nil {
 		return
 	}
-
 	stmt := sqlf.
 		From(table).
 		Select("network_generation").
@@ -1321,7 +1337,6 @@ func (af AppFilter) getDeviceLocales(ctx context.Context, rch driver.Conn) (devi
 	if err != nil {
 		return
 	}
-
 	stmt := sqlf.
 		From(table).
 		Select("device_locale").
@@ -1377,7 +1392,6 @@ func (af AppFilter) getDeviceManufacturers(ctx context.Context, rch driver.Conn)
 	if err != nil {
 		return
 	}
-
 	stmt := sqlf.
 		From(table).
 		Select("device_manufacturer").
@@ -1433,7 +1447,6 @@ func (af AppFilter) getDeviceNames(ctx context.Context, rch driver.Conn) (device
 	if err != nil {
 		return
 	}
-
 	stmt := sqlf.
 		From(table).
 		Select("device_name").
@@ -1487,7 +1500,6 @@ func (af AppFilter) getUDAttrKeys(ctx context.Context, rch driver.Conn) (keytype
 	if err != nil {
 		return
 	}
-
 	stmt := sqlf.From(table).
 		Select("key").
 		Select("argMax(type, timestamp) as type").
@@ -1526,6 +1538,12 @@ func (af AppFilter) getUDAttrKeys(ctx context.Context, rch driver.Conn) (keytype
 // GetExcludedVersions computes list of app version
 // and version codes that are excluded from app filter.
 func (af AppFilter) GetExcludedVersions(ctx context.Context, rch driver.Conn) (versions Versions, err error) {
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return
+	}
+	ctx = chctx.WithReaderTeamScope(ctx, teamId)
+
 	allVersions, allCodes, err := af.getAppVersions(ctx, rch)
 	if err != nil {
 		return

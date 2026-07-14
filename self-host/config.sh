@@ -211,6 +211,9 @@ CLICKHOUSE_READER_USER=app_reader
 CLICKHOUSE_READER_PASSWORD=dummY_pa55w0rd
 CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
+CLICKHOUSE_AGENT_SQL_USER=app_agent_sql
+CLICKHOUSE_AGENT_SQL_PASSWORD=dummY_pa55w0rd
+CLICKHOUSE_AGENT_SQL_DSN=clickhouse://\${CLICKHOUSE_AGENT_SQL_USER}:\${CLICKHOUSE_AGENT_SQL_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_MIGRATION_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
 
 REDIS_HOST=redis
@@ -377,6 +380,9 @@ CLICKHOUSE_READER_USER=app_reader
 CLICKHOUSE_READER_PASSWORD=$CLICKHOUSE_READER_PASSWORD
 CLICKHOUSE_DSN=clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_READER_DSN=clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure
+CLICKHOUSE_AGENT_SQL_USER=app_agent_sql
+CLICKHOUSE_AGENT_SQL_PASSWORD=$CLICKHOUSE_AGENT_SQL_PASSWORD
+CLICKHOUSE_AGENT_SQL_DSN=clickhouse://\${CLICKHOUSE_AGENT_SQL_USER}:\${CLICKHOUSE_AGENT_SQL_PASSWORD}@clickhouse:9000/measure
 CLICKHOUSE_MIGRATION_URL=clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure
 
 REDIS_HOST=$REDIS_HOST
@@ -557,6 +563,9 @@ END
 
       echo -e "Set ClickHouse reader user's password"
       CLICKHOUSE_READER_PASSWORD=$(prompt_password 24 "Enter password for ClickHouse user: ")
+
+      echo -e "Set ClickHouse agent_sql user's password"
+      CLICKHOUSE_AGENT_SQL_PASSWORD=$(prompt_password 24 "Enter password for ClickHouse user: ")
     else
       # Generate secure database passwords
       echo -e "Generated secure password for Postgres user"
@@ -570,6 +579,9 @@ END
 
       echo -e "Generated secure password for ClickHouse reader user"
       CLICKHOUSE_READER_PASSWORD=$(generate_password 24)
+
+      echo -e "Generated secure password for ClickHouse agent_sql user"
+      CLICKHOUSE_AGENT_SQL_PASSWORD=$(generate_password 24)
     fi
 
     # Set Redis configuration for production
@@ -681,6 +693,9 @@ ensure() {
   local clickhouse_operator_password
   local clickhouse_reader_user
   local clickhouse_reader_password
+  local clickhouse_agent_sql_user
+  local clickhouse_agent_sql_password
+  local clickhouse_agent_sql_dsn
   local postgres_migration_url
   local clickhouse_migration_url
   local postgres_dsn
@@ -697,11 +712,13 @@ ensure() {
   clickhouse_admin_user="app_admin"
   clickhouse_operator_user="app_operator"
   clickhouse_reader_user="app_reader"
+  clickhouse_agent_sql_user="app_agent_sql"
   postgres_migration_url="postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure?search_path=dbmate,measure&sslmode=disable"
   clickhouse_migration_url="clickhouse://\${CLICKHOUSE_ADMIN_USER}:\${CLICKHOUSE_ADMIN_PASSWORD}@clickhouse:9000/measure"
   postgres_dsn="postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/measure?search_path=measure"
   clickhouse_dsn="clickhouse://\${CLICKHOUSE_OPERATOR_USER}:\${CLICKHOUSE_OPERATOR_PASSWORD}@clickhouse:9000/measure"
   clickhouse_reader_dsn="clickhouse://\${CLICKHOUSE_READER_USER}:\${CLICKHOUSE_READER_PASSWORD}@clickhouse:9000/measure"
+  clickhouse_agent_sql_dsn="clickhouse://\${CLICKHOUSE_AGENT_SQL_USER}:\${CLICKHOUSE_AGENT_SQL_PASSWORD}@clickhouse:9000/measure"
   symbolicator_origin="http://symbolicator:3021"
   symboloader_origin="http://symboloader:8083"
   ingest_origin="http://localhost:8085"
@@ -715,6 +732,7 @@ ensure() {
     clickhouse_admin_password="dummY_pa55w0rd"
     clickhouse_operator_password="dummY_pa55w0rd"
     clickhouse_reader_password="dummY_pa55w0rd"
+    clickhouse_agent_sql_password="dummY_pa55w0rd"
     iggy_password="dummY_pa55w0rd"
 
     if ! check_env_variable "CLICKHOUSE_USER"; then
@@ -749,6 +767,14 @@ ensure() {
       add_env_variable "CLICKHOUSE_READER_PASSWORD" "$clickhouse_reader_password" "CLICKHOUSE_OPERATOR_PASSWORD"
     fi
 
+    if ! check_env_variable "CLICKHOUSE_AGENT_SQL_USER"; then
+      add_env_variable "CLICKHOUSE_AGENT_SQL_USER" "$clickhouse_agent_sql_user" "CLICKHOUSE_READER_PASSWORD"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_AGENT_SQL_PASSWORD"; then
+      add_env_variable "CLICKHOUSE_AGENT_SQL_PASSWORD" "$clickhouse_agent_sql_password" "CLICKHOUSE_AGENT_SQL_USER"
+    fi
+
     if check_env_variable "POSTGRES_MIGRATION_URL"; then
       update_env_variable "POSTGRES_MIGRATION_URL" "$postgres_migration_url"
     fi
@@ -769,6 +795,10 @@ ensure() {
       add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATION_URL"
     fi
 
+    if ! check_env_variable "CLICKHOUSE_AGENT_SQL_DSN"; then
+      add_env_variable "CLICKHOUSE_AGENT_SQL_DSN" "$clickhouse_agent_sql_dsn" "CLICKHOUSE_READER_DSN"
+    fi
+
     if ! check_env_variable "NEXT_PUBLIC_INGEST_BASE_URL"; then
       add_env_variable "NEXT_PUBLIC_INGEST_BASE_URL" "$ingest_origin"
     fi
@@ -776,6 +806,7 @@ ensure() {
     clickhouse_admin_password=$(generate_password 24)
     clickhouse_operator_password=$(generate_password 24)
     clickhouse_reader_password=$(generate_password 24)
+    clickhouse_agent_sql_password=$(generate_password 24)
     iggy_password=$(generate_password 24)
 
     if ! check_env_variable "CLICKHOUSE_USER"; then
@@ -810,6 +841,14 @@ ensure() {
       add_env_variable "CLICKHOUSE_READER_PASSWORD" "$clickhouse_reader_password" "CLICKHOUSE_READER_USER"
     fi
 
+    if ! check_env_variable "CLICKHOUSE_AGENT_SQL_USER"; then
+      add_env_variable "CLICKHOUSE_AGENT_SQL_USER" "$clickhouse_agent_sql_user" "CLICKHOUSE_READER_PASSWORD"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_AGENT_SQL_PASSWORD"; then
+      add_env_variable "CLICKHOUSE_AGENT_SQL_PASSWORD" "$clickhouse_agent_sql_password" "CLICKHOUSE_AGENT_SQL_USER"
+    fi
+
     if check_env_variable "POSTGRES_MIGRATION_URL"; then
       update_env_variable "POSTGRES_MIGRATION_URL" "$postgres_migration_url"
     fi
@@ -828,6 +867,10 @@ ensure() {
 
     if ! check_env_variable "CLICKHOUSE_READER_DSN"; then
       add_env_variable "CLICKHOUSE_READER_DSN" "$clickhouse_reader_dsn" "CLICKHOUSE_MIGRATION_URL"
+    fi
+
+    if ! check_env_variable "CLICKHOUSE_AGENT_SQL_DSN"; then
+      add_env_variable "CLICKHOUSE_AGENT_SQL_DSN" "$clickhouse_agent_sql_dsn" "CLICKHOUSE_READER_DSN"
     fi
 
     # Prompt & save ingest service base url if it doesn't exist

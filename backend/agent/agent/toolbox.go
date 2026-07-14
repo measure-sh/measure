@@ -384,12 +384,13 @@ func (c *Config) runSQL(ctx context.Context, query string, teamID uuid.UUID, app
 
 	chCtx := clickhouse.Context(ctx, clickhouse.WithSettings(clickhouse.Settings{
 		"readonly":             1,
+		"SQL_agent_team_id":    clickhouse.CustomSetting{Value: teamID.String()},
 		"max_execution_time":   maxQuerySeconds,
 		"max_result_rows":      maxResultRows,
 		"result_overflow_mode": "break",
 	}))
 
-	rows, err := deps.RchPool.Query(chCtx, expanded)
+	rows, err := deps.RAChPool.Query(chCtx, expanded)
 	if err != nil {
 		return "", fmt.Errorf("query failed: %v", err)
 	}

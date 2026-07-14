@@ -37,11 +37,12 @@ func TestMain(m *testing.M) {
 
 	th = testinfra.NewTestHelper(pgPool, chConn, vk)
 	deps = &server.Deps{
-		PgPool:  pgPool,
-		ChPool:  chConn,
-		RchPool: chConn,
-		VK:      vk,
-		Config:  &server.Config{BillingEnabled: true, AgentEnabled: true},
+		PgPool:   pgPool,
+		ChPool:   chConn,
+		RchPool:  chConn,
+		RAChPool: chConn,
+		VK:       vk,
+		Config:   &server.Config{BillingEnabled: true, AgentEnabled: true},
 	}
 
 	// Background token tracking must never reach the network in tests. Tests

@@ -467,6 +467,25 @@ start_docker_compose() {
 }
 
 # ------------------------------------------------------------------------------
+# ensure_clickhouse_init (re)runs the ClickHouse init script idempotently.
+#
+# init-clickhouse.sh runs automatically on first boot via Docker's
+# entrypoint-initdb.d, but is skipped on existing volumes. Re-running it
+# on every install ensures new roles, users, and row policies are applied
+# on upgrade. The script is fully idempotent (CREATE ... IF NOT EXISTS,
+# ALTER ROLE ... SET, GRANT).
+# ------------------------------------------------------------------------------
+ensure_clickhouse_init() {
+  info "Ensuring ClickHouse users and roles are up to date"
+
+  $DOCKER_COMPOSE_CMD \
+    --progress plain \
+    --file compose.yml \
+    --file compose.prod.yml \
+    exec clickhouse bash /docker-entrypoint-initdb.d/init-clickhouse.sh
+}
+
+# ------------------------------------------------------------------------------
 # add_env_variable appends an .env file key with value.
 # ------------------------------------------------------------------------------
 add_env_variable() {
@@ -649,4 +668,5 @@ start_docker
 ensure_config
 detect_compose_command
 start_docker_compose
+ensure_clickhouse_init
 cleanup

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"backend/libs/chctx"
 	"backend/libs/config"
 	"backend/libs/event"
 	"backend/libs/group"
@@ -65,6 +66,7 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 		ID:     &appID,
 		TeamId: teamID,
 	}
+	ctx = chctx.WithReaderTeamScope(ctx, app.TeamId)
 
 	var err error
 

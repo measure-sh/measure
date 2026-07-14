@@ -196,6 +196,7 @@ services:
       - postgres-dsn
       - clickhouse-dsn
       - clickhouse-reader-dsn
+      - clickhouse-agent-sql-dsn
       - attachments-secret-access-key
       - autumn-secret-key
       - oauth-google-secret
@@ -208,6 +209,7 @@ services:
       - POSTGRES_DSN_FILE=/run/secrets/postgres-dsn
       - CLICKHOUSE_DSN_FILE=/run/secrets/clickhouse-dsn
       - CLICKHOUSE_READER_DSN_FILE=/run/secrets/clickhouse-reader-dsn
+      - CLICKHOUSE_AGENT_SQL_DSN_FILE=/run/secrets/clickhouse-agent-sql-dsn
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_HOST=${REDIS_HOST}
       - IGGY_ADDR=${IGGY_ADDR}
@@ -438,12 +440,10 @@ services:
     secrets:
       - postgres-dsn
       - clickhouse-dsn
-      - clickhouse-reader-dsn
       - attachments-secret-access-key
     environment:
       - POSTGRES_DSN_FILE=/run/secrets/postgres-dsn
       - CLICKHOUSE_DSN_FILE=/run/secrets/clickhouse-dsn
-      - CLICKHOUSE_READER_DSN_FILE=/run/secrets/clickhouse-reader-dsn
       - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
       - ATTACHMENTS_S3_ORIGIN=${ATTACHMENTS_S3_ORIGIN}
       - ATTACHMENTS_S3_BUCKET=${ATTACHMENTS_S3_BUCKET}
@@ -790,6 +790,8 @@ services:
       - CLICKHOUSE_OPERATOR_PASSWORD=${CLICKHOUSE_OPERATOR_PASSWORD}
       - CLICKHOUSE_READER_USER=${CLICKHOUSE_READER_USER}
       - CLICKHOUSE_READER_PASSWORD=${CLICKHOUSE_READER_PASSWORD}
+      - CLICKHOUSE_AGENT_SQL_USER=${CLICKHOUSE_AGENT_SQL_USER}
+      - CLICKHOUSE_AGENT_SQL_PASSWORD=${CLICKHOUSE_AGENT_SQL_PASSWORD}
     ports:
       - "9000:9000/tcp"
       - "8123:8123"
@@ -861,6 +863,8 @@ secrets:
     environment: "CLICKHOUSE_DSN"
   clickhouse-reader-dsn:
     environment: "CLICKHOUSE_READER_DSN"
+  clickhouse-agent-sql-dsn:
+    environment: "CLICKHOUSE_AGENT_SQL_DSN"
   symbols-secret-access-key:
     environment: "SYMBOLS_SECRET_ACCESS_KEY"
   attachments-secret-access-key:

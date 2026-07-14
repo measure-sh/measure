@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"backend/libs/chctx"
 	"backend/libs/config"
 	"backend/libs/event"
 	"backend/libs/filter"
@@ -27,6 +28,7 @@ type HealthInstance struct {
 // series for the health overview plot, bucketed by the filter's plot
 // time group.
 func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (sessions, crashes, anrs []HealthInstance, err error) {
+	ctx = chctx.WithReaderTeamScope(ctx, a.TeamId)
 	if af.Timezone == "" {
 		return nil, nil, nil, errors.New("missing timezone filter")
 	}
