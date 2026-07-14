@@ -135,7 +135,7 @@ const LifecycleViewControllerTypeViewDidAppear = "viewDidAppear"
 const LifecycleViewControllerTypeViewWillDisappear = "viewWillDisappear"
 const LifecycleViewControllerTypeViewDidDisappear = "viewDidDisappear"
 const LifecycleViewControllerTypeDidReceiveMemoryWarning = "didReceiveMemoryWarning"
-const LifecycleViewControllerTypeInitWithDbName = "initWithDbName"
+const LifecycleViewControllerTypeInitWithNibName = "initWithNibName"
 const LifecycleViewControllerTypeInitWithCoder = "initWithCoder"
 const LifecycleViewControllerTypeVCDeinit = "vcDeinit"
 
@@ -221,7 +221,7 @@ var ValidLifecycleViewControllerTypes = []string{
 	LifecycleViewControllerTypeViewWillDisappear,
 	LifecycleViewControllerTypeViewDidDisappear,
 	LifecycleViewControllerTypeDidReceiveMemoryWarning,
-	LifecycleViewControllerTypeInitWithDbName,
+	LifecycleViewControllerTypeInitWithNibName,
 	LifecycleViewControllerTypeInitWithCoder,
 	LifecycleViewControllerTypeVCDeinit,
 }
