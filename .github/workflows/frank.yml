@@ -94,6 +94,11 @@ jobs:
         run: |
           echo "FIREBASE_ANDROID_APP_ID_DEBUG=$(jq -r '.client[] | select(.client_info.android_client_info.package_name == "sh.frankenstein.android.debug") | .client_info.mobilesdk_app_id' android/app/google-services.json)" >> $GITHUB_ENV
           echo "FIREBASE_ANDROID_APP_ID_RELEASE=$(jq -r '.client[] | select(.client_info.android_client_info.package_name == "sh.frankenstein.android") | .client_info.mobilesdk_app_id' android/app/google-services.json)" >> $GITHUB_ENV
+      - name: Install Android CMake
+        run: |
+          sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager | head -n1)"
+          yes | "$sdkmanager" --licenses > /dev/null 2>&1 || true
+          "$sdkmanager" "cmake;3.22.1"
       - name: Assemble debug
         run: ./gradlew :android:app:assembleDebug --parallel --stacktrace
       - name: Assemble release
