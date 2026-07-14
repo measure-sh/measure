@@ -330,6 +330,12 @@ OPENROUTER_MODEL_LARGE=
 
 AGENT_ENABLED=false
 
+#######
+# GA4 #
+#######
+
+GA4_MEASUREMENT_PROTOCOL_SECRET=
+
 EOF
 }
 
@@ -497,6 +503,12 @@ OPENROUTER_MODEL_LARGE=$OPENROUTER_MODEL_LARGE
 #########
 
 AGENT_ENABLED=false
+
+#######
+# GA4 #
+#######
+
+GA4_MEASUREMENT_PROTOCOL_SECRET=
 
 EOF
 }
@@ -1033,6 +1045,10 @@ ensure() {
 
   if ! check_env_variable "DRIVE_API_KEY"; then
     add_env_variable "DRIVE_API_KEY" "change-this" "SYMBOLOADER_ORIGIN"
+  fi
+
+  if ! check_env_variable "GA4_MEASUREMENT_PROTOCOL_SECRET"; then
+    add_env_variable "GA4_MEASUREMENT_PROTOCOL_SECRET" ""
   fi
 
   # remove `frontend/dashboard/.env.local` file
