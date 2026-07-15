@@ -22,7 +22,7 @@ import {
   AccordionTrigger,
 } from "./accordion";
 import { buttonVariants } from "./button_variants";
-import CodeBlock from "./code_block";
+import CodeBlock, { CODE_BLOCK_CARD_CLASS } from "./code_block";
 import CopyAiContext from "./copy_ai_context";
 import ErrorGroupCommonPath from "./error_group_common_path";
 import ErrorsDetailsPlot from "./errors_details_plot";
@@ -179,8 +179,10 @@ interface ErrorsDetailsProps {
   hideDemoTitle?: boolean;
 }
 
-const stackTraceCodeBlockClassName =
-  "font-code text-sm leading-relaxed rounded-sm overflow-hidden [&_pre]:p-4 [&_pre]:overflow-x-auto";
+const stackTraceCodeBlockClassName = cn(
+  CODE_BLOCK_CARD_CLASS,
+  "text-sm leading-relaxed",
+);
 
 function renderAttributeRow(key: string, value: unknown): ReactNode {
   const isObject = typeof value === "object" && value !== null;

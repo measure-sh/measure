@@ -1,35 +1,56 @@
 /**
  * Verifies that internal links resolve across the docs and the app:
- * relative links between docs pages point at files that exist, anchors
- * point at real headings, images point at real assets, links that escape
- * the docs tree point at real repo files, and /docs hrefs hardcoded in app
- * code target real pages.
+ * docs links use absolute /docs routes that point at existing pages,
+ * anchors point at real headings, images and other asset links point at
+ * real files in public/, GitHub blob links point at real repo files, and
+ * /docs hrefs hardcoded in app code target real pages.
  *
- * Runs against content/docs, which pretest regenerates from the repo docs,
- * so a broken link fails here before it ships.
+ * Runs against the .mdx sources under content/docs/, so a broken link
+ * fails here before it ships.
  */
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
+// The file-to-route mapping is the sitemap generator's; sharing it keeps
+// this test and the sitemap agreeing on the slug rules.
+import { docsRouteFromFile } from "@/scripts/generate_sitemap";
+
 const ROOT = path.resolve(__dirname, "..", "..");
-const CONTENT_DIR = path.join(ROOT, "content", "docs");
 const APP_DIR = path.join(ROOT, "app");
-const REPO_DOCS_DIR = path.resolve(ROOT, "..", "..", "docs");
+const CONTENT_DOCS_DIR = path.join(ROOT, "content", "docs");
+const PUBLIC_DIR = path.join(ROOT, "public");
+const REPO_ROOT = path.resolve(ROOT, "..", "..");
 
-const hasContentDocs = fs.existsSync(CONTENT_DIR);
+const GITHUB_BLOB_PREFIX = "https://github.com/measure-sh/measure/blob/main/";
 
-function walkFiles(dir: string, extension: string): string[] {
+function walkFiles(dir: string, suffix: string): string[] {
   const files: string[] = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      files.push(...walkFiles(fullPath, extension));
-    } else if (entry.name.endsWith(extension)) {
+      files.push(...walkFiles(fullPath, suffix));
+    } else if (entry.name.endsWith(suffix)) {
       files.push(fullPath);
     }
   }
   return files;
+}
+
+function docsPageFiles(): string[] {
+  return walkFiles(CONTENT_DOCS_DIR, ".mdx");
+}
+
+/** The /docs route of a content file. */
+function routeForFile(mdxFile: string): string {
+  return docsRouteFromFile(CONTENT_DOCS_DIR, mdxFile);
+}
+
+/** The markdown body of a docs page: everything after the frontmatter. */
+function pageBody(mdxFile: string): string {
+  const source = fs.readFileSync(mdxFile, "utf-8");
+  const match = source.match(/^---\s*\r?\n[\s\S]*?\r?\n---\s*(?:\r?\n|$)/);
+  return match ? source.slice(match[0].length) : source;
 }
 
 /**
@@ -53,11 +74,11 @@ function blankOutCode(markdown: string): string {
 }
 
 /**
- * GitHub's heading-anchor algorithm, which rehype-slug also uses for the
- * rendered site: lowercase, drop punctuation except hyphens and
- * underscores, spaces become hyphens, and repeated slugs get -1, -2...
- * suffixes in document order. Reimplemented here because github-slugger
- * ships as ESM only, which jest does not transform.
+ * GitHub's heading-anchor algorithm, which fumadocs' heading slugger also
+ * follows: lowercase, drop punctuation except hyphens and underscores,
+ * spaces become hyphens, and repeated slugs get -1, -2... suffixes in
+ * document order. Reimplemented here because github-slugger ships as ESM
+ * only, which jest does not transform.
  */
 function githubSlugs(headings: string[]): Set<string> {
   const counts = new Map<string, number>();
@@ -76,10 +97,10 @@ function githubSlugs(headings: string[]): Set<string> {
 }
 
 /**
- * Strip HTML tags iteratively until the string stops changing, like
- * stripHtmlTags in scripts/copy_docs.js: a single pass leaves a partial
- * tag behind for nested input like `<scr<script>ipt>`. The regex always
- * consumes at least 3 chars per match, so the loop terminates.
+ * Strip HTML tags iteratively until the string stops changing: a single
+ * pass leaves a partial tag behind for nested input like `<scr<script>ipt>`.
+ * The regex always consumes at least 3 chars per match, so the loop
+ * terminates.
  */
 function stripHtmlTags(input: string): string {
   let out = input;
@@ -94,12 +115,16 @@ function stripHtmlTags(input: string): string {
 }
 
 /**
- * Reduce a heading line to the text GitHub slugs: inline code keeps its
- * text, links keep their label, emphasis markers and HTML tags drop.
+ * Reduce a heading line to the text GitHub slugs: MDX escapes resolve to
+ * their characters, inline code keeps its text, links keep their label,
+ * emphasis markers and HTML tags drop.
  */
 function headingText(line: string): string {
   return stripHtmlTags(
-    line.replace(/`([^`]*)`/g, "$1").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1"),
+    line
+      .replace(/\\([<{}])/g, "$1")
+      .replace(/`([^`]*)`/g, "$1")
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1"),
   )
     .replace(/\*/g, "")
     .replace(/\b_+|_+\b/g, "");
@@ -107,51 +132,34 @@ function headingText(line: string): string {
 
 const anchorCache = new Map<string, Set<string>>();
 
-function anchorsFor(mdFile: string): Set<string> {
-  const cached = anchorCache.get(mdFile);
+function anchorsFor(mdxFile: string): Set<string> {
+  const cached = anchorCache.get(mdxFile);
   if (cached) {
     return cached;
   }
-  const content = blankFencedCode(fs.readFileSync(mdFile, "utf-8"));
+  const content = blankFencedCode(pageBody(mdxFile));
   const headings: string[] = [];
   for (const match of content.matchAll(/^#{1,6}\s+(.+)$/gm)) {
     headings.push(headingText(match[1]));
   }
   const anchors = githubSlugs(headings);
-  anchorCache.set(mdFile, anchors);
+  anchorCache.set(mdxFile, anchors);
   return anchors;
 }
 
-/** Slugs of every page the docs site serves, mirroring copy_docs.js. */
-function validDocsSlugs(): Set<string> {
-  const slugs = new Set<string>(["/docs"]);
-  for (const file of walkFiles(CONTENT_DIR, ".md")) {
-    const relPath = path.relative(CONTENT_DIR, file).replaceAll(path.sep, "/");
-    if (relPath.endsWith("README.md")) {
-      const dir = relPath.replace(/\/?README\.md$/, "");
-      slugs.add(dir === "" ? "/docs" : `/docs/${dir}`);
-    } else {
-      slugs.add(`/docs/${relPath.replace(/\.md$/, "")}`);
-    }
-  }
-  return slugs;
+const routeToFile = new Map<string, string>();
+for (const file of docsPageFiles()) {
+  routeToFile.set(routeForFile(file), file);
 }
 
-/** The docs page a slug is rendered from, for anchor lookups. */
-function mdFileForSlug(slug: string): string | null {
-  if (slug === "/docs") {
-    return path.join(CONTENT_DIR, "README.md");
-  }
-  const relPath = slug.replace(/^\/docs\//, "");
-  const asFile = path.join(CONTENT_DIR, `${relPath}.md`);
-  if (fs.existsSync(asFile)) {
-    return asFile;
-  }
-  const asDirReadme = path.join(CONTENT_DIR, relPath, "README.md");
-  if (fs.existsSync(asDirReadme)) {
-    return asDirReadme;
-  }
-  return null;
+/** Slugs of every page the docs site serves. */
+function validDocsSlugs(): Set<string> {
+  return new Set(routeToFile.keys());
+}
+
+/** The content file a /docs slug is rendered from, for anchor lookups. */
+function mdxFileForSlug(slug: string): string | null {
+  return routeToFile.get(slug) ?? null;
 }
 
 interface DocLink {
@@ -160,14 +168,14 @@ interface DocLink {
   target: string;
 }
 
-function extractLinks(mdFile: string): DocLink[] {
-  const content = blankOutCode(fs.readFileSync(mdFile, "utf-8"));
+function extractLinks(mdxFile: string): DocLink[] {
+  const content = blankOutCode(pageBody(mdxFile));
   const links: DocLink[] = [];
   for (const match of content.matchAll(
     /!?\[[^\]]*\]\(([^()\s]+)(?:\s+"[^"]*")?\)/g,
   )) {
     links.push({
-      file: path.relative(CONTENT_DIR, mdFile),
+      file: path.relative(CONTENT_DOCS_DIR, mdxFile),
       line: content.slice(0, match.index).split("\n").length,
       target: match[1],
     });
@@ -175,8 +183,8 @@ function extractLinks(mdFile: string): DocLink[] {
   return links;
 }
 
-(hasContentDocs ? describe : describe.skip)("docs internal links", () => {
-  const allLinks = walkFiles(CONTENT_DIR, ".md").flatMap(extractLinks);
+describe("docs internal links", () => {
+  const allLinks = docsPageFiles().flatMap(extractLinks);
 
   function describeLink(link: DocLink, reason: string): string {
     return `${link.file}:${link.line} -> ${link.target} (${reason})`;
@@ -186,39 +194,15 @@ function extractLinks(mdFile: string): DocLink[] {
     expect(allLinks.length).toBeGreaterThan(0);
   });
 
-  it("relative links resolve to existing files", () => {
+  it("uses only absolute, anchor, or external targets", () => {
+    // Docs pages are routed from a virtual page tree: relative links have
+    // no file tree to resolve against, so every link must be a /docs
+    // route, a root-relative asset, an anchor, or an external URL.
     const failures: string[] = [];
 
     for (const link of allLinks) {
-      if (/^(https?:|mailto:|#|\/)/.test(link.target)) {
-        continue;
-      }
-      const [targetPath] = link.target.split("#");
-      const resolved = path.resolve(
-        CONTENT_DIR,
-        path.dirname(link.file),
-        targetPath,
-      );
-
-      if (resolved.startsWith(CONTENT_DIR + path.sep)) {
-        if (!fs.existsSync(resolved)) {
-          failures.push(describeLink(link, "file not found in docs"));
-        }
-        continue;
-      }
-
-      // Links that escape the docs tree render as GitHub blob URLs, so the
-      // target must exist in the repo. Skipped when the checkout does not
-      // include the repo root (content/docs prebuilt elsewhere).
-      if (fs.existsSync(REPO_DOCS_DIR)) {
-        const resolvedInRepo = path.resolve(
-          REPO_DOCS_DIR,
-          path.dirname(link.file),
-          targetPath,
-        );
-        if (!fs.existsSync(resolvedInRepo)) {
-          failures.push(describeLink(link, "file not found in repo"));
-        }
+      if (!/^(https?:|mailto:|#|\/)/.test(link.target)) {
+        failures.push(describeLink(link, "relative link in MDX docs"));
       }
     }
 
@@ -234,8 +218,60 @@ function extractLinks(mdFile: string): DocLink[] {
         continue;
       }
       const [route] = link.target.split("#");
-      if (!slugs.has(route.replace(/\/$/, "") || "/docs")) {
-        failures.push(describeLink(link, "no docs page for this route"));
+      // Page slugs may end in version suffixes like v0.4.x, so check them
+      // before treating a dotted tail as a file extension
+      if (slugs.has(route.replace(/\/$/, "") || "/docs")) {
+        continue;
+      }
+      // Asset links are checked against public/ separately
+      if (/\.\w+$/.test(route)) {
+        continue;
+      }
+      failures.push(describeLink(link, "no docs page for this route"));
+    }
+
+    expect(failures).toEqual([]);
+  });
+
+  it("root-relative asset links point at real public files", () => {
+    const failures: string[] = [];
+    const slugs = validDocsSlugs();
+
+    for (const link of allLinks) {
+      if (!link.target.startsWith("/")) {
+        continue;
+      }
+      const [route] = link.target.split("#");
+      // Page slugs may end in version suffixes like v0.4.x, so a route
+      // that matches a real page is never treated as an asset
+      if (slugs.has(route.replace(/\/$/, "") || "/docs")) {
+        continue;
+      }
+      if (!/\.\w+$/.test(route)) {
+        continue;
+      }
+      if (!fs.existsSync(path.join(PUBLIC_DIR, route))) {
+        failures.push(describeLink(link, "no public asset"));
+      }
+    }
+
+    expect(failures).toEqual([]);
+  });
+
+  it("GitHub blob links point at real repo files", () => {
+    // Links that escaped the docs tree were rewritten to GitHub blob URLs
+    // in the MDX migration; the linked files must exist in this repo.
+    const failures: string[] = [];
+
+    for (const link of allLinks) {
+      if (!link.target.startsWith(GITHUB_BLOB_PREFIX)) {
+        continue;
+      }
+      const [repoPath] = link.target
+        .slice(GITHUB_BLOB_PREFIX.length)
+        .split("#");
+      if (!fs.existsSync(path.join(REPO_ROOT, repoPath))) {
+        failures.push(describeLink(link, "file not found in repo"));
       }
     }
 
@@ -256,23 +292,16 @@ function extractLinks(mdFile: string): DocLink[] {
 
       let targetFile: string | null;
       if (targetPath === "") {
-        targetFile = path.join(CONTENT_DIR, link.file);
+        targetFile = path.join(CONTENT_DOCS_DIR, link.file);
       } else if (targetPath.startsWith("/docs")) {
-        targetFile = mdFileForSlug(targetPath.replace(/\/$/, ""));
+        targetFile = mdxFileForSlug(targetPath.replace(/\/$/, ""));
       } else {
-        targetFile = path.resolve(
-          CONTENT_DIR,
-          path.dirname(link.file),
-          targetPath,
-        );
+        // Non-docs targets (assets, external) carry no heading anchors
+        continue;
       }
 
-      if (
-        targetFile === null ||
-        !targetFile.endsWith(".md") ||
-        !fs.existsSync(targetFile)
-      ) {
-        // Missing files are reported by the resolution tests above
+      if (targetFile === null || !fs.existsSync(targetFile)) {
+        // Missing pages are reported by the resolution tests above
         continue;
       }
 
@@ -285,7 +314,7 @@ function extractLinks(mdFile: string): DocLink[] {
   });
 });
 
-(hasContentDocs ? describe : describe.skip)("app links to docs", () => {
+describe("app links to docs", () => {
   it("every /docs href in app code targets a real page and heading", () => {
     const failures: string[] = [];
     const slugs = validDocsSlugs();
@@ -304,6 +333,10 @@ function extractLinks(mdFile: string): DocLink[] {
         if (normalized === "/docs" && route !== "/docs") {
           continue;
         }
+        // The docs search and AI chat endpoints are route handlers, not pages
+        if (normalized === "/docs/search" || normalized === "/docs/chat") {
+          continue;
+        }
         const line = content.slice(0, match.index).split("\n").length;
         const lineText = lines[line - 1].trim();
         if (lineText.startsWith("//") || lineText.startsWith("*")) {
@@ -311,21 +344,22 @@ function extractLinks(mdFile: string): DocLink[] {
         }
         const location = `${path.relative(ROOT, file)}:${line}`;
 
-        // A route with a file extension is a static asset fetch, served
-        // from public/ rather than rendered as a docs page
-        if (/\.\w+$/.test(normalized)) {
-          if (!fs.existsSync(path.join(ROOT, "public", normalized))) {
-            failures.push(`${location} -> ${match[1]} (no public asset)`);
+        // Page slugs may end in version suffixes like v0.4.x, so check
+        // pages before treating a dotted tail as a file extension. A
+        // non-page route with an extension is a static asset fetch,
+        // served from public/ rather than rendered as a docs page.
+        if (!slugs.has(normalized)) {
+          if (/\.\w+$/.test(normalized)) {
+            if (!fs.existsSync(path.join(ROOT, "public", normalized))) {
+              failures.push(`${location} -> ${match[1]} (no public asset)`);
+            }
+          } else {
+            failures.push(`${location} -> ${match[1]} (no docs page)`);
           }
           continue;
         }
-
-        if (!slugs.has(normalized)) {
-          failures.push(`${location} -> ${match[1]} (no docs page)`);
-          continue;
-        }
         if (anchor) {
-          const targetFile = mdFileForSlug(normalized);
+          const targetFile = mdxFileForSlug(normalized);
           if (targetFile === null || !anchorsFor(targetFile).has(anchor)) {
             failures.push(`${location} -> ${match[1]} (no heading)`);
           }

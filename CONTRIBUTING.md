@@ -11,7 +11,7 @@
 
 > [!TIP]
 >
-> If you just looking to try out measure, follow our [self hosting guide](docs/hosting/README.md).
+> If you just looking to try out measure, follow our [self hosting guide](https://measure.sh/docs/hosting).
 >
 > **The self hosting guide is the official and recommended way to try out measure.**
 
@@ -488,7 +488,16 @@ set VERSION $(git cliff --bumped-version) && git tag -s $VERSION -m $VERSION && 
 ```
 
 ## Documentation
-- Public facing docs should be in [docs](docs/README.md) folder - API requests & responses, self host guide, SDK guides and so on
+- Public facing docs live as MDX pages in [frontend/dashboard/content/docs](frontend/dashboard/content/docs), rendered at [measure.sh/docs](https://measure.sh/docs) with fumadocs - self host guide, SDK guides, feature docs and so on. The REST API reference is generated from the OpenAPI specs in [frontend/dashboard/content/openapi](frontend/dashboard/content/openapi); edit the specs, not the generated pages under content/docs/api
 - Main folder of subproject should link to main guide. ex: [frontend README](frontend/dashboard/README.md) has link to self hosting and local dev guide
 - Non public facing docs can stay in sub folder. ex: [backend benchmarking README](backend/benchmarking/README.md) which describes its purpose
-- Docs pages, sidebar nav, search index and sitemap are all auto-generated at build time from the markdown files. The sidebar nav is derived from the link structure in [docs/README.md](docs/README.md) — ordering and grouping come from the links there, and titles come from each page's `# H1` heading. To add a new doc page, create the `.md` file and add a link to it in the README
+- To add a doc page, create `frontend/dashboard/content/docs/<slug>.mdx` with `title` and `description` frontmatter (plus `seoTitle` when the search-facing title should be longer), then add its entry to the folder's `meta.json` for sidebar ordering. Search, llms.txt and the sitemap all derive from the content files at build time. Content links use absolute `/docs/...` routes and images live in `frontend/dashboard/public/docs/assets`
+
+### Updating the REST API reference
+
+The API reference at [measure.sh/docs/api](https://measure.sh/docs/api) is generated, not hand-written. To change it:
+
+1. Edit the OpenAPI 3.1 specs in [frontend/dashboard/content/openapi](frontend/dashboard/content/openapi): `dashboard.yaml` for the dashboard API, `sdk.yaml` for the SDK ingestion API. Operations, request/response schemas, descriptions and tags all come from here, and the specs should match the Go handlers they describe.
+2. There is no manual generation step. `scripts/generate_api_docs.mjs` runs as part of `npm run dev`, `npm run build` and `npm test`, wipes the previous output and regenerates one page per operation under `frontend/dashboard/content/docs/api/`, grouped into a folder per tag. The generated pages are gitignored; do not edit them.
+3. Sidebar labels come from the spec: each operation page is titled by its `summary`, and tag folders are titled by the tag name. The only hand-maintained files in the reference are `content/docs/api/index.mdx` (the overview page) and the `meta.json` of each section, which control section titles and ordering.
+4. To add a whole new spec (a third API surface), add the yaml to `content/openapi/`, add a section entry in `scripts/generate_api_docs.mjs`, commit a `meta.json` for it and extend the `.gitignore` patterns that keep its generated pages out of the repo.

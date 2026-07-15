@@ -16,6 +16,42 @@ function walk(dir) {
   return files;
 }
 
+/**
+ * The /docs route of a content/docs .mdx file: index.mdx maps to its
+ * directory, parenthesized folder-group segments don't affect the route.
+ */
+function docsRouteFromFile(contentDir, file) {
+  const rel = path.relative(contentDir, file).split(path.sep).join("/");
+  const segments = rel
+    .replace(/\.mdx$/, "")
+    .split("/")
+    .filter((segment) => !/^\(.*\)$/.test(segment));
+  if (segments[segments.length - 1] === "index") {
+    segments.pop();
+  }
+  return segments.length === 0 ? "/docs" : `/docs/${segments.join("/")}`;
+}
+
+/** Docs routes from the content/docs .mdx sources. */
+function getDocsRoutes() {
+  const contentDir = path.join(ROOT, "content", "docs");
+  const routes = [];
+
+  function walkDocs(dir) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walkDocs(full);
+      } else if (entry.isFile() && entry.name.endsWith(".mdx")) {
+        routes.push(docsRouteFromFile(contentDir, full));
+      }
+    }
+  }
+
+  walkDocs(contentDir);
+  return routes;
+}
+
 function routeFromFile(file) {
   const rel = path.relative(APP_DIR, path.dirname(file));
   let route = "/" + rel.replace(/\\/g, "/");
@@ -34,40 +70,6 @@ const EXCLUDED_PREFIXES = ["/auth/"];
 
 function isExcluded(route) {
   return EXCLUDED_PREFIXES.some((prefix) => route.startsWith(prefix));
-}
-
-function getDocsSlugs() {
-  const contentDir = path.join(ROOT, "content", "docs");
-  if (!fs.existsSync(contentDir)) {
-    return [];
-  }
-
-  const slugs = [];
-
-  function walkDocs(dir, prefix) {
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        if (entry.name === "assets") {
-          continue;
-        }
-        walkDocs(path.join(dir, entry.name), [...prefix, entry.name]);
-      } else if (entry.isFile() && entry.name.endsWith(".md")) {
-        if (entry.name === "README.md") {
-          if (prefix.length > 0) {
-            slugs.push("/docs/" + prefix.join("/"));
-          }
-          // Root README.md is /docs (static page, already picked up)
-        } else {
-          const name = entry.name.replace(/\.md$/, "");
-          slugs.push("/docs/" + [...prefix, name].join("/"));
-        }
-      }
-    }
-  }
-
-  walkDocs(contentDir, []);
-  return slugs;
 }
 
 function ensurePublicDir() {
@@ -108,14 +110,8 @@ function main() {
     routes.add(route === "/" ? "/" : route.replace(/\\/g, "/"));
   }
 
-  // Add docs pages from content/docs/
-  const docsSlugs = getDocsSlugs();
-  for (const slug of docsSlugs) {
-    routes.add(slug);
-  }
-
-  if (docsSlugs.length > 0) {
-    console.log(`Added ${docsSlugs.length} docs pages to sitemap`);
+  for (const route of getDocsRoutes()) {
+    routes.add(route);
   }
 
   const urls = Array.from(routes)
@@ -134,9 +130,10 @@ if (require.main === module) main();
 module.exports = {
   walk,
   routeFromFile,
+  docsRouteFromFile,
   isDynamic,
   isExcluded,
-  getDocsSlugs,
+  getDocsRoutes,
   buildSitemap,
   ensurePublicDir,
   main,

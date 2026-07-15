@@ -1,0 +1,95 @@
+---
+title: "Set up Measure Agent"
+seoTitle: "Set Up Measure Agent for Self-Hosted Measure"
+description: "Configure Measure Agent on your self-hosted instance. Get an OpenRouter API key, choose the models and expose the agent service so you can debug your app from your coding agent or Slack."
+---
+
+Use this guide to set up [Measure Agent](/docs/features/feature-agent) on a self-hosted instance, so you can debug your app from your coding agent (over MCP) or from Slack.
+
+The agent runs as a separate `agent` service and sends prompts to a language model through [OpenRouter](https://openrouter.ai). You provide an OpenRouter API key and choose which models the agent uses.
+
+## Get an OpenRouter API key
+
+1. Create an account at [openrouter.ai](https://openrouter.ai).
+2. Add credits to your account on the [Credits](https://openrouter.ai/credits) page. OpenRouter bills the agent's usage per token, so the account needs a positive balance for the agent to answer questions.
+3. Create an API key on the [Keys](https://openrouter.ai/keys) page and copy it. You will set it as `OPENROUTER_API_KEY`.
+4. Optionally, create a second key for the Ask AI chat on the docs pages. You will set it as `LLM_DOCS_CHAT_KEY`. Give this key a credit limit, so traffic from the public docs pages cannot spend the agent's credits. Skip it to keep the docs chat off.
+
+## Choose the models
+
+The agent uses two models:
+
+- **Small model** (`OPENROUTER_MODEL_SMALL`) handles light work: summarizing long conversations and working out which app a Slack question is about. It does not call tools, so any capable chat model works. Pick a fast, inexpensive one.
+- **Medium model** (`OPENROUTER_MODEL_MEDIUM`) answers the questions by calling Measure's tools, so it **must support tool (function) calling**. Pick a stronger model, since this is where most of the answer quality comes from.
+
+Both models should have a context window of at least 64k tokens so they can hold a long conversation comfortably.
+
+You can use the same model for both, as long as it supports tool calling. Browse the available models at [openrouter.ai/models](https://openrouter.ai/models), confirm the medium model lists tool (function) calling support, and use the model's API id, for example `deepseek/deepseek-v4-pro`.
+
+<Callout type="info">
+
+`OPENROUTER_MODEL_LARGE` is accepted for forward compatibility but is not used yet. You can leave it empty.
+
+</Callout>
+
+## Configure for a new installation
+
+During installation, the configuration wizard prompts for the agent settings. At the **OpenRouter credentials and models** prompts, paste your API key and the small and medium model ids. The wizard writes `AGENT_ENABLED=false`, so once installation finishes, turn the agent on as described in [Turn the agent on](#turn-the-agent-on).
+
+The wizard also asks for the **Measure Agent service URL**, for example `https://measure-agent.yourcompany.com`. This is the public address coding agents use to reach the MCP endpoint. See [Make the agent reachable over MCP](#make-the-agent-reachable-over-mcp).
+
+## Configure for an existing installation
+
+If your instance is already running and you want to enable or change the agent, update the environment variables manually.
+
+1. **Agent Credentials**. Open the `self-host/.env` file & add the following environment variables. Set the credentials and models as obtained from OpenRouter, and set `AGENT_ENABLED=true` to turn the agent on.
+
+    ```sh
+    AGENT_ENABLED=true
+    OPENROUTER_API_KEY=your-openrouter-api-key        # change this
+    OPENROUTER_MODEL_SMALL=deepseek/deepseek-v4-pro   # change this
+    OPENROUTER_MODEL_MEDIUM=deepseek/deepseek-v4-pro  # change this
+    LLM_DOCS_CHAT_KEY=your-docs-chat-api-key          # optional, turns on the docs Ask AI chat
+    ```
+
+2. **Shutdown**. Run the following command to shutdown all services.
+
+    ```sh
+    sudo docker compose -f compose.yml -f compose.prod.yml --profile migrate down
+    ```
+
+3. **Startup**. Finally, run the `install.sh` script for the configuration to take effect.
+
+    ```sh
+    sudo ./install.sh
+    ```
+
+## Turn the agent on
+
+The agent is off by default. It answers only when `AGENT_ENABLED` is set to `true` in `self-host/.env`; with any other value, or with the variable missing, Slack questions and the MCP `ask_question` tool receive a short notice that the agent is unavailable instead of an answer. The other MCP tools read data directly without the agent, so they keep working.
+
+To turn the agent on, set the variable and restart the services as described above.
+
+```sh
+AGENT_ENABLED=true
+```
+
+Set it back to `false` and restart to take the agent out of service without removing its configuration.
+
+## Make the agent reachable over MCP
+
+To use the agent from a coding agent over MCP, the `agent` service (port `8084`) needs a public domain. This uses the same reverse-proxy and DNS setup as the dashboard, API and ingest services in the [Self-Hosting Guide](/docs/hosting).
+
+Add a reverse proxy entry for the agent domain. For Caddy, add the following to your `~/Caddyfile`.
+
+```
+measure-agent.yourcompany.com {
+	reverse_proxy http://localhost:8084
+}
+```
+
+Reload the proxy, then add a DNS A record pointing `measure-agent.yourcompany.com` at your VM's external IP, the same way you did for the other subdomains.
+
+The MCP endpoint is then available at `https://measure-agent.yourcompany.com/mcp`. See the [MCP Server](/docs/features/feature-mcp) guide for connecting coding agents.
+
+Using the agent from Slack needs no extra domain: Slack delivers events to the API service and the agent consumes them internally. Set that up with the [Slack integration guide](/docs/hosting/slack).

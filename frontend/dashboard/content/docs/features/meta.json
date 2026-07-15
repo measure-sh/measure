@@ -1,0 +1,31 @@
+{
+  "title": "Features",
+  "defaultOpen": true,
+  "pages": [
+    "feature-session-timelines",
+    "feature-crash-reporting",
+    "feature-anr-reporting",
+    "feature-error-tracking",
+    "feature-gesture-tracking",
+    "feature-performance-tracing",
+    "feature-custom-events",
+    "(bug-reporting)",
+    "feature-screenshot-masking-swiftui",
+    "feature-screenshot-masking-flutter",
+    "feature-app-launch-metrics",
+    "feature-network-monitoring",
+    "feature-network-connectivity-changes",
+    "feature-navigation-lifecycle-tracking",
+    "feature-cpu-monitoring",
+    "feature-memory-monitoring",
+    "feature-profiling",
+    "feature-identify-users",
+    "feature-manually-start-stop-sdk",
+    "feature-app-size-monitoring",
+    "feature-alerts",
+    "feature-slack-integration",
+    "feature-mcp",
+    "feature-agent",
+    "feature-upload-symbols"
+  ]
+}

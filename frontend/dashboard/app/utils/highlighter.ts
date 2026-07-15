@@ -4,8 +4,8 @@ import type { HighlighterCore } from "shiki/core";
 // Shiki language ids; values are the fine-grained grammar imports, kept as
 // static import() calls so the bundler still splits each grammar into its own
 // lazily-loaded chunk (per https://shiki.style/guide/best-performance). The
-// CodeBlockLanguage type, the runtime list, and the highlighter's lang set are
-// all derived from this object, so they can't drift out of sync.
+// CodeBlockLanguage type and the highlighter's lang set are both derived from
+// this object, so they can't drift out of sync.
 const LANG_LOADERS = {
   kotlin: () => import("@shikijs/langs/kotlin"),
   xml: () => import("@shikijs/langs/xml"),
@@ -23,57 +23,27 @@ const LANG_LOADERS = {
   c: () => import("@shikijs/langs/c"),
 } as const;
 
-// Shiki recognises "plaintext" without a registered grammar; it renders code in
-// the theme but with no token colours. We use it as the fallback for fenced
-// blocks whose language we don't highlight, so they still get the CodeBlock
-// chrome (theme background, copy button) rather than a bare box.
-export const PLAINTEXT_LANGUAGE = "plaintext";
+export type CodeBlockLanguage = keyof typeof LANG_LOADERS;
 
-export type CodeBlockLanguage =
-  | keyof typeof LANG_LOADERS
-  | typeof PLAINTEXT_LANGUAGE;
+// Same pair fumadocs uses for the docs code blocks, so code looks the
+// same in the dashboard and the docs.
+export const CODE_BLOCK_THEME_LIGHT = "github-light";
+export const CODE_BLOCK_THEME_DARK = "github-dark";
 
-// Runtime list of the languages we load grammars for, for callers that check
-// whether a fenced block's language is one we can highlight. Plaintext is
-// excluded since it's the fallback, not an author-selectable language.
-export const CODE_BLOCK_LANGUAGES = Object.keys(
-  LANG_LOADERS,
-) as CodeBlockLanguage[];
-
-export const CODE_BLOCK_THEME_LIGHT = "vitesse-light";
-export const CODE_BLOCK_THEME_DARK = "vitesse-dark";
-
-// Map markdown fence aliases to the Shiki language names we load grammars for.
-const LANG_ALIASES: Record<string, CodeBlockLanguage> = {
-  sh: "shellscript",
-  shell: "shellscript",
-  bash: "shellscript",
-  objc: "objective-c",
-  ts: "typescript",
+// Drop the themes' own backgrounds so the component chrome paints them,
+// the way docs code blocks do (fumadocs ignores the theme background and
+// uses its card token). Without this, dark mode shows github-dark's
+// #24292e as a gray box on the near-black app background. Replacements
+// match exact color strings anywhere in the theme; github-dark also uses
+// #24292e as the foreground of its carriage-return token, so a literal CR
+// would render transparent, which is accepted.
+export const CODE_BLOCK_COLOR_REPLACEMENTS: Record<
+  string,
+  Record<string, string>
+> = {
+  [CODE_BLOCK_THEME_LIGHT]: { "#fff": "transparent" },
+  [CODE_BLOCK_THEME_DARK]: { "#24292e": "transparent" },
 };
-
-const SUPPORTED_LANGUAGES: ReadonlySet<CodeBlockLanguage> = new Set(
-  CODE_BLOCK_LANGUAGES,
-);
-
-/**
- * Resolve a fenced block's `language-*` class to a supported highlight
- * language, or null when we don't load a grammar for it.
- */
-export function resolveLanguage(
-  className: string | undefined,
-): CodeBlockLanguage | null {
-  if (!className) {
-    return null;
-  }
-  const match = className.match(/(?:^|\s)language-(\S+)/);
-  if (!match) {
-    return null;
-  }
-  const raw = match[1].toLowerCase();
-  const mapped = (LANG_ALIASES[raw] ?? raw) as CodeBlockLanguage;
-  return SUPPORTED_LANGUAGES.has(mapped) ? mapped : null;
-}
 
 let highlighterPromise: Promise<HighlighterCore> | null = null;
 let resolvedHighlighter: HighlighterCore | null = null;
@@ -103,8 +73,8 @@ export function loadHighlighter(): Promise<HighlighterCore> {
         ]);
       const highlighter = await createHighlighterCore({
         themes: [
-          import("@shikijs/themes/vitesse-light"),
-          import("@shikijs/themes/vitesse-dark"),
+          import("@shikijs/themes/github-light"),
+          import("@shikijs/themes/github-dark"),
         ],
         langs: Object.values(LANG_LOADERS).map((load) => load()),
         engine: createJavaScriptRegexEngine(),

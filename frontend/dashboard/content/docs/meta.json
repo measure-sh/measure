@@ -1,0 +1,12 @@
+{
+  "pages": [
+    "index",
+    "sdk-integration-guide",
+    "features",
+    "configuration-options",
+    "performance-impact",
+    "sdk-upgrade-guides",
+    "api",
+    "hosting"
+  ]
+}

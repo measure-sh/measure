@@ -598,7 +598,7 @@ export default function SdkConfigurator({
             <>
               See the{" "}
               <Link
-                href="/docs/features/configuration-options"
+                href="/docs/configuration-options"
                 className={underlineLinkStyle}
               >
                 docs

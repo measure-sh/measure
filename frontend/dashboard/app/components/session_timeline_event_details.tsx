@@ -11,13 +11,15 @@ import {
 import { openTraceInPerfetto } from "../utils/perfetto_utils";
 import { toastNegative } from "../utils/use_toast";
 import { buttonVariants } from "./button_variants";
-import CodeBlock from "./code_block";
+import CodeBlock, { CODE_BLOCK_CARD_CLASS } from "./code_block";
 import LayoutSnapshot from "./layout_snapshot";
 
 // Text size matches the attribute rows so the stacktrace doesn't visually
 // dominate the rest of the event detail.
-const stacktraceClassName =
-  "font-code text-xs leading-relaxed rounded-sm overflow-hidden [&_pre]:p-4 [&_pre]:overflow-x-auto";
+const stacktraceClassName = cn(
+  CODE_BLOCK_CARD_CLASS,
+  "text-xs leading-relaxed",
+);
 
 function renderAttributeRow(key: string, value: unknown): ReactNode {
   const isObject = typeof value === "object" && value !== null;

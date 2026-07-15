@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "@c15t/nextjs/styles.css";
+/* Fumadocs docs UI: shadcn.css maps the fd-* tokens onto the app theme
+   variables below, so the preset's global body/border preflight resolves to
+   the existing palette and docs pages inherit the brand colors. */
+@import "fumadocs-ui/css/shadcn.css";
+@import "fumadocs-ui/css/preset.css";
+@import "fumadocs-openapi/css/preset.css";
 /*
   ---break---
 */
@@ -87,6 +93,14 @@
     --popover-foreground: #222222;
     --primary: oklch(79.2% 0.209 151.711);
     --primary-foreground: #1c1313;
+    /* fumadocs uses fd-primary as a text color (active sidebar and TOC
+       items, search match highlights), where the green-400 fill shade of
+       --primary is too light to read on white. Light mode gets green-700,
+       the shade the landing already uses for green text on white, with
+       white replacing the near-black foreground on the few solid
+       fd-primary fills. */
+    --color-fd-primary: oklch(52.7% 0.154 150.069);
+    --color-fd-primary-foreground: #ffffff;
     --secondary: color-mix(in oklab, var(--accent) 50%, transparent);
     --secondary-foreground: #222222;
     --muted: #ededed;
@@ -152,6 +166,10 @@
     --popover-foreground: #fafafa;
     --primary: oklch(79.2% 0.209 151.711);
     --primary-foreground: #1c1313;
+    /* In dark mode green-400 reads fine as text, so fd-primary follows
+       the app tokens unchanged. */
+    --color-fd-primary: var(--primary);
+    --color-fd-primary-foreground: var(--primary-foreground);
     --secondary: color-mix(in oklab, var(--accent) 50%, transparent);
     --secondary-foreground: #fafafa;
     --muted: #262626;
@@ -270,6 +288,14 @@
     body {
         @apply bg-background text-foreground;
     }
+}
+
+/* The fumadocs typography preset sets prose links to font-weight 500.
+   Links should carry the weight of the text they sit in (body text stays
+   regular, a link inside a heading stays bold), so inherit it instead.
+   The selector mirrors the preset's link rule. */
+.prose a:not([data-card]) {
+    font-weight: inherit;
 }
 
 @keyframes marquee {

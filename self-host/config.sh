@@ -323,6 +323,7 @@ OPENROUTER_API_KEY=
 OPENROUTER_MODEL_SMALL=
 OPENROUTER_MODEL_MEDIUM=
 OPENROUTER_MODEL_LARGE=
+LLM_DOCS_CHAT_KEY=
 
 #########
 # Agent #
@@ -497,6 +498,7 @@ OPENROUTER_API_KEY=$OPENROUTER_API_KEY
 OPENROUTER_MODEL_SMALL=$OPENROUTER_MODEL_SMALL
 OPENROUTER_MODEL_MEDIUM=$OPENROUTER_MODEL_MEDIUM
 OPENROUTER_MODEL_LARGE=$OPENROUTER_MODEL_LARGE
+LLM_DOCS_CHAT_KEY=$LLM_DOCS_CHAT_KEY
 
 #########
 # Agent #
@@ -683,11 +685,15 @@ END
     SLACK_OAUTH_STATE_SALT=$(generate_password 44)
 
     echo -e "\nSet OpenRouter credentials and models"
-    echo -e "Used by the Measure agent service to answer natural language questions. See https://github.com/measure-sh/measure/blob/main/docs/hosting/agent.md for more details. If you wish to ignore this, enter an empty value."
+    echo -e "Used by the Measure agent service to answer natural language questions. See https://measure.sh/docs/hosting/agent for more details. If you wish to ignore this, enter an empty value."
     OPENROUTER_API_KEY=$(prompt_optional_value_manual "Enter OpenRouter API key (optional): ")
     OPENROUTER_MODEL_SMALL=$(prompt_optional_value_manual "Enter small model id, used for light tasks like summarization (optional): ")
     OPENROUTER_MODEL_MEDIUM=$(prompt_optional_value_manual "Enter medium model id, used to answer questions (optional): ")
     OPENROUTER_MODEL_LARGE=$(prompt_optional_value_manual "Enter large model id, reserved for future heavy tasks (optional): ")
+
+    echo -e "\nSet OpenRouter key for the docs site AI chat"
+    echo -e "Used by the Ask AI chat on the docs pages. Use a separate key with a spend limit, so public docs traffic cannot spend the agent's credits. Skip to keep the docs chat off."
+    LLM_DOCS_CHAT_KEY=$(prompt_optional_value_manual "Enter OpenRouter API key for docs chat (optional): ")
 
     write_prod_env
   fi
@@ -1009,6 +1015,10 @@ ensure() {
 
   if ! check_env_variable "OPENROUTER_MODEL_LARGE"; then
     add_env_variable "OPENROUTER_MODEL_LARGE" ""
+  fi
+
+  if ! check_env_variable "LLM_DOCS_CHAT_KEY"; then
+    add_env_variable "LLM_DOCS_CHAT_KEY" ""
   fi
 
   if ! check_env_variable "AGENT_ENABLED"; then

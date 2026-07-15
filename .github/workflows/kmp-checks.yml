@@ -4,13 +4,11 @@ on:
   pull_request:
     paths:
       - 'kmp/**'
-      - '!docs/**'
   push:
     branches:
       - 'main'
     paths:
       - 'kmp/**'
-      - '!docs/**'
 
 concurrency:
   group: kmp-checks-${{ github.ref }}

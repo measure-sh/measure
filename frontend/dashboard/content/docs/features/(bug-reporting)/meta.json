@@ -1,0 +1,9 @@
+{
+  "title": "Bug Reporting",
+  "pages": [
+    "feature-bug-report-android",
+    "feature-bug-report-ios",
+    "feature-bug-report-flutter",
+    "feature-bug-report-react-native"
+  ]
+}

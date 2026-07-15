@@ -1,0 +1,104 @@
+---
+title: "Migration Guide for `v0.10.x`"
+seoTitle: "Self-Hosted Measure v0.10.x Migration Guide"
+description: "Migration guide for self-hosted Measure v0.10.x. Adds a Google OAuth client secret, a dedicated ingest endpoint and configuration migration."
+---
+
+Use this guide only when you are on less than `v0.10.0` and upgrading to `v0.10.x`.
+
+<Callout type="warn">
+
+Steps mentioned in this document will cause downtime.
+
+</Callout>
+
+Follow these steps when upgrading to `0.10.x`. There is some downtime involved. During the downtime SDKs would receive a `503 Service Unavailable` when sending sessions. Once the upgrade is complete, ingestion should resume normally. SDKs will retry sending unsent sessions automatically.
+
+## 1. Shutdown all Measure services
+
+SSH into the VM where Measure is hosted.
+
+```sh
+cd ~/measure/self-host
+```
+
+```sh
+sudo docker compose -f compose.yml -f compose.prod.yml --profile init --profile migrate down --remove-orphans
+```
+
+## 2. Perform the upgrade
+
+Visit [Releases](https://github.com/measure-sh/measure/releases) page to capture the latest tag matching the `v[MAJOR].[MINOR].[PATCH]` format. For example, `v0.10.0`.
+
+```sh
+cd ~/measure
+```
+
+```sh
+git reset --hard # only applies if you have local modifications
+```
+
+```sh
+git fetch --tags
+```
+
+```sh
+# replace <git-tag> with the chosen tag. example: v0.10.0
+git checkout <git-tag>
+```
+
+## 3. Create Google OAuth client secret
+
+<Callout type="info">
+
+Skip this step if you only use **GitHub** sign in.
+
+</Callout>
+
+Starting with `v0.10.x`, Google sign-in uses a server-side code flow that requires the `OAUTH_GOOGLE_SECRET` environment variable. Previously, only the client ID (`OAUTH_GOOGLE_KEY`) was needed.
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com) > APIs & Services > Credentials
+2. Click on your existing OAuth 2.0 Client ID, create a new **Client Secret** and copy it. (If you want to disable the existing client secret for security reasons and are sure it is not being used anywhere else outside of Measure, you can do so.)
+3. Edit `self-host/.env` and add:
+
+    ```sh
+    OAUTH_GOOGLE_SECRET=your-google-client-secret  # change this
+    ```
+
+## 4. Set up an ingest endopint
+
+Set up a new DNS A record for the new ingest endpoint like: `https://measure-ingest.yourcompany.com` pointing to your VM's IP. This step is new and recommended to ensure the best possible ingestion performance. Make sure to also update this endpoint as the `API_URL` in your apps. All the app versions prior to this change will continue to ingest as well.
+
+## 5. Migrate configurations
+
+```sh
+cd ~/measure/self-host
+```
+
+```sh
+sudo ./config.sh --production --ensure
+```
+
+You'll be prompted to enter the ingest endpoint you created in step 4 above.
+
+## 6. Start Measure services
+
+```sh
+sudo ./install.sh
+```
+
+## 7. Run data back filling script
+
+Perform this step to complete the migration. Measure dashboard will not work properly until these scripts are run.
+
+```sh
+sudo ./migrations/v0.10.x-data-backfills-1.sh
+```
+
+```sh
+sudo ./migrations/v0.10.x-data-backfills-2.sh
+```
+
+```sh
+sudo ./migrations/v0.10.x-read-optim.sh
+```

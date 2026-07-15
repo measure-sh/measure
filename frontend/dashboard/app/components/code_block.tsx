@@ -1,9 +1,9 @@
 "use client";
 
-import { Check, Copy } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import {
+  CODE_BLOCK_COLOR_REPLACEMENTS,
   CODE_BLOCK_THEME_DARK,
   CODE_BLOCK_THEME_LIGHT,
   type CodeBlockLanguage,
@@ -12,87 +12,17 @@ import {
 } from "../utils/highlighter";
 import { cn } from "../utils/shadcn_utils";
 
-// Framed code block pieces, shared with docs CodeTabs which builds the same
-// frame around multiple stacked panels.
-export const CODE_FRAME_CLASS =
-  "code-frame rounded-2xl border border-border bg-muted/40 p-0.5";
-export const CODE_FRAME_HEADER_CLASS =
-  "flex min-h-8 items-center justify-between gap-2 py-0.5 pl-3.5 pr-1";
-export const CODE_FRAME_PANEL_CLASS =
-  "overflow-hidden rounded-xl bg-background font-code text-sm leading-6 [&_pre]:overflow-x-auto [&_pre]:px-4 [&_pre]:py-3.5";
-
-export function CopyCodeButton({
-  code,
-  onCopy,
-  className,
-}: {
-  code: string;
-  /** Fired after a successful copy; used by call sites for tracking. */
-  onCopy?: () => void;
-  className?: string;
-}) {
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (!copied) {
-      return;
-    }
-    const timer = setTimeout(() => setCopied(false), 1500);
-    return () => clearTimeout(timer);
-  }, [copied]);
-
-  const handleCopy = () => {
-    if (typeof navigator === "undefined" || !navigator.clipboard) {
-      return;
-    }
-    navigator.clipboard
-      .writeText(code)
-      .then(() => {
-        setCopied(true);
-        if (onCopy) {
-          onCopy();
-        }
-      })
-      .catch(() => {
-        // Silently ignore — the user can still select and copy manually.
-      });
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={handleCopy}
-      aria-label={copied ? "Copied" : "Copy code"}
-      className={cn(
-        "inline-flex items-center justify-center rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-        className,
-      )}
-    >
-      {copied ? (
-        <Check className="h-3.5 w-3.5" />
-      ) : (
-        <Copy className="h-3.5 w-3.5" />
-      )}
-    </button>
-  );
-}
+// Docs-style card chrome, matching the fumadocs codeblock frame (card
+// background, border, xl rounding, shadow) and its code padding. Text
+// size is left to the call site; blocks that should sit flat on the page
+// (e.g. the common-path steps) skip this and style themselves.
+export const CODE_BLOCK_CARD_CLASS =
+  "rounded-xl border border-border bg-card shadow-sm overflow-hidden font-code [&_pre]:overflow-x-auto [&_pre]:px-4 [&_pre]:py-3.5";
 
 interface CodeBlockProps {
   code: string;
   language: CodeBlockLanguage;
   className?: string;
-  /** Render a copy-to-clipboard button on the code block. */
-  showCopyButton?: boolean;
-  /** Fired after a successful copy; used by call sites for tracking. */
-  onCopy?: () => void;
-  /**
-   * "plain" renders the highlighted block as-is. "framed" wraps it in a
-   * bordered container with a header row holding `label` and an
-   * always-visible copy button.
-   */
-  variant?: "plain" | "framed";
-  /** Header text for the framed variant, e.g. the language name. */
-  label?: string;
 }
 
 function highlightSync(
@@ -105,7 +35,11 @@ function highlightSync(
     return null;
   }
   try {
-    return highlighter.codeToHtml(code, { lang: language, theme });
+    return highlighter.codeToHtml(code, {
+      lang: language,
+      theme,
+      colorReplacements: CODE_BLOCK_COLOR_REPLACEMENTS,
+    });
   } catch {
     return null;
   }
@@ -114,15 +48,11 @@ function highlightSync(
 // Shared syntax-highlighted code block. Lazy-loads Shiki on first mount and
 // re-highlights on theme change. Renders a plain <pre> while loading (and as
 // a permanent fallback if Shiki ever fails to load), so the content is always
-// readable and copy/clipboard flows that read from `code` are unaffected.
+// readable.
 export default function CodeBlock({
   code,
   language,
   className,
-  showCopyButton = false,
-  onCopy,
-  variant = "plain",
-  label,
 }: CodeBlockProps) {
   const { resolvedTheme } = useTheme();
   const theme =
@@ -146,7 +76,13 @@ export default function CodeBlock({
         if (cancelled) {
           return;
         }
-        setHtml(highlighter.codeToHtml(code, { lang: language, theme }));
+        setHtml(
+          highlighter.codeToHtml(code, {
+            lang: language,
+            theme,
+            colorReplacements: CODE_BLOCK_COLOR_REPLACEMENTS,
+          }),
+        );
       })
       .catch(() => {
         // Keep the plain-pre fallback if Shiki fails to load.
@@ -156,87 +92,27 @@ export default function CodeBlock({
     };
   }, [code, language, theme]);
 
-  const overlayCopyButton = showCopyButton ? (
-    <CopyCodeButton
-      code={code}
-      onCopy={onCopy}
-      className="absolute top-2 right-2 z-10 rounded-md border border-border bg-background/80 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-    />
-  ) : null;
+  // not-fumadocs-codeblock opts the block out of the fumadocs preset in
+  // globals.css, which otherwise pads every .shiki line by 1rem on top of
+  // whatever the call site sets. The fallback uses the same wrapper-plus-pre
+  // structure as the highlighted output so [&_pre] classes apply to both
+  // and the layout doesn't shift when Shiki finishes loading.
+  const wrapperClassName = cn("not-fumadocs-codeblock", className);
 
-  if (variant === "framed") {
-    const content =
-      html === null ? (
+  if (html === null) {
+    return (
+      <div className={wrapperClassName}>
         <pre>
           <code>{code}</code>
         </pre>
-      ) : (
-        <div dangerouslySetInnerHTML={{ __html: html }} />
-      );
-    // Without a label there is nothing to put in a header bar, so the block
-    // is a single bordered panel with the copy button floating over the
-    // code's top-right corner.
-    if (label === undefined || label === "") {
-      return (
-        <div
-          className={cn(
-            CODE_FRAME_PANEL_CLASS,
-            "code-frame relative rounded-2xl border border-border",
-            className,
-          )}
-        >
-          {showCopyButton && (
-            <CopyCodeButton
-              code={code}
-              onCopy={onCopy}
-              className="absolute top-1.5 right-1.5 z-10"
-            />
-          )}
-          {content}
-        </div>
-      );
-    }
-    return (
-      <div className={cn(CODE_FRAME_CLASS, className)}>
-        <div className={CODE_FRAME_HEADER_CLASS}>
-          <span className="font-code text-xs text-muted-foreground">
-            {label}
-          </span>
-          {showCopyButton && <CopyCodeButton code={code} onCopy={onCopy} />}
-        </div>
-        <div className={CODE_FRAME_PANEL_CLASS}>{content}</div>
-      </div>
-    );
-  }
-
-  if (html === null) {
-    if (showCopyButton) {
-      return (
-        <div className={cn("group relative", className)}>
-          {overlayCopyButton}
-          <pre>
-            <code>{code}</code>
-          </pre>
-        </div>
-      );
-    }
-    return (
-      <pre className={className}>
-        <code>{code}</code>
-      </pre>
-    );
-  }
-
-  if (showCopyButton) {
-    return (
-      <div className={cn("group relative", className)}>
-        {overlayCopyButton}
-        <div dangerouslySetInnerHTML={{ __html: html }} />
       </div>
     );
   }
 
   return (
-    <div className={className} dangerouslySetInnerHTML={{ __html: html }} />
+    <div
+      className={wrapperClassName}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   );
 }

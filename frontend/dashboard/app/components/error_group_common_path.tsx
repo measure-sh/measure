@@ -147,15 +147,16 @@ const ErrorGroupCommonPath: React.FC<ErrorGroupCommonPathProps> = ({
                 analyzed sessions
               </p>
             ) : (
-              <ol className="list-decimal list-outside space-y-6 ml-8 marker:text-muted-foreground">
+              <ol className="list-decimal list-outside space-y-6 ml-6 marker:text-muted-foreground">
                 {filteredSteps.map((stepInfo, index) => (
-                  <li key={index} className="pl-2">
+                  <li key={index}>
                     <CodeBlock
                       code={stepInfo.description}
                       language="java"
-                      className="font-code text-sm rounded-sm overflow-hidden [&_pre]:px-3 [&_pre]:py-2 [&_pre]:overflow-x-auto"
+                      className="font-code text-sm [&_pre]:px-2 [&_pre]:py-2 [&_pre]:overflow-x-auto"
                     />
-                    <p className="text-xs pt-1.5 pl-3 text-muted-foreground">
+                    {/* pl-2 lines the caption up with the code's px-2 inset. */}
+                    <p className="text-xs pl-2 text-muted-foreground">
                       Thread: {stepInfo.thread_name} | Occurs in{" "}
                       {stepInfo.confidence_pct}% of analyzed sessions
                     </p>

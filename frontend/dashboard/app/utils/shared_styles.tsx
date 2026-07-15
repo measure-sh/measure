@@ -1,11 +1,8 @@
+// Mirrors the docs prose links (fumadocs typography plus our fd-primary
+// override in globals.css): same decoration pair, thickness, offset, weight
+// and fade-on-hover, so links look the same on marketing and docs pages.
 export const underlineLinkStyle =
-  "underline decoration-2 underline-offset-2 decoration-green-400 hover:decoration-green-500 dark:decoration-green-300 dark:hover:decoration-green-400";
-
-// Green for active/accent text (docs sidebar, TOC, code tabs, eyebrow).
-// Same pair the landing uses for green text on the page background (pricing
-// checkmarks, MCP demo): decoration greens like the link underline are too
-// light to read as text on white, so light mode gets the deeper shade.
-export const accentGreenTextStyle = "text-green-700 dark:text-green-400";
+  "underline decoration-[1.5px] underline-offset-[3.5px] decoration-green-700 dark:decoration-green-400 hover:opacity-80 transition-opacity duration-200";
 
 // Amber warning callout for inline notices, such as the cross-platform note in
 // onboarding and the Slack reconnect prompt. Callers add their own layout

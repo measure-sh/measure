@@ -137,10 +137,12 @@ export function SyncedInputSlider({
             onBlur={handleBlur}
             // `ch` ≈ one digit, so the box width tracks the digit count. content-box
             // makes that width the digits' space; the default border-box would split
-            // it between digits and padding, clipping the number.
+            // it between digits and padding, clipping the number. text-base pins the
+            // font size: the wrapper is display-sized (text-xl/2xl) and inputs
+            // inherit font, so without it the ch unit grows with the wrapper.
             style={{ width: `${inputWidth}ch` }}
             className={cn(
-              "box-content rounded-md border border-input bg-transparent px-2.5 py-1 text-right outline-none",
+              "text-base box-content rounded-md border border-input bg-transparent px-2.5 py-1 text-right outline-none",
               "transition-[color,box-shadow,width]",
               "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
             )}

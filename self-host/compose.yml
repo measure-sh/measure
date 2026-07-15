@@ -31,10 +31,10 @@ services:
     build:
       dockerfile: dockerfile
       context: ../frontend/dashboard
-      additional_contexts:
-        docs: ../docs
     ports:
       - "3000:3000"
+    secrets:
+      - llm-docs-chat-key
     environment:
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
@@ -56,6 +56,8 @@ services:
       - NEXT_PUBLIC_POSTHOG_API_KEY=${POSTHOG_API_KEY}
       - NEXT_PUBLIC_GTM_ID=${GTM_ID}
       - NEXT_PUBLIC_C15T_BACKEND_URL=${NEXT_PUBLIC_C15T_BACKEND_URL}
+      - LLM_DOCS_CHAT_KEY_FILE=/run/secrets/llm-docs-chat-key
+      - LLM_MODEL=${OPENROUTER_MODEL_SMALL:-}
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://0.0.0.0:3000"]
       interval: 5s
@@ -66,9 +68,6 @@ services:
         - path: ../frontend/dashboard
           action: sync
           target: /app
-        - path: ../docs
-          action: sync
-          target: /app/content/docs
 
   api:
     build:
@@ -887,3 +886,5 @@ secrets:
     environment: "OAUTH_GITHUB_SECRET"
   openrouter-api-key:
     environment: "OPENROUTER_API_KEY"
+  llm-docs-chat-key:
+    environment: "LLM_DOCS_CHAT_KEY"

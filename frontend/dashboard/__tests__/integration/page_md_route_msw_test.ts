@@ -122,26 +122,17 @@ describe("/page-md/[...path] route handler", () => {
   });
 
   describe("docs pages", () => {
-    it("serves /docs (root) using getDocIndex when segments=['docs']", async () => {
+    // Docs markdown is served by the /llms.mdx route and the proxy routes
+    // /docs/* there. A docs path reaching this handler anyway has no
+    // app/docs/**/page.md twin, so it must fall through to 406 rather
+    // than serve anything.
+    it("returns 406 for the docs root", async () => {
       const res = await call(["docs"]);
-      expect(res.status).toBe(200);
-      expect(res.headers.get("Content-Type")).toBe(
-        "text/markdown; charset=utf-8",
-      );
-      const body = await res.text();
-      // Root docs README is hand-authored; just confirm it's non-empty markdown
-      expect(body.length).toBeGreaterThan(0);
+      await expect406(res);
     });
 
-    it("serves a specific doc via getDocBySlug", async () => {
+    it("returns 406 for a docs page path", async () => {
       const res = await call(["docs", "sdk-integration-guide"]);
-      expect(res.status).toBe(200);
-      const body = await res.text();
-      expect(body.length).toBeGreaterThan(0);
-    });
-
-    it("returns 406 for a docs path that doesn't exist", async () => {
-      const res = await call(["docs", "this-doc-does-not-exist"]);
       await expect406(res);
     });
   });

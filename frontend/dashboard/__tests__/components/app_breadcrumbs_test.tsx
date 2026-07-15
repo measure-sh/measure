@@ -155,7 +155,7 @@ describe("AppBreadcrumbs", () => {
       );
       expect(content.querySelector("a")).toHaveAttribute(
         "href",
-        "/docs/features/configuration-options#journey-sampling",
+        "/docs/configuration-options#journey-sampling",
       );
     });
 

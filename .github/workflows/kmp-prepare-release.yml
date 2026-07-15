@@ -75,7 +75,7 @@ jobs:
           # time (scripts/extract_sdk_versions.js), so keep it in sync here.
           KOTLIN_PATTERN='implementation("sh.measure:measure-kmp:.*")'
           KOTLIN_REPLACEMENT='implementation("sh.measure:measure-kmp:${{ inputs.version }}")'
-          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" docs/sdk-integration-guide.md
+          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" frontend/dashboard/content/docs/sdk-integration-guide.mdx
 
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
@@ -98,7 +98,7 @@ jobs:
             - Updated version to ${{ inputs.version }} in gradle.properties
             - Pinned native Android SDK version to ${{ inputs.android_version }} (android-v${{ inputs.android_version }})
             - Pinned native iOS SDK version to ${{ inputs.ios_version }} (ios-v${{ inputs.ios_version }})
-            - Updated measure-kmp version in docs/sdk-integration-guide.md
+            - Updated measure-kmp version in frontend/dashboard/content/docs/sdk-integration-guide.mdx
             - Generated changelog for version ${{ inputs.version }}
 
             <!-- release-meta
