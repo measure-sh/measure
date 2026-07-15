@@ -19,7 +19,7 @@ Pod::Spec.new do |s|
     s.dependency "React-Core"
 
     measure_sdk_version  = measure_ios_sdk['version']
-    measure_spm_url      = defined?($MeasureSpmUrl) ? $MeasureSpmUrl : measure_ios_sdk['spmUrl']
+    measure_spm_url      = measure_ios_sdk['spmUrl']
     measure_spm_revision = measure_ios_sdk['revision']
     measure_spm_disabled = defined?($MeasureDisableSPM) && $MeasureDisableSPM == true
 
