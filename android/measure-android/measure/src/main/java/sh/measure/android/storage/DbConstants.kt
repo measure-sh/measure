@@ -1,7 +1,6 @@
 package sh.measure.android.storage
 
 import sh.measure.android.events.AttachmentType
-import sh.measure.android.events.EventType
 
 internal object DbConstants {
     const val DATABASE_NAME = "measure.db"
@@ -129,12 +128,6 @@ internal object SpansTable {
 }
 
 internal object Sql {
-    private val journeyEventTypes = listOf(
-        EventType.LIFECYCLE_ACTIVITY,
-        EventType.LIFECYCLE_FRAGMENT,
-        EventType.SCREEN_VIEW,
-    )
-
     const val CREATE_EVENTS_TABLE = """
         CREATE TABLE IF NOT EXISTS ${EventTable.TABLE_NAME} (
             ${EventTable.COL_ID} TEXT PRIMARY KEY,
@@ -272,8 +265,73 @@ internal object Sql {
         ON ${SessionsTable.TABLE_NAME}(${SessionsTable.COL_PID}, ${SessionsTable.COL_CREATED_AT} DESC)
     """
 
-    fun getEventsForIds(eventIds: List<String>): String = """
-            SELECT 
+    const val INSERT_EVENT = """
+        INSERT INTO ${EventTable.TABLE_NAME} (
+            ${EventTable.COL_ID},
+            ${EventTable.COL_TYPE},
+            ${EventTable.COL_TIMESTAMP},
+            ${EventTable.COL_SESSION_ID},
+            ${EventTable.COL_USER_TRIGGERED},
+            ${EventTable.COL_DATA_FILE_PATH},
+            ${EventTable.COL_DATA_SERIALIZED},
+            ${EventTable.COL_ATTRIBUTES},
+            ${EventTable.COL_USER_DEFINED_ATTRIBUTES},
+            ${EventTable.COL_ATTACHMENT_SIZE},
+            ${EventTable.COL_ATTACHMENTS},
+            ${EventTable.COL_SAMPLED}
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+
+    const val INSERT_ATTACHMENT = """
+        INSERT INTO ${AttachmentV1Table.TABLE_NAME} (
+            ${AttachmentV1Table.COL_ID},
+            ${AttachmentV1Table.COL_EVENT_ID},
+            ${AttachmentV1Table.COL_TYPE},
+            ${AttachmentV1Table.COL_TIMESTAMP},
+            ${AttachmentV1Table.COL_SESSION_ID},
+            ${AttachmentV1Table.COL_FILE_PATH},
+            ${AttachmentV1Table.COL_NAME}
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    """
+
+    const val INSERT_SPAN = """
+        INSERT INTO ${SpansTable.TABLE_NAME} (
+            ${SpansTable.COL_NAME},
+            ${SpansTable.COL_SESSION_ID},
+            ${SpansTable.COL_SPAN_ID},
+            ${SpansTable.COL_TRACE_ID},
+            ${SpansTable.COL_PARENT_ID},
+            ${SpansTable.COL_START_TIME},
+            ${SpansTable.COL_END_TIME},
+            ${SpansTable.COL_DURATION},
+            ${SpansTable.COL_SERIALIZED_ATTRS},
+            ${SpansTable.COL_SERIALIZED_USER_DEFINED_ATTRS},
+            ${SpansTable.COL_SERIALIZED_SPAN_EVENTS},
+            ${SpansTable.COL_SAMPLED},
+            ${SpansTable.COL_STATUS}
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+
+    const val INSERT_SPANS_BATCH = """
+        INSERT INTO ${SpansBatchTable.TABLE_NAME} (
+            ${SpansBatchTable.COL_SPAN_ID},
+            ${SpansBatchTable.COL_BATCH_ID},
+            ${SpansBatchTable.COL_CREATED_AT}
+        ) VALUES (?, ?, ?)
+    """
+
+    const val INSERT_EVENTS_BATCH = """
+        INSERT INTO ${EventsBatchTable.TABLE_NAME} (
+            ${EventsBatchTable.COL_EVENT_ID},
+            ${EventsBatchTable.COL_BATCH_ID},
+            ${EventsBatchTable.COL_CREATED_AT}
+        ) VALUES (?, ?, ?)
+    """
+
+    private fun placeholders(count: Int): String = List(count) { "?" }.joinToString(", ")
+
+    fun getEventsForIds(count: Int): String = """
+            SELECT
                 ${EventTable.COL_ID},
                 ${EventTable.COL_SESSION_ID},
                 ${EventTable.COL_TIMESTAMP},
@@ -285,11 +343,11 @@ internal object Sql {
                 ${EventTable.COL_ATTRIBUTES},
                 ${EventTable.COL_USER_DEFINED_ATTRIBUTES}
             FROM ${EventTable.TABLE_NAME}
-            WHERE ${EventTable.COL_ID} IN (${eventIds.joinToString(", ") { "\'$it\'" }})
+            WHERE ${EventTable.COL_ID} IN (${placeholders(count)})
     """.trimIndent()
 
-    fun getSpansForIds(spanIds: List<String>): String = """
-            SELECT 
+    fun getSpansForIds(count: Int): String = """
+            SELECT
                 ${SpansTable.COL_NAME},
                 ${SpansTable.COL_SESSION_ID},
                 ${SpansTable.COL_SPAN_ID},
@@ -303,29 +361,29 @@ internal object Sql {
                 ${SpansTable.COL_SERIALIZED_SPAN_EVENTS},
                 ${SpansTable.COL_SERIALIZED_USER_DEFINED_ATTRS}
             FROM ${SpansTable.TABLE_NAME}
-            WHERE ${SpansTable.COL_SPAN_ID} IN (${spanIds.joinToString(", ") { "\'$it\'" }})
+            WHERE ${SpansTable.COL_SPAN_ID} IN (${placeholders(count)})
     """.trimIndent()
 
-    fun getEventsForSession(session: String): String = """
+    val getEventsForSession: String = """
             SELECT ${EventTable.COL_ID}
             FROM ${EventTable.TABLE_NAME}
-            WHERE ${EventTable.COL_SESSION_ID} = '$session'
+            WHERE ${EventTable.COL_SESSION_ID} = ?
     """.trimIndent()
 
-    fun getAttachmentsForEvents(events: List<String>): String = """
+    fun getAttachmentsForEvents(count: Int): String = """
             SELECT ${AttachmentV1Table.COL_ID}
             FROM ${AttachmentV1Table.TABLE_NAME}
-            WHERE ${AttachmentV1Table.COL_EVENT_ID} IN (${events.joinToString(", ") { "\'$it\'" }})
+            WHERE ${AttachmentV1Table.COL_EVENT_ID} IN (${placeholders(count)})
     """.trimIndent()
 
-    fun getRecentSessionIds(count: Int): String = """
+    val getRecentSessionIds: String = """
             SELECT ${SessionsTable.COL_SESSION_ID}
             FROM ${SessionsTable.TABLE_NAME}
             ORDER BY ${SessionsTable.COL_CREATED_AT} DESC
-            LIMIT $count
+            LIMIT ?
     """.trimIndent()
 
-    fun getOldestSessionWithSignals(): String = """
+    val getOldestSessionWithSignals: String = """
             SELECT ${SessionsTable.COL_SESSION_ID}
             FROM ${SessionsTable.TABLE_NAME}
             WHERE EXISTS (
@@ -339,24 +397,24 @@ internal object Sql {
             LIMIT 1
     """.trimIndent()
 
-    fun getEventsCount(): String = """
+    val getEventsCount: String = """
             SELECT COUNT(${EventTable.COL_ID}) AS count
             FROM ${EventTable.TABLE_NAME}
     """.trimIndent()
 
-    fun getEventsCount(sessionId: String): String = """
+    val getEventsCountForSession: String = """
             SELECT COUNT(${EventTable.COL_ID}) AS count
             FROM ${EventTable.TABLE_NAME}
-            WHERE ${EventTable.COL_SESSION_ID} = '$sessionId'
+            WHERE ${EventTable.COL_SESSION_ID} = ?
     """.trimIndent()
 
-    fun getSpansCount(sessionId: String): String = """
+    val getSpansCountForSession: String = """
             SELECT COUNT(${SpansTable.COL_SPAN_ID}) AS count
             FROM ${SpansTable.TABLE_NAME}
-            WHERE ${SpansTable.COL_SESSION_ID} = '$sessionId'
+            WHERE ${SpansTable.COL_SESSION_ID} = ?
     """.trimIndent()
 
-    fun getSpansCount(): String = """
+    val getSpansCount: String = """
             SELECT COUNT(${SpansTable.COL_SPAN_ID}) AS count
             FROM ${SpansTable.TABLE_NAME}
     """.trimIndent()
@@ -370,69 +428,68 @@ internal object Sql {
         SessionsTable.COL_LAST_ANR_TIME,
     ).joinToString(", ")
 
-    fun getSessionForAppExit(pid: Int): String = """
+    val getSessionForAppExit: String = """
             SELECT $SESSION_RECORD_COLUMNS
             FROM ${SessionsTable.TABLE_NAME}
-            WHERE ${SessionsTable.COL_PID} = $pid AND ${SessionsTable.COL_APP_EXIT_TRACKED} = 0
+            WHERE ${SessionsTable.COL_PID} = ? AND ${SessionsTable.COL_APP_EXIT_TRACKED} = 0
             ORDER BY ${SessionsTable.COL_CREATED_AT} DESC
             LIMIT 1
     """.trimIndent()
 
-    fun getSessionForTime(timeMs: Long): String = """
+    val getSessionForTime: String = """
             SELECT $SESSION_RECORD_COLUMNS
             FROM ${SessionsTable.TABLE_NAME}
-            WHERE ${SessionsTable.COL_CREATED_AT} <= $timeMs
+            WHERE ${SessionsTable.COL_CREATED_AT} <= ?
             ORDER BY ${SessionsTable.COL_CREATED_AT} DESC
             LIMIT 1
     """.trimIndent()
 
-    fun getSessionForAnr(timeMs: Long, maxGapMs: Long): String = """
+    val getSessionForAnr: String = """
             SELECT $SESSION_RECORD_COLUMNS
             FROM ${SessionsTable.TABLE_NAME}
             WHERE ${SessionsTable.COL_LAST_ANR_TIME} IS NOT NULL
-                AND ${SessionsTable.COL_LAST_ANR_TIME} <= $timeMs
-                AND $timeMs - ${SessionsTable.COL_LAST_ANR_TIME} <= $maxGapMs
+                AND ${SessionsTable.COL_LAST_ANR_TIME} <= ?
+                AND ${SessionsTable.COL_LAST_ANR_TIME} >= ? - ?
             ORDER BY ${SessionsTable.COL_LAST_ANR_TIME} DESC
             LIMIT 1
     """.trimIndent()
 
-    fun setSessionAnrTime(sessionId: String, anrTimeMs: Long): String = """
+    val setSessionAnrTime: String = """
             UPDATE ${SessionsTable.TABLE_NAME}
-            SET ${SessionsTable.COL_LAST_ANR_TIME} = $anrTimeMs
-            WHERE ${SessionsTable.COL_SESSION_ID} = '$sessionId'
-                AND (${SessionsTable.COL_LAST_ANR_TIME} IS NULL OR ${SessionsTable.COL_LAST_ANR_TIME} < $anrTimeMs)
+            SET ${SessionsTable.COL_LAST_ANR_TIME} = ?
+            WHERE ${SessionsTable.COL_SESSION_ID} = ?
+                AND (${SessionsTable.COL_LAST_ANR_TIME} IS NULL OR ${SessionsTable.COL_LAST_ANR_TIME} < ?)
     """.trimIndent()
 
-    fun getBatchedEventIds(batchIds: List<String>): String = """
+    fun getBatchedEventIds(count: Int): String = """
             SELECT
                 ${EventsBatchTable.COL_EVENT_ID},
                 ${EventsBatchTable.COL_BATCH_ID}
             FROM
                 ${EventsBatchTable.TABLE_NAME}
             WHERE
-                ${EventsBatchTable.COL_BATCH_ID} 
-                IN (${batchIds.joinToString(", ") { "'$it'" }})
+                ${EventsBatchTable.COL_BATCH_ID}
+                IN (${placeholders(count)})
     """.trimIndent()
 
-    fun getBatchedSpanIds(batchIds: List<String>): String = """
+    fun getBatchedSpanIds(count: Int): String = """
             SELECT
                 ${SpansBatchTable.COL_SPAN_ID},
                 ${SpansBatchTable.COL_BATCH_ID}
             FROM
                 ${SpansBatchTable.TABLE_NAME}
             WHERE
-                ${SpansBatchTable.COL_BATCH_ID} 
-                IN (${batchIds.joinToString(", ") { "'$it'" }})
+                ${SpansBatchTable.COL_BATCH_ID}
+                IN (${placeholders(count)})
     """.trimIndent()
 
-    // Profiles are uploaded by their own WorkManager worker, not the in-process drain.
     private val profileTypesList = listOf(
         AttachmentType.PERFETTO_TRACE,
         AttachmentType.HEAP_DUMP,
         AttachmentType.HEAP_PROFILE,
     ).joinToString(", ") { "'$it'" }
 
-    fun getAttachmentsToUpload(maxCount: Int): String = """
+    val getAttachmentsToUpload: String = """
             SELECT
                 ${AttachmentV1Table.COL_ID},
                 ${AttachmentV1Table.COL_EVENT_ID},
@@ -450,10 +507,10 @@ internal object Sql {
                 ${AttachmentV1Table.COL_UPLOAD_URL} IS NOT NULL
                 AND ${AttachmentV1Table.COL_TYPE} NOT IN ($profileTypesList)
             LIMIT
-                $maxCount
+                ?
     """.trimIndent()
 
-    fun getProfileAttachmentsToUpload(maxCount: Int): String = """
+    val getProfileAttachmentsToUpload: String = """
             SELECT
                 ${AttachmentV1Table.COL_ID},
                 ${AttachmentV1Table.COL_EVENT_ID},
@@ -471,88 +528,88 @@ internal object Sql {
                 ${AttachmentV1Table.COL_UPLOAD_URL} IS NOT NULL
                 AND ${AttachmentV1Table.COL_TYPE} IN ($profileTypesList)
             LIMIT
-                $maxCount
+                ?
     """.trimIndent()
 
-    fun getSessionsToBatch(): String = """
+    val getSessionsToBatch: String = """
             SELECT ${SessionsTable.COL_SESSION_ID}
             FROM ${SessionsTable.TABLE_NAME}
             ORDER BY ${SessionsTable.COL_PRIORITY_SESSION} DESC
     """.trimIndent()
 
-    fun getSampledEvents(sessionId: String): String = """
+    val getSampledEvents: String = """
         SELECT e.${EventTable.COL_ID}
         FROM ${EventTable.TABLE_NAME} e
         LEFT JOIN ${EventsBatchTable.TABLE_NAME} eb
             ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
-        WHERE e.${EventTable.COL_SESSION_ID} = '$sessionId'
+        WHERE e.${EventTable.COL_SESSION_ID} = ?
             AND e.${EventTable.COL_SAMPLED} = 1
             AND eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
         ORDER BY e.${EventTable.COL_TIMESTAMP} ASC
     """.trimIndent()
 
-    fun getSampledSpans(sessionId: String): String = """
+    val getSampledSpans: String = """
         SELECT sp.${SpansTable.COL_SPAN_ID}
         FROM ${SpansTable.TABLE_NAME} sp
         LEFT JOIN ${SpansBatchTable.TABLE_NAME} sb
             ON sp.${SpansTable.COL_SPAN_ID} = sb.${SpansBatchTable.COL_SPAN_ID}
-        WHERE sp.${SpansTable.COL_SESSION_ID} = '$sessionId'
+        WHERE sp.${SpansTable.COL_SESSION_ID} = ?
             AND sp.${SpansTable.COL_SAMPLED} = 1
             AND sb.${SpansBatchTable.COL_SPAN_ID} IS NULL
         ORDER BY sp.${SpansTable.COL_START_TIME} ASC
     """.trimIndent()
 
-    fun getEventsForDeletion(excludeSessionId: String, limit: Int): String = """
+    val getEventsForDeletion: String = """
         SELECT e.${EventTable.COL_ID}
         FROM ${EventTable.TABLE_NAME} e
         LEFT JOIN ${EventsBatchTable.TABLE_NAME} eb
             ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
-        WHERE e.${EventTable.COL_SESSION_ID} != '$excludeSessionId'
+        WHERE e.${EventTable.COL_SESSION_ID} != ?
             AND e.${EventTable.COL_SAMPLED} = 0
             AND eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
-        LIMIT $limit
+        LIMIT ?
     """.trimIndent()
 
-    fun getSpansForDeletion(excludeSessionId: String, limit: Int): String = """
+    val getSpansForDeletion: String = """
         SELECT e.${SpansTable.COL_SPAN_ID}
         FROM ${SpansTable.TABLE_NAME} e
         LEFT JOIN ${SpansBatchTable.TABLE_NAME} eb
             ON e.${SpansTable.COL_SPAN_ID} = eb.${SpansBatchTable.COL_SPAN_ID}
-        WHERE e.${SpansTable.COL_SESSION_ID} != '$excludeSessionId'
+        WHERE e.${SpansTable.COL_SESSION_ID} != ?
             AND e.${SpansTable.COL_SAMPLED} = 0
             AND eb.${SpansBatchTable.COL_SPAN_ID} IS NULL
-        LIMIT $limit
+        LIMIT ?
     """.trimIndent()
 
-    fun markTimelineForReporting(endTime: String, durationSeconds: Int): String = """
+    val markTimelineForReporting: String = """
         UPDATE ${EventTable.TABLE_NAME}
         SET ${EventTable.COL_SAMPLED} = 1
-        WHERE ${EventTable.COL_TIMESTAMP} BETWEEN 
-            strftime('%Y-%m-%dT%H:%M:%fZ', '$endTime', '-$durationSeconds seconds') 
-            AND '$endTime'
+        WHERE ${EventTable.COL_TIMESTAMP} BETWEEN
+            strftime('%Y-%m-%dT%H:%M:%fZ', ?, ?)
+            AND ?
     """.trimIndent()
 
-    fun getSessionIds(excludeSessionId: String): String = """
+    val getSessionIds: String = """
             SELECT ${SessionsTable.COL_SESSION_ID}
             FROM ${SessionsTable.TABLE_NAME}
-            WHERE ${SessionsTable.COL_SESSION_ID} != '$excludeSessionId'
+            WHERE ${SessionsTable.COL_SESSION_ID} != ?
     """.trimIndent()
 
-    fun markSessionAsPriority(sessionId: String): String = """
+    val markSessionAsPriority: String = """
             UPDATE ${SessionsTable.TABLE_NAME}
             SET ${SessionsTable.COL_PRIORITY_SESSION} = 1
-            WHERE ${SessionsTable.COL_SESSION_ID} = '$sessionId'
+            WHERE ${SessionsTable.COL_SESSION_ID} = ?
     """.trimIndent()
 
-    fun getExpiredAttachments(currentTime: String, limit: Int): String = """
+    val getExpiredAttachments: String = """
             SELECT ${AttachmentV1Table.COL_ID}, ${AttachmentV1Table.COL_FILE_PATH}
             FROM ${AttachmentV1Table.TABLE_NAME}
             WHERE ${AttachmentV1Table.COL_URL_EXPIRES_AT} IS NOT NULL
-                AND ${AttachmentV1Table.COL_URL_EXPIRES_AT} < '$currentTime'
-            LIMIT $limit
+                AND ${AttachmentV1Table.COL_URL_EXPIRES_AT} < ?
+            LIMIT ?
     """.trimIndent()
 
-    fun getBatchIds(): String = """
+    val getBatchIds: String = """
             SELECT ${BatchesTable.COL_BATCH_ID}
             FROM ${BatchesTable.TABLE_NAME}
             ORDER BY ${BatchesTable.COL_CREATED_AT} ASC
