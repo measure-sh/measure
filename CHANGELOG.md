@@ -120,6 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add ota builds support in sessionator (#4036) by @detj in #4036
 - (**backend**): Remove platform attribute usage (#4007) by @detj in #4007
 - (**backend**): Add topic guidance to agent system prompt by @anupcowkur in #4003
 - (**backend**): Add AGENT_ENABLED flag by @anupcowkur in #4002
