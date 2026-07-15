@@ -316,17 +316,19 @@ docker compose exec clickhouse clickhouse-client -u app_admin -d measure
 docker compose run --rm clickhouse clickhouse-client -u app_admin -d measure
 ```
 
-### ClickHouse team isolation (row policies)
+### ClickHouse Team Isolation
 
-Reads against ClickHouse are isolated per team by a **row policy**, not by app code. The `reader` role (api & agent read pools) & the `agent_sql` role (agent's LLM-generated SQL) each carry a `team_isolation` policy that only returns rows whose `team_id` is in a per-query custom setting. Policies are defined in [`self-host/clickhouse/init-clickhouse.sh`](self-host/clickhouse/init-clickhouse.sh).
+To ensure a ClickHouse read query does not return rows from other teams which the user are not part of, certain row policies enforce team isolation via per-query custom settings (`SQL_reader_team_ids` / `SQL_agent_team_ids`). These policies are applied at the connection pool level. So, if you are using the correct connection pool (reader or agent_sql), you do not need to set these custom settings yourself.
 
-What this means when you write backend code:
+But you do need to set the team scope in your query context. Use `chquery.WithTeamScope(ctx, teamIDs...)` (reader) or `chquery.WithAgentScope(ctx, teamIDs...)` (agent_sql) to set the team scope. Unless, the feature you are working on requires to query from multiple teams, you should set the team scope to a single team ID.
 
-- **Every reader/agent query must set the team scope.** Use `chquery.WithTeamScope(ctx, teamIDs...)` (reader) or `chquery.WithAgentScope(ctx, teamIDs...)` (agent_sql) & pass the ctx down. Pass one team for the common case, or several for a multi-team read.
-- **Fail-closed.** No scope set means the setting is empty, which matches **zero rows** (not all rows). A brand new read that silently returns nothing almost always means the scope was not carried on the ctx.
-- **The reader pool guards this for you.** Pools wrapped by `chquery.NewReaderConn` return an error if a query reaches them without the scope set, so a missing scope fails loud instead of silently returning empty.
-- **Never call `clickhouse.WithSettings` directly** — it replaces the whole settings map & would clobber the team scope. Always go through `chquery.WithSettings`, which merges.
-- **Operator/write pool is not scoped.** Ingestion & non-tenant introspection (`system.*`) use the raw operator pool by design; the policy only applies to the reader & agent_sql roles.
+Few things to keep in mind, when authoring ClickHouse read queries:
+
+- Always set the team scope.** Use `chquery.WithTeamScope(ctx, teamIDs...)` (reader) or `chquery.WithAgentScope(ctx, teamIDs...)` (agent_sql) & pass the context down.
+- **Fail-closed.** No scope set means the setting is empty, which matches **zero rows**. A read that silently returns nothing almost always means the scope was not carried on the context. **The reader pool guards this for you.** Pools wrapped by `chquery.NewReaderConn` return an error if a query reaches them without the scope set.
+- When creating a new service that reads from ClickHouse, decide & use `chquery.NewReaderConn` to wrap the connection pool.
+- Use `chquery.WithSettings` to merge settings, rather than calling `clickhouse.WithSettings` directly.
+- **Operator/write pool is not scoped.** Ingestion & non-tenant introspection (`system.*`) use the raw operator pool by design; the policy only applies to the `reader` & `agent_sql` roles.
 
 Basic usage:
 
