@@ -689,9 +689,9 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			// not at session level.
 			"use_query_cache": releaseMode,
 			// cache for 10 mins
-			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
-			"force_primary_key":  debugMode,
-			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
+			"query_cache_ttl":      int(config.DefaultQueryCacheTTL.Seconds()),
+			"force_primary_key":    debugMode,
+			chquery.ReaderScopeKey: clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "app_versions"))
 
@@ -711,8 +711,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": releaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
-			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
+			"query_cache_ttl":      int(config.DefaultQueryCacheTTL.Seconds()),
+			chquery.ReaderScopeKey: clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "os_versions"))
 
@@ -732,8 +732,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": releaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
-			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
+			"query_cache_ttl":      int(config.DefaultQueryCacheTTL.Seconds()),
+			chquery.ReaderScopeKey: clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "countries"))
 
@@ -752,8 +752,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": releaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
-			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
+			"query_cache_ttl":      int(config.DefaultQueryCacheTTL.Seconds()),
+			chquery.ReaderScopeKey: clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "network_providers"))
 
@@ -772,8 +772,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": releaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
-			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
+			"query_cache_ttl":      int(config.DefaultQueryCacheTTL.Seconds()),
+			chquery.ReaderScopeKey: clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "network_types"))
 
@@ -792,8 +792,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": releaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
-			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
+			"query_cache_ttl":      int(config.DefaultQueryCacheTTL.Seconds()),
+			chquery.ReaderScopeKey: clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "network_generations"))
 
@@ -812,8 +812,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": releaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
-			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
+			"query_cache_ttl":      int(config.DefaultQueryCacheTTL.Seconds()),
+			chquery.ReaderScopeKey: clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "device_locales"))
 
@@ -832,8 +832,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": releaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
-			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
+			"query_cache_ttl":      int(config.DefaultQueryCacheTTL.Seconds()),
+			chquery.ReaderScopeKey: clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "device_manufacturers"))
 
@@ -852,8 +852,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 			"use_query_cache": releaseMode,
 			// cache filters for 10 mins
-			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
-			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
+			"query_cache_ttl":      int(config.DefaultQueryCacheTTL.Seconds()),
+			chquery.ReaderScopeKey: clickhouse.CustomSetting{Value: teamId.String()},
 		}
 		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "device_names"))
 
@@ -878,8 +878,8 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 				"log_comment":     lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 				"use_query_cache": releaseMode,
 				// cache filters for 10 mins
-				"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
-				"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
+				"query_cache_ttl":      int(config.DefaultQueryCacheTTL.Seconds()),
+				chquery.ReaderScopeKey: clickhouse.CustomSetting{Value: teamId.String()},
 			}
 
 			name := "ud_attr_keys_events"

@@ -12,18 +12,19 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"strings"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/google/uuid"
 )
 
 const (
-	// ReaderScopeKey scopes reader role queries to a team via the
-	// team_isolation row policy.
-	ReaderScopeKey = "SQL_reader_team_id"
-	// AgentScopeKey scopes agent_sql role queries to a team via the
-	// agent_team_isolation row policy.
-	AgentScopeKey = "SQL_agent_team_id"
+	// ReaderScopeKey scopes reader role queries to one or more teams via the
+	// team_isolation row policy. Value is a comma joined list of team ids.
+	ReaderScopeKey = "SQL_reader_team_ids"
+	// AgentScopeKey scopes agent_sql role queries to one or more teams via the
+	// agent_team_isolation row policy. Value is a comma joined list of team ids.
+	AgentScopeKey = "SQL_agent_team_ids"
 )
 
 // settingsKey is the private carrier for the merged settings map. Unlike the
@@ -45,18 +46,29 @@ func WithSettings(ctx context.Context, s clickhouse.Settings) context.Context {
 }
 
 // WithTeamScope merges the reader row policy team scope. Set it wherever a
-// reader query is issued, from the trusted team id.
-func WithTeamScope(ctx context.Context, teamID uuid.UUID) context.Context {
+// reader query is issued, from the trusted team ids. Pass one id for the common
+// single-team case, or several to scope across a user's authorized teams.
+func WithTeamScope(ctx context.Context, teamIDs ...uuid.UUID) context.Context {
 	return WithSettings(ctx, clickhouse.Settings{
-		ReaderScopeKey: clickhouse.CustomSetting{Value: teamID.String()},
+		ReaderScopeKey: clickhouse.CustomSetting{Value: joinTeamIDs(teamIDs)},
 	})
 }
 
 // WithAgentScope merges the agent_sql row policy team scope for the run_sql path.
-func WithAgentScope(ctx context.Context, teamID uuid.UUID) context.Context {
+func WithAgentScope(ctx context.Context, teamIDs ...uuid.UUID) context.Context {
 	return WithSettings(ctx, clickhouse.Settings{
-		AgentScopeKey: clickhouse.CustomSetting{Value: teamID.String()},
+		AgentScopeKey: clickhouse.CustomSetting{Value: joinTeamIDs(teamIDs)},
 	})
+}
+
+// joinTeamIDs formats team ids as the comma joined value the row policies split
+// & match against. No ids yields "", which the fail-closed policy maps to zero rows.
+func joinTeamIDs(teamIDs []uuid.UUID) string {
+	ids := make([]string, len(teamIDs))
+	for i, id := range teamIDs {
+		ids[i] = id.String()
+	}
+	return strings.Join(ids, ",")
 }
 
 // RequireScope returns an error if the named scope setting is not carried by

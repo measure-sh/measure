@@ -40,6 +40,28 @@ func TestWithSettingsMerges(t *testing.T) {
 	}
 }
 
+// TestTeamScopeValue guards the comma joined value the row policies split on:
+// one id stays bare, several join with a comma, none yields "" (fail-closed).
+func TestTeamScopeValue(t *testing.T) {
+	a, b := uuid.New(), uuid.New()
+
+	cases := map[string]struct {
+		ids  []uuid.UUID
+		want string
+	}{
+		"single": {[]uuid.UUID{a}, a.String()},
+		"multi":  {[]uuid.UUID{a, b}, a.String() + "," + b.String()},
+		"none":   {nil, ""},
+	}
+	for name, tc := range cases {
+		ctx := WithTeamScope(context.Background(), tc.ids...)
+		got := carried(ctx)[ReaderScopeKey].(clickhouse.CustomSetting).Value
+		if got != tc.want {
+			t.Fatalf("%s: got %q want %q", name, got, tc.want)
+		}
+	}
+}
+
 func TestRequireScope(t *testing.T) {
 	if err := RequireScope(context.Background(), ReaderScopeKey); err == nil {
 		t.Fatalf("expected error on unscoped ctx")
