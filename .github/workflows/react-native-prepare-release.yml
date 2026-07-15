@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: 'main'
           fetch-depth: 0
@@ -95,7 +95,7 @@ jobs:
           args: --output react-native/CHANGELOG.md --tag rn-v${{ inputs.version }} --include-path "react-native/**"
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.SDK_RELEASE }}
           commit-message: "chore(rn): prepare release ${{ inputs.version }}"
