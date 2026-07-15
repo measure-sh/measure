@@ -1,0 +1,23 @@
+---
+title: "Overview"
+seoTitle: "Measure REST API Reference"
+description: "Measure's REST APIs for auth, event ingestion and data fetching, designed around standard REST principles."
+---
+
+Measure exposes two sets of REST APIs. Both accept and return JSON and use standard HTTP response codes.
+
+## SDK API
+
+Used by the Measure SDKs to ingest events, spans and build artifacts from
+your apps. You only interact with it directly when building a custom
+integration.
+
+## Dashboard API
+
+Used by the Measure dashboard to read sessions, crashes, ANRs, performance
+data and everything else the dashboard shows, and to manage apps, teams and
+alerts.
+
+<Callout title="API stability" type="warn">
+    REST APIs contracts are unversioned and subject to change. We will be introducing stable API contracts in the future. For the moment, we do not recommend depending on REST APIs for critical use cases.
+</Callout>

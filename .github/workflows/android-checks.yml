@@ -4,13 +4,11 @@ on:
   pull_request:
     paths:
       - 'android/**'
-      - '!docs/**'
   push:
     branches:
       - 'main'
     paths:
       - 'android/**'
-      - '!docs/**'
 
 env:
   JAVA_VERSION: 21

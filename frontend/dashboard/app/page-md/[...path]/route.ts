@@ -1,7 +1,7 @@
 // Folder is named `page-md`, not `_md`: Next.js App Router treats
 // underscore-prefixed folders as private and excludes them from routing.
 // Don't rename to anything starting with `_` or this handler silently 404s.
-import { getDocBySlug, getDocIndex, parseFrontmatter } from "@/app/docs/docs";
+import { stripFrontmatter } from "@/app/utils/llms/frontmatter";
 import fs from "fs";
 import { type NextRequest, NextResponse } from "next/server";
 import path from "path";
@@ -62,23 +62,11 @@ export async function GET(
     return notAcceptable();
   }
 
-  if (segments[0] === "docs") {
-    const slug = segments.slice(1);
-    const doc = slug.length === 0 ? getDocIndex() : getDocBySlug(slug);
-    if (!doc) {
-      return notAcceptable();
-    }
-    // getDocBySlug strips HTML comments from the body but leaves frontmatter
-    // already removed; doc.content is the cleaned markdown body.
-    return markdownResponse(doc.content);
-  }
-
   const file = resolvePageMd(segments);
   if (!file) {
     return notAcceptable();
   }
 
   const raw = fs.readFileSync(file, "utf-8");
-  const { body } = parseFrontmatter(raw);
-  return markdownResponse(body);
+  return markdownResponse(stripFrontmatter(raw));
 }

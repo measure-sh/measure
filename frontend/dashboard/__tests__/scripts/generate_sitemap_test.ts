@@ -2,20 +2,18 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
-const {
-  walk,
-  routeFromFile,
+import {
+  APP_DIR,
+  buildSitemap,
+  getDocsRoutes,
   isDynamic,
   isExcluded,
-  getDocsSlugs,
-  buildSitemap,
-  ensurePublicDir,
   main,
-  APP_DIR,
   PUBLIC_DIR,
-  ROOT,
+  routeFromFile,
   SITE_URL,
-} = require("@/scripts/generate_sitemap");
+  walk,
+} from "@/scripts/generate_sitemap";
 
 // ─── routeFromFile ──────────────────────────────────────────────────────────
 
@@ -43,11 +41,32 @@ describe("routeFromFile", () => {
 
     expect(routeFromFile(file)).toBe("/[teamId]/apps");
   });
+});
 
-  it("returns route for docs catch-all", () => {
-    const file = path.join(APP_DIR, "docs", "[...slug]", "page.tsx");
+// ─── getDocsRoutes ──────────────────────────────────────────────────────────
 
-    expect(routeFromFile(file)).toBe("/docs/[...slug]");
+describe("getDocsRoutes", () => {
+  it("maps index.mdx to its directory and leaf files to their path", () => {
+    const routes = getDocsRoutes();
+
+    expect(routes).toContain("/docs");
+    expect(routes).toContain("/docs/hosting");
+    expect(routes).toContain("/docs/sdk-integration-guide");
+  });
+
+  it("drops parenthesized folder-group segments from routes", () => {
+    const routes = getDocsRoutes();
+
+    expect(routes).toContain("/docs/features/feature-bug-report-android");
+    for (const route of routes) {
+      expect(route).not.toContain("(");
+    }
+  });
+
+  it("has no duplicate routes", () => {
+    const routes = getDocsRoutes();
+
+    expect(new Set(routes).size).toBe(routes.length);
   });
 });
 
@@ -147,110 +166,6 @@ describe("walk", () => {
       expect(path.basename(file)).toBe("page.tsx");
     }
   });
-});
-
-// ─── getDocsSlugs ───────────────────────────────────────────────────────────
-
-describe("getDocsSlugs", () => {
-  const contentDir = path.join(ROOT, "content", "docs");
-  const hasContentDocs = fs.existsSync(contentDir);
-
-  if (hasContentDocs) {
-    it("returns an array of doc slugs", () => {
-      const slugs = getDocsSlugs();
-
-      expect(Array.isArray(slugs)).toBe(true);
-      expect(slugs.length).toBeGreaterThan(0);
-    });
-
-    it("all slugs start with /docs/", () => {
-      const slugs = getDocsSlugs();
-
-      for (const slug of slugs) {
-        expect(slug).toMatch(/^\/docs\//);
-      }
-    });
-
-    it("does not include a slug for root README.md", () => {
-      const slugs = getDocsSlugs();
-
-      // Root README maps to /docs which is a static page
-      expect(slugs).not.toContain("/docs");
-      expect(slugs).not.toContain("/docs/");
-    });
-
-    it("includes subdirectory README.md as directory slug", () => {
-      // A subdirectory README maps to the directory's own slug
-      const dirWithReadme = fs
-        .readdirSync(contentDir, { withFileTypes: true })
-        .find(
-          (e) =>
-            e.isDirectory() &&
-            e.name !== "assets" &&
-            fs.existsSync(path.join(contentDir, e.name, "README.md")),
-        );
-      expect(dirWithReadme).toBeDefined();
-
-      const slugs = getDocsSlugs();
-
-      expect(slugs).toContain(`/docs/${dirWithReadme!.name}`);
-    });
-
-    it("includes regular .md files as page slugs", () => {
-      const topLevelMd = fs
-        .readdirSync(contentDir)
-        .find((f) => f.endsWith(".md") && f !== "README.md");
-      expect(topLevelMd).toBeDefined();
-
-      const slugs = getDocsSlugs();
-
-      expect(slugs).toContain(`/docs/${topLevelMd!.replace(/\.md$/, "")}`);
-    });
-
-    it("includes nested .md files with full path", () => {
-      // Derive the expected slug from a real nested .md file so the test
-      // does not depend on a particular doc file existing
-      let expected: string | null = null;
-      const subDirs = fs
-        .readdirSync(contentDir, { withFileTypes: true })
-        .filter((e) => e.isDirectory() && e.name !== "assets");
-      for (const dir of subDirs) {
-        const mdFile = fs
-          .readdirSync(path.join(contentDir, dir.name))
-          .find((f) => f.endsWith(".md") && f !== "README.md");
-        if (mdFile) {
-          expected = `/docs/${dir.name}/${mdFile.replace(/\.md$/, "")}`;
-          break;
-        }
-      }
-      expect(expected).not.toBeNull();
-
-      const slugs = getDocsSlugs();
-
-      expect(slugs).toContain(expected);
-    });
-
-    it("does not include assets directory contents", () => {
-      const slugs = getDocsSlugs();
-
-      for (const slug of slugs) {
-        expect(slug).not.toContain("/assets/");
-      }
-    });
-
-    it("has no duplicate slugs", () => {
-      const slugs = getDocsSlugs();
-      const unique = new Set(slugs);
-
-      expect(slugs.length).toBe(unique.size);
-    });
-  } else {
-    it("returns empty array when content/docs does not exist", () => {
-      const slugs = getDocsSlugs();
-
-      expect(slugs).toEqual([]);
-    });
-  }
 });
 
 // ─── buildSitemap ───────────────────────────────────────────────────────────
@@ -371,20 +286,16 @@ describe("main", () => {
     expect(writtenContent).not.toContain(`${SITE_URL}/auth/login`);
   });
 
-  it("includes docs pages when content/docs exists", () => {
-    const contentDir = path.join(ROOT, "content", "docs");
-    if (!fs.existsSync(contentDir)) {
-      return;
-    }
-
+  it("includes every docs page", () => {
     main();
 
-    // getDocsSlugs is itself validated against the filesystem above, so
-    // checking every slug it returns keeps this free of hardcoded pages
-    const docSlugs = getDocsSlugs();
-    expect(docSlugs.length).toBeGreaterThan(0);
-    for (const slug of docSlugs) {
-      expect(writtenContent).toContain(`<loc>${SITE_URL}${slug}</loc>`);
+    // getDocsRoutes derives routes from the content/docs sources on disk;
+    // the derivation itself is covered by the getDocsRoutes tests, so this
+    // only asserts that every derived route lands in the sitemap.
+    const routes = getDocsRoutes();
+    expect(routes.length).toBeGreaterThan(0);
+    for (const route of routes) {
+      expect(writtenContent).toContain(`<loc>${SITE_URL}${route}</loc>`);
     }
   });
 

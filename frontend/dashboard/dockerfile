@@ -9,7 +9,6 @@ COPY package.json package-lock.json ./
 RUN npm install
 
 COPY . .
-COPY --from=docs . ./content/docs
 EXPOSE 3000
 
 CMD ["npm", "run", "dev"]

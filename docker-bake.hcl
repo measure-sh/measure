@@ -87,9 +87,6 @@ target "agent" {
 target "dashboard" {
   inherits = ["docker-metadata-action"]
   context = "frontend/dashboard"
-  contexts = {
-    docs = "docs"
-  }
   dockerfile = "dockerfile.prod"
   secret = ["id=posthog_sourcemap_personal_key,env=POSTHOG_SOURCEMAP_PERSONAL_KEY"]
   cache-from = ["type=gha"]

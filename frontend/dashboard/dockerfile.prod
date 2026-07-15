@@ -13,7 +13,6 @@ COPY --from=deps /app/node_modules ./node_modules
 
 # Copy source code
 COPY . .
-COPY --from=docs . ./content/docs
 
 # Build arguments (Next.js public env vars)
 ARG NEXT_PUBLIC_SITE_URL

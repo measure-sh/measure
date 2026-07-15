@@ -1,0 +1,2478 @@
+openapi: "3.1.0"
+info:
+  title: Measure SDK API
+  version: "1.0.0"
+  description: |
+    Reference for the Measure SDK ingestion REST API. Events, builds, config,
+    attachments, traces and authentication.
+
+    All endpoints authenticate with a Measure API key sent as a bearer token
+    in the `Authorization` header:
+
+    ```
+    Authorization: Bearer <measure-api-key>
+    ```
+
+    Endpoints:
+
+    - **PUT `/events`**: send a batch of events, spans, attachments, metrics and traces.
+    - **PUT `/builds`**: send build mappings and build sizes.
+    - **PUT `/builds/ota`**: send Over-The-Air patch mappings (CodePush, Shorebird) keyed by `patch_id`.
+    - **GET `/config`**: fetch the latest SDK configuration for the app.
+servers:
+  - url: "https://{host}"
+    description: >
+      Measure ingestion server. Use the API URL configured for your app in the
+      Measure dashboard; self-hosted deployments use their own origin.
+    variables:
+      host:
+        default: your-measure-instance.example
+        description: Hostname of the Measure deployment's ingestion endpoint.
+  - url: http://localhost:8085
+    description: Self-hosted Measure ingestion origin (local default)
+security:
+  - measureApiKey: []
+tags:
+  - name: Events
+    description: Ingest batches of events, spans and attachments.
+  - name: Builds
+    description: Upload build sizes, build mappings and Over-The-Air patch mappings.
+  - name: Config
+    description: Fetch the SDK configuration for the app.
+components:
+  securitySchemes:
+    measureApiKey:
+      type: http
+      scheme: bearer
+      description: |
+        Measure API key for the app, sent as `Authorization: Bearer <api-key>`.
+        The app is determined from the API key.
+paths:
+  /events:
+    put:
+      operationId: putEvents
+      tags:
+        - Events
+      summary: Ingest a batch of events and spans
+      description: |
+        Ingests a batch of events, which can be of different types and can range
+        across multiple sessions.
+
+        Usage notes:
+
+        - Maximum size of one request must not exceed **10 MiB**. This limit includes
+          the combination of events and blob data.
+        - Each request must contain a unique UUIDv4 id, set as the header `msr-req-id`.
+          If a request fails, the client must retry the same payload with the same
+          `msr-req-id` to ensure idempotency.
+        - Each event must contain a nanosecond precision `timestamp`, for example
+          `"2023-08-24T14:51:38.000000534Z"`.
+        - Each request must not contain duplicate event ids.
+        - Each request must not contain duplicate span ids.
+        - Each span must contain a nanosecond precision `start_time` and `end_time`.
+        - Each event must have the following mandatory attributes:
+          `attribute.installation_id`, `attribute.measure_sdk_version`,
+          `attribute.thread_name`, `attribute.app_version`, `attribute.app_build`,
+          `attribute.app_unique_id`.
+        - Each span must have the following mandatory fields: `name`, `span_id`,
+          `trace_id`, `session_id`, `status`, `start_time`, `end_time`,
+          `attributes.installation_id`, `attributes.measure_sdk_version`,
+          `attributes.app_version`, `attributes.os_version`, `attributes.app_unique_id`.
+        - At least 1 event must be present in the `events` array field or 1 span must
+          be present in the `spans` array field. Both arrays must not be empty.
+        - The request body supports both `application/json` and `multipart/form-data`
+          requests. Multipart requests will be deprecated in future versions; multipart
+          only exists for backwards compatibility.
+        - A successful JSON request returns `200 OK` with attachment upload URLs when
+          the batch references attachments. A successful multipart request returns
+          `202 Accepted`.
+        - Idempotent based on `msr-req-id`. Previously seen requests matching by
+          `msr-req-id` won't be re-processed; JSON requests receive the attachment
+          upload info again so the client can proceed to upload attachments if any.
+
+        A success response implies the server has accepted the request, but it may
+        choose to not process and discard some events depending on various conditions.
+      parameters:
+        - name: msr-req-id
+          in: header
+          required: true
+          description: >
+            Unique UUIDv4 id for this request. If a request fails, retry the same
+            payload with the same `msr-req-id` to ensure idempotency.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: >
+                Batch of events and spans. At least one event or one span must be
+                present.
+              properties:
+                events:
+                  type: array
+                  description: Events in the batch.
+                  items:
+                    type: object
+                    description: >
+                      A single event. Each event object must additionally contain one
+                      payload field named after its `type`, for example an event with
+                      `type` `gesture_click` carries a `gesture_click` object. Exactly
+                      one such payload field must be present.
+                    required:
+                      - id
+                      - type
+                      - session_id
+                      - timestamp
+                      - attribute
+                      - attachments
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                        description: UUID of the event.
+                      type:
+                        type: string
+                        description: >
+                          Type of the event. Matches the name of the event payload
+                          field present on the event. One of `anr`, `exception`,
+                          `string`, `gesture_long_click`, `gesture_scroll`,
+                          `gesture_click`, `http`, `network_change`, `app_exit`,
+                          `lifecycle_activity`, `lifecycle_fragment`,
+                          `lifecycle_view_controller`, `lifecycle_swift_ui`,
+                          `lifecycle_app`, `cold_launch`, `warm_launch`, `hot_launch`,
+                          `cpu_usage`, `memory_usage`, `memory_usage_absolute`,
+                          `low_memory`, `trim_memory`, `navigation`, `screen_view`,
+                          `custom`, `session_start`, `profile`.
+                      session_id:
+                        type: string
+                        format: uuid
+                        description: UUID of the session.
+                      timestamp:
+                        type: string
+                        description: >
+                          Nanosecond precision timestamp, for example
+                          "2023-08-24T14:51:38.000000534Z".
+                      user_triggered:
+                        type: boolean
+                        description: True when the event is triggered by the SDK consumer.
+                      attribute:
+                        type: object
+                        description: Event attributes.
+                        required:
+                          - installation_id
+                          - measure_sdk_version
+                          - thread_name
+                          - app_version
+                          - app_build
+                          - app_unique_id
+                        properties:
+                          installation_id:
+                            type: string
+                            description: >
+                              A unique identifier for an installation of an app,
+                              generated by the client.
+                          app_version:
+                            type: string
+                            description: App version identifier.
+                          app_build:
+                            type: string
+                            description: App build identifier.
+                          app_unique_id:
+                            type: string
+                            description: App bundle identifier.
+                          patch_id:
+                            type: string
+                            format: uuid
+                            description: >
+                              UUID of the Over-The-Air patch the app is running, if
+                              any. See PUT /builds/ota.
+                          patch_version:
+                            type: string
+                            description: >
+                              Human-facing version of the Over-The-Air patch the app
+                              is running, if any.
+                          measure_sdk_version:
+                            type: string
+                            description: Measure SDK version identifier.
+                          thread_name:
+                            type: string
+                            description: The thread on which the event was captured.
+                          user_id:
+                            type: ["string", "null"]
+                            description: ID of the app's end user.
+                          device_name:
+                            type: string
+                            description: Name of the device.
+                          device_model:
+                            type: string
+                            description: Device model.
+                          device_manufacturer:
+                            type: string
+                            description: Name of the device manufacturer.
+                          device_type:
+                            type: string
+                            description: "`phone` or `tablet`."
+                          device_is_foldable:
+                            type: boolean
+                            description: "`true` for foldable devices."
+                          device_is_physical:
+                            type: boolean
+                            description: "`true` for physical devices."
+                          device_density_dpi:
+                            type: integer
+                            description: DPI density.
+                          device_width_px:
+                            type: integer
+                            description: Screen width.
+                          device_height_px:
+                            type: integer
+                            description: Screen height.
+                          device_density:
+                            type: number
+                            description: Device density.
+                          device_locale:
+                            type: string
+                            description: Locale based on RFC 5646, for example en-US.
+                          device_low_power_mode:
+                            type: boolean
+                            description: "`true` when low power mode is enabled."
+                          device_thermal_throttling_enabled:
+                            type: boolean
+                            description: "`true` when thermal throttling is enabled."
+                          os_name:
+                            type: string
+                            description: >
+                              Operating system name. One of `android`, `ios`, `ipados`.
+                          os_version:
+                            type: string
+                            description: Operating system version.
+                          os_page_size:
+                            type: integer
+                            description: Operating system memory page size.
+                          network_type:
+                            type: string
+                            description: >
+                              One of `wifi`, `cellular`, `vpn`, `unknown`, `no_network`.
+                          network_provider:
+                            type: string
+                            description: >
+                              Example: airtel, T-mobile or "unknown" if unavailable.
+                          network_generation:
+                            type: string
+                            description: One of `2g`, `3g`, `4g`, `5g`, `unknown`.
+                          device_cpu_arch:
+                            type: string
+                            description: The CPU architecture, for example arm64.
+                          session_start_time:
+                            type: string
+                            description: >
+                              The ISO-8601 timestamp when the session containing this
+                              event started.
+                      user_defined_attribute:
+                        type: ["object", "null"]
+                        description: >
+                          Optional attributes defined by the SDK user as key/value
+                          pairs. An event may contain a maximum of 100 user defined
+                          attributes. Key names must be unique, must not exceed 256
+                          characters and must only contain alphabets, numbers,
+                          underscores and hyphens. Values can be string, boolean or
+                          number JSON types only. Integer values should be within the
+                          int64 range, float values should not exceed the maximum
+                          float64 value and string values should not exceed 256
+                          characters.
+                        maxProperties: 100
+                        additionalProperties:
+                          oneOf:
+                            - type: string
+                              maxLength: 256
+                            - type: number
+                            - type: boolean
+                      attachments:
+                        type: array
+                        description: >
+                          Attachments for the event. Must be an array of attachment
+                          objects. Represent with an empty array if there are no
+                          attachments.
+                        items:
+                          type: object
+                          description: An arbitrary file associated with the session.
+                          required:
+                            - id
+                            - name
+                            - type
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                              description: Id of the attachment.
+                            name:
+                              type: string
+                              description: Name of the attachment.
+                            type:
+                              type: string
+                              description: Type of the attachment.
+                              enum:
+                                - screenshot
+                                - android_method_trace
+                                - layout_snapshot
+                                - perfetto_trace
+                                - heap_dump
+                                - heap_profile
+                      anr:
+                        type: object
+                        description: >
+                          Use the `anr` type for Application Not Responding events.
+                        required:
+                          - exceptions
+                          - foreground
+                        properties:
+                          handled:
+                            type: boolean
+                            deprecated: true
+                            description: >
+                              Do not use. Retained only for backwards compatibility.
+                          exceptions:
+                            type: array
+                            description: Array of exception objects.
+                            items:
+                              type: object
+                              properties:
+                                type:
+                                  type: string
+                                  description: >
+                                    Type of the exception. Optional only for nested
+                                    exceptions from Dart.
+                                message:
+                                  type: string
+                                  description: >
+                                    Error message text. Optional only for nested
+                                    exceptions from Dart.
+                                frames:
+                                  type: array
+                                  description: >
+                                    Array of stackframe objects. Same shape as the
+                                    frame objects of the `exception` event.
+                                  items:
+                                    type: object
+                          foreground:
+                            type: boolean
+                            description: >
+                              `true` if the app was in the foreground at the time of
+                              the ANR.
+                          threads:
+                            type: array
+                            description: Array of thread objects.
+                            items:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                  description: Name of thread.
+                                frames:
+                                  type: array
+                                  description: Array of stackframe objects.
+                                  items:
+                                    type: object
+                      exception:
+                        type: object
+                        description: >
+                          Use the `exception` type for errors and crashes.
+                        required:
+                          - exceptions
+                          - framework
+                        properties:
+                          handled:
+                            type: boolean
+                            deprecated: true
+                            description: >
+                              Do not use. Prefer using `severity` for new
+                              integrations; `handled` is retained for backwards
+                              compatibility.
+                          severity:
+                            type: string
+                            enum:
+                              - fatal
+                              - handled
+                              - unhandled
+                            description: >
+                              Severity level of the exception. When omitted, severity
+                              is inferred from `handled`: `false` maps to `fatal`,
+                              `true` maps to `handled`.
+                          exceptions:
+                            type: array
+                            description: >
+                              Array of exception objects. Each exception object
+                              contains the thread information of the crashed thread
+                              and its stackframes along with the metadata required for
+                              symbolication.
+                            items:
+                              type: object
+                              properties:
+                                type:
+                                  type: string
+                                  description: Type of the exception.
+                                message:
+                                  type: string
+                                  description: Error message text.
+                                frames:
+                                  type: array
+                                  description: Array of stackframe objects.
+                                  items:
+                                    type: object
+                                    required:
+                                      - in_app
+                                    properties:
+                                      line_num:
+                                        type: number
+                                        description: Line number of the method.
+                                      col_num:
+                                        type: number
+                                        description: Column number of the method.
+                                      module_name:
+                                        type: string
+                                        description: Name of the originating module.
+                                      file_name:
+                                        type: string
+                                        description: Name of the originating file.
+                                      class_name:
+                                        type: string
+                                        description: Name of the originating class.
+                                      method_name:
+                                        type: string
+                                        description: Name of the originating method.
+                                      binary_name:
+                                        type: string
+                                        description: >
+                                          Name of the iOS binary image, for example
+                                          `UIKitCore`. Used for selecting the binary
+                                          image to use for symbolication.
+                                      symbol_address:
+                                        type: string
+                                        description: >
+                                          Address of the symbol to symbolicate. This
+                                          is a hexadecimal number prefixed with `0x`.
+                                          Use along with `offset` and `binary_address`
+                                          for symbolication.
+                                      offset:
+                                        type: number
+                                        description: >
+                                          The byte offset, used along with
+                                          `symbol_address` and `binary_address` for
+                                          symbolication.
+                                      binary_address:
+                                        type: string
+                                        description: >
+                                          The binary load address, used along with
+                                          `symbol_address` and `offset` for
+                                          symbolication.
+                                      in_app:
+                                        type: boolean
+                                        description: >
+                                          `true` if the frame originates from the app
+                                          module.
+                                      frame_index:
+                                        type: number
+                                        description: >
+                                          The index of the frame in the stack trace.
+                                      instruction_address:
+                                        type: string
+                                        description: >
+                                          The address of the instruction to
+                                          symbolicate. This is a hexadecimal number
+                                          prefixed with `0x`. Used for symbolication
+                                          of Dart/ELF format crashes.
+                                signal:
+                                  type: string
+                                  description: BSD termination signal.
+                                thread_name:
+                                  type: string
+                                  description: Name of thread.
+                                thread_sequence:
+                                  type: number
+                                  description: >
+                                    The thread number used for ordering threads in a
+                                    stacktrace. Used by Apple OSes.
+                                os_build_number:
+                                  type: string
+                                  description: >
+                                    OS build number used to select system binary image
+                                    for Apple OSes. For example, `22D72` is the build
+                                    number for iPhone OS 18.3.1.
+                          foreground:
+                            type: boolean
+                            description: >
+                              `true` if the app was in the foreground at the time of
+                              the exception.
+                          threads:
+                            type: array
+                            description: >
+                              Array of thread objects. Only non-crashed threads are to
+                              be sent in thread objects.
+                            items:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                  description: Name of thread.
+                                frames:
+                                  type: array
+                                  description: >
+                                    Array of stackframe objects. Same shape as the
+                                    frame objects under `exceptions`.
+                                  items:
+                                    type: object
+                                sequence:
+                                  type: number
+                                  description: >
+                                    The frame index used for ordering frames in a
+                                    stacktrace. Used by Apple OSes.
+                          binary_images:
+                            type: array
+                            description: >
+                              An optional array of all the binary images needed for
+                              symbolication.
+                            items:
+                              type: object
+                              required:
+                                - arch
+                                - uuid
+                              properties:
+                                start_addr:
+                                  type: string
+                                  description: >
+                                    Start address, where the binary is loaded into
+                                    virtual memory. Only applies to Apple apps.
+                                end_addr:
+                                  type: string
+                                  description: >
+                                    End address, the upper memory boundary of the
+                                    binary. Only applies to Apple apps.
+                                base_addr:
+                                  type: string
+                                  description: >
+                                    Base address of symbols, only applies to Dart
+                                    exceptions.
+                                system:
+                                  type: boolean
+                                  description: >
+                                    Binary marker indicating a system binary, only
+                                    applies to Apple apps.
+                                name:
+                                  type: string
+                                  description: >
+                                    Name of the app, framework or library binary, only
+                                    applies to Apple apps.
+                                arch:
+                                  type: string
+                                  description: CPU architecture the binary is compiled for.
+                                uuid:
+                                  type: string
+                                  description: Unique fingerprint for the binary's build.
+                                path:
+                                  type: string
+                                  description: >
+                                    Full path to where the binary was located at
+                                    runtime, only applies to Apple apps.
+                          framework:
+                            type: string
+                            enum:
+                              - dart
+                              - jvm
+                              - apple
+                              - js
+                            description: >
+                              Specifies the framework where the exception originated
+                              from.
+                          is_custom:
+                            type: boolean
+                            description: >
+                              `true` for user-tracked errors (for example
+                              `payment_failed`). Defaults to `false`.
+                          error:
+                            type: object
+                            deprecated: true
+                            description: >
+                              Deprecated. Use `num_code`, `code`, and `meta` directly
+                              on the exception instead. An optional object for
+                              tracking error(s). Applicable to Apple apps. Should not
+                              exceed 4096 bytes.
+                            properties:
+                              numcode:
+                                type: integer
+                                description: Numeric code that describes the error.
+                              code:
+                                type: string
+                                description: String code that describes the error.
+                              meta:
+                                type: object
+                                description: >
+                                  Object containing arbitrary fields for the error's
+                                  metadata.
+                          num_code:
+                            type: integer
+                            description: Numeric code that describes the exception.
+                          code:
+                            type: string
+                            description: String code that describes the exception.
+                          meta:
+                            type: object
+                            description: >
+                              Object containing arbitrary fields for the exception's
+                              metadata. Should not exceed 4096 bytes.
+                      "string":
+                        type: object
+                        description: >
+                          Use the `string` type when sending unstructured or
+                          structured logs. Make sure structured logs are in
+                          stringified JSON format.
+                        required:
+                          - string
+                        properties:
+                          severity_text:
+                            type: string
+                            description: >
+                              Log level. One of `info`, `warning`, `error`, `fatal`,
+                              `debug`.
+                          "string":
+                            type: string
+                            description: Log message text.
+                      gesture_long_click:
+                        type: object
+                        description: >
+                          Use the `gesture_long_click` body type for longer press and
+                          hold gestures.
+                        required:
+                          - x
+                          - y
+                        properties:
+                          target:
+                            type: string
+                            description: Class/Instance name of the originating view.
+                          target_id:
+                            type: string
+                            description: Unique identifier for the target.
+                          label:
+                            type: string
+                            description: >
+                              Visible text of the clicked element, truncated to 32
+                              chars.
+                          semantic_label:
+                            type: string
+                            description: >
+                              Accessibility label of the clicked element, truncated to
+                              32 chars.
+                          touch_down_time:
+                            type: integer
+                            description: System uptime when target was pressed.
+                          touch_up_time:
+                            type: integer
+                            description: System uptime when target was released.
+                          width:
+                            type: integer
+                            description: Width of the target view in pixels.
+                          height:
+                            type: integer
+                            description: Height of the target view in pixels.
+                          x:
+                            type: number
+                            description: X coordinate of the target view.
+                          y:
+                            type: number
+                            description: Y coordinate of the target view.
+                      gesture_scroll:
+                        type: object
+                        description: Use the `gesture_scroll` body type for scroll events.
+                        required:
+                          - x
+                          - y
+                          - end_x
+                          - end_y
+                        properties:
+                          target:
+                            type: string
+                            description: Class/Instance name of the originating view.
+                          target_id:
+                            type: string
+                            description: Unique identifier for the target.
+                          touch_down_time:
+                            type: integer
+                            description: System uptime when target scroll started.
+                          touch_up_time:
+                            type: integer
+                            description: System uptime when target scroll ended.
+                          x:
+                            type: number
+                            description: X coordinate of the target where scroll started.
+                          y:
+                            type: number
+                            description: Y coordinate of the target where scroll started.
+                          end_x:
+                            type: number
+                            description: X coordinate of the target where scroll ended.
+                          end_y:
+                            type: number
+                            description: Y coordinate of the target where scroll ended.
+                          direction:
+                            type: string
+                            description: >
+                              The direction of the scroll. One of left, right, up,
+                              down.
+                      gesture_click:
+                        type: object
+                        description: Use the `gesture_click` body type for taps or clicks.
+                        required:
+                          - x
+                          - y
+                        properties:
+                          target:
+                            type: string
+                            description: Class/Instance name of the originating view.
+                          target_id:
+                            type: string
+                            description: Unique identifier for the target.
+                          label:
+                            type: string
+                            description: >
+                              Visible text of the clicked element, truncated to 32
+                              chars.
+                          semantic_label:
+                            type: string
+                            description: >
+                              Accessibility label of the clicked element, truncated to
+                              32 chars.
+                          touch_down_time:
+                            type: integer
+                            description: System uptime when target was pressed.
+                          touch_up_time:
+                            type: integer
+                            description: System uptime when target was released.
+                          width:
+                            type: integer
+                            description: Width of the target view in pixels.
+                          height:
+                            type: integer
+                            description: Height of the target view in pixels.
+                          x:
+                            type: number
+                            description: X coordinate of the target where click happened.
+                          y:
+                            type: number
+                            description: Y coordinate of the target where click happened.
+                      http:
+                        type: object
+                        description: >
+                          Use the `http` body type for tracking a single HTTP network
+                          call.
+                        required:
+                          - url
+                          - method
+                        properties:
+                          url:
+                            type: string
+                            description: Complete URL of the HTTP request.
+                          method:
+                            type: string
+                            description: >
+                              Any of the common HTTP methods like `GET` or `POST`.
+                          status_code:
+                            type: integer
+                            description: Any of the common HTTP response codes.
+                          start_time:
+                            type: integer
+                            description: The uptime at which the http call started, in ms.
+                          end_time:
+                            type: integer
+                            description: The uptime at which the http call ended, in ms.
+                          failure_reason:
+                            type: string
+                            description: >
+                              The reason for failure. For Android, typically the
+                              IOException class name.
+                          failure_description:
+                            type: string
+                            description: >
+                              The description of the failure. For Android, typically
+                              the IOException message.
+                          request_headers:
+                            type: object
+                            description: The request headers.
+                            additionalProperties:
+                              type: string
+                          response_headers:
+                            type: object
+                            description: The response headers.
+                            additionalProperties:
+                              type: string
+                          request_body:
+                            type: string
+                            description: >
+                              The request body, if any. Only supported for json body.
+                          response_body:
+                            type: string
+                            description: >
+                              The response body, if any. Only supported for json body.
+                          client:
+                            type: string
+                            description: Name of the http client like `Okhttp`.
+                      network_change:
+                        type: object
+                        description: >
+                          Use the `network_change` type for tracking changes to the
+                          network state of the device.
+                        required:
+                          - network_type
+                          - network_provider
+                          - network_generation
+                          - previous_network_type
+                          - previous_network_generation
+                        properties:
+                          network_type:
+                            type: string
+                            description: >
+                              One of `wifi`, `cellular`, `vpn`, `unknown`, `no_network`.
+                          network_provider:
+                            type: string
+                            description: >
+                              Example: airtel, T-mobile or "unknown" if unavailable.
+                          network_generation:
+                            type: string
+                            description: One of `2g`, `3g`, `4g`, `5g`, `unknown`.
+                          previous_network_type:
+                            type: string
+                            description: >
+                              One of `wifi`, `cellular`, `vpn`, `unknown`, `no_network`.
+                          previous_network_generation:
+                            type: string
+                            description: One of `2g`, `3g`, `4g`, `5g`, `unknown`.
+                      app_exit:
+                        type: object
+                        description: Use the `app_exit` type for Application Exit events.
+                        required:
+                          - reason
+                          - importance
+                          - process_name
+                        properties:
+                          reason:
+                            type: string
+                            description: Reason for the app exit.
+                            enum:
+                              - REASON_ANR
+                              - REASON_CRASH
+                              - REASON_CRASH_NATIVE
+                              - REASON_DEPENDENCY_DIED
+                              - REASON_EXCESSIVE_RESOURCE_USAGE
+                              - REASON_EXIT_SELF
+                              - REASON_FREEZER
+                              - REASON_INITIALIZATION_FAILURE
+                              - REASON_LOW_MEMORY
+                              - REASON_OTHER
+                              - REASON_PACKAGE_STATE_CHANGE
+                              - REASON_PACKAGE_UPDATED
+                              - REASON_PERMISSION_CHANGE
+                              - REASON_SIGNALED
+                              - REASON_UNKNOWN
+                              - REASON_USER_REQUESTED
+                              - REASON_USER_STOPPED
+                          importance:
+                            type: string
+                            description: >
+                              Importance of the process that it used to have before
+                              death.
+                            enum:
+                              - IMPORTANCE_FOREGROUND
+                              - IMPORTANCE_FOREGROUND_SERVICE
+                              - IMPORTANCE_TOP_SLEEPING
+                              - IMPORTANCE_VISIBLE
+                              - IMPORTANCE_PERCEPTIBLE
+                              - IMPORTANCE_CANT_SAVE_STATE
+                              - IMPORTANCE_SERVICE
+                              - IMPORTANCE_CACHED
+                              - IMPORTANCE_GONE
+                          trace:
+                            type: string
+                            description: >
+                              Modified trace given by ApplicationExitInfo to help
+                              debug ANRs. Must be only set for sessions that had an
+                              ANR.
+                          process_name:
+                            type: string
+                            description: Name of the process.
+                          pid:
+                            type: string
+                            description: ID of the process that died.
+                          timestamp:
+                            type: string
+                            description: >
+                              Unix epoch timestamp of the process's death, in
+                              milliseconds.
+                      lifecycle_activity:
+                        type: object
+                        description: >
+                          Use the `lifecycle_activity` type for Android's activity
+                          lifecycle events.
+                        required:
+                          - type
+                          - class_name
+                        properties:
+                          type:
+                            type: string
+                            enum:
+                              - created
+                              - resumed
+                              - paused
+                              - destroyed
+                            description: Lifecycle state of the activity.
+                          class_name:
+                            type: string
+                            description: Activity's fully qualified class name.
+                          intent:
+                            type: string
+                            description: Intent data serialized as string.
+                          saved_instance_state:
+                            type: boolean
+                            description: >
+                              `true` if activity was created with a saved state. Only
+                              applies when type is `created`.
+                      lifecycle_fragment:
+                        type: object
+                        description: >
+                          Use the `lifecycle_fragment` type for Android's fragment
+                          lifecycle events.
+                        required:
+                          - type
+                          - class_name
+                        properties:
+                          type:
+                            type: string
+                            enum:
+                              - attached
+                              - resumed
+                              - paused
+                              - detached
+                            description: Lifecycle state of the fragment.
+                          class_name:
+                            type: string
+                            description: Fragment's fully qualified class name.
+                          parent_activity:
+                            type: string
+                            description: >
+                              Fragment's parent activity's fully qualified class name.
+                          parent_fragment:
+                            type: string
+                            description: >
+                              Fragment's parent fragment's fully qualified class name.
+                          tag:
+                            type: string
+                            description: Fragment's tag.
+                      lifecycle_view_controller:
+                        type: object
+                        description: >
+                          Use the `lifecycle_view_controller` type for iOS
+                          ViewController lifecycle events.
+                        required:
+                          - type
+                          - class_name
+                        properties:
+                          type:
+                            type: string
+                            enum:
+                              - loadView
+                              - viewDidLoad
+                              - viewWillAppear
+                              - viewDidAppear
+                              - viewWillDisappear
+                              - viewDidDisappear
+                              - didReceiveMemoryWarning
+                              - initWithDbName
+                              - initWithCoder
+                              - vcDeinit
+                            description: >
+                              Lifecycle state of the view controller. The server
+                              accepts `initWithDbName` (not `initWithNibName`) for the
+                              nib-based initializer.
+                          class_name:
+                            type: string
+                            description: View Controller class name.
+                      lifecycle_swift_ui:
+                        type: object
+                        description: >
+                          Use the `lifecycle_swift_ui` type for iOS SwiftUI view
+                          lifecycle events.
+                        required:
+                          - type
+                          - class_name
+                        properties:
+                          type:
+                            type: string
+                            enum:
+                              - on_appear
+                              - on_disappear
+                            description: Lifecycle state of the SwiftUI view.
+                          class_name:
+                            type: string
+                            description: SwiftUI View class name.
+                      lifecycle_app:
+                        type: object
+                        description: >
+                          Use the `lifecycle_app` type for the app's lifecycle events.
+                        required:
+                          - type
+                        properties:
+                          type:
+                            type: string
+                            enum:
+                              - background
+                              - foreground
+                              - terminated
+                            description: >
+                              Lifecycle state of the app. The `terminated` option is
+                              only supported on iOS.
+                      cold_launch:
+                        type: object
+                        description: >
+                          Use the `cold_launch` type for Android cold app launch time.
+                        required:
+                          - on_next_draw_uptime
+                          - launched_activity
+                          - has_saved_state
+                        properties:
+                          process_start_uptime:
+                            type: integer
+                            description: The start uptime, measured in ms.
+                          process_start_requested_uptime:
+                            type: integer
+                            description: The start uptime, measured in ms.
+                          content_provider_attach_uptime:
+                            type: integer
+                            description: The start uptime, measured in ms.
+                          on_next_draw_uptime:
+                            type: integer
+                            description: >
+                              The time at which the app became visible to the user.
+                          launched_activity:
+                            type: string
+                            description: >
+                              The activity which drew the first frame during cold
+                              launch.
+                          has_saved_state:
+                            type: boolean
+                            description: >
+                              Whether the launched activity was created with a saved
+                              state bundle.
+                          intent_data:
+                            type: string
+                            description: >
+                              The Intent data used to launch the launched activity.
+                      warm_launch:
+                        type: object
+                        description: >
+                          Use the `warm_launch` type for Android warm app launch time.
+                        required:
+                          - on_next_draw_uptime
+                          - launched_activity
+                          - has_saved_state
+                        properties:
+                          app_visible_uptime:
+                            type: integer
+                            description: >
+                              The time since the app became visible to the user, in ms.
+                          process_start_uptime:
+                            type: integer
+                            description: The start uptime, measured in ms.
+                          process_start_requested_uptime:
+                            type: integer
+                            description: The start uptime, measured in ms.
+                          content_provider_attach_uptime:
+                            type: integer
+                            description: The start uptime, measured in ms.
+                          on_next_draw_uptime:
+                            type: integer
+                            description: >
+                              The time at which the app became visible to the user, in
+                              ms.
+                          launched_activity:
+                            type: string
+                            description: >
+                              The activity which drew the first frame during launch.
+                          has_saved_state:
+                            type: boolean
+                            description: >
+                              Whether the launched activity was created with a saved
+                              state bundle.
+                          intent_data:
+                            type: string
+                            description: >
+                              The Intent data used to launch the launched activity.
+                          is_lukewarm:
+                            type: boolean
+                            description: >
+                              Whether the launch benefitted from state restoration.
+                      hot_launch:
+                        type: object
+                        description: >
+                          Use the `hot_launch` type for Android hot app launch time.
+                        required:
+                          - on_next_draw_uptime
+                          - launched_activity
+                          - has_saved_state
+                        properties:
+                          app_visible_uptime:
+                            type: integer
+                            description: >
+                              The time elapsed since the app became visible to the
+                              user, in ms.
+                          on_next_draw_uptime:
+                            type: integer
+                            description: >
+                              The time at which the app became visible to the user, in
+                              ms.
+                          launched_activity:
+                            type: string
+                            description: >
+                              The activity which drew the first frame during launch.
+                          has_saved_state:
+                            type: boolean
+                            description: >
+                              Whether the launched activity was created with a saved
+                              state.
+                          intent_data:
+                            type: string
+                            description: >
+                              The Intent data used to launch the launched activity.
+                      cpu_usage:
+                        type: object
+                        description: >
+                          Use the `cpu_usage` type for CPU usage of a Linux based OS.
+                        required:
+                          - num_cores
+                          - clock_speed
+                          - uptime
+                          - utime
+                          - stime
+                          - cutime
+                          - cstime
+                          - interval
+                          - percentage_usage
+                          - start_time
+                        properties:
+                          num_cores:
+                            type: integer
+                            description: Number of cores in the device.
+                          clock_speed:
+                            type: integer
+                            description: Clock speed of the device, in Hz.
+                          uptime:
+                            type: integer
+                            description: Time since the device booted, in ms.
+                          utime:
+                            type: integer
+                            description: >
+                              Time spent executing code in user mode, in Jiffies.
+                          stime:
+                            type: integer
+                            description: >
+                              Time spent executing code in kernel mode, in Jiffies.
+                          cutime:
+                            type: integer
+                            description: >
+                              Time spent executing code in user mode with children, in
+                              Jiffies.
+                          cstime:
+                            type: integer
+                            description: >
+                              Time spent executing code in kernel mode with children,
+                              in Jiffies.
+                          interval:
+                            type: integer
+                            description: The interval between two collections, in ms.
+                          percentage_usage:
+                            type: number
+                            description: The percentage CPU usage in the interval.
+                          start_time:
+                            type: integer
+                            description: The process start time, in Jiffies.
+                      memory_usage:
+                        type: object
+                        description: >
+                          Use the `memory_usage` type for memory usage of JVM
+                          applications.
+                        required:
+                          - java_max_heap
+                          - java_total_heap
+                          - java_free_heap
+                          - total_pss
+                          - native_total_heap
+                          - native_free_heap
+                          - interval
+                        properties:
+                          java_max_heap:
+                            type: integer
+                            description: >
+                              Maximum size of the Java heap allocated to the
+                              application. Measured in kB.
+                          java_total_heap:
+                            type: integer
+                            description: >
+                              Total size of the Java heap available for memory
+                              allocation. Measured in kB.
+                          java_free_heap:
+                            type: integer
+                            description: >
+                              Amount of free memory available in the Java heap.
+                              Measured in kB.
+                          total_pss:
+                            type: integer
+                            description: >
+                              Total proportional set size, the amount of memory used
+                              by the process, including shared memory and code.
+                              Measured in kB.
+                          rss:
+                            type: integer
+                            description: >
+                              Resident set size of the Java process, the amount of
+                              physical memory currently used by the Java application.
+                              Measured in kB.
+                          native_total_heap:
+                            type: integer
+                            description: >
+                              Total size of the native heap (memory outside of Java's
+                              control) available for memory allocation. Measured in
+                              kB.
+                          native_free_heap:
+                            type: integer
+                            description: >
+                              Amount of free memory available in the native heap.
+                              Measured in kB.
+                          interval:
+                            type: integer
+                            description: >
+                              The interval between two consecutive readings. Measured
+                              in ms.
+                      memory_usage_absolute:
+                        type: object
+                        description: >
+                          Use the `memory_usage_absolute` type for absolute memory
+                          usage.
+                        required:
+                          - max_memory
+                          - used_memory
+                          - interval
+                        properties:
+                          max_memory:
+                            type: integer
+                            description: >
+                              Maximum size of memory available to the application, in
+                              kB.
+                          used_memory:
+                            type: integer
+                            description: Memory used by the application, in kB.
+                          interval:
+                            type: integer
+                            description: >
+                              The interval between two consecutive readings. Measured
+                              in ms.
+                      low_memory:
+                        type: object
+                        description: >
+                          Use the `low_memory` type for a low memory event from the
+                          system. This event is no longer tracked. The callback is
+                          deprecated and the general guidance is to rely on
+                          trim_memory events instead. Removed in Android SDK version
+                          0.8.0.
+                        deprecated: true
+                        required:
+                          - java_max_heap
+                          - java_total_heap
+                          - java_free_heap
+                          - total_pss
+                          - native_total_heap
+                          - native_free_heap
+                        properties:
+                          java_max_heap:
+                            type: integer
+                            description: >
+                              Maximum size of the Java heap allocated to the
+                              application. Measured in kB.
+                          java_total_heap:
+                            type: integer
+                            description: >
+                              Total size of the Java heap available for memory
+                              allocation. Measured in kB.
+                          java_free_heap:
+                            type: integer
+                            description: >
+                              Amount of free memory available in the Java heap.
+                              Measured in kB.
+                          total_pss:
+                            type: integer
+                            description: >
+                              Total proportional set size, the amount of memory used
+                              by the process, including shared memory and code.
+                              Measured in kB.
+                          rss:
+                            type: integer
+                            description: >
+                              Resident set size of the Java process, the amount of
+                              physical memory currently used by the Java application.
+                              Measured in kB.
+                          native_total_heap:
+                            type: integer
+                            description: >
+                              Total size of the native heap (memory outside of Java's
+                              control) available for memory allocation. Measured in
+                              kB.
+                          native_free_heap:
+                            type: integer
+                            description: >
+                              Amount of free memory available in the native heap.
+                              Measured in kB.
+                      trim_memory:
+                        type: object
+                        description: >
+                          Use the `trim_memory` type for a trim memory event raised by
+                          Android.
+                        required:
+                          - level
+                        properties:
+                          level:
+                            type: string
+                            description: >
+                              One of the constants from Android's ComponentCallbacks2.
+                      navigation:
+                        type: object
+                        description: >
+                          Use the `navigation` type for navigation events. This event
+                          is no longer tracked and will be removed in future versions.
+                          Android SDK removed support for this event from v0.9.0
+                          onwards.
+                        deprecated: true
+                        required:
+                          - to
+                        properties:
+                          source:
+                            type: string
+                            description: >
+                              Adds context on how the event was collected. Null if not
+                              set. Example: `androidx_navigation` if the event was
+                              collected from the `androidx.navigation` library.
+                          from:
+                            type: string
+                            description: >
+                              The source page or screen from where the navigation was
+                              triggered, if available, null otherwise.
+                          to:
+                            type: string
+                            description: >
+                              The destination page or screen where the navigation led
+                              to.
+                      screen_view:
+                        type: object
+                        description: Use the `screen_view` type for screen view events.
+                        required:
+                          - name
+                        properties:
+                          name:
+                            type: string
+                            description: The name of the screen viewed.
+                      custom:
+                        type: object
+                        description: Use the `custom` type for custom events.
+                        required:
+                          - name
+                        properties:
+                          name:
+                            type: string
+                            description: The name of the custom event.
+                      session_start:
+                        type: object
+                        description: >
+                          Use the `session_start` type to mark the beginning of a new
+                          session. This must be the first event by time in a session.
+                          This event has no additional fields.
+                      profile:
+                        type: object
+                        description: >
+                          Use the `profile` type for a performance profile captured by
+                          the SDK, such as a Perfetto trace or heap dump. The profile
+                          artifact itself is sent as an attachment on the event whose
+                          `type` matches the event's `format`.
+                        required:
+                          - reason
+                          - format
+                        properties:
+                          reason:
+                            type: string
+                            enum:
+                              - app_fully_drawn
+                              - anr
+                            description: The occasion that produced the profile.
+                          format:
+                            type: string
+                            enum:
+                              - perfetto_trace
+                              - heap_dump
+                              - heap_profile
+                            description: >
+                              Format of the attached profile artifact, mirroring the
+                              attachment `type`.
+                spans:
+                  type: array
+                  description: Spans in the batch.
+                  items:
+                    type: object
+                    description: >
+                      A span is the fundamental building block of a trace.
+                    required:
+                      - name
+                      - trace_id
+                      - span_id
+                      - session_id
+                      - status
+                      - start_time
+                      - end_time
+                      - duration
+                      - attributes
+                    properties:
+                      trace_id:
+                        type: string
+                        description: >
+                          16 bytes (128-bit) represented as 32 lowercase hex
+                          characters. Identifies a group of spans for an operation.
+                      span_id:
+                        type: string
+                        description: >
+                          8 bytes (64-bit) represented as 16 lowercase hex characters.
+                          Unique identifier for a span in a trace.
+                      parent_id:
+                        type: ["string", "null"]
+                        description: >
+                          Parent `span_id`, used to set a parent-child relationship
+                          between spans.
+                      session_id:
+                        type: string
+                        format: uuid
+                        description: UUID of the session.
+                      name:
+                        type: string
+                        description: >
+                          The name of the span. Used to identify spans on the
+                          dashboard.
+                      status:
+                        type: integer
+                        enum: [0, 1, 2]
+                        description: >
+                          Signifies operation success or failure. One of ok (0), error
+                          (1), unset (2).
+                      start_time:
+                        type: string
+                        description: >
+                          Nanosecond precision timestamp, for example
+                          "2023-08-24T14:51:38.000000534Z".
+                      end_time:
+                        type: string
+                        description: >
+                          Nanosecond precision timestamp, for example
+                          "2023-08-24T14:51:38.000000834Z".
+                      duration:
+                        type: integer
+                        description: >
+                          Duration of the span in milliseconds, calculated using a
+                          monotonic clock.
+                      checkpoints:
+                        type: array
+                        description: >
+                          Named time markers within a span. Example: lifecycle events
+                          like `on_create`, `on_resume`.
+                        items:
+                          type: object
+                          required:
+                            - name
+                            - timestamp
+                          properties:
+                            name:
+                              type: string
+                              description: Name of the checkpoint.
+                            timestamp:
+                              type: string
+                              description: Timestamp of the checkpoint.
+                      attributes:
+                        type: object
+                        description: >
+                          Key-value pairs adding context to the span. Some attributes
+                          are automatically added while custom attributes can be set
+                          by clients. Spans contain the same set of attributes as
+                          events; see the event `attribute` object. The following keys
+                          are mandatory: `installation_id`, `measure_sdk_version`,
+                          `app_version`, `os_version`, `app_unique_id`.
+            example:
+              events:
+                - id: "576aa557-2580-4bb6-9941-ba90df6c3c0e"
+                  session_id: "9321a0be-906e-436b-91af-b47fb2e81cde"
+                  user_triggered: false
+                  timestamp: "2025-10-07T12:13:01.51700000Z"
+                  type: gesture_click
+                  gesture_click:
+                    target: androidx.compose.ui.platform.AndroidComposeView
+                    target_id: item_0
+                    width: 1080
+                    height: 242
+                    x: 619.959
+                    y: 195.93066
+                    touch_down_time: 75761066
+                    touch_up_time: 75761126
+                  attachments:
+                    - id: "42306fd7-cb17-4fa4-88dd-b40ce1ce34c4"
+                      type: layout_snapshot
+                      name: snapshot.svg
+                  attribute:
+                    thread_name: main
+                    user_id: null
+                    device_name: emu64a16k
+                    device_model: sdk_gphone16k_arm64
+                    device_manufacturer: Google
+                    device_type: phone
+                    device_is_foldable: false
+                    device_is_physical: false
+                    device_density_dpi: 440
+                    device_width_px: 1080
+                    device_height_px: 2220
+                    device_density: 2.75
+                    device_locale: en-US
+                    os_name: android
+                    os_version: "36"
+                    os_page_size: 16
+                    app_version: 0.13.0-SNAPSHOT.debug
+                    app_build: "29330652"
+                    app_unique_id: sh.measure.sample
+                    measure_sdk_version: 0.13.0-SNAPSHOT
+                    installation_id: "4059d23f-34ce-4d2c-a015-bd8da0b101ae"
+                    network_type: wifi
+                    network_generation: unknown
+                    network_provider: unknown
+                    device_low_power_mode: false
+                    device_thermal_throttling_enabled: false
+                  user_defined_attribute: null
+              spans:
+                - name: activity.onCreate
+                  trace_id: d71f3d909689859469a7d9b38e605d56
+                  span_id: 9f1890db9aedb305
+                  parent_id: null
+                  session_id: "a2768feb-59cd-433f-bf00-d36ab297eddb"
+                  start_time: "2024-11-18T14:14:40.54500000Z"
+                  end_time: "2024-11-18T14:14:40.62000000Z"
+                  duration: 75
+                  status: 0
+                  attributes:
+                    thread_name: main
+                    user_id: null
+                    device_name: emu64a16k
+                    device_model: sdk_gphone16k_arm64
+                    device_manufacturer: Google
+                    device_locale: en-US
+                    os_name: android
+                    os_version: "35"
+                    app_version: 0.9.0-SNAPSHOT.debug
+                    app_build: "900"
+                    app_unique_id: sh.measure.sample
+                    measure_sdk_version: 0.9.0-SNAPSHOT
+                    installation_id: "2ee2d03e-ed76-43e7-8d63-9e146f1df618"
+                    network_type: wifi
+                    network_generation: unknown
+                    network_provider: unknown
+                  checkpoints: []
+          multipart/form-data:
+            schema:
+              type: object
+              description: |
+                Multipart requests exist for backwards compatibility and will be
+                deprecated in future versions.
+
+                Set the content type as
+                `Content-Type: multipart/form-data; boundary=SDKBoundary`. The value
+                of boundary can be any arbitrary string; make sure the value doesn't
+                change in a single request. The name of each field must be present in
+                a `Content-Disposition` field, for example
+                `Content-Disposition: form-data; name="event"`.
+
+                Repeat the `event` part for each event and the `span` part for each
+                span. Each blob part must be named with the `blob-` prefix followed by
+                the id of the attachment it carries, for example
+                `blob-14228029-d52d-45c7-8054-c8e9586d009a`.
+
+                Example payload (trimmed):
+
+                ```
+                --SDKBoundary
+                Content-Disposition: form-data; name="event"
+
+                {"type":"string","id":"233a2fbc-a0d1-4912-a92f-9e43e72afbc6","session_id":"633a2fbc-a0d1-4912-a92f-9e43e72afbc6","string":{"severity_text":"INFO","string":"This is a log from the Android logcat"},"timestamp":"2023-08-24T14:51:38.000000534Z","attribute":{"user_id":null,"installation_id":"322a2fbc-a0d1-1212-a92f-9e43e72afbc7","device_name":"sunfish","os_name":"android","os_version":"31","app_version":"1.0.1","app_build":"576358","app_unique_id":"com.example.app","network_type":"cellular","network_provider":"airtel","network_generation":"4g","measure_sdk_version":"0.0.1","thread_name":"main"},"user_defined_attribute":{"username":"alice","paid_user":true},"attachments":[]}
+                --SDKBoundary
+                Content-Disposition: form-data; name="event"
+
+                {"type":"gesture_long_click","id":"9873a2fb-a0d1-4912-a92f-9e43e72afbc6","timestamp":"2023-08-24T14:51:40.000000534Z","session_id":"633a2fbc-a0d1-4912-a92f-9e43e72afbc6","gesture_long_click":{"target":"some_target_name","target_id":"some-target-id","touch_down_time":3394122,"touch_up_time":3395418,"width":1440,"height":996,"x":1234,"y":340},"attribute":{"user_id":null,"installation_id":"322a2fbc-a0d1-1212-a92f-9e43e72afbc7","os_name":"android","os_version":"31","app_version":"1.0.1","app_build":"576358","app_unique_id":"com.example.app","network_type":"cellular","network_provider":"airtel","network_generation":"4g","measure_sdk_version":"0.0.1","thread_name":"main"},"attachments":[{"id":"9e45a0bc-9277-468c-92f6-5eba2afc26e8","name":"screenshot-bla-bla.png","type":"screenshot","extension":"png","timestamp":"2024-03-18T07:24:52.17200000Z"}]}
+                --SDKBoundary
+                Content-Disposition: form-data; name="blob-9e45a0bc-9277-468c-92f6-5eba2afc26e8"
+
+                <binary attachment bytes>
+                --SDKBoundary
+                Content-Disposition: form-data; name="span"
+
+                {"name":"activity.onCreate","trace_id":"d71f3d909689859469a7d9b38e605d56","span_id":"9f1890db9aedb305","parent_id":null,"session_id":"a2768feb-59cd-433f-bf00-d36ab297eddb","start_time":"2024-11-18T14:14:40.54500000Z","end_time":"2024-11-18T14:14:40.62000000Z","duration":75,"status":0,"attributes":{"thread_name":"main","user_id":null,"os_name":"android","os_version":"35","app_version":"0.9.0-SNAPSHOT.debug","app_build":"900","app_unique_id":"sh.measure.sample","measure_sdk_version":"0.9.0-SNAPSHOT","installation_id":"2ee2d03e-ed76-43e7-8d63-9e146f1df618","network_type":"wifi","network_generation":"unknown","network_provider":"unknown"},"checkpoints":[]}
+                --SDKBoundary--
+                ```
+              properties:
+                event:
+                  type: array
+                  description: >
+                    Repeated form parts, one per event. Each part contains a
+                    serialized event JSON object with the same shape as the `events`
+                    array items of the JSON request body.
+                  items:
+                    type: string
+                span:
+                  type: array
+                  description: >
+                    Repeated form parts, one per span. Each part contains a serialized
+                    span JSON object with the same shape as the `spans` array items of
+                    the JSON request body.
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: >
+            Returned for `application/json` requests, including previously seen
+            `msr-req-id` values. When the batch references attachments, the response
+            contains pre-signed URLs for uploading each attachment. Upload each file
+            with a standard HTTP PUT to the returned `upload_url`, including every
+            header from the `headers` object. When the batch has no attachments,
+            `attachments` is null.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attachments:
+                    type: ["array", "null"]
+                    description: >
+                      Pre-signed upload info for each attachment referenced by the
+                      batch, or null when there are none.
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          description: Id of the attachment.
+                        type:
+                          type: string
+                          description: Type of the attachment.
+                        filename:
+                          type: string
+                          description: Filename of the attachment.
+                        upload_url:
+                          type: string
+                          description: >
+                            Pre-signed URL to upload the attachment file to, using an
+                            HTTP PUT request.
+                        expires_at:
+                          type: string
+                          format: date-time
+                          description: Expiry time of the pre-signed URL.
+                        headers:
+                          type: object
+                          description: >
+                            Headers that must be included in the file upload request.
+                          additionalProperties:
+                            type: string
+              examples:
+                withAttachments:
+                  summary: Batch with attachments
+                  value:
+                    attachments:
+                      - id: "42306fd7-cb17-4fa4-88dd-b40ce1ce34c4"
+                        type: layout_snapshot
+                        filename: snapshot.svg
+                        upload_url: "http://localhost:8080/proxy/attachments?payload=http%3A%2F%2Fminio%3A9000%2Fmsr-attachments-sandbox%2F42306fd7-cb17-4fa4-88dd-b40ce1ce34c4.svg%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Expires%3D604800%26x-id%3DPutObject"
+                        expires_at: "2025-10-15T10:14:12.870600803Z"
+                        headers:
+                          x-amz-meta-original_file_name: snapshot.svg
+                withoutAttachments:
+                  summary: Batch without attachments
+                  value:
+                    attachments: null
+        "202":
+          description: >
+            Returned for multipart requests. The request was accepted and will be
+            processed. A previously seen `msr-req-id` returns an acknowledgement
+            without re-processing the batch.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: string
+              examples:
+                accepted:
+                  summary: New event request
+                  value:
+                    ok: accepted
+                knownRequest:
+                  summary: Already seen msr-req-id
+                  value:
+                    ok: accepted, known event request
+        "400":
+          description: >
+            Request body is malformed or does not meet one or more acceptance
+            criteria. Check the `error` field for more details.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message.
+                  details:
+                    type: string
+                    description: Additional error details, when available.
+              example:
+                error: failed to parse event request payload
+        "401":
+          description: Either the Measure API key is not present or has expired.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+              example:
+                error: invalid api key
+        "402":
+          description: >
+            Ingestion is blocked for this app because the team's plan limit has been
+            reached. Only returned on deployments with billing enabled.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+              example:
+                error: "ingestion blocked: plan limit reached"
+        "404":
+          description: No app found for this API key.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+              example:
+                error: no app found for this api key
+        "429":
+          description: >
+            Rate limit has exceeded. Retry request respecting the `Retry-After`
+            response header.
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying.
+              schema:
+                type: string
+        "500":
+          description: >
+            Measure server encountered an unfortunate error. Report this to your
+            server administrator.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "503":
+          description: >
+            Measure server is temporarily unavailable. Retry request respecting the
+            `Retry-After` response header.
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying.
+              schema:
+                type: string
+  /builds:
+    put:
+      operationId: putBuilds
+      tags:
+        - Builds
+      summary: Upload build info and mappings
+      description: |
+        Measure will use build information like mapping files and build sizes
+        uploaded via this API for deobfuscation and to track app size changes.
+
+        This API only accepts the build metadata and does not actually upload the
+        files. It returns pre-signed URLs for uploading the files directly to the
+        returned URLs. For uploading the files, you can issue a standard http request
+        using cURL or any other way, using the `upload_url` as the URL and `headers`
+        as the headers for the upload request.
+
+        Usage notes:
+
+        - Putting `build_size` for the same `version_name`, `version_code` and
+          `build_type` combination replaces the last size with the latest size.
+        - Depending on the platform, `build_type` can be `aab`, `apk` for Android or
+          `ipa` for iOS.
+        - Depending on the platform, mapping `type` can be `proguard` for Android,
+          `dsym` or `elf_debug` for iOS, or `jsbundle` for React Native.
+        - `mappings` is optional. When the `mappings` array is not present, only the
+          build size information will be updated.
+        - Each mapping file for iOS must be a gzipped tarball of `dSYM` bundles
+          ending with a `.tgz` file extension.
+        - For React Native, upload the JS bundle and its sourcemap as two separate
+          `jsbundle` mappings in the same request, not bundled together. Each must be
+          a gzipped tarball ending with `.tgz`, wrapping a single inner file: one
+          `.tgz` containing the minified JS bundle (for example `main.jsbundle` for
+          iOS, `index.android.bundle` for Android) and a second `.tgz` containing the
+          matching sourcemap (for example `main.jsbundle.map`,
+          `index.android.bundle.map`). Symbolication pairs the two server-side via
+          the inner filename's `.map` suffix, so the inner filenames must follow the
+          `<bundle>` / `<bundle>.map` convention.
+        - For Over-The-Air patches (for example CodePush for React Native, Shorebird
+          for Flutter), use PUT `/builds/ota` instead.
+        - For mapping filename, only provide the filename, not a path.
+        - When `mappings` is present, the server returns a mappings array containing
+          the pre-signed URL for uploading each mapping file.
+        - Each pre-signed mapping file upload URL has an expiry set which is the same
+          as the `expires_at` field.
+        - Each mapping also contains a `headers` object containing all the header
+          keys and values that should be added in the file upload request. Make sure
+          all the headers are included in the file upload request, otherwise your
+          file upload request will fail.
+        - File upload requests must use the PUT http method. Example:
+
+          ```sh
+          curl -X PUT \
+            --header 'x-amz-meta-mapping_id: 77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc' \
+            --header 'x-amz-meta-original_file_name: somefile.tgz' \
+            --data-binary @/path/to/somefile.tgz \
+            <upload-url>
+          ```
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: >
+                App version info, build info and optional build mapping info.
+              required:
+                - version_name
+                - version_code
+                - build_size
+                - build_type
+              properties:
+                version_name:
+                  type: string
+                  description: Version name of the build. Like "1.0".
+                version_code:
+                  type: string
+                  description: Version code of the build. Like "999".
+                build_size:
+                  type: integer
+                  description: Size of app in bytes. Must be greater than zero.
+                build_type:
+                  type: string
+                  enum:
+                    - aab
+                    - apk
+                    - ipa
+                  description: >
+                    Type of the build. `aab` or `apk` for Android, `ipa` for iOS.
+                mappings:
+                  type: array
+                  description: List of mapping file objects.
+                  items:
+                    type: object
+                    required:
+                      - type
+                      - filename
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - proguard
+                          - dsym
+                          - elf_debug
+                          - jsbundle
+                        description: Type of the mapping file.
+                      filename:
+                        type: string
+                        description: Filename of the mapping file.
+            example:
+              version_name: "1.0"
+              version_code: "10"
+              build_size: 10241024
+              build_type: ipa
+              mappings:
+                - type: dsym
+                  filename: DemoApp.app.dSYM.tgz
+                - type: elf_debug
+                  filename: app.symbols
+                - type: jsbundle
+                  filename: main.jsbundle.tgz
+                - type: jsbundle
+                  filename: main.jsbundle.map.tgz
+      responses:
+        "200":
+          description: >
+            Build info uploaded. When the request contains mappings, the response
+            contains a `mappings` array with a pre-signed upload URL for each mapping
+            file; otherwise an acknowledgement is returned.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    description: Response for a request without mappings.
+                    required:
+                      - ok
+                    properties:
+                      ok:
+                        type: string
+                  - type: object
+                    description: Response for a request with mappings.
+                    required:
+                      - mappings
+                    properties:
+                      mappings:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                              description: Id of the mapping.
+                            type:
+                              type: string
+                              description: Type of the mapping file.
+                            filename:
+                              type: string
+                              description: Filename of the mapping file.
+                            upload_url:
+                              type: string
+                              description: >
+                                Pre-signed URL to upload the mapping file to, using an
+                                HTTP PUT request.
+                            expires_at:
+                              type: string
+                              format: date-time
+                              description: Expiry time of the pre-signed URL.
+                            headers:
+                              type: object
+                              description: >
+                                Headers that must be included in the file upload
+                                request.
+                              additionalProperties:
+                                type: string
+              examples:
+                withoutMappings:
+                  summary: Request without mappings
+                  value:
+                    ok: build info updated
+                withMappings:
+                  summary: Request with mappings
+                  value:
+                    mappings:
+                      - id: "e2bbcad8-0566-44ea-af43-9dd114c64e8c"
+                        type: dsym
+                        filename: DemoApp.app.dSYM.tgz
+                        upload_url: "http://localhost:9119/msr-symbols-sandbox/incoming/428f4448-080f-42d2-8b16-c74671a603a9.tgz?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Expires=3600&x-id=PutObject"
+                        expires_at: "2025-08-13T01:59:45.577889184Z"
+                        headers:
+                          x-amz-meta-mapping_id: "e2bbcad8-0566-44ea-af43-9dd114c64e8c"
+                          x-amz-meta-original_file_name: DemoApp.app.dSYM.tgz
+                      - id: "77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc"
+                        type: elf_debug
+                        filename: app.symbols
+                        upload_url: "http://localhost:9119/msr-symbols-sandbox/incoming/77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc.tgz?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Expires=3600&x-id=PutObject"
+                        expires_at: "2025-08-13T01:59:45.577980476Z"
+                        headers:
+                          x-amz-meta-mapping_id: "77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc"
+                          x-amz-meta-original_file_name: app.symbols
+        "400":
+          description: >
+            Request body is malformed or does not meet one or more acceptance
+            criteria. Check the `error` field for more details.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  details:
+                    type: string
+        "401":
+          description: Either the Measure API key is not present or has expired.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "404":
+          description: No app found for this API key.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "413":
+          description: Build/mapping file size exceeded maximum allowed limit.
+        "429":
+          description: >
+            Rate limit has exceeded. Retry request respecting the `Retry-After`
+            response header.
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying.
+              schema:
+                type: string
+        "500":
+          description: >
+            Measure server encountered an unfortunate error. Report this to your
+            server administrator.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "503":
+          description: >
+            Measure server is temporarily unavailable. Retry request respecting the
+            `Retry-After` response header.
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying.
+              schema:
+                type: string
+  /builds/ota:
+    put:
+      operationId: putOtaBuilds
+      tags:
+        - Builds
+      summary: Upload Over-The-Air patch mappings
+      description: |
+        Uploads mapping files for an Over-The-Air (OTA) patch, a remote update that
+        ships new code without a new store build (for example CodePush for React
+        Native, Shorebird for Flutter). It is driven by a `patch_id` (a UUID) and
+        takes no app version, build number or build size.
+
+        Like PUT `/builds`, this API accepts metadata and returns pre-signed URLs
+        for uploading the mapping files directly. Upload each file with a standard
+        HTTP PUT using the returned `upload_url` and `headers`.
+
+        Usage notes:
+
+        - `patch_id` is required and must be a UUID. Tag your OTA patch with a UUID;
+          it is echoed back on each mapping in the response.
+        - The app is determined from your API key. Do not send an app identifier in
+          the body.
+        - `mappings` is required and must contain at least one mapping. Mapping
+          `type` can be `proguard`, `dsym`, `elf_debug`, or `jsbundle` (React
+          Native).
+        - For React Native, upload the JS bundle and its sourcemap as two separate
+          `jsbundle` mappings in the same request (same tarball and
+          `<bundle>` / `<bundle>.map` conventions as PUT `/builds`).
+        - For mapping filename, only provide the filename, not a path.
+        - Each pre-signed URL expires at `expires_at`, and includes a `headers`
+          object whose entries must all be added to the upload request, otherwise it
+          will fail.
+        - File upload requests must use the PUT http method.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: The `patch_id` and at least one mapping.
+              required:
+                - patch_id
+                - mappings
+              properties:
+                patch_id:
+                  type: string
+                  format: uuid
+                  description: UUID identifier for the OTA patch.
+                mappings:
+                  type: array
+                  minItems: 1
+                  description: >
+                    List of mapping file objects (at least one). Same shape as the
+                    PUT `/builds` mappings.
+                  items:
+                    type: object
+                    required:
+                      - type
+                      - filename
+                    properties:
+                      type:
+                        type: string
+                        enum:
+                          - proguard
+                          - dsym
+                          - elf_debug
+                          - jsbundle
+                        description: Type of the mapping file.
+                      filename:
+                        type: string
+                        description: Filename of the mapping file.
+            example:
+              patch_id: "550e8400-e29b-41d4-a716-446655440000"
+              mappings:
+                - type: jsbundle
+                  filename: main.jsbundle.tgz
+                - type: jsbundle
+                  filename: main.jsbundle.map.tgz
+      responses:
+        "200":
+          description: >
+            OTA mappings accepted; pre-signed upload URLs returned. The response
+            contains a `mappings` array with the pre-signed upload URL for each
+            mapping file. Each mapping echoes back the request's `patch_id`.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mappings:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                          description: Id of the mapping.
+                        type:
+                          type: string
+                          description: Type of the mapping file.
+                        filename:
+                          type: string
+                          description: Filename of the mapping file.
+                        upload_url:
+                          type: string
+                          description: >
+                            Pre-signed URL to upload the mapping file to, using an
+                            HTTP PUT request.
+                        expires_at:
+                          type: string
+                          format: date-time
+                          description: Expiry time of the pre-signed URL.
+                        headers:
+                          type: object
+                          description: >
+                            Headers that must be included in the file upload request.
+                          additionalProperties:
+                            type: string
+                        patch_id:
+                          type: string
+                          format: uuid
+                          description: The request's `patch_id`, echoed back.
+              example:
+                mappings:
+                  - id: "e2bbcad8-0566-44ea-af43-9dd114c64e8c"
+                    type: jsbundle
+                    filename: main.jsbundle.tgz
+                    upload_url: "http://localhost:9119/msr-symbols-sandbox/incoming/e2bbcad8-0566-44ea-af43-9dd114c64e8c.tgz?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Expires=3600&x-id=PutObject"
+                    expires_at: "2025-08-13T01:59:45.577889184Z"
+                    headers:
+                      x-amz-meta-mapping_id: "e2bbcad8-0566-44ea-af43-9dd114c64e8c"
+                      x-amz-meta-original_file_name: main.jsbundle.tgz
+                    patch_id: "550e8400-e29b-41d4-a716-446655440000"
+                  - id: "77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc"
+                    type: jsbundle
+                    filename: main.jsbundle.map.tgz
+                    upload_url: "http://localhost:9119/msr-symbols-sandbox/incoming/77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc.tgz?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Expires=3600&x-id=PutObject"
+                    expires_at: "2025-08-13T01:59:45.577980476Z"
+                    headers:
+                      x-amz-meta-mapping_id: "77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc"
+                      x-amz-meta-original_file_name: main.jsbundle.map.tgz
+                    patch_id: "550e8400-e29b-41d4-a716-446655440000"
+        "400":
+          description: >
+            Request body is malformed or is missing `patch_id`/`mappings`. Check the
+            `error` field for more details.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  details:
+                    type: string
+        "401":
+          description: Either the Measure API key is not present or has expired.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "404":
+          description: No app found for this API key.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "413":
+          description: Mapping file size exceeded maximum allowed limit.
+        "429":
+          description: >
+            Rate limit has exceeded. Retry request respecting the `Retry-After`
+            response header.
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying.
+              schema:
+                type: string
+        "500":
+          description: >
+            Measure server encountered an unfortunate error. Report this to your
+            server administrator.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "503":
+          description: >
+            Measure server is temporarily unavailable. Retry request respecting the
+            `Retry-After` response header.
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying.
+              schema:
+                type: string
+  /config:
+    get:
+      operationId: getSdkConfig
+      tags:
+        - Config
+      summary: Fetch the SDK configuration
+      description: |
+        Fetches the latest SDK configuration for the app.
+
+        Usage notes:
+
+        - A successful response returns `200 OK`.
+        - The response contains an `ETag` header which must be used for caching. The
+          client must send the `If-None-Match` header with the same `ETag` value in
+          subsequent requests to this endpoint.
+        - If the configuration has not changed, the server returns a
+          `304 Not Modified` response with no body.
+        - The response contains a `Cache-Control` header which indicates how long
+          the client can cache the configuration response. Once the cache expires,
+          the client must revalidate the configuration by sending a request with the
+          `If-None-Match` header.
+      parameters:
+        - name: If-None-Match
+          in: header
+          required: false
+          description: >
+            The `ETag` value received from a previous response. When it matches the
+            current configuration version, the server returns `304 Not Modified`.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successfully retrieved a config.
+          headers:
+            ETag:
+              description: >
+                The ETag value representing the current configuration version.
+              schema:
+                type: string
+            Cache-Control:
+              description: >
+                Indicates how long the client can cache the configuration response.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  max_events_in_batch:
+                    type: integer
+                    description: Maximum number of events and spans in a batch.
+                  crash_timeline_duration:
+                    type: integer
+                    description: >
+                      The duration of session timeline collected with crashes.
+                  anr_timeline_duration:
+                    type: integer
+                    description: The duration of session timeline collected with ANRs.
+                  bug_report_timeline_duration:
+                    type: integer
+                    description: >
+                      The duration of session timeline collected with bug reports.
+                  trace_sampling_rate:
+                    type: number
+                    description: Sampling rate for all traces.
+                  journey_sampling_rate:
+                    type: number
+                    description: >
+                      Sampling rate for sessions that should report journey events:
+                      `lifecycle_activity`, `lifecycle_fragment`,
+                      `lifecycle_view_controller` and `screen_view`.
+                  screenshot_mask_level:
+                    type: string
+                    enum:
+                      - all_text_and_media
+                      - all_text
+                      - all_text_except_clickable
+                      - sensitive_fields_only
+                    description: Screenshot masking level.
+                  cpu_usage_interval:
+                    type: integer
+                    description: CPU usage measurement interval.
+                  memory_usage_interval:
+                    type: integer
+                    description: Memory usage measurement interval.
+                  crash_take_screenshot:
+                    type: boolean
+                    description: Whether to take screenshot on crash.
+                  anr_take_screenshot:
+                    type: boolean
+                    description: Whether to take screenshot on ANR.
+                  launch_sampling_rate:
+                    type: number
+                    description: >
+                      Sampling rate for launch events: cold_launch, warm_launch and
+                      hot_launch.
+                  gesture_click_take_snapshot:
+                    type: boolean
+                    description: Whether to take snapshot with gesture_click event.
+                  http_disable_event_for_urls:
+                    type: array
+                    items:
+                      type: string
+                    description: URLs to disable HTTP event tracking.
+                  http_track_request_for_urls:
+                    type: array
+                    items:
+                      type: string
+                    description: >
+                      URLs to capture full HTTP request (body and headers).
+                  http_track_response_for_urls:
+                    type: array
+                    items:
+                      type: string
+                    description: >
+                      URLs to capture full HTTP response (body and headers).
+                  http_blocked_headers:
+                    type: array
+                    items:
+                      type: string
+                    description: HTTP header names to never capture.
+                  profile_sampling_rate:
+                    type: number
+                    description: Sampling rate for profile events.
+              example:
+                max_events_in_batch: 1000
+                crash_timeline_duration: 300
+                anr_timeline_duration: 300
+                bug_report_timeline_duration: 300
+                trace_sampling_rate: 0.001
+                journey_sampling_rate: 0.001
+                screenshot_mask_level: all_text
+                cpu_usage_interval: 5
+                memory_usage_interval: 5
+                crash_take_screenshot: true
+                anr_take_screenshot: true
+                launch_sampling_rate: 1
+                gesture_click_take_snapshot: true
+                http_disable_event_for_urls: []
+                http_track_request_for_urls: []
+                http_track_response_for_urls: []
+                http_blocked_headers: []
+        "304":
+          description: The config has not changed, the body will be empty.
+        "400":
+          description: >
+            Request is malformed or does not meet one or more acceptance criteria.
+            Check the `error` field for more details.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "401":
+          description: Either the Measure API key is not present or has expired.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "404":
+          description: No app found for this API key.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "429":
+          description: >
+            Rate limit has exceeded. Retry request respecting the `Retry-After`
+            response header.
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying.
+              schema:
+                type: string
+        "500":
+          description: >
+            Measure server encountered an unfortunate error. Report this to your
+            server administrator.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "503":
+          description: >
+            Measure server is temporarily unavailable. Retry request respecting the
+            `Retry-After` response header.
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying.
+              schema:
+                type: string

@@ -177,11 +177,42 @@ describe("proxy", () => {
       expect(result.url).toBe("https://measure.sh/page-md/product/mcp");
     });
 
-    it("rewrites docs paths so /page-md/[...path]/route.ts can serve them", () => {
+    it("rewrites docs paths to the /llms.mdx processed-markdown route", () => {
       const result: any = proxy(makeRequest("/docs/sdk-integration-guide"));
       expect(result.url).toBe(
-        "https://measure.sh/page-md/docs/sdk-integration-guide",
+        "https://measure.sh/llms.mdx/sdk-integration-guide",
       );
+    });
+
+    it("rewrites the docs index to /llms.mdx (no trailing segment)", () => {
+      const result: any = proxy(makeRequest("/docs"));
+      expect(result.url).toBe("https://measure.sh/llms.mdx");
+    });
+
+    it("rewrites nested docs paths", () => {
+      const result: any = proxy(
+        makeRequest("/docs/features/feature-crash-reporting"),
+      );
+      expect(result.url).toBe(
+        "https://measure.sh/llms.mdx/features/feature-crash-reporting",
+      );
+    });
+
+    it("strips an explicit .md suffix on docs paths instead of double-suffixing", () => {
+      const result: any = proxy(makeRequest("/docs/sdk-integration-guide.md"));
+      expect(result.url).toBe(
+        "https://measure.sh/llms.mdx/sdk-integration-guide",
+      );
+    });
+
+    it("routes /docs.md (the docs index markdown URL) to /llms.mdx", () => {
+      const result: any = proxy(makeRequest("/docs.md"));
+      expect(result.url).toBe("https://measure.sh/llms.mdx");
+    });
+
+    it("does not treat /docsomething as a docs path", () => {
+      const result: any = proxy(makeRequest("/docsomething"));
+      expect(result.url).toBe("https://measure.sh/page-md/docsomething");
     });
 
     it("rewrites pages with query strings (search params preserved on the URL)", () => {
@@ -214,13 +245,15 @@ describe("proxy", () => {
     it("third entry is an object with source + has filter", () => {
       const m: any = config.matcher[2];
       expect(typeof m).toBe("object");
-      expect(m.source).toBe("/((?!_next|page-md|api|yrtmlt|favicon\\.ico).*)");
+      expect(m.source).toBe(
+        "/((?!_next|page-md|llms|api|yrtmlt|favicon\\.ico).*)",
+      );
       expect(m.has).toEqual([
         { type: "header", key: "accept", value: ".*text/markdown.*" },
       ]);
     });
 
-    it("third entry's source excludes Next internals, the markdown route itself, API and PostHog proxies, and favicon", () => {
+    it("third entry's source excludes Next internals, the markdown routes themselves, API and PostHog proxies, and favicon", () => {
       const m: any = config.matcher[2];
       const sourceRegex = new RegExp(
         m.source.replace("/((?!", "^/(?!").replace(").*)", ").*$"),
@@ -228,6 +261,9 @@ describe("proxy", () => {
       // Should NOT match (filtered by negative lookahead)
       expect(sourceRegex.test("/_next/static/foo.js")).toBe(false);
       expect(sourceRegex.test("/page-md/about")).toBe(false);
+      expect(sourceRegex.test("/llms.txt")).toBe(false);
+      expect(sourceRegex.test("/llms-full.txt")).toBe(false);
+      expect(sourceRegex.test("/llms.mdx/sdk-integration-guide")).toBe(false);
       expect(sourceRegex.test("/api/teams")).toBe(false);
       expect(sourceRegex.test("/yrtmlt/decide")).toBe(false);
       expect(sourceRegex.test("/favicon.ico")).toBe(false);

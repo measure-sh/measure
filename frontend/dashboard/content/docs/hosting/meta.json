@@ -1,0 +1,11 @@
+{
+  "title": "Self Hosting Guide",
+  "pages": [
+    "google-oauth",
+    "github-oauth",
+    "smtp-email",
+    "slack",
+    "agent",
+    "migration-guides"
+  ]
+}

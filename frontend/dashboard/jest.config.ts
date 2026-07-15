@@ -101,6 +101,10 @@ const config: Config = {
   // A map from regular expressions to module names or to arrays of module names that allow to stub out resources with a single module
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1", // Map @ to the root directory
+    // fumadocs-ui's ./mdx export only offers node/import conditions, which
+    // jest's jsdom resolver does not try; point it at the client build the
+    // browser bundle would get.
+    "^fumadocs-ui/mdx$": "<rootDir>/node_modules/fumadocs-ui/dist/mdx.js",
   },
 
   // Skip Next.js build output so jest-haste-map doesn't see duplicate
@@ -214,4 +218,23 @@ const config: Config = {
   // watchman: true,
 };
 
-export default createJestConfig(config);
+const jestConfig = async () => {
+  const baseConfig = await createJestConfig(config)();
+
+  return {
+    ...baseConfig,
+    // Override next/jest's blanket node_modules ignore so ESM-only
+    // packages the tests need get transformed: the fumadocs packages (the
+    // docs component tests render fumadocs-ui components directly to pin
+    // the assumptions our wrappers make about their internals, see
+    // __tests__/docs/) and the remark/micromark markdown toolchain (the
+    // standalone_markdown tests parse markdown through remark). All other
+    // node_modules are still skipped.
+    transformIgnorePatterns: [
+      "/node_modules/(?!(fumadocs-ui|fumadocs-core|@fumadocs|@fuma-translate|remark|remark-[^/]+|unified|unist-[^/]+|mdast-[^/]+|micromark|micromark-[^/]+|hast-[^/]+|vfile|vfile-[^/]+|bail|trough|zwitch|ccount|devlop|longest-streak|markdown-table|escape-string-regexp|decode-named-character-reference|character-entities|character-entities-[^/]+|character-reference-invalid|parse-entities|stringify-entities|is-plain-obj|is-decimal|is-alphanumerical|is-alphabetical|is-hexadecimal|estree-util-[^/]+|collapse-white-space|property-information|space-separated-tokens|comma-separated-tokens|style-to-js|style-to-object|web-namespaces|html-url-attributes|trim-lines)/)",
+      "^.+\\.module\\.(css|sass|scss)$",
+    ],
+  };
+};
+
+export default jestConfig;

@@ -60,7 +60,7 @@ const sectionInfo: Record<string, ReactNode> = {
     <>
       Journeys are approximated based on sampled journey events.{" "}
       <Link
-        href="/docs/features/configuration-options#journey-sampling"
+        href="/docs/configuration-options#journey-sampling"
         className={underlineLinkStyle}
       >
         Learn more

@@ -29,13 +29,14 @@ import {
 } from "../stores/onboarding_store";
 import { useFiltersStore, useOnboardingStore } from "../stores/provider";
 import type { CodeBlockLanguage } from "../utils/highlighter";
+import { cn } from "../utils/shadcn_utils";
 import {
   underlineLinkStyle,
   warningCalloutStyle,
 } from "../utils/shared_styles";
 import { toastNegative, toastPositive } from "../utils/use_toast";
 import { Button } from "./button";
-import CodeBlock from "./code_block";
+import CodeBlock, { CODE_BLOCK_CARD_CLASS } from "./code_block";
 import { Input } from "./input";
 import { SDK_VERSIONS } from "./sdk_versions.generated";
 import TabSelect from "./tab_select";
@@ -1040,7 +1041,7 @@ function SnippetBlock({
       <CodeBlock
         code={code}
         language={language}
-        className="font-code text-sm rounded-sm overflow-hidden [&_pre]:p-4 [&_pre]:overflow-x-auto"
+        className={cn(CODE_BLOCK_CARD_CLASS, "text-sm")}
       />
     </div>
   );

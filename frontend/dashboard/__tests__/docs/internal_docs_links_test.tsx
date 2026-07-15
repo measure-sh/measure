@@ -1,6 +1,6 @@
 /**
  * Tests that GitHub docs URLs have been replaced with internal /docs/... routes
- * across the codebase, and that rewriteHref correctly handles all link types.
+ * across the codebase.
  */
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -34,23 +34,23 @@ describe("GitHub docs links have been replaced", () => {
     });
   }
 
-  it("sdk_configurator.tsx links to /docs/features/configuration-options", () => {
+  it("sdk_configurator.tsx links to /docs/configuration-options", () => {
     const content = fs.readFileSync(
       path.join(APP_DIR, "components/sdk_configurator.tsx"),
       "utf-8",
     );
 
-    expect(content).toContain('href="/docs/features/configuration-options"');
+    expect(content).toContain('href="/docs/configuration-options"');
   });
 
-  it("app_breadcrumbs.tsx links to /docs/features/configuration-options#journey-sampling", () => {
+  it("app_breadcrumbs.tsx links to /docs/configuration-options#journey-sampling", () => {
     const content = fs.readFileSync(
       path.join(APP_DIR, "components/app_breadcrumbs.tsx"),
       "utf-8",
     );
 
     expect(content).toContain(
-      'href="/docs/features/configuration-options#journey-sampling"',
+      'href="/docs/configuration-options#journey-sampling"',
     );
   });
 
@@ -114,7 +114,7 @@ describe("rewritten links do not use target=_blank", () => {
     // Find the line with the docs link and verify no target="_blank"
     const lines = content.split("\n");
     const docsLinkLine = lines.find((l) =>
-      l.includes("/docs/features/configuration-options"),
+      l.includes("/docs/configuration-options"),
     );
 
     expect(docsLinkLine).toBeDefined();
@@ -129,7 +129,7 @@ describe("rewritten links do not use target=_blank", () => {
 
     const lines = content.split("\n");
     const docsLinkLine = lines.find((l) =>
-      l.includes("/docs/features/configuration-options"),
+      l.includes("/docs/configuration-options"),
     );
 
     expect(docsLinkLine).toBeDefined();

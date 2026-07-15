@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { UdAttrMatcher, UserDefAttr } from "../api/api_calls";
 import { cn } from "../utils/shadcn_utils";
@@ -25,6 +26,35 @@ interface UserDefAttrSelectorProps {
 // Shared style for the operator and value controls.
 const fieldClass =
   "p-1 text-sm bg-background text-foreground border border-border rounded-md w-full outline-none transition-colors focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]";
+
+const fieldDisabledClass = "disabled:pointer-events-none disabled:opacity-50";
+
+// Native select with a flat custom chevron: appearance-none suppresses the
+// platform arrow, so the icon keeps the field's look consistent with the
+// text and number inputs beside it. The wrapper is block-level so the
+// select's w-full resolves against the surrounding column; margins belong
+// on the wrapper (via wrapperClassName), not the select, or the chevron
+// would anchor to the pre-margin box.
+function FieldSelect({
+  wrapperClassName,
+  className,
+  children,
+  ...props
+}: React.SelectHTMLAttributes<HTMLSelectElement> & {
+  wrapperClassName?: string;
+}) {
+  return (
+    <span className={cn("relative block", wrapperClassName)}>
+      <select {...props} className={cn(className, "appearance-none pr-7")}>
+        {children}
+      </select>
+      <ChevronDown
+        className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+        aria-hidden="true"
+      />
+    </span>
+  );
+}
 
 const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({
   attrs,
@@ -102,25 +132,23 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({
 
   const renderValueInput = (attr: UserDefAttr) => {
     const value = selectedKeyValMap.get(attr.key);
-    const valueClass = cn(
-      "sm:ml-2 ml-0 disabled:pointer-events-none disabled:opacity-50",
-      fieldClass,
-    );
+    const valueClass = cn("sm:ml-2 ml-0", fieldDisabledClass, fieldClass);
 
     switch (attr.type) {
       case "bool":
         return (
-          <select
+          <FieldSelect
             value={String(value)}
             onChange={(e) =>
               updateSelectedValue(attr.key, e.target.value === "true")
             }
-            className={valueClass}
+            wrapperClassName="sm:ml-2 ml-0"
+            className={cn(fieldDisabledClass, fieldClass)}
             onClick={(e) => e.stopPropagation()}
           >
             <option value="true">True</option>
             <option value="false">False</option>
-          </select>
+          </FieldSelect>
         );
       case "int64":
         return (
@@ -226,7 +254,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({
               </div>
 
               <div className="flex items-center w-full sm:w-[20%]">
-                <select
+                <FieldSelect
                   value={selectedKeyOpMap.get(attr.key)}
                   onChange={(e) => updateSelectedOp(attr.key, e.target.value)}
                   onClick={(e) => e.stopPropagation()}
@@ -237,7 +265,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({
                       {op}
                     </option>
                   ))}
-                </select>
+                </FieldSelect>
               </div>
 
               <div className="w-full sm:w-[45%]">{renderValueInput(attr)}</div>

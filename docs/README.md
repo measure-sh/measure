@@ -1,77 +1,10 @@
----
-title: "Measure SDK Documentation"
-description: "Measure documentation. SDK integration and upgrades, features, configuration, performance and self-hosting reference for monitoring mobile apps."
----
-
 # Documentation
 
-### Table of Contents
+The Measure documentation is at [measure.sh/docs](https://measure.sh/docs).
 
-* [**Integrate the SDK**](#integrate-the-sdk) — Set up the measure-sh SDK in your mobile app
-* [**Explore Features**](#explore-features) — Discover all available features
-* [**Configuration Options**](#configuration-options) — Customize SDK behavior
-* [**Performance Impact**](#performance-impact) — Assess the SDK's impact on app performance
-
-**Additional Info**
-
-* [**SDK Upgrade Guides**](sdk-upgrade-guides/README.md) — Upgrade to the latest SDK versions for Android and iOS
-* [**Self-Hosting Guide**](hosting/README.md) - Host measure-sh on your own infrastructure
-
-# Integrate the SDK
-
-Check out the [SDK Integration Guide](sdk-integration-guide.md) to learn how to set up measure-sh for your app. Then
-refer to the documentation below for details on features and how to make the best use of measure-sh for your app.
-
-# Explore Features
-
-Explore the following pages which include instructions and configuration options to help you understand
-how to leverage different features in your mobile applications. Also, review the 'How It Works' section in each
-feature's documentation to understand its underlying mechanism and enhance your ability to use it effectively.
-
-* [**Session Timelines**](features/feature-session-timelines.md) — Find and view session timelines
-* [**Crash Reporting**](features/feature-crash-reporting.md) — Analyze app crashes
-* [**ANR Reporting**](features/feature-anr-reporting.md) — Analyze Application Not Responding (ANR) issues
-* [**Error Tracking**](features/feature-error-tracking.md) — Track and analyze handled errors in your app
-* [**Gesture Tracking**](features/feature-gesture-tracking.md) — Automatically track user gestures in your app
-* [**Performance Tracing**](features/feature-performance-tracing.md) — Monitor app performance with traces
-* [**Custom Events**](features/feature-custom-events.md) — Capture custom events in your app
-* **Bug Reporting** — Let users report bugs directly from your app
-    * [**Android**](features/feature-bug-report-android.md)
-    * [**iOS**](features/feature-bug-report-ios.md)
-    * [**Flutter**](features/feature-bug-report-flutter.md)
-    * [**React Native**](features/feature-bug-report-react-native.md)
-* [**Screenshot Masking for SwiftUI**](features/feature-screenshot-masking-swiftui.md) — Mask sensitive content in SwiftUI views when capturing screenshots
-* [**Screenshot Masking for Flutter**](features/feature-screenshot-masking-flutter.md) — Mask sensitive content in Flutter widgets when capturing screenshots
-* [**App Launch Metrics**](features/feature-app-launch-metrics.md) — Measure app launch performance
-* [**Network Monitoring**](features/feature-network-monitoring.md) — Monitor HTTP requests and responses
-* [**Network Connectivity Changes**](features/feature-network-connectivity-changes.md) — Track when network connectivity changes
-* [**Navigation & Lifecycle Tracking**](features/feature-navigation-lifecycle-tracking.md) — Track app navigation and
-  lifecycle events
-* [**CPU Monitoring**](features/feature-cpu-monitoring.md) — Monitor CPU usage for every session
-* [**Memory Monitoring**](features/feature-memory-monitoring.md) — Monitor memory usage for every session
-* [**Profiling**](features/feature-profiling.md) — Capture system traces and heap dumps on Android
-* [**Identify Users**](features/feature-identify-users.md) — Correlate sessions with a user ID
-* [**Manually Start or Stop the SDK**](features/feature-manually-start-stop-sdk.md) — Control when data collection
-  happens
-* [**App Size Monitoring**](features/feature-app-size-monitoring.md) — Monitor app size changes
-* [**Alert Notifications**](features/feature-alerts.md) — Receive Crash & ANR spike alerts and Daily Summaries for core app metrics.
-* [**Slack Integration**](features/feature-slack-integration.md) — Connect Slack to receive alert notifications and daily summaries
-* [**MCP Server**](features/feature-mcp.md) — Let AI tools like Claude Code query your app's crash and error data
-* [**Measure Agent**](features/feature-agent.md) — Debug your app with full context, from your coding agent or Slack
-* [**Uploading Symbols**](features/feature-upload-symbols.md) — Symbolicate stack traces from crashes, ANRs and errors
-
-# Configuration Options
-
-Measure provides a number of configuration options to customize data collection and SDK behavior. These options are
-available in two ways:
-
-* **SDK Options** — Set at initialization time in your app's code.
-* **Remote Configuration Options** — Configured remotely from the Measure dashboard. Changes take effect without releasing a new
-  app version.
-
-Read more about [Configuration Options](features/configuration-options.md).
-
-# Performance Impact
-
-Read the [Performance Impact](features/performance-impact.md) documentation to understand how the SDK affects your app's
-performance.
+The doc pages are MDX files in
+[`frontend/dashboard/content/docs`](../frontend/dashboard/content/docs), and
+the REST API reference is generated from the OpenAPI specs in
+[`frontend/dashboard/content/openapi`](../frontend/dashboard/content/openapi).
+See the Documentation section of [CONTRIBUTING.md](../CONTRIBUTING.md) for how
+to add or edit pages.

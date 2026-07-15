@@ -1,6 +1,6 @@
 ---
 title: Mobile App Health Metrics & Dashboards
-description: Track mobile app health metrics that matter: crash-free sessions, ANR-free sessions, app launch times, release adoption and more.
+description: "Track mobile app health metrics that matter: crash-free sessions, ANR-free sessions, app launch times, release adoption and more."
 canonical: /product/app-health
 ---
 
