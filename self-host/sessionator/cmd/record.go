@@ -108,6 +108,7 @@ Structue of "session-data" directory once written:` + "\n" + DirTree() + "\n" + 
 		r := gin.Default()
 
 		r.PUT("/builds", writeBuild)
+		r.PUT("/builds/ota", writeOTABuild)
 		r.PUT("/events", writeEvent)
 		r.PUT("/upload", writeUpload)
 
@@ -719,6 +720,59 @@ func writeBuildJSON(c *gin.Context) {
 		m.ExpiresAt = time.Now().Add(uploadExpiry)
 	}
 	fmt.Printf("returning %d mapping upload url(s)\n", len(req.Mappings))
+
+	c.JSON(http.StatusOK, gin.H{"mappings": req.Mappings})
+}
+
+// writeOTABuild handles PUT /builds/ota. OTA patches carry a patch_id and
+// jsbundle mappings but no version/size, so no build.toml is written. Mapping
+// files nest under jsbundle/<patch_id>/ so scan.go recovers the patch_id.
+// ponytail: JSON-only; OTA has no legacy multipart path to mirror.
+func writeOTABuild(c *gin.Context) {
+	var req buildRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse json payload: " + err.Error()})
+		return
+	}
+	if req.AppUniqueID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "app_unique_id is required"})
+		return
+	}
+	if req.VersionName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": `"version_name" is required`})
+		return
+	}
+	if req.VersionCode == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": `"version_code" is required`})
+		return
+	}
+	if err := uuid.Validate(req.PatchID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": `"patch_id" must be a valid UUID`})
+		return
+	}
+	if !safePathComponent(req.AppUniqueID) || !safePathComponent(req.VersionName) || !safePathComponent(req.VersionCode) || !safePathComponent(req.PatchID) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid app_unique_id, version_name, version_code or patch_id"})
+		return
+	}
+	if len(req.Mappings) < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "at least 1 mapping is required"})
+		return
+	}
+
+	for _, m := range req.Mappings {
+		if m.Type != symbol.TypeJsBundle.String() {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf(`OTA "type" must be %q`, symbol.TypeJsBundle.String())})
+			return
+		}
+
+		filename := strings.ReplaceAll(m.Filename, " ", "")
+		relPath := filepath.Join(req.AppUniqueID, req.VersionName, req.VersionCode, "jsbundle", req.PatchID, filename)
+		m.ID = uuid.NewString()
+		m.PatchID = req.PatchID
+		m.UploadURL = uploadURL(c, relPath)
+		m.ExpiresAt = time.Now().Add(uploadExpiry)
+	}
+	fmt.Printf("returning %d OTA mapping upload url(s)\n", len(req.Mappings))
 
 	c.JSON(http.StatusOK, gin.H{"mappings": req.Mappings})
 }
