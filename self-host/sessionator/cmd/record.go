@@ -4,6 +4,7 @@ import (
 	"backend/libs/codec"
 	"backend/libs/event"
 	"backend/libs/span"
+	"backend/libs/symbol"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"sessionator/app"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -411,9 +413,9 @@ func writeBuildMultipart(c *gin.Context) {
 	}
 
 	for i := range mappingTypes {
-		if mappingTypes[i] != "proguard" && mappingTypes[i] != "dsym" && mappingTypes[i] != "elf_debug" {
+		if mappingTypes[i] != symbol.TypeProguard.String() && mappingTypes[i] != symbol.TypeDsym.String() && mappingTypes[i] != symbol.TypeElfDebug.String() {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Errorf(`"mapping_file" should be either %q, %q or %q`, "proguard", "dsym", "elf_debug"),
+				"error": fmt.Errorf(`"mapping_file" should be either %q, %q or %q`, symbol.TypeProguard.String(), symbol.TypeDsym.String(), symbol.TypeElfDebug.String()),
 			})
 			return
 		}
@@ -448,9 +450,9 @@ func writeBuildMultipart(c *gin.Context) {
 		var filename string
 
 		switch mappingType {
-		case "proguard":
+		case symbol.TypeProguard.String():
 			filename = "mapping.txt"
-		case "dsym":
+		case symbol.TypeDsym.String():
 			if err := codec.IsTarGz(file); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"error":   fmt.Errorf("mapping file %q is not a gzipped tarball", header.Filename),
@@ -461,7 +463,7 @@ func writeBuildMultipart(c *gin.Context) {
 
 			filename = header.Filename
 			filename = strings.ReplaceAll(filename, " ", "")
-		case "elf_debug":
+		case symbol.TypeElfDebug.String():
 			filename = header.Filename
 			filename = strings.ReplaceAll(filename, " ", "")
 		}
@@ -693,13 +695,13 @@ func writeBuildJSON(c *gin.Context) {
 	}
 
 	for _, m := range req.Mappings {
-		if m.Type != "proguard" && m.Type != "dsym" && m.Type != "elf_debug" && m.Type != "jsbundle" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf(`"type" should be one of %q, %q, %q or %q`, "proguard", "dsym", "elf_debug", "jsbundle")})
+		if !slices.Contains(symbol.MappingTypes(), symbol.ParseMappingType(m.Type)) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf(`"type" should be one of %q, %q, %q or %q`, symbol.TypeProguard.String(), symbol.TypeDsym.String(), symbol.TypeElfDebug.String(), symbol.TypeJsBundle.String())})
 			return
 		}
 
 		filename := strings.ReplaceAll(m.Filename, " ", "")
-		if m.Type == "proguard" {
+		if m.Type == symbol.TypeProguard.String() {
 			filename = "mapping.txt"
 		}
 
@@ -709,7 +711,7 @@ func writeBuildJSON(c *gin.Context) {
 		// recovered from the extension on replay. Nest them under jsbundle/
 		// so app/scan.go recognizes the type structurally.
 		relPath := filepath.Join(req.AppUniqueID, req.VersionName, req.VersionCode, filename)
-		if m.Type == "jsbundle" {
+		if m.Type == symbol.TypeJsBundle.String() {
 			relPath = filepath.Join(req.AppUniqueID, req.VersionName, req.VersionCode, "jsbundle", filename)
 		}
 		m.ID = uuid.NewString()

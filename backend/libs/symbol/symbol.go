@@ -22,6 +22,17 @@ const (
 // type for internal computational use.
 type MappingType int
 
+// MappingTypes returns all known mapping types,
+// excluding the unknown type.
+func MappingTypes() []MappingType {
+	return []MappingType{
+		TypeProguard,
+		TypeDsym,
+		TypeElfDebug,
+		TypeJsBundle,
+	}
+}
+
 // String provides the human recognizable
 // mapping type.
 func (m MappingType) String() string {
