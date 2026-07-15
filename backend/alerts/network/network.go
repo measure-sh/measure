@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"backend/alerts/server"
+	"backend/libs/chquery"
 	"backend/libs/logcomment"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -168,7 +169,7 @@ func fetchExistingPatterns(ctx context.Context, teamID, appID uuid.UUID) ([]UrlP
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
 	}
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "fetch_existing_patterns")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "fetch_existing_patterns"))
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -236,7 +237,7 @@ func insertPatterns(ctx context.Context, patterns []UrlPattern, teamID, appID uu
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
 	}
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "insert_patterns")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "insert_patterns"))
 
 	if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
 		return fmt.Errorf("failed to insert patterns: %w", err)
@@ -255,7 +256,7 @@ func deletePatterns(ctx context.Context, patterns []UrlPattern, teamID, appID uu
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
 	}
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "delete_patterns")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "delete_patterns"))
 
 	for _, p := range patterns {
 		domain := p.Parts[0]
@@ -344,7 +345,7 @@ func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from,
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
 	}
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "insert_aggregated_metrics")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "insert_aggregated_metrics"))
 
 	query := "INSERT INTO http_metrics\n" + stmt.String()
 
@@ -391,7 +392,7 @@ func fetchHttpEvents(ctx context.Context, teamID, appID uuid.UUID, from, to time
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
 	}
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "fetch_http_events")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "fetch_http_events"))
 
 	rows, err := server.Server.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {

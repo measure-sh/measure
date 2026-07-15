@@ -14,6 +14,7 @@ import (
 
 	"backend/api/server"
 	"backend/libs/ambient"
+	"backend/libs/chquery"
 	"backend/libs/config"
 	"backend/libs/event"
 	"backend/libs/filter"
@@ -175,7 +176,7 @@ func (h Handlers) GetAppJourney(c *gin.Context) {
 		"log_comment": lc.String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "journey_events")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "journey_events"))
 	journeyEvents, err := app.GetJourneyEvents(ctx, deps.RchPool, &af, opts)
 	if err != nil {
 		fmt.Println(msg, err)
@@ -230,7 +231,7 @@ func (h Handlers) GetAppJourney(c *gin.Context) {
 
 	switch j := journeyGraph.(type) {
 	case *journey.JourneyAndroid:
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "fatal_exception_groups")
+		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "fatal_exception_groups"))
 
 		if err := j.SetExceptionGroups(ctx, deps.RchPool, &af); err != nil {
 			fmt.Println(msg, err)
@@ -241,7 +242,7 @@ func (h Handlers) GetAppJourney(c *gin.Context) {
 			return
 		}
 
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "anr_groups")
+		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "anr_groups"))
 
 		if err := j.SetANRGroups(ctx, deps.RchPool, &af); err != nil {
 			fmt.Println(msg, err)
@@ -309,7 +310,7 @@ func (h Handlers) GetAppJourney(c *gin.Context) {
 			nodes = append(nodes, node)
 		}
 	case *journey.JourneyiOS:
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "fatal_exception_groups")
+		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "fatal_exception_groups"))
 
 		if err := j.SetExceptionGroups(ctx, deps.RchPool, &af); err != nil {
 			fmt.Println(msg, err)
@@ -508,7 +509,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "adoption")
+		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "adoption"))
 
 		adoption, err = app.GetAdoptionMetrics(ctx, deps.RchPool, &af)
 		if err != nil {
@@ -528,7 +529,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "issue_free")
+		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "issue_free"))
 
 		crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err = app.GetIssueFreeMetrics(ctx, deps.RchPool, &af, excludedVersions)
 		if err != nil {
@@ -545,7 +546,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "launch")
+		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "launch"))
 
 		launch, err = app.GetLaunchMetrics(ctx, deps.RchPool, &af)
 		if err != nil {
@@ -563,7 +564,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 				"use_query_cache": gin.Mode() == gin.ReleaseMode,
 				"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 			}
-			ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "sizes")
+			ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "sizes"))
 
 			sizes, err = app.GetSizeMetrics(ctx, deps.PgPool, &af, excludedVersions)
 			if err != nil {
@@ -901,7 +902,7 @@ func (h Handlers) GetCrashOverview(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Crashes).String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "crashes_list")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "crashes_list"))
 
 	crashGroups, next, previous, err := app.GetExceptionGroupsWithFilter(ctx, deps.RchPool, &af)
 	if err != nil {
@@ -1042,7 +1043,7 @@ func (h Handlers) GetCrashOverviewPlotInstances(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Crashes).String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_instances"))
 
 	crashInstances, err = app.GetExceptionPlotInstances(ctx, deps.RchPool, &af)
 	if err != nil {
@@ -1195,7 +1196,7 @@ func (h Handlers) GetCrashDetailCrashes(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Crashes).String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail-stacktrace")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "detail-stacktrace"))
 
 	eventExceptions, next, previous, err := app.GetExceptionsWithFilter(ctx, deps.RchPool, crashGroupId, &af)
 	if err != nil {
@@ -1350,7 +1351,7 @@ func (h Handlers) GetCrashDetailPlotInstances(c *gin.Context) {
 			String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail_plots_instances")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "detail_plots_instances"))
 
 	crashInstances, err := app.GetExceptionGroupPlotInstances(ctx, deps.RchPool, crashGroupId, &af)
 	if err != nil {
@@ -1510,7 +1511,7 @@ func (h Handlers) GetCrashDetailAttributeDistribution(c *gin.Context) {
 		"log_comment": lc.String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_distribution")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_distribution"))
 
 	distribution, err := app.GetExceptionAttributesDistribution(ctx, deps.RchPool, crashGroupId, &af)
 	if err != nil {
@@ -1648,7 +1649,7 @@ func (h Handlers) GetErrorOverview(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Errors).String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "errors_list")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "errors_list"))
 
 	errGroups, next, previous, err := app.GetErrorGroupsWithFilter(ctx, deps.RchPool, &af)
 	if err != nil {
@@ -1786,7 +1787,7 @@ func (h Handlers) GetErrorOverviewPlotInstances(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Errors).String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_instances"))
 
 	errorInstances, err := app.GetErrorPlotInstances(ctx, deps.RchPool, &af)
 	if err != nil {
@@ -1942,7 +1943,7 @@ func (h Handlers) GetErrorDetailErrors(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Errors).String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail-stacktrace")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "detail-stacktrace"))
 
 	errorEvents, next, previous, err := app.GetErrorsWithFilter(ctx, deps.RchPool, errorGroupId, &af)
 	if err != nil {
@@ -2094,7 +2095,7 @@ func (h Handlers) GetErrorDetailPlotInstances(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Errors).String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail_plots_instances")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "detail_plots_instances"))
 
 	errorInstances, err := app.GetErrorGroupPlotInstances(ctx, deps.RchPool, errorGroupId, &af)
 	if err != nil {
@@ -2247,7 +2248,7 @@ func (h Handlers) GetErrorDetailAttributeDistribution(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Errors),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_distribution")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_distribution"))
 
 	distribution, err := app.GetErrorGroupAttributesDistribution(ctx, deps.RchPool, errorGroupId, &af)
 	if err != nil {
@@ -2372,7 +2373,7 @@ func (h Handlers) GetANROverview(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.ANRs).String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "anrs_list")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "anrs_list"))
 
 	anrGroups, next, previous, err := app.GetANRGroupsWithFilter(ctx, deps.RchPool, &af)
 	if err != nil {
@@ -2510,7 +2511,7 @@ func (h Handlers) GetANROverviewPlotInstances(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.ANRs).String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_instances"))
 
 	anrInstances, err := app.GetANRPlotInstances(ctx, deps.RchPool, &af)
 	if err != nil {
@@ -2669,7 +2670,7 @@ func (h Handlers) GetANRDetailANRs(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.ANRs).String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail-stacktrace")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "detail-stacktrace"))
 
 	eventANRs, next, previous, err := app.GetANRsWithFilter(ctx, deps.RchPool, anrGroupId, &af)
 	if err != nil {
@@ -2818,7 +2819,7 @@ func (h Handlers) GetANRDetailPlotInstances(c *gin.Context) {
 			String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail_plots_instances")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "detail_plots_instances"))
 
 	anrInstances, err := app.GetANRGroupPlotInstances(ctx, deps.RchPool, anrGroupId, &af)
 	if err != nil {
@@ -2970,7 +2971,7 @@ func (h Handlers) GetANRDetailAttributeDistribution(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.ANRs),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_distribution")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_distribution"))
 
 	distribution, err := app.GetANRAttributesDistribution(ctx, deps.RchPool, anrGroupId, &af)
 	if err != nil {
@@ -3213,7 +3214,7 @@ func (h Handlers) GetSessionsOverview(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Sessions).String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "list")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "list"))
 	sessions, next, previous, err := app.GetSessionsWithFilter(ctx, deps.RchPool, &af)
 	if err != nil {
 		msg := "failed to get app's sessions"
@@ -3364,7 +3365,7 @@ func (h Handlers) GetSessionsOverviewPlotInstances(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Sessions).String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_instances"))
 	sessionInstances, err := app.GetSessionsInstancesPlot(ctx, deps.RchPool, &af)
 	if err != nil {
 		msg := `failed to query data for sessions overview plot`
@@ -3493,7 +3494,7 @@ func (h Handlers) GetSession(c *gin.Context) {
 		"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "detail"))
 
 	session, err := app.GetSessionEvents(ctx, deps.RchPool, sessionId)
 	if err != nil {
@@ -4162,7 +4163,7 @@ func (h Handlers) GetRootSpanNames(c *gin.Context) {
 		"use_skip_indexes": 0,
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "names_list")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "names_list"))
 
 	traceNames, err := app.FetchRootSpanNames(ctx, deps.RchPool)
 	if err != nil {
@@ -4319,7 +4320,7 @@ func (h Handlers) GetSpansForSpanName(c *gin.Context) {
 		"use_query_cache": gin.Mode() == gin.ReleaseMode,
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "list")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "list"))
 
 	spans, next, previous, err := app.GetSpansForSpanNameWithFilter(ctx, deps.RchPool, spanName, &af)
 	if err != nil {
@@ -4479,7 +4480,7 @@ func (h Handlers) GetMetricsPlotForSpanName(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Spans),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_metrics")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_metrics"))
 
 	spanMetricsPlotInstances, err := app.GetMetricsPlotForSpanNameWithFilter(ctx, deps.RchPool, spanName, &af)
 	if err != nil {
@@ -4595,7 +4596,7 @@ func (h Handlers) GetTrace(c *gin.Context) {
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Spans),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "trace")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "trace"))
 
 	trace, err := app.GetTrace(ctx, deps.RchPool, traceId)
 	if err != nil {
@@ -4735,7 +4736,7 @@ func (h Handlers) GetBugReportsOverview(c *gin.Context) {
 			String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "list")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "list"))
 
 	bugReports, next, previous, err := app.GetBugReportsWithFilter(ctx, deps.RchPool, &af)
 	if err != nil {
@@ -4889,7 +4890,7 @@ func (h Handlers) GetBugReportsInstancesPlot(c *gin.Context) {
 			String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_instances"))
 
 	bugReportInstances, err := app.GetBugReportInstancesPlot(ctx, deps.RchPool, &af)
 	if err != nil {
@@ -5004,7 +5005,7 @@ func (h Handlers) GetBugReport(c *gin.Context) {
 			String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "detail")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "detail"))
 
 	bugReport, err := app.GetBugReportById(ctx, deps.RchPool, presignConfig(deps), bugReportId)
 	if err != nil {
@@ -5102,7 +5103,7 @@ func (h Handlers) UpdateBugReportStatus(c *gin.Context) {
 			String(),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "update_status")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "update_status"))
 
 	if err := app.UpdateBugReportStatusById(ctx, deps.ChPool, bugReportId, *payload.Status); err != nil {
 		msg := "failed to update bug report status"

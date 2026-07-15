@@ -20,10 +20,9 @@ import (
 var Server *server
 
 type server struct {
-	PgPool  *pgxpool.Pool
-	ChPool  driver.Conn
-	RchPool driver.Conn
-	Config  *ServerConfig
+	PgPool *pgxpool.Pool
+	ChPool driver.Conn
+	Config *ServerConfig
 }
 
 type PostgresConfig struct {
@@ -33,8 +32,7 @@ type PostgresConfig struct {
 
 type ClickhouseConfig struct {
 	/* connection string of the clickhouse instance */
-	DSN       string
-	ReaderDSN string
+	DSN string
 }
 
 type ServerConfig struct {
@@ -118,14 +116,6 @@ func NewConfig() *ServerConfig {
 		log.Println("CLICKHOUSE_DSN env var is not set, cannot start server")
 	}
 
-	clickhouseReaderDSN, secErr := secret.FromEnvOrFile("CLICKHOUSE_READER_DSN")
-	if secErr != nil {
-		log.Printf("failed to read CLICKHOUSE_READER_DSN: %v", secErr)
-	}
-	if clickhouseReaderDSN == "" {
-		log.Println("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
-	}
-
 	otelServiceName := os.Getenv("OTEL_SERVICE_NAME")
 	if otelServiceName == "" {
 		log.Println("OTEL_SERVICE_NAME env var is not set, o11y will not work")
@@ -138,8 +128,7 @@ func NewConfig() *ServerConfig {
 			DSN: postgresDSN,
 		},
 		CH: ClickhouseConfig{
-			DSN:       clickhouseDSN,
-			ReaderDSN: clickhouseReaderDSN,
+			DSN: clickhouseDSN,
 		},
 		AttachmentsBucket:          attachmentsBucket,
 		AttachmentsBucketRegion:    attachmentsBucketRegion,
@@ -202,27 +191,16 @@ func Init(config *ServerConfig) {
 		log.Printf("Unable to parse CH connection string: %v\n", err)
 	}
 
-	rChOpts, err := clickhouse.ParseDSN(config.CH.ReaderDSN)
-	if err != nil {
-		log.Printf("unable to parse reader CH connection string %v\n", err)
-	}
-
 	chPool, err := clickhouse.Open(chOpts)
 	if err != nil {
 		log.Printf("Unable to create CH connection pool: %v\n", err)
 	}
 
-	rChPool, err := clickhouse.Open(rChOpts)
-	if err != nil {
-		log.Printf("Unable to create reader CH connection pool: %v\n", err)
-	}
-
 	sqlf.SetDialect(sqlf.PostgreSQL)
 
 	Server = &server{
-		PgPool:  pgPool,
-		ChPool:  chPool,
-		RchPool: rChPool,
-		Config:  config,
+		PgPool: pgPool,
+		ChPool: chPool,
+		Config: config,
 	}
 }

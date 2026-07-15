@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"backend/libs/autumn"
+	"backend/libs/chquery"
 	"backend/libs/ga4"
 	"backend/libs/inet"
 	"backend/libs/posthog"
@@ -49,8 +50,9 @@ type PostgresConfig struct {
 
 type ClickhouseConfig struct {
 	/* connection string of the clickhouse instance */
-	DSN       string
-	ReaderDSN string
+	DSN         string
+	ReaderDSN   string
+	AgentSQLDSN string
 }
 
 type RedisConfig struct {
@@ -125,16 +127,25 @@ func (c *Config) IsAgentEnabled() bool {
 	return c.AgentEnabled
 }
 
-// Deps holds the live infrastructure handles the agent uses at runtime. NewConfig +
-// Connect build one in this package; it is threaded explicitly into the
-// handlers and domain code that need a handle, rather than reached via a
-// global.
+// Deps holds the live infrastructure handles the agent uses at runtime.
+// NewConfig + Connect build one in this package; it is threaded
+// explicitly into the handlers and domain code that need a handle,
+// rather than reached via a global.
 type Deps struct {
-	PgPool  *pgxpool.Pool
-	ChPool  driver.Conn
+	// PgPool is read-write postgres connection pool.
+	PgPool *pgxpool.Pool
+	// ChPool is read-write clickhouse connection pool.
+	ChPool driver.Conn
+	// RchPool is the read-only clickhouse connection pool.
 	RchPool driver.Conn
-	Config  *Config
-	VK      redis.Client
+	// RAChPool is the agent read-only clickhouse connection pool.
+	//
+	// Only use this in agent service.
+	RAChPool driver.Conn
+	// VK is the valkey client.
+	VK redis.Client
+	// Config holds the common server configuration.
+	Config *Config
 }
 
 // NewConfig reads the shared environment contract once and returns the parsed
@@ -304,6 +315,14 @@ func NewConfig() *Config {
 		log.Println("CLICKHOUSE_READER_DSN env var is not set, cannot start server")
 	}
 
+	clickhouseAgentSQLDSN, secErr := secret.FromEnvOrFile("CLICKHOUSE_AGENT_SQL_DSN")
+	if secErr != nil {
+		log.Printf("failed to read CLICKHOUSE_AGENT_SQL_DSN: %v", secErr)
+	}
+	if clickhouseAgentSQLDSN == "" {
+		log.Println("CLICKHOUSE_AGENT_SQL_DSN env var is not set, cannot start server")
+	}
+
 	redisHost := os.Getenv("REDIS_HOST")
 	if redisHost == "" {
 		log.Println("REDIS_HOST env var is not set, caching will not work")
@@ -416,8 +435,9 @@ func NewConfig() *Config {
 			DSN: postgresDSN,
 		},
 		CH: ClickhouseConfig{
-			DSN:       clickhouseDSN,
-			ReaderDSN: clickhouseReaderDSN,
+			DSN:         clickhouseDSN,
+			ReaderDSN:   clickhouseReaderDSN,
+			AgentSQLDSN: clickhouseAgentSQLDSN,
 		},
 		RD: RedisConfig{
 			Host: redisHost,
@@ -548,6 +568,11 @@ func Connect(config *Config) *Deps {
 		log.Printf("unable to parse reader CH connection string %v\n", err)
 	}
 
+	agentSqlOpts, err := clickhouse.ParseDSN(config.CH.AgentSQLDSN)
+	if err != nil {
+		log.Printf("unable to parse agent_sql CH connection string %v\n", err)
+	}
+
 	if gin.Mode() == gin.ReleaseMode {
 		// read more: https://clickhouse.com/docs/operations/settings/settings#compatibility
 		compatibility := "26.2"
@@ -564,6 +589,10 @@ func Connect(config *Config) *Deps {
 		rChOpts.Settings = clickhouse.Settings{
 			"compatibility": compatibility,
 		}
+
+		agentSqlOpts.Settings = clickhouse.Settings{
+			"compatibility": compatibility,
+		}
 	}
 
 	chPool, err := clickhouse.Open(chOpts)
@@ -574,6 +603,11 @@ func Connect(config *Config) *Deps {
 	rChPool, err := clickhouse.Open(rChOpts)
 	if err != nil {
 		log.Printf("Unable to create reader CH connection pool: %v\n", err)
+	}
+
+	raChPool, err := clickhouse.Open(agentSqlOpts)
+	if err != nil {
+		log.Printf("Unable to create agent_sql CH connection pool: %v\n", err)
 	}
 
 	if err := inet.Init(); err != nil {
@@ -595,11 +629,12 @@ func Connect(config *Config) *Deps {
 	}
 
 	return &Deps{
-		PgPool:  pgPool,
-		ChPool:  chPool,
-		RchPool: rChPool,
-		Config:  config,
-		VK:      vkClient,
+		PgPool:   pgPool,
+		ChPool:   chPool,
+		RchPool:  chquery.NewReaderConn(rChPool, chquery.ReaderScopeKey),
+		RAChPool: chquery.NewReaderConn(raChPool, chquery.AgentScopeKey),
+		Config:   config,
+		VK:       vkClient,
 	}
 }
 

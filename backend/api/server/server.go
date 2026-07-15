@@ -22,6 +22,7 @@ import (
 
 	"backend/libs/autumn"
 	"backend/libs/bus"
+	"backend/libs/chquery"
 	"backend/libs/ga4"
 	"backend/libs/inet"
 	"backend/libs/posthog"
@@ -661,7 +662,7 @@ func Connect(config *Config) *Deps {
 	return &Deps{
 		PgPool:  pgPool,
 		ChPool:  chPool,
-		RchPool: rChPool,
+		RchPool: chquery.NewReaderConn(rChPool, chquery.ReaderScopeKey),
 		Config:  config,
 		VK:      vkClient,
 		Mail:    mailClient,

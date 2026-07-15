@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"backend/libs/chquery"
 	"backend/libs/config"
 	"backend/libs/event"
 	"backend/libs/group"
@@ -65,6 +66,7 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 		ID:     &appID,
 		TeamId: teamID,
 	}
+	ctx = chquery.WithTeamScope(ctx, app.TeamId)
 
 	var err error
 
@@ -108,7 +110,7 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 		"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 	}
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "session_count")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "session_count"))
 
 	countStmt := sqlf.New(`
     WITH
@@ -331,7 +333,7 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 
 	defer stmt.Close()
 
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "common_path")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "common_path"))
 
 	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {

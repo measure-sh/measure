@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"backend/libs/ambient"
+	"backend/libs/chquery"
 	"backend/libs/event"
 	"backend/libs/filter"
 	"backend/libs/group"
@@ -83,7 +84,9 @@ func (c *Config) loadTableSets(ctx context.Context) (*tableSets, error) {
 		Where("database = currentDatabase()")
 	defer stmt.Close()
 
-	allRows, err := deps.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
+	// system.* introspection carries no team scope; use the operator pool
+	// so it is not subject to the reader team_isolation guard.
+	allRows, err := deps.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return nil, fmt.Errorf("schema introspection failed: %w", err)
 	}
@@ -142,7 +145,9 @@ func (c *Config) getSchema(ctx context.Context) (string, error) {
 		OrderBy("table, position")
 	defer stmt.Close()
 
-	rows, err := deps.RchPool.Query(ctx, stmt.String(), stmt.Args()...)
+	// system.* introspection carries no team scope; use the operator pool
+	// so it is not subject to the reader team_isolation guard.
+	rows, err := deps.ChPool.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		return "", err
 	}
@@ -382,14 +387,15 @@ func (c *Config) runSQL(ctx context.Context, query string, teamID uuid.UUID, app
 
 	expanded := expandPlaceholders(query, teamID, appIDs, from, to)
 
-	chCtx := clickhouse.Context(ctx, clickhouse.WithSettings(clickhouse.Settings{
+	chCtx := chquery.WithSettings(ctx, clickhouse.Settings{
 		"readonly":             1,
+		chquery.AgentScopeKey:  clickhouse.CustomSetting{Value: teamID.String()},
 		"max_execution_time":   maxQuerySeconds,
 		"max_result_rows":      maxResultRows,
 		"result_overflow_mode": "break",
-	}))
+	})
 
-	rows, err := deps.RchPool.Query(chCtx, expanded)
+	rows, err := deps.RAChPool.Query(chCtx, expanded)
 	if err != nil {
 		return "", fmt.Errorf("query failed: %v", err)
 	}

@@ -1,6 +1,7 @@
 package network
 
 import (
+	"backend/libs/chquery"
 	"backend/libs/filter"
 	"backend/libs/logcomment"
 	"context"
@@ -165,7 +166,7 @@ func patternExists(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID,
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
 	}
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "pattern_exists")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "pattern_exists"))
 
 	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -200,7 +201,7 @@ func fetchTrendsCategory(ctx context.Context, ch driver.Conn, appId, teamId uuid
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
 	}
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "fetch_trends_category")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "fetch_trends_category"))
 
 	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -255,7 +256,7 @@ func FetchDomains(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, 
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
 	}
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "fetch_domains")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "fetch_domains"))
 
 	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -296,7 +297,7 @@ func FetchPaths(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, do
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
 	}
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "fetch_paths")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "fetch_paths"))
 
 	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -343,7 +344,7 @@ func FetchPaths(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, do
 
 		defer eventsStmt.Close()
 
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "fetch_paths_fallback")
+		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "fetch_paths_fallback"))
 
 		eventsRows, eventsErr := ch.Query(ctx, eventsStmt.String(), eventsStmt.Args()...)
 		if eventsErr != nil {
@@ -413,7 +414,7 @@ func GetNetworkOverviewStatusCodesPlot(ctx context.Context, ch driver.Conn, appI
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
 	}
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "overview_status_codes_plot")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "overview_status_codes_plot"))
 
 	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -473,7 +474,7 @@ func FetchOverviewTimelinePlot(ctx context.Context, ch driver.Conn, appId, teamI
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
 	}
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "overview_timeline_plot")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "overview_timeline_plot"))
 
 	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -563,7 +564,7 @@ func GetEndpointLatencyPlot(
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
 	}
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "endpoint_latency_plot")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "endpoint_latency_plot"))
 
 	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -624,7 +625,7 @@ func GetEndpointStatusCodesPlot(
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
 	}
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "endpoint_status_codes_plot")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "endpoint_status_codes_plot"))
 
 	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -747,7 +748,7 @@ func FetchEndpointTimelinePlot(ctx context.Context, ch driver.Conn, appId, teamI
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
 	}
-	ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "endpoint_timeline_plot")
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "endpoint_timeline_plot"))
 
 	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {

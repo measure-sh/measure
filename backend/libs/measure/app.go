@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"backend/libs/chquery"
 	"backend/libs/config"
 	"backend/libs/event"
 	"backend/libs/filter"
@@ -169,6 +170,7 @@ func (a App) UpdateRetention(pg *pgxpool.Pool, retention int) error {
 // IssueGroupExists checks if the group exists by its
 // fingerprint and type.
 func (a App) IssueGroupExists(ctx context.Context, rch driver.Conn, groupType group.GroupType, fingerprint string) (ok bool, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	table := "fatal_exception_groups"
 
 	if groupType == group.GroupTypeANR {
@@ -192,6 +194,7 @@ func (a App) IssueGroupExists(ctx context.Context, rch driver.Conn, groupType gr
 
 // GetExceptionGroupPlotInstances computes crash instances of the exception group.
 func (a App) GetExceptionGroupPlotInstances(ctx context.Context, rch driver.Conn, fingerprint string, af *filter.AppFilter) (instances []event.IssueInstance, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	if af.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
 	}
@@ -401,6 +404,7 @@ func unionStmts(stmts []*sqlf.Stmt) *sqlf.Stmt {
 }
 
 func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (groups []group.ErrorGroup, next, previous bool, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	includeANR := (len(af.ErrorTypes) == 0 && len(af.Severities) == 0) || slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
 	includeError := len(af.ErrorTypes) == 0 || slices.Contains(af.ErrorTypes, event.ErrorTypeError)
 
@@ -698,6 +702,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, af *
 // based on the filter's severity flags. When no severity flag
 // is set, all sources are included.
 func (a App) GetErrorPlotInstances(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	if af.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
 	}
@@ -821,6 +826,7 @@ func (a App) GetErrorPlotInstances(ctx context.Context, rch driver.Conn, af *fil
 // nonfatal exception sources selected by the filter's severity flags.
 // When no severity flag is set, all sources are included.
 func (a App) GetErrorGroupPlotInstances(ctx context.Context, rch driver.Conn, fingerprint string, af *filter.AppFilter) (instances []event.IssueInstance, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	if af.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
 	}
@@ -946,6 +952,7 @@ func (a App) GetErrorGroupPlotInstances(ctx context.Context, rch driver.Conn, fi
 // severity flags. When no severity flag is set, all sources are
 // included.
 func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, rch driver.Conn, fingerprint string, af *filter.AppFilter) (distribution event.IssueDistribution, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	queryANR, wantHandledTrue, wantHandledFalse := resolveErrorSources(af)
 
 	applyCommonFilters := func(s *sqlf.Stmt) {
@@ -1074,6 +1081,7 @@ func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, rch driver
 // the filter's severity flags. When no severity flag is set, all
 // sources are queried.
 func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerprint string, af *filter.AppFilter) (events []any, next, previous bool, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	includeANR := (len(af.ErrorTypes) == 0 && len(af.Severities) == 0) || slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
 	includeError := len(af.ErrorTypes) == 0 || slices.Contains(af.ErrorTypes, event.ErrorTypeError)
 
@@ -1323,6 +1331,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 // GetExceptionGroupsWithFilter fetches exception groups
 // of an app.
 func (a App) GetExceptionGroupsWithFilter(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (groups []group.ExceptionGroup, next, previous bool, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	groupsStmt := sqlf.
 		From("fatal_exception_groups final").
 		Select("team_id").
@@ -1484,6 +1493,7 @@ func (a App) GetExceptionGroupsWithFilter(ctx context.Context, rch driver.Conn, 
 // GetExceptionPlotInstances queries aggregated exception
 // instances and crash free sessions by datetime and filters.
 func (a App) GetExceptionPlotInstances(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	if af.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
 	}
@@ -1579,6 +1589,7 @@ func (a App) GetExceptionPlotInstances(ctx context.Context, rch driver.Conn, af 
 // GetExceptionAttributesDistribution computes the data required for
 // plotting crash attribute distribution.
 func (a App) GetExceptionAttributesDistribution(ctx context.Context, rch driver.Conn, fingerprint string, af *filter.AppFilter) (distribution event.IssueDistribution, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.
 		From("events").
 		Select("concat(attribute.app_version, ' (', attribute.app_build, ')') as app_version").
@@ -1689,6 +1700,7 @@ func (a App) GetExceptionAttributesDistribution(ctx context.Context, rch driver.
 // exception fingerprint. Also matches filters
 // and handles pagination.
 func (a App) GetExceptionsWithFilter(ctx context.Context, rch driver.Conn, fingerprint string, af *filter.AppFilter) (events []event.EventException, next, previous bool, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.From("events").
 		Select("id").
 		Select("type").
@@ -1820,6 +1832,7 @@ func (a App) GetExceptionsWithFilter(ctx context.Context, rch driver.Conn, finge
 
 // GetANRGroupPlotInstances computes crash instances of the exception group.
 func (a App) GetANRGroupPlotInstances(ctx context.Context, rch driver.Conn, fingerprint string, af *filter.AppFilter) (instances []event.IssueInstance, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	if af.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
 	}
@@ -1912,6 +1925,7 @@ func (a App) GetANRGroupPlotInstances(ctx context.Context, rch driver.Conn, fing
 // GetANRPlotInstances queries aggregated exception
 // instances and crash free sessions by datetime and filters.
 func (a App) GetANRPlotInstances(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	if af.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
 	}
@@ -2006,6 +2020,7 @@ func (a App) GetANRPlotInstances(ctx context.Context, rch driver.Conn, af *filte
 // GetANRAttributesDistribution computes the data required for
 // plotting crash attribute distribution.
 func (a App) GetANRAttributesDistribution(ctx context.Context, rch driver.Conn, fingerprint string, af *filter.AppFilter) (distribution event.IssueDistribution, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.
 		From("events").
 		Select("concat(attribute.app_version, ' (', attribute.app_build, ')') as app_version").
@@ -2113,6 +2128,7 @@ func (a App) GetANRAttributesDistribution(ctx context.Context, rch driver.Conn, 
 
 // GetANRGroupsWithFilter fetches ANR groups of an app.
 func (a App) GetANRGroupsWithFilter(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (groups []group.ANRGroup, next, previous bool, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	groupsStmt := sqlf.
 		From("anr_groups final").
 		Select("team_id").
@@ -2272,6 +2288,7 @@ func (a App) GetANRGroupsWithFilter(ctx context.Context, rch driver.Conn, af *fi
 // GetANRsWithFilter fetches ANR events for a matching ANR fingerprint.
 // Also matches filters and handles pagination.
 func (a App) GetANRsWithFilter(ctx context.Context, rch driver.Conn, fingerprint string, af *filter.AppFilter) (events []event.EventANR, next, previous bool, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.From("events").
 		Select("id").
 		Select("type").
@@ -2477,6 +2494,7 @@ func (a App) GetIssueFreeMetrics(
 	perceivedANRFree *metrics.PerceivedANRFreeSession,
 	err error,
 ) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	crashFree = &metrics.CrashFreeSession{}
 	perceivedCrashFree = &metrics.PerceivedCrashFreeSession{}
 
@@ -2656,6 +2674,7 @@ func (a App) GetIssueFreeMetrics(
 // GetAdoptionMetrics computes adoption by computing sessions
 // for selected versions and sessions of all versions for an app.
 func (a App) GetAdoptionMetrics(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (adoption *metrics.SessionAdoption, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	adoption = &metrics.SessionAdoption{}
 	selectedVersions, err := af.VersionPairs()
 	if err != nil {
@@ -2686,6 +2705,7 @@ func (a App) GetAdoptionMetrics(ctx context.Context, rch driver.Conn, af *filter
 // Deltas are computed between launch metric values of selected and
 // unselected app versions.
 func (a App) GetLaunchMetrics(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (launch *metrics.LaunchMetric, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	launch = &metrics.LaunchMetric{}
 
 	selectedVersions, err := af.VersionPairs()
@@ -2732,6 +2752,7 @@ func (a App) GetLaunchMetrics(ctx context.Context, rch driver.Conn, af *filter.A
 // GetSessionsInstancesPlot provides aggregated session instances
 // matching various filters.
 func (a App) GetSessionsInstancesPlot(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (sessionInstances []session.SessionInstance, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	if af.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
 	}
@@ -2984,6 +3005,7 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, rch driver.Conn, af *
 // GetSessionsWithFilter provides sessions that matches various
 // filter criteria in a paginated fashion.
 func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (sessions []SessionDisplay, next, previous bool, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	base := sqlf.
 		From("sessions").
 		Select("session_id").
@@ -3381,6 +3403,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, af *fil
 
 // FetchRootSpanNames returns list of root span names for a given app id
 func (a App) FetchRootSpanNames(ctx context.Context, rch driver.Conn) (traceNames []string, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.
 		From("spans").
 		Select("span_name").
@@ -3416,6 +3439,7 @@ func (a App) FetchRootSpanNames(ctx context.Context, rch driver.Conn) (traceName
 
 // FetchTracesForSessionId returns list of traces for a given app id and session id
 func (a App) FetchTracesForSessionId(ctx context.Context, rch driver.Conn, sessionID uuid.UUID) (sessionTraces []span.TraceSessionTimelineDisplay, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.
 		Select("span_name").
 		Select("trace_id").
@@ -3475,6 +3499,7 @@ func (a App) FetchTracesForSessionId(ctx context.Context, rch driver.Conn, sessi
 // GetSpansForSpanNameWithFilter provides list of spans for the given span name that matches various
 // filter criteria in a paginated fashion.
 func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, rch driver.Conn, spanName string, af *filter.AppFilter) (rootSpans []span.RootSpanDisplay, next, previous bool, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.
 		From("spans final").
 		Select("app_id").
@@ -3626,6 +3651,7 @@ func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, rch driver.Conn,
 // GetMetricsPlotForSpanNameWithFilter provides p50, p90, p95 and p99 duration metrics
 // for the given span name with the applied filtering criteria
 func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, rch driver.Conn, spanName string, af *filter.AppFilter) (spanMetricsPlotInstances []span.SpanMetricsPlotInstance, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	if !af.HasTimezone() {
 		err = fmt.Errorf("timezone is required")
 		return
@@ -3760,6 +3786,7 @@ func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, rch driver
 // GetTrace constructs and returns a trace for
 // a given traceId
 func (a App) GetTrace(ctx context.Context, rch driver.Conn, traceId string) (trace span.TraceDisplay, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.
 		From("spans final").
 		Select("app_id").
@@ -3892,6 +3919,7 @@ func (a App) GetTrace(ctx context.Context, rch driver.Conn, traceId string) (tra
 // GetBugReportsWithFilter provides bug reports that matches various
 // filter criteria in a paginated fashion.
 func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (bugReports []BugReportDisplay, next, previous bool, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.
 		From("bug_reports final").
 		Select("event_id").
@@ -4078,6 +4106,7 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, af *f
 // GetBugReportInstancesPlot provides aggregated bug report instances
 // matching various filters.
 func (a App) GetBugReportInstancesPlot(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (bugReportInstances []BugReportInstance, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	if af.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
 	}
@@ -4234,6 +4263,7 @@ func (a App) GetBugReportInstancesPlot(ctx context.Context, rch driver.Conn, af 
 
 // GetBugReport fetches a bug report by its event id.
 func (a App) GetBugReportById(ctx context.Context, rch driver.Conn, presign event.PreSignConfig, bugReportId string) (bugReport BugReport, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.
 		From("bug_reports final").
 		Select("event_id").
@@ -4358,6 +4388,7 @@ func (a App) UpdateBugReportStatusById(ctx context.Context, ch driver.Conn, bugR
 // and issue events involved in forming
 // an implicit navigational journey.
 func (a App) GetJourneyEvents(ctx context.Context, rch driver.Conn, af *filter.AppFilter, opts filter.JourneyOpts) (events []event.EventField, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	whereVals := []any{}
 
 	switch a.Family() {
@@ -4736,6 +4767,7 @@ func (a *App) Populate(ctx context.Context, pg *pgxpool.Pool) (err error) {
 
 // GetSessionEvents fetches all the events of an app's session.
 func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId uuid.UUID) (*Session, error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	sessionAppVersion := sqlf.From("sessions_index").
 		Select("argMax(app_version, last_event_timestamp) as app_version").
 		Select("min(first_event_timestamp) as start_time").
