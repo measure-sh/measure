@@ -10,6 +10,8 @@ require_relative '../react_native/node_modules/react-native/scripts/react_native
 target 'FrankensteinApp' do
   use_frameworks! :linkage => :static
 
+  $MeasureDisableSPM = true
+
   # Measure SDK (local)
   pod 'measure-sh', :path => '../../..'
 

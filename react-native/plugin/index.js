@@ -133,6 +133,37 @@ function injectMeasureSwift(contents, apiKey, apiUrl) {
   return contents;
 }
 
+function withMeasureSpmSwiftIncludePaths(config) {
+  return withXcodeProject(config, (config) => {
+    const project = config.modResults;
+
+    const nativeTargets = project.pbxNativeTargetSection();
+    const appEntry = Object.entries(nativeTargets).find(
+      ([, t]) => t && t.productType === '"com.apple.product-type.application"'
+    );
+    if (!appEntry) return config;
+    const [, appTarget] = appEntry;
+
+    // Directory where the pod's SPM build emits Measure.swiftmodule.
+    const searchPath = '"${SYMROOT}/${CONFIGURATION}${EFFECTIVE_PLATFORM_NAME}/"';
+
+    const configList = project.pbxXCConfigurationList()[appTarget.buildConfigurationList];
+    if (!configList) return config;
+    const buildConfigs = project.pbxXCBuildConfigurationSection();
+
+    configList.buildConfigurations.forEach(({ value }) => {
+      const settings = buildConfigs[value] && buildConfigs[value].buildSettings;
+      if (!settings) return;
+      let paths = settings.SWIFT_INCLUDE_PATHS;
+      paths = Array.isArray(paths) ? paths : paths ? [paths] : ['"$(inherited)"'];
+      if (!paths.includes(searchPath)) paths.push(searchPath);
+      settings.SWIFT_INCLUDE_PATHS = paths;
+    });
+
+    return config;
+  });
+}
+
 // ─── iOS: Xcode build phases ─────────────────────────────────────────────────
 
 function withMeasureXcodeBuildPhases(config, { iosApiKey, iosApiUrl }) {
@@ -370,6 +401,7 @@ module.exports = function withMeasurePlugin(config, options = {}) {
 
   // iOS
   config = withMeasureIos(config);
+  config = withMeasureSpmSwiftIncludePaths(config);
   if (iosApiKey && iosApiUrl) {
     config = withMeasureAppDelegate(config, { iosApiKey, iosApiUrl });
     config = withMeasureXcodeBuildPhases(config, { iosApiKey, iosApiUrl });

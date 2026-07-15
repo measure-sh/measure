@@ -1,6 +1,11 @@
 {
   "name": "@measuresh/react-native",
   "version": "0.1.1",
+  "measureIosSdk": {
+    "version": "0.11.0",
+    "spmUrl": "https://github.com/measure-sh/measure.git",
+    "revision": "6d550f29a9a662de51c9beeb9afb67c793eb3b62"
+  },
   "react-native": "lib/module/index.js",
   "description": "Mobile apps break, get to the root cause faster",
   "main": "lib/module/index.js",

@@ -10,7 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@measuresh/react-native": "portal:../../..",
+    "@measuresh/react-native": "portal:../../",
     "react": "18.2.0",
     "react-native": "0.73.0"
   },
