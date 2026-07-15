@@ -1,6 +1,7 @@
 package app
 
 import (
+	"backend/libs/symbol"
 	"fmt"
 	"io/fs"
 	"path/filepath"
@@ -134,7 +135,7 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				}
 
 				app.Builds[code].MappingFiles = append(app.Builds[code].MappingFiles, path)
-				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, "proguard")
+				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, symbol.TypeProguard.String())
 			}
 
 			dSYMMapping, err := filepath.Match("*/*/*/*.tgz", rel)
@@ -158,7 +159,7 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				}
 
 				app.Builds[code].MappingFiles = append(app.Builds[code].MappingFiles, path)
-				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, "dsym")
+				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, symbol.TypeDsym.String())
 			}
 
 			elfDebugInfo, err := filepath.Match("*/*/*/*.symbols", rel)
@@ -182,7 +183,7 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				}
 
 				app.Builds[code].MappingFiles = append(app.Builds[code].MappingFiles, path)
-				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, "elf_debug")
+				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, symbol.TypeElfDebug.String())
 			}
 
 			// jsbundle mappings (.tgz) are nested under a jsbundle/ subdir
@@ -210,7 +211,7 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				}
 
 				app.Builds[jsCode].MappingFiles = append(app.Builds[jsCode].MappingFiles, path)
-				app.Builds[jsCode].MappingTypes = append(app.Builds[jsCode].MappingTypes, "jsbundle")
+				app.Builds[jsCode].MappingTypes = append(app.Builds[jsCode].MappingTypes, symbol.TypeJsBundle.String())
 			}
 
 			blob, err := filepath.Match("*/*/blobs/*", rel)
