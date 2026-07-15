@@ -316,6 +316,40 @@ docker compose exec clickhouse clickhouse-client -u app_admin -d measure
 docker compose run --rm clickhouse clickhouse-client -u app_admin -d measure
 ```
 
+### ClickHouse team isolation (row policies)
+
+Reads against ClickHouse are isolated per team by a **row policy**, not by app code. The `reader` role (api & agent read pools) & the `agent_sql` role (agent's LLM-generated SQL) each carry a `team_isolation` policy that only returns rows whose `team_id` is in a per-query custom setting. Policies are defined in [`self-host/clickhouse/init-clickhouse.sh`](self-host/clickhouse/init-clickhouse.sh).
+
+What this means when you write backend code:
+
+- **Every reader/agent query must set the team scope.** Use `chquery.WithTeamScope(ctx, teamIDs...)` (reader) or `chquery.WithAgentScope(ctx, teamIDs...)` (agent_sql) & pass the ctx down. Pass one team for the common case, or several for a multi-team read.
+- **Fail-closed.** No scope set means the setting is empty, which matches **zero rows** (not all rows). A brand new read that silently returns nothing almost always means the scope was not carried on the ctx.
+- **The reader pool guards this for you.** Pools wrapped by `chquery.NewReaderConn` return an error if a query reaches them without the scope set, so a missing scope fails loud instead of silently returning empty.
+- **Never call `clickhouse.WithSettings` directly** — it replaces the whole settings map & would clobber the team scope. Always go through `chquery.WithSettings`, which merges.
+- **Operator/write pool is not scoped.** Ingestion & non-tenant introspection (`system.*`) use the raw operator pool by design; the policy only applies to the reader & agent_sql roles.
+
+Basic usage:
+
+```go
+// reader query, single team (the common case)
+ctx = chquery.WithTeamScope(ctx, app.TeamId)
+rows, err := rch.Query(ctx, "select ... from events where app_id = ?", appID)
+
+// reader query, several teams
+ctx = chquery.WithTeamScope(ctx, teamA, teamB)
+
+// merge more per-query settings without dropping the scope
+ctx = chquery.WithSettings(ctx, clickhouse.Settings{
+    "use_query_cache":      true,
+    chquery.ReaderScopeKey: clickhouse.CustomSetting{Value: teamId.String()},
+})
+
+// agent_sql (LLM-generated SQL) path
+ctx = chquery.WithAgentScope(ctx, teamID)
+```
+
+Under the hood the ids are comma joined into the `SQL_reader_team_ids` / `SQL_agent_team_ids` custom settings the policy reads.
+
 ### Managing Dashboard Environment Variables
 
 Typically, there are 2 kinds of environment variables in the dashboard nextjs application. Public & Private.
