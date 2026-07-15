@@ -35,10 +35,10 @@
 //
 // ## ClickHouse Integration
 //
-// `WithSettingsPut` appends a key-value pair to existing `Fields`, updates the
-// `settings["log_comment"]`, and returns a ClickHouse context:
+// `Put` appends a key-value pair to existing `Fields` & sets
+// `settings["log_comment"]`, returning the settings map for chquery.WithSettings:
 //
-//	ctx := logcomment.WithSettingsPut(ctx, settings, f, "user_id", "123")
+//	ctx := chquery.WithSettings(ctx, logcomment.Put(settings, f, "user_id", "123"))
 //
 // ## Examples
 //
@@ -72,7 +72,7 @@
 // f.MustPut(logcomment.Name, "daily-active")
 //
 // settings := clickhouse.Settings{}
-// ctx := logcomment.WithSettingsPut(context.Background(), settings, f, "env", "prod")
+// ctx := chquery.WithSettings(context.Background(), logcomment.Put(settings, f, "env", "prod"))
 //
 // /* use ctx with conn.Exec(ctx, ch.Query(...)) */
 //

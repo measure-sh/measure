@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"backend/libs/chctx"
+	"backend/libs/chquery"
 	"backend/libs/config"
 	"backend/libs/event"
 	"backend/libs/filter"
@@ -28,7 +28,7 @@ type HealthInstance struct {
 // series for the health overview plot, bucketed by the filter's plot
 // time group.
 func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (sessions, crashes, anrs []HealthInstance, err error) {
-	ctx = chctx.WithReaderTeamScope(ctx, a.TeamId)
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	if af.Timezone == "" {
 		return nil, nil, nil, errors.New("missing timezone filter")
 	}
@@ -50,7 +50,7 @@ func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, af *fi
 		settings := clickhouse.Settings{
 			"log_comment": lc.MustPut(logcomment.Root, logcomment.Health).String(),
 		}
-		sctx := logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
+		sctx := chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_instances"))
 
 		stmt := sqlf.From(config.AppMetricsTable).
 			Select(groupExpr.BucketExpr+" as datetime_bucket", af.Timezone).
@@ -100,7 +100,7 @@ func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, af *fi
 		settings := clickhouse.Settings{
 			"log_comment": lc.MustPut(logcomment.Root, logcomment.Health).String(),
 		}
-		ectx := logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "plots_instances")
+		ectx := chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_instances"))
 		const fatalExpr = "(`exception.severity` = 'fatal' OR (`exception.severity` = '' AND `exception.handled` = false))"
 
 		stmt := sqlf.From("events final").

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"backend/libs/chctx"
+	"backend/libs/chquery"
 	"backend/libs/measure"
 
 	"github.com/gin-gonic/gin"
@@ -105,7 +105,7 @@ func (h Handlers) GetUsage(c *gin.Context) {
 
 	defer metricsStmt.Close()
 
-	ctx = chctx.WithReaderTeamScope(ctx, teamId)
+	ctx = chquery.WithTeamScope(ctx, teamId)
 	metricsRows, err := deps.RchPool.Query(ctx, metricsStmt.String(), metricsStmt.Args()...)
 	if err != nil {
 		msg := fmt.Sprintf("error occurred while querying usage metrics for team: %s", teamId)

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"backend/libs/ambient"
-	"backend/libs/chctx"
+	"backend/libs/chquery"
 	"backend/libs/chrono"
 	"backend/libs/event"
 	"backend/libs/filter"
@@ -338,7 +338,7 @@ func GetExceptionGroupsFromFingerprints(ctx context.Context, conn driver.Conn, a
 	if err != nil {
 		return
 	}
-	ctx = chctx.WithReaderTeamScope(ctx, teamId)
+	ctx = chquery.WithTeamScope(ctx, teamId)
 
 	groupsStmt := sqlf.
 		From("fatal_exception_groups final").
@@ -429,7 +429,7 @@ func GetANRGroupsFromFingerprints(ctx context.Context, conn driver.Conn, af *fil
 	if err != nil {
 		return
 	}
-	ctx = chctx.WithReaderTeamScope(ctx, teamId)
+	ctx = chquery.WithTeamScope(ctx, teamId)
 
 	groupsStmt := sqlf.
 		From("anr_groups final").

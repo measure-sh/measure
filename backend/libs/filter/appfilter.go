@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"backend/libs/ambient"
-	"backend/libs/chctx"
+	"backend/libs/chquery"
 	"backend/libs/config"
 	"backend/libs/event"
 	"backend/libs/logcomment"
@@ -693,7 +693,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"force_primary_key":  debugMode,
 			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "app_versions")
+		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "app_versions"))
 
 		versions, versionCodes, err := af.getAppVersions(ctx, rch)
 		if err != nil {
@@ -714,7 +714,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
 			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "os_versions")
+		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "os_versions"))
 
 		osNames, osVersions, err := af.getOSVersions(ctx, rch)
 		if err != nil {
@@ -735,7 +735,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
 			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "countries")
+		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "countries"))
 
 		countries, err := af.getCountries(ctx, rch)
 		if err != nil {
@@ -755,7 +755,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
 			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_providers")
+		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "network_providers"))
 
 		networkProviders, err := af.getNetworkProviders(ctx, rch)
 		if err != nil {
@@ -775,7 +775,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
 			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_types")
+		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "network_types"))
 
 		networkTypes, err := af.getNetworkTypes(ctx, rch)
 		if err != nil {
@@ -795,7 +795,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
 			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "network_generations")
+		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "network_generations"))
 
 		networkGenerations, err := af.getNetworkGenerations(ctx, rch)
 		if err != nil {
@@ -815,7 +815,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
 			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_locales")
+		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "device_locales"))
 
 		deviceLocales, err := af.getDeviceLocales(ctx, rch)
 		if err != nil {
@@ -835,7 +835,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
 			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_manufacturers")
+		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "device_manufacturers"))
 
 		deviceManufacturers, err := af.getDeviceManufacturers(ctx, rch)
 		if err != nil {
@@ -855,7 +855,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 			"query_cache_ttl":    int(config.DefaultQueryCacheTTL.Seconds()),
 			"SQL_reader_team_id": clickhouse.CustomSetting{Value: teamId.String()},
 		}
-		ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, "device_names")
+		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "device_names"))
 
 		deviceNames, err := af.getDeviceNames(ctx, rch)
 		if err != nil {
@@ -888,7 +888,7 @@ func (af AppFilter) GetGenericFilters(ctx context.Context, rch driver.Conn, fl *
 				name = "ud_attr_keys_spans"
 			}
 
-			ctx = logcomment.WithSettingsPut(ctx, settings, lc, logcomment.Name, name)
+			ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, name))
 
 			keytypes, err := af.getUDAttrKeys(ctx, rch)
 			if err != nil {
@@ -960,7 +960,7 @@ func (af AppFilter) GetUserDefinedAttrKeys(ctx context.Context, rch driver.Conn,
 		if err != nil {
 			return err
 		}
-		ctx = chctx.WithReaderTeamScope(ctx, teamId)
+		ctx = chquery.WithTeamScope(ctx, teamId)
 
 		keytypes, err := af.getUDAttrKeys(ctx, rch)
 		if err != nil {
@@ -1542,7 +1542,7 @@ func (af AppFilter) GetExcludedVersions(ctx context.Context, rch driver.Conn) (v
 	if err != nil {
 		return
 	}
-	ctx = chctx.WithReaderTeamScope(ctx, teamId)
+	ctx = chquery.WithTeamScope(ctx, teamId)
 
 	allVersions, allCodes, err := af.getAppVersions(ctx, rch)
 	if err != nil {
