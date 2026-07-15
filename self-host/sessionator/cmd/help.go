@@ -16,7 +16,9 @@ func DirTree() string {
 │        ├── mapping.txt
 │        └── jsbundle/
 │           ├── main.jsbundle.tgz
-│           └── main.jsbundle.map.tgz`
+│           ├── main.jsbundle.map.tgz
+│           └── 3f2b8c1a-.../          (OTA patch_id)
+│              └── main.jsbundle.tgz`
 }
 
 // ValidNote provides note about validity of files

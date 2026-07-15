@@ -151,6 +151,7 @@ func IngestSerial(apps *app.Apps, origin string) {
 	startTime := time.Now()
 	eventURL := fmt.Sprintf("%s/events", origin)
 	buildURL := fmt.Sprintf("%s/builds", origin)
+	otaBuildURL := fmt.Sprintf("%s/builds/ota", origin)
 	virtualizer := NewVirtualizer()
 
 	for _, app := range apps.Items {
@@ -175,6 +176,19 @@ func IngestSerial(apps *app.Apps, origin string) {
 
 		fmt.Printf("🟢 %s \n", status)
 		metrics.bumpBuild()
+
+		if len(app.OTABuilds) > 0 {
+			fmt.Printf("Uploading OTA build info...")
+			status, err := UploadOTABuilds(otaBuildURL, apiKey, app)
+			if err != nil {
+				if status == "" {
+					status = err.Error()
+				}
+				fmt.Printf("🔴 %s \n", status)
+				log.Fatal(err)
+			}
+			fmt.Printf("🟢 %s \n", status)
+		}
 
 		// wait for some duration for builds to process
 		fmt.Printf("Waiting %v for builds to process...\n", buildProcessDelay)
@@ -216,6 +230,7 @@ func IngestParallel(apps *app.Apps, origin string) {
 	startTime := time.Now()
 	eventURL := fmt.Sprintf("%s/events", origin)
 	buildURL := fmt.Sprintf("%s/builds", origin)
+	otaBuildURL := fmt.Sprintf("%s/builds/ota", origin)
 
 	var logResults = func(results *[]string) {
 		for _, result := range *results {
@@ -246,6 +261,19 @@ func IngestParallel(apps *app.Apps, origin string) {
 
 		fmt.Printf("🟢 %s \n", status)
 		metrics.bumpBuild()
+
+		if len(app.OTABuilds) > 0 {
+			fmt.Printf("Uploading OTA build info...")
+			status, err := UploadOTABuilds(otaBuildURL, apiKey, app)
+			if err != nil {
+				if status == "" {
+					status = err.Error()
+				}
+				fmt.Printf("🔴 %s \n", status)
+				log.Fatal(err)
+			}
+			fmt.Printf("🟢 %s \n", status)
+		}
 
 		// wait for some duration for builds to process
 		fmt.Printf("Waiting %v for builds to process...\n", buildProcessDelay)
@@ -309,6 +337,96 @@ func IngestParallel(apps *app.Apps, origin string) {
 	}
 
 	metrics.setIngestDuration(time.Since(startTime))
+}
+
+// UploadOTABuilds prepares & sends the request to upload OTA jsbundle
+// mappings, keyed by patch_id, to /builds/ota.
+func UploadOTABuilds(url, apiKey string, app app.App) (status string, err error) {
+	status = http.StatusText(http.StatusOK)
+
+	if dryRun {
+		return
+	}
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	for _, otaBuild := range app.OTABuilds {
+		patchID, err := uuid.Parse(otaBuild.PatchID)
+		if err != nil {
+			return http.StatusText(http.StatusInternalServerError), err
+		}
+
+		build := measure.OTABuild{PatchID: patchID}
+		mappingFilesMap := make(map[string]string)
+
+		for index, mappingType := range otaBuild.MappingTypes {
+			filename := filepath.Base(otaBuild.MappingFiles[index])
+			mappingFilesMap[filename] = otaBuild.MappingFiles[index]
+
+			build.Mappings = append(build.Mappings, &measure.Mapping{
+				Type:     mappingType,
+				Filename: filename,
+			})
+		}
+
+		data, err := json.Marshal(build)
+		if err != nil {
+			return http.StatusText(http.StatusInternalServerError), err
+		}
+
+		status, bodyBytes, err := sendRequest(url, apiKey, headers, data)
+		if err != nil {
+			return status, err
+		}
+
+		buildres := measure.BuildResponse{}
+		if err := json.Unmarshal(bodyBytes, &buildres); err != nil {
+			return http.StatusText(http.StatusInternalServerError), err
+		}
+
+		for _, mapping := range buildres.Mappings {
+			mappingFilePath := mappingFilesMap[mapping.Filename]
+
+			file, err := os.Open(mappingFilePath)
+			if err != nil {
+				return http.StatusText(http.StatusInternalServerError), err
+			}
+			defer file.Close()
+
+			fileInfo, err := file.Stat()
+			if err != nil {
+				return http.StatusText(http.StatusInternalServerError), err
+			}
+
+			req, err := http.NewRequest("PUT", mapping.UploadURL, file)
+			if err != nil {
+				return http.StatusText(http.StatusInternalServerError), err
+			}
+
+			// set metadata headers
+			for key, val := range mapping.Headers {
+				req.Header.Set(key, val)
+			}
+
+			// some S3 backends may reject the upload
+			// if content-length header is not set.
+			req.ContentLength = fileInfo.Size()
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return http.StatusText(http.StatusInternalServerError), err
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK {
+				return http.StatusText(http.StatusInternalServerError), fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+			}
+		}
+	}
+
+	return
 }
 
 // UploadBuilds prepares & sends the request to

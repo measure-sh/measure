@@ -214,6 +214,36 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				app.Builds[jsCode].MappingTypes = append(app.Builds[jsCode].MappingTypes, symbol.TypeJsBundle.String())
 			}
 
+			// OTA jsbundle mappings nest one level deeper, under a
+			// patch_id dir: jsbundle/<patch_id>/<file>. Disjoint from the
+			// regular jsbundle pattern above since "*" never crosses "/".
+			otaBundle, err := filepath.Match("*/*/*/jsbundle/*/*", rel)
+			if err != nil {
+				return err
+			}
+			if otaBundle {
+				app := apps.Lookup(parts[0], parts[1])
+				info, err := d.Info()
+				if err != nil {
+					return err
+				}
+				if info.Size() < 1 {
+					return fmt.Errorf(`%q has empty OTA jsbundle mapping file. check %q`, app.FullName(), rel)
+				}
+
+				patchID := filepath.Base(filepath.Dir(rel))
+				otaCode := filepath.Base(filepath.Dir(filepath.Dir(filepath.Dir(rel))))
+				if _, ok := app.OTABuilds[patchID]; !ok {
+					app.OTABuilds[patchID] = &Build{
+						VersionCode: otaCode,
+						PatchID:     patchID,
+					}
+				}
+
+				app.OTABuilds[patchID].MappingFiles = append(app.OTABuilds[patchID].MappingFiles, path)
+				app.OTABuilds[patchID].MappingTypes = append(app.OTABuilds[patchID].MappingTypes, symbol.TypeJsBundle.String())
+			}
+
 			blob, err := filepath.Match("*/*/blobs/*", rel)
 			if err != nil {
 				return err
