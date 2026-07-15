@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Track app OS names as a single-family set) by @anupcowkur in #3839
 - (**backend**): Add unified errors API & react native symbolication support (#3623) by @detj in #3623
 - (**backend**): Use autumn for metering and billing by @anupcowkur in #3534
+- (**frontend**): Move docs to fumadocs by @anupcowkur in #4035
 - (**frontend**): Update docs ui by @anupcowkur in #4011
 - (**frontend**): Add KMP logo to supported platforms (#3953) by @abhaysood in #3953
 - (**frontend**): Add KMP onboarding (#3952) by @abhaysood in #3952
@@ -286,6 +287,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :recycle: Refactor
 
+- (**backend**): Remove unused code & streamline sessionator (#4034) by @detj in #4034
 - (**frontend**): Refactor onboarding and it's store by @anupcowkur in #3912
 - (**frontend**): Rename middleware to proxy for Next 16 by @anupcowkur in #3844
 - (**frontend**): Clarify onboarding first-event poll effect by @anupcowkur in #3843
