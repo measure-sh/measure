@@ -449,13 +449,13 @@ The React Native SDK supports both **Expo** and **Vanilla React Native** project
 ### Install the SDK
 
 ```sh
-npm install @measuresh/react-native@0.1.1
+npm install @measuresh/react-native@0.1.2
 ```
 
 or with yarn:
 
 ```sh
-yarn add @measuresh/react-native@0.1.1
+yarn add @measuresh/react-native@0.1.2
 ```
 
 ---
