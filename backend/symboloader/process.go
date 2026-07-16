@@ -236,6 +236,7 @@ func (b *Build) upload(ctx context.Context) (err error) {
 
 				b.Mappings[index].Key = dif.Key
 				b.Mappings[index].Location = buildLocation(dif.Key)
+				b.Mappings[index].Size = int64(len(dif.Data))
 				b.Mappings[index].UploadComplete = true
 			}
 		case symbol.TypeDsym.String():
@@ -278,6 +279,7 @@ func (b *Build) upload(ctx context.Context) (err error) {
 
 					b.Mappings[index].Key = dif.Key
 					b.Mappings[index].Location = buildLocation(dif.Key)
+					b.Mappings[index].Size = int64(len(dif.Data))
 					b.Mappings[index].UploadComplete = true
 				}
 
@@ -350,6 +352,7 @@ func (b *Build) upload(ctx context.Context) (err error) {
 
 					b.Mappings[index].Key = dif.Key
 					b.Mappings[index].Location = buildLocation(dif.Key)
+					b.Mappings[index].Size = int64(len(dif.Data))
 					b.Mappings[index].UploadComplete = true
 				}
 
@@ -421,6 +424,7 @@ func (b *Build) upload(ctx context.Context) (err error) {
 
 				b.Mappings[index].Key = dif.Key
 				b.Mappings[index].Location = buildLocation(dif.Key)
+				b.Mappings[index].Size = int64(len(dif.Data))
 				b.Mappings[index].UploadComplete = true
 			}
 		}
