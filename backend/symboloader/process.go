@@ -55,12 +55,6 @@ type Mapping struct {
 	UploadComplete bool          `json:"upload_complete,omitempty"`
 }
 
-// hasChecksum tells if the mapping has
-// a checksum.
-func (m Mapping) hasChecksum() bool {
-	return m.Checksum != ""
-}
-
 // extractDif prepares & extracts debug information
 // files for symbol files for all supported platforms.
 func (m *Mapping) extractDif() (err error) {
@@ -207,6 +201,16 @@ func (b *Build) upload(ctx context.Context) (err error) {
 			metadata["original_file_name"] = mapping.Filename
 
 			for _, dif := range mapping.Difs {
+				var checksum string
+				checksum, err = cipher.ChecksumFnv1(bytes.NewReader(dif.Data))
+				if err != nil {
+					return
+				}
+
+				if b.artifactExists(dif.Key, checksum) {
+					continue
+				}
+
 				if config.IsCloud() {
 					obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
 					writer := obj.NewWriter(ctx)
@@ -234,7 +238,7 @@ func (b *Build) upload(ctx context.Context) (err error) {
 					}
 				}
 
-				if err = b.recordArtifact(index, dif); err != nil {
+				if err = b.recordArtifact(index, dif, checksum); err != nil {
 					return
 				}
 			}
@@ -249,6 +253,16 @@ func (b *Build) upload(ctx context.Context) (err error) {
 
 			for _, dif := range mapping.Difs {
 				if !dif.Meta {
+					var checksum string
+					checksum, err = cipher.ChecksumFnv1(bytes.NewReader(dif.Data))
+					if err != nil {
+						return
+					}
+
+					if b.artifactExists(dif.Key, checksum) {
+						continue
+					}
+
 					if config.IsCloud() {
 						obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
 						writer := obj.NewWriter(ctx)
@@ -276,7 +290,7 @@ func (b *Build) upload(ctx context.Context) (err error) {
 						}
 					}
 
-					if err = b.recordArtifact(index, dif); err != nil {
+					if err = b.recordArtifact(index, dif, checksum); err != nil {
 						return
 					}
 				}
@@ -321,6 +335,16 @@ func (b *Build) upload(ctx context.Context) (err error) {
 
 			for _, dif := range mapping.Difs {
 				if !dif.Meta {
+					var checksum string
+					checksum, err = cipher.ChecksumFnv1(bytes.NewReader(dif.Data))
+					if err != nil {
+						return
+					}
+
+					if b.artifactExists(dif.Key, checksum) {
+						continue
+					}
+
 					if config.IsCloud() {
 						obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
 						writer := obj.NewWriter(ctx)
@@ -348,7 +372,7 @@ func (b *Build) upload(ctx context.Context) (err error) {
 						}
 					}
 
-					if err = b.recordArtifact(index, dif); err != nil {
+					if err = b.recordArtifact(index, dif, checksum); err != nil {
 						return
 					}
 				}
@@ -392,6 +416,16 @@ func (b *Build) upload(ctx context.Context) (err error) {
 			metadata["original_file_name"] = mapping.Filename
 
 			for _, dif := range mapping.Difs {
+				var checksum string
+				checksum, err = cipher.ChecksumFnv1(bytes.NewReader(dif.Data))
+				if err != nil {
+					return
+				}
+
+				if b.artifactExists(dif.Key, checksum) {
+					continue
+				}
+
 				if config.IsCloud() {
 					obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
 					writer := obj.NewWriter(ctx)
@@ -419,7 +453,7 @@ func (b *Build) upload(ctx context.Context) (err error) {
 					}
 				}
 
-				if err = b.recordArtifact(index, dif); err != nil {
+				if err = b.recordArtifact(index, dif, checksum); err != nil {
 					return
 				}
 			}
@@ -429,23 +463,35 @@ func (b *Build) upload(ctx context.Context) (err error) {
 	return
 }
 
+// artifactExists reports whether a loaded sibling row already
+// holds this exact object, matched by key & per-object checksum.
+// It is the dedup gate: a redelivered notification reloads the
+// rows written by the first delivery, so every dif matches here
+// & is skipped, keeping processing idempotent.
+func (b *Build) artifactExists(key, checksum string) bool {
+	for _, m := range b.Mappings {
+		if m.Key == key && m.Checksum == checksum {
+			return true
+		}
+	}
+
+	return false
+}
+
 // recordArtifact ties an uploaded dif to a build_mappings row.
 // The first non-meta dif of a mapping fills the existing row,
 // every later one becomes a new extra row to insert. This is how
 // a single archive that extracts to many objects gets one row
 // per object instead of the last object overwriting the rest.
-func (b *Build) recordArtifact(index int, dif *symbol.Dif) (err error) {
+// checksum is the per-object fnv1 hash stored on the row.
+func (b *Build) recordArtifact(index int, dif *symbol.Dif, checksum string) (err error) {
 	location := buildLocation(dif.Key)
 
 	if !b.Mappings[index].UploadComplete {
 		b.Mappings[index].Key = dif.Key
 		b.Mappings[index].Location = location
+		b.Mappings[index].Checksum = checksum
 		b.Mappings[index].UploadComplete = true
-		return
-	}
-
-	checksum, err := cipher.ChecksumFnv1(bytes.NewReader(dif.Data))
-	if err != nil {
 		return
 	}
 
@@ -870,35 +916,14 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 		return
 	}
 
-	// compute checksum of the freshly
-	// downloaded mapping object
-	reader := bytes.NewReader(content)
-	checksum, err := cipher.ChecksumFnv1(reader)
-	if err != nil {
-		msg := fmt.Sprintf("failed to compute checksum for mapping id %q: %v", mappingId, err)
-		fmt.Println(msg)
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-
-		return
-	}
-
 	for _, mapping := range build.Mappings {
 		if mapping.ID != mappingId {
 			continue
 		}
 
-		// if the checksums match, no need to do anything
-		if mapping.hasChecksum() && mapping.Checksum == checksum {
-			continue
-		}
-
-		// at this point, we know this mapping
-		// is a new one
+		// per-object dedup runs later in upload(); mark this
+		// mapping for processing & extract its artifacts
 		mapping.ShouldUpload = true
-		mapping.Checksum = checksum
 		mapping.Filename = originalFileName
 		mapping.File = content
 		mapping.Size = int64(len(content))
@@ -1163,35 +1188,14 @@ func ProcessSymbolNotification(c *gin.Context) {
 			return
 		}
 
-		// compute checksum of the freshly
-		// downloaded mapping object
-		reader := bytes.NewReader(content)
-		checksum, err := cipher.ChecksumFnv1(reader)
-		if err != nil {
-			msg := fmt.Sprintf("failed to compute checksum for mapping id %q: %v", mappingId, err)
-			fmt.Println(msg)
-
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-
-			return
-		}
-
 		for _, mapping := range build.Mappings {
 			if mapping.ID != mappingId {
 				continue
 			}
 
-			// if the checksums match, no need to do anything
-			if mapping.hasChecksum() && mapping.Checksum == checksum {
-				continue
-			}
-
-			// at this point, we know this mapping
-			// is a new one
+			// per-object dedup runs later in upload(); mark this
+			// mapping for processing & extract its artifacts
 			mapping.ShouldUpload = true
-			mapping.Checksum = checksum
 			mapping.Filename = originalFileName
 			mapping.File = content
 			mapping.Size = int64(len(content))
