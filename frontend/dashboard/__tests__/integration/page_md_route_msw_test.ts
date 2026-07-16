@@ -132,7 +132,7 @@ describe("/page-md/[...path] route handler", () => {
     });
 
     it("returns 406 for a docs page path", async () => {
-      const res = await call(["docs", "sdk-integration-guide"]);
+      const res = await call(["docs", "getting-started", "android"]);
       await expect406(res);
     });
   });

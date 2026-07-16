@@ -1,0 +1,214 @@
+---
+title: "Error Monitoring"
+seoTitle: "Mobile Crash Reporting, ANR, and Error Monitoring"
+description: "Monitor crashes, ANRs, unhandled errors, and handled errors across your mobile app. See what broke, how often, and what the user was doing when it happened."
+---
+
+Measure tracks crashes, ANRs, and other errors in your app. Each error is reported with a session timeline that shows the steps the user took before hitting the error. Similar errors are [grouped](/docs/error-monitoring/grouping) into a single issue so you can tell how often something happens and what to fix first.
+
+## Error severity
+
+Every error is classified by severity.
+
+- **Fatal** errors are ones that crash the app.
+- **Unhandled** errors are ones that escape your code without crashing the app.
+- **Handled** errors are ones that you catch and report manually.
+
+## Crash reporting
+
+Measure reports crashes automatically. What gets captured and how it's captured depends on your platform.
+
+### Android
+
+When an uncaught exception terminates the app, it's recorded as a fatal error with the full stack trace and the session that led up to it.
+
+If you obfuscate your code with R8, set up the [Measure Android Gradle Plugin](/docs/error-monitoring/upload-symbols#android). It uploads the `mapping.txt` file so stack traces are readable.
+
+### iOS
+
+A crash report is saved the moment a crash happens and is uploaded the next time the user reopens the app. Crashes are captured using [KSCrash](https://github.com/kstenerud/KSCrash).
+
+By default, the stack trace contains just memory addresses. Upload your dSYM files in your release pipeline or from an Xcode build phase using [these scripts](/docs/error-monitoring/upload-symbols#ios).
+
+### Flutter
+
+Most Flutter errors are Dart errors that the framework catches before they can crash the app. Measure hooks into `FlutterError.onError` and `PlatformDispatcher.onError` to record them automatically as unhandled errors. When a crash happens on the native layer, it's captured automatically as a fatal error.
+
+If you obfuscate your Flutter code with `--obfuscate` and `--split-debug-info`, upload the generated symbol files so stack traces are readable. See [Upload symbols](/docs/error-monitoring/upload-symbols#flutter) for each platform's steps.
+
+### React Native
+
+A fatal JavaScript error is captured automatically as a crash. Non-fatal JavaScript errors and unhandled promise rejections are captured as unhandled errors. When a crash happens on the native layer, it's captured automatically as a fatal error.
+
+Upload your JavaScript sourcemaps so stack traces are readable. See [Upload symbols](/docs/error-monitoring/upload-symbols#react-native) for the steps.
+
+### Kotlin Multiplatform
+
+Crashes are captured on both the Android and iOS targets, including crashes in your shared Kotlin code.
+
+On iOS, the stack trace includes the Kotlin frames, pointing straight to the shared code that failed:
+
+```log
+Thread 0 Crashed:
+0   FrankensteinApp   kfun:com.frankenstein.shared.demos$6.$<bridge-DNN>invoke()   (CmpScreen.kt:210)
+1   FrankensteinApp   kfun:com.frankenstein.shared.ActionCard$$inlined$cache$1.invoke()   (CmpScreen.kt:150)
+2   FrankensteinApp   kfun:androidx.compose.foundation.ClickableNode#onPointerEvent()   (Clickable.kt:940)
+3   UIKitCore         -[UIWindow sendEvent:] + 2996
+...
+```
+
+## ANR reporting
+
+An [ANR](https://developer.android.com/topic/performance/vitals/anr) (Application Not Responding) happens when the app's main thread is blocked for too long, for example when it can't respond to input within 5 seconds. ANRs are reported automatically.
+
+On Android 11 and above, [ApplicationExitInfo](https://developer.android.com/reference/android/app/ApplicationExitInfo) is also collected on the next launch to record why the app exited. ANR exits include the thread dump taken by the OS.
+
+## Track a handled error
+
+Errors you catch and recover from can be manually reported. See [Track errors](/docs/api-reference#track-errors) for the full signature.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+try {
+    methodThatThrows()
+} catch (e: Exception) {
+    Measure.trackHandledException(e)
+}
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+// Track a Swift Error or an NSError with trackError
+do {
+    try someThrowingFunction()
+} catch {
+    Measure.trackError(error)
+}
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+try {
+  methodThatThrows();
+} catch (e, stackTrace) {
+  Measure.instance.trackHandledError(e, stackTrace);
+}
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+try {
+  methodThatThrows();
+} catch (e) {
+  Measure.trackError({ error: e });
+}
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+try {
+    methodThatThrows()
+} catch (e: Exception) {
+    Measure.trackHandledException(e)
+}
+```
+
+</Tab>
+</Tabs>
+
+### Add attributes
+
+Attach attributes to a handled error to record additional context about the error. You can filter and group by these attributes on the dashboard. See [Attribute limits](/docs/api-reference#attribute-limits) for the allowed keys and values.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.attributes.AttributesBuilder
+
+val attributes = AttributesBuilder().put("screen", "Login").build()
+Measure.trackHandledException(e, attributes)
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+Measure.trackError(error, attributes: ["screen": .string("Login")])
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+final attributes = AttributeBuilder().add("screen", "Login").build();
+Measure.instance.trackHandledError(e, stackTrace, attributes: attributes);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+Measure.trackError({ error: e, attributes: { screen: "Login" } });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.attributes.AttributesBuilder
+
+val attributes = AttributesBuilder().put("screen", "Login").build()
+Measure.trackHandledException(e, attributes)
+```
+
+</Tab>
+</Tabs>
+
+## Session timelines
+
+Measure collects a session timeline with every **fatal** and **unhandled** error. It's an ordered list of what happened leading up to the error: the screens opened, taps, network calls, logs, app lifecycle events, network changes and more. Use it to retrace exactly what the user did before it broke.
+
+By default the timeline covers the 5 minutes before the error. A longer window gives more context but collects more data. Change it from the dashboard through [Adaptive Capture](/docs/adaptive-capture#session-timeline-duration).
+
+## Screenshots
+
+Each crash and ANR includes a screenshot of what was on screen when the issue occurred. Sensitive content is masked on the device before the screenshot is uploaded, and the [screenshot mask level](/docs/adaptive-capture#screenshot-mask-level) controls how much is hidden. See [Screenshot masking](/docs/error-monitoring/screenshot-masking) for how masking works on each platform and the APIs to mask specific views.
+
+<Callout type="info">
+Screenshots for crashes aren't supported on iOS.
+</Callout>
+
+## Alerts
+
+A spike of crashes or ANRs triggers an alert over email and Slack. Handled errors never trigger alerts. See [Alerts](/docs/alerts) for how spikes are detected, how to tune the thresholds, and how to set up delivery.
+
+## Configuration options
+
+Crashes and ANRs are configured remotely through [Adaptive Capture](/docs/adaptive-capture), so you can change these without shipping a new build:
+
+- **Screenshots**: whether Measure captures a screenshot on each crash and ANR. On by default.
+- **Session timeline duration**: how far back the timeline reaches before the error. A longer window gives more context but collects more data. 5 minutes by default.
+- **Screenshot mask level**: how much of each screenshot is masked to keep sensitive content from leaking. Masks all text and media by default.
+
+See [Errors](/docs/adaptive-capture#errors) for each setting.

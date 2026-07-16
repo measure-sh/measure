@@ -28,28 +28,25 @@ dependencies:
 
 ### Initialize the SDK
 
-To initialize the SDK, you need to call the `Measure.instance.init` method in your `main` function
+To initialize the SDK, call the `Measure.instance.init` method in your `main` function
 and wrap your application with `MeasureWidget` as the parent.
 
 ```dart
 Future<void> main() async {
   await Measure.instance.init(
-        () =>
-        runApp(
-          MeasureWidget(child: MyApp()),
-        ),
+    () => runApp(MeasureWidget(child: MyApp())),
     config: const MeasureConfig(
       enableLogging: true,
       traceSamplingRate: 1,
       samplingRateForErrorFreeSessions: 1,
     ),
-    clientInfo: ClientInfo(
-      apiKey: "YOUR_API_KEY",
-      apiUrl: "YOUR_API_URL",
-    ),
   );
 }
 ```
+
+Credentials and the native Android and iOS SDKs are configured in each platform's native
+project. See the [integration guide](https://measure.sh/docs/getting-started/flutter) for the
+full setup.
 
 ### Verify Installation
 

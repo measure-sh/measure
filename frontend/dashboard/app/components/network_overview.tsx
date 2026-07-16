@@ -398,7 +398,7 @@ export default function NetworkOverview({
                       Search for endpoints using exact paths or wildcard
                       patterns.{" "}
                       <Link
-                        href="/docs/features/feature-network-monitoring#searching-for-endpoints"
+                        href="/docs/network-monitoring/endpoint-patterns#searching-for-endpoints"
                         className={underlineLinkStyle}
                       >
                         Learn more
@@ -578,7 +578,7 @@ export default function NetworkOverview({
                       <>
                         {" "}
                         <Link
-                          href="/docs/features/feature-network-monitoring#request-timeline"
+                          href="/docs/network-monitoring/endpoint-patterns#request-timeline"
                           className={underlineLinkStyle}
                         >
                           Learn more

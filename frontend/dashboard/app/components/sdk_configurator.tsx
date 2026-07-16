@@ -684,7 +684,7 @@ export default function SdkConfigurator({
             <>
               See the{" "}
               <Link
-                href="/docs/configuration-options"
+                href="/docs/adaptive-capture"
                 className={underlineLinkStyle}
               >
                 docs

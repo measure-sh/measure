@@ -1,0 +1,25 @@
+---
+title: "App Size Monitoring"
+seoTitle: "App Size Monitoring for APK, AAB, and IPA Builds"
+description: "Track your Android APK or AAB size and iOS IPA size for every build to catch size regressions before they ship."
+---
+
+Measure tracks the size of your app over versions.
+
+## Android
+
+The [Gradle plugin](/docs/getting-started/android#3-add-the-gradle-plugin) uploads app size after every successful `assemble<Variant>` or `bundle<Variant>` task. Both APKs and AABs are supported.
+
+APK size is calculated with apkanalyzer's [download-size](https://developer.android.com/tools/apkanalyzer#commands) command, the same tool Android Studio uses. It represents the estimated download size for the end user.
+
+AAB size is calculated with bundletool's [get-size total](https://developer.android.com/tools/bundletool) command. It represents the maximum size of an APK that can be generated from the bundle.
+
+## iOS
+
+IPA size is recorded for each version when you upload dSYMs with either of the [upload scripts](/docs/error-monitoring/upload-symbols#ios).
+
+<Callout type="info">
+
+The recorded size is the generated `.ipa`, not the App Store download size.
+
+</Callout>

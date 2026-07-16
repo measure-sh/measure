@@ -1,0 +1,156 @@
+---
+title: "Navigation Tracking"
+seoTitle: "Screen View and Lifecycle Tracking for Mobile Apps"
+description: "Track screen views and lifecycle events as users navigate through your app."
+---
+
+Navigation tracking records the screens users visit, component lifecycle events, and when the app moves to the foreground or background. All of it appears in the session timeline.
+
+## Track screen views manually
+
+Use `trackScreenView` when a screen isn't tracked automatically, like in a custom navigation setup.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+Measure.trackScreenView("Checkout")
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.trackScreenView("Checkout", attributes: nil)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+Measure.instance.trackScreenViewEvent(name: "Checkout");
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.trackScreenView({ screenName: "Checkout" });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+Measure.trackScreenView("Checkout")
+```
+
+</Tab>
+</Tabs>
+
+`trackScreenView` also accepts attributes. See [Track screen views](/docs/api-reference#track-screen-views) in the API reference for examples.
+
+## Automatic collection
+
+A screen view is recorded each time the user lands on a new screen.
+
+### Android
+
+If your app navigates with [AndroidX Navigation](https://developer.android.com/guide/navigation), including Compose, each new destination records a screen view. The [Gradle plugin](/docs/getting-started/android#3-add-the-gradle-plugin) adds the instrumentation at build time; no code changes are needed.
+
+<Callout type="warn">
+
+Works with `androidx.navigation:navigation-compose` versions `2.4.0` to `2.9.7`. Other versions are not instrumented.
+
+</Callout>
+
+### iOS
+
+Screen views aren't recorded automatically. Call [`trackScreenView`](#track-screen-views-manually) from your navigation code.
+
+### Flutter
+
+Add `MsrNavigatorObserver` to your app's navigator observers to record a screen view on every route change:
+
+```dart
+@override
+Widget build(BuildContext context) {
+  return MaterialApp(
+    navigatorObservers: [MsrNavigatorObserver()],
+    home: HomeScreen(),
+  );
+}
+```
+
+### React Native
+
+Screen views aren't recorded automatically because React Native apps use a variety of navigation libraries. For [React Navigation](https://reactnavigation.org/), hook into the `onStateChange` callback of `NavigationContainer`:
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+import { NavigationContainer } from '@react-navigation/native';
+
+function App() {
+  return (
+    <NavigationContainer
+      onStateChange={(state) => {
+        const currentRoute = state?.routes[state.index];
+        if (currentRoute?.name) {
+          Measure.trackScreenView({ screenName: currentRoute.name });
+        }
+      }}
+    >
+      <RootNavigator />
+    </NavigationContainer>
+  );
+}
+```
+
+## Lifecycle events
+
+Lifecycle events are tracked without setup. Flutter and React Native apps get the native Android and iOS events below as well.
+
+### Android
+
+Activities report created, resumed, paused, and destroyed; fragments report attached, resumed, paused, and detached.
+
+### iOS
+
+View controllers report these events:
+
+- `viewDidLoad`
+- `viewWillAppear`
+- `viewDidAppear`
+- `viewWillDisappear`
+- `viewDidDisappear`
+- `didReceiveMemoryWarning`
+- `initWithNibName`
+- `initWithCoder`
+
+To also capture `loadView` and `deinit`, inherit from `MsrViewController` (or `MSRViewController` in Objective-C):
+
+```swift
+class CheckoutViewController: MsrViewController {
+}
+```
+
+For SwiftUI, wrap a view in `MsrMoniterView` or use the `moniterWithMsr` extension to record `onAppear` and `onDisappear`:
+
+```swift
+struct CheckoutView: View {
+    var body: some View {
+        CheckoutForm()
+            .moniterWithMsr("Checkout")
+    }
+}
+```

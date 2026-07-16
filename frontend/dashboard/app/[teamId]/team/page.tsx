@@ -1021,7 +1021,7 @@ export default function TeamOverview(props: {
                   Receive alert notifications and daily summaries in Slack.{" "}
                   <Link
                     className={underlineLinkStyle}
-                    href="/docs/features/feature-slack-integration"
+                    href="/docs/integrations#slack"
                   >
                     Learn more
                   </Link>

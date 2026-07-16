@@ -15,7 +15,7 @@ Measure helps mobile teams monitor and fix crashes, ANRs, bugs, and performance 
 
 ## Quick start
 
-Sign up to [Measure Cloud](https://measure.sh) or [self host](https://measure.sh/docs/hosting) on your own servers. Once you've logged in, check out our [SDK integration](https://measure.sh/docs/sdk-integration-guide) docs.
+Sign up to [Measure Cloud](https://measure.sh) or [self host](https://measure.sh/docs/hosting) on your own servers. Once you've logged in, check out our [SDK integration](https://measure.sh/docs) docs.
 
 ## Features
 
@@ -81,7 +81,7 @@ We would love for you to contribute to Measure by opening issues, sending PRs, â
 
 ## Important Docs
 
-1. [**SDK Integration Guide**](https://measure.sh/docs/sdk-integration-guide) - Integrate Android or iOS SDK and start measuring in no time
+1. [**SDK Integration Guide**](https://measure.sh/docs) - Integrate Android or iOS SDK and start measuring in no time
 2. [**Explore Features**](https://measure.sh/docs/features/feature-session-timelines) - Learn about the features available in Measure and how to use them
 3. [**Contribution Guide**](CONTRIBUTING.md) - Contribute to Measure
 

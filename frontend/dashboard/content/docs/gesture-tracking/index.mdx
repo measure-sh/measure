@@ -1,0 +1,67 @@
+---
+title: "Gesture Tracking"
+seoTitle: "Automatic Gesture Tracking for Android, iOS, Flutter"
+description: "Capture taps, long presses, and scrolls automatically along with the UI element each gesture landed on."
+---
+
+Measure captures clicks, long clicks, and scrolls automatically, so you can see how users interact with your app without instrumenting every view. Each gesture records the element it was performed on, and clicks include the text visible on that element, so a tap on a button labeled "Checkout" appears in the session with that text.
+
+Clicks also capture a [layout snapshot](/docs/gesture-tracking/layout-snapshots), a wireframe of the screen as it looked when the user tapped.
+
+## Android
+
+Views and Jetpack Compose are both supported without setup. A gesture on a View is reported with the view's type, its id, and the text on it, so events map directly to your layouts.
+
+Taps on composables that show text are identifiable by that text. To name a composable explicitly, set a [testTag](https://developer.android.com/reference/kotlin/androidx/compose/ui/semantics/package-summary#(androidx.compose.ui.semantics.SemanticsPropertyReceiver).testTag()) on it; the tag is reported with the gesture:
+
+```kotlin
+Button(
+    onClick = { viewModel.checkout() },
+    modifier = Modifier.testTag("checkout_button"),
+) {
+    Text("Checkout")
+}
+```
+
+## iOS
+
+UIKit gestures are captured without setup. A gesture on a view is reported with the view's type, its accessibility identifier, and the text on it, read from button titles and labels. Scrolls are detected on scrollable views like `UIScrollView`, `UIDatePicker`, and `UIPickerView`.
+
+SwiftUI gestures are captured too, since touches are detected at the window level.
+
+<Callout type="warn">
+
+Gestures on SwiftUI screens are reported with SwiftUI's internal view names, and text is not read from SwiftUI elements.
+
+</Callout>
+
+## Flutter
+
+Gestures are detected once your app is wrapped in `MeasureWidget` during [SDK initialization](/docs/getting-started/flutter#3-initialize-the-sdk). A custom widget is tracked when it inherits from or contains one of the supported types below; other widgets are ignored.
+
+Clicks and long clicks are detected on these widgets:
+
+| Category           | Widgets                                                                                                    |
+|--------------------|------------------------------------------------------------------------------------------------------------|
+| Buttons            | `ButtonStyleButton`, `MaterialButton`, `IconButton`, `FloatingActionButton`, `CupertinoButton`               |
+| Chips              | `InputChip`, `ActionChip`, `FilterChip`, `ChoiceChip`                                                        |
+| Toggles            | `Checkbox`, `Switch`, `Radio`, `CupertinoSwitch`, `CheckboxListTile`, `SwitchListTile`, `RadioListTile`      |
+| Text fields        | `TextField`, `TextFormField`, `CupertinoTextField`                                                           |
+| Menus and lists    | `ListTile`, `PopupMenuButton`, `PopupMenuItem`, `DropdownButton`, `DropdownMenuItem`, `ExpansionTile`        |
+| Other              | `Card`, `GestureDetector`, `Stepper`                                                                         |
+
+Scrolls are detected on `ListView`, `ScrollView`, `PageView`, and `SingleChildScrollView`.
+
+## React Native
+
+Gestures are detected by the underlying native SDK, so the Android and iOS behavior above applies as is.
+
+## Performance
+
+### Android
+
+Finding the gesture target takes 0.458 ms on average for views and 0.658 ms for composables in deep hierarchies ([macro benchmark](https://github.com/measure-sh/measure/pull/377#issue-2123559330)).
+
+### iOS
+
+Finding the gesture target takes about 0.2 ms in a typical view hierarchy, and 4 ms in one 1,500 levels deep.

@@ -1,0 +1,80 @@
+---
+title: "Screenshot masking"
+seoTitle: "Screenshot masking for mobile crash reporting"
+description: "Mask sensitive content in screenshots on the device before they're uploaded, with APIs for masking specific views."
+---
+
+Each crash, ANR, and bug report includes an optional screenshot. Sensitive content is masked on the device before the screenshot is uploaded, so it never reaches the server. How much gets hidden is set by the [screenshot mask level](/docs/adaptive-capture#screenshot-mask-level), configured from the dashboard.
+
+What masking can detect on its own differs by platform.
+
+## Android
+
+Masking requires no setup. The SDK automatically inspects the view hierarchy, both Views and Jetpack Compose, and hides content based on the selected mask level.
+
+## iOS
+
+UIKit requires no setup. Every visible element is a `UIView`, and masking traverses the view hierarchy to redact sensitive types like `UILabel`, `UITextField`, and `UITextView` based on the mask level.
+
+SwiftUI works differently. Most SwiftUI views don't produce individual `UIView` instances; the whole tree renders inside a single hosting view that can't be inspected view by view. The entire hosting view is masked by default instead, whatever the mask level, so no SwiftUI content leaks. Two modifiers control individual views.
+
+### Mask a SwiftUI view
+
+`.msrMask()` marks a view as sensitive, redacting its frame whether or not automatic detection would catch it. Use it for standalone `Text` views and custom views holding user data.
+
+```swift
+Text(user.email)
+    .msrMask()
+```
+
+### Unmask a SwiftUI view
+
+`.msrUnmask()` reveals a view that isn't sensitive, like a navigation title, an icon, or a static label. The view's frame is cut out of the masked region.
+
+```swift
+Text("Welcome back")
+    .msrUnmask()
+```
+
+Combine the two in screens that mix sensitive and non-sensitive content. Fields backed by UIKit inputs, like `TextField` and `SecureField`, are masked automatically.
+
+```swift
+Form {
+    Section("Profile") {
+        Text("Username")
+            .msrUnmask()
+        TextField("Username", text: $username)
+    }
+    Section("Security") {
+        SecureField("Password", text: $password)
+        Text(recoveryHint)
+            .msrMask()
+    }
+}
+```
+
+## Flutter
+
+The SDK walks the widget tree under the `MeasureWidget` that wraps your app and redacts detected widgets based on the selected mask level. Automatic detection covers:
+
+- `Text` and `RichText`
+- `TextField` and `EditableText`
+- `Image`
+
+A `TextField` with `obscureText` or a password, email, or phone keyboard type is always masked, whatever the mask level. Text inside buttons, `InkWell`, or a `GestureDetector` with handlers counts as clickable, so the "mask text except clickable" level leaves it visible.
+
+Custom-drawn content isn't detected. Wrap it with `MsrMask` to always redact its area, regardless of the mask level.
+
+```dart
+MsrMask(
+  child: AccountBalance(amount: balance),
+)
+```
+
+## React Native
+
+Masking requires no setup. React Native renders native views, so the view hierarchy inspection from Android and iOS applies as is.
+
+## Kotlin Multiplatform
+
+Masking requires no setup. Kotlin Multiplatform runs the native SDKs, so masking works the same as Android and iOS.

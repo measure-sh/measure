@@ -105,12 +105,42 @@ const nextConfig = {
       // slugs the files now have.
       {
         source: "/docs/features/configuration-options",
-        destination: "/docs/configuration-options",
+        destination: "/docs/adaptive-capture",
         permanent: true,
       },
       {
         source: "/docs/features/performance-impact",
         destination: "/docs/performance-impact",
+        permanent: true,
+      },
+      // Configuration Options was renamed Adaptive Capture. Forward the old
+      // flat URL; the browser carries anchors like #journey-sampling across.
+      {
+        source: "/docs/configuration-options",
+        destination: "/docs/adaptive-capture",
+        permanent: true,
+      },
+      // The Slack Integration page's setup content moved to the Integrations
+      // page. Forward the old URL to its Slack section.
+      {
+        source: "/docs/slack-integration",
+        destination: "/docs/integrations#slack",
+        permanent: true,
+      },
+      // The /docs/getting-started folder groups the per-platform pages but has
+      // no page of its own (the chooser lives at the /docs root), so its bare
+      // URL would 404. Send it to the chooser. Temporary (like the api section
+      // folders below) so it isn't hard-cached if the folder gains a page later.
+      {
+        source: "/docs/getting-started",
+        destination: "/docs",
+        permanent: false,
+      },
+      // The SDK Integration guide was split into per-platform pages under
+      // /docs/getting-started. Forward the old URL to the docs home.
+      {
+        source: "/docs/sdk-integration-guide",
+        destination: "/docs",
         permanent: true,
       },
       // The API reference's section folders group generated operation pages
@@ -125,6 +155,112 @@ const nextConfig = {
         source: "/docs/api/sdk",
         destination: "/docs/api",
         permanent: false,
+      },
+      // Bug reporting moved from four per-platform pages under features/ into
+      // its own top-level Bug reports section. Forward the old URLs to it.
+      {
+        source: "/docs/features/feature-bug-report-android",
+        destination: "/docs/bug-reports",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-bug-report-ios",
+        destination: "/docs/bug-reports",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-bug-report-flutter",
+        destination: "/docs/bug-reports",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-bug-report-react-native",
+        destination: "/docs/bug-reports",
+        permanent: true,
+      },
+      // Connectivity changes moved out of features/ into the Network
+      // monitoring section. The navigation and lifecycle feature page was
+      // removed; screen view tracking now lives in the API reference.
+      // Forward the old URLs.
+      {
+        source: "/docs/features/feature-network-connectivity-changes",
+        destination: "/docs/network-monitoring/connectivity-changes",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-navigation-lifecycle-tracking",
+        destination: "/docs/navigation-tracking",
+        permanent: true,
+      },
+      // The features section was dissolved. Each page's content moved into a
+      // feature section, the API reference, or Configuration Options. Forward
+      // the old URLs.
+      {
+        source: "/docs/features/feature-network-monitoring",
+        destination: "/docs/network-monitoring",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-custom-events",
+        destination: "/docs/custom-events",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-identify-users",
+        destination: "/docs/api-reference#identify-users",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-manually-start-stop-sdk",
+        destination: "/docs/api-reference#start-tracking",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-screenshot-masking-swiftui",
+        destination: "/docs/adaptive-capture#screenshot-mask-level",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-screenshot-masking-flutter",
+        destination: "/docs/adaptive-capture#screenshot-mask-level",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-app-launch-metrics",
+        destination: "/docs/adaptive-capture#launch-metrics-sampling",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-app-size-monitoring",
+        destination: "/docs/app-size-monitoring",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-gesture-tracking",
+        destination: "/docs/gesture-tracking",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-session-timelines",
+        destination: "/docs/session-timeline",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-cpu-monitoring",
+        destination: "/docs/cpu-memory-monitoring#cpu-usage",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-memory-monitoring",
+        destination: "/docs/cpu-memory-monitoring#memory-usage",
+        permanent: true,
+      },
+      // Profiling moved from a top-level page into the Performance tracing
+      // section. Forward the old flat URL.
+      {
+        source: "/docs/profiling",
+        destination: "/docs/performance-tracing/profiling",
+        permanent: true,
       },
     ];
   },

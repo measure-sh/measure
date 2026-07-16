@@ -1,0 +1,469 @@
+---
+title: "Performance Tracing"
+seoTitle: "Mobile App Performance Tracing with Spans and Traces"
+description: "Trace any operation in your app with nested spans and attributes across Android, iOS, Flutter, React Native, and Kotlin Multiplatform."
+---
+
+Tracing shows how long an operation takes and where the time goes inside it.
+
+A **span** times a single piece of work, like an HTTP request, a database query, or a function. A **trace** groups related spans into one operation, from something small like an app launch to a whole journey like onboarding. Spans nest inside a trace to show how the work is structured.
+
+This page covers the common operations. See [Track performance traces](/docs/api-reference#track-performance-traces) for the full API.
+
+## Time an operation
+
+Wrap an operation in a span to time it. Start a span when the work begins and end it when it's done. For example: time a feed refresh, an image decode, or a database query. Then set the status to mark whether the work succeeded (`Ok`) or failed (`Error`) before you end the span.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+import sh.measure.android.tracing.SpanStatus
+
+val span = Measure.startSpan("refresh-feed")
+val refreshed = feedRepository.refresh()
+span.setStatus(if (refreshed) SpanStatus.Ok else SpanStatus.Error).end()
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let span = Measure.startSpan(name: "refresh-feed")
+let refreshed = await feedRepository.refresh()
+span.setStatus(refreshed ? .ok : .error).end()
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final span = Measure.instance.startSpan("refresh-feed");
+final refreshed = await feedRepository.refresh();
+span.setStatus(refreshed ? SpanStatus.ok : SpanStatus.error).end();
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure, SpanStatus } from '@measuresh/react-native';
+
+const span = Measure.startSpan({ name: "refresh-feed" });
+const refreshed = await feedRepository.refresh();
+span.setStatus(refreshed ? SpanStatus.Ok : SpanStatus.Error).end();
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+import sh.measure.kmp.tracing.SpanStatus
+
+val span = Measure.startSpan("refresh-feed")
+val refreshed = feedRepository.refresh()
+span.setStatus(if (refreshed) SpanStatus.Ok else SpanStatus.Error).end()
+```
+
+</Tab>
+</Tabs>
+
+## Break a flow into steps
+
+A single span records how long the whole flow took. Often you need a drill down into what steps made it slow. To understand that, set one span as the **parent** of another to nest them. For example: for a checkout flow, create a parent span for the whole flow with a child span for each step, like validating the cart and processing the payment.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+val checkout = Measure.startSpan("checkout")
+
+val validate = Measure.startSpan("validate-cart").setParent(checkout)
+cartService.validate(cart)
+validate.end()
+
+val payment = Measure.startSpan("process-payment").setParent(checkout)
+paymentGateway.charge(cart)
+payment.end()
+
+checkout.end()
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let checkout = Measure.startSpan(name: "checkout")
+
+let validate = Measure.startSpan(name: "validate-cart").setParent(checkout)
+await cartService.validate(cart)
+validate.end()
+
+let payment = Measure.startSpan(name: "process-payment").setParent(checkout)
+await paymentGateway.charge(cart)
+payment.end()
+
+checkout.end()
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final checkout = Measure.instance.startSpan("checkout");
+
+final validate = Measure.instance.startSpan("validate-cart").setParent(checkout);
+await cartService.validate(cart);
+validate.end();
+
+final payment = Measure.instance.startSpan("process-payment").setParent(checkout);
+await paymentGateway.charge(cart);
+payment.end();
+
+checkout.end();
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const checkout = Measure.startSpan({ name: "checkout" });
+
+const validate = Measure.startSpan({ name: "validate-cart" }).setParent(checkout);
+await cartService.validate(cart);
+validate.end();
+
+const payment = Measure.startSpan({ name: "process-payment" }).setParent(checkout);
+await paymentGateway.charge(cart);
+payment.end();
+
+checkout.end();
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+val checkout = Measure.startSpan("checkout")
+
+val validate = Measure.startSpan("validate-cart").setParent(checkout)
+cartService.validate(cart)
+validate.end()
+
+val payment = Measure.startSpan("process-payment").setParent(checkout)
+paymentGateway.charge(cart)
+payment.end()
+
+checkout.end()
+```
+
+</Tab>
+</Tabs>
+
+## Add context with attributes
+
+Attach attributes to a span to record additional context alongside its timing. For example, on a feed-load span, that might be the screen name, how many items are in the feed, or whether the data was served from cache. See [Attribute limits](/docs/api-reference#attribute-limits) for the allowed keys and values.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+val span = Measure.startSpan("load-feed")
+val items = feedApi.fetchFeed()
+span.setAttribute("screen", "Home")
+span.setAttribute("item_count", items.size)
+span.end()
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let span = Measure.startSpan(name: "load-feed")
+let items = await feedApi.fetchFeed()
+span.setAttribute("screen", value: "Home")
+span.setAttribute("item_count", value: items.count)
+span.end()
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final span = Measure.instance.startSpan("load-feed");
+final items = await feedApi.fetchFeed();
+span.setAttributeString("screen", "Home");
+span.setAttributeInt("item_count", items.length);
+span.end();
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const span = Measure.startSpan({ name: "load-feed" });
+const items = await feedApi.fetchFeed();
+span.setAttribute("screen", "Home");
+span.setAttribute("item_count", items.length);
+span.end();
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+val span = Measure.startSpan("load-feed")
+val items = feedApi.fetchFeed()
+span.setAttribute("screen", "Home")
+span.setAttribute("item_count", items.size)
+span.end()
+```
+
+</Tab>
+</Tabs>
+
+## Mark checkpoints
+
+Mark a checkpoint inside a span to record a moment that matters. On a screen-load span, checkpoint when the network call returns and when the list finishes rendering. It helps to see which half of the load was slow. Checkpoints split one span's time into phases without a child span for each.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+val span = Measure.startSpan("load-screen")
+val products = productApi.fetchProducts()
+span.setCheckpoint("network_done")
+renderList(products)
+span.setCheckpoint("list_rendered")
+span.end()
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let span = Measure.startSpan(name: "load-screen")
+let products = await productApi.fetchProducts()
+span.setCheckpoint("network_done")
+renderList(products)
+span.setCheckpoint("list_rendered")
+span.end()
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final span = Measure.instance.startSpan("load-screen");
+final products = await productApi.fetchProducts();
+span.setCheckpoint("network_done");
+renderList(products);
+span.setCheckpoint("list_rendered");
+span.end();
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const span = Measure.startSpan({ name: "load-screen" });
+const products = await productApi.fetchProducts();
+span.setCheckpoint("network_done");
+renderList(products);
+span.setCheckpoint("list_rendered");
+span.end();
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+val span = Measure.startSpan("load-screen")
+val products = productApi.fetchProducts()
+span.setCheckpoint("network_done")
+renderList(products)
+span.setCheckpoint("list_rendered")
+span.end()
+```
+
+</Tab>
+</Tabs>
+
+## Defer or backdate a span
+
+Some spans start before there's a good place to create them. A cold launch begins when the process starts but the SDK is not initialzied at the time. you can create a backdated span in such a case.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+import sh.measure.android.tracing.SpanStatus
+
+// in Application.onCreate
+val launchStart = Measure.getCurrentTime()
+
+// when the first screen is drawn
+val span = Measure.startSpan("cold-launch", timestamp = launchStart)
+span.setStatus(SpanStatus.Ok).end()
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+// in application(_:didFinishLaunchingWithOptions:)
+let launchStart = Measure.getCurrentTime()
+
+// when the first screen appears
+let span = Measure.startSpan(name: "cold-launch", timestamp: launchStart)
+span.setStatus(.ok).end()
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+// in main, before runApp
+final launchStart = Measure.instance.getCurrentTime();
+
+// when the first frame renders
+final span = Measure.instance.startSpan("cold-launch", timestamp: launchStart);
+span.setStatus(SpanStatus.ok).end();
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure, SpanStatus } from '@measuresh/react-native';
+
+// in your entry file, before the app renders
+const launchStart = Measure.getCurrentTime();
+
+// when the first screen mounts
+const span = Measure.startSpanWithTimestamp({ name: "cold-launch", timestampMs: launchStart });
+span.setStatus(SpanStatus.Ok).end();
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+import sh.measure.kmp.tracing.SpanStatus
+
+// as early as possible in app startup
+val launchStart = Measure.getCurrentTime()
+
+// when the first screen is drawn
+val span = Measure.startSpan("cold-launch", timestamp = launchStart)
+span.setStatus(SpanStatus.Ok).end()
+```
+
+</Tab>
+</Tabs>
+
+To configure a span now and start it at the right moment, build it in advance with `createSpanBuilder`.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+val builder = Measure.createSpanBuilder("checkout")
+// later, when the work begins
+val span = builder?.startSpan()
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let builder = Measure.createSpanBuilder(name: "checkout")
+// later, when the work begins
+let span = builder?.startSpan()
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final builder = Measure.instance.createSpanBuilder("checkout");
+// later, when the work begins
+final span = builder?.startSpan();
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const builder = Measure.createSpanBuilder({ name: "checkout" });
+// later, when the work begins
+const span = builder?.startSpan();
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+val builder = Measure.createSpanBuilder("checkout")
+// later, when the work begins
+val span = builder?.startSpan()
+```
+
+</Tab>
+</Tabs>
+
+## Control the sampling rate
+
+Measure reports every trace by default. To collect less, set a [trace sampling rate](/docs/adaptive-capture#trace-sampling) from the dashboard.

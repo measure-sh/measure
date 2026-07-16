@@ -1,0 +1,29 @@
+---
+title: "Alerts"
+seoTitle: "Crash, ANR, and Bug Report Alerts over Email and Slack"
+description: "Get alerted on crash spikes, ANR spikes, and new bug reports, and receive daily summaries of core app metrics over email and Slack."
+---
+
+Measure alerts you over email and Slack when crashes or ANRs spike and when users file bug reports. A daily summary tracks how core metrics change day over day.
+
+## Alert types
+
+### Crash and ANR spikes
+
+Crashes and ANRs are [grouped into issues](/docs/error-monitoring/grouping). Spikes are detected per issue. An alert is sent when a single issue occurs at least 100 times in an hour and those occurrences amount to at least 0.5% of that hour's sessions.
+
+Both thresholds can be changed per app from the Apps page on the dashboard.
+
+Once an issue triggers an alert, the same issue won't trigger another one for 7 days. Other issues can still alert during this period. Handled errors never trigger alerts.
+
+### Bug reports
+
+Every new [bug report](/docs/bug-reports) triggers an alert with the report's description and a link to it on the dashboard. There are no thresholds or cooldowns. Each report alerts exactly once.
+
+### Daily summary
+
+Once a day, you get a summary of the previous day's core metrics: sessions, crash-free sessions, ANR-free sessions, and cold, warm, and hot launch times. Each metric is compared with the day before. The summary catches slow drifts that would never trip a spike alert.
+
+## Channels
+
+Alerts and daily summaries are delivered over email and Slack. Emails go to every member of the team that owns the app. Slack messages go to the channels you've subscribed in your workspace. Set up both in [Integrations](/docs/integrations).

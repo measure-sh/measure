@@ -36,7 +36,7 @@ cp .env.example .env
 ```
 
 Get the `API Key` and `API URL` by creating an app in the Measure
-dashboard. See [Create an App](https://measure.sh/docs/sdk-integration-guide#1-create-an-app)
+dashboard. See [Create an App](https://measure.sh/docs/getting-started/android#1-get-the-credentials)
 in the integration guide.
 
 Then run the setup script:

@@ -209,7 +209,7 @@ export default function NetworkTrends({
               content={
                 <>
                   <Link
-                    href="/docs/features/feature-network-monitoring#how-are-endpoint-patterns-generated"
+                    href="/docs/network-monitoring/endpoint-patterns"
                     className={underlineLinkStyle}
                   >
                     Learn more
