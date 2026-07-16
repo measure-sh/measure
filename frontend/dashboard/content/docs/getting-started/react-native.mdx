@@ -1,0 +1,131 @@
+---
+title: "React Native"
+seoTitle: "Measure React Native SDK Integration Guide"
+description: "Integrate the Measure SDK in your React Native app on Android and iOS."
+---
+
+The React Native SDK supports both **Expo** and **React Native** projects on Android and iOS.
+
+### Minimum requirements
+
+| Name            | Version  |
+| --------------- | -------- |
+| React Native    | `0.72.0` |
+| React           | `18.2.0` |
+| Measure Android | `0.18.0` |
+| Measure iOS     | `0.11.0` |
+
+## 1. Get the credentials
+
+Create a new app in the _Apps_ section on the dashboard and copy its `API URL` and `API Key`.
+
+<Callout type="warn">
+
+**Cross-platform apps need a unique API key for each platform they target.** To integrate another platform,
+create a new app on Measure with a different API key.
+
+</Callout>
+
+## 2. Add the SDK
+
+```sh
+# In your project root
+npm install @measuresh/react-native@0.1.1
+```
+
+## 3. Add the config plugin
+
+For Expo projects, add the Measure config plugin to `app.json` (or `app.config.js`):
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "@measuresh/react-native",
+        {
+          "androidApiKey": "<android-api-key>",
+          "androidApiUrl": "<android-api-url>",
+          "iosApiKey": "<ios-api-key>",
+          "iosApiUrl": "<ios-api-url>"
+        }
+      ]
+    ]
+  }
+}
+```
+
+Apply the changes:
+
+```sh
+npx expo prebuild
+```
+
+Not using Expo? [Set up a vanilla React Native project](#vanilla-react-native) instead.
+
+## 4. Initialize the SDK
+
+```typescript
+// In your app entry (e.g. App.tsx)
+import { Measure, MeasureConfig } from "@measuresh/react-native";
+
+const config = new MeasureConfig({});
+
+await Measure.init({ config });
+```
+
+## 5. Verify installation
+
+Add a test crash after `Measure.init`, run the app, and confirm it reaches your dashboard.
+
+```typescript
+// After Measure.init.
+// The 2-second delay gives the SDK time to flush the crash event.
+// Remove this after the crash appears in your dashboard.
+setTimeout(() => {
+  throw new Error("Test crash from Measure");
+}, 2000);
+```
+
+<Callout type="warn">
+
+Remove the test crash code once you've confirmed the crash appears in your dashboard.
+
+</Callout>
+
+## Vanilla React Native
+
+The React Native package already provides the native Android dependency, so there's no dependency to add by hand.
+
+**Android**
+
+Add your credentials to `android/app/src/main/AndroidManifest.xml`:
+
+```xml
+<!-- Inside the <application> tag -->
+<meta-data android:name="sh.measure.android.API_KEY" android:value="<android-api-key>" />
+<meta-data android:name="sh.measure.android.API_URL" android:value="<android-api-url>" />
+```
+
+**iOS**
+
+From the `ios` directory, run `pod install`.
+
+By default, the `measure-sh` iOS framework is integrated via Swift Package Manager (SPM) on React Native 0.75 and above. On older React Native versions it is integrated as a CocoaPods dependency automatically. If you'd prefer to integrate it as a CocoaPods dependency instead, add the following to the top of your `Podfile`:
+
+```ruby
+$MeasureDisableSPM = true
+```
+
+`measure-sh` links statically only. If your Podfile uses `use_frameworks!`, install the [`cocoapods-pod-linkage`](https://github.com/microsoft/cocoapods-pod-linkage) plugin (`gem install cocoapods-pod-linkage`) and link `measure-sh` statically:
+
+```ruby
+plugin 'cocoapods-pod-linkage'
+
+target '<YourAppTarget>' do
+  use_frameworks!
+  pod 'measure-sh', :linkage => :static
+end
+```
+
+With Android and iOS configured, continue with [Initialize the SDK](#4-initialize-the-sdk).

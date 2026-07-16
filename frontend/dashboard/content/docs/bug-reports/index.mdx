@@ -1,0 +1,71 @@
+---
+title: "Bug Reporting"
+seoTitle: "In-app bug reports for Android, iOS, Flutter, React Native and Kotlin Multiplatform"
+description: "Let users report bugs from inside your app with screenshots."
+---
+
+Measure lets users report bugs from inside your app, so you hear about the problems directly from customers.
+
+Each report can hold up to five screenshots and a description of up to 4,000 characters entered by the user. Screenshots use the same [screenshot mask level](/docs/configuration-options#screenshot-mask-level) as the rest of Measure, so sensitive content stays out. 
+
+## Launch the Bug Report screen
+
+Every SDK ships a native bug report UI. It captures the current screen automatically when triggered and users add more before they send. 
+
+See the [Track bug reports](/docs/api-reference#track-bug-reports) section in the SDK API reference to launch the bug report screen. 
+
+On Android and iOS, you can [theme the screen](/docs/bug-reports/theming) to match your app.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+|                            Dark mode                            |                            Light mode                            |
+|:---------------------------------------------------------------:|:----------------------------------------------------------------:|
+| <img src="/docs/assets/android-bug-report-dark.webp" width="312" alt="Bug report screen on Android in dark mode" style={{ display: "block", margin: "0 auto" }} /> | <img src="/docs/assets/android-bug-report-light.webp" width="312" alt="Bug report screen on Android in light mode" style={{ display: "block", margin: "0 auto" }} /> |
+
+</Tab>
+<Tab value="iOS">
+
+|                          Dark mode                          |                          Light mode                          |
+|:-----------------------------------------------------------:|:------------------------------------------------------------:|
+| <img src="/docs/assets/ios-bug-report-dark.webp" width="312" alt="Bug report screen on iOS in dark mode" style={{ display: "block", margin: "0 auto" }} /> | <img src="/docs/assets/ios-bug-report-light.webp" width="312" alt="Bug report screen on iOS in light mode" style={{ display: "block", margin: "0 auto" }} /> |
+
+</Tab>
+<Tab value="Flutter">
+
+|                             Dark mode                             |                             Light mode                             |
+|:----------------------------------------------------------------:|:------------------------------------------------------------------:|
+| <img src="/docs/assets/flutter-ios-bug-report-dark.webp" width="312" alt="Bug report screen on Flutter in dark mode" style={{ display: "block", margin: "0 auto" }} /> | <img src="/docs/assets/flutter-ios-bug-report-light.webp" width="312" alt="Bug report screen on Flutter in light mode" style={{ display: "block", margin: "0 auto" }} /> |
+
+</Tab>
+<Tab value="React Native">
+
+React Native runs on the same native SDKs, so the screen matches the Android and iOS tabs.
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+Kotlin Multiplatform runs on the same native SDKs, so the screen matches the Android and iOS tabs.
+
+</Tab>
+</Tabs>
+
+## Shake to report
+
+Users can also launch the bug report screen by shaking their device, from anywhere in the app. See [Shake to report](/docs/api-reference#shake-to-report) in the SDK API reference for how to register the handler.
+
+## Session timeline
+
+Each bug report comes with a session timeline. It's an ordered list of what happened leading up to the bug report: the screens opened, taps, network calls, errors, and logs. Use it to retrace exactly what the user did before reporting the bug.
+
+## Custom Attributes
+
+Attach custom attributes to a report to carry context that helps you triage, like the user's plan, an order ID, or the screen they were on. You can then filter and group reports by them in the dashboard. Attributes attach in either flow, whether you open the bug report UI or call `trackBugReport` from your own. See [Attribute limits](/docs/api-reference#attribute-limits) in the SDK API reference for the allowed keys and values.
+
+## Build your own UI
+
+If you already have a bug reporting UI, or want to build your own to match your app, submit the report with `trackBugReport`. See [Track a bug report](/docs/api-reference#track-a-bug-report) in the SDK API reference for the call on each platform.
+
+## Configuration
+
+See [Bug reports](/docs/configuration-options#bug-reports) to control what gets collected along with Bug Reports without shipping a new build.

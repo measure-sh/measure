@@ -53,7 +53,7 @@ describe("getDocsRoutes", () => {
 
     expect(routes).toContain("/docs");
     expect(routes).toContain("/docs/hosting");
-    expect(routes).toContain("/docs/sdk-integration-guide");
+    expect(routes).toContain("/docs/getting-started/android");
   });
 
   it("drops parenthesized folder-group segments from routes", () => {

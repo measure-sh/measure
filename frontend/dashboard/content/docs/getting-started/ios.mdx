@@ -1,0 +1,124 @@
+---
+title: "iOS"
+seoTitle: "Measure iOS SDK Integration Guide"
+description: "Integrate the Measure SDK in your iOS app."
+---
+
+### Minimum requirements
+
+| Name                    | Version |
+| ----------------------- | ------- |
+| Xcode                   | 15.0+   |
+| Minimum iOS Deployments | 12.0+   |
+| Swift Version           | 5.10+   |
+
+<Accordions type="single">
+<Accordion title="Self-host compatibility">
+
+| SDK Version | Minimum Required Self-host Version |
+| ----------- | ---------------------------------- |
+| >=0.1.0     | 0.6.0                              |
+| >=0.7.0     | 0.9.0                              |
+
+</Accordion>
+</Accordions>
+
+## 1. Get the credentials
+
+Create a new app in the _Apps_ section on the dashboard and copy its `API URL` and `API Key`.
+
+## 2. Install the SDK
+
+<Tabs items={["Swift Package Manager", "CocoaPods"]}>
+
+<Tab value="Swift Package Manager">
+
+```swift
+// In Package.swift
+.package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.11.0")
+```
+
+</Tab>
+
+<Tab value="CocoaPods">
+
+```ruby
+# In your Podfile
+pod 'measure-sh'
+```
+
+MeasureSDK supports static linking only. If your Podfile uses `use_frameworks!`, install the [`cocoapods-pod-linkage`](https://github.com/microsoft/cocoapods-pod-linkage) plugin (`gem install cocoapods-pod-linkage`) and link `measure-sh` statically:
+
+```ruby
+# In your Podfile
+plugin 'cocoapods-pod-linkage'
+
+target 'YourApp' do
+  use_frameworks!
+  pod 'measure-sh', :linkage => :static
+end
+```
+
+</Tab>
+
+</Tabs>
+
+## 3. Initialize the SDK
+
+Initialize as early as possible to capture early crashes and accurate launch time metrics.
+
+<Tabs items={["Swift", "Objective-C"]}>
+
+<Tab value="Swift">
+
+```swift
+// In your AppDelegate's application(_:didFinishLaunchingWithOptions:)
+import Measure
+
+let clientInfo = ClientInfo(apiKey: "<apiKey>", apiUrl: "<apiUrl>")
+let config = BaseMeasureConfig()
+Measure.initialize(with: clientInfo, config: config)
+```
+
+</Tab>
+
+<Tab value="Objective-C">
+
+```objc
+// In your AppDelegate's application:didFinishLaunchingWithOptions:
+#import <Measure/Measure.h>
+
+ClientInfo *clientInfo = [[ClientInfo alloc] initWithApiKey:@"<apiKey>" apiUrl:@"<apiUrl>"];
+BaseMeasureConfig *config = [[BaseMeasureConfig alloc]
+    initWithEnableLogging:YES
+    autoStart:YES
+    requestHeadersProvider:NULL
+    maxDiskUsageInMb:50
+    enableFullCollectionMode:NO
+    enableDiagnosticMode:NO
+    enableDiagnosticModeGesture:NO];
+[Measure initializeWith:clientInfo config:config];
+```
+
+</Tab>
+
+</Tabs>
+
+## 4. Verify installation
+
+Add a test crash after `Measure.initialize`, run the app, and confirm it reaches your dashboard.
+
+```swift
+// In your AppDelegate, after Measure.initialize.
+// The 2-second delay gives the SDK time to flush the crash event.
+// Remove this after the crash appears in your dashboard.
+DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+    fatalError("Test crash from Measure")
+}
+```
+
+<Callout type="warn">
+
+Remove the test crash code once you've confirmed the crash appears in your dashboard.
+
+</Callout>

@@ -1,0 +1,47 @@
+---
+title: "Theming"
+seoTitle: "Theme the built-in bug report screen on Android and iOS"
+description: "Restyle the built-in bug report screen with custom colors, text sizes, and spacing on Android and iOS."
+---
+
+The built-in bug report UI ships with a default look, and on Android and iOS you can restyle it to match your app. Override its colors, text sizes, and spacing so the report screen feels like the rest of your product.
+
+<Tabs groupId="platform" items={["Android", "iOS"]} persist>
+<Tab value="Android">
+
+The screen uses the `Theme.MsrBugReport` theme, and its colors come from named color resources. Android resolves resources by name and lets your app override them. So redefining `msr_background`, `msr_text_primary`, or any of the others in your own `colors.xml` restyles the bug report screen.
+
+Measure ships separate light and dark colors, so set the light values in `res/values/colors.xml` and the dark ones in `res/values-night/colors.xml`:
+
+```xml
+<!-- res/values/colors.xml (light) -->
+<color name="msr_background">#FFFFFF</color>
+<color name="msr_text_primary">#101010</color>
+
+<!-- res/values-night/colors.xml (dark) -->
+<color name="msr_background">#101010</color>
+<color name="msr_text_primary">#FFFFFF</color>
+```
+
+Text sizes, corner radius, and the other tokens live in the theme itself. See [themes.xml](https://github.com/measure-sh/measure/blob/main/android/measure-android/measure/src/main/res/values/themes.xml) for the full set, and Android's [theming guide](https://developer.android.com/develop/ui/views/theming/themes#CustomizeTheme) for how overriding works.
+
+</Tab>
+<Tab value="iOS">
+
+Pass a `BugReportConfig` to `launchBugReport`. Start from the defaults, override the colors you want with `update`, and adjust spacing with `MsrDimensions`:
+
+```swift
+let colors = BugReportConfig.default.colors.update(
+    darkBackground: UIColor(white: 0.1, alpha: 1),
+    darkText: .white,
+    badgeColor: .systemOrange,
+    isDarkMode: true
+)
+let config = BugReportConfig(colors: colors, dimensions: MsrDimensions(topPadding: 24))
+Measure.launchBugReport(takeScreenshot: true, bugReportConfig: config)
+```
+
+Set `isDarkMode` to match the user's preference. `BugReportConfig` also carries `text` and `fonts`, so you can localize the labels and swap the fonts from the same object. See [BugReportConfig](https://github.com/measure-sh/measure/blob/main/ios/Sources/MeasureSDK/Swift/BugReport/BugReportConfig) for every token you can set.
+
+</Tab>
+</Tabs>

@@ -12,11 +12,11 @@ Measure Agent has access to all your app's telemetry data (crashes, errors, sess
 
 ## Debugging from a Coding Agent (MCP)
 
-Measure Agent is exposed as the `ask_question` tool on Measure's [MCP server](/docs/features/feature-mcp). Connect your coding agent (Claude Code, OpenAI Codex, Google Antigravity, Cursor and others) to Measure as described in [Connecting to MCP via Coding Agents](/docs/features/feature-mcp#connecting-to-mcp-via-coding-agents), then ask about your telemetry in plain language. Your coding agent calls `ask_question`, gets the answer back, and can use it to help you debug issues, improve performance or run agentic loops.
+Measure Agent is exposed as the `ask_question` tool on Measure's [MCP server](/docs/mcp). Connect your coding agent (Claude Code, OpenAI Codex, Google Antigravity, Cursor and others) to Measure as described in [Connecting to MCP via Coding Agents](/docs/mcp#connecting-to-mcp-via-coding-agents), then ask about your telemetry in plain language. Your coding agent calls `ask_question`, gets the answer back, and can use it to help you debug issues, improve performance or run agentic loops.
 
 ## Debugging from Slack
 
-If your workspace has the [Slack integration](/docs/features/feature-slack-integration) connected, you can debug with Measure Agent without leaving Slack:
+If your workspace has the [Slack integration](/docs/slack-integration) connected, you can debug with Measure Agent without leaving Slack:
 
 * **In a channel** — invite the Measure bot to the channel, then @mention it with your question, for example "@Measure how many crashes today?". The agent replies in the thread and you can ask follow up questions with full conversational context.
 * **In a direct message** — message the Measure bot directly in Slack. Begin with starter prompts or ask your own questions and follow up with full conversational context.

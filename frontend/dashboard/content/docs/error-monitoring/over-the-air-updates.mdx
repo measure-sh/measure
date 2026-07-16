@@ -1,0 +1,103 @@
+---
+title: "Over-the-air updates"
+seoTitle: "Symbolicate over-the-air (OTA) update crashes"
+description: "Symbolicate crashes in over-the-air updates by uploading the matching symbols for each patch."
+---
+
+Over-the-air (OTA) updates let you ship changes without a full native app release. When a crash happens in a patched bundle, Measure needs the matching sourcemap to symbolicate the stack trace.
+
+## React Native
+
+Each OTA update needs its own sourcemap, tied to a patch ID so Measure can match a crash to the exact bundle it came from. How you set that patch ID depends on whether you're on Expo.
+
+### Expo
+
+The Metro plugin sets the patch ID for you. Export with source maps and upload them after every deploy.
+
+**Step 1: Add `withMeasureConfig` to `metro.config.js`**
+
+The plugin injects a patch ID into each bundle at build time, with no changes to your SDK initialization code.
+
+```js
+const { getDefaultConfig } = require('expo/metro-config');
+const { withMeasureConfig } = require('@measuresh/react-native/metro');
+
+const config = getDefaultConfig(__dirname);
+module.exports = withMeasureConfig(config);
+```
+
+**Step 2: Export with source maps**
+
+```sh
+npx expo export --platform all --source-maps --output-dir dist
+```
+
+The export produces `.hbc.map` files under `dist/_expo/static/js/ios/` and `dist/_expo/static/js/android/`.
+
+**Step 3: Upload the sourcemaps**
+
+Run `upload_patch.sh` after deploying each OTA update. The plugin already put the patch ID in the bundle, so the script reads it straight from the sourcemap. The script ships with the SDK package.
+
+```sh
+./node_modules/@measuresh/react-native/scripts/upload_patch.sh \
+  "your-api-key" \
+  "https://your-measure-url" \
+  "./dist/_expo/static/js/ios/entry-abc123.hbc.map"
+```
+
+### Manual
+
+Without the Metro plugin, generate the patch ID yourself and pass it to `MeasureConfig`.
+
+**Step 1: Generate a patch ID**
+
+Generate a UUID v4 for the patch. Use any UUID library, or the shell command below:
+
+```sh
+uuidgen | tr '[:upper:]' '[:lower:]'
+```
+
+**Step 2: Pass the patch ID to `MeasureConfig`**
+
+```typescript
+import { Measure, MeasureConfig } from '@measuresh/react-native';
+
+Measure.init({
+  config: new MeasureConfig({
+    autoStart: true,
+    patchId: 'your-patch-uuid',
+    patchVersion: 'v1.2.3-hotfix', // optional human-readable label
+  }),
+});
+```
+
+The `patchId` field must match the UUID you pass to the upload script. `patchVersion` is an optional human-readable label shown alongside the patch ID in the dashboard.
+
+**Step 3: Generate the sourcemap**
+
+Generate the JavaScript sourcemap when you build the OTA bundle. The exact command depends on your OTA provider. For a manual React Native bundle:
+
+```sh
+npx react-native bundle \
+  --platform ios \
+  --dev false \
+  --entry-file index.js \
+  --bundle-output main.jsbundle \
+  --sourcemap-output main.jsbundle.map
+```
+
+**Step 4: Upload the sourcemap**
+
+Pass the sourcemap and the patch ID you set to `upload_patch.sh`:
+
+```sh
+./node_modules/@measuresh/react-native/scripts/upload_patch.sh \
+  "your-api-key" \
+  "https://your-measure-url" \
+  "./path/to/main.jsbundle.map" \
+  "your-patch-uuid"
+```
+
+## Flutter
+
+Flutter ships over-the-air updates through [Shorebird](https://shorebird.dev). Support for symbolicating Shorebird patches is coming soon.

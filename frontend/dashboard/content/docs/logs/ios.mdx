@@ -1,0 +1,42 @@
+---
+title: "iOS"
+seoTitle: "Forward swift-log to Measure on iOS"
+description: "Forward swift-log records to Measure on iOS with a custom LogHandler, so you capture existing logs without changing every call site."
+---
+
+On iOS, Measure can't collect logs automatically. Apple's unified logging (`os.Logger`, `os_log`, and `NSLog`) writes to out-of-process system daemons with no public hook to observe, so the SDK can't intercept those calls. If your app uses [swift-log](https://github.com/apple/swift-log), register a `LogHandler` that forwards every record to Measure. Bootstrap it once, before any logging runs:
+
+```swift
+import Logging
+import Measure
+
+struct MeasureLogHandler: LogHandler {
+    var metadata = Logger.Metadata()
+    var logLevel: Logger.Level = .info
+
+    subscript(metadataKey key: String) -> Logger.Metadata.Value? {
+        get { metadata[key] }
+        set { metadata[key] = newValue }
+    }
+
+    func log(level: Logger.Level, message: Logger.Message, metadata: Logger.Metadata?,
+             source: String, file: String, function: String, line: UInt) {
+        Measure.log("\(message)", severity: level.measureSeverity)
+    }
+}
+
+private extension Logger.Level {
+    var measureSeverity: LogSeverity {
+        switch self {
+        case .trace, .debug: return .debug
+        case .info, .notice: return .info
+        case .warning: return .warning
+        case .error: return .error
+        case .critical: return .fatal
+        }
+    }
+}
+
+// Call once during startup, e.g. in your AppDelegate.
+LoggingSystem.bootstrap { _ in MeasureLogHandler() }
+```

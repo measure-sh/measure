@@ -1,12 +1,20 @@
 {
   "pages": [
     "index",
-    "sdk-integration-guide",
-    "features",
+    "getting-started",
+    "error-monitoring",
+    "network-monitoring",
+    "bug-reports",
+    "performance-tracing",
+    "logs",
     "configuration-options",
-    "performance-impact",
-    "sdk-upgrade-guides",
+    "alerts",
+    "slack-integration",
+    "mcp",
+    "agent",
+    "api-reference",
     "api",
-    "hosting"
+    "hosting",
+    "performance-impact"
   ]
 }

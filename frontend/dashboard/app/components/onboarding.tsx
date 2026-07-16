@@ -421,10 +421,6 @@ function reactNativeSteps(
     Android: [
       dep,
       {
-        title: "Add the Gradle dependency",
-        snippet: androidGradleDepSnippet("snippet-android-gradle"),
-      },
-      {
         title: "Add API key to AndroidManifest.xml",
         snippet: androidManifestSnippet(apiKey, apiUrl),
       },
@@ -560,6 +556,14 @@ function platformSlug(name: PlatformName): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+}
+
+// The getting started guide for a platform tab. Expo has no page of its own; it
+// shares the React Native guide.
+function docsHref(name: PlatformName): string {
+  const slug =
+    name === "React Native (Expo)" ? "react-native" : platformSlug(name);
+  return `/docs/getting-started/${slug}`;
 }
 
 function resolveApiUrl(): string {
@@ -905,7 +909,7 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
                   Verify <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
                 <Link
-                  href="/docs/sdk-integration-guide"
+                  href={docsHref(platform)}
                   target="_blank"
                   className={`${underlineLinkStyle} font-body text-sm`}
                 >

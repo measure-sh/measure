@@ -69,13 +69,16 @@ jobs:
           sed -i "s/MEASURE_ANDROID_VERSION=.*/MEASURE_ANDROID_VERSION=${{ inputs.android_version }}/" kmp/measure-kmp/gradle.properties
           sed -i "s/MEASURE_IOS_VERSION=.*/MEASURE_IOS_VERSION=${{ inputs.ios_version }}/" kmp/measure-kmp/gradle.properties
 
-      - name: Update version in integration guide
+      - name: Update version in getting started docs
         run: |
           # The onboarding snippet in the dashboard reads this version at build
           # time (scripts/extract_sdk_versions.js), so keep it in sync here.
+          GUIDE=frontend/dashboard/content/docs/getting-started/kotlin-multiplatform.mdx
           KOTLIN_PATTERN='implementation("sh.measure:measure-kmp:.*")'
           KOTLIN_REPLACEMENT='implementation("sh.measure:measure-kmp:${{ inputs.version }}")'
-          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" frontend/dashboard/content/docs/sdk-integration-guide.mdx
+          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" "$GUIDE"
+          sed -i "/Measure Android/ s/[0-9]*\.[0-9]*\.[0-9]*/${{ inputs.android_version }}/" "$GUIDE"
+          sed -i "/Measure iOS/ s/[0-9]*\.[0-9]*\.[0-9]*/${{ inputs.ios_version }}/" "$GUIDE"
 
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
@@ -98,7 +101,7 @@ jobs:
             - Updated version to ${{ inputs.version }} in gradle.properties
             - Pinned native Android SDK version to ${{ inputs.android_version }} (android-v${{ inputs.android_version }})
             - Pinned native iOS SDK version to ${{ inputs.ios_version }} (ios-v${{ inputs.ios_version }})
-            - Updated measure-kmp version in frontend/dashboard/content/docs/sdk-integration-guide.mdx
+            - Updated measure-kmp version in frontend/dashboard/content/docs/getting-started/kotlin-multiplatform.mdx
             - Generated changelog for version ${{ inputs.version }}
 
             <!-- release-meta

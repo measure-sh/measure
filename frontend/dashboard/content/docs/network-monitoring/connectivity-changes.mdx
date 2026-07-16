@@ -1,0 +1,27 @@
+---
+title: "Connectivity Changes"
+seoTitle: "Network Connectivity Change Tracking"
+description: "Track when your app gains or loses connectivity, switches between WiFi and cellular, or changes carrier."
+---
+
+Measure records changes to the device's network state, so you can tie a slow request or a stalled session to the moment the network shifted. It captures the connection type (WiFi, cellular, and so on), the network provider (Airtel, T-Mobile), and the network generation (2G, 3G, 4G). Tracking is automatic once the SDK is in place. What it captures depends on the platform and the permissions your app already holds.
+
+## Android
+
+Connectivity tracking turns on only when your app holds the `ACCESS_NETWORK_STATE` permission and runs on Android M (API 23) or higher. Measure adds no permissions of its own, so it works with what your app already has.
+
+The network generation is captured for cellular connections, and needs the [`READ_PHONE_STATE`](https://developer.android.com/reference/android/Manifest.permission#READ_PHONE_STATE) runtime permission. If the user denies it, the generation isn't recorded. On Android Tiramisu (API 33) and later, [`READ_BASIC_PHONE_STATE`](https://developer.android.com/reference/android/Manifest.permission#READ_BASIC_PHONE_STATE) is enough and doesn't prompt at runtime.
+
+## iOS
+
+Connectivity changes are captured automatically, including moves between WiFi and cellular, VPN connections, and loss of connectivity.
+
+<Callout type="warn">
+
+Since iOS 16.4, `network_provider` is no longer available and will be removed from the SDK in a future release.
+
+</Callout>
+
+## Flutter and React Native
+
+On Flutter and React Native, connectivity tracking runs on the native Android and iOS behavior above, so the same permissions and limits apply.
