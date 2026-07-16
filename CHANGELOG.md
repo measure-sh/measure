@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Route network queries through row-policy reader pool (#4047) by @detj in #4047
 - (**backend**): Cap error body capture & share middleware across services (#4046) by @detj in #4046
 - (**backend**): Store one build_mappings row per extracted artifact (#4041) by @detj in #4041
 - (**backend**): Record stored object size for build mappings (#4037) by @detj in #4037
