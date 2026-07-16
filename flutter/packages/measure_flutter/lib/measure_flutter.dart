@@ -22,22 +22,18 @@
 /// ```dart
 /// Future<void> main() async {
 ///   await Measure.instance.init(
-///         () =>
-///         runApp(
-///           MeasureWidget(child: MyApp()),
-///         ),
+///     () => runApp(MeasureWidget(child: MyApp())),
 ///     config: const MeasureConfig(
 ///       enableLogging: true,
 ///       traceSamplingRate: 1,
 ///       samplingRateForErrorFreeSessions: 1,
 ///     ),
-///     clientInfo: ClientInfo(
-///       apiKey: "YOUR_API_KEY",
-///       apiUrl: "YOUR_API_URL",
-///     ),
 ///   );
 /// }
 /// ```
+///
+/// Credentials and the native Android and iOS SDKs are set up in each platform's
+/// native project. See https://measure.sh/docs/getting-started/flutter for the full setup.
 ///
 /// ### Verify Installation
 ///
@@ -157,27 +153,26 @@ class Measure implements MeasureApi {
   /// Initializes the Measure SDK with the provided configuration.
   ///
   /// This method must be called before using any other SDK functionality.
-  /// It sets up error handling, initializes the native SDK, and runs the
-  /// provided [action] function (typically your app's main entry point).
+  /// It sets up error handling, registers the Flutter collectors, and runs
+  /// the provided [action] function (typically your app's main entry point).
+  ///
+  /// Credentials and the native Android and iOS SDKs are configured in each
+  /// platform's native project. See the integration guide for the full setup:
+  /// https://measure.sh/docs/getting-started/flutter
   ///
   /// **Parameters:**
   /// - [action]: A function to execute after initialization (usually `runApp`)
-  /// - [clientInfo]: Required authentication and endpoint configuration
   /// - [config]: Optional SDK configuration with sensible defaults
   ///
   /// **Example:**
   /// ```dart
-  /// await Measure.instance.init(() async {
-  ///   runApp(MyApp());
-  /// },
-  /// clientInfo: ClientInfo(
-  ///   apiKey: 'your-measure-api-key',
-  ///   apiUrl: 'https://api.measure.sh',
-  /// ),
-  /// config: MeasureConfig(
-  ///   enableLogging: true,
-  ///   trackHttpHeaders: true,
-  /// ));
+  /// await Measure.instance.init(
+  ///   () => runApp(MeasureWidget(child: MyApp())),
+  ///   config: const MeasureConfig(
+  ///     enableLogging: true,
+  ///     trackHttpHeaders: true,
+  ///   ),
+  /// );
   /// ```
   ///
   /// **Note:** If initialization fails, the error will be logged but [action]

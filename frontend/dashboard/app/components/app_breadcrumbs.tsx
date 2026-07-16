@@ -47,20 +47,14 @@ const subrouteTitles: Record<string, string> = {
 const sectionInfo: Record<string, ReactNode> = {
   session_timelines: (
     <>
-      Timelines are captured for Crashes, ANRs, Bug Reports & sampled sessions.{" "}
-      <Link
-        href="/docs/features/feature-session-timelines"
-        className={underlineLinkStyle}
-      >
-        Learn more
-      </Link>
+      Timelines are captured for Crashes, ANRs, Bug Reports & sampled sessions.
     </>
   ),
   journeys: (
     <>
       Journeys are approximated based on sampled journey events.{" "}
       <Link
-        href="/docs/configuration-options#journey-sampling"
+        href="/docs/adaptive-capture#journey-sampling"
         className={underlineLinkStyle}
       >
         Learn more

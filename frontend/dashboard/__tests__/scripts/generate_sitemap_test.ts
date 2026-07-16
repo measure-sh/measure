@@ -5,6 +5,7 @@ import path from "path";
 import {
   APP_DIR,
   buildSitemap,
+  docsRouteFromFile,
   getBlogRoutes,
   getDocsRoutes,
   isDynamic,
@@ -16,6 +17,18 @@ import {
   SITE_URL,
   walk,
 } from "@/scripts/generate_sitemap";
+
+const CONTENT_DOCS_DIR = path.join(ROOT, "content", "docs");
+
+function walkMdx(dir: string): string[] {
+  const files: string[] = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) files.push(...walkMdx(full));
+    else if (entry.name.endsWith(".mdx")) files.push(full);
+  }
+  return files;
+}
 
 // ─── routeFromFile ──────────────────────────────────────────────────────────
 
@@ -45,23 +58,52 @@ describe("routeFromFile", () => {
   });
 });
 
-// ─── getDocsRoutes ──────────────────────────────────────────────────────────
+// ─── docsRouteFromFile ──────────────────────────────────────────────────────
 
-describe("getDocsRoutes", () => {
-  it("maps index.mdx to its directory and leaf files to their path", () => {
-    const routes = getDocsRoutes();
+describe("docsRouteFromFile", () => {
+  it("maps the root index.mdx to /docs", () => {
+    // Synthetic paths rather than real pages: the mapper is pure, so
+    // moving content can't leave these asserting stale routes.
+    const file = path.join(CONTENT_DOCS_DIR, "index.mdx");
 
-    expect(routes).toContain("/docs");
-    expect(routes).toContain("/docs/hosting");
-    expect(routes).toContain("/docs/sdk-integration-guide");
+    expect(docsRouteFromFile(CONTENT_DOCS_DIR, file)).toBe("/docs");
+  });
+
+  it("maps a nested index.mdx to its directory", () => {
+    const file = path.join(CONTENT_DOCS_DIR, "guides", "index.mdx");
+
+    expect(docsRouteFromFile(CONTENT_DOCS_DIR, file)).toBe("/docs/guides");
+  });
+
+  it("maps a leaf file to its path", () => {
+    const file = path.join(CONTENT_DOCS_DIR, "guides", "android.mdx");
+
+    expect(docsRouteFromFile(CONTENT_DOCS_DIR, file)).toBe(
+      "/docs/guides/android",
+    );
   });
 
   it("drops parenthesized folder-group segments from routes", () => {
+    const file = path.join(CONTENT_DOCS_DIR, "guides", "(mobile)", "ios.mdx");
+
+    expect(docsRouteFromFile(CONTENT_DOCS_DIR, file)).toBe("/docs/guides/ios");
+  });
+});
+
+// ─── getDocsRoutes ──────────────────────────────────────────────────────────
+
+describe("getDocsRoutes", () => {
+  it("maps each content file to its /docs route", () => {
+    // The mapping itself is covered by the docsRouteFromFile tests, so
+    // this only asserts that the walk finds every content file and adds
+    // nothing else.
+    const files = walkMdx(CONTENT_DOCS_DIR);
     const routes = getDocsRoutes();
 
-    expect(routes).toContain("/docs/features/feature-bug-report-android");
-    for (const route of routes) {
-      expect(route).not.toContain("(");
+    expect(files.length).toBeGreaterThan(0);
+    expect(routes).toHaveLength(files.length);
+    for (const file of files) {
+      expect(routes).toContain(docsRouteFromFile(CONTENT_DOCS_DIR, file));
     }
   });
 

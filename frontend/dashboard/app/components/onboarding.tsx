@@ -421,10 +421,6 @@ function reactNativeSteps(
     Android: [
       dep,
       {
-        title: "Add the Gradle dependency",
-        snippet: androidGradleDepSnippet("snippet-android-gradle"),
-      },
-      {
         title: "Add API key to AndroidManifest.xml",
         snippet: androidManifestSnippet(apiKey, apiUrl),
       },
@@ -561,6 +557,16 @@ function platformSlug(name: PlatformName): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
+
+// Expo has no getting started page of its own; it shares the React Native one.
+const DOCS_HREFS: Record<PlatformName, string> = {
+  Android: "/docs/getting-started/android",
+  iOS: "/docs/getting-started/ios",
+  Flutter: "/docs/getting-started/flutter",
+  "React Native": "/docs/getting-started/react-native",
+  "React Native (Expo)": "/docs/getting-started/react-native",
+  "Kotlin Multiplatform": "/docs/getting-started/kotlin-multiplatform",
+};
 
 function resolveApiUrl(): string {
   return (
@@ -905,7 +911,7 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
                   Verify <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
                 <Link
-                  href="/docs/sdk-integration-guide"
+                  href={DOCS_HREFS[platform]}
                   target="_blank"
                   className={`${underlineLinkStyle} font-body text-sm`}
                 >

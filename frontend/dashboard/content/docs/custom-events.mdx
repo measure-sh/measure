@@ -1,0 +1,61 @@
+---
+title: "Custom Events"
+seoTitle: "Track Custom Events in Mobile Apps"
+description: "Track app-specific events like user actions and feature usage, and view them on the session timeline."
+---
+
+Custom events add app-specific context to the automatically collected data: user actions, feature usage, feature flags, or anything else worth seeing while debugging. They appear on the [session timeline](/docs/session-timeline) with the rest of the session's events.
+
+Track an event with `trackEvent`:
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+Measure.trackEvent("checkout_completed")
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.trackEvent(name: "checkout_completed", attributes: [:])
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+Measure.instance.trackEvent(name: "checkout_completed");
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.trackEvent({ name: "checkout_completed" });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+Measure.trackEvent(name = "checkout_completed")
+```
+
+</Tab>
+</Tabs>
+
+Events also accept attributes and a custom timestamp. See [Track custom events](/docs/api-reference#track-custom-events) in the API reference for examples and naming rules.
+
+Screen views and handled errors have dedicated methods, [`trackScreenView`](/docs/api-reference#track-screen-views) and [`trackError`](/docs/api-reference#track-errors). Prefer them over a custom event so these show up consistently across the dashboard.

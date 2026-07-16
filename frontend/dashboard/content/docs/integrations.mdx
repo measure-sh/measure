@@ -1,0 +1,44 @@
+---
+title: "Integrations"
+seoTitle: "Set Up Email and Slack Integrations for Alerts"
+description: "Connect email and Slack to receive alerts and daily summaries. Choose the Slack channels that receive them and debug with Measure Agent without leaving Slack."
+---
+
+Integrations deliver your [alerts](/docs/alerts) and daily summaries. Email reaches every team member with no setup. Connecting Slack sends alerts to the channels you choose and lets you ask [Measure Agent](/docs/agent) about your app's crashes, errors, and performance without leaving Slack.
+
+## Email
+
+All members of a team receive alert emails and daily summaries for the team's apps. Each member can turn individual alert types on or off for themselves from the **Notifications** page on the dashboard. Everything is on by default.
+
+## Slack
+
+Connect Slack to get alerts and daily summaries in the channels you choose, and to debug with Measure Agent without leaving Slack.
+
+### Connect your workspace
+
+Navigate to the **Team** settings page on the dashboard and click the **Add to Slack** button. This starts an OAuth flow to authorize the Measure Slack app for your workspace.
+
+Once connected, click **Send Test Alert** to verify the connection is working. It sends a test message to every subscribed channel.
+
+### Set up alerts
+
+Manage which channels receive alerts and daily summaries with the Measure bot:
+
+* **Subscribe a channel**: invite the Measure bot to the channel, then run `/subscribe-alerts` in it. Subscribe as many channels as you like.
+* **Unsubscribe a channel**: run `/stop-alerts` in the channel.
+* **List subscribed channels**: run `/list-alert-channels` in any channel the bot has been added to.
+
+To stop all alerts at once, turn off the Slack integration toggle on the **Team** settings page. Channel subscriptions are preserved and resume if you re-enable it.
+
+### Debug with Measure Agent
+
+Once connected, ask [Measure Agent](/docs/agent) questions about your app directly in Slack. Invite the Measure bot to a channel and @mention it with a question, like "@Measure how many crashes today?", or message it directly. It answers using your app's telemetry (crashes, errors, sessions, and traces) and keeps the conversation's context across follow-up questions.
+
+See [Debug from Slack](/docs/agent#debug-from-slack) for details, including how your Slack account is matched to your Measure account.
+
+## Self-hosted setup
+
+On a self-hosted instance, both integrations need one-time configuration:
+
+* [Set up SMTP email](/docs/hosting/smtp-email) to deliver alert emails and daily summaries.
+* [Set up the Slack app](/docs/hosting/slack) before connecting your workspace.

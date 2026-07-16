@@ -4,7 +4,7 @@ seoTitle: "Set Up Measure Agent for Self-Hosted Measure"
 description: "Configure Measure Agent on your self-hosted instance. Get an OpenRouter API key, choose the models and expose the agent service so you can debug your app from your coding agent or Slack."
 ---
 
-Use this guide to set up [Measure Agent](/docs/features/feature-agent) on a self-hosted instance, so you can debug your app from your coding agent (over MCP) or from Slack.
+Use this guide to set up [Measure Agent](/docs/agent) on a self-hosted instance, so you can debug your app from your coding agent (over MCP) or from Slack.
 
 The agent runs as a separate `agent` service and sends prompts to a language model through [OpenRouter](https://openrouter.ai). You provide an OpenRouter API key and choose which models the agent uses.
 
@@ -90,6 +90,6 @@ measure-agent.yourcompany.com {
 
 Reload the proxy, then add a DNS A record pointing `measure-agent.yourcompany.com` at your VM's external IP, the same way you did for the other subdomains.
 
-The MCP endpoint is then available at `https://measure-agent.yourcompany.com/mcp`. See the [MCP Server](/docs/features/feature-mcp) guide for connecting coding agents.
+The MCP endpoint is then available at `https://measure-agent.yourcompany.com/mcp`. See the [MCP Server](/docs/mcp) guide for connecting coding agents.
 
 Using the agent from Slack needs no extra domain: Slack delivers events to the API service and the agent consumes them internally. Set that up with the [Slack integration guide](/docs/hosting/slack).

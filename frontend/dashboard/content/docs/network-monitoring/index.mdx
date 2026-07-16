@@ -1,0 +1,227 @@
+---
+title: "Network Monitoring"
+seoTitle: "Mobile App Network Monitoring: HTTP Requests, APIs, and Connectivity"
+description: "Monitor HTTP requests, responses, and failures across Android, iOS, Flutter, React Native, and Kotlin Multiplatform, with status codes, latency, and per-endpoint metrics."
+---
+
+## Overview
+
+Measure captures your app's network requests, responses, and failures, so you can see how your APIs are performing.
+
+Each request records its URL, HTTP method, status code, latency and failure reason. To show aggregated metrics URLs are grouped into [endpoint patterns](/docs/network-monitoring/endpoint-patterns) automatically.
+
+Request and response headers and bodies are collected only for the URLs you opt into, so sensitive data stays out by default. Choose those URLs from the dashboard through the [HTTP events](/docs/adaptive-capture#http-events) settings.
+
+Beyond HTTP, Measure records [connectivity changes](/docs/network-monitoring/connectivity-changes) so you can tell when the network itself was the problem.
+
+## Tracked automatically
+
+Requests from the clients below are captured automatically.
+
+### Android
+
+Add the [Measure Android Gradle Plugin](/docs/getting-started/android#3-add-the-gradle-plugin) to enable tracking. Requests from **OkHttp** (versions `4.7.0` to `5.3.2`) and **HttpURLConnection** (SDK `0.18.0` and later) are tracked automatically.
+
+### iOS
+
+Requests from **URLSession** are tracked automatically, including any request made by a third-party library using it.
+
+### Kotlin Multiplatform
+
+Requests from **Ktor** are tracked when it runs on the OkHttp (Android) or Darwin (iOS) engine. A different engine like CIO isn't tracked automatically. You can [track those manually](#track-a-request-manually).
+
+## Add an interceptor
+
+A few clients need a one-time setup so that their requests can be tracked.
+
+### Dio (Flutter)
+
+Add the `measure_dio` package and register `MsrInterceptor` on your `Dio` instance:
+
+```yaml
+dependencies:
+  measure_dio: latest-version
+```
+
+```dart
+final dio = Dio();
+dio.interceptors.add(MsrInterceptor());
+```
+
+For Flutter's `http` package or any other client, [track requests manually](#track-a-request-manually).
+
+### Retrofit (Android)
+
+Retrofit runs on OkHttp, but pulls it in as a transitive dependency, and auto-instrumentation doesn't reach transitive dependencies. If your project depends on Retrofit alone, use one of the following ways to track requests.
+
+**Declare OkHttp as a direct dependency.** Pin an OkHttp version in your `build.gradle.kts`. Auto-instrumentation then works with no code changes:
+
+```kotlin
+dependencies {
+    implementation("com.squareup.retrofit2:retrofit:<version>")
+    implementation("com.squareup.okhttp3:okhttp:<version>")
+}
+```
+
+**Add the interceptor manually.** Build the `OkHttpClient` used by Retrofit with Measure's interceptor and event listener factory:
+
+```kotlin
+val client = OkHttpClient.Builder()
+    .addInterceptor(MeasureOkHttpApplicationInterceptor())
+    .eventListenerFactory(MeasureEventListenerFactory(null))
+    .build()
+
+val retrofit = Retrofit.Builder()
+    .baseUrl("https://api.example.com")
+    .client(client)
+    .build()
+```
+
+### React Native
+
+#### Android
+
+Configure a custom `OkHttpClient` with `OkHttpClientProvider` in `MainApplication.kt`. Without this, HTTP events aren't tracked on Android:
+
+```kotlin
+OkHttpClientProvider.setOkHttpClientFactory(object : OkHttpClientFactory {
+  override fun createNewNetworkModuleClient(): OkHttpClient {
+    return OkHttpClient.Builder()
+      .cookieJar(ReactCookieJarContainer())
+      .addInterceptor(MeasureOkHttpApplicationInterceptor())
+      .eventListenerFactory(MeasureEventListenerFactory(null))
+      .build()
+  }
+})
+```
+
+#### iOS
+
+iOS tracks requests automatically. However if you want to capture response body as well (configurable on dashboard) then add `MSRNetworkInterceptor` to the session configuration in `AppDelegate.mm`:
+
+```objc
+RCTSetCustomNSURLSessionConfigurationProvider(^NSURLSessionConfiguration *{
+  NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+  [MSRNetworkInterceptor enableOn:configuration];
+  return configuration;
+});
+```
+
+Response bodies are recorded only for the URLs you opt into, set with the **Track HTTP response body for URLs** option in [Adaptive Capture](/docs/adaptive-capture#http-events).
+
+For clients other than `fetch` and `XHR` follow [track requests manually](#track-a-request-manually).
+
+## Track a request manually
+
+For any HTTP clients not instrumented automatically, record each request yourself with `trackHttpEvent`. Use `getCurrentTime` for the start and end time, so the duration stays right even if the device clock shifts.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+val startTime = Measure.getCurrentTime()
+// make the request
+val endTime = Measure.getCurrentTime()
+
+Measure.trackHttpEvent(
+    url = "https://api.example.com/users",
+    method = "GET",
+    startTime = startTime,
+    endTime = endTime,
+    statusCode = 200,
+)
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let startTime = UInt64(Measure.getCurrentTime())
+// make the request
+let endTime = UInt64(Measure.getCurrentTime())
+
+Measure.trackHttpEvent(
+    url: "https://api.example.com/users",
+    method: "GET",
+    startTime: startTime,
+    endTime: endTime,
+    statusCode: 200
+)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final startTime = Measure.instance.getCurrentTime();
+// make the request
+final endTime = Measure.instance.getCurrentTime();
+
+Measure.instance.trackHttpEvent(
+  url: "https://api.example.com/users",
+  method: HttpMethod.get,
+  startTime: startTime,
+  endTime: endTime,
+  statusCode: 200,
+);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const startTime = Measure.getCurrentTime();
+// make the request
+const endTime = Measure.getCurrentTime();
+
+Measure.trackHttpEvent({
+  url: "https://api.example.com/users",
+  method: "GET",
+  startTime,
+  endTime,
+  statusCode: 200,
+});
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+val startTime = Measure.getCurrentTime()
+// make the request
+val endTime = Measure.getCurrentTime()
+
+Measure.trackHttpEvent(
+    url = "https://api.example.com/users",
+    method = "GET",
+    startTime = startTime,
+    endTime = endTime,
+    statusCode = 200,
+)
+```
+
+</Tab>
+</Tabs>
+
+## Configuration options
+
+Control what network data is collected from the dashboard using [Adaptive Capture](/docs/adaptive-capture). This allows changing configuration
+without making an app release.
+
+- **Sampling rate**: the fraction of HTTP events collected. All of them are collected by default.
+- **Collect or ignore URLs**: turn collection on or off for specific URLs.
+- **Request body collection**: the URLs whose request bodies and headers are recorded. Off by default.
+- **Response body collection**: the URLs whose response bodies and headers are recorded. Off by default.
+- **Blocked headers**: headers to never collect. `Authorization`, `Cookie` and more sensitive headers are always blocked.
+
+See [HTTP events](/docs/adaptive-capture#http-events) for details on each setting.

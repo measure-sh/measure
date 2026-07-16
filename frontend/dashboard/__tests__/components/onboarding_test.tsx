@@ -705,10 +705,22 @@ describe("Onboarding — Step 2: Integrate", () => {
       );
     });
 
-    it("renders link to full integration guide", () => {
+    it("links the integration guide to the active platform's docs", () => {
       renderOnboarding();
-      const link = screen.getByText("See full integration guide").closest("a");
-      expect(link).toHaveAttribute("href", "/docs/sdk-integration-guide");
+      const guideLink = () =>
+        screen.getByText("See full integration guide").closest("a");
+      expect(guideLink()).toHaveAttribute(
+        "href",
+        "/docs/getting-started/android",
+      );
+      fireEvent.click(screen.getByTestId("tab-iOS"));
+      expect(guideLink()).toHaveAttribute("href", "/docs/getting-started/ios");
+      // Expo shares the React Native guide.
+      fireEvent.click(screen.getByTestId("tab-React Native (Expo)"));
+      expect(guideLink()).toHaveAttribute(
+        "href",
+        "/docs/getting-started/react-native",
+      );
     });
   });
 
@@ -945,17 +957,12 @@ describe("Onboarding — Step 2: Integrate", () => {
       ).toHaveAttribute("data-selected", "false");
     });
 
-    it("Android sub-platform shows gradle, manifest, native init, and JS init/crash", () => {
+    it("Android sub-platform shows the package, manifest, native init, and JS init/crash", () => {
       mockSelectedApp = makeApp({ api_key: { key: "msr_rn_key" } });
       mockApps = [mockSelectedApp];
       renderOnboarding();
       fireEvent.click(screen.getByTestId("tab-React Native"));
-      // Cross-platform install + Gradle dep + manifest + Android native init
-      // + JS init + JS crash.
       expect(screen.getByTestId("snippet-dependency")).toBeInTheDocument();
-      expect(screen.getByTestId("snippet-android-gradle")).toHaveTextContent(
-        "measure-android",
-      );
       expect(screen.getByTestId("snippet-manifest")).toHaveTextContent(
         "msr_rn_key",
       );
@@ -1084,12 +1091,9 @@ describe("Onboarding — Step 2: Integrate", () => {
       expect(configPlugin).not.toHaveTextContent("androidApiKey");
     });
 
-    it("replaces the manual Gradle/manifest/Podfile steps with the config plugin", () => {
+    it("replaces the manual manifest/Podfile steps with the config plugin", () => {
       renderOnboarding();
       fireEvent.click(screen.getByTestId("tab-React Native (Expo)"));
-      expect(
-        screen.queryByTestId("snippet-android-gradle"),
-      ).not.toBeInTheDocument();
       expect(screen.queryByTestId("snippet-manifest")).not.toBeInTheDocument();
       expect(
         screen.queryByTestId("snippet-ios-podfile"),
@@ -1195,11 +1199,6 @@ describe("Onboarding — Step 2: Integrate", () => {
       );
       expect(screen.getByTestId("snippet-android-init")).toBeInTheDocument();
       expect(screen.getByTestId("snippet-crash")).toBeInTheDocument();
-      // measure-android comes in transitively via the KMP dep, so there's no
-      // separate Gradle dependency step on this target.
-      expect(
-        screen.queryByTestId("snippet-android-gradle"),
-      ).not.toBeInTheDocument();
     });
 
     it("iOS sub-platform shows commonMain dep, SPM dep, native init, and crash", () => {

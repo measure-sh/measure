@@ -14,7 +14,7 @@ describe("toStandaloneMarkdown", () => {
   it("absolutizes root-relative links, images, and reference definitions", () => {
     const out = toStandaloneMarkdown(
       [
-        "See [config](/docs/configuration-options).",
+        "See [config](/docs/adaptive-capture).",
         "",
         "![shot](/docs/assets/shot.png)",
         "",
@@ -23,7 +23,7 @@ describe("toStandaloneMarkdown", () => {
       SITE,
     );
 
-    expect(out).toContain(`[config](${SITE}/docs/configuration-options)`);
+    expect(out).toContain(`[config](${SITE}/docs/adaptive-capture)`);
     expect(out).toContain(`![shot](${SITE}/docs/assets/shot.png)`);
     expect(out).toContain(`[ref]: ${SITE}/docs/hosting`);
   });

@@ -6,7 +6,7 @@ description: "Mask sensitive content in Flutter widgets when Measure captures sc
 Measure captures screenshots on fatal errors, unhandled errors and bug reports. Before a screenshot leaves the device, sensitive content is redacted so it does not leak to the server.
 
 On Flutter, masking traverses the widget tree under the `MeasureWidget` and paints over the regions
-that match the configured [screenshot mask level](/docs/configuration-options#screenshot-mask-level).
+that match the configured [screenshot mask level](/docs/adaptive-capture#screenshot-mask-level).
 
 # How Flutter Masking Works
 
@@ -28,7 +28,7 @@ Whether each region is masked depends on the active mask level. Two details are 
 # Mask Levels
 
 The mask level is configured remotely from the dashboard and applies to all platforms. See
-[Screenshot Mask Level](/docs/configuration-options#screenshot-mask-level) for the full list of levels
+[Screenshot Mask Level](/docs/adaptive-capture#screenshot-mask-level) for the full list of levels
 and what each one redacts.
 
 # Manual Masking

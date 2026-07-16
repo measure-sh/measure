@@ -1,0 +1,36 @@
+---
+title: "Measure Agent"
+seoTitle: "AI Agent for Debugging Mobile App Crashes and Errors"
+description: "Debug your apps with full context about crashes, errors, sessions and traces from Slack or your coding agent."
+---
+
+Measure Agent allows you to debug faster by answering questions about your app. Ask it to check your app's health, crashes and errors, performance and more!
+
+## What the agent can do
+
+Measure Agent has access to all your app's telemetry data (crashes, errors, sessions, traces and metrics) and uses it to help you debug. Ask in natural language and it will count, compare, filter by version or time range, and follow up across a conversation.
+
+## Debug from a coding agent (MCP)
+
+Measure Agent is exposed as the `ask_question` tool on Measure's [MCP server](/docs/mcp). Connect your coding agent (Claude Code, OpenAI Codex, Google Antigravity, Cursor and others) to Measure as described in [Connecting to MCP via Coding Agents](/docs/mcp#connecting-to-mcp-via-coding-agents), then ask about your telemetry in plain language. Your coding agent calls `ask_question`, gets the answer back, and can use it to help you debug issues, improve performance or run agentic loops.
+
+## Debug from Slack
+
+If your workspace is [connected to Slack](/docs/integrations#slack), you can debug with Measure Agent without leaving Slack:
+
+* In a channel, invite the Measure bot and @mention it with your question, for example "@Measure how many crashes today?". It replies in a thread where you can ask follow-up questions with full conversational context.
+* In a direct message, ask the Measure bot directly. Begin with the starter prompts or your own questions and follow up in the same conversation.
+
+Measure matches you to your team account by your Slack profile email, so your Measure email and your Slack email need to match. When a team has more than one app, you can either name the app in your question, or the agent will ask follow-up questions to clarify which app you are querying.
+
+## Example questions
+
+* "How is the production app doing on crashes today?"
+* "What are the top 5 errors this week?"
+* "Show me the slowest network endpoints in version 4.2."
+* "How many sessions had slow cold launches in the last 24 hours?"
+* "What screen were users on right before the NullPointerException crash?"
+
+<Callout type="info">
+On a self-hosted instance, [set up the agent](/docs/hosting/agent) first.
+</Callout>

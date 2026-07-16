@@ -208,7 +208,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
                   Distribution of when this endpoint is typically called in a
                   session.{" "}
                   <Link
-                    href="/docs/features/feature-network-monitoring#request-timeline"
+                    href="/docs/network-monitoring/endpoint-patterns#request-timeline"
                     className={underlineLinkStyle}
                   >
                     Learn more

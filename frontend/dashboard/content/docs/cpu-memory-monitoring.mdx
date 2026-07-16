@@ -1,0 +1,56 @@
+---
+title: "CPU and Memory Monitoring"
+seoTitle: "Mobile App CPU and Memory Monitoring"
+description: "Capture CPU and memory usage of Android, iOS, Flutter, and React Native apps."
+---
+
+CPU and memory usage are captured every 5 seconds while the app is in the foreground. Readings appear on the session timeline.
+
+## CPU usage
+
+A reading shows how much CPU the app is using. Sustained high usage drains the battery and heats up the device.
+
+### Android
+
+Each reading is the average CPU usage since the previous one, across all cores: 100% means every core was fully busy. It's calculated from [`/proc/self/stat`](https://man7.org/linux/man-pages/man5/proc.5.html), where the OS records the clock ticks the process has spent on the CPU:
+
+```
+%CPU = 100 × ticks consumed / (clock tick rate × interval × number of cores)
+```
+
+### iOS
+
+Each reading is the combined usage of all the app's non-idle threads, where 100% equals one fully busy core. On a device with multiple cores the value can go above 100%. The thread list comes from [`task_threads`](https://web.mit.edu/darwin/src/modules/xnu/osfmk/man/task_info.html) and each thread's usage from [`thread_info`](https://web.mit.edu/darwin/src/modules/xnu/osfmk/man/thread_info.html).
+
+## Memory usage
+
+### Android
+
+Each reading reports:
+
+- Max heap size: the most memory the runtime lets the app allocate on the Java heap. Allocating past it throws an `OutOfMemoryError`.
+- Total heap size and free heap size: the heap memory the runtime has reserved so far, and how much of it is still free.
+- RSS (resident set size): the physical memory held by the process, including native code and shared libraries. Shared pages are counted in full, so RSS overstates the app's own usage.
+- Total PSS (proportional set size): physical memory with shared pages divided between the processes using them. PSS is the best value for judging the app's overall memory use.
+- Native total heap size and native free heap size: total and free memory in the native heap.
+
+The values come from:
+
+| Value | Source |
+| --- | --- |
+| Heap sizes | [`Runtime.maxMemory`](https://developer.android.com/reference/java/lang/Runtime#maxMemory()), [`Runtime.totalMemory`](https://developer.android.com/reference/java/lang/Runtime#totalMemory()), [`Runtime.freeMemory`](https://developer.android.com/reference/java/lang/Runtime#freeMemory()) |
+| Total PSS | [`Debug.getMemoryInfo`](https://developer.android.com/reference/android/os/Debug#getMemoryInfo(android.os.Debug.MemoryInfo)) |
+| Native heap sizes | [`Debug.getNativeHeapSize`](https://developer.android.com/reference/android/os/Debug#getNativeHeapSize()), [`Debug.getNativeHeapFreeSize`](https://developer.android.com/reference/android/os/Debug#getNativeHeapFreeSize()) |
+| RSS | [`/proc/self/statm`](https://man7.org/linux/man-pages/man5/proc.5.html) |
+
+### iOS
+
+Each reading reports the app's physical memory footprint: the memory the app is responsible for, including memory the system has compressed. The system uses this value to decide which apps to terminate under memory pressure.
+
+The footprint is read with [`task_info`](https://web.mit.edu/darwin/src/modules/xnu/osfmk/man/task_info.html). When the value is unavailable, the SDK falls back to resident size, which excludes compressed memory and can underreport usage.
+
+[iOS Memory Deep Dive](https://developer.apple.com/videos/play/wwdc2018/416/) explains how Apple defines these values.
+
+## Flutter and React Native
+
+Flutter and React Native apps don't collect these values themselves. The native Android or iOS SDK collects them using the APIs described above.
