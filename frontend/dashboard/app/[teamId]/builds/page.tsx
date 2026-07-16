@@ -2,7 +2,7 @@
 import { useFiltersStore } from "@/app/stores/provider";
 
 import {
-  downloadBuild,
+  downloadBuildFile,
   emptyBuildsResponse,
   FilterSource,
 } from "@/app/api/api_calls";
@@ -89,7 +89,7 @@ export default function Builds(props: { params: Promise<{ teamId: string }> }) {
         showNotOnboarded={false}
         showNoBuilds={true}
         showAppSelector={true}
-        showAppVersions={true}
+        showAppVersions={false}
         showDates={true}
         showSessionTypes={false}
         showOsVersions={false}
@@ -138,51 +138,65 @@ export default function Builds(props: { params: Promise<{ teamId: string }> }) {
           <Table className="font-display select-none">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[80%]">Build</TableHead>
-                <TableHead className="w-[20%] text-center">Download</TableHead>
+                <TableHead className="w-[60%]">Build</TableHead>
+                <TableHead className="w-[40%] text-right">Files</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {builds.results?.map(
-                ({
-                  id,
-                  version_name,
-                  version_code,
-                  mapping_type,
-                  download_url,
-                  last_updated,
-                }: any) => (
+                ({ version_name, version_code, patch_id, files }: any) => (
                   <TableRow
-                    key={id}
+                    key={JSON.stringify([version_name, version_code, patch_id])}
                     data-testid="build-row"
                     className="font-body"
                   >
-                    <TableCell className="w-[80%]">
-                      <p className="truncate select-none">{id}</p>
-                      <div className="py-1" />
-                      <p className="text-xs truncate text-muted-foreground select-none">
-                        {version_name +
-                          " (" +
-                          version_code +
-                          "), " +
-                          mapping_type +
-                          ", " +
-                          formatDateToHumanReadableDateTime(last_updated)}
+                    <TableCell className="w-[60%] align-top">
+                      <p className="truncate select-none">
+                        {version_name
+                          ? version_name + " (" + version_code + ")"
+                          : "Patch: " + patch_id}
                       </p>
+                      {version_name && patch_id && (
+                        <>
+                          <div className="py-0.5" />
+                          <p className="text-xs truncate text-muted-foreground select-none">
+                            {"Patch: " + patch_id}
+                          </p>
+                        </>
+                      )}
                     </TableCell>
-                    <TableCell className="w-[20%] text-center">
-                      <Button variant="outline" asChild>
-                        <a
-                          href={`/api${download_url}`}
-                          download
-                          onClick={(e) => {
-                            e.preventDefault();
-                            downloadBuild(`/api${download_url}`);
-                          }}
-                        >
-                          Download
-                        </a>
-                      </Button>
+                    <TableCell className="w-[40%] align-top">
+                      <div className="flex flex-col items-end gap-2">
+                        {files?.map((file: any) => (
+                          <div
+                            key={file.id}
+                            className="flex items-center gap-4 py-0.5"
+                          >
+                            <div className="flex flex-col items-end gap-0.5">
+                              <p className="text-xs truncate text-muted-foreground select-none">
+                                {file.mapping_type}
+                              </p>
+                              <p className="text-xs truncate text-muted-foreground select-none">
+                                {formatDateToHumanReadableDateTime(
+                                  file.last_updated,
+                                )}
+                              </p>
+                            </div>
+                            <Button variant="outline" asChild>
+                              <a
+                                href={`/api${file.download_url}`}
+                                download
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  downloadBuildFile(`/api${file.download_url}`);
+                                }}
+                              >
+                                Download
+                              </a>
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ),

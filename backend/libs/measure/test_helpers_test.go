@@ -44,8 +44,9 @@ type testDeps struct {
 }
 
 var (
-	th   *testinfra.TestHelper
-	deps *testDeps
+	th            *testinfra.TestHelper
+	deps          *testDeps
+	minioEndpoint string
 )
 
 const testTeamName = "test-team"
@@ -56,6 +57,9 @@ func TestMain(m *testing.M) {
 	pgPool, pgCleanup := testinfra.SetupPostgres(ctx)
 	chConn, chCleanup := testinfra.SetupClickHouse(ctx)
 	vk, vkCleanup := testinfra.SetupValkey(ctx)
+
+	var minioCleanup func()
+	minioEndpoint, minioCleanup = testinfra.SetupMinio(ctx)
 
 	th = testinfra.NewTestHelper(pgPool, chConn, vk)
 
@@ -81,6 +85,7 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 
+	minioCleanup()
 	vkCleanup()
 	pgCleanup()
 	chCleanup()
@@ -138,6 +143,16 @@ func seedAPIKey(
 	createdAt time.Time,
 ) {
 	th.SeedAPIKey(ctx, t, appID.String(), keyPrefix, keyValue, checksum, revoked, lastSeen, createdAt)
+}
+
+func seedBuildMappingRow(
+	ctx context.Context,
+	t *testing.T,
+	mappingID, appID uuid.UUID,
+	versionName, versionCode, mappingType, patchID string,
+	lastUpdated time.Time,
+) {
+	th.SeedBuildMappingRow(ctx, t, mappingID.String(), appID.String(), versionName, versionCode, mappingType, fmt.Sprintf("test/%s", mappingID), patchID, lastUpdated)
 }
 
 func seedGenericEvents(ctx context.Context, t *testing.T, teamID, appID string, count int, ts time.Time) {

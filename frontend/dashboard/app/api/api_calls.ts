@@ -1100,13 +1100,17 @@ export const emptyBuildsResponse = {
     previous: false,
   },
   results: [] as {
-    id: string;
     version_name: string;
     version_code: string;
-    mapping_type: string;
-    download_url: string;
-    filesize: number;
+    patch_id?: string;
     last_updated: string;
+    files: {
+      id: string;
+      mapping_type: string;
+      download_url: string;
+      filesize: number;
+      last_updated: string;
+    }[];
   }[],
 };
 
@@ -2895,11 +2899,12 @@ export const updateBugReportStatusFromServer = async (
   }
 };
 
-// downloadBuild triggers a build mapping download. The download is a plain
-// browser navigation, which bypasses apiClient's 401 refresh interceptor, so
-// an authenticated endpoint is touched through apiClient first: an expired
-// access token gets refreshed before the navigation instead of failing it.
-export const downloadBuild = async (downloadUrl: string) => {
+// downloadBuildFile triggers a build mapping file download. The download is
+// a browser navigation, which bypasses apiClient's 401 refresh
+// interceptor, so an authenticated endpoint is touched through apiClient
+// first: an expired access token gets refreshed before the navigation
+// instead of failing it.
+export const downloadBuildFile = async (downloadUrl: string) => {
   try {
     const res = await apiClient.fetch(`/api/auth/session`);
     if (!res.ok) {

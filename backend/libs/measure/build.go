@@ -24,12 +24,15 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-// Build represents a single mapping file uploaded
-// for an app version.
-type Build struct {
+// BuildFile represents a single mapping file uploaded for a build.
+// VersionName, VersionCode and PatchID identify the build the file
+// belongs to; they stay out of JSON because the builds list nests
+// files inside their build, which already carries them.
+type BuildFile struct {
 	ID          uuid.UUID `json:"id"`
-	VersionName string    `json:"version_name"`
-	VersionCode string    `json:"version_code"`
+	VersionName string    `json:"-"`
+	VersionCode string    `json:"-"`
+	PatchID     uuid.UUID `json:"-"`
 	MappingType string    `json:"mapping_type"`
 	Key         string    `json:"-"`
 	DownloadURL string    `json:"download_url"`
@@ -37,9 +40,23 @@ type Build struct {
 	LastUpdated time.Time `json:"last_updated"`
 }
 
-// BuildDownloadConfig is the storage configuration OpenBuildDownload
-// needs to read mapping file artifacts from the symbols bucket.
-type BuildDownloadConfig struct {
+// Build represents one build of an app: the mapping files uploaded
+// for a (version_name, version_code, patch_id) group, keeping the
+// latest file of each mapping type. PatchID is empty for regular
+// builds; Over-The-Air patch uploads carry a patch id and empty
+// version columns.
+type Build struct {
+	VersionName string      `json:"version_name"`
+	VersionCode string      `json:"version_code"`
+	PatchID     string      `json:"patch_id,omitempty"`
+	LastUpdated time.Time   `json:"last_updated"`
+	Files       []BuildFile `json:"files"`
+}
+
+// BuildFileDownloadConfig is the storage configuration
+// OpenBuildFileDownload needs to read mapping file artifacts from
+// the symbols bucket.
+type BuildFileDownloadConfig struct {
 	IsCloud                bool
 	AWSEndpoint            string
 	SymbolsBucket          string
@@ -48,10 +65,10 @@ type BuildDownloadConfig struct {
 	SymbolsSecretAccessKey string
 }
 
-// BuildDownload is the downloadable form of a build's mapping file:
-// the filename and headers a file download response needs, plus a
-// Stream method that writes the body.
-type BuildDownload struct {
+// BuildFileDownload is the downloadable form of a build's mapping
+// file: the filename and headers a file download response needs,
+// plus a Stream method that writes the body.
+type BuildFileDownload struct {
 	Filename    string
 	ContentType string
 
@@ -65,19 +82,19 @@ type BuildDownload struct {
 
 // Stream writes the download body. Call after response
 // headers are set; it must be called at most once.
-func (d *BuildDownload) Stream(w io.Writer) error {
+func (d *BuildFileDownload) Stream(w io.Writer) error {
 	return d.stream(w)
 }
 
 // Close releases the underlying object reader.
-func (d *BuildDownload) Close() error {
+func (d *BuildFileDownload) Close() error {
 	return d.closer()
 }
 
 // openSymbolObject opens the object at key in the symbols bucket and
 // returns its reader, size and object metadata. The reader's Close
 // releases every underlying resource.
-func openSymbolObject(ctx context.Context, config BuildDownloadConfig, key string) (body io.ReadCloser, size int64, metadata map[string]string, err error) {
+func openSymbolObject(ctx context.Context, config BuildFileDownloadConfig, key string) (body io.ReadCloser, size int64, metadata map[string]string, err error) {
 	if config.IsCloud {
 		client, errStorage := storage.NewClient(ctx)
 		if errStorage != nil {
@@ -135,7 +152,7 @@ func (r *gcsObjectReader) Close() error {
 
 // dsymName reads the binary name from the /meta object stored next to
 // a dsym artifact's /debuginfo object.
-func dsymName(ctx context.Context, config BuildDownloadConfig, debugInfoKey string) (string, error) {
+func dsymName(ctx context.Context, config BuildFileDownloadConfig, debugInfoKey string) (string, error) {
 	body, _, _, err := openSymbolObject(ctx, config, path.Dir(debugInfoKey)+"/meta")
 	if err != nil {
 		return "", err
@@ -220,13 +237,13 @@ func writeDsymBundleZip(w io.Writer, name, versionName, versionCode string, dwar
 	return zw.Close()
 }
 
-// OpenBuildDownload opens the downloadable form of a build's mapping
-// file. The stored artifact already is what developers expect for
-// proguard, elf_debug and jsbundle mappings and streams through as-is;
-// dsym artifacts are stored as the DWARF binary, so the download
-// reconstructs the .dSYM bundle around it as a zip.
-func OpenBuildDownload(ctx context.Context, config BuildDownloadConfig, build Build) (*BuildDownload, error) {
-	body, size, metadata, err := openSymbolObject(ctx, config, build.Key)
+// OpenBuildFileDownload opens the downloadable form of a build's
+// mapping file. The stored artifact already is what developers expect
+// for proguard, elf_debug and jsbundle mappings and streams through
+// as-is; dsym artifacts are stored as the DWARF binary, so the
+// download reconstructs the .dSYM bundle around it as a zip.
+func OpenBuildFileDownload(ctx context.Context, config BuildFileDownloadConfig, file BuildFile) (*BuildFileDownload, error) {
+	body, size, metadata, err := openSymbolObject(ctx, config, file.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -236,9 +253,9 @@ func OpenBuildDownload(ctx context.Context, config BuildDownloadConfig, build Bu
 		return copyErr
 	}
 
-	switch build.MappingType {
+	switch file.MappingType {
 	case symbol.TypeProguard.String():
-		return &BuildDownload{
+		return &BuildFileDownload{
 			Filename:      "mapping.txt",
 			ContentType:   "text/plain",
 			ContentLength: size,
@@ -248,9 +265,9 @@ func OpenBuildDownload(ctx context.Context, config BuildDownloadConfig, build Bu
 	case symbol.TypeElfDebug.String():
 		filename := metadata["original_file_name"]
 		if filename == "" {
-			filename = path.Base(build.Key)
+			filename = path.Base(file.Key)
 		}
-		return &BuildDownload{
+		return &BuildFileDownload{
 			Filename:      filename,
 			ContentType:   "application/octet-stream",
 			ContentLength: size,
@@ -258,25 +275,25 @@ func OpenBuildDownload(ctx context.Context, config BuildDownloadConfig, build Bu
 			closer:        body.Close,
 		}, nil
 	case symbol.TypeJsBundle.String():
-		return &BuildDownload{
-			Filename:      path.Base(build.Key),
+		return &BuildFileDownload{
+			Filename:      path.Base(file.Key),
 			ContentType:   "application/octet-stream",
 			ContentLength: size,
 			stream:        passthrough,
 			closer:        body.Close,
 		}, nil
 	case symbol.TypeDsym.String():
-		name, nameErr := dsymName(ctx, config, build.Key)
+		name, nameErr := dsymName(ctx, config, file.Key)
 		if nameErr != nil {
 			fmt.Println("failed to read dsym meta, falling back to a generic bundle name:", nameErr)
 			name = "debuginfo"
 		}
-		return &BuildDownload{
+		return &BuildFileDownload{
 			Filename:      name + ".dSYM.zip",
 			ContentType:   "application/zip",
 			ContentLength: -1,
 			stream: func(w io.Writer) error {
-				return writeDsymBundleZip(w, name, build.VersionName, build.VersionCode, body)
+				return writeDsymBundleZip(w, name, file.VersionName, file.VersionCode, body)
 			},
 			closer: body.Close,
 		}, nil
@@ -286,20 +303,21 @@ func OpenBuildDownload(ctx context.Context, config BuildDownloadConfig, build Bu
 		fmt.Println("failed to close symbol object reader:", closeErr)
 	}
 
-	return nil, fmt.Errorf("failed to recognize mapping type %q", build.MappingType)
+	return nil, fmt.Errorf("failed to recognize mapping type %q", file.MappingType)
 }
 
-// GetBuild reads a single build mapping row of an app.
-func GetBuild(ctx context.Context, pg *pgxpool.Pool, appID, buildID uuid.UUID) (build Build, err error) {
+// GetBuildFile reads a single build mapping file row of an app.
+func GetBuildFile(ctx context.Context, pg *pgxpool.Pool, appID, buildFileID uuid.UUID) (file BuildFile, err error) {
 	stmt := sqlf.PostgreSQL.From("build_mappings").
 		Select("id").
 		Select("version_name").
 		Select("version_code").
+		Select("patch_id").
 		Select("mapping_type").
 		Select("key").
 		Select("file_size").
 		Select("last_updated").
-		Where("id = ?", buildID).
+		Where("id = ?", buildFileID).
 		Where("app_id = ?", appID).
 		// an empty key means the mapping file hasn't finished uploading
 		// and processing yet, so there is nothing to download
@@ -308,25 +326,33 @@ func GetBuild(ctx context.Context, pg *pgxpool.Pool, appID, buildID uuid.UUID) (
 	defer stmt.Close()
 
 	err = pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
-		&build.ID,
-		&build.VersionName,
-		&build.VersionCode,
-		&build.MappingType,
-		&build.Key,
-		&build.FileSize,
-		&build.LastUpdated,
+		&file.ID,
+		&file.VersionName,
+		&file.VersionCode,
+		&file.PatchID,
+		&file.MappingType,
+		&file.Key,
+		&file.FileSize,
+		&file.LastUpdated,
 	)
 
-	return build, err
+	return file, err
 }
 
-// GetBuildsWithFilter provides a paginated list of an app's build mapping
-// files matching various filters, ordered by upload time, newest first.
+// GetBuildsWithFilter provides a paginated list of an app's builds
+// within the filter's time range, ordered by upload time, newest
+// first. Mapping files uploaded for the same (version_name,
+// version_code, patch_id) group are packaged into one build, keeping
+// the latest file of each mapping type. Pagination applies to
+// builds, not to their files.
 func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, af *filter.AppFilter) (builds []Build, next, previous bool, err error) {
-	stmt := sqlf.PostgreSQL.From("build_mappings").
-		Select("id").
+	// latest keeps the most recently uploaded file of each mapping
+	// type within every (version_name, version_code, patch_id) group
+	latest := sqlf.PostgreSQL.From("build_mappings").
+		Select("distinct on (version_name, version_code, patch_id, mapping_type) id").
 		Select("version_name").
 		Select("version_code").
+		Select("patch_id").
 		Select("mapping_type").
 		Select("key").
 		Select("file_size").
@@ -336,25 +362,47 @@ func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, af *filter.AppFi
 		// and processing yet, so there is nothing to download
 		Where("key != ''").
 		// id breaks ties in case last_updated is same
-		OrderBy("last_updated desc, id")
+		OrderBy("version_name, version_code, patch_id, mapping_type, last_updated desc, id")
 
 	if af.HasTimeRange() {
-		stmt.Where("last_updated >= ?", af.From)
-		stmt.Where("last_updated <= ?", af.To)
+		latest.Where("last_updated >= ?", af.From)
+		latest.Where("last_updated <= ?", af.To)
 	}
 
-	if af.HasVersions() {
-		stmt.Where("version_name = ANY(?)", af.Versions)
-		stmt.Where("version_code = ANY(?)", af.VersionCodes)
-	}
+	// page selects the builds of the requested page, ordered by
+	// their newest file; the group columns break ties in case
+	// last_updated is same
+	page := sqlf.PostgreSQL.From("latest").
+		Select("version_name").
+		Select("version_code").
+		Select("patch_id").
+		Select("max(last_updated) as build_last_updated").
+		GroupBy("version_name, version_code, patch_id").
+		OrderBy("build_last_updated desc, version_name desc, version_code desc, patch_id desc")
 
 	if af.Limit > 0 {
-		stmt.Limit(uint64(af.Limit) + 1)
+		// fetch one extra build to detect if a next page exists
+		page.Limit(uint64(af.Limit) + 1)
 	}
 
 	if af.Offset >= 0 {
-		stmt.Offset(uint64(af.Offset))
+		page.Offset(uint64(af.Offset))
 	}
+
+	stmt := sqlf.PostgreSQL.
+		With("latest", latest).
+		With("page", page).
+		From("latest").
+		Join("page", "latest.version_name = page.version_name and latest.version_code = page.version_code and latest.patch_id = page.patch_id").
+		Select("latest.id").
+		Select("latest.version_name").
+		Select("latest.version_code").
+		Select("latest.patch_id").
+		Select("latest.mapping_type").
+		Select("latest.key").
+		Select("latest.file_size").
+		Select("latest.last_updated").
+		OrderBy("page.build_last_updated desc, latest.version_name desc, latest.version_code desc, latest.patch_id desc, latest.mapping_type")
 
 	defer stmt.Close()
 
@@ -365,30 +413,52 @@ func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, af *filter.AppFi
 	defer rows.Close()
 
 	for rows.Next() {
-		var build Build
+		var file BuildFile
 		if err := rows.Scan(
-			&build.ID,
-			&build.VersionName,
-			&build.VersionCode,
-			&build.MappingType,
-			&build.Key,
-			&build.FileSize,
-			&build.LastUpdated,
+			&file.ID,
+			&file.VersionName,
+			&file.VersionCode,
+			&file.PatchID,
+			&file.MappingType,
+			&file.Key,
+			&file.FileSize,
+			&file.LastUpdated,
 		); err != nil {
 			return nil, false, false, err
 		}
-		builds = append(builds, build)
+
+		patch := ""
+		if file.PatchID != uuid.Nil {
+			patch = file.PatchID.String()
+		}
+
+		// files of one build arrive consecutively, so a new build
+		// starts whenever the group columns change
+		if len(builds) == 0 ||
+			builds[len(builds)-1].VersionName != file.VersionName ||
+			builds[len(builds)-1].VersionCode != file.VersionCode ||
+			builds[len(builds)-1].PatchID != patch {
+			builds = append(builds, Build{
+				VersionName: file.VersionName,
+				VersionCode: file.VersionCode,
+				PatchID:     patch,
+			})
+		}
+
+		build := &builds[len(builds)-1]
+		build.Files = append(build.Files, file)
+		if file.LastUpdated.After(build.LastUpdated) {
+			build.LastUpdated = file.LastUpdated
+		}
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, false, false, err
 	}
 
-	resultLen := len(builds)
-
 	// Set pagination next & previous flags
-	if af.Limit > 0 && resultLen > af.Limit {
-		builds = builds[:resultLen-1]
+	if af.Limit > 0 && len(builds) > af.Limit {
+		builds = builds[:af.Limit]
 		next = true
 	}
 	if af.Offset > 0 {

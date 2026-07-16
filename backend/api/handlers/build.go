@@ -19,10 +19,10 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// buildDownloadConfig builds the storage config measure.OpenBuildDownload
-// needs from the process config.
-func buildDownloadConfig(deps *server.Deps) measure.BuildDownloadConfig {
-	return measure.BuildDownloadConfig{
+// buildFileDownloadConfig builds the storage config
+// measure.OpenBuildFileDownload needs from the process config.
+func buildFileDownloadConfig(deps *server.Deps) measure.BuildFileDownloadConfig {
+	return measure.BuildFileDownloadConfig{
 		IsCloud:                deps.Config.IsCloud(),
 		AWSEndpoint:            deps.Config.AWSEndpoint,
 		SymbolsBucket:          deps.Config.SymbolsBucket,
@@ -58,39 +58,14 @@ func (h Handlers) GetBuilds(c *gin.Context) {
 		return
 	}
 
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	msg := "builds overview request validation failed"
 	if err := af.Validate(); err != nil {
+		msg := "builds overview request validation failed"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})
 		return
-	}
-
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
 	}
 
 	if !af.HasTimeRange() {
@@ -147,7 +122,9 @@ func (h Handlers) GetBuilds(c *gin.Context) {
 	// Downloads are served by the authenticated download endpoint, which
 	// packages the artifact the way its platform tooling expects.
 	for i := range builds {
-		builds[i].DownloadURL = fmt.Sprintf("/apps/%s/builds/%s/download", id, builds[i].ID)
+		for j := range builds[i].Files {
+			builds[i].Files[j].DownloadURL = fmt.Sprintf("/apps/%s/builds/%s/download", id, builds[i].Files[j].ID)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -159,7 +136,7 @@ func (h Handlers) GetBuilds(c *gin.Context) {
 	})
 }
 
-func (h Handlers) DownloadBuild(c *gin.Context) {
+func (h Handlers) DownloadBuildFile(c *gin.Context) {
 	deps := h.Deps
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
@@ -170,9 +147,9 @@ func (h Handlers) DownloadBuild(c *gin.Context) {
 		return
 	}
 
-	buildId, err := uuid.Parse(c.Param("buildId"))
+	buildFileId, err := uuid.Parse(c.Param("buildFileId"))
 	if err != nil {
-		msg := `build id invalid or missing`
+		msg := `build file id invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
@@ -217,29 +194,29 @@ func (h Handlers) DownloadBuild(c *gin.Context) {
 		return
 	}
 
-	build, err := measure.GetBuild(ctx, deps.PgPool, id, buildId)
+	buildFile, err := measure.GetBuildFile(ctx, deps.PgPool, id, buildFileId)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			msg := fmt.Sprintf("no build [%s] exists for app [%s]", buildId, id)
+			msg := fmt.Sprintf("no build file [%s] exists for app [%s]", buildFileId, id)
 			c.JSON(http.StatusNotFound, gin.H{"error": msg})
 			return
 		}
-		msg := "failed to get app's build"
+		msg := "failed to get app's build file"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 
-	download, err := measure.OpenBuildDownload(ctx, buildDownloadConfig(deps), build)
+	download, err := measure.OpenBuildFileDownload(ctx, buildFileDownloadConfig(deps), buildFile)
 	if err != nil {
-		msg := "failed to open build download"
+		msg := "failed to open build file download"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 	defer func() {
 		if err := download.Close(); err != nil {
-			fmt.Println("failed to close build download:", err)
+			fmt.Println("failed to close build file download:", err)
 		}
 	}()
 
@@ -258,7 +235,7 @@ func (h Handlers) DownloadBuild(c *gin.Context) {
 	// recovers every panic and would finish the response cleanly, so the
 	// connection is hijacked and closed directly.
 	if err := download.Stream(c.Writer); err != nil {
-		fmt.Println("failed to stream build download:", err)
+		fmt.Println("failed to stream build file download:", err)
 		if hijacker, ok := c.Writer.(http.Hijacker); ok {
 			if conn, _, hijackErr := hijacker.Hijack(); hijackErr == nil {
 				conn.Close()

@@ -38,7 +38,7 @@ import {
   defaultFilters,
   DowngradeToFreeApiStatus,
   downgradeToFreeFromServer,
-  downloadBuild,
+  downloadBuildFile,
   UndoDowngradeApiStatus,
   undoDowngradeFromServer,
   fetchAlertsOverviewFromServer,
@@ -898,9 +898,9 @@ describe("sessions, bug reports, alerts", () => {
 });
 
 // ========================================================================
-// downloadBuild
+// downloadBuildFile
 // ========================================================================
-describe("downloadBuild", () => {
+describe("downloadBuildFile", () => {
   const originalLocation = window.location;
   const assignMock = jest.fn();
 
@@ -920,7 +920,7 @@ describe("downloadBuild", () => {
   it("refreshes the session through apiClient before navigating", async () => {
     assignMock.mockClear();
     mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
-    await downloadBuild("/api/apps/app-a/builds/b-1/download");
+    await downloadBuildFile("/api/apps/app-a/builds/b-1/download");
     expect(lastFetchUrl()).toBe("/api/auth/session");
     expect(assignMock).toHaveBeenCalledWith(
       "/api/apps/app-a/builds/b-1/download",
@@ -933,7 +933,7 @@ describe("downloadBuild", () => {
     // is still attempted; the worst case is a retryable failure.
     assignMock.mockClear();
     mockApiClientFetch.mockRejectedValueOnce(new Error("offline"));
-    await downloadBuild("/api/apps/app-a/builds/b-1/download");
+    await downloadBuildFile("/api/apps/app-a/builds/b-1/download");
     expect(assignMock).toHaveBeenCalledWith(
       "/api/apps/app-a/builds/b-1/download",
     );
@@ -945,7 +945,7 @@ describe("downloadBuild", () => {
     // it and land the browser on the api's raw 401 body.
     assignMock.mockClear();
     mockApiClientFetch.mockResolvedValueOnce(errorResponse(401));
-    await downloadBuild("/api/apps/app-a/builds/b-1/download");
+    await downloadBuildFile("/api/apps/app-a/builds/b-1/download");
     expect(assignMock).not.toHaveBeenCalled();
   });
 });
