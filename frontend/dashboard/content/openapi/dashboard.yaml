@@ -5897,15 +5897,18 @@ paths:
         - Apps
       summary: Fetch an app's builds
       description: |
-        Fetch an app's builds by applying various optional filters.
+        Fetch an app's builds, optionally filtered by upload time.
 
-        Both `versions` & `version_codes` should be present if any one of them
-        is present, and the number of items in each must be the same. Builds
-        are ordered by upload time, newest first. Each build's `download_url`
-        is the path of the download endpoint serving the build's mapping file.
-        For multiple comma separated fields, make sure no whitespace characters
-        exist before or after commas. Pass `limit` and `offset` values to
-        paginate results.
+        Each build packages the mapping files uploaded for one version of the
+        app: files are grouped by `version_name`, `version_code` and, for
+        Over-The-Air patch uploads, `patch_id`, keeping the latest file of
+        each mapping type. OTA patch builds carry a `patch_id` and empty
+        version fields. Each file's `download_url` is the path of the
+        download endpoint serving that mapping file.
+
+        Builds are ordered by upload time of their newest file, newest first.
+        Pass `limit` and `offset` values to paginate results; pagination
+        applies to builds, not to their files.
       parameters:
         - name: id
           in: path
@@ -5926,18 +5929,6 @@ paths:
           description: ISO8601 timestamp to include builds uploaded before this time.
           schema:
             type: string
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings to return only matching builds.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version codes to return only matching builds.
-          schema:
-            type: string
         - name: offset
           in: query
           required: false
@@ -5950,12 +5941,6 @@ paths:
           description: Number of items to return. Used for pagination. Should be used along with `offset`.
           schema:
             type: integer
-        - name: filter_short_code
-          in: query
-          required: false
-          description: Code representing combination of filters.
-          schema:
-            type: string
       responses:
         "200":
           description: Successful response, no errors.
@@ -5976,21 +5961,35 @@ paths:
                     items:
                       type: object
                       properties:
-                        id:
-                          type: string
                         version_name:
                           type: string
+                          description: Empty for OTA patch builds.
                         version_code:
                           type: string
-                        mapping_type:
+                          description: Empty for OTA patch builds.
+                        patch_id:
                           type: string
-                          description: "`proguard`, `elf_debug`, `jsbundle` or `dsym`."
-                        download_url:
-                          type: string
-                        filesize:
-                          type: number
+                          description: OTA patch UUID. Present only for OTA patch builds.
                         last_updated:
                           type: string
+                          description: Upload time of the build's newest file.
+                        files:
+                          type: array
+                          description: The latest file of each mapping type uploaded for this build.
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              mapping_type:
+                                type: string
+                                description: "`proguard`, `elf_debug`, `jsbundle` or `dsym`."
+                              download_url:
+                                type: string
+                              filesize:
+                                type: number
+                              last_updated:
+                                type: string
               examples:
                 response:
                   value:
@@ -5998,20 +5997,30 @@ paths:
                       next: true
                       previous: false
                     results:
-                      - id: 8bd23e1c-71f0-4a94-9c9c-d5b9b1f27b30
-                        version_name: 1.2.0
+                      - version_name: 1.2.0
                         version_code: "1200"
-                        mapping_type: proguard
-                        download_url: /apps/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/builds/8bd23e1c-71f0-4a94-9c9c-d5b9b1f27b30/download
-                        filesize: 8712174
                         last_updated: "2025-07-08T09:14:33.712Z"
-                      - id: 38c4d1a9-9153-4f81-b2e8-63f4a1c05d9b
-                        version_name: 1.2.0
-                        version_code: "1200"
-                        mapping_type: elf_debug
-                        download_url: /apps/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/builds/38c4d1a9-9153-4f81-b2e8-63f4a1c05d9b/download
-                        filesize: 24509831
-                        last_updated: "2025-07-08T09:14:32.409Z"
+                        files:
+                          - id: 8bd23e1c-71f0-4a94-9c9c-d5b9b1f27b30
+                            mapping_type: proguard
+                            download_url: /apps/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/builds/8bd23e1c-71f0-4a94-9c9c-d5b9b1f27b30/download
+                            filesize: 8712174
+                            last_updated: "2025-07-08T09:14:33.712Z"
+                          - id: 38c4d1a9-9153-4f81-b2e8-63f4a1c05d9b
+                            mapping_type: elf_debug
+                            download_url: /apps/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/builds/38c4d1a9-9153-4f81-b2e8-63f4a1c05d9b/download
+                            filesize: 24509831
+                            last_updated: "2025-07-08T09:14:32.409Z"
+                      - version_name: ""
+                        version_code: ""
+                        patch_id: 3f0e7c3e-9c31-4d9d-9a4e-2f6a3d0f5b21
+                        last_updated: "2025-07-08T08:47:12.118Z"
+                        files:
+                          - id: 5f2a9c7d-1e64-4f0b-a3c2-8d914b6e0aa7
+                            mapping_type: jsbundle
+                            download_url: /apps/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/builds/5f2a9c7d-1e64-4f0b-a3c2-8d914b6e0aa7/download
+                            filesize: 3145728
+                            last_updated: "2025-07-08T08:47:12.118Z"
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
@@ -6022,18 +6031,19 @@ paths:
           description: Rate limit of the requester has crossed maximum limits.
         "500":
           description: Measure server encountered an unfortunate error. Report this to your server administrator.
-  /apps/{id}/builds/{buildId}/download:
+  /apps/{id}/builds/{buildFileId}/download:
     get:
-      operationId: downloadBuild
+      operationId: downloadBuildFile
       tags:
         - Apps
       summary: Download a build's mapping file
       description: |
-        Download a build's mapping file, packaged the way its platform tooling
-        expects.
+        Download one of a build's mapping files, packaged the way its
+        platform tooling expects. File ids come from the `files` array of
+        the builds list response.
 
         The response is the mapping file itself with a `Content-Disposition`
-        filename, not JSON. Packaging depends on the build's `mapping_type`:
+        filename, not JSON. Packaging depends on the file's `mapping_type`:
         `proguard` returns the mapping file as stored, named `mapping.txt`;
         `elf_debug` returns the debug file as stored, named with its uploaded
         filename; `jsbundle` returns the bundle or sourcemap file as stored,
@@ -6048,10 +6058,10 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: buildId
+        - name: buildFileId
           in: path
           required: true
-          description: Build's UUID.
+          description: Build file's UUID.
           schema:
             type: string
             format: uuid
@@ -6073,7 +6083,7 @@ paths:
         "403":
           description: Requester does not have access to this resource.
         "404":
-          description: No build with this id exists for this app.
+          description: No build file with this id exists for this app.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":

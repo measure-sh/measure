@@ -20,7 +20,7 @@ jest.mock("next/navigation", () => ({
 }));
 
 // Mock API calls and constants
-const downloadBuildMock = jest.fn();
+const downloadBuildFileMock = jest.fn();
 jest.mock("@/app/api/api_calls", () => ({
   __esModule: true,
   emptyBuildsResponse: {
@@ -28,7 +28,7 @@ jest.mock("@/app/api/api_calls", () => ({
     results: [],
   },
   FilterSource: { Builds: "builds" },
-  downloadBuild: (url: string) => downloadBuildMock(url),
+  downloadBuildFile: (url: string) => downloadBuildFileMock(url),
 }));
 
 jest.mock("@/app/stores/provider", () => {
@@ -95,13 +95,18 @@ jest.mock("@/app/utils/time_utils", () => ({
 const { useFiltersStore } = require("@/app/stores/provider") as any;
 
 const mockBuildResult = {
-  id: "mapping-1",
   version_name: "1.0.2",
   version_code: "2",
-  mapping_type: "dsym",
-  download_url: "/apps/app1/builds/mapping-1/download",
-  filesize: 100,
   last_updated: "2020-01-01T00:00:00Z",
+  files: [
+    {
+      id: "mapping-1",
+      mapping_type: "dsym",
+      download_url: "/apps/app1/builds/mapping-1/download",
+      filesize: 100,
+      last_updated: "2020-01-01T00:00:00Z",
+    },
+  ],
 };
 
 const mockBuildsData = {
@@ -113,7 +118,7 @@ describe("Builds Component", () => {
   beforeEach(() => {
     replaceMock.mockClear();
     pushMock.mockClear();
-    downloadBuildMock.mockClear();
+    downloadBuildFileMock.mockClear();
     mockSearchParams = new URLSearchParams();
     mockUseBuildsQuery.mockReset();
     mockUseBuildsQuery.mockReturnValue({
@@ -169,7 +174,7 @@ describe("Builds Component", () => {
       screen.getByRole("columnheader", { name: "Build" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("columnheader", { name: "Download" }),
+      screen.getByRole("columnheader", { name: "Files" }),
     ).toBeInTheDocument();
   });
 
@@ -191,14 +196,15 @@ describe("Builds Component", () => {
       });
     });
 
-    // Main line is the mapping id, second line is version (code), type, datetime.
-    expect(screen.getByText("mapping-1")).toBeInTheDocument();
-    expect(
-      screen.getByText("1.0.2 (2), dsym, 1 Jan, 2020, 12:00:00 AM"),
-    ).toBeInTheDocument();
+    // Main line is the version (code); each file shows its mapping
+    // type with its own upload time below it. The build itself shows
+    // no date, so exactly one date renders for the single file.
+    expect(screen.getByText("1.0.2 (2)")).toBeInTheDocument();
+    expect(screen.getByText("dsym")).toBeInTheDocument();
+    expect(screen.getAllByText("1 Jan, 2020, 12:00:00 AM")).toHaveLength(1);
   });
 
-  it("renders a download link per build pointing at the download endpoint", async () => {
+  it("renders a download link per file pointing at the download endpoint", async () => {
     mockUseBuildsQuery.mockReturnValue({
       data: mockBuildsData,
       status: "success",
@@ -248,9 +254,123 @@ describe("Builds Component", () => {
       fireEvent.click(link);
     });
 
-    expect(downloadBuildMock).toHaveBeenCalledWith(
+    expect(downloadBuildFileMock).toHaveBeenCalledWith(
       "/api/apps/app1/builds/mapping-1/download",
     );
+  });
+
+  it("renders single and multi file builds for version, patch and version+patch variants", async () => {
+    const file = (id: string, mappingType: string) => ({
+      id,
+      mapping_type: mappingType,
+      download_url: `/apps/app1/builds/${id}/download`,
+      filesize: 100,
+      last_updated: "2020-01-01T00:00:00Z",
+    });
+
+    mockUseBuildsQuery.mockReturnValue({
+      data: {
+        results: [
+          {
+            version_name: "1.0.2",
+            version_code: "2",
+            last_updated: "2020-01-01T00:00:00Z",
+            files: [
+              file("mapping-1", "proguard"),
+              file("mapping-2", "elf_debug"),
+            ],
+          },
+          {
+            version_name: "1.0.1",
+            version_code: "1",
+            last_updated: "2020-01-01T00:00:00Z",
+            files: [file("mapping-3", "proguard")],
+          },
+          {
+            version_name: "",
+            version_code: "",
+            patch_id: "3f0e7c3e-9c31-4d9d-9a4e-2f6a3d0f5b21",
+            last_updated: "2020-01-01T00:00:00Z",
+            files: [
+              file("mapping-4", "jsbundle"),
+              file("mapping-5", "proguard"),
+            ],
+          },
+          {
+            version_name: "",
+            version_code: "",
+            patch_id: "b2c4e6a8-0d1f-4357-9b8c-2e4a6c8e0a1b",
+            last_updated: "2020-01-01T00:00:00Z",
+            files: [file("mapping-6", "jsbundle")],
+          },
+          {
+            version_name: "2.4.1",
+            version_code: "2401",
+            patch_id: "9b1de2a7-5c44-4f8e-8a3d-6f2e91c07b55",
+            last_updated: "2020-01-01T00:00:00Z",
+            files: [
+              file("mapping-7", "jsbundle"),
+              file("mapping-8", "elf_debug"),
+            ],
+          },
+          {
+            version_name: "2.4.0",
+            version_code: "2400",
+            patch_id: "d4f6a8b0-2c3e-4579-8d9e-4a6c8e0b2d3f",
+            last_updated: "2020-01-01T00:00:00Z",
+            files: [file("mapping-9", "jsbundle")],
+          },
+        ],
+        meta: { previous: false, next: false },
+      },
+      status: "success",
+      isFetching: false,
+      error: null,
+    });
+    render(<Builds params={promiseParams({ teamId: "123" })} />);
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          serialisedFilters: "updated",
+          app: { id: "app1" },
+        },
+      });
+    });
+
+    // Six builds render as six rows, one per group.
+    expect(screen.getAllByTestId("build-row")).toHaveLength(6);
+
+    // Every file shows its mapping type, its own date and a download;
+    // the builds themselves carry no date.
+    expect(screen.getAllByText("proguard")).toHaveLength(3);
+    expect(screen.getAllByText("elf_debug")).toHaveLength(2);
+    expect(screen.getAllByText("jsbundle")).toHaveLength(4);
+    expect(screen.getAllByText("1 Jan, 2020, 12:00:00 AM")).toHaveLength(9);
+    expect(screen.getAllByRole("link", { name: "Download" })).toHaveLength(9);
+
+    // Version-only builds title by version.
+    expect(screen.getByText("1.0.2 (2)")).toBeInTheDocument();
+    expect(screen.getByText("1.0.1 (1)")).toBeInTheDocument();
+
+    // Patch-only builds title by patch id.
+    expect(
+      screen.getByText("Patch: 3f0e7c3e-9c31-4d9d-9a4e-2f6a3d0f5b21"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Patch: b2c4e6a8-0d1f-4357-9b8c-2e4a6c8e0a1b"),
+    ).toBeInTheDocument();
+
+    // Builds carrying a version and a patch id keep the version as
+    // the title and show the patch id as a subtitle.
+    expect(screen.getByText("2.4.1 (2401)")).toBeInTheDocument();
+    expect(
+      screen.getByText("Patch: 9b1de2a7-5c44-4f8e-8a3d-6f2e91c07b55"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("2.4.0 (2400)")).toBeInTheDocument();
+    expect(
+      screen.getByText("Patch: d4f6a8b0-2c3e-4579-8d9e-4a6c8e0b2d3f"),
+    ).toBeInTheDocument();
   });
 
   it("shows error message when API returns error status", async () => {
@@ -457,7 +577,7 @@ describe("Builds Component", () => {
     });
 
     // After loading, the loading bar should be invisible
-    await screen.findByText("mapping-1");
+    await screen.findByText("1.0.2 (2)");
     expect(loadingBarContainer).not.toHaveClass("visible");
     expect(loadingBarContainer).toHaveClass("invisible");
   });

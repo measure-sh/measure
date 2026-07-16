@@ -159,7 +159,7 @@ func main() {
 
 		// builds
 		apps.GET(":id/builds", hdl.GetBuilds)
-		apps.GET(":id/builds/:buildId/download", hdl.DownloadBuild)
+		apps.GET(":id/builds/:buildFileId/download", hdl.DownloadBuildFile)
 
 		// app management
 		apps.GET(":id/config", hdl.GetConfig)

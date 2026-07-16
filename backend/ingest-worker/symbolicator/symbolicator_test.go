@@ -553,8 +553,9 @@ func seedApp(ctx context.Context, t *testing.T, appID uuid.UUID) {
 	}
 }
 
-// seedBuildMapping inserts a build mapping entry in Postgres.
-func seedBuildMapping(ctx context.Context, t *testing.T, appID uuid.UUID, versionName, versionCode, mappingType, key string) {
+// seedBuildMappingRow inserts a build mapping row in Postgres.
+// It does not upload the mapping file object itself.
+func seedBuildMappingRow(ctx context.Context, t *testing.T, appID uuid.UUID, versionName, versionCode, mappingType, key string) {
 	t.Helper()
 	now := time.Now()
 
@@ -929,7 +930,7 @@ func TestJVMExceptionSymbolicationBasic(t *testing.T) {
 	versionCode := "1"
 
 	seedApp(ctx, t, appID)
-	seedBuildMapping(ctx, t, appID, versionName, versionCode, "proguard", basicProguardMappingKey)
+	seedBuildMappingRow(ctx, t, appID, versionName, versionCode, "proguard", basicProguardMappingKey)
 
 	events := makeJVMExceptionEvents(versionName, versionCode)
 	sources := []Source{newS3Source()}
@@ -954,7 +955,7 @@ func TestJVMANRSymbolicationBasic(t *testing.T) {
 	versionCode := "2"
 
 	seedApp(ctx, t, appID)
-	seedBuildMapping(ctx, t, appID, versionName, versionCode, "proguard", basicProguardMappingKey)
+	seedBuildMappingRow(ctx, t, appID, versionName, versionCode, "proguard", basicProguardMappingKey)
 
 	events := makeJVMANREvents(versionName, versionCode)
 	sources := []Source{newS3Source()}
@@ -979,7 +980,7 @@ func TestJVMLifecycleSymbolicationBasic(t *testing.T) {
 	versionCode := "3"
 
 	seedApp(ctx, t, appID)
-	seedBuildMapping(ctx, t, appID, versionName, versionCode, "proguard", basicProguardMappingKey)
+	seedBuildMappingRow(ctx, t, appID, versionName, versionCode, "proguard", basicProguardMappingKey)
 
 	events := makeJVMLifecycleEvents(versionName, versionCode)
 	sources := []Source{newS3Source()}
@@ -1032,7 +1033,7 @@ func TestSymbolicationNonSymbolicatableEvents(t *testing.T) {
 	versionCode := "4"
 
 	seedApp(ctx, t, appID)
-	seedBuildMapping(ctx, t, appID, versionName, versionCode, "proguard", basicProguardMappingKey)
+	seedBuildMappingRow(ctx, t, appID, versionName, versionCode, "proguard", basicProguardMappingKey)
 
 	// Create a gesture_click event - should not be symbolicated
 	events := []event.EventField{
@@ -1205,7 +1206,7 @@ func TestDartExceptionSymbolication(t *testing.T) {
 	versionCode := "1"
 
 	seedApp(ctx, t, appID)
-	seedBuildMapping(ctx, t, appID, versionName, versionCode, "elf_debug", elfDebugMappingKey)
+	seedBuildMappingRow(ctx, t, appID, versionName, versionCode, "elf_debug", elfDebugMappingKey)
 
 	events := makeDartExceptionEvents(t, versionName, versionCode)
 	sources := []Source{newS3Source()}
@@ -1263,7 +1264,7 @@ func TestJVMSingleExceptionReal(t *testing.T) {
 	versionCode := "3987"
 
 	seedApp(ctx, t, appID)
-	seedBuildMapping(ctx, t, appID, versionName, versionCode, "proguard", realProguardMappingKey)
+	seedBuildMappingRow(ctx, t, appID, versionName, versionCode, "proguard", realProguardMappingKey)
 
 	events := makeJVMRealEvents(t, "jvm_single_input.json", versionName, versionCode)
 	sources := []Source{newS3Source()}
@@ -1291,7 +1292,7 @@ func TestJVMNestedExceptionReal(t *testing.T) {
 	versionCode := "3987"
 
 	seedApp(ctx, t, appID)
-	seedBuildMapping(ctx, t, appID, versionName, versionCode, "proguard", realProguardMappingKey)
+	seedBuildMappingRow(ctx, t, appID, versionName, versionCode, "proguard", realProguardMappingKey)
 
 	events := makeJVMRealEvents(t, "jvm_nested_input.json", versionName, versionCode)
 	sources := []Source{newS3Source()}
@@ -1317,7 +1318,7 @@ func TestJVMSQLiteExceptionReal(t *testing.T) {
 	versionCode := "200"
 
 	seedApp(ctx, t, appID)
-	seedBuildMapping(ctx, t, appID, versionName, versionCode, "proguard", sqliteProguardMappingKey)
+	seedBuildMappingRow(ctx, t, appID, versionName, versionCode, "proguard", sqliteProguardMappingKey)
 
 	events := makeJVMRealEvents(t, "jvm_sqlite_input.json", versionName, versionCode)
 	sources := []Source{newS3Source()}
@@ -1401,8 +1402,8 @@ func TestJSExceptionSymbolicationNonOTA(t *testing.T) {
 	versionCode := "1"
 
 	seedApp(ctx, t, appID)
-	seedBuildMapping(ctx, t, appID, versionName, versionCode, symbol.TypeJsBundle.String(), jsBundleMappingKey)
-	seedBuildMapping(ctx, t, appID, versionName, versionCode, symbol.TypeJsBundle.String(), jsSourcemapMappingKey)
+	seedBuildMappingRow(ctx, t, appID, versionName, versionCode, symbol.TypeJsBundle.String(), jsBundleMappingKey)
+	seedBuildMappingRow(ctx, t, appID, versionName, versionCode, symbol.TypeJsBundle.String(), jsSourcemapMappingKey)
 
 	events := makeJSExceptionEvents(t, "rn_ios_input.json", versionName, versionCode, "ios")
 

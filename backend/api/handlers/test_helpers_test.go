@@ -29,9 +29,10 @@ import (
 // --------------------------------------------------------------------------
 
 var (
-	th   *testinfra.TestHelper
-	deps *server.Deps
-	h    Handlers
+	th            *testinfra.TestHelper
+	deps          *server.Deps
+	h             Handlers
+	minioEndpoint string
 )
 
 const testTeamName = "test-team"
@@ -42,6 +43,9 @@ func TestMain(m *testing.M) {
 	pgPool, pgCleanup := testinfra.SetupPostgres(ctx)
 	chConn, chCleanup := testinfra.SetupClickHouse(ctx)
 	vk, vkCleanup := testinfra.SetupValkey(ctx)
+
+	var minioCleanup func()
+	minioEndpoint, minioCleanup = testinfra.SetupMinio(ctx)
 
 	th = testinfra.NewTestHelper(pgPool, chConn, vk)
 
@@ -68,6 +72,7 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 
+	minioCleanup()
 	vkCleanup()
 	pgCleanup()
 	chCleanup()

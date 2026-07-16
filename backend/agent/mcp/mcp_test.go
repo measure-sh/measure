@@ -2264,9 +2264,9 @@ func TestMCPGetFilters(t *testing.T) {
 
 		// no event data seeded: build versions must surface regardless
 		now := time.Now().UTC()
-		seedBuildMapping(ctx, t, uuid.New().String(), appID.String(), "1.0.1", "1", "proguard", now.Add(-2*time.Hour))
-		seedBuildMapping(ctx, t, uuid.New().String(), appID.String(), "1.0.1", "1", "elf_debug", now.Add(-2*time.Hour))
-		seedBuildMapping(ctx, t, uuid.New().String(), appID.String(), "1.0.2", "2", "proguard", now.Add(-time.Hour))
+		seedBuildMappingRow(ctx, t, uuid.New().String(), appID.String(), "1.0.1", "1", "proguard", now.Add(-2*time.Hour))
+		seedBuildMappingRow(ctx, t, uuid.New().String(), appID.String(), "1.0.1", "1", "elf_debug", now.Add(-2*time.Hour))
+		seedBuildMappingRow(ctx, t, uuid.New().String(), appID.String(), "1.0.2", "2", "proguard", now.Add(-time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_filters", map[string]any{
 			"app_id": appID.String(),
