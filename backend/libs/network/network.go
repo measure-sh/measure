@@ -151,6 +151,7 @@ func applyPathFilter(stmt *sqlf.Stmt, pathPattern string) {
 // patternExists checks if a path pattern exists in
 // the url_patterns table for the given app.
 func patternExists(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, domain, pathPattern string) (bool, error) {
+	ctx = chquery.WithTeamScope(ctx, teamId)
 	stmt := sqlf.
 		Select("1").
 		From("url_patterns FINAL").
@@ -179,6 +180,7 @@ func patternExists(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID,
 // fetchTrendsCategory queries a single trends
 // category from http_metrics.
 func fetchTrendsCategory(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, af *filter.AppFilter, orderBy string, limit int) ([]TrendMetric, error) {
+	ctx = chquery.WithTeamScope(ctx, teamId)
 	stmt := sqlf.
 		Select("domain").
 		Select("path").
@@ -232,6 +234,7 @@ func fetchTrendsCategory(ctx context.Context, ch driver.Conn, appId, teamId uuid
 // FetchDomains returns list of unique domains for a
 // given app and team within the given time range.
 func FetchDomains(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, from, to time.Time) (domains []string, err error) {
+	ctx = chquery.WithTeamScope(ctx, teamId)
 	// clamp to a minimum of 1 week
 	// as smaller time ranges may not
 	// have enough data available
@@ -279,6 +282,7 @@ func FetchDomains(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, 
 // is used only for the fallback http_events search,
 // clamped to a minimum of 1 week.
 func FetchPaths(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, domain, search string, from, to time.Time) (paths []string, err error) {
+	ctx = chquery.WithTeamScope(ctx, teamId)
 	stmt := sqlf.
 		Select("path").
 		From("url_patterns FINAL").
@@ -395,6 +399,7 @@ func FetchTrends(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, a
 // GetNetworkOverviewStatusCodesPlot returns a distribution
 // of status codes over time.
 func GetNetworkOverviewStatusCodesPlot(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, af *filter.AppFilter, bucketExpr, datetimeFormat string) (result []MetricsDataPoint, err error) {
+	ctx = chquery.WithTeamScope(ctx, teamId)
 	stmt := sqlf.From("http_events").
 		Select(bucketExpr+" as datetime_bucket", af.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
@@ -445,6 +450,7 @@ func GetNetworkOverviewStatusCodesPlot(ctx context.Context, ch driver.Conn, appI
 // FetchOverviewTimelinePlot returns 5-second average request
 // count buckets (per session) for URL patterns of a given app.
 func FetchOverviewTimelinePlot(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, af *filter.AppFilter, limit int) (*TimelineResponse, error) {
+	ctx = chquery.WithTeamScope(ctx, teamId)
 	if limit <= 0 {
 		limit = defaultOverviewTimelineMax
 	}
@@ -539,6 +545,7 @@ func GetEndpointLatencyPlot(
 	af *filter.AppFilter,
 	bucketExpr, datetimeFormat string,
 ) ([]MetricsDataPoint, error) {
+	ctx = chquery.WithTeamScope(ctx, teamId)
 
 	result := make([]MetricsDataPoint, 0)
 
@@ -602,6 +609,7 @@ func GetEndpointStatusCodesPlot(
 	af *filter.AppFilter,
 	bucketExpr, datetimeFormat string,
 ) (*EndpointStatusCodesPlotResponse, error) {
+	ctx = chquery.WithTeamScope(ctx, teamId)
 
 	stmt := sqlf.From("http_events").
 		Select(bucketExpr+" as datetime_bucket", af.Timezone).
@@ -683,6 +691,7 @@ func GetEndpointStatusCodesPlot(
 // It first checks whether the given path is a known pattern
 // in the url_patterns table; if not, it returns nil.
 func FetchEndpointTimelinePlot(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, domain, pathPattern string, af *filter.AppFilter) (*TimelineResponse, error) {
+	ctx = chquery.WithTeamScope(ctx, teamId)
 	exists, err := patternExists(ctx, ch, appId, teamId, domain, pathPattern)
 	if err != nil {
 		return nil, err

@@ -2195,7 +2195,7 @@ func (c *Config) mcpGetUniqueDomains(ctx context.Context, in mcpGetUniqueDomains
 		return nil, nil, err
 	}
 
-	domains, err := network.FetchDomains(ctx, deps.ChPool, appID, teamID, from, to)
+	domains, err := network.FetchDomains(ctx, deps.RchPool, appID, teamID, from, to)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network domains: %v", err)
 	}
@@ -2222,7 +2222,7 @@ func (c *Config) mcpGetPathsForDomain(ctx context.Context, in mcpGetPathsForDoma
 		return nil, nil, err
 	}
 
-	paths, err := network.FetchPaths(ctx, deps.ChPool, appID, teamID, in.Domain, in.Search, from, to)
+	paths, err := network.FetchPaths(ctx, deps.RchPool, appID, teamID, in.Domain, in.Search, from, to)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network paths: %v", err)
 	}
@@ -2253,7 +2253,7 @@ func (c *Config) mcpGetNetworkTrends(ctx context.Context, in mcpGetNetworkTrends
 		limit = 50
 	}
 
-	result, err := network.FetchTrends(ctx, deps.ChPool, appID, teamID, af, limit)
+	result, err := network.FetchTrends(ctx, deps.RchPool, appID, teamID, af, limit)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network trends: %v", err)
 	}
@@ -2284,7 +2284,7 @@ func (c *Config) mcpGetAppStatusCodesOverTime(ctx context.Context, in mcpGetAppH
 		return nil, nil, fmt.Errorf("failed to compute time group expression: %v", err)
 	}
 
-	result, err := network.GetNetworkOverviewStatusCodesPlot(ctx, deps.ChPool, appID, teamID, af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetNetworkOverviewStatusCodesPlot(ctx, deps.RchPool, appID, teamID, af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network status overview over time: %v", err)
 	}
@@ -2324,7 +2324,7 @@ func (c *Config) mcpGetHttpEndpointLatencyOverTime(ctx context.Context, in mcpGe
 		return nil, nil, fmt.Errorf("failed to compute time group expression: %v", err)
 	}
 
-	result, err := network.GetEndpointLatencyPlot(ctx, deps.ChPool, appID, teamID, domain, path, af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetEndpointLatencyPlot(ctx, deps.RchPool, appID, teamID, domain, path, af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network latency over time: %v", err)
 	}
@@ -2364,7 +2364,7 @@ func (c *Config) mcpGetHttpEndpointStatusCodesOverTime(ctx context.Context, in m
 		return nil, nil, fmt.Errorf("failed to compute time group expression: %v", err)
 	}
 
-	result, err := network.GetEndpointStatusCodesPlot(ctx, deps.ChPool, appID, teamID, domain, path, af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetEndpointStatusCodesPlot(ctx, deps.RchPool, appID, teamID, domain, path, af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network status distribution over time: %v", err)
 	}
@@ -2384,7 +2384,7 @@ func (c *Config) mcpGetNetworkTimeline(ctx context.Context, in mcpGetNetworkTime
 		return nil, nil, err
 	}
 
-	result, err := network.FetchOverviewTimelinePlot(ctx, deps.ChPool, appID, teamID, af, 0)
+	result, err := network.FetchOverviewTimelinePlot(ctx, deps.RchPool, appID, teamID, af, 0)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network request timeline: %v", err)
 	}
@@ -2414,7 +2414,7 @@ func (c *Config) mcpGetNetworkEndpointTimeline(ctx context.Context, in mcpGetNet
 		return nil, nil, err
 	}
 
-	result, err := network.FetchEndpointTimelinePlot(ctx, deps.ChPool, appID, teamID, domain, path, af)
+	result, err := network.FetchEndpointTimelinePlot(ctx, deps.RchPool, appID, teamID, domain, path, af)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network endpoint timeline: %v", err)
 	}
