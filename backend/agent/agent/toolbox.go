@@ -183,7 +183,7 @@ func (c *Config) getSchema(ctx context.Context) (string, error) {
 var (
 	placeholderRe = regexp.MustCompile(`\{\{\s*([A-Za-z0-9_]+)\s*\}\}`)
 	forbiddenRe   = regexp.MustCompile(`(?i)\b(insert|update|delete|alter|drop|create|truncate|rename|optimize|grant|revoke|attach|detach|kill|exchange|move)\b`)
-	fromJoinRe    = regexp.MustCompile(`(?i)\b(?:from|join)\b`)
+	settingsRe    = regexp.MustCompile(`(?i)\bsettings\b`)
 	identRe       = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.]*`)
 )
 
@@ -195,14 +195,36 @@ func validateAgentSQL(query string, sets *tableSets) error {
 		return fmt.Errorf("only a single statement is allowed (no ';')")
 	}
 
-	trimmed := strings.TrimSpace(query)
-	lower := strings.ToLower(trimmed)
+	// Mask quoted regions before scanning for keywords and structure. Single
+	// quoted strings and the backtick/double quoted identifiers the schema
+	// needs (events and spans expose hundreds of dotted, backtick-quoted
+	// columns) are blanked, so a keyword or comment marker inside a value or a
+	// column name is never read as SQL. The raw-table scan below uses a
+	// lighter mask that keeps quoted identifiers visible.
+	masked := mask(query, true)
+
+	// Comments are whitespace to ClickHouse but invisible to these scans, so a
+	// comment could hide a raw table ("from/**/events"), a table function
+	// ("url/**/(...)"), or split a scanned keyword. Generated tool SQL never
+	// needs them; reject rather than parse around them.
+	if hasComment(masked) {
+		return fmt.Errorf("comments are not allowed in queries")
+	}
+
+	lower := strings.ToLower(strings.TrimSpace(masked))
 	if !strings.HasPrefix(lower, "select") && !strings.HasPrefix(lower, "with") {
 		return fmt.Errorf("only SELECT queries are allowed")
 	}
 
-	if m := forbiddenRe.FindString(query); m != "" {
+	if m := forbiddenRe.FindString(masked); m != "" {
 		return fmt.Errorf("forbidden keyword %q in query", m)
+	}
+
+	// A SETTINGS clause carries the same authority as the settings runSQL
+	// sends alongside the query, so it could override the row policy team
+	// scope and the execution caps.
+	if settingsRe.MatchString(masked) {
+		return fmt.Errorf("SETTINGS is not allowed in queries")
 	}
 
 	placeholders := placeholderRe.FindAllStringSubmatch(query, -1)
@@ -216,11 +238,13 @@ func validateAgentSQL(query string, sets *tableSets) error {
 	}
 
 	// Catch raw table names that dodge placeholder scoping ("from events"
-	// instead of "from {{events}}"). Replace placeholders with "(__scoped__)"
-	// first; then any FROM/JOIN target not starting with "(" is suspect.
-	neutral := placeholderRe.ReplaceAllString(query, "(__scoped__)")
-	for _, loc := range fromJoinRe.FindAllStringIndex(neutral, -1) {
-		if err := checkFromTargets(neutral, loc[1], sets); err != nil {
+	// instead of "from {{events}}"). Scan with only string literals masked, so
+	// a "from" inside a value is ignored while a quoted identifier in table
+	// position ("from `events`") stays visible. Placeholders become a
+	// parenthesized marker so they read as an already-scoped subquery.
+	fromScan := placeholderRe.ReplaceAllString(mask(query, false), "(__scoped__)")
+	for _, p := range fromJoinPositions(fromScan) {
+		if err := checkFromTargets(fromScan, p, sets); err != nil {
 			return err
 		}
 	}
@@ -241,6 +265,45 @@ var aliasStopWords = map[string]bool{
 	"offset": true, "select": true, "paste": true, "semi": true, "anti": true,
 }
 
+// fromJoinPositions returns the offset just past each from or join keyword
+// that appears in normal context. Backtick and double quoted identifiers are
+// skipped, so a keyword inside a column name (the schema has a column named
+// `navigation.from`) is never read as a clause. Single quoted strings are
+// already blanked by the caller. Each returned offset is where the table
+// target begins.
+func fromJoinPositions(s string) []int {
+	var pos []int
+	for i := 0; i < len(s); {
+		c := s[i]
+		if c == '`' || c == '"' {
+			_, i = readQuotedIdent(s, i)
+			continue
+		}
+		if isIdentStart(c) {
+			j := i + 1
+			for j < len(s) && isIdentPart(s[j]) {
+				j++
+			}
+			switch strings.ToLower(s[i:j]) {
+			case "from", "join":
+				pos = append(pos, j)
+			}
+			i = j
+			continue
+		}
+		i++
+	}
+	return pos
+}
+
+func isIdentStart(c byte) bool {
+	return c == '_' || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+}
+
+func isIdentPart(c byte) bool {
+	return isIdentStart(c) || (c >= '0' && c <= '9')
+}
+
 // checkFromTargets walks the comma-separated tables after one FROM or JOIN.
 // Each must be parenthesized (a placeholder or a subquery), or a plain word
 // that is not a real table, not a function call, and not dotted, meaning
@@ -252,12 +315,33 @@ func checkFromTargets(s string, pos int, sets *tableSets) error {
 		if i >= len(s) {
 			return nil
 		}
-		if s[i] == '(' {
+		switch {
+		case s[i] == '(':
 			i = skipParens(s, i)
-		} else {
+		case s[i] == '`' || s[i] == '"':
+			// A quoted identifier in table position. Backtick and double
+			// quotes are how a raw table could dodge the bare-name check
+			// ("from `events`"), so resolve the name and check it like a bare
+			// one. Column references are quoted too, but they never sit in a
+			// FROM/JOIN target, so they are not reached here.
+			name, next := readQuotedIdent(s, i)
+			if k := skipSpace(s, next); k < len(s) && s[k] == '.' {
+				return fmt.Errorf("cross-database references are not allowed (%s)", name)
+			}
+			if sets.all[name] {
+				if sets.scoped[name] {
+					return fmt.Errorf("reference table %s via the {{%s}} placeholder", name, name)
+				}
+				return fmt.Errorf("table %s is not queryable; query {{events}} or {{spans}} instead", name)
+			}
+			i = next
+		default:
 			ident := identRe.FindString(s[i:])
 			if ident == "" {
-				return nil
+				// Not a subquery, a quoted name, or a bare identifier: a form
+				// the scanner does not model. Reject rather than pass, so an
+				// unrecognized target can never slip through unscoped.
+				return fmt.Errorf("unrecognized table reference in FROM/JOIN")
 			}
 			j := skipSpace(s, i+len(ident))
 			if j < len(s) && s[j] == '(' {
@@ -285,6 +369,83 @@ func checkFromTargets(s string, pos int, sets *tableSets) error {
 		}
 		return nil
 	}
+}
+
+// mask blanks the contents of quoted regions so keyword, comment and prefix
+// scans read a query's structure without tripping on data or identifier text.
+// Single quoted strings are always blanked. When idents is true, backtick and
+// double quoted identifiers are blanked too, for scans that must ignore column
+// names, since events and spans expose hundreds of dotted, backtick-quoted
+// columns. Quote delimiters are kept so offsets are unchanged; a backslash or
+// a doubled quote escapes the quote, and an unterminated quote blanks to the
+// end, erring toward rejection.
+func mask(query string, idents bool) string {
+	b := []byte(query)
+	for i := 0; i < len(b); i++ {
+		q := b[i]
+		if q != '\'' && !(idents && (q == '`' || q == '"')) {
+			continue
+		}
+		for i++; i < len(b); i++ {
+			if b[i] == '\\' && i+1 < len(b) {
+				b[i] = ' '
+				i++
+				b[i] = ' '
+				continue
+			}
+			if b[i] == q {
+				// A doubled quote is an escaped quote, part of the value.
+				if i+1 < len(b) && b[i+1] == q {
+					b[i] = ' '
+					i++
+					b[i] = ' '
+					continue
+				}
+				break
+			}
+			b[i] = ' '
+		}
+	}
+	return string(b)
+}
+
+// hasComment reports whether a masked query carries a SQL comment marker.
+// ClickHouse reads -- and # as line comments and /* as a block comment; none
+// is valid outside a comment or a quoted region in our queries, so on a masked
+// query any occurrence is a comment.
+func hasComment(masked string) bool {
+	return strings.Contains(masked, "--") ||
+		strings.Contains(masked, "/*") ||
+		strings.Contains(masked, "#")
+}
+
+// readQuotedIdent reads a `...` or "..." quoted identifier whose opening quote
+// is at i, returning the unquoted name and the index just after the closing
+// quote. A quote is escaped by doubling it or with a backslash; an
+// unterminated identifier runs to the end.
+func readQuotedIdent(s string, i int) (name string, next int) {
+	q := s[i]
+	var b strings.Builder
+	j := i + 1
+	for j < len(s) {
+		if s[j] == '\\' && j+1 < len(s) {
+			b.WriteByte(s[j+1])
+			j += 2
+			continue
+		}
+		if s[j] == q {
+			if j+1 < len(s) && s[j+1] == q {
+				b.WriteByte(q)
+				j += 2
+				continue
+			}
+			j++
+			break
+		}
+		b.WriteByte(s[j])
+		j++
+	}
+	return b.String(), j
 }
 
 func skipSpace(s string, i int) int {

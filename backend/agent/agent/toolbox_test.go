@@ -26,6 +26,14 @@ func TestValidateAgentSQL(t *testing.T) {
 		`select e.type from {{events}} e join {{spans}} s on e.session_id = s.session_id`,
 		`with t as (select type from {{events}}) select * from t`,
 		`select count(*) from (select * from {{events}} where type = 'exception')`,
+		`select count(*) from {{events}} where string_value = 'Settings'`,
+		`select count(*) from {{events}} where string_value = 'it\'s the settings page'`,
+		// Backtick-quoted columns are pervasive in the schema and must pass,
+		// including one whose name embeds the word "from".
+		"select `attribute.app_version`, count(*) from {{events}} group by `attribute.app_version`",
+		"select `navigation.from`, count(*) from {{events}} where `navigation.from` != '' group by `navigation.from`",
+		// A "from" inside a string value is not a clause.
+		`select count(*) from {{events}} where screen = 'sent from checkout'`,
 	}
 	for _, q := range allowed {
 		if err := validateAgentSQL(q, sets); err != nil {
@@ -53,6 +61,23 @@ func TestValidateAgentSQL(t *testing.T) {
 		{`select 1`, "placeholder"},
 		{`select count(*) from {{events}} where type = 'x' and 1=1 union all select count(*) from system.processes`, "cross-database"},
 		{`alter table {{events}} delete where 1`, "only SELECT"},
+		{`select count(*) from {{events}} settings SQL_agent_team_ids='0196792a-0000-7000-8000-000000000000'`, "SETTINGS"},
+		{`select * from (select * from {{events}} SeTtInGs max_result_rows=0)`, "SETTINGS"},
+		{`select count(*) from {{events}} where type = 'x'
+			settings max_execution_time=600`, "SETTINGS"},
+		// Quoted-identifier raw tables that dodge placeholder scoping.
+		{"select count(*) from `events`, {{spans}}", "placeholder"},
+		{`select count(*) from "events", {{spans}}`, "placeholder"},
+		{"select count(*) from {{spans}} union all select count(*) from `events`", "placeholder"},
+		{"select count(*) from `app_metrics`, {{spans}}", "not queryable"},
+		{"select count(*) from `system`.`processes`, {{spans}}", "cross-database"},
+		// Comments can hide a raw table, a table function, or split a keyword.
+		{"select count(*) from/**/events, {{spans}}", "comments"},
+		{"select * from url/**/('http://x','CSV','a String'), {{events}}", "comments"},
+		{"select * from {{events}} -- and events\nunion all select 1", "comments"},
+		{"select * from {{events}} # note", "comments"},
+		// An unmodeled FROM target is rejected rather than passed.
+		{`select * from 123, {{events}}`, "unrecognized"},
 	}
 	for _, tc := range denied {
 		err := validateAgentSQL(tc.query, sets)
