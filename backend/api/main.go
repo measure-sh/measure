@@ -15,6 +15,7 @@ import (
 	"backend/api/slackwebhook"
 	"backend/libs/concur"
 	"backend/libs/inet"
+	"backend/libs/middleware"
 	"backend/libs/posthog"
 
 	"github.com/gin-gonic/gin"
@@ -69,9 +70,9 @@ func main() {
 	}()
 
 	r.Use(otelgin.Middleware(config.OtelServiceName))
-	r.Use(server.CaptureRequest())
-	r.Use(server.CapturePanic())
-	r.Use(server.CaptureErrorBody())
+	r.Use(middleware.CaptureRequest())
+	r.Use(middleware.CapturePanic())
+	r.Use(middleware.CaptureErrorBody())
 
 	// health check
 	r.GET("/ping", func(c *gin.Context) {

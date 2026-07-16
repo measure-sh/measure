@@ -1,4 +1,4 @@
-package server
+package middleware
 
 import (
 	"bytes"
@@ -19,8 +19,14 @@ type bodyWriter struct {
 	body *bytes.Buffer
 }
 
+// max bytes of error response body captured for tracing
+const maxErrBodyBytes = 64 << 10
+
 func (w bodyWriter) Write(b []byte) (int, error) {
-	w.body.Write(b)
+	if w.ResponseWriter.Status() >= http.StatusBadRequest && w.body.Len() < maxErrBodyBytes {
+		n := min(maxErrBodyBytes-w.body.Len(), len(b))
+		w.body.Write(b[:n])
+	}
 	return w.ResponseWriter.Write(b)
 }
 
@@ -57,7 +63,7 @@ func CaptureErrorBody() gin.HandlerFunc {
 		c.Next()
 
 		statusCode := c.Writer.Status()
-		if statusCode < 399 {
+		if statusCode < http.StatusBadRequest {
 			return
 		}
 
