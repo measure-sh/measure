@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Store one build_mappings row per extracted artifact (#4041) by @detj in #4041
 - (**backend**): Record stored object size for build mappings (#4037) by @detj in #4037
 - (**backend**): Rename ios related typo (#4027) by @detj in #4027
 - (**backend**): Validate paired version filters in MCP tools by @anupcowkur in #4010
