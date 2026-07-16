@@ -114,6 +114,12 @@ func NewConfig() *ServerConfig {
 	}
 }
 
+// SetConfig wires a config into the global server without a DB
+// pool, for exercising config-dependent helpers in isolation.
+func SetConfig(config *ServerConfig) {
+	Server = &server{Config: config}
+}
+
 func Init(config *ServerConfig) {
 	ctx := context.Background()
 	var pgPool *pgxpool.Pool

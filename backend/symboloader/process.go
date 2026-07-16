@@ -234,9 +234,9 @@ func (b *Build) upload(ctx context.Context) (err error) {
 					}
 				}
 
-				b.Mappings[index].Key = dif.Key
-				b.Mappings[index].Location = buildLocation(dif.Key)
-				b.Mappings[index].UploadComplete = true
+				if err = b.recordArtifact(index, dif); err != nil {
+					return
+				}
 			}
 		case symbol.TypeDsym.String():
 			mapping := b.Mappings[index]
@@ -276,9 +276,9 @@ func (b *Build) upload(ctx context.Context) (err error) {
 						}
 					}
 
-					b.Mappings[index].Key = dif.Key
-					b.Mappings[index].Location = buildLocation(dif.Key)
-					b.Mappings[index].UploadComplete = true
+					if err = b.recordArtifact(index, dif); err != nil {
+						return
+					}
 				}
 
 				if dif.Meta {
@@ -348,9 +348,9 @@ func (b *Build) upload(ctx context.Context) (err error) {
 						}
 					}
 
-					b.Mappings[index].Key = dif.Key
-					b.Mappings[index].Location = buildLocation(dif.Key)
-					b.Mappings[index].UploadComplete = true
+					if err = b.recordArtifact(index, dif); err != nil {
+						return
+					}
 				}
 
 				if dif.Meta {
@@ -419,12 +419,45 @@ func (b *Build) upload(ctx context.Context) (err error) {
 					}
 				}
 
-				b.Mappings[index].Key = dif.Key
-				b.Mappings[index].Location = buildLocation(dif.Key)
-				b.Mappings[index].UploadComplete = true
+				if err = b.recordArtifact(index, dif); err != nil {
+					return
+				}
 			}
 		}
 	}
+
+	return
+}
+
+// recordArtifact ties an uploaded dif to a build_mappings row.
+// The first non-meta dif of a mapping fills the existing row,
+// every later one becomes a new extra row to insert. This is how
+// a single archive that extracts to many objects gets one row
+// per object instead of the last object overwriting the rest.
+func (b *Build) recordArtifact(index int, dif *symbol.Dif) (err error) {
+	location := buildLocation(dif.Key)
+
+	if !b.Mappings[index].UploadComplete {
+		b.Mappings[index].Key = dif.Key
+		b.Mappings[index].Location = location
+		b.Mappings[index].UploadComplete = true
+		return
+	}
+
+	checksum, err := cipher.ChecksumFnv1(bytes.NewReader(dif.Data))
+	if err != nil {
+		return
+	}
+
+	b.Extras = append(b.Extras, &Mapping{
+		ID:             uuid.New(),
+		Type:           b.Mappings[index].Type,
+		Key:            dif.Key,
+		Location:       location,
+		Checksum:       checksum,
+		Size:           int64(len(dif.Data)),
+		UploadComplete: true,
+	})
 
 	return
 }
@@ -436,6 +469,7 @@ func (b *Build) load(ctx context.Context, id uuid.UUID) (err error) {
 		Select("version_name").
 		Select("version_code").
 		Select("mapping_type").
+		Select("patch_id").
 		From("build_mappings").
 		Where("id = ?", id)
 
@@ -443,7 +477,7 @@ func (b *Build) load(ctx context.Context, id uuid.UUID) (err error) {
 
 	var mappingType string
 
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&b.AppID, &b.VersionName, &b.VersionCode, &mappingType); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&b.AppID, &b.VersionName, &b.VersionCode, &mappingType, &b.PatchID); err != nil {
 		return err
 	}
 
@@ -501,6 +535,43 @@ func (b *Build) update(ctx context.Context) (err error) {
 		_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	}
 
+	err = b.insertExtras(ctx, now)
+
+	return
+}
+
+// insertExtras inserts the additional artifact rows produced when
+// one mapping extracts to more than one object.
+func (b *Build) insertExtras(ctx context.Context, now time.Time) (err error) {
+	if len(b.Extras) == 0 {
+		return
+	}
+
+	stmt := sqlf.PostgreSQL.
+		InsertInto("build_mappings")
+
+	defer stmt.Close()
+
+	for _, m := range b.Extras {
+		// ponytail: stale extra rows linger on changed re-upload, same as
+		// orphaned objects; add reaping if it grows.
+		stmt.
+			NewRow().
+			Set("id", m.ID).
+			Set("app_id", b.AppID).
+			Set("version_name", b.VersionName).
+			Set("version_code", b.VersionCode).
+			Set("mapping_type", m.Type).
+			Set("key", m.Key).
+			Set("location", m.Location).
+			Set("fnv1_hash", m.Checksum).
+			Set("file_size", m.Size).
+			Set("patch_id", b.PatchID).
+			Set("last_updated", now)
+	}
+
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+
 	return
 }
 
@@ -513,6 +584,13 @@ type Build struct {
 	Size        int        `json:"build_size" binding:"required,gt=0"`
 	Mappings    []*Mapping `json:"mappings" binding:"dive,required"`
 	AppUniqueID string     `json:"app_unique_id"`
+	// PatchID is the OTA patch id shared by every row of this
+	// build, loaded from the existing row so extra artifact
+	// rows carry it too.
+	PatchID uuid.UUID
+	// Extras holds additional artifact rows to insert when one
+	// mapping extracts to more than one object.
+	Extras []*Mapping
 }
 
 type BuildResponse struct {
