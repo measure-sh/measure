@@ -1,4 +1,4 @@
-import { internalConsole } from './internalConsole';
+import type { Logger } from './logger';
 export type ValidAttributeValue = string | number | boolean;
 
 /**
@@ -6,9 +6,13 @@ export type ValidAttributeValue = string | number | boolean;
  * Only string, number, and boolean values are considered valid.
  *
  * @param attributes - The attributes object to validate.
+ * @param logger - Logger used to warn about invalid attributes.
  * @returns `true` if all attributes are valid, otherwise `false`.
  */
-export function validateAttributes(attributes: Record<string, any>): boolean {
+export function validateAttributes(
+  attributes: Record<string, any>,
+  logger: Logger
+): boolean {
   for (const [key, value] of Object.entries(attributes)) {
     const isValid =
       typeof value === 'string' ||
@@ -16,12 +20,10 @@ export function validateAttributes(attributes: Record<string, any>): boolean {
       typeof value === 'boolean';
 
     if (!isValid) {
-      if (__DEV__) {
-        internalConsole.warn(
-          `[MeasureRN] Invalid attribute '${key}' with value:`,
-          value
-        );
-      }
+      logger.log(
+        'warning',
+        `Invalid attribute '${key}' with value: ${JSON.stringify(value)}`
+      );
       return false;
     }
   }

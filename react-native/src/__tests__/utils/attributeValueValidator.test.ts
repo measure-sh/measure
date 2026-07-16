@@ -1,14 +1,15 @@
 import { validateAttributes } from '../../utils/attributeValueValidator';
+import type { Logger } from '../../utils/logger';
 
 describe('validateAttributes', () => {
-  beforeEach(() => {
-    jest.spyOn(console, 'warn').mockImplementation(() => {}); // silence dev warnings
-    // @ts-ignore
-    global.__DEV__ = true;
-  });
+  let logger: jest.Mocked<Logger>;
 
-  afterEach(() => {
-    jest.restoreAllMocks();
+  beforeEach(() => {
+    logger = {
+      enabled: true,
+      log: jest.fn(),
+      internalLog: jest.fn(),
+    };
   });
 
   it('should return true when all attributes are valid', () => {
@@ -18,7 +19,7 @@ describe('validateAttributes', () => {
       enabled: false,
     };
 
-    const result = validateAttributes(input);
+    const result = validateAttributes(input, logger);
     expect(result).toBe(true);
   });
 
@@ -28,33 +29,32 @@ describe('validateAttributes', () => {
       invalid: { nested: true },
     };
 
-    const result = validateAttributes(input);
+    const result = validateAttributes(input, logger);
     expect(result).toBe(false);
   });
 
-  it('should log a warning in dev mode for invalid attributes', () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  it('should log a warning for invalid attributes', () => {
     const input = {
       valid: 'ok',
       bad: null,
     };
 
-    const result = validateAttributes(input);
+    const result = validateAttributes(input, logger);
 
     expect(result).toBe(false);
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('[MeasureRN] Invalid attribute'),
-      null
+    expect(logger.log).toHaveBeenCalledWith(
+      'warning',
+      expect.stringContaining("Invalid attribute 'bad'")
     );
   });
 
   it('should return true for an empty object', () => {
-    const result = validateAttributes({});
+    const result = validateAttributes({}, logger);
     expect(result).toBe(true);
   });
 
   it('should handle undefined attributes gracefully', () => {
-    const result = validateAttributes({ key: undefined });
+    const result = validateAttributes({ key: undefined }, logger);
     expect(result).toBe(false);
   });
 
@@ -64,20 +64,19 @@ describe('validateAttributes', () => {
       sym: Symbol('test'),
     };
 
-    const result = validateAttributes(input);
+    const result = validateAttributes(input, logger);
     expect(result).toBe(false);
   });
 
   it('should stop validation at the first invalid attribute', () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const input = {
       valid1: 'ok',
       bad: [],
       valid2: 'should not be checked',
     };
 
-    const result = validateAttributes(input);
+    const result = validateAttributes(input, logger);
     expect(result).toBe(false);
-    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(logger.log).toHaveBeenCalledTimes(1);
   });
 });

@@ -137,6 +137,8 @@ export class MeasureInitializer implements IMeasureInitializer {
       logger: this.logger,
     });
     this.bugReportCollector = new BugReportCollector({ logger: this.logger });
-    this.screenshotCollector = new ScreenshotCollector();
+    this.screenshotCollector = new ScreenshotCollector({
+      logger: this.logger,
+    });
   }
 }

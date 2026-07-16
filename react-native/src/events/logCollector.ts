@@ -131,7 +131,7 @@ export class LogCollector implements ILogCollector {
       return;
     }
 
-    const isValidAttributes = validateAttributes(attributes ?? {});
+    const isValidAttributes = validateAttributes(attributes ?? {}, this.logger);
     if (!isValidAttributes) {
       this.logger.log(
         'error',
