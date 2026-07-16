@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { AISearch, AISearchPanel, AISearchTrigger } from "./search";
 
 /**
- * Mounts the Ask AI chat only when the server has an OpenRouter key
+ * Mounts the Ask AI chat only when the server has an LLM key
  * configured: the /docs/chat GET probe answers 204 when enabled and 404
  * otherwise, so unconfigured self-hosted deployments never show the button.
  */

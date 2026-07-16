@@ -153,36 +153,30 @@ type Config struct {
 
 // NewConfig reads the agent configuration from the environment.
 func NewConfig() *Config {
-	baseURL := os.Getenv("OPENROUTER_BASE_URL")
-	if baseURL == "" {
-		baseURL = "https://openrouter.ai/api/v1"
-	}
-	baseURL = strings.TrimSuffix(baseURL, "/")
-
-	apiKey, err := secret.FromEnvOrFile("OPENROUTER_API_KEY")
+	apiKey, err := secret.FromEnvOrFile("LLM_AGENT_KEY")
 	if err != nil {
-		log.Printf("failed to read OPENROUTER_API_KEY: %v", err)
+		log.Printf("failed to read LLM_AGENT_KEY: %v", err)
 	}
 	if apiKey == "" {
-		log.Println("OPENROUTER_API_KEY env var not set, the ask_question tool will return errors")
+		log.Println("LLM_AGENT_KEY env var not set, the ask_question tool will return errors")
 	}
 
-	modelSmall := os.Getenv("OPENROUTER_MODEL_SMALL")
+	modelSmall := os.Getenv("LLM_AGENT_MODEL_SMALL")
 	if modelSmall == "" {
-		log.Println("OPENROUTER_MODEL_SMALL env var not set, conversation compaction will return errors")
+		log.Println("LLM_AGENT_MODEL_SMALL env var not set, conversation compaction will return errors")
 	}
 
-	modelMedium := os.Getenv("OPENROUTER_MODEL_MEDIUM")
+	modelMedium := os.Getenv("LLM_AGENT_MODEL_MEDIUM")
 	if modelMedium == "" {
-		log.Println("OPENROUTER_MODEL_MEDIUM env var not set, the ask_question tool will return errors")
+		log.Println("LLM_AGENT_MODEL_MEDIUM env var not set, the ask_question tool will return errors")
 	}
 
 	cfg := &Config{
-		BaseURL:     baseURL,
+		BaseURL:     "https://openrouter.ai/api/v1",
 		APIKey:      apiKey,
 		ModelSmall:  modelSmall,
 		ModelMedium: modelMedium,
-		ModelLarge:  os.Getenv("OPENROUTER_MODEL_LARGE"),
+		ModelLarge:  os.Getenv("LLM_AGENT_MODEL_LARGE"),
 	}
 
 	cfg.initTools()
