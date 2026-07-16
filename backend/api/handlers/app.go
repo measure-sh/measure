@@ -509,7 +509,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
-		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "adoption"))
+		ctx := chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "adoption"))
 
 		adoption, err = app.GetAdoptionMetrics(ctx, deps.RchPool, &af)
 		if err != nil {
@@ -529,7 +529,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
-		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "issue_free"))
+		ctx := chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "issue_free"))
 
 		crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err = app.GetIssueFreeMetrics(ctx, deps.RchPool, &af, excludedVersions)
 		if err != nil {
@@ -546,7 +546,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
-		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "launch"))
+		ctx := chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "launch"))
 
 		launch, err = app.GetLaunchMetrics(ctx, deps.RchPool, &af)
 		if err != nil {
@@ -564,7 +564,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 				"use_query_cache": gin.Mode() == gin.ReleaseMode,
 				"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 			}
-			ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "sizes"))
+			ctx := chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "sizes"))
 
 			sizes, err = app.GetSizeMetrics(ctx, deps.PgPool, &af, excludedVersions)
 			if err != nil {
@@ -5418,7 +5418,7 @@ func (h Handlers) GetNetworkRequestsDomains(c *gin.Context) {
 		return
 	}
 
-	origins, err := network.FetchDomains(ctx, deps.ChPool, *app.ID, *team.ID, af.From, af.To)
+	origins, err := network.FetchDomains(ctx, deps.RchPool, *app.ID, *team.ID, af.From, af.To)
 	if err != nil {
 		msg := "failed to get network domains"
 		fmt.Println(msg, err)
@@ -5508,7 +5508,7 @@ func (h Handlers) GetNetworkRequestsPaths(c *gin.Context) {
 
 	search := c.Query("search")
 
-	paths, err := network.FetchPaths(ctx, deps.ChPool, *app.ID, *team.ID, domain, search, af.From, af.To)
+	paths, err := network.FetchPaths(ctx, deps.RchPool, *app.ID, *team.ID, domain, search, af.From, af.To)
 	if err != nil {
 		msg := "failed to get network paths"
 		fmt.Println(msg, err)
@@ -5649,7 +5649,7 @@ func (h Handlers) GetNetworkEndpointLatencyPlot(c *gin.Context) {
 		return
 	}
 
-	result, err := network.GetEndpointLatencyPlot(ctx, deps.ChPool, *app.ID, *team.ID, domain, path, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetEndpointLatencyPlot(ctx, deps.RchPool, *app.ID, *team.ID, domain, path, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		msg := "failed to get network latency metrics"
 		fmt.Println(msg, err)
@@ -5788,7 +5788,7 @@ func (h Handlers) GetNetworkEndpointStatusCodesPlot(c *gin.Context) {
 		return
 	}
 
-	result, err := network.GetEndpointStatusCodesPlot(ctx, deps.ChPool, *app.ID, *team.ID, domain, path, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetEndpointStatusCodesPlot(ctx, deps.RchPool, *app.ID, *team.ID, domain, path, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		msg := "failed to get network status distribution metrics"
 		fmt.Println(msg, err)
@@ -5911,7 +5911,7 @@ func (h Handlers) GetNetworkRequestsTrends(c *gin.Context) {
 		trendsLimit = 50
 	}
 
-	result, err := network.FetchTrends(ctx, deps.ChPool, *app.ID, *team.ID, &af, trendsLimit)
+	result, err := network.FetchTrends(ctx, deps.RchPool, *app.ID, *team.ID, &af, trendsLimit)
 	if err != nil {
 		msg := "failed to get network overview"
 		fmt.Println(msg, err)
@@ -6028,7 +6028,7 @@ func (h Handlers) GetNetworkOverviewTimelinePlot(c *gin.Context) {
 
 	timelineLimit, _ := strconv.Atoi(c.Query("timeline_limit"))
 
-	result, err := network.FetchOverviewTimelinePlot(ctx, deps.ChPool, *app.ID, *team.ID, &af, timelineLimit)
+	result, err := network.FetchOverviewTimelinePlot(ctx, deps.RchPool, *app.ID, *team.ID, &af, timelineLimit)
 	if err != nil {
 		msg := "failed to get session timeline data"
 		fmt.Println(msg, err)
@@ -6155,7 +6155,7 @@ func (h Handlers) GetNetworkEndpointTimelinePlot(c *gin.Context) {
 		return
 	}
 
-	result, err := network.FetchEndpointTimelinePlot(ctx, deps.ChPool, *app.ID, *team.ID, domain, path, &af)
+	result, err := network.FetchEndpointTimelinePlot(ctx, deps.RchPool, *app.ID, *team.ID, domain, path, &af)
 	if err != nil {
 		msg := "failed to get endpoint timeline data"
 		fmt.Println(msg, err)
@@ -6282,7 +6282,7 @@ func (h Handlers) GetNetworkOverviewStatusCodesPlot(c *gin.Context) {
 		return
 	}
 
-	result, err := network.GetNetworkOverviewStatusCodesPlot(ctx, deps.ChPool, *app.ID, *team.ID, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetNetworkOverviewStatusCodesPlot(ctx, deps.RchPool, *app.ID, *team.ID, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		msg := "failed to get network status overview plot"
 		fmt.Println(msg, err)
