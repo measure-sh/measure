@@ -16,19 +16,22 @@ import (
 
 // --- messages ---
 
-type stageStartedMsg     struct{ name string }
-type stageProgressMsg    struct{ name, detail string }
-type stageFinishedMsg    struct{ name, detail string }
-type stageFailedMsg      struct{ name string; err error }
-type fetchStartedMsg     struct{ total int }
-type fetchProgressMsg    struct{ update pipeline.FetchProgressUpdate }
-type fetchResultMsg      struct{ result pipeline.FetchResult }
-type fetchDoneMsg        struct{}
-type janitorStartedMsg   struct{ total int }
-type deleteResultMsg     struct{ result pipeline.DeleteResult }
-type janitorDoneMsg      struct{}
-type manifestSummaryMsg  struct{ cat ManifestCategorized }
-type doneMsg             struct{ err error }
+type stageStartedMsg struct{ name string }
+type stageProgressMsg struct{ name, detail string }
+type stageFinishedMsg struct{ name, detail string }
+type stageFailedMsg struct {
+	name string
+	err  error
+}
+type fetchStartedMsg struct{ total int }
+type fetchProgressMsg struct{ update pipeline.FetchProgressUpdate }
+type fetchResultMsg struct{ result pipeline.FetchResult }
+type fetchDoneMsg struct{}
+type janitorStartedMsg struct{ total int }
+type deleteResultMsg struct{ result pipeline.DeleteResult }
+type janitorDoneMsg struct{}
+type manifestSummaryMsg struct{ cat ManifestCategorized }
+type doneMsg struct{ err error }
 
 // --- public categorization ---
 

@@ -25,8 +25,8 @@ type fakeClonerServer struct {
 
 	// folders maps folderID → mimeType + canAddChildren.
 	folders map[string]struct {
-		mimeType        string
-		canAddChildren  bool
+		mimeType       string
+		canAddChildren bool
 	}
 
 	// listings maps parent folderID → slice of file metadata to return.
@@ -52,8 +52,11 @@ type fakeFile struct {
 func newFakeClonerServer(t *testing.T) *fakeClonerServer {
 	t.Helper()
 	f := &fakeClonerServer{
-		t:            t,
-		folders:      make(map[string]struct{ mimeType string; canAddChildren bool }),
+		t: t,
+		folders: make(map[string]struct {
+			mimeType       string
+			canAddChildren bool
+		}),
 		listings:     make(map[string][]fakeFile),
 		deleteStatus: make(map[string]int),
 	}

@@ -363,9 +363,9 @@ func TestArchiveMatchesSpec(t *testing.T) {
 
 		// Mid-range version that the old code dropped.
 		{"18.3.2", "17.5-18.7", true},
-		{"18.0", "17.5-18.7", true},   // in range
-		{"17.4", "17.5-18.7", false},  // below range
-		{"18.8", "17.5-18.7", false},  // above range
+		{"18.0", "17.5-18.7", true},    // in range
+		{"17.4", "17.5-18.7", false},   // below range
+		{"18.8", "17.5-18.7", false},   // above range
 		{"18.7.6", "17.5-18.7", false}, // 18.7.6 > 18.7 upper bound
 
 		// Wildcard-all bound.
@@ -413,9 +413,9 @@ func TestArchivesPassingSpecsLastN(t *testing.T) {
 func TestArchivesPassingSpecsCombined(t *testing.T) {
 	c := fixtureCatalog()
 	all := []pipeline.Target{
-		{FileName: "26.4.1 (23E254) arm64e.7z"},   // 26 — top major
-		{FileName: "18.5 (22F76) arm64e.7z"},      // 18 — not top, but not 17.x either
-		{FileName: "17.6.1 (21G101) arm64e.7z"},   // 17.x — kept by spec
+		{FileName: "26.4.1 (23E254) arm64e.7z"}, // 26 — top major
+		{FileName: "18.5 (22F76) arm64e.7z"},    // 18 — not top, but not 17.x either
+		{FileName: "17.6.1 (21G101) arm64e.7z"}, // 17.x — kept by spec
 	}
 
 	got := archivesPassingSpecs(all, []string{"last 1 versions", "17.x"}, catalogMajors(c))
