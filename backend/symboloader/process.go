@@ -491,6 +491,7 @@ func (b *Build) recordArtifact(index int, dif *symbol.Dif, checksum string) (err
 		b.Mappings[index].Key = dif.Key
 		b.Mappings[index].Location = location
 		b.Mappings[index].Checksum = checksum
+		b.Mappings[index].Size = int64(len(dif.Data))
 		b.Mappings[index].UploadComplete = true
 		return
 	}

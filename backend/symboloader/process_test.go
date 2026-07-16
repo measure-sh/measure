@@ -40,6 +40,9 @@ func TestRecordArtifact(t *testing.T) {
 	if b.Mappings[0].Checksum != "cksum-8d/f7/main.jsbundle" {
 		t.Fatalf("primary checksum = %q, want per-object", b.Mappings[0].Checksum)
 	}
+	if b.Mappings[0].Size != int64(len("bundle-bytes")) {
+		t.Fatalf("primary size = %d, want per-object", b.Mappings[0].Size)
+	}
 	if !b.Mappings[0].UploadComplete {
 		t.Fatal("primary should be marked upload complete")
 	}
