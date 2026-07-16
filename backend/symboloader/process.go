@@ -55,12 +55,6 @@ type Mapping struct {
 	UploadComplete bool          `json:"upload_complete,omitempty"`
 }
 
-// hasChecksum tells if the mapping has
-// a checksum.
-func (m Mapping) hasChecksum() bool {
-	return m.Checksum != ""
-}
-
 // extractDif prepares & extracts debug information
 // files for symbol files for all supported platforms.
 func (m *Mapping) extractDif() (err error) {
@@ -207,6 +201,16 @@ func (b *Build) upload(ctx context.Context) (err error) {
 			metadata["original_file_name"] = mapping.Filename
 
 			for _, dif := range mapping.Difs {
+				var checksum string
+				checksum, err = cipher.ChecksumFnv1(bytes.NewReader(dif.Data))
+				if err != nil {
+					return
+				}
+
+				if b.artifactExists(dif.Key, checksum) {
+					continue
+				}
+
 				if config.IsCloud() {
 					obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
 					writer := obj.NewWriter(ctx)
@@ -234,10 +238,9 @@ func (b *Build) upload(ctx context.Context) (err error) {
 					}
 				}
 
-				b.Mappings[index].Key = dif.Key
-				b.Mappings[index].Location = buildLocation(dif.Key)
-				b.Mappings[index].Size = int64(len(dif.Data))
-				b.Mappings[index].UploadComplete = true
+				if err = b.recordArtifact(index, dif, checksum); err != nil {
+					return
+				}
 			}
 		case symbol.TypeDsym.String():
 			mapping := b.Mappings[index]
@@ -250,6 +253,16 @@ func (b *Build) upload(ctx context.Context) (err error) {
 
 			for _, dif := range mapping.Difs {
 				if !dif.Meta {
+					var checksum string
+					checksum, err = cipher.ChecksumFnv1(bytes.NewReader(dif.Data))
+					if err != nil {
+						return
+					}
+
+					if b.artifactExists(dif.Key, checksum) {
+						continue
+					}
+
 					if config.IsCloud() {
 						obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
 						writer := obj.NewWriter(ctx)
@@ -277,10 +290,9 @@ func (b *Build) upload(ctx context.Context) (err error) {
 						}
 					}
 
-					b.Mappings[index].Key = dif.Key
-					b.Mappings[index].Location = buildLocation(dif.Key)
-					b.Mappings[index].Size = int64(len(dif.Data))
-					b.Mappings[index].UploadComplete = true
+					if err = b.recordArtifact(index, dif, checksum); err != nil {
+						return
+					}
 				}
 
 				if dif.Meta {
@@ -323,6 +335,16 @@ func (b *Build) upload(ctx context.Context) (err error) {
 
 			for _, dif := range mapping.Difs {
 				if !dif.Meta {
+					var checksum string
+					checksum, err = cipher.ChecksumFnv1(bytes.NewReader(dif.Data))
+					if err != nil {
+						return
+					}
+
+					if b.artifactExists(dif.Key, checksum) {
+						continue
+					}
+
 					if config.IsCloud() {
 						obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
 						writer := obj.NewWriter(ctx)
@@ -350,10 +372,9 @@ func (b *Build) upload(ctx context.Context) (err error) {
 						}
 					}
 
-					b.Mappings[index].Key = dif.Key
-					b.Mappings[index].Location = buildLocation(dif.Key)
-					b.Mappings[index].Size = int64(len(dif.Data))
-					b.Mappings[index].UploadComplete = true
+					if err = b.recordArtifact(index, dif, checksum); err != nil {
+						return
+					}
 				}
 
 				if dif.Meta {
@@ -395,6 +416,16 @@ func (b *Build) upload(ctx context.Context) (err error) {
 			metadata["original_file_name"] = mapping.Filename
 
 			for _, dif := range mapping.Difs {
+				var checksum string
+				checksum, err = cipher.ChecksumFnv1(bytes.NewReader(dif.Data))
+				if err != nil {
+					return
+				}
+
+				if b.artifactExists(dif.Key, checksum) {
+					continue
+				}
+
 				if config.IsCloud() {
 					obj := gcsClient.Bucket(config.SymbolsBucket).Object(dif.Key)
 					writer := obj.NewWriter(ctx)
@@ -422,13 +453,58 @@ func (b *Build) upload(ctx context.Context) (err error) {
 					}
 				}
 
-				b.Mappings[index].Key = dif.Key
-				b.Mappings[index].Location = buildLocation(dif.Key)
-				b.Mappings[index].Size = int64(len(dif.Data))
-				b.Mappings[index].UploadComplete = true
+				if err = b.recordArtifact(index, dif, checksum); err != nil {
+					return
+				}
 			}
 		}
 	}
+
+	return
+}
+
+// artifactExists reports whether a loaded sibling row already
+// holds this exact object, matched by key & per-object checksum.
+// It is the dedup gate: a redelivered notification reloads the
+// rows written by the first delivery, so every dif matches here
+// & is skipped, keeping processing idempotent.
+func (b *Build) artifactExists(key, checksum string) bool {
+	for _, m := range b.Mappings {
+		if m.Key == key && m.Checksum == checksum {
+			return true
+		}
+	}
+
+	return false
+}
+
+// recordArtifact ties an uploaded dif to a build_mappings row.
+// The first non-meta dif of a mapping fills the existing row,
+// every later one becomes a new extra row to insert. This is how
+// a single archive that extracts to many objects gets one row
+// per object instead of the last object overwriting the rest.
+// checksum is the per-object fnv1 hash stored on the row.
+func (b *Build) recordArtifact(index int, dif *symbol.Dif, checksum string) (err error) {
+	location := buildLocation(dif.Key)
+
+	if !b.Mappings[index].UploadComplete {
+		b.Mappings[index].Key = dif.Key
+		b.Mappings[index].Location = location
+		b.Mappings[index].Checksum = checksum
+		b.Mappings[index].Size = int64(len(dif.Data))
+		b.Mappings[index].UploadComplete = true
+		return
+	}
+
+	b.Extras = append(b.Extras, &Mapping{
+		ID:             uuid.New(),
+		Type:           b.Mappings[index].Type,
+		Key:            dif.Key,
+		Location:       location,
+		Checksum:       checksum,
+		Size:           int64(len(dif.Data)),
+		UploadComplete: true,
+	})
 
 	return
 }
@@ -440,6 +516,7 @@ func (b *Build) load(ctx context.Context, id uuid.UUID) (err error) {
 		Select("version_name").
 		Select("version_code").
 		Select("mapping_type").
+		Select("patch_id").
 		From("build_mappings").
 		Where("id = ?", id)
 
@@ -447,7 +524,7 @@ func (b *Build) load(ctx context.Context, id uuid.UUID) (err error) {
 
 	var mappingType string
 
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&b.AppID, &b.VersionName, &b.VersionCode, &mappingType); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&b.AppID, &b.VersionName, &b.VersionCode, &mappingType, &b.PatchID); err != nil {
 		return err
 	}
 
@@ -505,6 +582,43 @@ func (b *Build) update(ctx context.Context) (err error) {
 		_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	}
 
+	err = b.insertExtras(ctx, now)
+
+	return
+}
+
+// insertExtras inserts the additional artifact rows produced when
+// one mapping extracts to more than one object.
+func (b *Build) insertExtras(ctx context.Context, now time.Time) (err error) {
+	if len(b.Extras) == 0 {
+		return
+	}
+
+	stmt := sqlf.PostgreSQL.
+		InsertInto("build_mappings")
+
+	defer stmt.Close()
+
+	for _, m := range b.Extras {
+		// ponytail: stale extra rows linger on changed re-upload, same as
+		// orphaned objects; add reaping if it grows.
+		stmt.
+			NewRow().
+			Set("id", m.ID).
+			Set("app_id", b.AppID).
+			Set("version_name", b.VersionName).
+			Set("version_code", b.VersionCode).
+			Set("mapping_type", m.Type).
+			Set("key", m.Key).
+			Set("location", m.Location).
+			Set("fnv1_hash", m.Checksum).
+			Set("file_size", m.Size).
+			Set("patch_id", b.PatchID).
+			Set("last_updated", now)
+	}
+
+	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+
 	return
 }
 
@@ -517,6 +631,13 @@ type Build struct {
 	Size        int        `json:"build_size" binding:"required,gt=0"`
 	Mappings    []*Mapping `json:"mappings" binding:"dive,required"`
 	AppUniqueID string     `json:"app_unique_id"`
+	// PatchID is the OTA patch id shared by every row of this
+	// build, loaded from the existing row so extra artifact
+	// rows carry it too.
+	PatchID uuid.UUID
+	// Extras holds additional artifact rows to insert when one
+	// mapping extracts to more than one object.
+	Extras []*Mapping
 }
 
 type BuildResponse struct {
@@ -796,35 +917,14 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 		return
 	}
 
-	// compute checksum of the freshly
-	// downloaded mapping object
-	reader := bytes.NewReader(content)
-	checksum, err := cipher.ChecksumFnv1(reader)
-	if err != nil {
-		msg := fmt.Sprintf("failed to compute checksum for mapping id %q: %v", mappingId, err)
-		fmt.Println(msg)
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-
-		return
-	}
-
 	for _, mapping := range build.Mappings {
 		if mapping.ID != mappingId {
 			continue
 		}
 
-		// if the checksums match, no need to do anything
-		if mapping.hasChecksum() && mapping.Checksum == checksum {
-			continue
-		}
-
-		// at this point, we know this mapping
-		// is a new one
+		// per-object dedup runs later in upload(); mark this
+		// mapping for processing & extract its artifacts
 		mapping.ShouldUpload = true
-		mapping.Checksum = checksum
 		mapping.Filename = originalFileName
 		mapping.File = content
 		mapping.Size = int64(len(content))
@@ -1089,35 +1189,14 @@ func ProcessSymbolNotification(c *gin.Context) {
 			return
 		}
 
-		// compute checksum of the freshly
-		// downloaded mapping object
-		reader := bytes.NewReader(content)
-		checksum, err := cipher.ChecksumFnv1(reader)
-		if err != nil {
-			msg := fmt.Sprintf("failed to compute checksum for mapping id %q: %v", mappingId, err)
-			fmt.Println(msg)
-
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-
-			return
-		}
-
 		for _, mapping := range build.Mappings {
 			if mapping.ID != mappingId {
 				continue
 			}
 
-			// if the checksums match, no need to do anything
-			if mapping.hasChecksum() && mapping.Checksum == checksum {
-				continue
-			}
-
-			// at this point, we know this mapping
-			// is a new one
+			// per-object dedup runs later in upload(); mark this
+			// mapping for processing & extract its artifacts
 			mapping.ShouldUpload = true
-			mapping.Checksum = checksum
 			mapping.Filename = originalFileName
 			mapping.File = content
 			mapping.Size = int64(len(content))
