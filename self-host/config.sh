@@ -315,14 +315,14 @@ GTM_ID=
 
 NEXT_PUBLIC_C15T_BACKEND_URL=
 
-##############
-# OpenRouter #
-##############
+#######
+# LLM #
+#######
 
-OPENROUTER_API_KEY=
-OPENROUTER_MODEL_SMALL=
-OPENROUTER_MODEL_MEDIUM=
-OPENROUTER_MODEL_LARGE=
+LLM_AGENT_KEY=
+LLM_AGENT_MODEL_SMALL=
+LLM_AGENT_MODEL_MEDIUM=
+LLM_AGENT_MODEL_LARGE=
 LLM_DOCS_CHAT_KEY=
 
 #########
@@ -490,14 +490,14 @@ GTM_ID=
 
 NEXT_PUBLIC_C15T_BACKEND_URL=
 
-##############
-# OpenRouter #
-##############
+#######
+# LLM #
+#######
 
-OPENROUTER_API_KEY=$OPENROUTER_API_KEY
-OPENROUTER_MODEL_SMALL=$OPENROUTER_MODEL_SMALL
-OPENROUTER_MODEL_MEDIUM=$OPENROUTER_MODEL_MEDIUM
-OPENROUTER_MODEL_LARGE=$OPENROUTER_MODEL_LARGE
+LLM_AGENT_KEY=$LLM_AGENT_KEY
+LLM_AGENT_MODEL_SMALL=$LLM_AGENT_MODEL_SMALL
+LLM_AGENT_MODEL_MEDIUM=$LLM_AGENT_MODEL_MEDIUM
+LLM_AGENT_MODEL_LARGE=$LLM_AGENT_MODEL_LARGE
 LLM_DOCS_CHAT_KEY=$LLM_DOCS_CHAT_KEY
 
 #########
@@ -684,14 +684,14 @@ END
     echo -e "Generated secure Slack OAuth State Salt"
     SLACK_OAUTH_STATE_SALT=$(generate_password 44)
 
-    echo -e "\nSet OpenRouter credentials and models"
-    echo -e "Used by the Measure agent service to answer natural language questions. See https://measure.sh/docs/hosting/agent for more details. If you wish to ignore this, enter an empty value."
-    OPENROUTER_API_KEY=$(prompt_optional_value_manual "Enter OpenRouter API key (optional): ")
-    OPENROUTER_MODEL_SMALL=$(prompt_optional_value_manual "Enter small model id, used for light tasks like summarization (optional): ")
-    OPENROUTER_MODEL_MEDIUM=$(prompt_optional_value_manual "Enter medium model id, used to answer questions (optional): ")
-    OPENROUTER_MODEL_LARGE=$(prompt_optional_value_manual "Enter large model id, reserved for future heavy tasks (optional): ")
+    echo -e "\nSet agent LLM credentials and models"
+    echo -e "Used by the Measure agent service to answer natural language questions. The agent sends prompts through OpenRouter. See https://measure.sh/docs/hosting/agent for more details. If you wish to ignore this, enter an empty value."
+    LLM_AGENT_KEY=$(prompt_optional_value_manual "Enter OpenRouter API key (optional): ")
+    LLM_AGENT_MODEL_SMALL=$(prompt_optional_value_manual "Enter small model id, used for light tasks like summarization (optional): ")
+    LLM_AGENT_MODEL_MEDIUM=$(prompt_optional_value_manual "Enter medium model id, used to answer questions (optional): ")
+    LLM_AGENT_MODEL_LARGE=$(prompt_optional_value_manual "Enter large model id, reserved for future heavy tasks (optional): ")
 
-    echo -e "\nSet OpenRouter key for the docs site AI chat"
+    echo -e "\nSet LLM key for the docs site AI chat"
     echo -e "Used by the Ask AI chat on the docs pages. Use a separate key with a spend limit, so public docs traffic cannot spend the agent's credits. Skip to keep the docs chat off."
     LLM_DOCS_CHAT_KEY=$(prompt_optional_value_manual "Enter OpenRouter API key for docs chat (optional): ")
 
@@ -1001,20 +1001,20 @@ ensure() {
     add_env_variable "POSTHOG_API_KEY" ""
   fi
 
-  if ! check_env_variable "OPENROUTER_API_KEY"; then
-    add_env_variable "OPENROUTER_API_KEY" ""
+  if ! check_env_variable "LLM_AGENT_KEY"; then
+    add_env_variable "LLM_AGENT_KEY" ""
   fi
 
-  if ! check_env_variable "OPENROUTER_MODEL_SMALL"; then
-    add_env_variable "OPENROUTER_MODEL_SMALL" ""
+  if ! check_env_variable "LLM_AGENT_MODEL_SMALL"; then
+    add_env_variable "LLM_AGENT_MODEL_SMALL" ""
   fi
 
-  if ! check_env_variable "OPENROUTER_MODEL_MEDIUM"; then
-    add_env_variable "OPENROUTER_MODEL_MEDIUM" ""
+  if ! check_env_variable "LLM_AGENT_MODEL_MEDIUM"; then
+    add_env_variable "LLM_AGENT_MODEL_MEDIUM" ""
   fi
 
-  if ! check_env_variable "OPENROUTER_MODEL_LARGE"; then
-    add_env_variable "OPENROUTER_MODEL_LARGE" ""
+  if ! check_env_variable "LLM_AGENT_MODEL_LARGE"; then
+    add_env_variable "LLM_AGENT_MODEL_LARGE" ""
   fi
 
   if ! check_env_variable "LLM_DOCS_CHAT_KEY"; then

@@ -71,7 +71,7 @@ async function chunkedAll<O>(promises: Promise<O>[]): Promise<O[]> {
 }
 
 // ── Per-IP rate limiting ────────────────────────────────────────────────
-// In-memory sliding window; bounds OpenRouter spend from a public
+// In-memory sliding window; bounds LLM spend from a public
 // endpoint. Resets on process restart.
 
 const RATE_LIMIT = 20;
@@ -154,11 +154,11 @@ export async function POST(request: Request) {
     });
   }
 
-  const openrouter = createOpenRouter({ apiKey: config.apiKey });
+  const provider = createOpenRouter({ apiKey: config.apiKey });
   const reqJson = await request.json();
 
   const result = streamText({
-    model: openrouter.chat(config.model),
+    model: provider.chat(config.model),
     // ai v7 rejects system-role entries inside `messages`; the system
     // prompt goes through `instructions` instead.
     instructions: systemPrompt,

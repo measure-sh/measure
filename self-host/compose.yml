@@ -57,7 +57,7 @@ services:
       - NEXT_PUBLIC_GTM_ID=${GTM_ID}
       - NEXT_PUBLIC_C15T_BACKEND_URL=${NEXT_PUBLIC_C15T_BACKEND_URL}
       - LLM_DOCS_CHAT_KEY_FILE=/run/secrets/llm-docs-chat-key
-      - LLM_MODEL=${OPENROUTER_MODEL_SMALL:-}
+      - LLM_MODEL=${LLM_AGENT_MODEL_SMALL:-}
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://0.0.0.0:3000"]
       interval: 5s
@@ -200,7 +200,7 @@ services:
       - autumn-secret-key
       - oauth-google-secret
       - oauth-github-secret
-      - openrouter-api-key
+      - llm-agent-key
     environment:
       - AGENT_ENABLED=${AGENT_ENABLED}
       - BILLING_ENABLED=${BILLING_ENABLED}
@@ -231,10 +231,10 @@ services:
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
       - OTEL_INSECURE_MODE=${OTEL_INSECURE_MODE}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
-      - OPENROUTER_API_KEY_FILE=/run/secrets/openrouter-api-key
-      - OPENROUTER_MODEL_SMALL=${OPENROUTER_MODEL_SMALL:-}
-      - OPENROUTER_MODEL_MEDIUM=${OPENROUTER_MODEL_MEDIUM:-}
-      - OPENROUTER_MODEL_LARGE=${OPENROUTER_MODEL_LARGE:-}
+      - LLM_AGENT_KEY_FILE=/run/secrets/llm-agent-key
+      - LLM_AGENT_MODEL_SMALL=${LLM_AGENT_MODEL_SMALL:-}
+      - LLM_AGENT_MODEL_MEDIUM=${LLM_AGENT_MODEL_MEDIUM:-}
+      - LLM_AGENT_MODEL_LARGE=${LLM_AGENT_MODEL_LARGE:-}
       - PORT=8084
     develop:
       watch:
@@ -884,7 +884,7 @@ secrets:
     environment: "OAUTH_GOOGLE_SECRET"
   oauth-github-secret:
     environment: "OAUTH_GITHUB_SECRET"
-  openrouter-api-key:
-    environment: "OPENROUTER_API_KEY"
+  llm-agent-key:
+    environment: "LLM_AGENT_KEY"
   llm-docs-chat-key:
     environment: "LLM_DOCS_CHAT_KEY"

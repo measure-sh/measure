@@ -14,9 +14,8 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// Small hand-written client for the OpenAI-compatible chat completions API.
-// OpenRouter is the default; OPENROUTER_BASE_URL can point it at any
-// compatible endpoint. Hand-written so we don't depend on a vendor SDK.
+// Small client for the OpenAI-compatible chat completions API,
+// served through OpenRouter.
 
 type chatToolCallFunction struct {
 	Name      string `json:"name"`
@@ -149,10 +148,10 @@ func (c *Config) chat(ctx context.Context, model string, messages []chatMessage,
 	}()
 
 	if c.APIKey == "" {
-		return nil, fmt.Errorf("agent is not configured: OPENROUTER_API_KEY is not set")
+		return nil, fmt.Errorf("agent is not configured: LLM_AGENT_KEY is not set")
 	}
 	if model == "" {
-		return nil, fmt.Errorf("agent is not configured: the OPENROUTER_MODEL_* env var for this task is not set")
+		return nil, fmt.Errorf("agent is not configured: the LLM_AGENT_MODEL_* env var for this task is not set")
 	}
 
 	conversationID, _ := conversationIDFromContext(ctx)
