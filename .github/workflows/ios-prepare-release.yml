@@ -24,7 +24,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: 'main'
           fetch-depth: 0
@@ -79,15 +79,10 @@ jobs:
           sed -E -i '' 's/(spec\.version[[:space:]]*=[[:space:]]*")[^"]*/\1${{ inputs.version }}/' \
             measure-sh.podspec
 
-      - name: Update version in MeasureReactNative.podspec
-        run: |
-          sed -E -i '' 's/(s\.version[[:space:]]*=[[:space:]]*")[^"]*/\1${{ inputs.version }}/' \
-            react-native/MeasureReactNative.podspec
-
       - name: Update version in docs
         run: |
           sed -E -i '' 's|(\.package\(url: "https://github\.com/measure-sh/measure\.git", branch: "ios-v)[^"]*|\1${{ inputs.version }}|g' \
-            docs/sdk-integration-guide.md
+            frontend/dashboard/content/docs/sdk-integration-guide.mdx
 
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
@@ -111,8 +106,7 @@ jobs:
             Changes:
             - Updated version to ${{ inputs.version }} in FrameworkInfo.swift
             - Updated version to ${{ inputs.version }} in measure-sh.podspec
-            - Updated version to ${{ inputs.version }} in MeasureReactNative.podspec
-            - Updated version in docs/sdk-integration-guide.md
+            - Updated version in frontend/dashboard/content/docs/sdk-integration-guide.mdx
             - Generated changelog for version ${{ inputs.version }}
           base: main
           labels: ios
