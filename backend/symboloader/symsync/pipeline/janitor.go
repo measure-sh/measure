@@ -12,10 +12,10 @@ import (
 
 // DeleteResult records the outcome of removing one archive's DIFs.
 type DeleteResult struct {
-	Entry         ArchiveEntry
-	DIFsDeleted   int // debug IDs whose objects were actually removed
-	DIFsRetained  int // debug IDs skipped because they are still referenced by an active archive
-	Err           error
+	Entry        ArchiveEntry
+	DIFsDeleted  int // debug IDs whose objects were actually removed
+	DIFsRetained int // debug IDs skipped because they are still referenced by an active archive
+	Err          error
 }
 
 // StoreJanitor removes DIFs whose archives are no longer in the planner's
