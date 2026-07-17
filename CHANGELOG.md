@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Allow removing owners from their default team by @anupcowkur in #4059
 - (**backend**): Enforce clickhouse row-level team isolation policy (#4026) by @detj in #4026
 - (**backend**): Support agent questions across multiple apps by @anupcowkur in #4006
 - (**backend**): Give agent ability to reply with graphs by @anupcowkur in #3995
