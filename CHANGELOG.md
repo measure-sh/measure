@@ -124,6 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Validate agent run_sql on a parsed AST by @anupcowkur in #4051
 - (**backend**): Format symboloader symsync files (#4049) by @detj in #4049
 - (**backend**): Harden agent SQL validator against scope bypasses by @anupcowkur in #4048
 - (**backend**): Rename agent LLM env vars (#4045) by @anupcowkur in #4045
