@@ -136,6 +136,7 @@ func do(ctx context.Context, opName, method, path string, body any, out any) (er
 var (
 	GetOrCreateCustomer = getOrCreateCustomer
 	GetCustomer         = getCustomer
+	UpdateCustomer      = updateCustomer
 	Attach              = attach
 	Update              = update
 	OpenCustomerPortal  = openCustomerPortal
@@ -167,6 +168,16 @@ func getCustomer(ctx context.Context, customerID string) (*Customer, error) {
 		return nil, err
 	}
 	return &out, nil
+}
+
+// updateCustomer changes the email on an existing Autumn customer. Invoices,
+// receipts and dunning notifications from Autumn/Stripe go to this address.
+func updateCustomer(ctx context.Context, customerID, email string) error {
+	req := updateCustomerRequest{
+		CustomerID: customerID,
+		Email:      email,
+	}
+	return do(ctx, "autumn-update-customer", http.MethodPost, "/v1/customers.update", req, nil)
 }
 
 // ----------------------------------------------------------------------------

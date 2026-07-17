@@ -87,25 +87,43 @@ func (u *User) GetTeams(pg *pgxpool.Pool) ([]map[string]string, error) {
 	return teams, nil
 }
 
-// GetOwnTeam gets a user's own team.
-func (u *User) GetOwnTeam(ctx context.Context, pg *pgxpool.Pool) (team *Team, err error) {
+// pgxQuerier is satisfied by both *pgxpool.Pool and pgx.Tx, so defaultTeam
+// can run either on the pool or inside EnsureDefaultTeam's transaction.
+// EnsureDefaultTeam needs the latter: it must do all its work on the one
+// connection it already holds, because requests queued behind its lock hold
+// connections of their own, and if they use up the pool, a request that asks
+// for one more connection would wait forever on requests that are in turn
+// waiting for it.
+type pgxQuerier interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
+// GetDefaultTeam returns the team a user starts on by default: their earliest
+// owned team when they own any, otherwise their earliest membership team.
+// Returns pgx.ErrNoRows when the user has no team memberships at all; use
+// EnsureDefaultTeam in flows that must always resolve to a team.
+func (u *User) GetDefaultTeam(ctx context.Context, pg *pgxpool.Pool) (*Team, error) {
+	return defaultTeam(ctx, pg, u.ID)
+}
+
+// defaultTeam runs the default-team query on a pool or transaction handle.
+func defaultTeam(ctx context.Context, q pgxQuerier, userID *string) (*Team, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("teams.id, teams.name").
 		From("teams").
-		LeftJoin("team_membership", "teams.id = team_membership.team_id and team_membership.role = 'owner'").
-		Where("team_membership.user_id = ?", u.ID).
-		OrderBy("team_membership.created_at").
+		Join("team_membership", "teams.id = team_membership.team_id").
+		Where("team_membership.user_id = ?", userID).
+		OrderBy("(team_membership.role = 'owner') desc", "team_membership.created_at").
 		Limit(1)
 
 	defer stmt.Close()
 
-	team = &Team{}
-
-	if err = pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&team.ID, &team.Name); err != nil {
-		return
+	team := &Team{}
+	if err := q.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&team.ID, &team.Name); err != nil {
+		return nil, err
 	}
 
-	return
+	return team, nil
 }
 
 func (u *User) GetRole(pg *pgxpool.Pool, teamId string) (Rank, error) {

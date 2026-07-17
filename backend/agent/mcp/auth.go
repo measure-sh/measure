@@ -475,24 +475,9 @@ func mcpFindOrCreateUser(ctx context.Context, deps *server.Deps, name, email, pr
 			fmt.Println("mcp: failed to create notif prefs:", err)
 		}
 
-		userName := msrUser.FirstName()
-		teamName := fmt.Sprintf("%s's team", userName)
-		team := &measure.Team{Name: &teamName}
-
-		tx, err := deps.PgPool.Begin(ctx)
-		if err != nil {
+		if _, err := measure.CreatePersonalTeam(ctx, deps.PgPool, deps.Config.IsBillingEnabled(), msrUser); err != nil {
 			return mcpUserInfo{}, fmt.Errorf("%s: %w", msg, err)
 		}
-		defer tx.Rollback(ctx)
-
-		if err := team.Create(ctx, deps.PgPool, deps.Config.IsBillingEnabled(), msrUser, &tx); err != nil {
-			return mcpUserInfo{}, fmt.Errorf("%s: %w", msg, err)
-		}
-		if err := tx.Commit(ctx); err != nil {
-			return mcpUserInfo{}, fmt.Errorf("%s: %w", msg, err)
-		}
-
-		measure.FireTeamCreatedEvent(ctx, msrUser, team)
 
 		if err := measure.AddNewUserToInvitedTeams(ctx, deps.PgPool, *msrUser.ID, email); err != nil {
 			fmt.Println("mcp: failed to add user to invited teams:", err)
@@ -500,6 +485,10 @@ func mcpFindOrCreateUser(ctx context.Context, deps *server.Deps, name, email, pr
 	} else {
 		if err := msrUser.TouchLastSignInAt(ctx, deps.PgPool); err != nil {
 			fmt.Println("mcp: failed to touch last_sign_in_at:", err)
+		}
+
+		if _, err := measure.EnsureDefaultTeam(ctx, deps.PgPool, deps.Config.IsBillingEnabled(), msrUser); err != nil {
+			return mcpUserInfo{}, fmt.Errorf("%s: %w", msg, err)
 		}
 	}
 

@@ -552,3 +552,127 @@ func TestTeamCreateEmptyOwnerEmail(t *testing.T) {
 func errContains(err error, s string) bool {
 	return err != nil && strings.Contains(err.Error(), s)
 }
+
+// --------------------------------------------------------------------------
+// SyncBillingEmailOnOwnerExit
+// --------------------------------------------------------------------------
+
+func TestSyncBillingEmailOnOwnerExit(t *testing.T) {
+	ctx := context.Background()
+
+	seedTeamWithOwner := func(t *testing.T, ownerEmail string) uuid.UUID {
+		t.Helper()
+		teamID := uuid.New()
+		ownerID := uuid.New().String()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedUser(ctx, t, ownerID, ownerEmail)
+		seedTeamMembership(ctx, t, teamID, ownerID, "owner")
+		return teamID
+	}
+
+	t.Run("billing disabled is a no-op", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := seedTeamWithOwner(t, "owner@example.com")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			t.Error("GetCustomer called with billing disabled")
+			return nil, nil
+		})
+
+		if err := SyncBillingEmailOnOwnerExit(ctx, deps.PgPool, false, teamID, "departed@example.com"); err != nil {
+			t.Fatalf("SyncBillingEmailOnOwnerExit: %v", err)
+		}
+	})
+
+	t.Run("team without autumn customer is a no-op", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := seedTeamWithOwner(t, "owner@example.com")
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			t.Error("GetCustomer called without an autumn customer")
+			return nil, nil
+		})
+
+		if err := SyncBillingEmailOnOwnerExit(ctx, deps.PgPool, true, teamID, "departed@example.com"); err != nil {
+			t.Fatalf("SyncBillingEmailOnOwnerExit: %v", err)
+		}
+	})
+
+	t.Run("customer email differing from the departed member is left alone", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := seedTeamWithOwner(t, "owner@example.com")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{ID: custID, Email: "finance@example.com"}, nil
+		})
+		autumntest.MockUpdateCustomer(t, func(_ context.Context, _, _ string) error {
+			t.Error("UpdateCustomer called for a non-matching email")
+			return nil
+		})
+
+		if err := SyncBillingEmailOnOwnerExit(ctx, deps.PgPool, true, teamID, "departed@example.com"); err != nil {
+			t.Fatalf("SyncBillingEmailOnOwnerExit: %v", err)
+		}
+	})
+
+	t.Run("matching email moves to the earliest remaining owner", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		earlierID := uuid.New().String()
+		laterID := uuid.New().String()
+		seedUser(ctx, t, earlierID, "earlier-owner@example.com")
+		seedUser(ctx, t, laterID, "later-owner@example.com")
+		now := time.Now()
+		seedMembershipAt(ctx, t, teamID.String(), earlierID, "owner", now.Add(-time.Hour))
+		seedMembershipAt(ctx, t, teamID.String(), laterID, "owner", now)
+
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		// mixed case exercises the case-insensitive match
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{ID: custID, Email: "Departed@Example.com"}, nil
+		})
+		var gotCustomerID, gotEmail string
+		autumntest.MockUpdateCustomer(t, func(_ context.Context, customerID, email string) error {
+			gotCustomerID = customerID
+			gotEmail = email
+			return nil
+		})
+
+		if err := SyncBillingEmailOnOwnerExit(ctx, deps.PgPool, true, teamID, "departed@example.com"); err != nil {
+			t.Fatalf("SyncBillingEmailOnOwnerExit: %v", err)
+		}
+		if gotCustomerID != custID {
+			t.Errorf("customer = %q, want %q", gotCustomerID, custID)
+		}
+		if gotEmail != "earlier-owner@example.com" {
+			t.Errorf("email = %q, want earlier-owner@example.com", gotEmail)
+		}
+	})
+
+	t.Run("no remaining owner returns an error", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{ID: custID, Email: "departed@example.com"}, nil
+		})
+		autumntest.MockUpdateCustomer(t, func(_ context.Context, _, _ string) error {
+			t.Error("UpdateCustomer called with no remaining owner")
+			return nil
+		})
+
+		if err := SyncBillingEmailOnOwnerExit(ctx, deps.PgPool, true, teamID, "departed@example.com"); err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+}

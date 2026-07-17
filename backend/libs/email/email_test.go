@@ -640,3 +640,30 @@ func TestUsageLimitEmail_NonStandardThreshold(t *testing.T) {
 	}
 	mustNotContainByteNumbers(t, "UsageLimitEmail(50)", body)
 }
+
+func TestRemovedFromTeamEmail(t *testing.T) {
+	t.Run("links to the member's remaining team", func(t *testing.T) {
+		subject, body := RemovedFromTeamEmail("Acme Corp", "owner@example.com", "https://measure.sh", "team-abc")
+
+		if subject != "Removed from Measure team" {
+			t.Errorf("subject = %q", subject)
+		}
+		if !strings.Contains(body, "removed from team <b>Acme Corp</b> by <b>owner@example.com</b>") {
+			t.Error("body missing removal copy")
+		}
+		if !strings.Contains(body, `href="https://measure.sh/team-abc/overview"`) {
+			t.Error("body missing team dashboard link")
+		}
+	})
+
+	t.Run("links to the dashboard root when no team is left", func(t *testing.T) {
+		_, body := RemovedFromTeamEmail("Acme Corp", "owner@example.com", "https://measure.sh", "")
+
+		if !strings.Contains(body, `href="https://measure.sh"`) {
+			t.Error("body missing root dashboard link")
+		}
+		if strings.Contains(body, "/overview") {
+			t.Error("body should not contain an overview link without a team")
+		}
+	})
+}

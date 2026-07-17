@@ -37,10 +37,15 @@ func InviteExistingUserEmail(inviterEmail, role, teamName, siteOrigin string) (s
 }
 
 // RemovedFromTeamEmail builds the email sent when a user is removed from a team.
+// memberTeamId is the member's remaining default team; pass an empty string
+// when the member has no team left, which links to the dashboard root.
 func RemovedFromTeamEmail(teamName, removedByEmail, siteOrigin, memberTeamId string) (subject, body string) {
 	subject = "Removed from Measure team"
 	msg := fmt.Sprintf("You have been removed from team <b>%s</b> by <b>%s</b>", teamName, removedByEmail)
-	url := siteOrigin + "/" + memberTeamId + "/overview"
+	url := siteOrigin
+	if memberTeamId != "" {
+		url = siteOrigin + "/" + memberTeamId + "/overview"
+	}
 	body = RenderEmailBody(subject, MessageContent(msg), "Go to Dashboard", url)
 	return
 }

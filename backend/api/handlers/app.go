@@ -3979,7 +3979,10 @@ func (h Handlers) RenameApp(c *gin.Context) {
 		return
 	}
 
-	if err := c.ShouldBindJSON(&app); err != nil {
+	var payload struct {
+		Name string `json:"name" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&payload); err != nil {
 		msg := `failed to parse app rename json payload`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -3987,6 +3990,8 @@ func (h Handlers) RenameApp(c *gin.Context) {
 		})
 		return
 	}
+
+	app.AppName = payload.Name
 
 	err = app.Rename(deps.PgPool)
 	if err != nil {
