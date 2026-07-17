@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"backend/libs/chrono"
 
@@ -380,19 +382,103 @@ func (t *Team) AddMembers(ctx context.Context, pg *pgxpool.Pool, invitees []Invi
 	return nil
 }
 
-func (t *Team) RemoveMember(ctx context.Context, pg *pgxpool.Pool, memberId *uuid.UUID) error {
-	stmt := sqlf.PostgreSQL.DeleteFrom("team_membership").
-		Where("team_id = ?", nil).
-		Where("user_id = ?", nil)
+// ErrLastOwner is returned when a removal or role change would leave a team
+// with no owner. An ownerless team could never regain one: only owners can
+// assign the owner role.
+var ErrLastOwner = errors.New("team must have at least one owner")
+
+// lockTeamForMembershipChange takes a write lock on the team row and holds
+// it until the transaction ends. Membership changes take this lock first so
+// that, for any one team, they run one at a time. Without it, two requests
+// removing a team's two owners at once would each still see the other owner
+// present, pass the last-owner check, and leave the team with no owner.
+func lockTeamForMembershipChange(ctx context.Context, tx pgx.Tx, teamId *uuid.UUID) error {
+	stmt := sqlf.PostgreSQL.
+		Select("1").
+		From("teams").
+		Where("id = ?", teamId).
+		Clause("FOR UPDATE")
 	defer stmt.Close()
 
-	_, err := pg.Exec(ctx, stmt.String(), t.ID, memberId)
+	_, err := tx.Exec(ctx, stmt.String(), stmt.Args()...)
+	return err
+}
 
+// memberRoleInTeam reads a member's current role. Call with the team row
+// locked so the value stays authoritative for the rest of the transaction.
+func memberRoleInTeam(ctx context.Context, tx pgx.Tx, teamId, memberId *uuid.UUID) (role string, err error) {
+	stmt := sqlf.PostgreSQL.
+		Select("role").
+		From("team_membership").
+		Where("team_id = ?", teamId).
+		Where("user_id = ?", memberId)
+	defer stmt.Close()
+
+	err = tx.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&role)
+	return
+}
+
+// otherOwnerExists reports whether the team has an owner other than the
+// given member. Call with the team row locked.
+func otherOwnerExists(ctx context.Context, tx pgx.Tx, teamId, memberId *uuid.UUID) (bool, error) {
+	stmt := sqlf.PostgreSQL.
+		Select("count(*)").
+		From("team_membership").
+		Where("team_id = ?", teamId).
+		Where("user_id != ?", memberId).
+		Where("role = ?", "owner")
+	defer stmt.Close()
+
+	var count int
+	if err := tx.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&count); err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// RemoveMember deletes a member's team membership. Removing the only owner
+// of a team is rejected with ErrLastOwner.
+func (t *Team) RemoveMember(ctx context.Context, pg *pgxpool.Pool, memberId *uuid.UUID) error {
+	tx, err := pg.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	if err := lockTeamForMembershipChange(ctx, tx, t.ID); err != nil {
+		return err
+	}
+
+	role, err := memberRoleInTeam(ctx, tx, t.ID, memberId)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// Already not a member, e.g. a concurrent removal won the race.
+		// Treat as done so the operation stays idempotent.
+		return nil
+	}
 	if err != nil {
 		return err
 	}
 
-	return nil
+	if role == "owner" {
+		hasOther, err := otherOwnerExists(ctx, tx, t.ID, memberId)
+		if err != nil {
+			return err
+		}
+		if !hasOther {
+			return ErrLastOwner
+		}
+	}
+
+	stmt := sqlf.PostgreSQL.DeleteFrom("team_membership").
+		Where("team_id = ?", t.ID).
+		Where("user_id = ?", memberId)
+	defer stmt.Close()
+
+	if _, err := tx.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 // areInviteesMember provides the index of the invitee if that invitee
@@ -414,18 +500,50 @@ func (t *Team) AreInviteesMember(ctx context.Context, pg *pgxpool.Pool, invitees
 	return -1, nil
 }
 
+// ChangeRole updates a member's role. Moving the only owner of a team to a
+// lower role is rejected with ErrLastOwner.
 func (t *Team) ChangeRole(ctx context.Context, pg *pgxpool.Pool, memberId *uuid.UUID, role Rank) error {
-	stmt := sqlf.PostgreSQL.Update("team_membership").
-		Set("role", nil).
-		Set("role_updated_at", nil).
-		Where("team_id = ? and user_id = ?", nil, nil)
-	defer stmt.Close()
+	tx, err := pg.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
 
-	if _, err := pg.Exec(ctx, stmt.String(), role, time.Now(), t.ID, memberId); err != nil {
+	if err := lockTeamForMembershipChange(ctx, tx, t.ID); err != nil {
 		return err
 	}
 
-	return nil
+	current, err := memberRoleInTeam(ctx, tx, t.ID, memberId)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// Membership vanished under a concurrent change; nothing to update.
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	if current == "owner" && role != owner {
+		hasOther, err := otherOwnerExists(ctx, tx, t.ID, memberId)
+		if err != nil {
+			return err
+		}
+		if !hasOther {
+			return ErrLastOwner
+		}
+	}
+
+	stmt := sqlf.PostgreSQL.Update("team_membership").
+		Set("role", role).
+		Set("role_updated_at", time.Now()).
+		Where("team_id = ?", t.ID).
+		Where("user_id = ?", memberId)
+	defer stmt.Close()
+
+	if _, err := tx.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 // create inserts a new team into database, establishes the user's membership
@@ -487,6 +605,165 @@ func (t *Team) Create(ctx context.Context, pg *pgxpool.Pool, billingEnabled bool
 	}
 
 	return
+}
+
+// isAlphanumeric reports whether s consists only of letters and digits.
+func isAlphanumeric(s string) bool {
+	return !strings.ContainsFunc(s, func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+	})
+}
+
+// personalTeamName names a user's personal team: "<first name>'s team",
+// falling back to the leading part of the email address when OAuth gave us
+// no display name (anup@measure.sh becomes "Anup's team"), then to a
+// generic name when there is no email or its leading part contains
+// anything other than letters and digits.
+func personalTeamName(u *User) string {
+	if u.Name != nil {
+		if first := u.FirstName(); first != "" {
+			return fmt.Sprintf("%s's team", first)
+		}
+	}
+	if u.Email != nil {
+		if local, _, found := strings.Cut(*u.Email, "@"); found {
+			if i := strings.IndexAny(local, ".+_-"); i >= 0 {
+				local = local[:i]
+			}
+			if local != "" && isAlphanumeric(local) {
+				r, size := utf8.DecodeRuneInString(local)
+				return fmt.Sprintf("%s's team", string(unicode.ToUpper(r))+local[size:])
+			}
+		}
+	}
+	return "Personal team"
+}
+
+// CreatePersonalTeam creates the "<first name>'s team" a user owns, in its
+// own transaction, and fires the team-created analytics event. Called at
+// signup, and via EnsureDefaultTeam for a user who no longer has any team.
+func CreatePersonalTeam(ctx context.Context, pg *pgxpool.Pool, billingEnabled bool, u *User) (*Team, error) {
+	if u.Name == nil || u.Email == nil {
+		if err := u.GetUserDetails(ctx, pg); err != nil {
+			return nil, fmt.Errorf("fetch user details: %w", err)
+		}
+	}
+
+	tx, err := pg.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	team, err := createPersonalTeamTx(ctx, pg, billingEnabled, u, &tx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	FireTeamCreatedEvent(ctx, u, team)
+
+	return team, nil
+}
+
+// createPersonalTeamTx creates the personal team inside the caller's
+// transaction; the caller commits and fires the analytics event. u.Name and
+// u.Email must be loaded before calling: this function runs inside the
+// caller's transaction and must not query the pool.
+func createPersonalTeamTx(ctx context.Context, pg *pgxpool.Pool, billingEnabled bool, u *User, tx *pgx.Tx) (*Team, error) {
+	teamName := personalTeamName(u)
+	team := &Team{
+		Name: &teamName,
+	}
+
+	if err := team.Create(ctx, pg, billingEnabled, u, tx); err != nil {
+		return nil, err
+	}
+
+	return team, nil
+}
+
+// teamProvisionLockClass is the first key of the two-key advisory lock
+// around personal-team creation; the second key is a hash of the user id.
+// All advisory locks in a database draw from one shared set of numbers, so
+// this fixed first key keeps our per-user locks from ever matching a lock
+// some other feature takes. The value itself is arbitrary; it encodes the
+// ASCII letters "msmt" (measure team), and when inspecting pg_locks it
+// appears in the classid column as 1836281204, identifying us as the owner.
+const teamProvisionLockClass int32 = 0x6d736d74
+
+// EnsureDefaultTeam returns the user's default team, creating a personal
+// team first when the user has no team memberships at all, for example
+// after being removed from every team they belonged to. Sign-in and session
+// flows rely on every user resolving to some team.
+func EnsureDefaultTeam(ctx context.Context, pg *pgxpool.Pool, billingEnabled bool, u *User) (*Team, error) {
+	team, err := u.GetDefaultTeam(ctx, pg)
+	if err == nil {
+		return team, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+
+	// The user has no team, so create one. Two requests for the same user
+	// can reach this point at the same time (for example two browser tabs),
+	// and each would create its own team and Autumn customer. The advisory
+	// lock below prevents that by making requests take turns: the first
+	// proceeds, the rest wait until it finishes.
+
+	// fetched before Begin so the transaction below never needs a pool query
+	if u.Name == nil || u.Email == nil {
+		if err := u.GetUserDetails(ctx, pg); err != nil {
+			return nil, fmt.Errorf("fetch user details: %w", err)
+		}
+	}
+
+	// This transaction holds one pool connection until it ends, and every
+	// request waiting for the lock holds one of its own. All database access
+	// until the commit must therefore run on tx, not pg: if the pool were
+	// empty, a query through pg would wait for a free connection while the
+	// requests holding them wait for this one to finish.
+	tx, err := pg.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	stmt := sqlf.PostgreSQL.
+		Select("pg_advisory_xact_lock(?::int4, hashtext(?))", teamProvisionLockClass, u.ID)
+	defer stmt.Close()
+
+	if _, err := tx.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
+		return nil, err
+	}
+
+	// While this request waited for the lock, another request may have
+	// already created the team. Its work is committed by the time the lock
+	// frees, so this check finds that team and returns it instead of
+	// creating a second one.
+	team, err = defaultTeam(ctx, tx, u.ID)
+	if err == nil {
+		return team, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+
+	team, err = createPersonalTeamTx(ctx, pg, billingEnabled, u, &tx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	FireTeamCreatedEvent(ctx, u, team)
+
+	return team, nil
 }
 
 func GetValidInvitesForEmail(ctx context.Context, pg *pgxpool.Pool, email string) ([]Invite, error) {

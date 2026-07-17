@@ -308,6 +308,8 @@ func (h Handlers) SigninGitHub(c *gin.Context) {
 			return
 		}
 
+		var team *measure.Team
+
 		if msrUser == nil {
 			msrUser = measure.NewUser(ghUser.Name, ghUser.Email)
 			if err := msrUser.Save(ctx, deps.PgPool, nil); err != nil {
@@ -328,14 +330,7 @@ func (h Handlers) SigninGitHub(c *gin.Context) {
 				fmt.Println("failed to create notif prefs", err)
 			}
 
-			userName := msrUser.FirstName()
-			teamName := fmt.Sprintf("%s's team", userName)
-
-			team := &measure.Team{
-				Name: &teamName,
-			}
-
-			tx, err := deps.PgPool.Begin(ctx)
+			team, err = measure.CreatePersonalTeam(ctx, deps.PgPool, deps.Config.IsBillingEnabled(), msrUser)
 			if err != nil {
 				fmt.Println(msg, err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -343,26 +338,6 @@ func (h Handlers) SigninGitHub(c *gin.Context) {
 				})
 				return
 			}
-
-			defer tx.Rollback(ctx)
-
-			if err := team.Create(ctx, deps.PgPool, deps.Config.IsBillingEnabled(), msrUser, &tx); err != nil {
-				fmt.Println(msg, err)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-					"error": msg,
-				})
-				return
-			}
-
-			if err := tx.Commit(ctx); err != nil {
-				fmt.Println(msg, err)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-					"error": msg,
-				})
-				return
-			}
-
-			measure.FireTeamCreatedEvent(ctx, msrUser, team)
 
 			if err := measure.AddNewUserToInvitedTeams(ctx, deps.PgPool, *msrUser.ID, ghUser.Email); err != nil {
 				// If there is an error while adding user to invited team,
@@ -379,21 +354,21 @@ func (h Handlers) SigninGitHub(c *gin.Context) {
 				})
 				return
 			}
+
+			team, err = measure.EnsureDefaultTeam(ctx, deps.PgPool, deps.Config.IsBillingEnabled(), msrUser)
+			if err != nil {
+				msg := "failed to lookup user's team"
+				fmt.Println(msg, err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"error": msg,
+				})
+				return
+			}
 		}
 
 		// FIXME: Change User struct's ID field to UUID
 		// so that these kinds of convertion is not needed.
 		userId := uuid.MustParse(*msrUser.ID)
-
-		team, err := msrUser.GetOwnTeam(ctx, deps.PgPool)
-		if err != nil {
-			msg := "failed to lookup user's team"
-			fmt.Println(msg, err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
 
 		authSess, err := authsession.NewAuthSession(deps.Config.AccessTokenSecret, deps.Config.RefreshTokenSecret, userId, "github", userMeta)
 		if err != nil {
@@ -554,6 +529,8 @@ func (h Handlers) SigninGoogle(c *gin.Context) {
 			return
 		}
 
+		var team *measure.Team
+
 		if msrUser == nil {
 			msrUser = measure.NewUser(googUser.Name, googUser.Email)
 			if err := msrUser.Save(ctx, deps.PgPool, nil); err != nil {
@@ -574,14 +551,7 @@ func (h Handlers) SigninGoogle(c *gin.Context) {
 				fmt.Println("failed to create notif prefs", err)
 			}
 
-			userName := msrUser.FirstName()
-			teamName := fmt.Sprintf("%s's team", userName)
-
-			team := &measure.Team{
-				Name: &teamName,
-			}
-
-			tx, err := deps.PgPool.Begin(ctx)
+			team, err = measure.CreatePersonalTeam(ctx, deps.PgPool, deps.Config.IsBillingEnabled(), msrUser)
 			if err != nil {
 				fmt.Println(msg, err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -589,26 +559,6 @@ func (h Handlers) SigninGoogle(c *gin.Context) {
 				})
 				return
 			}
-
-			defer tx.Rollback(ctx)
-
-			if err := team.Create(ctx, deps.PgPool, deps.Config.IsBillingEnabled(), msrUser, &tx); err != nil {
-				fmt.Println(msg, err)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-					"error": msg,
-				})
-				return
-			}
-
-			if err := tx.Commit(ctx); err != nil {
-				fmt.Println(msg, err)
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-					"error": msg,
-				})
-				return
-			}
-
-			measure.FireTeamCreatedEvent(ctx, msrUser, team)
 
 			if err := measure.AddNewUserToInvitedTeams(ctx, deps.PgPool, *msrUser.ID, googUser.Email); err != nil {
 				// If there is an error while adding user to invited team,
@@ -625,21 +575,21 @@ func (h Handlers) SigninGoogle(c *gin.Context) {
 				})
 				return
 			}
+
+			team, err = measure.EnsureDefaultTeam(ctx, deps.PgPool, deps.Config.IsBillingEnabled(), msrUser)
+			if err != nil {
+				msg := "failed to lookup user's team"
+				fmt.Println(msg, err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"error": msg,
+				})
+				return
+			}
 		}
 
 		// FIXME: Change User struct's ID field to UUID
 		// so that these kinds of convertion is not needed.
 		userId := uuid.MustParse(*msrUser.ID)
-
-		team, err := msrUser.GetOwnTeam(ctx, deps.PgPool)
-		if err != nil {
-			msg := "failed to lookup user's team"
-			fmt.Println(msg, err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-			return
-		}
 
 		authSess, err := authsession.NewAuthSession(deps.Config.AccessTokenSecret, deps.Config.RefreshTokenSecret, userId, "google", userMeta)
 		if err != nil {
@@ -837,17 +787,7 @@ func (h Handlers) GetAuthSession(c *gin.Context) {
 		ID: &userId,
 	}
 
-	ownTeam, err := user.GetOwnTeam(ctx, deps.PgPool)
-	if err != nil {
-		msg := "Unable to get user's team"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	err = user.GetUserDetails(ctx, deps.PgPool)
+	err := user.GetUserDetails(ctx, deps.PgPool)
 
 	if err != nil {
 		msg := "Unable to get user details"
@@ -873,6 +813,16 @@ func (h Handlers) GetAuthSession(c *gin.Context) {
 		msg := "could not fetch session"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	ownTeam, err := measure.EnsureDefaultTeam(ctx, deps.PgPool, deps.Config.IsBillingEnabled(), user)
+	if err != nil {
+		msg := "Unable to get user's team"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
 		})
 		return

@@ -51,6 +51,14 @@ func MockUpdate(t *testing.T, fn func(ctx context.Context, req autumn.UpdateRequ
 	t.Cleanup(func() { autumn.Update = orig })
 }
 
+// MockUpdateCustomer swaps autumn.UpdateCustomer for the duration of the test.
+func MockUpdateCustomer(t *testing.T, fn func(ctx context.Context, customerID, email string) error) {
+	t.Helper()
+	orig := autumn.UpdateCustomer
+	autumn.UpdateCustomer = fn
+	t.Cleanup(func() { autumn.UpdateCustomer = orig })
+}
+
 // MockGetCustomer swaps autumn.GetCustomer for the duration of the test.
 func MockGetCustomer(t *testing.T, fn func(ctx context.Context, customerID string) (*autumn.Customer, error)) {
 	t.Helper()

@@ -59,6 +59,31 @@ func TestGetOrCreateCustomer(t *testing.T) {
 	}
 }
 
+func TestUpdateCustomer(t *testing.T) {
+	var gotBody updateCustomerRequest
+	cleanup := setupTestServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/customers.update" {
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		body, _ := io.ReadAll(r.Body)
+		if err := json.Unmarshal(body, &gotBody); err != nil {
+			t.Fatalf("decode body: %v", err)
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+	defer cleanup()
+
+	if err := updateCustomer(context.Background(), "cust_123", "new-owner@test.com"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotBody.CustomerID != "cust_123" {
+		t.Errorf("customer_id = %q, want cust_123", gotBody.CustomerID)
+	}
+	if gotBody.Email != "new-owner@test.com" {
+		t.Errorf("email = %q, want new-owner@test.com", gotBody.Email)
+	}
+}
+
 func TestAttachReturnsPaymentURL(t *testing.T) {
 	cleanup := setupTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/billing.attach" {

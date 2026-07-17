@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"backend/libs/autumn"
@@ -194,6 +195,45 @@ func ProvisionAutumnCustomer(ctx context.Context, billingEnabled bool, tx pgx.Tx
 		return "", fmt.Errorf("save autumn customer id: %w", err)
 	}
 	return cust.ID, nil
+}
+
+// SyncBillingEmailOnOwnerExit points a team's Autumn customer email at a
+// remaining owner after the member it belonged to was removed or demoted.
+// The customer email is set at team creation to the creating owner's email,
+// and Autumn/Stripe send invoices, receipts and dunning notices there, so a
+// departed owner's address must not stay on the record. An email that does
+// not match the departing member (for example a finance inbox set through
+// the billing portal) is left alone.
+func SyncBillingEmailOnOwnerExit(ctx context.Context, pg *pgxpool.Pool, billingEnabled bool, teamID uuid.UUID, departedEmail string) error {
+	if !billingEnabled || departedEmail == "" {
+		return nil
+	}
+
+	customerID, err := GetAutumnCustomerID(ctx, pg, teamID)
+	if err != nil {
+		return err
+	}
+	if customerID == "" {
+		return nil
+	}
+
+	cust, err := autumn.GetCustomer(ctx, customerID)
+	if err != nil {
+		return err
+	}
+	if !strings.EqualFold(cust.Email, departedEmail) {
+		return nil
+	}
+
+	owner, found, err := GetTeamOwner(ctx, pg, teamID)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return fmt.Errorf("no owner left on team %s to receive billing email", teamID)
+	}
+
+	return autumn.UpdateCustomer(ctx, customerID, owner.Email)
 }
 
 // resetAppsRetention resets all apps for a team to the given retention.

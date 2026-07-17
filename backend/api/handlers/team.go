@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -15,28 +16,22 @@ import (
 
 const maxInvitees = 25
 
+// normalizeTeamName trims a bound team name and reports whether it is usable.
+// A missing field (nil) or a value that is blank after trimming is rejected.
+func normalizeTeamName(name *string) (string, bool) {
+	if name == nil {
+		return "", false
+	}
+	trimmed := strings.TrimSpace(*name)
+	return trimmed, trimmed != ""
+}
+
 func (h Handlers) CreateTeam(c *gin.Context) {
 	deps := h.Deps
 	ctx := c.Request.Context()
 	userId := c.GetString("userId")
 	u := &measure.User{
 		ID: &userId,
-	}
-
-	ownTeam, err := u.GetOwnTeam(ctx, deps.PgPool)
-	if err != nil {
-		msg := "failed to lookup user's team"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	if ownTeam == nil {
-		// use does not have team
-		msg := fmt.Sprintf("no associated team for user %q", *u.ID)
-		fmt.Println(msg)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
 	}
 
 	newTeam := &measure.Team{}
@@ -48,26 +43,12 @@ func (h Handlers) CreateTeam(c *gin.Context) {
 		return
 	}
 
-	// trim team name value
-	*newTeam.Name = strings.Trim(*newTeam.Name, " ")
-
-	if *newTeam.Name == "" {
-		msg := "team name cannot be empty"
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+	name, ok := normalizeTeamName(newTeam.Name)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "team name cannot be empty"})
 		return
 	}
-
-	ok, err := measure.PerformAuthz(deps.PgPool, userId, ownTeam.ID.String(), *measure.ScopeTeamAll)
-	if err != nil {
-		msg := `couldn't perform authorization checks`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	} else if !ok {
-		msg := "you don't have permissions to create new teams"
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
-		return
-	}
+	*newTeam.Name = name
 
 	msg := "failed to create team"
 	tx, err := deps.PgPool.Begin(ctx)
@@ -823,15 +804,24 @@ func (h Handlers) RenameTeam(c *gin.Context) {
 		return
 	}
 
-	var team = new(measure.Team)
-	team.ID = &teamId
+	var payload struct {
+		Name *string `json:"name"`
+	}
 
-	if err := c.ShouldBindJSON(&team); err != nil {
-		msg := "failed to parse invite payload"
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		msg := "failed to parse rename payload"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
+
+	name, ok := normalizeTeamName(payload.Name)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "team name cannot be empty"})
+		return
+	}
+
+	team := &measure.Team{ID: &teamId, Name: &name}
 
 	if err := team.Rename(c.Request.Context(), deps.PgPool); err != nil {
 		msg := "failed to rename team"
@@ -984,23 +974,12 @@ func (h Handlers) RemoveTeamMember(c *gin.Context) {
 		return
 	}
 
-	// check if member is being removed from their default team
-	memberOwnTeam, err := memberUser.GetOwnTeam(c.Request.Context(), deps.PgPool)
-	if err != nil {
-		msg := "couldn't perform authorization checks: failed to lookup member's default team"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	if memberOwnTeam.ID != nil && *memberOwnTeam.ID == teamId {
-		msg := fmt.Sprintf("member [%s] cannot be removed from their default team [%s]", memberId, teamId)
-		fmt.Println(msg)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
 	if err = team.RemoveMember(c.Request.Context(), deps.PgPool, &memberId); err != nil {
+		if errors.Is(err, measure.ErrLastOwner) {
+			msg := fmt.Sprintf("cannot remove member [%s]: team [%s] must have at least one owner", memberId, teamId)
+			c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+			return
+		}
 		msg := fmt.Sprintf("couldn't remove member [%s]", memberId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
@@ -1025,15 +1004,33 @@ func (h Handlers) RemoveTeamMember(c *gin.Context) {
 		fmt.Println(msg, err)
 	}
 
-	subject, body := email.RemovedFromTeamEmail(*team.Name, *user.Email, deps.Config.SiteOrigin, memberOwnTeam.ID.String())
+	// invoices and dunning notices from Autumn/Stripe go to the customer
+	// email; if it belonged to the removed owner, hand it to a remaining one
+	if memberRole == measure.RoleMap["owner"] && memberUser.Email != nil {
+		if err := measure.SyncBillingEmailOnOwnerExit(c.Request.Context(), deps.PgPool, deps.Config.IsBillingEnabled(), teamId, *memberUser.Email); err != nil {
+			fmt.Println("failed to sync billing email after owner removal:", err)
+		}
+	}
 
-	email.SendEmail(deps.Mail, email.EmailInfo{
-		From:        deps.Config.TxEmailAddress,
-		To:          *memberUser.Email,
-		Subject:     subject,
-		ContentType: "text/html",
-		Body:        body,
-	})
+	// the removed member's dashboard link points at their next default team;
+	// with no team left, empty means the dashboard root, which provisions a
+	// personal team at next sign-in
+	memberTeamId := ""
+	if memberDefaultTeam, err := memberUser.GetDefaultTeam(c.Request.Context(), deps.PgPool); err == nil && memberDefaultTeam.ID != nil {
+		memberTeamId = memberDefaultTeam.ID.String()
+	}
+
+	if team.Name != nil && user.Email != nil && memberUser.Email != nil {
+		subject, body := email.RemovedFromTeamEmail(*team.Name, *user.Email, deps.Config.SiteOrigin, memberTeamId)
+
+		email.SendEmail(deps.Mail, email.EmailInfo{
+			From:        deps.Config.TxEmailAddress,
+			To:          *memberUser.Email,
+			Subject:     subject,
+			ContentType: "text/html",
+			Body:        body,
+		})
+	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": fmt.Sprintf("removed member [%s] from team [%s]", memberId, teamId)})
 }
@@ -1090,20 +1087,36 @@ func (h Handlers) ChangeMemberRole(c *gin.Context) {
 		return
 	}
 
-	member := &measure.Member{
-		ID: &memberId,
+	// bind only the role; the target member comes from the URL param, never
+	// the request body
+	var payload struct {
+		Role *string `json:"role"`
 	}
 
-	if err := c.ShouldBindJSON(&member); err != nil {
+	if err := c.ShouldBindJSON(&payload); err != nil {
 		msg := `failed to parse payload`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
 
-	if role := measure.RoleMap[*member.Role]; !role.Valid() {
-		msg := fmt.Sprintf("role [%s] is not valid", *member.Role)
+	if payload.Role == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "role is required"})
+		return
+	}
+
+	newRole := measure.RoleMap[*payload.Role]
+	if !newRole.Valid() {
+		msg := fmt.Sprintf("role [%s] is not valid", *payload.Role)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	// a member can only assign roles at or below their own rank
+	if userRole < newRole {
+		msg := fmt.Sprintf("you don't have permissions to assign role [%s] in team [%s]", *payload.Role, teamId)
+		fmt.Println(msg)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
 		return
 	}
 
@@ -1138,23 +1151,12 @@ func (h Handlers) ChangeMemberRole(c *gin.Context) {
 		return
 	}
 
-	// check if member role is being changed in default team
-	memberOwnTeam, err := memberUser.GetOwnTeam(c, deps.PgPool)
-	if err != nil {
-		msg := "couldn't perform authorization checks: failed to lookup member's default team"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	if memberOwnTeam.ID != nil && *memberOwnTeam.ID == teamId {
-		msg := fmt.Sprintf("cannot change role of member [%s] in their default team [%s]", memberId, teamId)
-		fmt.Println(msg)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
-	if err := team.ChangeRole(c.Request.Context(), deps.PgPool, &memberId, measure.RoleMap[*member.Role]); err != nil {
+	if err := team.ChangeRole(c.Request.Context(), deps.PgPool, &memberId, newRole); err != nil {
+		if errors.Is(err, measure.ErrLastOwner) {
+			msg := fmt.Sprintf("cannot change role of member [%s]: team [%s] must have at least one owner", memberId, teamId)
+			c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+			return
+		}
 		msg := `failed to change role`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
@@ -1179,15 +1181,26 @@ func (h Handlers) ChangeMemberRole(c *gin.Context) {
 		fmt.Println(msg, err)
 	}
 
-	subject, body := email.RoleChangedEmail(*member.Role, *user.Email, *team.Name, deps.Config.SiteOrigin, team.ID.String())
+	// invoices and dunning notices from Autumn/Stripe go to the customer
+	// email; a member demoted from owner loses billing access, so hand the
+	// email to a remaining owner if it was theirs
+	if memberRole == measure.RoleMap["owner"] && newRole != measure.RoleMap["owner"] && memberUser.Email != nil {
+		if err := measure.SyncBillingEmailOnOwnerExit(c.Request.Context(), deps.PgPool, deps.Config.IsBillingEnabled(), teamId, *memberUser.Email); err != nil {
+			fmt.Println("failed to sync billing email after owner demotion:", err)
+		}
+	}
 
-	email.SendEmail(deps.Mail, email.EmailInfo{
-		From:        deps.Config.TxEmailAddress,
-		To:          *memberUser.Email,
-		Subject:     subject,
-		ContentType: "text/html",
-		Body:        body,
-	})
+	if team.Name != nil && user.Email != nil && memberUser.Email != nil {
+		subject, body := email.RoleChangedEmail(*payload.Role, *user.Email, *team.Name, deps.Config.SiteOrigin, team.ID.String())
+
+		email.SendEmail(deps.Mail, email.EmailInfo{
+			From:        deps.Config.TxEmailAddress,
+			To:          *memberUser.Email,
+			Subject:     subject,
+			ContentType: "text/html",
+			Body:        body,
+		})
+	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }
