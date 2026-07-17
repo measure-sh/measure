@@ -112,6 +112,42 @@ func TestRunSQLIntegration(t *testing.T) {
 			t.Errorf("app-scoped count should be 5, not 8 across apps, got:\n%s", out)
 		}
 	})
+
+	t.Run("array join over span checkpoints", func(t *testing.T) {
+		th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 2, testinfra.SpanRow{
+			StartTime:   now,
+			Checkpoints: []string{"checkout", "payment"},
+		})
+
+		// Two spans, two checkpoints each, unnest to two rows per name. The
+		// checkpoints column is a scoped-subquery column here, so this proves
+		// the ARRAY JOIN operand survives expansion.
+		out, err := c.runSQL(ctx, `select c.1 as name, count(*) as n from {{spans}} array join checkpoints as c group by name order by name`, teamID, []uuid.UUID{appID}, from, to)
+		if err != nil {
+			t.Fatalf("runSQL: %v", err)
+		}
+		for _, want := range []string{"checkout\t2", "payment\t2"} {
+			if !strings.Contains(out, want) {
+				t.Errorf("expected row %q in output, got:\n%s", want, out)
+			}
+		}
+	})
+
+	t.Run("in subquery over spans", func(t *testing.T) {
+		sessionID := uuid.New()
+		th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{StartTime: now, SessionID: sessionID.String()})
+		th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 2, testinfra.EventRow{Timestamp: now, SessionID: sessionID.String()})
+
+		// Both tables in one query, the second inside IN; only the two events
+		// that share the span's session match.
+		out, err := c.runSQL(ctx, `select count(*) as n from {{events}} where session_id in (select session_id from {{spans}})`, teamID, []uuid.UUID{appID}, from, to)
+		if err != nil {
+			t.Fatalf("runSQL: %v", err)
+		}
+		if !strings.Contains(out, "\n2\n") {
+			t.Errorf("expected count 2 for events in span sessions, got:\n%s", out)
+		}
+	})
 }
 
 // TestMCPBuildAppFilterCoversAllVersions checks the version default: with no

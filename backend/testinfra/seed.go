@@ -332,6 +332,113 @@ func (h *TestHelper) SeedEvents(ctx context.Context, t *testing.T, teamID, appID
 	h.SeedEventRows(ctx, t, teamID, appID, count, EventRow{})
 }
 
+// SpanRow describes one or more rows to insert into the spans table. It is
+// the single source of truth for seeding spans: SeedSpan and SeedSpans build
+// a SpanRow and delegate to SeedSpanRows.
+//
+// Zero-value fields fall back to defaults applied by (SpanRow).filled:
+//   - SpanName:   "test_span"
+//   - StartTime:  time.Now().UTC()
+//   - EndTime:    StartTime + Duration (Duration defaults to 100ms)
+//   - AppVersion: "v1", AppBuild: "1"
+//   - SessionID, TraceID, SpanID: fresh per inserted row
+type SpanRow struct {
+	SpanName    string
+	SessionID   string
+	TraceID     string
+	SpanID      string
+	Status      uint8
+	StartTime   time.Time
+	EndTime     time.Time
+	Duration    time.Duration
+	AppVersion  string
+	AppBuild    string
+	Checkpoints []string
+}
+
+func (r SpanRow) filled() SpanRow {
+	if r.SpanName == "" {
+		r.SpanName = "test_span"
+	}
+	if r.StartTime.IsZero() {
+		r.StartTime = time.Now().UTC()
+	}
+	if r.Duration == 0 {
+		r.Duration = 100 * time.Millisecond
+	}
+	if r.EndTime.IsZero() {
+		r.EndTime = r.StartTime.Add(r.Duration)
+	}
+	if r.AppVersion == "" {
+		r.AppVersion = "v1"
+	}
+	if r.AppBuild == "" {
+		r.AppBuild = "1"
+	}
+	return r
+}
+
+// SeedSpanRows inserts count rows described by row into the spans table using
+// a single bulk INSERT … SELECT FROM numbers(count). Session, trace and span
+// ids are fresh per row unless the row pins them. The app and os attribute
+// columns are always written so span_metrics_mv materializes rows.
+// Checkpoints are written at the span's start time.
+func (h *TestHelper) SeedSpanRows(ctx context.Context, t *testing.T, teamID, appID string, count int, row SpanRow) {
+	t.Helper()
+	if count <= 0 {
+		return
+	}
+	row = row.filled()
+	quote := func(s string) string { return "'" + s + "'" }
+	chTime := func(ts time.Time) string {
+		return fmt.Sprintf("toDateTime64('%s', 3, 'UTC')", ts.UTC().Format("2006-01-02 15:04:05.000"))
+	}
+
+	sessionExpr := "generateUUIDv4()"
+	if row.SessionID != "" {
+		sessionExpr = quote(row.SessionID)
+	}
+	traceExpr := "replaceAll(toString(generateUUIDv4()), '-', '')"
+	if row.TraceID != "" {
+		traceExpr = quote(row.TraceID)
+	}
+	spanExpr := "substring(replaceAll(toString(generateUUIDv4()), '-', ''), 1, 16)"
+	if row.SpanID != "" {
+		spanExpr = quote(row.SpanID)
+	}
+
+	cols := []string{
+		"team_id", "app_id", "span_name", "span_id", "trace_id", "session_id",
+		"status", "start_time", "end_time",
+		"`attribute.app_unique_id`", "`attribute.installation_id`",
+		"`attribute.measure_sdk_version`", "`attribute.app_version`", "`attribute.os_version`",
+		"`attribute.device_low_power_mode`", "`attribute.device_thermal_throttling_enabled`",
+	}
+	vals := []string{
+		quote(teamID), quote(appID), quote(row.SpanName),
+		spanExpr, traceExpr, sessionExpr,
+		fmt.Sprintf("%d", row.Status), chTime(row.StartTime), chTime(row.EndTime),
+		"'com.test'", "generateUUIDv4()",
+		"'0.1'", fmt.Sprintf("('%s','%s')", row.AppVersion, row.AppBuild), "('Android','14')",
+		"false", "false",
+	}
+
+	if len(row.Checkpoints) > 0 {
+		points := make([]string, len(row.Checkpoints))
+		for i, name := range row.Checkpoints {
+			points[i] = fmt.Sprintf("('%s', %s)", name, chTime(row.StartTime))
+		}
+		cols = append(cols, "checkpoints")
+		vals = append(vals, "["+strings.Join(points, ", ")+"]")
+	}
+
+	query := fmt.Sprintf("INSERT INTO measure.spans (%s) SELECT %s FROM numbers(%d)",
+		strings.Join(cols, ", "), strings.Join(vals, ", "), count)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed span (%s): %v", row.SpanName, err)
+	}
+}
+
 // SeedGenericEvents inserts count generic ("test" type) events at the given
 // timestamp. Each row gets a fresh id, session id and installation id, so
 // every event represents a distinct session.
@@ -733,22 +840,16 @@ func (h *TestHelper) SeedSpan(
 	t.Helper()
 
 	traceID := strings.ReplaceAll(uuid.New().String(), "-", "")
-	spanID := traceID[:16]
-
-	query := fmt.Sprintf(
-		`INSERT INTO measure.spans (team_id, app_id, span_name, span_id, trace_id, session_id, status, `+
-			"start_time, end_time, "+
-			"`attribute.app_unique_id`, `attribute.installation_id`, "+
-			"`attribute.measure_sdk_version`, `attribute.app_version`, `attribute.os_version`, "+
-			"`attribute.device_low_power_mode`, `attribute.device_thermal_throttling_enabled`) "+
-			`VALUES ('%s', '%s', '%s', '%s', '%s', '%s', %d, '%s', '%s', 'com.test', '%s', '0.1', ('%s','%s'), ('Android','14'), false, false)`,
-		teamID, appID, spanName, spanID, traceID, uuid.New().String(), status,
-		startTime.UTC().Format("2006-01-02 15:04:05"), endTime.UTC().Format("2006-01-02 15:04:05"),
-		uuid.New().String(), appVersion, appBuild,
-	)
-	if err := h.ChConn.Exec(ctx, query); err != nil {
-		t.Fatalf("seed span: %v", err)
-	}
+	h.SeedSpanRows(ctx, t, teamID, appID, 1, SpanRow{
+		SpanName:   spanName,
+		TraceID:    traceID,
+		SpanID:     traceID[:16],
+		Status:     status,
+		StartTime:  startTime,
+		EndTime:    endTime,
+		AppVersion: appVersion,
+		AppBuild:   appBuild,
+	})
 	return traceID
 }
 

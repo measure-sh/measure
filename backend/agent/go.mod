@@ -5,6 +5,7 @@ go 1.25.8
 require (
 	backend/libs v0.0.0
 	cloud.google.com/go/pubsub/v2 v2.5.1
+	github.com/AfterShip/clickhouse-sql-parser v0.5.2
 	github.com/ClickHouse/clickhouse-go/v2 v2.44.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-analyze/charts v0.6.0
