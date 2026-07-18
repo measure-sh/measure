@@ -14,9 +14,9 @@ const BOT_TIME = "10:02 AM";
 const Q1 = "@Measure how are crashes looking today?";
 const A1 =
   "Crashes are up **12%** today, **1,284** vs 1,142 yesterday. Most of the jump is `IllegalStateException` in **CheckoutActivity** on v1.0.0, almost all on Pixel 7 Pro over Wi-Fi.";
-const Q2 = "@Measure what were users doing right before it?";
+const Q2 = "@Measure what were affected users doing?";
 const A2 =
-  "They tapped **Checkout** before choosing a payment method. I pulled a session that hit it, **2m 43s** from launch to crash. Want the repro steps?";
+  "They tapped **Checkout** before choosing a payment method. I pulled several sessions and analyzed them for you. Average **2m 43s** from launch to crash. Repro steps:\n1. Add any item to the cart\n2. Skip choosing a payment method\n3. Tap **Checkout**\n4. Crash, `IllegalStateException` in **CheckoutActivity**";
 
 // Heights for the little 1-day sparkline under the first answer.
 const SPARKLINE = [34, 48, 40, 62, 52, 78, 100];
@@ -46,13 +46,19 @@ enum Phase {
   FadeOut,
 }
 
-// Render Slack-flavoured inline markup: **bold**, `code`, and @mentions.
+// Render Slack-flavoured markup: **bold**, `code`, @mentions, and newlines.
 function renderRich(text: string) {
   const parts: React.ReactNode[] = [];
   let remaining = text;
   let key = 0;
 
   while (remaining.length > 0) {
+    if (remaining.startsWith("\n")) {
+      parts.push(<br key={key++} />);
+      remaining = remaining.slice(1);
+      continue;
+    }
+
     const bold = remaining.match(/^\*\*(.+?)\*\*/);
     if (bold) {
       parts.push(
@@ -92,7 +98,7 @@ function renderRich(text: string) {
       continue;
     }
 
-    const next = remaining.search(/[*`@]/);
+    const next = remaining.search(/[*`@\n]/);
     if (next === -1) {
       parts.push(<span key={key++}>{remaining}</span>);
       remaining = "";
