@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Implement logging (#4021) by @abhaysood
 - (**backend**): Allow removing owners from their default team by @anupcowkur in #4059
 - (**backend**): Enforce clickhouse row-level team isolation policy (#4026) by @detj in #4026
 - (**backend**): Support agent questions across multiple apps by @anupcowkur in #4006
@@ -22,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Track app OS names as a single-family set) by @anupcowkur in #3839
 - (**backend**): Add unified errors API & react native symbolication support (#3623) by @detj in #3623
 - (**backend**): Use autumn for metering and billing by @anupcowkur in #3534
+- (**frontend**): Implement logging (#4021) by @abhaysood
 - (**frontend**): Move docs to fumadocs by @anupcowkur in #4035
 - (**frontend**): Update docs ui by @anupcowkur in #4011
 - (**frontend**): Add KMP logo to supported platforms (#3953) by @abhaysood in #3953
@@ -39,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Serve markdown for marketing & docs pages to agents by @anupcowkur in #3621
 - (**frontend**): Add onboarding flow by @anupcowkur in #3613
 - (**frontend**): Make dashboard header sticky on scroll by @anupcowkur in #3489
+- (**kmp**): Implement logging (#4021) by @abhaysood
 - (**kmp**): Implement KMP sdk (#3503) by @abhaysood in #3503
 
 ### :bug: Bug fixes
@@ -312,6 +315,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add usage notes for patch_id (#3793) by @detj in #3793
 - (**backend**): Add error fields matrix (#3701) by @detj in #3701
 - (**backend**): Update dashboard api docs (#3686) by @detj in #3686
+- Document logs feature and configuration (#4021) by @abhaysood
 - Keep repo file links relative and drop docs backlinks from scripts by @anupcowkur
 - Move symbol upload instructions to a new Uploading Symbols page by @anupcowkur
 - Update readme image links by @anupcowkur in #3958
