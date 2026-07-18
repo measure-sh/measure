@@ -39,6 +39,8 @@ const (
 	maxResultChars = 16000
 	// maxQuerySeconds is the most seconds one query may run.
 	maxQuerySeconds = 30
+	// maxQueryMemoryBytes is the most server memory one query may use.
+	maxQueryMemoryBytes = 500 << 20
 )
 
 // agentTables are the tables the agent may query via {{table}} placeholders,
@@ -209,6 +211,7 @@ func (c *Config) runSQL(ctx context.Context, query string, teamID uuid.UUID, app
 		"readonly":             1,
 		chquery.AgentScopeKey:  clickhouse.CustomSetting{Value: teamID.String()},
 		"max_execution_time":   maxQuerySeconds,
+		"max_memory_usage":     maxQueryMemoryBytes,
 		"max_result_rows":      maxResultRows,
 		"result_overflow_mode": "break",
 	})
