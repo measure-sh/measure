@@ -8148,6 +8148,8 @@ paths:
           description: Either the user's access token is invalid or has expired.
         "403":
           description: Requester does not have access to this resource.
+        "404":
+          description: This user is not a member of this team.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -8207,6 +8209,8 @@ paths:
           description: Either the user's access token is invalid or has expired.
         "403":
           description: Requester does not have access to this resource.
+        "404":
+          description: This user is not a member of this team.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
