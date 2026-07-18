@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react";
 
 const WORKSPACE_NAME = "Acme Corp";
 const CHANNEL = "app-releases";
-const USER_NAME = "Joe Smith";
-const USER_INITIALS = "JS";
+const USER_NAME = "Anne Droid";
+const USER_INITIALS = "AD";
 const USER_TIME = "10:02 AM";
 const BOT_NAME = "Measure";
 const BOT_TIME = "10:02 AM";
@@ -16,7 +16,7 @@ const A1 =
   "Crashes are up **12%** today, **1,284** vs 1,142 yesterday. Most of the jump is `IllegalStateException` in **CheckoutActivity** on v1.0.0, almost all on Pixel 7 Pro over Wi-Fi.";
 const Q2 = "@Measure what were users doing right before it?";
 const A2 =
-  "They tapped **Checkout** before choosing a payment method. I pulled a session that hit it, **2m 43s** from launch to crash. Want the full session timeline?";
+  "They tapped **Checkout** before choosing a payment method. I pulled a session that hit it, **2m 43s** from launch to crash. Want the repro steps?";
 
 // Heights for the little 1-day sparkline under the first answer.
 const SPARKLINE = [34, 48, 40, 62, 52, 78, 100];
