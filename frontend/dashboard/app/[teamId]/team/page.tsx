@@ -37,7 +37,6 @@ import {
   TableRow,
 } from "@/app/components/table";
 import { isCloud } from "@/app/utils/env_utils";
-import { slackConnectionNeedsReauth } from "@/app/utils/slack_scopes";
 import {
   underlineLinkStyle,
   warningCalloutStyle,
@@ -67,11 +66,7 @@ export default function TeamOverview(props: {
   const { data: pendingInvites, status: pendingInvitesStatus } =
     usePendingInvitesQuery(params.teamId);
   const { data: teamSlackConnectUrl, status: slackConnectUrlStatus } =
-    useTeamSlackConnectUrlQuery(
-      currentUserId,
-      params.teamId,
-      `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback/slack`,
-    );
+    useTeamSlackConnectUrlQuery(params.teamId);
   const { data: teamSlack, status: slackStatusQueryStatus } =
     useTeamSlackStatusQuery(params.teamId);
 
@@ -93,10 +88,9 @@ export default function TeamOverview(props: {
   const authz = authzAndMembers ?? defaultAuthzAndMembers;
 
   // A team that connected Slack before newer scopes were added keeps a token
-  // frozen at the old scopes. Slack never prompts existing installs, so we detect
-  // the gap and prompt an admin to reconnect.
-  const needsSlackReauth =
-    teamSlack != null && slackConnectionNeedsReauth(teamSlack.scopes);
+  // frozen at the old scopes. Slack never prompts existing installs, so the API
+  // detects the gap (needs_reauth) and we prompt an admin to reconnect.
+  const needsSlackReauth = teamSlack != null && teamSlack.needs_reauth === true;
 
   // TanStack Query: mutations
   const changeTeamNameMutation = useChangeTeamNameMutation();

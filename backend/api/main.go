@@ -204,6 +204,7 @@ func main() {
 		teams.DELETE(":id/members/:memberId", hdl.RemoveTeamMember)
 		teams.GET(":id/usage", hdl.GetUsage)
 		teams.GET(":id/slack", hdl.GetTeamSlack)
+		teams.GET(":id/slack/connect-url", hdl.CreateTeamSlackConnectURL)
 		teams.PATCH(":id/slack/status", hdl.UpdateTeamSlackStatus)
 		teams.POST(":id/slack/test", hdl.SendTestSlackAlert)
 		teams.GET(":id/billing/info", hdl.GetTeamBilling)

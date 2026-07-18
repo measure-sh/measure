@@ -2410,19 +2410,9 @@ export const removeMemberFromServer = async (
   }
 };
 
-export const fetchTeamSlackConnectUrlFromServer = async (
-  userId: string,
-  teamId: string,
-  redirectUrl: string,
-) => {
+export const fetchTeamSlackConnectUrlFromServer = async (teamId: string) => {
   try {
-    const res = await apiClient.fetch(`/auth/slack/url`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ userId, teamId, redirectUrl }),
-    });
+    const res = await apiClient.fetch(`/api/teams/${teamId}/slack/connect-url`);
     const data = await res.json();
 
     if (!res.ok) {

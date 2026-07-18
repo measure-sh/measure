@@ -41,7 +41,7 @@ The steps below need the **Measure API domain** and not the Measure Dashboard do
 
 If this URL is incorrect, you'll get a `dispatch_failure` error when connecting your Measure Team to your Slack Workspace.
 
-Assuming your API domain is something like `measure-api.yourcompany.com`, you should put in something like `https://[measure-api.yourcompany.com]/slack/events` in the below steps.
+Assuming your API domain is something like `measure-api.yourcompany.com`, you should put in `https://[measure-api.yourcompany.com]/slack/events` in the below steps.
 
 Replace **`[measure-api.yourcompany.com]`** with your actual Measure API domain.
 
@@ -108,7 +108,7 @@ See this [guide](https://docs.slack.dev/tools/node-slack-sdk/tutorials/local-dev
 
 ### Update environment variables
 
-If you are upgrading from v0.8.2 or below, you also need to add the Slack credentials to your environment variables manually instead of entering them at a terminal prompt.
+If you are upgrading from `v0.8.2` or below, you also need to add the Slack credentials to your environment variables manually instead of entering them at a terminal prompt. If you are upgrading from `v0.10.0`, you need to rename `SLACK_OAUTH_STATE_SALT` environment variable to `SLACK_OAUTH_STATE_SECRET`.
 
 1. **Slack Client Credentials**. Open the `self-host/.env` file & add the following environment variables as obtained from your Slack app page.
 
@@ -118,10 +118,10 @@ If you are upgrading from v0.8.2 or below, you also need to add the Slack creden
     SLACK_SIGNING_SECRET=your-slack-signing-secret      # change this
     ```
 
-2. **State Salt**. Generate a random 44 character salt. Use the command `openssl rand -hex 22` to generate a random salt.
+2. **State Secret**. Generate a random 44 character secret. Use the command `openssl rand -hex 22` to generate a random secret.
 
     ```sh
-    SLACK_OAUTH_STATE_SALT=your-slack-oauth-state-salt  # change this
+    SLACK_OAUTH_STATE_SECRET=your-slack-oauth-state-secret  # change this
     ```
 
 3. **Shutdown**. Run the following command to shutdown all services.

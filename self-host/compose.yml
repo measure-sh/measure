@@ -40,8 +40,6 @@ services:
       - NEXT_TELEMETRY_DISABLED=1
       - API_BASE_URL=${API_BASE_URL}
       - AGENT_BASE_URL=${AGENT_BASE_URL}
-      - SLACK_CLIENT_ID=${SLACK_CLIENT_ID}
-      - SLACK_OAUTH_STATE_SALT=${SLACK_OAUTH_STATE_SALT}
       - POSTHOG_HOST=${POSTHOG_HOST}
       - POSTHOG_API_KEY=${POSTHOG_API_KEY}
       - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
@@ -88,6 +86,7 @@ services:
       - smtp-password
       - slack-client-secret
       - slack-signing-secret
+      - slack-oauth-state-secret
       - ga4-measurement-protocol-secret
       - autumn-secret-key
       - autumn-webhook-secret
@@ -135,6 +134,7 @@ services:
       - SLACK_CLIENT_ID=${SLACK_CLIENT_ID}
       - SLACK_CLIENT_SECRET_FILE=/run/secrets/slack-client-secret
       - SLACK_SIGNING_SECRET_FILE=/run/secrets/slack-signing-secret
+      - SLACK_OAUTH_STATE_SECRET_FILE=/run/secrets/slack-oauth-state-secret
       - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-}
       - GA4_MEASUREMENT_PROTOCOL_SECRET_FILE=/run/secrets/ga4-measurement-protocol-secret
       - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
@@ -874,6 +874,8 @@ secrets:
     environment: "SLACK_CLIENT_SECRET"
   slack-signing-secret:
     environment: "SLACK_SIGNING_SECRET"
+  slack-oauth-state-secret:
+    environment: "SLACK_OAUTH_STATE_SECRET"
   ga4-measurement-protocol-secret:
     environment: "GA4_MEASUREMENT_PROTOCOL_SECRET"
   autumn-secret-key:
