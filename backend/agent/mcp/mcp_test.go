@@ -1629,6 +1629,14 @@ func TestMCPListApps(t *testing.T) {
 			if app["name"] == nil {
 				t.Error("app missing name field")
 			}
+			// The team fields tell a multi-team caller which apps may go into
+			// one ask_question call together.
+			if app["team_id"] != teamID.String() {
+				t.Errorf("app team_id = %v, want %s", app["team_id"], teamID)
+			}
+			if app["team_name"] != "twoapps team" {
+				t.Errorf("app team_name = %v, want twoapps team", app["team_name"])
+			}
 		}
 	})
 

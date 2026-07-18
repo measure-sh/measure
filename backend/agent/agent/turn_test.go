@@ -83,8 +83,9 @@ func TestRunTurnToolLoop(t *testing.T) {
 }
 
 // TestAskQuestionEndToEnd drives the MCP entry point: authz, the (no-customer)
-// billing gate, conversation creation, and the turn. A follow-up with the
-// returned id continues the same conversation rather than starting a new one.
+// billing gate, and the turn. ask_question is stateless: each call runs as its
+// own conversation, so a follow-up gets a fresh transcript and carries any
+// context it needs in the question itself.
 func TestAskQuestionEndToEnd(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
@@ -103,36 +104,53 @@ func TestAskQuestionEndToEnd(t *testing.T) {
 	if out.Answer != "All good." {
 		t.Errorf("answer = %q, want All good.", out.Answer)
 	}
-	if out.ConversationID == "" {
-		t.Fatal("expected a conversation id")
-	}
 	if stub.callCount() != 1 {
 		t.Errorf("llm calls = %d, want 1", stub.callCount())
 	}
 
-	out2, err := c.askQuestion(ctx, askQuestionInput{
-		AppIDs: []string{appID.String()}, Question: "and now?", ConversationID: out.ConversationID,
-	})
+	out2, err := c.askQuestion(ctx, askQuestionInput{AppIDs: []string{appID.String()}, Question: "and now?"})
 	if err != nil {
 		t.Fatalf("askQuestion follow-up: %v", err)
 	}
-	if out2.ConversationID != out.ConversationID {
-		t.Errorf("follow-up started a new conversation: %s vs %s", out2.ConversationID, out.ConversationID)
+	if out2.Answer != "Still good." {
+		t.Errorf("answer = %q, want Still good.", out2.Answer)
 	}
 
-	// The continued conversation holds both turns: 2 questions + 2 answers,
-	// with the caller's focus appended to each question rather than stored
+	// Two calls, two conversations: each holds one question + one answer,
+	// with the caller's focus appended to the question rather than stored
 	// as its own row.
-	cid, _ := uuid.Parse(out.ConversationID)
-	loaded, err := c.loadMessages(ctx, cid)
+	rows, err := deps.PgPool.Query(ctx,
+		`select id from measure.agent_conversations where user_id = $1`, userID)
 	if err != nil {
-		t.Fatalf("loadMessages: %v", err)
+		t.Fatalf("query conversations: %v", err)
 	}
-	if got := len(loaded); got != 4 {
-		t.Errorf("persisted messages = %d, want 4 (two q/a turns): %v", got, msgRoles(loaded))
+	defer rows.Close()
+	var convIDs []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			t.Fatalf("scan conversation id: %v", err)
+		}
+		convIDs = append(convIDs, id)
 	}
-	if loaded[0].msg.Role != "user" || !strings.Contains(loaded[0].msg.Content, "The caller asked about these apps") {
-		t.Errorf("the question should carry the focus note, got role %q content %q", loaded[0].msg.Role, loaded[0].msg.Content)
+	if err := rows.Err(); err != nil {
+		t.Fatalf("read conversations: %v", err)
+	}
+	if len(convIDs) != 2 {
+		t.Fatalf("conversations = %d, want 2 (one per call)", len(convIDs))
+	}
+	for _, cid := range convIDs {
+		loaded, err := c.loadMessages(ctx, cid)
+		if err != nil {
+			t.Fatalf("loadMessages: %v", err)
+		}
+		if got := len(loaded); got != 2 {
+			t.Errorf("conversation %s: persisted messages = %d, want 2 (one q/a pair): %v", cid, got, msgRoles(loaded))
+			continue
+		}
+		if loaded[0].msg.Role != "user" || !strings.Contains(loaded[0].msg.Content, "The caller asked about these apps") {
+			t.Errorf("the question should carry the focus note, got role %q content %q", loaded[0].msg.Role, loaded[0].msg.Content)
+		}
 	}
 }
 
@@ -170,5 +188,10 @@ func TestAskQuestionMultiApp(t *testing.T) {
 	}
 	if !strings.Contains(req, "second (second)") {
 		t.Errorf("focus note should carry the second app's label, got request without it")
+	}
+	// MCP turns carry the method rule: the stateless caller quotes the
+	// Method line back in follow-ups.
+	if !strings.Contains(req, "each call reaches you with no memory of earlier ones") {
+		t.Error("mcp turn request should carry the method rule")
 	}
 }

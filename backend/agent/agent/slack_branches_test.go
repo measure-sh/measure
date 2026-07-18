@@ -480,6 +480,11 @@ func TestSlackTurnCarriesAppList(t *testing.T) {
 	if strings.Contains(turnReq, "runs on android (no ANRs)") {
 		t.Error("the android line should not carry the ANR caveat")
 	}
+	// The method rule is for stateless MCP callers; Slack threads keep
+	// server-side history and must not carry it.
+	if strings.Contains(turnReq, "each call reaches you with no memory of earlier ones") {
+		t.Error("slack turn request should not carry the mcp method rule")
+	}
 	if !strings.Contains(*delivered, "12 crashes this week.") {
 		t.Errorf("reply should carry the model's answer, got %q", *delivered)
 	}

@@ -367,8 +367,11 @@ func askQuestionTool(cfg *Config) Tool {
 		Description: "Ask a natural-language question about the telemetry of one or more apps (crashes, ANRs, errors, " +
 			"sessions, spans, network) that the other Measure tools don't cover. The agent picks the right tool or explores " +
 			"the raw data with read-only SQL and answers with concrete numbers, including comparisons across apps. " +
-			"Pass the app_ids the question is about; all must belong to one team. Use list_apps to discover app ids. " +
-			"Pass conversation_id from a previous answer to continue that conversation.",
+			"Pass the app_ids the question is about - all must belong to one team. Use list_apps to discover app ids " +
+			"and each app's team. " +
+			"Each call is independent: make the question self-contained, and when asking a follow-up include the " +
+			"relevant findings and numbers from earlier answers in the question, along with the answer's Method " +
+			"line so the recomputation stays consistent.",
 		InputSchema: mcpMustInferSchema[askQuestionInput](),
 	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in askQuestionInput) (*mcpsdk.CallToolResult, any, error) {
 		// The one agent-backed tool: while the agent is disabled it returns
@@ -395,7 +398,7 @@ func commonTools(cfg *Config) []Tool {
 		// list_apps
 		newTool(&mcpsdk.Tool{
 			Name:        "list_apps",
-			Description: "List all apps the authenticated user has access to",
+			Description: "List all apps the authenticated user has access to, each with the team it belongs to",
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpListAppsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpListApps(ctx, in)
 		}),
@@ -1129,21 +1132,26 @@ func (c *Config) mcpListApps(ctx context.Context, _ mcpListAppsInput) (*mcpsdk.C
 	}
 
 	pgPool := deps.PgPool
+	// The team fields let a caller spanning several teams tell which apps
+	// share one, which ask_question requires of its app_ids.
 	type appRow struct {
 		ID               string   `json:"id"`
 		Name             string   `json:"name"`
 		OsNames          []string `json:"os_names"`
 		UniqueIdentifier string   `json:"unique_identifier"`
+		TeamID           string   `json:"team_id"`
+		TeamName         string   `json:"team_name"`
 	}
 	stmt := sqlf.PostgreSQL.
-		Select("a.id, coalesce(a.app_name, ''), a.os_names, coalesce(a.unique_identifier, '')").
+		Select("a.id, coalesce(a.app_name, ''), a.os_names, coalesce(a.unique_identifier, ''), a.team_id, coalesce(t.name, '')").
 		From("apps a").
+		Join("teams t", "a.team_id = t.id").
 		Join("team_membership tm", "a.team_id = tm.team_id").
 		Where("tm.user_id = ?", userID).
-		OrderBy("a.created_at desc")
+		OrderBy("t.name, a.created_at desc")
 	defer stmt.Close()
 	// A team-scoped turn (Slack) lists only that team's apps; without a
-	// scope (MCP) the user sees every team's.
+	// scope (MCP) the user sees apps of every team they are a member of.
 	if teamID, ok := teamScopeFromContext(ctx); ok {
 		stmt.Where("a.team_id = ?", teamID)
 	}
@@ -1156,7 +1164,7 @@ func (c *Config) mcpListApps(ctx context.Context, _ mcpListAppsInput) (*mcpsdk.C
 	var apps []appRow
 	for rows.Next() {
 		var row appRow
-		if err := rows.Scan(&row.ID, &row.Name, &row.OsNames, &row.UniqueIdentifier); err != nil {
+		if err := rows.Scan(&row.ID, &row.Name, &row.OsNames, &row.UniqueIdentifier, &row.TeamID, &row.TeamName); err != nil {
 			return nil, nil, fmt.Errorf("failed to query apps: %w", err)
 		}
 		apps = append(apps, row)

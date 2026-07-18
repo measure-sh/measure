@@ -87,17 +87,6 @@ func scanConversation(row pgx.Row) (*conversation, error) {
 	return conv, nil
 }
 
-func (c *Config) getConversation(ctx context.Context, id uuid.UUID) (*conversation, error) {
-	deps := c.Deps
-	stmt := sqlf.PostgreSQL.
-		Select(conversationColumns).
-		From("agent_conversations").
-		Where("id = ?", id)
-	defer stmt.Close()
-
-	return scanConversation(deps.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...))
-}
-
 // findSlackConversation returns the conversation rooted at a Slack thread,
 // or nil when the thread has none yet.
 func (c *Config) findSlackConversation(ctx context.Context, channelID, threadTS string) (*conversation, error) {

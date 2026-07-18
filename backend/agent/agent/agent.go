@@ -221,14 +221,12 @@ func (c *Config) dashboardLink(teamID uuid.UUID, page string) string {
 const maxQuestionApps = 50
 
 type askQuestionInput struct {
-	AppIDs         []string `json:"app_ids" jsonschema:"UUIDs of the apps the question is about, at most 50; all must belong to one team"`
-	Question       string   `json:"question" jsonschema:"Natural-language question about the apps' telemetry"`
-	ConversationID string   `json:"conversation_id,omitempty" jsonschema:"Conversation id from a previous answer; pass it to continue that conversation"`
+	AppIDs   []string `json:"app_ids" jsonschema:"UUIDs of the apps the question is about, at most 50; all must belong to one team"`
+	Question string   `json:"question" jsonschema:"Self-contained natural-language question about the apps' telemetry; each call is independent, so include any relevant findings from earlier answers"`
 }
 
 type askQuestionOutput struct {
-	Answer         string `json:"answer"`
-	ConversationID string `json:"conversation_id"`
+	Answer string `json:"answer"`
 }
 
 const systemPrompt = `You are Measure's query agent. You answer questions about the telemetry of a team's mobile apps (events, exceptions, ANRs, sessions, spans, network requests). The team's apps are listed at the end of this message; a question can be about one app, several, or all of them.
@@ -251,6 +249,16 @@ Rules:
 - If a query fails, read the error and fix the query.
 - Answer concisely: lead with the concrete numbers, then a line or two on what was measured (data, filters, time range). If the data can't answer the question, say so plainly.
 - Describe how you computed things in product terms only. Severity (for example "fatal" crashes) is fine to mention. Never mention internals: no table or column names, no SQL, no tool names, no raw ids, and never bring up the legacy handled-flag fallback. Refer to apps by their names; when two of the team's apps share a name, add the unique identifier to tell them apart.`
+
+// mcpMethodRule joins the system rules on MCP turns only. The MCP caller
+// keeps the conversation on its side and restates earlier findings in a
+// follow-up question, so each answer must state its method in a form the
+// caller can quote back; a restated method keeps the recomputation consistent
+// with the original. Slack threads carry server-side history, so there the
+// line would be noise. The method stays within the product-terms rule above:
+// internals like SQL, table names, tool names and raw ids are still off
+// limits.
+const mcpMethodRule = `- The caller is a program that keeps the conversation on its side; each call reaches you with no memory of earlier ones, and a follow-up restates what it needs from earlier answers. So that a restated follow-up recomputes consistently, end every answer that reports data with a single line starting "Method: " giving, in product terms, the apps covered, the exact UTC time range, any filters applied, and how each number was defined. Definitions stay at the product level: "crashes = fatal exceptions" is complete, the legacy handled-flag fallback stays out of it like everywhere else. The limits above apply to this line too: no table or column names, no SQL, no tool names, no raw ids.`
 
 // focusAppsNote names the apps the MCP caller passed, appended to the call's
 // user message. The note focuses the turn without restricting it; the app
@@ -297,8 +305,66 @@ var builtinTools = []chatTool{
 	},
 }
 
+// resolveAppsAccess verifies every app exists, all belong to one team, and
+// the user is a member of that team. It returns the team's id and Autumn
+// customer id, read off the team row in the same query since the billing
+// gate needs it next.
+func (c *Config) resolveAppsAccess(ctx context.Context, userID uuid.UUID, appIDs []uuid.UUID) (teamID uuid.UUID, customerID string, err error) {
+	if len(appIDs) == 0 {
+		return uuid.Nil, "", fmt.Errorf("no apps given")
+	}
+
+	deps := c.Deps
+	// pgx has no encode plan for []uuid.UUID; pass strings and cast.
+	ids := uuid.UUIDs(appIDs).Strings()
+	stmt := sqlf.PostgreSQL.
+		Select("a.id, t.id, t.autumn_customer_id").
+		From("apps a").
+		Join("teams t", "a.team_id = t.id").
+		Join("team_membership tm", "tm.team_id = t.id").
+		Where("a.id = any(?::uuid[])", ids).
+		Where("tm.user_id = ?", userID)
+	defer stmt.Close()
+
+	rows, err := deps.PgPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return uuid.Nil, "", err
+	}
+	defer rows.Close()
+
+	found := map[uuid.UUID]bool{}
+	teams := map[uuid.UUID]bool{}
+	for rows.Next() {
+		var appID, appTeamID uuid.UUID
+		var autumnCustomerID *string
+		if err := rows.Scan(&appID, &appTeamID, &autumnCustomerID); err != nil {
+			return uuid.Nil, "", err
+		}
+		found[appID] = true
+		teams[appTeamID] = true
+		teamID = appTeamID
+		if autumnCustomerID != nil {
+			customerID = *autumnCustomerID
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return uuid.Nil, "", err
+	}
+
+	for _, appID := range appIDs {
+		if !found[appID] {
+			return uuid.Nil, "", fmt.Errorf("app not found or access denied")
+		}
+	}
+	if len(teams) > 1 {
+		return uuid.Nil, "", fmt.Errorf("all apps must belong to one team")
+	}
+	return teamID, customerID, nil
+}
+
 // askQuestion answers one MCP question: authenticate, check access and
-// billing, resolve the conversation, then run the turn.
+// billing, then run the turn. Each call is independent: the MCP client holds
+// the conversational context and restates what a follow-up needs.
 func (c *Config) askQuestion(ctx context.Context, in askQuestionInput) (out askQuestionOutput, err error) {
 	ctx, span := tracer.Start(ctx, "agent.ask_question")
 	defer span.End()
@@ -353,21 +419,12 @@ func (c *Config) askQuestion(ctx context.Context, in askQuestionInput) (out askQ
 		return out, errors.New(agentNotAllowedReply(c.dashboardLink(teamID, "usage")))
 	}
 
-	var conv *conversation
-	if in.ConversationID != "" {
-		cid, err := uuid.Parse(in.ConversationID)
-		if err != nil {
-			return out, fmt.Errorf("invalid conversation_id")
-		}
-		conv, err = c.getConversation(ctx, cid)
-		if err != nil || conv.UserID != userID || conv.TeamID != teamID {
-			return out, fmt.Errorf("conversation not found")
-		}
-	} else {
-		conv = &conversation{UserID: userID, TeamID: teamID, Surface: "mcp"}
-		if err := c.createConversation(ctx, conv, conversationTitle(question)); err != nil {
-			return out, err
-		}
+	// Every call runs as its own conversation. The row exists for the
+	// transcript and token metering, not for continuation: follow-up context
+	// is the caller's to carry in the question.
+	conv := &conversation{UserID: userID, TeamID: teamID, Surface: "mcp"}
+	if err := c.createConversation(ctx, conv, conversationTitle(question)); err != nil {
+		return out, err
 	}
 
 	turnRan = true
@@ -377,7 +434,6 @@ func (c *Config) askQuestion(ctx context.Context, in askQuestionInput) (out askQ
 		teamID:     teamID,
 		customerID: customerID,
 		conv:       conv,
-		continued:  in.ConversationID != "",
 		question:   question,
 		entryPoint: "mcp",
 		appIDs:     appIDs,
@@ -390,7 +446,6 @@ func (c *Config) askQuestion(ctx context.Context, in askQuestionInput) (out askQ
 	}
 
 	out.Answer = answer
-	out.ConversationID = conv.ID.String()
 	return out, nil
 }
 
@@ -578,7 +633,11 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, chartsOut 
 		}
 		appList = b.String()
 	}
-	sysMsg := fmt.Sprintf("%s\n%s\n\n%s", systemPrompt, budgetRule, appList)
+	rules := systemPrompt
+	if t.entryPoint == "mcp" {
+		rules += "\n" + mcpMethodRule
+	}
+	sysMsg := fmt.Sprintf("%s\n%s\n\n%s", rules, budgetRule, appList)
 	messages = append(messages, chatMessage{Role: "system", Content: sysMsg})
 	for _, m := range history {
 		messages = append(messages, m.msg)
