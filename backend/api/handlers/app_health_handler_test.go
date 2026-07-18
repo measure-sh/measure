@@ -112,7 +112,7 @@ func TestGetHealthOverviewPlotInstancesHandler(t *testing.T) {
 		wantJSONContains(t, w, "error", "no team exists for app")
 	})
 
-	t.Run("user without membership returns 500", func(t *testing.T) {
+	t.Run("user without membership is denied", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		userID := uuid.New().String()
@@ -128,10 +128,10 @@ func TestGetHealthOverviewPlotInstancesHandler(t *testing.T) {
 
 		h.GetHealthOverviewPlotInstances(c)
 
-		if w.Code != http.StatusInternalServerError {
-			t.Fatalf("status = %d, want 500, body: %s", w.Code, w.Body.String())
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want 403, body: %s", w.Code, w.Body.String())
 		}
-		wantJSONContains(t, w, "error", "authoriz")
+		wantJSONContains(t, w, "error", "not authorized")
 	})
 
 	t.Run("missing userId returns 500", func(t *testing.T) {
