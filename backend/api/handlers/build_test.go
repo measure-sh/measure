@@ -130,12 +130,9 @@ func TestGetBuilds(t *testing.T) {
 		outsiderID := uuid.New().String()
 		seedUser(ctx, t, outsiderID, "outsider@test.com")
 
-		// a user with no membership resolves to the 'unknown' role,
-		// which PerformAuthz reports as an error, so the handler
-		// answers 500 rather than 403
 		_, w := getBuildsRequest(t, outsiderID, appID.String(), "")
-		if w.Code != http.StatusInternalServerError {
-			t.Fatalf("status = %d, want 500, body: %s", w.Code, w.Body.String())
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want 403, body: %s", w.Code, w.Body.String())
 		}
 	})
 

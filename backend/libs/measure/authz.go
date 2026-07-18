@@ -3,7 +3,6 @@ package measure
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"slices"
 
@@ -164,8 +163,9 @@ func PerformAuthz(pg *pgxpool.Pool, uid string, rid string, scope scope) (bool, 
 		return false, err
 	}
 
+	// no membership row for this user and team
 	if role == unknown {
-		return false, errors.New("received 'unknown' role")
+		return false, nil
 	}
 	roleScope := ScopeMap[role]
 

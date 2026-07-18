@@ -60,7 +60,7 @@ func TestRotateApiKeyHandler(t *testing.T) {
 		wantJSONContains(t, w, "error", "no team exists for app")
 	})
 
-	t.Run("no membership returns auth error", func(t *testing.T) {
+	t.Run("no membership is denied", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		userID := uuid.New().String()
@@ -76,10 +76,10 @@ func TestRotateApiKeyHandler(t *testing.T) {
 
 		h.RotateApiKey(c)
 
-		if w.Code != http.StatusInternalServerError {
-			t.Fatalf("status = %d, want %d", w.Code, http.StatusInternalServerError)
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want %d", w.Code, http.StatusForbidden)
 		}
-		wantJSONContains(t, w, "error", "couldn't perform authorization checks")
+		wantJSONContains(t, w, "error", "you don't have permissions to rotate app api keys")
 	})
 
 	t.Run("all roles authz behavior", func(t *testing.T) {

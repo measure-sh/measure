@@ -104,7 +104,7 @@ func TestGetAppThresholdPrefs(t *testing.T) {
 		}
 	})
 
-	t.Run("missing membership returns internal server error", func(t *testing.T) {
+	t.Run("missing membership is denied", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID := uuid.New().String()
 		teamID := uuid.New()
@@ -118,8 +118,8 @@ func TestGetAppThresholdPrefs(t *testing.T) {
 		c.Params = gin.Params{{Key: "id", Value: appID.String()}}
 
 		h.GetAppThresholdPrefs(c)
-		if w.Code != http.StatusInternalServerError {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusInternalServerError, w.Body.String())
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusForbidden, w.Body.String())
 		}
 	})
 
@@ -225,7 +225,7 @@ func TestUpdateAppThresholdPrefs(t *testing.T) {
 		}
 	})
 
-	t.Run("missing membership returns internal server error", func(t *testing.T) {
+	t.Run("missing membership is denied", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID := uuid.New().String()
 		teamID := uuid.New()
@@ -239,8 +239,8 @@ func TestUpdateAppThresholdPrefs(t *testing.T) {
 		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: appID.String()}}
 		h.UpdateAppThresholdPrefs(c)
-		if w.Code != http.StatusInternalServerError {
-			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusInternalServerError, w.Body.String())
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusForbidden, w.Body.String())
 		}
 	})
 

@@ -350,7 +350,7 @@ func TestPerformAuthzMatrix(t *testing.T) {
 func TestPerformAuthzErrorPaths(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("unknown role when membership missing", func(t *testing.T) {
+	t.Run("missing membership denies without error", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		userID := uuid.New().String()
@@ -359,11 +359,8 @@ func TestPerformAuthzErrorPaths(t *testing.T) {
 		seedTeam(ctx, t, teamID, "team")
 
 		allowed, err := PerformAuthz(deps.PgPool, userID, teamID.String(), *ScopeAppRead)
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-		if err.Error() != "received 'unknown' role" {
-			t.Fatalf("err = %q, want %q", err.Error(), "received 'unknown' role")
+		if err != nil {
+			t.Fatalf("err = %v, want nil", err)
 		}
 		if allowed {
 			t.Fatal("allowed = true, want false")

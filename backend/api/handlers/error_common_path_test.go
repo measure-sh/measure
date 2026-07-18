@@ -81,8 +81,8 @@ func TestGetErrorGroupCommonPathHandler(t *testing.T) {
 
 		h.GetErrorGroupCommonPath(c)
 
-		if w.Code != http.StatusInternalServerError {
-			t.Errorf("status = %d, want %d, body: %s", w.Code, http.StatusInternalServerError, w.Body.String())
+		if w.Code != http.StatusForbidden {
+			t.Errorf("status = %d, want %d, body: %s", w.Code, http.StatusForbidden, w.Body.String())
 		}
 	})
 

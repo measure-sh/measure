@@ -262,16 +262,6 @@ func (h Handlers) InviteMembers(c *gin.Context) {
 
 	ok, err := measure.PerformAuthz(deps.PgPool, userId, teamId.String(), *measure.ScopeTeamInviteSameOrLower)
 	if err != nil {
-		// FIXME: improve error handling, this is quite brittle way of
-		// doing errors. not ideal.
-		if err.Error() == "received 'unknown' role" {
-			msg := `couldn't find team, perhaps team id is invalid`
-			fmt.Println(msg)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": msg,
-			})
-			return
-		}
 		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -562,16 +552,6 @@ func (h Handlers) ResendInvite(c *gin.Context) {
 
 	ok, err := measure.PerformAuthz(deps.PgPool, userId, teamId.String(), *measure.ScopeTeamInviteSameOrLower)
 	if err != nil {
-		// FIXME: improve error handling, this is quite brittle way of
-		// doing errors. not ideal.
-		if err.Error() == "received 'unknown' role" {
-			msg := `couldn't find team, perhaps team id is invalid`
-			fmt.Println(msg)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": msg,
-			})
-			return
-		}
 		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -698,16 +678,6 @@ func (h Handlers) RemoveInvite(c *gin.Context) {
 
 	ok, err := measure.PerformAuthz(deps.PgPool, userId, teamId.String(), *measure.ScopeTeamInviteSameOrLower)
 	if err != nil {
-		// FIXME: improve error handling, this is quite brittle way of
-		// doing errors. not ideal.
-		if err.Error() == "received 'unknown' role" {
-			msg := `couldn't find team, perhaps team id is invalid`
-			fmt.Println(msg)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": msg,
-			})
-			return
-		}
 		msg := `couldn't perform authorization checks`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -923,10 +893,11 @@ func (h Handlers) RemoveTeamMember(c *gin.Context) {
 		return
 	}
 
+	// an unknown role means the caller has no membership row, for example
+	// when a concurrent request removed them from the team
 	if userRole.IsUnknown() {
-		msg := `couldn't perform authorization checks`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		msg := fmt.Sprintf(`you don't have modify permissions to team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
 		return
 	}
 
@@ -960,10 +931,10 @@ func (h Handlers) RemoveTeamMember(c *gin.Context) {
 		return
 	}
 
+	// no membership row: the member left or was already removed
 	if memberRole.IsUnknown() {
-		msg := "couldn't perform authorization checks: member role unknown"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		msg := fmt.Sprintf("member [%s] is not part of team [%s]", memberId, teamId)
+		c.JSON(http.StatusNotFound, gin.H{"error": msg})
 		return
 	}
 
@@ -1067,10 +1038,11 @@ func (h Handlers) ChangeMemberRole(c *gin.Context) {
 		return
 	}
 
+	// an unknown role means the caller has no membership row, for example
+	// when a concurrent request removed them from the team
 	if userRole.IsUnknown() {
-		msg := `couldn't perform authorization checks`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		msg := fmt.Sprintf(`you don't have modify permissions to team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
 		return
 	}
 
@@ -1137,10 +1109,10 @@ func (h Handlers) ChangeMemberRole(c *gin.Context) {
 		return
 	}
 
+	// no membership row: the member left or was already removed
 	if memberRole.IsUnknown() {
-		msg := "couldn't perform authorization checks: member role unknown"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		msg := fmt.Sprintf("member [%s] is not part of team [%s]", memberId, teamId)
+		c.JSON(http.StatusNotFound, gin.H{"error": msg})
 		return
 	}
 

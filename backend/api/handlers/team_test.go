@@ -207,6 +207,42 @@ func TestRemoveTeamMember(t *testing.T) {
 			t.Error("UpdateCustomer called, want billing email left alone")
 		}
 	})
+
+	t.Run("removing someone who is not a member gets 404", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		ownerID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		outsiderID := uuid.New().String()
+		seedUser(ctx, t, outsiderID, "outsider@test.com")
+
+		c, w := newRemoveMemberContext(ownerID, teamID, outsiderID)
+		h.RemoveTeamMember(c)
+
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("status = %d, want 404, body: %s", w.Code, w.Body.String())
+		}
+		wantJSONContains(t, w, "error", "not part of team")
+	})
+
+	t.Run("a caller who is no longer a member gets 403", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		// the caller lost their membership mid-flight, e.g. to a concurrent
+		// mutual removal; they must see a permission error, not a 500
+		ownerID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		removedID := uuid.New().String()
+		seedUser(ctx, t, removedID, "removed@test.com")
+
+		c, w := newRemoveMemberContext(removedID, teamID, ownerID)
+		h.RemoveTeamMember(c)
+
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want 403, body: %s", w.Code, w.Body.String())
+		}
+		if role := getMemberRole(ctx, t, teamID, ownerID); role != "owner" {
+			t.Errorf("owner membership = %q, want intact", role)
+		}
+	})
 }
 
 func TestChangeMemberRole(t *testing.T) {
@@ -330,6 +366,40 @@ func TestChangeMemberRole(t *testing.T) {
 		}
 		if updatedEmail != "new-owner@test.com" {
 			t.Errorf("updated email = %q, want new-owner@test.com", updatedEmail)
+		}
+	})
+
+	t.Run("changing role of someone who is not a member gets 404", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		ownerID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		outsiderID := uuid.New().String()
+		seedUser(ctx, t, outsiderID, "outsider@test.com")
+
+		c, w := newChangeRoleContext(ownerID, teamID, outsiderID, "viewer")
+		h.ChangeMemberRole(c)
+
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("status = %d, want 404, body: %s", w.Code, w.Body.String())
+		}
+		wantJSONContains(t, w, "error", "not part of team")
+	})
+
+	t.Run("a caller who is no longer a member gets 403", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		ownerID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		removedID := uuid.New().String()
+		seedUser(ctx, t, removedID, "removed@test.com")
+
+		c, w := newChangeRoleContext(removedID, teamID, ownerID, "viewer")
+		h.ChangeMemberRole(c)
+
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want 403, body: %s", w.Code, w.Body.String())
+		}
+		if role := getMemberRole(ctx, t, teamID, ownerID); role != "owner" {
+			t.Errorf("owner role = %q, want unchanged", role)
 		}
 	})
 }
@@ -571,9 +641,8 @@ func TestGetTeamApps(t *testing.T) {
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
 		h.GetTeamApps(c)
 
-		// PerformAuthz errors on an unknown role, so a non-member gets 500
-		if w.Code != http.StatusInternalServerError {
-			t.Fatalf("status = %d, want 500 for unknown role, body: %s", w.Code, w.Body.String())
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want 403, body: %s", w.Code, w.Body.String())
 		}
 	})
 }
@@ -633,9 +702,8 @@ func TestGetTeamApp(t *testing.T) {
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}, {Key: "appId", Value: appID.String()}}
 		h.GetTeamApp(c)
 
-		// PerformAuthz errors on an unknown role, so a non-member gets 500
-		if w.Code != http.StatusInternalServerError {
-			t.Fatalf("status = %d, want 500 for unknown role, body: %s", w.Code, w.Body.String())
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want 403, body: %s", w.Code, w.Body.String())
 		}
 	})
 }

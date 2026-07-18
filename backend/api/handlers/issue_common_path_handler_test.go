@@ -68,8 +68,7 @@ func TestGetCrashGroupCommonPathHandler(t *testing.T) {
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
 
-		// Different user who is not a team member — PerformAuthz returns
-		// an error for unknown roles, so the handler responds with 500.
+		// a different user who is not a team member
 		otherID := uuid.New().String()
 		seedUser(ctx, t, otherID, "cp-other@test.com")
 
@@ -79,8 +78,8 @@ func TestGetCrashGroupCommonPathHandler(t *testing.T) {
 
 		h.GetCrashGroupCommonPath(c)
 
-		if w.Code != http.StatusInternalServerError {
-			t.Errorf("status = %d, want %d, body: %s", w.Code, http.StatusInternalServerError, w.Body.String())
+		if w.Code != http.StatusForbidden {
+			t.Errorf("status = %d, want %d, body: %s", w.Code, http.StatusForbidden, w.Body.String())
 		}
 	})
 
