@@ -197,6 +197,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Update agent demo with repro steps by @anupcowkur in #4068
 - (**frontend**): Update the agent demo user name by @anupcowkur in #4065
 - (**frontend**): Verify internal docs links resolve by @anupcowkur
 - (**frontend**): Derive docs test samples instead of hardcoding page names by @anupcowkur
