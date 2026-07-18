@@ -10,7 +10,7 @@ import (
 )
 
 // TestConversationRoundtrip checks createConversation assigns an id and
-// getConversation reads the row back intact.
+// persists the row intact.
 func TestConversationRoundtrip(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
@@ -25,12 +25,15 @@ func TestConversationRoundtrip(t *testing.T) {
 		t.Fatal("createConversation did not assign an id")
 	}
 
-	got, err := c.getConversation(ctx, conv.ID)
-	if err != nil {
-		t.Fatalf("getConversation: %v", err)
+	var gotUser, gotTeam uuid.UUID
+	var gotSurface string
+	if err := deps.PgPool.QueryRow(ctx,
+		`select user_id, team_id, surface from measure.agent_conversations where id = $1`, conv.ID).
+		Scan(&gotUser, &gotTeam, &gotSurface); err != nil {
+		t.Fatalf("read conversation row: %v", err)
 	}
-	if got.UserID != userID || got.TeamID != teamID || got.Surface != "mcp" {
-		t.Errorf("roundtrip mismatch: got %+v", got)
+	if gotUser != userID || gotTeam != teamID || gotSurface != "mcp" {
+		t.Errorf("roundtrip mismatch: user %s team %s surface %q", gotUser, gotTeam, gotSurface)
 	}
 }
 
@@ -92,9 +95,12 @@ func TestSetSlackContextThrough(t *testing.T) {
 	if err := c.setSlackContextThrough(ctx, conv.ID, "1700000000.5"); err != nil {
 		t.Fatalf("setSlackContextThrough: %v", err)
 	}
-	got, err := c.getConversation(ctx, conv.ID)
+	got, err := c.findSlackConversation(ctx, "C1", "1.1")
 	if err != nil {
-		t.Fatalf("getConversation: %v", err)
+		t.Fatalf("findSlackConversation: %v", err)
+	}
+	if got == nil {
+		t.Fatal("conversation not found by its thread")
 	}
 	if got.SlackContextThroughTS != "1700000000.5" {
 		t.Errorf("through ts = %q, want 1700000000.5", got.SlackContextThroughTS)
