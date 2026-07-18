@@ -213,6 +213,8 @@ func SyncBillingEmailOnOwnerExit(ctx context.Context, pg *pgxpool.Pool, billingE
 	if err != nil {
 		return err
 	}
+	// In self hosted environments, a team will have no autumn customer and no billing email,
+	// nothing to do, return
 	if customerID == "" {
 		return nil
 	}
