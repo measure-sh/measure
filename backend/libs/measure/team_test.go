@@ -856,6 +856,46 @@ func TestAddMembers(t *testing.T) {
 	}
 }
 
+func TestAddMembersAlreadyMember(t *testing.T) {
+	ctx := context.Background()
+
+	defer cleanupAll(ctx, t)
+
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, testTeamName)
+	memberID := uuid.New()
+	freshID := uuid.New()
+	seedUser(ctx, t, memberID.String(), "member@example.com")
+	seedUser(ctx, t, freshID.String(), "fresh@example.com")
+	seedTeamMembership(ctx, t, teamID, memberID.String(), "admin")
+
+	// the batch adds one existing member and one new user: the existing
+	// membership must survive with its role, the new one must be created
+	team := &Team{ID: &teamID}
+	err := team.AddMembers(ctx, deps.PgPool, []Invitee{
+		{ID: memberID, Email: "member@example.com", Role: RoleMap["viewer"]},
+		{ID: freshID, Email: "fresh@example.com", Role: RoleMap["viewer"]},
+	})
+	if err != nil {
+		t.Fatalf("AddMembers: %v", err)
+	}
+	if role := getMembershipRole(ctx, t, teamID, memberID.String()); role != "admin" {
+		t.Errorf("existing member role = %q, want admin (unchanged)", role)
+	}
+	if role := getMembershipRole(ctx, t, teamID, freshID.String()); role != "viewer" {
+		t.Errorf("fresh member role = %q, want viewer", role)
+	}
+
+	var n int
+	if err := th.PgPool.QueryRow(ctx,
+		`SELECT count(*) FROM team_membership WHERE team_id = $1 AND user_id = $2`, teamID, memberID.String()).Scan(&n); err != nil {
+		t.Fatalf("count memberships: %v", err)
+	}
+	if n != 1 {
+		t.Errorf("membership rows = %d, want 1", n)
+	}
+}
+
 func TestAreInviteesMember(t *testing.T) {
 	ctx := context.Background()
 

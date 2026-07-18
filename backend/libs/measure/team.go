@@ -358,7 +358,8 @@ func (t *Team) RemoveInvite(ctx context.Context, pg *pgxpool.Pool, inviteId uuid
 }
 
 // addMembers makes invitees member of the team according
-// to each invitee's role.
+// to each invitee's role. An invitee who is already a member is skipped and
+// keeps their current role.
 func (t *Team) AddMembers(ctx context.Context, pg *pgxpool.Pool, invitees []Invitee) error {
 	now := time.Now()
 	stmt := sqlf.PostgreSQL.InsertInto("team_membership")
@@ -373,6 +374,7 @@ func (t *Team) AddMembers(ctx context.Context, pg *pgxpool.Pool, invitees []Invi
 			Set("created_at", nil)
 		args = append(args, t.ID, invitee.ID, invitee.Role, now, now)
 	}
+	stmt.Clause("on conflict (team_id, user_id) do nothing")
 
 	_, err := pg.Exec(ctx, stmt.String(), args...)
 	if err != nil {
