@@ -488,10 +488,10 @@ set VERSION $(git cliff --bumped-version) && git tag -s $VERSION -m $VERSION && 
 ```
 
 ## Documentation
-- Public facing docs live as MDX pages in [frontend/dashboard/content/docs](frontend/dashboard/content/docs), rendered at [measure.sh/docs](https://measure.sh/docs) with fumadocs - self host guide, SDK guides, feature docs and so on. The REST API reference is generated from the OpenAPI specs in [frontend/dashboard/content/openapi](frontend/dashboard/content/openapi); edit the specs, not the generated pages under content/docs/api
+- Public facing docs are MDX pages in [frontend/dashboard/content/docs](frontend/dashboard/content/docs), rendered at [measure.sh/docs](https://measure.sh/docs) with fumadocs - self host guide, SDK guides, feature docs and so on. The REST API reference is generated from the OpenAPI specs in [frontend/dashboard/content/openapi](frontend/dashboard/content/openapi); edit the specs, not the generated pages under content/docs/api
 - Main folder of subproject should link to main guide. ex: [frontend README](frontend/dashboard/README.md) has link to self hosting and local dev guide
 - Non public facing docs can stay in sub folder. ex: [backend benchmarking README](backend/benchmarking/README.md) which describes its purpose
-- To add a doc page, create `frontend/dashboard/content/docs/<slug>.mdx` with `title` and `description` frontmatter (plus `seoTitle` when the search-facing title should be longer), then add its entry to the folder's `meta.json` for sidebar ordering. Search, llms.txt and the sitemap all derive from the content files at build time. Content links use absolute `/docs/...` routes and images live in `frontend/dashboard/public/docs/assets`
+- To add a doc page, create `frontend/dashboard/content/docs/<slug>.mdx` with `title` and `description` frontmatter (plus `seoTitle` when the search-facing title should be longer), then add its entry to the folder's `meta.json` for sidebar ordering. Search, llms.txt and the sitemap all derive from the content files at build time. Content links use absolute `/docs/...` routes and images go in `frontend/dashboard/public/docs/assets`
 
 ### Updating the REST API reference
 
@@ -501,3 +501,12 @@ The API reference at [measure.sh/docs/api](https://measure.sh/docs/api) is gener
 2. There is no manual generation step. `scripts/generate_api_docs.mjs` runs as part of `npm run dev`, `npm run build` and `npm test`, wipes the previous output and regenerates one page per operation under `frontend/dashboard/content/docs/api/`, grouped into a folder per tag. The generated pages are gitignored; do not edit them.
 3. Sidebar labels come from the spec: each operation page is titled by its `summary`, and tag folders are titled by the tag name. The only hand-maintained files in the reference are `content/docs/api/index.mdx` (the overview page) and the `meta.json` of each section, which control section titles and ordering.
 4. To add a whole new spec (a third API surface), add the yaml to `content/openapi/`, add a section entry in `scripts/generate_api_docs.mjs`, commit a `meta.json` for it and extend the `.gitignore` patterns that keep its generated pages out of the repo.
+
+## Blog
+
+- Blog posts are MDX files in [frontend/dashboard/content/blog](frontend/dashboard/content/blog), rendered at [measure.sh/blog](https://measure.sh/blog) with fumadocs. One flat file per post, no subfolders
+- To add a post, create `frontend/dashboard/content/blog/<kebab-case-slug>.mdx`; the file name is the URL slug. Frontmatter takes `title`, `description`, `date` (a quoted `"YYYY-MM-DD"` string), `author` with `name` and `avatar` (an image path, e.g. `/images/profile_pics/profile_name.webp`), an optional `image` (the social share card, usually the hero image under `/blog/assets/...`; link previews fall back to the generic site image without it), and an optional `tags` list
+- Tags must be lowercase kebab-case; the build rejects anything else because tags appear verbatim in `/blog/tags/<tag>` URLs. Every tag any post carries gets a listing page automatically
+- The frontmatter title renders as the page H1, so body sections start at `##`. Sections at `#` produce a second H1 per section and break the inline table of contents indentation
+- Images are in [frontend/dashboard/public/blog/assets](frontend/dashboard/public/blog/assets) and are referenced with absolute `/blog/assets/...` paths; content links also use absolute routes (`/blog/...`, `/docs/...`)
+- The index at `/blog` (newest first), the tag pages, the RSS feed at `/blog/rss.xml`, the per-post markdown at `/blog/<slug>.md`, llms.txt and the sitemap all derive from the content files at build time.

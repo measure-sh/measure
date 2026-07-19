@@ -2,6 +2,7 @@ import {
   splitFrontmatter,
   stripFrontmatter,
 } from "@/app/utils/llms/frontmatter";
+import { getSortedBlogPosts } from "@/app/utils/blog_source";
 import { source } from "@/app/utils/docs_source";
 import { toStandaloneMarkdown } from "@/app/utils/llms/standalone_markdown";
 import fs from "fs";
@@ -125,9 +126,9 @@ function collectPageLinks(
 
 /**
  * llms.txt: an H1 + blockquote description, one H2 section per sidebar
- * group, standalone pages under "## Docs", the marketing pages with
- * markdown twins under "## Pages", and an Optional section pointing at
- * llms-full.txt.
+ * group, standalone pages under "## Docs", blog posts newest first under
+ * "## Blog", the marketing pages with markdown twins under "## Pages",
+ * and an Optional section pointing at llms-full.txt.
  */
 export function generateLlmsTxt(): string {
   const tree = source.getPageTree();
@@ -162,6 +163,16 @@ export function generateLlmsTxt(): string {
     lines.push("## Docs");
     lines.push("");
     lines.push(...standalone);
+    lines.push("");
+  }
+
+  const posts = getSortedBlogPosts();
+  if (posts.length > 0) {
+    lines.push("## Blog");
+    lines.push("");
+    for (const post of posts) {
+      lines.push(`- [${post.data.title}](${SITE_URL}${post.url})`);
+    }
     lines.push("");
   }
 
@@ -202,16 +213,30 @@ function collectPageUrls(nodes: PageTree.Node[]): string[] {
   return urls;
 }
 
-type DocsPage = ReturnType<typeof source.getPages>[number];
+/**
+ * The page fields renderPageMarkdown reads. Docs and blog pages both
+ * satisfy it; their sources declare wider data types.
+ */
+interface MarkdownSourcePage {
+  url: string;
+  data: {
+    title: string;
+    description?: string;
+    getText: (type: "raw" | "processed") => Promise<string>;
+    structuredData: { contents: { content: string }[] };
+  };
+}
 
 /**
- * One docs page as LLM-facing markdown: a Source header, the title and
+ * One content page as LLM-facing markdown: a Source header, the title and
  * description, then the processed markdown (MDX components resolved)
  * reworked to stand alone: absolute urls, no JSX comments. Serves as both
- * an llms-full.txt section and the per-page response of the /llms.mdx
- * route, so the two stay identical for a given page.
+ * an llms-full.txt section and the per-page response of the /llms.docs and
+ * /llms.blog routes, so those stay identical for a given page.
  */
-export async function renderPageMarkdown(page: DocsPage): Promise<string> {
+export async function renderPageMarkdown(
+  page: MarkdownSourcePage,
+): Promise<string> {
   const processed = await page.data.getText("processed");
   let text: string;
   try {
@@ -238,8 +263,8 @@ export async function renderPageMarkdown(page: DocsPage): Promise<string> {
 
 /**
  * llms-full.txt: every docs page in sidebar order as processed markdown
- * (title, description, MDX-component placeholders resolved), then the
- * marketing page.md twins.
+ * (title, description, MDX-component placeholders resolved), then every
+ * blog post newest first, then the marketing page.md twins.
  */
 export async function generateLlmsFullTxt(): Promise<string> {
   const tree = source.getPageTree();
@@ -258,6 +283,10 @@ export async function generateLlmsFullTxt(): Promise<string> {
       continue;
     }
     sections.push(await renderPageMarkdown(page));
+  }
+
+  for (const post of getSortedBlogPosts()) {
+    sections.push(await renderPageMarkdown(post));
   }
 
   for (const p of walkPagesWithMd()) {

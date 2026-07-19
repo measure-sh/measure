@@ -1,0 +1,109 @@
+---
+title: "Mobile breaks differently"
+description: "Mobile app issues are stateful unlike typical server side stateless request cycle errors. Your observability should reflect that."
+date: "2026-04-17"
+image: /blog/assets/mobile-breaks-differently-hero.webp
+author:
+  name: Anup Cowkur
+  avatar: /images/profile_pics/profile_anup.webp
+tags:
+  - observability
+  - error-monitoring
+---
+![Hero Image](/blog/assets/mobile-breaks-differently-hero.webp)
+
+Most observability platforms started life watching servers. They got really good at it. Tracing requests across microservices, tracking error rates per endpoint and alerting on P99 latency spikes. Mobile came later and the same architecture and data models were extended to support it.
+
+Except mobile observability is a fundamentally different problem. The failure modes are different, the constraints are different, and if you care about monitoring your app well, it’s worth understanding how and why that matters.
+
+## You don’t own the machine
+
+When a backend service misbehaves, you SSH in, read the logs, bump the memory, restart the process. You have full control.
+
+On mobile, your code runs on a device in someone’s pocket, on a network you’ve never heard of, in a country you’ve never been to, on an OS version you didn’t know any one was still using. 
+
+That device might have 2 GB of RAM shared across 40 apps. It might be running Android 9 with a manufacturer skin that patches the lifecycle callbacks differently. It might be an iPhone SE on a train going through a tunnel.
+
+This changes how you collect data, what data you collect, and what you do with it. Every byte of telemetry has to survive unreliable networks, respect battery life, and fit through bandwidth constraints, all while making sure your observability tool doesn’t itself become a performance problem.
+
+## You can’t revert an app release
+
+Backend deploys are reversible. Something breaks, you roll back or quickly patch a fix, the whole cycle ideally takes minutes. You can ship ten times a day.
+
+Mobile releases go through app store review. That’s hours at best, days at worst. And even after your fix is approved, users have to actually update. Some won’t for weeks. Some never will.
+
+The life of a bug that ships is just dramatically higher. A backend bug is a bad hour. A mobile bug can be a bad week or even a month. You need to spot the problem forming early in a release cycle while your rollout is still small or pay a higher price later.
+
+## Crashes aren’t errors
+
+A 500 error on a server is bad, but the server restarts or just keeps running. The next request probably works fine.
+
+A crash kills the session. The user was in the middle of something (placing an order, writing a message) and now they’re staring at their home screen. There’s no automatic retry. There’s just a person deciding whether your app is worth opening again.
+
+Then there are ANRs (Application Not Responding). The app hasn’t crashed, it’s technically still alive, but it’s frozen and the OS is asking the user if they want to force close. There’s really no backend equivalent. It’s one of the most frustrating experiences a mobile user can have, and a lot of observability tools don’t even track it properly.
+
+## Stack traces are useless without symbolication
+
+When you ship a mobile app, you don’t ship the code you wrote. Release builds go through optimisation and obfuscation - ProGuard or R8 on Android, symbol stripping on iOS. Your carefully named PaymentProcessor.processTransaction() becomes something like a.b.c() on Android or a hex memory address on iOS.
+
+This is good for app size and security. It’s terrible for debugging. When a crash comes in from production, the stack trace is gibberish. A wall of obfuscated class names and stripped addresses that tells you nothing about what actually went wrong.
+
+To make it readable again, you need symbolication: mapping those mangled names and addresses back to your original source code. On iOS, that means dSYM files generated at build time. On Android, it’s ProGuard or R8 mapping files. Every build produces its own mapping, and if you lose it or upload the wrong one, your crash reports are permanently unreadable for that version.
+
+This is an operational burden that just doesn’t exist in backend. Your server logs say NullPointerException in PaymentService.java:142 and you go fix it. For mobile, you need a pipeline that automatically captures mapping files for every build, matches them to the right app version, and symbolicates crash reports as they come in. Get any step wrong and you’re staring at 0x0000000100a3b2c4 wondering what went sideways.
+
+It’s one of those things that’s invisible when it works and completely debilitating when it doesn’t.
+
+## A request is not a session
+
+Backend observability is built around the request. A request comes in, gets traced across services, produces a response. Clean and well-bounded.
+
+Mobile users don’t make requests. They have sessions. They open the app, tap around, switch to another app, come back twenty minutes later, scroll, hit a button, get interrupted by a phone call, return, and eventually close the app. Or don’t, it just gets killed by the OS when memory runs low.
+
+Understanding what went wrong means reconstructing that journey. What screens did they visit? What did they tap? What network calls fired? What was the memory pressure at the time? What did the screen actually look like right before the crash?
+
+A timestamped error log tells you almost nothing. You need the full session timeline: navigation events, gestures, network calls, resource usage, UI state and much more context to see what actually happened.
+
+## Performance is relative
+
+When a backend engineer talks about performance, they mean latency and throughput on known hardware. You know exactly what you’re working with.
+
+Mobile performance might mean cold start time, warm start time, time to first frame, frame rendering jank, memory consumption, battery drain, or app size. And every one of these varies across devices. Your app starts in 400ms on a Pixel 9 and 4 seconds on a budget Samsung from 2020. Both are real users.
+
+If your observability tool only shows you averages, you’re seeing a number that represents nobody. You need to slice by device, OS version, app version, network type, geography. You need the distribution, not the mean.
+
+## The latency you don’t see
+
+Backend tracing follows a request across services. A request comes in, hops through some microservices, and produces a response. The trace has a clear start and end.
+
+Mobile traces are messier. A trace might span multiple screens as a user works through a flow. Adding items to a cart, entering an address, hitting checkout. They might pause halfway through to reply to a text, or lose connectivity on the subway, or get a phone call. The app backgrounds, the OS might reclaim memory, and the user may or may not come back. 
+
+Then there’s the network side. Your server dashboard says the API responded in 200ms but the user waited three seconds. The gap is everything that happened before the request reached your server: DNS resolution on a flaky network, TLS handshake on a slow connection, request queuing while the cellular radio wakes up. 
+
+Backend traces pick up at the API gateway. Everything before that is invisible unless your mobile tooling captures it.
+
+Mobile-aware tracing connects both sides, the on-device spans and the backend spans, so when a user says “the app felt slow,” you can actually tell whether the problem was the network, the client, or your API.
+
+## The telemetry paradox
+
+A hard part of mobile observability it that the thing you’re measuring is the thing being affected by the measurement.
+
+Every event you log takes CPU, memory, and battery. Every network request to ship telemetry uses bandwidth the user might be paying for. A heavy SDK that captures everything will make the app slower and drain more battery, creating the exact problems you’re trying to detect. It doesn’t matter much if a tracing sidecar uses an extra 200MB of RAM on a server. On a phone, your SDK’s overhead is a direct tax on user experience.
+
+Mobile SDKs have to be absurdly efficient. Batch intelligently, compress aggressively, back off when resources are tight. Capture enough to be useful but little enough to be invisible.
+
+## The fragmentation nightmare
+
+“Works on my device” is the mobile version of “works on my machine,” except it’s orders of magnitude worse.
+
+There are thousands of distinct Android devices in active use — different screen sizes, chipsets, GPU capabilities, RAM configurations, manufacturer customizations, OS forks. iOS is more constrained but still spans multiple hardware generations and OS versions.
+
+A bug might only reproduce on Samsung devices running Android 12 with a specific GPU driver. Or on iPhone SE in low power mode. Or only when the app is restored from background after 30 minutes on a slow network.
+
+You see a 0.5% crash rate and shrug, but that might be 100% of users on a specific device having an awful time.
+
+## A different beast
+
+Mobile observability isn’t backend observability with a different client library. It’s a related but different discipline with it’s own primitives and fundamentally different failure modes.
+
+The tooling that your mobile team depends on should recognise and reflect that.

@@ -32,9 +32,10 @@
  *   emits the `## Pages` section in `llms.txt` plus the marketing
  *   portion of `llms-full.txt`.
  *
- * Docs pages are negotiated separately: they rewrite to the static
- * `/llms.mdx` route, which serves the fumadocs processed markdown also
- * exposed at the public `/docs/<path>.md` URLs.
+ * Docs and blog pages are negotiated separately: they rewrite to the
+ * static `/llms.docs` and `/llms.blog` routes, which serve the fumadocs
+ * processed markdown also exposed at the public `/docs/<path>.md` and
+ * `/blog/<slug>.md` URLs.
  */
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -88,13 +89,13 @@ export function proxy(request: NextRequest) {
   // path.
   const url = request.nextUrl.clone();
 
-  // Docs pages: serve the processed markdown from the static /llms.mdx
+  // Docs pages: serve the processed markdown from the static /llms.docs
   // route. The path after /docs carries over unchanged, so these three
   // requests return the same document:
   //
   //   /docs/features/feature-crash-reporting.md            (public .md URL)
   //   /docs/features/feature-crash-reporting  + this Accept header
-  //   /llms.mdx/features/feature-crash-reporting           (rewrite target)
+  //   /llms.docs/features/feature-crash-reporting           (rewrite target)
   //
   // An explicit .md suffix is stripped so /docs/foo.md and /docs.md with
   // Accept: text/markdown resolve the same pages as their suffix-free
@@ -105,7 +106,20 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/docs/")
   ) {
     const docPath = pathname.slice("/docs".length).replace(/\.md$/, "");
-    url.pathname = `/llms.mdx${docPath}`;
+    url.pathname = `/llms.docs${docPath}`;
+    return NextResponse.rewrite(url);
+  }
+
+  // Blog posts: the same contract as docs, served from the static
+  // /llms.blog route. The bare /blog path returns a markdown index of
+  // all posts.
+  if (
+    pathname === "/blog" ||
+    pathname === "/blog.md" ||
+    pathname.startsWith("/blog/")
+  ) {
+    const blogPath = pathname.slice("/blog".length).replace(/\.md$/, "");
+    url.pathname = `/llms.blog${blogPath}`;
     return NextResponse.rewrite(url);
   }
 
@@ -121,7 +135,7 @@ export const config = {
     "/yrtmlt/:path*",
     {
       // llms is a prefix exclusion covering /llms.txt, /llms-full.txt and
-      // /llms.mdx/*: they already serve text, so markdown-preferring
+      // /llms.docs/*: they already serve text, so markdown-preferring
       // requests pass straight through. Any future route starting with
       // "llms" is excluded with them.
       source: "/((?!_next|page-md|llms|api|yrtmlt|favicon\\.ico).*)",

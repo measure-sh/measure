@@ -1,6 +1,35 @@
 import { pageSchema } from "fumadocs-core/source/schema";
-import { defineConfig, defineDocs } from "fumadocs-mdx/config";
+import {
+  defineCollections,
+  defineConfig,
+  defineDocs,
+} from "fumadocs-mdx/config";
 import { z } from "zod";
+
+export const blogPosts = defineCollections({
+  type: "doc",
+  dir: "content/blog",
+  schema: pageSchema.extend({
+    author: z.object({
+      name: z.string(),
+      avatar: z.string(),
+    }),
+    date: z.iso.date().or(z.date()),
+    // Social share card image (a path under public/, e.g.
+    // /blog/assets/foo.webp); sharing falls back to the site-wide
+    // preview image when absent.
+    image: z.string().optional(),
+    // Kebab-case only: tag slugs appear verbatim in /blog/tags/<tag> URLs,
+    // so URL-unsafe characters are rejected at build time instead of being
+    // escaped at render time.
+    tags: z.array(z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)).default([]),
+  }),
+  postprocess: {
+    // Same as docs: exposes page.data.getText("processed") for the
+    // /blog/*.md markdown routes and the llms.txt surfaces.
+    includeProcessedMarkdown: true,
+  },
+});
 
 export const docs = defineDocs({
   dir: "content/docs",

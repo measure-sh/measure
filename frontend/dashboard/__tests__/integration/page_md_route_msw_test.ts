@@ -122,7 +122,7 @@ describe("/page-md/[...path] route handler", () => {
   });
 
   describe("docs pages", () => {
-    // Docs markdown is served by the /llms.mdx route and the proxy routes
+    // Docs markdown is served by the /llms.docs route and the proxy routes
     // /docs/* there. A docs path reaching this handler anyway has no
     // app/docs/**/page.md twin, so it must fall through to 406 rather
     // than serve anything.

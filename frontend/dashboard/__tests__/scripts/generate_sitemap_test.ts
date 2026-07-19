@@ -5,11 +5,13 @@ import path from "path";
 import {
   APP_DIR,
   buildSitemap,
+  getBlogRoutes,
   getDocsRoutes,
   isDynamic,
   isExcluded,
   main,
   PUBLIC_DIR,
+  ROOT,
   routeFromFile,
   SITE_URL,
   walk,
@@ -65,6 +67,41 @@ describe("getDocsRoutes", () => {
 
   it("has no duplicate routes", () => {
     const routes = getDocsRoutes();
+
+    expect(new Set(routes).size).toBe(routes.length);
+  });
+});
+
+// ─── getBlogRoutes ──────────────────────────────────────────────────────────
+
+describe("getBlogRoutes", () => {
+  it("maps each post file to its /blog route", () => {
+    // Derived from the content on disk rather than pinned slugs, so
+    // renaming a post can't leave this asserting a stale route.
+    const files = fs
+      .readdirSync(path.join(ROOT, "content", "blog"))
+      .filter((name) => name.endsWith(".mdx"));
+    const routes = getBlogRoutes();
+
+    expect(files.length).toBeGreaterThan(0);
+    for (const file of files) {
+      expect(routes).toContain(`/blog/${file.replace(/\.mdx$/, "")}`);
+    }
+  });
+
+  it("adds kebab-case tag routes under /blog/tags", () => {
+    const tagRoutes = getBlogRoutes().filter((route) =>
+      route.startsWith("/blog/tags/"),
+    );
+
+    expect(tagRoutes.length).toBeGreaterThan(0);
+    for (const route of tagRoutes) {
+      expect(route).toMatch(/^\/blog\/tags\/[a-z0-9]+(?:-[a-z0-9]+)*$/);
+    }
+  });
+
+  it("has no duplicate routes", () => {
+    const routes = getBlogRoutes();
 
     expect(new Set(routes).size).toBe(routes.length);
   });
@@ -293,6 +330,19 @@ describe("main", () => {
     // the derivation itself is covered by the getDocsRoutes tests, so this
     // only asserts that every derived route lands in the sitemap.
     const routes = getDocsRoutes();
+    expect(routes.length).toBeGreaterThan(0);
+    for (const route of routes) {
+      expect(writtenContent).toContain(`<loc>${SITE_URL}${route}</loc>`);
+    }
+  });
+
+  it("includes every blog post and tag page", () => {
+    main();
+
+    // Same shape as the docs assertion: the derivation is covered by the
+    // getBlogRoutes tests, so this only asserts the routes land in the
+    // sitemap.
+    const routes = getBlogRoutes();
     expect(routes.length).toBeGreaterThan(0);
     for (const route of routes) {
       expect(writtenContent).toContain(`<loc>${SITE_URL}${route}</loc>`);

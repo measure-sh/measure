@@ -1,5 +1,6 @@
 "use client";
 
+import { Rss } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
@@ -24,7 +25,20 @@ function useIsSmallScreen() {
   );
 }
 
-export default function LandingHeader() {
+interface LandingHeaderProps {
+  /** Middle nav links (Pricing, Docs, About, Blog). */
+  showNavLinks?: boolean;
+  /** Sign In and Get Started links. */
+  showCtas?: boolean;
+  /** Icon link to the blog RSS feed. */
+  showRssFeed?: boolean;
+}
+
+export default function LandingHeader({
+  showNavLinks = true,
+  showCtas = true,
+  showRssFeed = false,
+}: LandingHeaderProps) {
   const scrollDir = useScrollDirection();
   const [isFocused, setIsFocused] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -98,41 +112,53 @@ export default function LandingHeader() {
         </button>
 
         {/* Desktop nav - hidden on small screens */}
-        <div className="hidden md:flex md:flex-row items-center justify-center md:ml-24">
-          <Link
-            href="/pricing"
-            className={cn(buttonVariants({ variant: "ghost" }), "w-24")}
-          >
-            Pricing
-          </Link>
-          <Link
-            href="/docs"
-            className={cn(buttonVariants({ variant: "ghost" }), "w-24")}
-          >
-            Docs
-          </Link>
-          <Link
-            href="/about"
-            className={cn(buttonVariants({ variant: "ghost" }), "w-24")}
-          >
-            About
-          </Link>
-          <Link
-            href="https://blog.measure.sh/"
-            className={cn(buttonVariants({ variant: "ghost" }), "w-24")}
-          >
-            Blog
-          </Link>
-        </div>
+        {showNavLinks && (
+          <div className="hidden md:flex md:flex-row items-center justify-center md:ml-24">
+            <Link
+              href="/pricing"
+              className={cn(buttonVariants({ variant: "ghost" }), "w-24")}
+            >
+              Pricing
+            </Link>
+            <Link
+              href="/docs"
+              className={cn(buttonVariants({ variant: "ghost" }), "w-24")}
+            >
+              Docs
+            </Link>
+            <Link
+              href="/about"
+              className={cn(buttonVariants({ variant: "ghost" }), "w-24")}
+            >
+              About
+            </Link>
+            <Link
+              href="/blog"
+              className={cn(buttonVariants({ variant: "ghost" }), "w-24")}
+            >
+              Blog
+            </Link>
+          </div>
+        )}
 
         {/* Desktop actions - hidden on small screens */}
         <div className="hidden md:flex md:flex-row items-center justify-center">
           <ThemeToggle />
-          <div className="px-2" />
+          {showRssFeed && (
+            <>
+              <a
+                href="/blog/rss.xml"
+                aria-label="RSS feed"
+                className={cn(buttonVariants({ variant: "ghost" }))}
+              >
+                <Rss className="w-4 h-4" />
+              </a>
+            </>
+          )}
           <TrackGithubLink
             target="_blank"
             href="https://github.com/measure-sh/measure"
-            className={cn(buttonVariants({ variant: "ghost" }), "group px-2")}
+            className={cn(buttonVariants({ variant: "ghost" }), "px-3")}
           >
             <Image
               src="/images/github_logo_black.svg"
@@ -148,26 +174,29 @@ export default function LandingHeader() {
               className="w-4 h-4 hidden dark:block"
               alt={"GitHub logo"}
             />
-            <span className="mt-0.5">1.3k</span>
           </TrackGithubLink>
-          <div className="px-1" />
-          <TrackCtaLink
-            location="header"
-            destination="signup"
-            href="/auth/login"
-            className={cn(buttonVariants({ variant: "ghost" }), "px-4")}
-          >
-            Sign In
-          </TrackCtaLink>
-          <div className="px-1" />
-          <TrackCtaLink
-            location="header"
-            destination="signup"
-            href="/auth/login"
-            className={cn(buttonVariants({ variant: "default" }))}
-          >
-            Get Started
-          </TrackCtaLink>
+          {showCtas && (
+            <>
+              <div className="px-1" />
+              <TrackCtaLink
+                location="header"
+                destination="signup"
+                href="/auth/login"
+                className={cn(buttonVariants({ variant: "ghost" }), "px-4")}
+              >
+                Sign In
+              </TrackCtaLink>
+              <div className="px-1" />
+              <TrackCtaLink
+                location="header"
+                destination="signup"
+                href="/auth/login"
+                className={cn(buttonVariants({ variant: "default" }))}
+              >
+                Get Started
+              </TrackCtaLink>
+            </>
+          )}
         </div>
       </div>
 
@@ -178,48 +207,64 @@ export default function LandingHeader() {
           isMenuOpen ? "max-h-96 pb-4" : "max-h-0",
         )}
       >
-        <Link
-          href="/pricing"
-          className={cn(
-            buttonVariants({ variant: "ghost" }),
-            "w-full justify-center",
-          )}
-          onClick={() => setIsMenuOpen(false)}
-        >
-          Pricing
-        </Link>
-        <Link
-          href="/docs"
-          className={cn(
-            buttonVariants({ variant: "ghost" }),
-            "w-full justify-center",
-          )}
-          onClick={() => setIsMenuOpen(false)}
-        >
-          Docs
-        </Link>
-        <Link
-          href="/about"
-          className={cn(
-            buttonVariants({ variant: "ghost" }),
-            "font-display select-none w-full justify-center",
-          )}
-          onClick={() => setIsMenuOpen(false)}
-        >
-          About
-        </Link>
-        <Link
-          href="https://blog.measure.sh"
-          className={cn(
-            buttonVariants({ variant: "ghost" }),
-            "w-full justify-center",
-          )}
-          onClick={() => setIsMenuOpen(false)}
-        >
-          Blog
-        </Link>
-        <div className="py-2" />
+        {showNavLinks && (
+          <>
+            <Link
+              href="/pricing"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "w-full justify-center",
+              )}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Pricing
+            </Link>
+            <Link
+              href="/docs"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "w-full justify-center",
+              )}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Docs
+            </Link>
+            <Link
+              href="/about"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full justify-center",
+              )}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              About
+            </Link>
+            <Link
+              href="https://blog.measure.sh"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "w-full justify-center",
+              )}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Blog
+            </Link>
+            <div className="py-2" />
+          </>
+        )}
         <ThemeToggle />
+        {showRssFeed && (
+          <>
+            <div className="py-1" />
+            <a
+              href="/blog/rss.xml"
+              aria-label="RSS feed"
+              className={cn(buttonVariants({ variant: "ghost" }))}
+            >
+              <Rss className="w-4 h-4" />
+            </a>
+          </>
+        )}
         <div className="py-1" />
         <TrackGithubLink
           target="_blank"
@@ -240,28 +285,31 @@ export default function LandingHeader() {
             className="w-4 h-4 hidden dark:block"
             alt={"GitHub logo"}
           />
-          <span className="mt-0.5">1.1k</span>
         </TrackGithubLink>
-        <div className="py-1" />
-        <TrackCtaLink
-          location="header"
-          destination="signup"
-          href="/auth/login"
-          className={cn(buttonVariants({ variant: "ghost" }))}
-          onClick={() => setIsMenuOpen(false)}
-        >
-          Sign In
-        </TrackCtaLink>
-        <div className="py-1" />
-        <TrackCtaLink
-          location="header"
-          destination="signup"
-          href="/auth/login"
-          className={cn(buttonVariants({ variant: "default" }))}
-          onClick={() => setIsMenuOpen(false)}
-        >
-          Get Started
-        </TrackCtaLink>
+        {showCtas && (
+          <>
+            <div className="py-1" />
+            <TrackCtaLink
+              location="header"
+              destination="signup"
+              href="/auth/login"
+              className={cn(buttonVariants({ variant: "ghost" }))}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Sign In
+            </TrackCtaLink>
+            <div className="py-1" />
+            <TrackCtaLink
+              location="header"
+              destination="signup"
+              href="/auth/login"
+              className={cn(buttonVariants({ variant: "default" }))}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Get Started
+            </TrackCtaLink>
+          </>
+        )}
       </div>
     </header>
   );
