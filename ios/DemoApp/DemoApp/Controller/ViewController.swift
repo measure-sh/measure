@@ -75,6 +75,7 @@ import Measure
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        Measure.logError("Home Error")
 
         let attributes: [String: AttributeValue] = ["user_name": .string("Alice"),
                                                     "paid_user": .boolean(true),

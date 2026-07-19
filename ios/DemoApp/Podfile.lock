@@ -22,10 +22,10 @@ PODS:
   - KSCrash/Sinks (2.5.1):
     - KSCrash/Filters
     - KSCrash/Recording
-  - measure-sh (0.10.0):
+  - measure-sh (0.11.0):
     - KSCrash (~> 2.5)
-    - measure-sh/WebP (= 0.10.0)
-  - measure-sh/WebP (0.10.0):
+    - measure-sh/WebP (= 0.11.0)
+  - measure-sh/WebP (0.11.0):
     - KSCrash (~> 2.5)
 
 DEPENDENCIES:
@@ -41,7 +41,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   KSCrash: 8c4464fd5da7de520f2ce4a00fdf63f169a80f18
-  measure-sh: cb4133b7169721eca11a96d473a1c904c94bf8e2
+  measure-sh: 653622eb0cf3ca79dd81d1a6f541b26f8814d392
 
 PODFILE CHECKSUM: 828d9701ce9dd588cdabe7bc1a8cb829d2a17f97
 
