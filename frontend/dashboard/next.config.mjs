@@ -21,21 +21,30 @@ const nextConfig = {
   // at runtime. Next's tracer can't infer these dynamic reads, so include
   // them explicitly in the standalone output. Without this, agents
   // requesting Accept:text/markdown would get 406 in production. Docs
-  // markdown doesn't need tracing: the /llms.mdx route is fully static.
+  // markdown doesn't need tracing: the /llms.docs route is fully static.
   outputFileTracingIncludes: {
     "/page-md/[...path]": ["./app/**/page.md"],
   },
-  // Docs pages are also served as processed markdown at their URL plus a
-  // .md suffix, handled by the static /llms.mdx route.
+  // Docs and blog pages are also served as processed markdown at their
+  // URL plus a .md suffix, handled by the static /llms.docs and /llms.blog
+  // routes.
   async rewrites() {
     return [
       {
         source: "/docs.md",
-        destination: "/llms.mdx",
+        destination: "/llms.docs",
       },
       {
         source: "/docs/:path*.md",
-        destination: "/llms.mdx/:path*",
+        destination: "/llms.docs/:path*",
+      },
+      {
+        source: "/blog.md",
+        destination: "/llms.blog",
+      },
+      {
+        source: "/blog/:path*.md",
+        destination: "/llms.blog/:path*",
       },
     ];
   },

@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { parse: parseYaml } = require("yaml");
 
 const ROOT = path.resolve(__dirname, "..");
 const APP_DIR = path.join(ROOT, "app");
@@ -49,6 +50,40 @@ function getDocsRoutes() {
   }
 
   walkDocs(contentDir);
+  return routes;
+}
+
+/** Parsed frontmatter of a blog .mdx file, or {} when it has none. */
+function blogFrontmatter(file) {
+  const raw = fs.readFileSync(file, "utf8");
+  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!match) return {};
+  return parseYaml(match[1]) || {};
+}
+
+/**
+ * Blog post and tag routes from the content/blog .mdx sources. Posts are
+ * flat (no nested slugs); tag pages exist for every tag any post carries.
+ */
+function getBlogRoutes() {
+  const contentDir = path.join(ROOT, "content", "blog");
+  if (!fs.existsSync(contentDir)) return [];
+
+  const routes = [];
+  const tags = new Set();
+
+  for (const entry of fs.readdirSync(contentDir, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith(".mdx")) continue;
+    routes.push(`/blog/${entry.name.replace(/\.mdx$/, "")}`);
+    const data = blogFrontmatter(path.join(contentDir, entry.name));
+    for (const tag of Array.isArray(data.tags) ? data.tags : []) {
+      tags.add(tag);
+    }
+  }
+
+  for (const tag of tags) {
+    routes.push(`/blog/tags/${tag}`);
+  }
   return routes;
 }
 
@@ -114,6 +149,10 @@ function main() {
     routes.add(route);
   }
 
+  for (const route of getBlogRoutes()) {
+    routes.add(route);
+  }
+
   const urls = Array.from(routes)
     .sort()
     .map((r) => (r === "/" ? SITE_URL : `${SITE_URL}${r}`));
@@ -134,6 +173,7 @@ module.exports = {
   isDynamic,
   isExcluded,
   getDocsRoutes,
+  getBlogRoutes,
   buildSitemap,
   ensurePublicDir,
   main,

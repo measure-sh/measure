@@ -105,6 +105,10 @@ const config: Config = {
     // jest's jsdom resolver does not try; point it at the client build the
     // browser bundle would get.
     "^fumadocs-ui/mdx$": "<rootDir>/node_modules/fumadocs-ui/dist/mdx.js",
+    // yaml's export map serves its ESM browser build unless the node
+    // condition applies, which jest's jsdom resolver does not try; point
+    // it at the CJS build node would get.
+    "^yaml$": "<rootDir>/node_modules/yaml/dist/index.js",
   },
 
   // Skip Next.js build output so jest-haste-map doesn't see duplicate

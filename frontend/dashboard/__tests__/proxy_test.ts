@@ -177,16 +177,16 @@ describe("proxy", () => {
       expect(result.url).toBe("https://measure.sh/page-md/product/mcp");
     });
 
-    it("rewrites docs paths to the /llms.mdx processed-markdown route", () => {
+    it("rewrites docs paths to the /llms.docs processed-markdown route", () => {
       const result: any = proxy(makeRequest("/docs/sdk-integration-guide"));
       expect(result.url).toBe(
-        "https://measure.sh/llms.mdx/sdk-integration-guide",
+        "https://measure.sh/llms.docs/sdk-integration-guide",
       );
     });
 
-    it("rewrites the docs index to /llms.mdx (no trailing segment)", () => {
+    it("rewrites the docs index to /llms.docs (no trailing segment)", () => {
       const result: any = proxy(makeRequest("/docs"));
-      expect(result.url).toBe("https://measure.sh/llms.mdx");
+      expect(result.url).toBe("https://measure.sh/llms.docs");
     });
 
     it("rewrites nested docs paths", () => {
@@ -194,25 +194,57 @@ describe("proxy", () => {
         makeRequest("/docs/features/feature-crash-reporting"),
       );
       expect(result.url).toBe(
-        "https://measure.sh/llms.mdx/features/feature-crash-reporting",
+        "https://measure.sh/llms.docs/features/feature-crash-reporting",
       );
     });
 
     it("strips an explicit .md suffix on docs paths instead of double-suffixing", () => {
       const result: any = proxy(makeRequest("/docs/sdk-integration-guide.md"));
       expect(result.url).toBe(
-        "https://measure.sh/llms.mdx/sdk-integration-guide",
+        "https://measure.sh/llms.docs/sdk-integration-guide",
       );
     });
 
-    it("routes /docs.md (the docs index markdown URL) to /llms.mdx", () => {
+    it("routes /docs.md (the docs index markdown URL) to /llms.docs", () => {
       const result: any = proxy(makeRequest("/docs.md"));
-      expect(result.url).toBe("https://measure.sh/llms.mdx");
+      expect(result.url).toBe("https://measure.sh/llms.docs");
     });
 
     it("does not treat /docsomething as a docs path", () => {
       const result: any = proxy(makeRequest("/docsomething"));
       expect(result.url).toBe("https://measure.sh/page-md/docsomething");
+    });
+
+    it("rewrites blog post paths to the /llms.blog processed-markdown route", () => {
+      const result: any = proxy(makeRequest("/blog/some-post"));
+      expect(result.url).toBe("https://measure.sh/llms.blog/some-post");
+    });
+
+    it("rewrites the blog index to /llms.blog (markdown post index)", () => {
+      const result: any = proxy(makeRequest("/blog"));
+      expect(result.url).toBe("https://measure.sh/llms.blog");
+    });
+
+    it("strips an explicit .md suffix on blog paths instead of double-suffixing", () => {
+      const result: any = proxy(makeRequest("/blog/some-post.md"));
+      expect(result.url).toBe("https://measure.sh/llms.blog/some-post");
+    });
+
+    it("routes /blog.md (the blog index markdown URL) to /llms.blog", () => {
+      const result: any = proxy(makeRequest("/blog.md"));
+      expect(result.url).toBe("https://measure.sh/llms.blog");
+    });
+
+    it("does not treat /blogsomething as a blog path", () => {
+      const result: any = proxy(makeRequest("/blogsomething"));
+      expect(result.url).toBe("https://measure.sh/page-md/blogsomething");
+    });
+
+    it("routes blog tag pages to /llms.blog, where non-post slugs 404", () => {
+      const result: any = proxy(makeRequest("/blog/tags/announcements"));
+      expect(result.url).toBe(
+        "https://measure.sh/llms.blog/tags/announcements",
+      );
     });
 
     it("rewrites pages with query strings (search params preserved on the URL)", () => {
@@ -263,13 +295,15 @@ describe("proxy", () => {
       expect(sourceRegex.test("/page-md/about")).toBe(false);
       expect(sourceRegex.test("/llms.txt")).toBe(false);
       expect(sourceRegex.test("/llms-full.txt")).toBe(false);
-      expect(sourceRegex.test("/llms.mdx/sdk-integration-guide")).toBe(false);
+      expect(sourceRegex.test("/llms.docs/sdk-integration-guide")).toBe(false);
+      expect(sourceRegex.test("/llms.blog/some-post")).toBe(false);
       expect(sourceRegex.test("/api/teams")).toBe(false);
       expect(sourceRegex.test("/yrtmlt/decide")).toBe(false);
       expect(sourceRegex.test("/favicon.ico")).toBe(false);
       // Should match (paths the markdown rewrite handles)
       expect(sourceRegex.test("/about")).toBe(true);
       expect(sourceRegex.test("/docs/foo")).toBe(true);
+      expect(sourceRegex.test("/blog/some-post")).toBe(true);
       expect(sourceRegex.test("/product/mcp")).toBe(true);
     });
 
