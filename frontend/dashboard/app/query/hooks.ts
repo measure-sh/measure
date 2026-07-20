@@ -208,7 +208,10 @@ export function useAppsQuery(teamId: string | undefined) {
     queryKey: ["filterApps", teamId] as const,
     queryFn: async () => {
       const r = await fetchAppsFromServer(teamId!);
-      if (r.status === AppsApiStatus.Error) {
+      if (
+        r.status !== AppsApiStatus.Success &&
+        r.status !== AppsApiStatus.NoApps
+      ) {
         throw new Error("Failed to fetch apps");
       }
       return { status: r.status, data: (r.data as App[] | null) ?? [] };
@@ -242,7 +245,12 @@ export function useFilterOptionsQuery(
         return { status: FiltersApiStatus.NotOnboarded, data: null };
       }
       const r = await fetchFiltersFromServer(app!, filterSource);
-      if (r.status === FiltersApiStatus.Error) {
+      if (
+        r.status !== FiltersApiStatus.Success &&
+        r.status !== FiltersApiStatus.NotOnboarded &&
+        r.status !== FiltersApiStatus.NoData &&
+        r.status !== FiltersApiStatus.NoBuilds
+      ) {
         throw new Error("Failed to fetch filters");
       }
       const parsed = r.data ? parseFilterResponse(r.data) : null;
@@ -265,7 +273,10 @@ export function useRootSpanNamesQuery(
     queryKey: ["rootSpanNames", app?.id] as const,
     queryFn: async () => {
       const r = await fetchRootSpanNamesFromServer(app!);
-      if (r.status === RootSpanNamesApiStatus.Error) {
+      if (
+        r.status !== RootSpanNamesApiStatus.Success &&
+        r.status !== RootSpanNamesApiStatus.NoData
+      ) {
         throw new Error("Failed to fetch root span names");
       }
       return {
@@ -479,7 +490,7 @@ export function useMetricsQuery() {
     queryKey: ["metrics", filters.serialisedFilters] as const,
     queryFn: async () => {
       const result = await fetchMetricsFromServer(filters);
-      if (result.status === MetricsApiStatus.Error) {
+      if (result.status !== MetricsApiStatus.Success) {
         throw new Error("Failed to fetch metrics");
       }
       return result.data;
@@ -493,7 +504,7 @@ export function useAppThresholdPrefsQuery(appId: string | undefined) {
     queryKey: ["appThresholdPrefs", appId] as const,
     queryFn: async () => {
       const result = await fetchAppThresholdPrefsFromServer(appId!);
-      if (result.status === FetchAppThresholdPrefsApiStatus.Error) {
+      if (result.status !== FetchAppThresholdPrefsApiStatus.Success) {
         throw new Error("Failed to fetch threshold prefs");
       }
       return result.data;
@@ -518,11 +529,11 @@ export function useJourneyQuery(
     ] as const,
     queryFn: async () => {
       const result = await fetchJourneyFromServer(bidirectional, filters);
-      if (result.status === JourneyApiStatus.Error) {
-        throw new Error("Failed to fetch journey");
-      }
       if (result.status === JourneyApiStatus.NoData) {
         return null;
+      }
+      if (result.status !== JourneyApiStatus.Success) {
+        throw new Error("Failed to fetch journey");
       }
       return result.data;
     },
@@ -538,11 +549,11 @@ export function useNetworkDomainsQuery() {
     queryKey: ["networkDomains", filters.serialisedFilters] as const,
     queryFn: async () => {
       const result = await fetchNetworkDomainsFromServer(filters.app!, filters);
-      if (result.status === NetworkDomainsApiStatus.Error) {
-        throw new Error("Failed to fetch domains");
-      }
       if (result.status === NetworkDomainsApiStatus.NoData) {
         return null;
+      }
+      if (result.status !== NetworkDomainsApiStatus.Success) {
+        throw new Error("Failed to fetch domains");
       }
       return result.data.results as string[];
     },
@@ -566,11 +577,11 @@ export function useNetworkPathsQuery(domain: string, searchPattern: string) {
         searchPattern,
         filters,
       );
-      if (result.status === NetworkPathsApiStatus.Error) {
-        throw new Error("Failed to fetch paths");
-      }
       if (result.status === NetworkPathsApiStatus.NoData) {
         return null;
+      }
+      if (result.status !== NetworkPathsApiStatus.Success) {
+        throw new Error("Failed to fetch paths");
       }
       return result.data.results as string[];
     },
@@ -585,11 +596,11 @@ export function useNetworkStatusPlotQuery() {
     queryFn: async () => {
       const result =
         await fetchNetworkOverviewStatusCodesPlotFromServer(filters);
-      if (result.status === NetworkOverviewStatusCodesPlotApiStatus.Error) {
-        throw new Error("Failed to fetch status plot");
-      }
       if (result.status === NetworkOverviewStatusCodesPlotApiStatus.NoData) {
         return null;
+      }
+      if (result.status !== NetworkOverviewStatusCodesPlotApiStatus.Success) {
+        throw new Error("Failed to fetch status plot");
       }
       return result.data;
     },
@@ -603,11 +614,11 @@ export function useNetworkTimelineQuery() {
     queryKey: ["networkTimeline", filters.serialisedFilters] as const,
     queryFn: async () => {
       const result = await fetchNetworkTimelinePlotFromServer(filters, 10);
-      if (result.status === NetworkTimelinePlotApiStatus.Error) {
-        throw new Error("Failed to fetch timeline");
-      }
       if (result.status === NetworkTimelinePlotApiStatus.NoData) {
         return null;
+      }
+      if (result.status !== NetworkTimelinePlotApiStatus.Success) {
+        throw new Error("Failed to fetch timeline");
       }
       return result.data;
     },
@@ -632,11 +643,11 @@ export function useNetworkEndpointLatencyQuery(domain: string, path: string) {
         domain,
         path,
       );
-      if (result.status === NetworkEndpointLatencyPlotApiStatus.Error) {
-        throw new Error("Failed to fetch latency");
-      }
       if (result.status === NetworkEndpointLatencyPlotApiStatus.NoData) {
         return null;
+      }
+      if (result.status !== NetworkEndpointLatencyPlotApiStatus.Success) {
+        throw new Error("Failed to fetch latency");
       }
       return result.data;
     },
@@ -662,11 +673,11 @@ export function useNetworkEndpointStatusCodesQuery(
         domain,
         path,
       );
-      if (result.status === NetworkEndpointStatusCodesPlotApiStatus.Error) {
-        throw new Error("Failed to fetch status codes");
-      }
       if (result.status === NetworkEndpointStatusCodesPlotApiStatus.NoData) {
         return null;
+      }
+      if (result.status !== NetworkEndpointStatusCodesPlotApiStatus.Success) {
+        throw new Error("Failed to fetch status codes");
       }
       return result.data;
     },
@@ -689,11 +700,11 @@ export function useNetworkEndpointTimelineQuery(domain: string, path: string) {
         domain,
         path,
       );
-      if (result.status === NetworkEndpointTimelinePlotApiStatus.Error) {
-        throw new Error("Failed to fetch endpoint timeline");
-      }
       if (result.status === NetworkEndpointTimelinePlotApiStatus.NoData) {
         return null;
+      }
+      if (result.status !== NetworkEndpointTimelinePlotApiStatus.Success) {
+        throw new Error("Failed to fetch endpoint timeline");
       }
       return result.data;
     },
@@ -709,11 +720,11 @@ export function useNetworkTrendsQuery(active: boolean) {
     queryKey: ["networkTrends", filters.serialisedFilters] as const,
     queryFn: async () => {
       const result = await fetchNetworkTrendsFromServer(filters, 15);
-      if (result.status === NetworkTrendsApiStatus.Error) {
-        throw new Error("Failed to fetch trends");
-      }
       if (result.status === NetworkTrendsApiStatus.NoData) {
         return null;
+      }
+      if (result.status !== NetworkTrendsApiStatus.Success) {
+        throw new Error("Failed to fetch trends");
       }
       return result.data;
     },
@@ -729,11 +740,11 @@ export function useBugReportsOverviewPlotQuery() {
     queryKey: ["bugReportsOverviewPlot", filters.serialisedFilters] as const,
     queryFn: async () => {
       const result = await fetchBugReportsOverviewPlotFromServer(filters);
-      if (result.status === BugReportsOverviewPlotApiStatus.Error) {
-        throw new Error("Failed to fetch bug reports plot");
-      }
       if (result.status === BugReportsOverviewPlotApiStatus.NoData) {
         return null;
+      }
+      if (result.status !== BugReportsOverviewPlotApiStatus.Success) {
+        throw new Error("Failed to fetch bug reports plot");
       }
       return mapPlotData(result.data);
     },
@@ -750,11 +761,11 @@ export function useSessionTimelinesOverviewPlotQuery() {
     ] as const,
     queryFn: async () => {
       const result = await fetchSessionTimelinesOverviewPlotFromServer(filters);
-      if (result.status === SessionTimelinesOverviewPlotApiStatus.Error) {
-        throw new Error("Failed to fetch session timelines plot");
-      }
       if (result.status === SessionTimelinesOverviewPlotApiStatus.NoData) {
         return null;
+      }
+      if (result.status !== SessionTimelinesOverviewPlotApiStatus.Success) {
+        throw new Error("Failed to fetch session timelines plot");
       }
       return mapPlotData(result.data);
     },
@@ -768,11 +779,11 @@ export function useAppHealthPlotQuery() {
     queryKey: ["appHealthPlot", filters.serialisedFilters] as const,
     queryFn: async () => {
       const result = await fetchAppHealthPlotFromServer(filters);
-      if (result.status === AppHealthPlotApiStatus.Error) {
-        throw new Error("Failed to fetch app health plot");
-      }
       if (result.status === AppHealthPlotApiStatus.NoData) {
         return null;
+      }
+      if (result.status !== AppHealthPlotApiStatus.Success) {
+        throw new Error("Failed to fetch app health plot");
       }
       return result.data;
     },
@@ -788,11 +799,11 @@ export function useSpanMetricsPlotQuery(quantile: RootSpanMetricsQuantile) {
     queryKey: ["spanMetricsPlot", filters.serialisedFilters] as const,
     queryFn: async () => {
       const result = await fetchSpanMetricsPlotFromServer(filters);
-      if (result.status === SpanMetricsPlotApiStatus.Error) {
-        throw new Error("Failed to fetch span metrics plot");
-      }
       if (result.status === SpanMetricsPlotApiStatus.NoData) {
         return null;
+      }
+      if (result.status !== SpanMetricsPlotApiStatus.Success) {
+        throw new Error("Failed to fetch span metrics plot");
       }
       return result.data;
     },
@@ -821,7 +832,7 @@ export function useAlertsOverviewQuery(paginationOffset: number) {
         ALERTS_LIMIT,
         paginationOffset,
       );
-      if (result.status === AlertsOverviewApiStatus.Error) {
+      if (result.status !== AlertsOverviewApiStatus.Success) {
         throw new Error("Failed to fetch alerts");
       }
       return result.data;
@@ -849,7 +860,7 @@ export function useBugReportsOverviewQuery(paginationOffset: number) {
         BUG_REPORTS_LIMIT,
         paginationOffset,
       );
-      if (result.status === BugReportsOverviewApiStatus.Error) {
+      if (result.status !== BugReportsOverviewApiStatus.Success) {
         throw new Error("Failed to fetch bug reports");
       }
       return result.data;
@@ -873,7 +884,7 @@ export function useBuildsQuery(paginationOffset: number) {
         BUILDS_LIMIT,
         paginationOffset,
       );
-      if (result.status === BuildsApiStatus.Error) {
+      if (result.status !== BuildsApiStatus.Success) {
         throw new Error("Failed to fetch builds");
       }
       return result.data;
@@ -897,7 +908,7 @@ export function useSpansQuery(paginationOffset: number) {
         TRACES_LIMIT,
         paginationOffset,
       );
-      if (result.status === SpansApiStatus.Error) {
+      if (result.status !== SpansApiStatus.Success) {
         throw new Error("Failed to fetch spans");
       }
       return result.data;
@@ -925,7 +936,7 @@ export function useSessionTimelinesOverviewQuery(paginationOffset: number) {
         SESSION_TIMELINES_LIMIT,
         paginationOffset,
       );
-      if (result.status === SessionTimelinesOverviewApiStatus.Error) {
+      if (result.status !== SessionTimelinesOverviewApiStatus.Success) {
         throw new Error("Failed to fetch session timelines");
       }
       return result.data;
@@ -954,7 +965,7 @@ export function useErrorsOverviewQuery(paginationOffset: number) {
         ERRORS_OVERVIEW_LIMIT,
         paginationOffset,
       );
-      if (result.status === ErrorsOverviewApiStatus.Error) {
+      if (result.status !== ErrorsOverviewApiStatus.Success) {
         throw new Error("Failed to fetch errors overview");
       }
       return result.data;
@@ -969,11 +980,11 @@ export function useErrorsOverviewPlotQuery() {
     queryKey: ["errorsOverviewPlot", filters.serialisedFilters] as const,
     queryFn: async () => {
       const result = await fetchErrorsOverviewPlotFromServer(filters);
-      if (result.status === ErrorsOverviewPlotApiStatus.Error) {
-        throw new Error("Failed to fetch errors plot");
-      }
       if (result.status === ErrorsOverviewPlotApiStatus.NoData) {
         return null;
+      }
+      if (result.status !== ErrorsOverviewPlotApiStatus.Success) {
+        throw new Error("Failed to fetch errors plot");
       }
       return mapPlotData(result.data);
     },
@@ -1001,7 +1012,7 @@ export function useErrorsDetailsQuery(
         filters,
         ERRORS_DETAILS_LIMIT,
       );
-      if (result.status === ErrorsDetailsApiStatus.Error) {
+      if (result.status !== ErrorsDetailsApiStatus.Success) {
         throw new Error("Failed to fetch error details");
       }
       return result.data;
@@ -1023,11 +1034,11 @@ export function useErrorsDetailsPlotQuery(errorGroupId: string) {
         errorGroupId,
         filters,
       );
-      if (result.status === ErrorsDetailsPlotApiStatus.Error) {
-        throw new Error("Failed to fetch error details plot");
-      }
       if (result.status === ErrorsDetailsPlotApiStatus.NoData) {
         return null;
+      }
+      if (result.status !== ErrorsDetailsPlotApiStatus.Success) {
+        throw new Error("Failed to fetch error details plot");
       }
       return mapPlotData(result.data);
     },
@@ -1048,11 +1059,11 @@ export function useErrorsDistributionPlotQuery(errorGroupId: string) {
         errorGroupId,
         filters,
       );
-      if (result.status === ErrorsDistributionPlotApiStatus.Error) {
-        throw new Error("Failed to fetch error distribution plot");
-      }
       if (result.status === ErrorsDistributionPlotApiStatus.NoData) {
         return null;
+      }
+      if (result.status !== ErrorsDistributionPlotApiStatus.Success) {
+        throw new Error("Failed to fetch error distribution plot");
       }
       return parseDistributionPlot(result.data);
     },
@@ -1069,7 +1080,7 @@ export function useErrorGroupCommonPathQuery(errorGroupId: string) {
         errorGroupId,
         filters,
       );
-      if (result.status === ErrorGroupCommonPathApiStatus.Error) {
+      if (result.status !== ErrorGroupCommonPathApiStatus.Success) {
         throw new Error("Failed to fetch error group common path");
       }
       return result.data as ExceptionGroupCommonPath;
@@ -1085,7 +1096,7 @@ export function useTeamsQuery() {
     queryKey: ["teams"] as const,
     queryFn: async () => {
       const result = await fetchTeamsFromServer();
-      if (result.status === TeamsApiStatus.Error) {
+      if (result.status !== TeamsApiStatus.Success) {
         throw new Error("Failed to fetch teams");
       }
       return result.data;
@@ -1100,7 +1111,7 @@ export function useTraceQuery(appId: string, traceId: string) {
     queryKey: ["trace", appId, traceId] as const,
     queryFn: async () => {
       const result = await fetchTraceFromServer(appId, traceId);
-      if (result.status === TraceApiStatus.Error) {
+      if (result.status !== TraceApiStatus.Success) {
         throw new Error("Failed to fetch trace");
       }
       return result.data;
@@ -1116,7 +1127,7 @@ export function useSessionTimelineQuery(appId: string, sessionId: string) {
     queryKey: ["sessionTimeline", appId, sessionId] as const,
     queryFn: async () => {
       const result = await fetchSessionTimelineFromServer(appId, sessionId);
-      if (result.status === SessionTimelineApiStatus.Error) {
+      if (result.status !== SessionTimelineApiStatus.Success) {
         throw new Error("Failed to fetch session timeline");
       }
       return result.data;
@@ -1132,7 +1143,7 @@ export function useBugReportQuery(appId: string, bugReportId: string) {
     queryKey: ["bugReport", appId, bugReportId] as const,
     queryFn: async () => {
       const result = await fetchBugReportFromServer(appId, bugReportId);
-      if (result.status === BugReportApiStatus.Error) {
+      if (result.status !== BugReportApiStatus.Success) {
         throw new Error("Failed to fetch bug report");
       }
       return result.data;
@@ -1153,7 +1164,7 @@ export function useToggleBugReportStatusMutation() {
         params.bugReportId,
         params.newStatus,
       );
-      if (result.status === UpdateBugReportStatusApiStatus.Error) {
+      if (result.status !== UpdateBugReportStatusApiStatus.Success) {
         throw new Error("Failed to update bug report status");
       }
     },
@@ -1173,7 +1184,7 @@ export function useNotifPrefsQuery() {
     queryKey: ["notifPrefs"] as const,
     queryFn: async () => {
       const result = await fetchNotifPrefsFromServer();
-      if (result.status === FetchNotifPrefsApiStatus.Error) {
+      if (result.status !== FetchNotifPrefsApiStatus.Success) {
         throw new Error("Failed to fetch notification preferences");
       }
       return result.data;
@@ -1185,7 +1196,7 @@ export function useSaveNotifPrefsMutation() {
   return useMutation({
     mutationFn: async (params: { notifPrefs: typeof emptyNotifPrefs }) => {
       const result = await updateNotifPrefsFromServer(params.notifPrefs);
-      if (result.status === UpdateNotifPrefsApiStatus.Error) {
+      if (result.status !== UpdateNotifPrefsApiStatus.Success) {
         throw new Error("Failed to save notification preferences");
       }
     },
@@ -1204,6 +1215,9 @@ export function useCreateAppMutation() {
       if (result.status === CreateAppApiStatus.Error) {
         throw new Error(result.error ?? "Failed to create app");
       }
+      if (result.status !== CreateAppApiStatus.Success) {
+        throw new Error("Failed to create app");
+      }
       return result.data;
     },
     onSuccess: () => {
@@ -1220,6 +1234,9 @@ export function useCreateTeamMutation() {
       const result = await createTeamFromServer(params.teamName);
       if (result.status === CreateTeamApiStatus.Error) {
         throw new Error(result.error ?? "Failed to create team");
+      }
+      if (result.status !== CreateTeamApiStatus.Success) {
+        throw new Error("Failed to create team");
       }
       return result.data as Team;
     },
@@ -1239,7 +1256,7 @@ export function useAuthzAndMembersQuery(teamId: string | undefined) {
     queryKey: ["authzAndMembers", teamId] as const,
     queryFn: async () => {
       const result = await fetchAuthzAndMembersFromServer(teamId!);
-      if (result.status === AuthzAndMembersApiStatus.Error) {
+      if (result.status !== AuthzAndMembersApiStatus.Success) {
         throw new Error("Failed to fetch authz and members");
       }
       return result.data;
@@ -1253,7 +1270,7 @@ export function useAppRetentionQuery(appId: string | undefined) {
     queryKey: ["appRetention", appId] as const,
     queryFn: async () => {
       const result = await fetchAppRetentionFromServer(appId!);
-      if (result.status === FetchAppRetentionApiStatus.Error) {
+      if (result.status !== FetchAppRetentionApiStatus.Success) {
         throw new Error("Failed to fetch app retention");
       }
       return result.data;
@@ -1267,7 +1284,7 @@ export function useSdkConfigQuery(appId: string | undefined) {
     queryKey: ["sdkConfig", appId] as const,
     queryFn: async () => {
       const result = await fetchSdkConfigFromServer(appId!);
-      if (result.status === SdkConfigApiStatus.Error) {
+      if (result.status !== SdkConfigApiStatus.Success) {
         throw new Error("Failed to fetch SDK config");
       }
       return result.data;
@@ -1293,7 +1310,7 @@ export function useBillingInfoQuery(
     queryKey: ["billingInfo", teamId] as const,
     queryFn: async () => {
       const result = await fetchBillingInfoFromServer(teamId!);
-      if (result.status === FetchBillingInfoApiStatus.Error) {
+      if (result.status !== FetchBillingInfoApiStatus.Success) {
         throw new Error("Failed to fetch billing info");
       }
       return result.data;
@@ -1315,7 +1332,7 @@ export function useUpdateAppRetentionMutation() {
         params.appId,
         params.retention,
       );
-      if (result.status === UpdateAppRetentionApiStatus.Error) {
+      if (result.status !== UpdateAppRetentionApiStatus.Success) {
         throw new Error("Failed to update app retention");
       }
     },
@@ -1334,7 +1351,7 @@ export function useChangeAppNameMutation() {
         params.appId,
         params.appName,
       );
-      if (result.status === AppNameChangeApiStatus.Error) {
+      if (result.status !== AppNameChangeApiStatus.Success) {
         throw new Error("Failed to change app name");
       }
     },
@@ -1348,7 +1365,7 @@ export function useChangeAppApiKeyMutation() {
   return useMutation({
     mutationFn: async (params: { appId: string }) => {
       const result = await changeAppApiKeyFromServer(params.appId);
-      if (result.status === AppApiKeyChangeApiStatus.Error) {
+      if (result.status !== AppApiKeyChangeApiStatus.Success) {
         throw new Error("Failed to change app API key");
       }
     },
@@ -1368,7 +1385,7 @@ export function useUpdateAppThresholdPrefsMutation() {
         params.appId,
         params.prefs,
       );
-      if (result.status === UpdateAppThresholdPrefsApiStatus.Error) {
+      if (result.status !== UpdateAppThresholdPrefsApiStatus.Success) {
         throw new Error("Failed to update threshold prefs");
       }
     },
@@ -1392,7 +1409,7 @@ export function useSaveSdkConfigMutation() {
         params.appId,
         params.config,
       );
-      if (result.status === UpdateSdkConfigApiStatus.Error) {
+      if (result.status !== UpdateSdkConfigApiStatus.Success) {
         throw new Error("Failed to save SDK config");
       }
       return result.data;
@@ -1412,7 +1429,7 @@ export function usePendingInvitesQuery(teamId: string | undefined) {
     queryKey: ["pendingInvites", teamId] as const,
     queryFn: async () => {
       const result = await fetchPendingInvitesFromServer(teamId!);
-      if (result.status === PendingInvitesApiStatus.Error) {
+      if (result.status !== PendingInvitesApiStatus.Success) {
         throw new Error("Failed to fetch pending invites");
       }
       return result.data;
@@ -1426,7 +1443,7 @@ export function useTeamSlackConnectUrlQuery(teamId: string | undefined) {
     queryKey: ["teamSlackConnectUrl", teamId] as const,
     queryFn: async () => {
       const result = await fetchTeamSlackConnectUrlFromServer(teamId!);
-      if (result.status === FetchTeamSlackConnectUrlApiStatus.Error) {
+      if (result.status !== FetchTeamSlackConnectUrlApiStatus.Success) {
         throw new Error("Failed to fetch Slack connect URL");
       }
       return result.data.url as string;
@@ -1440,7 +1457,7 @@ export function useTeamSlackStatusQuery(teamId: string | undefined) {
     queryKey: ["teamSlackStatus", teamId] as const,
     queryFn: async () => {
       const result = await fetchTeamSlackStatusFromServer(teamId!);
-      if (result.status === FetchTeamSlackStatusApiStatus.Error) {
+      if (result.status !== FetchTeamSlackStatusApiStatus.Success) {
         throw new Error("Failed to fetch Slack status");
       }
       return result.data;
@@ -1458,7 +1475,7 @@ export function useChangeTeamNameMutation() {
         params.teamId,
         params.newName,
       );
-      if (result.status === TeamNameChangeApiStatus.Error) {
+      if (result.status !== TeamNameChangeApiStatus.Success) {
         throw new Error("Failed to change team name");
       }
     },
@@ -1480,7 +1497,7 @@ export function useInviteMemberMutation() {
         params.email,
         params.role,
       );
-      if (result.status === InviteMemberApiStatus.Error) {
+      if (result.status !== InviteMemberApiStatus.Success) {
         throw new Error("Failed to invite member");
       }
     },
@@ -1502,7 +1519,7 @@ export function useRemoveMemberMutation() {
         params.teamId,
         params.memberId,
       );
-      if (result.status === RemoveMemberApiStatus.Error) {
+      if (result.status !== RemoveMemberApiStatus.Success) {
         throw new Error("Failed to remove member");
       }
     },
@@ -1521,7 +1538,7 @@ export function useResendPendingInviteMutation() {
         params.teamId,
         params.inviteId,
       );
-      if (result.status === ResendPendingInviteApiStatus.Error) {
+      if (result.status !== ResendPendingInviteApiStatus.Success) {
         throw new Error("Failed to resend invite");
       }
     },
@@ -1540,7 +1557,7 @@ export function useRemovePendingInviteMutation() {
         params.teamId,
         params.inviteId,
       );
-      if (result.status === RemovePendingInviteApiStatus.Error) {
+      if (result.status !== RemovePendingInviteApiStatus.Success) {
         throw new Error("Failed to remove invite");
       }
     },
@@ -1564,7 +1581,7 @@ export function useChangeRoleMutation() {
         params.newRole,
         params.memberId,
       );
-      if (result.status === RoleChangeApiStatus.Error) {
+      if (result.status !== RoleChangeApiStatus.Success) {
         throw new Error("Failed to change role");
       }
     },
@@ -1583,7 +1600,7 @@ export function useUpdateSlackStatusMutation() {
         params.teamId,
         params.status,
       );
-      if (result.status === UpdateTeamSlackStatusApiStatus.Error) {
+      if (result.status !== UpdateTeamSlackStatusApiStatus.Success) {
         throw new Error("Failed to update Slack status");
       }
     },
@@ -1599,7 +1616,7 @@ export function useTestSlackAlertMutation() {
   return useMutation({
     mutationFn: async (params: { teamId: string }) => {
       const result = await sendTestSlackAlertFromServer(params.teamId);
-      if (result.status === TestSlackAlertApiStatus.Error) {
+      if (result.status !== TestSlackAlertApiStatus.Success) {
         throw new Error("Failed to send test Slack alert");
       }
     },
@@ -1613,11 +1630,11 @@ export function useUsageQuery(teamId: string | undefined) {
     queryKey: ["usage", teamId] as const,
     queryFn: async () => {
       const result = await fetchUsageFromServer(teamId!);
-      if (result.status === FetchUsageApiStatus.Error) {
-        throw new Error("Failed to fetch usage");
-      }
       if (result.status === FetchUsageApiStatus.NoApps) {
         return null;
+      }
+      if (result.status !== FetchUsageApiStatus.Success) {
+        throw new Error("Failed to fetch usage");
       }
       return result.data;
     },
@@ -1630,7 +1647,7 @@ export function useUsagePermissionsQuery(teamId: string | undefined) {
     queryKey: ["usagePermissions", teamId] as const,
     queryFn: async () => {
       const result = await fetchAuthzAndMembersFromServer(teamId!);
-      if (result.status === AuthzAndMembersApiStatus.Error) {
+      if (result.status !== AuthzAndMembersApiStatus.Success) {
         throw new Error("Failed to fetch usage permissions");
       }
       return { canChangePlan: result.data.can_change_billing === true };
@@ -1648,7 +1665,7 @@ export function useHandleUpgradeMutation() {
         params.teamId,
         params.successUrl,
       );
-      if (result.status === FetchCheckoutSessionApiStatus.Error) {
+      if (result.status !== FetchCheckoutSessionApiStatus.Success) {
         throw new Error("Failed to create checkout session");
       }
       return result.data;
@@ -1665,7 +1682,7 @@ export function useDowngradeToFreeMutation() {
   return useMutation({
     mutationFn: async (params: { teamId: string }) => {
       const result = await downgradeToFreeFromServer(params.teamId);
-      if (result.status === DowngradeToFreeApiStatus.Error) {
+      if (result.status !== DowngradeToFreeApiStatus.Success) {
         throw new Error("Failed to downgrade to free");
       }
       return result.data;
@@ -1682,7 +1699,7 @@ export function useUndoDowngradeMutation() {
   return useMutation({
     mutationFn: async (params: { teamId: string }) => {
       const result = await undoDowngradeFromServer(params.teamId);
-      if (result.status === UndoDowngradeApiStatus.Error) {
+      if (result.status !== UndoDowngradeApiStatus.Success) {
         throw new Error("Failed to undo cancellation");
       }
       return result.data;
