@@ -116,9 +116,9 @@ func TestCreateTeamSlackConnectURL(t *testing.T) {
 		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
 		h.CreateTeamSlackConnectURL(c)
 
-		// PerformAuthz errors on an unknown role, so a non-member gets 500
-		if w.Code != http.StatusInternalServerError {
-			t.Fatalf("status = %d, want 500 for unknown role, body: %s", w.Code, w.Body.String())
+		// PerformAuthz denies an unknown role, so a non-member gets 403
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want 403 for non-member, body: %s", w.Code, w.Body.String())
 		}
 	})
 
