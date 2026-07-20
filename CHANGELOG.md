@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Return attribute for session_start-only sessions (#4098) by @detj in #4098
 - (**backend**): Failing slack auth status test (#4094) by @detj in #4094
 - (**backend**): Route network queries through row-policy reader pool (#4047) by @detj in #4047
 - (**backend**): Cap error body capture & share middleware across services (#4046) by @detj in #4046
