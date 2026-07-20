@@ -37,7 +37,7 @@ clickhouse-client -n \
   create role if not exists agent_sql;
   grant select on $DB_NAME.events to agent_sql;
   grant select on $DB_NAME.spans  to agent_sql;
-  alter role agent_sql settings SQL_agent_team_ids = '' CHANGEABLE_IN_READONLY;
+  alter role if exists agent_sql settings SQL_agent_team_ids = '';
 
   create row policy or replace agent_team_isolation on $DB_NAME.*
     for select using has(arrayMap(x -> toUUIDOrZero(x), splitByChar(',', getSetting('SQL_agent_team_ids'))), team_id) to agent_sql;
@@ -48,7 +48,7 @@ clickhouse-client -n \
   -- Fail-closed: empty default matches no rows. Every reader-pool query must
   -- set SQL_reader_team_ids (a comma joined list of team ids) via the Go libs
   -- chquery.WithTeamScope.
-  alter role reader settings SQL_reader_team_ids = '' CHANGEABLE_IN_READONLY;
+  alter role if exists reader settings SQL_reader_team_ids = '';
 
   create row policy or replace team_isolation on $DB_NAME.*
     for select using has(arrayMap(x -> toUUIDOrZero(x), splitByChar(',', getSetting('SQL_reader_team_ids'))), team_id) to reader;
