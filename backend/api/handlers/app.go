@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -3506,13 +3505,6 @@ func (h Handlers) GetSession(c *gin.Context) {
 		return
 	}
 
-	if errors.Is(err, sql.ErrNoRows) {
-		msg := fmt.Sprintf(`session %q for app %q does not exist`, sessionId, app.ID)
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": msg,
-		})
-	}
-
 	var attachmentGroup errgroup.Group
 	attachmentGroup.SetLimit(16)
 
@@ -3743,7 +3735,7 @@ func (h Handlers) GetSession(c *gin.Context) {
 		if err != nil {
 			msg := fmt.Sprintf(`unable to compute exceptions for session %q for app %q`, sessionId, app.ID)
 			fmt.Println(msg, err)
-			c.JSON(http.StatusNotFound, gin.H{
+			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": msg,
 			})
 			return
@@ -3758,7 +3750,7 @@ func (h Handlers) GetSession(c *gin.Context) {
 		if err != nil {
 			msg := fmt.Sprintf(`unable to compute ANRs for session %q for app %q`, sessionId, app.ID)
 			fmt.Println(msg, err)
-			c.JSON(http.StatusNotFound, gin.H{
+			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": msg,
 			})
 			return
@@ -3781,6 +3773,16 @@ func (h Handlers) GetSession(c *gin.Context) {
 		msg := `failed to fetch trace data for timeline`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	// no event rows & no traces means the session
+	// does not exist for this app
+	if session.Attribute == nil && len(sessionTraces) == 0 {
+		msg := fmt.Sprintf(`session %q for app %q does not exist`, sessionId, app.ID)
+		c.JSON(http.StatusNotFound, gin.H{
 			"error": msg,
 		})
 		return

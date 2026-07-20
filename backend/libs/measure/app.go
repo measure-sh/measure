@@ -5009,6 +5009,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 
 	var session Session
 	var firstUserID string
+	var firstAttr *event.Attribute
 
 	for rows.Next() {
 		var ev event.EventField
@@ -5311,6 +5312,14 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			firstUserID = ev.Attribute.UserID
 		}
 
+		// capture first scanned row's attribute so sessions
+		// whose rows are all dropped by the type switch
+		// still carry an attribute
+		if firstAttr == nil {
+			attr := ev.Attribute
+			firstAttr = &attr
+		}
+
 		// populate user defined attribute
 		if len(userDefAttr) > 0 {
 			ev.UserDefinedAttribute.Scan(userDefAttr)
@@ -5498,6 +5507,11 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			attr.UserID = firstUserID
 		}
 		session.Attribute = &attr
+	} else if firstAttr != nil {
+		if firstUserID != "" {
+			firstAttr.UserID = firstUserID
+		}
+		session.Attribute = firstAttr
 	}
 
 	return &session, nil
