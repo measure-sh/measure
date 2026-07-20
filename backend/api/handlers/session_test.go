@@ -77,6 +77,48 @@ func TestGetSession(t *testing.T) {
 		}
 	})
 
+	t.Run("session with usual event data returns computed duration & threads", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		ownerID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 90)
+
+		sessionID := uuid.New()
+		start := time.Now().Add(-time.Minute)
+		// 2 navigation events & 1 exception event, all recognized by the
+		// timeline type switch, spanning a 20s window.
+		exceptionsJSON := `[{"type":"java.lang.RuntimeException","message":"boom","frames":[{"line_num":42,"file_name":"Test.java","method_name":"testMethod"}]}]`
+		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID.String(), "home", start)
+		seedIssueEventWithDataInSession(ctx, t, teamID.String(), appID.String(), sessionID.String(), "exception", "", false, exceptionsJSON, start.Add(10*time.Second))
+		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID.String(), "settings", start.Add(20*time.Second))
+
+		c, w := newGetSessionContext(ownerID, appID, sessionID)
+		h.GetSession(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+		}
+
+		var body struct {
+			SessionID string           `json:"session_id"`
+			Duration  int64            `json:"duration"`
+			Threads   map[string][]any `json:"threads"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+			t.Fatalf("unmarshal response: %v", err)
+		}
+		if body.SessionID != sessionID.String() {
+			t.Errorf("session_id = %q, want %q", body.SessionID, sessionID.String())
+		}
+		if body.Duration <= 0 {
+			t.Errorf("duration = %d, want > 0", body.Duration)
+		}
+		if len(body.Threads) == 0 {
+			t.Errorf("threads = empty, want events grouped by thread")
+		}
+	})
+
 	t.Run("session with no events & no spans returns 404", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
