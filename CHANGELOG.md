@@ -130,6 +130,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add optional patch_version to ota builds (#4078) by @detj in #4078
 - (**backend**): Ensure strict team isolation (#4077) by @detj in #4077
 - (**backend**): Add max memory limit to agent clickhouse queries by @anupcowkur in #4064
 - (**backend**): Make mcp ask_question stateless by @anupcowkur
