@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Fira_Code, Josefin_Sans, Work_Sans } from "next/font/google";
 import AttributionCapture from "./components/analytics/attribution_capture";
 import { ClientProviders } from "./components/client_providers";
 import { ConsentManager } from "./components/consent_manager";
@@ -7,28 +6,8 @@ import { ThemeProvider } from "./components/theme_provider";
 import { Toaster } from "./components/toaster";
 import UTMCapture from "./components/analytics/utm_capture";
 import "./globals.css";
+import { fira_code, josefin_sans, work_sans } from "./utils/fonts";
 import { previewImage, sharedOpenGraph } from "./utils/metadata";
-
-const josefin_sans = Josefin_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["100", "200", "300", "400", "500", "600", "700"],
-  variable: "--font-josefin-sans",
-});
-
-const work_sans = Work_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-  variable: "--font-work-sans",
-});
-
-const fira_code = Fira_Code({
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-fira-code",
-});
 
 const title = "Measure";
 const description =
