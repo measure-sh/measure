@@ -517,6 +517,7 @@ func (b *Build) load(ctx context.Context, id uuid.UUID) (err error) {
 		Select("version_code").
 		Select("mapping_type").
 		Select("patch_id").
+		Select("patch_version").
 		From("build_mappings").
 		Where("id = ?", id)
 
@@ -524,7 +525,7 @@ func (b *Build) load(ctx context.Context, id uuid.UUID) (err error) {
 
 	var mappingType string
 
-	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&b.AppID, &b.VersionName, &b.VersionCode, &mappingType, &b.PatchID); err != nil {
+	if err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&b.AppID, &b.VersionName, &b.VersionCode, &mappingType, &b.PatchID, &b.PatchVersion); err != nil {
 		return err
 	}
 
@@ -614,6 +615,7 @@ func (b *Build) insertExtras(ctx context.Context, now time.Time) (err error) {
 			Set("fnv1_hash", m.Checksum).
 			Set("file_size", m.Size).
 			Set("patch_id", b.PatchID).
+			Set("patch_version", b.PatchVersion).
 			Set("last_updated", now)
 	}
 
@@ -635,6 +637,9 @@ type Build struct {
 	// build, loaded from the existing row so extra artifact
 	// rows carry it too.
 	PatchID uuid.UUID
+	// PatchVersion is the human-facing OTA patch version shared
+	// by every row of this build, loaded like PatchID.
+	PatchVersion string
 	// Extras holds additional artifact rows to insert when one
 	// mapping extracts to more than one object.
 	Extras []*Mapping

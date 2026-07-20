@@ -52,27 +52,29 @@ type uploadInfo struct {
 // mapping mirrors the ingest service's build mapping descriptor, used in both
 // the PUT /builds request and response. See backend/ingest/measure/build.go.
 type mapping struct {
-	ID        string            `json:"id"`
-	Type      string            `json:"type"`
-	Filename  string            `json:"filename"`
-	Key       string            `json:"key,omitempty"`
-	Checksum  string            `json:"checksum,omitempty"`
-	Size      int64             `json:"size,omitempty"`
-	UploadURL string            `json:"upload_url,omitempty"`
-	ExpiresAt time.Time         `json:"expires_at"`
-	Headers   map[string]string `json:"headers,omitempty"`
-	PatchID   string            `json:"patch_id,omitempty"`
+	ID           string            `json:"id"`
+	Type         string            `json:"type"`
+	Filename     string            `json:"filename"`
+	Key          string            `json:"key,omitempty"`
+	Checksum     string            `json:"checksum,omitempty"`
+	Size         int64             `json:"size,omitempty"`
+	UploadURL    string            `json:"upload_url,omitempty"`
+	ExpiresAt    time.Time         `json:"expires_at"`
+	Headers      map[string]string `json:"headers,omitempty"`
+	PatchID      string            `json:"patch_id,omitempty"`
+	PatchVersion string            `json:"patch_version,omitempty"`
 }
 
 // buildRequest is the JSON payload PUT /builds accepts from newer SDKs.
 type buildRequest struct {
-	AppUniqueID string     `json:"app_unique_id"`
-	VersionName string     `json:"version_name"`
-	VersionCode string     `json:"version_code"`
-	Type        string     `json:"build_type"`
-	Size        uint       `json:"build_size"`
-	PatchID     string     `json:"patch_id"`
-	Mappings    []*mapping `json:"mappings"`
+	AppUniqueID  string     `json:"app_unique_id"`
+	VersionName  string     `json:"version_name"`
+	VersionCode  string     `json:"version_code"`
+	Type         string     `json:"build_type"`
+	Size         uint       `json:"build_size"`
+	PatchID      string     `json:"patch_id"`
+	PatchVersion string     `json:"patch_version"`
+	Mappings     []*mapping `json:"mappings"`
 }
 
 // uploadExpiry is a cosmetic expiry stamped on the upload URLs we return.
@@ -759,6 +761,31 @@ func writeOTABuild(c *gin.Context) {
 		return
 	}
 
+	// optional patch_version persists as a plain-text sidecar file
+	// next to the mapping files so scan.go can replay it. Written
+	// only when non-empty; scan treats absence as no patch_version.
+	patchVersion := strings.TrimSpace(req.PatchVersion)
+	if patchVersion != "" {
+		rootDir, err := filepath.Abs(outputDir)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to acquire directory: %q", outputDir)})
+			return
+		}
+		sidecar, err := resolveUploadPath(rootDir, filepath.Join(req.AppUniqueID, req.VersionName, req.VersionCode, "jsbundle", req.PatchID, "patch_version"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if err := os.MkdirAll(filepath.Dir(sidecar), 0755); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create OTA patch directory: " + err.Error()})
+			return
+		}
+		if err := os.WriteFile(sidecar, []byte(patchVersion), 0644); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to write patch_version file: " + err.Error()})
+			return
+		}
+	}
+
 	for _, m := range req.Mappings {
 		if m.Type != symbol.TypeJsBundle.String() {
 			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf(`OTA "type" must be %q`, symbol.TypeJsBundle.String())})
@@ -769,6 +796,7 @@ func writeOTABuild(c *gin.Context) {
 		relPath := filepath.Join(req.AppUniqueID, req.VersionName, req.VersionCode, "jsbundle", req.PatchID, filename)
 		m.ID = uuid.NewString()
 		m.PatchID = req.PatchID
+		m.PatchVersion = patchVersion
 		m.UploadURL = uploadURL(c, relPath)
 		m.ExpiresAt = time.Now().Add(uploadExpiry)
 	}

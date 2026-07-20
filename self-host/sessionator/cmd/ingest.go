@@ -358,7 +358,7 @@ func UploadOTABuilds(url, apiKey string, app app.App) (status string, err error)
 			return http.StatusText(http.StatusInternalServerError), err
 		}
 
-		build := measure.OTABuild{PatchID: patchID}
+		build := measure.OTABuild{PatchID: patchID, PatchVersion: otaBuild.PatchVersion}
 		mappingFilesMap := make(map[string]string)
 
 		for index, mappingType := range otaBuild.MappingTypes {

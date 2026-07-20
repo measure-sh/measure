@@ -4,6 +4,7 @@ import (
 	"backend/libs/symbol"
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -227,9 +228,6 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				if err != nil {
 					return err
 				}
-				if info.Size() < 1 {
-					return fmt.Errorf(`%q has empty OTA jsbundle mapping file. check %q`, app.FullName(), rel)
-				}
 
 				patchID := filepath.Base(filepath.Dir(rel))
 				otaCode := filepath.Base(filepath.Dir(filepath.Dir(filepath.Dir(rel))))
@@ -238,6 +236,21 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 						VersionCode: otaCode,
 						PatchID:     patchID,
 					}
+				}
+
+				// the patch_version sidecar is metadata, not a
+				// mapping file. Read it & move on.
+				if filepath.Base(rel) == "patch_version" {
+					version, err := os.ReadFile(path)
+					if err != nil {
+						return err
+					}
+					app.OTABuilds[patchID].PatchVersion = strings.TrimSpace(string(version))
+					return nil
+				}
+
+				if info.Size() < 1 {
+					return fmt.Errorf(`%q has empty OTA jsbundle mapping file. check %q`, app.FullName(), rel)
 				}
 
 				app.OTABuilds[patchID].MappingFiles = append(app.OTABuilds[patchID].MappingFiles, path)
