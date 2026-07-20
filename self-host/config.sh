@@ -294,7 +294,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317
 SLACK_CLIENT_ID=$SLACK_CLIENT_ID
 SLACK_CLIENT_SECRET=$SLACK_CLIENT_SECRET
 SLACK_SIGNING_SECRET=$SLACK_SIGNING_SECRET
-SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
+SLACK_OAUTH_STATE_SECRET=$SLACK_OAUTH_STATE_SECRET
 
 ###########
 # PostHog #
@@ -468,7 +468,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=signoz.measure.sh:4317
 SLACK_CLIENT_ID=$SLACK_CLIENT_ID
 SLACK_CLIENT_SECRET=$SLACK_CLIENT_SECRET
 SLACK_SIGNING_SECRET=$SLACK_SIGNING_SECRET
-SLACK_OAUTH_STATE_SALT=$SLACK_OAUTH_STATE_SALT
+SLACK_OAUTH_STATE_SECRET=$SLACK_OAUTH_STATE_SECRET
 
 ###########
 # PostHog #
@@ -681,8 +681,8 @@ END
     SLACK_CLIENT_ID=$(prompt_optional_value_manual "Enter Slack client ID: ")
     SLACK_CLIENT_SECRET=$(prompt_optional_value_manual "Enter Slack client secret: ")
     SLACK_SIGNING_SECRET=$(prompt_optional_value_manual "Enter Slack signing secret: ")
-    echo -e "Generated secure Slack OAuth State Salt"
-    SLACK_OAUTH_STATE_SALT=$(generate_password 44)
+    echo -e "Generated secure Slack OAuth State Secret"
+    SLACK_OAUTH_STATE_SECRET=$(generate_password 44)
 
     echo -e "\nSet agent LLM credentials and models"
     echo -e "Used by the Measure agent service to answer natural language questions. The agent sends prompts through OpenRouter. See https://measure.sh/docs/hosting/agent for more details. If you wish to ignore this, enter an empty value."
@@ -989,8 +989,8 @@ ensure() {
     add_env_variable "SLACK_SIGNING_SECRET" "" "SLACK_CLIENT_SECRET"
   fi
 
-  if ! check_env_variable "SLACK_OAUTH_STATE_SALT"; then
-    add_env_variable "SLACK_OAUTH_STATE_SALT" ""
+  if ! check_env_variable "SLACK_OAUTH_STATE_SECRET"; then
+    add_env_variable "SLACK_OAUTH_STATE_SECRET" "$(generate_password 44)"
   fi
 
   if ! check_env_variable "POSTHOG_HOST"; then

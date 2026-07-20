@@ -2,11 +2,18 @@ package handlers
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -19,10 +26,116 @@ import (
 	"github.com/leporo/sqlf"
 )
 
+// slackAccessURL is Slack's OAuth token exchange endpoint. A package var so
+// tests can point it at a stub server.
+var slackAccessURL = "https://slack.com/api/oauth.v2.access"
+
 type TeamSlack struct {
 	SlackTeamName string `json:"slack_team_name"`
 	IsActive      bool   `json:"is_active"`
 	Scopes        string `json:"scopes"`
+	// NeedsReauth is true when the connection's granted scopes are missing a
+	// currently required scope, so the team must reconnect. Computed server-side
+	// from Scopes against slackRequiredScopes.
+	NeedsReauth bool `json:"needs_reauth"`
+}
+
+// slackRequiredScopes are the bot scopes the Measure Slack app requests. Single
+// source of truth: the authorize URL requests exactly these, and a connection's
+// granted scopes are compared against them to detect when a team connected
+// before newer scopes were added and needs to reconnect.
+var slackRequiredScopes = []string{
+	"app_mentions:read",
+	"assistant:write",
+	"chat:write",
+	"chat:write.public",
+	"channels:read",
+	"groups:read",
+	"channels:history",
+	"groups:history",
+	"im:history",
+	"im:write",
+	"commands",
+	"files:write",
+	"links:read",
+	"links:write",
+	"reactions:read",
+	"reactions:write",
+	"users:read",
+	"users:read.email",
+}
+
+// slackConnectionNeedsReauth reports whether granted scopes are missing any
+// currently required scope. An empty granted string (unknown) returns false.
+func slackConnectionNeedsReauth(granted string) bool {
+	if granted == "" {
+		return false
+	}
+	have := make(map[string]bool)
+	for s := range strings.SplitSeq(granted, ",") {
+		have[strings.TrimSpace(s)] = true
+	}
+	return slices.ContainsFunc(slackRequiredScopes, func(s string) bool {
+		return !have[s]
+	})
+}
+
+// slackRedirectURI is the OAuth redirect the dashboard callback serves. It is
+// server-controlled and must be identical in the authorize step and the token
+// exchange, which Slack enforces.
+func slackRedirectURI(siteOrigin string) string {
+	return siteOrigin + "/auth/callback/slack"
+}
+
+// CreateTeamSlackConnectURL creates a Slack OAuth authorize URL for a team the
+// caller owns. The signed state embedded in it is the only authorization
+// /slack/connect trusts, so this authenticated endpoint is the one point in
+// the flow that checks who is asking.
+func (h Handlers) CreateTeamSlackConnectURL(c *gin.Context) {
+	deps := h.Deps
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	if ok, err := measure.PerformAuthz(deps.PgPool, userId, teamId.String(), *measure.ScopeTeamAll); err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	} else if !ok {
+		msg := fmt.Sprintf(`you don't have permissions for team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	if deps.Config.SlackClientID == "" || deps.Config.SlackOAuthStateSecret == "" {
+		fmt.Println("slack connect url: Slack integration is not configured")
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Slack integration is not configured"})
+		return
+	}
+
+	state, err := signSlackState(deps.Config.SlackOAuthStateSecret, teamId.String(), time.Now())
+	if err != nil {
+		msg := "failed to build Slack connect url"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	authorizeURL := url.URL{Scheme: "https", Host: "slack.com", Path: "/oauth/v2/authorize"}
+	q := authorizeURL.Query()
+	q.Set("client_id", deps.Config.SlackClientID)
+	q.Set("scope", strings.Join(slackRequiredScopes, ","))
+	q.Set("redirect_uri", slackRedirectURI(deps.Config.SiteOrigin))
+	q.Set("state", state)
+	authorizeURL.RawQuery = q.Encode()
+
+	c.JSON(http.StatusOK, gin.H{"url": authorizeURL.String()})
 }
 
 func (h Handlers) ConnectTeamSlack(c *gin.Context) {
@@ -30,9 +143,8 @@ func (h Handlers) ConnectTeamSlack(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	type slackOAuthRequest struct {
-		Code   string `json:"code" binding:"required"`
-		UserId string `json:"userId" binding:"required"`
-		TeamId string `json:"teamId" binding:"required"`
+		Code  string `json:"code" binding:"required"`
+		State string `json:"state" binding:"required"`
 	}
 
 	var req slackOAuthRequest
@@ -46,21 +158,18 @@ func (h Handlers) ConnectTeamSlack(c *gin.Context) {
 		return
 	}
 
-	if ok, err := measure.PerformAuthz(deps.PgPool, req.UserId, req.TeamId, *measure.ScopeTeamAll); err != nil {
-		msg := `couldn't perform authorization checks`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	} else if !ok {
-		msg := fmt.Sprintf(`you don't have permissions for team [%s]`, req.TeamId)
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+	if deps.Config.SlackOAuthStateSecret == "" {
+		fmt.Println(msg, "SLACK_OAUTH_STATE_SECRET is not configured")
+		c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": "Slack integration is not configured"})
 		return
 	}
 
-	if req.Code == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"error": "missing authorization code",
-		})
+	// The signed state is the authorization: it was created only for an
+	// authenticated owner of this team and the team to connect comes from it.
+	teamID, err := verifySlackState(deps.Config.SlackOAuthStateSecret, req.State, time.Now())
+	if err != nil {
+		fmt.Println(msg, "invalid state:", err)
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired state"})
 		return
 	}
 
@@ -70,8 +179,10 @@ func (h Handlers) ConnectTeamSlack(c *gin.Context) {
 	data.Set("client_id", deps.Config.SlackClientID)
 	data.Set("client_secret", deps.Config.SlackClientSecret)
 	data.Set("code", req.Code)
+	// Slack requires redirect_uri here to match the authorize step exactly
+	data.Set("redirect_uri", slackRedirectURI(deps.Config.SiteOrigin))
 
-	slackReq, err := http.NewRequestWithContext(ctx, "POST", "https://slack.com/api/oauth.v2.access", strings.NewReader(data.Encode()))
+	slackReq, err := http.NewRequestWithContext(ctx, "POST", slackAccessURL, strings.NewReader(data.Encode()))
 	if err != nil {
 		fmt.Println(msg, "failed to create request:", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": msg})
@@ -132,7 +243,7 @@ func (h Handlers) ConnectTeamSlack(c *gin.Context) {
 	// Save Slack integration details to the database
 	stmt := sqlf.PostgreSQL.
 		InsertInto("measure.team_slack").
-		Set("team_id", req.TeamId).
+		Set("team_id", teamID).
 		Set("slack_team_id", slackResp.Team.ID).
 		Set("slack_team_name", slackResp.Team.Name).
 		Set("enterprise_id", slackResp.Enterprise.ID).
@@ -166,6 +277,7 @@ func (h Handlers) ConnectTeamSlack(c *gin.Context) {
 	}
 
 	response := gin.H{
+		"team_id":         teamID,
 		"slack_team_name": slackResp.Team.Name,
 	}
 
@@ -219,6 +331,8 @@ func (h Handlers) GetTeamSlack(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
+
+	result.NeedsReauth = slackConnectionNeedsReauth(result.Scopes)
 
 	c.JSON(http.StatusOK, result)
 }
@@ -494,4 +608,89 @@ func getSlackChannelName(botToken, channelID string) string {
 		return channelID
 	}
 	return res.Channel.Name
+}
+
+// ----------------------------------------------------------------------------
+// OAuth state
+//
+// The Slack OAuth state is HMAC-signed with the server's secret so
+// /slack/connect can trust the teamId without any body-supplied identity: only
+// an authenticated owner of the team can obtain a signed state (via
+// CreateTeamSlackConnectURL), and it can't be forged without the secret.
+// ----------------------------------------------------------------------------
+
+// slackStateTTL is how long a created Slack OAuth state stays valid. It bounds
+// the window between a user clicking "Connect" and Slack redirecting back.
+const slackStateTTL = 10 * time.Minute
+
+// slackState is the payload carried in the Slack OAuth state parameter.
+type slackState struct {
+	TeamID string `json:"team_id"`
+	Nonce  string `json:"nonce"`
+	Exp    int64  `json:"exp"`
+}
+
+var (
+	errSlackStateMalformed = errors.New("malformed slack oauth state")
+	errSlackStateBadSig    = errors.New("slack oauth state signature mismatch")
+	errSlackStateExpired   = errors.New("slack oauth state expired")
+)
+
+// signSlackState returns a signed, URL-safe state binding teamID, expiring at
+// now+slackStateTTL. secret must be non-empty.
+func signSlackState(secret, teamID string, now time.Time) (string, error) {
+	nonce := make([]byte, 16)
+	if _, err := rand.Read(nonce); err != nil {
+		return "", err
+	}
+
+	payload, err := json.Marshal(slackState{
+		TeamID: teamID,
+		Nonce:  hex.EncodeToString(nonce),
+		Exp:    now.Add(slackStateTTL).Unix(),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	body := base64.RawURLEncoding.EncodeToString(payload)
+	return body + "." + slackStateMAC(secret, body), nil
+}
+
+// verifySlackState checks the signature and freshness of a state and returns
+// the teamID it binds. secret must match the one used to sign.
+func verifySlackState(secret, token string, now time.Time) (string, error) {
+	body, mac, ok := strings.Cut(token, ".")
+	if !ok {
+		return "", errSlackStateMalformed
+	}
+
+	if !hmac.Equal([]byte(mac), []byte(slackStateMAC(secret, body))) {
+		return "", errSlackStateBadSig
+	}
+
+	payload, err := base64.RawURLEncoding.DecodeString(body)
+	if err != nil {
+		return "", errSlackStateMalformed
+	}
+
+	var s slackState
+	if err := json.Unmarshal(payload, &s); err != nil {
+		return "", errSlackStateMalformed
+	}
+	if s.TeamID == "" {
+		return "", errSlackStateMalformed
+	}
+	if now.Unix() > s.Exp {
+		return "", errSlackStateExpired
+	}
+
+	return s.TeamID, nil
+}
+
+// slackStateMAC computes the base64url HMAC-SHA256 of body under secret.
+func slackStateMAC(secret, body string) string {
+	h := hmac.New(sha256.New, []byte(secret))
+	h.Write([]byte(body))
+	return base64.RawURLEncoding.EncodeToString(h.Sum(nil))
 }

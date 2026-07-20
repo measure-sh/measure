@@ -1421,25 +1421,17 @@ export function usePendingInvitesQuery(teamId: string | undefined) {
   });
 }
 
-export function useTeamSlackConnectUrlQuery(
-  userId: string | undefined,
-  teamId: string | undefined,
-  redirectUrl: string,
-) {
+export function useTeamSlackConnectUrlQuery(teamId: string | undefined) {
   return useQuery({
     queryKey: ["teamSlackConnectUrl", teamId] as const,
     queryFn: async () => {
-      const result = await fetchTeamSlackConnectUrlFromServer(
-        userId!,
-        teamId!,
-        redirectUrl,
-      );
+      const result = await fetchTeamSlackConnectUrlFromServer(teamId!);
       if (result.status === FetchTeamSlackConnectUrlApiStatus.Error) {
         throw new Error("Failed to fetch Slack connect URL");
       }
       return result.data.url as string;
     },
-    enabled: !!userId && !!teamId,
+    enabled: !!teamId,
   });
 }
 

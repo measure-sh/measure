@@ -1363,7 +1363,7 @@ export function makePendingInvitesFixture() {
   ];
 }
 
-// --- Slack Connect URL (POST /auth/slack/url) ---
+// --- Slack Connect URL (GET /api/teams/:teamId/slack/connect-url) ---
 
 export function makeSlackConnectUrlFixture() {
   return { url: "https://slack.com/oauth/v2/authorize?client_id=test" };
@@ -1372,7 +1372,12 @@ export function makeSlackConnectUrlFixture() {
 // --- Slack Status (GET /teams/:teamId/slack) ---
 
 export function makeSlackStatusFixture(overrides: Record<string, any> = {}) {
-  return { slack_team_name: "Test Workspace", is_active: true, ...overrides };
+  return {
+    slack_team_name: "Test Workspace",
+    is_active: true,
+    needs_reauth: false,
+    ...overrides,
+  };
 }
 
 // --- Notification Preferences (GET /prefs/notifPrefs) ---

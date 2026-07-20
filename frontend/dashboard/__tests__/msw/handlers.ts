@@ -317,8 +317,8 @@ export const handlers = [
     return HttpResponse.json(makePendingInvitesFixture());
   }),
 
-  // 50. POST /auth/slack/url
-  http.post("*/auth/slack/url", () => {
+  // 50. GET /api/teams/:teamId/slack/connect-url
+  http.get("*/api/teams/:teamId/slack/connect-url", () => {
     return HttpResponse.json(makeSlackConnectUrlFixture());
   }),
 

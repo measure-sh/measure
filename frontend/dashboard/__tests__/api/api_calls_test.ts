@@ -1055,17 +1055,14 @@ describe("team management mutations", () => {
 // Slack / notifications
 // ========================================================================
 describe("slack and notifications", () => {
-  it("fetchTeamSlackConnectUrlFromServer POSTs with userId/teamId/redirectUrl", async () => {
+  it("fetchTeamSlackConnectUrlFromServer GETs the team's connect-url endpoint", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ url: "https://slack/oauth" }),
     );
-    const r = await fetchTeamSlackConnectUrlFromServer(
-      "u1",
-      "t1",
-      "https://app/return",
+    const r = await fetchTeamSlackConnectUrlFromServer("t1");
+    expect(mockApiClientFetch).toHaveBeenCalledWith(
+      "/api/teams/t1/slack/connect-url",
     );
-    expect(lastFetchOpts().method).toBe("POST");
-    expect(lastFetchOpts().headers["Content-Type"]).toBe("application/json");
     expect(r.status).toBe(FetchTeamSlackConnectUrlApiStatus.Success);
   });
 
@@ -1414,7 +1411,7 @@ describe("fetch functions: Error / Cancelled paths", () => {
     ],
     [
       "fetchTeamSlackConnectUrlFromServer",
-      () => fetchTeamSlackConnectUrlFromServer("u", "t", "url"),
+      () => fetchTeamSlackConnectUrlFromServer("t"),
       FetchTeamSlackConnectUrlApiStatus.Error,
       FetchTeamSlackConnectUrlApiStatus.Cancelled,
     ],
