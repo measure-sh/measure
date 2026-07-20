@@ -766,7 +766,16 @@ func writeOTABuild(c *gin.Context) {
 	// only when non-empty; scan treats absence as no patch_version.
 	patchVersion := strings.TrimSpace(req.PatchVersion)
 	if patchVersion != "" {
-		sidecar := filepath.Join(outputDir, req.AppUniqueID, req.VersionName, req.VersionCode, "jsbundle", req.PatchID, "patch_version")
+		rootDir, err := filepath.Abs(outputDir)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to acquire directory: %q", outputDir)})
+			return
+		}
+		sidecar, err := resolveUploadPath(rootDir, filepath.Join(req.AppUniqueID, req.VersionName, req.VersionCode, "jsbundle", req.PatchID, "patch_version"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		if err := os.MkdirAll(filepath.Dir(sidecar), 0755); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create OTA patch directory: " + err.Error()})
 			return
