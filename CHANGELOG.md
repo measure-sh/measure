@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Track app OS names as a single-family set) by @anupcowkur in #3839
 - (**backend**): Add unified errors API & react native symbolication support (#3623) by @detj in #3623
 - (**backend**): Use autumn for metering and billing by @anupcowkur in #3534
+- (**frontend**): Add blog by @anupcowkur in #4075
 - (**frontend**): Implement logging (#4021) by @abhaysood
 - (**frontend**): Move docs to fumadocs by @anupcowkur in #4035
 - (**frontend**): Update docs ui by @anupcowkur in #4011
@@ -128,6 +129,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Ensure strict team isolation (#4077) by @detj in #4077
+- (**backend**): Add max memory limit to agent clickhouse queries by @anupcowkur in #4064
+- (**backend**): Make mcp ask_question stateless by @anupcowkur
+- (**backend**): Enforce one membership per user per team by @anupcowkur
+- (**backend**): Return 403 or 404 instead of 500 for missing memberships by @anupcowkur
+- (**backend**): Add comment explaing no email case for SyncBillingEmailOnOwnerExit by @anupcowkur
 - (**backend**): Validate agent run_sql on a parsed AST by @anupcowkur in #4051
 - (**backend**): Format symboloader symsync files (#4049) by @detj in #4049
 - (**backend**): Harden agent SQL validator against scope bypasses by @anupcowkur in #4048
@@ -197,6 +204,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Document 404 for member remove & role change endpoints by @anupcowkur in #4069
 - (**frontend**): Update agent demo with repro steps by @anupcowkur in #4068
 - (**frontend**): Update the agent demo user name by @anupcowkur in #4065
 - (**frontend**): Verify internal docs links resolve by @anupcowkur
