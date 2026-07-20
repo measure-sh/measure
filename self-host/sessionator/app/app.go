@@ -25,14 +25,18 @@ type Build struct {
 	// PatchID identifies an OTA patch. Set only for OTA builds
 	// (replayed to /builds/ota); empty for regular builds.
 	PatchID string
+	// PatchVersion is the human-facing OTA patch version. Read
+	// from the optional patch_version sidecar file; empty when
+	// the recording carried none.
+	PatchVersion string
 }
 
 // App represents each combination of app and version
 // along with its events and related build info.
 type App struct {
-	Name              string
-	VersionName       string
-	Builds            map[string]*Build
+	Name        string
+	VersionName string
+	Builds      map[string]*Build
 	// OTABuilds holds OTA patches keyed by patch_id, replayed to
 	// /builds/ota. Kept separate from Builds so the two replay paths
 	// stay self-documenting.

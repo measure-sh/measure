@@ -2093,6 +2093,9 @@ paths:
 
         - `patch_id` is required and must be a UUID. Tag your OTA patch with a UUID;
           it is echoed back on each mapping in the response.
+        - `patch_version` is optional. Set it to the human-facing version of the
+          patch (max 256 characters); it is echoed back on each mapping in the
+          response.
         - The app is determined from your API key. Do not send an app identifier in
           the body.
         - `mappings` is required and must contain at least one mapping. Mapping
@@ -2121,6 +2124,12 @@ paths:
                   type: string
                   format: uuid
                   description: UUID identifier for the OTA patch.
+                patch_version:
+                  type: string
+                  maxLength: 256
+                  description: >
+                    Optional human-facing version of the OTA patch. Free-form
+                    text. Not used for symbolication.
                 mappings:
                   type: array
                   minItems: 1
@@ -2146,6 +2155,7 @@ paths:
                         description: Filename of the mapping file.
             example:
               patch_id: "550e8400-e29b-41d4-a716-446655440000"
+              patch_version: "1.4.2-patch.3"
               mappings:
                 - type: jsbundle
                   filename: main.jsbundle.tgz
@@ -2156,7 +2166,8 @@ paths:
           description: >
             OTA mappings accepted; pre-signed upload URLs returned. The response
             contains a `mappings` array with the pre-signed upload URL for each
-            mapping file. Each mapping echoes back the request's `patch_id`.
+            mapping file. Each mapping echoes back the request's `patch_id` and
+            `patch_version` (when sent).
           content:
             application/json:
               schema:
@@ -2196,6 +2207,11 @@ paths:
                           type: string
                           format: uuid
                           description: The request's `patch_id`, echoed back.
+                        patch_version:
+                          type: string
+                          description: >
+                            The request's `patch_version`, echoed back. Omitted
+                            when not sent.
               example:
                 mappings:
                   - id: "e2bbcad8-0566-44ea-af43-9dd114c64e8c"
@@ -2207,6 +2223,7 @@ paths:
                       x-amz-meta-mapping_id: "e2bbcad8-0566-44ea-af43-9dd114c64e8c"
                       x-amz-meta-original_file_name: main.jsbundle.tgz
                     patch_id: "550e8400-e29b-41d4-a716-446655440000"
+                    patch_version: "1.4.2-patch.3"
                   - id: "77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc"
                     type: jsbundle
                     filename: main.jsbundle.map.tgz
@@ -2216,6 +2233,7 @@ paths:
                       x-amz-meta-mapping_id: "77ac8159-9f0e-4cc7-a9f1-60c05fccd4dc"
                       x-amz-meta-original_file_name: main.jsbundle.map.tgz
                     patch_id: "550e8400-e29b-41d4-a716-446655440000"
+                    patch_version: "1.4.2-patch.3"
         "400":
           description: >
             Request body is malformed or is missing `patch_id`/`mappings`. Check the

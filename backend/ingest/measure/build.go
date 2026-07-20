@@ -39,6 +39,9 @@ type Mapping struct {
 	// caller so the build script can confirm the value persisted
 	// against this mapping row.
 	PatchID uuid.UUID `json:"patch_id,omitempty"`
+	// PatchVersion echoes the build's optional patch_version
+	// back to the caller, like PatchID.
+	PatchVersion string `json:"patch_version,omitempty"`
 }
 
 type Build struct {
@@ -53,6 +56,9 @@ type Build struct {
 	// the OTA handler (PutOTABuilds); PUT /builds neither accepts
 	// nor returns it.
 	PatchID uuid.UUID `json:"-"`
+	// PatchVersion is the human-facing OTA patch version. Free-form
+	// text, optional. Set only by the OTA handler, like PatchID.
+	PatchVersion string `json:"-"`
 }
 
 type BuildResponse struct {
@@ -64,8 +70,11 @@ type BuildResponse struct {
 // build number or build size. The app is resolved from the
 // request's API key (like PutBuilds), never from the body.
 type OTABuild struct {
-	PatchID  uuid.UUID  `json:"patch_id" binding:"required"`
-	Mappings []*Mapping `json:"mappings" binding:"required,dive,required"`
+	PatchID uuid.UUID `json:"patch_id" binding:"required"`
+	// PatchVersion is the human-facing OTA patch version.
+	// Free-form text, optional. Not used for symbolication.
+	PatchVersion string     `json:"patch_version" binding:"omitempty,max=256"`
+	Mappings     []*Mapping `json:"mappings" binding:"required,dive,required"`
 }
 
 func (b Build) hasMapping() bool {
@@ -124,6 +133,7 @@ func (b Build) insertNewMappings(ctx context.Context, tx *pgx.Tx) (err error) {
 			Set(`location`, m.Location).
 			Set(`fnv1_hash`, m.Checksum).
 			Set(`patch_id`, b.PatchID).
+			Set(`patch_version`, b.PatchVersion).
 			Set(`last_updated`, now)
 	}
 
@@ -360,9 +370,10 @@ func PutOTABuilds(c *gin.Context) {
 	// model the OTA upload as a build with no version/size; the
 	// patch_id is the sole lookup key for these mapping rows.
 	build := Build{
-		AppID:    appId,
-		PatchID:  ota.PatchID,
-		Mappings: ota.Mappings,
+		AppID:        appId,
+		PatchID:      ota.PatchID,
+		PatchVersion: strings.TrimSpace(ota.PatchVersion),
+		Mappings:     ota.Mappings,
 	}
 
 	// each OTA mapping gets a fresh id; a re-uploaded patch_id
@@ -489,6 +500,7 @@ func presignMappingsGCS(ctx context.Context, config *server.ServerConfig, build 
 		mapping.UploadURL = url
 		mapping.ExpiresAt = expiry
 		mapping.PatchID = build.PatchID
+		mapping.PatchVersion = build.PatchVersion
 		mapping.Headers = make(map[string]string)
 		mapping.Headers["x-goog-meta-mapping_id"] = mapping.ID.String()
 		mapping.Headers["x-goog-meta-original_file_name"] = mapping.Filename
@@ -523,6 +535,7 @@ func presignMappingsS3(ctx context.Context, config *server.ServerConfig, build *
 		mapping.UploadURL = proxyUrl
 		mapping.ExpiresAt = time.Now().Add(time.Hour)
 		mapping.PatchID = build.PatchID
+		mapping.PatchVersion = build.PatchVersion
 		mapping.Headers = make(map[string]string)
 		mapping.Headers["x-amz-meta-mapping_id"] = mapping.ID.String()
 		mapping.Headers["x-amz-meta-original_file_name"] = mapping.Filename
