@@ -106,12 +106,13 @@ function buildInitNavData() {
             isActive: false,
             external: false,
           },
-          {
-            title: "Builds",
-            url: "builds",
-            isActive: false,
-            external: false,
-          },
+          // Hidden until builds page bugs are fixed
+          // {
+          //   title: "Builds",
+          //   url: "builds",
+          //   isActive: false,
+          //   external: false,
+          // },
           {
             title: "Team",
             url: "team",
