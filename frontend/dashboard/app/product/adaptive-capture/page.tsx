@@ -1,37 +1,21 @@
 import AdaptiveCaptureDemo from "@/app/components/adaptive_capture_demo";
-import { buttonVariants } from "@/app/components/button_variants";
-import TrackCtaLink from "@/app/components/analytics/track_cta_link";
-import { sharedOpenGraph } from "@/app/utils/metadata";
-import { cn } from "@/app/utils/shadcn_utils";
+import ProductPage from "@/app/components/product_page";
+import { marketingPageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
-import LandingFooter from "../../components/landing_footer";
-import LandingHeader from "../../components/landing_header";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = marketingPageMetadata({
   title: "Adaptive Capture — Control Mobile Monitoring Costs",
   description:
     "Dynamically control what monitoring data your mobile app collects without shipping new builds. Stop paying for data you'll never use.",
-  alternates: { canonical: "/product/adaptive-capture" },
-  openGraph: {
-    ...sharedOpenGraph,
-    title: "Adaptive Capture — Control Mobile Monitoring Costs",
-    description:
-      "Dynamically control what monitoring data your mobile app collects without shipping new builds. Stop paying for data you'll never use.",
-    url: "/product/adaptive-capture",
-  },
-};
+  path: "/product/adaptive-capture",
+});
 
 export default function ProductAdaptiveCapture() {
   return (
-    <main className="flex flex-col items-center justify-between">
-      <LandingHeader />
-      <div className="flex flex-col items-center w-full">
-        <div className="py-16" />
-        <h1 className="text-6xl font-display w-full md:w-6xl px-4">
-          Adaptive Capture
-        </h1>
-        <div className="py-2" />
-        <p className="text-lg font-body md:w-6xl text-justify px-4">
+    <ProductPage
+      title="Adaptive Capture"
+      intro={
+        <>
           Most monitoring data is never read but ends up inflating your costs
           💰. Adaptive Capture lets you capture what matters based on changing
           needs.
@@ -49,26 +33,13 @@ export default function ProductAdaptiveCapture() {
           <br />
           No more worrying about bloated costs or wasted data, Adaptive Capture
           lets you get the data you need, when you need it.
-        </p>
-        <div className="w-full md:w-6xl md:h-full p-8 rounded-lg shadow-lg mt-12 mb-32 overflow-y-auto border border-border rounded-lg shadow-xl overflow-hidden">
-          <AdaptiveCaptureDemo showTitle={false} />
-        </div>
-
-        {/* CTA */}
-        <TrackCtaLink
-          location="product_adaptive_capture"
-          destination="signup"
-          href="/auth/login"
-          className={cn(
-            buttonVariants({ variant: "default" }),
-            "text-2xl px-8 py-8",
-          )}
-        >
-          Get To The Root Cause
-        </TrackCtaLink>
-        <div className="py-16" />
-      </div>
-      <LandingFooter />
-    </main>
+        </>
+      }
+      demo={{
+        frame: "card",
+        content: <AdaptiveCaptureDemo showTitle={false} />,
+      }}
+      ctaLocation="product_adaptive_capture"
+    />
   );
 }

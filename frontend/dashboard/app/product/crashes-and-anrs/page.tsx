@@ -1,38 +1,21 @@
-import ScaledPreview from "@/app/components/scaled_preview";
-import { buttonVariants } from "@/app/components/button_variants";
-import TrackCtaLink from "@/app/components/analytics/track_cta_link";
-import { sharedOpenGraph } from "@/app/utils/metadata";
-import { cn } from "@/app/utils/shadcn_utils";
+import ProductPage from "@/app/components/product_page";
+import { marketingPageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
-import LandingFooter from "../../components/landing_footer";
-import LandingHeader from "../../components/landing_header";
 import ExceptionsDemo from "./exceptions_demo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = marketingPageMetadata({
   title: "Mobile Crash Reporting & ANR Tracking",
   description:
     "Open source mobile Crash Reporting and ANR Tracking. Full stack traces, reproduction steps and session timelines — a Firebase Crashlytics alternative.",
-  alternates: { canonical: "/product/crashes-and-anrs" },
-  openGraph: {
-    ...sharedOpenGraph,
-    title: "Mobile Crash Reporting & ANR Tracking",
-    description:
-      "Open source mobile Crash Reporting and ANR Tracking. Full stack traces, reproduction steps and session timelines — a Firebase Crashlytics alternative.",
-    url: "/product/crashes-and-anrs",
-  },
-};
+  path: "/product/crashes-and-anrs",
+});
 
 export default function ProductCrashesAndANRs() {
   return (
-    <main className="flex flex-col items-center justify-between">
-      <LandingHeader />
-      <div className="flex flex-col items-center w-full">
-        <div className="py-16" />
-        <h1 className="text-6xl font-display w-full md:w-6xl px-4">
-          Crashes and ANRs
-        </h1>
-        <div className="py-2" />
-        <p className="text-lg font-body md:w-6xl text-justify px-4">
+    <ProductPage
+      title="Crashes and ANRs"
+      intro={
+        <>
           Get instant visibility into every exception with detailed crash
           reports that include full stack traces, device information, OS
           versions and intelligent analysis of the sequence of user actions that
@@ -47,31 +30,14 @@ export default function ProductCrashesAndANRs() {
           Path analysis combined with comprehensive stack traces and
           thread-level details, gives you everything you need to reproduce
           issues effectively and ship fixes with confidence.
-        </p>
-
-        <div className="relative w-full max-w-[90vw] md:max-w-6xl h-[600px] md:h-[1000px] mt-12 mb-32 mx-auto border border-border rounded-lg shadow-xl overflow-hidden">
-          <ScaledPreview>
-            <div className="bg-background text-foreground min-h-screen px-8 py-12">
-              <ExceptionsDemo />
-            </div>
-          </ScaledPreview>
-        </div>
-
-        {/* CTA */}
-        <TrackCtaLink
-          location="product_crashes_and_anrs"
-          destination="signup"
-          href="/auth/login"
-          className={cn(
-            buttonVariants({ variant: "default" }),
-            "text-2xl px-8 py-8",
-          )}
-        >
-          Get To The Root Cause
-        </TrackCtaLink>
-        <div className="py-16" />
-      </div>
-      <LandingFooter />
-    </main>
+        </>
+      }
+      demo={{
+        frame: "scaled",
+        heightClassName: "h-[600px] md:h-[1000px]",
+        content: <ExceptionsDemo />,
+      }}
+      ctaLocation="product_crashes_and_anrs"
+    />
   );
 }
