@@ -592,7 +592,7 @@ Then run:
 pod install
 ```
 
-By default, the `measure-sh` iOS framework is integrated via Swift Package Manager (SPM). If you'd prefer to integrate it as a CocoaPods dependency instead, add the following to the top of your `Podfile`:
+By default, the `measure-sh` iOS framework is integrated via Swift Package Manager (SPM) on React Native 0.75 and above. On older React Native versions it is integrated as a CocoaPods dependency automatically. If you'd prefer to integrate it as a CocoaPods dependency instead, add the following to the top of your `Podfile`:
 
 ```ruby
 $MeasureDisableSPM = true
