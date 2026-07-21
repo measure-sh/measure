@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: 'main'
           fetch-depth: 0
@@ -53,10 +53,19 @@ jobs:
         run: |
           jq --arg v "${{ inputs.version }}" '.version = $v' react-native/package.json > /tmp/pkg.json && mv /tmp/pkg.json react-native/package.json
 
-      - name: Update MeasureReactNative.podspec
+      - name: Pin Measure iOS SDK (SPM revision)
         run: |
-          sed -i "s/s\.version[[:space:]]*=[[:space:]]*\"[^\"]*\"/s.version          = \"${{ inputs.version }}\"/" react-native/MeasureReactNative.podspec
-          sed -i "s/s\.dependency 'measure-sh', '[^']*'/s.dependency 'measure-sh', '${{ inputs.ios_sdk_version }}'/" react-native/MeasureReactNative.podspec
+          VER="${{ inputs.ios_sdk_version }}"
+          URL="https://github.com/measure-sh/measure.git"
+          # Resolve the commit the iOS release tag points to (no clone). Dereference annotated
+          # tags with ^{}; fall back to the lightweight-tag form.
+          SHA=$(git ls-remote "$URL" "refs/tags/ios-v${VER}^{}" | cut -f1)
+          if [ -z "$SHA" ]; then SHA=$(git ls-remote "$URL" "refs/tags/ios-v${VER}" | cut -f1); fi
+          if [ -z "$SHA" ]; then echo "::error::No tag ios-v${VER} found in $URL"; exit 1; fi
+          echo "Pinning measure-sh to ios-v${VER} @ ${SHA}"
+          jq --arg v "$VER" --arg u "$URL" --arg r "$SHA" \
+            '.measureIosSdk = {version: $v, spmUrl: $u, revision: $r}' \
+            react-native/package.json > /tmp/pkg.json && mv /tmp/pkg.json react-native/package.json
 
       - name: Update android/build.gradle.kts
         run: |
@@ -86,7 +95,7 @@ jobs:
           args: --output react-native/CHANGELOG.md --tag rn-v${{ inputs.version }} --include-path "react-native/**"
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.SDK_RELEASE }}
           commit-message: "chore(rn): prepare release ${{ inputs.version }}"
