@@ -2926,6 +2926,10 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, rch driver.Conn, af *
 		GroupBy("session_id").
 		GroupBy("app_version")
 
+	// exclude sessions whose only events are session_start,
+	// they carry no real content & are pointless to return
+	base.Having("sum(event_count) > sumMap(event_type_counts)['session_start']")
+
 	stmt := sqlf.
 		With("base", base).
 		From("base").
@@ -3180,6 +3184,10 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, af *fil
 		GroupBy("device_name").
 		GroupBy("device_model").
 		GroupBy("device_manufacturer")
+
+	// exclude sessions whose only events are session_start,
+	// they carry no real content & are pointless to return
+	base.Having("sum(event_count) > sumMap(event_type_counts)['session_start']")
 
 	stmt := sqlf.With("base", base).
 		From("base").
