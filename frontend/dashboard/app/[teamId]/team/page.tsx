@@ -53,22 +53,29 @@ export default function TeamOverview(props: {
   params: Promise<{ teamId: string }>;
 }) {
   const params = use(props.params);
-  const { data: teams, status: teamsStatus } = useTeamsQuery();
-  const team = teams?.find((t) => t.id === params.teamId) ?? null;
+  const teamsQuery = useTeamsQuery();
+  const team = teamsQuery.data?.find((t) => t.id === params.teamId) ?? null;
 
   // Get current user ID from session query
   const sessionQuery = useSessionQuery();
   const currentUserId = sessionQuery.data?.user?.id;
 
   // TanStack Query: reads
-  const { data: authzAndMembers, status: authzAndMembersStatus } =
-    useAuthzAndMembersQuery(params.teamId);
-  const { data: pendingInvites, status: pendingInvitesStatus } =
-    usePendingInvitesQuery(params.teamId);
-  const { data: teamSlackConnectUrl, status: slackConnectUrlStatus } =
-    useTeamSlackConnectUrlQuery(params.teamId);
-  const { data: teamSlack, status: slackStatusQueryStatus } =
-    useTeamSlackStatusQuery(params.teamId);
+  const authzAndMembersQuery = useAuthzAndMembersQuery(params.teamId);
+  const pendingInvitesQuery = usePendingInvitesQuery(params.teamId);
+
+  const authz = authzAndMembersQuery.data ?? defaultAuthzAndMembers;
+  const pendingInvites = pendingInvitesQuery.data;
+
+  // The connect URL endpoint requires Slack management permission and returns
+  // 403 for everyone else, so the query runs only for users who hold it.
+  const slackConnectUrlQuery = useTeamSlackConnectUrlQuery(
+    params.teamId,
+    authz.can_manage_slack,
+  );
+  const slackStatusQuery = useTeamSlackStatusQuery(params.teamId);
+  const teamSlackConnectUrl = slackConnectUrlQuery.data;
+  const teamSlack = slackStatusQuery.data;
 
   // Type for member entries in authz response
   type AuthzMember = {
@@ -84,13 +91,80 @@ export default function TeamOverview(props: {
     };
   };
 
-  // Use authzAndMembers data or fallback defaults
-  const authz = authzAndMembers ?? defaultAuthzAndMembers;
+  // What the Slack section shows. Every member may read the Slack status, so
+  // the status query drives the section. The connect URL is fetched only for
+  // users who can manage Slack (the endpoint returns 403 for everyone else)
+  // and is waited on only where it becomes an href: the connect button.
+  //
+  // The check order matters: each check assumes the ones above it already
+  // returned, which keeps the conditions free of repeated guards. The authz
+  // check runs before the connected check so the connected controls never
+  // render with the no-permission fallback and then flip once authz loads.
+  // The connected check runs before the authz error check: a connected team
+  // still renders read-only when authz fails, while the not-connected
+  // branches need the permission to pick what to show, so there the failure
+  // surfaces as authzError. The permission check runs before the connect URL
+  // checks because a query disabled via `enabled` reports "pending" forever,
+  // and checking the URL first would keep non-managers on the loading
+  // skeleton.
+  type SlackSectionState =
+    | "loading"
+    | "error"
+    | "authzError"
+    | "connected"
+    | "canConnect"
+    | "cannotConnect";
+  const slackSection: SlackSectionState = (() => {
+    if (slackStatusQuery.status === "pending") {
+      return "loading";
+    }
+    if (slackStatusQuery.status === "error") {
+      return "error";
+    }
+    if (authzAndMembersQuery.status === "pending") {
+      return "loading";
+    }
+    if (teamSlack != null) {
+      return "connected";
+    }
+    if (authzAndMembersQuery.status === "error") {
+      return "authzError";
+    }
+    if (!authz.can_manage_slack) {
+      return "cannotConnect";
+    }
+    if (slackConnectUrlQuery.status === "pending") {
+      return "loading";
+    }
+    if (slackConnectUrlQuery.status === "error") {
+      return "error";
+    }
+    return "canConnect";
+  })();
 
   // A team that connected Slack before newer scopes were added keeps a token
-  // frozen at the old scopes. Slack never prompts existing installs, so the API
-  // detects the gap (needs_reauth) and we prompt an admin to reconnect.
-  const needsSlackReauth = teamSlack != null && teamSlack.needs_reauth === true;
+  // frozen at the old scopes. Slack never prompts existing installs, so the
+  // API detects the gap (needs_reauth) and the connected view shows a
+  // reconnect banner. The banner appears only when it offers a real action:
+  // the reconnect link for a user who can manage Slack, or a note to ask an
+  // owner for everyone else. A manager without the connect URL, still loading
+  // or failed, gets no banner rather than one with a dead action.
+  type SlackReauthPrompt = "reconnectLink" | "askOwner" | null;
+  const slackReauthPrompt: SlackReauthPrompt = (() => {
+    if (slackSection !== "connected") {
+      return null;
+    }
+    if (teamSlack.needs_reauth !== true) {
+      return null;
+    }
+    if (!authz.can_manage_slack) {
+      return "askOwner";
+    }
+    if (teamSlackConnectUrl) {
+      return "reconnectLink";
+    }
+    return null;
+  })();
 
   // TanStack Query: mutations
   const changeTeamNameMutation = useChangeTeamNameMutation();
@@ -289,6 +363,15 @@ export default function TeamOverview(props: {
     );
   };
 
+  const retrySlackQueries = () => {
+    if (slackStatusQuery.status === "error") {
+      slackStatusQuery.refetch();
+    }
+    if (slackConnectUrlQuery.status === "error") {
+      slackConnectUrlQuery.refetch();
+    }
+  };
+
   const testSlackAlert = async () => {
     testSlackAlertMutation.mutate(
       { teamId: params.teamId },
@@ -340,13 +423,13 @@ export default function TeamOverview(props: {
     <div className="flex flex-col items-start">
       <div className="flex w-full justify-end">
         <CreateTeam
-          disabled={teamsStatus === "pending"}
+          disabled={teamsQuery.status === "pending"}
           onSuccess={(teamId) => router.push(`/${teamId}/team`)}
         />
       </div>
 
       {/* Loading skeleton for full page */}
-      {teamsStatus === "pending" && (
+      {teamsQuery.status === "pending" && (
         <div className="flex flex-col items-start w-full">
           {/* Invite Team Members */}
           <div className="py-6" />
@@ -386,13 +469,13 @@ export default function TeamOverview(props: {
       )}
 
       {/* Error message for team fetch error */}
-      {teamsStatus === "error" && (
+      {teamsQuery.status === "error" && (
         <p className="font-body text-sm">
           Error fetching team, please refresh page to try again
         </p>
       )}
 
-      {teamsStatus === "success" && (
+      {teamsQuery.status === "success" && (
         <div className="flex flex-col items-start">
           {/* Dialog for confirming pending invite resend */}
           <DangerConfirmationDialog
@@ -604,17 +687,17 @@ export default function TeamOverview(props: {
           <p className="font-display text-xl max-w-6xl text-center">Members</p>
           <div className="py-2" />
           {/* Loading message for fetch members */}
-          {authzAndMembersStatus === "pending" && (
+          {authzAndMembersQuery.status === "pending" && (
             <SkeletonTable rows={3} columns={2} />
           )}
           {/* Error message for fetch members */}
-          {authzAndMembersStatus === "error" && (
+          {authzAndMembersQuery.status === "error" && (
             <p className="font-body text-sm">
               Error fetching team members, please refresh page to try again
             </p>
           )}
 
-          {authzAndMembersStatus === "success" && (
+          {authzAndMembersQuery.status === "success" && (
             <Table className="font-display select-none table-auto w-full">
               <TableHeader>
                 <TableRow>
@@ -762,8 +845,8 @@ export default function TeamOverview(props: {
             </Table>
           )}
 
-          {(pendingInvitesStatus !== "success" ||
-            (pendingInvitesStatus === "success" &&
+          {(pendingInvitesQuery.status !== "success" ||
+            (pendingInvitesQuery.status === "success" &&
               pendingInvites &&
               pendingInvites.length > 0)) && (
             <p className="mt-16 mb-6 font-display text-xl max-w-6xl text-center">
@@ -771,18 +854,18 @@ export default function TeamOverview(props: {
             </p>
           )}
           {/* Loading message for fetch pending invites */}
-          {pendingInvitesStatus === "pending" && (
+          {pendingInvitesQuery.status === "pending" && (
             <SkeletonTable rows={2} columns={4} />
           )}
           {/* Error message for fetch pending invites */}
-          {pendingInvitesStatus === "error" && (
+          {pendingInvitesQuery.status === "error" && (
             <p className="font-body text-sm">
               Error fetching pending invites, please refresh page to try again
             </p>
           )}
 
-          {authzAndMembersStatus === "success" &&
-            pendingInvitesStatus === "success" &&
+          {authzAndMembersQuery.status === "success" &&
+            pendingInvitesQuery.status === "success" &&
             pendingInvites &&
             pendingInvites.length > 0 && (
               <Table className="font-display select-none table-auto w-full">
@@ -899,49 +982,56 @@ export default function TeamOverview(props: {
               }
             />
           </div>
-          <div className="py-4" />
-          {(slackStatusQueryStatus === "pending" ||
-            slackConnectUrlStatus === "pending") && (
+          <div className="py-2" />
+          {slackSection === "loading" && (
             <div className="flex flex-col gap-3 w-full max-w-md">
               <Skeleton className="h-10 w-48 rounded-lg" />
               <Skeleton className="h-4 w-32" />
             </div>
           )}
 
-          {/* error creating slack url or fetching team slack status */}
-          {(slackConnectUrlStatus === "error" ||
-            slackStatusQueryStatus === "error") && (
+          {/* the status fetch failed, or a manager's connect url fetch failed */}
+          {slackSection === "error" && (
+            <div className="flex flex-col items-start gap-4">
+              <p className="font-body text-sm">
+                Error fetching Slack Integration status.
+                {!isCloud() && (
+                  <>
+                    {" "}
+                    Follow our{" "}
+                    <Link
+                      className={underlineLinkStyle}
+                      href="/docs/hosting/slack"
+                    >
+                      guide
+                    </Link>{" "}
+                    to set it up if you haven&apos;t done so.
+                  </>
+                )}
+              </p>
+              <Button
+                variant="outline"
+                loading={
+                  slackStatusQuery.isRefetching ||
+                  slackConnectUrlQuery.isRefetching
+                }
+                onClick={retrySlackQueries}
+              >
+                Try again
+              </Button>
+            </div>
+          )}
+
+          {/* the authz fetch failed, so which not-connected view applies is unknown */}
+          {slackSection === "authzError" && (
             <p className="font-body text-sm">
-              Error fetching Slack Integration status.
-              {!isCloud() && (
-                <>
-                  {" "}
-                  Follow our{" "}
-                  <Link
-                    className={underlineLinkStyle}
-                    href="/docs/hosting/slack"
-                  >
-                    guide
-                  </Link>{" "}
-                  to set it up if you haven&apos;t done so.
-                </>
-              )}
+              Could not verify authorization. Please refresh to try again.
             </p>
           )}
 
           {/* slack not connected, show add to slack button */}
-          {slackConnectUrlStatus === "success" &&
-          slackStatusQueryStatus === "success" &&
-          teamSlack === null ? (
-            <a
-              aria-disabled={!authz.can_manage_slack}
-              onClick={(e) => {
-                if (!authz.can_manage_slack) {
-                  e.preventDefault();
-                }
-              }}
-              href={teamSlackConnectUrl!}
-            >
+          {slackSection === "canConnect" && (
+            <a href={teamSlackConnectUrl!}>
               <Image
                 alt="Add to Slack"
                 height={40}
@@ -950,79 +1040,83 @@ export default function TeamOverview(props: {
                 unoptimized
               />
             </a>
-          ) : (
-            ""
+          )}
+
+          {/* slack not connected and the user cannot change that */}
+          {slackSection === "cannotConnect" && (
+            <p className="font-body text-sm">
+              Slack is not connected. Please ask a team owner to connect it.
+            </p>
           )}
 
           {/* slack connected, show switch */}
-          {slackConnectUrlStatus === "success" &&
-            slackStatusQueryStatus === "success" &&
-            teamSlack !== null && (
-              <div className="flex flex-col w-full">
-                {needsSlackReauth && (
-                  <div
-                    className={`${warningCalloutStyle} mb-6 flex flex-col gap-2`}
-                  >
-                    <span>
-                      This Slack connection is missing newer permissions.
-                      Reconnect to enable Measure Agent. Slack does not prompt
-                      existing connections about new permissions.
+          {slackSection === "connected" && (
+            <div className="flex flex-col w-full">
+              {slackReauthPrompt !== null && (
+                <div
+                  className={`${warningCalloutStyle} mb-6 flex flex-col gap-2`}
+                >
+                  <span>
+                    This Slack connection is missing newer permissions.
+                    Reconnect to enable Measure Agent. Slack does not prompt
+                    existing connections about new permissions.
+                  </span>
+                  {slackReauthPrompt === "reconnectLink" && (
+                    <Link
+                      href={teamSlackConnectUrl!}
+                      className="font-semibold underline w-fit whitespace-nowrap"
+                    >
+                      Reconnect Slack →
+                    </Link>
+                  )}
+                  {slackReauthPrompt === "askOwner" && (
+                    <span className="whitespace-nowrap italic">
+                      Ask a team owner to reconnect.
                     </span>
-                    {authz.can_manage_slack ? (
-                      <Link
-                        href={teamSlackConnectUrl!}
-                        className="font-semibold underline w-fit whitespace-nowrap"
-                      >
-                        Reconnect Slack →
-                      </Link>
-                    ) : (
-                      <span className="whitespace-nowrap italic">
-                        Ask a team admin to reconnect.
-                      </span>
-                    )}
-                  </div>
-                )}
-                <div className="flex flex-row w-full items-center justify-between">
-                  <p className="font-body">
-                    Connected to{" "}
-                    <span className="font-semibold">
-                      {teamSlack.slack_team_name}
-                    </span>{" "}
-                    workspace
-                  </p>
-                  <Switch
-                    disabled={
-                      !authz.can_manage_slack ||
-                      updateSlackStatusMutation.isPending
-                    }
-                    checked={teamSlack.is_active}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        updateSlackStatus(true);
-                      } else {
-                        setDisableSlackConfirmationDialogOpen(true);
-                      }
-                    }}
-                  />
+                  )}
                 </div>
-
-                <div className="py-4" />
-
-                <Button
-                  variant="outline"
-                  className="w-fit"
+              )}
+              <div className="flex flex-row w-full items-center justify-between">
+                <p className="font-body">
+                  Connected to{" "}
+                  <span className="font-semibold">
+                    {teamSlack.slack_team_name}
+                  </span>{" "}
+                  workspace
+                </p>
+                <Switch
                   disabled={
                     !authz.can_manage_slack ||
-                    testSlackAlertMutation.isPending ||
-                    teamSlack.is_active === false
+                    updateSlackStatusMutation.isPending
                   }
-                  loading={testSlackAlertMutation.isPending}
-                  onClick={() => setTestSlackAlertConfirmationDialogOpen(true)}
-                >
-                  Send Test Alert
-                </Button>
+                  checked={teamSlack.is_active}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      updateSlackStatus(true);
+                    } else {
+                      setDisableSlackConfirmationDialogOpen(true);
+                    }
+                  }}
+                />
               </div>
-            )}
+
+              <div className="py-4" />
+
+              <Button
+                variant="outline"
+                className="w-fit"
+                disabled={
+                  !authz.can_manage_slack ||
+                  testSlackAlertMutation.isPending ||
+                  teamSlack.is_active === false
+                }
+                loading={testSlackAlertMutation.isPending}
+                onClick={() => setTestSlackAlertConfirmationDialogOpen(true)}
+              >
+                Send Test Alert
+              </Button>
+            </div>
+          )}
 
           <div className="py-8" />
           <p className="font-display text-xl max-w-6xl text-center">
