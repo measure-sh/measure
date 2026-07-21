@@ -1,25 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { sharedOpenGraph } from "@/app/utils/metadata";
+import { marketingPageMetadata } from "@/app/utils/metadata";
 import ForPlatformPage, {
   type PlatformFeature,
 } from "../../components/for_platform_page";
 import { underlineLinkStyle } from "../../utils/shared_styles";
 import { codingAgents } from "../../utils/coding_agents";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = marketingPageMetadata({
   title: "iOS Crash Reporting and Performance Monitoring",
   description:
     "Reduce crashes and errors, improve performance and get better app store ratings with iOS performance monitoring & crash reporting.",
-  alternates: { canonical: "/for/ios" },
-  openGraph: {
-    ...sharedOpenGraph,
-    title: "iOS Crash Reporting and Performance Monitoring | Measure",
-    description:
-      "Reduce crashes and errors, improve performance and get better app store ratings with iOS performance monitoring & crash reporting.",
-    url: "/for/ios",
-  },
-};
+  path: "/for/ios",
+});
 
 const features: PlatformFeature[] = [
   {

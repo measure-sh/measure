@@ -1,5 +1,5 @@
 import { buttonVariants } from "@/app/components/button_variants";
-import { sharedOpenGraph } from "@/app/utils/metadata";
+import { marketingPageMetadata } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import {
   LucideBug,
@@ -15,19 +15,12 @@ import TrackCtaLink from "../components/analytics/track_cta_link";
 import TrackGithubLink from "../components/analytics/track_github_link";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = marketingPageMetadata({
   title: "Mobile-First App Monitoring",
   description:
     "Mobile is the product, not an add-on to a backend observability tool. Why we built Measure for mobile engineering teams.",
-  alternates: { canonical: "/why-measure" },
-  openGraph: {
-    ...sharedOpenGraph,
-    title: "Mobile-First App Monitoring | Measure",
-    description:
-      "Mobile is the product, not an add-on to a backend observability tool. Why we built Measure for mobile engineering teams.",
-    url: "/why-measure",
-  },
-};
+  path: "/why-measure",
+});
 
 export default function WhyMeasure() {
   return (

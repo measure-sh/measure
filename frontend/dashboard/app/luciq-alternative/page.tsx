@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { sharedOpenGraph } from "@/app/utils/metadata";
+import { marketingPageMetadata } from "@/app/utils/metadata";
 import AlternativePage, {
   type AlternativeComparisonRow,
   type AlternativeDifferentiator,
@@ -15,19 +15,12 @@ import AlternativePage, {
 import TrackGithubLink from "../components/analytics/track_github_link";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = marketingPageMetadata({
   title: "Open Source Luciq (formerly Instabug) Alternative",
   description:
     "Mobile focused, open source alternative to Luciq (formerly Instabug). Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
-  alternates: { canonical: "/luciq-alternative" },
-  openGraph: {
-    ...sharedOpenGraph,
-    title: "Open Source Luciq (formerly Instabug) Alternative | Measure",
-    description:
-      "Mobile focused, open source alternative to Luciq (formerly Instabug). Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
-    url: "/luciq-alternative",
-  },
-};
+  path: "/luciq-alternative",
+});
 
 const differentiators: AlternativeDifferentiator[] = [
   {

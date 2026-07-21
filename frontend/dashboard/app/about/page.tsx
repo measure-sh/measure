@@ -6,22 +6,15 @@ import LandingHeader from "../components/landing_header";
 import { buttonVariants } from "../components/button_variants";
 import LandingFooter from "../components/landing_footer";
 import TrackCtaLink from "../components/analytics/track_cta_link";
-import { sharedOpenGraph } from "../utils/metadata";
+import { marketingPageMetadata } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = marketingPageMetadata({
   title: "About Measure — Built by and for Mobile Developers",
   description:
     "Meet the team behind Measure. Open source mobile app monitoring built by mobile developers, for mobile developers.",
-  alternates: { canonical: "/about" },
-  openGraph: {
-    ...sharedOpenGraph,
-    title: "About Measure — Built by and for Mobile Developers | Measure",
-    description:
-      "Meet the team behind Measure. Open source mobile app monitoring built by mobile developers, for mobile developers.",
-    url: "/about",
-  },
-};
+  path: "/about",
+});
 
 export default function About() {
   const team = [

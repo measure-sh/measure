@@ -4,23 +4,16 @@ import { buttonVariants } from "../components/button_variants";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
 import TrackCtaLink from "../components/analytics/track_cta_link";
-import { sharedOpenGraph } from "../utils/metadata";
+import { marketingPageMetadata } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = marketingPageMetadata({
   title: "Privacy Policy",
   description:
     "What Measure does with your data, how we collect it and how we store it. Open source so you can audit it yourself.",
-  alternates: { canonical: "/privacy-policy" },
-  openGraph: {
-    ...sharedOpenGraph,
-    title: "Privacy Policy",
-    description:
-      "What Measure does with your data, how we collect it and how we store it. Open source so you can audit it yourself.",
-    url: "/privacy-policy",
-  },
-};
+  path: "/privacy-policy",
+});
 
 export default function PrivacyPolicy() {
   return (

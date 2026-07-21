@@ -1,25 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { sharedOpenGraph } from "@/app/utils/metadata";
+import { marketingPageMetadata } from "@/app/utils/metadata";
 import ForPlatformPage, {
   type PlatformFeature,
 } from "../../components/for_platform_page";
 import { underlineLinkStyle } from "../../utils/shared_styles";
 import { codingAgents } from "../../utils/coding_agents";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = marketingPageMetadata({
   title: "React Native Error Tracking and Performance Monitoring",
   description:
     "Reduce errors, improve performance and raise app ratings with React Native error tracking & performance monitoring.",
-  alternates: { canonical: "/for/react-native" },
-  openGraph: {
-    ...sharedOpenGraph,
-    title: "React Native Error Tracking and Performance Monitoring | Measure",
-    description:
-      "Reduce errors, improve performance and raise app ratings with React Native error tracking & performance monitoring.",
-    url: "/for/react-native",
-  },
-};
+  path: "/for/react-native",
+});
 
 const features: PlatformFeature[] = [
   {
