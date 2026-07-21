@@ -1,38 +1,21 @@
-import ScaledPreview from "@/app/components/scaled_preview";
-import { buttonVariants } from "@/app/components/button_variants";
-import TrackCtaLink from "@/app/components/analytics/track_cta_link";
-import { sharedOpenGraph } from "@/app/utils/metadata";
-import { cn } from "@/app/utils/shadcn_utils";
+import ProductPage from "@/app/components/product_page";
+import { marketingPageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
-import LandingFooter from "../../components/landing_footer";
-import LandingHeader from "../../components/landing_header";
 import BugReportDemo from "./bug_report_demo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = marketingPageMetadata({
   title: "In-App Bug Reporting for Mobile Apps",
   description:
     "Capture bug reports with a device shake or SDK call. Get the full session context, device state and network info so you can get to the root cause.",
-  alternates: { canonical: "/product/bug-reports" },
-  openGraph: {
-    ...sharedOpenGraph,
-    title: "In-App Bug Reporting for Mobile Apps",
-    description:
-      "Capture bug reports with a device shake or SDK call. Get the full session context, device state and network info so you can get to the root cause.",
-    url: "/product/bug-reports",
-  },
-};
+  path: "/product/bug-reports",
+});
 
 export default function ProductBugReports() {
   return (
-    <main className="flex flex-col items-center justify-between">
-      <LandingHeader />
-      <div className="flex flex-col items-center w-full">
-        <div className="py-16" />
-        <h1 className="text-6xl font-display w-full md:w-6xl px-4">
-          Bug Reports
-        </h1>
-        <div className="py-2" />
-        <p className="text-lg font-body md:w-6xl text-justify px-4">
+    <ProductPage
+      title="Bug Reports"
+      intro={
+        <>
           Empower your users to report issues directly from your app with a
           device shake or using your own custom button.
           <br />
@@ -52,31 +35,14 @@ export default function ProductBugReports() {
           the back-and-forth asking users to remember what they were doing -
           your users describe the problem in their own words and you get all the
           technical data you need to solve it.
-        </p>
-
-        <div className="relative w-full max-w-[90vw] md:max-w-6xl h-[400px] md:h-[740px] mt-12 mb-32 mx-auto border border-border rounded-lg shadow-xl overflow-hidden">
-          <ScaledPreview>
-            <div className="bg-background text-foreground min-h-screen px-8 py-12">
-              <BugReportDemo />
-            </div>
-          </ScaledPreview>
-        </div>
-
-        {/* CTA */}
-        <TrackCtaLink
-          location="product_bug_reports"
-          destination="signup"
-          href="/auth/login"
-          className={cn(
-            buttonVariants({ variant: "default" }),
-            "text-2xl px-8 py-8",
-          )}
-        >
-          Get To The Root Cause
-        </TrackCtaLink>
-        <div className="py-16" />
-      </div>
-      <LandingFooter />
-    </main>
+        </>
+      }
+      demo={{
+        frame: "scaled",
+        heightClassName: "h-[400px] md:h-[740px]",
+        content: <BugReportDemo />,
+      }}
+      ctaLocation="product_bug_reports"
+    />
   );
 }

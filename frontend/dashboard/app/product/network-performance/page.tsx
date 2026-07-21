@@ -1,38 +1,21 @@
-import ScaledPreview from "@/app/components/scaled_preview";
-import { buttonVariants } from "@/app/components/button_variants";
-import TrackCtaLink from "@/app/components/analytics/track_cta_link";
-import { sharedOpenGraph } from "@/app/utils/metadata";
-import { cn } from "@/app/utils/shadcn_utils";
+import ProductPage from "@/app/components/product_page";
+import { marketingPageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
-import LandingFooter from "../../components/landing_footer";
-import LandingHeader from "../../components/landing_header";
 import NetworkDemo from "./network_demo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = marketingPageMetadata({
   title: "Mobile Network Performance Monitoring",
   description:
     "Monitor mobile API call latency, HTTP status codes and slow endpoints. Find and fix the network calls killing your app's performance.",
-  alternates: { canonical: "/product/network-performance" },
-  openGraph: {
-    ...sharedOpenGraph,
-    title: "Mobile Network Performance Monitoring",
-    description:
-      "Monitor mobile API call latency, HTTP status codes and slow endpoints. Find and fix the network calls killing your app's performance.",
-    url: "/product/network-performance",
-  },
-};
+  path: "/product/network-performance",
+});
 
 export default function ProductNetworkPerformance() {
   return (
-    <main className="flex flex-col items-center justify-between">
-      <LandingHeader />
-      <div className="flex flex-col items-center w-full">
-        <div className="py-16" />
-        <h1 className="text-6xl font-display w-full md:w-6xl px-4">
-          Network Performance
-        </h1>
-        <div className="py-2" />
-        <p className="text-lg font-body md:w-6xl text-justify px-4">
+    <ProductPage
+      title="Network Performance"
+      intro={
+        <>
           Monitor the health and performance of every network request your app
           makes. Instantly see HTTP status code distributions over time, giving
           you a clear picture of how your API layer is performing at a glance.
@@ -47,31 +30,14 @@ export default function ProductNetworkPerformance() {
           With Network Performance, you can proactively catch degraded
           endpoints, reduce error rates and optimize the API calls that matter
           most to your users.
-        </p>
-
-        <div className="relative w-full max-w-[90vw] md:max-w-6xl h-[380px] md:h-[760px] mt-12 mb-32 mx-auto border border-border rounded-lg shadow-xl overflow-hidden">
-          <ScaledPreview>
-            <div className="bg-background text-foreground min-h-screen px-8 py-12">
-              <NetworkDemo />
-            </div>
-          </ScaledPreview>
-        </div>
-
-        {/* CTA */}
-        <TrackCtaLink
-          location="product_network_performance"
-          destination="signup"
-          href="/auth/login"
-          className={cn(
-            buttonVariants({ variant: "default" }),
-            "text-2xl px-8 py-8",
-          )}
-        >
-          Get To The Root Cause
-        </TrackCtaLink>
-        <div className="py-16" />
-      </div>
-      <LandingFooter />
-    </main>
+        </>
+      }
+      demo={{
+        frame: "scaled",
+        heightClassName: "h-[380px] md:h-[760px]",
+        content: <NetworkDemo />,
+      }}
+      ctaLocation="product_network_performance"
+    />
   );
 }

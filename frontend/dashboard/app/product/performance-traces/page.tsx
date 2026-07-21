@@ -1,38 +1,21 @@
-import ScaledPreview from "@/app/components/scaled_preview";
-import { buttonVariants } from "@/app/components/button_variants";
-import TrackCtaLink from "@/app/components/analytics/track_cta_link";
-import { sharedOpenGraph } from "@/app/utils/metadata";
-import { cn } from "@/app/utils/shadcn_utils";
+import ProductPage from "@/app/components/product_page";
+import { marketingPageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
-import LandingFooter from "../../components/landing_footer";
-import LandingHeader from "../../components/landing_header";
 import TraceDemo from "./trace_demo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = marketingPageMetadata({
   title: "Mobile App Performance Tracing & Monitoring",
   description:
     "Improve mobile app performance with traces and spans. Find slow code, isolate bottlenecks and fix performance issues hurting your app.",
-  alternates: { canonical: "/product/performance-traces" },
-  openGraph: {
-    ...sharedOpenGraph,
-    title: "Mobile App Performance Tracing & Monitoring",
-    description:
-      "Improve mobile app performance with traces and spans. Find slow code, isolate bottlenecks and fix performance issues hurting your app.",
-    url: "/product/performance-traces",
-  },
-};
+  path: "/product/performance-traces",
+});
 
 export default function ProductPerformanceTraces() {
   return (
-    <main className="flex flex-col items-center justify-between">
-      <LandingHeader />
-      <div className="flex flex-col items-center w-full">
-        <div className="py-16" />
-        <h1 className="text-6xl font-display w-full md:w-6xl px-4">
-          Performance Traces
-        </h1>
-        <div className="py-2" />
-        <p className="text-lg font-body md:w-6xl text-justify px-4">
+    <ProductPage
+      title="Performance Traces"
+      intro={
+        <>
           Measure exactly what matters for your app&apos;s user experience by
           instrumenting critical operations in your codebase.
           <br />
@@ -51,31 +34,14 @@ export default function ProductPerformanceTraces() {
           Whether you&apos;re reducing checkout time, speeding up content
           loading or improving screen transitions, Performance Traces give you
           the quantitative data you need to make precise improvements.
-        </p>
-
-        <div className="relative w-full max-w-[90vw] md:max-w-6xl h-[400px] md:h-[780px] mt-12 mb-32 mx-auto border border-border rounded-lg shadow-xl overflow-hidden">
-          <ScaledPreview>
-            <div className="bg-background text-foreground min-h-screen px-8 py-12">
-              <TraceDemo />
-            </div>
-          </ScaledPreview>
-        </div>
-
-        {/* CTA */}
-        <TrackCtaLink
-          location="product_performance_traces"
-          destination="signup"
-          href="/auth/login"
-          className={cn(
-            buttonVariants({ variant: "default" }),
-            "text-2xl px-8 py-8",
-          )}
-        >
-          Get To The Root Cause
-        </TrackCtaLink>
-        <div className="py-16" />
-      </div>
-      <LandingFooter />
-    </main>
+        </>
+      }
+      demo={{
+        frame: "scaled",
+        heightClassName: "h-[400px] md:h-[780px]",
+        content: <TraceDemo />,
+      }}
+      ctaLocation="product_performance_traces"
+    />
   );
 }
