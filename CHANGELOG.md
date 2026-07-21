@@ -97,6 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Show slack integration state to non-owners on team page by @anupcowkur in #4108
 - (**frontend**): Show 404 page for invalid or inaccessible team URLs by @anupcowkur in #4103
 - (**frontend**): Treat cancelled fetches as query errors by @anupcowkur in #4097
 - (**frontend**): Strip HTML tags iteratively in docs link test by @anupcowkur in #4018
