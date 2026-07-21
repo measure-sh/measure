@@ -374,8 +374,7 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
       {/* Error states */}
       {usageIsError && (
         <p className="font-body text-sm">
-          Error fetching usage data, please check if Team ID is valid or refresh
-          page to try again
+          Error fetching usage data, please refresh page to try again
         </p>
       )}
       {usageHasNoData && (
@@ -471,8 +470,7 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
           {/* Error states */}
           {billingInfoStatus === "error" && (
             <p className="font-body text-sm">
-              Error fetching billing data, please check if Team ID is valid or
-              refresh page to try again
+              Error fetching billing data, please refresh page to try again
             </p>
           )}
 

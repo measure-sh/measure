@@ -1381,8 +1381,7 @@ const FiltersComponent = forwardRef<
 
         {store.appsApiStatus === AppsApiStatus.Error && (
           <p className="font-body text-sm">
-            Error fetching apps, please check if Team ID is valid or refresh
-            page to try again
+            Error fetching apps, please refresh page to try again
           </p>
         )}
         {store.appsApiStatus === AppsApiStatus.NoApps &&
