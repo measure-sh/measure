@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { sharedOpenGraph } from "@/app/utils/metadata";
+import { marketingPageMetadata } from "@/app/utils/metadata";
 import AlternativePage, {
   type AlternativeComparisonRow,
   type AlternativeDifferentiator,
@@ -15,19 +15,12 @@ import AlternativePage, {
 import TrackGithubLink from "../components/analytics/track_github_link";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = marketingPageMetadata({
   title: "Open Source New Relic Alternative",
   description:
     "Mobile focused, open source alternative to New Relic. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
-  alternates: { canonical: "/new-relic-alternative" },
-  openGraph: {
-    ...sharedOpenGraph,
-    title: "Open Source New Relic Alternative | Measure",
-    description:
-      "Mobile focused, open source alternative to New Relic. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
-    url: "/new-relic-alternative",
-  },
-};
+  path: "/new-relic-alternative",
+});
 
 const differentiators: AlternativeDifferentiator[] = [
   {

@@ -4,23 +4,16 @@ import { buttonVariants } from "../components/button_variants";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
 import TrackCtaLink from "../components/analytics/track_cta_link";
-import { sharedOpenGraph } from "../utils/metadata";
+import { marketingPageMetadata } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = marketingPageMetadata({
   title: "Terms of Service",
   description:
     "Terms of Service for Measure Cloud and the open source Measure project.",
-  alternates: { canonical: "/terms-of-service" },
-  openGraph: {
-    ...sharedOpenGraph,
-    title: "Terms of Service",
-    description:
-      "Terms of Service for Measure Cloud and the open source Measure project.",
-    url: "/terms-of-service",
-  },
-};
+  path: "/terms-of-service",
+});
 
 export default function TermsOfService() {
   return (

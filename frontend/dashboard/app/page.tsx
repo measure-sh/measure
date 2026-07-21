@@ -14,23 +14,16 @@ import AIDemoCarousel from "./components/ai_demo_carousel";
 import Testimonials from "./components/testimonials";
 import TrackCtaLink from "./components/analytics/track_cta_link";
 import TrackGithubLink from "./components/analytics/track_github_link";
-import { sharedOpenGraph } from "./utils/metadata";
+import { marketingPageMetadata } from "./utils/metadata";
 import { cn } from "./utils/shadcn_utils";
 import { underlineLinkStyle } from "./utils/shared_styles";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = marketingPageMetadata({
   title: "Open Source Mobile App Monitoring & Crash Reporting",
   description:
     "Measure helps mobile teams monitor and fix crashes, ANRs, bugs, and performance issues. The open source alternative to Firebase Crashlytics.",
-  alternates: { canonical: "/" },
-  openGraph: {
-    ...sharedOpenGraph,
-    title: "Open Source Mobile App Monitoring & Crash Reporting | Measure",
-    description:
-      "Measure helps mobile teams monitor and fix crashes, ANRs, bugs, and performance issues. The open source alternative to Firebase Crashlytics.",
-    url: "/",
-  },
-};
+  path: "/",
+});
 
 const KukuFmLogo = ({ className }: { className?: string }) => (
   <svg

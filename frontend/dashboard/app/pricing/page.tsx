@@ -5,7 +5,7 @@ import { Card } from "../components/card";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
 import PricingViewed from "./pricing_viewed";
-import { sharedOpenGraph } from "../utils/metadata";
+import { marketingPageMetadata } from "../utils/metadata";
 import {
   FREE_GB,
   FREE_RETENTION_DAYS,
@@ -17,19 +17,12 @@ import {
 import { underlineLinkStyle } from "../utils/shared_styles";
 import PricingCalculator from "./pricing_calculator";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = marketingPageMetadata({
   title: "Pricing & Plans",
   description:
     "Free tier for solo devs and small teams. Usage-based Pro plan for scale. No seat limits. No artificial bundles. 100% open source.",
-  alternates: { canonical: "/pricing" },
-  openGraph: {
-    ...sharedOpenGraph,
-    title: "Pricing & Plans | Measure",
-    description:
-      "Free tier for solo devs and small teams. Usage-based Pro plan for scale. No seat limits. No artificial bundles. 100% open source.",
-    url: "/pricing",
-  },
-};
+  path: "/pricing",
+});
 
 export default function Pricing() {
   return (

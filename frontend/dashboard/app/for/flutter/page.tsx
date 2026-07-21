@@ -1,25 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { sharedOpenGraph } from "@/app/utils/metadata";
+import { marketingPageMetadata } from "@/app/utils/metadata";
 import ForPlatformPage, {
   type PlatformFeature,
 } from "../../components/for_platform_page";
 import { underlineLinkStyle } from "../../utils/shared_styles";
 import { codingAgents } from "../../utils/coding_agents";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = marketingPageMetadata({
   title: "Flutter Crash Reporting and Performance Monitoring",
   description:
     "Reduce crashes and error rates, improve performance and get better app ratings with Flutter performance monitoring & crash reporting.",
-  alternates: { canonical: "/for/flutter" },
-  openGraph: {
-    ...sharedOpenGraph,
-    title: "Flutter Crash Reporting and Performance Monitoring | Measure",
-    description:
-      "Reduce crashes and error rates, improve performance and get better app ratings with Flutter performance monitoring & crash reporting.",
-    url: "/for/flutter",
-  },
-};
+  path: "/for/flutter",
+});
 
 const features: PlatformFeature[] = [
   {
