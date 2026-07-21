@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Exclude session_start-only sessions from list endpoints (#4102) by @detj in #4102
 - (**backend**): Return attribute for session_start-only sessions (#4098) by @detj in #4098
 - (**backend**): Failing slack auth status test (#4094) by @detj in #4094
 - (**backend**): Route network queries through row-policy reader pool (#4047) by @detj in #4047
