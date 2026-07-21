@@ -18,7 +18,7 @@ import {
   SidebarTrigger,
 } from "@/app/components/sidebar";
 import { signOut, useTeamsQuery } from "@/app/query/hooks";
-import { usePathname, useRouter } from "next/navigation";
+import { notFound, usePathname, useRouter } from "next/navigation";
 import posthog from "posthog-js";
 import React, { useEffect, useMemo, useState } from "react";
 import { Team } from "../api/api_calls";
@@ -159,8 +159,16 @@ export default function DashboardLayout({
       return null;
     }
     const teamId = pathName.split("/")[1];
-    return teams.find((e) => e.id === teamId) ?? teams[0] ?? null;
+    return teams.find((e) => e.id === teamId) ?? null;
   }, [teams, pathName]);
+
+  // When teams have loaded and none matches the URL teamId, the id is either
+  // malformed or names a team this user isn't a member of. Render the 404
+  // page from the layout so every route under [teamId] is covered in one
+  // place.
+  if (teamsStatus === "success" && !selectedTeam) {
+    notFound();
+  }
 
   useEffect(() => {
     apiClient.init(router);

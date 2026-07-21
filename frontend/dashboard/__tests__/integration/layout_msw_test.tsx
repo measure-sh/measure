@@ -11,6 +11,8 @@
  * Navigation items are dynamically marked active based on pathname.
  * Team switching redirects to /{teamId}/overview.
  * Sign out calls DELETE /auth/logout and redirects to /auth/login.
+ * A URL teamId that matches none of the user's teams renders the 404 page
+ * via notFound().
  */
 import {
   afterAll,
@@ -71,12 +73,18 @@ jest.mock("posthog-js", () => ({
 const mockRouterReplace = jest.fn();
 const mockRouterPush = jest.fn();
 const mockUsePathname = jest.fn().mockReturnValue("/team-001/overview");
+// The real notFound() throws an error that Next's not-found boundary
+// catches; the mock throws too so the render aborts the same way.
+const mockNotFound = jest.fn(() => {
+  throw new Error("NEXT_HTTP_ERROR_FALLBACK;404");
+});
 jest.mock("next/navigation", () => ({
   __esModule: true,
   useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => mockUsePathname(),
   useParams: () => ({ teamId: "team-001" }),
+  notFound: () => mockNotFound(),
 }));
 
 jest.mock("next/link", () => ({
@@ -116,6 +124,7 @@ afterEach(() => {
   server.resetHandlers();
   mockRouterReplace.mockClear();
   mockRouterPush.mockClear();
+  mockNotFound.mockClear();
   mockUsePathname.mockReturnValue("/team-001/overview");
   mockIsCloud = false;
 });
@@ -125,6 +134,25 @@ afterAll(() => server.close());
 import DashboardLayout from "@/app/[teamId]/layout";
 import { createFiltersStore } from "@/app/stores/filters_store";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React from "react";
+
+// Stand-in for Next's not-found boundary: catches the error thrown by
+// notFound() and renders a marker in place of the layout subtree.
+class TestNotFoundBoundary extends React.Component<
+  { children: React.ReactNode },
+  { caught: boolean }
+> {
+  state = { caught: false };
+  static getDerivedStateFromError() {
+    return { caught: true };
+  }
+  render() {
+    if (this.state.caught) {
+      return <div data-testid="not-found-page" />;
+    }
+    return this.props.children;
+  }
+}
 
 let testQueryClient: QueryClient;
 let filtersStore = createFiltersStore();
@@ -167,9 +195,11 @@ beforeEach(() => {
 function layoutJsx() {
   return (
     <QueryClientProvider client={testQueryClient}>
-      <DashboardLayout>
-        <div data-testid="page-content">Page Content</div>
-      </DashboardLayout>
+      <TestNotFoundBoundary>
+        <DashboardLayout>
+          <div data-testid="page-content">Page Content</div>
+        </DashboardLayout>
+      </TestNotFoundBoundary>
     </QueryClientProvider>
   );
 }
@@ -529,6 +559,84 @@ describe("Dashboard Layout — team switching", () => {
       const overviewLink = inSidebar().getByText("Overview").closest("a");
       expect(overviewLink?.getAttribute("href")).toBe("/team-001/overview");
     });
+  });
+});
+
+// ====================================================================
+// LAYOUT — UNKNOWN TEAM IN URL
+// ====================================================================
+describe("Dashboard Layout — unknown team in URL", () => {
+  it("renders the 404 page when the URL names a team the user is not a member of", async () => {
+    mockUsePathname.mockReturnValue("/team-999/team");
+    renderLayout();
+    await waitFor(() => {
+      expect(mockNotFound).toHaveBeenCalled();
+      expect(screen.getByTestId("not-found-page")).toBeTruthy();
+    });
+    // The layout subtree, including the page, is replaced by the boundary
+    expect(screen.queryByTestId("page-content")).toBeNull();
+  });
+
+  it("renders the 404 page for a malformed team id", async () => {
+    mockUsePathname.mockReturnValue("/not-a-valid-id/overview");
+    renderLayout();
+    await waitFor(() => {
+      expect(screen.getByTestId("not-found-page")).toBeTruthy();
+    });
+  });
+
+  it("does not 404 while teams are still loading", async () => {
+    server.use(
+      http.get("*/api/teams", async () => {
+        await new Promise((r) => setTimeout(r, 5000));
+        return HttpResponse.json(makeTeamsFixture());
+      }),
+    );
+    mockUsePathname.mockReturnValue("/team-999/overview");
+    renderLayout();
+    // Skeletons stay up during the pending state, no premature 404
+    expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy();
+    expect(mockNotFound).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("not-found-page")).toBeNull();
+  });
+
+  it("does not 404 when the teams fetch fails", async () => {
+    server.use(
+      http.get("*/api/teams", () => HttpResponse.json({}, { status: 500 })),
+    );
+    mockUsePathname.mockReturnValue("/team-999/overview");
+    renderLayout();
+    await waitFor(() => {
+      expect(screen.getByText(/Error fetching teams/)).toBeTruthy();
+    });
+    expect(mockNotFound).not.toHaveBeenCalled();
+  });
+
+  it("404s when client navigation moves from a valid team to an unknown one", async () => {
+    const { rerender } = renderLayout();
+    await waitFor(() => {
+      expect(screen.getByText("Test Team")).toBeTruthy();
+    });
+
+    // Same shape as the Slack OAuth error redirect: an in-app landing on
+    // /{teamId}/team for a team outside the user's teams list
+    mockUsePathname.mockReturnValue("/team-999/team");
+    await act(async () => {
+      rerender(layoutJsx());
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("not-found-page")).toBeTruthy();
+    });
+  });
+
+  it("does not 404 for a team the user is a member of", async () => {
+    renderLayout();
+    await waitFor(() => {
+      expect(screen.getByText("Test Team")).toBeTruthy();
+    });
+    expect(mockNotFound).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("not-found-page")).toBeNull();
   });
 });
 
