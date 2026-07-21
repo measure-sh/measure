@@ -3611,6 +3611,9 @@ paths:
         always `null` in list responses; it is populated only on the
         single-session detail endpoint. `duration` is the session duration in
         milliseconds.
+
+        Sessions that contain only a session start event, with no other
+        activity, are always excluded from results regardless of filters.
       parameters:
         - name: id
           in: path
@@ -3854,6 +3857,10 @@ paths:
 
         For multiple comma separated fields, make sure no whitespace characters
         exist before or after commas.
+
+        Sessions that contain only a session start event, with no other
+        activity, are always excluded from the instance counts regardless of
+        filters.
       parameters:
         - name: id
           in: path
