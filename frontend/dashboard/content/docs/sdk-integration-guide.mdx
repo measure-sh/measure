@@ -592,6 +592,12 @@ Then run:
 pod install
 ```
 
+By default, the `measure-sh` iOS framework is integrated via Swift Package Manager (SPM). If you'd prefer to integrate it as a CocoaPods dependency instead, add the following to the top of your `Podfile`:
+
+```ruby
+$MeasureDisableSPM = true
+```
+
 **Step 2 — Enable sourcemap generation**
 
 In Xcode, open your target → Build Phases → **"Bundle React Native code and images"** and add this line at the top of the script:
