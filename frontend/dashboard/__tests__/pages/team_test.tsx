@@ -2,13 +2,7 @@ import { promiseParams } from "@/__tests__/helpers/promise_params";
 import TeamOverview from "@/app/[teamId]/team/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
-import {
-  createEvent,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 // Radix tooltip content measures its arrow via ResizeObserver, absent in jsdom.
 if (typeof globalThis.ResizeObserver === "undefined") {
@@ -238,8 +232,10 @@ const teamPageStore = createBridge(() => ({
   pendingInvites: null as any,
   teamSlackConnectUrl: null as string | null,
   fetchTeamSlackConnectUrlApiStatus: "init",
+  refetchSlackConnectUrl: jest.fn(),
   teamSlack: null as any,
   fetchTeamSlackStatusApiStatus: "init",
+  refetchSlackStatus: jest.fn(),
   updateTeamSlackStatusApiStatus: "init",
   testSlackAlertApiStatus: "init",
   teamNameChangeApiStatus: "init",
@@ -306,6 +302,7 @@ jest.mock("@/app/query/hooks", () => ({
     return {
       data: s.teamSlackConnectUrl,
       status: mapStatus(s.fetchTeamSlackConnectUrlApiStatus),
+      refetch: s.refetchSlackConnectUrl,
     };
   },
   useTeamSlackStatusQuery: () => {
@@ -313,6 +310,7 @@ jest.mock("@/app/query/hooks", () => ({
     return {
       data: s.teamSlack,
       status: mapStatus(s.fetchTeamSlackStatusApiStatus),
+      refetch: s.refetchSlackStatus,
     };
   },
   useChangeTeamNameMutation: () => {
@@ -605,8 +603,10 @@ describe("Team Page", () => {
       pendingInvites: null,
       teamSlackConnectUrl: null,
       fetchTeamSlackConnectUrlApiStatus: "init",
+      refetchSlackConnectUrl: jest.fn(),
       teamSlack: null,
       fetchTeamSlackStatusApiStatus: "init",
+      refetchSlackStatus: jest.fn(),
       updateTeamSlackStatusApiStatus: "init",
       testSlackAlertApiStatus: "init",
       teamNameChangeApiStatus: "init",
@@ -1137,11 +1137,10 @@ describe("Team Page", () => {
     });
   });
 
-  it("shows slack setup link when slack is not connected and disables it without permissions", async () => {
+  it("shows add-to-slack button when slack is not connected and user can manage slack", async () => {
     setDefaultTeamsState();
     setDefaultTeamPageState();
     useTeamPageStore.setState({
-      authzAndMembers: { ...defaultAuthz, can_manage_slack: false },
       teamSlack: null,
     });
 
@@ -1151,7 +1150,34 @@ describe("Team Page", () => {
     const addToSlackImage = await screen.findByAltText("Add to Slack");
     const link = addToSlackImage.closest("a");
     expect(link).toHaveAttribute("href", "https://slack/connect");
-    expect(link).toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("shows ask-a-team-owner message when slack is not connected and user cannot manage slack", async () => {
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      authzAndMembers: { ...defaultAuthz, can_manage_slack: false },
+      teamSlack: null,
+      // The connect url query is disabled for users who cannot manage Slack,
+      // so it reports pending forever. The section must not wait on it.
+      fetchTeamSlackConnectUrlApiStatus: "init",
+      teamSlackConnectUrl: null,
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByText("Invite Team Members");
+
+    expect(
+      await screen.findByText(
+        "Slack is not connected. Please ask a team owner to connect it.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByAltText("Add to Slack")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText((content) =>
+        content.includes("Error fetching Slack Integration status"),
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it("shows slack integration error when slack APIs fail", async () => {
@@ -1172,10 +1198,11 @@ describe("Team Page", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows slack integration error when slack connect URL fetch fails", async () => {
+  it("shows slack integration error when the connect URL fetch fails for a manager before connecting", async () => {
     setDefaultTeamsState();
     setDefaultTeamPageState();
     useTeamPageStore.setState({
+      teamSlack: null,
       fetchTeamSlackConnectUrlApiStatus: "error",
       teamSlackConnectUrl: null,
     });
@@ -1188,6 +1215,237 @@ describe("Team Page", () => {
         content.includes("Error fetching Slack Integration status"),
       ),
     ).toBeInTheDocument();
+  });
+
+  it("keeps showing connected slack state when the connect URL fetch fails", async () => {
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      fetchTeamSlackConnectUrlApiStatus: "error",
+      teamSlackConnectUrl: null,
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByTestId("slack-switch");
+
+    expect(
+      screen.queryByText((content) =>
+        content.includes("Error fetching Slack Integration status"),
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows connected slack state instead of an error when the user cannot manage slack", async () => {
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      authzAndMembers: { ...defaultAuthz, can_manage_slack: false },
+      fetchTeamSlackConnectUrlApiStatus: "init",
+      teamSlackConnectUrl: null,
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByTestId("slack-switch");
+
+    expect(screen.getByTestId("slack-switch")).toBeDisabled();
+    expect(
+      screen.queryByText((content) =>
+        content.includes("Error fetching Slack Integration status"),
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it("retries the slack status fetch from the error state", async () => {
+    const mockRefetchSlackStatus = jest.fn();
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      fetchTeamSlackStatusApiStatus: "error",
+      teamSlack: null,
+      refetchSlackStatus: mockRefetchSlackStatus,
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
+
+    expect(mockRefetchSlackStatus).toHaveBeenCalled();
+  });
+
+  it("retries only the connect URL fetch when it is the failing query", async () => {
+    const mockRefetchSlackConnectUrl = jest.fn();
+    const mockRefetchSlackStatus = jest.fn();
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      teamSlack: null,
+      fetchTeamSlackConnectUrlApiStatus: "error",
+      teamSlackConnectUrl: null,
+      refetchSlackConnectUrl: mockRefetchSlackConnectUrl,
+      refetchSlackStatus: mockRefetchSlackStatus,
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
+
+    expect(mockRefetchSlackConnectUrl).toHaveBeenCalled();
+    expect(mockRefetchSlackStatus).not.toHaveBeenCalled();
+  });
+
+  it("shows loading state while a manager's connect URL fetch is pending", async () => {
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      teamSlack: null,
+      fetchTeamSlackConnectUrlApiStatus: "loading",
+      teamSlackConnectUrl: null,
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByText("Invite Team Members");
+
+    expect(screen.getAllByTestId("skeleton-mock").length).toBeGreaterThan(0);
+    expect(
+      screen.queryByText((content) =>
+        content.includes("Error fetching Slack Integration status"),
+      ),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByAltText("Add to Slack")).not.toBeInTheDocument();
+  });
+
+  it("hides the reauth callout when a manager's connect URL fetch fails", async () => {
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      teamSlack: {
+        slack_team_name: "Measure",
+        is_active: true,
+        needs_reauth: true,
+      },
+      fetchTeamSlackConnectUrlApiStatus: "error",
+      teamSlackConnectUrl: null,
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByTestId("slack-switch");
+
+    expect(
+      screen.queryByText(/This Slack connection is missing newer permissions/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Reconnect Slack →" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides the reauth callout while a manager's connect URL is still loading", async () => {
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      teamSlack: {
+        slack_team_name: "Measure",
+        is_active: true,
+        needs_reauth: true,
+      },
+      fetchTeamSlackConnectUrlApiStatus: "loading",
+      teamSlackConnectUrl: null,
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByTestId("slack-switch");
+
+    expect(
+      screen.queryByText(/This Slack connection is missing newer permissions/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows authorization error when the authz fetch fails and slack is not connected", async () => {
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      authzAndMembersApiStatus: "error",
+      authzAndMembers: null,
+      teamSlack: null,
+      fetchTeamSlackConnectUrlApiStatus: "init",
+      teamSlackConnectUrl: null,
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByText("Invite Team Members");
+
+    expect(
+      await screen.findByText(
+        "Could not verify authorization. Please refresh to try again.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "Slack is not connected. Please ask a team owner to connect it.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByAltText("Add to Slack")).not.toBeInTheDocument();
+  });
+
+  it("keeps showing connected slack state with disabled controls when the authz fetch fails", async () => {
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      authzAndMembersApiStatus: "error",
+      authzAndMembers: null,
+      fetchTeamSlackConnectUrlApiStatus: "init",
+      teamSlackConnectUrl: null,
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByTestId("slack-switch");
+
+    expect(screen.getByTestId("slack-switch")).toBeDisabled();
+    expect(
+      screen.queryByText(
+        "Could not verify authorization. Please refresh to try again.",
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows reconnect link in the reauth callout for slack managers", async () => {
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      teamSlack: {
+        slack_team_name: "Measure",
+        is_active: true,
+        needs_reauth: true,
+      },
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByTestId("slack-switch");
+
+    const link = screen.getByRole("link", { name: "Reconnect Slack →" });
+    expect(link).toHaveAttribute("href", "https://slack/connect");
+  });
+
+  it("asks for a team owner in the reauth callout when user cannot manage slack", async () => {
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      authzAndMembers: { ...defaultAuthz, can_manage_slack: false },
+      teamSlack: {
+        slack_team_name: "Measure",
+        is_active: true,
+        needs_reauth: true,
+      },
+      fetchTeamSlackConnectUrlApiStatus: "init",
+      teamSlackConnectUrl: null,
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByTestId("slack-switch");
+
+    expect(
+      screen.getByText("Ask a team owner to reconnect."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Reconnect Slack →" }),
+    ).not.toBeInTheDocument();
   });
 
   it("self-hosted mode points to the slack hosting guide when slack APIs fail", async () => {
@@ -1292,26 +1550,6 @@ describe("Team Page", () => {
         "Slack integration disabled successfully",
       );
     });
-  });
-
-  it("prevents add-to-slack navigation when slack management is disabled", async () => {
-    setDefaultTeamsState();
-    setDefaultTeamPageState();
-    useTeamPageStore.setState({
-      authzAndMembers: { ...defaultAuthz, can_manage_slack: false },
-      teamSlack: null,
-    });
-
-    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
-    await screen.findByText("Invite Team Members");
-
-    const addToSlackImage = await screen.findByAltText("Add to Slack");
-    const link = addToSlackImage.closest("a")!;
-    const clickEvent = createEvent.click(link, { button: 0 });
-
-    fireEvent(link, clickEvent);
-
-    expect(clickEvent.defaultPrevented).toBe(true);
   });
 
   it("shows error toast when sending test slack alert fails", async () => {

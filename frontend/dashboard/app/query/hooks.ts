@@ -1438,7 +1438,10 @@ export function usePendingInvitesQuery(teamId: string | undefined) {
   });
 }
 
-export function useTeamSlackConnectUrlQuery(teamId: string | undefined) {
+export function useTeamSlackConnectUrlQuery(
+  teamId: string | undefined,
+  enabled: boolean = true,
+) {
   return useQuery({
     queryKey: ["teamSlackConnectUrl", teamId] as const,
     queryFn: async () => {
@@ -1448,7 +1451,7 @@ export function useTeamSlackConnectUrlQuery(teamId: string | undefined) {
       }
       return result.data.url as string;
     },
-    enabled: !!teamId,
+    enabled: !!teamId && enabled,
   });
 }
 
