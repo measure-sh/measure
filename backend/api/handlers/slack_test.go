@@ -278,6 +278,8 @@ func TestSlackConnectionNeedsReauth(t *testing.T) {
 		{"all present with spaces", strings.ReplaceAll(full, ",", ", "), false},
 		{"missing one scope", strings.Join(slackRequiredScopes[1:], ","), true},
 		{"unrelated scope only", "channels:read", true},
+		{"extra scopes do not prompt, slack grants cannot shrink", full + ",team:read", false},
+		{"duplicate and trailing comma are not extras", full + "," + slackRequiredScopes[0] + ",", false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -482,6 +484,7 @@ func TestGetTeamSlackNeedsReauth(t *testing.T) {
 	}{
 		{"full scopes: no reauth", strings.Join(slackRequiredScopes, ","), false},
 		{"missing a scope: reauth", strings.Join(slackRequiredScopes[1:], ","), true},
+		{"extra scope: no reauth", strings.Join(slackRequiredScopes, ",") + ",team:read", false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
