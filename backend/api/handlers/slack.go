@@ -246,9 +246,13 @@ func (h Handlers) ConnectTeamSlack(c *gin.Context) {
 		return
 	}
 
-	// Save Slack integration details to the database. channel_ids is not
-	// written here: a first connect gets the column default (empty array) and
-	// a reconnect keeps the channels the team already subscribed.
+	// Save Slack integration details to the database. channel_ids is not in
+	// the insert column list, so a first connect gets the column default
+	// (empty array). On conflict, a same-workspace reconnect keeps the
+	// subscribed channels, while a switch to a different workspace resets
+	// them: channel IDs are scoped to a workspace, so carrying them over
+	// would leave alerts pointed at channels the new bot token cannot post
+	// to.
 	stmt := sqlf.PostgreSQL.
 		InsertInto("measure.team_slack").
 		Set("team_id", teamID).
@@ -273,6 +277,11 @@ func (h Handlers) ConnectTeamSlack(c *gin.Context) {
 		bot_user_id = EXCLUDED.bot_user_id,
 		slack_app_id = EXCLUDED.slack_app_id,
 		scopes = EXCLUDED.scopes,
+		channel_ids = CASE
+			WHEN team_slack.slack_team_id = EXCLUDED.slack_team_id
+			THEN team_slack.channel_ids
+			ELSE '{}'
+		END,
 		is_active = EXCLUDED.is_active,
 		updated_at = NOW()`
 
