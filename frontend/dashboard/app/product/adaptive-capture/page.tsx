@@ -3,16 +3,19 @@ import ProductPage from "@/app/components/product_page";
 import { marketingPageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Adaptive Capture — Control Mobile Monitoring Costs",
   description:
     "Dynamically control what monitoring data your mobile app collects without shipping new builds. Stop paying for data you'll never use.",
   path: "/product/adaptive-capture",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 export default function ProductAdaptiveCapture() {
   return (
     <ProductPage
+      seo={seo}
       title="Adaptive Capture"
       intro={
         <>

@@ -3,16 +3,19 @@ import ProductPage from "@/app/components/product_page";
 import { marketingPageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "MCP Server — Connect AI Agents to Measure",
   description:
     "Connect Measure to Claude Code, Codex, Cursor, Gemini and other AI coding agents. Query crashes, traces, sessions and bug reports from your editor or AI agent workflows.",
   path: "/product/mcp",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 export default function ProductMCP() {
   return (
     <ProductPage
+      seo={seo}
       title="MCP Server"
       intro={
         <>

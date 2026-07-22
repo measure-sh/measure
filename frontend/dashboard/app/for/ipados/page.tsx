@@ -7,12 +7,14 @@ import ForPlatformPage, {
 import { underlineLinkStyle } from "../../utils/shared_styles";
 import { codingAgents } from "../../utils/coding_agents";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "iPadOS Crash Reporting and Performance Monitoring",
   description:
     "Reduce crashes and errors, improve performance and boost app store ratings with iPadOS performance monitoring & crash reporting.",
   path: "/for/ipados",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 const features: PlatformFeature[] = [
   {
@@ -194,6 +196,7 @@ const features: PlatformFeature[] = [
 export default function ForiPadOS() {
   return (
     <ForPlatformPage
+      seo={seo}
       title="Measure for iPadOS"
       logo={{
         src: "/images/ios_logo.svg",

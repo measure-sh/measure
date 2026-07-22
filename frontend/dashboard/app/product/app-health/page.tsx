@@ -3,16 +3,19 @@ import { marketingPageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 import OverviewDemo from "./overview_demo";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Mobile App Health Metrics & Dashboards",
   description:
     "Track mobile app health metrics that matter: crash-free sessions, ANR-free sessions, app launch times, release adoption and more.",
   path: "/product/app-health",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 export default function ProductAppHealth() {
   return (
     <ProductPage
+      seo={seo}
       title="App Health"
       intro={
         <>

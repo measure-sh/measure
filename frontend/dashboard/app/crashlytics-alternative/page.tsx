@@ -15,12 +15,14 @@ import AlternativePage, {
 import TrackGithubLink from "../components/analytics/track_github_link";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Open Source Firebase Crashlytics Alternative",
   description:
     "Mobile focused, open source alternative to Firebase Crashlytics. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
   path: "/crashlytics-alternative",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 const differentiators: AlternativeDifferentiator[] = [
   {
@@ -271,6 +273,7 @@ const comparisonRows: AlternativeComparisonRow[] = [
 export default function CrashlyticsAlternative() {
   return (
     <AlternativePage
+      seo={seo}
       title="Looking for Firebase Crashlytics alternatives?"
       intro={
         <>

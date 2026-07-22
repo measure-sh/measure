@@ -3,16 +3,19 @@ import ProductPage from "@/app/components/product_page";
 import { marketingPageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Measure Agent — Debug your apps with full context",
   description:
     "Debug your apps with full context about crashes, errors, sessions and traces from Slack or your coding agent.",
   path: "/product/agent",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 export default function ProductAgent() {
   return (
     <ProductPage
+      seo={seo}
       title="Measure Agent"
       intro={
         <>

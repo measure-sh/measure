@@ -1,8 +1,11 @@
 import { LucideCheck, LucideX } from "lucide-react";
 import type { ReactNode } from "react";
+import { webPageJsonLd } from "../utils/json_ld";
+import type { MarketingPageSeo } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 import TrackCtaLink from "./analytics/track_cta_link";
 import { buttonVariants } from "./button_variants";
+import JsonLd from "./json_ld";
 import LandingFooter from "./landing_footer";
 import LandingHeader from "./landing_header";
 
@@ -21,6 +24,7 @@ export type AlternativeDifferentiator = {
 };
 
 export type AlternativePageProps = {
+  seo: MarketingPageSeo;
   title: string;
   intro: ReactNode;
   differentiators: AlternativeDifferentiator[];
@@ -60,6 +64,7 @@ function ComparisonCell({
 }
 
 export default function AlternativePage({
+  seo,
   title,
   intro,
   differentiators,
@@ -70,6 +75,7 @@ export default function AlternativePage({
 }: AlternativePageProps) {
   return (
     <main className="flex flex-col items-center justify-between">
+      <JsonLd data={webPageJsonLd(seo)} />
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
         <div className="max-w-6xl mx-auto px-4 py-8 font-body">

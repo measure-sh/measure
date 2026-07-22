@@ -3,16 +3,19 @@ import { marketingPageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 import NetworkDemo from "./network_demo";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Mobile Network Performance Monitoring",
   description:
     "Monitor mobile API call latency, HTTP status codes and slow endpoints. Find and fix the network calls killing your app's performance.",
   path: "/product/network-performance",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 export default function ProductNetworkPerformance() {
   return (
     <ProductPage
+      seo={seo}
       title="Network Performance"
       intro={
         <>

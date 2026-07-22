@@ -1,6 +1,9 @@
+import JsonLd from "@/app/components/json_ld";
 import { openapi } from "@/app/utils/openapi_source";
 import { source } from "@/app/utils/docs_source";
+import { breadcrumbJsonLd, techArticleJsonLd } from "@/app/utils/json_ld";
 import { sharedOpenGraph } from "@/app/utils/metadata";
+import { getBreadcrumbItems } from "fumadocs-core/breadcrumb";
 import {
   DocsBody,
   DocsDescription,
@@ -37,6 +40,33 @@ function githubSourceUrl(page: DocPage) {
   return `${GITHUB_BLOB}/content/docs/${page.path}`;
 }
 
+/**
+ * TechArticle plus, for pages below the docs root, a BreadcrumbList built
+ * from the page tree.
+ */
+function docsJsonLd(page: DocPage) {
+  const nodes: Record<string, unknown>[] = [
+    techArticleJsonLd({
+      headline: page.data.seoTitle ?? page.data.title,
+      description: page.data.description,
+      path: page.url,
+    }),
+  ];
+
+  if (page.slugs.length > 0) {
+    nodes.push(
+      breadcrumbJsonLd([
+        { name: "Docs", url: "/docs" },
+        ...getBreadcrumbItems(page.url, source.pageTree, {
+          includePage: true,
+        }),
+      ]),
+    );
+  }
+
+  return { "@graph": nodes };
+}
+
 // OpenAPIPage renders an already-parsed spec, and a static MDX file
 // cannot carry one, so the page renderer parses the spec server-side and
 // passes it in a prop named `preloaded`. Every other prop (the spec path,
@@ -58,6 +88,7 @@ export default async function Page(props: PageParams) {
 
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
+      <JsonLd data={docsJsonLd(page)} />
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription className="mb-2">
         {page.data.description}

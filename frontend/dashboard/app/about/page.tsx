@@ -6,15 +6,19 @@ import LandingHeader from "../components/landing_header";
 import { buttonVariants } from "../components/button_variants";
 import LandingFooter from "../components/landing_footer";
 import TrackCtaLink from "../components/analytics/track_cta_link";
+import JsonLd from "../components/json_ld";
+import { webPageJsonLd } from "../utils/json_ld";
 import { marketingPageMetadata } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "About Measure — Built by and for Mobile Developers",
   description:
     "Meet the team behind Measure. Open source mobile app monitoring built by mobile developers, for mobile developers.",
   path: "/about",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 export default function About() {
   const team = [
@@ -103,6 +107,7 @@ export default function About() {
 
   return (
     <main className="flex flex-col items-center justify-between">
+      <JsonLd data={webPageJsonLd(seo, "AboutPage")} />
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
         {/* Main description */}

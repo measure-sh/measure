@@ -3,16 +3,19 @@ import { marketingPageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 import TraceDemo from "./trace_demo";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Mobile App Performance Tracing & Monitoring",
   description:
     "Improve mobile app performance with traces and spans. Find slow code, isolate bottlenecks and fix performance issues hurting your app.",
   path: "/product/performance-traces",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 export default function ProductPerformanceTraces() {
   return (
     <ProductPage
+      seo={seo}
       title="Performance Traces"
       intro={
         <>

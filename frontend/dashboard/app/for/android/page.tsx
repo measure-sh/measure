@@ -7,12 +7,14 @@ import ForPlatformPage, {
 import { underlineLinkStyle } from "../../utils/shared_styles";
 import { codingAgents } from "../../utils/coding_agents";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Android Crash Reporting and Performance Monitoring",
   description:
     "Decrease your crash rates, fix performance issues and improve play store ratings with Android performance monitoring & crash reporting.",
   path: "/for/android",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 const features: PlatformFeature[] = [
   {
@@ -195,6 +197,7 @@ const features: PlatformFeature[] = [
 export default function ForAndroid() {
   return (
     <ForPlatformPage
+      seo={seo}
       title="Measure for Android"
       logo={{
         src: "/images/android_logo.svg",

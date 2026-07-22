@@ -1,9 +1,12 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { codingAgents } from "../utils/coding_agents";
+import { webPageJsonLd } from "../utils/json_ld";
+import type { MarketingPageSeo } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 import TrackCtaLink from "./analytics/track_cta_link";
 import { buttonVariants } from "./button_variants";
+import JsonLd from "./json_ld";
 import LandingFooter from "./landing_footer";
 import LandingHeader from "./landing_header";
 import ScaledPreview from "./scaled_preview";
@@ -26,6 +29,7 @@ export type CodingAgentsSection = {
 };
 
 export type ProductPageProps = {
+  seo: MarketingPageSeo;
   title: string;
   intro: ReactNode;
   demo: ProductPageDemo;
@@ -66,6 +70,7 @@ function Demo({ demo }: { demo: ProductPageDemo }) {
 }
 
 export default function ProductPage({
+  seo,
   title,
   intro,
   demo,
@@ -74,6 +79,7 @@ export default function ProductPage({
 }: ProductPageProps) {
   return (
     <main className="flex flex-col items-center justify-between">
+      <JsonLd data={webPageJsonLd(seo)} />
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
         <div className="py-16" />

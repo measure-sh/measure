@@ -1,9 +1,11 @@
+import JsonLd from "@/app/components/json_ld";
 import {
   blogSource,
   formatPostDate,
   postDate,
   postDateISO,
 } from "@/app/utils/blog_source";
+import { blogPostingJsonLd } from "@/app/utils/json_ld";
 import { sharedOpenGraph } from "@/app/utils/metadata";
 import { InlineTOC } from "fumadocs-ui/components/inline-toc";
 import type { Metadata } from "next";
@@ -29,6 +31,17 @@ export default async function Page(props: PageParams) {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-12">
+      <JsonLd
+        data={blogPostingJsonLd({
+          title: page.data.title,
+          description: page.data.description,
+          path: page.url,
+          datePublished: postDateISO(page),
+          authorName: page.data.author.name,
+          image: page.data.image,
+          tags: page.data.tags,
+        })}
+      />
       <Link
         href="/blog"
         className="text-sm text-fd-muted-foreground hover:text-fd-foreground"

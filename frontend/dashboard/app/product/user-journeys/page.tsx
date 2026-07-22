@@ -3,16 +3,19 @@ import { marketingPageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 import UserJourneysDemo from "./user_journeys_demo";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "User Journey Tracking for Mobile Apps",
   description:
     "Understand how users actually move through your mobile app. Track popular paths, find friction and prioritize the flows that matter most.",
   path: "/product/user-journeys",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 export default function ProductUserJourneys() {
   return (
     <ProductPage
+      seo={seo}
       title="User Journeys"
       intro={
         <>

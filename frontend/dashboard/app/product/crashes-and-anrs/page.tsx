@@ -3,16 +3,19 @@ import { marketingPageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 import ExceptionsDemo from "./exceptions_demo";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Mobile Crash Reporting & ANR Tracking",
   description:
     "Open source mobile Crash Reporting and ANR Tracking. Full stack traces, reproduction steps and session timelines — a Firebase Crashlytics alternative.",
   path: "/product/crashes-and-anrs",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 export default function ProductCrashesAndANRs() {
   return (
     <ProductPage
+      seo={seo}
       title="Crashes and ANRs"
       intro={
         <>

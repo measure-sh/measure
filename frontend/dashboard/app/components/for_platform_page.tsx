@@ -1,8 +1,11 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { webPageJsonLd } from "../utils/json_ld";
+import type { MarketingPageSeo } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 import TrackCtaLink from "./analytics/track_cta_link";
 import { buttonVariants } from "./button_variants";
+import JsonLd from "./json_ld";
 import LandingFooter from "./landing_footer";
 import LandingHeader from "./landing_header";
 
@@ -29,6 +32,7 @@ export type PlatformLogo = {
 };
 
 export type ForPlatformPageProps = {
+  seo: MarketingPageSeo;
   title: string;
   logo: PlatformLogo;
   intro: ReactNode;
@@ -37,6 +41,7 @@ export type ForPlatformPageProps = {
 };
 
 export default function ForPlatformPage({
+  seo,
   title,
   logo,
   intro,
@@ -45,6 +50,7 @@ export default function ForPlatformPage({
 }: ForPlatformPageProps) {
   return (
     <main className="flex flex-col items-center justify-between">
+      <JsonLd data={webPageJsonLd(seo)} />
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
         <div className="max-w-6xl mx-auto px-4 py-8 font-body">

@@ -3,16 +3,19 @@ import { marketingPageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 import SessionTimelineDemo from "./session_timeline_demo";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Mobile Session Timelines & Replay",
   description:
     "See every click, navigation, network call, log, error and CPU/memory signal stitched into a single mobile session timeline to diagnose issues faster.",
   path: "/product/session-timelines",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 export default function ProductSessionTimelines() {
   return (
     <ProductPage
+      seo={seo}
       title="Session Timelines"
       intro={
         <>

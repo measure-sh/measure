@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+export const siteOrigin = "https://measure.sh";
+
 const siteName = "measure.sh";
 
 export const previewImage = "/images/social_preview.png";
@@ -18,6 +20,12 @@ export const sharedOpenGraph = {
   type: "website" as const,
 };
 
+export type MarketingPageSeo = {
+  title: string;
+  description: string;
+  path: string;
+};
+
 /**
  * Standard metadata for a marketing page: SEO title and description,
  * canonical path and Open Graph tags. The Open Graph title carries the
@@ -28,11 +36,7 @@ export function marketingPageMetadata({
   title,
   description,
   path,
-}: {
-  title: string;
-  description: string;
-  path: string;
-}): Metadata {
+}: MarketingPageSeo): Metadata {
   return {
     title,
     description,

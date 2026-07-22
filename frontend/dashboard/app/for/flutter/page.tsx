@@ -7,12 +7,14 @@ import ForPlatformPage, {
 import { underlineLinkStyle } from "../../utils/shared_styles";
 import { codingAgents } from "../../utils/coding_agents";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Flutter Crash Reporting and Performance Monitoring",
   description:
     "Reduce crashes and error rates, improve performance and get better app ratings with Flutter performance monitoring & crash reporting.",
   path: "/for/flutter",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 const features: PlatformFeature[] = [
   {
@@ -193,6 +195,7 @@ const features: PlatformFeature[] = [
 export default function ForFlutter() {
   return (
     <ForPlatformPage
+      seo={seo}
       title="Measure for Flutter"
       logo={{
         src: "/images/flutter_logo.svg",

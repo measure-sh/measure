@@ -7,12 +7,14 @@ import ForPlatformPage, {
 import { underlineLinkStyle } from "../../utils/shared_styles";
 import { codingAgents } from "../../utils/coding_agents";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "React Native Error Tracking and Performance Monitoring",
   description:
     "Reduce errors, improve performance and raise app ratings with React Native error tracking & performance monitoring.",
   path: "/for/react-native",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 const features: PlatformFeature[] = [
   {
@@ -196,6 +198,7 @@ const features: PlatformFeature[] = [
 export default function ForReactNative() {
   return (
     <ForPlatformPage
+      seo={seo}
       title="Measure for React Native"
       logo={{
         src: "/images/react_native_logo.webp",
