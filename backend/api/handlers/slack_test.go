@@ -609,6 +609,16 @@ func seedTeamSlackWithScopes(ctx context.Context, t *testing.T, teamID uuid.UUID
 	}
 }
 
+func seedPendingAlertMessage(ctx context.Context, t *testing.T, teamID uuid.UUID, channel string) {
+	t.Helper()
+	if _, err := th.PgPool.Exec(ctx,
+		`INSERT INTO pending_alert_messages (id, team_id, channel, data)
+		 VALUES ($1, $2, $3, '{"channel":"C1","bot_token":"xoxb"}')`,
+		uuid.New(), teamID, channel); err != nil {
+		t.Fatalf("seed pending alert message: %v", err)
+	}
+}
+
 func TestDeleteTeamSlack(t *testing.T) {
 	ctx := context.Background()
 
@@ -631,6 +641,15 @@ func TestDeleteTeamSlack(t *testing.T) {
 			userID, teamID := seedTeamAndMemberWithRole(t, ctx, tc.role)
 			seedTeamSlackWithScopes(ctx, t, teamID, "chat:write")
 
+			// queued alert messages: slack and email for this team, and a
+			// slack one for another team that must survive every outcome
+			otherTeamID := uuid.New()
+			seedTeam(ctx, t, otherTeamID, "other team")
+			seedPendingAlertMessage(ctx, t, teamID, "slack")
+			seedPendingAlertMessage(ctx, t, teamID, "slack")
+			seedPendingAlertMessage(ctx, t, teamID, "email")
+			seedPendingAlertMessage(ctx, t, otherTeamID, "slack")
+
 			c, w := newTestGinContext("DELETE", "/teams/"+teamID.String()+"/slack", nil)
 			c.Set("userId", userID)
 			c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
@@ -646,6 +665,32 @@ func TestDeleteTeamSlack(t *testing.T) {
 			}
 			if count != tc.wantRows {
 				t.Errorf("team_slack rows = %d, want %d", count, tc.wantRows)
+			}
+
+			pendingCount := func(id uuid.UUID, channel string) int {
+				var n int
+				if err := th.PgPool.QueryRow(ctx,
+					`SELECT count(*) FROM pending_alert_messages WHERE team_id = $1 AND channel = $2`,
+					id, channel).Scan(&n); err != nil {
+					t.Fatalf("count pending alert messages: %v", err)
+				}
+				return n
+			}
+
+			// a successful delete purges the team's queued slack messages and
+			// nothing else. A rejected delete leaves the queue untouched
+			wantPendingSlack := 2
+			if tc.wantCode == http.StatusOK {
+				wantPendingSlack = 0
+			}
+			if got := pendingCount(teamID, "slack"); got != wantPendingSlack {
+				t.Errorf("pending slack messages = %d, want %d", got, wantPendingSlack)
+			}
+			if got := pendingCount(teamID, "email"); got != 1 {
+				t.Errorf("pending email messages = %d, want 1 untouched", got)
+			}
+			if got := pendingCount(otherTeamID, "slack"); got != 1 {
+				t.Errorf("other team pending slack messages = %d, want 1 untouched", got)
 			}
 		})
 	}
