@@ -15,12 +15,14 @@ import AlternativePage, {
 import TrackGithubLink from "../components/analytics/track_github_link";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Open Source Datadog Alternative",
   description:
     "Mobile focused, open source alternative to Datadog. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
   path: "/datadog-alternative",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 const differentiators: AlternativeDifferentiator[] = [
   {
@@ -223,6 +225,7 @@ const comparisonRows: AlternativeComparisonRow[] = [
 export default function DatadogAlternative() {
   return (
     <AlternativePage
+      seo={seo}
       title="Looking for Datadog alternatives?"
       intro={
         <>

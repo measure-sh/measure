@@ -5,6 +5,8 @@ import { Card } from "../components/card";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
 import PricingViewed from "./pricing_viewed";
+import JsonLd from "../components/json_ld";
+import { webPageJsonLd } from "../utils/json_ld";
 import { marketingPageMetadata } from "../utils/metadata";
 import {
   FREE_GB,
@@ -17,16 +19,19 @@ import {
 import { underlineLinkStyle } from "../utils/shared_styles";
 import PricingCalculator from "./pricing_calculator";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Pricing & Plans",
   description:
     "Free tier for solo devs and small teams. Usage-based Pro plan for scale. No seat limits. No artificial bundles. 100% open source.",
   path: "/pricing",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 export default function Pricing() {
   return (
     <main className="flex flex-col items-center justify-between">
+      <JsonLd data={webPageJsonLd(seo)} />
       <PricingViewed />
       <LandingHeader />
       <div className="flex flex-col items-center w-full">

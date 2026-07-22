@@ -5,20 +5,25 @@ import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
 import TrackCtaLink from "../components/analytics/track_cta_link";
 import TrackGithubLink from "../components/analytics/track_github_link";
+import JsonLd from "../components/json_ld";
+import { webPageJsonLd } from "../utils/json_ld";
 import { marketingPageMetadata } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Security & Data Protection",
   description:
     "How Measure protects your app's data — encryption, infrastructure and access controls. Open source so you can audit it yourself.",
   path: "/security",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 export default function Security() {
   return (
     <main className="flex flex-col items-center justify-between">
+      <JsonLd data={webPageJsonLd(seo)} />
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
         <div className="max-w-6xl mx-auto px-4 py-8 font-body">

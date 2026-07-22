@@ -7,12 +7,14 @@ import ForPlatformPage, {
 import { underlineLinkStyle } from "../../utils/shared_styles";
 import { codingAgents } from "../../utils/coding_agents";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Kotlin Multiplatform Crash Reporting and Performance Monitoring",
   description:
     "Decrease your crash rates, fix performance issues and ship smoother apps with Kotlin Multiplatform performance monitoring & crash reporting.",
   path: "/for/kmp",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 const features: PlatformFeature[] = [
   {
@@ -201,6 +203,7 @@ const features: PlatformFeature[] = [
 export default function ForKmp() {
   return (
     <ForPlatformPage
+      seo={seo}
       title="Measure for Kotlin Multiplatform"
       logo={{
         src: "/images/kmp_logo.svg",

@@ -1,4 +1,6 @@
 import { buttonVariants } from "@/app/components/button_variants";
+import JsonLd from "@/app/components/json_ld";
+import { webPageJsonLd } from "@/app/utils/json_ld";
 import { marketingPageMetadata } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import {
@@ -15,16 +17,19 @@ import TrackCtaLink from "../components/analytics/track_cta_link";
 import TrackGithubLink from "../components/analytics/track_github_link";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Mobile-First App Monitoring",
   description:
     "Mobile is the product, not an add-on to a backend observability tool. Why we built Measure for mobile engineering teams.",
   path: "/why-measure",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 export default function WhyMeasure() {
   return (
     <main className="flex flex-col items-center justify-between">
+      <JsonLd data={webPageJsonLd(seo)} />
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
         <div className="max-w-6xl mx-auto px-4 py-8 font-body">

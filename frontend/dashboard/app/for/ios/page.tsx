@@ -7,12 +7,14 @@ import ForPlatformPage, {
 import { underlineLinkStyle } from "../../utils/shared_styles";
 import { codingAgents } from "../../utils/coding_agents";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "iOS Crash Reporting and Performance Monitoring",
   description:
     "Reduce crashes and errors, improve performance and get better app store ratings with iOS performance monitoring & crash reporting.",
   path: "/for/ios",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 const features: PlatformFeature[] = [
   {
@@ -194,6 +196,7 @@ const features: PlatformFeature[] = [
 export default function ForiOS() {
   return (
     <ForPlatformPage
+      seo={seo}
       title="Measure for iOS"
       logo={{
         src: "/images/ios_logo.svg",

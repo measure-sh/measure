@@ -3,16 +3,19 @@ import { marketingPageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 import BugReportDemo from "./bug_report_demo";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "In-App Bug Reporting for Mobile Apps",
   description:
     "Capture bug reports with a device shake or SDK call. Get the full session context, device state and network info so you can get to the root cause.",
   path: "/product/bug-reports",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 export default function ProductBugReports() {
   return (
     <ProductPage
+      seo={seo}
       title="Bug Reports"
       intro={
         <>

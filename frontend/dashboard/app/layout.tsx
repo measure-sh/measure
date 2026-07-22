@@ -7,14 +7,14 @@ import { Toaster } from "./components/toaster";
 import UTMCapture from "./components/analytics/utm_capture";
 import "./globals.css";
 import { fira_code, josefin_sans, work_sans } from "./utils/fonts";
-import { previewImage, sharedOpenGraph } from "./utils/metadata";
+import { previewImage, sharedOpenGraph, siteOrigin } from "./utils/metadata";
 
 const title = "Measure";
 const description =
   "Measure helps mobile teams monitor and fix crashes, ANRs, bugs, and performance issues. The open source alternative to Firebase Crashlytics.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://measure.sh"),
+  metadataBase: new URL(siteOrigin),
 
   title: {
     default: title,

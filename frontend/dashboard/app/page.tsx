@@ -14,16 +14,24 @@ import AIDemoCarousel from "./components/ai_demo_carousel";
 import Testimonials from "./components/testimonials";
 import TrackCtaLink from "./components/analytics/track_cta_link";
 import TrackGithubLink from "./components/analytics/track_github_link";
+import JsonLd from "./components/json_ld";
+import {
+  organizationJsonLd,
+  softwareApplicationJsonLd,
+  webSiteJsonLd,
+} from "./utils/json_ld";
 import { marketingPageMetadata } from "./utils/metadata";
 import { cn } from "./utils/shadcn_utils";
 import { underlineLinkStyle } from "./utils/shared_styles";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Open Source Mobile App Monitoring & Crash Reporting",
   description:
     "Measure helps mobile teams monitor and fix crashes, ANRs, bugs, and performance issues. The open source alternative to Firebase Crashlytics.",
   path: "/",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 const KukuFmLogo = ({ className }: { className?: string }) => (
   <svg
@@ -51,6 +59,15 @@ const KukuFmLogo = ({ className }: { className?: string }) => (
 export default function Home() {
   return (
     <main className="flex flex-col items-center justify-between">
+      <JsonLd
+        data={{
+          "@graph": [
+            organizationJsonLd,
+            webSiteJsonLd,
+            softwareApplicationJsonLd(seo.description),
+          ],
+        }}
+      />
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
         {/* Hero */}

@@ -4,20 +4,25 @@ import { buttonVariants } from "../components/button_variants";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
 import TrackCtaLink from "../components/analytics/track_cta_link";
+import JsonLd from "../components/json_ld";
+import { webPageJsonLd } from "../utils/json_ld";
 import { marketingPageMetadata } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
-export const metadata: Metadata = marketingPageMetadata({
+const seo = {
   title: "Privacy Policy",
   description:
     "What Measure does with your data, how we collect it and how we store it. Open source so you can audit it yourself.",
   path: "/privacy-policy",
-});
+};
+
+export const metadata: Metadata = marketingPageMetadata(seo);
 
 export default function PrivacyPolicy() {
   return (
     <main className="flex flex-col items-center justify-between">
+      <JsonLd data={webPageJsonLd(seo)} />
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
         {/* Main description */}
