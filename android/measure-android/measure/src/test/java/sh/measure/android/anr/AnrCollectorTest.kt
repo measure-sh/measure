@@ -69,7 +69,7 @@ class AnrCollectorTest {
             attributes = attributesCaptor.capture(),
             userDefinedAttributes = userDefinedAttributeCaptor.capture(),
             attachments = attachmentsCaptor.capture(),
-            threadName = eq(null),
+            threadName = eq(thread.name),
             takeScreenshot = eq(true),
         )
 
