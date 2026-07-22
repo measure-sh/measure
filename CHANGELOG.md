@@ -47,6 +47,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Drop undeliverable slack alerts on channel_not_found by @anupcowkur in #4119
+- (**backend**): Only preserve slack channels if same workspace is reconnected by @anupcowkur
+- (**backend**): Return 409 when slack workspace is taken by another team by @anupcowkur
+- (**backend**): Preserve slack alert channels on reconnect by @anupcowkur
 - (**backend**): Exclude session_start-only sessions from list endpoints (#4102) by @detj in #4102
 - (**backend**): Return attribute for session_start-only sessions (#4098) by @detj in #4098
 - (**backend**): Failing slack auth status test (#4094) by @detj in #4094
@@ -135,6 +139,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Delete queued slack alerts when slack connection is removed by @anupcowkur
+- (**backend**): Pin slack reauth prompts to missing scopes only by @anupcowkur
 - (**backend**): Add optional patch_version to ota builds (#4078) by @detj in #4078
 - (**backend**): Ensure strict team isolation (#4077) by @detj in #4077
 - (**backend**): Add max memory limit to agent clickhouse queries by @anupcowkur in #4064
