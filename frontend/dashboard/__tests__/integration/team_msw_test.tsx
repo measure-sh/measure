@@ -251,7 +251,7 @@ describe("Team Page (MSW integration)", () => {
     it("shows Change Role and Remove buttons for non-current members", async () => {
       await renderAndWaitForData();
       expect(screen.getByText("Change Role")).toBeTruthy();
-      expect(screen.getByText("Remove")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Remove" })).toBeTruthy();
     });
 
     it("does not show Change Role or Remove for current user", async () => {
@@ -259,7 +259,7 @@ describe("Team Page (MSW integration)", () => {
       await renderAndWaitForData();
       // There should be exactly 1 Change Role and 1 Remove (for the other member)
       expect(screen.getAllByText("Change Role").length).toBe(1);
-      expect(screen.getAllByText("Remove").length).toBe(1);
+      expect(screen.getAllByRole("button", { name: "Remove" }).length).toBe(1);
     });
 
     it('renders other member role as "Admin" (formatToCamelCase)', async () => {
@@ -305,7 +305,10 @@ describe("Team Page (MSW integration)", () => {
         { timeout: 5000 },
       );
 
-      expect(screen.getByText("Remove").closest("button")?.disabled).toBe(true);
+      expect(
+        screen.getByRole("button", { name: "Remove" }).closest("button")
+          ?.disabled,
+      ).toBe(true);
     });
   });
 
@@ -422,7 +425,7 @@ describe("Team Page (MSW integration)", () => {
   describe("remove member", () => {
     it("renders Remove button for non-current members", async () => {
       await renderAndWaitForData();
-      expect(screen.getByText("Remove")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Remove" })).toBeTruthy();
     });
   });
 
@@ -554,6 +557,11 @@ describe("Team Page (MSW integration)", () => {
       expect(
         screen.getByText("Send Test Alert").closest("button")?.disabled,
       ).toBe(true);
+      expect(
+        screen
+          .getByRole("button", { name: "Remove Slack connection" })
+          .closest("button")?.disabled,
+      ).toBe(false);
     });
 
     it("Slack actions disabled when can_manage_slack is false", async () => {
@@ -575,6 +583,11 @@ describe("Team Page (MSW integration)", () => {
       );
       expect(
         screen.getByText("Send Test Alert").closest("button")?.disabled,
+      ).toBe(true);
+      expect(
+        screen
+          .getByRole("button", { name: "Remove Slack connection" })
+          .closest("button")?.disabled,
       ).toBe(true);
     });
 
@@ -606,7 +619,7 @@ describe("Team Page (MSW integration)", () => {
       await renderAndWaitForData();
 
       await act(async () => {
-        fireEvent.click(screen.getByText("Remove"));
+        fireEvent.click(screen.getByRole("button", { name: "Remove" }));
       });
 
       await waitFor(() => {
@@ -633,7 +646,7 @@ describe("Team Page (MSW integration)", () => {
 
       // Open dialog
       await act(async () => {
-        fireEvent.click(screen.getByText("Remove"));
+        fireEvent.click(screen.getByRole("button", { name: "Remove" }));
       });
       await waitFor(() => {
         expect(screen.getByText("Are you sure?")).toBeTruthy();
@@ -662,7 +675,7 @@ describe("Team Page (MSW integration)", () => {
 
       // Open dialog
       await act(async () => {
-        fireEvent.click(screen.getByText("Remove"));
+        fireEvent.click(screen.getByRole("button", { name: "Remove" }));
       });
       await waitFor(() => {
         expect(screen.getByText("Yes, I'm sure")).toBeTruthy();
@@ -919,7 +932,7 @@ describe("Team Page — mutations", () => {
 
       // Click Remove
       await act(async () => {
-        fireEvent.click(screen.getByText("Remove"));
+        fireEvent.click(screen.getByRole("button", { name: "Remove" }));
       });
 
       // Confirm the dialog
@@ -1242,6 +1255,159 @@ describe("Team Page — mutations", () => {
     });
   });
 
+  describe("remove Slack connection", () => {
+    it("calls DELETE /teams/:teamId/slack after confirmation and returns to the connect state", async () => {
+      let deleteCalled = false;
+      let deletePath = "";
+      server.use(
+        // once the delete lands, the status refetch reports no connection
+        http.get("*/api/teams/:teamId/slack", () => {
+          return deleteCalled
+            ? HttpResponse.json(null)
+            : HttpResponse.json(makeSlackStatusFixture());
+        }),
+        http.delete("*/api/teams/:teamId/slack", ({ request }) => {
+          deleteCalled = true;
+          deletePath = new URL(request.url).pathname;
+          return HttpResponse.json({ ok: "done" });
+        }),
+      );
+
+      await renderAndWaitForData();
+
+      await waitFor(
+        () => {
+          expect(
+            screen.getByRole("button", { name: "Remove Slack connection" }),
+          ).toBeTruthy();
+        },
+        { timeout: 5000 },
+      );
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Remove Slack connection" }),
+        );
+      });
+
+      // the dialog explains the deletion and that the app stays installed
+      // in the workspace
+      await waitFor(() => {
+        expect(
+          screen.getByText(/will delete your Slack connection/),
+        ).toBeTruthy();
+        expect(screen.getByText(/remain in your workspace/)).toBeTruthy();
+        expect(screen.getByText("Yes, I'm sure")).toBeTruthy();
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByText("Yes, I'm sure"));
+      });
+
+      await waitFor(
+        () => {
+          expect(deleteCalled).toBe(true);
+          expect(deletePath).toBe("/api/teams/team-001/slack");
+        },
+        { timeout: 5000 },
+      );
+
+      // the status query invalidation refetches and the connect button returns
+      await waitFor(
+        () => {
+          expect(screen.getByAltText("Add to Slack")).toBeTruthy();
+        },
+        { timeout: 5000 },
+      );
+    });
+
+    it("already-removed integration resolves to the connect state, not an error", async () => {
+      // another session removed the integration: DELETE 404s and the status
+      // refetch reports no connection
+      let deleteCalled = false;
+      server.use(
+        http.get("*/api/teams/:teamId/slack", () => {
+          return deleteCalled
+            ? HttpResponse.json(null)
+            : HttpResponse.json(makeSlackStatusFixture());
+        }),
+        http.delete("*/api/teams/:teamId/slack", () => {
+          deleteCalled = true;
+          return HttpResponse.json(
+            { error: "no slack integration found for the team" },
+            { status: 404 },
+          );
+        }),
+      );
+
+      await renderAndWaitForData();
+
+      await waitFor(
+        () => {
+          expect(
+            screen.getByRole("button", { name: "Remove Slack connection" }),
+          ).toBeTruthy();
+        },
+        { timeout: 5000 },
+      );
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Remove Slack connection" }),
+        );
+      });
+      await waitFor(() => {
+        expect(screen.getByText("Yes, I'm sure")).toBeTruthy();
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByText("Yes, I'm sure"));
+      });
+
+      // 404 counts as removed: the section flips to the connect state
+      await waitFor(
+        () => {
+          expect(screen.getByAltText("Add to Slack")).toBeTruthy();
+        },
+        { timeout: 5000 },
+      );
+    });
+
+    it("does not call the API when the dialog is cancelled", async () => {
+      let deleteCalled = false;
+      server.use(
+        http.delete("*/api/teams/:teamId/slack", () => {
+          deleteCalled = true;
+          return HttpResponse.json({ ok: "done" });
+        }),
+      );
+
+      await renderAndWaitForData();
+
+      await waitFor(
+        () => {
+          expect(
+            screen.getByRole("button", { name: "Remove Slack connection" }),
+          ).toBeTruthy();
+        },
+        { timeout: 5000 },
+      );
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Remove Slack connection" }),
+        );
+      });
+      await waitFor(() => {
+        expect(screen.getByText("Cancel")).toBeTruthy();
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByText("Cancel"));
+      });
+
+      await new Promise((r) => setTimeout(r, 200));
+      expect(deleteCalled).toBe(false);
+    });
+  });
+
   // ================================================================
   // SLACK CONNECT URL
   // ================================================================
@@ -1380,7 +1546,9 @@ describe("Team Page — mutations", () => {
         { timeout: 5000 },
       );
 
-      const removeBtn = screen.getByText("Remove").closest("button")!;
+      const removeBtn = screen
+        .getByRole("button", { name: "Remove" })
+        .closest("button")!;
       expect(removeBtn.disabled).toBe(true);
 
       await act(async () => {
@@ -1544,7 +1712,7 @@ describe("Team Page — mutations", () => {
 
       // Click Remove
       await act(async () => {
-        fireEvent.click(screen.getByText("Remove"));
+        fireEvent.click(screen.getByRole("button", { name: "Remove" }));
       });
 
       // Confirm dialog

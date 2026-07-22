@@ -52,6 +52,7 @@ import {
   AppHealthPlotApiStatus,
   SpanMetricsPlotApiStatus,
   SpansApiStatus,
+  RemoveTeamSlackApiStatus,
   Team,
   TeamNameChangeApiStatus,
   TeamsApiStatus,
@@ -118,6 +119,7 @@ import {
   inviteMemberFromServer,
   removeMemberFromServer,
   removePendingInviteFromServer,
+  removeTeamSlackFromServer,
   resendPendingInviteFromServer,
   sendTestSlackAlertFromServer,
   undoDowngradeFromServer,
@@ -1608,6 +1610,26 @@ export function useUpdateSlackStatusMutation() {
       }
     },
     onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["teamSlackStatus", variables.teamId],
+      });
+    },
+  });
+}
+
+export function useRemoveTeamSlackMutation() {
+  return useMutation({
+    mutationFn: async (params: { teamId: string }) => {
+      const result = await removeTeamSlackFromServer(params.teamId);
+      if (result.status !== RemoveTeamSlackApiStatus.Success) {
+        throw new Error("Failed to remove Slack integration");
+      }
+    },
+    // Settled, not just success: a failed remove can mean the integration is
+    // already gone (removed from another session) or that the response was
+    // lost after the server deleted the row, so refetch the status in either
+    // case.
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["teamSlackStatus", variables.teamId],
       });

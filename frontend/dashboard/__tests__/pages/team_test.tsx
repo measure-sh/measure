@@ -237,6 +237,7 @@ const teamPageStore = createBridge(() => ({
   fetchTeamSlackStatusApiStatus: "init",
   refetchSlackStatus: jest.fn(),
   updateTeamSlackStatusApiStatus: "init",
+  removeTeamSlackApiStatus: "init",
   testSlackAlertApiStatus: "init",
   teamNameChangeApiStatus: "init",
   inviteMemberApiStatus: "init",
@@ -256,6 +257,7 @@ const teamPageStore = createBridge(() => ({
   removePendingInvite: jest.fn(),
   changeRole: jest.fn(),
   updateSlackStatus: jest.fn(),
+  removeTeamSlack: jest.fn(),
   testSlackAlert: jest.fn(),
   reset: jest.fn(),
 }));
@@ -423,6 +425,20 @@ jest.mock("@/app/query/hooks", () => ({
         }
       },
       isPending: s.updateTeamSlackStatusApiStatus === "loading",
+    };
+  },
+  useRemoveTeamSlackMutation: () => {
+    const s = teamPageStore.getState();
+    return {
+      mutate: async (params: any, opts: any) => {
+        const result = await s.removeTeamSlack(params.teamId);
+        if (result) {
+          opts?.onSuccess?.();
+        } else {
+          opts?.onError?.();
+        }
+      },
+      isPending: s.removeTeamSlackApiStatus === "loading",
     };
   },
   useTestSlackAlertMutation: () => {
@@ -608,6 +624,7 @@ describe("Team Page", () => {
       fetchTeamSlackStatusApiStatus: "init",
       refetchSlackStatus: jest.fn(),
       updateTeamSlackStatusApiStatus: "init",
+      removeTeamSlackApiStatus: "init",
       testSlackAlertApiStatus: "init",
       teamNameChangeApiStatus: "init",
       inviteMemberApiStatus: "init",
@@ -627,6 +644,7 @@ describe("Team Page", () => {
       removePendingInvite: jest.fn(),
       changeRole: jest.fn(),
       updateSlackStatus: jest.fn(),
+      removeTeamSlack: jest.fn(),
       testSlackAlert: jest.fn(),
       reset: jest.fn(),
     });
@@ -1095,6 +1113,9 @@ describe("Team Page", () => {
     expect(
       screen.getByRole("button", { name: "Send Test Alert" }),
     ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Remove Slack connection" }),
+    ).toBeDisabled();
   });
 
   it("handles slack enable action", async () => {
@@ -1135,6 +1156,66 @@ describe("Team Page", () => {
     await waitFor(() => {
       expect(mockTestSlackAlert).toHaveBeenCalledWith("team-1");
     });
+  });
+
+  it("keeps remove slack enabled when the integration is disabled", async () => {
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      teamSlack: { slack_team_name: "Measure", is_active: false },
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByTestId("slack-switch");
+
+    expect(
+      screen.getByRole("button", { name: "Send Test Alert" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Remove Slack connection" }),
+    ).toBeEnabled();
+  });
+
+  it("handles remove slack action through the confirmation dialog", async () => {
+    const mockRemoveTeamSlack = jest.fn().mockResolvedValue(true);
+
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      removeTeamSlack: mockRemoveTeamSlack,
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByRole("button", { name: "Remove Slack connection" });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove Slack connection" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Yes, I'm sure" }));
+
+    await waitFor(() => {
+      expect(mockRemoveTeamSlack).toHaveBeenCalledWith("team-1");
+    });
+  });
+
+  it("cancelling the remove slack dialog makes no call", async () => {
+    const mockRemoveTeamSlack = jest.fn().mockResolvedValue(true);
+
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      removeTeamSlack: mockRemoveTeamSlack,
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByRole("button", { name: "Remove Slack connection" });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove Slack connection" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(mockRemoveTeamSlack).not.toHaveBeenCalled();
   });
 
   it("shows add-to-slack button when slack is not connected and user can manage slack", async () => {
@@ -1569,6 +1650,54 @@ describe("Team Page", () => {
     await waitFor(() => {
       expect(mockToastNegative).toHaveBeenCalledWith(
         "Error sending test Slack alerts",
+      );
+    });
+  });
+
+  it("shows success toast when removing slack connection succeeds", async () => {
+    const mockRemoveTeamSlack = jest.fn().mockResolvedValue(true);
+
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      removeTeamSlack: mockRemoveTeamSlack,
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByRole("button", { name: "Remove Slack connection" });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove Slack connection" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Yes, I'm sure" }));
+
+    await waitFor(() => {
+      expect(mockToastPositive).toHaveBeenCalledWith(
+        "Slack connection removed",
+      );
+    });
+  });
+
+  it("shows error toast when removing slack connection fails", async () => {
+    const mockRemoveTeamSlack = jest.fn().mockResolvedValue(false);
+
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      removeTeamSlack: mockRemoveTeamSlack,
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByRole("button", { name: "Remove Slack connection" });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove Slack connection" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Yes, I'm sure" }));
+
+    await waitFor(() => {
+      expect(mockToastNegative).toHaveBeenCalledWith(
+        "Error removing Slack connection",
       );
     });
   });

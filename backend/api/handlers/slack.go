@@ -409,6 +409,54 @@ func (h Handlers) UpdateTeamSlackStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": "done"})
 }
 
+// DeleteTeamSlack removes a team's Slack integration. It only deletes our
+// record, including the stored bot token and subscribed channels; the Measure
+// app stays installed in the Slack workspace until someone removes it there.
+func (h Handlers) DeleteTeamSlack(c *gin.Context) {
+	deps := h.Deps
+	ctx := c.Request.Context()
+	userId := c.GetString("userId")
+	teamId, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `team id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	if ok, err := measure.PerformAuthz(deps.PgPool, userId, teamId.String(), *measure.ScopeTeamAll); err != nil {
+		msg := `couldn't perform authorization checks`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	} else if !ok {
+		msg := fmt.Sprintf(`you don't have permissions for team [%s]`, teamId)
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
+	stmt := sqlf.PostgreSQL.
+		DeleteFrom("team_slack").
+		Where("team_id = ?", teamId)
+
+	defer stmt.Close()
+
+	commandTag, err := deps.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		msg := fmt.Sprintf("error occurred while deleting team slack: %s", teamId)
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no slack integration found for the team"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": "done"})
+}
+
 func (h Handlers) SendTestSlackAlert(c *gin.Context) {
 	deps := h.Deps
 	ctx := c.Request.Context()

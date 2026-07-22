@@ -367,12 +367,17 @@ export const handlers = [
     return HttpResponse.json({ ok: true });
   }),
 
-  // 60. GET /api/prefs/notifPrefs
+  // 60. DELETE /api/teams/:teamId/slack
+  http.delete("*/api/teams/:teamId/slack", () => {
+    return HttpResponse.json({ ok: "done" });
+  }),
+
+  // 61. GET /api/prefs/notifPrefs
   http.get("*/api/prefs/notifPrefs", () => {
     return HttpResponse.json(makeNotifPrefsFixture());
   }),
 
-  // 61. PATCH /api/prefs/notifPrefs
+  // 62. PATCH /api/prefs/notifPrefs
   http.patch("*/api/prefs/notifPrefs", () => {
     return HttpResponse.json({ ok: true });
   }),
@@ -394,24 +399,24 @@ export const handlers = [
     });
   }),
 
-  // 62. GET /api/teams/:teamId/usage
+  // 63. GET /api/teams/:teamId/usage
   http.get("*/api/teams/:teamId/usage", () => {
     return HttpResponse.json(makeUsageFixture());
   }),
 
-  // 63. PATCH /api/teams/:teamId/billing/checkout
+  // 64. PATCH /api/teams/:teamId/billing/checkout
   http.patch("*/api/teams/:teamId/billing/checkout", () => {
     return HttpResponse.json({
       checkout_url: "https://checkout.stripe.com/test",
     });
   }),
 
-  // 65. PATCH /api/teams/:teamId/billing/downgrade
+  // 66. PATCH /api/teams/:teamId/billing/downgrade
   http.patch("*/api/teams/:teamId/billing/downgrade", () => {
     return HttpResponse.json({ ok: true });
   }),
 
-  // 66. POST /api/teams/:teamId/billing/portal
+  // 67. POST /api/teams/:teamId/billing/portal
   http.post("*/api/teams/:teamId/billing/portal", () => {
     return HttpResponse.json({ url: "https://billing.stripe.com/portal/test" });
   }),

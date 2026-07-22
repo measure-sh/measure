@@ -287,6 +287,14 @@ export enum UpdateTeamSlackStatusApiStatus {
   Cancelled,
 }
 
+export enum RemoveTeamSlackApiStatus {
+  Init,
+  Loading,
+  Success,
+  Error,
+  Cancelled,
+}
+
 export enum FetchAppThresholdPrefsApiStatus {
   Init,
   Loading,
@@ -2520,6 +2528,35 @@ export const updateTeamSlackStatusFromServer = async (
     return { status: UpdateTeamSlackStatusApiStatus.Success };
   } catch {
     return { status: UpdateTeamSlackStatusApiStatus.Cancelled };
+  }
+};
+
+export const removeTeamSlackFromServer = async (teamId: string) => {
+  const opts = {
+    method: "DELETE",
+  };
+
+  try {
+    const res = await apiClient.fetch(`/api/teams/${teamId}/slack`, opts);
+
+    // A 404 means there is no integration to remove, so the goal state is
+    // already reached. Report success rather than an error.
+    if (res.status === 404) {
+      return { status: RemoveTeamSlackApiStatus.Success };
+    }
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return {
+        status: RemoveTeamSlackApiStatus.Error,
+        error: data.error,
+      };
+    }
+
+    return { status: RemoveTeamSlackApiStatus.Success };
+  } catch {
+    return { status: RemoveTeamSlackApiStatus.Cancelled };
   }
 };
 

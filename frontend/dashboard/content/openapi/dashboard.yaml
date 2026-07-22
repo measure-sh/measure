@@ -8481,6 +8481,50 @@ paths:
           description: Rate limit of the requester has crossed maximum limits.
         "500":
           description: Measure server encountered an unfortunate error. Report this to your server administrator.
+    delete:
+      operationId: deleteTeamSlack
+      tags:
+        - Teams
+      summary: Remove a team's Slack integration
+      description: |
+        Remove a team's Slack integration. Deletes the stored connection,
+        including the bot token and subscribed alert channels. The Measure
+        app stays installed in the Slack workspace and can be manually removed
+        from Slack settings.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Team's UUID.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: string
+              examples:
+                response:
+                  value:
+                    ok: done
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "404":
+          description: The team has no Slack integration to remove.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
   /teams/{id}/slack/status:
     patch:
       operationId: updateTeamSlackStatus
