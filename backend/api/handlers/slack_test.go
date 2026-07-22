@@ -458,6 +458,79 @@ func TestConnectTeamSlackReconnectPreservesChannels(t *testing.T) {
 	}
 }
 
+func TestConnectTeamSlackWorkspaceTakenConflict(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+	withSlackConfig(t, "client-123", "state-secret", "https://app.example.com")
+
+	// stub Slack's oauth.v2.access for the workspace team A already holds
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"ok":           true,
+			"access_token": "xoxb-new",
+			"scope":        "chat:write",
+			"bot_user_id":  "U1",
+			"app_id":       "A1",
+			"team":         map[string]string{"id": "T-slack", "name": "Acme Workspace"},
+		})
+	}))
+	defer srv.Close()
+	withSlackAccessURL(t, srv.URL)
+
+	teamA := uuid.New()
+	seedTeam(ctx, t, teamA, "team a")
+	if _, err := th.PgPool.Exec(ctx,
+		`INSERT INTO team_slack
+		 (team_id, slack_team_id, slack_team_name, bot_token, bot_user_id, channel_ids, scopes, is_active, created_at, updated_at)
+		 VALUES ($1, 'T-slack', 'Acme Workspace', 'xoxb-a', 'U1', $2, 'chat:write', true, now(), now())`,
+		teamA, []string{"C1"}); err != nil {
+		t.Fatalf("seed team_slack for team a: %v", err)
+	}
+
+	// team B completes the OAuth flow for the same workspace
+	teamB := uuid.New()
+	seedTeam(ctx, t, teamB, "team b")
+	state, err := signSlackState("state-secret", teamB.String(), time.Now())
+	if err != nil {
+		t.Fatalf("sign: %v", err)
+	}
+
+	c, w := newConnectContext(fmt.Sprintf(`{"code":"the-code","state":%q}`, state))
+	h.ConnectTeamSlack(c)
+
+	if w.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want 409, body: %s", w.Code, w.Body.String())
+	}
+	var body struct {
+		Error string `json:"error"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if !strings.Contains(body.Error, "already connected to a different Measure team") {
+		t.Errorf("error = %q, want the workspace-taken message", body.Error)
+	}
+
+	// team A's integration is untouched and team B gained no row
+	var botToken string
+	if err := th.PgPool.QueryRow(ctx,
+		`SELECT bot_token FROM team_slack WHERE team_id = $1`, teamA).Scan(&botToken); err != nil {
+		t.Fatalf("read team a row: %v", err)
+	}
+	if botToken != "xoxb-a" {
+		t.Errorf("team a bot_token = %q, want xoxb-a untouched", botToken)
+	}
+	var count int
+	if err := th.PgPool.QueryRow(ctx,
+		`SELECT count(*) FROM team_slack WHERE team_id = $1`, teamB).Scan(&count); err != nil {
+		t.Fatalf("count team b rows: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("team b has %d team_slack rows, want 0", count)
+	}
+}
+
 // --------------------------------------------------------------------------
 // GetTeamSlack needs_reauth
 // --------------------------------------------------------------------------

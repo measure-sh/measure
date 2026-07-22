@@ -22,6 +22,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/leporo/sqlf"
 )
 
@@ -276,6 +277,16 @@ func (h Handlers) ConnectTeamSlack(c *gin.Context) {
 		updated_at = NOW()`
 
 	if _, err := deps.PgPool.Exec(ctx, query, stmt.Args()...); err != nil {
+		// The upsert arbitrates only on team_id; a unique violation on
+		// slack_team_id means the workspace is connected to a different team.
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "team_slack_slack_team_id_key" {
+			fmt.Println(msg, "workspace already connected to another team:", slackResp.Team.ID)
+			c.AbortWithStatusJSON(http.StatusConflict, gin.H{
+				"error": "This Slack workspace is already connected to a different Measure team. Remove the connection there first, then try again.",
+			})
+			return
+		}
 		fmt.Println(msg, "failed to save Slack integration:", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
