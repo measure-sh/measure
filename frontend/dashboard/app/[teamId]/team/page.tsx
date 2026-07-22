@@ -7,6 +7,7 @@ import {
   usePendingInvitesQuery,
   useRemoveMemberMutation,
   useRemovePendingInviteMutation,
+  useRemoveTeamSlackMutation,
   useResendPendingInviteMutation,
   useSessionQuery,
   useTeamSlackConnectUrlQuery,
@@ -174,6 +175,7 @@ export default function TeamOverview(props: {
   const removePendingInviteMutation = useRemovePendingInviteMutation();
   const changeRoleMutation = useChangeRoleMutation();
   const updateSlackStatusMutation = useUpdateSlackStatusMutation();
+  const removeTeamSlackMutation = useRemoveTeamSlackMutation();
   const testSlackAlertMutation = useTestSlackAlertMutation();
 
   const [saveTeamNameButtonDisabled, setSaveTeamNameButtonDisabled] =
@@ -215,6 +217,10 @@ export default function TeamOverview(props: {
   const [
     disableSlackConfirmationDialogOpen,
     setDisableSlackConfirmationDialogOpen,
+  ] = useState(false);
+  const [
+    removeSlackConfirmationDialogOpen,
+    setRemoveSlackConfirmationDialogOpen,
   ] = useState(false);
   const [
     testSlackAlertConfirmationDialogOpen,
@@ -381,6 +387,20 @@ export default function TeamOverview(props: {
         },
         onError: () => {
           toastNegative(`Error sending test Slack alerts`);
+        },
+      },
+    );
+  };
+
+  const removeTeamSlack = async () => {
+    removeTeamSlackMutation.mutate(
+      { teamId: params.teamId },
+      {
+        onSuccess: () => {
+          toastPositive("Slack connection removed");
+        },
+        onError: () => {
+          toastNegative("Error removing Slack connection");
         },
       },
     );
@@ -613,6 +633,33 @@ export default function TeamOverview(props: {
               updateSlackStatus(false);
             }}
             onCancelAction={() => setDisableSlackConfirmationDialogOpen(false)}
+          />
+
+          {/* Dialog for confirming slack connection removal */}
+          <DangerConfirmationDialog
+            body={
+              <p className="font-body">
+                Are you sure you want to remove the Slack connection for team{" "}
+                <span className="font-display font-bold">{team!.name}</span>?
+                <br />
+                <br />
+                This will delete your Slack connection and your subscribed alert
+                channels. The Measure Slack bot will no longer send any alerts
+                or messages.
+                <br />
+                <br />
+                The Measure app will remain in your workspace. You can manually
+                uninstall it from your Slack workspace settings.
+              </p>
+            }
+            open={removeSlackConfirmationDialogOpen}
+            affirmativeText="Yes, I'm sure"
+            cancelText="Cancel"
+            onAffirmativeAction={() => {
+              setRemoveSlackConfirmationDialogOpen(false);
+              removeTeamSlack();
+            }}
+            onCancelAction={() => setRemoveSlackConfirmationDialogOpen(false)}
           />
 
           {/* Dialog for confirming test slack alert */}
@@ -1102,19 +1149,33 @@ export default function TeamOverview(props: {
 
               <div className="py-4" />
 
-              <Button
-                variant="outline"
-                className="w-fit"
-                disabled={
-                  !authz.can_manage_slack ||
-                  testSlackAlertMutation.isPending ||
-                  teamSlack.is_active === false
-                }
-                loading={testSlackAlertMutation.isPending}
-                onClick={() => setTestSlackAlertConfirmationDialogOpen(true)}
-              >
-                Send Test Alert
-              </Button>
+              <div className="flex flex-row w-full items-center justify-between">
+                <Button
+                  variant="outline"
+                  className="w-fit"
+                  disabled={
+                    !authz.can_manage_slack ||
+                    testSlackAlertMutation.isPending ||
+                    teamSlack.is_active === false
+                  }
+                  loading={testSlackAlertMutation.isPending}
+                  onClick={() => setTestSlackAlertConfirmationDialogOpen(true)}
+                >
+                  Send Test Alert
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="w-fit"
+                  aria-label="Remove Slack connection"
+                  disabled={
+                    !authz.can_manage_slack || removeTeamSlackMutation.isPending
+                  }
+                  loading={removeTeamSlackMutation.isPending}
+                  onClick={() => setRemoveSlackConfirmationDialogOpen(true)}
+                >
+                  Remove
+                </Button>
+              </div>
             </div>
           )}
 

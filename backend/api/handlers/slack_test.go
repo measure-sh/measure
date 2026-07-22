@@ -547,6 +547,63 @@ func seedTeamSlackWithScopes(ctx context.Context, t *testing.T, teamID uuid.UUID
 	}
 }
 
+func TestDeleteTeamSlack(t *testing.T) {
+	ctx := context.Background()
+
+	// Only the owner role holds the team:* scope the handler requires; every
+	// other role is rejected and the integration stays.
+	cases := []struct {
+		role     string
+		wantCode int
+		wantRows int
+	}{
+		{"owner", http.StatusOK, 0},
+		{"admin", http.StatusForbidden, 1},
+		{"developer", http.StatusForbidden, 1},
+		{"viewer", http.StatusForbidden, 1},
+	}
+	for _, tc := range cases {
+		t.Run(tc.role, func(t *testing.T) {
+			defer cleanupAll(ctx, t)
+
+			userID, teamID := seedTeamAndMemberWithRole(t, ctx, tc.role)
+			seedTeamSlackWithScopes(ctx, t, teamID, "chat:write")
+
+			c, w := newTestGinContext("DELETE", "/teams/"+teamID.String()+"/slack", nil)
+			c.Set("userId", userID)
+			c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+			h.DeleteTeamSlack(c)
+
+			if w.Code != tc.wantCode {
+				t.Fatalf("status = %d, want %d, body: %s", w.Code, tc.wantCode, w.Body.String())
+			}
+			var count int
+			if err := th.PgPool.QueryRow(ctx,
+				`SELECT count(*) FROM team_slack WHERE team_id = $1`, teamID).Scan(&count); err != nil {
+				t.Fatalf("count team_slack rows: %v", err)
+			}
+			if count != tc.wantRows {
+				t.Errorf("team_slack rows = %d, want %d", count, tc.wantRows)
+			}
+		})
+	}
+
+	t.Run("no integration gives 404", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		ownerID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+
+		c, w := newTestGinContext("DELETE", "/teams/"+teamID.String()+"/slack", nil)
+		c.Set("userId", ownerID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		h.DeleteTeamSlack(c)
+
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("status = %d, want 404, body: %s", w.Code, w.Body.String())
+		}
+	})
+}
+
 func TestGetTeamSlackNeedsReauth(t *testing.T) {
 	ctx := context.Background()
 
