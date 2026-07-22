@@ -22,7 +22,7 @@ type SlackMessageData struct {
 }
 
 // Base interface for all block types
-type SlackBlock interface{}
+type SlackBlock any
 
 // Specific block types
 type SlackHeaderBlock struct {
@@ -72,14 +72,25 @@ type SlackMessage struct {
 	Blocks []SlackBlock `json:"blocks"`
 }
 
-// List of errors that require channel removal
+// errorsToRemoveMessageAndChannel are Slack errors that permanently fail the
+// message and mean the channel is unusable for the team: the queued message
+// is dropped and the channel is unsubscribed.
 var errorsToRemoveMessageAndChannel = map[string]bool{
-	"access_denied": true,
-	// "channel_not_found": true,
+	"access_denied":     true,
 	"is_archived":       true,
 	"no_permission":     true,
 	"ekm_access_denied": true,
 	"account_inactive":  true,
+}
+
+// errorsToRemoveMessageOnly are Slack errors that permanently fail the message
+// while the subscription must be kept. Slack reports channel_not_found for a
+// private channel the bot was removed from, and re-inviting the bot restores
+// delivery, so unsubscribing would drop a channel that can come back (#2899).
+// The message itself can never send either way, and an undeliverable message
+// left queued is retried at the front of every batch indefinitely.
+var errorsToRemoveMessageOnly = map[string]bool{
+	"channel_not_found": true,
 }
 
 // SendPendingAlertSlackMessages checks the pending alert messages in the database and sends them as Slack messages.
@@ -141,8 +152,12 @@ func SendPendingAlertSlackMessages(ctx context.Context) error {
 	return nil
 }
 
+// slackPostMessageURL is Slack's message post endpoint. A package var so tests
+// can point it at a stub server.
+var slackPostMessageURL = "https://slack.com/api/chat.postMessage"
+
 func SendSlackMessage(ctx context.Context, msgID uuid.UUID, teamID uuid.UUID, slackMsgData SlackMessageData) error {
-	url := "https://slack.com/api/chat.postMessage"
+	url := slackPostMessageURL
 
 	payload := map[string]any{
 		"channel": slackMsgData.Channel,
@@ -193,12 +208,14 @@ func SendSlackMessage(ctx context.Context, msgID uuid.UUID, teamID uuid.UUID, sl
 
 	if !slackResponse.OK {
 
-		if errorsToRemoveMessageAndChannel[slackResponse.Error] {
+		if errorsToRemoveMessageAndChannel[slackResponse.Error] || errorsToRemoveMessageOnly[slackResponse.Error] {
 			fmt.Printf("Removing pending alert %s due to error: %s\n", msgID, slackResponse.Error)
 			if err := removePendingAlert(ctx, msgID); err != nil {
 				fmt.Printf("failed to remove pending alert %s: %s\n", msgID, err)
 			}
+		}
 
+		if errorsToRemoveMessageAndChannel[slackResponse.Error] {
 			fmt.Printf("Removing channel %s from channel list due to error: %s\n", slackMsgData.Channel, slackResponse.Error)
 			if err := removeChannelFromList(ctx, teamID, slackMsgData.Channel); err != nil {
 				fmt.Printf("failed to remove channel %s from team %s: %s\n", slackMsgData.Channel, teamID, err)
