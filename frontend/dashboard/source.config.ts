@@ -17,8 +17,9 @@ export const blogPosts = defineCollections({
     date: z.iso.date().or(z.date()),
     // Social share card image (a path under public/, e.g.
     // /blog/assets/foo.webp); sharing falls back to the site-wide
-    // preview image when absent.
-    image: z.string().optional(),
+    // preview image when absent. Must be site-relative: JSON-LD builds
+    // the absolute URL by prefixing the origin.
+    image: z.string().startsWith("/").optional(),
     // Kebab-case only: tag slugs appear verbatim in /blog/tags/<tag> URLs,
     // so URL-unsafe characters are rejected at build time instead of being
     // escaped at render time.
