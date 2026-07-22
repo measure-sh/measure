@@ -1,0 +1,1966 @@
+---
+title: "SDK API Reference"
+seoTitle: "SDK API reference for Android, iOS, Flutter, React Native and Kotlin Multiplatform"
+description: "Public API reference for the Measure SDK, with per-platform code examples for Android, iOS, Flutter, React Native and Kotlin Multiplatform."
+---
+
+## Initialize the SDK
+
+Initialize the SDK with `init` before calling any other method. Call it as early as possible in app startup so crashes, errors and events are captured from the beginning.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+import sh.measure.android.config.MeasureConfig
+
+Measure.init(this, MeasureConfig())
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let clientInfo = ClientInfo(apiKey: "<apiKey>", apiUrl: "<apiUrl>")
+Measure.initialize(with: clientInfo, config: BaseMeasureConfig())
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+await Measure.instance.init(
+  () => runApp(MeasureWidget(child: MyApp())),
+  config: const MeasureConfig(),
+);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure, MeasureConfig } from '@measuresh/react-native';
+
+const config = new MeasureConfig({});
+await Measure.init({ config });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+Kotlin Multiplatform has no shared `init`. Initialize each native SDK in its entry point, as shown in the Android and iOS tabs.
+
+</Tab>
+</Tabs>
+
+### SDK configuration options
+
+Pass a config object to `init` to customize the SDK. The available options differ by platform.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `enableLogging` | `Boolean` | `false` | Turn on internal SDK logs. |
+| `autoStart` | `Boolean` | `true` | Start tracking automatically on init. Set to `false` to delay starting collection. |
+| `maxDiskUsageInMb` | `Int` | `50` | Cap the disk space used for buffered data. Clamped between `20MB` and `1500MB`. |
+| `trackActivityIntentData` | `Boolean` | `false` | Capture the intent data used to launch an Activity. |
+| `requestHeadersProvider` | `MsrRequestHeadersProvider?` | `null` | Add custom HTTP headers to requests the SDK sends to the Measure API, useful for self-hosted setups. |
+| `enableFullCollectionMode` | `Boolean` | `false` | Override all sampling and collect every event and trace. Increases cost, so use it for debugging only. |
+| `enableDiagnosticMode` | `Boolean` | `false` | Write all SDK logs to a file you can attach when reporting an SDK bug. |
+
+</Tab>
+<Tab value="iOS">
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `enableLogging` | `Bool` | `false` | Turn on internal SDK logs. |
+| `autoStart` | `Bool` | `true` | Start tracking automatically on init. Set to `false` to delay starting collection. |
+| `maxDiskUsageInMb` | `Int` | `50` | Cap the disk space used for buffered data. Clamped between `20MB` and `1500MB`. |
+| `requestHeadersProvider` | `MsrRequestHeadersProvider?` | `nil` | Add custom HTTP headers to requests the SDK sends to the Measure API, useful for self-hosted setups. |
+| `enableFullCollectionMode` | `Bool` | `false` | Override all sampling and collect every event and trace. Increases cost, so use it for debugging only. |
+| `enableDiagnosticMode` | `Bool` | `false` | Write all SDK logs to a file you can attach when reporting an SDK bug. |
+| `enableDiagnosticModeGesture` | `Bool` | `false` | Export SDK logs with a two-finger double-tap share sheet. Requires `enableDiagnosticMode`. |
+
+</Tab>
+<Tab value="Flutter">
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `enableLogging` | `bool` | `false` | Turn on internal SDK logs. |
+| `autoStart` | `bool` | `true` | Start tracking automatically on init. Set to `false` to delay starting collection. |
+| `enableDiagnosticMode` | `bool` | `false` | Write all SDK logs to a file you can attach when reporting an SDK bug. |
+| `widgetFilter` | `Map<Type, String>` | built-in set | Widget types to include in layout snapshots. Generate a fuller list with the `measure_build` package. |
+
+</Tab>
+<Tab value="React Native">
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `enableLogging` | `boolean` | `false` | Turn on internal SDK logs. |
+| `autoStart` | `boolean` | `true` | Start tracking automatically on init. Set to `false` to delay starting collection. |
+| `enableDiagnosticMode` | `boolean` | `false` | Write all SDK logs to a file you can attach when reporting an SDK bug. |
+| `patchId` | `string?` | none | UUID of the current over-the-air (OTA) patch. Auto-detected with the Metro plugin. Set it manually for OTA systems that bypass Metro, like CodePush. |
+| `patchVersion` | `string?` | none | Human-readable label for the OTA patch, like `v1.0.3-hotfix`. |
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+Kotlin Multiplatform has no shared config. Configure each native SDK directly, as shown in the Android and iOS tabs.
+
+</Tab>
+</Tabs>
+
+## Start tracking
+
+The SDK starts collecting data automatically after `init`. If you set `autoStart` to `false` in the config, call `start` when you're ready to begin tracking.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+Measure.start()
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.start()
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+await Measure.instance.start();
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+await Measure.start();
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+Measure.start()
+```
+
+</Tab>
+</Tabs>
+
+## Stop tracking
+
+Pause data collection with `stop`. While stopped, the SDK collects no data. Call `start` to resume.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+Measure.stop()
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.stop()
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+await Measure.instance.stop();
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+await Measure.stop();
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+Measure.stop()
+```
+
+</Tab>
+</Tabs>
+
+## Track errors
+
+You can report errors you catch and recover from. These don't crash the app but often point to problems worth fixing. Crashes and ANRs are captured automatically, so you don't need to track those yourself.
+
+### Track a handled error
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+try {
+    methodThatThrows()
+} catch (e: Exception) {
+    Measure.trackHandledException(e)
+}
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+// Track a Swift Error or an NSError with trackError
+do {
+    try someThrowingFunction()
+} catch {
+    Measure.trackError(error)
+}
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+try {
+  methodThatThrows();
+} catch (e, stackTrace) {
+  Measure.instance.trackHandledError(e, stackTrace);
+}
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+try {
+  methodThatThrows();
+} catch (e) {
+  Measure.trackError({ error: e });
+}
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+try {
+    methodThatThrows()
+} catch (e: Exception) {
+    Measure.trackHandledException(e)
+}
+```
+
+</Tab>
+</Tabs>
+
+### Add attributes
+
+See [Attribute limits](#attribute-limits) for allowed keys and values.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+import sh.measure.android.attributes.AttributesBuilder
+
+val attributes = AttributesBuilder().put("screen", "Login").build()
+Measure.trackHandledException(e, attributes)
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.trackError(error, attributes: ["screen": .string("Login")])
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final attributes = AttributeBuilder().add("screen", "Login").build();
+Measure.instance.trackHandledError(e, stackTrace, attributes: attributes);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.trackError({ error: e, attributes: { screen: "Login" } });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+import sh.measure.kmp.attributes.AttributesBuilder
+
+val attributes = AttributesBuilder().put("screen", "Login").build()
+Measure.trackHandledException(e, attributes)
+```
+
+</Tab>
+</Tabs>
+
+## Track custom events
+
+Track app-specific events like user actions or feature usage with `trackEvent`.
+
+- Event names can be up to 64 characters.
+- Event names can contain only letters, numbers, hyphens and underscores.
+
+### Track an event
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+Measure.trackEvent("event_name")
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.trackEvent(name: "event_name", attributes: [:])
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+Measure.instance.trackEvent(name: "event_name");
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.trackEvent({ name: "event_name" });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+Measure.trackEvent(name = "event_name")
+```
+
+</Tab>
+</Tabs>
+
+### Set a custom timestamp
+
+Record an event at a specific time, in milliseconds since epoch. Use `getCurrentTime` for an accurate monotonic value.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+Measure.trackEvent("event_name", timestamp = Measure.getCurrentTime())
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.trackEvent(name: "event_name", attributes: [:], timestamp: Measure.getCurrentTime())
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+Measure.instance.trackEvent(name: "event_name", timestamp: Measure.instance.getCurrentTime());
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.trackEvent({ name: "event_name", timestamp: Measure.getCurrentTime() });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+Measure.trackEvent(name = "event_name", timestamp = Measure.getCurrentTime())
+```
+
+</Tab>
+</Tabs>
+
+### Add attributes
+
+See [Attribute limits](#attribute-limits) for allowed keys and values.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+import sh.measure.android.attributes.AttributesBuilder
+
+val attributes = AttributesBuilder().put("is_premium_user", true).build()
+Measure.trackEvent("event_name", attributes = attributes)
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.trackEvent(name: "event_name", attributes: ["is_premium_user": .boolean(true)])
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final attributes = AttributeBuilder().add("is_premium_user", true).build();
+Measure.instance.trackEvent(name: "event_name", attributes: attributes);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.trackEvent({ name: "event_name", attributes: { is_premium_user: true } });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+import sh.measure.kmp.attributes.AttributesBuilder
+
+val attributes = AttributesBuilder().put("is_premium_user", true).build()
+Measure.trackEvent(name = "event_name", attributes = attributes)
+```
+
+</Tab>
+</Tabs>
+
+## Track screen views
+
+The SDK automatically tracks screen views from each platform's navigation system. Record a screen from a custom navigation setup with `trackScreenView`.
+
+### Track a screen view
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+Measure.trackScreenView("Home")
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.trackScreenView("Home", attributes: nil)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+Measure.instance.trackScreenViewEvent(name: "Home");
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.trackScreenView({ screenName: "Home" });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+Measure.trackScreenView("Home")
+```
+
+</Tab>
+</Tabs>
+
+### Add attributes
+
+See [Attribute limits](#attribute-limits) for allowed keys and values.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+import sh.measure.android.attributes.AttributesBuilder
+
+val attributes = AttributesBuilder().put("source", "deep_link").build()
+Measure.trackScreenView("Home", attributes)
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.trackScreenView("Home", attributes: ["source": .string("deep_link")])
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final attributes = AttributeBuilder().add("source", "deep_link").build();
+Measure.instance.trackScreenViewEvent(name: "Home", attributes: attributes);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.trackScreenView({ screenName: "Home", attributes: { source: "deep_link" } });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+import sh.measure.kmp.attributes.AttributesBuilder
+
+val attributes = AttributesBuilder().put("source", "deep_link").build()
+Measure.trackScreenView("Home", attributes)
+```
+
+</Tab>
+</Tabs>
+
+### Automatic tracking on Flutter
+
+Add `MsrNavigatorObserver` to your app's `navigatorObservers` to track screen views automatically. It works best with named routes.
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:measure_flutter/measure_flutter.dart';
+
+MaterialApp(
+  navigatorObservers: [MsrNavigatorObserver()],
+  home: HomeScreen(),
+);
+```
+
+## Track performance traces
+
+Measure how long any operation takes with a span. A span represents one unit of work. Set a parent to trace a multi-step flow.
+
+- Span names can be up to 64 characters.
+- Span names cannot be empty.
+
+### Start a span
+
+Start a span immediately with `startSpan`.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+val span = Measure.startSpan("span-name")
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let span = Measure.startSpan(name: "span-name")
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final span = Measure.instance.startSpan("span-name");
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const span = Measure.startSpan({ name: "span-name" });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+val span = Measure.startSpan("span-name")
+```
+
+</Tab>
+</Tabs>
+
+### Start with a timestamp
+
+Trace an operation that already started by passing a start time from `getCurrentTime`, which returns epoch time from a monotonic clock.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+val span = Measure.startSpan("span-name", timestamp = Measure.getCurrentTime())
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let span = Measure.startSpan(name: "span-name", timestamp: Measure.getCurrentTime())
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final span = Measure.instance.startSpan("span-name", timestamp: Measure.instance.getCurrentTime());
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const span = Measure.startSpanWithTimestamp({ name: "span-name", timestampMs: Measure.getCurrentTime() });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+val span = Measure.startSpan("span-name", timestamp = Measure.getCurrentTime())
+```
+
+</Tab>
+</Tabs>
+
+### End a span
+
+End a span with `end`. Set the status before ending.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+import sh.measure.android.tracing.SpanStatus
+
+val span = Measure.startSpan("span-name")
+span.setStatus(SpanStatus.Ok).end()
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let span = Measure.startSpan(name: "span-name")
+span.setStatus(.ok).end()
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final span = Measure.instance.startSpan("span-name");
+span.setStatus(SpanStatus.ok).end();
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure, SpanStatus } from '@measuresh/react-native';
+
+const span = Measure.startSpan({ name: "span-name" });
+span.setStatus(SpanStatus.Ok).end();
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+import sh.measure.kmp.tracing.SpanStatus
+
+val span = Measure.startSpan("span-name")
+span.setStatus(SpanStatus.Ok).end()
+```
+
+</Tab>
+</Tabs>
+
+### End with a timestamp
+
+End a span that already finished by passing an end time from `getCurrentTime`.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+import sh.measure.android.tracing.SpanStatus
+
+val span = Measure.startSpan("span-name")
+span.setStatus(SpanStatus.Ok).end(timestamp = Measure.getCurrentTime())
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let span = Measure.startSpan(name: "span-name")
+span.setStatus(.ok).end(timestamp: Measure.getCurrentTime())
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final span = Measure.instance.startSpan("span-name");
+span.setStatus(SpanStatus.ok).end(timestamp: Measure.instance.getCurrentTime());
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure, SpanStatus } from '@measuresh/react-native';
+
+const span = Measure.startSpan({ name: "span-name" });
+span.setStatus(SpanStatus.Ok).end(Measure.getCurrentTime());
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+import sh.measure.kmp.tracing.SpanStatus
+
+val span = Measure.startSpan("span-name")
+span.setStatus(SpanStatus.Ok).end(timestamp = Measure.getCurrentTime())
+```
+
+</Tab>
+</Tabs>
+
+### Set the status
+
+Set the outcome of the operation with `setStatus`. Values are `Ok`, `Error` and `Unset` (the default).
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+import sh.measure.android.tracing.SpanStatus
+
+val span = Measure.startSpan("span-name")
+span.setStatus(SpanStatus.Ok)
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let span = Measure.startSpan(name: "span-name")
+span.setStatus(.ok)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final span = Measure.instance.startSpan("span-name");
+span.setStatus(SpanStatus.ok);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure, SpanStatus } from '@measuresh/react-native';
+
+const span = Measure.startSpan({ name: "span-name" });
+span.setStatus(SpanStatus.Ok);
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+import sh.measure.kmp.tracing.SpanStatus
+
+val span = Measure.startSpan("span-name")
+span.setStatus(SpanStatus.Ok)
+```
+
+</Tab>
+</Tabs>
+
+### Set a parent
+
+Build a hierarchy of operations by setting a parent span with `setParent`.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+val parent = Measure.startSpan("parent-span")
+val child = Measure.startSpan("child-span").setParent(parent)
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let parent = Measure.startSpan(name: "parent-span")
+let child = Measure.startSpan(name: "child-span").setParent(parent)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final parent = Measure.instance.startSpan("parent-span");
+final child = Measure.instance.startSpan("child-span").setParent(parent);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const parent = Measure.startSpan({ name: "parent-span" });
+const child = Measure.startSpan({ name: "child-span" }).setParent(parent);
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+val parent = Measure.startSpan("parent-span")
+val child = Measure.startSpan("child-span").setParent(parent)
+```
+
+</Tab>
+</Tabs>
+
+### Add attributes
+
+Attach key-value context to a span. Add one attribute at a time, several at once with `setAttributes`, or remove one with `removeAttribute`. See [Attribute limits](#attribute-limits) for allowed keys and values.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+import sh.measure.android.attributes.AttributesBuilder
+
+val span = Measure.startSpan("span-name")
+span.setAttribute("key", "value")
+span.setAttribute("count", 10)
+
+val attributes = AttributesBuilder().put("key", "value").put("count", 10).build()
+span.setAttributes(attributes)
+
+span.removeAttribute("key")
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let span = Measure.startSpan(name: "span-name")
+span.setAttribute("key", value: "value")
+span.setAttribute("count", value: 10)
+
+let attributes: [String: AttributeValue] = ["key": .string("value"), "count": .int(10)]
+span.setAttributes(attributes)
+
+span.removeAttribute("key")
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final span = Measure.instance.startSpan("span-name");
+span.setAttributeString("key", "value");
+span.setAttributeInt("count", 10);
+span.setAttributeDouble("ratio", 10.5);
+span.setAttributeBool("enabled", true);
+
+final attributes = AttributeBuilder().add("key", "value").add("count", 10).build();
+span.setAttributes(attributes);
+
+span.removeAttribute("key");
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const span = Measure.startSpan({ name: "span-name" });
+span.setAttribute("key", "value");
+span.setAttribute("count", 10);
+
+span.setAttributes({ key: "value", count: 10, enabled: true });
+
+span.removeAttribute("key");
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+import sh.measure.kmp.attributes.AttributesBuilder
+
+val span = Measure.startSpan("span-name")
+span.setAttribute("key", "value")
+span.setAttribute("count", 10)
+
+val attributes = AttributesBuilder().put("key", "value").put("count", 10).build()
+span.setAttributes(attributes)
+
+span.removeAttribute("key")
+```
+
+</Tab>
+</Tabs>
+
+### Rename a span
+
+Update a span's name after it starts with `setName`.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+val span = Measure.startSpan("span-name")
+span.setName("updated-name")
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let span = Measure.startSpan(name: "span-name")
+span.setName("updated-name")
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final span = Measure.instance.startSpan("span-name");
+span.setName("updated-name");
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const span = Measure.startSpan({ name: "span-name" });
+span.setName("updated-name");
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+val span = Measure.startSpan("span-name")
+span.setName("updated-name")
+```
+
+</Tab>
+</Tabs>
+
+### Add a checkpoint
+
+Mark a significant moment during a span with `setCheckpoint`. A span can hold up to 100 checkpoints.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+val span = Measure.startSpan("span-name")
+span.setCheckpoint("checkpoint-name")
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let span = Measure.startSpan(name: "span-name")
+span.setCheckpoint("checkpoint-name")
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final span = Measure.instance.startSpan("span-name");
+span.setCheckpoint("checkpoint-name");
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const span = Measure.startSpan({ name: "span-name" });
+span.setCheckpoint("checkpoint-name");
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+val span = Measure.startSpan("span-name")
+span.setCheckpoint("checkpoint-name")
+```
+
+</Tab>
+</Tabs>
+
+### Defer a span
+
+Configure a span now and start it later with `createSpanBuilder`.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+val builder = Measure.createSpanBuilder("span-name")
+val span = builder?.startSpan()
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let builder = Measure.createSpanBuilder(name: "span-name")
+let span = builder?.startSpan()
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final builder = Measure.instance.createSpanBuilder("span-name");
+final span = builder?.startSpan();
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const builder = Measure.createSpanBuilder({ name: "span-name" });
+const span = builder?.startSpan();
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+val builder = Measure.createSpanBuilder("span-name")
+val span = builder?.startSpan()
+```
+
+</Tab>
+</Tabs>
+
+### Distributed tracing
+
+Propagate a trace across services by adding the W3C `traceparent` header to outgoing requests. Get the header key with `getTraceParentHeaderKey` and its value for a span with `getTraceParentHeaderValue`.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+val span = Measure.startSpan("http")
+val key = Measure.getTraceParentHeaderKey()
+val value = Measure.getTraceParentHeaderValue(span)
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let span = Measure.startSpan(name: "http")
+let key = Measure.getTraceParentHeaderKey()
+let value = Measure.getTraceParentHeaderValue(span: span)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final span = Measure.instance.startSpan("http");
+final key = Measure.instance.getTraceParentHeaderKey();
+final value = Measure.instance.getTraceParentHeaderValue(span);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const span = Measure.startSpan({ name: "http" });
+const key = Measure.getTraceParentHeaderKey();
+const value = Measure.getTraceParentHeaderValue({ span });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+val span = Measure.startSpan("http")
+val key = Measure.getTraceParentHeaderKey()
+val value = Measure.getTraceParentHeaderValue(span)
+```
+
+</Tab>
+</Tabs>
+
+## Track HTTP events
+
+Measure automatically tracks OkHttp on Android and, with the `measure_dio` package, Dio on Flutter. Use `trackHttpEvent` to record requests from any other HTTP client. Use `getCurrentTime` for the start and end time to avoid clock skew.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+val startTime = Measure.getCurrentTime()
+// make the request
+val endTime = Measure.getCurrentTime()
+
+Measure.trackHttpEvent(
+    url = "https://api.example.com/users",
+    method = "GET",
+    startTime = startTime,
+    endTime = endTime,
+    statusCode = 200,
+)
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let startTime = UInt64(Measure.getCurrentTime())
+// make the request
+let endTime = UInt64(Measure.getCurrentTime())
+
+Measure.trackHttpEvent(
+    url: "https://api.example.com/users",
+    method: "GET",
+    startTime: startTime,
+    endTime: endTime,
+    statusCode: 200
+)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final startTime = Measure.instance.getCurrentTime();
+// make the request
+final endTime = Measure.instance.getCurrentTime();
+
+Measure.instance.trackHttpEvent(
+  url: "https://api.example.com/users",
+  method: HttpMethod.get,
+  startTime: startTime,
+  endTime: endTime,
+  statusCode: 200,
+);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const startTime = Measure.getCurrentTime();
+// make the request
+const endTime = Measure.getCurrentTime();
+
+Measure.trackHttpEvent({
+  url: "https://api.example.com/users",
+  method: "GET",
+  startTime,
+  endTime,
+  statusCode: 200,
+});
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+val startTime = Measure.getCurrentTime()
+// make the request
+val endTime = Measure.getCurrentTime()
+
+Measure.trackHttpEvent(
+    url = "https://api.example.com/users",
+    method = "GET",
+    startTime = startTime,
+    endTime = endTime,
+    statusCode = 200,
+)
+```
+
+</Tab>
+</Tabs>
+
+## Track bug reports
+
+Let users report bugs from inside the app. Open the bug report UI with a single call, or submit a report from your own UI with `trackBugReport`. Descriptions can be up to 4000 characters, with a maximum of 5 attachments. Attach a screenshot with `captureScreenshot`, and trigger reports on device shake.
+
+### Open bug report screen
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+Measure.launchBugReportActivity(takeScreenshot = true)
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.launchBugReport(takeScreenshot: true)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+Show the bug report widget, typically pushed as a new screen:
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:measure_flutter/measure_flutter.dart';
+
+Navigator.of(context).push(
+  MaterialPageRoute<Widget>(
+    builder: (context) => Measure.instance.createBugReportWidget(),
+  ),
+);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.launchBugReport({ takeScreenshot: true });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+Measure.launchBugReport(takeScreenshot = true)
+```
+
+</Tab>
+</Tabs>
+
+### Track a bug report
+
+Build a custom bug report flow and submit it with `trackBugReport`.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+Measure.trackBugReport(description = "Cart items disappear after reopening the app")
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.trackBugReport(description: "Cart items disappear after reopening the app")
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+Measure.instance.trackBugReport(
+  description: "Cart items disappear after reopening the app",
+  attachments: [],
+  attributes: {},
+);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.trackBugReport({ description: "Cart items disappear after reopening the app" });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+Measure.trackBugReport(description = "Cart items disappear after reopening the app")
+```
+
+</Tab>
+</Tabs>
+
+### Add attributes
+
+Attach metadata to a report. Pass attributes when you open the bug report UI or track a report from your own UI. See [Attribute limits](#attribute-limits) for allowed keys and values.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+import sh.measure.android.attributes.AttributesBuilder
+
+val attributes = AttributesBuilder().put("screen", "Cart").build()
+
+Measure.launchBugReportActivity(takeScreenshot = true, attributes = attributes)
+Measure.trackBugReport(description = "...", attributes = attributes)
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let attributes: [String: AttributeValue] = ["screen": .string("Cart")]
+
+Measure.launchBugReport(takeScreenshot: true, attributes: attributes)
+Measure.trackBugReport(description: "...", attributes: attributes)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final attributes = AttributeBuilder().add("screen", "Cart").build();
+
+Measure.instance.createBugReportWidget(attributes: attributes);
+Measure.instance.trackBugReport(description: "...", attachments: [], attributes: attributes);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.launchBugReport({ takeScreenshot: true, attributes: { screen: "Cart" } });
+Measure.trackBugReport({ description: "...", attributes: { screen: "Cart" } });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+import sh.measure.kmp.attributes.AttributesBuilder
+
+val attributes = AttributesBuilder().put("screen", "Cart").build()
+
+Measure.launchBugReport(takeScreenshot = true, attributes = attributes)
+Measure.trackBugReport(description = "...", attributes = attributes)
+```
+
+</Tab>
+</Tabs>
+
+### Shake to report
+
+Register a shake handler so users can open a bug report by shaking their device. Pass a null handler to disable it.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+import sh.measure.android.bugreport.MsrShakeListener
+
+Measure.setShakeListener(object : MsrShakeListener {
+    override fun onShake() {
+        Measure.launchBugReportActivity()
+    }
+})
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.onShake {
+    Measure.launchBugReport()
+}
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+Measure.instance.setShakeListener(() {
+  // open the bug report widget
+});
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.onShake({ handler: () => {
+  Measure.launchBugReport();
+} });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+Shake to report isn't part of Kotlin Multiplatform's shared API.
+
+</Tab>
+</Tabs>
+
+## Track logs
+
+Record a log at one of five severity levels, using `logDebug`, `logInfo`, `logWarning`, `logError` or `logFatal`. Logs appear on the session timeline and add context when debugging. Bodies longer than 1000 characters are truncated.
+
+### Track a log
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+Measure.logDebug("Cache miss for key user_42")
+Measure.logInfo("User signed in")
+Measure.logWarning("Payment failed, retrying")
+Measure.logError("Checkout request failed")
+Measure.logFatal("Unrecoverable database error")
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.logDebug("Cache miss for key user_42")
+Measure.logInfo("User signed in")
+Measure.logWarning("Payment failed, retrying")
+Measure.logError("Checkout request failed")
+Measure.logFatal("Unrecoverable database error")
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+Measure.instance.logDebug("Cache miss for key user_42");
+Measure.instance.logInfo("User signed in");
+Measure.instance.logWarning("Payment failed, retrying");
+Measure.instance.logError("Checkout request failed");
+Measure.instance.logFatal("Unrecoverable database error");
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.logDebug({ body: "Cache miss for key user_42" });
+Measure.logInfo({ body: "User signed in" });
+Measure.logWarning({ body: "Payment failed, retrying" });
+Measure.logError({ body: "Checkout request failed" });
+Measure.logFatal({ body: "Unrecoverable database error" });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.*
+
+Measure.logDebug("Cache miss for key user_42")
+Measure.logInfo("User signed in")
+Measure.logWarning("Payment failed, retrying")
+Measure.logError("Checkout request failed")
+Measure.logFatal("Unrecoverable database error")
+```
+
+</Tab>
+</Tabs>
+
+### Add attributes
+
+See [Attribute limits](#attribute-limits) for allowed keys and values.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+import sh.measure.android.attributes.AttributesBuilder
+
+val attributes = AttributesBuilder().put("screen", "Checkout").build()
+Measure.logWarning("Payment failed", attributes)
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.logWarning("Payment failed", attributes: ["screen": .string("Checkout")])
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final attributes = AttributeBuilder().add("screen", "Checkout").build();
+Measure.instance.logWarning("Payment failed", attributes: attributes);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.logWarning({ body: "Payment failed", attributes: { screen: "Checkout" } });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+import sh.measure.kmp.logWarning
+import sh.measure.kmp.attributes.AttributesBuilder
+
+val attributes = AttributesBuilder().put("screen", "Checkout").build()
+Measure.logWarning("Payment failed", attributes)
+```
+
+</Tab>
+</Tabs>
+
+## Identify users
+
+Set a user ID to correlate sessions with a user when debugging. The ID persists across app launches. Clear it when the user logs out.
+
+<Callout type="warn">
+
+Avoid personally identifiable information (PII) like email or phone number in the user ID. Use a hashed or anonymized value instead.
+
+</Callout>
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+Measure.setUserId("user-id")
+Measure.clearUserId()
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.setUserId("user-id")
+Measure.clearUserId()
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+await Measure.instance.setUserId("user-id");
+await Measure.instance.clearUserId();
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.setUserId({ userId: "user-id" });
+Measure.clearUserId();
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+Measure.setUserId("user-id")
+Measure.clearUserId()
+```
+
+</Tab>
+</Tabs>
+
+## Get session ID
+
+Read the current session ID to correlate app data with a Measure session. Returns `null` if the SDK isn't initialized.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+val sessionId: String? = Measure.getSessionId()
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let sessionId: String? = Measure.getSessionId()
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final String? sessionId = await Measure.instance.getSessionId();
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const sessionId: string | null = await Measure.getSessionId();
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+val sessionId: String? = Measure.getSessionId()
+```
+
+</Tab>
+</Tabs>
+
+## Get current time
+
+Read epoch time in milliseconds from a monotonic clock. Use it for event, span and HTTP timestamps to avoid clock skew.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+val currentTime: Long = Measure.getCurrentTime()
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let currentTime: Int64 = Measure.getCurrentTime()
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final int currentTime = Measure.instance.getCurrentTime();
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const currentTime: number = Measure.getCurrentTime();
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+val currentTime: Long = Measure.getCurrentTime()
+```
+
+</Tab>
+</Tabs>
+
+## Attribute limits
+
+Attributes are the key-value pairs you attach to events, spans, logs, bug reports, screen views and errors. They follow the same rules everywhere:
+
+- Keys are strings, up to 256 characters.
+- Keys can contain only letters, numbers, hyphens and underscores.
+- Values are a string, integer, long, double, float or boolean. On React Native, values are a string, number or boolean.
+- String values can be up to 256 characters.

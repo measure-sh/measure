@@ -1,0 +1,92 @@
+---
+title: "Android"
+seoTitle: "Measure Android SDK Integration Guide"
+description: "Integrate Measure SDK in your Android app."
+---
+
+### Minimum requirements
+
+| Name                  | Version         |
+| --------------------- | --------------- |
+| Android Gradle Plugin | `8.1.0`         |
+| Min SDK               | `21` (Lollipop) |
+| Target SDK            | `35`            |
+
+<Accordions type="single">
+<Accordion title="Self-host compatibility">
+
+| SDK Version         | Minimum Required Self-host Version |
+| ------------------- | ---------------------------------- |
+| >= `0.16.0`         | `0.10.0`                           |
+| `0.13.0` -`0.15.1`  | `0.9.0`                            |
+| `0.10.0` - `0.12.0` | `0.6.0`                            |
+| `0.9.0`             | `0.5.0`                            |
+
+</Accordion>
+</Accordions>
+
+## 1. Get the credentials
+
+Create a new app in the _Apps_ section on the dashboard, copy its `API URL` and `API Key`, and add them to your app's `AndroidManifest.xml`.
+
+```xml
+<!-- Inside the <application> tag -->
+<meta-data android:name="sh.measure.android.API_KEY" android:value="YOUR_API_KEY" />
+<meta-data android:name="sh.measure.android.API_URL" android:value="YOUR_API_URL" />
+```
+
+## 2. Add the Gradle dependency
+
+```kotlin
+// In your app/build.gradle.kts
+dependencies {
+    implementation("sh.measure:measure-android:0.18.0")
+}
+```
+
+## 3. Add the Gradle plugin
+
+The plugin instruments your app at build time and uploads ProGuard/R8 mapping files to de-obfuscate crash and ANR stack traces.
+
+```kotlin
+// In your app/build.gradle.kts
+plugins {
+    id("sh.measure.android.gradle") version "0.13.0"
+}
+```
+
+## 4. Initialize the SDK
+
+Initialize as early as possible to capture early crashes and accurate launch time metrics.
+
+```kotlin
+// In your Application.onCreate()
+import sh.measure.android.Measure
+import sh.measure.android.config.MeasureConfig
+
+Measure.init(
+    this, MeasureConfig()
+)
+```
+
+## 5. Verify installation
+
+Add a test crash after `Measure.init`, run the app, and confirm it reaches your dashboard.
+
+```kotlin
+import android.os.Handler
+import android.os.Looper
+
+// In Application.onCreate(), after Measure.init().
+// The 2-second delay gives the SDK time to flush the crash event.
+// Remove this after the crash appears in your dashboard.
+Handler(Looper.getMainLooper()).postDelayed({
+    throw RuntimeException("Test crash from Measure")
+}, 2000)
+```
+
+<Callout type="warn">
+
+Remove the test crash code once you've confirmed the crash appears in your dashboard.
+
+</Callout>

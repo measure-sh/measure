@@ -1,0 +1,77 @@
+---
+title: "Grouping"
+seoTitle: "Crash and Error Grouping into Issues"
+description: "See how Measure groups similar errors into a single issue."
+---
+
+Measure groups similar errors into a single issue, so an error that happens a thousand times shows up once with its impact, not as a thousand separate rows. Crashes, ANRs, and handled errors are all grouped this way, and each group shows its percentage contribution so you can see at a glance what to fix first.
+
+What Measure groups by depends on the platform.
+
+## Android
+
+Errors are grouped by the exception type and the top frame of the stack trace.
+
+- **Exception type**: `java.lang.NullPointerException`
+- **Top frame**: `onCreate` in `MainActivity.kt`
+
+```log
+java.lang.NullPointerException: Attempt to invoke virtual method 'void com.example.app.MainActivity.onCreate(android.os.Bundle)' on a null object reference
+    at com.example.app.MainActivity.onCreate(MainActivity.kt:10)
+    at android.app.Activity.performCreate(Activity.java:8000)
+    ...
+```
+
+## iOS
+
+Errors are grouped by the signal and the first stack frame that belongs to your app. Measure skips the operating-system and framework frames at the top of the stack (like `CoreFoundation` and `libobjc`), since the code you can fix is in your own binary.
+
+- **Signal**: `SIGABRT`
+- **First frame from your app**: `-viewDidLoad` in `MainViewController.m`
+
+```log
+Exception Type: EXC_CRASH (SIGABRT)
+Exception Codes: 0x0000000000000000, 0x0000000000000000
+Crashed Thread: 0
+
+Application Specific Information:
+*** Terminating app due to uncaught exception 'NSInvalidArgumentException', reason: '-[MainViewController viewDidLoad]: unrecognized selector sent to instance 0x600000e2c0c0'
+
+First Throw Call Stack:
+(
+    0   CoreFoundation                      0x000000010a2f3b6c __exceptionPreprocess + 220
+    1   libobjc.A.dylib                     0x0000000109d8e5e1 objc_exception_throw + 48
+    2   MainViewController.m                0x000000010a2f3b6c -[MainViewController viewDidLoad] + 0
+    ...
+)
+```
+
+## Flutter
+
+Errors are grouped by the exception type and the top frame of the stack trace.
+
+- **Exception type**: `FlutterError`
+- **Top frame**: `_incrementCounter` in `main.dart`
+
+```log
+FlutterError (setState() called after dispose(): _MyHomePageState#12345(ticker: _TickerModeEnabled))
+  at _MyHomePageState._incrementCounter (package:my_app/main.dart:42:9)
+  at _MyHomePageState.build (package:my_app/main.dart:30:5)
+  at StatelessElement.build (package:flutter/src/widgets/framework.dart:4620:27)
+  ...
+```
+
+## React Native
+
+Errors are grouped by the error type, its message, and the top frame of the stack trace.
+
+- **Error type**: `TypeError`
+- **Message**: `undefined is not an object (evaluating 'user.profile.name')`
+- **Top frame**: `renderHeader` in `ProfileScreen.js`
+
+```log
+TypeError: undefined is not an object (evaluating 'user.profile.name')
+    at renderHeader (ProfileScreen.js:42:18)
+    at ProfileScreen (ProfileScreen.js:15:10)
+    ...
+```

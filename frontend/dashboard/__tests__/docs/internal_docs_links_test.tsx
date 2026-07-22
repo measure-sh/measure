@@ -54,13 +54,13 @@ describe("GitHub docs links have been replaced", () => {
     );
   });
 
-  it("onboarding.tsx links to /docs", () => {
+  it("onboarding.tsx links to the getting started docs", () => {
     const content = fs.readFileSync(
       path.join(APP_DIR, "components/onboarding.tsx"),
       "utf-8",
     );
 
-    expect(content).toContain('href="/docs/sdk-integration-guide');
+    expect(content).toContain("/docs/getting-started/");
   });
 
   it("apps/page.tsx links to /docs", () => {
@@ -81,26 +81,13 @@ describe("GitHub docs links have been replaced", () => {
     expect(content).toMatch(/href=['"]\/docs\/hosting\/slack['"]/);
   });
 
-  it("team/page.tsx links to /docs/features/feature-slack-integration", () => {
+  it("team/page.tsx links to /docs/slack-integration", () => {
     const content = fs.readFileSync(
       path.join(APP_DIR, "[teamId]/team/page.tsx"),
       "utf-8",
     );
 
-    expect(content).toMatch(
-      /href=['"]\/docs\/features\/feature-slack-integration['"]/,
-    );
-  });
-
-  it("app_breadcrumbs.tsx links to /docs/features/feature-session-timelines", () => {
-    const content = fs.readFileSync(
-      path.join(APP_DIR, "components/app_breadcrumbs.tsx"),
-      "utf-8",
-    );
-
-    expect(content).toContain(
-      'href="/docs/features/feature-session-timelines"',
-    );
+    expect(content).toMatch(/href=['"]\/docs\/slack-integration['"]/);
   });
 });
 
@@ -130,21 +117,6 @@ describe("rewritten links do not use target=_blank", () => {
     const lines = content.split("\n");
     const docsLinkLine = lines.find((l) =>
       l.includes("/docs/configuration-options"),
-    );
-
-    expect(docsLinkLine).toBeDefined();
-    expect(docsLinkLine).not.toContain("target");
-  });
-
-  it("app_breadcrumbs.tsx does not open the session timelines docs link in new tab", () => {
-    const content = fs.readFileSync(
-      path.join(APP_DIR, "components/app_breadcrumbs.tsx"),
-      "utf-8",
-    );
-
-    const lines = content.split("\n");
-    const docsLinkLine = lines.find((l) =>
-      l.includes("/docs/features/feature-session-timelines"),
     );
 
     expect(docsLinkLine).toBeDefined();

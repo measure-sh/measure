@@ -129,10 +129,6 @@ describe("AppBreadcrumbs", () => {
       expect(content.textContent).toContain(
         "Timelines are captured for Crashes, ANRs, Bug Reports",
       );
-      expect(content.querySelector("a")).toHaveAttribute(
-        "href",
-        "/docs/features/feature-session-timelines",
-      );
     });
 
     it("shows a sampling-info tooltip on the journeys section", async () => {

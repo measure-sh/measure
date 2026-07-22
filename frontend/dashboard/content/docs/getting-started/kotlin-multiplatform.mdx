@@ -1,0 +1,113 @@
+---
+title: "Kotlin Multiplatform"
+seoTitle: "Measure Kotlin Multiplatform SDK Integration Guide"
+description: "Use Measure from shared Kotlin code on Android and iOS."
+---
+
+The KMP SDK provides access to Measure from shared Kotlin code (`commonMain`) on Android and iOS. It's a thin
+wrapper over the native Android and iOS SDKs, so their minimum requirements apply here too.
+
+### Minimum requirements
+
+| Name            | Version  |
+| --------------- | -------- |
+| Kotlin          | `2.x`    |
+| Measure Android | `0.18.0` |
+| Measure iOS     | `0.11.0` |
+
+## 1. Get the credentials
+
+Create a new app in the _Apps_ section on the dashboard and copy its `API URL` and `API Key`.
+
+<Callout type="warn">
+
+**Cross-platform apps need a unique API key for each platform they target.** To integrate another platform,
+create a new app on Measure with a different API key.
+
+</Callout>
+
+## 2. Add the KMP SDK
+
+```kotlin
+// In your shared module's build.gradle.kts
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            implementation("sh.measure:measure-kmp:0.1.0")
+        }
+    }
+}
+```
+
+## 3. Set up the native SDKs
+
+The KMP SDK does not initialize the native SDKs for you. Initialize each one in its platform entry point.
+
+### Android
+
+The native Android SDK is included transitively with the `measure-kmp` dependency.
+
+Add your credentials to your Android app module's `AndroidManifest.xml`:
+
+```xml
+<!-- Inside the <application> tag -->
+<meta-data android:name="sh.measure.android.API_KEY" android:value="YOUR_API_KEY" />
+<meta-data android:name="sh.measure.android.API_URL" android:value="YOUR_API_URL" />
+```
+
+Initialize the SDK in your `Application.onCreate()`. Create an `Application` class and register it with `android:name` in the manifest if your app doesn't have one yet.
+
+```kotlin
+// In Application.onCreate()
+import sh.measure.android.Measure
+import sh.measure.android.config.MeasureConfig
+
+Measure.init(this, MeasureConfig())
+```
+
+### iOS
+
+Add the native Measure iOS SDK to your iOS app using Swift Package Manager. See the [iOS guide](/docs/getting-started/ios) for CocoaPods and static-linking details.
+
+```swift
+// In Package.swift, or via Xcode's package manager
+.package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.11.0")
+```
+
+Initialize the SDK in your `AppDelegate`'s `application(_:didFinishLaunchingWithOptions:)`:
+
+```swift
+import Measure
+
+let clientInfo = ClientInfo(apiKey: "YOUR_API_KEY", apiUrl: "YOUR_API_URL")
+Measure.initialize(with: clientInfo, config: BaseMeasureConfig())
+```
+
+## 4. Use the SDK from shared code
+
+```kotlin
+// In commonMain, once both native SDKs are initialized
+import sh.measure.kmp.Measure
+import sh.measure.kmp.attributes.StringAttr
+
+Measure.trackScreenView("CheckoutScreen")
+Measure.trackEvent(
+    name = "checkout_completed",
+    attributes = mapOf("source" to StringAttr("kmp")),
+)
+```
+
+## 5. Verify installation
+
+Throw a test crash from shared code, run the app, and confirm it reaches your dashboard.
+
+```kotlin
+// Remove this after the crash appears in your dashboard.
+throw RuntimeException("Test crash from Measure")
+```
+
+<Callout type="warn">
+
+Remove the test crash code once you've confirmed the crash appears in your dashboard.
+
+</Callout>

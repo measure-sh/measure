@@ -1,0 +1,71 @@
+---
+title: "Screen Load Time"
+seoTitle: "Automatic Screen Load Time Tracing (Android and iOS)"
+description: "Measure automatically traces how long Activities, Fragments, and ViewControllers take to draw their first frame, so you can find slow screens without any instrumentation."
+---
+
+Measure automatically traces how long an Activity or Fragment takes to load on Android, and a ViewController on iOS. A slow load means users wait too long to see content, so these traces show which screens to fix, with no instrumentation from you.
+
+## Android
+
+**Activity load time** measures the time between the Activity being created and the first frame drawn on screen. This is also known as Time to First Frame or Time to Initial Display (TTID).
+
+Each Activity load is captured with a span named `Activity TTID` followed by the fully qualified class name of the Activity. For `MainActivity`, the span name is `Activity TTID com.example.MainActivity`.
+
+An attribute called `app_startup_first_activity` with a value of _true_ is added when the Activity loaded as part of a [cold](/docs/features/feature-app-launch-metrics#cold-launch) launch.
+
+**Fragment load time** measures the time between the Fragment view being created and the first frame drawn on screen, also known as Time to First Frame (TTF) or Time to Initial Display (TTID).
+
+Each Fragment load is captured with a span named `Fragment TTID` followed by the fully qualified class name of the Fragment. For `HomeFragment`, the span name is `Fragment TTID com.example.HomeFragment`.
+
+> The fully qualified name may be truncated to fit within the 64 character limit for span names.
+
+### Data captured
+
+A span named `Activity TTID {fully qualified activity name}` is created for each Activity load, and a span named `Fragment TTID {fully qualified fragment name}` for each Fragment load.
+
+The Activity TTID span may carry the following attribute:
+
+| Attribute                  | Description                                                      |
+|----------------------------|------------------------------------------------------------------|
+| app_startup_first_activity | Whether this activity is the first activity launched in the app. |
+
+The spans have the following checkpoints:
+
+| Checkpoint                  | Description                              |
+|-----------------------------|------------------------------------------|
+| fragment_lifecycle_attached | The time when the Fragment was attached. |
+| fragment_lifecycle_started  | The time when the Fragment was started.  |
+| fragment_lifecycle_resumed  | The time when the Fragment was resumed.  |
+| activity_lifecycle_created  | The time when the Activity was created.  |
+| activity_lifecycle_started  | The time when the Activity was started.  |
+| activity_lifecycle_resumed  | The time when the Activity was resumed.  |
+
+## iOS
+
+**ViewController load time** measures the time between the ViewController's view being loaded and the first frame drawn on screen. This is also known as Time to First Frame or Time to Initial Display (TTID).
+
+Each ViewController load is captured with a span named `VC TTID` followed by the fully qualified class name of the ViewController. For `MainViewController`, the span name is `VC TTID MainViewController`.
+
+An attribute called `app_startup_first_view_controller` with a value of _true_ is added when the ViewController loaded as part of a cold launch.
+
+> The fully qualified name may be truncated to fit within the 64 character limit for span names.
+
+### Data captured
+
+A span named `VC TTID {view controller name}` is created for each ViewController load.
+
+The ViewController TTID span may carry the following attribute:
+
+| Attribute                         | Description                                                        |
+|-----------------------------------|--------------------------------------------------------------------|
+| app_startup_first_view_controller | Whether this view controller is the first one launched in the app. |
+
+The spans have the following checkpoints:
+
+| Checkpoint          | Description                                    |
+|---------------------|------------------------------------------------|
+| vc_load_view        | The time when the view was loaded.             |
+| vc_view_did_load    | The time when the view was loaded into memory. |
+| vc_view_will_appear | The time when the view is about to appear.     |
+| vc_view_did_appear  | The time when the view is fully visible.       |

@@ -1,0 +1,42 @@
+---
+title: "Endpoint patterns"
+seoTitle: "How Measure groups request URLs into endpoint patterns"
+description: "See how Measure groups similar request URLs into endpoint patterns, when a new endpoint shows up, and how to search for one on the dashboard."
+---
+
+Measure groups many similar request URLs into one **endpoint pattern**. Requests to `/api/users/123/profile` and `/api/users/456/profile` roll up into `/api/users/*/profile`, so you get combined latency, error rate, and volume for that endpoint instead of a separate row per user ID.
+
+This is fully automatic. You don't create, name, or configure patterns, and there's nothing to set up in the SDK or the dashboard.
+
+## How a URL becomes a pattern
+
+Measure wildcards the parts of a path that change from request to request. A segment gets replaced with `*` in one of two ways.
+
+### Known dynamic formats
+
+Measure matches each segment against the formats that dynamic values usually take, and replaces a match with `*`. A segment is replaced when it's:
+
+* A UUID (e.g. `550e8400-e29b-41d4-a716-446655440000`).
+* A SHA-1 or MD5 hash.
+* An ISO 8601 date-time, the `2024-01-15T...` form.
+* A `0x`-prefixed hex value (e.g. `0x1a2b3c`).
+* Any segment with two or more digits in a row. Single-digit segments like `v1` are kept.
+
+So `/api/users/550e8400-e29b-41d4-a716-446655440000/orders/12345` becomes `/api/users/*/orders/*`.
+
+### High-cardinality segments
+
+Some changing segments don't match any known format, like a product slug or a username. Measure tracks how many distinct values appear at each position in a path. Once a position collects many distinct values (more than 10), Measure collapses it to `*` too. So `/api/products/aluminium`, `/api/products/copper`, and dozens more roll up into `/api/products/*`.
+
+A pattern appears once its endpoint gets more than 50 requests in an hour, so a brand-new or low-traffic endpoint won't show up in [Network Monitoring](/docs/network-monitoring) right away.
+
+## Searching for endpoints
+
+Find a specific endpoint on the dashboard with the **Explore endpoint** search bar. Type an exact path, or use wildcards to match several at once. `*` matches a single segment, the same wildcard you see in patterns. `**` matches everything after a prefix, so it only works at the end.
+
+| Pattern | Matches |
+|---------|---------|
+| `/v1/login` | Only the exact path `/v1/login`. |
+| `/users/*/orders` | Any single segment in place of `*`, like `/users/123/orders` or `/users/abc/orders`. |
+| `/api/v1/**` | Everything after the prefix, like `/api/v1/login` or `/api/v1/users/123/profile`. |
+| `/api/*/users/**` | Both wildcards together, like `/api/v2/users/123/orders/456`. |

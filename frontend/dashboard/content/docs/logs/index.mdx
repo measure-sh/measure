@@ -1,0 +1,53 @@
+---
+title: "Logs"
+seoTitle: "Track and collect logs (Android, iOS, Flutter, React Native)"
+description: "Track logs with a severity level, add attributes, and control log collection from the dashboard."
+---
+
+Logs record a plain text message at a severity level. A log is free-form, best for context you'll read back while debugging rather than query precisely. Track one yourself, or turn on automatic collection to capture the logs you already write without touching each call site.
+
+## Track a log
+
+Record a message at one of five severities, from debug through fatal, with `logDebug`, `logInfo`, `logWarning`, `logError`, and `logFatal`. The severity is what you filter and sort by in the dashboard, so pick the one that matches how much the message should stand out. Bodies longer than 1000 characters are truncated, so lead with the detail you'll search for. See [Track a log](/docs/api-reference#track-a-log) in the SDK API reference.
+
+A log is free-form text. If you're recording a named thing you'll want to search or chart later, like a user action or feature usage, a [custom event](/docs/features/feature-custom-events) is easier to query. To capture an error with its stack trace and grouping, use the [handled error](/docs/error-monitoring) APIs rather than logging it by hand.
+
+## Add attributes
+
+Attach attributes to a log to record context you can filter on later, like the screen name, an order ID, or a retry count. The extra context is what lets you find one log among thousands. See [Attribute limits](/docs/api-reference#attribute-limits) for the allowed keys and values.
+
+## Collect logs automatically
+
+Measure can collect the logs your app already writes, so you don't have to route each one through the SDK by hand. It's off by default. Turn it on with the **Automatically collect logs** setting in the dashboard, which applies without a new release.
+
+<Callout type="info">
+
+Automatic collection works on Android and React Native only. On iOS and Flutter, bridge your logging framework instead: forward [swift-log](/docs/logs/ios) or the [`logging` package](/docs/logs/flutter).
+
+</Callout>
+
+### Android
+
+Measure instruments `android.util.Log` at build time, so those calls flow to Measure once you enable the setting. Logs from your own application package are collected by default. To pull in logs from a library or another package, list its prefix with `logsAutoCollectPackageNames` in your `build.gradle.kts`. A prefix matches everything under it, so `androidx.media3` also covers `androidx.media3.exoplayer`, `androidx.media3.common`, and the rest:
+
+```kotlin
+measure {
+    logsAutoCollectPackageNames = listOf("androidx.media3")
+}
+```
+
+### React Native
+
+With the setting on, `console` output (`console.debug`, `console.log`, `console.info`, `console.warn`, and `console.error`) is collected on both Android and iOS, with no extra setup.
+
+## Configuration options
+
+Control which logs are collected from the dashboard through [Adaptive Capture](/docs/configuration-options), so you can tune collection without shipping a new build.
+
+| Option | Default | Description |
+|---|---|---|
+| **Automatically collect logs** | Off | Collects the logs your app already writes, see [Collect logs automatically](#collect-logs-automatically). Android and React Native only. |
+| **Minimum log level** | Warning | The minimum severity to collect. Logs below the selected severity are dropped at the source. |
+| **Ignore patterns** | (empty) | Regular expressions matched against the log body. Logs whose body matches any pattern are dropped at the source. |
+
+See [Configuration options](/docs/configuration-options) for the full list.

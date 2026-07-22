@@ -82,7 +82,7 @@ jobs:
       - name: Update version in docs
         run: |
           sed -E -i '' 's|(\.package\(url: "https://github\.com/measure-sh/measure\.git", branch: "ios-v)[^"]*|\1${{ inputs.version }}|g' \
-            frontend/dashboard/content/docs/sdk-integration-guide.mdx
+            frontend/dashboard/content/docs/getting-started/ios.mdx
 
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
@@ -106,7 +106,7 @@ jobs:
             Changes:
             - Updated version to ${{ inputs.version }} in FrameworkInfo.swift
             - Updated version to ${{ inputs.version }} in measure-sh.podspec
-            - Updated version in frontend/dashboard/content/docs/sdk-integration-guide.mdx
+            - Updated version in frontend/dashboard/content/docs/getting-started/ios.mdx
             - Generated changelog for version ${{ inputs.version }}
           base: main
           labels: ios

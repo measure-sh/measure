@@ -59,18 +59,12 @@ jobs:
           config: android/measure-gradle-plugin/cliff.toml
           args: --output android/measure-gradle-plugin/CHANGELOG.md --tag android-gradle-plugin-v${{ inputs.version }}
 
-      - name: Update version in README
+      - name: Update plugin version in getting started docs
         run: |
           cd ../../frontend/dashboard/content/docs
-          # Update Kotlin plugin declaration
           KOTLIN_PATTERN='id("sh.measure.android.gradle") version ".*"'
           KOTLIN_REPLACEMENT='id("sh.measure.android.gradle") version "${{ inputs.version }}"'
-          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" sdk-integration-guide.mdx
-          
-          # Update Groovy plugin declaration
-          GROOVY_PATTERN="id 'sh.measure.android.gradle' version '.*'"
-          GROOVY_REPLACEMENT="id 'sh.measure.android.gradle' version '${{ inputs.version }}'"
-          sed -i "s/$GROOVY_PATTERN/$GROOVY_REPLACEMENT/" sdk-integration-guide.mdx
+          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" getting-started/android.mdx
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
@@ -86,7 +80,7 @@ jobs:
             Changes:
             - Updated version to ${{ inputs.version }} in measure-gradle-plugin/gradle.properties
             - Generated changelog for version ${{ inputs.version }}
-            - Updated version in README.md
+            - Updated plugin version in the getting started docs
 
             <!-- release-meta
             NEXT_VERSION=${{ inputs.next_version }}

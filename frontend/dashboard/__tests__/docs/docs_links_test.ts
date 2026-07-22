@@ -327,12 +327,13 @@ describe("app links to docs", () => {
         /["'`](\/docs(?:\/[\w\-/.]*)?(?:#[\w-]*)?)["'`$]/g,
       )) {
         const [route, anchor] = match[1].split("#");
-        // A bare or trailing-slash /docs is a route prefix being
-        // concatenated with a dynamic slug, which cannot be checked here
-        const normalized = route.replace(/\/$/, "");
-        if (normalized === "/docs" && route !== "/docs") {
+        // A trailing-slash /docs route is a prefix being concatenated with a
+        // dynamic slug (e.g. `/docs/getting-started/${slug}`), which cannot be
+        // checked statically
+        if (route.endsWith("/")) {
           continue;
         }
+        const normalized = route.replace(/\/$/, "");
         // The docs search and AI chat endpoints are route handlers, not pages
         if (normalized === "/docs/search" || normalized === "/docs/chat") {
           continue;

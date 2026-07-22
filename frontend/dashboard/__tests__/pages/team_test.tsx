@@ -676,10 +676,7 @@ describe("Team Page", () => {
     });
 
     const learnMoreLink = content.querySelector("a");
-    expect(learnMoreLink).toHaveAttribute(
-      "href",
-      "/docs/features/feature-slack-integration",
-    );
+    expect(learnMoreLink).toHaveAttribute("href", "/docs/slack-integration");
   });
 
   it("shows team fetch error when teams API fails", async () => {

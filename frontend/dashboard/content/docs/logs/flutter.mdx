@@ -1,0 +1,28 @@
+---
+title: "Flutter"
+seoTitle: "Forward the Dart logging package to Measure on Flutter"
+description: "Forward records from the Dart logging package to Measure on Flutter, so you capture existing logs without changing every call site."
+---
+
+On Flutter, Measure can't collect logs automatically. Dart `print` output and logs from Dart logging frameworks aren't captured. If your app uses the [`logging`](https://pub.dev/packages/logging) package, forward its records to Measure once during startup. Most other logging packages expose a similar hook:
+
+```dart
+import 'package:logging/logging.dart';
+import 'package:measure_flutter/measure_flutter.dart';
+
+void bootstrapMeasureLogging() {
+  Logger.root.onRecord.listen((record) {
+    Measure.instance.log(record.message, severity: record.level.measureSeverity);
+  });
+}
+
+extension on Level {
+  LogSeverity get measureSeverity {
+    if (this >= Level.SHOUT) return LogSeverity.fatal;
+    if (this >= Level.SEVERE) return LogSeverity.error;
+    if (this >= Level.WARNING) return LogSeverity.warning;
+    if (this >= Level.INFO) return LogSeverity.info;
+    return LogSeverity.debug;
+  }
+}
+```

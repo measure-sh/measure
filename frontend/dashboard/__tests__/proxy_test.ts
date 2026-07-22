@@ -178,9 +178,9 @@ describe("proxy", () => {
     });
 
     it("rewrites docs paths to the /llms.docs processed-markdown route", () => {
-      const result: any = proxy(makeRequest("/docs/sdk-integration-guide"));
+      const result: any = proxy(makeRequest("/docs/getting-started/android"));
       expect(result.url).toBe(
-        "https://measure.sh/llms.docs/sdk-integration-guide",
+        "https://measure.sh/llms.docs/getting-started/android",
       );
     });
 
@@ -199,9 +199,11 @@ describe("proxy", () => {
     });
 
     it("strips an explicit .md suffix on docs paths instead of double-suffixing", () => {
-      const result: any = proxy(makeRequest("/docs/sdk-integration-guide.md"));
+      const result: any = proxy(
+        makeRequest("/docs/getting-started/android.md"),
+      );
       expect(result.url).toBe(
-        "https://measure.sh/llms.docs/sdk-integration-guide",
+        "https://measure.sh/llms.docs/getting-started/android",
       );
     });
 
@@ -295,7 +297,7 @@ describe("proxy", () => {
       expect(sourceRegex.test("/page-md/about")).toBe(false);
       expect(sourceRegex.test("/llms.txt")).toBe(false);
       expect(sourceRegex.test("/llms-full.txt")).toBe(false);
-      expect(sourceRegex.test("/llms.docs/sdk-integration-guide")).toBe(false);
+      expect(sourceRegex.test("/llms.docs/getting-started/android")).toBe(false);
       expect(sourceRegex.test("/llms.blog/some-post")).toBe(false);
       expect(sourceRegex.test("/api/teams")).toBe(false);
       expect(sourceRegex.test("/yrtmlt/decide")).toBe(false);

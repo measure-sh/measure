@@ -1,0 +1,112 @@
+---
+title: "Flutter"
+seoTitle: "Measure Flutter SDK Integration Guide"
+description: "Integrate the Measure SDK in your Flutter app on Android and iOS."
+---
+
+The Flutter SDK supports Android and iOS targets. It depends on the native Android and iOS SDKs, so their
+minimum requirements apply here too.
+
+### Minimum requirements
+
+| Name            | Version  |
+| --------------- | -------- |
+| Flutter         | `3.24`   |
+| Measure Android | `0.18.0` |
+| Measure iOS     | `0.11.0` |
+
+## 1. Get the credentials
+
+Create a new app in the _Apps_ section on the dashboard and copy its `API URL` and `API Key`.
+
+<Callout type="warn">
+
+**Cross-platform apps need a unique API key for each platform they target.** To integrate another platform,
+create a new app on Measure with a different API key.
+
+</Callout>
+
+## 2. Add the SDK
+
+```yaml
+# In pubspec.yaml
+dependencies:
+  measure_flutter: ^0.6.0
+```
+
+## 3. Initialize the SDK
+
+```dart
+// In main()
+import 'package:measure_flutter/measure_flutter.dart';
+
+Future<void> main() async {
+  await Measure.instance.init(
+    () => runApp(MeasureWidget(child: MyApp())),
+    config: const MeasureConfig(),
+  );
+}
+```
+
+## 4. Set up the native SDKs
+
+Flutter depends on the native Android and iOS SDKs. Configure each platform in its native project.
+
+### Android
+
+Add your credentials to `android/app/src/main/AndroidManifest.xml`:
+
+```xml
+<!-- Inside the <application> tag -->
+<meta-data android:name="sh.measure.android.API_KEY" android:value="YOUR_API_KEY" />
+<meta-data android:name="sh.measure.android.API_URL" android:value="YOUR_API_URL" />
+```
+
+Initialize the SDK in your Android `Application` class. Create one and register it with `android:name` in the manifest if your app doesn't have one yet.
+
+```kotlin
+// In Application.onCreate()
+import sh.measure.android.Measure
+import sh.measure.android.config.MeasureConfig
+
+Measure.init(this, MeasureConfig())
+```
+
+### iOS
+
+Measure's iOS SDK links statically. In `ios/Podfile`, set your `Runner` target to static linkage and add the pod:
+
+```ruby
+target 'Runner' do
+  use_frameworks! :linkage => :static
+  pod 'measure-sh'
+end
+```
+
+Run `pod install` from the `ios` directory, then initialize the SDK in `application(_:didFinishLaunchingWithOptions:)` in `ios/Runner/AppDelegate.swift`:
+
+```swift
+import Measure
+
+let clientInfo = ClientInfo(apiKey: "YOUR_API_KEY", apiUrl: "YOUR_API_URL")
+Measure.initialize(with: clientInfo, config: BaseMeasureConfig())
+```
+
+## 5. Verify installation
+
+Add a test crash after `Measure.instance.init`, run the app, and confirm it reaches your dashboard.
+
+```dart
+// In main(), after Measure.instance.init.
+// The 2-second delay gives the SDK time to flush the crash event.
+// Remove this after the crash appears in your dashboard.
+Future.delayed(const Duration(seconds: 2), () {
+  throw Exception('Test crash from Measure');
+});
+```
+
+<Callout type="warn">
+
+Remove the test crash code once you've confirmed the crash appears in your dashboard.
+
+</Callout>

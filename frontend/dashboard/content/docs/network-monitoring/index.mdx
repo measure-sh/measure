@@ -1,0 +1,128 @@
+---
+title: "Network Monitoring"
+seoTitle: "HTTP Network Monitoring"
+description: "Monitor HTTP requests, responses, and failures across Android, iOS, Flutter, React Native, and Kotlin Multiplatform, with status codes, latency, and per-endpoint metrics."
+---
+
+## Overview
+
+Measure captures your app's network requests, responses, and failures, and turns them into per-endpoint metrics so you can see how your APIs perform in production. Similar URLs are grouped into [endpoint patterns](/docs/network-monitoring/endpoint-patterns) so those metrics aggregate per endpoint.
+
+Beyond HTTP, Measure records [connectivity changes](/docs/network-monitoring/connectivity-changes) so you can tell when the network itself, not your API, was the problem.
+
+Most tracking is automatic once the SDK is in place. What you add depends on your platform and HTTP client. For any client Measure doesn't instrument, track requests yourself with [`trackHttpEvent`](/docs/api-reference#track-http-events).
+
+### Android
+
+Adding the [Measure Android Gradle Plugin](/docs/getting-started/android#3-add-the-gradle-plugin) auto-instruments the HTTP clients below, along with any third-party library built on them.
+
+#### OkHttp
+
+OkHttp requests are tracked automatically on versions `4.7.0` to `5.3.2`. Requests from versions outside this range aren't auto-instrumented.
+
+#### HttpURLConnection
+
+HttpURLConnection requests are tracked automatically on Android SDK `0.18.0` and later.
+
+#### Retrofit
+
+Retrofit runs on OkHttp, but pulls it in as a transitive dependency, and auto-instrumentation doesn't reach transitive dependencies. If your project depends on Retrofit alone, use one of these workarounds.
+
+**Option 1: Declare OkHttp as a direct dependency**
+
+Pin an OkHttp version in your `build.gradle.kts`. Auto-instrumentation then works with no code changes:
+
+```kotlin
+dependencies {
+    implementation("com.squareup.retrofit2:retrofit:<version>")
+    implementation("com.squareup.okhttp3:okhttp:<version>")
+}
+```
+
+**Option 2: Add the interceptor manually**
+
+Build the `OkHttpClient` you pass to Retrofit with Measure's interceptor and event listener factory:
+
+```kotlin
+val client = OkHttpClient.Builder()
+    .addInterceptor(MeasureOkHttpApplicationInterceptor())
+    .eventListenerFactory(MeasureEventListenerFactory(null))
+    .build()
+
+val retrofit = Retrofit.Builder()
+    .baseUrl("https://api.example.com")
+    .client(client)
+    .build()
+```
+
+### iOS
+
+Adding the SDK to your project auto-tracks any request made with URLSession, including requests from third-party libraries. No additional setup is needed.
+
+### Flutter
+
+Track requests made using Dio by adding the `measure_dio` package. It provides `MsrInterceptor`, which tracks them for you:
+
+```yaml
+dependencies:
+  measure_dio: latest-version
+```
+
+```dart
+final dio = Dio();
+dio.interceptors.add(MsrInterceptor());
+```
+
+For any other HTTP client, such as the `http` package, track requests yourself with [`trackHttpEvent`](/docs/api-reference#track-http-events).
+
+### React Native
+
+On React Native, `fetch` and `XHR` run on URLSession on iOS and OkHttp on Android. iOS tracks HTTP events automatically. Android needs a little setup.
+
+#### Android
+
+Configure a custom `OkHttpClient` with `OkHttpClientProvider` in `MainApplication.kt`:
+
+```kotlin
+OkHttpClientProvider.setOkHttpClientFactory(object : OkHttpClientFactory {
+  override fun createNewNetworkModuleClient(): OkHttpClient {
+    return OkHttpClient.Builder()
+      .cookieJar(ReactCookieJarContainer())
+      .addInterceptor(MeasureOkHttpApplicationInterceptor())
+      .eventListenerFactory(MeasureEventListenerFactory(null))
+      .build()
+  }
+})
+```
+
+Without this, HTTP events aren't tracked on Android.
+
+#### iOS
+
+iOS tracks HTTP requests automatically. To capture responses too, add `MSRNetworkInterceptor` to the session configuration in `AppDelegate.mm`:
+
+```objc
+RCTSetCustomNSURLSessionConfigurationProvider(^NSURLSessionConfiguration *{
+  NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+  [MSRNetworkInterceptor enableOn:configuration];
+  return configuration;
+});
+```
+
+The interceptor lets the SDK observe responses, but response bodies are recorded only for the URLs you opt in. Choose them from the dashboard with the **Track HTTP response body for URLs** setting in [Configuration options](/docs/configuration-options#http-events), which applies without a new build.
+
+For clients that fall outside `fetch` and `XHR`, track requests yourself with [`trackHttpEvent`](/docs/api-reference#track-http-events).
+
+### Kotlin Multiplatform
+
+The KMP SDK wraps the native Android and iOS SDKs, and network monitoring runs in those native layers. Requests are tracked on whichever engine your HTTP client uses: OkHttp on Android and NSURLSession on iOS. So the setup matches the [Android](#android) and [iOS](#ios) sections above. Add the Measure Android Gradle Plugin to your Android app module, and the iOS SDK to your iOS app. The [Kotlin Multiplatform guide](/docs/getting-started/kotlin-multiplatform) covers both.
+
+#### Ktor
+
+Ktor picks a different engine on each target. As long as you use the engines Measure already tracks, OkHttp on Android and Darwin (NSURLSession) on iOS, requests from a shared `HttpClient` are tracked automatically, with no per-request code.
+
+A different Ktor engine, such as CIO, won't be auto-tracked. Record those requests yourself with [`trackHttpEvent`](/docs/api-reference#track-http-events).
+
+## Configuration options
+
+Control what network data Measure collects, and for which URLs, from the dashboard. See the [HTTP events](/docs/configuration-options#http-events) settings for the full list.

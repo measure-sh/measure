@@ -1,0 +1,33 @@
+---
+title: "Performance Tracing"
+seoTitle: "Mobile Performance Tracing"
+description: "Trace any operation in your app with nested spans and attributes across Android, iOS, Flutter, React Native, and Kotlin Multiplatform."
+---
+
+Tracing shows how long an operation takes and where the time goes inside it, so you can find the slow part instead of guessing. It works the same across Android, iOS, Flutter, React Native, and Kotlin Multiplatform.
+
+A **span** times a single piece of work, like an HTTP request, a database query, or a function. A **trace** groups related spans into one operation, from something small like an app launch to a whole journey like onboarding. Spans nest inside a trace to show how the work is structured.
+
+## Time an operation
+
+Wrap an operation in a span, starting it when the work begins and ending it when it's done, and Measure records how long it took. Time a feed refresh, an image decode, or a database query. Set a status to mark whether the work succeeded or failed. See [Start a span](/docs/api-reference#start-a-span) and [Set the status](/docs/api-reference#set-the-status) in the SDK API reference.
+
+## Break a flow into steps
+
+Most real work has steps, and a single duration hides where the time went. Set one span as the **parent** of another to nest them: for a checkout, a parent span for the whole flow with child spans for the cart, payment, and confirmation screens. The trace matches how the checkout actually ran, so the slow step stands out. See [Set a parent](/docs/api-reference#set-a-parent).
+
+## Add context with attributes
+
+Attach attributes to a span to record context alongside its timing. On a feed-load span, that might be the screen name, how many items came back, or whether the data was served from cache. The extra context helps you tell why one run was slower than another. See [Attribute limits](/docs/api-reference#attribute-limits) for the allowed keys and values.
+
+## Mark checkpoints
+
+Mark a checkpoint inside a span to record a moment that matters. On a screen-load span, checkpoint when the network call returns and when the list finishes rendering, and you can see which half of the load was slow. Checkpoints split one span's time into phases without a child span for each. See [Add a checkpoint](/docs/api-reference#add-a-checkpoint).
+
+## Defer or backdate a span
+
+A span doesn't always start with a plain `startSpan` call. If the work began before you could reach the API, like app startup that ran before the SDK was ready, pass your own start and end times so the span still lines up with what really happened. If you need to configure a span before it runs, build it in advance and start it at the right moment. See [Start with a timestamp](/docs/api-reference#start-with-a-timestamp) and [Defer a span](/docs/api-reference#defer-a-span).
+
+## Control the sampling rate
+
+Measure reports every trace by default. To collect less, set a [trace sampling rate](/docs/configuration-options#trace-sampling) from the dashboard, no new build required.

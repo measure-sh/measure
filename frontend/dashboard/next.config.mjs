@@ -113,6 +113,22 @@ const nextConfig = {
         destination: "/docs/performance-impact",
         permanent: true,
       },
+      // The /docs/getting-started folder groups the per-platform pages but has
+      // no page of its own (the chooser lives at the /docs root), so its bare
+      // URL would 404. Send it to the chooser. Temporary (like the api section
+      // folders below) so it isn't hard-cached if the folder gains a page later.
+      {
+        source: "/docs/getting-started",
+        destination: "/docs",
+        permanent: false,
+      },
+      // The SDK Integration guide was split into per-platform pages under
+      // /docs/getting-started. Forward the old URL to the docs home.
+      {
+        source: "/docs/sdk-integration-guide",
+        destination: "/docs",
+        permanent: true,
+      },
       // The API reference's section folders group generated operation pages
       // but have no index page of their own, so their plain URLs would 404.
       // Send them to the reference overview.
@@ -125,6 +141,49 @@ const nextConfig = {
         source: "/docs/api/sdk",
         destination: "/docs/api",
         permanent: false,
+      },
+      // Bug reporting moved from four per-platform pages under features/ into
+      // its own top-level Bug reports section. Forward the old URLs to it.
+      {
+        source: "/docs/features/feature-bug-report-android",
+        destination: "/docs/bug-reports",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-bug-report-ios",
+        destination: "/docs/bug-reports",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-bug-report-flutter",
+        destination: "/docs/bug-reports",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-bug-report-react-native",
+        destination: "/docs/bug-reports",
+        permanent: true,
+      },
+      // Connectivity changes moved out of features/ into the Network
+      // monitoring section. The navigation and lifecycle feature page was
+      // removed; screen view tracking now lives in the API reference.
+      // Forward the old URLs.
+      {
+        source: "/docs/features/feature-network-connectivity-changes",
+        destination: "/docs/network-monitoring/connectivity-changes",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-navigation-lifecycle-tracking",
+        destination: "/docs/api-reference#track-screen-views",
+        permanent: true,
+      },
+      // Profiling moved from a top-level page into the Performance tracing
+      // section. Forward the old flat URL.
+      {
+        source: "/docs/profiling",
+        destination: "/docs/performance-tracing/profiling",
+        permanent: true,
       },
     ];
   },

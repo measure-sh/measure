@@ -1,0 +1,88 @@
+---
+title: "Uploading Symbols"
+seoTitle: "Uploading Symbols (Android, iOS, Flutter, React Native)"
+description: "Upload ProGuard/R8 mapping files, dSYM files, Dart symbol files and JavaScript sourcemaps to symbolicate stack traces in Android, iOS, Flutter and React Native apps."
+---
+
+When an error is reported, its stack trace often comes back obfuscated or full of bare memory addresses. Upload your app's mapping or symbol files and Measure turns them back into readable stack traces. Which files you need depends on your platform.
+
+## Android
+
+If you use ProGuard or R8 to obfuscate your code, Measure needs the mapping files to de-obfuscate stack traces. Measure's Android Gradle Plugin, added in [getting started](/docs/getting-started/android#3-add-the-gradle-plugin), uploads them automatically when you run an `assemble` Gradle task, so there's nothing else to do.
+
+## iOS
+
+On iOS, a crash report comes back as bare memory addresses until your dSYM files decode it. Upload the dSYMs with a shell script or straight from an XCArchive, whichever fits your build.
+
+### Using a shell script
+
+Run the [`upload_dsym_manual.sh`](https://github.com/measure-sh/measure/blob/main/ios/Scripts/upload_dsym_manual.sh) script to manually upload dSYM files after building your app.
+
+```sh
+./upload_dsym_manual.sh <path_to_dsym_folder> <api_url> <api_key> <version_name> <version_code> <app_unique_id> <build_size> [custom_headers]
+```
+
+### Using XCArchive
+
+The [`upload_dsym_xcarchive.sh`](https://github.com/measure-sh/measure/blob/main/ios/Scripts/upload_dsym_xcarchive.sh) script pulls the dSYMs from your `.xcarchive` and uploads them automatically.
+
+```sh
+./upload_dsym_xcarchive.sh <path_to_xcarchive> <api_url> <api_key> [custom_headers] [ipa_path]
+```
+
+## React Native
+
+A React Native crash surfaces as a JavaScript stack trace, and Measure needs the matching sourcemap to make sense of it. How you get that sourcemap uploaded differs a little between Android and iOS.
+
+### Android
+
+On Android, the Measure Android Gradle Plugin handles this for you: it captures and uploads the composed JavaScript sourcemap whenever you run `assembleRelease` or `bundleRelease`, so there's nothing more to configure. See [getting started](/docs/getting-started/android#3-add-the-gradle-plugin) to add it or check its version.
+
+### iOS
+
+Add `upload_build_phase.sh` as a Run Script Build Phase in Xcode and it uploads your dSYM files and JavaScript sourcemaps together on every build.
+
+**Step 1: Enable sourcemap generation**
+
+In Xcode, open your target → Build Phases → **"Bundle React Native code and images"** and add this line at the top of the script:
+
+```sh
+export SOURCEMAP_FILE="$(pwd)/main.jsbundle.map"
+```
+
+**Step 2: Add the upload build phase**
+
+In Xcode, add a new Run Script Build Phase **after** the "Bundle React Native code and images" phase with the following content:
+
+```sh
+"${SRCROOT}/../node_modules/@measuresh/react-native/scripts/upload_build_phase.sh" \
+  "https://your-api-url.measure.sh" \
+  "your-api-key"
+```
+
+Replace the API URL and API key with your values from the Measure dashboard.
+
+<Callout type="info">
+
+The script runs on every build in whatever configuration you add it to. To restrict it to Archive builds only, wrap the script body in:
+```sh
+if [ "$ACTION" = "archive" ]; then
+  # script content here
+fi
+```
+
+</Callout>
+
+## Flutter
+
+Obfuscating a Flutter app with `--obfuscate` and `--split-debug-info` scrambles its stack traces, so Measure needs the generated symbol files to read them. Where those files come from depends on the platform:
+
+* **Android**: The Measure Android Gradle Plugin automatically uploads the required mapping files.
+* **iOS**: `flutter build ipa` produces an Xcode archive at `build/ios/archive/Runner.xcarchive`. Upload its dSYMs with the [`upload_dsym_xcarchive.sh`](https://github.com/measure-sh/measure/blob/main/ios/Scripts/upload_dsym_xcarchive.sh) script:
+
+  ```sh
+  ./upload_dsym_xcarchive.sh \
+    build/ios/archive/Runner.xcarchive \
+    <api_url> \
+    <api_key>
+  ```
