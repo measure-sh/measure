@@ -10,7 +10,8 @@ Pod::Spec.new do |spec|
   spec.swift_version = "5.10"
   spec.static_framework = true
   spec.source       = { :git => "https://github.com/measure-sh/measure.git",
-                        :tag => "ios-v#{spec.version}" }
+                        :tag => "ios-v#{spec.version}",
+                        :submodules => true }
   spec.source_files = "ios/Sources/MeasureSDK/Swift/**/*.{swift}", "ios/Sources/MeasureSDK/ObjC/**/*.{h,m}"
   spec.public_header_files = "ios/Sources/MeasureSDK/ObjC/include/**/*.h"
   spec.pod_target_xcconfig = {
@@ -43,6 +44,7 @@ Pod::Spec.new do |spec|
       "ios/Sources/MeasureWebP/libwebp/src/webp/types.h",
       "ios/Sources/MeasureWebP/include/MeasureWebP.h",
     ]
+    ss.preserve_paths = "ios/Sources/MeasureWebP/libwebp/**/*.h"
     ss.public_header_files = "ios/Sources/MeasureWebP/include/MeasureWebP.h"
     ss.pod_target_xcconfig = {
       "HEADER_SEARCH_PATHS" => "\"$(PODS_TARGET_SRCROOT)/ios/Sources/MeasureWebP/libwebp\" \"$(PODS_TARGET_SRCROOT)/ios/Sources/MeasureWebP/libwebp/src\""
