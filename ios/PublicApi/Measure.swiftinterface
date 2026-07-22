@@ -1,7 +1,7 @@
 // swift-interface-format-version: 1.0
-// swift-compiler-version: Apple Swift version 6.3.2 effective-5.10 (swiftlang-6.3.2.1.108 clang-2100.1.1.101)
-// swift-module-flags: -target arm64-apple-ios12-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -O -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name Measure
-// swift-module-flags-ignorable: -no-verify-emitted-module-interface -formal-cxx-interoperability-mode=off -interface-compiler-version 6.3.2
+// swift-compiler-version: Apple Swift version 6.1.2 effective-5.10 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)
+// swift-module-flags: -target arm64-apple-ios12-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -Onone -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name Measure
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface -interface-compiler-version 6.1.2
 import AVKit
 import CoreData
 import CoreMotion
@@ -40,30 +40,30 @@ extension Measure.AttributeValue : Swift.Codable {
   public init(from decoder: any Swift.Decoder) throws
 }
 public typealias SessionObCoreDataClassSet = Foundation.NSSet
-@_inheritsConvenienceInitializers @objc(SessionOb) nonisolated public class SessionOb : CoreData.NSManagedObject {
-  @objc override nonisolated dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
+@_inheritsConvenienceInitializers @objc(SessionOb) public class SessionOb : CoreData.NSManagedObject {
+  @objc override dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
   @objc deinit
 }
 public typealias SessionObCoreDataPropertiesSet = Foundation.NSSet
 extension Measure.SessionOb {
   @nonobjc public class func fetchRequest() -> CoreData.NSFetchRequest<Measure.SessionOb>
-  @objc @NSManaged nonisolated dynamic public var crashed: Swift.Bool {
+  @objc @NSManaged dynamic public var crashed: Swift.Bool {
     @objc get
     @objc set
   }
-  @objc @NSManaged nonisolated dynamic public var createdAt: Swift.Int64 {
+  @objc @NSManaged dynamic public var createdAt: Swift.Int64 {
     @objc get
     @objc set
   }
-  @objc @NSManaged nonisolated dynamic public var needsReporting: Swift.Bool {
+  @objc @NSManaged dynamic public var needsReporting: Swift.Bool {
     @objc get
     @objc set
   }
-  @objc @NSManaged nonisolated dynamic public var pid: Swift.Int32 {
+  @objc @NSManaged dynamic public var pid: Swift.Int32 {
     @objc get
     @objc set
   }
-  @objc @NSManaged nonisolated dynamic public var sessionId: Swift.String? {
+  @objc @NSManaged dynamic public var sessionId: Swift.String? {
     @objc get
     @objc set
   }
