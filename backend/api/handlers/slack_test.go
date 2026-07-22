@@ -378,6 +378,82 @@ func TestConnectTeamSlackHappyPath(t *testing.T) {
 	if savedName != "Acme Workspace" {
 		t.Errorf("saved slack_team_name = %q, want Acme Workspace", savedName)
 	}
+
+	// a first connect gets the channel_ids column default: an empty array
+	var emptyNotNull bool
+	if err := th.PgPool.QueryRow(ctx,
+		`SELECT channel_ids IS NOT NULL AND channel_ids = '{}' FROM team_slack WHERE team_id = $1`, teamID).Scan(&emptyNotNull); err != nil {
+		t.Fatalf("read channel_ids: %v", err)
+	}
+	if !emptyNotNull {
+		t.Error("channel_ids should be an empty array, not NULL")
+	}
+}
+
+func TestConnectTeamSlackReconnectPreservesChannels(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+	withSlackConfig(t, "client-123", "state-secret", "https://app.example.com")
+
+	// stub Slack's oauth.v2.access returning a fresh token and scopes
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"ok":           true,
+			"access_token": "xoxb-new",
+			"scope":        "chat:write,channels:read",
+			"bot_user_id":  "U1",
+			"app_id":       "A1",
+			"team":         map[string]string{"id": "T-slack", "name": "Acme Workspace"},
+		})
+	}))
+	defer srv.Close()
+	withSlackAccessURL(t, srv.URL)
+
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, testTeamName)
+
+	// an existing paused integration for the same workspace with subscribed channels
+	if _, err := th.PgPool.Exec(ctx,
+		`INSERT INTO team_slack
+		 (team_id, slack_team_id, slack_team_name, bot_token, bot_user_id, channel_ids, scopes, is_active, created_at, updated_at)
+		 VALUES ($1, 'T-slack', 'Acme Workspace', 'xoxb-old', 'U1', $2, 'chat:write', false, now(), now())`,
+		teamID, []string{"C1", "C2"}); err != nil {
+		t.Fatalf("seed team_slack: %v", err)
+	}
+
+	state, err := signSlackState("state-secret", teamID.String(), time.Now())
+	if err != nil {
+		t.Fatalf("sign: %v", err)
+	}
+
+	c, w := newConnectContext(fmt.Sprintf(`{"code":"the-code","state":%q}`, state))
+	h.ConnectTeamSlack(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+	}
+
+	var botToken, scopes string
+	var channels []string
+	var isActive bool
+	if err := th.PgPool.QueryRow(ctx,
+		`SELECT bot_token, scopes, channel_ids, is_active FROM team_slack WHERE team_id = $1`, teamID).
+		Scan(&botToken, &scopes, &channels, &isActive); err != nil {
+		t.Fatalf("read team_slack after reconnect: %v", err)
+	}
+	if botToken != "xoxb-new" {
+		t.Errorf("bot_token = %q, want xoxb-new", botToken)
+	}
+	if scopes != "chat:write,channels:read" {
+		t.Errorf("scopes = %q, want the refreshed grant", scopes)
+	}
+	if !isActive {
+		t.Error("is_active = false, want reconnect to re-enable the integration")
+	}
+	if len(channels) != 2 || channels[0] != "C1" || channels[1] != "C2" {
+		t.Errorf("channel_ids = %v, want [C1 C2] preserved across reconnect", channels)
+	}
 }
 
 // --------------------------------------------------------------------------

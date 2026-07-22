@@ -22,7 +22,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/leporo/sqlf"
 )
 
@@ -240,7 +239,9 @@ func (h Handlers) ConnectTeamSlack(c *gin.Context) {
 		return
 	}
 
-	// Save Slack integration details to the database
+	// Save Slack integration details to the database. channel_ids is not
+	// written here: a first connect gets the column default (empty array) and
+	// a reconnect keeps the channels the team already subscribed.
 	stmt := sqlf.PostgreSQL.
 		InsertInto("measure.team_slack").
 		Set("team_id", teamID).
@@ -252,7 +253,6 @@ func (h Handlers) ConnectTeamSlack(c *gin.Context) {
 		Set("bot_user_id", slackResp.BotUserID).
 		Set("slack_app_id", slackResp.AppID).
 		Set("scopes", slackResp.Scope).
-		Set("channel_ids", pgtype.Array[string]{}).
 		Set("is_active", true).
 		Set("created_at", time.Now()).
 		Set("updated_at", time.Now())
@@ -266,7 +266,6 @@ func (h Handlers) ConnectTeamSlack(c *gin.Context) {
 		bot_user_id = EXCLUDED.bot_user_id,
 		slack_app_id = EXCLUDED.slack_app_id,
 		scopes = EXCLUDED.scopes,
-		channel_ids = EXCLUDED.channel_ids,
 		is_active = EXCLUDED.is_active,
 		updated_at = NOW()`
 
