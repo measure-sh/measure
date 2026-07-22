@@ -66,6 +66,12 @@ var slackRequiredScopes = []string{
 
 // slackConnectionNeedsReauth reports whether granted scopes are missing any
 // currently required scope. An empty granted string (unknown) returns false.
+//
+// Granted scopes beyond the required set deliberately do not trigger reauth:
+// Slack scope grants are additive per installation and cannot be downgraded
+// by re-running the OAuth flow ("It is not possible to downgrade an access
+// token's scopes"), so a reconnect prompt for extra scopes could never clear
+// itself. Only uninstalling the app from the workspace contracts a grant.
 func slackConnectionNeedsReauth(granted string) bool {
 	if granted == "" {
 		return false
