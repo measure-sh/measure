@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [android-v0.19.0] - 2026-07-22
+
+### :sparkles: New features
+
+- (**android**): Implement logging (#4021) by @abhaysood
+- (**android**): Integrate android profiling results (#3970) by @abhaysood in #3970
+
+### :bug: Bug fixes
+
+- (**android**): Label ANR stacktrace with main thread name by @abhaysood in #4113
+- (**android**): Pin session start time for app exit events (#3974) by @abhaysood in #3974
+
+### :hammer: Misc
+
+- (**android**): Limit batch size to 10MB (#3984) by @abhaysood in #3984
+- (**android**): Remove layout snapshot API (#3983) by @abhaysood in #3983
+- (**android**): Remove platform attribute from events and spans (#3981) by @abhaysood in #3981
+- (**android**): Use throwable in trackHttpEvent API (#3980) by @abhaysood in #3980
+- (**android**): Collect http body only for json content type (#3962) by @abhaysood in #3962
+- (**android**): Prepare next development version 0.19.0-SNAPSHOT (#3884) by @abhaysood in #3884
+
+### :zap: Performance
+
+- (**android**): Speed up SQLite Database reads and bulk writes by @abhaysood in #4112
+
+### :recycle: Refactor
+
+- (**android**): Improve trigger based profile to session attribution (#4024) by @abhaysood in #4024
+
 ## [android-v0.18.0] - 2026-06-11
 
 ### :sparkles: New features
@@ -18,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**android**): Prepare sdk release 0.18.0 (#3883) by @abhaysood in #3883
 - (**android**): Downgrade android-tools version (#3871) by @abhaysood in #3871
 - (**android**): Fix duplicated word in doc comment (#3796) by @abhaysood in #3796
 - (**android**): Omit severity field from ANR events (#3755) by @abhaysood in #3755
@@ -898,6 +928,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Add missing links to readme by @abhaysood
 - (**android**): Create a template for Android SDK documentation by @abhaysood
 
+[android-v0.19.0]: https://github.com/measure-sh/measure/compare/android-v0.18.0..android-v0.19.0
 [android-v0.18.0]: https://github.com/measure-sh/measure/compare/android-v0.17.0..android-v0.18.0
 [android-v0.17.0]: https://github.com/measure-sh/measure/compare/android-v0.16.1..android-v0.17.0
 [android-v0.16.1]: https://github.com/measure-sh/measure/compare/android-v0.16.0..android-v0.16.1

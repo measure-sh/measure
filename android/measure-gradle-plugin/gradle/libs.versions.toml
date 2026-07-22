@@ -16,7 +16,7 @@ squareup-okio = "3.7.0"
 kotlinx-serialization-json = "1.6.2"
 # Use the latest snapshot (local maven) version of measure-android for
 # gradle plugin functional tests.
-measure-android = "0.19.0-SNAPSHOT"
+measure-android = "0.19.0"
 semver = "1.1.2"
 junit = "4.13.2"
 junit-jupiter = "5.10.2"
