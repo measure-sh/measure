@@ -8488,7 +8488,8 @@ paths:
       summary: Remove a team's Slack integration
       description: |
         Remove a team's Slack integration. Deletes the stored connection,
-        including the bot token and subscribed alert channels. The Measure
+        including the bot token and subscribed alert channels, along with any
+        queued Slack alert messages that have not been sent yet. The Measure
         app stays installed in the Slack workspace and can be manually removed
         from Slack settings.
       parameters:

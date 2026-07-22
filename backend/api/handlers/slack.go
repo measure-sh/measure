@@ -444,15 +444,24 @@ func (h Handlers) DeleteTeamSlack(c *gin.Context) {
 		return
 	}
 
+	msg := fmt.Sprintf("error occurred while deleting team slack: %s", teamId)
+	tx, err := deps.PgPool.Begin(ctx)
+	if err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	defer tx.Rollback(ctx)
+
 	stmt := sqlf.PostgreSQL.
 		DeleteFrom("team_slack").
 		Where("team_id = ?", teamId)
 
 	defer stmt.Close()
 
-	commandTag, err := deps.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	commandTag, err := tx.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		msg := fmt.Sprintf("error occurred while deleting team slack: %s", teamId)
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
@@ -460,6 +469,28 @@ func (h Handlers) DeleteTeamSlack(c *gin.Context) {
 
 	if commandTag.RowsAffected() == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "no slack integration found for the team"})
+		return
+	}
+
+	// Queued Slack alerts embed the bot token and channel in their payload and
+	// the sender posts from that without re-reading team_slack, so rows left
+	// behind would keep delivering after the connection is removed.
+	pendingStmt := sqlf.PostgreSQL.
+		DeleteFrom("pending_alert_messages").
+		Where("team_id = ?", teamId).
+		Where("channel = ?", "slack")
+
+	defer pendingStmt.Close()
+
+	if _, err := tx.Exec(ctx, pendingStmt.String(), pendingStmt.Args()...); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 
