@@ -458,6 +458,68 @@ func TestConnectTeamSlackReconnectPreservesChannels(t *testing.T) {
 	}
 }
 
+func TestConnectTeamSlackWorkspaceSwitchResetsChannels(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+	withSlackConfig(t, "client-123", "state-secret", "https://app.example.com")
+
+	// stub Slack's oauth.v2.access granting a different workspace
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"ok":           true,
+			"access_token": "xoxb-new",
+			"scope":        "chat:write",
+			"bot_user_id":  "U2",
+			"app_id":       "A1",
+			"team":         map[string]string{"id": "T-new", "name": "New Workspace"},
+		})
+	}))
+	defer srv.Close()
+	withSlackAccessURL(t, srv.URL)
+
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, testTeamName)
+
+	// the team is connected to another workspace with subscribed channels
+	if _, err := th.PgPool.Exec(ctx,
+		`INSERT INTO team_slack
+		 (team_id, slack_team_id, slack_team_name, bot_token, bot_user_id, channel_ids, scopes, is_active, created_at, updated_at)
+		 VALUES ($1, 'T-old', 'Old Workspace', 'xoxb-old', 'U1', $2, 'chat:write', true, now(), now())`,
+		teamID, []string{"C1", "C2"}); err != nil {
+		t.Fatalf("seed team_slack: %v", err)
+	}
+
+	state, err := signSlackState("state-secret", teamID.String(), time.Now())
+	if err != nil {
+		t.Fatalf("sign: %v", err)
+	}
+
+	c, w := newConnectContext(fmt.Sprintf(`{"code":"the-code","state":%q}`, state))
+	h.ConnectTeamSlack(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+	}
+
+	// the row now points at the new workspace and the old workspace's
+	// channels are gone: channel IDs are not valid across workspaces
+	var slackTeamID string
+	var emptyNotNull bool
+	if err := th.PgPool.QueryRow(ctx,
+		`SELECT slack_team_id, channel_ids IS NOT NULL AND channel_ids = '{}'
+		 FROM team_slack WHERE team_id = $1`, teamID).
+		Scan(&slackTeamID, &emptyNotNull); err != nil {
+		t.Fatalf("read team_slack after switch: %v", err)
+	}
+	if slackTeamID != "T-new" {
+		t.Errorf("slack_team_id = %q, want T-new", slackTeamID)
+	}
+	if !emptyNotNull {
+		t.Error("channel_ids should be reset to an empty array on workspace switch")
+	}
+}
+
 func TestConnectTeamSlackWorkspaceTakenConflict(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
