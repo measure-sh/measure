@@ -5,11 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.12.1] - 2026-07-23
+
+### :hammer: Misc
+
+
+- (**ios**): Update podspec to add proper import for measure webp (#4117) by @adwinross in #4117
+
 ## [ios-v0.12.0] - 2026-07-22
 
 ### :hammer: Misc
 
 
+- (**ios**): Prepare ios sdk release 0.12.0 by @abhaysood in #4115
 - (**ios**): Reuse shared encoder and decoder (#4101) by @adwinross in #4101
 - (**ios**): Add github action to prepare ios release (#3632) by @adwinross in #3632
 - (**ios**): Collect http body only for json content type (#3964) by @abhaysood in #3964
@@ -437,6 +445,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677) by @adwinross in #1677
 - (**ios**): Initial project setup  (#1034) by @adwinross in #1034
 
+[ios-v0.12.1]: https://github.com/measure-sh/measure/compare/ios-v0.12.0..ios-v0.12.1
 [ios-v0.12.0]: https://github.com/measure-sh/measure/compare/ios-v0.11.0..ios-v0.12.0
 [ios-v0.11.0]: https://github.com/measure-sh/measure/compare/ios-v0.10.0..ios-v0.11.0
 [ios-v0.10.0]: https://github.com/measure-sh/measure/compare/ios-v0.9.2..ios-v0.10.0
