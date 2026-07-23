@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Stream cloud build file downloads with chunked encoding (#4121) by @detj in #4121
 - (**backend**): Drop undeliverable slack alerts on channel_not_found by @anupcowkur in #4119
 - (**backend**): Only preserve slack channels if same workspace is reconnected by @anupcowkur
 - (**backend**): Return 409 when slack workspace is taken by another team by @anupcowkur
