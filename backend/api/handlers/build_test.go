@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strconv"
 	"testing"
 	"time"
 
@@ -310,8 +309,8 @@ func TestDownloadBuildFile(t *testing.T) {
 		if got := w.Header().Get("Content-Type"); got != "text/plain" {
 			t.Errorf("Content-Type = %q, want text/plain", got)
 		}
-		if got := w.Header().Get("Content-Length"); got != strconv.Itoa(len(content)) {
-			t.Errorf("Content-Length = %q, want %d", got, len(content))
+		if got := w.Header().Get("Content-Length"); got != "" {
+			t.Errorf("Content-Length = %q, want empty for chunked response", got)
 		}
 		if w.Body.String() != string(content) {
 			t.Errorf("body differs from stored object")
