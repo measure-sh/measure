@@ -6,31 +6,53 @@ description: "Monitor HTTP requests, responses, and failures across Android, iOS
 
 ## Overview
 
-Measure captures your app's network requests, responses, and failures, and turns them into per-endpoint metrics so you can see how your APIs perform in production. Similar URLs are grouped into [endpoint patterns](/docs/network-monitoring/endpoint-patterns) so those metrics aggregate per endpoint.
+Measure captures your app's network requests, responses, and failures. Each request records its URL, HTTP method, status code, and how long it took. Similar URLs are grouped into [endpoint patterns](/docs/network-monitoring/endpoint-patterns), so the metrics aggregate per endpoint and you can see how each API performs in production.
+
+Request and response headers and bodies are collected only for the URLs you opt into, so sensitive data stays out by default. Choose those URLs from the dashboard through the [HTTP events](/docs/configuration-options#http-events) settings.
 
 Beyond HTTP, Measure records [connectivity changes](/docs/network-monitoring/connectivity-changes) so you can tell when the network itself, not your API, was the problem.
 
-Most tracking is automatic once the SDK is in place. What you add depends on your platform and HTTP client. For any client Measure doesn't instrument, track requests yourself with [`trackHttpEvent`](/docs/api-reference#track-http-events).
+## Tracked automatically
+
+Requests from the clients below are captured with no per-request code. On Android, add the [Measure Android Gradle Plugin](/docs/getting-started/android#3-add-the-gradle-plugin).
 
 ### Android
 
-Adding the [Measure Android Gradle Plugin](/docs/getting-started/android#3-add-the-gradle-plugin) auto-instruments the HTTP clients below, along with any third-party library built on them.
+Requests from **OkHttp** (versions `4.7.0` to `5.3.2`) and **HttpURLConnection** (SDK `0.18.0` and later) are tracked, along with any library built on OkHttp. OkHttp requests outside that version range aren't tracked.
 
-#### OkHttp
+### iOS
 
-OkHttp requests are tracked automatically on versions `4.7.0` to `5.3.2`. Requests from versions outside this range aren't auto-instrumented.
+Requests from **URLSession** are tracked, including any made by a third-party library built on it.
 
-#### HttpURLConnection
+### Kotlin Multiplatform
 
-HttpURLConnection requests are tracked automatically on Android SDK `0.18.0` and later.
+Requests from **Ktor** are tracked when it runs on the OkHttp (Android) or Darwin (iOS) engine. Tracking happens in the native layers, so the [Kotlin Multiplatform guide](/docs/getting-started/kotlin-multiplatform) covers the setup. A different engine like CIO isn't tracked, so [track those manually](#track-a-request-manually).
 
-#### Retrofit
+## Add an interceptor
 
-Retrofit runs on OkHttp, but pulls it in as a transitive dependency, and auto-instrumentation doesn't reach transitive dependencies. If your project depends on Retrofit alone, use one of these workarounds.
+A few clients need a one-time interceptor or dependency change before Measure can see their requests.
 
-**Option 1: Declare OkHttp as a direct dependency**
+### Dio (Flutter)
 
-Pin an OkHttp version in your `build.gradle.kts`. Auto-instrumentation then works with no code changes:
+Add the `measure_dio` package and register `MsrInterceptor` on your `Dio` instance:
+
+```yaml
+dependencies:
+  measure_dio: latest-version
+```
+
+```dart
+final dio = Dio();
+dio.interceptors.add(MsrInterceptor());
+```
+
+For Flutter's `http` package or any other client, [track requests manually](#track-a-request-manually).
+
+### Retrofit (Android)
+
+Retrofit runs on OkHttp, but pulls it in as a transitive dependency, and auto-instrumentation doesn't reach transitive dependencies. If your project depends on Retrofit alone, use one of these.
+
+**Declare OkHttp as a direct dependency.** Pin an OkHttp version in your `build.gradle.kts`, and auto-instrumentation works with no code changes:
 
 ```kotlin
 dependencies {
@@ -39,9 +61,7 @@ dependencies {
 }
 ```
 
-**Option 2: Add the interceptor manually**
-
-Build the `OkHttpClient` you pass to Retrofit with Measure's interceptor and event listener factory:
+**Add the interceptor manually.** Build the `OkHttpClient` you pass to Retrofit with Measure's interceptor and event listener factory:
 
 ```kotlin
 val client = OkHttpClient.Builder()
@@ -55,33 +75,13 @@ val retrofit = Retrofit.Builder()
     .build()
 ```
 
-### iOS
-
-Adding the SDK to your project auto-tracks any request made with URLSession, including requests from third-party libraries. No additional setup is needed.
-
-### Flutter
-
-Track requests made using Dio by adding the `measure_dio` package. It provides `MsrInterceptor`, which tracks them for you:
-
-```yaml
-dependencies:
-  measure_dio: latest-version
-```
-
-```dart
-final dio = Dio();
-dio.interceptors.add(MsrInterceptor());
-```
-
-For any other HTTP client, such as the `http` package, track requests yourself with [`trackHttpEvent`](/docs/api-reference#track-http-events).
-
 ### React Native
 
-On React Native, `fetch` and `XHR` run on URLSession on iOS and OkHttp on Android. iOS tracks HTTP events automatically. Android needs a little setup.
+On React Native, `fetch` and `XHR` run on OkHttp on Android and URLSession on iOS. iOS tracks requests automatically, Android needs setup, and capturing response bodies needs an interceptor.
 
 #### Android
 
-Configure a custom `OkHttpClient` with `OkHttpClientProvider` in `MainApplication.kt`:
+Configure a custom `OkHttpClient` with `OkHttpClientProvider` in `MainApplication.kt`. Without this, HTTP events aren't tracked on Android:
 
 ```kotlin
 OkHttpClientProvider.setOkHttpClientFactory(object : OkHttpClientFactory {
@@ -95,11 +95,9 @@ OkHttpClientProvider.setOkHttpClientFactory(object : OkHttpClientFactory {
 })
 ```
 
-Without this, HTTP events aren't tracked on Android.
-
 #### iOS
 
-iOS tracks HTTP requests automatically. To capture responses too, add `MSRNetworkInterceptor` to the session configuration in `AppDelegate.mm`:
+iOS tracks requests automatically. To capture responses too, add `MSRNetworkInterceptor` to the session configuration in `AppDelegate.mm`:
 
 ```objc
 RCTSetCustomNSURLSessionConfigurationProvider(^NSURLSessionConfiguration *{
@@ -109,20 +107,120 @@ RCTSetCustomNSURLSessionConfigurationProvider(^NSURLSessionConfiguration *{
 });
 ```
 
-The interceptor lets the SDK observe responses, but response bodies are recorded only for the URLs you opt in. Choose them from the dashboard with the **Track HTTP response body for URLs** setting in [Configuration options](/docs/configuration-options#http-events), which applies without a new build.
+Response bodies are recorded only for the URLs you opt into, set with the **Track HTTP response body for URLs** option in [Configuration options](/docs/configuration-options#http-events).
 
-For clients that fall outside `fetch` and `XHR`, track requests yourself with [`trackHttpEvent`](/docs/api-reference#track-http-events).
+For clients outside `fetch` and `XHR`, [track requests manually](#track-a-request-manually).
 
-### Kotlin Multiplatform
+## Track a request manually
 
-The KMP SDK wraps the native Android and iOS SDKs, and network monitoring runs in those native layers. Requests are tracked on whichever engine your HTTP client uses: OkHttp on Android and NSURLSession on iOS. So the setup matches the [Android](#android) and [iOS](#ios) sections above. Add the Measure Android Gradle Plugin to your Android app module, and the iOS SDK to your iOS app. The [Kotlin Multiplatform guide](/docs/getting-started/kotlin-multiplatform) covers both.
+For any HTTP client Measure doesn't instrument automatically, record each request yourself with `trackHttpEvent`. Bracket the request with `getCurrentTime` for the start and end time, so the duration stays right even if the device clock shifts. See [Track HTTP events](/docs/api-reference#track-http-events) for the full signature and the optional fields you can add.
 
-#### Ktor
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
 
-Ktor picks a different engine on each target. As long as you use the engines Measure already tracks, OkHttp on Android and Darwin (NSURLSession) on iOS, requests from a shared `HttpClient` are tracked automatically, with no per-request code.
+```kotlin
+import sh.measure.android.Measure
 
-A different Ktor engine, such as CIO, won't be auto-tracked. Record those requests yourself with [`trackHttpEvent`](/docs/api-reference#track-http-events).
+val startTime = Measure.getCurrentTime()
+// make the request
+val endTime = Measure.getCurrentTime()
+
+Measure.trackHttpEvent(
+    url = "https://api.example.com/users",
+    method = "GET",
+    startTime = startTime,
+    endTime = endTime,
+    statusCode = 200,
+)
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+let startTime = UInt64(Measure.getCurrentTime())
+// make the request
+let endTime = UInt64(Measure.getCurrentTime())
+
+Measure.trackHttpEvent(
+    url: "https://api.example.com/users",
+    method: "GET",
+    startTime: startTime,
+    endTime: endTime,
+    statusCode: 200
+)
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final startTime = Measure.instance.getCurrentTime();
+// make the request
+final endTime = Measure.instance.getCurrentTime();
+
+Measure.instance.trackHttpEvent(
+  url: "https://api.example.com/users",
+  method: HttpMethod.get,
+  startTime: startTime,
+  endTime: endTime,
+  statusCode: 200,
+);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+const startTime = Measure.getCurrentTime();
+// make the request
+const endTime = Measure.getCurrentTime();
+
+Measure.trackHttpEvent({
+  url: "https://api.example.com/users",
+  method: "GET",
+  startTime,
+  endTime,
+  statusCode: 200,
+});
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+
+val startTime = Measure.getCurrentTime()
+// make the request
+val endTime = Measure.getCurrentTime()
+
+Measure.trackHttpEvent(
+    url = "https://api.example.com/users",
+    method = "GET",
+    startTime = startTime,
+    endTime = endTime,
+    statusCode = 200,
+)
+```
+
+</Tab>
+</Tabs>
 
 ## Configuration options
 
-Control what network data Measure collects, and for which URLs, from the dashboard. See the [HTTP events](/docs/configuration-options#http-events) settings for the full list.
+Control what network data Measure collects, and for which URLs, from the dashboard through [Adaptive Capture](/docs/configuration-options), so you can change these without shipping a new build:
+
+- **Sampling rate**: how many HTTP events are collected. All of them by default, down to a floor of 0.001%.
+- **Collect or ignore URLs**: turn collection on or off for specific URLs, matched exactly or with `*` wildcards.
+- **Request body collection**: the URLs whose request bodies and headers are recorded. Off by default.
+- **Response body collection**: the URLs whose response bodies and headers are recorded. Off by default.
+- **Blocked headers**: headers to drop by name. Sensitive ones like `Authorization` and `Cookie` are never collected, whether or not you list them.
+
+See [HTTP events](/docs/configuration-options#http-events) for each setting.
