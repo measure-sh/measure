@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Symboloader dedup gate `patch_id` failure (#4124) by @detj in #4124
 - (**backend**): Stream cloud build file downloads with chunked encoding (#4121) by @detj in #4121
 - (**backend**): Drop undeliverable slack alerts on channel_not_found by @anupcowkur in #4119
 - (**backend**): Only preserve slack channels if same workspace is reconnected by @anupcowkur
