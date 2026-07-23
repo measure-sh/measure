@@ -208,6 +208,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Upgrade all go dependencies (#3425) by @detj in #3425
 - (**backend**): Add missing additional contexts for docker builds (#3424) by @detj in #3424
 - (**backend**): Fix dashboard docker build (#3423) by @detj in #3423
+- (**deps**): Bump github.com/quic-go/quic-go in /backend/libs (#4132) by @dependabot[bot] in #4132
 - (**deps**): Bump google.golang.org/grpc in /backend/alerts (#4131) by @dependabot[bot] in #4131
 - (**deps**): Bump google.golang.org/grpc in /backend/cleanup (#4130) by @dependabot[bot] in #4130
 - (**deps**): Bump google.golang.org/grpc in /backend/libs (#4129) by @dependabot[bot] in #4129
