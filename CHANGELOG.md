@@ -142,6 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Sync all go dependencies (#4137) by @detj in #4137
 - (**backend**): Update go dependencies (#4133) by @detj in #4133
 - (**backend**): Delete queued slack alerts when slack connection is removed by @anupcowkur
 - (**backend**): Pin slack reauth prompts to missing scopes only by @anupcowkur
