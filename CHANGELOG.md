@@ -208,6 +208,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Upgrade all go dependencies (#3425) by @detj in #3425
 - (**backend**): Add missing additional contexts for docker builds (#3424) by @detj in #3424
 - (**backend**): Fix dashboard docker build (#3423) by @detj in #3423
+- (**deps**): Bump google.golang.org/grpc in /backend/symboloader (#4128) by @dependabot[bot] in #4128
 - (**deps**): Bump google.golang.org/grpc in /self-host/sessionator (#4127) by @dependabot[bot] in #4127
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/cleanup (#3531) by @dependabot[bot] in #3531
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/email (#3530) by @dependabot[bot] in #3530
