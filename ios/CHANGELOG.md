@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
+- (**ios**): Prepare sdk release 0.12.1 (#4123) by @adwinross in #4123
 - (**ios**): Update podspec to add proper import for measure webp (#4117) by @adwinross in #4117
 
 ## [ios-v0.12.0] - 2026-07-22
