@@ -6,6 +6,8 @@ import (
 	"backend/libs/symbol"
 
 	"symboloader/server"
+
+	"github.com/google/uuid"
 )
 
 // TestRecordArtifact checks the one-row-per-artifact split: the
@@ -67,23 +69,33 @@ func TestRecordArtifact(t *testing.T) {
 }
 
 // TestArtifactExists is the dedup gate: an object is skipped only
-// when a sibling row matches on both key & checksum. This is what
-// makes a redelivered notification idempotent.
+// when a sibling row matches on key, checksum & patch id. Matching
+// on key+checksum alone makes a redelivered notification
+// idempotent; the patch id term stops a different patch's identical
+// zero-byte bundle content from falsely colliding.
 func TestArtifactExists(t *testing.T) {
+	patchA := uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000001")
+	patchB := uuid.MustParse("bbbbbbbb-0000-0000-0000-000000000002")
+
 	b := &Build{
 		Mappings: []*Mapping{
-			{Key: "8d/f7/main.jsbundle", Checksum: "C1"},
-			{Key: "bb/8f/main.jsbundle.map", Checksum: "C2"},
+			{Key: "8d/f7/main.jsbundle", Checksum: "C1", PatchID: patchA},
+			{Key: "bb/8f/main.jsbundle.map", Checksum: "C2", PatchID: patchA},
 		},
 	}
 
-	if !b.artifactExists("8d/f7/main.jsbundle", "C1") {
-		t.Fatal("exact key+checksum match should exist")
+	if !b.artifactExists("8d/f7/main.jsbundle", "C1", patchA) {
+		t.Fatal("exact key+checksum+patch match should exist")
 	}
-	if b.artifactExists("8d/f7/main.jsbundle", "C9") {
+	if b.artifactExists("8d/f7/main.jsbundle", "C9", patchA) {
 		t.Fatal("same key different checksum must not match")
 	}
-	if b.artifactExists("zz/00/other.js", "C1") {
+	if b.artifactExists("zz/00/other.js", "C1", patchA) {
 		t.Fatal("unknown key must not match")
+	}
+	// Same key+checksum, different patch: a different OTA patch's
+	// identical (zero-byte) bundle must not dedup against this one.
+	if b.artifactExists("8d/f7/main.jsbundle", "C1", patchB) {
+		t.Fatal("same key+checksum different patch must not match")
 	}
 }
