@@ -8,13 +8,137 @@ Logs record a plain text message at a severity level. A log is free-form, best f
 
 ## Track a log
 
-Record a message at one of five severities, from debug through fatal, with `logDebug`, `logInfo`, `logWarning`, `logError`, and `logFatal`. The severity is what you filter and sort by in the dashboard, so pick the one that matches how much the message should stand out. Bodies longer than 1000 characters are truncated, so lead with the detail you'll search for. See [Track a log](/docs/api-reference#track-a-log) in the SDK API reference.
+Record a message at one of five severities, from debug through fatal, with `logDebug`, `logInfo`, `logWarning`, `logError`, and `logFatal`. The severity is what you filter and sort by in the dashboard, so pick the one that matches how much the message should stand out. Bodies longer than 1000 characters are truncated, so lead with the detail you'll search for.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+
+Measure.logDebug("Cache miss for key user_42")
+Measure.logInfo("User signed in")
+Measure.logWarning("Payment failed, retrying")
+Measure.logError("Checkout request failed")
+Measure.logFatal("Unrecoverable database error")
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.logDebug("Cache miss for key user_42")
+Measure.logInfo("User signed in")
+Measure.logWarning("Payment failed, retrying")
+Measure.logError("Checkout request failed")
+Measure.logFatal("Unrecoverable database error")
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+Measure.instance.logDebug("Cache miss for key user_42");
+Measure.instance.logInfo("User signed in");
+Measure.instance.logWarning("Payment failed, retrying");
+Measure.instance.logError("Checkout request failed");
+Measure.instance.logFatal("Unrecoverable database error");
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.logDebug({ body: "Cache miss for key user_42" });
+Measure.logInfo({ body: "User signed in" });
+Measure.logWarning({ body: "Payment failed, retrying" });
+Measure.logError({ body: "Checkout request failed" });
+Measure.logFatal({ body: "Unrecoverable database error" });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.*
+
+Measure.logDebug("Cache miss for key user_42")
+Measure.logInfo("User signed in")
+Measure.logWarning("Payment failed, retrying")
+Measure.logError("Checkout request failed")
+Measure.logFatal("Unrecoverable database error")
+```
+
+</Tab>
+</Tabs>
 
 A log is free-form text. If you're recording a named thing you'll want to search or chart later, like a user action or feature usage, a [custom event](/docs/features/feature-custom-events) is easier to query. To capture an error with its stack trace and grouping, use the [handled error](/docs/error-monitoring) APIs rather than logging it by hand.
 
 ## Add attributes
 
-Attach attributes to a log to record context you can filter on later, like the screen name, an order ID, or a retry count. The extra context is what lets you find one log among thousands. See [Attribute limits](/docs/api-reference#attribute-limits) for the allowed keys and values.
+Attach attributes to a log to record context you can filter on later, like the screen name, an order ID, or a retry count. The extra context is what lets you find one log among thousands.
+
+<Tabs groupId="platform" items={["Android", "iOS", "Flutter", "React Native", "Kotlin Multiplatform"]} persist>
+<Tab value="Android">
+
+```kotlin
+import sh.measure.android.Measure
+import sh.measure.android.attributes.AttributesBuilder
+
+val attributes = AttributesBuilder().put("screen", "Checkout").build()
+Measure.logWarning("Payment failed", attributes)
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+import Measure
+
+Measure.logWarning("Payment failed", attributes: ["screen": .string("Checkout")])
+```
+
+</Tab>
+<Tab value="Flutter">
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+final attributes = AttributeBuilder().add("screen", "Checkout").build();
+Measure.instance.logWarning("Payment failed", attributes: attributes);
+```
+
+</Tab>
+<Tab value="React Native">
+
+```typescript
+import { Measure } from '@measuresh/react-native';
+
+Measure.logWarning({ body: "Payment failed", attributes: { screen: "Checkout" } });
+```
+
+</Tab>
+<Tab value="Kotlin Multiplatform">
+
+```kotlin
+import sh.measure.kmp.Measure
+import sh.measure.kmp.logWarning
+import sh.measure.kmp.attributes.AttributesBuilder
+
+val attributes = AttributesBuilder().put("screen", "Checkout").build()
+Measure.logWarning("Payment failed", attributes)
+```
+
+</Tab>
+</Tabs>
+
+See [Attribute limits](/docs/api-reference#attribute-limits) for the allowed keys and values.
 
 ## Collect logs automatically
 
