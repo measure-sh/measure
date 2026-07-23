@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strconv"
 
 	"backend/api/server"
 	"backend/libs/filter"
@@ -220,11 +219,11 @@ func (h Handlers) DownloadBuildFile(c *gin.Context) {
 		}
 	}()
 
+	// No Content-Length: the response streams with chunked transfer
+	// encoding. Load balancers commonly cap buffered (Content-Length)
+	// responses in size but stream chunked ones unbounded.
 	c.Header("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": download.Filename}))
 	c.Header("Content-Type", download.ContentType)
-	if download.ContentLength >= 0 {
-		c.Header("Content-Length", strconv.FormatInt(download.ContentLength, 10))
-	}
 	c.Status(http.StatusOK)
 
 	// The response is already streaming, so a failure here can no longer
