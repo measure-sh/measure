@@ -53,6 +53,10 @@ type Mapping struct {
 	Difs           []*symbol.Dif `json:"difs,omitempty"`
 	ShouldUpload   bool          `json:"should_upload,omitempty"`
 	UploadComplete bool          `json:"upload_complete,omitempty"`
+	// PatchID scopes the dedup gate to a single OTA patch. Loaded
+	// per row so identical (zero-byte) bundle content from a
+	// different patch does not falsely dedup. Internal only.
+	PatchID uuid.UUID `json:"-"`
 }
 
 // extractDif prepares & extracts debug information
@@ -207,7 +211,7 @@ func (b *Build) upload(ctx context.Context) (err error) {
 					return
 				}
 
-				if b.artifactExists(dif.Key, checksum) {
+				if b.artifactExists(dif.Key, checksum, b.PatchID) {
 					continue
 				}
 
@@ -259,7 +263,7 @@ func (b *Build) upload(ctx context.Context) (err error) {
 						return
 					}
 
-					if b.artifactExists(dif.Key, checksum) {
+					if b.artifactExists(dif.Key, checksum, b.PatchID) {
 						continue
 					}
 
@@ -341,7 +345,7 @@ func (b *Build) upload(ctx context.Context) (err error) {
 						return
 					}
 
-					if b.artifactExists(dif.Key, checksum) {
+					if b.artifactExists(dif.Key, checksum, b.PatchID) {
 						continue
 					}
 
@@ -422,7 +426,7 @@ func (b *Build) upload(ctx context.Context) (err error) {
 					return
 				}
 
-				if b.artifactExists(dif.Key, checksum) {
+				if b.artifactExists(dif.Key, checksum, b.PatchID) {
 					continue
 				}
 
@@ -464,13 +468,16 @@ func (b *Build) upload(ctx context.Context) (err error) {
 }
 
 // artifactExists reports whether a loaded sibling row already
-// holds this exact object, matched by key & per-object checksum.
-// It is the dedup gate: a redelivered notification reloads the
-// rows written by the first delivery, so every dif matches here
-// & is skipped, keeping processing idempotent.
-func (b *Build) artifactExists(key, checksum string) bool {
+// holds this exact object, matched by key, per-object checksum &
+// patch id. It is the dedup gate: a redelivered notification
+// reloads the rows written by the first delivery, so every dif
+// matches here & is skipped, keeping processing idempotent. The
+// patch id scoping stops a different patch's identical (zero-byte)
+// bundle content from colliding, since bundle keys are content
+// addressed & every empty bundle hashes alike.
+func (b *Build) artifactExists(key, checksum string, patchID uuid.UUID) bool {
 	for _, m := range b.Mappings {
-		if m.Key == key && m.Checksum == checksum {
+		if m.Key == key && m.Checksum == checksum && m.PatchID == patchID {
 			return true
 		}
 	}
@@ -536,6 +543,7 @@ func (b *Build) load(ctx context.Context, id uuid.UUID) (err error) {
 		Select("location").
 		Select("fnv1_hash").
 		Select("file_size").
+		Select("patch_id").
 		From("build_mappings").
 		Where("app_id = ?", b.AppID).
 		Where("version_name = ?", b.VersionName).
@@ -549,7 +557,7 @@ func (b *Build) load(ctx context.Context, id uuid.UUID) (err error) {
 	for rows.Next() {
 		var mapping Mapping
 
-		if err := rows.Scan(&mapping.ID, &mapping.Type, &mapping.Key, &mapping.Location, &mapping.Checksum, &mapping.Size); err != nil {
+		if err := rows.Scan(&mapping.ID, &mapping.Type, &mapping.Key, &mapping.Location, &mapping.Checksum, &mapping.Size, &mapping.PatchID); err != nil {
 			return err
 		}
 
