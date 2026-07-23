@@ -11,11 +11,11 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.41.6
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.15
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.100.0
-	github.com/docker/docker v28.5.2+incompatible
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/leporo/sqlf v1.4.0
+	github.com/moby/moby/api v1.55.0
 	github.com/testcontainers/testcontainers-go v0.43.0
 	github.com/valkey-io/valkey-go v1.0.75
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.68.0
@@ -112,7 +112,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/go-archive v0.2.0 // indirect
-	github.com/moby/moby/api v1.55.0 // indirect
 	github.com/moby/moby/client v0.5.0 // indirect
 	github.com/moby/patternmatcher v0.6.1 // indirect
 	github.com/moby/sys/sequential v0.7.0 // indirect
