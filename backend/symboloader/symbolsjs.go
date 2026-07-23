@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"path"
@@ -124,10 +123,6 @@ func HandleSymbolsJsRequest(c *gin.Context) {
 		versionName := c.Query("version_name")
 		versionCode := c.Query("version_code")
 		urls := c.QueryArray("url")
-		fmt.Println("app_id", appID)
-		fmt.Println("versionName", versionName)
-		fmt.Println("versionCode", versionCode)
-		fmt.Println("urls", urls)
 		if versionName != "" && versionCode != "" && len(urls) > 0 {
 			pairs, err = resolveByURL(ctx, appID, versionName, versionCode, urls)
 		}
@@ -157,9 +152,6 @@ func HandleSymbolsJsRequest(c *gin.Context) {
 	for _, p := range pairs {
 		emitPair(ctx, config, gcsClient, s3Client, p, &results)
 	}
-
-	resultsJson, _ := json.Marshal(results)
-	fmt.Println("results", string(resultsJson))
 
 	c.JSON(http.StatusOK, results)
 }
