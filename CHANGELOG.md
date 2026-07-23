@@ -227,6 +227,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Remove unused anim file by @anupcowkur
 - (**frontend**): Require site-relative blog cover image paths by @anupcowkur in #4120
 - (**frontend**): Remove builds page from side nav by @anupcowkur in #4106
 - (**frontend**): Update global error and 404 pages by @anupcowkur in #4099
@@ -353,6 +354,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add usage notes for patch_id (#3793) by @detj in #3793
 - (**backend**): Add error fields matrix (#3701) by @detj in #3701
 - (**backend**): Update dashboard api docs (#3686) by @detj in #3686
+- Remove old flow/architecture md files by @anupcowkur in #4136
 - Document logs feature and configuration (#4021) by @abhaysood
 - Keep repo file links relative and drop docs backlinks from scripts by @anupcowkur
 - Move symbol upload instructions to a new Uploading Symbols page by @anupcowkur
