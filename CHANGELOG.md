@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Track app OS names as a single-family set) by @anupcowkur in #3839
 - (**backend**): Add unified errors API & react native symbolication support (#3623) by @detj in #3623
 - (**backend**): Use autumn for metering and billing by @anupcowkur in #3534
+- (**frontend**): Add json-ld structured data to marketing, blog and docs pages by @anupcowkur
 - (**frontend**): Add blog by @anupcowkur in #4075
 - (**frontend**): Implement logging (#4021) by @abhaysood
 - (**frontend**): Move docs to fumadocs by @anupcowkur in #4035
@@ -217,6 +218,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Require site-relative blog cover image paths by @anupcowkur in #4120
 - (**frontend**): Remove builds page from side nav by @anupcowkur in #4106
 - (**frontend**): Update global error and 404 pages by @anupcowkur in #4099
 - (**frontend**): Document 404 for member remove & role change endpoints by @anupcowkur in #4069
@@ -327,6 +329,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :recycle: Refactor
 
 - (**backend**): Remove unused code & streamline sessionator (#4034) by @detj in #4034
+- (**frontend**): Use shared helper for marketing page metadata by @anupcowkur
+- (**frontend**): Templatize product pages by @anupcowkur
 - (**frontend**): Refactor onboarding and it's store by @anupcowkur in #3912
 - (**frontend**): Rename middleware to proxy for Next 16 by @anupcowkur in #3844
 - (**frontend**): Clarify onboarding first-event poll effect by @anupcowkur in #3843
