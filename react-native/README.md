@@ -93,7 +93,7 @@ Add the SDK dependency and apply the plugin in your app-level `build.gradle`:
 
 ```groovy
 dependencies {
-    implementation("sh.measure:measure-android:0.18.0")
+    implementation("sh.measure:measure-android:0.19.0")
 }
 
 apply plugin: "sh.measure.android.gradle"
