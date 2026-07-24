@@ -385,8 +385,8 @@ export default function TeamOverview(props: {
         onSuccess: () => {
           toastPositive(`Slack integration test alert sent successfully`);
         },
-        onError: () => {
-          toastNegative(`Error sending test Slack alerts`);
+        onError: (error) => {
+          toastNegative(error.message);
         },
       },
     );

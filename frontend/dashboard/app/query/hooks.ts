@@ -1641,6 +1641,9 @@ export function useTestSlackAlertMutation() {
   return useMutation({
     mutationFn: async (params: { teamId: string }) => {
       const result = await sendTestSlackAlertFromServer(params.teamId);
+      if (result.status === TestSlackAlertApiStatus.Error) {
+        throw new Error(result.error ?? "Failed to send test Slack alert");
+      }
       if (result.status !== TestSlackAlertApiStatus.Success) {
         throw new Error("Failed to send test Slack alert");
       }

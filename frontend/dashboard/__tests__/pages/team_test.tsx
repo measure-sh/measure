@@ -449,7 +449,7 @@ jest.mock("@/app/query/hooks", () => ({
         if (result) {
           opts?.onSuccess?.();
         } else {
-          opts?.onError?.();
+          opts?.onError?.(new Error("Failed to send test Slack alert"));
         }
       },
       isPending: s.testSlackAlertApiStatus === "loading",
@@ -1649,7 +1649,7 @@ describe("Team Page", () => {
 
     await waitFor(() => {
       expect(mockToastNegative).toHaveBeenCalledWith(
-        "Error sending test Slack alerts",
+        "Failed to send test Slack alert",
       );
     });
   });
