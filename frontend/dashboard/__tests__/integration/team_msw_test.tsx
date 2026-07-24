@@ -98,6 +98,7 @@ afterAll(() => server.close());
 // --- Store/component imports ---
 import TeamOverview from "@/app/[teamId]/team/page";
 import { Team } from "@/app/api/api_calls";
+import { Toaster } from "@/app/components/toaster";
 import { useCreateTeamMutation } from "@/app/query/hooks";
 import { queryClient } from "@/app/query/query_client";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -1252,6 +1253,47 @@ describe("Team Page — mutations", () => {
       // Wait a bit and verify no API call
       await new Promise((r) => setTimeout(r, 300));
       expect(postCalled).toBe(false);
+    });
+
+    it("shows the server error message in the toast when the API fails", async () => {
+      const serverError =
+        "No registered alert channels found for Workspace Acme. Please add Measure app to a channel and use /subscribe-alerts";
+      server.use(
+        http.post("*/api/teams/:teamId/slack/test", () => {
+          return HttpResponse.json({ error: serverError }, { status: 500 });
+        }),
+      );
+
+      renderWithProviders(
+        <>
+          <TeamOverview params={promiseParams({ teamId: "team-001" })} />
+          <Toaster />
+        </>,
+      );
+      await waitFor(
+        () => {
+          expect(screen.getByText("Send Test Alert")).toBeTruthy();
+        },
+        { timeout: 5000 },
+      );
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Send Test Alert"));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Yes, I'm sure")).toBeTruthy();
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByText("Yes, I'm sure"));
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText(serverError)).toBeTruthy();
+        },
+        { timeout: 5000 },
+      );
     });
   });
 

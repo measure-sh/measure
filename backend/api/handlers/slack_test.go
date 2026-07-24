@@ -750,3 +750,224 @@ func TestGetTeamSlackNeedsReauth(t *testing.T) {
 		})
 	}
 }
+
+// --------------------------------------------------------------------------
+// SendTestSlackAlert
+// --------------------------------------------------------------------------
+
+// withSlackSendURLs points the message send and channel info endpoints at a
+// stub for a test.
+func withSlackSendURLs(t *testing.T, postMessageURL, conversationsInfoURL string) {
+	t.Helper()
+	origPost, origInfo := slackPostMessageURL, slackConversationsInfoURL
+	slackPostMessageURL = postMessageURL
+	slackConversationsInfoURL = conversationsInfoURL
+	t.Cleanup(func() {
+		slackPostMessageURL = origPost
+		slackConversationsInfoURL = origInfo
+	})
+}
+
+// newSlackSendStub stands in for Slack's chat.postMessage and
+// conversations.info endpoints and points the handler at it for a test.
+// conversations.info always resolves the channel name to "general".
+func newSlackSendStub(t *testing.T, postMessage http.HandlerFunc) {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/chat.postMessage", postMessage)
+	mux.HandleFunc("/conversations.info", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"ok":      true,
+			"channel": map[string]string{"name": "general"},
+		})
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	withSlackSendURLs(t, srv.URL+"/chat.postMessage", srv.URL+"/conversations.info")
+}
+
+// rejectSends is a chat.postMessage stub for tests where the handler must
+// bail out before sending anything.
+func rejectSends(t *testing.T) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		t.Error("chat.postMessage was called, want no send attempt")
+	}
+}
+
+func seedTeamSlackWithChannels(ctx context.Context, t *testing.T, teamID uuid.UUID, botToken string, channels []string) {
+	t.Helper()
+	_, err := th.PgPool.Exec(ctx,
+		`INSERT INTO team_slack
+		 (team_id, slack_team_id, slack_team_name, bot_token, bot_user_id, channel_ids, scopes, is_active, created_at, updated_at)
+		 VALUES ($1, 'T1', 'Acme Workspace', $2, 'U1', $3, 'chat:write', true, now(), now())`,
+		teamID, botToken, channels)
+	if err != nil {
+		t.Fatalf("seed team_slack with channels: %v", err)
+	}
+}
+
+func newTestAlertContext(userID string, teamID string) (*gin.Context, *httptest.ResponseRecorder) {
+	c, w := newTestGinContext("POST", "/teams/"+teamID+"/slack/test", nil)
+	c.Set("userId", userID)
+	c.Params = gin.Params{{Key: "id", Value: teamID}}
+	return c, w
+}
+
+func TestSendTestSlackAlert(t *testing.T) {
+	ctx := context.Background()
+
+	readError := func(t *testing.T, w *httptest.ResponseRecorder) string {
+		t.Helper()
+		var body struct {
+			Error string `json:"error"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+			t.Fatalf("unmarshal error body %q: %v", w.Body.String(), err)
+		}
+		return body.Error
+	}
+
+	t.Run("invalid team id gives 400", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		c, w := newTestAlertContext(uuid.New().String(), "not-a-uuid")
+		h.SendTestSlackAlert(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, want 400, body: %s", w.Code, w.Body.String())
+		}
+	})
+
+	// sending a test alert needs ScopeTeamAll, which only owner holds
+	for _, role := range []string{"admin", "developer", "viewer"} {
+		t.Run(role+" is forbidden", func(t *testing.T) {
+			defer cleanupAll(ctx, t)
+			newSlackSendStub(t, rejectSends(t))
+
+			userID, teamID := seedTeamAndMemberWithRole(t, ctx, role)
+			seedTeamSlackWithChannels(ctx, t, teamID, "xoxb-test", []string{"C1"})
+
+			c, w := newTestAlertContext(userID, teamID.String())
+			h.SendTestSlackAlert(c)
+
+			if w.Code != http.StatusForbidden {
+				t.Fatalf("role %s: status = %d, want 403, body: %s", role, w.Code, w.Body.String())
+			}
+		})
+	}
+
+	t.Run("no slack connection gives 500", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		newSlackSendStub(t, rejectSends(t))
+
+		ownerID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+
+		c, w := newTestAlertContext(ownerID, teamID.String())
+		h.SendTestSlackAlert(c)
+
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("status = %d, want 500, body: %s", w.Code, w.Body.String())
+		}
+		if got := readError(t, w); !strings.Contains(got, "error occurred while querying team slack") {
+			t.Errorf("error = %q, want it to mention the team slack query", got)
+		}
+	})
+
+	t.Run("no subscribed channels gives 500 with subscribe guidance", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		newSlackSendStub(t, rejectSends(t))
+
+		ownerID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamSlackWithChannels(ctx, t, teamID, "xoxb-test", []string{})
+
+		c, w := newTestAlertContext(ownerID, teamID.String())
+		h.SendTestSlackAlert(c)
+
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("status = %d, want 500, body: %s", w.Code, w.Body.String())
+		}
+		got := readError(t, w)
+		if !strings.Contains(got, "No registered alert channels found for Workspace Acme Workspace") {
+			t.Errorf("error = %q, want the workspace named in the no-channels message", got)
+		}
+		if !strings.Contains(got, "/subscribe-alerts") {
+			t.Errorf("error = %q, want the /subscribe-alerts instruction", got)
+		}
+	})
+
+	t.Run("owner with subscribed channels gets 200 and a message per channel", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		var gotChannels, gotAuth []string
+		newSlackSendStub(t, func(w http.ResponseWriter, r *http.Request) {
+			var body struct {
+				Channel string `json:"channel"`
+				Text    string `json:"text"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			gotChannels = append(gotChannels, body.Channel)
+			gotAuth = append(gotAuth, r.Header.Get("Authorization"))
+			if body.Text == "" {
+				t.Error("message text is empty")
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true})
+		})
+
+		ownerID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamSlackWithChannels(ctx, t, teamID, "xoxb-test", []string{"C1", "C2"})
+
+		c, w := newTestAlertContext(ownerID, teamID.String())
+		h.SendTestSlackAlert(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+		}
+		if len(gotChannels) != 2 || gotChannels[0] != "C1" || gotChannels[1] != "C2" {
+			t.Errorf("sent to channels %v, want [C1 C2]", gotChannels)
+		}
+		for _, auth := range gotAuth {
+			if auth != "Bearer xoxb-test" {
+				t.Errorf("Authorization = %q, want the stored bot token as bearer", auth)
+			}
+		}
+	})
+
+	t.Run("a failed channel gives 500 naming successes and failures", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		newSlackSendStub(t, func(w http.ResponseWriter, r *http.Request) {
+			var body struct {
+				Channel string `json:"channel"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			w.Header().Set("Content-Type", "application/json")
+			if body.Channel == "C2" {
+				_ = json.NewEncoder(w).Encode(map[string]any{"ok": false, "error": "channel_not_found"})
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true})
+		})
+
+		ownerID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamSlackWithChannels(ctx, t, teamID, "xoxb-test", []string{"C1", "C2"})
+
+		c, w := newTestAlertContext(ownerID, teamID.String())
+		h.SendTestSlackAlert(c)
+
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("status = %d, want 500, body: %s", w.Code, w.Body.String())
+		}
+		got := readError(t, w)
+		if !strings.Contains(got, "Successes") || !strings.Contains(got, "C1") {
+			t.Errorf("error = %q, want the delivered channel listed under successes", got)
+		}
+		if !strings.Contains(got, "Failures") || !strings.Contains(got, "C2") {
+			t.Errorf("error = %q, want the failed channel listed under failures", got)
+		}
+		if !strings.Contains(got, "channel_not_found") {
+			t.Errorf("error = %q, want the slack error reason included", got)
+		}
+	})
+}

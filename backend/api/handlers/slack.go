@@ -30,6 +30,14 @@ import (
 // tests can point it at a stub server.
 var slackAccessURL = "https://slack.com/api/oauth.v2.access"
 
+// slackPostMessageURL is Slack's message send endpoint. A package var so
+// tests can point it at a stub server.
+var slackPostMessageURL = "https://slack.com/api/chat.postMessage"
+
+// slackConversationsInfoURL is Slack's channel info endpoint. A package var
+// so tests can point it at a stub server.
+var slackConversationsInfoURL = "https://slack.com/api/conversations.info"
+
 type TeamSlack struct {
 	SlackTeamName string `json:"slack_team_name"`
 	IsActive      bool   `json:"is_active"`
@@ -563,7 +571,7 @@ func sendTestSlackMessages(botToken string, channelIds []string) error {
 	// We'll try to fetch channel names via conversations.info and include them
 	// in the success/failure message. If fetching the name fails, we fall back
 	// to using the channel ID.
-	url := "https://slack.com/api/chat.postMessage"
+	url := slackPostMessageURL
 
 	var failed []struct {
 		ChannelID   string
@@ -675,7 +683,7 @@ func sendTestSlackMessages(botToken string, channelIds []string) error {
 // channel ID so callers can still show a usable identifier.
 func getSlackChannelName(botToken, channelID string) string {
 	// build URL with query param
-	infoURL := fmt.Sprintf("https://slack.com/api/conversations.info?channel=%s", url.QueryEscape(channelID))
+	infoURL := fmt.Sprintf("%s?channel=%s", slackConversationsInfoURL, url.QueryEscape(channelID))
 	client := &http.Client{Timeout: 10 * time.Second}
 	req, err := http.NewRequest("GET", infoURL, nil)
 	if err != nil {
