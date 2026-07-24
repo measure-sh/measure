@@ -6,19 +6,25 @@
 # Run this after publishing an OTA update, once per platform.
 #
 # Usage (automated — Metro plugin):
-#   upload_patch.sh <api_key> <api_url> <path_to_sourcemap>
+#   upload_patch.sh --api_key <api_key> --api_url <api_url> \
+#     --path_to_sourcemap <path_to_sourcemap>
 #
 # Usage (manual — CodePush or no Metro plugin):
-#   upload_patch.sh <api_key> <api_url> <path_to_sourcemap> <patch_id>
+#   upload_patch.sh --api_key <api_key> --api_url <api_url> \
+#     --path_to_sourcemap <path_to_sourcemap> --patch_id <patch_id>
 #
-# Arguments:
-#   api_key            Measure API key
-#   api_url            Measure API URL (e.g. https://measure.example.com)
-#   path_to_sourcemap  Path to the .hbc.map from 'expo export --source-maps'
-#                      Must contain /ios/ or /android/ in the path to detect platform.
-#   patch_id           OTA patch UUID (optional, manual mode only). Omit when using
-#                      withMeasureConfig() in metro.config.js — the patch ID
-#                      is read automatically from the sourcemap's x-measure-patch-id field.
+# Options:
+#   --api_key            Measure API key (required)
+#   --api_url            Measure API URL, e.g. https://measure.example.com (required)
+#   --path_to_sourcemap  Path to the .hbc.map from 'expo export --source-maps' (required)
+#                        Must contain /ios/ or /android/ in the path to detect platform.
+#   --patch_id           OTA patch UUID (optional, manual mode only). Omit when using
+#                        withMeasureConfig() in metro.config.js — the patch ID
+#                        is read automatically from the sourcemap's x-measure-patch-id field.
+#   --patch_version      Human-readable label for the OTA patch (optional), e.g. the
+#                        same message passed to 'eas update --message'. Shown in the
+#                        Measure dashboard to make the patch easy to identify.
+#   -h, --help           Show this help message and exit.
 #
 # Platform detection:
 #   Files are stored under canonical React Native bundle names:
@@ -33,28 +39,95 @@
 #
 # Examples:
 #   # Automated (Metro plugin — patch_id read from sourcemap x-measure-patch-id field):
-#   ./upload_patch.sh "msr_key_..." "https://measure.example.com" \
-#     "./dist/_expo/static/js/ios/entry-abc123.hbc.map"
+#   ./upload_patch.sh --api_key "msr_key_..." --api_url "https://measure.example.com" \
+#     --path_to_sourcemap "./dist/_expo/static/js/ios/entry-abc123.hbc.map"
 #
 #   # Manual (CodePush or no Metro plugin):
-#   ./upload_patch.sh "msr_key_..." "https://measure.example.com" \
-#     "./dist/_expo/static/js/ios/entry-abc123.hbc.map" \
-#     "32d4e57e-6259-40ee-9b02-40aafeefcafd"
+#   ./upload_patch.sh --api_key "msr_key_..." --api_url "https://measure.example.com" \
+#     --path_to_sourcemap "./dist/_expo/static/js/ios/entry-abc123.hbc.map" \
+#     --patch_id "32d4e57e-6259-40ee-9b02-40aafeefcafd"
+#
+#   # With a human-readable patch version (e.g. reused eas update message):
+#   ./upload_patch.sh --api_key "msr_key_..." --api_url "https://measure.example.com" \
+#     --path_to_sourcemap "./dist/_expo/static/js/ios/entry-abc123.hbc.map" \
+#     --patch_version "Fix login crash on Android"
 
 set -euo pipefail
 
-if [ "$#" -eq 4 ]; then
-  API_KEY="$1"
-  API_URL="${2%/}"
-  SOURCEMAP_PATH="$3"
-  PATCH_ID="$4"
-elif [ "$#" -eq 3 ]; then
-  API_KEY="$1"
-  API_URL="${2%/}"
-  SOURCEMAP_PATH="$3"
-  PATCH_ID=""
-else
-  echo "Usage: $0 <api_key> <api_url> <path_to_sourcemap> [<patch_id>]"
+usage() {
+  cat <<'END_USAGE'
+Usage:
+  upload_patch.sh --api_key <api_key> --api_url <api_url> \
+    --path_to_sourcemap <path_to_sourcemap> [--patch_id <patch_id>] \
+    [--patch_version <patch_version>]
+
+Options:
+  --api_key            Measure API key (required)
+  --api_url            Measure API URL, e.g. https://measure.example.com (required)
+  --path_to_sourcemap  Path to the .hbc.map from 'expo export --source-maps' (required)
+  --patch_id           OTA patch UUID (optional). If omitted, it is read from the
+                       sourcemap's x-measure-patch-id field (Metro plugin mode).
+  --patch_version      Human-readable label for the OTA patch (optional).
+  -h, --help           Show this help message and exit.
+END_USAGE
+}
+
+API_KEY=""
+API_URL=""
+SOURCEMAP_PATH=""
+PATCH_ID=""
+PATCH_VERSION=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --api_key)
+      [ "$#" -ge 2 ] || { echo "Error: --api_key requires a value."; exit 1; }
+      API_KEY="$2"
+      shift 2
+      ;;
+    --api_url)
+      [ "$#" -ge 2 ] || { echo "Error: --api_url requires a value."; exit 1; }
+      API_URL="${2%/}"
+      shift 2
+      ;;
+    --path_to_sourcemap)
+      [ "$#" -ge 2 ] || { echo "Error: --path_to_sourcemap requires a value."; exit 1; }
+      SOURCEMAP_PATH="$2"
+      shift 2
+      ;;
+    --patch_id)
+      [ "$#" -ge 2 ] || { echo "Error: --patch_id requires a value."; exit 1; }
+      PATCH_ID="$2"
+      shift 2
+      ;;
+    --patch_version)
+      [ "$#" -ge 2 ] || { echo "Error: --patch_version requires a value."; exit 1; }
+      PATCH_VERSION="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Error: unknown argument: $1"
+      echo ""
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+# --- Validate required arguments ---
+
+MISSING=""
+[ -n "$API_KEY" ] || MISSING="$MISSING --api_key"
+[ -n "$API_URL" ] || MISSING="$MISSING --api_url"
+[ -n "$SOURCEMAP_PATH" ] || MISSING="$MISSING --path_to_sourcemap"
+if [ -n "$MISSING" ]; then
+  echo "Error: missing required argument(s):$MISSING"
+  echo ""
+  usage
   exit 1
 fi
 
@@ -77,13 +150,16 @@ if [ -z "$PATCH_ID" ]; then
   PATCH_ID=$(grep -o '"x-measure-patch-id":"[^"]*"' "$SOURCEMAP_PATH" \
     | sed 's/"x-measure-patch-id":"//;s/"//' | head -1 || true)
   if [ -z "$PATCH_ID" ]; then
-    echo "Error: sourcemap has no x-measure-patch-id field and no patch_id argument was given."
-    echo "Either add withMeasureConfig() to metro.config.js, or pass patch_id as the 3rd argument."
+    echo "Error: sourcemap has no x-measure-patch-id field and no --patch_id argument was given."
+    echo "Either add withMeasureConfig() to metro.config.js, or pass --patch_id <patch_id>."
     exit 1
   fi
 fi
 
 echo "patch_id:  $PATCH_ID"
+if [ -n "$PATCH_VERSION" ]; then
+  echo "patch_ver: $PATCH_VERSION"
+fi
 echo ""
 
 # --- Detect platform from sourcemap path ---
@@ -159,10 +235,21 @@ echo ""
 
 # --- Register with PUT /builds/ota ---
 
+# patch_version is free-form text (e.g. an eas update message), so escape
+# backslashes and double quotes before embedding it in JSON. Only emit the
+# field when a value was provided.
+PATCH_VERSION_JSON=""
+if [ -n "$PATCH_VERSION" ]; then
+  PATCH_VERSION_ESCAPED=${PATCH_VERSION//\\/\\\\}
+  PATCH_VERSION_ESCAPED=${PATCH_VERSION_ESCAPED//\"/\\\"}
+  PATCH_VERSION_JSON="  \"patch_version\": \"$PATCH_VERSION_ESCAPED\","
+fi
+
 METADATA_FILE="$TEMP_DIR/metadata.json"
 cat <<END_JSON > "$METADATA_FILE"
 {
   "patch_id": "$PATCH_ID",
+$PATCH_VERSION_JSON
   "mappings": [
     { "type": "jsbundle", "filename": "$BUNDLE_TGZ_BASENAME" },
     { "type": "jsbundle", "filename": "$MAP_TGZ_BASENAME" }

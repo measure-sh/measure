@@ -95,6 +95,29 @@ fi
 
 Over-The-Air (OTA) updates let you ship JavaScript changes without a full native app release. When a crash occurs in a patched bundle, Measure needs the corresponding sourcemap to symbolicate the JavaScript stack trace.
 
+#### Set a Patch Version
+
+Alongside the patch ID, you can attach an optional `patchVersion`, a human-readable label for the OTA update. While the patch ID is a UUID used internally to match a crash to its sourcemap, the patch version is what you actually read in the Measure dashboard to tell one release apart from another.
+
+Set the patch version to the **same message you pass to `eas update --message`**. Using the same string in both places lets you co-relate a release in Expo with the same release in Measure at a glance.
+
+The patch version applies to both the automated and manual approaches below, and must be set in two places for each OTA update, using the **same value**:
+
+* In `MeasureConfig` via the `patchVersion` field, so every event and crash from the patched bundle is tagged with it.
+* In the `upload_patch.sh` script via the `--patch_version` flag, so the uploaded sourcemap carries the same label.
+
+```typescript
+new MeasureConfig({
+  patchVersion: "v1.2.3-hotfix",
+})
+```
+
+```sh
+eas update --branch production --message "v1.2.3-hotfix"
+```
+
+#### Set a Patch Id
+
 The patch ID can be set in two ways:
 
 * **Automated** — The `withMeasureConfig()` Metro plugin automatically manages the patch ID for each build.
@@ -150,7 +173,7 @@ Measure.init({
   config: new MeasureConfig({
     autoStart: true,
     patchId: 'your-patch-uuid',
-    patchVersion: 'v1.2.3-hotfix', // optional human-readable label
+    patchVersion: 'v1.2.3-hotfix',
   }),
 });
 ```
@@ -180,9 +203,10 @@ Use this when the bundle was built with `withMeasureConfig()`. The script reads 
 
 ```sh
 ./node_modules/@measuresh/react-native/scripts/upload_patch.sh \
-  "your-api-key" \
-  "https://your-measure-url" \
-  "./dist/_expo/static/js/ios/entry-abc123.hbc.map"
+  --api_key "your-api-key" \
+  --api_url "https://your-measure-url" \
+  --path_to_sourcemap "./dist/_expo/static/js/ios/entry-abc123.hbc.map" \
+  --patch_version "v1.2.3-hotfix"
 ```
 
 **Manual mode**
@@ -191,10 +215,11 @@ Use this when you set `patchId` manually in `MeasureConfig`.
 
 ```sh
 ./node_modules/@measuresh/react-native/scripts/upload_patch.sh \
-  "your-api-key" \
-  "https://your-measure-url" \
-  "./path/to/main.jsbundle.map" \
-  "your-patch-uuid"
+  --api_key "your-api-key" \
+  --api_url "https://your-measure-url" \
+  --path_to_sourcemap "./path/to/main.jsbundle.map" \
+  --patch_id "your-patch-uuid" \
+  --patch_version "v1.2.3-hotfix"
 ```
 
 ## Flutter
