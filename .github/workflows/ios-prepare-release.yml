@@ -79,6 +79,11 @@ jobs:
           sed -E -i '' 's/(spec\.version[[:space:]]*=[[:space:]]*")[^"]*/\1${{ inputs.version }}/' \
             measure-sh.podspec
 
+      - name: Sync iOS SDK version in react-native/package.json
+        run: |
+          jq --arg v "${{ inputs.version }}" '.measureIosSdk.version = $v' \
+            react-native/package.json > /tmp/pkg.json && mv /tmp/pkg.json react-native/package.json
+
       - name: Update version in docs
         run: |
           sed -E -i '' 's|(\.package\(url: "https://github\.com/measure-sh/measure\.git", branch: "ios-v)[^"]*|\1${{ inputs.version }}|g' \
@@ -106,6 +111,7 @@ jobs:
             Changes:
             - Updated version to ${{ inputs.version }} in FrameworkInfo.swift
             - Updated version to ${{ inputs.version }} in measure-sh.podspec
+            - Synced measureIosSdk.version to ${{ inputs.version }} in react-native/package.json
             - Updated version in frontend/dashboard/content/docs/sdk-integration-guide.mdx
             - Generated changelog for version ${{ inputs.version }}
           base: main
