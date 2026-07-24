@@ -95,7 +95,7 @@ fi
 
 Over-The-Air (OTA) updates let you ship JavaScript changes without a full native app release. When a crash occurs in a patched bundle, Measure needs the corresponding sourcemap to symbolicate the JavaScript stack trace.
 
-#### Set a patch version
+#### Set a Patch Version
 
 Alongside the patch ID, you can attach an optional `patchVersion`, a human-readable label for the OTA update. While the patch ID is a UUID used internally to match a crash to its sourcemap, the patch version is what you actually read in the Measure dashboard to tell one release apart from another.
 
@@ -106,8 +106,6 @@ The patch version applies to both the automated and manual approaches below, and
 * In `MeasureConfig` via the `patchVersion` field, so every event and crash from the patched bundle is tagged with it.
 * In the `upload_patch.sh` script via the `--patch_version` flag, so the uploaded sourcemap carries the same label.
 
-Set it directly in `MeasureConfig` in your app code, then pass the same string to `eas update --message` and to the upload script:
-
 ```typescript
 new MeasureConfig({
   patchVersion: "v1.2.3-hotfix",
@@ -117,6 +115,8 @@ new MeasureConfig({
 ```sh
 eas update --branch production --message "v1.2.3-hotfix"
 ```
+
+#### Set a Patch Id
 
 The patch ID can be set in two ways:
 
