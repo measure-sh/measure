@@ -412,15 +412,15 @@ export default function LandingFooter() {
                 <Image
                   src={"/images/linkedin_logo_black.webp"}
                   alt="LinkedIn Logo"
-                  width={22}
-                  height={22}
+                  width={20}
+                  height={20}
                   className="dark:hidden"
                 />
                 <Image
                   src={"/images/linkedin_logo_white.webp"}
                   alt="LinkedIn Logo"
-                  width={22}
-                  height={22}
+                  width={20}
+                  height={20}
                   className="hidden dark:block"
                 />
               </Link>
@@ -432,16 +432,42 @@ export default function LandingFooter() {
                 <Image
                   src={"/images/x_logo_black.webp"}
                   alt="X Logo"
-                  width={20}
-                  height={20}
+                  width={18}
+                  height={18}
                   className="dark:hidden"
                 />
                 <Image
                   src={"/images/x_logo_white.webp"}
                   alt="X Logo"
+                  width={18}
+                  height={18}
+                  className="hidden dark:block"
+                />
+              </Link>
+              <Link
+                href="https://bsky.app/profile/measure.sh"
+                target="_blank"
+                className={cn(buttonVariants({ variant: "ghost" }), "group")}
+              >
+                <Image
+                  src={"/images/bluesky_logo.svg"}
+                  alt="Bluesky Logo"
                   width={20}
                   height={20}
-                  className="hidden dark:block"
+                  className="dark:invert"
+                />
+              </Link>
+              <Link
+                href="https://discord.com/invite/f6zGkBCt42"
+                target="_blank"
+                className={cn(buttonVariants({ variant: "ghost" }), "group")}
+              >
+                <Image
+                  src={"/images/discord_logo.svg"}
+                  alt="Discord Logo"
+                  width={24}
+                  height={24}
+                  className="dark:invert"
                 />
               </Link>
             </div>
