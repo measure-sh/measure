@@ -120,6 +120,7 @@ final class MeasureInitializer {
         enableLogging: inputConfig.enableLogging,
         autoStart: inputConfig.autoStart,
         enableDiagnosticMode: inputConfig.enableDiagnosticMode,
+        widgetFilter: inputConfig.widgetFilter,
       ),
     );
     _signalProcessor = DefaultSignalProcessor(logger: logger, channel: _methodChannel, configProvider: _configProvider);
