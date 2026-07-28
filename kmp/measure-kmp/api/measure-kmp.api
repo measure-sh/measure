@@ -17,6 +17,16 @@ public final class sh/measure/kmp/Measure {
 	public static synthetic fun launchBugReport$default (Lsh/measure/kmp/Measure;ZLjava/util/Map;ILjava/lang/Object;)V
 	public final fun log (Ljava/lang/String;Lsh/measure/kmp/logs/LogSeverity;Ljava/util/Map;)V
 	public static synthetic fun log$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Lsh/measure/kmp/logs/LogSeverity;Ljava/util/Map;ILjava/lang/Object;)V
+	public final fun logDebug (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun logDebug$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public final fun logError (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun logError$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public final fun logFatal (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun logFatal$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public final fun logInfo (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun logInfo$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public final fun logWarning (Ljava/lang/String;Ljava/util/Map;)V
+	public static synthetic fun logWarning$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
 	public final fun setUserId (Ljava/lang/String;)V
 	public final fun start ()V
 	public final fun startSpan (Ljava/lang/String;)Lsh/measure/kmp/tracing/Span;
@@ -32,19 +42,6 @@ public final class sh/measure/kmp/Measure {
 	public static synthetic fun trackHttpEvent$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/lang/String;JJLjava/lang/Integer;Ljava/lang/Exception;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)V
 	public final fun trackScreenView (Ljava/lang/String;Ljava/util/Map;)V
 	public static synthetic fun trackScreenView$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
-}
-
-public final class sh/measure/kmp/MeasureKt {
-	public static final fun logDebug (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;)V
-	public static synthetic fun logDebug$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
-	public static final fun logError (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;)V
-	public static synthetic fun logError$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
-	public static final fun logFatal (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;)V
-	public static synthetic fun logFatal$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
-	public static final fun logInfo (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;)V
-	public static synthetic fun logInfo$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
-	public static final fun logWarning (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;)V
-	public static synthetic fun logWarning$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
 }
 
 public abstract interface class sh/measure/kmp/attributes/AttributeValue {

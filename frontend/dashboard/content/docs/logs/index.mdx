@@ -66,7 +66,7 @@ Measure.logFatal({ body: "Unrecoverable database error" });
 <Tab value="Kotlin Multiplatform">
 
 ```kotlin
-import sh.measure.kmp.*
+import sh.measure.kmp.Measure
 
 Measure.logDebug("Cache miss for key user_42")
 Measure.logInfo("User signed in")
@@ -128,7 +128,6 @@ Measure.logWarning({ body: "Payment failed", attributes: { screen: "Checkout" } 
 
 ```kotlin
 import sh.measure.kmp.Measure
-import sh.measure.kmp.logWarning
 import sh.measure.kmp.attributes.AttributesBuilder
 
 val attributes = AttributesBuilder().put("screen", "Checkout").build()

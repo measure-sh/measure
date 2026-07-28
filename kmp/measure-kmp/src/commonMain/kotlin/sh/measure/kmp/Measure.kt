@@ -73,6 +73,31 @@ expect object Measure {
     )
 
     /**
+     * Tracks a log with [LogSeverity.Debug]. See [log] for details.
+     */
+    fun logDebug(body: String, attributes: Map<String, AttributeValue> = emptyMap())
+
+    /**
+     * Tracks a log with [LogSeverity.Info]. See [log] for details.
+     */
+    fun logInfo(body: String, attributes: Map<String, AttributeValue> = emptyMap())
+
+    /**
+     * Tracks a log with [LogSeverity.Warning]. See [log] for details.
+     */
+    fun logWarning(body: String, attributes: Map<String, AttributeValue> = emptyMap())
+
+    /**
+     * Tracks a log with [LogSeverity.Error]. See [log] for details.
+     */
+    fun logError(body: String, attributes: Map<String, AttributeValue> = emptyMap())
+
+    /**
+     * Tracks a log with [LogSeverity.Fatal]. See [log] for details.
+     */
+    fun logFatal(body: String, attributes: Map<String, AttributeValue> = emptyMap())
+
+    /**
      * Starts a new performance tracing span with the specified name.
      */
     fun startSpan(name: String): Span
@@ -152,28 +177,3 @@ expect object Measure {
         client: String = "unknown",
     )
 }
-
-/**
- * Tracks a log with [LogSeverity.Debug]. See [Measure.log] for details.
- */
-fun Measure.logDebug(body: String, attributes: Map<String, AttributeValue> = emptyMap()) = log(body, LogSeverity.Debug, attributes)
-
-/**
- * Tracks a log with [LogSeverity.Info]. See [Measure.log] for details.
- */
-fun Measure.logInfo(body: String, attributes: Map<String, AttributeValue> = emptyMap()) = log(body, LogSeverity.Info, attributes)
-
-/**
- * Tracks a log with [LogSeverity.Warning]. See [Measure.log] for details.
- */
-fun Measure.logWarning(body: String, attributes: Map<String, AttributeValue> = emptyMap()) = log(body, LogSeverity.Warning, attributes)
-
-/**
- * Tracks a log with [LogSeverity.Error]. See [Measure.log] for details.
- */
-fun Measure.logError(body: String, attributes: Map<String, AttributeValue> = emptyMap()) = log(body, LogSeverity.Error, attributes)
-
-/**
- * Tracks a log with [LogSeverity.Fatal]. See [Measure.log] for details.
- */
-fun Measure.logFatal(body: String, attributes: Map<String, AttributeValue> = emptyMap()) = log(body, LogSeverity.Fatal, attributes)
