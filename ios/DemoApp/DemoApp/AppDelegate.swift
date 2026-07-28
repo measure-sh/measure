@@ -26,7 +26,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                                               autoStart: true,
                                               requestHeadersProvider: CustomHeaderProvider(),
                                               maxDiskUsageInMb: 100,
-                                              enableFullCollectionMode: false,
+                                              enableFullCollectionMode: true,
                                               enableDiagnosticMode: true,
                                               enableDiagnosticModeGesture: true)
         Measure.initialize(with: clientInfo, config: measureConfig)

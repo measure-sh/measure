@@ -58,7 +58,6 @@ let objcErrorFramesToStrip = 4
 
 struct AttributeConstants {
     static let deviceManufacturer = "Apple"
-    static let platform = "ios"
     static let unknown = "unknown"
 }
 
@@ -77,7 +76,6 @@ struct CrashDataKeys {
     static let deviceLocale = "device_locale"
     static let osName = "os_name"
     static let osVersion = "os_version"
-    static let platform = "platform"
     static let networkType = "network_type"
     static let networkGeneration = "network_generation"
     static let networkProvider = "network_provider"
