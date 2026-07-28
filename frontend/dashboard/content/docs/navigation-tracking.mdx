@@ -144,13 +144,13 @@ class CheckoutViewController: MsrViewController {
 }
 ```
 
-For SwiftUI, wrap a view in `MsrMoniterView` or use the `moniterWithMsr` extension to record `onAppear` and `onDisappear`:
+For SwiftUI, wrap a view in `MsrMonitorView` or use the `monitorWithMsr` extension to record `onAppear` and `onDisappear`:
 
 ```swift
 struct CheckoutView: View {
     var body: some View {
         CheckoutForm()
-            .moniterWithMsr("Checkout")
+            .monitorWithMsr("Checkout")
     }
 }
 ```

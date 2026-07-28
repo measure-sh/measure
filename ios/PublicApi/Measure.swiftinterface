@@ -1,7 +1,7 @@
 // swift-interface-format-version: 1.0
-// swift-compiler-version: Apple Swift version 6.1.2 effective-5.10 (swiftlang-6.1.2.1.2 clang-1700.0.13.5)
-// swift-module-flags: -target arm64-apple-ios12-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -Onone -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name Measure
-// swift-module-flags-ignorable: -no-verify-emitted-module-interface -interface-compiler-version 6.1.2
+// swift-compiler-version: Apple Swift version 6.3.2 effective-5.10 (swiftlang-6.3.2.1.108 clang-2100.1.1.101)
+// swift-module-flags: -target arm64-apple-ios12-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -Onone -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name Measure
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface -formal-cxx-interoperability-mode=off -interface-compiler-version 6.3.2
 import AVKit
 import CoreData
 import CoreMotion
@@ -40,30 +40,30 @@ extension Measure.AttributeValue : Swift.Codable {
   public init(from decoder: any Swift.Decoder) throws
 }
 public typealias SessionObCoreDataClassSet = Foundation.NSSet
-@_inheritsConvenienceInitializers @objc(SessionOb) public class SessionOb : CoreData.NSManagedObject {
-  @objc override dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
+@_inheritsConvenienceInitializers @objc(SessionOb) nonisolated public class SessionOb : CoreData.NSManagedObject {
+  @objc override nonisolated dynamic public init(entity: CoreData.NSEntityDescription, insertInto context: CoreData.NSManagedObjectContext?)
   @objc deinit
 }
 public typealias SessionObCoreDataPropertiesSet = Foundation.NSSet
 extension Measure.SessionOb {
   @nonobjc public class func fetchRequest() -> CoreData.NSFetchRequest<Measure.SessionOb>
-  @objc @NSManaged dynamic public var crashed: Swift.Bool {
+  @objc @NSManaged nonisolated dynamic public var crashed: Swift.Bool {
     @objc get
     @objc set
   }
-  @objc @NSManaged dynamic public var createdAt: Swift.Int64 {
+  @objc @NSManaged nonisolated dynamic public var createdAt: Swift.Int64 {
     @objc get
     @objc set
   }
-  @objc @NSManaged dynamic public var needsReporting: Swift.Bool {
+  @objc @NSManaged nonisolated dynamic public var needsReporting: Swift.Bool {
     @objc get
     @objc set
   }
-  @objc @NSManaged dynamic public var pid: Swift.Int32 {
+  @objc @NSManaged nonisolated dynamic public var pid: Swift.Int32 {
     @objc get
     @objc set
   }
-  @objc @NSManaged dynamic public var sessionId: Swift.String? {
+  @objc @NSManaged nonisolated dynamic public var sessionId: Swift.String? {
     @objc get
     @objc set
   }
@@ -324,16 +324,22 @@ public enum ScreenshotMaskLevel : Swift.String, Swift.Codable, Swift.CaseIterabl
   @objc deinit
 }
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
-@_Concurrency.MainActor @preconcurrency public struct MsrMoniterView<Content> : SwiftUICore.View where Content : SwiftUICore.View {
+@_Concurrency.MainActor @preconcurrency public struct MsrMonitorView<Content> : SwiftUICore.View where Content : SwiftUICore.View {
   @_Concurrency.MainActor @preconcurrency public init(_ viewName: Swift.String? = nil, content: @escaping () -> Content)
   @_Concurrency.MainActor @preconcurrency public var body: some SwiftUICore.View {
     get
   }
   @available(iOS 13, tvOS 13, watchOS 6.0, macOS 10.15, *)
-  public typealias Body = @_opaqueReturnTypeOf("$s7Measure14MsrMoniterViewV4bodyQrvp", 0) __<Content>
+  public typealias Body = @_opaqueReturnTypeOf("$s7Measure14MsrMonitorViewV4bodyQrvp", 0) __<Content>
 }
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
+@available(*, deprecated, renamed: "MsrMonitorView")
+public typealias MsrMoniterView<Content> = Measure.MsrMonitorView<Content> where Content : SwiftUICore.View
+@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 extension SwiftUICore.View {
+  @_Concurrency.MainActor @preconcurrency public func monitorWithMsr(_ viewName: Swift.String? = nil) -> some SwiftUICore.View
+  
+  @available(*, deprecated, renamed: "monitorWithMsr(_:)")
   @_Concurrency.MainActor @preconcurrency public func moniterWithMsr(_ viewName: Swift.String? = nil) -> some SwiftUICore.View
   
 }
@@ -441,7 +447,7 @@ extension Measure.VCLifecycleEventType : Swift.Equatable {}
 extension Measure.VCLifecycleEventType : Swift.Hashable {}
 extension Measure.VCLifecycleEventType : Swift.RawRepresentable {}
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
-extension Measure.MsrMoniterView : Swift.Sendable {}
+extension Measure.MsrMonitorView : Swift.Sendable {}
 extension Measure.LogSeverity : Swift.Equatable {}
 extension Measure.LogSeverity : Swift.Hashable {}
 extension Measure.LogSeverity : Swift.RawRepresentable {}

@@ -83,7 +83,7 @@
 		526D18692D5A1913009A2E90 /* LifecycleEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17E82D5A1913009A2E90 /* LifecycleEvents.swift */; };
 		526D186A2D5A1913009A2E90 /* LifecycleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17E92D5A1913009A2E90 /* LifecycleManager.swift */; };
 		526D186B2D5A1913009A2E90 /* MsrViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17EA2D5A1913009A2E90 /* MsrViewController.swift */; };
-		526D186C2D5A1913009A2E90 /* MsrMoniterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17EB2D5A1913009A2E90 /* MsrMoniterView.swift */; };
+		526D186C2D5A1913009A2E90 /* MsrMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17EB2D5A1913009A2E90 /* MsrMonitorView.swift */; };
 		526D186D2D5A1913009A2E90 /* NetworkChangeCallback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17ED2D5A1913009A2E90 /* NetworkChangeCallback.swift */; };
 		526D186E2D5A1913009A2E90 /* NetworkChangeCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17EE2D5A1913009A2E90 /* NetworkChangeCollector.swift */; };
 		526D186F2D5A1913009A2E90 /* NetworkChangeData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17EF2D5A1913009A2E90 /* NetworkChangeData.swift */; };
@@ -456,7 +456,7 @@
 		526D17E82D5A1913009A2E90 /* LifecycleEvents.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LifecycleEvents.swift; sourceTree = "<group>"; };
 		526D17E92D5A1913009A2E90 /* LifecycleManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LifecycleManager.swift; sourceTree = "<group>"; };
 		526D17EA2D5A1913009A2E90 /* MsrViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MsrViewController.swift; sourceTree = "<group>"; };
-		526D17EB2D5A1913009A2E90 /* MsrMoniterView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MsrMoniterView.swift; sourceTree = "<group>"; };
+		526D17EB2D5A1913009A2E90 /* MsrMonitorView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MsrMonitorView.swift; sourceTree = "<group>"; };
 		526D17ED2D5A1913009A2E90 /* NetworkChangeCallback.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NetworkChangeCallback.swift; sourceTree = "<group>"; };
 		526D17EE2D5A1913009A2E90 /* NetworkChangeCollector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NetworkChangeCollector.swift; sourceTree = "<group>"; };
 		526D17EF2D5A1913009A2E90 /* NetworkChangeData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NetworkChangeData.swift; sourceTree = "<group>"; };
@@ -945,7 +945,7 @@
 				CF9D74C42E6169F3007D6D30 /* LifecycleManagerInternal.swift */,
 				526D17E92D5A1913009A2E90 /* LifecycleManager.swift */,
 				526D17EA2D5A1913009A2E90 /* MsrViewController.swift */,
-				526D17EB2D5A1913009A2E90 /* MsrMoniterView.swift */,
+				526D17EB2D5A1913009A2E90 /* MsrMonitorView.swift */,
 			);
 			path = Lifecycle;
 			sourceTree = "<group>";
@@ -1857,7 +1857,7 @@
 				526D18452D5A1913009A2E90 /* Attachment.swift in Sources */,
 				CF893DDB2E950DEE00D99D45 /* EventOb+CoreDataProperties.swift in Sources */,
 				CF1BB5532DE4370A00588506 /* MsrDimensions.swift in Sources */,
-				526D186C2D5A1913009A2E90 /* MsrMoniterView.swift in Sources */,
+				526D186C2D5A1913009A2E90 /* MsrMonitorView.swift in Sources */,
 				526D183B2D5A1913009A2E90 /* CoreDataManager.swift in Sources */,
 				526D18832D5A1913009A2E90 /* IdProvider.swift in Sources */,
 				526D18652D5A1913009A2E90 /* URLSessionTaskSwizzler.swift in Sources */,
