@@ -4,7 +4,7 @@ kotlin = "1.9.21"
 #noinspection AndroidGradlePluginVersion
 agp802 = "8.0.2"
 # Used by testImplementationAar for static verification of bytecode rewrites.
-androidx-navigation = "2.9.7"
+androidx-navigation = "2.9.8"
 androidx-compose-runtime = "1.9.4"
 bundletool = "1.18.2"
 # android-tools (sdklib, apkanalyzer, common) is used to calculate app and aab size.
