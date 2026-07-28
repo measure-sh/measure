@@ -1,5 +1,5 @@
 //
-//  MsrMoniterView.swift
+//  MsrMonitorView.swift
 //  MeasureSDK
 //
 //  Created by Adwin Ross on 29/10/24.
@@ -13,14 +13,14 @@ import SwiftUI
 /// ```swift
 /// struct ContentView: View {
 ///     var body: some View {
-///         MsrMoniterView("ContentView") {
+///         MsrMonitorView("ContentView") {
 ///             Text("Hello, World!")
 ///         }
 ///     }
 /// }
 /// ```
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
-public struct MsrMoniterView<Content: View>: View {
+public struct MsrMonitorView<Content: View>: View {
     @State private var hasViewAppeared = false
 
     let content: () -> Content
@@ -47,20 +47,29 @@ public struct MsrMoniterView<Content: View>: View {
 }
 
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
+@available(*, deprecated, renamed: "MsrMonitorView")
+public typealias MsrMoniterView<Content: View> = MsrMonitorView<Content>
+
+@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 public extension View {
-    /// An extension function on View that wraps the view in an MsrMoniterView to monitor its lifecycle events.
+    /// An extension function on View that wraps the view in an MsrMonitorView to monitor its lifecycle events.
     /// - Parameter viewName: viewName: An optional String representing the name of the view to be monitored. If nil, it defaults to the type name of the view itself.
     /// - Returns: some View
     /// ```swift
     /// struct ContentView: View {
     ///     var body: some View {
     ///         Text("Hello, World!")
-    ///             .moniterWithMsr("ContentView")
+    ///             .monitorWithMsr("ContentView")
     ///     }
     /// }
-    func moniterWithMsr(_ viewName: String? = nil) -> some View {
-        return MsrMoniterView(viewName) {
+    func monitorWithMsr(_ viewName: String? = nil) -> some View {
+        return MsrMonitorView(viewName) {
             return self
         }
+    }
+
+    @available(*, deprecated, renamed: "monitorWithMsr(_:)")
+    func moniterWithMsr(_ viewName: String? = nil) -> some View {
+        return monitorWithMsr(viewName)
     }
 }
