@@ -33,7 +33,7 @@ class NavigationClassVisitorTest(private val fixture: String) {
         @Parameterized.Parameters(name = "{0}")
         fun fixtures(): List<Array<Any>> = listOf(
             arrayOf("NavHostControllerKt_2_4_0.class"),
-            arrayOf("NavHostControllerKt_2_9_7.class"),
+            arrayOf("NavHostControllerKt_2_9_8.class"),
         )
     }
 }
