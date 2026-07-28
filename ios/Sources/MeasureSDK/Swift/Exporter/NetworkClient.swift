@@ -36,7 +36,7 @@ final class BaseNetworkClient: NetworkClient {
     func execute(batchId: String, events: [EventEntity], spans: [SpanEntity]) -> HttpResponse {
         let serializedEvents = self.serializeEvents(events: events)
         let serializedSpans = self.serializeSpans(spans: spans)
-        print("serializedEvents: \(serializedEvents)")
+
         if serializedEvents.isEmpty && serializedSpans.isEmpty {
             return .success(body: "{}", eTag: nil)
         }
