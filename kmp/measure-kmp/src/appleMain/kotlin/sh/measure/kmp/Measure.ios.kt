@@ -92,6 +92,16 @@ actual object Measure {
         )
     }
 
+    actual fun logDebug(body: String, attributes: Map<String, AttributeValue>) = log(body, LogSeverity.Debug, attributes)
+
+    actual fun logInfo(body: String, attributes: Map<String, AttributeValue>) = log(body, LogSeverity.Info, attributes)
+
+    actual fun logWarning(body: String, attributes: Map<String, AttributeValue>) = log(body, LogSeverity.Warning, attributes)
+
+    actual fun logError(body: String, attributes: Map<String, AttributeValue>) = log(body, LogSeverity.Error, attributes)
+
+    actual fun logFatal(body: String, attributes: Map<String, AttributeValue>) = log(body, LogSeverity.Fatal, attributes)
+
     actual fun startSpan(name: String): Span = IosSpan(IosMeasure.startSpanWithName(name))
 
     actual fun startSpan(name: String, timestamp: Long): Span = IosSpan(IosMeasure.startSpanWithName(name, timestamp = timestamp))
