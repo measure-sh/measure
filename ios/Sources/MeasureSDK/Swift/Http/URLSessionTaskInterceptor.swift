@@ -82,6 +82,7 @@ final class URLSessionTaskInterceptor {
               let configProvider = self.configProvider,
               let signalSampler = self.signalSampler else { return }
 
+        guard isHttpUrl(url) else { return }
         guard configProvider.shouldTrackHttpUrl(url: url) else { return }
         guard signalSampler.shouldTrackLaunchEvents() else { return }
 
@@ -120,6 +121,18 @@ final class URLSessionTaskInterceptor {
             return String(data: data, encoding: .utf8)
         }
         return nil
+    }
+
+    private func isHttpUrl(_ url: String) -> Bool {
+        guard let parsedUrl = URL(string: url),
+              let scheme = parsedUrl.scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              let host = parsedUrl.host,
+              !host.isEmpty else {
+            return false
+        }
+
+        return true
     }
 
     /// React Native uses multiple parallel connections for a single request, all of which are canceled
