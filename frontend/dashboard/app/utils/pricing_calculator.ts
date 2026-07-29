@@ -24,7 +24,7 @@ export type EventBreakdown = {
   sessionStartPerDay: number;
   launchPerDay: number;
   crashEventsPerDay: number;
-  sessionTimelineEventsPerDay: number;
+  sessionReplayEventsPerDay: number;
   perfSpansPerDay: number;
   journeyEventsPerDay: number;
 };
@@ -56,7 +56,7 @@ export function computeEventBreakdown(
   const crashSessionsPerDay =
     dailyUsers * averageAppOpens * (errorRatePercent / 100);
   const crashEventsPerDay = crashSessionsPerDay;
-  const sessionTimelineEventsPerDay =
+  const sessionReplayEventsPerDay =
     crashSessionsPerDay * SESSION_TIME_PER_ERROR * EVENTS_PER_SESSION_MINUTE;
   const perfSpansPerDay =
     dailyUsers *
@@ -74,7 +74,7 @@ export function computeEventBreakdown(
     sessionStartPerDay,
     launchPerDay,
     crashEventsPerDay,
-    sessionTimelineEventsPerDay,
+    sessionReplayEventsPerDay,
     perfSpansPerDay,
     journeyEventsPerDay,
   };
@@ -85,7 +85,7 @@ export function computeBytesPerDay(events: EventBreakdown): number {
   const otherBytes =
     (events.sessionStartPerDay +
       events.launchPerDay +
-      events.sessionTimelineEventsPerDay +
+      events.sessionReplayEventsPerDay +
       events.perfSpansPerDay +
       events.journeyEventsPerDay) *
     DEFAULT_EVENT_SIZE_KB *

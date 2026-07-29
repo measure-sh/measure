@@ -1,6 +1,6 @@
 ---
 title: Open Source Luciq (formerly Instabug) Alternative
-description: Mobile focused, open source alternative to Luciq (formerly Instabug). Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.
+description: Mobile focused, open source alternative to Luciq (formerly Instabug). Crashes, ANRs, performance, network and full session replays for mobile engineering teams with simple pricing.
 canonical: /luciq-alternative
 ---
 
@@ -14,7 +14,7 @@ Measure is a mobile first, open source Luciq alternative.
 
 Measure and Luciq both record full session replays and attach logs, network calls, device details and repro steps to the issues you debug, giving you far more than a stack trace.
 
-Measure captures gestures, navigation, network calls, lifecycle events and custom spans into a full [Session Timeline](/product/session-timelines) on every issue.
+Measure captures gestures, navigation, network calls, lifecycle events and custom spans into a full [Session Replay](/product/session-replays) on every issue.
 
 The key difference is transparency. With Measure, you can audit what happens to those collected sessions since our entire platform is open source. From the SDK to the backend processing and the storage layer, you can see what Measure does with your data and verify it yourself. No need for blind trust, just read the source.
 
@@ -50,13 +50,13 @@ Measure is built with the community, incorporating continuous feedback which we 
 
 | Capability | Measure | Luciq |
 | --- | --- | --- |
-| Crash reporting with full session timelines | ✓ | ✓ |
-| ANR detection with full session timelines | ✓ | ✓ |
+| Crash reporting with full session replays | ✓ | ✓ |
+| ANR detection with full session replays | ✓ | ✓ |
 | Performance traces | ✓ | ✓ |
 | Network monitoring | ✓ | ✓ |
 | User journeys | ✓ | ✓ |
 | In-app bug reports | ✓ | ✓ |
-| Session timeline on every issue | ✓ | ✓ |
+| Session replay on every issue | ✓ | ✓ |
 | Dynamic Sampling with Adaptive Capture | ✓ | ✗ |
 | Auto-captured context | Gestures, navigation, network, lifecycle | Screen changes, interactions, network, logs |
 | Pricing | Simple pricing based on data usage | Per active user + seat, sales call needed |

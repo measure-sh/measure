@@ -1,0 +1,191 @@
+{
+ "label": "Product Screen",
+ "type": "container",
+ "x": 0,
+ "y": 0,
+ "width": 392,
+ "height": 812,
+ "scrollable": true,
+ "highlighted": false,
+ "children": [
+  {
+   "label": "Header Bar",
+   "type": "container",
+   "x": 0,
+   "y": 0,
+   "width": 392,
+   "height": 72,
+   "scrollable": false,
+   "highlighted": false,
+   "children": [
+    {
+     "label": "Back Button",
+     "type": "button",
+     "x": 16,
+     "y": 24,
+     "width": 24,
+     "height": 24,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Screen Title",
+     "type": "text",
+     "x": 146,
+     "y": 24,
+     "width": 100,
+     "height": 24,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Points Balance",
+     "type": "container",
+     "x": 291,
+     "y": 24,
+     "width": 85,
+     "height": 24,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    }
+   ]
+  },
+  {
+   "label": "Hero Image",
+   "type": "image",
+   "x": 16,
+   "y": 88,
+   "width": 360,
+   "height": 280,
+   "scrollable": false,
+   "highlighted": false,
+   "children": []
+  },
+  {
+   "label": "Product Name",
+   "type": "text",
+   "x": 16,
+   "y": 392,
+   "width": 240,
+   "height": 28,
+   "scrollable": false,
+   "highlighted": false,
+   "children": []
+  },
+  {
+   "label": "Product Price",
+   "type": "text",
+   "x": 16,
+   "y": 430,
+   "width": 100,
+   "height": 24,
+   "scrollable": false,
+   "highlighted": false,
+   "children": []
+  },
+  {
+   "label": "Rating Row",
+   "type": "container",
+   "x": 16,
+   "y": 466,
+   "width": 160,
+   "height": 20,
+   "scrollable": false,
+   "highlighted": false,
+   "children": []
+  },
+  {
+   "label": "Size Row",
+   "type": "container",
+   "x": 16,
+   "y": 506,
+   "width": 360,
+   "height": 48,
+   "scrollable": false,
+   "highlighted": false,
+   "children": [
+    {
+     "label": "Size S",
+     "type": "button",
+     "x": 16,
+     "y": 506,
+     "width": 52,
+     "height": 48,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Size M",
+     "type": "button",
+     "x": 80,
+     "y": 506,
+     "width": 52,
+     "height": 48,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Size L",
+     "type": "button",
+     "x": 144,
+     "y": 506,
+     "width": 52,
+     "height": 48,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Size XL",
+     "type": "button",
+     "x": 208,
+     "y": 506,
+     "width": 52,
+     "height": 48,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    }
+   ]
+  },
+  {
+   "label": "Product Description",
+   "type": "text",
+   "x": 16,
+   "y": 576,
+   "width": 360,
+   "height": 88,
+   "scrollable": false,
+   "highlighted": false,
+   "children": []
+  },
+  {
+   "label": "Add To Cart Button",
+   "type": "button",
+   "x": 16,
+   "y": 688,
+   "width": 360,
+   "height": 56,
+   "scrollable": false,
+   "highlighted": true,
+   "children": [
+    {
+     "label": "Add To Cart Label",
+     "type": "text",
+     "x": 166,
+     "y": 706,
+     "width": 60,
+     "height": 20,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    }
+   ]
+  }
+ ]
+}

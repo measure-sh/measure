@@ -9,7 +9,7 @@ const BugReport = dynamic(() => import("./bug_report"), { ssr: false });
 const UserJourneys = dynamic(() => import("./user_journeys"), { ssr: false });
 const Overview = dynamic(() => import("./overview"), { ssr: false });
 const TraceDetails = dynamic(() => import("./trace/details"), { ssr: false });
-const SessionTimeline = dynamic(() => import("./session_timeline"), {
+const SessionReplay = dynamic(() => import("./session_replay"), {
   ssr: false,
 });
 const ErrorsDetails = dynamic(
@@ -23,12 +23,17 @@ const NetworkOverview = dynamic(() => import("./network_overview"), {
   ssr: false,
 });
 
+// Each demo renders at its own natural height; sizing the frame per feature
+// keeps short demos from ending in dead space while the tall dashboards stay
+// cropped previews. Heights fit the preview's maximum width, where the iframe
+// scale is 0.8.
 const features = [
   {
-    title: "Session Timelines",
+    title: "Session Replays",
+    heightClassName: "h-[500px] md:h-[790px]",
     description: (
       <>
-        Debug issues easily with full session timelines{" "}
+        Debug issues easily with full session replays{" "}
         <span aria-hidden="true">🎥</span>. Get rich, complete context with
         automatic tracking for clicks, navigations, logs, http calls, memory
         usage, cpu usage, stacktraces and more.
@@ -37,6 +42,7 @@ const features = [
   },
   {
     title: "App Health",
+    heightClassName: "h-[500px] md:h-[975px]",
     description: (
       <>
         Monitor important metrics to stay on top of app health{" "}
@@ -48,17 +54,19 @@ const features = [
   },
   {
     title: "Crashes and ANRs",
+    heightClassName: "h-[500px] md:h-[1000px]",
     description: (
       <>
         Automatically track Crashes <span aria-hidden="true">💥</span> and ANRs{" "}
         <span aria-hidden="true">⏳</span>. Dive deeper with detailed
-        stacktraces, common path analysis, complete session timelines,
+        stacktraces, common path analysis, complete session replays,
         distribution graphs and screenshots.
       </>
     ),
   },
   {
     title: "Performance Traces",
+    heightClassName: "h-[500px] md:h-[505px]",
     description: (
       <>
         Analyze app performance with traces and spans{" "}
@@ -70,6 +78,7 @@ const features = [
   },
   {
     title: "Bug Reports",
+    heightClassName: "h-[500px] md:h-[660px]",
     description: (
       <>
         Capture bug reports with a device shake or SDK function call{" "}
@@ -82,6 +91,7 @@ const features = [
   },
   {
     title: "User Journeys",
+    heightClassName: "h-[500px] md:h-[815px]",
     description: (
       <>
         Understand how users move through your app{" "}
@@ -93,6 +103,7 @@ const features = [
   },
   {
     title: "Network Performance",
+    heightClassName: "h-[500px] md:h-[1000px]",
     description: (
       <>
         Monitor Network request latency and status codes across your app{" "}
@@ -110,10 +121,10 @@ export default function FeatureDemoCarousel() {
   // Indices line up with `features`. Only the active demo is mounted — it's
   // swapped inside the single iframe rendered by ScaledPreview below.
   const demos = [
-    <SessionTimeline
+    <SessionReplay
       demo={true}
       hideDemoTitle={false}
-      key="demo-session-timeline"
+      key="demo-session-replay"
     />,
     <Overview demo={true} hideDemoTitle={false} key="demo-overview" />,
     <ErrorsDetails demo={true} hideDemoTitle={false} key="demo-errors" />,
@@ -141,7 +152,9 @@ export default function FeatureDemoCarousel() {
       </p>
       <div className="py-2 md:py-4" />
 
-      <div className="relative w-full max-w-[90vw] md:max-w-6xl h-[500px] md:h-[1000px] mx-auto border border-border rounded-lg shadow-xl overflow-hidden">
+      <div
+        className={`relative w-full max-w-[90vw] md:max-w-6xl ${features[featureIndex].heightClassName} mx-auto border border-border rounded-lg shadow-xl overflow-hidden`}
+      >
         <ScaledPreview>
           {/* The demos' sticky charts use a -top-12 offset that cancels this
               py-12 padding so they pin flush to the top — keep them in sync. */}

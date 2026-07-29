@@ -24,7 +24,7 @@ export enum PillType {
   StatusUnset = "status-unset",
   StatusOkay = "status-okay",
   StatusError = "status-error",
-  // Session timeline events — one type per event, coloured by family and
+  // Session events — one type per event, coloured by family and
   // (for errors) severity. Square-ish (rounded-sm) to set them apart from the
   // pill-shaped filter/status chips above.
   SessionEventFatalError = "session_event_fatal_error",
@@ -44,6 +44,7 @@ export enum PillType {
   SessionEventLifecycleApp = "session_event_lifecycle_app",
   SessionEventAppExit = "session_event_app_exit",
   SessionEventNavigation = "session_event_navigation",
+  SessionEventNetworkChange = "session_event_network_change",
   SessionEventScreenView = "session_event_screen_view",
   SessionEventColdLaunch = "session_event_cold_launch",
   SessionEventWarmLaunch = "session_event_warm_launch",
@@ -59,6 +60,7 @@ export enum PillType {
   SessionEventLogError = "session_event_log_error",
   SessionEventLogFatal = "session_event_log_fatal",
   SessionEventProfile = "session_event_profile",
+  SessionEventThread = "session_event_thread",
   SessionEventDefault = "session_event_default",
 }
 
@@ -110,6 +112,10 @@ const sessionTeal =
 // otherwise-unmapped event.
 const sessionIndigo =
   "rounded-sm border-indigo-400 text-indigo-700 bg-indigo-100 dark:border-indigo-400 dark:text-indigo-400 dark:bg-indigo-950/40";
+// Zinc carries the thread an event was recorded on, alongside the event's own
+// colour rather than competing with it.
+const sessionZinc =
+  "rounded-sm border-zinc-400 text-zinc-700 bg-zinc-100 dark:border-zinc-400 dark:text-zinc-300 dark:bg-zinc-800/60";
 
 // Typed defaults: each PillType carries its display label (when no children
 // are passed) and its colour tint.
@@ -196,6 +202,10 @@ const pillDefaults: Record<PillType, { label?: string; tint: string }> = {
     label: "Navigation",
     tint: sessionFuchsia,
   },
+  [PillType.SessionEventNetworkChange]: {
+    label: "Network Change",
+    tint: sessionCyan,
+  },
   [PillType.SessionEventScreenView]: {
     label: "Screen View",
     tint: sessionFuchsia,
@@ -232,6 +242,8 @@ const pillDefaults: Record<PillType, { label?: string; tint: string }> = {
     label: "Profile",
     tint: sessionTeal,
   },
+  // No label: the row passes the thread's own name as children.
+  [PillType.SessionEventThread]: { tint: sessionZinc },
   // No label: the cell passes the raw event type as children for unknown
   // events, mirroring the old `return eventType` fallback.
   [PillType.SessionEventDefault]: { tint: sessionIndigo },

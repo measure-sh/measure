@@ -1,6 +1,6 @@
 ---
 title: Open Source Datadog Alternative
-description: Mobile focused, open source alternative to Datadog. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.
+description: Mobile focused, open source alternative to Datadog. Crashes, ANRs, performance, network and full session replays for mobile engineering teams with simple pricing.
 canonical: /datadog-alternative
 ---
 
@@ -14,7 +14,7 @@ Measure is a mobile first, open source Datadog alternative.
 
 Datadog gives you stack traces and auto-captured events out of the box with Mobile Session Replays billed separately. If you want full context on every error, you will need to turn on Mobile Session Replays for all of them and accommodate the significant cost increase.
 
-Measure attaches a full [Session Timeline](/product/session-timelines) with gestures, navigation, network calls, lifecycle events and custom spans to every crash, ANR and error and you only pay for the data used as a whole.
+Measure attaches a full [Session Replay](/product/session-replays) with gestures, navigation, network calls, lifecycle events and custom spans to every crash, ANR and error and you only pay for the data used as a whole.
 
 You see exactly what the user did and what the app did, on every issue, without any compromise on the context.
 
@@ -50,13 +50,13 @@ Mobile is not a part of our product, it is the whole product.
 
 | Capability | Measure | Datadog |
 | --- | --- | --- |
-| Crash reporting with full session timelines | ✓ | Crash reports with auto-captured events, session replay sampled & billed separately |
-| ANR detection with full session timelines | ✓ | ANRs, session replay sampled & billed separately |
+| Crash reporting with full session replays | ✓ | Crash reports with auto-captured events, session replay sampled & billed separately |
+| ANR detection with full session replays | ✓ | ANRs, session replay sampled & billed separately |
 | Performance traces | ✓ | ✓ |
 | Network monitoring | ✓ | ✓ |
 | User journeys | ✓ | ✓ |
 | In-app bug reports | ✓ | ✗ |
-| Session timeline on every issue | ✓ | Session replay, sampled & billed separately |
+| Session replay on every issue | ✓ | Session replay, sampled & billed separately |
 | Dynamic Sampling with Adaptive Capture | ✓ | Client side only sampling |
 | Auto-captured context | Gestures, navigation, network, lifecycle | Actions, views, network, errors |
 | Pricing | Simple pricing based on data usage | Separate SKUs for RUM session tiers, replay, APM, infra & logs |

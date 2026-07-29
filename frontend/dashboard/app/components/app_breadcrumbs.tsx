@@ -17,7 +17,7 @@ import type { ReactNode } from "react";
 
 const sectionTitles: Record<string, string> = {
   overview: "Overview",
-  session_timelines: "Session Timelines",
+  session_replays: "Session Replays",
   journeys: "Journeys",
   errors: "Errors",
   bug_reports: "Bug Reports",
@@ -45,9 +45,12 @@ const subrouteTitles: Record<string, string> = {
 // Helper text shown as an info tooltip beside the section title in the
 // breadcrumb, for sections that have no in-page heading to attach it to.
 const sectionInfo: Record<string, ReactNode> = {
-  session_timelines: (
+  session_replays: (
     <>
-      Timelines are captured for Crashes, ANRs, Bug Reports & sampled sessions.
+      Replays are captured for Crashes, ANRs, Bug Reports & sampled sessions.{" "}
+      <Link href="/docs/session-replay" className={underlineLinkStyle}>
+        Learn more
+      </Link>
     </>
   ),
   journeys: (

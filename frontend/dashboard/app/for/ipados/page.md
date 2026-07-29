@@ -8,11 +8,11 @@ canonical: /for/ipados
 
 Measure is an open source, mobile first monitoring platform with full support for iPadOS. It surfaces the complete context behind every crash and performance issue to help you cut crash and error rates, sharpen performance and keep your iPad app feeling effortless.
 
-## Session Timelines
+## Session Replays
 
-Every crash and error on iPad comes with a complete [Session Timeline](/product/session-timelines) you can replay. Walk back through the exact run-up to the failure — gestures, screen navigation, network calls, logs and lifecycle events — with CPU and memory readings plotted right alongside.
+Every crash and error on iPad comes with a complete [Session Replay](/product/session-replays) you can replay. Walk back through the exact run-up to the failure — gestures, screen navigation, network calls, logs and lifecycle events — with CPU and memory readings plotted right alongside.
 
-A stack trace only tells you where things broke. The timeline shows how your app got there and what the user was doing in the moments before failure.
+A stack trace only tells you where things broke. The replay shows how your app got there and what the user was doing in the moments before failure.
 
 ## Detailed Stack Traces
 
@@ -24,7 +24,7 @@ Measure symbolicates them for you, mapping raw memory addresses back to the orig
 
 Wrap the operations that matter in [Performance Traces](/product/performance-traces). See how network requests, disk and database access, expensive code paths and the rendering of those larger iPad layouts accumulate within a single flow or across millions of sessions with waterfall views that make the slow parts obvious.
 
-Every trace comes with full device and app context and ties back to its session timeline, so a slow span never shows up without the conditions that produced it.
+Every trace comes with full device and app context and ties back to its session replay, so a slow span never shows up without the conditions that produced it.
 
 ## App Health
 
@@ -34,7 +34,7 @@ Notice a shaky rollout early and patch it before it spreads to the rest of your 
 
 ## Bug Reports
 
-Let people report a problem the second they run into it with [Bug Reports](/product/bug-reports), triggered by a shake or from a button you wire up through the SDK. Each one packages device details, app version, network conditions and a screenshot next to the user's own description, and allows you to jump straight to the matching session timeline.
+Let people report a problem the second they run into it with [Bug Reports](/product/bug-reports), triggered by a shake or from a button you wire up through the SDK. Each one packages device details, app version, network conditions and a screenshot next to the user's own description, and allows you to jump straight to the matching session replay.
 
 Forget the back-and-forth of email and support tickets. Your users explain the issue in their own words and you get every bit of context needed to resolve it.
 
@@ -52,7 +52,7 @@ Catch endpoints going bad early and take care of the API calls your users depend
 
 ## Coding Agents
 
-Bring Measure's full context into the coding agents you already work with. The [Measure MCP server](/product/mcp) hands any agent your crashes, performance traces and session timelines, directly from your IDE, editor or terminal.
+Bring Measure's full context into the coding agents you already work with. The [Measure MCP server](/product/mcp) hands any agent your crashes, performance traces and session replays, directly from your IDE, editor or terminal.
 
 Point it at a crash, have it work through user sessions, or build it into an agentic triage and debugging pipeline. Whether you prefer commercial tools or open source agents and models, Measure drops straight into your workflow.
 

@@ -8,7 +8,7 @@
  *
  * Detail: single trace with pills (User ID, Start Time, Duration,
  * Device, App version, Network type), TraceWaterfall timeline visualization,
- * and "View Session Timeline" link.
+ * and "View Session Replay" link.
  */
 import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
@@ -1234,12 +1234,12 @@ describe("Trace Detail (MSW integration)", () => {
       expect(screen.getByText("Network type: wifi")).toBeTruthy();
     });
 
-    it('renders "View Session Timeline" link', async () => {
+    it('renders "View Session Replay" link', async () => {
       await renderDetail();
-      const link = screen.getByText("View Session Timeline");
+      const link = screen.getByText("View Session Replay");
       expect(link).toBeTruthy();
       expect(link.closest("a")?.getAttribute("href")).toBe(
-        "/test-team/session_timelines/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/sess-trace-001",
+        "/test-team/session_replays/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/sess-trace-001",
       );
     });
   });

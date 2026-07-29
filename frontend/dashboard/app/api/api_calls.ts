@@ -190,7 +190,7 @@ export const emptyMetrics = {
   },
 };
 
-export const emptySessionTimelinesOverviewResponse = {
+export const emptySessionReplayOverviewResponse = {
   meta: {
     next: false,
     previous: false,
@@ -369,148 +369,6 @@ export const defaultAppThresholdPrefs = {
   error_caution_threshold: 85,
   error_spike_min_count_threshold: 100,
   error_spike_min_rate_threshold: 0.5,
-};
-
-export const emptySessionTimeline = {
-  app_id: "2b7ddad4-40a6-42a7-9e21-a90577e08263",
-  attribute: {
-    installation_id: "",
-    app_version: "",
-    app_build: "",
-    app_unique_id: "",
-    measure_sdk_version: "",
-    platform: "",
-    thread_name: "",
-    user_id: "",
-    device_name: "",
-    device_model: "",
-    device_manufacturer: "",
-    device_type: "",
-    device_is_foldable: true,
-    device_is_physical: false,
-    device_density_dpi: 0,
-    device_width_px: 0,
-    device_height_px: 0,
-    device_density: 0.0,
-    device_locale: "",
-    os_name: "",
-    os_version: "",
-    network_type: "",
-    network_provider: "",
-    network_generation: "",
-  },
-  cpu_usage: [
-    {
-      timestamp: "",
-      value: 0.0,
-    },
-  ],
-  duration: 0,
-  memory_usage: [
-    {
-      java_max_heap: 0,
-      java_total_heap: 0,
-      java_free_heap: 0,
-      total_pss: 0,
-      rss: 0,
-      native_total_heap: 0,
-      native_free_heap: 0,
-      interval: 0,
-      timestamp: "",
-    },
-  ],
-  memory_usage_absolute: [
-    {
-      max_memory: 0,
-      used_memory: 0,
-      interval: 0,
-      timestamp: "",
-    },
-  ],
-  session_id: "",
-  threads: {
-    main: [
-      {
-        event_type: "lifecycle_activity",
-        thread_name: "",
-        type: "",
-        class_name: "",
-        intent: "",
-        saved_instance_state: false,
-        timestamp: "",
-      },
-      {
-        event_type: "lifecycle_app",
-        thread_name: "",
-        type: "",
-        timestamp: "",
-      },
-      {
-        event_type: "exception",
-        type: "",
-        message: "",
-        method_name: "",
-        file_name: "",
-        line_number: 0,
-        thread_name: "",
-        handled: false,
-        stacktrace: "",
-        foreground: true,
-        timestamp: "",
-        attachments: [
-          {
-            id: "",
-            name: "",
-            type: "",
-            key: "",
-            location: "",
-          },
-        ],
-      },
-    ],
-  },
-  traces: [
-    {
-      trace_id: "847be6f84f004045d9deebea9b2fafe7",
-      trace_name: "root",
-      thread_name: "Thread-2",
-      start_time: "2024-12-16T03:31:04.16Z",
-      end_time: "2024-12-16T03:31:08.167Z",
-      duration: 4007,
-    },
-    {
-      trace_id: "3dd7bb2600064eea1a595021d77cb3d5",
-      trace_name: "activity.onCreate",
-      thread_name: "main",
-      start_time: "2024-12-16T03:30:57.915Z",
-      end_time: "2024-12-16T03:30:58.195Z",
-      duration: 280,
-    },
-    {
-      trace_id: "097d6c882be5f5ccacc0ef700b17b87a",
-      trace_name: "SampleApp.onCreate",
-      thread_name: "main",
-      start_time: "2024-12-16T03:30:57.712Z",
-      end_time: "2024-12-16T03:30:57.829Z",
-      duration: 117,
-    },
-    {
-      trace_id: "7e5ccd666dc26dbb65f4ce92b543637e",
-      trace_name: "activity.onCreate",
-      thread_name: "main",
-      start_time: "2024-12-16T03:26:48.27Z",
-      end_time: "2024-12-16T03:26:48.351Z",
-      duration: 81,
-    },
-    {
-      trace_id: "b0a9210cb6b5b98773e4ae6d98f65a8c",
-      trace_name: "SampleApp.onCreate",
-      thread_name: "main",
-      start_time: "2024-12-16T03:26:48.18Z",
-      end_time: "2024-12-16T03:26:48.232Z",
-      duration: 52,
-    },
-  ],
 };
 
 export const emptyTrace = {
@@ -1432,7 +1290,7 @@ export const fetchMetricsFromServer = async (filters: Filters) => {
   return data;
 };
 
-export const fetchSessionTimelinesOverviewFromServer = async (
+export const fetchSessionReplayOverviewFromServer = async (
   filters: Filters,
   limit: number,
   offset: number,
@@ -1443,13 +1301,13 @@ export const fetchSessionTimelinesOverviewFromServer = async (
   url = appendSessionTypesToUrl(url, filters);
 
   const data = await request(url, {
-    failsWith: "Failed to fetch session timelines overview",
+    failsWith: "Failed to fetch session replay overview",
   });
 
   return data;
 };
 
-export const fetchSessionTimelinesOverviewPlotFromServer = async (
+export const fetchSessionReplayOverviewPlotFromServer = async (
   filters: Filters,
 ) => {
   var url = `/api/apps/${filters.app!.id}/sessions/plots/instances?`;
@@ -1459,7 +1317,7 @@ export const fetchSessionTimelinesOverviewPlotFromServer = async (
   url = appendPlotTimeGroupToUrl(url, filters);
 
   const data = await request(url, {
-    failsWith: "Failed to fetch session timelines overview plot",
+    failsWith: "Failed to fetch session replay overview plot",
   });
 
   return data;
@@ -1591,12 +1449,12 @@ export const fetchAuthzAndMembersFromServer = async (teamId: string) => {
   return data;
 };
 
-export const fetchSessionTimelineFromServer = async (
+export const fetchSessionReplayFromServer = async (
   appId: string,
   sessionId: string,
 ) => {
   const data = await request(`/api/apps/${appId}/sessions/${sessionId}`, {
-    failsWith: "Failed to fetch session timeline",
+    failsWith: "Failed to fetch session replay",
   });
 
   return data;

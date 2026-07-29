@@ -1,7 +1,7 @@
 import { expect, test } from "../../fixtures.ts";
 import { BugReportsOverviewPage } from "../../pages/bug_reports_overview_page.ts";
 import { BugReportDetailPage } from "../../pages/bug_report_detail_page.ts";
-import { SessionTimelinePage } from "../../pages/session_timeline_page.ts";
+import { SessionReplayPage } from "../../pages/session_replay_page.ts";
 
 const NATIVE_DESCRIPTION = "e2e-bug-report";
 const FLUTTER_DESCRIPTION = "e2e-flutter-bug-report";
@@ -50,8 +50,8 @@ test.describe("bug reports", () => {
       await expect.poll(() => detail.renderedScreenshotCount()).toBe(2);
 
       await expect
-        .soft(detail.sessionTimelineLink)
-        .toHaveAttribute("href", /\/session_timelines\//);
+        .soft(detail.sessionReplayLink)
+        .toHaveAttribute("href", /\/session_replays\//);
     });
 
     test("status toggle changes the badge and reverts cleanly", async ({
@@ -70,22 +70,22 @@ test.describe("bug reports", () => {
       await expect(detail.status).toHaveText("Open");
     });
 
-    test("session timeline renders the bug report event", async ({
+    test("session replay renders the bug report event", async ({
       page,
       teamId,
     }) => {
       await overview.openBugReport(description);
       const detail = new BugReportDetailPage(page, teamId);
-      await detail.openSessionTimeline();
-      const timeline = new SessionTimelinePage(page, teamId);
+      await detail.openSessionReplay();
+      const replay = new SessionReplayPage(page, teamId);
 
-      await expect(timeline.eventsList).toBeVisible();
-      const event = timeline.selectBugReport(/e2e-bug-report/);
+      await expect(replay.eventsList).toBeVisible();
+      const event = replay.selectBugReport(/e2e-bug-report/);
       await expect(event).toBeVisible();
-      await expect(timeline.selectEventPill(event, "Bug Report")).toBeVisible();
+      await expect(replay.selectEventPill(event, "Bug Report")).toBeVisible();
 
       await event.click();
-      await timeline.openBugReportDetails();
+      await replay.openBugReportDetails();
       await expect(detail.description).toHaveText(description);
     });
   });
@@ -112,26 +112,26 @@ test.describe("bug reports", () => {
       await expect.poll(() => detail.renderedScreenshotCount()).toBe(2);
 
       await expect
-        .soft(detail.sessionTimelineLink)
-        .toHaveAttribute("href", /\/session_timelines\//);
+        .soft(detail.sessionReplayLink)
+        .toHaveAttribute("href", /\/session_replays\//);
     });
 
-    test("session timeline renders the bug report event", async ({
+    test("session replay renders the bug report event", async ({
       page,
       teamId,
     }) => {
       await overview.openBugReport(description);
       const detail = new BugReportDetailPage(page, teamId);
-      await detail.openSessionTimeline();
-      const timeline = new SessionTimelinePage(page, teamId);
+      await detail.openSessionReplay();
+      const replay = new SessionReplayPage(page, teamId);
 
-      await expect(timeline.eventsList).toBeVisible();
-      const event = timeline.selectBugReport(/e2e-flutter-bug-report/);
+      await expect(replay.eventsList).toBeVisible();
+      const event = replay.selectBugReport(/e2e-flutter-bug-report/);
       await expect(event).toBeVisible();
-      await expect(timeline.selectEventPill(event, "Bug Report")).toBeVisible();
+      await expect(replay.selectEventPill(event, "Bug Report")).toBeVisible();
 
       await event.click();
-      await timeline.openBugReportDetails();
+      await replay.openBugReportDetails();
       await expect(detail.description).toHaveText(description);
     });
   });
@@ -160,26 +160,26 @@ test.describe("bug reports", () => {
       await expect.poll(() => detail.renderedScreenshotCount()).toBe(2);
 
       await expect
-        .soft(detail.sessionTimelineLink)
-        .toHaveAttribute("href", /\/session_timelines\//);
+        .soft(detail.sessionReplayLink)
+        .toHaveAttribute("href", /\/session_replays\//);
     });
 
-    test("session timeline renders the bug report event", async ({
+    test("session replay renders the bug report event", async ({
       page,
       teamId,
     }) => {
       await overview.openBugReport(description);
       const detail = new BugReportDetailPage(page, teamId);
-      await detail.openSessionTimeline();
-      const timeline = new SessionTimelinePage(page, teamId);
+      await detail.openSessionReplay();
+      const replay = new SessionReplayPage(page, teamId);
 
-      await expect(timeline.eventsList).toBeVisible();
-      const event = timeline.selectBugReport(/e2e-rn-bug-report/);
+      await expect(replay.eventsList).toBeVisible();
+      const event = replay.selectBugReport(/e2e-rn-bug-report/);
       await expect(event).toBeVisible();
-      await expect(timeline.selectEventPill(event, "Bug Report")).toBeVisible();
+      await expect(replay.selectEventPill(event, "Bug Report")).toBeVisible();
 
       await event.click();
-      await timeline.openBugReportDetails();
+      await replay.openBugReportDetails();
       await expect(detail.description).toHaveText(description);
     });
   });

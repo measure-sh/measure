@@ -1,6 +1,6 @@
 ---
 title: Open Source New Relic Alternative
-description: Mobile focused, open source alternative to New Relic. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.
+description: Mobile focused, open source alternative to New Relic. Crashes, ANRs, performance, network and full session replays for mobile engineering teams with simple pricing.
 canonical: /new-relic-alternative
 ---
 
@@ -14,7 +14,7 @@ Measure is a mobile first, open source New Relic alternative.
 
 New Relic gives you stack traces, breadcrumbs and interaction traces, and optionally Mobile Session Replay with several sampling options.
 
-Measure attaches a full [Session Timeline](/product/session-timelines) with gestures, navigation, network calls, lifecycle events and custom spans to every crash, ANR and error and you only pay for the data used as a whole.
+Measure attaches a full [Session Replay](/product/session-replays) with gestures, navigation, network calls, lifecycle events and custom spans to every crash, ANR and error and you only pay for the data used as a whole.
 
 The key difference is transparency. Measure is open source, the platform that stores your user data is transparent, and you never have to send your data to a proprietary, locked platform.
 
@@ -50,13 +50,13 @@ Mobile is not a part of our product, it is the whole product.
 
 | Capability | Measure | New Relic |
 | --- | --- | --- |
-| Crash reporting with full session timelines | ✓ | Crash reports with optional Session replays |
-| ANR detection with full session timelines | ✓ | ANRs with optional Session replays |
+| Crash reporting with full session replays | ✓ | Crash reports with optional Session replays |
+| ANR detection with full session replays | ✓ | ANRs with optional Session replays |
 | Performance traces | ✓ | ✓ |
 | Network monitoring | ✓ | ✓ |
 | User journeys | ✓ | ✓ |
 | In-app bug reports | ✓ | ✗ |
-| Session timeline on every issue | ✓ | Session replay, sampled |
+| Session replay on every issue | ✓ | Session replay, sampled |
 | Dynamic Sampling with Adaptive Capture | ✓ | Sampled, partial remote control |
 | Auto-captured context | Gestures, navigation, network, lifecycle | Interactions, network, handled exceptions, breadcrumbs |
 | Pricing | Simple pricing based on data usage | Per-GB data ingest plus per-user seats |

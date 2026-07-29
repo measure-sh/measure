@@ -1,7 +1,7 @@
 import { expect, test } from "../../fixtures.ts";
 import { ErrorsOverviewPage } from "../../pages/errors_overview_page.ts";
 import { ErrorDetailPage } from "../../pages/error_detail_page.ts";
-import { SessionTimelinePage } from "../../pages/session_timeline_page.ts";
+import { SessionReplayPage } from "../../pages/session_replay_page.ts";
 
 test.describe("errors", () => {
   test.describe("fatal error", () => {
@@ -62,33 +62,33 @@ test.describe("errors", () => {
         );
       });
 
-      test("session timeline renders the fatal error event", async ({
+      test("session replay renders the fatal error event", async ({
         page,
         teamId,
       }) => {
         await overview.openErrorGroupByType(subtitle);
         const detail = new ErrorDetailPage(page, teamId);
-        await detail.openSessionTimeline();
-        const timeline = new SessionTimelinePage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
 
-        await expect(timeline.eventsList).toBeVisible();
-        const event = timeline.selectError(
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectError(
           /java\.lang\.IllegalAccessException/,
         );
         await expect(event).toBeVisible();
         await expect(
-          timeline.selectEventPill(event, "Fatal Error"),
+          replay.selectEventPill(event, "Fatal Error"),
         ).toBeVisible();
 
         await event.click();
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           "java.lang.IllegalAccessException",
         );
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           "sh.frankenstein.android.NativeAndroidScreenKt",
         );
 
-        await timeline.openErrorDetails();
+        await replay.openErrorDetails();
         await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
       });
     });
@@ -144,32 +144,32 @@ test.describe("errors", () => {
         );
       });
 
-      test("session timeline renders the fatal error event", async ({
+      test("session replay renders the fatal error event", async ({
         page,
         teamId,
       }) => {
         await overview.openErrorGroup(selectRow());
         const detail = new ErrorDetailPage(page, teamId);
-        await detail.openSessionTimeline();
-        const timeline = new SessionTimelinePage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
 
-        await expect(timeline.eventsList).toBeVisible();
-        const event = timeline.selectError(/SIGABRT/);
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectError(/SIGABRT/);
         await expect(event).toBeVisible();
         await expect(
-          timeline.selectEventPill(event, "Fatal Error"),
+          replay.selectEventPill(event, "Fatal Error"),
         ).toBeVisible();
 
         await event.click();
-        await expect(timeline.eventDetails).toContainText("FrankensteinApp");
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText("FrankensteinApp");
+        await expect(replay.eventDetails).toContainText(
           "triggerCrash(DemoAction)",
         );
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           "NativeIOSViewController.swift",
         );
 
-        await timeline.openErrorDetails();
+        await replay.openErrorDetails();
         await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
       });
     });
@@ -223,31 +223,31 @@ test.describe("errors", () => {
         );
       });
 
-      test("session timeline renders the fatal error event", async ({
+      test("session replay renders the fatal error event", async ({
         page,
         teamId,
       }) => {
         await overview.openErrorGroupByType(subtitle);
         const detail = new ErrorDetailPage(page, teamId);
-        await detail.openSessionTimeline();
-        const timeline = new SessionTimelinePage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
 
-        await expect(timeline.eventsList).toBeVisible();
-        const event = timeline.selectError(/java\.lang\.IllegalStateException/);
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectError(/java\.lang\.IllegalStateException/);
         await expect(event).toBeVisible();
         await expect(
-          timeline.selectEventPill(event, "Fatal Error"),
+          replay.selectEventPill(event, "Fatal Error"),
         ).toBeVisible();
 
         await event.click();
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           "java.lang.IllegalStateException",
         );
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           "com.frankenstein.shared.CmpScreenKt",
         );
 
-        await timeline.openErrorDetails();
+        await replay.openErrorDetails();
         await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
       });
     });
@@ -303,30 +303,30 @@ test.describe("errors", () => {
         );
       });
 
-      test("session timeline renders the fatal error event", async ({
+      test("session replay renders the fatal error event", async ({
         page,
         teamId,
       }) => {
         await overview.openErrorGroup(selectRow());
         const detail = new ErrorDetailPage(page, teamId);
-        await detail.openSessionTimeline();
-        const timeline = new SessionTimelinePage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
 
-        await expect(timeline.eventsList).toBeVisible();
-        const event = timeline.selectError(/SIGABRT/);
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectError(/SIGABRT/);
         await expect(event).toBeVisible();
         await expect(
-          timeline.selectEventPill(event, "Fatal Error"),
+          replay.selectEventPill(event, "Fatal Error"),
         ).toBeVisible();
 
         await event.click();
-        await expect(timeline.eventDetails).toContainText("FrankensteinApp");
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText("FrankensteinApp");
+        await expect(replay.eventDetails).toContainText(
           "com.frankenstein.shared.demos",
         );
-        await expect(timeline.eventDetails).toContainText("CmpScreen.kt");
+        await expect(replay.eventDetails).toContainText("CmpScreen.kt");
 
-        await timeline.openErrorDetails();
+        await replay.openErrorDetails();
         await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
       });
     });
@@ -377,32 +377,32 @@ test.describe("errors", () => {
         await expect(detail.errorThreadStacktrace).toContainText("index.js");
       });
 
-      test("session timeline renders the fatal error event", async ({
+      test("session replay renders the fatal error event", async ({
         page,
         teamId,
       }) => {
         await overview.openErrorGroupByType(subtitle);
         const detail = new ErrorDetailPage(page, teamId);
-        await detail.openSessionTimeline();
-        const timeline = new SessionTimelinePage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
 
-        await expect(timeline.eventsList).toBeVisible();
-        const event = timeline.selectError(
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectError(
           /Error: Simulated JavaScript exception/,
         );
         await expect(event).toBeVisible();
         await expect(
-          timeline.selectEventPill(event, "Fatal Error"),
+          replay.selectEventPill(event, "Fatal Error"),
         ).toBeVisible();
 
         await event.click();
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           "Simulated JavaScript exception",
         );
-        await expect(timeline.eventDetails).toContainText("throwJSException");
-        await expect(timeline.eventDetails).toContainText("index.js");
+        await expect(replay.eventDetails).toContainText("throwJSException");
+        await expect(replay.eventDetails).toContainText("index.js");
 
-        await timeline.openErrorDetails();
+        await replay.openErrorDetails();
         await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
       });
     });
@@ -455,29 +455,29 @@ test.describe("errors", () => {
         );
       });
 
-      test("session timeline renders the anr event", async ({
+      test("session replay renders the anr event", async ({
         page,
         teamId,
       }) => {
         await overview.openErrorGroup(selectRow());
         const detail = new ErrorDetailPage(page, teamId);
-        await detail.openSessionTimeline();
-        const timeline = new SessionTimelinePage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
 
-        await expect(timeline.eventsList).toBeVisible();
-        const event = timeline.selectAnr(/sh\.measure\.android\.anr\.AnrError/);
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectAnr(/sh\.measure\.android\.anr\.AnrError/);
         await expect(event).toBeVisible();
-        await expect(timeline.selectEventPill(event, anrPill)).toBeVisible();
+        await expect(replay.selectEventPill(event, anrPill)).toBeVisible();
 
         await event.click();
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           "sh.measure.android.anr.AnrError",
         );
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           "sh.frankenstein.android.NativeAndroidScreenKt",
         );
 
-        await timeline.openAnrDetails();
+        await replay.openAnrDetails();
         await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
       });
     });
@@ -544,33 +544,33 @@ test.describe("errors", () => {
         );
       });
 
-      test("session timeline renders the unhandled error event", async ({
+      test("session replay renders the unhandled error event", async ({
         page,
         teamId,
       }) => {
         await overview.openErrorGroupByType(subtitle);
         const detail = new ErrorDetailPage(page, teamId);
-        await detail.openSessionTimeline();
-        const timeline = new SessionTimelinePage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
 
-        await expect(timeline.eventsList).toBeVisible();
-        const event = timeline.selectError(
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectError(
           /FormatException: This is an exception/,
         );
         await expect(event).toBeVisible();
         await expect(
-          timeline.selectEventPill(event, "Unhandled Error"),
+          replay.selectEventPill(event, "Unhandled Error"),
         ).toBeVisible();
 
         await event.click();
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           /#00\s+_FlutterDemoScreenState\._throwException/,
         );
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           /#00\s.*flutter_demo_screen\.dart/,
         );
 
-        await timeline.openErrorDetails();
+        await replay.openErrorDetails();
         await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
       });
     });
@@ -623,34 +623,34 @@ test.describe("errors", () => {
         await expect(detail.errorThreadStacktrace).toContainText("index.js");
       });
 
-      test("session timeline renders the unhandled error event", async ({
+      test("session replay renders the unhandled error event", async ({
         page,
         teamId,
       }) => {
         await overview.openErrorGroupByType(subtitle);
         const detail = new ErrorDetailPage(page, teamId);
-        await detail.openSessionTimeline();
-        const timeline = new SessionTimelinePage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
 
-        await expect(timeline.eventsList).toBeVisible();
-        const event = timeline.selectError(
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectError(
           /Error: Simulated unhandled promise rejection/,
         );
         await expect(event).toBeVisible();
         await expect(
-          timeline.selectEventPill(event, "Unhandled Error"),
+          replay.selectEventPill(event, "Unhandled Error"),
         ).toBeVisible();
 
         await event.click();
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           "Simulated unhandled promise rejection",
         );
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           "throwUnhandledRejection",
         );
-        await expect(timeline.eventDetails).toContainText("index.js");
+        await expect(replay.eventDetails).toContainText("index.js");
 
-        await timeline.openErrorDetails();
+        await replay.openErrorDetails();
         await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
       });
     });
@@ -722,33 +722,33 @@ test.describe("errors", () => {
         );
       });
 
-      test("session timeline renders the handled error event", async ({
+      test("session replay renders the handled error event", async ({
         page,
         teamId,
       }) => {
         await overview.openErrorGroupByType(subtitle);
         const detail = new ErrorDetailPage(page, teamId);
-        await detail.openSessionTimeline();
-        const timeline = new SessionTimelinePage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
 
-        await expect(timeline.eventsList).toBeVisible();
-        const event = timeline.selectError(
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectError(
           /_CustomException: Handled error caught by the app/,
         );
         await expect(event).toBeVisible();
         await expect(
-          timeline.selectEventPill(event, "Handled Error"),
+          replay.selectEventPill(event, "Handled Error"),
         ).toBeVisible();
 
         await event.click();
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           /#00\s+_FlutterDemoScreenState\._trackHandledError/,
         );
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           /#00\s.*flutter_demo_screen\.dart/,
         );
 
-        await timeline.openErrorDetails();
+        await replay.openErrorDetails();
         await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
       });
     });
@@ -808,33 +808,33 @@ test.describe("errors", () => {
         );
       });
 
-      test("session timeline renders the handled error event", async ({
+      test("session replay renders the handled error event", async ({
         page,
         teamId,
       }) => {
         await overview.openErrorGroupByType(subtitle);
         const detail = new ErrorDetailPage(page, teamId);
-        await detail.openSessionTimeline();
-        const timeline = new SessionTimelinePage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
 
-        await expect(timeline.eventsList).toBeVisible();
-        const event = timeline.selectError(
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectError(
           /sh\.frankenstein\.android\.CustomException/,
         );
         await expect(event).toBeVisible();
         await expect(
-          timeline.selectEventPill(event, "Handled Error"),
+          replay.selectEventPill(event, "Handled Error"),
         ).toBeVisible();
 
         await event.click();
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           "sh.frankenstein.android.CustomException",
         );
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           "sh.frankenstein.android.NativeAndroidScreenKt",
         );
 
-        await timeline.openErrorDetails();
+        await replay.openErrorDetails();
         await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
       });
     });
@@ -894,32 +894,32 @@ test.describe("errors", () => {
         );
       });
 
-      test("session timeline renders the handled error event", async ({
+      test("session replay renders the handled error event", async ({
         page,
         teamId,
       }) => {
         await overview.openErrorGroup(selectRow());
         const detail = new ErrorDetailPage(page, teamId);
-        await detail.openSessionTimeline();
-        const timeline = new SessionTimelinePage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
 
-        await expect(timeline.eventsList).toBeVisible();
-        const event = timeline.selectError(/SIGABRT/);
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectError(/SIGABRT/);
         await expect(event).toBeVisible();
         await expect(
-          timeline.selectEventPill(event, "Handled Error"),
+          replay.selectEventPill(event, "Handled Error"),
         ).toBeVisible();
 
         await event.click();
-        await expect(timeline.eventDetails).toContainText("FrankensteinApp");
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText("FrankensteinApp");
+        await expect(replay.eventDetails).toContainText(
           "NativeIOSScreen.demoCard",
         );
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           "NativeIOSViewController.swift",
         );
 
-        await timeline.openErrorDetails();
+        await replay.openErrorDetails();
         await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
       });
     });
@@ -974,31 +974,31 @@ test.describe("errors", () => {
         );
       });
 
-      test("session timeline renders the handled error event", async ({
+      test("session replay renders the handled error event", async ({
         page,
         teamId,
       }) => {
         await overview.openErrorGroupByType(subtitle);
         const detail = new ErrorDetailPage(page, teamId);
-        await detail.openSessionTimeline();
-        const timeline = new SessionTimelinePage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
 
-        await expect(timeline.eventsList).toBeVisible();
-        const event = timeline.selectError(/java\.lang\.RuntimeException/);
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectError(/java\.lang\.RuntimeException/);
         await expect(event).toBeVisible();
         await expect(
-          timeline.selectEventPill(event, "Handled Error"),
+          replay.selectEventPill(event, "Handled Error"),
         ).toBeVisible();
 
         await event.click();
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           "java.lang.RuntimeException",
         );
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           "com.frankenstein.shared.CmpScreenKt",
         );
 
-        await timeline.openErrorDetails();
+        await replay.openErrorDetails();
         await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
       });
     });
@@ -1056,30 +1056,30 @@ test.describe("errors", () => {
         );
       });
 
-      test("session timeline renders the handled error event", async ({
+      test("session replay renders the handled error event", async ({
         page,
         teamId,
       }) => {
         await overview.openErrorGroup(selectRow());
         const detail = new ErrorDetailPage(page, teamId);
-        await detail.openSessionTimeline();
-        const timeline = new SessionTimelinePage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
 
-        await expect(timeline.eventsList).toBeVisible();
-        const event = timeline.selectError(/SIGABRT/);
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectError(/SIGABRT/);
         await expect(event).toBeVisible();
         await expect(
-          timeline.selectEventPill(event, "Handled Error"),
+          replay.selectEventPill(event, "Handled Error"),
         ).toBeVisible();
 
         await event.click();
-        await expect(timeline.eventDetails).toContainText("FrankensteinApp");
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText("FrankensteinApp");
+        await expect(replay.eventDetails).toContainText(
           "com.frankenstein.shared",
         );
-        await expect(timeline.eventDetails).toContainText("CmpScreen.kt");
+        await expect(replay.eventDetails).toContainText("CmpScreen.kt");
 
-        await timeline.openErrorDetails();
+        await replay.openErrorDetails();
         await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
       });
     });
@@ -1132,32 +1132,32 @@ test.describe("errors", () => {
         await expect(detail.errorThreadStacktrace).toContainText("index.js");
       });
 
-      test("session timeline renders the handled error event", async ({
+      test("session replay renders the handled error event", async ({
         page,
         teamId,
       }) => {
         await overview.openErrorGroupByType(subtitle);
         const detail = new ErrorDetailPage(page, teamId);
-        await detail.openSessionTimeline();
-        const timeline = new SessionTimelinePage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
 
-        await expect(timeline.eventsList).toBeVisible();
-        const event = timeline.selectError(
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectError(
           /Error: Simulated handled exception/,
         );
         await expect(event).toBeVisible();
         await expect(
-          timeline.selectEventPill(event, "Handled Error"),
+          replay.selectEventPill(event, "Handled Error"),
         ).toBeVisible();
 
         await event.click();
-        await expect(timeline.eventDetails).toContainText(
+        await expect(replay.eventDetails).toContainText(
           "Simulated handled exception",
         );
-        await expect(timeline.eventDetails).toContainText("trackHandledError");
-        await expect(timeline.eventDetails).toContainText("index.js");
+        await expect(replay.eventDetails).toContainText("trackHandledError");
+        await expect(replay.eventDetails).toContainText("index.js");
 
-        await timeline.openErrorDetails();
+        await replay.openErrorDetails();
         await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
       });
     });

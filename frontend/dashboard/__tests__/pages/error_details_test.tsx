@@ -283,7 +283,7 @@ describe("ErrorGroupDetails Page", () => {
     expect(screen.getByText(/Network type: wifi/)).toBeInTheDocument();
   });
 
-  it("renders View Session Timeline link with teamId/appId/sessionId", async () => {
+  it("renders View Session Replay link with teamId/appId/sessionId", async () => {
     mockUseErrorsDetailsQuery.mockReturnValue({
       data: sampleErrorsDetails,
       status: "success",
@@ -310,9 +310,9 @@ describe("ErrorGroupDetails Page", () => {
       });
     });
 
-    const link = screen.getByText("View Session Timeline").closest("a");
+    const link = screen.getByText("View Session Replay").closest("a");
     expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute("href", "/123/session_timelines/app-1/sess-1");
+    expect(link).toHaveAttribute("href", "/123/session_replays/app-1/sess-1");
   });
 
   it("renders error message when details query errors", async () => {

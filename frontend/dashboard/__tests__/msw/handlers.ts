@@ -41,8 +41,8 @@ import {
   makePendingInvitesFixture,
   makeSdkConfigFixture,
   makeSessionPlotFixture,
-  makeSessionTimelineDetailFixture,
-  makeSessionTimelinesOverviewFixture,
+  makeSessionReplayFixture,
+  makeSessionReplayOverviewFixture,
   makeShortFiltersFixture,
   makeSlackConnectUrlFixture,
   makeSlackStatusFixture,
@@ -110,12 +110,12 @@ export const handlers = [
     if (pathParts.filter(Boolean).length > 4) {
       return;
     }
-    return HttpResponse.json(makeSessionTimelinesOverviewFixture());
+    return HttpResponse.json(makeSessionReplayOverviewFixture());
   }),
 
   // 10. GET /api/apps/:appId/sessions/:sessionId (single session detail)
   http.get("*/api/apps/:appId/sessions/:sessionId", () => {
-    return HttpResponse.json(makeSessionTimelineDetailFixture());
+    return HttpResponse.json(makeSessionReplayFixture());
   }),
 
   // 11. GET /api/apps/:appId/journey (user journeys)

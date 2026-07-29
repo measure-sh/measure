@@ -19,10 +19,10 @@ Every app starts with these defaults:
 | Configuration                        | Default value                                                                       |
 |--------------------------------------|-------------------------------------------------------------------------------------|
 | Take screenshot on crash             | true                                                                                |
-| Crash session timeline duration      | 300 seconds (5 minutes)                                                             |
+| Crash session replay duration        | 300 seconds (5 minutes)                                                             |
 | Take screenshot on ANR               | true                                                                                |
-| ANR session timeline duration        | 300 seconds (5 minutes)                                                             |
-| Bug report session timeline duration | 300                                                                                 |
+| ANR session replay duration          | 300 seconds (5 minutes)                                                             |
+| Bug report session replay duration   | 300                                                                                 |
 | Trace sampling rate                  | 100%                                                                                |
 | Journey sampling rate                | 100%                                                                                |
 | Launch metrics sampling rate         | 100%                                                                                |
@@ -44,17 +44,17 @@ These settings apply to crashes and ANRs, the fatal errors.
 Each crash and ANR report includes a screenshot of the screen at the moment it happened. Turn
 this off if screenshots aren't something you want to capture.
 
-### Session timeline duration
+### Session replay duration
 
-Every crash and ANR arrives with a timeline of the events in the minutes before it. Adjust how
+Every crash and ANR arrives with a replay of the events in the minutes before it. Adjust how
 far back that window reaches to trade off detail against data volume. By default it captures the
 5 minutes before the error.
 
 ## Bug reports
 
-### Session timeline duration
+### Session replay duration
 
-Each bug report carries a timeline of what the user did before submitting it. Set how far back
+Each bug report carries a replay of what the user did before submitting it. Set how far back
 it reaches to capture more or less of the session. By default it goes back 5 minutes.
 
 ## Trace sampling

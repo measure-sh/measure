@@ -19,11 +19,11 @@ Sign up to [Measure Cloud](https://measure.sh) or [self host](https://measure.sh
 
 ## Features
 
-### Session Timelines 🎥
+### Session Replays 🎥
 
-Debug issues easily with [session timelines](https://measure.sh/product/session-timelines). Get the complete context with automatic tracking for clicks, navigations, http calls and more.
+Debug issues easily with [session replays](https://measure.sh/product/session-replays). Get the complete context with automatic tracking for clicks, navigations, http calls and more.
 
-<img alt="Session Timelines" src="./frontend/dashboard/public/images/product_screenshots/session_timelines.webp" />
+<img alt="Session Replays" src="./frontend/dashboard/public/images/product_screenshots/session_replays.webp" />
 
 ### App Health 📈
 

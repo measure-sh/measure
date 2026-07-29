@@ -234,7 +234,7 @@ describe("Dashboard Layout — navigation", () => {
     renderLayout();
     await waitFor(() => {
       expect(inSidebar().getByText("Overview")).toBeTruthy();
-      expect(inSidebar().getByText("Session Timelines")).toBeTruthy();
+      expect(inSidebar().getByText("Session Replays")).toBeTruthy();
       expect(inSidebar().getByText("Journeys")).toBeTruthy();
     });
   });

@@ -46,7 +46,7 @@ export default function PricingCalculator() {
       sessionStartPerDay,
       launchPerDay,
       crashEventsPerDay,
-      sessionTimelineEventsPerDay,
+      sessionReplayEventsPerDay,
       perfSpansPerDay,
       journeyEventsPerDay,
     },
@@ -238,10 +238,10 @@ export default function PricingCalculator() {
             </div>
             <div className="flex justify-between">
               <span className="text-secondary-foreground">
-                Session timeline events per month:
+                Session replay events per month:
               </span>
               <span className="font-display">
-                {formatNumber(Math.round(sessionTimelineEventsPerDay * 30))}
+                {formatNumber(Math.round(sessionReplayEventsPerDay * 30))}
               </span>
             </div>
             <div className="flex justify-between">

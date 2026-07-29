@@ -8,9 +8,9 @@ canonical: /for/kmp
 
 Measure is an open source, mobile first monitoring platform built for Kotlin Multiplatform. It brings together the full context behind every crash and error across your shared Kotlin code and platform code, so you can drive down crash and error rates, smooth out performance issues and deliver a delightful experience on both Android and iOS.
 
-## Session Timelines
+## Session Replays
 
-Every crash and error in your Kotlin Multiplatform app comes with a full [Session Timeline](/product/session-timelines). Follow the sequence of events that led to the issue — gestures, navigation, network calls, logs and lifecycle events — with CPU and memory signals right alongside.
+Every crash and error in your Kotlin Multiplatform app comes with a full [Session Replay](/product/session-replays). Follow the sequence of events that led to the issue — gestures, navigation, network calls, logs and lifecycle events — with CPU and memory signals right alongside.
 
 Go beyond the stacktrace and see exactly what the user and the app did leading up to the moment things went wrong.
 
@@ -24,7 +24,7 @@ Stack traces are deobfuscated on Android and symbolicated on iOS automatically, 
 
 Instrument the operations that matter most with [Performance Traces](/product/performance-traces). See how API fetches, database calls, expensive code paths and screen rendering stack up within a single user flow or across millions of sessions with waterfall charts that make bottlenecks obvious.
 
-Traces carry rich device and app context linking back to full session timelines, so you can tie slow operations to the environment they happened in.
+Traces carry rich device and app context linking back to full session replays, so you can tie slow operations to the environment they happened in.
 
 ## App Health
 
@@ -34,7 +34,7 @@ Spot a bad rollout early and fix it before it reaches the rest of your users.
 
 ## Bug Reports
 
-Let users report problems the moment they see them with [Bug Reports](/product/bug-reports), triggered by a device shake or a call to the SDK from your own button. Each report captures device information, app version, network conditions and screenshots alongside the user's description, and links straight to the complete session timeline.
+Let users report problems the moment they see them with [Bug Reports](/product/bug-reports), triggered by a device shake or a call to the SDK from your own button. Each report captures device information, app version, network conditions and screenshots alongside the user's description, and links straight to the complete session replay.
 
 Skip the email threads and support ticket back-and-forth. Your users describe the issue in their own words and you get all the context you need to solve it.
 
@@ -52,7 +52,7 @@ Catch degraded endpoints early and optimize the API calls that matter most to yo
 
 ## Coding Agents
 
-Bring all of Measure's context into your favorite coding agents. The [Measure MCP server](/product/mcp) gives any coding agent access to your crashes, errors, performance traces and session timelines, straight from your IDE, editor or terminal.
+Bring all of Measure's context into your favorite coding agents. The [Measure MCP server](/product/mcp) gives any coding agent access to your crashes, errors, performance traces and session replays, straight from your IDE, editor or terminal.
 
 Ask it to help you debug a crash, analyze user sessions or use it to set up an agentic issue triage and debug pipeline. Whether you prefer commercial tools or open source agents and models, Measure fits right into your workflows.
 

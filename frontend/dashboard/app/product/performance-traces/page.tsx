@@ -30,8 +30,8 @@ export default function ProductPerformanceTraces() {
           <br />
           <br />
           Every trace includes rich context such as device type and network
-          conditions and links to a full session timeline so you can spot
-          patterns and correlate slowdowns within specific environments.
+          conditions and links to a full session replay so you can spot patterns
+          and correlate slowdowns within specific environments.
           <br />
           <br />
           Whether you&apos;re reducing checkout time, speeding up content
@@ -41,7 +41,7 @@ export default function ProductPerformanceTraces() {
       }
       demo={{
         frame: "scaled",
-        heightClassName: "h-[400px] md:h-[780px]",
+        heightClassName: "h-[400px] md:h-[505px]",
         content: <TraceDemo />,
       }}
       ctaLocation="product_performance_traces"

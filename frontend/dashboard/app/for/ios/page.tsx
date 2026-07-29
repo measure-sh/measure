@@ -18,14 +18,14 @@ export const metadata: Metadata = pageMetadata(seo);
 
 const features: PlatformFeature[] = [
   {
-    heading: "Session Timelines",
-    image: "/images/product_screenshots/session_timelines.webp",
-    imageAlt: "Session timeline for an iOS session in Measure",
+    heading: "Session Replays",
+    image: "/images/product_screenshots/session_replays.webp",
+    imageAlt: "Session replay for an iOS session in Measure",
     body: (
       <>
         Every crash and error in your iOS app gets a complete{" "}
-        <Link href="/product/session-timelines" className={underlineLinkStyle}>
-          Session Timeline
+        <Link href="/product/session-replays" className={underlineLinkStyle}>
+          Session Replay
         </Link>{" "}
         attached. Step back through everything that led up to it — taps and
         gestures, screen navigation, network calls, logs and lifecycle events —
@@ -77,7 +77,7 @@ const features: PlatformFeature[] = [
         <br />
         <br />
         Each trace carries detailed device and app context and links back to the
-        full session timeline, so a slow operation always comes with the
+        full session replay, so a slow operation always comes with the
         conditions it ran under.
       </>
     ),
@@ -115,7 +115,7 @@ const features: PlatformFeature[] = [
         , triggered by a device shake or from your own button through the SDK.
         Every report bundles device details, app version, network conditions and
         a screenshot together with the user&apos;s note, and links straight to
-        the matching session timeline.
+        the matching session replay.
         <br />
         <br />
         No more long email threads or support ticket ping-pong. Users describe
@@ -176,7 +176,7 @@ const features: PlatformFeature[] = [
         <Link href="/product/mcp" className={underlineLinkStyle}>
           Measure MCP server
         </Link>{" "}
-        opens up your crashes, performance traces and session timelines to any
+        opens up your crashes, performance traces and session replays to any
         agent, right from your IDE, editor or terminal.
         <br />
         <br />

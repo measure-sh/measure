@@ -16,7 +16,7 @@ interface TraceToolbarProps {
   errorCount: number;
   highlightErrors: boolean;
   setHighlightErrors: (v: boolean) => void;
-  sessionTimelineNode?: React.ReactNode;
+  sessionReplayNode?: React.ReactNode;
 }
 
 const TraceToolbar: React.FC<TraceToolbarProps> = ({
@@ -30,7 +30,7 @@ const TraceToolbar: React.FC<TraceToolbarProps> = ({
   errorCount,
   highlightErrors,
   setHighlightErrors,
-  sessionTimelineNode,
+  sessionReplayNode,
 }) => {
   const hasSearch = searchQuery.length > 0;
   const hasErrors = errorCount > 0;
@@ -86,7 +86,7 @@ const TraceToolbar: React.FC<TraceToolbarProps> = ({
       </div>
 
       <div className="ml-auto flex flex-row items-center gap-4">
-        {sessionTimelineNode}
+        {sessionReplayNode}
         <label className="flex flex-row items-center gap-2 cursor-pointer select-none">
           <span className="text-xs font-display">
             Show errors{hasErrors ? ` (${errorCount})` : ""}

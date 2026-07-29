@@ -90,7 +90,7 @@ const MARKETING_URLS = [
   "/product/mcp",
   "/product/network-performance",
   "/product/performance-traces",
-  "/product/session-timelines",
+  "/product/session-replays",
   "/product/user-journeys",
 ];
 

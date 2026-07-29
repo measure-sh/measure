@@ -6,7 +6,7 @@ import ExceptionsDemo from "./exceptions_demo";
 const seo = {
   title: "Mobile Crash Reporting & ANR Tracking",
   description:
-    "Open source mobile Crash Reporting and ANR Tracking. Full stack traces, reproduction steps and session timelines — a Firebase Crashlytics alternative.",
+    "Open source mobile Crash Reporting and ANR Tracking. Full stack traces, reproduction steps and session replays — a Firebase Crashlytics alternative.",
   path: "/product/crashes-and-anrs",
 };
 

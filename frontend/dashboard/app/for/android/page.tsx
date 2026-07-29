@@ -18,14 +18,14 @@ export const metadata: Metadata = pageMetadata(seo);
 
 const features: PlatformFeature[] = [
   {
-    heading: "Session Timelines",
-    image: "/images/product_screenshots/session_timelines.webp",
-    imageAlt: "Session timeline for an Android session in Measure",
+    heading: "Session Replays",
+    image: "/images/product_screenshots/session_replays.webp",
+    imageAlt: "Session replay for an Android session in Measure",
     body: (
       <>
         Every crash and ANR in your Android app arrives with a full{" "}
-        <Link href="/product/session-timelines" className={underlineLinkStyle}>
-          Session Timeline
+        <Link href="/product/session-replays" className={underlineLinkStyle}>
+          Session Replay
         </Link>
         . Replay the exact sequence of events that led to the issue — gestures,
         navigation, network calls, logs and lifecycle events — with CPU and
@@ -77,8 +77,8 @@ const features: PlatformFeature[] = [
         <br />
         <br />
         Traces carry rich device and app context linking back to full session
-        timelines, so you can tie slow operations to the environment they
-        happened in.
+        replays, so you can tie slow operations to the environment they happened
+        in.
       </>
     ),
   },
@@ -115,7 +115,7 @@ const features: PlatformFeature[] = [
         , triggered by a device shake or a call to the SDK from your own button.
         Each report captures device information, app version, network conditions
         and screenshots alongside the user&apos;s description, and links
-        straight to the complete session timeline.
+        straight to the complete session replay.
         <br />
         <br />
         Skip the email threads and support ticket back-and-forth. Your users
@@ -178,7 +178,7 @@ const features: PlatformFeature[] = [
           Measure MCP server
         </Link>{" "}
         gives any coding agent access to your crashes, ANRs, performance traces
-        and session timelines, straight from your IDE, editor or terminal.
+        and session replays, straight from your IDE, editor or terminal.
         <br />
         <br />
         Ask it to help you debug a crash, analyze user sessions or use it to set

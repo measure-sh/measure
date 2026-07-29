@@ -1,6 +1,6 @@
 ---
 title: Mobile Crash Reporting & ANR Tracking
-description: Open source mobile Crash Reporting and ANR Tracking. Full stack traces, reproduction steps and session timelines — a Firebase Crashlytics alternative.
+description: Open source mobile Crash Reporting and ANR Tracking. Full stack traces, reproduction steps and session replays — a Firebase Crashlytics alternative.
 canonical: /product/crashes-and-anrs
 ---
 

@@ -18,7 +18,7 @@ Kuku FM, Hoichoi, Country Delight, Dashreels, Turtlemint, Astro, Allofresh, SMC 
 
 Debug with [Measure Agent](/product/agent) right inside Slack or your coding agent. Ask about a crash, error or slow endpoint and it digs through your telemetry to find the answer.
 
-Connect Measure with your favorite coding agents through our [MCP Server](/product/mcp). Let your coding agent query errors, traces and session timelines directly in your development workflow.
+Connect Measure with your favorite coding agents through our [MCP Server](/product/mcp). Let your coding agent query errors, traces and session replays directly in your development workflow.
 
 ## Collect what you need, Only when you need it
 

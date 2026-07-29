@@ -18,7 +18,7 @@ const FILES_WITH_REWRITTEN_LINKS = [
   "components/user_journeys.tsx",
   "[teamId]/apps/page.tsx",
   "[teamId]/team/page.tsx",
-  "[teamId]/session_timelines/page.tsx",
+  "[teamId]/session_replays/page.tsx",
 ];
 
 describe("GitHub docs links have been replaced", () => {
@@ -50,6 +50,15 @@ describe("GitHub docs links have been replaced", () => {
     );
 
     expect(content).toContain('href="/docs/adaptive-capture#journey-sampling"');
+  });
+
+  it("app_breadcrumbs.tsx links to /docs/session-replay", () => {
+    const content = fs.readFileSync(
+      path.join(APP_DIR, "components/app_breadcrumbs.tsx"),
+      "utf-8",
+    );
+
+    expect(content).toContain('href="/docs/session-replay"');
   });
 
   it("onboarding.tsx links to the getting started docs", () => {

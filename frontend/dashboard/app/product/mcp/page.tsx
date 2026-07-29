@@ -24,12 +24,11 @@ export default function ProductMCP() {
           <br />
           <br />
           MCP lets AI coding agent access your errors, performance traces,
-          session timelines and bug reports directly in your development
-          workflow.
+          session replays and bug reports directly in your development workflow.
           <br />
           <br />
           With MCP, you can simply ask your AI assistant to look up an error,
-          let it fetch stack traces, session timelines and related context, and
+          let it fetch stack traces, session replays and related context, and
           ship fixes faster than ever before.
         </>
       }

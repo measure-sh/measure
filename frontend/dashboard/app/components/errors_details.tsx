@@ -36,7 +36,7 @@ const demoErrorDetails = {
   results: [
     {
       id: "d58064f1-80d9-4a6a-9f0f-1af51ccfcb19",
-      session_id: "df45556c-1a00-452b-bc0b-7ccc65f5a148",
+      session_id: "81f06f23-4291-4590-a5df-c96d57d3c692",
       timestamp: DateTime.now()
         .toUTC()
         .minus({ minutes: 7.5 })
@@ -45,14 +45,14 @@ const demoErrorDetails = {
       type: "exception",
       attribute: {
         installation_id: "00000000-0000-0000-0000-000000000000",
-        app_version: "1.0.0",
-        app_build: "100",
-        app_unique_id: "",
+        app_version: "2.0.0",
+        app_build: "200",
+        app_unique_id: "sh.measure.demo",
         measure_sdk_version: "",
         platform: "",
         thread_name: "main",
-        user_id: "",
-        device_name: "",
+        user_id: "demo-user-id",
+        device_name: "sunfish",
         device_model: "Pixel 7 Pro",
         device_manufacturer: "Google",
         device_type: "",
@@ -62,7 +62,7 @@ const demoErrorDetails = {
         device_width_px: 0,
         device_height_px: 0,
         device_density: 0,
-        device_locale: "en_UK",
+        device_locale: "en-US",
         device_low_power_mode: false,
         device_thermal_throttling_enabled: false,
         device_cpu_arch: "",
@@ -520,18 +520,18 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
                           "justify-center w-fit",
                         )}
                       >
-                        View Session Timeline
+                        View Session Replay
                       </div>
                     ) : (
                       <Link
                         key={firstResult.id}
-                        href={`/${teamId}/session_timelines/${appId}/${firstResult.session_id}`}
+                        href={`/${teamId}/session_replays/${appId}/${firstResult.session_id}`}
                         className={cn(
                           buttonVariants({ variant: "outline" }),
                           "justify-center w-fit",
                         )}
                       >
-                        View Session Timeline
+                        View Session Replay
                       </Link>
                     )}
                     {!demo && (

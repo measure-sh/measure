@@ -35,7 +35,10 @@ const pct = (f: number) => `${Math.round(f * 1e4) / 100}%`;
 
 interface TraceWaterfallProps {
   inputTrace: Trace;
-  sessionTimelineNode?: React.ReactNode;
+  sessionReplayNode?: React.ReactNode;
+  // Marketing previews render inside an iframe whose viewport the vh-based
+  // height would fill; demos size to their trace instead.
+  demo?: boolean;
 }
 
 // The brush-to-zoom drag state lives here so that dragging re-renders only
@@ -73,7 +76,8 @@ const BrushZoomOverlay = React.memo(function BrushZoomOverlay(props: {
 
 const TraceWaterfall: React.FC<TraceWaterfallProps> = ({
   inputTrace,
-  sessionTimelineNode,
+  sessionReplayNode,
+  demo = false,
 }) => {
   const prepared = useMemo(() => prepareTrace(inputTrace), [inputTrace]);
   const traceDurationMs = Math.max(inputTrace.duration, 1);
@@ -339,7 +343,7 @@ const TraceWaterfall: React.FC<TraceWaterfallProps> = ({
         errorCount={prepared.errorSpanIds.length}
         highlightErrors={highlightErrors}
         setHighlightErrors={onHighlightErrorsChange}
-        sessionTimelineNode={sessionTimelineNode}
+        sessionReplayNode={sessionReplayNode}
       />
 
       {errorHighlightActive && (
@@ -359,7 +363,9 @@ const TraceWaterfall: React.FC<TraceWaterfallProps> = ({
         />
       )}
 
-      <div className="flex flex-row gap-2 min-h-[500px] h-[calc(100vh-220px)] bg-background pr-2">
+      <div
+        className={`flex flex-row gap-2 bg-background pr-2 ${demo ? "h-90" : "min-h-125 h-[calc(100vh-220px)]"}`}
+      >
         <div
           ref={waterfallRef}
           className="relative flex flex-col flex-1 min-w-0"

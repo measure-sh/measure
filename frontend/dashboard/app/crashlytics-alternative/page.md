@@ -1,6 +1,6 @@
 ---
 title: Open Source Firebase Crashlytics Alternative
-description: Mobile focused, open source alternative to Firebase Crashlytics. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.
+description: Mobile focused, open source alternative to Firebase Crashlytics. Crashes, ANRs, performance, network and full session replays for mobile engineering teams with simple pricing.
 canonical: /crashlytics-alternative
 ---
 
@@ -16,7 +16,7 @@ Crashlytics handles basic crash reporting but requires more tooling to complete 
 
 Performance traces need the performance monitoring add-on. Understanding what the user was doing when the crash happened requires enabling Google Analytics and manually instrumenting breadcrumb logs. Bug reporting requires third party tooling. Data analysis needs BigQuery export which is charged separately. The number of SDKs in your app and the tools you need to look at keep expanding.
 
-Measure unifies [Crashes & ANRs](/product/crashes-and-anrs), [Network Performance](/product/network-performance), [Performance Traces](/product/performance-traces), [App Health](/product/app-health), [Bug Reports](/product/bug-reports) and [User Journeys](/product/user-journeys) in one product. Every issue comes with a full Session Timeline which is auto collected for you without having to manually instrument every user interaction in your app.
+Measure unifies [Crashes & ANRs](/product/crashes-and-anrs), [Network Performance](/product/network-performance), [Performance Traces](/product/performance-traces), [App Health](/product/app-health), [Bug Reports](/product/bug-reports) and [User Journeys](/product/user-journeys) in one product. Every issue comes with a full Session Replay which is auto collected for you without having to manually instrument every user interaction in your app.
 
 One SDK, one dashboard, one place to look so you can stop stitching context and get to the root cause faster.
 
@@ -24,7 +24,7 @@ One SDK, one dashboard, one place to look so you can stop stitching context and 
 
 Crash reports in Crashlytics come with stack traces and manually instrumented breadcrumbs. Taps, navigations, network calls or lifecycle events require manual instrumentation which needs to be updated and synced when your app code changes in new releases.
 
-Measure auto-captures gestures, navigation, lifecycle events, network calls and custom spans, and replays them as a [Session Timeline](/product/session-timelines) attached to every crash, ANR or error.
+Measure auto-captures gestures, navigation, lifecycle events, network calls and custom spans, and replays them as a [Session Replay](/product/session-replays) attached to every crash, ANR or error.
 
 Measure makes it easy to see what the user did, what the app did and where things went wrong, without instrumenting every screen by hand.
 
@@ -52,13 +52,13 @@ Mobile is not a part of our product, it is the whole product.
 
 | Capability | Measure | Firebase Crashlytics |
 | --- | --- | --- |
-| Crash reporting with full session timelines | ✓ | Crash reports with manual breadcrumbs |
-| ANR detection with full session timelines | ✓ | ANRs with manual breadcrumbs |
+| Crash reporting with full session replays | ✓ | Crash reports with manual breadcrumbs |
+| ANR detection with full session replays | ✓ | ANRs with manual breadcrumbs |
 | Performance traces without sampling | ✓ | Sampled |
 | Network monitoring without sampling | ✓ | Sampled |
 | User journeys | ✓ | Needs Google Analytics |
 | In-app bug reports | ✓ | ✗ |
-| Session timeline on every issue | ✓ | ✗ |
+| Session replay on every issue | ✓ | ✗ |
 | Dynamic Sampling with Adaptive Capture | ✓ | ✗ |
 | Auto-captured context | Gestures, navigation, network, lifecycle | Screen views if Google Analytics is enabled but rest needs manual instrumentation |
 | Pricing | Simple pricing based on data usage | Free crash reporting but complex Google Analytics + BigQuery pricing for advanced users |

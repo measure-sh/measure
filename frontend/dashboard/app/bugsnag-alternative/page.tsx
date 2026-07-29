@@ -18,7 +18,7 @@ import { underlineLinkStyle } from "../utils/shared_styles";
 const seo = {
   title: "Open Source Bugsnag Alternative",
   description:
-    "Mobile focused, open source alternative to Bugsnag. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
+    "Mobile focused, open source alternative to Bugsnag. Crashes, ANRs, performance, network and full session replays for mobile engineering teams with simple pricing.",
   path: "/bugsnag-alternative",
 };
 
@@ -36,8 +36,8 @@ const differentiators: AlternativeDifferentiator[] = [
         <br />
         <br />
         Measure attaches a full{" "}
-        <Link href="/product/session-timelines" className={underlineLinkStyle}>
-          Session Timeline
+        <Link href="/product/session-replays" className={underlineLinkStyle}>
+          Session Replay
         </Link>{" "}
         with gestures, navigation, network calls, lifecycle events and custom
         spans to every crash, ANR and error, with no hard limit on what you can
@@ -169,12 +169,12 @@ const differentiators: AlternativeDifferentiator[] = [
 
 const comparisonRows: AlternativeComparisonRow[] = [
   {
-    feature: "Crash reporting with full session timelines",
+    feature: "Crash reporting with full session replays",
     measure: true,
     competitor: "Crash reports with limited breadcrumbs",
   },
   {
-    feature: "ANR detection with full session timelines",
+    feature: "ANR detection with full session replays",
     measure: true,
     competitor: "ANRs with limited breadcrumbs",
   },
@@ -183,7 +183,7 @@ const comparisonRows: AlternativeComparisonRow[] = [
   { feature: "User journeys", measure: true, competitor: false },
   { feature: "In-app bug reports", measure: true, competitor: false },
   {
-    feature: "Session timeline on every issue",
+    feature: "Session replay on every issue",
     measure: true,
     competitor: "Limited breadcrumbs only",
   },

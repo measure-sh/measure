@@ -28,8 +28,8 @@ export default function ProductBugReports() {
           alongside the user&apos;s description and screenshots.
           <br />
           <br />
-          Every bug report links directly to the complete session timeline, so
-          you can see exactly what the user experienced, review the sequence of
+          Every bug report links directly to the complete session replay, so you
+          can see exactly what the user experienced, review the sequence of
           events and identify the root cause without stumbling around in the
           dark.
           <br />
@@ -42,7 +42,7 @@ export default function ProductBugReports() {
       }
       demo={{
         frame: "scaled",
-        heightClassName: "h-[400px] md:h-[740px]",
+        heightClassName: "h-[400px] md:h-[630px]",
         content: <BugReportDemo />,
       }}
       ctaLocation="product_bug_reports"

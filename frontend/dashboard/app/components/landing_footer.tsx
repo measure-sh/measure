@@ -59,13 +59,13 @@ export default function LandingFooter() {
           <div className="flex flex-col items-center md:items-start gap-4">
             <p className="font-display text-2xl md:px-2">Product</p>
             <Link
-              href="/product/session-timelines"
+              href="/product/session-replays"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
                 "font-display select-none w-full md:w-fit",
               )}
             >
-              Session Timelines
+              Session Replays
             </Link>
             <Link
               href="/product/app-health"
