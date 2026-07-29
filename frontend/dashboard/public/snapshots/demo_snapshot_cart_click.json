@@ -1,0 +1,281 @@
+{
+ "label": "Cart Screen",
+ "type": "container",
+ "x": 0,
+ "y": 0,
+ "width": 392,
+ "height": 812,
+ "scrollable": true,
+ "highlighted": false,
+ "children": [
+  {
+   "label": "Header Bar",
+   "type": "container",
+   "x": 0,
+   "y": 0,
+   "width": 392,
+   "height": 72,
+   "scrollable": false,
+   "highlighted": false,
+   "children": [
+    {
+     "label": "Back Button",
+     "type": "button",
+     "x": 16,
+     "y": 24,
+     "width": 24,
+     "height": 24,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Screen Title",
+     "type": "text",
+     "x": 146,
+     "y": 24,
+     "width": 100,
+     "height": 24,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Points Balance",
+     "type": "container",
+     "x": 291,
+     "y": 24,
+     "width": 85,
+     "height": 24,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    }
+   ]
+  },
+  {
+   "label": "Cart Item Row",
+   "type": "container",
+   "x": 16,
+   "y": 88,
+   "width": 360,
+   "height": 88,
+   "scrollable": false,
+   "highlighted": false,
+   "children": [
+    {
+     "label": "Item Image",
+     "type": "image",
+     "x": 28,
+     "y": 100,
+     "width": 64,
+     "height": 64,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Item Name",
+     "type": "text",
+     "x": 104,
+     "y": 104,
+     "width": 140,
+     "height": 20,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Item Price",
+     "type": "text",
+     "x": 104,
+     "y": 132,
+     "width": 60,
+     "height": 16,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Quantity Stepper",
+     "type": "container",
+     "x": 300,
+     "y": 112,
+     "width": 64,
+     "height": 40,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    }
+   ]
+  },
+  {
+   "label": "Cart Item Row",
+   "type": "container",
+   "x": 16,
+   "y": 192,
+   "width": 360,
+   "height": 88,
+   "scrollable": false,
+   "highlighted": false,
+   "children": [
+    {
+     "label": "Item Image",
+     "type": "image",
+     "x": 28,
+     "y": 204,
+     "width": 64,
+     "height": 64,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Item Name",
+     "type": "text",
+     "x": 104,
+     "y": 208,
+     "width": 140,
+     "height": 20,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Item Price",
+     "type": "text",
+     "x": 104,
+     "y": 236,
+     "width": 60,
+     "height": 16,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Quantity Stepper",
+     "type": "container",
+     "x": 300,
+     "y": 216,
+     "width": 64,
+     "height": 40,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    }
+   ]
+  },
+  {
+   "label": "Promo Code Field",
+   "type": "container",
+   "x": 16,
+   "y": 304,
+   "width": 360,
+   "height": 48,
+   "scrollable": false,
+   "highlighted": false,
+   "children": []
+  },
+  {
+   "label": "Summary Card",
+   "type": "container",
+   "x": 16,
+   "y": 376,
+   "width": 360,
+   "height": 148,
+   "scrollable": false,
+   "highlighted": false,
+   "children": [
+    {
+     "label": "Subtotal Label",
+     "type": "text",
+     "x": 32,
+     "y": 392,
+     "width": 100,
+     "height": 18,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Subtotal Value",
+     "type": "text",
+     "x": 300,
+     "y": 392,
+     "width": 60,
+     "height": 18,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Shipping Label",
+     "type": "text",
+     "x": 32,
+     "y": 424,
+     "width": 100,
+     "height": 18,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Shipping Value",
+     "type": "text",
+     "x": 300,
+     "y": 424,
+     "width": 60,
+     "height": 18,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Total Label",
+     "type": "text",
+     "x": 32,
+     "y": 466,
+     "width": 100,
+     "height": 20,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    },
+    {
+     "label": "Total Value",
+     "type": "text",
+     "x": 292,
+     "y": 466,
+     "width": 68,
+     "height": 20,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    }
+   ]
+  },
+  {
+   "label": "Checkout Button",
+   "type": "button",
+   "x": 16,
+   "y": 732,
+   "width": 360,
+   "height": 56,
+   "scrollable": false,
+   "highlighted": true,
+   "children": [
+    {
+     "label": "Checkout Label",
+     "type": "text",
+     "x": 146,
+     "y": 750,
+     "width": 100,
+     "height": 20,
+     "scrollable": false,
+     "highlighted": false,
+     "children": []
+    }
+   ]
+  }
+ ]
+}

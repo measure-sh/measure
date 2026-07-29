@@ -31,12 +31,17 @@ const chartColor = {
   yellow: "#facc15", // yellow-400
 } as const;
 
+// Callers use this array as a memo dependency, and a fresh array on every
+// call would recompute every memo that depends on it, so one instance is
+// built and shared.
+const chartColors = Object.values(chartColor);
+
 export function useChartColor() {
   return chartColor;
 }
 
 export function useChartColors() {
-  return Object.values(chartColor);
+  return chartColors;
 }
 
 export const chartTheme = {

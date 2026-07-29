@@ -7,7 +7,7 @@ export class BugReportDetailPage {
   readonly status: Locator;
   readonly statusToggleButton: Locator;
   readonly screenshots: Locator;
-  readonly sessionTimelineLink: Locator;
+  readonly sessionReplayLink: Locator;
   readonly userIdPill: Locator;
   readonly timestampPill: Locator;
   readonly devicePill: Locator;
@@ -28,8 +28,8 @@ export class BugReportDetailPage {
       name: /(Close|Re-Open) Bug Report/,
     });
     this.screenshots = page.getByRole("img", { name: /^Screenshot \d+$/ });
-    this.sessionTimelineLink = page.getByRole("link", {
-      name: "View Session Timeline",
+    this.sessionReplayLink = page.getByRole("link", {
+      name: "View Session Replay",
     });
   }
 
@@ -40,8 +40,8 @@ export class BugReportDetailPage {
     );
   }
 
-  async openSessionTimeline() {
-    await this.sessionTimelineLink.click();
-    await this.page.waitForURL(`**/${this.teamId}/session_timelines/**`);
+  async openSessionReplay() {
+    await this.sessionReplayLink.click();
+    await this.page.waitForURL(`**/${this.teamId}/session_replays/**`);
   }
 }

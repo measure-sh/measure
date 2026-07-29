@@ -18,22 +18,22 @@ export const metadata: Metadata = pageMetadata(seo);
 
 const features: PlatformFeature[] = [
   {
-    heading: "Session Timelines",
-    image: "/images/product_screenshots/session_timelines.webp",
-    imageAlt: "Session timeline for an iPadOS session in Measure",
+    heading: "Session Replays",
+    image: "/images/product_screenshots/session_replays.webp",
+    imageAlt: "Session replay for an iPadOS session in Measure",
     body: (
       <>
         Every crash and error on iPad comes with a complete{" "}
-        <Link href="/product/session-timelines" className={underlineLinkStyle}>
-          Session Timeline
+        <Link href="/product/session-replays" className={underlineLinkStyle}>
+          Session Replay
         </Link>{" "}
         you can replay. Walk back through the exact run-up to the failure —
         gestures, screen navigation, network calls, logs and lifecycle events —
         with CPU and memory readings plotted right alongside.
         <br />
-        <br />A stack trace only tells you where things broke. The timeline
-        shows how your app got there and what the user was doing in the moments
-        before failure.
+        <br />A stack trace only tells you where things broke. The replay shows
+        how your app got there and what the user was doing in the moments before
+        failure.
       </>
     ),
   },
@@ -77,7 +77,7 @@ const features: PlatformFeature[] = [
         <br />
         <br />
         Every trace comes with full device and app context and ties back to its
-        session timeline, so a slow span never shows up without the conditions
+        session replay, so a slow span never shows up without the conditions
         that produced it.
       </>
     ),
@@ -114,7 +114,7 @@ const features: PlatformFeature[] = [
         , triggered by a shake or from a button you wire up through the SDK.
         Each one packages device details, app version, network conditions and a
         screenshot next to the user&apos;s own description, and allows you to
-        jump straight to the matching session timeline.
+        jump straight to the matching session replay.
         <br />
         <br />
         Forget the back-and-forth of email and support tickets. Your users
@@ -176,7 +176,7 @@ const features: PlatformFeature[] = [
         <Link href="/product/mcp" className={underlineLinkStyle}>
           Measure MCP server
         </Link>{" "}
-        hands any agent your crashes, performance traces and session timelines,
+        hands any agent your crashes, performance traces and session replays,
         directly from your IDE, editor or terminal.
         <br />
         <br />

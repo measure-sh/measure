@@ -40,7 +40,7 @@ export default function AIDemoCarousel() {
             <Link href="/product/mcp" className={underlineLinkStyle}>
               MCP Server
             </Link>
-            . Let your coding agent query errors, traces and session timelines
+            . Let your coding agent query errors, traces and session replays
             directly in your development workflow.
           </>
         )}

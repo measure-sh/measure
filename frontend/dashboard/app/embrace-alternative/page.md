@@ -1,6 +1,6 @@
 ---
 title: Open Source Embrace Alternative
-description: Mobile focused, open source alternative to Embrace. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.
+description: Mobile focused, open source alternative to Embrace. Crashes, ANRs, performance, network and full session replays for mobile engineering teams with simple pricing.
 canonical: /embrace-alternative
 ---
 
@@ -14,7 +14,7 @@ Measure is a mobile first, open source Embrace alternative.
 
 Embrace and Measure both attach a full session view to every crash, ANR and error and capture it automatically.
 
-Measure records gestures, navigation, network calls, lifecycle events and custom spans into a full [Session Timeline](/product/session-timelines) on every issue.
+Measure records gestures, navigation, network calls, lifecycle events and custom spans into a full [Session Replay](/product/session-replays) on every issue.
 
 The key difference is transparency. Measure is open source, the platform that stores your user data is transparent, and you never have to send your data to a proprietary, locked platform.
 
@@ -50,13 +50,13 @@ Mobile is not a part of our product, it is the whole product.
 
 | Capability | Measure | Embrace |
 | --- | --- | --- |
-| Crash reporting with full session timelines | ✓ | ✓ |
-| ANR detection with full session timelines | ✓ | ✓ |
+| Crash reporting with full session replays | ✓ | ✓ |
+| ANR detection with full session replays | ✓ | ✓ |
 | Performance traces | ✓ | ✓ |
 | Network monitoring | ✓ | ✓ |
 | User journeys | ✓ | ✓ |
 | In-app bug reports | ✓ | ✗ |
-| Session timeline on every issue | ✓ | ✓ |
+| Session replay on every issue | ✓ | ✓ |
 | Dynamic Sampling with Adaptive Capture | ✓ | Always-on full capture |
 | Auto-captured context | Gestures, navigation, network, lifecycle | Taps, views, network, lifecycle |
 | Pricing | Simple pricing based on data usage | Per session |

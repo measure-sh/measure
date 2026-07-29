@@ -364,11 +364,11 @@ describe("Errors Detail (MSW integration)", () => {
     expect(screen.getByText(/Network type: wifi/)).toBeTruthy();
   });
 
-  it("renders View Session Timeline link to the right session", async () => {
+  it("renders View Session Replay link to the right session", async () => {
     await renderDetailAndWait();
-    const link = screen.getByText("View Session Timeline").closest("a")!;
+    const link = screen.getByText("View Session Replay").closest("a")!;
     expect(link.getAttribute("href")).toBe(
-      `/test-team/session_timelines/${makeAppFixture().id}/sess-crash-001`,
+      `/test-team/session_replays/${makeAppFixture().id}/sess-crash-001`,
     );
   });
 

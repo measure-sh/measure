@@ -18,14 +18,14 @@ export const metadata: Metadata = pageMetadata(seo);
 
 const features: PlatformFeature[] = [
   {
-    heading: "Session Timelines",
-    image: "/images/product_screenshots/session_timelines.webp",
-    imageAlt: "Session timeline for a Flutter session in Measure",
+    heading: "Session Replays",
+    image: "/images/product_screenshots/session_replays.webp",
+    imageAlt: "Session replay for a Flutter session in Measure",
     body: (
       <>
         Every crash and error in your Flutter app comes with a complete{" "}
-        <Link href="/product/session-timelines" className={underlineLinkStyle}>
-          Session Timeline
+        <Link href="/product/session-replays" className={underlineLinkStyle}>
+          Session Replay
         </Link>{" "}
         you can replay. Step back through the exact lead-up — gestures,
         navigation, network calls, logs and lifecycle events — with CPU and
@@ -76,7 +76,7 @@ const features: PlatformFeature[] = [
         <br />
         <br />
         Every trace comes with full device and app context and ties back to its
-        session timeline, so a slow span never shows up without the conditions
+        session replay, so a slow span never shows up without the conditions
         that produced it.
       </>
     ),
@@ -113,7 +113,7 @@ const features: PlatformFeature[] = [
         , triggered by a device shake or from your own button through the SDK.
         Each report packages device details, app version, network conditions and
         a screenshot next to the user&apos;s description, and makes it easy to
-        jump straight to the matching session timeline.
+        jump straight to the matching session replay.
         <br />
         <br />
         Forget the email threads and support ticket back-and-forth — your users
@@ -176,7 +176,7 @@ const features: PlatformFeature[] = [
           Measure MCP server
         </Link>{" "}
         hands any agent your crashes, errors, performance traces and session
-        timelines, directly from your IDE, editor or terminal.
+        replays, directly from your IDE, editor or terminal.
         <br />
         <br />
         Point it at a crash, work through user sessions, or build it into an

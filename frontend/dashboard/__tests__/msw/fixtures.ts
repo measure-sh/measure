@@ -280,10 +280,10 @@ export function makeThresholdPrefsFixture(overrides: Record<string, any> = {}) {
   };
 }
 
-// --- Session Timelines Overview (GET /apps/:appId/sessions) ---
+// --- Session Replay Overview (GET /apps/:appId/sessions) ---
 // Go struct: assembled in handler, backend/api/measure/app.go
 
-export function makeSessionTimelinesOverviewFixture(
+export function makeSessionReplayOverviewFixture(
   overrides: Record<string, any> = {},
 ) {
   return {
@@ -330,7 +330,7 @@ export function makeSessionTimelinesOverviewFixture(
   };
 }
 
-export function makeSessionTimelinesOverviewPage2Fixture() {
+export function makeSessionReplayOverviewPage2Fixture() {
   return {
     meta: { next: false, previous: true },
     results: [
@@ -356,7 +356,7 @@ export function makeSessionTimelinesOverviewPage2Fixture() {
   };
 }
 
-// --- Session Timeline Detail (GET /apps/:appId/sessions/:sessionId) ---
+// --- Session Replay Details (GET /apps/:appId/sessions/:sessionId) ---
 
 // --- Journey (GET /apps/:appId/journey) ---
 // Go struct: assembled in handler, backend/api/measure/app.go
@@ -794,9 +794,7 @@ export function makeBugReportsPlotFixture() {
   ];
 }
 
-export function makeSessionTimelineDetailFixture(
-  overrides: Record<string, any> = {},
-) {
+export function makeSessionReplayFixture(overrides: Record<string, any> = {}) {
   return {
     app_id: "b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f",
     session_id: "sess-001",

@@ -1,0 +1,45 @@
+{
+ "label": "Splash Screen",
+ "type": "container",
+ "x": 0,
+ "y": 0,
+ "width": 392,
+ "height": 812,
+ "scrollable": false,
+ "highlighted": false,
+ "children": [
+  {
+   "label": "App Logo",
+   "type": "image",
+   "x": 148,
+   "y": 310,
+   "width": 96,
+   "height": 96,
+   "scrollable": false,
+   "highlighted": false,
+   "children": []
+  },
+  {
+   "label": "App Name",
+   "type": "text",
+   "x": 132,
+   "y": 430,
+   "width": 128,
+   "height": 24,
+   "scrollable": false,
+   "highlighted": false,
+   "children": []
+  },
+  {
+   "label": "Loading Spinner",
+   "type": "container",
+   "x": 180,
+   "y": 648,
+   "width": 32,
+   "height": 32,
+   "scrollable": false,
+   "highlighted": false,
+   "children": []
+  }
+ ]
+}

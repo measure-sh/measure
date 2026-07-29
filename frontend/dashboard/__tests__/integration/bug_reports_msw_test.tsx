@@ -5,7 +5,7 @@
  * matched_free_text badges, and a time-series plot.
  * Detail page: single bug report with status badge, pills (user, device, etc.),
  * user_defined_attribute pills, description, attachments, status toggle
- * (PATCH endpoint), and "View Session Timeline" link.
+ * (PATCH endpoint), and "View Session Replay" link.
  *
  * Unique to bug reports:
  *   - bugReportStatus filter (Open/Closed)
@@ -1613,12 +1613,12 @@ describe("Bug Report Detail (MSW integration)", () => {
       expect(screen.queryByText("premium: true")).toBeNull();
     });
 
-    it('renders "View Session Timeline" link', async () => {
+    it('renders "View Session Replay" link', async () => {
       await renderDetail();
-      const link = screen.getByText("View Session Timeline");
+      const link = screen.getByText("View Session Replay");
       expect(link).toBeTruthy();
       expect(link.closest("a")?.getAttribute("href")).toBe(
-        "/test-team/session_timelines/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/sess-br-001",
+        "/test-team/session_replays/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/sess-br-001",
       );
     });
 

@@ -23,14 +23,14 @@ const demoBugReport = {
   event_id: "f917ce21-9b8e-479d-9daa-888e32c66739",
   status: 0,
   description:
-    "When I tap the 'Pay' button on the Checkout, the app crashes immediately. This seems to happen when I go to other app from checkout screen and then come back to finish paying. Reproducible on Pixel 7 Pro. Steps: Open app → go to Checkout → go to another app -> come back to checkout screen -> tap 'Pay'.",
+    "The app crashes when I tap 'Pay' on the Checkout screen. I added the runner sneakers to my cart, applied the $0 off reward and tapped Pay - the first tap did nothing and the second one closed the app. Reproducible on Pixel 7 Pro. Steps: Open app → add sneakers to cart → checkout → apply reward → tap 'Pay' twice.",
   timestamp: DateTime.now().minus({ minutes: 2 }).toUTC().toISO(),
   updated_at: DateTime.now().minus({ minutes: 2 }).toUTC().toISO(),
   attribute: {
     installation_id: "00000000-0000-0000-0000-000000000000",
     app_version: "2.0.0",
     app_build: "200",
-    app_unique_id: "",
+    app_unique_id: "sh.measure.demo",
     measure_sdk_version: "",
     platform: "",
     thread_name: "",
@@ -247,14 +247,14 @@ export default function BugReport({
           <div className="flex flex-row">
             {demo ? (
               <div className={cn(buttonVariants({ variant: "outline" }))}>
-                View Session Timeline
+                View Session Replay
               </div>
             ) : (
               <Link
-                href={`/${params.teamId}/session_timelines/${params.appId}/${displayBugReport.session_id}`}
+                href={`/${params.teamId}/session_replays/${params.appId}/${displayBugReport.session_id}`}
                 className={cn(buttonVariants({ variant: "outline" }))}
               >
-                View Session Timeline
+                View Session Replay
               </Link>
             )}
             <div className="px-2" />

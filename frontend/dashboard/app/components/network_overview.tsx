@@ -91,23 +91,23 @@ function generateDemoTimelineData(): NetworkTimelineData {
   }[] = [
     // Auth/config: concentrated in first 5 seconds
     {
-      domain: "api.demo-provider.com",
+      domain: "store.demo-provider.com",
       path_pattern: "/v1/auth/token",
       startSec: 0,
       endSec: 5,
       baseCount: 2.5,
     },
     {
-      domain: "api.demo-provider.com",
+      domain: "store.demo-provider.com",
       path_pattern: "/v1/config",
       startSec: 0,
       endSec: 3,
       baseCount: 1.8,
     },
-    // Feed/content: early-mid session
+    // Catalog content: early-mid session
     {
-      domain: "api.demo-provider.com",
-      path_pattern: "/v2/feed/*",
+      domain: "store.demo-provider.com",
+      path_pattern: "/v1/products",
       startSec: 3,
       endSec: 30,
       baseCount: 1.5,
@@ -120,7 +120,7 @@ function generateDemoTimelineData(): NetworkTimelineData {
       baseCount: 3.0,
     },
     {
-      domain: "api.demo-provider.com",
+      domain: "store.demo-provider.com",
       path_pattern: "/v1/users/*/profile",
       startSec: 5,
       endSec: 20,
@@ -128,18 +128,25 @@ function generateDemoTimelineData(): NetworkTimelineData {
     },
     // Commerce: late session
     {
-      domain: "api.demo-provider.com",
-      path_pattern: "/v2/products/*",
+      domain: "store.demo-provider.com",
+      path_pattern: "/v1/products/*",
       startSec: 25,
       endSec: 80,
       baseCount: 1.2,
     },
     {
-      domain: "payments.demo-provider.com",
-      path_pattern: "/v1/cart/*",
+      domain: "store.demo-provider.com",
+      path_pattern: "/v1/cart",
       startSec: 50,
       endSec: 90,
       baseCount: 0.9,
+    },
+    {
+      domain: "payments.demo-provider.com",
+      path_pattern: "/*/payment-methods",
+      startSec: 55,
+      endSec: 90,
+      baseCount: 0.7,
     },
     {
       domain: "payments.demo-provider.com",
@@ -216,7 +223,7 @@ export default function NetworkOverview({
   const domains = demo
     ? [
         "payments.demo-provider.com",
-        "api.demo-provider.com",
+        "store.demo-provider.com",
         "cdn.demo-provider.com",
       ]
     : (domainsQuery.data ?? []);

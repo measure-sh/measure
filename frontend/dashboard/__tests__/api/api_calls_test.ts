@@ -64,9 +64,9 @@ import {
   fetchRootSpanNamesFromServer,
   fetchSdkConfigFromServer,
   fetchAppHealthPlotFromServer,
-  fetchSessionTimelineFromServer,
-  fetchSessionTimelinesOverviewFromServer,
-  fetchSessionTimelinesOverviewPlotFromServer,
+  fetchSessionReplayFromServer,
+  fetchSessionReplayOverviewFromServer,
+  fetchSessionReplayOverviewPlotFromServer,
   fetchSpanMetricsPlotFromServer,
   fetchSpansFromServer,
   fetchTeamsFromServer,
@@ -515,32 +515,32 @@ describe("fetch functions that use applyGenericFiltersToUrl", () => {
     expect(url).toContain("offset=100");
   });
 
-  it("fetchSessionTimelinesOverviewFromServer includes limit/offset", async () => {
+  it("fetchSessionReplayOverviewFromServer includes limit/offset", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    await fetchSessionTimelinesOverviewFromServer(makeFilters(), 10, 20);
+    await fetchSessionReplayOverviewFromServer(makeFilters(), 10, 20);
     expect(lastFetchUrl()).toContain("/api/apps/app-a/sessions");
     expect(lastFetchUrl()).toContain("limit=10");
     expect(lastFetchUrl()).toContain("offset=20");
   });
 
-  it("fetchSessionTimelinesOverviewPlotFromServer returns null when the body is null", async () => {
+  it("fetchSessionReplayOverviewPlotFromServer returns null when the body is null", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
     const result =
-      await fetchSessionTimelinesOverviewPlotFromServer(makeFilters());
+      await fetchSessionReplayOverviewPlotFromServer(makeFilters());
     expect(result).toBeNull();
   });
 
-  it("fetchSessionTimelinesOverviewPlotFromServer throws on non-ok", async () => {
+  it("fetchSessionReplayOverviewPlotFromServer throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
     await expect(
-      fetchSessionTimelinesOverviewPlotFromServer(makeFilters()),
+      fetchSessionReplayOverviewPlotFromServer(makeFilters()),
     ).rejects.toThrow(ApiError);
   });
 
-  it("fetchSessionTimelinesOverviewPlotFromServer throws on exception", async () => {
+  it("fetchSessionReplayOverviewPlotFromServer throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
     await expect(
-      fetchSessionTimelinesOverviewPlotFromServer(makeFilters()),
+      fetchSessionReplayOverviewPlotFromServer(makeFilters()),
     ).rejects.toThrow(RequestError);
   });
 });
@@ -772,9 +772,9 @@ describe("network endpoint fetches", () => {
 // Sessions / bug reports / alerts
 // ========================================================================
 describe("sessions, bug reports, alerts", () => {
-  it("fetchSessionTimelineFromServer hits /sessions/{sessionId}", async () => {
+  it("fetchSessionReplayFromServer hits /sessions/{sessionId}", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ session: {} }));
-    await fetchSessionTimelineFromServer("app-1", "sess-1");
+    await fetchSessionReplayFromServer("app-1", "sess-1");
     expect(lastFetchUrl()).toBe("/api/apps/app-1/sessions/sess-1");
   });
 
@@ -1287,16 +1287,16 @@ describe("fetch functions: failure paths", () => {
     ],
     ["fetchMetricsFromServer", () => fetchMetricsFromServer(makeFilters())],
     [
-      "fetchSessionTimelinesOverviewFromServer",
-      () => fetchSessionTimelinesOverviewFromServer(makeFilters(), 10, 0),
+      "fetchSessionReplayOverviewFromServer",
+      () => fetchSessionReplayOverviewFromServer(makeFilters(), 10, 0),
     ],
     [
       "fetchAuthzAndMembersFromServer",
       () => fetchAuthzAndMembersFromServer("t1"),
     ],
     [
-      "fetchSessionTimelineFromServer",
-      () => fetchSessionTimelineFromServer("a", "s"),
+      "fetchSessionReplayFromServer",
+      () => fetchSessionReplayFromServer("a", "s"),
     ],
     [
       "fetchBugReportsOverviewFromServer",
@@ -1448,7 +1448,7 @@ describe("mutation functions: failure paths", () => {
 
 // ========================================================================
 // Additional branch coverage — NoData paths, all SpanStatus values,
-// all SessionType values via session-timeline fetches, etc.
+// all SessionType values via session replay fetches, etc.
 // ========================================================================
 describe("additional branch coverage", () => {
   it("fetchSpanMetricsPlotFromServer returns null when response data is null", async () => {
@@ -1482,9 +1482,9 @@ describe("additional branch coverage", () => {
     expect(url).toContain("span_statuses=2");
   });
 
-  it("appends all session types via fetchSessionTimelinesOverviewFromServer", async () => {
+  it("appends all session types via fetchSessionReplayOverviewFromServer", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    await fetchSessionTimelinesOverviewFromServer(
+    await fetchSessionReplayOverviewFromServer(
       makeFilters({
         sessionTypes: {
           all: false,

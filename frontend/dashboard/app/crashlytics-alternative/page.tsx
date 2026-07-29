@@ -18,7 +18,7 @@ import { underlineLinkStyle } from "../utils/shared_styles";
 const seo = {
   title: "Open Source Firebase Crashlytics Alternative",
   description:
-    "Mobile focused, open source alternative to Firebase Crashlytics. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.",
+    "Mobile focused, open source alternative to Firebase Crashlytics. Crashes, ANRs, performance, network and full session replays for mobile engineering teams with simple pricing.",
   path: "/crashlytics-alternative",
 };
 
@@ -69,7 +69,7 @@ const differentiators: AlternativeDifferentiator[] = [
         <Link href="/product/user-journeys" className={underlineLinkStyle}>
           User Journeys
         </Link>{" "}
-        in one product. Every issue comes with a full Session Timeline which is
+        in one product. Every issue comes with a full Session Replay which is
         auto collected for you without having to manually instrument every user
         interaction in your app.
         <br />
@@ -92,8 +92,8 @@ const differentiators: AlternativeDifferentiator[] = [
         <br />
         Measure auto-captures gestures, navigation, lifecycle events, network
         calls and custom spans, and replays them as a{" "}
-        <Link href="/product/session-timelines" className={underlineLinkStyle}>
-          Session Timeline
+        <Link href="/product/session-replays" className={underlineLinkStyle}>
+          Session Replay
         </Link>{" "}
         attached to every crash, ANR or error.
         <br />
@@ -200,12 +200,12 @@ const differentiators: AlternativeDifferentiator[] = [
 
 const comparisonRows: AlternativeComparisonRow[] = [
   {
-    feature: "Crash reporting with full session timelines",
+    feature: "Crash reporting with full session replays",
     measure: true,
     competitor: "Crash reports with manual breadcrumbs",
   },
   {
-    feature: "ANR detection with full session timelines",
+    feature: "ANR detection with full session replays",
     measure: true,
     competitor: "ANRs with manual breadcrumbs",
   },
@@ -226,7 +226,7 @@ const comparisonRows: AlternativeComparisonRow[] = [
   },
   { feature: "In-app bug reports", measure: true, competitor: false },
   {
-    feature: "Session timeline on every issue",
+    feature: "Session replay on every issue",
     measure: true,
     competitor: false,
   },

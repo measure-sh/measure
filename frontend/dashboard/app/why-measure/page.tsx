@@ -55,10 +55,10 @@ export default function WhyMeasure() {
                 <br />
                 With advanced automated capture techniques and full{" "}
                 <Link
-                  href="/product/session-timelines"
+                  href="/product/session-replays"
                   className={underlineLinkStyle}
                 >
-                  Session Timelines
+                  Session Replays
                 </Link>
                 , Measure allows you to get the full context of errors and
                 performance issues as they happen in the wild.

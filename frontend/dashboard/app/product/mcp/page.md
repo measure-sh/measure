@@ -8,9 +8,9 @@ canonical: /product/mcp
 
 Connect Measure with your favorite coding agents through the Model Context Protocol.
 
-MCP lets AI coding agent access your errors, performance traces, session timelines and bug reports directly in your development workflow.
+MCP lets AI coding agent access your errors, performance traces, session replays and bug reports directly in your development workflow.
 
-With MCP, you can simply ask your AI assistant to look up an error, let it fetch stack traces, session timelines and related context, and ship fixes faster than ever before.
+With MCP, you can simply ask your AI assistant to look up an error, let it fetch stack traces, session replays and related context, and ship fixes faster than ever before.
 
 ## Works with your favorite coding agents
 

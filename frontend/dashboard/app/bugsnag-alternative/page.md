@@ -1,6 +1,6 @@
 ---
 title: Open Source Bugsnag Alternative
-description: Mobile focused, open source alternative to Bugsnag. Crashes, ANRs, performance, network and full session timelines for mobile engineering teams with simple pricing.
+description: Mobile focused, open source alternative to Bugsnag. Crashes, ANRs, performance, network and full session replays for mobile engineering teams with simple pricing.
 canonical: /bugsnag-alternative
 ---
 
@@ -14,7 +14,7 @@ Measure is a mobile first, open source Bugsnag alternative.
 
 Bugsnag gives you stack traces with breadcrumb trails of what happened before the error. Breadcrumbs have a max limit and there is no visual replay of the session.
 
-Measure attaches a full [Session Timeline](/product/session-timelines) with gestures, navigation, network calls, lifecycle events and custom spans to every crash, ANR and error, with no hard limit on what you can see.
+Measure attaches a full [Session Replay](/product/session-replays) with gestures, navigation, network calls, lifecycle events and custom spans to every crash, ANR and error, with no hard limit on what you can see.
 
 You see exactly what the user did and what the app did, on every issue, without any compromise on the context.
 
@@ -50,13 +50,13 @@ Mobile is not a part of our product, it is the whole product.
 
 | Capability | Measure | Bugsnag |
 | --- | --- | --- |
-| Crash reporting with full session timelines | ✓ | Crash reports with limited breadcrumbs |
-| ANR detection with full session timelines | ✓ | ANRs with limited breadcrumbs |
+| Crash reporting with full session replays | ✓ | Crash reports with limited breadcrumbs |
+| ANR detection with full session replays | ✓ | ANRs with limited breadcrumbs |
 | Performance traces | ✓ | ✓ |
 | Network monitoring | ✓ | ✓ |
 | User journeys | ✓ | ✗ |
 | In-app bug reports | ✓ | ✗ |
-| Session timeline on every issue | ✓ | Limited breadcrumbs only |
+| Session replay on every issue | ✓ | Limited breadcrumbs only |
 | Dynamic Sampling with Adaptive Capture | ✓ | Quota-driven sampling |
 | Auto-captured context | Gestures, navigation, network, lifecycle | Navigation, network, taps via limited breadcrumbs |
 | Pricing | Simple pricing based on data usage | Separate quotas for error events & performance spans |

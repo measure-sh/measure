@@ -361,7 +361,7 @@ export default function SdkConfigurator({
           {sdkConfig.crash_timeline_duration !==
             originalSdkConfig.crash_timeline_duration && (
             <li>
-              Session Timeline duration:{" "}
+              Session replay duration:{" "}
               <span className="font-display font-bold">
                 {originalSdkConfig.crash_timeline_duration} seconds
               </span>{" "}
@@ -399,7 +399,7 @@ export default function SdkConfigurator({
           {sdkConfig.anr_timeline_duration !==
             originalSdkConfig.anr_timeline_duration && (
             <li>
-              Session timeline duration:{" "}
+              Session replay duration:{" "}
               <span className="font-display font-bold">
                 {originalSdkConfig.anr_timeline_duration} seconds
               </span>{" "}
@@ -426,7 +426,7 @@ export default function SdkConfigurator({
         <p className="mt-4">The following changes will be applied:</p>
         <ul className="mt-2 space-y-1 list-disc list-inside">
           <li>
-            Session timeline duration:{" "}
+            Session replay duration:{" "}
             <span className="font-display font-bold">
               {originalSdkConfig.bug_report_timeline_duration} seconds
             </span>{" "}
@@ -718,7 +718,7 @@ export default function SdkConfigurator({
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-body text-sm">
-                    Collect session timeline of
+                    Collect session replay of
                   </span>
                   <SdkConfigNumericInput
                     testId="crash-timeline-duration-input"
@@ -773,7 +773,7 @@ export default function SdkConfigurator({
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-body text-sm">
-                      Collect session timeline of
+                      Collect session replay of
                     </span>
                     <SdkConfigNumericInput
                       testId="anr-timeline-duration-input"
@@ -816,7 +816,7 @@ export default function SdkConfigurator({
               <div className="mt-2 space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-body text-sm">
-                    Collect session timeline of
+                    Collect session replay of
                   </span>
                   <SdkConfigNumericInput
                     testId="bug-report-timeline-duration-input"

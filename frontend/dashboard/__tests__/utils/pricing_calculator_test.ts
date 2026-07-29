@@ -75,7 +75,7 @@ describe("computeEventBreakdown", () => {
   it("computes session timeline events from crash sessions", () => {
     // crashSessions=15, * 5 min * 60 events/min = 4500
     const events = computeEventBreakdown(defaultInputs);
-    expect(events.sessionTimelineEventsPerDay).toBe(4500);
+    expect(events.sessionReplayEventsPerDay).toBe(4500);
   });
 });
 
@@ -153,7 +153,7 @@ describe("calculate", () => {
       expect(events.sessionStartPerDay).toBe(3000);
       expect(events.launchPerDay).toBe(0);
       expect(events.crashEventsPerDay).toBe(0);
-      expect(events.sessionTimelineEventsPerDay).toBe(0);
+      expect(events.sessionReplayEventsPerDay).toBe(0);
       expect(events.perfSpansPerDay).toBe(0);
       expect(events.journeyEventsPerDay).toBe(0);
     });
@@ -207,7 +207,7 @@ describe("calculate", () => {
         errorRatePercent: 1,
       });
       expect(events.crashEventsPerDay).toBe(10); // 1000 * 1 * 1/100
-      expect(events.sessionTimelineEventsPerDay).toBe(3000); // 10 * 5min * 60events/min
+      expect(events.sessionReplayEventsPerDay).toBe(3000); // 10 * 5min * 60events/min
     });
 
     it("enabling perf spans adds bytes", () => {

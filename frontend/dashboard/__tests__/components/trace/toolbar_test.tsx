@@ -117,20 +117,20 @@ describe("TraceToolbar — errors", () => {
 });
 
 describe("TraceToolbar — session timeline slot", () => {
-  it("renders sessionTimelineNode when provided", () => {
+  it("renders sessionReplayNode when provided", () => {
     setup({
-      sessionTimelineNode: (
+      sessionReplayNode: (
         <a href="/x" data-testid="session-link">
-          View Session Timeline
+          View Session Replay
         </a>
       ),
     });
     expect(screen.getByTestId("session-link")).toBeTruthy();
-    expect(screen.getByText("View Session Timeline")).toBeTruthy();
+    expect(screen.getByText("View Session Replay")).toBeTruthy();
   });
 
   it("renders nothing in the slot by default", () => {
     setup();
-    expect(screen.queryByText("View Session Timeline")).toBeNull();
+    expect(screen.queryByText("View Session Replay")).toBeNull();
   });
 });

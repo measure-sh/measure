@@ -4,7 +4,7 @@ seoTitle: "Mobile Crash Reporting, ANR, and Error Monitoring"
 description: "Monitor crashes, ANRs, unhandled errors, and handled errors across your mobile app. See what broke, how often, and what the user was doing when it happened."
 ---
 
-Measure tracks crashes, ANRs, and other errors in your app. Each error is reported with a session timeline that shows the steps the user took before hitting the error. Similar errors are [grouped](/docs/error-monitoring/grouping) into a single issue so you can tell how often something happens and what to fix first.
+Measure tracks crashes, ANRs, and other errors in your app. Each error is reported with a session replay that shows the steps the user took before hitting the error. Similar errors are [grouped](/docs/error-monitoring/grouping) into a single issue so you can tell how often something happens and what to fix first.
 
 ## Error severity
 
@@ -185,11 +185,11 @@ Measure.trackHandledException(e, attributes)
 </Tab>
 </Tabs>
 
-## Session timelines
+## Session replays
 
-Measure collects a session timeline with every **fatal** and **unhandled** error. It's an ordered list of what happened leading up to the error: the screens opened, taps, network calls, logs, app lifecycle events, network changes and more. Use it to retrace exactly what the user did before it broke.
+Measure collects a session replay with every **fatal** and **unhandled** error. It's an ordered list of what happened leading up to the error: the screens opened, taps, network calls, logs, app lifecycle events, network changes and more. Use it to retrace exactly what the user did before it broke.
 
-By default the timeline covers the 5 minutes before the error. A longer window gives more context but collects more data. Change it from the dashboard through [Adaptive Capture](/docs/adaptive-capture#session-timeline-duration).
+By default the replay covers the 5 minutes before the error. A longer window gives more context but collects more data. Change it from the dashboard through [Adaptive Capture](/docs/adaptive-capture#session-replay-duration).
 
 ## Screenshots
 
@@ -208,7 +208,7 @@ A spike of crashes or ANRs triggers an alert over email and Slack. Handled error
 Crashes and ANRs are configured remotely through [Adaptive Capture](/docs/adaptive-capture), so you can change these without shipping a new build:
 
 - **Screenshots**: whether Measure captures a screenshot on each crash and ANR. On by default.
-- **Session timeline duration**: how far back the timeline reaches before the error. A longer window gives more context but collects more data. 5 minutes by default.
+- **Session replay duration**: how far back the replay reaches before the error. A longer window gives more context but collects more data. 5 minutes by default.
 - **Screenshot mask level**: how much of each screenshot is masked to keep sensitive content from leaking. Masks all text and media by default.
 
 See [Errors](/docs/adaptive-capture#errors) for each setting.

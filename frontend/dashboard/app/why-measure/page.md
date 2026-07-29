@@ -12,7 +12,7 @@ There are several mobile app monitoring tools in the market. What is different b
 
 Measure is focused on giving the full picture of apps in production to mobile developers and is not just limited to basic error tracking.
 
-With advanced automated capture techniques and full [Session Timelines](/product/session-timelines), Measure allows you to get the full context of errors and performance issues as they happen in the wild.
+With advanced automated capture techniques and full [Session Replays](/product/session-replays), Measure allows you to get the full context of errors and performance issues as they happen in the wild.
 
 If you're looking to truly understand what issues occur in your app, how they impact users and how to debug them quickly, Measure is the right tool for you.
 

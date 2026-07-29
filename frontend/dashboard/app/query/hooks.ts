@@ -44,9 +44,9 @@ import {
   fetchNotifPrefsFromServer,
   fetchPendingInvitesFromServer,
   fetchSdkConfigFromServer,
-  fetchSessionTimelineFromServer,
-  fetchSessionTimelinesOverviewFromServer,
-  fetchSessionTimelinesOverviewPlotFromServer,
+  fetchSessionReplayFromServer,
+  fetchSessionReplayOverviewFromServer,
+  fetchSessionReplayOverviewPlotFromServer,
   fetchAppHealthPlotFromServer,
   fetchSpanMetricsPlotFromServer,
   fetchSpansFromServer,
@@ -562,15 +562,12 @@ export function useBugReportsOverviewPlotQuery() {
   });
 }
 
-export function useSessionTimelinesOverviewPlotQuery() {
+export function useSessionReplayOverviewPlotQuery() {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
-    queryKey: [
-      "sessionTimelinesOverviewPlot",
-      filters.serialisedFilters,
-    ] as const,
+    queryKey: ["sessionReplayOverviewPlot", filters.serialisedFilters] as const,
     queryFn: async () => {
-      const result = await fetchSessionTimelinesOverviewPlotFromServer(filters);
+      const result = await fetchSessionReplayOverviewPlotFromServer(filters);
       return mapPlotData(result);
     },
     enabled: filters.ready,
@@ -671,23 +668,23 @@ export function useSpansQuery(paginationOffset: number) {
   });
 }
 
-// ─── Paginated: Session Timelines ────────────────────────────────────────
+// ─── Paginated: Session Replay ────────────────────────────────────────
 
-const SESSION_TIMELINES_LIMIT = 5;
+const SESSION_REPLAY_LIMIT = 5;
 
-export function useSessionTimelinesOverviewQuery(paginationOffset: number) {
+export function useSessionReplayOverviewQuery(paginationOffset: number) {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
     queryKey: [
-      "sessionTimelinesOverview",
+      "sessionReplayOverview",
       filters.serialisedFilters,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
     queryFn: () =>
-      fetchSessionTimelinesOverviewFromServer(
+      fetchSessionReplayOverviewFromServer(
         filters,
-        SESSION_TIMELINES_LIMIT,
+        SESSION_REPLAY_LIMIT,
         paginationOffset,
       ),
     enabled: filters.ready,
@@ -826,13 +823,19 @@ export function useTraceQuery(appId: string, traceId: string) {
   });
 }
 
-// ─── Session Timeline ───────────────────────────────────────────────────
+// ─── Session Replay ───────────────────────────────────────────────────
 
-export function useSessionTimelineQuery(appId: string, sessionId: string) {
+export function useSessionReplayQuery(appId: string, sessionId: string) {
   return useQuery({
-    queryKey: ["sessionTimeline", appId, sessionId] as const,
-    queryFn: () => fetchSessionTimelineFromServer(appId, sessionId),
+    queryKey: ["sessionReplay", appId, sessionId] as const,
+    queryFn: () => fetchSessionReplayFromServer(appId, sessionId),
     enabled: !!appId && !!sessionId,
+    // Attachment URLs are presigned for 48 hours, so returning to a tab left
+    // open longer than that draws against expired ones. Coming back to the tab
+    // refetches and re-signs them, and the staleness window keeps a quick
+    // switch away and back from asking for the whole session again.
+    refetchOnWindowFocus: true,
+    staleTime: 30 * 60 * 1000,
   });
 }
 

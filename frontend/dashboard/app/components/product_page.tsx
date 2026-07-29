@@ -47,9 +47,8 @@ function Demo({ demo }: { demo: ProductPageDemo }) {
         )}
       >
         <ScaledPreview>
-          {/* Demos with sticky elements offset against this py-12 padding
-              (the session timeline demo pins its charts with -top-12); keep
-              the two in sync. */}
+          {/* Demos with sticky elements offset against this py-12 padding;
+              keep the two in sync. */}
           <div className="bg-background text-foreground min-h-screen px-8 py-12">
             {demo.content}
           </div>

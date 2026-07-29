@@ -105,7 +105,8 @@ export default function TraceDetails({
           </div>
           <TraceWaterfall
             inputTrace={displayTrace}
-            sessionTimelineNode={
+            demo={demo}
+            sessionReplayNode={
               demo ? (
                 <div
                   className={cn(
@@ -113,16 +114,16 @@ export default function TraceDetails({
                     "font-display select-none",
                   )}
                 >
-                  View Session Timeline
+                  View Session Replay
                 </div>
               ) : (
                 <Link
-                  href={`/${params.teamId}/session_timelines/${params.appId}/${displayTrace.session_id}`}
+                  href={`/${params.teamId}/session_replays/${params.appId}/${displayTrace.session_id}`}
                   className={cn(
                     buttonVariants({ variant: "outline", size: "sm" }),
                   )}
                 >
-                  View Session Timeline
+                  View Session Replay
                 </Link>
               )
             }

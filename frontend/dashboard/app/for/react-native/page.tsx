@@ -18,14 +18,14 @@ export const metadata: Metadata = pageMetadata(seo);
 
 const features: PlatformFeature[] = [
   {
-    heading: "Session Timelines",
-    image: "/images/product_screenshots/session_timelines.webp",
-    imageAlt: "Session timeline for a React Native session in Measure",
+    heading: "Session Replays",
+    image: "/images/product_screenshots/session_replays.webp",
+    imageAlt: "Session replay for a React Native session in Measure",
     body: (
       <>
         Every error in your React Native app arrives with a complete{" "}
-        <Link href="/product/session-timelines" className={underlineLinkStyle}>
-          Session Timeline
+        <Link href="/product/session-replays" className={underlineLinkStyle}>
+          Session Replay
         </Link>
         . Replay the exact path to the issue — gestures, navigation, network
         calls, logs and lifecycle events — with CPU and memory readings right
@@ -78,7 +78,7 @@ const features: PlatformFeature[] = [
         <br />
         <br />
         Each trace carries rich device and app context and links back to the
-        full session timeline, so a slow operation always comes with the
+        full session replay, so a slow operation always comes with the
         environment it ran in.
       </>
     ),
@@ -116,7 +116,7 @@ const features: PlatformFeature[] = [
         , triggered by a device shake or a call to the SDK from your own button.
         Each report bundles device details, app version, network conditions and
         screenshots with the user&apos;s own words, with an easy link straight
-        to the matching session timeline.
+        to the matching session replay.
         <br />
         <br />
         Skip the email threads and support ticket back-and-forth. Your users
@@ -179,7 +179,7 @@ const features: PlatformFeature[] = [
           Measure MCP server
         </Link>{" "}
         gives any agent access to your crashes, errors, performance traces and
-        session timelines, straight from your IDE, editor or terminal.
+        session replays, straight from your IDE, editor or terminal.
         <br />
         <br />
         Have it dig into a crash, work through user sessions, or wire it into an

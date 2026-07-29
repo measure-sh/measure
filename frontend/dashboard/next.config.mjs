@@ -82,6 +82,27 @@ const nextConfig = {
   // from old emails or bookmarks and forward them to the new path.
   async redirects() {
     return [
+      // Session timelines became session replay.
+      {
+        source: "/product/session-timelines",
+        destination: "/product/session-replays",
+        permanent: true,
+      },
+      {
+        source: "/:teamId/session_timelines",
+        destination: "/:teamId/session_replays",
+        permanent: true,
+      },
+      {
+        source: "/:teamId/session_timelines/:rest*",
+        destination: "/:teamId/session_replays/:rest*",
+        permanent: true,
+      },
+      {
+        source: "/docs/session-timeline",
+        destination: "/docs/session-replay",
+        permanent: true,
+      },
       {
         source: "/:teamId/crashes/:rest*",
         destination: "/:teamId/errors/:rest*",
@@ -242,7 +263,7 @@ const nextConfig = {
       },
       {
         source: "/docs/features/feature-session-timelines",
-        destination: "/docs/session-timeline",
+        destination: "/docs/session-replay",
         permanent: true,
       },
       {

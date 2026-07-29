@@ -50,7 +50,7 @@ class MainActivity : ComponentActivity() {
 
 Captured when the app stops responding. The operating system detects ANRs itself, so there's nothing to add in your code.
 
-The OS rate-limits each trigger, and Measure caps it at one profile per trigger type per hour, so a repeating problem won't flood the timeline with captures.
+The OS rate-limits each trigger, and Measure caps it at one profile per trigger type per hour, so a repeating problem won't flood the session replay with captures.
 
 ## Sampling
 
@@ -60,7 +60,7 @@ Profiling is sampled on its own, separate from session sampling. The rate runs f
 
 Measure uses [`android.os.ProfilingManager`](https://developer.android.com/reference/android/os/ProfilingManager), the trigger-based profiling API added in Android 16. The SDK registers the triggers above with the operating system, along with a callback for the results. The OS decides when to run a session, writes the result to a file, and hands it back, and Measure attaches that file to a `profile` event tagged with the trigger that produced it.
 
-The artifacts are large, so a dedicated WorkManager worker uploads them in the background once the device has a network, apart from the normal event flow. After upload, you can download a result from the session timeline in the dashboard.
+The artifacts are large, so a dedicated WorkManager worker uploads them in the background once the device has a network, apart from the normal event flow. After upload, you can download a result from the session replay in the dashboard.
 
 ## Further reading
 

@@ -38,7 +38,7 @@ tags:
   - name: Errors
     description: Error groups, error details and error plots.
   - name: Sessions
-    description: Session listing, session plots and session timelines.
+    description: Session listing, session plots and session replays.
   - name: Traces
     description: Root spans, span listings and traces.
   - name: Bug Reports
@@ -4050,7 +4050,7 @@ paths:
       operationId: getSession
       tags:
         - Sessions
-      summary: Fetch an app's session timeline
+      summary: Fetch an app's session replay
       description: |
         Fetch an app's session replay. The response contains the session's
         attributes, CPU and memory usage series, and the session's events

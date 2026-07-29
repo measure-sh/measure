@@ -44,8 +44,8 @@ function buildInitNavData() {
             external: false,
           },
           {
-            title: "Session Timelines",
-            url: "session_timelines",
+            title: "Session Replays",
+            url: "session_replays",
             isActive: false,
             external: false,
           },

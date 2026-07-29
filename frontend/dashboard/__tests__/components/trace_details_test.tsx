@@ -62,10 +62,10 @@ jest.mock("@/app/components/skeleton", () => ({
 
 jest.mock("@/app/components/trace/waterfall", () => ({
   __esModule: true,
-  default: ({ inputTrace, sessionTimelineNode }: any) => (
+  default: ({ inputTrace, sessionReplayNode }: any) => (
     <div data-testid="trace-waterfall">
       {inputTrace.trace_id}
-      {sessionTimelineNode}
+      {sessionReplayNode}
     </div>
   ),
 }));
@@ -241,10 +241,10 @@ describe("TraceDetails", () => {
         );
       });
       await waitFor(() => {
-        const link = screen.getByText("View Session Timeline");
+        const link = screen.getByText("View Session Replay");
         expect(link.closest("a")).toHaveAttribute(
           "href",
-          "/team-1/session_timelines/app-1/session-xyz",
+          "/team-1/session_replays/app-1/session-xyz",
         );
       });
     });
@@ -269,8 +269,8 @@ describe("TraceDetails", () => {
       await act(async () => {
         render(<TraceDetails demo={true} />);
       });
-      expect(screen.getByText("View Session Timeline")).toBeInTheDocument();
-      expect(screen.getByText("View Session Timeline").closest("a")).toBeNull();
+      expect(screen.getByText("View Session Replay")).toBeInTheDocument();
+      expect(screen.getByText("View Session Replay").closest("a")).toBeNull();
     });
   });
 });

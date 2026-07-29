@@ -33,7 +33,7 @@ jest.mock("next/navigation", () => ({
   __esModule: true,
   useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
   useSearchParams: () => mockSearchParams,
-  usePathname: () => "/test-team/session_timelines",
+  usePathname: () => "/test-team/session_replays",
 }));
 
 jest.mock("next/link", () => ({
@@ -96,14 +96,12 @@ beforeAll(() => {
   apiClient.init({ replace: jest.fn(), push: jest.fn() });
 });
 
-import SessionTimelinesOverview from "@/app/[teamId]/session_timelines/page";
+import SessionReplayOverview from "@/app/[teamId]/session_replays/page";
 
 async function renderAndWait() {
   render(
     <QueryClientProvider client={testQueryClient}>
-      <SessionTimelinesOverview
-        params={promiseParams({ teamId: "test-team" })}
-      />
+      <SessionReplayOverview params={promiseParams({ teamId: "test-team" })} />
     </QueryClientProvider>,
   );
   await waitFor(

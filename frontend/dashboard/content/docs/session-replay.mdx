@@ -1,0 +1,23 @@
+---
+title: "Session Replay"
+seoTitle: "Mobile App Session Replay"
+description: "Replay each session as a chronological sequence of events with CPU and memory usage, screenshots, and layout snapshots."
+---
+
+A session replay shows everything that happened during a session in order: screen views, gestures, logs, network calls, and errors, alongside charts of [CPU and memory usage](/docs/cpu-memory-monitoring). Screenshots and [layout snapshots](/docs/gesture-tracking/layout-snapshots) capture what was on screen at the time.
+
+## What counts as a session
+
+A session is a continuous period of activity in the app. A new one starts when the SDK initializes, or when the app returns to the foreground after more than 30 seconds in the background.
+
+To reference a session from your own logs or backend, read the current session ID with [`getSessionId`](/docs/api-reference#get-session-id).
+
+## Replay duration
+
+Each crash, ANR, and bug report includes the replay of the 5 minutes before it. The duration is adjustable in [Adaptive Capture](/docs/adaptive-capture#session-replay-duration).
+
+## Search sessions
+
+Filter the sessions list by app version, OS version, device, country, network, locale, or any user-defined attributes set in the app. Narrow further to sessions with errors, ANRs, or bug reports.
+
+The search box matches user and session IDs, log bodies, event types, view IDs, class names, and exception traces.

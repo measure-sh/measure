@@ -2,14 +2,16 @@ import { DateTime } from "luxon";
 import { Trace } from "./model";
 
 const TRACE_DURATION_MS = 1230;
-const traceStart = DateTime.now().toUTC().minus({ minutes: 7.5 });
+// 5755ms into the replay demo session, which starts 7.5 minutes ago: the
+// moment CheckoutActivity opens there.
+const traceStart = DateTime.now().toUTC().minus({ milliseconds: 444245 });
 const iso = (offsetMs: number) =>
   traceStart.plus({ milliseconds: offsetMs }).toISO()!;
 
 export const demoTrace: Trace = {
   app_id: "19e26d60-2ad8-4ef7-8aab-333e1f5377fc",
   trace_id: "a3c7db90d18966d5c40a4a464b63ca69",
-  session_id: "9aebd11f-ea7d-4e28-873e-882a7a27930e",
+  session_id: "81f06f23-4291-4590-a5df-c96d57d3c692",
   user_id: "demo-user-id",
   start_time: iso(0),
   end_time: iso(TRACE_DURATION_MS),
@@ -32,7 +34,7 @@ export const demoTrace: Trace = {
       checkpoints: null,
     },
     {
-      span_name: "api_fetch_payments",
+      span_name: "api_fetch_rewards",
       span_id: "payments",
       parent_id: "root",
       status: 0,
@@ -54,7 +56,7 @@ export const demoTrace: Trace = {
       thread_name: "okhttp",
       user_defined_attributes: {
         "http.method": "POST",
-        "http.url": "/api/v1/inventory/check",
+        "http.url": "/v1/inventory/check",
         "http.status_code": 503,
         "error.type": "service_unavailable",
       },

@@ -12,7 +12,7 @@ export class ErrorDetailPage {
   readonly devicePill: Locator;
   readonly appVersionPill: Locator;
   readonly networkTypePill: Locator;
-  readonly sessionTimelineLink: Locator;
+  readonly sessionReplayLink: Locator;
   readonly copyAiContextButton: Locator;
   readonly userDefinedAttribute: Locator;
   readonly screenshot: Locator;
@@ -33,8 +33,8 @@ export class ErrorDetailPage {
     this.devicePill = page.getByTestId("exception-detail-device");
     this.appVersionPill = page.getByTestId("exception-detail-app-version");
     this.networkTypePill = page.getByTestId("exception-detail-network-type");
-    this.sessionTimelineLink = page.getByRole("link", {
-      name: "View Session Timeline",
+    this.sessionReplayLink = page.getByRole("link", {
+      name: "View Session Replay",
     });
     this.copyAiContextButton = page.getByRole("button", {
       name: "Copy AI Context",
@@ -51,8 +51,8 @@ export class ErrorDetailPage {
       .getByText(label, { exact: true });
   }
 
-  async openSessionTimeline() {
-    await this.sessionTimelineLink.click();
-    await this.page.waitForURL(`**/${this.teamId}/session_timelines/**`);
+  async openSessionReplay() {
+    await this.sessionReplayLink.click();
+    await this.page.waitForURL(`**/${this.teamId}/session_replays/**`);
   }
 }

@@ -61,7 +61,7 @@ describe("AppBreadcrumbs", () => {
   describe("Section pages — current page (no link)", () => {
     it.each([
       ["overview", "Overview"],
-      ["session_timelines", "Session Timelines"],
+      ["session_replays", "Session Replays"],
       ["journeys", "Journeys"],
       ["errors", "Errors"],
       ["bug_reports", "Bug Reports"],
@@ -111,8 +111,8 @@ describe("AppBreadcrumbs", () => {
   });
 
   describe("Section info tooltips", () => {
-    it("shows a capture-info tooltip on the session timelines section", async () => {
-      mockPathname = "/team-123/session_timelines";
+    it("shows a capture-info tooltip on the session replay section", async () => {
+      mockPathname = "/team-123/session_replays";
       render(<AppBreadcrumbs />);
       const trigger = document.querySelector(
         '[data-slot="tooltip-trigger"].lucide-info',
@@ -127,7 +127,7 @@ describe("AppBreadcrumbs", () => {
         return el as HTMLElement;
       });
       expect(content.textContent).toContain(
-        "Timelines are captured for Crashes, ANRs, Bug Reports",
+        "Replays are captured for Crashes, ANRs, Bug Reports",
       );
     });
 
@@ -164,7 +164,7 @@ describe("AppBreadcrumbs", () => {
     });
 
     it("shows no info tooltip on a section detail page", () => {
-      mockPathname = "/team-123/session_timelines/app-1/sess-001";
+      mockPathname = "/team-123/session_replays/app-1/sess-001";
       render(<AppBreadcrumbs />);
       expect(
         document.querySelector('[data-slot="tooltip-trigger"].lucide-info'),
@@ -215,11 +215,12 @@ describe("AppBreadcrumbs", () => {
     });
 
     it("shows raw sessionId for session timeline detail pages", () => {
-      mockPathname = "/team-123/session_timelines/app-1/sess-001";
+      mockPathname = "/team-123/session_replays/app-1/sess-001";
       render(<AppBreadcrumbs />);
-      expect(
-        screen.getByText("Session Timelines").closest("a"),
-      ).toHaveAttribute("href", "/team-123/session_timelines");
+      expect(screen.getByText("Session Replays").closest("a")).toHaveAttribute(
+        "href",
+        "/team-123/session_replays",
+      );
       expect(screen.getByText("sess-001")).toBeInTheDocument();
     });
 
