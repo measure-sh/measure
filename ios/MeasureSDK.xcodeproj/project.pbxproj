@@ -247,6 +247,7 @@
 		CF7CABBB2F27BE4000A9DC30 /* SignalStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CABBA2F27BE4000A9DC30 /* SignalStoreTests.swift */; };
 		CF7CAE552D952FA600E15CDB /* HttpEventValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */; };
 		CF7CAE582D95344100E15CDB /* HttpEventValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE572D95344100E15CDB /* HttpEventValidatorTests.swift */; };
+		CF1A2B3D2FC0000100564FDA /* URLSessionTaskInterceptorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1A2B3C2FC0000100564FDA /* URLSessionTaskInterceptorTests.swift */; };
 		CF83E2E32E0D21EB00FE7041 /* MeasureDispatchQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF83E2E22E0D21EB00FE7041 /* MeasureDispatchQueue.swift */; };
 		CF83E2E52E0DA3AE00FE7041 /* MockMeasureDispatchQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF83E2E42E0DA3AE00FE7041 /* MockMeasureDispatchQueue.swift */; };
 		CF83E3212E0FF85C00FE7041 /* MsrRequestHeadersProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF83E3202E0FF85C00FE7041 /* MsrRequestHeadersProvider.swift */; };
@@ -620,6 +621,7 @@
 		CF7CABBA2F27BE4000A9DC30 /* SignalStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignalStoreTests.swift; sourceTree = "<group>"; };
 		CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpEventValidator.swift; sourceTree = "<group>"; };
 		CF7CAE572D95344100E15CDB /* HttpEventValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpEventValidatorTests.swift; sourceTree = "<group>"; };
+		CF1A2B3C2FC0000100564FDA /* URLSessionTaskInterceptorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLSessionTaskInterceptorTests.swift; sourceTree = "<group>"; };
 		CF83E2E22E0D21EB00FE7041 /* MeasureDispatchQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureDispatchQueue.swift; sourceTree = "<group>"; };
 		CF83E2E42E0DA3AE00FE7041 /* MockMeasureDispatchQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockMeasureDispatchQueue.swift; sourceTree = "<group>"; };
 		CF83E3202E0FF85C00FE7041 /* MsrRequestHeadersProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrRequestHeadersProvider.swift; sourceTree = "<group>"; };
@@ -1399,6 +1401,7 @@
 			isa = PBXGroup;
 			children = (
 				CF7CAE572D95344100E15CDB /* HttpEventValidatorTests.swift */,
+				CF1A2B3C2FC0000100564FDA /* URLSessionTaskInterceptorTests.swift */,
 			);
 			path = Http;
 			sourceTree = "<group>";
@@ -1995,6 +1998,7 @@
 				CF12A6902E97B0A9001C8112 /* AttributeValueValidatorTests.swift in Sources */,
 				52B7F14D2D757F81001498BC /* Attributes+Extension.swift in Sources */,
 				CF7CAE582D95344100E15CDB /* HttpEventValidatorTests.swift in Sources */,
+				CF1A2B3D2FC0000100564FDA /* URLSessionTaskInterceptorTests.swift in Sources */,
 				52B7F1342D757F81001498BC /* AttributeProcessorTests.swift in Sources */,
 				CFB838212DAFEF780023592B /* SpanProcessorTests.swift in Sources */,
 			);

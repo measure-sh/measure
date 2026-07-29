@@ -123,7 +123,7 @@ final class URLSessionTaskInterceptor {
         return nil
     }
 
-    private func isHttpUrl(_ url: String) -> Bool {
+    func isHttpUrl(_ url: String) -> Bool {
         guard let parsedUrl = URL(string: url),
               let scheme = parsedUrl.scheme?.lowercased(),
               scheme == "http" || scheme == "https",
