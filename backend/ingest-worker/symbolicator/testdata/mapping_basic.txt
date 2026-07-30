@@ -22,3 +22,8 @@ sh.measure.sample.SettingsFragment -> q.r:
 # {"id":"sourceFile","fileName":"SettingsFragment.kt"}
 sh.measure.sample.AppExitHandler -> s.t:
 # {"id":"sourceFile","fileName":"AppExitHandler.kt"}
+sh.measure.sample.Computed$$ExternalSyntheticLambda0 -> zz.a:
+# {"id":"sourceFile","fileName":"R8$$SyntheticClass"}
+# {"id":"com.android.tools.r8.synthesized"}
+    144:148:java.lang.Object zz.Computed$$ExternalSyntheticLambda0.invoke():0:0 -> a
+      # {"id":"com.android.tools.r8.synthesized"}

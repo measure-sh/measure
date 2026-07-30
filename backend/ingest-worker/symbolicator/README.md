@@ -33,11 +33,13 @@ go test -tags integration -v -count=1 -timeout 300s
 **Basic JVM tests** (synthetic mapping file):
 - `TestJVMExceptionSymbolicationBasic` - Single exception with obfuscated class/method names
 - `TestJVMANRSymbolicationBasic` - ANR event with exceptions and threads, negative line number preservation
-- `TestJVMLifecycleSymbolicationBasic` - Batch of lifecycle_activity, lifecycle_fragment, cold_launch, hot_launch, and app_exit events
+- `TestJVMLifecycleSymbolicationBasic` - Batch of lifecycle_activity, lifecycle_fragment, cold_launch, and hot_launch events
+- `TestJVMAppExitSymbolicationBasic` - app_exit thread dump: frame and monitor rewrites
 
 **Real-world JVM tests** (production ProGuard mapping, ~350K lines):
 - `TestJVMSingleExceptionReal` - Nested exception with inline frame expansion via R8 line-number-range mapping
 - `TestJVMNestedExceptionReal` - 4 nested exceptions with custom exception type deobfuscation
+- `TestJVMAppExitSymbolicationReal` - ANR trace captured from a real device: frame and monitor rewrites, including the `java.lang.Class<C>`, `C[]`, and `<@addr=0x...>` forms
 
 **Apple tests** (real dSYM from DemoApp):
 - `TestAppleExceptionSymbolication` - SIGABRT crash, 30 frames, 23 threads, 13 binary images
@@ -91,6 +93,7 @@ Fixture files live in `testdata/`:
 |------|-------------|
 | `mapping_basic.txt` | Small synthetic ProGuard mapping for basic JVM tests |
 | `mapping_real.txt` | Production ProGuard mapping (~39MB) for real-world JVM tests |
+| `mapping_app_exit.txt` | R8 mapping for the captured app_exit trace, filtered to the classes the trace references |
 | `DemoApp` | Mach-O arm64 dSYM binary for Apple tests |
 | `app.android-arm64.symbols` | ELF arm64 debug symbols for Dart/Flutter tests |
 | `symbolicator.yml` | Symbolicator service configuration |

@@ -1,9 +1,5 @@
 package symbolicator
 
-import (
-	"slices"
-)
-
 // frameNative represents a native frame
 // for native symbolication, used for
 // Dart.
@@ -167,6 +163,10 @@ type requestJVM struct {
 	// Modules form a list of Debug Information
 	// Files and their types.
 	Modules []moduleJVM `json:"modules"`
+	// seenClasses indexes Classes so AddClass stays
+	// linear over a batch. Classes is only ever
+	// appended to via AddClass, so the two stay in sync.
+	seenClasses map[string]struct{}
 }
 
 // requestNative represents the payload sent
@@ -206,10 +206,14 @@ func (r *requestJVM) AddModule(debugId string, mType string) {
 // AddClass adds a class to the JVM request
 // payload only if not already present.
 func (r *requestJVM) AddClass(className string) {
-	if slices.Contains(r.Classes, className) {
+	if _, ok := r.seenClasses[className]; ok {
 		return
 	}
+	if r.seenClasses == nil {
+		r.seenClasses = make(map[string]struct{}, len(r.Classes))
+	}
 
+	r.seenClasses[className] = struct{}{}
 	r.Classes = append(r.Classes, className)
 }
 

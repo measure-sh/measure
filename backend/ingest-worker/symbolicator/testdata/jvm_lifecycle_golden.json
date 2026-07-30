@@ -15,9 +15,5 @@
   {
     "type": "hot_launch",
     "launched_activity": "sh.measure.sample.ComposeActivity"
-  },
-  {
-    "type": "app_exit",
-    "trace": "sh.measure.sample.ExceptionDemoActivity"
   }
 ]

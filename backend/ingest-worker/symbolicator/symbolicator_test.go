@@ -38,27 +38,54 @@ import (
 const symbolicatorImage = "ghcr.io/getsentry/symbolicator:26.3.1"
 
 var (
-	pgPool                   *pgxpool.Pool
-	symbolicatorOrigin       string
-	minioEndpoint            string
-	s3Client                 *s3.Client
-	s3InContainerClient      *s3.Client // signs presigned URLs reachable from inside containers
-	symbolsBucket            = "test-symbols"
-	basicProguardMappingKey  string // unified layout key for the basic proguard mapping
-	basicProguardDebugID     string // UUID-formatted debug ID for the basic proguard mapping
-	realProguardMappingKey   string // unified layout key for the real proguard mapping
-	sqliteProguardMappingKey string // unified layout key for the sqlite proguard mapping
-	elfDebugMappingKey       string // unified layout key for the ELF debug symbols
-	jsBundleMappingKey       string // unified layout key for the JS bundle
-	jsSourcemapMappingKey    string // unified layout key for the JS sourcemap
-	symbolicatorContainer    testcontainers.Container
-	minioContainer           testcontainers.Container
-	sentrySourceURL          string // URL for the Sentry source handler, reachable from symbolicator container
-	symboloaderOriginURL     string // origin (no path) of the same test HTTP server; used as the /symbols/js host
-	sentryListener           net.Listener
-	update                   = flag.Bool("update", false, "update golden files")
-	testdataDir              string
+	pgPool                    *pgxpool.Pool
+	symbolicatorOrigin        string
+	minioEndpoint             string
+	s3Client                  *s3.Client
+	s3InContainerClient       *s3.Client // signs presigned URLs reachable from inside containers
+	symbolsBucket             = "test-symbols"
+	basicProguardMappingKey   string // unified layout key for the basic proguard mapping
+	basicProguardDebugID      string // UUID-formatted debug ID for the basic proguard mapping
+	realProguardMappingKey    string // unified layout key for the real proguard mapping
+	appExitProguardMappingKey string // unified layout key for the app_exit proguard mapping
+	sqliteProguardMappingKey  string // unified layout key for the sqlite proguard mapping
+	elfDebugMappingKey        string // unified layout key for the ELF debug symbols
+	jsBundleMappingKey        string // unified layout key for the JS bundle
+	jsSourcemapMappingKey     string // unified layout key for the JS sourcemap
+	symbolicatorContainer     testcontainers.Container
+	minioContainer            testcontainers.Container
+	sentrySourceURL           string // URL for the Sentry source handler, reachable from symbolicator container
+	symboloaderOriginURL      string // origin (no path) of the same test HTTP server; used as the /symbols/js host
+	sentryListener            net.Listener
+	update                    = flag.Bool("update", false, "update golden files")
+	testdataDir               string
 )
+
+// uploadProguardMapping uploads a testdata proguard mapping to
+// MinIO under its unified layout key, returning the key and the
+// debug ID, both derived from the file content the same way
+// symboloader does.
+func uploadProguardMapping(ctx context.Context, name string) (key, debugID string) {
+	mappingBytes, err := os.ReadFile(filepath.Join(testdataDir, name))
+	if err != nil {
+		fmt.Printf("failed to read %s: %v\n", name, err)
+		os.Exit(1)
+	}
+
+	ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("guardsquare.com"))
+	layout := symbol.BuildUnifiedLayout(uuid.NewSHA1(ns, mappingBytes).String())
+
+	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(symbolsBucket),
+		Key:    aws.String(layout + "/proguard"),
+		Body:   bytes.NewReader(mappingBytes),
+	})
+	if err != nil {
+		fmt.Printf("failed to upload %s to minio: %v\n", name, err)
+		os.Exit(1)
+	}
+	return layout + "/proguard", symbol.MappingKeyToDebugId(layout)
+}
 
 func TestMain(m *testing.M) {
 	flag.Parse()
@@ -140,68 +167,10 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	// Upload proguard mapping file to MinIO
-	mappingBytes, err := os.ReadFile(filepath.Join(testdataDir, "mapping_basic.txt"))
-	if err != nil {
-		fmt.Printf("failed to read mapping_basic.txt: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Compute debug ID the same way symboloader does
-	ns := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("guardsquare.com"))
-	debugUUID := uuid.NewSHA1(ns, mappingBytes)
-	basicProguardMappingKey = symbol.BuildUnifiedLayout(debugUUID.String()) + "/proguard"
-	basicProguardDebugID = symbol.MappingKeyToDebugId(symbol.BuildUnifiedLayout(debugUUID.String()))
-
-	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket: aws.String(symbolsBucket),
-		Key:    aws.String(basicProguardMappingKey),
-		Body:   bytes.NewReader(mappingBytes),
-	})
-	if err != nil {
-		fmt.Printf("failed to upload mapping to minio: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Upload real-world proguard mapping (mapping_real.txt) to MinIO
-	realMappingBytes, err := os.ReadFile(filepath.Join(testdataDir, "mapping_real.txt"))
-	if err != nil {
-		fmt.Printf("failed to read mapping_real.txt: %v\n", err)
-		os.Exit(1)
-	}
-
-	realDebugUUID := uuid.NewSHA1(ns, realMappingBytes)
-	realProguardMappingKey = symbol.BuildUnifiedLayout(realDebugUUID.String()) + "/proguard"
-
-	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket: aws.String(symbolsBucket),
-		Key:    aws.String(realProguardMappingKey),
-		Body:   bytes.NewReader(realMappingBytes),
-	})
-	if err != nil {
-		fmt.Printf("failed to upload real mapping to minio: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Upload sqlite proguard mapping (mapping_sqlite.txt) to MinIO
-	sqliteMappingBytes, err := os.ReadFile(filepath.Join(testdataDir, "mapping_sqlite.txt"))
-	if err != nil {
-		fmt.Printf("failed to read mapping_sqlite.txt: %v\n", err)
-		os.Exit(1)
-	}
-
-	sqliteDebugUUID := uuid.NewSHA1(ns, sqliteMappingBytes)
-	sqliteProguardMappingKey = symbol.BuildUnifiedLayout(sqliteDebugUUID.String()) + "/proguard"
-
-	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket: aws.String(symbolsBucket),
-		Key:    aws.String(sqliteProguardMappingKey),
-		Body:   bytes.NewReader(sqliteMappingBytes),
-	})
-	if err != nil {
-		fmt.Printf("failed to upload sqlite mapping to minio: %v\n", err)
-		os.Exit(1)
-	}
+	basicProguardMappingKey, basicProguardDebugID = uploadProguardMapping(ctx, "mapping_basic.txt")
+	realProguardMappingKey, _ = uploadProguardMapping(ctx, "mapping_real.txt")
+	appExitProguardMappingKey, _ = uploadProguardMapping(ctx, "mapping_app_exit.txt")
+	sqliteProguardMappingKey, _ = uploadProguardMapping(ctx, "mapping_sqlite.txt")
 
 	// Upload Apple dSYM binary to MinIO
 	dsymBytes, err := os.ReadFile(filepath.Join(testdataDir, "DemoApp"))
@@ -693,7 +662,7 @@ func makeJVMANREvents(versionName, versionCode string) []event.EventField {
 	}
 }
 
-// makeJVMLifecycleEvents creates lifecycle + launch + app_exit events
+// makeJVMLifecycleEvents creates lifecycle + launch events
 // with obfuscated class names.
 func makeJVMLifecycleEvents(versionName, versionCode string) []event.EventField {
 	attr := event.Attribute{
@@ -747,16 +716,49 @@ func makeJVMLifecycleEvents(versionName, versionCode string) []event.EventField 
 				OnNextDrawUptime: 500,
 			},
 		},
+	}
+}
+
+// makeJVMAppExitEvents creates an app_exit event whose trace is an
+// ApplicationExitInfo thread dump with obfuscated frames matching the
+// test mapping. The trace is in the shape the SDK uploads, trimmed to
+// the subject line and the thread dump. testdata/jvm_app_exit_input.json
+// covers the untrimmed shape older SDKs still send.
+func makeJVMAppExitEvents(versionName, versionCode string) []event.EventField {
+	trace := `Subject: Input dispatching timed out (a1b2c3d sh.measure.test/sh.measure.test.MainActivity is not responding. Waited 5002ms for MotionEvent).
+
+DALVIK THREADS (3):
+"main" prio=5 tid=1 Blocked
+  at zz.a.a(SourceFile:147)
+  at i.j.k(SourceFile:50)
+  - waiting to lock <0x0e5c06d6> (a i.j) held by thread 48
+  at android.os.Handler.handleCallback(Handler.java:1089)
+  at java.lang.reflect.Method.invoke(Native method)
+
+"Thread-2" prio=5 tid=48 Sleeping
+  at java.lang.Thread.sleep(Native method)
+  at a.b.c.d(SourceFile:29)
+  - locked <0x0569904f> (a java.lang.Object)
+  at f.g.h(SourceFile:102)
+
+"Signal Catcher" daemon prio=10 tid=2 Runnable
+  (no managed stack frames)`
+
+	return []event.EventField{
 		{
 			ID:        uuid.New(),
 			SessionID: uuid.New(),
 			Timestamp: time.Now(),
 			Type:      event.TypeAppExit,
-			Attribute: attr,
+			Attribute: event.Attribute{
+				AppVersion: versionName,
+				AppBuild:   versionCode,
+				OSName:     "android",
+			},
 			AppExit: &event.AppExit{
-				Reason:      "CRASH",
+				Reason:      "ANR",
 				Importance:  "FOREGROUND",
-				Trace:       "a.b.c",
+				Trace:       trace,
 				ProcessName: "sh.measure.test",
 				PID:         "12345",
 			},
@@ -995,6 +997,79 @@ func TestJVMLifecycleSymbolicationBasic(t *testing.T) {
 	assertMatchesGolden(t, "jvm_lifecycle_golden.json", results)
 }
 
+func TestJVMAppExitSymbolicationBasic(t *testing.T) {
+	ctx := context.Background()
+	appID := uuid.New()
+	versionName := "1.0.0"
+	versionCode := "4"
+
+	seedApp(ctx, t, appID)
+	seedBuildMappingRow(ctx, t, appID, versionName, versionCode, "proguard", basicProguardMappingKey)
+
+	events := makeJVMAppExitEvents(versionName, versionCode)
+	sources := []Source{newS3Source()}
+
+	symb := New(symbolicatorOrigin, "android", sources, []SentrySource{newSentrySource()})
+	err := symb.Symbolicate(ctx, pgPool, appID, events, nil)
+	if err != nil {
+		t.Fatalf("Symbolicate failed: %v", err)
+	}
+
+	results := extractResult(events)
+	assertMatchesGolden(t, "jvm_app_exit_golden.json", results)
+}
+
+// makeJVMAppExitRealEvents loads an app_exit event captured from
+// a real device after an ANR. The attribute carries the app
+// version mapping_app_exit.txt was built from.
+func makeJVMAppExitRealEvents(t *testing.T) []event.EventField {
+	t.Helper()
+
+	data, err := os.ReadFile(filepath.Join(testdataDir, "jvm_app_exit_input.json"))
+	if err != nil {
+		t.Fatalf("read app_exit fixture: %v", err)
+	}
+
+	var raw struct {
+		Attribute event.Attribute `json:"attribute"`
+		AppExit   event.AppExit   `json:"app_exit"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		t.Fatalf("unmarshal app_exit fixture: %v", err)
+	}
+
+	return []event.EventField{
+		{
+			ID:        uuid.New(),
+			SessionID: uuid.New(),
+			Timestamp: time.Now(),
+			Type:      event.TypeAppExit,
+			Attribute: raw.Attribute,
+			AppExit:   &raw.AppExit,
+		},
+	}
+}
+
+func TestJVMAppExitSymbolicationReal(t *testing.T) {
+	ctx := context.Background()
+	appID := uuid.New()
+
+	events := makeJVMAppExitRealEvents(t)
+
+	seedApp(ctx, t, appID)
+	seedBuildMappingRow(ctx, t, appID, events[0].Attribute.AppVersion, events[0].Attribute.AppBuild, "proguard", appExitProguardMappingKey)
+
+	sources := []Source{newS3Source()}
+	symb := New(symbolicatorOrigin, "android", sources, []SentrySource{newSentrySource()})
+	symb.jvmLambdaWorkaround = true
+	err := symb.Symbolicate(ctx, pgPool, appID, events, nil)
+	if err != nil {
+		t.Fatalf("Symbolicate failed: %v", err)
+	}
+
+	assertStacktraceMatchesGolden(t, "jvm_app_exit_real_trace_golden.txt", events[0].AppExit.Trace)
+}
+
 func TestSymbolicationNoMapping(t *testing.T) {
 	ctx := context.Background()
 	appID := uuid.New()
@@ -1005,11 +1080,14 @@ func TestSymbolicationNoMapping(t *testing.T) {
 	// No build mapping seeded - version has no mapping file
 
 	events := makeJVMExceptionEvents(versionName, versionCode)
+	events = append(events, makeJVMAppExitEvents(versionName, versionCode)...)
+	appExitIdx := len(events) - 1
 	sources := []Source{newS3Source()}
 
 	// Save original class names
 	origClassName := events[0].Exception.Exceptions[0].Frames[0].ClassName
 	origMethodName := events[0].Exception.Exceptions[0].Frames[0].MethodName
+	origTrace := events[appExitIdx].AppExit.Trace
 
 	symb := New(symbolicatorOrigin, "android", sources, []SentrySource{newSentrySource()})
 	err := symb.Symbolicate(ctx, pgPool, appID, events, nil)
@@ -1023,6 +1101,10 @@ func TestSymbolicationNoMapping(t *testing.T) {
 	}
 	if events[0].Exception.Exceptions[0].Frames[0].MethodName != origMethodName {
 		t.Errorf("expected method name to remain %q, got %q", origMethodName, events[0].Exception.Exceptions[0].Frames[0].MethodName)
+	}
+
+	if got := events[appExitIdx].AppExit.Trace; got != origTrace {
+		t.Errorf("app_exit trace without mapping must be unchanged: got\n%s", got)
 	}
 }
 

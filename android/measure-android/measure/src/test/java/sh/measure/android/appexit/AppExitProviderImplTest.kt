@@ -84,7 +84,7 @@ class AppExitProviderImplTest {
               at java.lang.Thread.sleep(Thread.java:373)
               at java.lang.Thread.sleep(Thread.java:314)
               at com.example.app.MainActivity.onCreate(MainActivity.kt:15)
-            
+
             ----- Waiting Channels: pid 30075 at 2023-04-01 12:34:56 -----
             Waiting Thread: 4
         """.trimIndent()
@@ -99,10 +99,163 @@ class AppExitProviderImplTest {
               at java.lang.Thread.sleep(Thread.java:373)
               at java.lang.Thread.sleep(Thread.java:314)
               at com.example.app.MainActivity.onCreate(MainActivity.kt:15)
-            
         """.trimIndent()
 
         assertEquals(expected, result)
+    }
+
+    @Test
+    fun `getTraceString drops DumpLatencyMs lines and runtime stats after the thread dump`() {
+        val sampleTrace = """
+            DALVIK THREADS (3):
+            "main" prio=5 tid=1 Blocked
+              at com.example.app.MainActivity.onClick(MainActivity.kt:42)
+              - waiting to lock <0x00851d1c> (a java.lang.Object) held by thread 19
+              at android.os.Handler.handleCallback(Handler.java:1089)
+            DumpLatencyMs: 0.689333
+
+            "Signal Catcher" daemon prio=10 tid=2 Runnable
+              native: #00 pc 00483470 /apex/com.android.art/lib64/libart.so (art::DumpNativeStack+108)
+              (no managed stack frames)
+            DumpLatencyMs: 42.87
+
+            Zygote loaded classes=23071 post zygote classes=761
+            Dumping registered class loaders
+            Heap: 49% free, 6372KB/12MB
+            ----- end 5518 -----
+        """.trimIndent()
+
+        val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
+        val result = appExitProvider.getTraceString(inputStream)
+
+        val expected = """
+            DALVIK THREADS (3):
+            "main" prio=5 tid=1 Blocked
+              at com.example.app.MainActivity.onClick(MainActivity.kt:42)
+              - waiting to lock <0x00851d1c> (a java.lang.Object) held by thread 19
+              at android.os.Handler.handleCallback(Handler.java:1089)
+
+            "Signal Catcher" daemon prio=10 tid=2 Runnable
+              native: #00 pc 00483470 /apex/com.android.art/lib64/libart.so (art::DumpNativeStack+108)
+              (no managed stack frames)
+        """.trimIndent()
+
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `getTraceString keeps the subject line above the thread dump`() {
+        val sampleTrace = """
+            Subject: Input dispatching timed out (MainActivity is not responding. Waited 5002ms for MotionEvent).
+            RssHwmKb: 160832
+            Cmd line: com.example.app
+            Build type: optimized
+            DALVIK THREADS (1):
+            "main" prio=5 tid=1 Blocked
+              at com.example.app.MainActivity.onClick(MainActivity.kt:42)
+            ----- end 5518 -----
+        """.trimIndent()
+
+        val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
+        val result = appExitProvider.getTraceString(inputStream)
+
+        val expected = """
+            Subject: Input dispatching timed out (MainActivity is not responding. Waited 5002ms for MotionEvent).
+
+            DALVIK THREADS (1):
+            "main" prio=5 tid=1 Blocked
+              at com.example.app.MainActivity.onClick(MainActivity.kt:42)
+        """.trimIndent()
+
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `getTraceString keeps unrecognized lines within the thread dump`() {
+        val sampleTrace = """
+            DALVIK THREADS (2):
+            "main" prio=5 tid=1 Runnable
+              at com.example.app.MainActivity.onCreate(MainActivity.kt:15)
+            Some new unexpected line
+            ----- end 5518 -----
+        """.trimIndent()
+
+        val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
+        val result = appExitProvider.getTraceString(inputStream)
+
+        val expected = """
+            DALVIK THREADS (2):
+            "main" prio=5 tid=1 Runnable
+              at com.example.app.MainActivity.onCreate(MainActivity.kt:15)
+            Some new unexpected line
+        """.trimIndent()
+
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `getTraceString keeps frames indented differently to the known format`() {
+        val sampleTrace = """
+            DALVIK THREADS (1):
+            "main" prio=5 tid=1 Blocked
+                at com.example.app.MainActivity.onClick(MainActivity.kt:42)
+            ----- end 5518 -----
+        """.trimIndent()
+
+        val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
+        val result = appExitProvider.getTraceString(inputStream)
+
+        val expected = """
+            DALVIK THREADS (1):
+            "main" prio=5 tid=1 Blocked
+                at com.example.app.MainActivity.onClick(MainActivity.kt:42)
+        """.trimIndent()
+
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `getTraceString returns null for a native format thread dump`() {
+        val sampleTrace = """
+            ----- pid 5518 at 2026-07-31 07:27:33 -----
+            Cmd line: com.example.app
+            ABI: 'arm64'
+
+            "com.example.app" sysTid=5518
+              #00 pc 0000000000095c1c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28)
+              #01 pc 0000000000072c38  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144)
+            ----- end 5518 -----
+        """.trimIndent()
+
+        val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
+
+        assertNull(appExitProvider.getTraceString(inputStream))
+    }
+
+    @Test
+    fun `getTraceString returns null when the trace has no thread dump section`() {
+        val sampleTrace = """
+            Some random content
+            without a thread dump
+        """.trimIndent()
+
+        val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
+
+        assertNull(appExitProvider.getTraceString(inputStream))
+    }
+
+    @Test
+    fun `getTraceString returns null when the thread dump has no stacktrace frames`() {
+        val sampleTrace = """
+            DALVIK THREADS (1):
+            "Signal Catcher" daemon prio=10 tid=2 Runnable
+              (no managed stack frames)
+            ----- end 5518 -----
+        """.trimIndent()
+
+        val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
+
+        assertNull(appExitProvider.getTraceString(inputStream))
     }
 
     private fun mockApplicationExitInfo(

@@ -124,6 +124,31 @@ class AppExitCollectorTest {
     }
 
     @Test
+    fun `given app exit has no trace, does not track app exit event`() {
+        // Given
+        val appExit = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_ANR, trace = null)
+        val pid = 1
+        appExitProvider.appExits = mapOf(pid to appExit)
+        sessionManager.appExitSessions[pid] = getSession(pid)
+
+        // When
+        appExitCollector.collect()
+
+        // Then
+        verify(signalProcessor, never()).trackAppExit(
+            any(),
+            any(),
+            any(),
+            threadName = any(),
+            sessionId = any(),
+            sessionStartTime = any(),
+            appVersion = any(),
+            appBuild = any(),
+            isSampled = any(),
+        )
+    }
+
+    @Test
     fun `marks sessions as app exit tracked after collection`() {
         // Given
         val appExit1 = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_ANR)

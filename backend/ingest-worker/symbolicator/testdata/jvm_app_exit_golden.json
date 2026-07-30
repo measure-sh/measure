@@ -1,0 +1,6 @@
+[
+  {
+    "type": "app_exit",
+    "trace": "Subject: Input dispatching timed out (a1b2c3d sh.measure.test/sh.measure.test.MainActivity is not responding. Waited 5002ms for MotionEvent).\n\nDALVIK THREADS (3):\n\"main\" prio=5 tid=1 Blocked\n  at sh.measure.sample.Computed$$ExternalSyntheticLambda0.a(SourceFile:147)\n  at sh.measure.sample.ANRDemoActivity.triggerAnr(ANRDemoActivity.kt:50)\n  - waiting to lock \u003c0x0e5c06d6\u003e (a sh.measure.sample.ANRDemoActivity) held by thread 48\n  at android.os.Handler.handleCallback(Handler.java:1089)\n  at java.lang.reflect.Method.invoke(Native method)\n\n\"Thread-2\" prio=5 tid=48 Sleeping\n  at java.lang.Thread.sleep(Native method)\n  at sh.measure.sample.ExceptionDemoActivity.onCreate$lambda$2(ExceptionDemoActivity.kt:29)\n  - locked \u003c0x0569904f\u003e (a java.lang.Object)\n  at sh.measure.sample.HomeActivity.onClick(HomeActivity.kt:102)\n\n\"Signal Catcher\" daemon prio=10 tid=2 Runnable\n  (no managed stack frames)"
+  }
+]

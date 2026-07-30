@@ -130,20 +130,42 @@ describe("SessionTimelineEventDetails", () => {
       expect(screen.getByText(/at Main\.run/)).toBeInTheDocument();
     });
 
-    it("labels the stacktrace block with a STACKTRACE attribute key", () => {
+    it("labels the stacktrace block with a stacktrace attribute key", () => {
       renderDetails({
         eventDetails: {
           stacktrace: "at Main.run(Main.java:10)",
         },
       });
-      expect(screen.getByText("STACKTRACE")).toBeInTheDocument();
+      expect(screen.getByText("stacktrace")).toBeInTheDocument();
     });
 
-    it("does not render a STACKTRACE label when no stacktrace is present", () => {
+    it("does not render a stacktrace label when no stacktrace is present", () => {
       renderDetails({
         eventDetails: { method: "GET" },
       });
-      expect(screen.queryByText("STACKTRACE")).not.toBeInTheDocument();
+      expect(screen.queryByText("stacktrace")).not.toBeInTheDocument();
+    });
+
+    it("renders an app_exit thread dump as a code block labelled trace", () => {
+      renderDetails({
+        eventType: "app_exit",
+        eventDetails: {
+          reason: "ANR",
+          trace:
+            'DALVIK THREADS (1):\n"main" prio=5 tid=1 Blocked\n  at Main.run(Main.java:10)',
+        },
+      });
+      expect(screen.getByText(/at Main\.run/)).toBeInTheDocument();
+      // Labelled once, as the code block, never also as an attribute row.
+      expect(screen.getAllByText("trace")).toHaveLength(1);
+    });
+
+    it("renders trace as an attribute row for other event types", () => {
+      renderDetails({
+        eventType: "http",
+        eventDetails: { trace: "some-trace-id" },
+      });
+      expect(screen.getByText("some-trace-id")).toBeInTheDocument();
     });
 
     it("renders headers as JSON", () => {

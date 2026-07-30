@@ -63,10 +63,17 @@ private fun launchActivity(context: Context, activityClass: Class<*>) {
     context.startActivity(Intent(context, activityClass))
 }
 
+// Locked in the Deadlock demo as a plain object, a class object, an
+// array, and an Object.wait target, so an ANR trace shows each
+// monitor annotation form with an R8-renamed class.
+private class DeadlockToken
+
 @Composable
 fun NativeAndroidScreen() {
     val context = LocalContext.current
-    val mutex = Any()
+    val mutex = DeadlockToken()
+    val waitToken = DeadlockToken()
+    val tokenArray = arrayOfNulls<DeadlockToken>(1)
 
     var shakeEnabled by remember { mutableStateOf(false) }
 
@@ -188,11 +195,23 @@ fun NativeAndroidScreen() {
             category = DemoCategory.ANRS,
 
             action = {
+                val waiter = Thread {
+                    synchronized(waitToken) {
+                        @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
+                        (waitToken as java.lang.Object).wait()
+                    }
+                }
+                waiter.name = "APP: Waiter"
+                waiter.start()
                 val thread = Thread {
-                    synchronized(mutex) {
-                        try {
-                            Thread.sleep(Long.MAX_VALUE)
-                        } catch (_: InterruptedException) {
+                    synchronized(DeadlockToken::class.java) {
+                        synchronized(tokenArray) {
+                            synchronized(mutex) {
+                                try {
+                                    Thread.sleep(Long.MAX_VALUE)
+                                } catch (_: InterruptedException) {
+                                }
+                            }
                         }
                     }
                 }

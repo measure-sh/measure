@@ -32,6 +32,10 @@ const logRequest = true
 // set to `true` for quick debugging.
 const logResponse = true
 
+// lambdaSubstr marks an R8 synthesized lambda class,
+// the only classname shape the lambda rewrite applies to.
+const lambdaSubstr = "SyntheticLambda"
+
 var ErrJVMSymbolicationFailure = errors.New("symbolicator received JVM errors")
 var ErrJSSymbolicationFailure = errors.New("symbolicator received JS errors")
 
@@ -94,7 +98,8 @@ type jvmSymbolicator struct {
 	stacktraceLUT []stacktraceEntry
 	// ttidSpans stores the index of the TTID span
 	// that needs symbolication.
-	ttidSpans []int
+	ttidSpans     []int
+	appExitTraces map[int]*appExitTrace
 }
 
 // nativeSymbolicator represents a native symbolicator request.
@@ -376,9 +381,10 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 			s.jvmSymbolicator.request.AddClass(ev.HotLaunch.LaunchedActivity)
 
 		case event.TypeAppExit:
-			s.jvmSymbolicator.ensureRequestInitialized()
-
-			s.jvmSymbolicator.request.AddClass(ev.AppExit.Trace)
+			if trace := parseAppExitTrace(ev.AppExit.Trace); trace != nil {
+				s.jvmSymbolicator.ensureRequestInitialized()
+				s.jvmSymbolicator.parseAppExit(trace, i)
+			}
 		}
 
 		// configure module for jvm symbolication
@@ -554,7 +560,6 @@ func (s *jvmSymbolicator) parseExceptions(exceptions event.ExceptionUnits, threa
 func (js jvmSymbolicator) rewriteException(evs []event.EventField, sps []span.SpanField, lambdaWorkaround bool) {
 	stacktraces := js.response.Stacktraces
 	classes := js.response.Classes
-	lambdaSubstr := "SyntheticLambda"
 
 	// exception and ANR events are handled and
 	// rewritten at one go. while other kinds of
@@ -726,12 +731,10 @@ func (js jvmSymbolicator) rewriteException(evs []event.EventField, sps []span.Sp
 			if class, ok := classes[evs[i].HotLaunch.LaunchedActivity]; ok {
 				evs[i].HotLaunch.LaunchedActivity = class
 			}
-		case event.TypeAppExit:
-			if class, ok := classes[evs[i].AppExit.Trace]; ok {
-				evs[i].AppExit.Trace = class
-			}
 		}
 	}
+
+	js.rewriteAppExits(evs, lambdaWorkaround)
 
 	// rewrite TTID spans whose names are like
 	//

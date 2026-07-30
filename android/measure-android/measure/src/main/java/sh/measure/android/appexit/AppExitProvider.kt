@@ -6,7 +6,6 @@ import android.os.Build
 import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
-import okio.Buffer
 import okio.BufferedSource
 import okio.buffer
 import okio.source
@@ -53,34 +52,72 @@ internal class AppExitProviderImpl(
         if (traceInputStream == null) {
             return null
         }
-        logger.log(LogLevel.Debug, "Adding AppExit trace")
-        return traceInputStream.extractContent().bufferedReader().useLines { lines ->
-            lines.joinToString("\n")
+        val trace = runCatching {
+            traceInputStream.source().buffer().use { it.extractThreadDump() }
+        }.getOrNull()
+        if (trace == null) {
+            logger.log(LogLevel.Debug, "Discarding AppExit trace with unexpected structure")
+        } else {
+            logger.log(LogLevel.Debug, "Adding AppExit trace")
         }
+        return trace
     }
 
-    private fun InputStream.extractContent(): InputStream {
-        val source: BufferedSource = source().buffer()
-        val buffer = Buffer()
-        var insideSection = false
-        while (!source.exhausted()) {
-            val line = source.readUtf8Line() ?: break
+    private fun BufferedSource.extractThreadDump(): String? {
+        val dump = StringBuilder()
+        var insideDump = false
+        var hasThreadHeader = false
+        var hasFrame = false
+        var pendingBlankLines = 0
 
-            if (line.startsWith("DALVIK THREADS (")) {
-                insideSection = true
-            } else if (line.startsWith("----- Waiting Channels:")) {
-                insideSection = false
-            }
+        while (true) {
+            val line = readUtf8Line() ?: break
 
-            if (insideSection) {
-                if (line.startsWith("  | ")) {
-                    continue
+            if (!insideDump) {
+                // The subject line names what the system was waiting on.
+                if (dump.isEmpty() && line.startsWith("Subject: ")) {
+                    dump.append(line).append("\n\n")
                 }
-                buffer.writeUtf8(line)
-                buffer.writeUtf8("\n")
+                if (line.startsWith("DALVIK THREADS (")) {
+                    insideDump = true
+                    dump.append(line).append('\n')
+                }
+                continue
             }
+
+            if (line.startsWith("----- end") ||
+                line.startsWith("----- Waiting Channels:") ||
+                line.startsWith("Zygote loaded classes=")
+            ) {
+                break
+            }
+
+            val indent = line.indexOfFirst { !it.isWhitespace() }
+            if (indent < 0) {
+                // Held back, so blank lines trailing the dump never reach the output.
+                pendingBlankLines++
+                continue
+            }
+            if (line.startsWith("  | ") || line.startsWith("DumpLatencyMs:", indent)) {
+                continue
+            }
+
+            repeat(pendingBlankLines) { dump.append('\n') }
+            pendingBlankLines = 0
+
+            if (line.startsWith("\"")) {
+                hasThreadHeader = true
+            } else if (line.startsWith("at ", indent)) {
+                hasFrame = true
+            }
+            dump.append(line).append('\n')
         }
-        return buffer.inputStream()
+
+        if (!hasThreadHeader || !hasFrame) {
+            return null
+        }
+        dump.setLength(dump.length - 1)
+        return dump.toString()
     }
 
     private fun getImportanceName(importance: Int): String = when (importance) {

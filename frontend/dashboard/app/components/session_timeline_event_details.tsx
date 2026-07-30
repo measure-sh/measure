@@ -14,12 +14,9 @@ import { buttonVariants } from "./button_variants";
 import CodeBlock, { CODE_BLOCK_CARD_CLASS } from "./code_block";
 import LayoutSnapshot from "./layout_snapshot";
 
-// Text size matches the attribute rows so the stacktrace doesn't visually
+// Text size matches the attribute rows so the code block doesn't visually
 // dominate the rest of the event detail.
-const stacktraceClassName = cn(
-  CODE_BLOCK_CARD_CLASS,
-  "text-xs leading-relaxed",
-);
+const codeBlockClassName = cn(CODE_BLOCK_CARD_CLASS, "text-xs leading-relaxed");
 
 function renderAttributeRow(key: string, value: unknown): ReactNode {
   const isObject = typeof value === "object" && value !== null;
@@ -64,18 +61,23 @@ export default function SessionTimelineEventDetails({
   };
 
   function getBodyFromEventDetails(): ReactNode {
-    // Pulled out so the stacktrace renders as a syntax-highlighted Java
-    // CodeBlock — keeping it inline with the attribute rows would lose
-    // newlines and make frames unreadable.
-    const stacktrace =
-      typeof eventDetails.stacktrace === "string" &&
-      eventDetails.stacktrace !== ""
-        ? eventDetails.stacktrace
-        : null;
+    // A stacktrace, or an app_exit's thread dump, renders as a
+    // syntax-highlighted Java CodeBlock below the rows. As an attribute row
+    // it would lose its newlines and become unreadable.
+    const hasText = (key: string) =>
+      typeof eventDetails[key] === "string" && eventDetails[key] !== "";
+
+    let codeBlockKey: string | null = null;
+    if (hasText("stacktrace")) {
+      codeBlockKey = "stacktrace";
+    } else if (eventType === "app_exit" && hasText("trace")) {
+      codeBlockKey = "trace";
+    }
 
     const entries: Array<[string, unknown]> = [];
     Object.entries(eventDetails).forEach(([key, value]) => {
-      if (key === "stacktrace") {
+      // Skipped here so the code block below is its only rendering.
+      if (key === codeBlockKey) {
         return;
       }
       // Attachments are already rendered as the snapshot images above.
@@ -129,15 +131,15 @@ export default function SessionTimelineEventDetails({
     return (
       <div className="flex flex-col">
         {entries.map(([k, v]) => renderAttributeRow(k, v))}
-        {stacktrace && (
+        {codeBlockKey && (
           <div className="flex flex-col gap-0.5 px-3 py-2 border-b border-border/40 last:border-b-0">
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground select-none">
-              STACKTRACE
+              {codeBlockKey}
             </p>
             <CodeBlock
               language="java"
-              className={stacktraceClassName}
-              code={stacktrace}
+              className={codeBlockClassName}
+              code={eventDetails[codeBlockKey]}
             />
           </div>
         )}

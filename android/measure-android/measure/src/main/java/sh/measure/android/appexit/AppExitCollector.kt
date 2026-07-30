@@ -25,8 +25,9 @@ internal class AppExitCollector(
             val appExit = it.value
             val session = sessionManager.getSessionForAppExit(pid)
             // Limiting tracking of app exit events to just
-            // ANRs for now.
-            if (session != null && appExit.isANR()) {
+            // ANRs for now. An exit whose trace could not be read as a
+            // thread dump carries nothing worth reporting.
+            if (session != null && appExit.isANR() && appExit.trace != null) {
                 signalProcessor.trackAppExit(
                     appExit,
                     // Current time is irrelevant for app exit, using
