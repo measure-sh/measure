@@ -4,7 +4,7 @@ import sh.measure.android.events.AttachmentType
 
 internal object DbConstants {
     const val DATABASE_NAME = "measure.db"
-    const val DATABASE_VERSION = DbVersion.V9
+    const val DATABASE_VERSION = DbVersion.V10
 }
 
 internal object DbVersion {
@@ -17,6 +17,7 @@ internal object DbVersion {
     const val V7 = 7
     const val V8 = 8
     const val V9 = 9
+    const val V10 = 10
 }
 
 internal object EventTable {
@@ -33,6 +34,7 @@ internal object EventTable {
     const val COL_ATTACHMENTS = "attachments"
     const val COL_ATTACHMENT_SIZE = "attachments_size"
     const val COL_SAMPLED = "sampled"
+    const val COL_PENDING = "pending"
 }
 
 internal object AttachmentTable {
@@ -142,6 +144,7 @@ internal object Sql {
             ${EventTable.COL_ATTACHMENT_SIZE} INTEGER NOT NULL,
             ${EventTable.COL_ATTACHMENTS} TEXT DEFAULT NULL,
             ${EventTable.COL_SAMPLED} INTEGER NOT NULL DEFAULT 0,
+            ${EventTable.COL_PENDING} INTEGER NOT NULL DEFAULT 0,
             FOREIGN KEY (${EventTable.COL_SESSION_ID}) REFERENCES ${SessionsTable.TABLE_NAME}(${SessionsTable.COL_SESSION_ID}) ON DELETE CASCADE
         )
     """
@@ -278,8 +281,9 @@ internal object Sql {
             ${EventTable.COL_USER_DEFINED_ATTRIBUTES},
             ${EventTable.COL_ATTACHMENT_SIZE},
             ${EventTable.COL_ATTACHMENTS},
-            ${EventTable.COL_SAMPLED}
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ${EventTable.COL_SAMPLED},
+            ${EventTable.COL_PENDING}
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
 
     const val INSERT_ATTACHMENT = """
@@ -544,6 +548,7 @@ internal object Sql {
             ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
         WHERE e.${EventTable.COL_SESSION_ID} = ?
             AND e.${EventTable.COL_SAMPLED} = 1
+            AND e.${EventTable.COL_PENDING} = 0
             AND eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
         ORDER BY e.${EventTable.COL_TIMESTAMP} ASC
     """.trimIndent()
@@ -566,8 +571,25 @@ internal object Sql {
             ON e.${EventTable.COL_ID} = eb.${EventsBatchTable.COL_EVENT_ID}
         WHERE e.${EventTable.COL_SESSION_ID} != ?
             AND e.${EventTable.COL_SAMPLED} = 0
+            AND e.${EventTable.COL_PENDING} = 0
             AND eb.${EventsBatchTable.COL_EVENT_ID} IS NULL
         LIMIT ?
+    """.trimIndent()
+
+    /**
+     * Clears the pending flag on every ANR held by a process that has since died.
+     * A dead pid can never produce another exit record, so nothing it left behind
+     * can still be enriched.
+     */
+    val finalizePendingAnrs: String = """
+        UPDATE ${EventTable.TABLE_NAME}
+        SET ${EventTable.COL_PENDING} = 0
+        WHERE ${EventTable.COL_PENDING} = 1
+            AND ${EventTable.COL_SESSION_ID} IN (
+                SELECT ${SessionsTable.COL_SESSION_ID}
+                FROM ${SessionsTable.TABLE_NAME}
+                WHERE ${SessionsTable.COL_PID} != ?
+            )
     """.trimIndent()
 
     val getSpansForDeletion: String = """

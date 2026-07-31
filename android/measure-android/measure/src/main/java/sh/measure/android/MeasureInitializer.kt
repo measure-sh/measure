@@ -333,6 +333,8 @@ internal class MeasureInitializerImpl(
         appExitProvider = appExitProvider,
         signalProcessor = signalProcessor,
         sessionManager = sessionManager,
+        database = database,
+        processInfo = processInfoProvider,
     ),
     override val cpuUsageCollector: CpuUsageCollector = CpuUsageCollector(
         logger = logger,

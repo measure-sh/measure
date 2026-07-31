@@ -402,6 +402,7 @@ internal object TestData {
         attachmentEntities: List<AttachmentEntity> = emptyList(),
         serializedUserDefAttributes: String? = null,
         isSampled: Boolean = false,
+        isPending: Boolean = false,
     ): EventEntity = EventEntity(
         id = eventId,
         type = type,
@@ -416,6 +417,7 @@ internal object TestData {
         filePath = filePath,
         serializedUserDefAttributes = serializedUserDefAttributes,
         isSampled = isSampled,
+        isPending = isPending,
     )
 
     fun getSessionEntity(

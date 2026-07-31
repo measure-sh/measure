@@ -11,8 +11,10 @@ import org.mockito.kotlin.verify
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeAppExitProvider
+import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.TestData
+import sh.measure.android.storage.Database
 import sh.measure.android.storage.SessionRecord
 
 class AppExitCollectorTest {
@@ -20,10 +22,15 @@ class AppExitCollectorTest {
     private val signalProcessor = mock<SignalProcessor>()
     private val sessionManager = FakeSessionManager()
 
+    private val database = mock<Database>()
+    private val processInfo = FakeProcessInfoProvider(id = 999)
+
     private val appExitCollector = AppExitCollector(
         appExitProvider,
         signalProcessor,
         sessionManager,
+        database,
+        processInfo,
     )
 
     @Test
@@ -140,6 +147,15 @@ class AppExitCollectorTest {
 
         // Then
         assertEquals(1, sessionManager.appExitTrackedCount)
+    }
+
+    @Test
+    fun `finalizes the anrs held by processes that have since died`() {
+        appExitProvider.appExits = emptyMap()
+
+        appExitCollector.collect()
+
+        verify(database).finalizePendingAnrs(999)
     }
 
     private fun getSession(

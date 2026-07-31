@@ -353,6 +353,15 @@ internal interface Database : Closeable {
      * @param excludeSessionId The session ID to exclude from marking.
      */
     fun markSessionsAppExitTracked(excludeSessionId: String)
+
+    /**
+     * Clears the pending flag on every ANR held by a process other than [currentPid],
+     * releasing it for export. A process only gets an exit record once it has died, so
+     * an ANR held by a dead pid can never be enriched any further.
+     *
+     * @param currentPid The pid of the process running now.
+     */
+    fun finalizePendingAnrs(currentPid: Int)
 }
 
 /**
@@ -867,6 +876,7 @@ internal class DatabaseImpl(
         bindLong(10, event.attachmentsSize)
         bindStringOrNull(11, event.serializedAttachments)
         bindLong(12, if (event.isSampled) 1 else 0)
+        bindLong(13, if (event.isPending) 1 else 0)
     }
 
     private fun SQLiteStatement.bindAttachment(attachment: AttachmentEntity, event: EventEntity) {
@@ -1297,6 +1307,14 @@ internal class DatabaseImpl(
             it.bindString(2, sessionId)
             it.bindLong(3, anrTimeMs)
             it.executeUpdateDelete()
+        }
+    }
+
+    override fun finalizePendingAnrs(currentPid: Int) {
+        try {
+            writableDatabase.execSQL(Sql.finalizePendingAnrs, arrayOf(currentPid))
+        } catch (e: SQLiteException) {
+            logger.log(LogLevel.Debug, "Failed to finalize pending ANRs", e)
         }
     }
 

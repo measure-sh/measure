@@ -5,16 +5,21 @@ import androidx.annotation.RequiresApi
 import sh.measure.android.SessionManager
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.storage.Database
+import sh.measure.android.utils.ProcessInfoProvider
 
 internal class AppExitCollector(
     private val appExitProvider: AppExitProvider,
     private val signalProcessor: SignalProcessor,
     private val sessionManager: SessionManager,
+    private val database: Database,
+    private val processInfo: ProcessInfoProvider,
 ) {
 
     @RequiresApi(Build.VERSION_CODES.R)
     fun collect() {
         trackANRFromAppExit()
+        database.finalizePendingAnrs(processInfo.getPid())
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
@@ -24,9 +29,7 @@ internal class AppExitCollector(
             val pid = it.key
             val appExit = it.value
             val session = sessionManager.getSessionForAppExit(pid)
-            // Limiting tracking of app exit events to just
-            // ANRs for now.
-            if (session != null && appExit.isANR()) {
+            if (session != null) {
                 signalProcessor.trackAppExit(
                     appExit,
                     // Current time is irrelevant for app exit, using

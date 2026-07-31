@@ -65,6 +65,13 @@ internal data class EventEntity(
      * Whether the event needs to be reported to the server.
      */
     val isSampled: Boolean = false,
+
+    /**
+     * Whether the event is held back from export until it can be enriched. Only ANRs
+     * on API 30 and above are held, until the system's thread dump for the process
+     * becomes readable on the next launch.
+     */
+    val isPending: Boolean = false,
 ) {
     init {
         require(filePath != null || serializedData != null) {
