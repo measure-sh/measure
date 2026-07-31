@@ -1,6 +1,9 @@
 package sh.frankenstein.android
 
 import android.app.Activity
+import android.app.job.JobInfo
+import android.app.job.JobScheduler
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Handler
@@ -211,6 +214,44 @@ fun NativeAndroidScreen() {
             category = DemoCategory.ANRS,
 
             action = { Thread.sleep(10_000) },
+        ),
+        DemoItem(
+            title = "Broadcast Timeout",
+            description = "Blocks a broadcast receiver past its deadline",
+            category = DemoCategory.ANRS,
+
+            // Each of the three below returns immediately and blocks in the
+            // component callback instead. Blocking here would let the input
+            // dispatch timeout fire first and report the wrong ANR kind.
+            action = {
+                context.sendBroadcast(
+                    Intent(context, AnrBroadcastReceiver::class.java).apply {
+                        flags = Intent.FLAG_RECEIVER_FOREGROUND
+                    },
+                )
+            },
+        ),
+        DemoItem(
+            title = "Service Timeout",
+            description = "Blocks a service past its start deadline",
+            category = DemoCategory.ANRS,
+
+            action = {
+                context.startService(Intent(context, AnrService::class.java))
+            },
+        ),
+        DemoItem(
+            title = "Job Timeout",
+            description = "Blocks onStartJob past its deadline",
+            category = DemoCategory.ANRS,
+
+            action = {
+                val job = JobInfo.Builder(
+                    ANR_JOB_ID,
+                    ComponentName(context, AnrJobService::class.java),
+                ).setOverrideDeadline(0).build()
+                context.getSystemService(JobScheduler::class.java).schedule(job)
+            },
         ),
         DemoItem(
             title = "HTTP Client",
