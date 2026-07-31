@@ -30,9 +30,11 @@ type EventANR struct {
 }
 
 type ANRView struct {
-	Title      string `json:"title"`
-	Stacktrace string `json:"stacktrace"`
-	Message    string `json:"message"`
+	Title         string `json:"title"`
+	Stacktrace    string `json:"stacktrace"`
+	Message       string `json:"message"`
+	Subject       string `json:"subject"`
+	ARTThreadDump string `json:"art_thread_dump"`
 }
 
 type EventException struct {
@@ -62,9 +64,11 @@ type ExceptionView struct {
 // version of the ANR.
 func (e *EventANR) ComputeView() {
 	e.ANRView = ANRView{
-		Title:      e.ANR.GetDisplayTitle(),
-		Stacktrace: e.ANR.Stacktrace(),
-		Message:    e.ANR.GetMessage(),
+		Title:         e.ANR.GetDisplayTitle(),
+		Stacktrace:    e.ANR.Stacktrace(),
+		Message:       e.ANR.GetMessage(),
+		Subject:       e.ANR.Subject,
+		ARTThreadDump: e.ANR.ARTThreadDump,
 	}
 
 	for i := range e.ANR.Threads {

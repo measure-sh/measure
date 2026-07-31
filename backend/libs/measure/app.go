@@ -1250,6 +1250,8 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 			Select("attribute.thread_name as thread_name").
 			Select("anr.exceptions as exceptions").
 			Select("anr.threads as threads").
+			Select("anr.art_thread_dump as art_thread_dump").
+			Select("anr.subject as subject").
 			Select("attachments").
 			Where("type = ?", event.TypeANR).
 			Where("anr.fingerprint = ?", fingerprint)
@@ -1281,6 +1283,8 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 				&e.Attribute.ThreadName,
 				&exceptions,
 				&threads,
+				&e.ANR.ARTThreadDump,
+				&e.ANR.Subject,
 				&attachments,
 			); err != nil {
 				return
@@ -2302,6 +2306,8 @@ func (a App) GetANRsWithFilter(ctx context.Context, rch driver.Conn, fingerprint
 		Select("attribute.thread_name as thread_name").
 		Select("anr.exceptions as exceptions").
 		Select("anr.threads as threads").
+		Select("anr.art_thread_dump as art_thread_dump").
+		Select("anr.subject as subject").
 		Select("attachments").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
@@ -2379,6 +2385,8 @@ func (a App) GetANRsWithFilter(ctx context.Context, rch driver.Conn, fingerprint
 			&e.Attribute.ThreadName,
 			&exceptions,
 			&threads,
+			&e.ANR.ARTThreadDump,
+			&e.ANR.Subject,
 			&attachments,
 		); err != nil {
 			return
@@ -4936,6 +4944,8 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			`anr.foreground`,
 			`anr.exceptions`,
 			`anr.threads`,
+			`anr.art_thread_dump`,
+			`anr.subject`,
 			`app_exit.reason`,
 			`app_exit.importance`,
 			`app_exit.trace`,
@@ -5242,6 +5252,8 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 				&anr.Foreground,
 				&anrExceptions,
 				&anrThreads,
+				&anr.ARTThreadDump,
+				&anr.Subject,
 
 				// app exit
 				&appExit.Reason,

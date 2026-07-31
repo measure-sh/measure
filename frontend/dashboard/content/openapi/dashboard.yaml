@@ -2199,6 +2199,12 @@ paths:
                               type: string
                             message:
                               type: string
+                            subject:
+                              type: string
+                              description: The system's one line reason for the ANR, verbatim. Empty when the ANR could not be matched to an app exit record.
+                            art_thread_dump:
+                              type: string
+                              description: The system's thread dump for every thread in the process, symbolicated. Empty when the ANR could not be matched to an app exit record.
                         attachments:
                           type: array
                           items:
@@ -3073,6 +3079,12 @@ paths:
                               type: string
                             message:
                               type: string
+                            subject:
+                              type: string
+                              description: The system's one line reason for the ANR, verbatim. Empty when the ANR could not be matched to an app exit record.
+                            art_thread_dump:
+                              type: string
+                              description: The system's thread dump for every thread in the process, symbolicated. Empty when the ANR could not be matched to an app exit record.
                         severity:
                           type: string
                         num_code:
