@@ -18,6 +18,14 @@ internal interface AppExitProvider {
     fun get(): Map<Int, AppExit>?
 }
 
+/**
+ * The trace [ApplicationExitInfo] carries for an exit, split into the
+ * system's one line cause and the thread dump it precedes.
+ */
+internal data class SystemTrace(val subject: String?, val threadDump: String) {
+    fun combined(): String = if (subject != null) "Subject: $subject\n\n$threadDump" else threadDump
+}
+
 internal class AppExitProviderImpl(
     private val logger: Logger,
     private val systemServiceProvider: SystemServiceProvider,
@@ -37,23 +45,28 @@ internal class AppExitProviderImpl(
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    fun ApplicationExitInfo.toAppExit(): AppExit = AppExit(
-        reason = getReasonName(reason),
-        reasonId = reason,
-        importance = getImportanceName(importance),
-        trace = getTraceString(traceInputStream),
-        process_name = processName,
-        app_exit_time_ms = timestamp,
-        pid = pid.toString(),
-    )
+    fun ApplicationExitInfo.toAppExit(): AppExit {
+        val trace = parseTrace(traceInputStream)
+        return AppExit(
+            reason = getReasonName(reason),
+            reasonId = reason,
+            importance = getImportanceName(importance),
+            trace = trace?.combined(),
+            subject = trace?.subject,
+            threadDump = trace?.threadDump,
+            process_name = processName,
+            app_exit_time_ms = timestamp,
+            pid = pid.toString(),
+        )
+    }
 
     @VisibleForTesting
-    internal fun getTraceString(traceInputStream: InputStream?): String? {
+    internal fun parseTrace(traceInputStream: InputStream?): SystemTrace? {
         if (traceInputStream == null) {
             return null
         }
         val trace = runCatching {
-            traceInputStream.source().buffer().use { it.extractThreadDump() }
+            traceInputStream.source().buffer().use { it.readSystemTrace() }
         }.getOrNull()
         if (trace == null) {
             logger.log(LogLevel.Debug, "Discarding AppExit trace with unexpected structure")
@@ -63,8 +76,9 @@ internal class AppExitProviderImpl(
         return trace
     }
 
-    private fun BufferedSource.extractThreadDump(): String? {
+    private fun BufferedSource.readSystemTrace(): SystemTrace? {
         val dump = StringBuilder()
+        var subject: String? = null
         var insideDump = false
         var hasThreadHeader = false
         var hasFrame = false
@@ -75,8 +89,8 @@ internal class AppExitProviderImpl(
 
             if (!insideDump) {
                 // The subject line names what the system was waiting on.
-                if (dump.isEmpty() && line.startsWith("Subject: ")) {
-                    dump.append(line).append("\n\n")
+                if (subject == null && line.startsWith("Subject: ")) {
+                    subject = line.removePrefix("Subject: ")
                 }
                 if (line.startsWith("DALVIK THREADS (")) {
                     insideDump = true
@@ -117,7 +131,7 @@ internal class AppExitProviderImpl(
             return null
         }
         dump.setLength(dump.length - 1)
-        return dump.toString()
+        return SystemTrace(subject, dump.toString())
     }
 
     private fun getImportanceName(importance: Int): String = when (importance) {

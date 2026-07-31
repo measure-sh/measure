@@ -353,4 +353,19 @@ class DbMigrationsTest {
 
         db.close()
     }
+
+    @Test
+    fun `migration v9 to v10 creates the pending_anrs table`() {
+        val db = TestDatabaseHelper.createDatabase(DbVersion.V9)
+
+        // Perform migration
+        DbMigrations.apply(logger, db, DbVersion.V9, DbVersion.V10)
+
+        // Verify the pending_anrs table exists
+        db.getCursorToTable(PendingAnrsTable.TABLE_NAME).use {
+            assertTrue(it.moveToFirst())
+        }
+
+        db.close()
+    }
 }

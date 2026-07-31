@@ -1,5 +1,6 @@
 package sh.measure.android.storage
 
+import android.os.Build
 import kotlinx.serialization.encodeToString
 import sh.measure.android.appexit.AppExit
 import sh.measure.android.config.ConfigProvider
@@ -88,7 +89,16 @@ internal class SignalStoreImpl(
 
             when {
                 collectTimeline -> {
-                    val success = database.insertEvent(eventEntity)
+                    // On API 30+ an ANR is held back until the next launch
+                    // attaches the system thread dump; it never exports from
+                    // the pending table.
+                    val holdAnr =
+                        isAnrEvent && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                    val success = if (holdAnr) {
+                        database.insertPendingAnr(eventEntity)
+                    } else {
+                        database.insertEvent(eventEntity)
+                    }
                     flush()
                     if (!success) {
                         handleEventInsertionFailure(eventEntity)

@@ -66,12 +66,12 @@ class AppExitProviderImplTest {
     }
 
     @Test
-    fun `getTraceString returns null for null input stream`() {
-        assertNull(appExitProvider.getTraceString(null))
+    fun `parseTrace returns null for null input stream`() {
+        assertNull(appExitProvider.parseTrace(null))
     }
 
     @Test
-    fun `getTraceString extracts content from trace with just the thread information and stacktrace`() {
+    fun `parseTrace extracts content from trace with just the thread information and stacktrace`() {
         val sampleTrace = """
             DALVIK THREADS (6):
             "main" prio=5 tid=1 Sleeping
@@ -90,7 +90,7 @@ class AppExitProviderImplTest {
         """.trimIndent()
 
         val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
-        val result = appExitProvider.getTraceString(inputStream)
+        val result = appExitProvider.parseTrace(inputStream)
 
         val expected = """
             DALVIK THREADS (6):
@@ -101,11 +101,12 @@ class AppExitProviderImplTest {
               at com.example.app.MainActivity.onCreate(MainActivity.kt:15)
         """.trimIndent()
 
-        assertEquals(expected, result)
+        assertEquals(expected, result?.threadDump)
+        assertNull(result?.subject)
     }
 
     @Test
-    fun `getTraceString drops DumpLatencyMs lines and runtime stats after the thread dump`() {
+    fun `parseTrace drops DumpLatencyMs lines and runtime stats after the thread dump`() {
         val sampleTrace = """
             DALVIK THREADS (3):
             "main" prio=5 tid=1 Blocked
@@ -126,7 +127,7 @@ class AppExitProviderImplTest {
         """.trimIndent()
 
         val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
-        val result = appExitProvider.getTraceString(inputStream)
+        val result = appExitProvider.parseTrace(inputStream)
 
         val expected = """
             DALVIK THREADS (3):
@@ -140,11 +141,11 @@ class AppExitProviderImplTest {
               (no managed stack frames)
         """.trimIndent()
 
-        assertEquals(expected, result)
+        assertEquals(expected, result?.threadDump)
     }
 
     @Test
-    fun `getTraceString keeps the subject line above the thread dump`() {
+    fun `parseTrace splits the subject from the thread dump`() {
         val sampleTrace = """
             Subject: Input dispatching timed out (MainActivity is not responding. Waited 5002ms for MotionEvent).
             RssHwmKb: 160832
@@ -157,21 +158,23 @@ class AppExitProviderImplTest {
         """.trimIndent()
 
         val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
-        val result = appExitProvider.getTraceString(inputStream)
+        val result = appExitProvider.parseTrace(inputStream)
 
-        val expected = """
-            Subject: Input dispatching timed out (MainActivity is not responding. Waited 5002ms for MotionEvent).
-
+        val expectedSubject =
+            "Input dispatching timed out (MainActivity is not responding. Waited 5002ms for MotionEvent)."
+        val expectedDump = """
             DALVIK THREADS (1):
             "main" prio=5 tid=1 Blocked
               at com.example.app.MainActivity.onClick(MainActivity.kt:42)
         """.trimIndent()
 
-        assertEquals(expected, result)
+        assertEquals(expectedSubject, result?.subject)
+        assertEquals(expectedDump, result?.threadDump)
+        assertEquals("Subject: $expectedSubject\n\n$expectedDump", result?.combined())
     }
 
     @Test
-    fun `getTraceString keeps unrecognized lines within the thread dump`() {
+    fun `parseTrace keeps unrecognized lines within the thread dump`() {
         val sampleTrace = """
             DALVIK THREADS (2):
             "main" prio=5 tid=1 Runnable
@@ -181,7 +184,7 @@ class AppExitProviderImplTest {
         """.trimIndent()
 
         val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
-        val result = appExitProvider.getTraceString(inputStream)
+        val result = appExitProvider.parseTrace(inputStream)
 
         val expected = """
             DALVIK THREADS (2):
@@ -190,11 +193,11 @@ class AppExitProviderImplTest {
             Some new unexpected line
         """.trimIndent()
 
-        assertEquals(expected, result)
+        assertEquals(expected, result?.threadDump)
     }
 
     @Test
-    fun `getTraceString keeps frames indented differently to the known format`() {
+    fun `parseTrace keeps frames indented differently to the known format`() {
         val sampleTrace = """
             DALVIK THREADS (1):
             "main" prio=5 tid=1 Blocked
@@ -203,7 +206,7 @@ class AppExitProviderImplTest {
         """.trimIndent()
 
         val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
-        val result = appExitProvider.getTraceString(inputStream)
+        val result = appExitProvider.parseTrace(inputStream)
 
         val expected = """
             DALVIK THREADS (1):
@@ -211,11 +214,11 @@ class AppExitProviderImplTest {
                 at com.example.app.MainActivity.onClick(MainActivity.kt:42)
         """.trimIndent()
 
-        assertEquals(expected, result)
+        assertEquals(expected, result?.threadDump)
     }
 
     @Test
-    fun `getTraceString returns null for a native format thread dump`() {
+    fun `parseTrace returns null for a native format thread dump`() {
         val sampleTrace = """
             ----- pid 5518 at 2026-07-31 07:27:33 -----
             Cmd line: com.example.app
@@ -229,11 +232,11 @@ class AppExitProviderImplTest {
 
         val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
 
-        assertNull(appExitProvider.getTraceString(inputStream))
+        assertNull(appExitProvider.parseTrace(inputStream))
     }
 
     @Test
-    fun `getTraceString returns null when the trace has no thread dump section`() {
+    fun `parseTrace returns null when the trace has no thread dump section`() {
         val sampleTrace = """
             Some random content
             without a thread dump
@@ -241,11 +244,11 @@ class AppExitProviderImplTest {
 
         val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
 
-        assertNull(appExitProvider.getTraceString(inputStream))
+        assertNull(appExitProvider.parseTrace(inputStream))
     }
 
     @Test
-    fun `getTraceString returns null when the thread dump has no stacktrace frames`() {
+    fun `parseTrace returns null when the thread dump has no stacktrace frames`() {
         val sampleTrace = """
             DALVIK THREADS (1):
             "Signal Catcher" daemon prio=10 tid=2 Runnable
@@ -255,7 +258,7 @@ class AppExitProviderImplTest {
 
         val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
 
-        assertNull(appExitProvider.getTraceString(inputStream))
+        assertNull(appExitProvider.parseTrace(inputStream))
     }
 
     private fun mockApplicationExitInfo(

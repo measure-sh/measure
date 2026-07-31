@@ -131,6 +131,18 @@ internal data class SessionRecord(
     val lastAnrTime: Long? = null,
 )
 
+/**
+ * An ANR held in [PendingAnrsTable] awaiting the system thread dump,
+ * with the pid of the session it was recorded in.
+ */
+internal data class PendingAnr(
+    val eventId: String,
+    val sessionId: String,
+    val timestamp: String,
+    val filePath: String?,
+    val pid: Int,
+)
+
 internal data class BatchEntity(
     val batchId: String,
     val eventIds: Set<String>,

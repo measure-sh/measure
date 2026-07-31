@@ -443,6 +443,10 @@ internal object TestData {
         reason: String = "reason",
         importance: String = "importance",
         trace: String? = "trace",
+        subject: String? = null,
+        // Both are read off the same parsed trace, so an exit never
+        // carries one without the other.
+        threadDump: String? = trace,
         processName: String = "process-name",
         appExitTimeMs: Long = 987654321L,
         pid: String = "123",
@@ -451,6 +455,8 @@ internal object TestData {
         reason = reason,
         importance = importance,
         trace = trace,
+        subject = subject,
+        threadDump = threadDump,
         process_name = processName,
         app_exit_time_ms = appExitTimeMs,
         pid = pid,

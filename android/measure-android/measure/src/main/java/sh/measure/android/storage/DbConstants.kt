@@ -4,7 +4,7 @@ import sh.measure.android.events.AttachmentType
 
 internal object DbConstants {
     const val DATABASE_NAME = "measure.db"
-    const val DATABASE_VERSION = DbVersion.V9
+    const val DATABASE_VERSION = DbVersion.V10
 }
 
 internal object DbVersion {
@@ -17,6 +17,7 @@ internal object DbVersion {
     const val V7 = 7
     const val V8 = 8
     const val V9 = 9
+    const val V10 = 10
 }
 
 internal object EventTable {
@@ -33,6 +34,15 @@ internal object EventTable {
     const val COL_ATTACHMENTS = "attachments"
     const val COL_ATTACHMENT_SIZE = "attachments_size"
     const val COL_SAMPLED = "sampled"
+}
+
+/**
+ * Holds ANR events on API 30+ until the next launch attaches the system
+ * thread dump and moves them into [EventTable]. Mirrors the [EventTable]
+ * columns, so [EventTable]'s column constants apply to both.
+ */
+internal object PendingAnrsTable {
+    const val TABLE_NAME = "pending_anrs"
 }
 
 internal object AttachmentTable {
@@ -130,6 +140,24 @@ internal object SpansTable {
 internal object Sql {
     const val CREATE_EVENTS_TABLE = """
         CREATE TABLE IF NOT EXISTS ${EventTable.TABLE_NAME} (
+            ${EventTable.COL_ID} TEXT PRIMARY KEY,
+            ${EventTable.COL_TYPE} TEXT NOT NULL,
+            ${EventTable.COL_TIMESTAMP} TEXT NOT NULL,
+            ${EventTable.COL_SESSION_ID} TEXT NOT NULL,
+            ${EventTable.COL_USER_TRIGGERED} INTEGER NOT NULL DEFAULT 0,
+            ${EventTable.COL_DATA_FILE_PATH} TEXT DEFAULT NULL,
+            ${EventTable.COL_DATA_SERIALIZED} TEXT DEFAULT NULL,
+            ${EventTable.COL_ATTRIBUTES} TEXT DEFAULT NULL,
+            ${EventTable.COL_USER_DEFINED_ATTRIBUTES} TEXT DEFAULT NULL,
+            ${EventTable.COL_ATTACHMENT_SIZE} INTEGER NOT NULL,
+            ${EventTable.COL_ATTACHMENTS} TEXT DEFAULT NULL,
+            ${EventTable.COL_SAMPLED} INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY (${EventTable.COL_SESSION_ID}) REFERENCES ${SessionsTable.TABLE_NAME}(${SessionsTable.COL_SESSION_ID}) ON DELETE CASCADE
+        )
+    """
+
+    const val CREATE_PENDING_ANRS_TABLE = """
+        CREATE TABLE IF NOT EXISTS ${PendingAnrsTable.TABLE_NAME} (
             ${EventTable.COL_ID} TEXT PRIMARY KEY,
             ${EventTable.COL_TYPE} TEXT NOT NULL,
             ${EventTable.COL_TIMESTAMP} TEXT NOT NULL,
@@ -282,6 +310,70 @@ internal object Sql {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
 
+    // Bound by bindEvent, so the column order must match INSERT_EVENT.
+    const val INSERT_PENDING_ANR = """
+        INSERT INTO ${PendingAnrsTable.TABLE_NAME} (
+            ${EventTable.COL_ID},
+            ${EventTable.COL_TYPE},
+            ${EventTable.COL_TIMESTAMP},
+            ${EventTable.COL_SESSION_ID},
+            ${EventTable.COL_USER_TRIGGERED},
+            ${EventTable.COL_DATA_FILE_PATH},
+            ${EventTable.COL_DATA_SERIALIZED},
+            ${EventTable.COL_ATTRIBUTES},
+            ${EventTable.COL_USER_DEFINED_ATTRIBUTES},
+            ${EventTable.COL_ATTACHMENT_SIZE},
+            ${EventTable.COL_ATTACHMENTS},
+            ${EventTable.COL_SAMPLED}
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+
+    private val EVENT_COLUMNS = listOf(
+        EventTable.COL_ID,
+        EventTable.COL_TYPE,
+        EventTable.COL_TIMESTAMP,
+        EventTable.COL_SESSION_ID,
+        EventTable.COL_USER_TRIGGERED,
+        EventTable.COL_DATA_FILE_PATH,
+        EventTable.COL_DATA_SERIALIZED,
+        EventTable.COL_ATTRIBUTES,
+        EventTable.COL_USER_DEFINED_ATTRIBUTES,
+        EventTable.COL_ATTACHMENT_SIZE,
+        EventTable.COL_ATTACHMENTS,
+        EventTable.COL_SAMPLED,
+    ).joinToString(", ")
+
+    val copyPendingAnrToEvents: String = """
+            INSERT INTO ${EventTable.TABLE_NAME} ($EVENT_COLUMNS)
+            SELECT $EVENT_COLUMNS
+            FROM ${PendingAnrsTable.TABLE_NAME}
+            WHERE ${EventTable.COL_ID} = ?
+    """.trimIndent()
+
+    val deletePendingAnr: String = """
+            DELETE FROM ${PendingAnrsTable.TABLE_NAME}
+            WHERE ${EventTable.COL_ID} = ?
+    """.trimIndent()
+
+    val getPendingAnrs: String = """
+            SELECT
+                p.${EventTable.COL_ID},
+                p.${EventTable.COL_SESSION_ID},
+                p.${EventTable.COL_TIMESTAMP},
+                p.${EventTable.COL_DATA_FILE_PATH},
+                s.${SessionsTable.COL_PID}
+            FROM ${PendingAnrsTable.TABLE_NAME} p
+            JOIN ${SessionsTable.TABLE_NAME} s
+                ON p.${EventTable.COL_SESSION_ID} = s.${SessionsTable.COL_SESSION_ID}
+            ORDER BY p.${EventTable.COL_TIMESTAMP} ASC
+    """.trimIndent()
+
+    val getPendingAnrsCountForSession: String = """
+            SELECT COUNT(${EventTable.COL_ID}) AS count
+            FROM ${PendingAnrsTable.TABLE_NAME}
+            WHERE ${EventTable.COL_SESSION_ID} = ?
+    """.trimIndent()
+
     const val INSERT_ATTACHMENT = """
         INSERT INTO ${AttachmentV1Table.TABLE_NAME} (
             ${AttachmentV1Table.COL_ID},
@@ -392,6 +484,9 @@ internal object Sql {
             ) OR EXISTS (
                 SELECT 1 FROM ${SpansTable.TABLE_NAME}
                 WHERE ${SpansTable.TABLE_NAME}.${SpansTable.COL_SESSION_ID} = ${SessionsTable.TABLE_NAME}.${SessionsTable.COL_SESSION_ID}
+            ) OR EXISTS (
+                SELECT 1 FROM ${PendingAnrsTable.TABLE_NAME}
+                WHERE ${PendingAnrsTable.TABLE_NAME}.${EventTable.COL_SESSION_ID} = ${SessionsTable.TABLE_NAME}.${SessionsTable.COL_SESSION_ID}
             )
             ORDER BY ${SessionsTable.COL_CREATED_AT} ASC
             LIMIT 1
@@ -581,13 +676,23 @@ internal object Sql {
         LIMIT ?
     """.trimIndent()
 
-    val markTimelineForReporting: String = """
-        UPDATE ${EventTable.TABLE_NAME}
+    private fun markSampledInWindow(tableName: String): String = """
+        UPDATE $tableName
         SET ${EventTable.COL_SAMPLED} = 1
         WHERE ${EventTable.COL_TIMESTAMP} BETWEEN
             strftime('%Y-%m-%dT%H:%M:%fZ', ?, ?)
             AND ?
     """.trimIndent()
+
+    val markTimelineForReporting: String = markSampledInWindow(EventTable.TABLE_NAME)
+
+    /**
+     * A held ANR is an event in waiting, so the rule that decides an
+     * event must be reported has to reach it too. Without this its
+     * sampled flag could only ever be what the insert wrote, and a
+     * moved row that landed unsampled would never be batched.
+     */
+    val markPendingAnrsForReporting: String = markSampledInWindow(PendingAnrsTable.TABLE_NAME)
 
     val getSessionIds: String = """
             SELECT ${SessionsTable.COL_SESSION_ID}

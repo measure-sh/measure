@@ -33,6 +33,18 @@ internal data class AppExit(
     val trace: String?,
 
     /**
+     * The subject part of [trace], used to enrich a pending ANR event.
+     */
+    @Transient
+    val subject: String? = null,
+
+    /**
+     * The thread dump part of [trace], used to enrich a pending ANR event.
+     */
+    @Transient
+    val threadDump: String? = null,
+
+    /**
      * @see [ApplicationExitInfo.getProcessName]
      */
     val process_name: String,

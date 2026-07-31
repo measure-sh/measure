@@ -161,8 +161,9 @@ internal class DataCleanupServiceImpl(
                 for (sessionId in sessionIds) {
                     val events = database.getEventsCount(sessionId)
                     val spans = database.getSpansCount(sessionId)
+                    val pendingAnrs = database.getPendingAnrsCount(sessionId)
 
-                    if (events + spans == 0) {
+                    if (events + spans + pendingAnrs == 0) {
                         sessionsToDelete.add(sessionId)
                     }
                 }
@@ -208,19 +209,22 @@ internal class DataCleanupServiceImpl(
         if (estimatedSizeInMb <= configProvider.maxDiskUsageInMb.coerceIn(20, 1500)) {
             return
         }
-        database.getOldestSessionWithSignals()?.let {
-            if (it != currentSessionId) {
-                val eventIds = database.getEventsForSession(it)
+        database.getOldestSessionWithSignals()?.let { sessionId ->
+            if (sessionId != currentSessionId) {
+                val pendingAnrIds = database.getPendingAnrs()
+                    .filter { it.sessionId == sessionId }
+                    .map { it.eventId }
+                val eventIds = database.getEventsForSession(sessionId) + pendingAnrIds
                 fileStorage.deleteEventsIfExist(eventIds)
                 val attachmentIds = database.getAttachmentsForEvents(eventIds)
                 fileStorage.deleteAttachmentsIfExist(attachmentIds)
 
                 // the session row is kept so late-delivered signals can still be
                 // attributed to it, deleteEmptySessions prunes it eventually.
-                database.deleteSessionData(it)
+                database.deleteSessionData(sessionId)
                 logger.log(
                     LogLevel.Debug,
-                    "DataCleanup: deleted data for session $it estimated storage: $estimatedSizeInMb, maxAllowed: ${configProvider.maxDiskUsageInMb}",
+                    "DataCleanup: deleted data for session $sessionId estimated storage: $estimatedSizeInMb, maxAllowed: ${configProvider.maxDiskUsageInMb}",
                 )
             }
         }

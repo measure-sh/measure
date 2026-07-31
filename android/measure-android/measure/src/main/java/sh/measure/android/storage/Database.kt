@@ -138,6 +138,43 @@ internal interface Database : Closeable {
     fun markTimelineForReporting(timestamp: String, durationSeconds: Int, sessionId: String)
 
     // ========================================================================================
+    // Pending ANRs
+    // ========================================================================================
+
+    /**
+     * Inserts an ANR event and its associated attachments into the pending
+     * ANRs table in a single transaction. The event stays there until
+     * [movePendingAnrToEvents] finalizes it.
+     *
+     * @param event The event entity to insert.
+     * @return `true` if successful, `false` otherwise.
+     */
+    fun insertPendingAnr(event: EventEntity): Boolean
+
+    /**
+     * Returns all pending ANRs along with the pid of the session each
+     * was recorded in, oldest first.
+     */
+    fun getPendingAnrs(): List<PendingAnr>
+
+    /**
+     * Moves a pending ANR into the events table in a single transaction,
+     * keeping the event ID. A missing pending row is a no-op, which makes
+     * a retry after an interrupted move safe.
+     *
+     * @param eventId The event ID of the pending ANR to move.
+     * @return `true` if successful, `false` otherwise.
+     */
+    fun movePendingAnrToEvents(eventId: String): Boolean
+
+    /**
+     * Returns the count of pending ANRs for a specific session.
+     *
+     * @param sessionId The session ID.
+     */
+    fun getPendingAnrsCount(sessionId: String): Int
+
+    // ========================================================================================
     // Spans
     // ========================================================================================
 
@@ -376,6 +413,7 @@ internal class DatabaseImpl(
             db.execSQL(Sql.CREATE_EVENTS_BATCH_TABLE)
             db.execSQL(Sql.CREATE_SPANS_TABLE)
             db.execSQL(Sql.CREATE_SPANS_BATCH_TABLE)
+            db.execSQL(Sql.CREATE_PENDING_ANRS_TABLE)
             db.execSQL(Sql.CREATE_EVENTS_TIMESTAMP_INDEX)
             db.execSQL(Sql.CREATE_EVENTS_SESSION_ID_INDEX)
             db.execSQL(Sql.CREATE_EVENTS_BATCH_EVENT_ID_INDEX)
@@ -492,6 +530,11 @@ internal class DatabaseImpl(
             writableDatabase.delete(
                 AttachmentV1Table.TABLE_NAME,
                 "${AttachmentV1Table.COL_SESSION_ID} = ?",
+                arrayOf(sessionId),
+            )
+            writableDatabase.delete(
+                PendingAnrsTable.TABLE_NAME,
+                "${EventTable.COL_SESSION_ID} = ?",
                 arrayOf(sessionId),
             )
             writableDatabase.setTransactionSuccessful()
@@ -641,9 +684,8 @@ internal class DatabaseImpl(
     ) {
         writableDatabase.beginTransaction()
         try {
-            writableDatabase
-                .compileStatement(Sql.markTimelineForReporting)
-                .use { statement ->
+            listOf(Sql.markTimelineForReporting, Sql.markPendingAnrsForReporting).forEach { sql ->
+                writableDatabase.compileStatement(sql).use { statement ->
                     statement.bindString(1, timestamp)
                     statement.bindString(2, "-$durationSeconds seconds")
                     statement.bindString(3, timestamp)
@@ -653,6 +695,7 @@ internal class DatabaseImpl(
                         "Database: Marked $eventRowsUpdated timeline events for reporting",
                     )
                 }
+            }
 
             writableDatabase
                 .compileStatement(Sql.markSessionAsPriority)
@@ -848,6 +891,88 @@ internal class DatabaseImpl(
             spanStatement.close()
             db.endTransaction()
         }
+    }
+
+    // ========================================================================================
+    // Pending ANRs
+    // ========================================================================================
+
+    override fun insertPendingAnr(event: EventEntity): Boolean {
+        val db = writableDatabase
+        db.beginTransaction()
+        val eventStatement = db.compileStatement(Sql.INSERT_PENDING_ANR)
+        val attachmentStatement = db.compileStatement(Sql.INSERT_ATTACHMENT)
+        try {
+            eventStatement.bindEvent(event)
+            if (eventStatement.executeInsert() == -1L) {
+                return false
+            }
+
+            event.attachmentEntities?.forEach { attachment ->
+                attachmentStatement.bindAttachment(attachment, event)
+                if (attachmentStatement.executeInsert() == -1L) {
+                    return false
+                }
+            }
+
+            db.setTransactionSuccessful()
+            return true
+        } catch (e: SQLiteException) {
+            logger.log(LogLevel.Debug, "Failed to insert pending ANR", e)
+            return false
+        } finally {
+            eventStatement.close()
+            attachmentStatement.close()
+            db.endTransaction()
+        }
+    }
+
+    override fun getPendingAnrs(): List<PendingAnr> {
+        val pendingAnrs = mutableListOf<PendingAnr>()
+        readableDatabase.rawQuery(Sql.getPendingAnrs, null).use {
+            val eventIdIndex = it.getColumnIndex(EventTable.COL_ID)
+            val sessionIdIndex = it.getColumnIndex(EventTable.COL_SESSION_ID)
+            val timestampIndex = it.getColumnIndex(EventTable.COL_TIMESTAMP)
+            val filePathIndex = it.getColumnIndex(EventTable.COL_DATA_FILE_PATH)
+            val pidIndex = it.getColumnIndex(SessionsTable.COL_PID)
+            while (it.moveToNext()) {
+                pendingAnrs.add(
+                    PendingAnr(
+                        eventId = it.getString(eventIdIndex),
+                        sessionId = it.getString(sessionIdIndex),
+                        timestamp = it.getString(timestampIndex),
+                        filePath = it.getString(filePathIndex),
+                        pid = it.getInt(pidIndex),
+                    ),
+                )
+            }
+        }
+        return pendingAnrs
+    }
+
+    override fun movePendingAnrToEvents(eventId: String): Boolean {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.execSQL(Sql.copyPendingAnrToEvents, arrayOf(eventId))
+            db.execSQL(Sql.deletePendingAnr, arrayOf(eventId))
+            db.setTransactionSuccessful()
+            return true
+        } catch (e: SQLiteException) {
+            logger.log(LogLevel.Debug, "Failed to move pending ANR($eventId) to events", e)
+            return false
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    override fun getPendingAnrsCount(sessionId: String): Int {
+        readableDatabase.rawQuery(Sql.getPendingAnrsCountForSession, arrayOf(sessionId)).use {
+            if (it.moveToFirst()) {
+                return it.getInt(it.getColumnIndex("count"))
+            }
+        }
+        return 0
     }
 
     private fun SQLiteStatement.bindStringOrNull(index: Int, value: String?) {

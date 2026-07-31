@@ -62,6 +62,8 @@ class DatabaseTest {
             assertEquals(SpansTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
             it.moveToNext()
             assertEquals(SpansBatchTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
+            it.moveToNext()
+            assertEquals(PendingAnrsTable.TABLE_NAME, it.getString(it.getColumnIndex("name")))
         }
     }
 
@@ -2620,6 +2622,231 @@ class DatabaseTest {
         assertEquals(0, database.getEventsCount())
         assertEquals(0, database.getSpansCount())
     }
+
+    @Test
+    fun `insertPendingAnr holds the event and its attachments out of the events table`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        val attachmentEntity = TestData.getAttachmentEntity()
+        val event = TestData.getEventEntity(
+            eventId = "anr-event-id",
+            type = EventType.ANR,
+            sessionId = "session-id-1",
+            serializedData = null,
+            filePath = "anr-file-path",
+            attachmentEntities = listOf(attachmentEntity),
+            isSampled = true,
+        )
+
+        // when
+        val result = database.insertPendingAnr(event)
+
+        // then
+        assertTrue(result)
+        assertEquals(0, database.getEventsCount())
+        queryAllPendingAnrs(database.readableDatabase).use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEventInCursor(event, cursor)
+        }
+        queryAttachmentsForEvent(database.readableDatabase, event.id).use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertAttachmentInCursor(attachmentEntity, event, cursor)
+        }
+    }
+
+    @Test
+    fun `insertPendingAnr returns false when the session does not exist`() {
+        // given
+        val event = TestData.getEventEntity(
+            eventId = "anr-event-id",
+            type = EventType.ANR,
+            sessionId = "unknown-session-id",
+            serializedData = null,
+            filePath = "anr-file-path",
+        )
+
+        // when
+        val result = database.insertPendingAnr(event)
+
+        // then
+        assertFalse(result)
+        queryAllPendingAnrs(database.readableDatabase).use { cursor ->
+            assertEquals(0, cursor.count)
+        }
+    }
+
+    @Test
+    fun `getPendingAnrs returns pending ANRs with the pid of their session`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1", pid = 1234))
+        database.insertPendingAnr(
+            TestData.getEventEntity(
+                eventId = "anr-event-id",
+                type = EventType.ANR,
+                sessionId = "session-id-1",
+                serializedData = null,
+                filePath = "anr-file-path",
+            ),
+        )
+
+        // when
+        val pendingAnrs = database.getPendingAnrs()
+
+        // then
+        val pendingAnr = pendingAnrs.single()
+        assertEquals("anr-event-id", pendingAnr.eventId)
+        assertEquals("session-id-1", pendingAnr.sessionId)
+        assertEquals("anr-file-path", pendingAnr.filePath)
+        assertEquals(1234, pendingAnr.pid)
+    }
+
+    @Test
+    fun `movePendingAnrToEvents moves the row into events keeping the event id`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        val event = TestData.getEventEntity(
+            eventId = "anr-event-id",
+            type = EventType.ANR,
+            sessionId = "session-id-1",
+            serializedData = null,
+            filePath = "anr-file-path",
+            isSampled = true,
+        )
+        database.insertPendingAnr(event)
+
+        // when
+        val result = database.movePendingAnrToEvents(event.id)
+
+        // then
+        assertTrue(result)
+        queryAllPendingAnrs(database.readableDatabase).use { cursor ->
+            assertEquals(0, cursor.count)
+        }
+        queryAllEvents(database.readableDatabase).use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEventInCursor(event, cursor)
+            assertEquals(1, cursor.getInt(cursor.getColumnIndex(EventTable.COL_SAMPLED)))
+        }
+    }
+
+    @Test
+    fun `movePendingAnrToEvents is a no-op when the pending ANR does not exist`() {
+        // when
+        val result = database.movePendingAnrToEvents("unknown-event-id")
+
+        // then
+        assertTrue(result)
+        assertEquals(0, database.getEventsCount())
+    }
+
+    @Test
+    fun `getPendingAnrsCount returns the count of pending ANRs for a session`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        database.insertSession(TestData.getSessionEntity(id = "session-id-2"))
+        database.insertPendingAnr(
+            TestData.getEventEntity(
+                eventId = "anr-event-id",
+                type = EventType.ANR,
+                sessionId = "session-id-1",
+                serializedData = null,
+                filePath = "anr-file-path",
+            ),
+        )
+
+        // then
+        assertEquals(1, database.getPendingAnrsCount("session-id-1"))
+        assertEquals(0, database.getPendingAnrsCount("session-id-2"))
+    }
+
+    @Test
+    fun `deleting a session deletes its pending ANRs`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        database.insertPendingAnr(
+            TestData.getEventEntity(
+                eventId = "anr-event-id",
+                type = EventType.ANR,
+                sessionId = "session-id-1",
+                serializedData = null,
+                filePath = "anr-file-path",
+            ),
+        )
+
+        // when
+        database.deleteSession("session-id-1")
+
+        // then
+        queryAllPendingAnrs(database.readableDatabase).use { cursor ->
+            assertEquals(0, cursor.count)
+        }
+    }
+
+    @Test
+    fun `deleteSessionData clears pending ANRs for the session`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        database.insertPendingAnr(
+            TestData.getEventEntity(
+                eventId = "anr-event-id",
+                type = EventType.ANR,
+                sessionId = "session-id-1",
+                serializedData = null,
+                filePath = "anr-file-path",
+            ),
+        )
+
+        // when
+        database.deleteSessionData("session-id-1")
+
+        // then
+        queryAllPendingAnrs(database.readableDatabase).use { cursor ->
+            assertEquals(0, cursor.count)
+        }
+    }
+
+    @Test
+    fun `markTimelineForReporting marks pending ANRs in the window`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        database.insertPendingAnr(
+            TestData.getEventEntity(
+                eventId = "anr-event-id",
+                type = EventType.ANR,
+                sessionId = "session-id-1",
+                timestamp = "2024-03-18T12:50:12.62600000Z",
+                serializedData = null,
+                filePath = "anr-file-path",
+                isSampled = false,
+            ),
+        )
+
+        // when
+        database.markTimelineForReporting(
+            timestamp = "2024-03-18T12:50:12.62600000Z",
+            durationSeconds = 60,
+            sessionId = "session-id-1",
+        )
+
+        // then
+        queryAllPendingAnrs(database.readableDatabase).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(1, cursor.getInt(cursor.getColumnIndex(EventTable.COL_SAMPLED)))
+        }
+    }
+
+    private fun queryAllPendingAnrs(db: SQLiteDatabase): Cursor = db.query(
+        PendingAnrsTable.TABLE_NAME,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+    )
 
     private fun queryAllEvents(db: SQLiteDatabase): Cursor = db.query(
         EventTable.TABLE_NAME,

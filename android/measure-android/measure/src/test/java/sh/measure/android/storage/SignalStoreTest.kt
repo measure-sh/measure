@@ -62,27 +62,6 @@ internal class SignalStoreTest {
     }
 
     @Test
-    fun `stores ANR event data in file storage and stores the path in database`() {
-        // given
-        val exceptionData = TestData.getExceptionData()
-        val event = exceptionData.toEvent(type = EventType.ANR)
-        val eventsCaptor = argumentCaptor<EventEntity>()
-        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
-
-        // when
-        signalStore.store(event)
-
-        // then
-        verify(fileStorage).writeEventData(
-            event.id,
-            event.serializeDataToString(),
-        )
-        verify(database).insertEvent(eventsCaptor.capture())
-        val eventEntity = eventsCaptor.firstValue
-        assertEquals("fake-file-path", eventEntity.filePath)
-    }
-
-    @Test
     fun `stores bug report event directly in database`() {
         // given
         val bugReportData = TestData.getBugReportData()
