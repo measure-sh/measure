@@ -33,6 +33,13 @@ internal data class AppExit(
     val trace: String?,
 
     /**
+     * The system's one line cause for the ANR, read from the `Subject:` line of
+     * [ApplicationExitInfo.getTraceInputStream]. Not part of the app exit payload.
+     */
+    @Transient
+    val subject: String? = null,
+
+    /**
      * @see [ApplicationExitInfo.getProcessName]
      */
     val process_name: String,

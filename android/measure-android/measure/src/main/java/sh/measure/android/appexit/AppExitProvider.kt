@@ -15,7 +15,28 @@ import sh.measure.android.logger.Logger
 import sh.measure.android.utils.SystemServiceProvider
 import java.io.InputStream
 
+private const val THREAD_DUMP_START = "DALVIK THREADS ("
+private const val THREAD_DUMP_END = "----- Waiting Channels:"
+private const val THREAD_DETAIL_PREFIX = "  | "
+private const val SUBJECT_PREFIX = "Subject: "
+
+/**
+ * The largest thread dump the backend accepts. A dump of 40 threads is roughly
+ * 40 KB, so only a process with an extreme number of threads reaches this.
+ */
+private const val MAX_THREAD_DUMP_BYTES = 1024 * 1024
+
+/**
+ * The parts of an ANR trace worth keeping: the thread dump and the system's one
+ * line cause for the ANR.
+ */
+internal data class AnrTrace(val threadDump: String, val subject: String?)
+
 internal interface AppExitProvider {
+    /**
+     * Returns exits caused by an ANR, keyed by the pid of the process that exited.
+     * Exits for every other reason are dropped, so their traces are never read.
+     */
     fun get(): Map<Int, AppExit>?
 }
 
@@ -30,57 +51,77 @@ internal class AppExitProviderImpl(
             return null
         }
         return systemServiceProvider.activityManager?.runCatching {
-            getHistoricalProcessExitReasons(null, 0, 3).associateBy(
-                { it.pid },
-                { it.toAppExit() },
-            )
+            getHistoricalProcessExitReasons(null, 0, 0)
+                .filter { it.reason == ApplicationExitInfo.REASON_ANR }
+                .associateBy({ it.pid }, { it.toAppExit() })
         }?.getOrNull()
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    fun ApplicationExitInfo.toAppExit(): AppExit = AppExit(
-        reason = getReasonName(reason),
-        reasonId = reason,
-        importance = getImportanceName(importance),
-        trace = getTraceString(traceInputStream),
-        process_name = processName,
-        app_exit_time_ms = timestamp,
-        pid = pid.toString(),
-    )
+    fun ApplicationExitInfo.toAppExit(): AppExit {
+        val anrTrace = parseAnrTrace(traceInputStream)
+        return AppExit(
+            reason = getReasonName(reason),
+            reasonId = reason,
+            importance = getImportanceName(importance),
+            trace = anrTrace?.threadDump,
+            subject = anrTrace?.subject,
+            process_name = processName,
+            app_exit_time_ms = timestamp,
+            pid = pid.toString(),
+        )
+    }
 
+    /**
+     * Reads the thread dump and the subject out of an ANR trace in a single pass,
+     * as the stream can only be read once.
+     *
+     * The dump stops at the last whole thread block that fits in
+     * [MAX_THREAD_DUMP_BYTES], so a truncated dump never ends mid thread.
+     */
     @VisibleForTesting
-    internal fun getTraceString(traceInputStream: InputStream?): String? {
+    internal fun parseAnrTrace(traceInputStream: InputStream?): AnrTrace? {
         if (traceInputStream == null) {
             return null
         }
         logger.log(LogLevel.Debug, "Adding AppExit trace")
-        return traceInputStream.extractContent().bufferedReader().useLines { lines ->
-            lines.joinToString("\n")
-        }
-    }
-
-    private fun InputStream.extractContent(): InputStream {
-        val source: BufferedSource = source().buffer()
-        val buffer = Buffer()
-        var insideSection = false
+        val source: BufferedSource = traceInputStream.source().buffer()
+        val dump = Buffer()
+        val thread = Buffer()
+        var subject: String? = null
+        var insideDump = false
+        var truncated = false
         while (!source.exhausted()) {
             val line = source.readUtf8Line() ?: break
 
-            if (line.startsWith("DALVIK THREADS (")) {
-                insideSection = true
-            } else if (line.startsWith("----- Waiting Channels:")) {
-                insideSection = false
+            if (line.startsWith(THREAD_DUMP_START)) {
+                insideDump = true
+            } else if (line.startsWith(THREAD_DUMP_END)) {
+                insideDump = false
             }
 
-            if (insideSection) {
-                if (line.startsWith("  | ")) {
-                    continue
+            if (!insideDump) {
+                if (subject == null && line.startsWith(SUBJECT_PREFIX)) {
+                    subject = line.removePrefix(SUBJECT_PREFIX).trim()
                 }
-                buffer.writeUtf8(line)
-                buffer.writeUtf8("\n")
+                continue
             }
+            if (line.startsWith(THREAD_DETAIL_PREFIX)) {
+                continue
+            }
+            if (line.startsWith("\"") && thread.size > 0) {
+                if (dump.size + thread.size > MAX_THREAD_DUMP_BYTES) {
+                    truncated = true
+                    break
+                }
+                dump.writeAll(thread)
+            }
+            thread.writeUtf8(line).writeUtf8("\n")
         }
-        return buffer.inputStream()
+        if (!truncated && dump.size + thread.size <= MAX_THREAD_DUMP_BYTES) {
+            dump.writeAll(thread)
+        }
+        return AnrTrace(dump.readUtf8().removeSuffix("\n"), subject)
     }
 
     private fun getImportanceName(importance: Int): String = when (importance) {

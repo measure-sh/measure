@@ -6,6 +6,7 @@ import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,40 +39,35 @@ class AppExitProviderImplTest {
     }
 
     @Test
-    fun `get returns map of AppExit when SDK is R or above`() {
-        val exitInfo1 = mockApplicationExitInfo(
+    fun `get returns only the exits caused by an ANR`() {
+        val anrExit = mockApplicationExitInfo(
             1,
             ApplicationExitInfo.REASON_ANR,
             ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
         )
-        val exitInfo2 = mockApplicationExitInfo(
+        val crashExit = mockApplicationExitInfo(
             2,
             ApplicationExitInfo.REASON_CRASH,
             ActivityManager.RunningAppProcessInfo.IMPORTANCE_CACHED,
         )
 
-        `when`(activityManager.getHistoricalProcessExitReasons(null, 0, 3))
-            .thenReturn(listOf(exitInfo1, exitInfo2))
+        `when`(activityManager.getHistoricalProcessExitReasons(null, 0, 0))
+            .thenReturn(listOf(anrExit, crashExit))
 
         val result = appExitProvider.get()
 
-        assertEquals(2, result?.size)
+        assertEquals(setOf(1), result?.keys)
         assertEquals("ANR", result?.get(1)?.reason)
         assertEquals("FOREGROUND", result?.get(1)?.importance)
-        assertEquals("CRASH", result?.get(2)?.reason)
-        assertEquals(
-            "CACHED",
-            result?.get(2)?.importance,
-        ) // IMPORTANCE_BACKGROUND is not in the getImportanceName method
     }
 
     @Test
-    fun `getTraceString returns null for null input stream`() {
-        assertNull(appExitProvider.getTraceString(null))
+    fun `parseAnrTrace returns null for null input stream`() {
+        assertNull(appExitProvider.parseAnrTrace(null))
     }
 
     @Test
-    fun `getTraceString extracts content from trace with just the thread information and stacktrace`() {
+    fun `parseAnrTrace keeps just the thread information and stacktrace`() {
         val sampleTrace = """
             DALVIK THREADS (6):
             "main" prio=5 tid=1 Sleeping
@@ -84,13 +80,13 @@ class AppExitProviderImplTest {
               at java.lang.Thread.sleep(Thread.java:373)
               at java.lang.Thread.sleep(Thread.java:314)
               at com.example.app.MainActivity.onCreate(MainActivity.kt:15)
-            
+
             ----- Waiting Channels: pid 30075 at 2023-04-01 12:34:56 -----
             Waiting Thread: 4
         """.trimIndent()
 
         val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
-        val result = appExitProvider.getTraceString(inputStream)
+        val result = appExitProvider.parseAnrTrace(inputStream)
 
         val expected = """
             DALVIK THREADS (6):
@@ -99,10 +95,69 @@ class AppExitProviderImplTest {
               at java.lang.Thread.sleep(Thread.java:373)
               at java.lang.Thread.sleep(Thread.java:314)
               at com.example.app.MainActivity.onCreate(MainActivity.kt:15)
-            
+
         """.trimIndent()
 
-        assertEquals(expected, result)
+        assertEquals(expected, result?.threadDump)
+        assertNull(result?.subject)
+    }
+
+    @Test
+    fun `parseAnrTrace reads the subject from the header above the thread dump`() {
+        val sampleTrace = """
+            ----- pid 30075 at 2026-07-31 19:23:31 -----
+            Cmd line: com.example.app
+            Subject: Input dispatching timed out (ANR in com.example.app)
+            Build fingerprint: 'generic/sdk/generic:14/UPB/eng:userdebug/test-keys'
+            DALVIK THREADS (2):
+            "main" prio=5 tid=1 Blocked
+              at com.example.app.MainActivity.onCreate(MainActivity.kt:15)
+
+            ----- Waiting Channels: pid 30075 at 2026-07-31 19:23:31 -----
+        """.trimIndent()
+
+        val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
+        val result = appExitProvider.parseAnrTrace(inputStream)
+
+        assertEquals(
+            "Input dispatching timed out (ANR in com.example.app)",
+            result?.subject,
+        )
+        assertEquals(
+            """
+            DALVIK THREADS (2):
+            "main" prio=5 tid=1 Blocked
+              at com.example.app.MainActivity.onCreate(MainActivity.kt:15)
+
+            """.trimIndent(),
+            result?.threadDump,
+        )
+    }
+
+    @Test
+    fun `parseAnrTrace stops on a thread boundary when the dump exceeds the size limit`() {
+        val sampleTrace = buildString {
+            append("DALVIK THREADS (1400):\n")
+            repeat(1400) { append(threadBlock(it)) }
+        }
+
+        val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
+        val threadDump = appExitProvider.parseAnrTrace(inputStream)!!.threadDump
+
+        assertTrue(threadDump.length <= 1024 * 1024)
+        assertTrue(sampleTrace.startsWith(threadDump))
+        // What follows the cut is the blank line closing the last thread kept,
+        // then the header of the thread that did not fit.
+        assertEquals('\n', sampleTrace[threadDump.length])
+        assertEquals('"', sampleTrace[threadDump.length + 1])
+    }
+
+    private fun threadBlock(index: Int): String = buildString {
+        append("\"thread-$index\" prio=5 tid=$index Blocked\n")
+        repeat(20) {
+            append("  at com.example.app.Klass.method$it(Klass.kt:$it)\n")
+        }
+        append("\n")
     }
 
     private fun mockApplicationExitInfo(
