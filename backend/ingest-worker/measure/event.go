@@ -302,6 +302,22 @@ func (e eventreq) bucketExceptions(ctx context.Context) (err error) {
 }
 
 // bucketANRs groups ANRs based on similarity.
+// markInAppFrames flags the frames that belong to the app, so the
+// frame an issue is titled after skips the platform frames the main
+// thread happens to be parked in.
+func (e eventreq) markInAppFrames() {
+	for i := range e.events {
+		if e.events[i].IsANR() {
+			e.events[i].ANR.Exceptions.MarkInApp()
+			e.events[i].ANR.Threads.MarkInApp()
+		}
+		if e.events[i].IsException() {
+			e.events[i].Exception.Exceptions.MarkInApp()
+			e.events[i].Exception.Threads.MarkInApp()
+		}
+	}
+}
+
 func (e eventreq) bucketANRs(ctx context.Context) (err error) {
 	events := e.getANRs()
 
@@ -435,7 +451,9 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				return err
 			}
 			anrThreads = string(marshalledThreads)
-			if err := e.events[i].ANR.ComputeFingerprint(); err != nil {
+			if fp, ok := symbolicator.ANRDumpFingerprint(e.events[i].ANR); ok {
+				e.events[i].ANR.Fingerprint = fp
+			} else if err := e.events[i].ANR.ComputeFingerprint(); err != nil {
 				return err
 			}
 		}
@@ -539,14 +557,18 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`anr.fingerprint`, e.events[i].ANR.Fingerprint).
 				Set(`anr.exceptions`, anrExceptions).
 				Set(`anr.threads`, anrThreads).
-				Set(`anr.foreground`, e.events[i].ANR.Foreground)
+				Set(`anr.foreground`, e.events[i].ANR.Foreground).
+				Set(`anr.thread_dump`, e.events[i].ANR.ThreadDump).
+				Set(`anr.subject`, e.events[i].ANR.Subject)
 		} else {
 			row.
 				Set(`anr.handled`, nil).
 				Set(`anr.fingerprint`, nil).
 				Set(`anr.exceptions`, nil).
 				Set(`anr.threads`, nil).
-				Set(`anr.foreground`, nil)
+				Set(`anr.foreground`, nil).
+				Set(`anr.thread_dump`, nil).
+				Set(`anr.subject`, nil)
 		}
 
 		// exception
@@ -1385,6 +1407,11 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 	if err := symbolicationGroup.Wait(); err != nil {
 		fmt.Println("failed to symbolicate", err)
 	}
+
+	// Must run after symbolication and before the fingerprint and the
+	// group row are computed, both of which pick the frame an issue is
+	// titled after.
+	eventReq.markInAppFrames()
 
 	var ingestGroup errgroup.Group
 	ingestGroup.Go(func() error {

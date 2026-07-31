@@ -124,3 +124,53 @@ func TestIsHexString(t *testing.T) {
 		})
 	}
 }
+
+func TestIsInApp(t *testing.T) {
+	cases := []struct {
+		className string
+		want      bool
+	}{
+		{"sh.frankenstein.android.AnrService", true},
+		{"com.example.Locker", true},
+		{"okhttp3.internal.connection.RealCall", true},
+		{"java.lang.Thread", false},
+		{"javax.net.ssl.SSLSocket", false},
+		{"android.os.Handler", false},
+		{"androidx.compose.runtime.Composer", false},
+		{"com.android.internal.os.ZygoteInit", false},
+		{"kotlin.coroutines.jvm.internal.BaseContinuationImpl", false},
+		{"kotlinx.coroutines.DispatchedTask", false},
+		{"dalvik.system.VMStack", false},
+		{"libcore.io.Linux", false},
+		{"", false},
+	}
+	for _, c := range cases {
+		if got := IsInApp(c.className); got != c.want {
+			t.Errorf("IsInApp(%q): got %v, want %v", c.className, got, c.want)
+		}
+	}
+}
+
+// TestMarkInAppKeepsAppleFrames covers frames that carry no class name.
+// Apple marks those from its binary images at capture time, and
+// recomputing from an empty class name would drop every one of them out
+// of the app.
+func TestMarkInAppKeepsAppleFrames(t *testing.T) {
+	frames := Frames{
+		{InApp: true, InstructionAddr: "0x1042c4000"},
+		{InApp: false, InstructionAddr: "0x18a2c1000"},
+		{ClassName: "java.lang.Thread", MethodName: "sleep", InApp: true},
+	}
+
+	frames.MarkInApp()
+
+	if !frames[0].InApp {
+		t.Error("an apple app frame must keep its in app flag")
+	}
+	if frames[1].InApp {
+		t.Error("an apple system frame must keep its in app flag")
+	}
+	if frames[2].InApp {
+		t.Error("a platform jvm frame must be marked out of app")
+	}
+}

@@ -2,6 +2,8 @@ package symbolicator
 
 import (
 	"testing"
+
+	"backend/libs/event"
 )
 
 const sampleAppExitTrace = `DALVIK THREADS (3):
@@ -106,11 +108,17 @@ func TestAppExitMonitorRe(t *testing.T) {
 	for _, c := range cases {
 		got := ""
 		if m := appExitMonitorRe.FindStringSubmatch(c.line); m != nil {
-			got = m[1]
+			got = m[2]
 		}
 		if got != c.wantClass {
 			t.Errorf("monitor class of %q: got %q, want %q", c.line, got, c.wantClass)
 		}
+	}
+
+	heldBy := `  - waiting to lock <0x0cd03f02> (a bl.q) held by thread 21`
+	m := appExitMonitorRe.FindStringSubmatch(heldBy)
+	if m == nil || m[1] != "waiting to lock" || m[3] != "21" {
+		t.Errorf("verb and holder of %q: got %v, want verb %q and thread %q", heldBy, m, "waiting to lock", "21")
 	}
 }
 
@@ -194,6 +202,47 @@ DumpLatencyMs: 1.64917
 
 	if got != want {
 		t.Errorf("rebuild mismatch\ngot:\n%s\n\nwant:\n%s", got, want)
+	}
+}
+
+// TestRewriteAppExits_EventTypeSplit verifies the rebuilt trace
+// lands in ANR.ThreadDump for anr events and in AppExit.Trace for
+// app_exit events sharing one symbolication batch.
+func TestRewriteAppExits_EventTypeSplit(t *testing.T) {
+	trace := `"main" prio=5 tid=1 Blocked
+  at bl.o0.run(SourceFile:8)`
+
+	anrParsed := parseAppExitTrace(trace)
+	exitParsed := parseAppExitTrace(trace)
+	if anrParsed == nil || exitParsed == nil {
+		t.Fatal("parseAppExitTrace returned nil")
+	}
+
+	js := jvmSymbolicator{
+		response: &responseJVM{
+			Status:  "completed",
+			Classes: map[string]string{"bl.o0": "com.example.Locker"},
+		},
+		appExitTraces: map[int]*appExitTrace{
+			0: anrParsed,
+			1: exitParsed,
+		},
+	}
+
+	evs := []event.EventField{
+		{Type: event.TypeANR, ANR: &event.ANR{ThreadDump: trace}},
+		{Type: event.TypeAppExit, AppExit: &event.AppExit{Trace: trace}},
+	}
+
+	js.rewriteAppExits(evs, false)
+
+	want := `"main" prio=5 tid=1 Blocked
+  at com.example.Locker.run(SourceFile:8)`
+	if evs[0].ANR.ThreadDump != want {
+		t.Errorf("anr thread dump: got:\n%s\n\nwant:\n%s", evs[0].ANR.ThreadDump, want)
+	}
+	if evs[1].AppExit.Trace != want {
+		t.Errorf("app_exit trace: got:\n%s\n\nwant:\n%s", evs[1].AppExit.Trace, want)
 	}
 }
 

@@ -63,6 +63,55 @@ type Frame struct {
 
 type Frames []Frame
 
+// platformPrefixes are the class name prefixes owned by the Android
+// platform and the language runtime. Everything else counts as app
+// code, which keeps a build whose applicationId differs from its code
+// package, one carrying an applicationIdSuffix for instance, from
+// resolving to no app frames at all.
+var platformPrefixes = []string{
+	"android.",
+	"androidx.",
+	"com.android.",
+	"com.sun.",
+	"dalvik.",
+	"java.",
+	"javax.",
+	"kotlin.",
+	"kotlinx.",
+	"libcore.",
+	"sun.",
+}
+
+// IsInApp reports whether a class belongs to the app rather than the
+// platform. Call it only after symbolication: an obfuscated class name
+// carries no package to match on, so every frame would look like app
+// code.
+func IsInApp(className string) bool {
+	if className == "" {
+		return false
+	}
+	for _, prefix := range platformPrefixes {
+		if strings.HasPrefix(className, prefix) {
+			return false
+		}
+	}
+	return true
+}
+
+// MarkInApp flags each frame that belongs to the app.
+//
+// Frames without a class name are left as the SDK sent them. Apple
+// frames carry none and are marked from their binary image at capture
+// time, which is a signal this package cannot recompute.
+func (f Frames) MarkInApp() {
+	for i := range f {
+		if f[i].ClassName == "" {
+			continue
+		}
+		f[i].InApp = IsInApp(f[i].ClassName)
+	}
+}
+
 // CodeInfo provides a serialized
 // version of the frame's code information.
 func (f Frame) CodeInfo() string {

@@ -353,6 +353,10 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 			threads := ev.ANR.Threads
 			s.jvmSymbolicator.parseExceptions(exceptions, threads, i)
 
+			if trace := parseAppExitTrace(ev.ANR.ThreadDump); trace != nil {
+				s.jvmSymbolicator.parseAppExit(trace, i)
+			}
+
 		case event.TypeLifecycleActivity:
 			s.jvmSymbolicator.ensureRequestInitialized()
 

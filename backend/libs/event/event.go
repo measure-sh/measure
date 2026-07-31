@@ -364,6 +364,13 @@ type ExceptionUnit struct {
 
 type ExceptionUnits []ExceptionUnit
 
+// MarkInApp flags each frame that belongs to the app.
+func (u ExceptionUnits) MarkInApp() {
+	for i := range u {
+		u[i].Frames.MarkInApp()
+	}
+}
+
 // ThreadiOS represents iOS specific structure
 // to work with iOS exceptions.
 type ThreadiOS struct {
@@ -382,12 +389,21 @@ type Thread struct {
 
 type Threads []Thread
 
+// MarkInApp flags each frame that belongs to the app.
+func (t Threads) MarkInApp() {
+	for i := range t {
+		t[i].Frames.MarkInApp()
+	}
+}
+
 type ANR struct {
 	Handled     bool           `json:"handled"`
 	Exceptions  ExceptionUnits `json:"exceptions" binding:"required"`
 	Threads     Threads        `json:"threads" binding:"required"`
 	Fingerprint string         `json:"fingerprint"`
 	Foreground  bool           `json:"foreground" binding:"required"`
+	ThreadDump  string         `json:"thread_dump"`
+	Subject     string         `json:"subject"`
 }
 
 type Exception struct {
@@ -2087,16 +2103,55 @@ func (a ANR) GetTitle() string {
 	return makeTitle(a.GetType(), a.GetMessage())
 }
 
+// ApplicationNotResponding is the type reported for an ANR carrying
+// the system thread dump, in place of the SDK's internal error class.
+const ApplicationNotResponding = "ApplicationNotResponding"
+
 // GetType provides the type of
 // the ANR.
 func (a ANR) GetType() string {
+	if a.ThreadDump != "" {
+		return ApplicationNotResponding
+	}
 	return a.Exceptions[len(a.Exceptions)-1].Type
 }
 
-// GetMessage provides the message of
-// the ANR.
+// GetMessage provides the message of the ANR. The system's subject
+// line names what timed out, unlike the SDK's fixed message.
 func (a ANR) GetMessage() string {
+	if a.Subject != "" {
+		return a.Subject
+	}
 	return a.Exceptions[len(a.Exceptions)-1].Message
+}
+
+// GetRelevantFrame returns the frame the ANR is named after: the
+// first in app frame, falling back to the innermost exception's first
+// frame when the ANR has none.
+//
+// An ANR's first frame is wherever the main thread happened to be
+// parked, usually Thread.sleep or Object.wait, so the first app frame
+// names the blocking call far better.
+//
+// Only an ANR carrying the system thread dump is named this way.
+// Those events did not exist before the dump was collected, so
+// choosing a different frame for them leaves every ANR already
+// reported, and every group already formed from one, untouched.
+func (a ANR) GetRelevantFrame() (frame Frame) {
+	innermost := a.Exceptions[len(a.Exceptions)-1]
+	if a.ThreadDump == "" {
+		return innermost.Frames[0]
+	}
+
+	for i := range a.Exceptions {
+		for j := range a.Exceptions[i].Frames {
+			if a.Exceptions[i].Frames[j].InApp {
+				return a.Exceptions[i].Frames[j]
+			}
+		}
+	}
+
+	return innermost.Frames[0]
 }
 
 // GetFileName provides the file name of
@@ -2105,7 +2160,7 @@ func (a ANR) GetFileName() string {
 	if a.HasNoFrames() {
 		return ""
 	}
-	return a.Exceptions[len(a.Exceptions)-1].Frames[0].FileName
+	return a.GetRelevantFrame().FileName
 }
 
 // GetLineNumber provides the line number of
@@ -2114,7 +2169,7 @@ func (a ANR) GetLineNumber() int32 {
 	if a.HasNoFrames() {
 		return int32(0)
 	}
-	return int32(a.Exceptions[len(a.Exceptions)-1].Frames[0].LineNum)
+	return int32(a.GetRelevantFrame().LineNum)
 }
 
 // GetMethodName provides the method name of
@@ -2123,7 +2178,7 @@ func (a ANR) GetMethodName() string {
 	if a.HasNoFrames() {
 		return ""
 	}
-	return a.Exceptions[len(a.Exceptions)-1].Frames[0].MethodName
+	return a.GetRelevantFrame().MethodName
 }
 
 // GetDisplayTitle provides a user friendly display
@@ -2188,17 +2243,19 @@ func (a *ANR) ComputeFingerprint() (err error) {
 	// Initialize fingerprint data with the exception type
 	fingerprintData := exceptionType
 
-	// Get the method name and file name from the first frame of the innermost exception
-	if len(innermostException.Frames) > 0 {
-		methodName := innermostException.Frames[0].MethodName
-		fileName := innermostException.Frames[0].FileName
+	// Keyed on the frame the ANR is titled after, so a group and its
+	// title always name the same call. The first frame is wherever the
+	// main thread was parked, usually Thread.sleep or Object.wait,
+	// which buckets unrelated stalls together.
+	if !a.HasNoFrames() {
+		frame := a.GetRelevantFrame()
 
 		// Include any non-empty information
-		if methodName != "" {
-			fingerprintData += ":" + methodName
+		if frame.MethodName != "" {
+			fingerprintData += ":" + frame.MethodName
 		}
-		if fileName != "" {
-			fingerprintData += ":" + fileName
+		if frame.FileName != "" {
+			fingerprintData += ":" + frame.FileName
 		}
 	}
 

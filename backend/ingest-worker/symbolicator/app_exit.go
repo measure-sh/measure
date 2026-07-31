@@ -18,10 +18,11 @@ var appExitFrameRe = regexp.MustCompile(`^(\s+)at ([^\s(]+)\((.*)\)$`)
 //
 //   - waiting to lock <0x0e5c06d6> (a bl.o0) held by thread 48
 //
-// The verbs and object forms mirror ART's
+// capturing the verb, the object class, and the holder's thread id
+// when present. The verbs and object forms mirror ART's
 // StackDumpVisitor::PrintObject; <@addr=0x...> appears when the
 // object's identity hashcode was never computed.
-var appExitMonitorRe = regexp.MustCompile(`^\s+- (?:waiting on|waiting to lock|waiting for lock inflation of|locked|sleeping on) <(?:@addr=)?0x[0-9a-fA-F]+> \(a ([^)]+)\)`)
+var appExitMonitorRe = regexp.MustCompile(`^\s+- (waiting on|waiting to lock|waiting for lock inflation of|locked|sleeping on) <(?:@addr=)?0x[0-9a-fA-F]+> \(a ([^)]+)\)(?: held by thread (\d+))?`)
 
 type appExitFrame struct {
 	lineIdx    int
@@ -93,7 +94,7 @@ func parseAppExitTrace(trace string) *appExitTrace {
 		m := appExitFrameRe.FindStringSubmatch(line)
 		if m == nil {
 			if mm := appExitMonitorRe.FindStringSubmatch(line); mm != nil {
-				prefix, className, suffix := splitAppExitMonitorClass(mm[1])
+				prefix, className, suffix := splitAppExitMonitorClass(mm[2])
 				t.monitors = append(t.monitors, appExitMonitor{lineIdx: i, prefix: prefix, className: className, suffix: suffix})
 			}
 			continue
@@ -261,7 +262,12 @@ func (s *jvmSymbolicator) parseAppExit(trace *appExitTrace, index int) {
 
 func (js jvmSymbolicator) rewriteAppExits(evs []event.EventField, lambdaWorkaround bool) {
 	for i, trace := range js.appExitTraces {
-		evs[i].AppExit.Trace = trace.rebuild(js.response, lambdaWorkaround)
+		rebuilt := trace.rebuild(js.response, lambdaWorkaround)
+		if evs[i].IsANR() {
+			evs[i].ANR.ThreadDump = rebuilt
+		} else {
+			evs[i].AppExit.Trace = rebuilt
+		}
 	}
 }
 
