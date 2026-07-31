@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -264,8 +265,10 @@ func mcpCallback(ctx context.Context, deps *server.Deps, code, state string) (re
 	vk := deps.VK
 	siteOrigin := deps.Config.SiteOrigin
 
+	// GETDEL so concurrent callbacks can't both consume the same state & then
+	// exchange the same single-use provider code.
 	key := mcpValkeyStateKey(state)
-	val, vkErr := vk.Do(ctx, vk.B().Get().Key(key).Build()).ToString()
+	val, vkErr := vk.Do(ctx, vk.B().Getdel().Key(key).Build()).ToString()
 	if vkErr != nil {
 		return "", &mcpHTTPError{http.StatusBadRequest, "unknown or expired state"}
 	}
@@ -274,9 +277,6 @@ func mcpCallback(ctx context.Context, deps *server.Deps, code, state string) (re
 	if jsonErr := json.Unmarshal([]byte(val), &statePayload); jsonErr != nil {
 		return "", &mcpHTTPError{http.StatusInternalServerError, "failed to decode state"}
 	}
-
-	// Delete state from Valkey (one-time use).
-	_ = vk.Do(ctx, vk.B().Del().Key(key).Build()).Error()
 
 	if code == "" {
 		return "", &mcpHTTPError{http.StatusBadRequest, "missing code"}
@@ -291,12 +291,17 @@ func mcpCallback(ctx context.Context, deps *server.Deps, code, state string) (re
 	case "github":
 		ghToken, exchErr := mcpExchangeGitHubCodeFn(code, callbackURL, deps.Config.OAuthGitHubKey, deps.Config.OAuthGitHubSecret)
 		if exchErr != nil {
-			return "", &mcpHTTPError{http.StatusBadGateway, "failed to exchange GitHub code"}
+			fmt.Println("mcp: failed to exchange github code:", exchErr)
+			if errors.Is(exchErr, authsession.ErrInvalidOAuthCode) {
+				return "", &mcpHTTPError{http.StatusBadRequest, "invalid or expired GitHub code"}
+			}
+			return "", &mcpHTTPError{http.StatusInternalServerError, "failed to exchange GitHub code"}
 		}
 
 		u, userErr := mcpGetGitHubUserFn(ghToken)
 		if userErr != nil {
-			return "", &mcpHTTPError{http.StatusBadGateway, "failed to get GitHub user"}
+			fmt.Println("mcp: failed to get github user info:", userErr)
+			return "", &mcpHTTPError{http.StatusInternalServerError, "failed to get GitHub user"}
 		}
 
 		userName = u.Name
@@ -307,12 +312,17 @@ func mcpCallback(ctx context.Context, deps *server.Deps, code, state string) (re
 	case "google":
 		refreshToken, idToken, exchErr := mcpExchangeGoogleCodeFn(code, callbackURL, deps.Config.OAuthGoogleKey, deps.Config.OAuthGoogleSecret)
 		if exchErr != nil {
-			return "", &mcpHTTPError{http.StatusBadGateway, "failed to exchange Google code"}
+			fmt.Println("mcp: failed to exchange google code:", exchErr)
+			if errors.Is(exchErr, authsession.ErrInvalidOAuthCode) {
+				return "", &mcpHTTPError{http.StatusBadRequest, "invalid or expired Google code"}
+			}
+			return "", &mcpHTTPError{http.StatusInternalServerError, "failed to exchange Google code"}
 		}
 
 		gUser, userErr := mcpGetGoogleUserFromIDTokenFn(idToken)
 		if userErr != nil {
-			return "", &mcpHTTPError{http.StatusBadGateway, "failed to get Google user info"}
+			fmt.Println("mcp: failed to get google user info:", userErr)
+			return "", &mcpHTTPError{http.StatusInternalServerError, "failed to get Google user info"}
 		}
 
 		userName = gUser.Name

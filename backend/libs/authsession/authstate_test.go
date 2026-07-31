@@ -3,8 +3,8 @@ package authsession
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -13,95 +13,27 @@ import (
 )
 
 // --------------------------------------------------------------------------
-// Test helpers — configurable-endpoint clones of the production functions
+// Test helpers — point the production functions at a test endpoint
 // --------------------------------------------------------------------------
 
-// exchangeGitHubCodeForTokenWithURL is a test-only clone of ExchangeGitHubCodeForToken
-// that hits a configurable endpoint URL.
+// exchangeGitHubCodeForTokenWithURL calls ExchangeGitHubCodeForToken against a
+// test endpoint. Swaps a package var, so not parallel safe.
 func exchangeGitHubCodeForTokenWithURL(endpoint, code, redirectURI, clientID, clientSecret string) (string, error) {
-	data := url.Values{}
-	data.Set("client_id", clientID)
-	data.Set("client_secret", clientSecret)
-	data.Set("code", code)
-	data.Set("redirect_uri", redirectURI)
+	orig := githubTokenEndpoint
+	githubTokenEndpoint = endpoint
+	defer func() { githubTokenEndpoint = orig }()
 
-	req, err := http.NewRequest("POST", endpoint, strings.NewReader(data.Encode()))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	var result struct {
-		AccessToken string `json:"access_token"`
-		Error       string `json:"error"`
-	}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return "", fmt.Errorf("failed to parse GitHub token response: %w", err)
-	}
-	if result.Error != "" {
-		return "", fmt.Errorf("GitHub OAuth error: %s", result.Error)
-	}
-	if result.AccessToken == "" {
-		return "", fmt.Errorf("GitHub returned empty access token")
-	}
-	return result.AccessToken, nil
+	return ExchangeGitHubCodeForToken(code, redirectURI, clientID, clientSecret)
 }
 
-// exchangeGoogleCodeWithEndpoint is a test-only clone of ExchangeGoogleCode
-// that hits a configurable endpoint URL.
+// exchangeGoogleCodeWithEndpoint calls ExchangeGoogleCode against a test
+// endpoint. Swaps a package var, so not parallel safe.
 func exchangeGoogleCodeWithEndpoint(endpoint, code, redirectURI, clientID, clientSecret string) (refreshToken, idToken string, err error) {
-	data := url.Values{}
-	data.Set("client_id", clientID)
-	data.Set("client_secret", clientSecret)
-	data.Set("code", code)
-	data.Set("redirect_uri", redirectURI)
-	data.Set("grant_type", "authorization_code")
+	orig := googleTokenEndpoint
+	googleTokenEndpoint = endpoint
+	defer func() { googleTokenEndpoint = orig }()
 
-	req, reqErr := http.NewRequest("POST", endpoint, strings.NewReader(data.Encode()))
-	if reqErr != nil {
-		return "", "", reqErr
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, doErr := http.DefaultClient.Do(req)
-	if doErr != nil {
-		return "", "", doErr
-	}
-	defer resp.Body.Close()
-
-	body, readErr := io.ReadAll(resp.Body)
-	if readErr != nil {
-		return "", "", readErr
-	}
-
-	var result struct {
-		RefreshToken string `json:"refresh_token"`
-		IDToken      string `json:"id_token"`
-		Error        string `json:"error"`
-		ErrorDesc    string `json:"error_description"`
-	}
-	if jsonErr := json.Unmarshal(body, &result); jsonErr != nil {
-		return "", "", fmt.Errorf("failed to parse Google token response: %w", jsonErr)
-	}
-	if result.Error != "" {
-		return "", "", fmt.Errorf("Google OAuth error: %s: %s", result.Error, result.ErrorDesc)
-	}
-	if result.IDToken == "" {
-		return "", "", fmt.Errorf("Google returned empty id_token")
-	}
-	return result.RefreshToken, result.IDToken, nil
+	return ExchangeGoogleCode(code, redirectURI, clientID, clientSecret)
 }
 
 // validateGoogleRefreshTokenWithEndpoint is a test-only clone of ValidateGoogleRefreshToken
@@ -152,10 +84,13 @@ func TestExchangeGitHubCodeForToken(t *testing.T) {
 		}
 	})
 
-	t.Run("GitHub returns error field", func(t *testing.T) {
+	t.Run("bad_verification_code is an invalid code error", func(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{"error": "bad_verification_code"})
+			json.NewEncoder(w).Encode(map[string]string{
+				"error":             "bad_verification_code",
+				"error_description": "The code passed is incorrect or expired.",
+			})
 		}))
 		defer srv.Close()
 
@@ -163,8 +98,64 @@ func TestExchangeGitHubCodeForToken(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error")
 		}
-		if got := err.Error(); got != "GitHub OAuth error: bad_verification_code" {
-			t.Errorf("error = %q", got)
+		if !errors.Is(err, ErrInvalidOAuthCode) {
+			t.Errorf("error = %q, want ErrInvalidOAuthCode", err)
+		}
+		if !strings.Contains(err.Error(), "The code passed is incorrect or expired.") {
+			t.Errorf("error = %q, want error_description included", err)
+		}
+	})
+
+	t.Run("other OAuth errors are not invalid code errors", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{"error": "incorrect_client_credentials"})
+		}))
+		defer srv.Close()
+
+		_, err := exchangeGitHubCodeForTokenWithURL(srv.URL, "code", "http://localhost/cb", "cid", "cs")
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if errors.Is(err, ErrInvalidOAuthCode) {
+			t.Errorf("error = %q, want not ErrInvalidOAuthCode", err)
+		}
+		if !strings.Contains(err.Error(), "incorrect_client_credentials") {
+			t.Errorf("error = %q, want provider error included", err)
+		}
+	})
+
+	t.Run("non-200 status returns error naming the status", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(map[string]string{"message": "unavailable"})
+		}))
+		defer srv.Close()
+
+		_, err := exchangeGitHubCodeForTokenWithURL(srv.URL, "code", "http://localhost/cb", "cid", "cs")
+		if err == nil {
+			t.Fatal("expected error for non-200 status")
+		}
+		if !strings.Contains(err.Error(), "503") {
+			t.Errorf("error = %q, want status 503 included", err)
+		}
+	})
+
+	t.Run("oversized error body is truncated", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(strings.Repeat("x", 5000)))
+		}))
+		defer srv.Close()
+
+		_, err := exchangeGitHubCodeForTokenWithURL(srv.URL, "code", "http://localhost/cb", "cid", "cs")
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if strings.Count(err.Error(), "x") != errBodyLimit {
+			t.Errorf("body length = %d, want %d", strings.Count(err.Error(), "x"), errBodyLimit)
 		}
 	})
 
@@ -267,9 +258,12 @@ func TestExchangeGoogleCode(t *testing.T) {
 		}
 	})
 
-	t.Run("Google returns error with description", func(t *testing.T) {
+	// Google reports invalid_grant with a 400, so the body must be inspected
+	// before the status code.
+	t.Run("invalid_grant with 400 is an invalid code error", func(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(map[string]string{
 				"error":             "invalid_grant",
 				"error_description": "Code was already redeemed",
@@ -280,6 +274,46 @@ func TestExchangeGoogleCode(t *testing.T) {
 		_, _, err := exchangeGoogleCodeWithEndpoint(srv.URL, "code", "http://localhost/cb", "cid", "cs")
 		if err == nil {
 			t.Fatal("expected error")
+		}
+		if !errors.Is(err, ErrInvalidOAuthCode) {
+			t.Errorf("error = %q, want ErrInvalidOAuthCode", err)
+		}
+		if !strings.Contains(err.Error(), "Code was already redeemed") {
+			t.Errorf("error = %q, want error_description included", err)
+		}
+	})
+
+	t.Run("other OAuth errors are not invalid code errors", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]string{"error": "invalid_client"})
+		}))
+		defer srv.Close()
+
+		_, _, err := exchangeGoogleCodeWithEndpoint(srv.URL, "code", "http://localhost/cb", "cid", "cs")
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		if errors.Is(err, ErrInvalidOAuthCode) {
+			t.Errorf("error = %q, want not ErrInvalidOAuthCode", err)
+		}
+	})
+
+	t.Run("non-200 status returns error naming the status", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(map[string]string{"message": "unavailable"})
+		}))
+		defer srv.Close()
+
+		_, _, err := exchangeGoogleCodeWithEndpoint(srv.URL, "code", "http://localhost/cb", "cid", "cs")
+		if err == nil {
+			t.Fatal("expected error for non-200 status")
+		}
+		if !strings.Contains(err.Error(), "503") {
+			t.Errorf("error = %q, want status 503 included", err)
 		}
 	})
 
