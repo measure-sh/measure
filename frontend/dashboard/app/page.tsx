@@ -100,7 +100,7 @@ export default function Home() {
             "text-2xl px-8 py-8",
           )}
         >
-          Get To The Root Cause
+          Get Started For Free
         </TrackCtaLink>
 
         {/* Trusted By */}
@@ -403,7 +403,7 @@ export default function Home() {
             "text-2xl px-8 py-8",
           )}
         >
-          Get To The Root Cause
+          Get Started For Free
         </TrackCtaLink>
         <div className="py-12 md:py-18" />
       </div>

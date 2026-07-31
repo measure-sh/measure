@@ -166,7 +166,7 @@ export default function AlternativePage({
             "text-2xl px-8 py-8",
           )}
         >
-          Get To The Root Cause
+          Get Started For Free
         </TrackCtaLink>
         <div className="py-16" />
       </div>
