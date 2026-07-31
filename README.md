@@ -67,21 +67,25 @@ Monitor and improve [network performance](https://measure.sh/product/user-journe
 
 <img alt="Adaptive Capture" src="./frontend/dashboard/public/images/product_screenshots/adaptive_capture.webp" />
 
-## Mission
+### Measure Agent 🧠
 
-We aim to build the best tool for monitoring mobile apps in production. 
+Debug your apps in [natural language](https://measure.sh/product/agent) with full context about crashes, errors, sessions and traces from Slack or your coding agent via MCP.
 
-Building performant mobile apps is hard. Monitoring and debugging them in production is harder. Developers need to use a variety of different tools to debug issues, measure performance and analyse user behavior which leads to critical time being wasted during production incidents. 
+<img alt="Measure Agent" src="./frontend/dashboard/public/images/product_screenshots/measure_agent.webp" />
 
-We aim to build a tool that helps developers stop flying blind during production issues and get to the root cause faster.
+## Goal
+
+Building performant mobile apps is hard. Monitoring and debugging them in production is harder. Mobile developers need to use a variety of different tools to stitch context together to understand and improve their apps.
+
+Measure's goal is to be a single source of truth for mobile app production observability so that humans and agents can analyze bugs, improve performance and get to the root cause faster.
 
 We operate in public as much as possible and we aim to be community focused and driven by feedback from real developers building in the trenches.
 
-We would love for you to contribute to Measure by opening issues, sending PRs, ⭐ the repo  and recommending us to your fellow developers!
+We would love for you to contribute to Measure by opening issues, sending PRs, giving the repo a ⭐ and recommending us to your fellow developers!
 
 ## Important Docs
 
-1. [**SDK Integration Guide**](https://measure.sh/docs) - Integrate Android or iOS SDK and start measuring in no time
+1. [**Getting Started**](https://measure.sh/docs) - Integrate our SDK and start monitoring your apps in no time.
 2. [**Explore Features**](https://measure.sh/docs/features/feature-session-timelines) - Learn about the features available in Measure and how to use them
 3. [**Contribution Guide**](CONTRIBUTING.md) - Contribute to Measure
 
@@ -91,7 +95,7 @@ Measure supports Android, iOS, Flutter and React Native. More platforms may be s
 
 ## Roadmap
 
-Check out what's being worked on and what's in the pipeline in our [Roadmap](https://github.com/orgs/measure-sh/projects/5/views/1)
+Check out what's being worked on and what's in the pipeline in our [Issue Tracker](https://github.com/measure-sh/measure/issues)
 
 ## Open Source License
 
