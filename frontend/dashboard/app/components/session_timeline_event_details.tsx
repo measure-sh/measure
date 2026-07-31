@@ -66,16 +66,24 @@ export default function SessionTimelineEventDetails({
   function getBodyFromEventDetails(): ReactNode {
     // Pulled out so the stacktrace renders as a syntax-highlighted Java
     // CodeBlock — keeping it inline with the attribute rows would lose
-    // newlines and make frames unreadable.
+    // newlines and make frames unreadable. An ART thread dump covers every
+    // thread in the process, so it stands in for the stacktrace.
+    const artThreadDump =
+      typeof eventDetails.art_thread_dump === "string" &&
+      eventDetails.art_thread_dump !== ""
+        ? eventDetails.art_thread_dump
+        : null;
     const stacktrace =
       typeof eventDetails.stacktrace === "string" &&
       eventDetails.stacktrace !== ""
         ? eventDetails.stacktrace
         : null;
+    const trace = artThreadDump ?? stacktrace;
+    const traceLabel = artThreadDump ? "ART THREAD DUMP" : "STACKTRACE";
 
     const entries: Array<[string, unknown]> = [];
     Object.entries(eventDetails).forEach(([key, value]) => {
-      if (key === "stacktrace") {
+      if (key === "stacktrace" || key === "art_thread_dump") {
         return;
       }
       // Attachments are already rendered as the snapshot images above.
@@ -129,15 +137,15 @@ export default function SessionTimelineEventDetails({
     return (
       <div className="flex flex-col">
         {entries.map(([k, v]) => renderAttributeRow(k, v))}
-        {stacktrace && (
+        {trace && (
           <div className="flex flex-col gap-0.5 px-3 py-2 border-b border-border/40 last:border-b-0">
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground select-none">
-              STACKTRACE
+              {traceLabel}
             </p>
             <CodeBlock
               language="java"
               className={stacktraceClassName}
-              code={stacktrace}
+              code={trace}
             />
           </div>
         )}

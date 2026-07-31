@@ -276,8 +276,17 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
   };
 
   const firstResult = errorsDetails.results?.[0];
+  // An ART thread dump covers every thread in the process, so it stands in for
+  // the erroring thread's stacktrace and the threads captured alongside it.
+  const artThreadDump = firstResult?.anr?.art_thread_dump ?? "";
   const stacktrace =
-    firstResult?.exception?.stacktrace ?? firstResult?.anr?.stacktrace ?? "";
+    artThreadDump ||
+    firstResult?.exception?.stacktrace ||
+    firstResult?.anr?.stacktrace ||
+    "";
+  const traceLabel = artThreadDump
+    ? "ART thread dump"
+    : "Thread: " + firstResult?.attribute.thread_name;
 
   const extraAttributeRows: Array<[string, unknown]> = [];
   if (firstResult) {
@@ -558,16 +567,12 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
                   <Accordion
                     type="single"
                     collapsible
-                    defaultValue={
-                      "Thread: " + firstResult.attribute.thread_name
-                    }
+                    defaultValue={traceLabel}
                   >
                     {stacktrace && (
-                      <AccordionItem
-                        value={"Thread: " + firstResult.attribute.thread_name}
-                      >
+                      <AccordionItem value={traceLabel}>
                         <AccordionTrigger className="font-display">
-                          {"Thread: " + firstResult.attribute.thread_name}
+                          {traceLabel}
                         </AccordionTrigger>
                         <AccordionContent data-testid="exception-detail-main-stacktrace">
                           <CodeBlock
@@ -578,23 +583,25 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
                         </AccordionContent>
                       </AccordionItem>
                     )}
-                    {firstResult.threads?.map((e, index) => (
-                      <AccordionItem
-                        value={`${e.name}-${index}`}
-                        key={`${e.name}-${index}`}
-                      >
-                        <AccordionTrigger className="font-display">
-                          {"Thread: " + e.name}
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <CodeBlock
-                            language="java"
-                            className={stackTraceCodeBlockClassName}
-                            code={e.frames.join("\n")}
-                          />
-                        </AccordionContent>
-                      </AccordionItem>
-                    )) || []}
+                    {(!artThreadDump &&
+                      firstResult.threads?.map((e, index) => (
+                        <AccordionItem
+                          value={`${e.name}-${index}`}
+                          key={`${e.name}-${index}`}
+                        >
+                          <AccordionTrigger className="font-display">
+                            {"Thread: " + e.name}
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <CodeBlock
+                              language="java"
+                              className={stackTraceCodeBlockClassName}
+                              code={e.frames.join("\n")}
+                            />
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))) ||
+                      []}
                   </Accordion>
                 </div>
               )}

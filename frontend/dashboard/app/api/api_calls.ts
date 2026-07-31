@@ -785,7 +785,8 @@ const emptyErrorGroupDetailsItem = {
   anr: {
     title: "",
     stacktrace: "",
-  } as { title: string; stacktrace: string } | null,
+    art_thread_dump: "",
+  } as { title: string; stacktrace: string; art_thread_dump: string } | null,
   severity: "",
   num_code: 0 as number | null,
   code: "",
