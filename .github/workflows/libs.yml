@@ -42,7 +42,7 @@ jobs:
       - name: Display go version
         run: go version
       - name: Install dependencies
-        run: go get .
+        run: go mod download
       - name: Build with ${{ matrix.go-version }}
         run: go build -v ./...
       - name: Vet with ${{ matrix.go-version }}
@@ -69,7 +69,7 @@ jobs:
       - name: Display go version
         run: go version
       - name: Install dependencies
-        run: go get .
+        run: go mod download
       # Integration tagged tests are skipped, they need containers & resolve
       # backend/testinfra only through the workspace.
       - name: Test with ${{ matrix.go-version }}
