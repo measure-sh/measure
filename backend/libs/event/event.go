@@ -27,6 +27,8 @@ const (
 	maxTypeChars                              = 32
 	maxExceptionDeviceLocaleChars             = 64
 	maxAnrDeviceLocaleChars                   = 64
+	maxAnrArtThreadDumpChars                  = 1024 * 1024
+	maxAnrSubjectChars                        = 1024
 	maxAppExitReasonChars                     = 64
 	maxAppExitImportanceChars                 = 32
 	maxSeverityTextChars                      = 10
@@ -383,11 +385,13 @@ type Thread struct {
 type Threads []Thread
 
 type ANR struct {
-	Handled     bool           `json:"handled"`
-	Exceptions  ExceptionUnits `json:"exceptions" binding:"required"`
-	Threads     Threads        `json:"threads" binding:"required"`
-	Fingerprint string         `json:"fingerprint"`
-	Foreground  bool           `json:"foreground" binding:"required"`
+	Handled       bool           `json:"handled"`
+	Exceptions    ExceptionUnits `json:"exceptions" binding:"required"`
+	Threads       Threads        `json:"threads" binding:"required"`
+	Fingerprint   string         `json:"fingerprint"`
+	Foreground    bool           `json:"foreground" binding:"required"`
+	ARTThreadDump string         `json:"art_thread_dump"`
+	Subject       string         `json:"subject"`
 }
 
 type Exception struct {
@@ -811,6 +815,12 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	if e.IsANR() {
 		if len(e.ANR.Exceptions) < 1 || len(e.ANR.Threads) < 1 {
 			return fmt.Errorf(`%q must contain at least one anr & thread`, `anr`)
+		}
+		if len(e.ANR.ARTThreadDump) > maxAnrArtThreadDumpChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `anr.art_thread_dump`, maxAnrArtThreadDumpChars)
+		}
+		if len(e.ANR.Subject) > maxAnrSubjectChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `anr.subject`, maxAnrSubjectChars)
 		}
 	}
 

@@ -539,14 +539,18 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`anr.fingerprint`, e.events[i].ANR.Fingerprint).
 				Set(`anr.exceptions`, anrExceptions).
 				Set(`anr.threads`, anrThreads).
-				Set(`anr.foreground`, e.events[i].ANR.Foreground)
+				Set(`anr.foreground`, e.events[i].ANR.Foreground).
+				Set(`anr.art_thread_dump`, e.events[i].ANR.ARTThreadDump).
+				Set(`anr.subject`, e.events[i].ANR.Subject)
 		} else {
 			row.
 				Set(`anr.handled`, nil).
 				Set(`anr.fingerprint`, nil).
 				Set(`anr.exceptions`, nil).
 				Set(`anr.threads`, nil).
-				Set(`anr.foreground`, nil)
+				Set(`anr.foreground`, nil).
+				Set(`anr.art_thread_dump`, nil).
+				Set(`anr.subject`, nil)
 		}
 
 		// exception

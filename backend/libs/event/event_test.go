@@ -3,6 +3,7 @@ package event
 import (
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -1064,6 +1065,45 @@ func TestValidateLogSeverity(t *testing.T) {
 		ev := makeLog("fatal", 20)
 		if err := ev.Validate(); err == nil {
 			t.Error("Expected validation error for mismatched severity_number, got nil")
+		}
+	})
+}
+
+func TestValidateAnrLimits(t *testing.T) {
+	makeANR := func(artThreadDump, subject string) EventField {
+		return EventField{
+			ID:        uuid.New(),
+			AppID:     uuid.New(),
+			Type:      TypeANR,
+			Timestamp: time.Now(),
+			Attribute: Attribute{OSName: "android"},
+			ANR: &ANR{
+				Exceptions:    ExceptionUnits{{}},
+				Threads:       Threads{{}},
+				ARTThreadDump: artThreadDump,
+				Subject:       subject,
+			},
+		}
+	}
+
+	t.Run("Accepts art thread dump and subject within limits", func(t *testing.T) {
+		ev := makeANR("DALVIK THREADS (1):", "Input dispatching timed out")
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error, got %v", err)
+		}
+	})
+
+	t.Run("Rejects oversized art thread dump", func(t *testing.T) {
+		ev := makeANR(strings.Repeat("a", maxAnrArtThreadDumpChars+1), "")
+		if err := ev.Validate(); err == nil {
+			t.Error("Expected validation error for oversized art thread dump, got nil")
+		}
+	})
+
+	t.Run("Rejects oversized subject", func(t *testing.T) {
+		ev := makeANR("", strings.Repeat("a", maxAnrSubjectChars+1))
+		if err := ev.Validate(); err == nil {
+			t.Error("Expected validation error for oversized subject, got nil")
 		}
 	})
 }
