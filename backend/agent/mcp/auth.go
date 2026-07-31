@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -48,6 +49,20 @@ type mcpHTTPError struct {
 }
 
 func (e *mcpHTTPError) Error() string { return e.Message }
+
+// mcpAbortWithError ends the request with the status carried by err. Errors
+// that are not *mcpHTTPError carry no status, so they become a 500 with the
+// real cause logged rather than sent to the client.
+func mcpAbortWithError(c *gin.Context, err error) {
+	var herr *mcpHTTPError
+	if errors.As(err, &herr) {
+		c.AbortWithStatusJSON(herr.Status, gin.H{"error": herr.Message})
+		return
+	}
+
+	fmt.Printf("mcp: unexpected error on %s: %v\n", c.Request.URL.Path, err)
+	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+}
 
 // mcpGoogleUser holds the Google user info decoded from an ID token.
 type mcpGoogleUser struct {
@@ -605,8 +620,7 @@ func (h Handlers) MCPRegisterClient(c *gin.Context) {
 
 	clientID, rawSecret, err := mcpRegisterClient(ctx, deps, req.ClientName, req.RedirectURIs)
 	if err != nil {
-		herr := err.(*mcpHTTPError)
-		c.AbortWithStatusJSON(herr.Status, gin.H{"error": herr.Message})
+		mcpAbortWithError(c, err)
 		return
 	}
 
@@ -660,8 +674,7 @@ func (h Handlers) MCPAuthorize(c *gin.Context) {
 
 	providerURL, err := mcpAuthorize(ctx, deps, provider, clientID, redirectURI, mcpState, codeChallenge, gaClientID, gclid)
 	if err != nil {
-		herr := err.(*mcpHTTPError)
-		c.AbortWithStatusJSON(herr.Status, gin.H{"error": herr.Message})
+		mcpAbortWithError(c, err)
 		return
 	}
 
@@ -693,8 +706,7 @@ func (h Handlers) MCPCallbackExchange(c *gin.Context) {
 
 	redirectURL, err := mcpCallback(ctx, deps, req.Code, req.State)
 	if err != nil {
-		herr := err.(*mcpHTTPError)
-		c.AbortWithStatusJSON(herr.Status, gin.H{"error": herr.Message})
+		mcpAbortWithError(c, err)
 		return
 	}
 
@@ -742,8 +754,7 @@ func (h Handlers) MCPToken(c *gin.Context) {
 
 	rawToken, err := mcpToken(ctx, deps, code, redirectURI, clientID, codeVerifier)
 	if err != nil {
-		herr := err.(*mcpHTTPError)
-		c.AbortWithStatusJSON(herr.Status, gin.H{"error": herr.Message})
+		mcpAbortWithError(c, err)
 		return
 	}
 
@@ -763,16 +774,14 @@ func (h Handlers) ValidateMCPToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		rawToken, err := mcpParseBearerToken(c.GetHeader("Authorization"))
 		if err != nil {
-			herr := err.(*mcpHTTPError)
-			c.AbortWithStatusJSON(herr.Status, gin.H{"error": herr.Message})
+			mcpAbortWithError(c, err)
 			return
 		}
 
 		ctx := c.Request.Context()
 		info, err := mcpValidateToken(ctx, deps, rawToken)
 		if err != nil {
-			herr := err.(*mcpHTTPError)
-			c.AbortWithStatusJSON(herr.Status, gin.H{"error": herr.Message})
+			mcpAbortWithError(c, err)
 			return
 		}
 

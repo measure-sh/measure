@@ -2,6 +2,7 @@ package server
 
 import (
 	"backend/libs/autumn"
+	"backend/libs/boot"
 	"backend/libs/secret"
 	"context"
 	"fmt"
@@ -19,7 +20,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leporo/sqlf"
 	"github.com/valkey-io/valkey-go"
-	redis "github.com/valkey-io/valkey-go"
 	"github.com/wneessen/go-mail"
 )
 
@@ -109,12 +109,12 @@ func NewConfig() *ServerConfig {
 
 	redisHost := os.Getenv("REDIS_HOST")
 	if redisHost == "" {
-		log.Println("REDIS_HOST env var is not set, caching will not work")
+		log.Fatal("REDIS_HOST env var is not set, cannot start valkey client")
 	}
 
 	redisPortStr := os.Getenv("REDIS_PORT")
 	if redisPortStr == "" {
-		log.Println("REDIS_PORT env var is not set, caching will not work")
+		log.Fatal("REDIS_PORT env var is not set, cannot start valkey client")
 	}
 
 	redisPort, err := strconv.Atoi(redisPortStr)
@@ -281,18 +281,10 @@ func Init(config *ServerConfig) {
 		}
 	}
 
-	// init redis client
-	addr := fmt.Sprintf("%s:%d", config.RD.Host, config.RD.Port)
-	options := redis.ClientOption{
-		InitAddress: []string{addr},
-	}
-
-	options.ConnWriteTimeout = 30 * time.Second
-	options.ClientName = "measure-alerts"
-
-	vkClient, err := redis.NewClient(options)
+	// init valkey client
+	vkClient, err := boot.ConnectValkey(ctx, config.RD.Host, config.RD.Port, "alerts", 15*time.Second)
 	if err != nil {
-		log.Printf("failed to create redis client: %v\n", err)
+		log.Fatalf("Unable to create valkey client: %v", err)
 	}
 
 	Server = &server{

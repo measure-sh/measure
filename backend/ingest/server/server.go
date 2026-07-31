@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"backend/libs/autumn"
+	"backend/libs/boot"
 	"backend/libs/bus"
 	"backend/libs/secret"
 
@@ -207,12 +208,12 @@ func NewConfig() *ServerConfig {
 
 	redisHost := os.Getenv("REDIS_HOST")
 	if redisHost == "" {
-		log.Println("REDIS_HOST env var is not set, caching will not work")
+		log.Fatal("REDIS_HOST env var is not set, cannot start valkey client")
 	}
 
 	redisPortStr := os.Getenv("REDIS_PORT")
 	if redisPortStr == "" {
-		log.Println("REDIS_PORT env var is not set, caching will not work")
+		log.Fatal("REDIS_PORT env var is not set, cannot start valkey client")
 	}
 
 	iggyAddr := os.Getenv("IGGY_ADDR")
@@ -278,28 +279,6 @@ func NewConfig() *ServerConfig {
 	}
 }
 
-func WaitForPg(ctx context.Context, pgPool *pgxpool.Pool, timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-
-	for {
-		if err := pgPool.Ping(ctx); err == nil {
-			return nil
-		} else {
-			fmt.Printf("PG ping failed: %v; Retrying...\n", err)
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-		}
-	}
-}
-
 func Init(config *ServerConfig) {
 	ctx := context.Background()
 	var pgPool *pgxpool.Pool
@@ -342,7 +321,7 @@ func Init(config *ServerConfig) {
 	}
 	pgPool = pool
 
-	if err := WaitForPg(ctx, pgPool, 5*time.Second); err != nil {
+	if err := boot.WaitForPg(ctx, pgPool, 5*time.Second); err != nil {
 		fmt.Printf("Postgres pool not ready: %v\n", err)
 	}
 
@@ -368,17 +347,10 @@ func Init(config *ServerConfig) {
 		log.Printf("Unable to create CH connection pool: %v\n", err)
 	}
 
-	addr := fmt.Sprintf("%s:%d", config.RD.Host, config.RD.Port)
-	options := redis.ClientOption{
-		InitAddress: []string{addr},
-	}
-
-	options.ConnWriteTimeout = 30 * time.Second
-	options.ClientName = "measure-ingest"
-
-	vkClient, err := redis.NewClient(options)
+	// init valkey client
+	vkClient, err := boot.ConnectValkey(ctx, config.RD.Host, config.RD.Port, "ingest", 15*time.Second)
 	if err != nil {
-		log.Printf("failed to create redis client: %v\n", err)
+		log.Fatalf("Unable to create valkey client: %v", err)
 	}
 
 	sqlf.SetDialect(sqlf.PostgreSQL)

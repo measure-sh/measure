@@ -2,9 +2,9 @@
 // and Deps types, reads and builds them (NewConfig, Connect), and the agent's
 // main threads a *Deps explicitly into the handlers and domain code.
 //
-// Each service owns its copy of this boot code: the shared libs carry only
-// domain logic and the plain Config/Deps data types, never the construction.
-// Kept in sync with the other services' server packages by hand.
+// Each service owns its copy of this boot code & it is kept in sync with the
+// other services' server packages by hand. The exception is libs/boot, which
+// holds the handful of handle builders that are identical everywhere.
 package server
 
 import (
@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"backend/libs/autumn"
+	"backend/libs/boot"
 	"backend/libs/chquery"
 	"backend/libs/ga4"
 	"backend/libs/inet"
@@ -325,12 +326,12 @@ func NewConfig() *Config {
 
 	redisHost := os.Getenv("REDIS_HOST")
 	if redisHost == "" {
-		log.Println("REDIS_HOST env var is not set, caching will not work")
+		log.Fatal("REDIS_HOST env var is not set, cannot start valkey client")
 	}
 
 	redisPortStr := os.Getenv("REDIS_PORT")
 	if redisPortStr == "" {
-		log.Println("REDIS_PORT env var is not set, caching will not work")
+		log.Fatal("REDIS_PORT env var is not set, cannot start valkey client")
 	}
 
 	redisPort, err := strconv.Atoi(redisPortStr)
@@ -485,31 +486,11 @@ func NewConfig() *Config {
 	}
 }
 
-func WaitForPg(ctx context.Context, pgPool *pgxpool.Pool, timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-
-	for {
-		if err := pgPool.Ping(ctx); err == nil {
-			return nil // Ready
-		} else {
-			fmt.Printf("PG ping failed: %v; Retrying...\n", err)
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-		}
-	}
-}
-
 // Connect opens every infrastructure handle named in the config and returns
 // them bundled in a Deps. Connection failures are logged but not fatal, so a
-// service starts and degrades rather than refusing to come up.
+// service starts and degrades rather than refusing to come up. Valkey is the
+// exception, its client cannot be built without a live server & never heals
+// once construction failed, so an unreachable valkey is fatal.
 func Connect(config *Config) *Deps {
 	ctx := context.Background()
 	var pgPool *pgxpool.Pool
@@ -554,7 +535,7 @@ func Connect(config *Config) *Deps {
 	}
 	pgPool = pool
 
-	if err := WaitForPg(ctx, pgPool, 5*time.Second); err != nil {
+	if err := boot.WaitForPg(ctx, pgPool, 5*time.Second); err != nil {
 		fmt.Printf("Postgres pool not ready: %v\n", err)
 	}
 
@@ -614,18 +595,10 @@ func Connect(config *Config) *Deps {
 		log.Printf("Unable to initialize geo ip lookup system: %v\n", err)
 	}
 
-	// init redis client
-	addr := fmt.Sprintf("%s:%d", config.RD.Host, config.RD.Port)
-	options := redis.ClientOption{
-		InitAddress: []string{addr},
-	}
-
-	options.ConnWriteTimeout = 30 * time.Second
-	options.ClientName = "measure-agent"
-
-	vkClient, err := redis.NewClient(options)
+	// init valkey client
+	vkClient, err := boot.ConnectValkey(ctx, config.RD.Host, config.RD.Port, "agent", 15*time.Second)
 	if err != nil {
-		log.Printf("failed to create redis client: %v\n", err)
+		log.Fatalf("Unable to create valkey client: %v", err)
 	}
 
 	return &Deps{
