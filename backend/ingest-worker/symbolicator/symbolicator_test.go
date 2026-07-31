@@ -1026,11 +1026,14 @@ func TestSymbolicationNoMapping(t *testing.T) {
 	// No build mapping seeded - version has no mapping file
 
 	events := makeJVMExceptionEvents(versionName, versionCode)
+	events = append(events, makeJVMANRRealEvents(t)...)
+	anrIdx := len(events) - 1
 	sources := []Source{newS3Source()}
 
 	// Save original class names
 	origClassName := events[0].Exception.Exceptions[0].Frames[0].ClassName
 	origMethodName := events[0].Exception.Exceptions[0].Frames[0].MethodName
+	origARTThreadDump := events[anrIdx].ANR.ARTThreadDump
 
 	symb := New(symbolicatorOrigin, "android", sources, []SentrySource{newSentrySource()})
 	err := symb.Symbolicate(ctx, pgPool, appID, events, nil)
@@ -1044,6 +1047,9 @@ func TestSymbolicationNoMapping(t *testing.T) {
 	}
 	if events[0].Exception.Exceptions[0].Frames[0].MethodName != origMethodName {
 		t.Errorf("expected method name to remain %q, got %q", origMethodName, events[0].Exception.Exceptions[0].Frames[0].MethodName)
+	}
+	if events[anrIdx].ANR.ARTThreadDump != origARTThreadDump {
+		t.Error("anr art thread dump without mapping must be unchanged")
 	}
 }
 
