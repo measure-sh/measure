@@ -55,7 +55,7 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({
       ["app", appName],
       ["type", errorEvent.type],
       ["severity", errorEvent.severity],
-      ["message", errorEvent.exception?.message],
+      ["message", errorEvent.exception?.message ?? errorEvent.anr?.message],
       ["code", errorEvent.code],
       ["num_code", errorEvent.num_code],
       ["timestamp", formatDateToHumanReadableDateTime(errorEvent.timestamp)],
@@ -97,9 +97,14 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({
       sections.push("## Attachments\n" + attachments);
     }
 
+    // The system thread dump covers every thread with states and lock
+    // owners, so it replaces the SDK-captured stacktrace and threads.
+    const threadDump = errorEvent.anr?.thread_dump ?? "";
     const stacktrace =
       errorEvent.exception?.stacktrace ?? errorEvent.anr?.stacktrace ?? "";
-    if (hasValue(stacktrace)) {
+    if (hasValue(threadDump)) {
+      sections.push("## Thread dump\n" + codeBlock(threadDump));
+    } else if (hasValue(stacktrace)) {
       sections.push(
         `## Stack trace (thread: ${errorEvent.attribute.thread_name})\n` +
           codeBlock(stacktrace),
@@ -109,7 +114,7 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({
     const threads = (errorEvent.threads ?? []).filter(
       (t) => hasValue(t.name) && t.frames.some(hasValue),
     );
-    if (threads.length > 0) {
+    if (!hasValue(threadDump) && threads.length > 0) {
       const threadBlocks = threads
         .map((t) => `### ${t.name}\n` + codeBlock(t.frames.join("\n")))
         .join("\n\n");

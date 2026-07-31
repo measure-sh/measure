@@ -61,14 +61,16 @@ export default function SessionTimelineEventDetails({
   };
 
   function getBodyFromEventDetails(): ReactNode {
-    // A stacktrace, or an app_exit's thread dump, renders as a
-    // syntax-highlighted Java CodeBlock below the rows. As an attribute row
-    // it would lose its newlines and become unreadable.
+    // A stacktrace or thread dump renders as a syntax-highlighted Java
+    // CodeBlock below the rows. As an attribute row it would lose its
+    // newlines and become unreadable.
     const hasText = (key: string) =>
       typeof eventDetails[key] === "string" && eventDetails[key] !== "";
 
     let codeBlockKey: string | null = null;
-    if (hasText("stacktrace")) {
+    if (eventType === "anr" && hasText("thread_dump")) {
+      codeBlockKey = "thread_dump";
+    } else if (hasText("stacktrace")) {
       codeBlockKey = "stacktrace";
     } else if (eventType === "app_exit" && hasText("trace")) {
       codeBlockKey = "trace";
@@ -78,6 +80,10 @@ export default function SessionTimelineEventDetails({
     Object.entries(eventDetails).forEach(([key, value]) => {
       // Skipped here so the code block below is its only rendering.
       if (key === codeBlockKey) {
+        return;
+      }
+      // The system dump supersedes the SDK-captured stacktrace.
+      if (key === "stacktrace" && codeBlockKey === "thread_dump") {
         return;
       }
       // Attachments are already rendered as the snapshot images above.

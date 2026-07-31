@@ -235,5 +235,19 @@ describe("CopyAiContext", () => {
       expect(copied).toContain("- app: MyApp");
       expect(copied).not.toContain("## All threads");
     });
+
+    it("prefers the thread dump over the sdk stacktrace and threads", () => {
+      const event = mockAnrEvent() as any;
+      event.anr.thread_dump =
+        '"main" prio=5 tid=1 Blocked\n  at com.example.Locker.run(Locker.kt:29)';
+      event.threads = [{ name: "worker-1", frames: ["frame1"] }];
+      const copied = copiedTextFor(event);
+      expect(copied).toContain("## Thread dump");
+      expect(copied).toContain(
+        '```\n"main" prio=5 tid=1 Blocked\n  at com.example.Locker.run(Locker.kt:29)\n```',
+      );
+      expect(copied).not.toContain("## Stack trace");
+      expect(copied).not.toContain("## All threads");
+    });
   });
 });

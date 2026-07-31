@@ -278,6 +278,8 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
   const firstResult = errorsDetails.results?.[0];
   const stacktrace =
     firstResult?.exception?.stacktrace ?? firstResult?.anr?.stacktrace ?? "";
+  const anrThreadDump = firstResult?.anr?.thread_dump ?? "";
+  const anrSubject = firstResult?.anr?.subject ?? "";
 
   const extraAttributeRows: Array<[string, unknown]> = [];
   if (firstResult) {
@@ -555,47 +557,63 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
                       <div className="py-4" />
                     </>
                   )}
-                  <Accordion
-                    type="single"
-                    collapsible
-                    defaultValue={
-                      "Thread: " + firstResult.attribute.thread_name
-                    }
-                  >
-                    {stacktrace && (
-                      <AccordionItem
-                        value={"Thread: " + firstResult.attribute.thread_name}
-                      >
-                        <AccordionTrigger className="font-display">
-                          {"Thread: " + firstResult.attribute.thread_name}
-                        </AccordionTrigger>
-                        <AccordionContent data-testid="exception-detail-main-stacktrace">
-                          <CodeBlock
-                            language="java"
-                            className={stackTraceCodeBlockClassName}
-                            code={stacktrace}
-                          />
-                        </AccordionContent>
-                      </AccordionItem>
-                    )}
-                    {firstResult.threads?.map((e, index) => (
-                      <AccordionItem
-                        value={`${e.name}-${index}`}
-                        key={`${e.name}-${index}`}
-                      >
-                        <AccordionTrigger className="font-display">
-                          {"Thread: " + e.name}
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <CodeBlock
-                            language="java"
-                            className={stackTraceCodeBlockClassName}
-                            code={e.frames.join("\n")}
-                          />
-                        </AccordionContent>
-                      </AccordionItem>
-                    )) || []}
-                  </Accordion>
+                  {anrThreadDump ? (
+                    <div
+                      className="flex flex-col gap-2"
+                      data-testid="anr-detail-thread-dump"
+                    >
+                      {anrSubject && (
+                        <p className="font-display">{anrSubject}</p>
+                      )}
+                      <CodeBlock
+                        language="java"
+                        className={stackTraceCodeBlockClassName}
+                        code={anrThreadDump}
+                      />
+                    </div>
+                  ) : (
+                    <Accordion
+                      type="single"
+                      collapsible
+                      defaultValue={
+                        "Thread: " + firstResult.attribute.thread_name
+                      }
+                    >
+                      {stacktrace && (
+                        <AccordionItem
+                          value={"Thread: " + firstResult.attribute.thread_name}
+                        >
+                          <AccordionTrigger className="font-display">
+                            {"Thread: " + firstResult.attribute.thread_name}
+                          </AccordionTrigger>
+                          <AccordionContent data-testid="exception-detail-main-stacktrace">
+                            <CodeBlock
+                              language="java"
+                              className={stackTraceCodeBlockClassName}
+                              code={stacktrace}
+                            />
+                          </AccordionContent>
+                        </AccordionItem>
+                      )}
+                      {firstResult.threads?.map((e, index) => (
+                        <AccordionItem
+                          value={`${e.name}-${index}`}
+                          key={`${e.name}-${index}`}
+                        >
+                          <AccordionTrigger className="font-display">
+                            {"Thread: " + e.name}
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <CodeBlock
+                              language="java"
+                              className={stackTraceCodeBlockClassName}
+                              code={e.frames.join("\n")}
+                            />
+                          </AccordionContent>
+                        </AccordionItem>
+                      )) || []}
+                    </Accordion>
+                  )}
                 </div>
               )}
             </div>
