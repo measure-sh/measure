@@ -10,6 +10,20 @@ import sh.measure.android.tracing.SpanStatus
 /**
  * Maps an event to [EventTable] in the database.
  */
+/**
+ * An ANR held back from export until the system's thread dump for its process can be
+ * merged into it.
+ */
+internal data class PendingAnr(
+    val eventId: String,
+    val timestamp: String,
+    val filePath: String?,
+    /**
+     * The pid of the process that recorded the ANR, taken from its session.
+     */
+    val pid: Int,
+)
+
 internal data class EventEntity(
     /**
      * Unique identifier for the event.

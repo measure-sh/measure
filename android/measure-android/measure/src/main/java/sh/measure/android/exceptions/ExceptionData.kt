@@ -57,6 +57,18 @@ internal data class ExceptionData(
      * For Android this is always JVM.
      */
     val framework: String? = ExceptionFramework.JVM,
+
+    /**
+     * The system's thread dump for the process, read from ApplicationExitInfo on the
+     * launch after an ANR killed it. Null for every other exception, and for an ANR
+     * that never matched an exit record.
+     */
+    val art_thread_dump: String? = null,
+
+    /**
+     * The system's one line cause for the ANR, set alongside [art_thread_dump].
+     */
+    val subject: String? = null,
 )
 
 @Serializable

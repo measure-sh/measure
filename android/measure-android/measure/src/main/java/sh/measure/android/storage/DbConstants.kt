@@ -576,6 +576,18 @@ internal object Sql {
         LIMIT ?
     """.trimIndent()
 
+    val getPendingAnrs: String = """
+        SELECT
+            e.${EventTable.COL_ID},
+            e.${EventTable.COL_TIMESTAMP},
+            e.${EventTable.COL_DATA_FILE_PATH},
+            s.${SessionsTable.COL_PID}
+        FROM ${EventTable.TABLE_NAME} e
+        INNER JOIN ${SessionsTable.TABLE_NAME} s
+            ON e.${EventTable.COL_SESSION_ID} = s.${SessionsTable.COL_SESSION_ID}
+        WHERE e.${EventTable.COL_PENDING} = 1
+    """.trimIndent()
+
     /**
      * Clears the pending flag on every ANR held by a process that has since died.
      * A dead pid can never produce another exit record, so nothing it left behind

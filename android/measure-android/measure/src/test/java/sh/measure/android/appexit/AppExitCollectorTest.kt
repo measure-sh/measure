@@ -2,20 +2,30 @@ package sh.measure.android.appexit
 
 import android.app.ApplicationExitInfo
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.fakes.FakeAppExitProvider
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeSessionManager
+import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
+import sh.measure.android.serialization.jsonSerializer
 import sh.measure.android.storage.Database
+import sh.measure.android.storage.FileStorage
+import sh.measure.android.storage.PendingAnr
 import sh.measure.android.storage.SessionRecord
+import java.io.File
 
 class AppExitCollectorTest {
     private val appExitProvider = FakeAppExitProvider()
@@ -25,11 +35,18 @@ class AppExitCollectorTest {
     private val database = mock<Database>()
     private val processInfo = FakeProcessInfoProvider(id = 999)
 
+    private val fileStorage = mock<FileStorage>()
+
+    @get:Rule
+    val temporaryFolder = TemporaryFolder()
+
     private val appExitCollector = AppExitCollector(
+        NoopLogger(),
         appExitProvider,
         signalProcessor,
         sessionManager,
         database,
+        fileStorage,
         processInfo,
     )
 
@@ -157,6 +174,82 @@ class AppExitCollectorTest {
 
         verify(database).finalizePendingAnrs(999)
     }
+
+    @Test
+    fun `enriches the held anr with the thread dump instead of tracking an app exit`() {
+        // Given
+        val bodyFile = writeAnrBody("event-id-1")
+        whenever(database.getPendingAnrs()).thenReturn(
+            listOf(PendingAnr("event-id-1", "2026-07-31T10:00:00.00000000Z", bodyFile.path, 1)),
+        )
+        appExitProvider.appExits = mapOf(
+            1 to TestData.getAppExit(
+                reasonId = ApplicationExitInfo.REASON_ANR,
+                trace = "DALVIK THREADS (1):",
+                subject = "Input dispatching timed out",
+            ),
+        )
+        sessionManager.appExitSessions[1] = getSession(1)
+
+        // When
+        appExitCollector.collect()
+
+        // Then
+        val enriched = readAnrBody(bodyFile)
+        assertEquals("DALVIK THREADS (1):", enriched.art_thread_dump)
+        assertEquals("Input dispatching timed out", enriched.subject)
+        verify(signalProcessor, never()).trackAppExit(
+            any(),
+            any(),
+            any(),
+            threadName = any(),
+            sessionId = any(),
+            sessionStartTime = any(),
+            appVersion = any(),
+            appBuild = any(),
+            isSampled = any(),
+        )
+    }
+
+    @Test
+    fun `enriches the latest anr held by a process when it held several`() {
+        // Given
+        val earlierFile = writeAnrBody("earlier")
+        val laterFile = writeAnrBody("later")
+        whenever(database.getPendingAnrs()).thenReturn(
+            listOf(
+                PendingAnr("earlier", "2026-07-31T10:00:00.00000000Z", earlierFile.path, 1),
+                PendingAnr("later", "2026-07-31T10:05:00.00000000Z", laterFile.path, 1),
+            ),
+        )
+        appExitProvider.appExits = mapOf(
+            1 to TestData.getAppExit(
+                reasonId = ApplicationExitInfo.REASON_ANR,
+                trace = "DALVIK THREADS (1):",
+            ),
+        )
+
+        // When
+        appExitCollector.collect()
+
+        // Then
+        assertEquals("DALVIK THREADS (1):", readAnrBody(laterFile).art_thread_dump)
+        assertNull(readAnrBody(earlierFile).art_thread_dump)
+    }
+
+    private fun writeAnrBody(eventId: String): File {
+        val file = temporaryFolder.newFile(eventId)
+        file.writeText(
+            jsonSerializer.encodeToString(
+                ExceptionData.serializer(),
+                TestData.getExceptionData(),
+            ),
+        )
+        whenever(fileStorage.getFile(file.path)).thenReturn(file)
+        return file
+    }
+
+    private fun readAnrBody(file: File): ExceptionData = jsonSerializer.decodeFromString(ExceptionData.serializer(), file.readText())
 
     private fun getSession(
         pid: Int,

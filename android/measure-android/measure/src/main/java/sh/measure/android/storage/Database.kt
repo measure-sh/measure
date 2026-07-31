@@ -355,6 +355,12 @@ internal interface Database : Closeable {
     fun markSessionsAppExitTracked(excludeSessionId: String)
 
     /**
+     * Returns every ANR currently held back from export, along with the pid of the
+     * process that recorded it.
+     */
+    fun getPendingAnrs(): List<PendingAnr>
+
+    /**
      * Clears the pending flag on every ANR held by a process other than [currentPid],
      * releasing it for export. A process only gets an exit record once it has died, so
      * an ANR held by a dead pid can never be enriched any further.
@@ -1308,6 +1314,35 @@ internal class DatabaseImpl(
             it.bindLong(3, anrTimeMs)
             it.executeUpdateDelete()
         }
+    }
+
+    override fun getPendingAnrs(): List<PendingAnr> {
+        val pendingAnrs = mutableListOf<PendingAnr>()
+        try {
+            readableDatabase.rawQuery(Sql.getPendingAnrs, null).use {
+                val idIndex = it.getColumnIndexOrThrow(EventTable.COL_ID)
+                val timestampIndex = it.getColumnIndexOrThrow(EventTable.COL_TIMESTAMP)
+                val filePathIndex = it.getColumnIndexOrThrow(EventTable.COL_DATA_FILE_PATH)
+                val pidIndex = it.getColumnIndexOrThrow(SessionsTable.COL_PID)
+                while (it.moveToNext()) {
+                    pendingAnrs.add(
+                        PendingAnr(
+                            eventId = it.getString(idIndex),
+                            timestamp = it.getString(timestampIndex),
+                            filePath = if (it.isNull(filePathIndex)) {
+                                null
+                            } else {
+                                it.getString(filePathIndex)
+                            },
+                            pid = it.getInt(pidIndex),
+                        ),
+                    )
+                }
+            }
+        } catch (e: SQLiteException) {
+            logger.log(LogLevel.Debug, "Failed to read pending ANRs", e)
+        }
+        return pendingAnrs
     }
 
     override fun finalizePendingAnrs(currentPid: Int) {
