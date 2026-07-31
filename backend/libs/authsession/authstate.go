@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +15,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leporo/sqlf"
 )
+
+// ErrInvalidOAuthCode reports a provider rejecting the authorization code as
+// unknown, already used or expired.
+var ErrInvalidOAuthCode = errors.New("invalid oauth code")
+
+// errBodyLimit caps how much of a provider's response body ends up in an error.
+const errBodyLimit = 256
 
 // AuthState represents temporary state
 // to store code and other details during
@@ -181,9 +189,17 @@ func GetGitHubUser(token string) (user GitHubUser, err error) {
 	return
 }
 
+// truncBody caps a provider response body for safe inclusion in an error.
+func truncBody(body []byte) string {
+	return string(body[:min(len(body), errBodyLimit)])
+}
+
+// githubTokenEndpoint is GitHub's OAuth token endpoint. Override in tests.
+var githubTokenEndpoint = "https://github.com/login/oauth/access_token"
+
 // ExchangeGitHubCodeForToken exchanges a GitHub OAuth code for an access token.
 func ExchangeGitHubCodeForToken(code, redirectURI, clientID, clientSecret string) (string, error) {
-	endpoint := "https://github.com/login/oauth/access_token"
+	endpoint := githubTokenEndpoint
 	data := url.Values{}
 	data.Set("client_id", clientID)
 	data.Set("client_secret", clientSecret)
@@ -209,25 +225,41 @@ func ExchangeGitHubCodeForToken(code, redirectURI, clientID, clientSecret string
 	}
 
 	var result struct {
-		AccessToken string `json:"access_token"`
-		Error       string `json:"error"`
+		AccessToken      string `json:"access_token"`
+		Error            string `json:"error"`
+		ErrorDescription string `json:"error_description"`
 	}
 	if err := json.Unmarshal(body, &result); err != nil {
-		return "", fmt.Errorf("failed to parse GitHub token response: %w", err)
+		return "", fmt.Errorf("failed to parse GitHub token response, status %d: %s", resp.StatusCode, truncBody(body))
 	}
+
+	// GitHub reports OAuth errors in the body with a 200, so check the body
+	// before the status code.
 	if result.Error != "" {
-		return "", fmt.Errorf("GitHub OAuth error: %s", result.Error)
+		err := fmt.Errorf("GitHub OAuth error: %s: %s", result.Error, result.ErrorDescription)
+		if result.Error == "bad_verification_code" {
+			err = fmt.Errorf("%w: %w", ErrInvalidOAuthCode, err)
+		}
+		return "", err
 	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("GitHub token endpoint returned %d: %s", resp.StatusCode, truncBody(body))
+	}
+
 	if result.AccessToken == "" {
 		return "", fmt.Errorf("GitHub returned empty access token")
 	}
 	return result.AccessToken, nil
 }
 
+// googleTokenEndpoint is Google's OAuth token endpoint. Override in tests.
+var googleTokenEndpoint = "https://oauth2.googleapis.com/token"
+
 // ExchangeGoogleCode exchanges a Google authorization code for a refresh token
 // and ID token using the server-side OAuth flow.
 func ExchangeGoogleCode(code, redirectURI, clientID, clientSecret string) (refreshToken, idToken string, err error) {
-	endpoint := "https://oauth2.googleapis.com/token"
+	endpoint := googleTokenEndpoint
 	data := url.Values{}
 	data.Set("client_id", clientID)
 	data.Set("client_secret", clientSecret)
@@ -259,11 +291,23 @@ func ExchangeGoogleCode(code, redirectURI, clientID, clientSecret string) (refre
 		ErrorDesc    string `json:"error_description"`
 	}
 	if jsonErr := json.Unmarshal(body, &result); jsonErr != nil {
-		return "", "", fmt.Errorf("failed to parse Google token response: %w", jsonErr)
+		return "", "", fmt.Errorf("failed to parse Google token response, status %d: %s", resp.StatusCode, truncBody(body))
 	}
+
+	// Google reports OAuth errors in the body with a 400, so check the body
+	// before the status code.
 	if result.Error != "" {
-		return "", "", fmt.Errorf("Google OAuth error: %s: %s", result.Error, result.ErrorDesc)
+		err = fmt.Errorf("Google OAuth error: %s: %s", result.Error, result.ErrorDesc)
+		if result.Error == "invalid_grant" {
+			err = fmt.Errorf("%w: %w", ErrInvalidOAuthCode, err)
+		}
+		return "", "", err
 	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", "", fmt.Errorf("Google token endpoint returned %d: %s", resp.StatusCode, truncBody(body))
+	}
+
 	if result.IDToken == "" {
 		return "", "", fmt.Errorf("Google returned empty id_token")
 	}

@@ -745,8 +745,28 @@ func TestMCPCallbackExchange(t *testing.T) {
 		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "ghcode", "state": "cbstate_ghfail"})
 		h.MCPCallbackExchange(c)
 
-		if w.Code < 400 {
-			t.Fatalf("want error status, got %d: %s", w.Code, w.Body.String())
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("want 500, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("GitHub invalid code returns 400", func(t *testing.T) {
+		cleanupAll(ctx, t)
+
+		mcpExchangeGitHubCodeFn = func(code, redirectURI, _, _ string) (string, error) {
+			return "", fmt.Errorf("%w: bad_verification_code", authsession.ErrInvalidOAuthCode)
+		}
+
+		clientID := "clientCBBadCode"
+		redirectURI := "http://localhost:9999/cb"
+		seedMCPClient(ctx, t, clientID, "App", []string{redirectURI}, "secret")
+		storeTestStateWithProvider(ctx, t, "cbstate_ghbadcode", clientID, redirectURI, "challenge", "mcpstate_badcode", "github")
+
+		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "usedcode", "state": "cbstate_ghbadcode"})
+		h.MCPCallbackExchange(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
 		}
 	})
 
@@ -765,8 +785,66 @@ func TestMCPCallbackExchange(t *testing.T) {
 		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "googlecode", "state": "cbstate_gfail"})
 		h.MCPCallbackExchange(c)
 
-		if w.Code < 400 {
-			t.Fatalf("want error status, got %d: %s", w.Code, w.Body.String())
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("want 500, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("Google invalid code returns 400", func(t *testing.T) {
+		cleanupAll(ctx, t)
+
+		mcpExchangeGoogleCodeFn = func(code, redirectURI, _, _ string) (string, string, error) {
+			return "", "", fmt.Errorf("%w: invalid_grant", authsession.ErrInvalidOAuthCode)
+		}
+
+		clientID := "clientCBGBadCode"
+		redirectURI := "http://localhost:9999/cb"
+		seedMCPClient(ctx, t, clientID, "App", []string{redirectURI}, "secret")
+		storeTestStateWithProvider(ctx, t, "cbstate_gbadcode", clientID, redirectURI, "challenge", "mcpstate_gbadcode", "google")
+
+		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "usedcode", "state": "cbstate_gbadcode"})
+		h.MCPCallbackExchange(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	// State is consumed with GETDEL, so a replayed callback never reaches the
+	// provider a second time with the same single-use code.
+	t.Run("replayed state returns 400", func(t *testing.T) {
+		cleanupAll(ctx, t)
+
+		var exchanges int
+		mcpExchangeGitHubCodeFn = func(code, redirectURI, _, _ string) (string, error) {
+			exchanges++
+			return "ghtoken", nil
+		}
+		mcpGetGitHubUserFn = func(token string) (authsession.GitHubUser, error) {
+			return authsession.GitHubUser{Name: "Replay User", Email: "replay@example.com"}, nil
+		}
+
+		clientID := "clientCBReplay"
+		redirectURI := "http://localhost:9999/cb"
+		seedMCPClient(ctx, t, clientID, "App", []string{redirectURI}, "secret")
+		storeTestStateWithProvider(ctx, t, "cbstate_replay", clientID, redirectURI, "challenge", "mcpstate_replay", "github")
+
+		body := map[string]any{"code": "ghcode", "state": "cbstate_replay"}
+
+		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", body)
+		h.MCPCallbackExchange(c)
+		if w.Code != http.StatusOK {
+			t.Fatalf("first callback: want 200, got %d: %s", w.Code, w.Body.String())
+		}
+
+		c, w = newTestGinContextJSON("POST", "/mcp/auth/callback", body)
+		h.MCPCallbackExchange(c)
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("replayed callback: want 400, got %d: %s", w.Code, w.Body.String())
+		}
+
+		if exchanges != 1 {
+			t.Errorf("exchanges = %d, want 1", exchanges)
 		}
 	})
 
