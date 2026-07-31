@@ -411,6 +411,14 @@ test.describe("errors", () => {
       const anrPill = "ANR";
       const fatalPill = "Fatal";
 
+      // On API 30+ an ANR is held on device and reported on the next
+      // launch enriched with the system thread dump. Every assertion
+      // below keys on something only the enriched event carries, so an
+      // ANR that lost its dump and fell back to the SDK capture fails
+      // the test rather than passing as if nothing regressed.
+      const anrType = "ApplicationNotResponding";
+      const anrSubject = /Input dispatching timed out/;
+
       const selectRow = () =>
         overview.selectErrorGroupRowByTitle(/NativeAndroidScreen\.kt/);
 
@@ -427,6 +435,11 @@ test.describe("errors", () => {
         await expect(
           overview.selectGroupRowPercentageContribution(row),
         ).toBeVisible();
+
+        // The row subtitle is `type:message`, which the system supplies
+        // only once the dump is attached.
+        await expect(row).toContainText(anrType);
+        await expect(row).toContainText(anrSubject);
       });
 
       test("error details renders the anr", async ({ page, teamId }) => {
@@ -447,12 +460,13 @@ test.describe("errors", () => {
         await expect(detail.selectErrorPill(anrPill)).toBeVisible();
         await expect(detail.selectErrorPill(fatalPill)).toBeVisible();
 
-        await expect(detail.errorThreadStacktrace).toContainText(
-          "sh.measure.android.anr.AnrError",
-        );
-        await expect(detail.errorThreadStacktrace).toContainText(
-          "sh.frankenstein.android.NativeAndroidScreenKt",
-        );
+        // The dump replaces the per-thread accordions built from the SDK
+        // capture, so the old stacktrace block must be gone entirely.
+        await expect(detail.anrThreadDump).toBeVisible();
+        await expect(detail.anrThreadDump).toContainText(anrSubject);
+        await expect(detail.anrThreadDump).toContainText("DALVIK THREADS");
+        await expect(detail.anrThreadDump).toContainText('"main" prio=');
+        await expect(detail.errorThreadStacktrace).toHaveCount(0);
       });
 
       test("session timeline renders the anr event", async ({
@@ -465,17 +479,14 @@ test.describe("errors", () => {
         const timeline = new SessionTimelinePage(page, teamId);
 
         await expect(timeline.eventsList).toBeVisible();
-        const event = timeline.selectAnr(/sh\.measure\.android\.anr\.AnrError/);
+        const event = timeline.selectAnr(new RegExp(anrType));
         await expect(event).toBeVisible();
         await expect(timeline.selectEventPill(event, anrPill)).toBeVisible();
 
         await event.click();
-        await expect(timeline.eventDetails).toContainText(
-          "sh.measure.android.anr.AnrError",
-        );
-        await expect(timeline.eventDetails).toContainText(
-          "sh.frankenstein.android.NativeAndroidScreenKt",
-        );
+        await expect(timeline.eventDetails).toContainText("thread_dump");
+        await expect(timeline.eventDetails).toContainText("DALVIK THREADS");
+        await expect(timeline.eventDetails).toContainText('"main" prio=');
 
         await timeline.openAnrDetails();
         await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);

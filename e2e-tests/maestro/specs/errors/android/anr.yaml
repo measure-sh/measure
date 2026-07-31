@@ -10,6 +10,19 @@ appId: ${APP_ID}
       text: "Infinite Loop"
 - tapOn: "Infinite Loop"
 
+# The demo blocks the main thread forever, so the system dialog stays
+# up instead of disappearing when the block ends. Closing from the
+# dialog is the only step that makes the OS record the exit as
+# REASON_ANR, and without that record the next launch has no thread
+# dump to attach and reports an unenriched ANR instead. Force stopping
+# here, by relaunching, would record REASON_USER_REQUESTED and lose it.
+- extendedWaitUntil:
+    visible: "Close app"
+    timeout: 30000
+- tapOn: "Close app"
+
+# An enriched ANR is exported on the launch after the kill, never at
+# detection, so this relaunch is what sends it.
 - launchApp
 - extendedWaitUntil:
     visible: "Native Android"

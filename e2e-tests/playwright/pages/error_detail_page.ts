@@ -8,6 +8,7 @@ export class ErrorDetailPage {
   readonly attributeDistributionPlot: Locator;
   readonly commonPathSection: Locator;
   readonly errorThreadStacktrace: Locator;
+  readonly anrThreadDump: Locator;
   readonly timestampPill: Locator;
   readonly devicePill: Locator;
   readonly appVersionPill: Locator;
@@ -29,6 +30,7 @@ export class ErrorDetailPage {
     this.errorThreadStacktrace = page.getByTestId(
       "exception-detail-main-stacktrace",
     );
+    this.anrThreadDump = page.getByTestId("anr-detail-thread-dump");
     this.timestampPill = page.getByTestId("exception-detail-timestamp");
     this.devicePill = page.getByTestId("exception-detail-device");
     this.appVersionPill = page.getByTestId("exception-detail-app-version");
