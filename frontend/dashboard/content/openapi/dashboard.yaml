@@ -15,7 +15,8 @@ info:
 
     ```json
     {
-      "error": "Error message"
+      "error": "Error message",
+      "details": "Additional error details, when available"
     }
     ```
 servers:
@@ -128,6 +129,8 @@ paths:
                     own_team_id: e47ac49d-0697-4e85-8607-1a34536c04e3
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: GitHub rejected the sign-in. The authorization code is invalid, already used or expired.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -209,6 +212,8 @@ paths:
                     own_team_id: e47ac49d-0697-4e85-8607-1a34536c04e3
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Google rejected the sign-in. The authorization code is invalid, already used or expired.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
