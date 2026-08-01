@@ -786,7 +786,13 @@ const emptyErrorGroupDetailsItem = {
     title: "",
     stacktrace: "",
     art_thread_dump: "",
-  } as { title: string; stacktrace: string; art_thread_dump: string } | null,
+    subject: "",
+  } as {
+    title: string;
+    stacktrace: string;
+    art_thread_dump: string;
+    subject: string;
+  } | null,
   severity: "",
   num_code: 0 as number | null,
   code: "",

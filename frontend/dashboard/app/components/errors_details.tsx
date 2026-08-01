@@ -284,6 +284,9 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
     firstResult?.exception?.stacktrace ||
     firstResult?.anr?.stacktrace ||
     "";
+  // The system's one line cause for the ANR, which names the deadline that
+  // expired. Only an ANR matched to its exit record carries one.
+  const subject = firstResult?.anr?.subject ?? "";
   const traceLabel = artThreadDump
     ? "ART thread dump"
     : "Thread: " + firstResult?.attribute.thread_name;
@@ -563,6 +566,17 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
                       </div>
                       <div className="py-4" />
                     </>
+                  )}
+                  {subject && (
+                    <div
+                      data-testid="exception-detail-anr-subject"
+                      className="pb-4"
+                    >
+                      <p className="font-display text-sm font-medium py-4">
+                        Reason
+                      </p>
+                      <p className="font-body text-sm break-words">{subject}</p>
+                    </div>
                   )}
                   <Accordion
                     type="single"
