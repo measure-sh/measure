@@ -1434,6 +1434,86 @@ func anrStalledIn(platformClass, platformMethod, appMethod string) ANR {
 	}
 }
 
+func TestANRGetMessage(t *testing.T) {
+	t.Run("prefers the system's reason", func(t *testing.T) {
+		a := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+		a.Subject = "No response to onStartJob for sh.frankenstein.android/.AnrJobService"
+
+		expected := "No response to onStartJob (sh.frankenstein.android/.AnrJobService)"
+		if got := a.GetMessage(); got != expected {
+			t.Errorf("Expected message %q, but got %q", expected, got)
+		}
+	})
+
+	t.Run("falls back to the sdk message without a subject", func(t *testing.T) {
+		a := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+
+		expected := "Application Not Responding for at least 5s"
+		if got := a.GetMessage(); got != expected {
+			t.Errorf("Expected message %q, but got %q", expected, got)
+		}
+	})
+}
+
+func TestANRFingerprintUsesTheReason(t *testing.T) {
+	fingerprintOf := func(t *testing.T, subject string) string {
+		t.Helper()
+		a := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+		a.Subject = subject
+		if err := a.ComputeFingerprint(); err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		return a.Fingerprint
+	}
+
+	t.Run("groups occurrences differing only in detail", func(t *testing.T) {
+		first := fingerprintOf(t, "Input dispatching timed out (71005a5 sh.frankenstein.android/sh.frankenstein.android.MainActivity is not responding. Waited 5005ms for MotionEvent).")
+		second := fingerprintOf(t, "Input dispatching timed out (b39f01c sh.frankenstein.android/sh.frankenstein.android.MainActivity is not responding. Waited 5231ms for KeyEvent).")
+
+		if first != second {
+			t.Errorf("Expected fingerprint %q, but got %q", first, second)
+		}
+	})
+
+	t.Run("separates deadlines expiring in the same method", func(t *testing.T) {
+		job := fingerprintOf(t, "No response to onStartJob for sh.frankenstein.android/.AnrJobService")
+		input := fingerprintOf(t, "Input dispatching timed out (71005a5 sh.frankenstein.android/sh.frankenstein.android.MainActivity is not responding. Waited 5005ms for MotionEvent).")
+
+		if job == input {
+			t.Errorf("Expected distinct fingerprints, but both were %q", job)
+		}
+	})
+
+	t.Run("ignores a subject no rule recognizes", func(t *testing.T) {
+		first := fingerprintOf(t, "Some future timeout after 5123ms")
+		second := fingerprintOf(t, "Some future timeout after 5661ms")
+		none := fingerprintOf(t, "")
+
+		if first != none || second != none {
+			t.Errorf("Expected fingerprint %q, but got %q and %q", none, first, second)
+		}
+	})
+
+	t.Run("ignores the words an app writes into its own subject", func(t *testing.T) {
+		first := fingerprintOf(t, "App requested: watchdog for user 41827")
+		second := fingerprintOf(t, "App requested: watchdog for user 90322")
+
+		if first != second {
+			t.Errorf("Expected fingerprint %q, but got %q", first, second)
+		}
+	})
+
+	t.Run("separates an anr whose subject never arrived", func(t *testing.T) {
+		known := fingerprintOf(t, "No response to onStartJob for sh.frankenstein.android/.AnrJobService")
+		unknown := fingerprintOf(t, "")
+
+		if known == unknown {
+			t.Errorf("Expected distinct fingerprints, but both were %q", known)
+		}
+	})
+}
+
 func TestANRGetRelevantFrame(t *testing.T) {
 	t.Run("returns the first in app frame", func(t *testing.T) {
 		a := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")

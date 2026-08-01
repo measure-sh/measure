@@ -1892,20 +1892,20 @@ paths:
                       - app_id: 19e26d60-2ad8-4ef7-8aab-333e1f5377fc
                         id: 09ef78940bd258030ebe3937bf1e32a2
                         type: sh.measure.android.anr.AnrError
-                        message: Application Not Responding for at least 5s
-                        method_name: run
-                        file_name: CpuUsageCollector
-                        line_number: 0
+                        message: No response to onStartJob (sh.measure.sample/.SyncJobService)
+                        method_name: onStartJob
+                        file_name: SyncJobService.kt
+                        line_number: 34
                         count: 1
                         percentage_contribution: 50
                         updated_at: "2025-06-13T14:08:58.003350625Z"
                       - app_id: 19e26d60-2ad8-4ef7-8aab-333e1f5377fc
                         id: 19f5125829c0477f56a6e610cd81b735
                         type: sh.measure.android.anr.AnrError
-                        message: Application Not Responding for at least 5s
-                        method_name: sleep
-                        file_name: Thread.java
-                        line_number: -2
+                        message: Input dispatching timed out (sh.measure.sample/.MainActivity)
+                        method_name: deadLock$lambda$10
+                        file_name: ExceptionDemoActivity.kt
+                        line_number: 66
                         count: 1
                         percentage_contribution: 50
                         updated_at: "2025-06-13T14:08:56.313369888Z"
@@ -2257,9 +2257,11 @@ paths:
                           network_type: wifi
                           network_generation: unknown
                         anr:
-                          title: sh.measure.android.anr.AnrError@ExceptionDemoActivity.kt:66
+                          title: sh.measure.android.anr.AnrError@ExceptionDemoActivity.kt
                           stacktrace: "sh.measure.android.anr.AnrError: Application Not Responding for at least 5000 ms.\n\tat sh.measure.sample.ExceptionDemoActivity.deadLock$lambda$10(ExceptionDemoActivity.kt:66)\n\tat android.os.Handler.handleCallback(Handler.java:942)"
-                          message: Application Not Responding for at least 5000 ms.
+                          message: Input dispatching timed out (sh.measure.sample/.ExceptionDemoActivity)
+                          subject: "Input dispatching timed out (71005a5 sh.measure.sample/sh.measure.sample.ExceptionDemoActivity is not responding. Waited 5005ms for MotionEvent)."
+                          art_thread_dump: "\"main\" prio=5 tid=1 Blocked\n  | group=\"main\" sCount=1 flags=1\n  at sh.measure.sample.ExceptionDemoActivity.deadLock$lambda$10(ExceptionDemoActivity.kt:66)\n  - waiting to lock <0x0e5c06d6> (a java.lang.Object) held by thread 12\n  at android.os.Handler.handleCallback(Handler.java:942)"
                         attachments:
                           - id: 63fb0950-faff-4028-bf3d-354559e4e540
                             name: screenshot.png
@@ -2339,7 +2341,7 @@ paths:
                       - description: "Activity created: sh.measure.sample.ExceptionDemoActivity"
                         thread_name: main
                         confidence_pct: 100
-                      - description: "ANR: q3.b: Application Not Responding for at least 5s"
+                      - description: "ANR: sh.measure.android.anr.AnrError - Input dispatching timed out (sh.measure.sample/.ExceptionDemoActivity)"
                         thread_name: Thread-4
                         confidence_pct: 100
         "400":
@@ -3187,9 +3189,10 @@ paths:
                           os_name: android
                           os_version: "13"
                         anr:
-                          title: android.app.RemoteServiceException
+                          title: android.app.RemoteServiceException@MainActivity.kt
                           stacktrace: "android.app.RemoteServiceException: Input dispatching timed out\n\tat com.example.MainActivity.onResume(MainActivity.kt:88)"
-                          message: Input dispatching timed out
+                          message: Input dispatching timed out (com.example.app/.MainActivity)
+                          subject: "Input dispatching timed out (b39f01c com.example.app/com.example.MainActivity is not responding. Waited 5231ms for KeyEvent)."
                         severity: fatal
                         attachments: []
                         threads:
@@ -5903,8 +5906,8 @@ paths:
                         app_id: 19e26d60-2ad8-4ef7-8aab-333e1f5377fc
                         entity_id: 09ef78940bd258030ebe3937bf1e32a2
                         type: anr_spike
-                        message: "ANRs are spiking at CpuUsageCollector: run() - Application Not Responding for at least 5s"
-                        url: http://localhost:3000/29f0f5b2-f03f-4dbe-bd18-acf163b91965/anrs/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/09ef78940bd258030ebe3937bf1e32a2/sh.measure.android.anr.AnrError@CpuUsageCollector
+                        message: "ANRs are spiking at SyncJobService.kt: onStartJob() - No response to onStartJob (sh.measure.sample/.SyncJobService)"
+                        url: http://localhost:3000/29f0f5b2-f03f-4dbe-bd18-acf163b91965/anrs/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/09ef78940bd258030ebe3937bf1e32a2/sh.measure.android.anr.AnrError@SyncJobService.kt
                         created_at: "2025-07-10T11:35:48.069383Z"
                         updated_at: "2025-07-10T11:35:48.069383Z"
                       - id: 865363ff-f960-492d-8a67-a134f242d290

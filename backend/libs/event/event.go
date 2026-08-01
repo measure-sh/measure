@@ -2103,10 +2103,20 @@ func (a ANR) GetType() string {
 	return a.Exceptions[len(a.Exceptions)-1].Type
 }
 
-// GetMessage provides the message of
-// the ANR.
+// GetMessage provides the message of the ANR. The SDK writes the same
+// message on every ANR, so the system's reason takes its place.
 func (a ANR) GetMessage() string {
+	if reason := a.GetReason(); reason != "" {
+		return reason
+	}
+
 	return a.Exceptions[len(a.Exceptions)-1].Message
+}
+
+// GetReason names the deadline that expired. Only an ANR matched to its
+// app exit record carries one.
+func (a ANR) GetReason() string {
+	return ANRReason(a.Subject)
 }
 
 // MarkInAppFrames flags the frames of the ANR belonging to the
@@ -2224,6 +2234,10 @@ func (a *ANR) ComputeFingerprint() (err error) {
 	}
 	if frame.FileName != "" {
 		fingerprintData += ":" + frame.FileName
+	}
+	// Two deadlines expiring in the same method are separate problems.
+	if reason := a.GetReason(); reason != "" {
+		fingerprintData += ":" + reason
 	}
 
 	// Compute the fingerprint
