@@ -7,7 +7,7 @@ import LandingHeader from "../components/landing_header";
 import PricingViewed from "./pricing_viewed";
 import JsonLd from "../components/json_ld";
 import { webPageJsonLd } from "../utils/json_ld";
-import { marketingPageMetadata } from "../utils/metadata";
+import { pageMetadata } from "../utils/metadata";
 import {
   FREE_GB,
   FREE_RETENTION_DAYS,
@@ -26,7 +26,7 @@ const seo = {
   path: "/pricing",
 };
 
-export const metadata: Metadata = marketingPageMetadata(seo);
+export const metadata: Metadata = pageMetadata(seo);
 
 export default function Pricing() {
   return (

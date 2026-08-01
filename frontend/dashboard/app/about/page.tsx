@@ -8,7 +8,7 @@ import LandingFooter from "../components/landing_footer";
 import TrackCtaLink from "../components/analytics/track_cta_link";
 import JsonLd from "../components/json_ld";
 import { webPageJsonLd } from "../utils/json_ld";
-import { marketingPageMetadata } from "../utils/metadata";
+import { pageMetadata } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 
 const seo = {
@@ -18,7 +18,7 @@ const seo = {
   path: "/about",
 };
 
-export const metadata: Metadata = marketingPageMetadata(seo);
+export const metadata: Metadata = pageMetadata(seo);
 
 export default function About() {
   const team = [

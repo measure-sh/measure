@@ -2,7 +2,7 @@ import JsonLd from "@/app/components/json_ld";
 import { openapi } from "@/app/utils/openapi_source";
 import { source } from "@/app/utils/docs_source";
 import { breadcrumbJsonLd, techArticleJsonLd } from "@/app/utils/json_ld";
-import { sharedOpenGraph } from "@/app/utils/metadata";
+import { pageMetadata } from "@/app/utils/metadata";
 import { getBreadcrumbItems } from "fumadocs-core/breadcrumb";
 import {
   DocsBody,
@@ -132,15 +132,8 @@ export async function generateMetadata(props: PageParams): Promise<Metadata> {
   // visible page heading and sidebar label.
   const title = page.data.seoTitle ?? page.data.title;
 
-  return {
-    title,
-    description: page.data.description,
-    alternates: { canonical: page.url },
-    openGraph: {
-      ...sharedOpenGraph,
-      title,
-      description: page.data.description,
-      url: page.url,
-    },
-  };
+  return pageMetadata(
+    { title, description: page.data.description, path: page.url },
+    { addMeasureSuffixToTitle: false },
+  );
 }

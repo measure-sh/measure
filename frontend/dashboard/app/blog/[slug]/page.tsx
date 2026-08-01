@@ -6,7 +6,7 @@ import {
   postDateISO,
 } from "@/app/utils/blog_source";
 import { blogPostingJsonLd } from "@/app/utils/json_ld";
-import { sharedOpenGraph } from "@/app/utils/metadata";
+import { pageMetadata } from "@/app/utils/metadata";
 import { InlineTOC } from "fumadocs-ui/components/inline-toc";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -103,33 +103,23 @@ export async function generateMetadata(props: PageParams): Promise<Metadata> {
     notFound();
   }
 
-  // The post's own card image when it declares one, the site-wide preview
-  // (with its known dimensions) otherwise. The twitter block must be set
-  // per-page: Next merges metadata shallowly, so without it the root
-  // layout's twitter tags win and X shows the generic site card.
-  const socialImages = page.data.image
-    ? [{ url: page.data.image, alt: page.data.title }]
-    : sharedOpenGraph.images;
-
-  return {
-    title: page.data.title,
-    description: page.data.description,
-    alternates: { canonical: page.url },
-    openGraph: {
-      ...sharedOpenGraph,
-      type: "article",
-      publishedTime: postDate(page).toISOString(),
-      authors: [page.data.author.name],
+  return pageMetadata(
+    {
       title: page.data.title,
       description: page.data.description,
-      url: page.url,
-      images: socialImages,
+      path: page.url,
     },
-    twitter: {
-      card: "summary_large_image",
-      title: page.data.title,
-      description: page.data.description,
-      images: socialImages,
+    {
+      addMeasureSuffixToTitle: false,
+      // The post's own card image when it declares one; leaving this out
+      // falls back to the site-wide preview.
+      images: page.data.image
+        ? [{ url: page.data.image, alt: page.data.title }]
+        : undefined,
+      article: {
+        publishedTime: postDate(page).toISOString(),
+        authors: [page.data.author.name],
+      },
     },
-  };
+  );
 }

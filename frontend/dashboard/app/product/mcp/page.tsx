@@ -1,6 +1,6 @@
 import MCPDemo from "@/app/components/mcp_demo";
 import ProductPage from "@/app/components/product_page";
-import { marketingPageMetadata } from "@/app/utils/metadata";
+import { pageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 
 const seo = {
@@ -10,7 +10,7 @@ const seo = {
   path: "/product/mcp",
 };
 
-export const metadata: Metadata = marketingPageMetadata(seo);
+export const metadata: Metadata = pageMetadata(seo);
 
 export default function ProductMCP() {
   return (

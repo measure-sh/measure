@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { siteXUrl } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 import { buttonVariants } from "./button_variants";
 import { CookiePreferencesLink } from "./cookie_preferences_link";
@@ -425,7 +426,7 @@ export default function LandingFooter() {
                 />
               </Link>
               <Link
-                href="https://x.com/measure_sh"
+                href={siteXUrl}
                 target="_blank"
                 className={cn(buttonVariants({ variant: "ghost" }), "group")}
               >

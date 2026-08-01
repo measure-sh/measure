@@ -1,5 +1,5 @@
 import ProductPage from "@/app/components/product_page";
-import { marketingPageMetadata } from "@/app/utils/metadata";
+import { pageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 import BugReportDemo from "./bug_report_demo";
 
@@ -10,7 +10,7 @@ const seo = {
   path: "/product/bug-reports",
 };
 
-export const metadata: Metadata = marketingPageMetadata(seo);
+export const metadata: Metadata = pageMetadata(seo);
 
 export default function ProductBugReports() {
   return (
