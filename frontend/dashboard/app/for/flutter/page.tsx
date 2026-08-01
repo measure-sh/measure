@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { marketingPageMetadata } from "@/app/utils/metadata";
+import { pageMetadata } from "@/app/utils/metadata";
 import ForPlatformPage, {
   type PlatformFeature,
 } from "../../components/for_platform_page";
@@ -14,7 +14,7 @@ const seo = {
   path: "/for/flutter",
 };
 
-export const metadata: Metadata = marketingPageMetadata(seo);
+export const metadata: Metadata = pageMetadata(seo);
 
 const features: PlatformFeature[] = [
   {

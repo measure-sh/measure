@@ -7,36 +7,9 @@ import { Toaster } from "./components/toaster";
 import UTMCapture from "./components/analytics/utm_capture";
 import "./globals.css";
 import { fira_code, josefin_sans, work_sans } from "./utils/fonts";
-import { previewImage, sharedOpenGraph, siteOrigin } from "./utils/metadata";
+import { siteMetadata } from "./utils/metadata";
 
-const title = "Measure";
-const description =
-  "Measure helps mobile teams monitor and fix crashes, ANRs, bugs, and performance issues. The open source alternative to Firebase Crashlytics.";
-
-export const metadata: Metadata = {
-  metadataBase: new URL(siteOrigin),
-
-  title: {
-    default: title,
-    template: `%s | ${title}`,
-  },
-
-  description: description,
-
-  openGraph: {
-    ...sharedOpenGraph,
-    title: title,
-    description: description,
-    url: "/",
-  },
-
-  twitter: {
-    card: "summary_large_image",
-    title: title,
-    description: description,
-    images: [previewImage],
-  },
-};
+export const metadata: Metadata = siteMetadata;
 
 export const viewport: Viewport = {
   width: "device-width",

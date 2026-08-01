@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { previewImage, siteOrigin, type MarketingPageSeo } from "./metadata";
+import { previewImage, siteOrigin, siteXUrl, type PageSeo } from "./metadata";
 
 // Builders return schema.org nodes without "@context"; the JsonLd
 // component adds it when rendering.
@@ -22,7 +22,7 @@ export const organizationJsonLd = {
   },
   sameAs: [
     "https://github.com/measure-sh/measure",
-    "https://x.com/measure_sh",
+    siteXUrl,
     "https://www.linkedin.com/company/measure-sh",
     "https://bsky.app/profile/measure.sh",
   ],
@@ -53,7 +53,7 @@ export function softwareApplicationJsonLd(description: string) {
 }
 
 export function webPageJsonLd(
-  seo: MarketingPageSeo,
+  seo: PageSeo,
   type: "WebPage" | "AboutPage" = "WebPage",
 ) {
   return {

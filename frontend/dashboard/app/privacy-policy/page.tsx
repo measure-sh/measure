@@ -6,7 +6,7 @@ import LandingHeader from "../components/landing_header";
 import TrackCtaLink from "../components/analytics/track_cta_link";
 import JsonLd from "../components/json_ld";
 import { webPageJsonLd } from "../utils/json_ld";
-import { marketingPageMetadata } from "../utils/metadata";
+import { pageMetadata } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
@@ -17,7 +17,7 @@ const seo = {
   path: "/privacy-policy",
 };
 
-export const metadata: Metadata = marketingPageMetadata(seo);
+export const metadata: Metadata = pageMetadata(seo);
 
 export default function PrivacyPolicy() {
   return (

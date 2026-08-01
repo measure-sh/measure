@@ -4,32 +4,24 @@ import {
   getSortedBlogPosts,
   toPostSummary,
 } from "@/app/utils/blog_source";
-import { sharedOpenGraph } from "@/app/utils/metadata";
+import { pageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 import PostsList from "./components/posts_list";
 
 const title = "Blog";
 
+const base = pageMetadata(
+  { title, description: blogDescription, path: "/blog" },
+  { addMeasureSuffixToTitle: false },
+);
+
 export const metadata: Metadata = {
-  title,
-  description: blogDescription,
+  ...base,
+  // The feed link belongs to this page alone, so it is added on top of
+  // the canonical link the shared helper produces.
   alternates: {
-    canonical: "/blog",
+    ...base.alternates,
     types: { "application/rss+xml": "/blog/rss.xml" },
-  },
-  openGraph: {
-    ...sharedOpenGraph,
-    title,
-    description: blogDescription,
-    url: "/blog",
-  },
-  // Set per-page so X shows this page's card instead of the root
-  // layout's twitter tags (Next merges metadata shallowly).
-  twitter: {
-    card: "summary_large_image",
-    title,
-    description: blogDescription,
-    images: sharedOpenGraph.images,
   },
 };
 

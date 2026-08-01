@@ -3,7 +3,7 @@ import {
   getPostsByTag,
   toPostSummary,
 } from "@/app/utils/blog_source";
-import { sharedOpenGraph } from "@/app/utils/metadata";
+import { pageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -53,23 +53,8 @@ export async function generateMetadata(props: PageParams): Promise<Metadata> {
   const title = `Blog posts tagged ${params.tag}`;
   const description = `Measure blog posts tagged ${params.tag}.`;
 
-  return {
-    title,
-    description,
-    alternates: { canonical: `/blog/tags/${params.tag}` },
-    openGraph: {
-      ...sharedOpenGraph,
-      title,
-      description,
-      url: `/blog/tags/${params.tag}`,
-    },
-    // Set per-page so X shows this page's card instead of the root
-    // layout's twitter tags (Next merges metadata shallowly).
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: sharedOpenGraph.images,
-    },
-  };
+  return pageMetadata(
+    { title, description, path: `/blog/tags/${params.tag}` },
+    { addMeasureSuffixToTitle: false },
+  );
 }

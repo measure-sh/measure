@@ -1,7 +1,7 @@
 import { buttonVariants } from "@/app/components/button_variants";
 import JsonLd from "@/app/components/json_ld";
 import { webPageJsonLd } from "@/app/utils/json_ld";
-import { marketingPageMetadata } from "@/app/utils/metadata";
+import { pageMetadata } from "@/app/utils/metadata";
 import { cn } from "@/app/utils/shadcn_utils";
 import {
   LucideBug,
@@ -24,7 +24,7 @@ const seo = {
   path: "/why-measure",
 };
 
-export const metadata: Metadata = marketingPageMetadata(seo);
+export const metadata: Metadata = pageMetadata(seo);
 
 export default function WhyMeasure() {
   return (

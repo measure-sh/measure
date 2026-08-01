@@ -1,7 +1,7 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { webPageJsonLd } from "../utils/json_ld";
-import type { MarketingPageSeo } from "../utils/metadata";
+import type { PageSeo } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 import TrackCtaLink from "./analytics/track_cta_link";
 import { buttonVariants } from "./button_variants";
@@ -32,7 +32,7 @@ export type PlatformLogo = {
 };
 
 export type ForPlatformPageProps = {
-  seo: MarketingPageSeo;
+  seo: PageSeo;
   title: string;
   logo: PlatformLogo;
   intro: ReactNode;

@@ -20,7 +20,7 @@ import {
   softwareApplicationJsonLd,
   webSiteJsonLd,
 } from "./utils/json_ld";
-import { marketingPageMetadata } from "./utils/metadata";
+import { pageMetadata } from "./utils/metadata";
 import { cn } from "./utils/shadcn_utils";
 import { underlineLinkStyle } from "./utils/shared_styles";
 
@@ -31,7 +31,7 @@ const seo = {
   path: "/",
 };
 
-export const metadata: Metadata = marketingPageMetadata(seo);
+export const metadata: Metadata = pageMetadata(seo);
 
 const KukuFmLogo = ({ className }: { className?: string }) => (
   <svg
