@@ -98,6 +98,21 @@ function mockAnrEvent() {
   };
 }
 
+function mockEnrichedAnrEvent() {
+  const event = mockAnrEvent();
+  return {
+    ...event,
+    anr: {
+      ...event.anr,
+      art_thread_dump: 'DALVIK THREADS (2):\n"main" prio=5 tid=1 Blocked',
+      subject: "Input dispatching timed out",
+    },
+    threads: [
+      { name: "main", frames: ["at com.example.Other.run(Other.java:1)"] },
+    ],
+  };
+}
+
 function copiedTextFor(event: object): string {
   render(<CopyAiContext appName="MyApp" errorEvent={event as any} />);
   fireEvent.click(screen.getByText("Copy AI Context"));
@@ -234,6 +249,25 @@ describe("CopyAiContext", () => {
       const copied = copiedTextFor(mockAnrEvent());
       expect(copied).toContain("- app: MyApp");
       expect(copied).not.toContain("## All threads");
+    });
+
+    it("uses the art thread dump as the trace when one arrived", () => {
+      const copied = copiedTextFor(mockEnrichedAnrEvent());
+      expect(copied).toContain("## ART thread dump");
+      expect(copied).toContain('"main" prio=5 tid=1 Blocked');
+      expect(copied).not.toContain("## Stack trace");
+    });
+
+    it("omits the thread list when the art thread dump is present", () => {
+      const copied = copiedTextFor(mockEnrichedAnrEvent());
+      expect(copied).not.toContain("## All threads");
+      expect(copied).not.toContain("at com.example.ANR.block(ANR.java:20)");
+    });
+
+    it("includes the reason in the summary", () => {
+      expect(copiedTextFor(mockEnrichedAnrEvent())).toContain(
+        "- reason: Input dispatching timed out",
+      );
     });
   });
 });

@@ -56,6 +56,7 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({
       ["type", errorEvent.type],
       ["severity", errorEvent.severity],
       ["message", errorEvent.exception?.message],
+      ["reason", errorEvent.anr?.subject],
       ["code", errorEvent.code],
       ["num_code", errorEvent.num_code],
       ["timestamp", formatDateToHumanReadableDateTime(errorEvent.timestamp)],
@@ -97,18 +98,26 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({
       sections.push("## Attachments\n" + attachments);
     }
 
+    // Same trace the detail page shows. An ART thread dump covers every thread
+    // in the process, so it stands in for the stacktrace and the thread list.
+    const artThreadDump = errorEvent.anr?.art_thread_dump ?? "";
     const stacktrace =
-      errorEvent.exception?.stacktrace ?? errorEvent.anr?.stacktrace ?? "";
+      artThreadDump ||
+      errorEvent.exception?.stacktrace ||
+      errorEvent.anr?.stacktrace ||
+      "";
     if (hasValue(stacktrace)) {
-      sections.push(
-        `## Stack trace (thread: ${errorEvent.attribute.thread_name})\n` +
-          codeBlock(stacktrace),
-      );
+      const heading = artThreadDump
+        ? "## ART thread dump"
+        : `## Stack trace (thread: ${errorEvent.attribute.thread_name})`;
+      sections.push(heading + "\n" + codeBlock(stacktrace));
     }
 
-    const threads = (errorEvent.threads ?? []).filter(
-      (t) => hasValue(t.name) && t.frames.some(hasValue),
-    );
+    const threads = artThreadDump
+      ? []
+      : (errorEvent.threads ?? []).filter(
+          (t) => hasValue(t.name) && t.frames.some(hasValue),
+        );
     if (threads.length > 0) {
       const threadBlocks = threads
         .map((t) => `### ${t.name}\n` + codeBlock(t.frames.join("\n")))
