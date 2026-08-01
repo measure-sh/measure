@@ -4,45 +4,25 @@ import android.os.Looper
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mockito.Mockito.`when`
-import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
-import sh.measure.android.NativeBridge
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.fakes.FakeProcessInfoProvider
-import sh.measure.android.fakes.NoopLogger
 
 class AnrCollectorTest {
-    private val logger = NoopLogger()
     private val processInfo = FakeProcessInfoProvider()
     private val signalProcessor = mock<SignalProcessor>()
-    private val nativeBridge = mock<NativeBridge>()
     private val looper = mock<Looper>()
-    private val anrCollector =
-        AnrCollector(processInfo, signalProcessor, nativeBridge, looper)
+    private val anrCollector = AnrCollector(processInfo, signalProcessor, looper)
 
     @Test
-    fun `register enables anr reporting and registers itself as listener`() {
-        anrCollector.register()
-        verify(nativeBridge).enableAnrReporting(anrListener = anrCollector)
-    }
-
-    @Test
-    fun `unregister disables anr reporting`() {
-        anrCollector.register()
-        verify(nativeBridge).enableAnrReporting(any())
-        anrCollector.unregister()
-        verify(nativeBridge).disableAnrReporting()
-    }
-
-    @Test
-    fun `tracks ANR event when ANR is detected`() {
+    fun `tracks ANR event when an ANR is reported`() {
         val thread = Thread.currentThread()
         `when`(looper.thread).thenReturn(thread)
         val message = "ANR"
@@ -50,7 +30,7 @@ class AnrCollectorTest {
         val expectedAnrError = AnrError(thread, timestamp, message)
 
         // When
-        anrCollector.onAnrDetected(timestamp)
+        anrCollector.onAnr(timestamp)
 
         // Then
         val typeCaptor = argumentCaptor<EventType>()

@@ -41,7 +41,7 @@ class MeasureInternalTest {
         `when`(initializer.networkClient).thenReturn(mock())
         `when`(initializer.manifestReader).thenReturn(mock())
         `when`(initializer.unhandledExceptionCollector).thenReturn(mock())
-        `when`(initializer.anrCollector).thenReturn(mock())
+        `when`(initializer.anrDetector).thenReturn(mock())
         `when`(initializer.cpuUsageCollector).thenReturn(mock())
         `when`(initializer.memoryUsageCollector).thenReturn(mock())
         `when`(initializer.componentCallbacksCollector).thenReturn(mock())
@@ -286,7 +286,7 @@ class MeasureInternalTest {
 
         // Crash tracking should not be enabled when autoStart is false
         verify(initializer.unhandledExceptionCollector, never()).register()
-        verify(initializer.anrCollector, never()).register()
+        verify(initializer.anrDetector, never()).register()
     }
 
     @Test
@@ -320,7 +320,7 @@ class MeasureInternalTest {
         measureInternal.start()
 
         verify(initializer.unhandledExceptionCollector).register()
-        verify(initializer.anrCollector).register()
+        verify(initializer.anrDetector).register()
     }
 
     @Test
@@ -368,7 +368,7 @@ class MeasureInternalTest {
         measureInternal.stop()
 
         verify(initializer.unhandledExceptionCollector).unregister()
-        verify(initializer.anrCollector).unregister()
+        verify(initializer.anrDetector).unregister()
     }
 
     @Test

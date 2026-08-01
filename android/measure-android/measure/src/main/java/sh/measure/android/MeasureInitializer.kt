@@ -2,6 +2,8 @@ package sh.measure.android
 
 import android.app.Application
 import sh.measure.android.anr.AnrCollector
+import sh.measure.android.anr.AnrDetector
+import sh.measure.android.anr.HandlerMainThreadProbe
 import sh.measure.android.appexit.AppExitCollector
 import sh.measure.android.appexit.AppExitProvider
 import sh.measure.android.appexit.AppExitProviderImpl
@@ -320,10 +322,14 @@ internal class MeasureInitializerImpl(
         processInfo = processInfoProvider,
     ),
     private val nativeBridgeImpl: NativeBridgeImpl = NativeBridgeImpl(logger),
-    override val anrCollector: AnrCollector = AnrCollector(
+    private val anrCollector: AnrCollector = AnrCollector(
         processInfo = processInfoProvider,
         signalProcessor = signalProcessor,
+    ),
+    override val anrDetector: AnrDetector = AnrDetector(
         nativeBridge = nativeBridgeImpl,
+        mainThreadProbe = HandlerMainThreadProbe(),
+        anrListener = anrCollector,
     ),
     private val appExitProvider: AppExitProvider = AppExitProviderImpl(
         logger = logger,
@@ -503,7 +509,7 @@ internal interface MeasureInitializer {
     val httpUrlConnectionEventCollector: HttpUrlConnectionEventCollector
     val sessionManager: SessionManager
     val unhandledExceptionCollector: UnhandledExceptionCollector
-    val anrCollector: AnrCollector
+    val anrDetector: AnrDetector
     val appExitCollector: AppExitCollector
     val cpuUsageCollector: CpuUsageCollector
     val memoryUsageCollector: MemoryUsageCollector

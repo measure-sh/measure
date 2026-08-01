@@ -1,8 +1,6 @@
 package sh.measure.android.anr
 
 import android.os.Looper
-import sh.measure.android.AnrListener
-import sh.measure.android.NativeBridge
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.exceptions.ExceptionData
@@ -13,25 +11,10 @@ import sh.measure.android.utils.ProcessInfoProvider
 internal class AnrCollector(
     private val processInfo: ProcessInfoProvider,
     private val signalProcessor: SignalProcessor,
-    private val nativeBridge: NativeBridge,
     private val mainLooper: Looper = mainHandler.looper,
 ) : AnrListener {
 
-    private var isRegistered = false
-
-    fun register() {
-        if (isRegistered) return
-        nativeBridge.enableAnrReporting(anrListener = this)
-        isRegistered = true
-    }
-
-    fun unregister() {
-        if (!isRegistered) return
-        nativeBridge.disableAnrReporting()
-        isRegistered = false
-    }
-
-    override fun onAnrDetected(timestamp: Long) {
+    override fun onAnr(timestamp: Long) {
         val anrError = AnrError(
             mainLooper.thread,
             timestamp,

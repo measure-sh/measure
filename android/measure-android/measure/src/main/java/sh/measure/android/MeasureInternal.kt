@@ -443,12 +443,12 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
 
     private fun enableCrashTracking() {
         measure.unhandledExceptionCollector.register()
-        measure.anrCollector.register()
+        measure.anrDetector.register()
     }
 
     private fun disableCrashTracking() {
         measure.unhandledExceptionCollector.unregister()
-        measure.anrCollector.unregister()
+        measure.anrDetector.unregister()
     }
     fun getDynamicConfigPath(): String? = measure.fileStorage.getConfigPath()
 }
