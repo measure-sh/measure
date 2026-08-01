@@ -320,6 +320,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "ForceGT",
+      "name": "Gaurav Thakkar",
+      "avatar_url": "https://avatars.githubusercontent.com/u/31688051?v=4",
+      "profile": "http://forcegt.github.io",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "commitType": "docs"
