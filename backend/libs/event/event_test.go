@@ -1358,4 +1358,145 @@ func TestANRComputeFingerprint(t *testing.T) {
 			t.Errorf("Expected fingerprint %q, but got %q", expected, a.Fingerprint)
 		}
 	})
+
+	t.Run("errors without exceptions", func(t *testing.T) {
+		a := ANR{}
+
+		if err := a.ComputeFingerprint(); err == nil {
+			t.Error("Expected an error computing the fingerprint, got nil")
+		}
+	})
+
+	t.Run("separates stalls in different app methods", func(t *testing.T) {
+		first := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+		second := anrStalledIn("java.lang.Thread", "sleep", "onHandleWork")
+
+		if err := first.ComputeFingerprint(); err != nil {
+			t.Fatalf("Unexpected error computing ANR fingerprint: %v", err)
+		}
+		if err := second.ComputeFingerprint(); err != nil {
+			t.Fatalf("Unexpected error computing ANR fingerprint: %v", err)
+		}
+
+		if first.Fingerprint == second.Fingerprint {
+			t.Errorf("Expected different fingerprints, but both were %q", first.Fingerprint)
+		}
+	})
+
+	t.Run("groups one app method stalling on different platform calls", func(t *testing.T) {
+		first := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+		second := anrStalledIn("android.os.BinderProxy", "transactNative", "onStartJob")
+
+		if err := first.ComputeFingerprint(); err != nil {
+			t.Fatalf("Unexpected error computing ANR fingerprint: %v", err)
+		}
+		if err := second.ComputeFingerprint(); err != nil {
+			t.Fatalf("Unexpected error computing ANR fingerprint: %v", err)
+		}
+
+		if first.Fingerprint != second.Fingerprint {
+			t.Errorf("Expected the same fingerprint, but got %q and %q", first.Fingerprint, second.Fingerprint)
+		}
+	})
+}
+
+// anrStalledIn builds an ANR whose main thread sits in a platform
+// call made from the given app method.
+func anrStalledIn(platformClass, platformMethod, appMethod string) ANR {
+	return ANR{
+		Exceptions: ExceptionUnits{
+			{
+				Type:    "sh.measure.android.anr.AnrError",
+				Message: "Application Not Responding for at least 5s",
+				Frames: Frames{
+					{
+						ClassName:  platformClass,
+						MethodName: platformMethod,
+						FileName:   "Thread.java",
+						LineNum:    451,
+					},
+					{
+						ClassName:  "sh.frankenstein.android.AnrJobService",
+						MethodName: appMethod,
+						FileName:   "AnrComponents.kt",
+						LineNum:    42,
+						InApp:      true,
+					},
+					{
+						ClassName:  "android.os.Handler",
+						MethodName: "dispatchMessage",
+						FileName:   "Handler.java",
+						LineNum:    103,
+					},
+				},
+			},
+		},
+	}
+}
+
+func TestANRGetRelevantFrame(t *testing.T) {
+	t.Run("returns the first in app frame", func(t *testing.T) {
+		a := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+
+		frame := a.GetRelevantFrame()
+
+		if frame.MethodName != "onStartJob" {
+			t.Errorf("Expected method %q, but got %q", "onStartJob", frame.MethodName)
+		}
+		if frame.FileName != "AnrComponents.kt" {
+			t.Errorf("Expected file %q, but got %q", "AnrComponents.kt", frame.FileName)
+		}
+	})
+
+	t.Run("falls back to the first frame outside the platform", func(t *testing.T) {
+		a := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+		a.Exceptions[0].Frames[1].InApp = false
+
+		frame := a.GetRelevantFrame()
+
+		if frame.MethodName != "onStartJob" {
+			t.Errorf("Expected method %q, but got %q", "onStartJob", frame.MethodName)
+		}
+	})
+
+	t.Run("falls back to the top frame when every frame is platform", func(t *testing.T) {
+		a := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+		a.Exceptions[0].Frames[1].InApp = false
+		a.Exceptions[0].Frames[1].ClassName = "androidx.work.Worker"
+
+		frame := a.GetRelevantFrame()
+
+		if frame.MethodName != "sleep" {
+			t.Errorf("Expected method %q, but got %q", "sleep", frame.MethodName)
+		}
+	})
+}
+
+func TestANRMarkInAppFrames(t *testing.T) {
+	a := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+	a.Exceptions[0].Frames[1].InApp = false
+	a.Threads = Threads{
+		{
+			Name: "APP: Locker",
+			Frames: Frames{
+				{ClassName: "java.lang.Thread", MethodName: "sleep"},
+				{ClassName: "sh.frankenstein.android.DeadlockToken", MethodName: "waitForever"},
+			},
+		},
+	}
+
+	a.MarkInAppFrames([]string{"sh.frankenstein.android"})
+
+	if !a.Exceptions[0].Frames[1].InApp {
+		t.Error("Expected the app frame of the stacktrace to be marked in app")
+	}
+	if a.Exceptions[0].Frames[0].InApp {
+		t.Error("Expected the platform frame of the stacktrace to not be marked in app")
+	}
+	if !a.Threads[0].Frames[1].InApp {
+		t.Error("Expected the app frame of the thread to be marked in app")
+	}
+	if a.Threads[0].Frames[0].InApp {
+		t.Error("Expected the platform frame of the thread to not be marked in app")
+	}
 }

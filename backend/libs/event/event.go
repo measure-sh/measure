@@ -2109,31 +2109,58 @@ func (a ANR) GetMessage() string {
 	return a.Exceptions[len(a.Exceptions)-1].Message
 }
 
+// MarkInAppFrames flags the frames of the ANR belonging to the
+// app's own code. Obfuscated class names carry no recognizable
+// package, so this runs after symbolication has retraced them.
+func (a *ANR) MarkInAppFrames(packages []string) {
+	for i := range a.Exceptions {
+		a.Exceptions[i].Frames.MarkInApp(packages)
+	}
+	for i := range a.Threads {
+		a.Threads[i].Frames.MarkInApp(packages)
+	}
+}
+
+// GetRelevantFrame provides the frame the ANR is attributed to.
+//
+// A stalled thread sits several platform frames deep, in a binder
+// transaction or a sleep, and those say nothing about what stalled
+// it. Falling back to the first frame outside the platform covers
+// an app whose classes sit outside the package it reports itself
+// under, such as a build carrying an application id suffix.
+func (a ANR) GetRelevantFrame() Frame {
+	if a.HasNoFrames() {
+		return Frame{}
+	}
+
+	frames := a.Exceptions[len(a.Exceptions)-1].Frames
+
+	if i := slices.IndexFunc(frames, func(f Frame) bool { return f.InApp }); i >= 0 {
+		return frames[i]
+	}
+	if i := slices.IndexFunc(frames, func(f Frame) bool { return !isPlatform(f.ClassName) }); i >= 0 {
+		return frames[i]
+	}
+
+	return frames[0]
+}
+
 // GetFileName provides the file name of
 // the ANR.
 func (a ANR) GetFileName() string {
-	if a.HasNoFrames() {
-		return ""
-	}
-	return a.Exceptions[len(a.Exceptions)-1].Frames[0].FileName
+	return a.GetRelevantFrame().FileName
 }
 
 // GetLineNumber provides the line number of
 // the ANR.
 func (a ANR) GetLineNumber() int32 {
-	if a.HasNoFrames() {
-		return int32(0)
-	}
-	return int32(a.Exceptions[len(a.Exceptions)-1].Frames[0].LineNum)
+	return int32(a.GetRelevantFrame().LineNum)
 }
 
 // GetMethodName provides the method name of
 // the ANR.
 func (a ANR) GetMethodName() string {
-	if a.HasNoFrames() {
-		return ""
-	}
-	return a.Exceptions[len(a.Exceptions)-1].Frames[0].MethodName
+	return a.GetRelevantFrame().MethodName
 }
 
 // GetDisplayTitle provides a user friendly display
@@ -2189,27 +2216,14 @@ func (a *ANR) ComputeFingerprint() (err error) {
 		return fmt.Errorf("error computing ANR fingerprint: no exceptions found")
 	}
 
-	// Get the innermost exception
-	innermostException := a.Exceptions[len(a.Exceptions)-1]
+	frame := a.GetRelevantFrame()
 
-	// Get the exception type
-	exceptionType := innermostException.Type
-
-	// Initialize fingerprint data with the exception type
-	fingerprintData := exceptionType
-
-	// Get the method name and file name from the first frame of the innermost exception
-	if len(innermostException.Frames) > 0 {
-		methodName := innermostException.Frames[0].MethodName
-		fileName := innermostException.Frames[0].FileName
-
-		// Include any non-empty information
-		if methodName != "" {
-			fingerprintData += ":" + methodName
-		}
-		if fileName != "" {
-			fingerprintData += ":" + fileName
-		}
+	fingerprintData := a.GetType()
+	if frame.MethodName != "" {
+		fingerprintData += ":" + frame.MethodName
+	}
+	if frame.FileName != "" {
+		fingerprintData += ":" + frame.FileName
 	}
 
 	// Compute the fingerprint
