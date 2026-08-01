@@ -1325,15 +1325,13 @@ internal class DatabaseImpl(
                 val filePathIndex = it.getColumnIndexOrThrow(EventTable.COL_DATA_FILE_PATH)
                 val pidIndex = it.getColumnIndexOrThrow(SessionsTable.COL_PID)
                 while (it.moveToNext()) {
+                    val filePath =
+                        if (it.isNull(filePathIndex)) null else it.getString(filePathIndex)
                     pendingAnrs.add(
                         PendingAnr(
                             eventId = it.getString(idIndex),
                             timestamp = it.getString(timestampIndex),
-                            filePath = if (it.isNull(filePathIndex)) {
-                                null
-                            } else {
-                                it.getString(filePathIndex)
-                            },
+                            filePath = filePath,
                             pid = it.getInt(pidIndex),
                         ),
                     )

@@ -27,12 +27,12 @@ internal class AppExitCollector(
     @RequiresApi(Build.VERSION_CODES.R)
     fun collect() {
         val currentPid = processInfo.getPid()
-        trackANRFromAppExit(database.getPendingAnrs(), currentPid)
+        reconcileAnrExits(database.getPendingAnrs(), currentPid)
         database.finalizePendingAnrs(currentPid)
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    private fun trackANRFromAppExit(pendingAnrs: List<PendingAnr>, currentPid: Int) {
+    private fun reconcileAnrExits(pendingAnrs: List<PendingAnr>, currentPid: Int) {
         val appExits: Map<Int, AppExit> = appExitProvider.get() ?: return
         appExits.forEach { (pid, appExit) ->
             val heldAnr = findAnrForExit(pendingAnrs, pid, currentPid)
@@ -40,27 +40,22 @@ internal class AppExitCollector(
                 trackAppExit(pid, appExit)
                 return@forEach
             }
-            // The SDK captured this ANR itself and is holding the event, so the dump
-            // enriches it rather than arriving as a second event for one incident.
-            // The flush finalizes it either way.
+            // The SDK is already holding an event for this ANR, so the dump enriches
+            // it rather than arriving as a second event for one incident.
             enrichPendingAnr(heldAnr, appExit)
         }
         sessionManager.markSessionsAppExitTracked()
     }
 
     /**
-     * Finds the held ANR the exit killed the process for. Everything a process held
-     * was recorded before it died, so the latest of them is the stall the system
-     * acted on.
+     * Finds the held ANR the exit killed the process for, matching on pid alone.
+     * Everything a process held was recorded before it died, so the latest of them
+     * is the stall the system acted on.
      *
-     * The exit's own timestamp is deliberately not compared against. The system
-     * stamps it from the wall clock while a held ANR is stamped from an anchored
-     * monotonic clock, so a clock adjustment between the two would drop the match and
-     * report one ANR twice, once unenriched and again as an app_exit. Comparing held
-     * ANRs to each other stays within a single clock.
-     *
-     * A pid the live process is reusing cannot be told apart from the dead one it
-     * belonged to, so it is left alone until the collision clears.
+     * Timestamps are not compared: the exit carries the system's wall clock while a
+     * held ANR carries an anchored monotonic clock, so a clock adjustment between
+     * the two would drop a valid match and report the ANR twice. A pid the live
+     * process is reusing is skipped until the collision clears.
      */
     private fun findAnrForExit(
         pendingAnrs: List<PendingAnr>,
@@ -75,8 +70,7 @@ internal class AppExitCollector(
 
     /**
      * Rewrites the held event's body with the system's view of the ANR. A failure
-     * here leaves the body as the SDK captured it, which the flush still reports, so
-     * an ANR is never lost to a bad write.
+     * leaves the body as the SDK captured it, which the flush still reports.
      */
     private fun enrichPendingAnr(pendingAnr: PendingAnr, appExit: AppExit) {
         val threadDump = appExit.trace

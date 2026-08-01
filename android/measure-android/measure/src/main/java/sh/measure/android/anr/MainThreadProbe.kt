@@ -1,6 +1,7 @@
 package sh.measure.android.anr
 
 import android.os.Handler
+import sh.measure.android.mainHandler
 
 /**
  * Reports when the main thread is able to run work again.
@@ -14,9 +15,9 @@ internal interface MainThreadProbe {
 }
 
 internal class HandlerMainThreadProbe(
-    private val mainHandler: Handler = sh.measure.android.mainHandler,
+    private val handler: Handler = mainHandler,
 ) : MainThreadProbe {
     override fun notifyWhenResponsive(callback: () -> Unit) {
-        mainHandler.post(callback)
+        handler.post(callback)
     }
 }

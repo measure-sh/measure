@@ -8,22 +8,20 @@ import sh.measure.android.events.EventType
 import sh.measure.android.tracing.SpanStatus
 
 /**
- * Maps an event to [EventTable] in the database.
- */
-/**
  * An ANR held back from export until the system's thread dump for its process can be
- * merged into it.
+ * merged into it. [pid] identifies the process that recorded it, taken from its
+ * session.
  */
 internal data class PendingAnr(
     val eventId: String,
     val timestamp: String,
     val filePath: String?,
-    /**
-     * The pid of the process that recorded the ANR, taken from its session.
-     */
     val pid: Int,
 )
 
+/**
+ * Maps an event to [EventTable] in the database.
+ */
 internal data class EventEntity(
     /**
      * Unique identifier for the event.
@@ -81,9 +79,8 @@ internal data class EventEntity(
     val isSampled: Boolean = false,
 
     /**
-     * Whether the event is held back from export until it can be enriched. Only ANRs
-     * on API 30 and above are held, until the system's thread dump for the process
-     * becomes readable on the next launch.
+     * Whether the event is held back from export. Only ANRs on API 30 and above are
+     * held, until the system's thread dump becomes readable on the next launch.
      */
     val isPending: Boolean = false,
 ) {

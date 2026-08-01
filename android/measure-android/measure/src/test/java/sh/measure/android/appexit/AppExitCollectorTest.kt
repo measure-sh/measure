@@ -1,6 +1,5 @@
 package sh.measure.android.appexit
 
-import android.app.ApplicationExitInfo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -53,7 +52,7 @@ class AppExitCollectorTest {
     @Test
     fun `given session is available for given pid, tracks app exit event`() {
         // Given
-        val appExit = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_ANR)
+        val appExit = TestData.getAppExit()
         val pid = 1
         val pidToAppExit = pid to appExit
         val appExits = mapOf(pidToAppExit)
@@ -85,10 +84,10 @@ class AppExitCollectorTest {
     @Test
     fun `given multiple sessions are available, tracks app exit event for each of them`() {
         // Given
-        val appExit1 = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_ANR)
+        val appExit1 = TestData.getAppExit()
         val session1 =
             getSession(sessionId = "session-1", pid = 1, appVersion = "1.1.1", appBuild = "111")
-        val appExit2 = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_ANR)
+        val appExit2 = TestData.getAppExit()
         val session2 =
             getSession(sessionId = "session-2", pid = 2, appVersion = "1.1.2", appBuild = "112")
 
@@ -127,7 +126,7 @@ class AppExitCollectorTest {
     @Test
     fun `given no session is available for given pid, does not track app exit event`() {
         // Given
-        val appExit = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_ANR)
+        val appExit = TestData.getAppExit()
         appExitProvider.appExits = mapOf(1 to appExit)
 
         // When
@@ -150,9 +149,9 @@ class AppExitCollectorTest {
     @Test
     fun `marks sessions as app exit tracked after collection`() {
         // Given
-        val appExit1 = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_ANR)
+        val appExit1 = TestData.getAppExit()
         val session1 = getSession(sessionId = "session-1", pid = 1, createdAt = 1000)
-        val appExit2 = TestData.getAppExit(reasonId = ApplicationExitInfo.REASON_ANR)
+        val appExit2 = TestData.getAppExit()
         val session2 = getSession(sessionId = "session-2", pid = 2, createdAt = 2000)
 
         appExitProvider.appExits = mapOf(1 to appExit1, 2 to appExit2)
@@ -184,7 +183,6 @@ class AppExitCollectorTest {
         )
         appExitProvider.appExits = mapOf(
             1 to TestData.getAppExit(
-                reasonId = ApplicationExitInfo.REASON_ANR,
                 trace = "DALVIK THREADS (1):",
                 subject = "Input dispatching timed out",
             ),
@@ -224,7 +222,6 @@ class AppExitCollectorTest {
         )
         appExitProvider.appExits = mapOf(
             1 to TestData.getAppExit(
-                reasonId = ApplicationExitInfo.REASON_ANR,
                 trace = "DALVIK THREADS (1):",
             ),
         )

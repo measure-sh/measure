@@ -588,11 +588,6 @@ internal object Sql {
         WHERE e.${EventTable.COL_PENDING} = 1
     """.trimIndent()
 
-    /**
-     * Clears the pending flag on every ANR held by a process that has since died.
-     * A dead pid can never produce another exit record, so nothing it left behind
-     * can still be enriched.
-     */
     val finalizePendingAnrs: String = """
         UPDATE ${EventTable.TABLE_NAME}
         SET ${EventTable.COL_PENDING} = 0

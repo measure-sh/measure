@@ -441,7 +441,6 @@ internal object TestData {
     )
 
     fun getAppExit(
-        reasonId: Int = 1,
         reason: String = "reason",
         importance: String = "importance",
         trace: String? = "trace",
@@ -450,7 +449,6 @@ internal object TestData {
         appExitTimeMs: Long = 987654321L,
         pid: String = "123",
     ): AppExit = AppExit(
-        reasonId = reasonId,
         reason = reason,
         importance = importance,
         trace = trace,

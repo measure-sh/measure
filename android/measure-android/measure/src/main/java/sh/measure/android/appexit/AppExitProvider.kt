@@ -17,6 +17,7 @@ import java.io.InputStream
 
 private const val THREAD_DUMP_START = "DALVIK THREADS ("
 private const val THREAD_DUMP_END = "----- Waiting Channels:"
+private const val THREAD_HEADER_PREFIX = "\""
 private const val THREAD_DETAIL_PREFIX = "  | "
 private const val SUBJECT_PREFIX = "Subject: "
 
@@ -62,7 +63,6 @@ internal class AppExitProviderImpl(
         val anrTrace = parseAnrTrace(traceInputStream)
         return AppExit(
             reason = getReasonName(reason),
-            reasonId = reason,
             importance = getImportanceName(importance),
             trace = anrTrace?.threadDump,
             subject = anrTrace?.subject,
@@ -73,11 +73,9 @@ internal class AppExitProviderImpl(
     }
 
     /**
-     * Reads the thread dump and the subject out of an ANR trace in a single pass,
-     * as the stream can only be read once.
-     *
-     * The dump stops at the last whole thread block that fits in
-     * [MAX_THREAD_DUMP_BYTES], so a truncated dump never ends mid thread.
+     * Reads the thread dump and the subject out of an ANR trace in a single pass, as
+     * the stream can only be read once. Whole threads are accumulated and only
+     * committed once they are known to fit, so a capped dump never ends mid thread.
      */
     @VisibleForTesting
     internal fun parseAnrTrace(traceInputStream: InputStream?): AnrTrace? {
@@ -90,7 +88,15 @@ internal class AppExitProviderImpl(
         val thread = Buffer()
         var subject: String? = null
         var insideDump = false
-        var truncated = false
+
+        fun commitThread(): Boolean {
+            if (dump.size + thread.size > MAX_THREAD_DUMP_BYTES) {
+                return false
+            }
+            dump.writeAll(thread)
+            return true
+        }
+
         while (!source.exhausted()) {
             val line = source.readUtf8Line() ?: break
 
@@ -109,18 +115,12 @@ internal class AppExitProviderImpl(
             if (line.startsWith(THREAD_DETAIL_PREFIX)) {
                 continue
             }
-            if (line.startsWith("\"") && thread.size > 0) {
-                if (dump.size + thread.size > MAX_THREAD_DUMP_BYTES) {
-                    truncated = true
-                    break
-                }
-                dump.writeAll(thread)
+            if (line.startsWith(THREAD_HEADER_PREFIX) && thread.size > 0 && !commitThread()) {
+                break
             }
             thread.writeUtf8(line).writeUtf8("\n")
         }
-        if (!truncated && dump.size + thread.size <= MAX_THREAD_DUMP_BYTES) {
-            dump.writeAll(thread)
-        }
+        commitThread()
         return AnrTrace(dump.readUtf8().removeSuffix("\n"), subject)
     }
 

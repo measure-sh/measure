@@ -87,30 +87,31 @@ internal class SignalStoreImpl(
             val collectTimeline =
                 isFatalError || isUnhandledError || isAnrEvent || isBugReportEvent
 
-            // On API 30 and above an ANR is held back from export until the next
-            // launch, where the system's thread dump for the process is merged into it.
-            val entity = if (isAnrEvent && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                eventEntity.copy(isPending = true)
-            } else {
-                eventEntity
+            // Held until the next launch, where the system's thread dump for the
+            // process is merged in. Only reachable on API 30 and above.
+            val holdForThreadDump =
+                isAnrEvent && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+            val eventToStore = when {
+                holdForThreadDump -> eventEntity.copy(isPending = true)
+                else -> eventEntity
             }
 
             when {
                 collectTimeline -> {
-                    val success = database.insertEvent(entity)
+                    val success = database.insertEvent(eventToStore)
                     flush()
                     if (!success) {
-                        handleEventInsertionFailure(entity)
+                        handleEventInsertionFailure(eventToStore)
                     }
                 }
 
                 else -> {
-                    val isQueueFull = !eventQueue.offer(entity)
+                    val isQueueFull = !eventQueue.offer(eventToStore)
                     if (isQueueFull) {
-                        val success = database.insertEvent(entity)
+                        val success = database.insertEvent(eventToStore)
                         flush()
                         if (!success) {
-                            handleEventInsertionFailure(entity)
+                            handleEventInsertionFailure(eventToStore)
                         }
                     }
                 }

@@ -19,9 +19,9 @@ internal interface AnrListener {
 /**
  * Turns raw SIGQUIT signals into ANR incidents.
  *
- * One stalled main thread trips several system deadlines in turn, an input dispatch
- * timeout after a service or broadcast timeout, and the system collects stack traces
- * for each. Every collection raises SIGQUIT, so a single stall arrives here as a
+ * A single stalled main thread trips several system deadlines in turn, an input
+ * dispatch timeout following a service or broadcast timeout. The system collects
+ * stack traces for each, raising SIGQUIT every time, so one stall arrives here as a
  * stream of signals. Only the first of them is an incident.
  */
 internal class AnrDetector(
