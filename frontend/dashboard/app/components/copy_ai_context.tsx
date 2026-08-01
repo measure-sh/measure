@@ -1,5 +1,6 @@
 import React from "react";
 import { emptyErrorGroupDetails } from "../api/api_calls";
+import { selectErrorTrace } from "../utils/error_utils";
 import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
 import { toastPositive } from "../utils/use_toast";
 import { Button } from "./button";
@@ -98,22 +99,17 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({
       sections.push("## Attachments\n" + attachments);
     }
 
-    // Same trace the detail page shows. An ART thread dump covers every thread
-    // in the process, so it stands in for the stacktrace and the thread list.
-    const artThreadDump = errorEvent.anr?.art_thread_dump ?? "";
-    const stacktrace =
-      artThreadDump ||
-      errorEvent.exception?.stacktrace ||
-      errorEvent.anr?.stacktrace ||
-      "";
-    if (hasValue(stacktrace)) {
-      const heading = artThreadDump
+    const { trace, isThreadDump } = selectErrorTrace(errorEvent);
+    if (hasValue(trace)) {
+      const heading = isThreadDump
         ? "## ART thread dump"
         : `## Stack trace (thread: ${errorEvent.attribute.thread_name})`;
-      sections.push(heading + "\n" + codeBlock(stacktrace));
+      sections.push(heading + "\n" + codeBlock(trace));
     }
 
-    const threads = artThreadDump
+    // A thread dump already contains every thread, so listing them again only
+    // spends tokens.
+    const threads = isThreadDump
       ? []
       : (errorEvent.threads ?? []).filter(
           (t) => hasValue(t.name) && t.frames.some(hasValue),

@@ -21,6 +21,10 @@ const stacktraceClassName = cn(
   "text-xs leading-relaxed",
 );
 
+function nonEmptyString(value: unknown): string | null {
+  return typeof value === "string" && value !== "" ? value : null;
+}
+
 function renderAttributeRow(key: string, value: unknown): ReactNode {
   const isObject = typeof value === "object" && value !== null;
   return (
@@ -64,20 +68,12 @@ export default function SessionTimelineEventDetails({
   };
 
   function getBodyFromEventDetails(): ReactNode {
-    // Pulled out so the stacktrace renders as a syntax-highlighted Java
-    // CodeBlock — keeping it inline with the attribute rows would lose
-    // newlines and make frames unreadable. An ART thread dump covers every
-    // thread in the process, so it stands in for the stacktrace.
-    const artThreadDump =
-      typeof eventDetails.art_thread_dump === "string" &&
-      eventDetails.art_thread_dump !== ""
-        ? eventDetails.art_thread_dump
-        : null;
-    const stacktrace =
-      typeof eventDetails.stacktrace === "string" &&
-      eventDetails.stacktrace !== ""
-        ? eventDetails.stacktrace
-        : null;
+    // Pulled out so the trace renders as a syntax-highlighted Java CodeBlock.
+    // Inline with the attribute rows it would lose newlines and become
+    // unreadable. An ART thread dump covers every thread, so it stands in for
+    // the stacktrace when one arrived.
+    const artThreadDump = nonEmptyString(eventDetails.art_thread_dump);
+    const stacktrace = nonEmptyString(eventDetails.stacktrace);
     const trace = artThreadDump ?? stacktrace;
     const traceLabel = artThreadDump ? "ART THREAD DUMP" : "STACKTRACE";
 

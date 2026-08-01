@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import { cn } from "../utils/shadcn_utils";
+import { selectErrorTrace } from "../utils/error_utils";
 import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
 import { track } from "../utils/analytics/track";
 import {
@@ -276,18 +277,10 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
   };
 
   const firstResult = errorsDetails.results?.[0];
-  // An ART thread dump covers every thread in the process, so it stands in for
-  // the erroring thread's stacktrace and the threads captured alongside it.
-  const artThreadDump = firstResult?.anr?.art_thread_dump ?? "";
-  const stacktrace =
-    artThreadDump ||
-    firstResult?.exception?.stacktrace ||
-    firstResult?.anr?.stacktrace ||
-    "";
-  // The system's one line cause for the ANR, which names the deadline that
-  // expired. Only an ANR matched to its exit record carries one.
+  const { trace, isThreadDump } = selectErrorTrace(firstResult);
+  // The system's one line cause, naming the deadline that expired.
   const subject = firstResult?.anr?.subject ?? "";
-  const traceLabel = artThreadDump
+  const traceLabel = isThreadDump
     ? "ART thread dump"
     : "Thread: " + firstResult?.attribute.thread_name;
 
@@ -583,7 +576,7 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
                     collapsible
                     defaultValue={traceLabel}
                   >
-                    {stacktrace && (
+                    {trace && (
                       <AccordionItem value={traceLabel}>
                         <AccordionTrigger className="font-display">
                           {traceLabel}
@@ -592,12 +585,12 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
                           <CodeBlock
                             language="java"
                             className={stackTraceCodeBlockClassName}
-                            code={stacktrace}
+                            code={trace}
                           />
                         </AccordionContent>
                       </AccordionItem>
                     )}
-                    {(!artThreadDump &&
+                    {!isThreadDump &&
                       firstResult.threads?.map((e, index) => (
                         <AccordionItem
                           value={`${e.name}-${index}`}
@@ -614,8 +607,7 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
                             />
                           </AccordionContent>
                         </AccordionItem>
-                      ))) ||
-                      []}
+                      ))}
                   </Accordion>
                 </div>
               )}
