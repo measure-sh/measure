@@ -362,6 +362,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add usage notes for patch_id (#3793) by @detj in #3793
 - (**backend**): Add error fields matrix (#3701) by @detj in #3701
 - (**backend**): Update dashboard api docs (#3686) by @detj in #3686
+- Explain self host tradeoffs better by @anupcowkur in #4166
+- Update README by @anupcowkur
 - Split getting started into per-platform pages by @abhaysood in #4067
 - Remove old flow/architecture md files by @anupcowkur in #4136
 - Document logs feature and configuration (#4021) by @abhaysood
