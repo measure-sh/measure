@@ -230,6 +230,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Add twitter card tags to docs and marketing pages by @anupcowkur in #4168
 - (**frontend**): Update toast colours to match theme by @anupcowkur in #4167
 - (**frontend**): Update cta to "Get Started For Free" by @anupcowkur in #4164
 - (**frontend**): Match docs theme switcher to rest of app by @anupcowkur in #4143
