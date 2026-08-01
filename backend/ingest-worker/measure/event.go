@@ -412,6 +412,10 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		return nil
 	}
 
+	// An Android app's own classes sit under the package it
+	// reports itself under.
+	inAppPackages := []string{e.getAppUniqueID()}
+
 	stmt := sqlf.InsertInto(`events`)
 	defer stmt.Close()
 
@@ -425,6 +429,10 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		errorMeta := "{}"
 
 		if e.events[i].IsANR() {
+			// Both the frames marshalled below and the fingerprint
+			// depend on this having run.
+			e.events[i].ANR.MarkInAppFrames(inAppPackages)
+
 			marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
 			if err != nil {
 				return err
