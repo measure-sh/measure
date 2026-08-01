@@ -10,7 +10,7 @@ import com.android.tools.build.bundletool.commands.GetSizeCommand
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
-import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputFile
@@ -37,8 +37,18 @@ import java.nio.file.Path
  */
 abstract class AabSizeTask : DefaultTask() {
 
+    // Deliberately @Internal, not @InputDirectory: this points at the whole
+    // resolved Android SDK root, but getAapt2Location() only ever reads one
+    // file out of it (build-tools/<version>/aapt2). @InputDirectory forces
+    // Gradle to content-hash every file under the SDK before it can decide
+    // this task is up-to-date - on CI runners with a large preinstalled SDK
+    // (e.g. GitHub Actions' ubuntu-latest image: 200k+ files) and no prior
+    // successful run to have warmed Gradle's file-hash cache, that hash can
+    // take 10+ minutes on its own, with zero task output in the meantime.
+    // bundleFileProperty (@InputFile) already forces re-execution whenever
+    // the AAB content changes, which covers every real release build.
     @get:Optional
-    @get:InputDirectory
+    @get:Internal
     abstract val androidSdkDir: DirectoryProperty
 
     @get:InputFile
