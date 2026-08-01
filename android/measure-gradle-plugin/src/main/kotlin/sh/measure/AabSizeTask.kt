@@ -10,9 +10,8 @@ import com.android.tools.build.bundletool.commands.GetSizeCommand
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
-import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.InputFile
-import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import java.io.File
@@ -37,8 +36,7 @@ import java.nio.file.Path
  */
 abstract class AabSizeTask : DefaultTask() {
 
-    @get:Optional
-    @get:InputDirectory
+    @get:Internal
     abstract val androidSdkDir: DirectoryProperty
 
     @get:InputFile
