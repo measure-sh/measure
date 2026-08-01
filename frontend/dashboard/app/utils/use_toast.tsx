@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, CircleAlert, XCircle } from "lucide-react";
 import * as React from "react";
 import { ToastActionElement, ToastProps } from "../components/toast";
 
@@ -171,7 +171,7 @@ function toastPositive(text: string) {
   toast({
     description: (
       <span className="inline-flex items-center gap-2">
-        <CheckCircle className="w-4 h-4 text-green-600" />
+        <CheckCircle className="w-4 h-4 shrink-0 text-green-700 dark:text-green-600" />
         <span>{text}</span>
       </span>
     ),
@@ -181,8 +181,8 @@ function toastPositive(text: string) {
 function toastNegative(text: string, error?: string) {
   toast({
     description: (
-      <span className="inline-flex items-center text-white gap-2">
-        <XCircle className="w-4 h-4" />
+      <span className="inline-flex items-center gap-2">
+        <CircleAlert className="w-4 h-4 shrink-0" />
         <span>
           {text}
           {error ? ": " + error : ""}
@@ -190,6 +190,8 @@ function toastNegative(text: string, error?: string) {
       </span>
     ),
     variant: "destructive",
+    className:
+      "[&_[toast-close]]:text-destructive-foreground/50! [&_[toast-close]]:hover:text-destructive-foreground!",
   });
 }
 
