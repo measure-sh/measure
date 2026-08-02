@@ -103,15 +103,7 @@ jest.mock("@/app/stores/provider", () => ({
     useStore(storeInstance, selector ?? ((s: any) => s)),
 }));
 
-import {
-  App,
-  AppsApiStatus,
-  AppVersion,
-  FiltersApiStatus,
-  FilterSource,
-  OsVersion,
-  RootSpanNamesApiStatus,
-} from "@/app/api/api_calls";
+import { App, AppVersion, FilterSource, OsVersion } from "@/app/api/api_calls";
 import Filters, {
   AppVersionsInitialSelectionType,
   deserializeUrlFilters,
@@ -195,13 +187,13 @@ function setAppsPending() {
 function setAppsSuccess(apps: App[]) {
   appsQueryState = {
     status: "success",
-    data: { status: AppsApiStatus.Success, data: apps },
+    data: apps,
   };
 }
 function setAppsNoApps() {
   appsQueryState = {
     status: "success",
-    data: { status: AppsApiStatus.NoApps, data: [] },
+    data: [],
   };
 }
 function setAppsError() {
@@ -211,25 +203,25 @@ function setAppsError() {
 function setFiltersSuccess() {
   filterOptionsQueryState = {
     status: "success",
-    data: { status: FiltersApiStatus.Success, data: filterOptionsFixture },
+    data: { kind: "options", data: filterOptionsFixture },
   };
 }
 function setFiltersNoData() {
   filterOptionsQueryState = {
     status: "success",
-    data: { status: FiltersApiStatus.NoData, data: null },
+    data: { kind: "no-data" },
   };
 }
 function setFiltersNoBuilds() {
   filterOptionsQueryState = {
     status: "success",
-    data: { status: FiltersApiStatus.NoBuilds, data: null },
+    data: { kind: "no-builds" },
   };
 }
 function setFiltersNotOnboarded() {
   filterOptionsQueryState = {
     status: "success",
-    data: { status: FiltersApiStatus.NotOnboarded, data: null },
+    data: { kind: "not-onboarded" },
   };
 }
 function setFiltersError() {
@@ -246,8 +238,13 @@ function setFiltersPending() {
 function setRootSpansSuccess(names = ["root.a", "root.b"]) {
   rootSpanNamesQueryState = {
     status: "success",
-    data: { status: RootSpanNamesApiStatus.Success, data: names },
+    data: names,
   };
+}
+// An app that has never reported a trace answers with a null list. The
+// fetcher sends the null through, and does not change it to an empty array.
+function setRootSpansNoData() {
+  rootSpanNamesQueryState = { status: "success", data: null };
 }
 function setRootSpansPending() {
   rootSpanNamesQueryState = { status: "pending", data: undefined };
@@ -420,6 +417,17 @@ describe("Filters — Span filter source", () => {
     });
   });
 
+  it("shows the no-traces message when the app has never reported a trace", async () => {
+    setRootSpansNoData();
+    await renderFilters({ filterSource: FilterSource.Spans });
+    await waitFor(() => {
+      expect(
+        screen.getByText(/No traces received for this app yet/),
+      ).toBeInTheDocument();
+    });
+    expect(storeInstance.getState().rootSpanNamesState).toBe("no-data");
+  });
+
   it("renders the trace name dropdown once root span names load", async () => {
     setRootSpansSuccess();
     await renderFilters({ filterSource: FilterSource.Spans });
@@ -447,8 +455,16 @@ describe("Filters — store state after queries resolve", () => {
     await waitFor(() => {
       const state = storeInstance.getState();
       expect(state.apps).toHaveLength(1);
-      expect(state.appsApiStatus).toBe(AppsApiStatus.Success);
-      expect(state.filtersApiStatus).toBe(FiltersApiStatus.Success);
+      expect(state.appsState).toBe("loaded");
+      expect(state.filterOptionsState).toBe("loaded");
+    });
+  });
+
+  it("mirrors an empty apps response as the no-apps state", async () => {
+    setAppsNoApps();
+    await renderFilters();
+    await waitFor(() => {
+      expect(storeInstance.getState().appsState).toBe("no-apps");
     });
   });
 
@@ -493,7 +509,7 @@ describe("Filters — store state after queries resolve", () => {
     setAppsSuccess([makeApp("a")]);
     filterOptionsQueryState = {
       status: "success",
-      data: { status: FiltersApiStatus.Success, data: fixture },
+      data: { kind: "options", data: fixture },
     };
     await renderFilters();
     await waitFor(() => {
@@ -542,7 +558,7 @@ describe("Filters — selectedApp sync on refetch", () => {
     await act(async () => {
       // Mirrors the refetch landing in the store; forces the sync effect
       // (keyed on appsQuery.data) to re-run against the fresh apps list.
-      storeInstance.getState().setApps([next], AppsApiStatus.Success);
+      storeInstance.getState().setApps([next], "loaded");
     });
 
     await waitFor(() => {
@@ -563,7 +579,7 @@ describe("Filters — selectedApp sync on refetch", () => {
     const next = makeApp("a", true);
     setAppsSuccess([next]);
     await act(async () => {
-      storeInstance.getState().setApps([next], AppsApiStatus.Success);
+      storeInstance.getState().setApps([next], "loaded");
     });
 
     await waitFor(() => {
@@ -584,7 +600,7 @@ describe("Filters — selectedApp sync on refetch", () => {
     const refetched = makeApp("a");
     setAppsSuccess([refetched]);
     await act(async () => {
-      storeInstance.getState().setApps([refetched], AppsApiStatus.Success);
+      storeInstance.getState().setApps([refetched], "loaded");
     });
 
     // appsEqual sees no change, so the store keeps the same object reference.

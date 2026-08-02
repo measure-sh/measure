@@ -51,72 +51,6 @@ jest.mock("@/app/utils/env_utils", () => ({
 
 jest.mock("@/app/api/api_calls", () => ({
   __esModule: true,
-  AppsApiStatus: {
-    Loading: 0,
-    Success: 1,
-    Error: 2,
-    NoApps: 3,
-    Cancelled: 4,
-  },
-  AuthzAndMembersApiStatus: {
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  FetchBillingInfoApiStatus: {
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  FetchAppRetentionApiStatus: {
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  SdkConfigApiStatus: {
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  UpdateAppRetentionApiStatus: {
-    Init: "init",
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  AppNameChangeApiStatus: {
-    Init: "init",
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  AppApiKeyChangeApiStatus: {
-    Init: "init",
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  FetchAppThresholdPrefsApiStatus: {
-    Init: "init",
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  UpdateAppThresholdPrefsApiStatus: {
-    Init: "init",
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
   defaultAppThresholdPrefs: {
     error_good_threshold: 95,
     error_caution_threshold: 85,
@@ -143,23 +77,21 @@ jest.mock("@/app/api/api_calls", () => ({
 // --- Bridge store: tests control this, query hook mocks read from it ---
 const { create: createBridge } = jest.requireActual("zustand") as any;
 const appsStore = createBridge((set: any) => ({
-  // Permissions (derived from authzAndMembers query)
+  // Permissions (derived from the authzAndMembers query)
   canCreateApp: false,
   canRenameApp: false,
   canChangeRetention: false,
   canRotateApiKey: false,
   canWriteSdkConfig: false,
   canChangeAppThresholdPrefs: false,
-  // Page load status (legacy mapping)
-  pageLoadStatus: "Init",
-  // Query data
+  pageLoadState: "idle",
   appRetention: { retention: 90 },
   updatedAppRetention: { retention: 90 },
   sdkConfig: null as any,
-  fetchBillingInfoApiStatus: "loading",
+  billingInfoState: "loading",
   retentionChangeAllowed: false,
-  fetchAppThresholdPrefsApiStatus: "Init",
-  updateAppThresholdPrefsApiStatus: "Init",
+  appThresholdPrefsState: "idle",
+  updateAppThresholdPrefsState: "idle",
   appThresholdPrefs: {
     error_good_threshold: 2,
     error_caution_threshold: 5,
@@ -172,10 +104,9 @@ const appsStore = createBridge((set: any) => ({
     error_spike_min_count_threshold: 100,
     error_spike_min_rate_threshold: 5,
   },
-  updateAppRetentionApiStatus: "Init",
-  appNameChangeApiStatus: "Init",
-  appApiKeyChangeApiStatus: "Init",
-  // Action mocks
+  updateAppRetentionState: "idle",
+  appNameChangeState: "idle",
+  appApiKeyChangeState: "idle",
   fetchPermissions: jest.fn(),
   loadPageData: jest.fn(),
   fetchBillingInfo: jest.fn(),
@@ -189,32 +120,27 @@ const appsStore = createBridge((set: any) => ({
   setAppThresholdPrefs: jest.fn((prefs: any) =>
     set({ appThresholdPrefs: prefs }),
   ),
-  setUpdateAppThresholdPrefsApiStatus: jest.fn((status: any) =>
-    set({ updateAppThresholdPrefsApiStatus: status }),
+  setUpdateAppThresholdPrefsState: jest.fn((status: any) =>
+    set({ updateAppThresholdPrefsState: status }),
   ),
-  setAppNameChangeApiStatus: jest.fn((status: any) =>
-    set({ appNameChangeApiStatus: status }),
+  setAppNameChangeState: jest.fn((status: any) =>
+    set({ appNameChangeState: status }),
   ),
   reset: jest.fn(),
 }));
 
-// Map legacy pageLoadStatus to TanStack query statuses
+// The page reads two queries that load together, so one fixture state drives
+// both. Anything before the load finishes counts as pending.
 function deriveQueryStatuses(state: any) {
-  const pls = state.pageLoadStatus;
-  if (pls === "Loading") {
-    return { retentionStatus: "pending", sdkStatus: "pending" };
-  }
-  if (pls === "Error") {
-    return { retentionStatus: "error", sdkStatus: "error" };
-  }
-  if (pls === "Success") {
-    return { retentionStatus: "success", sdkStatus: "success" };
-  }
-  return { retentionStatus: "pending", sdkStatus: "pending" };
+  const status =
+    state.pageLoadState === "error" || state.pageLoadState === "success"
+      ? state.pageLoadState
+      : "pending";
+  return { retentionStatus: status, sdkStatus: status };
 }
 
 function deriveThresholdStatus(state: any) {
-  const s = state.fetchAppThresholdPrefsApiStatus;
+  const s = state.appThresholdPrefsState;
   if (s === "success") {
     return "success";
   }
@@ -270,22 +196,22 @@ jest.mock("@/app/query/hooks", () => ({
         if (result && typeof result.then === "function") {
           result.then(() => {
             const st = appsStore.getState();
-            if (st.updateAppRetentionApiStatus === "success") {
+            if (st.updateAppRetentionState === "success") {
               opts?.onSuccess?.();
-            } else if (st.updateAppRetentionApiStatus === "error") {
+            } else if (st.updateAppRetentionState === "error") {
               opts?.onError?.();
             }
           });
         } else {
           const st = appsStore.getState();
-          if (st.updateAppRetentionApiStatus === "success") {
+          if (st.updateAppRetentionState === "success") {
             opts?.onSuccess?.();
-          } else if (st.updateAppRetentionApiStatus === "error") {
+          } else if (st.updateAppRetentionState === "error") {
             opts?.onError?.();
           }
         }
       },
-      isPending: s.updateAppRetentionApiStatus === "loading",
+      isPending: s.updateAppRetentionState === "loading",
     };
   },
   useChangeAppNameMutation: () => {
@@ -303,7 +229,7 @@ jest.mock("@/app/query/hooks", () => ({
           });
         }
       },
-      isPending: s.appNameChangeApiStatus === "loading",
+      isPending: s.appNameChangeState === "loading",
     };
   },
   useChangeAppApiKeyMutation: () => {
@@ -321,7 +247,7 @@ jest.mock("@/app/query/hooks", () => ({
           });
         }
       },
-      isPending: s.appApiKeyChangeApiStatus === "loading",
+      isPending: s.appApiKeyChangeState === "loading",
     };
   },
   useUpdateAppThresholdPrefsMutation: () => {
@@ -341,7 +267,7 @@ jest.mock("@/app/query/hooks", () => ({
           opts?.onSuccess?.();
         }
       },
-      isPending: s.updateAppThresholdPrefsApiStatus === "loading",
+      isPending: s.updateAppThresholdPrefsState === "loading",
     };
   },
 }));
@@ -480,12 +406,12 @@ const defaultLoadedAppsState = {
   canRotateApiKey: true,
   canWriteSdkConfig: true,
   canChangeAppThresholdPrefs: true,
-  pageLoadStatus: "Success",
+  pageLoadState: "success",
   appRetention: { retention: 30 },
   updatedAppRetention: { retention: 30 },
   sdkConfig: { session_sampling_rate: 100 },
   retentionChangeAllowed: true,
-  fetchAppThresholdPrefsApiStatus: "success",
+  appThresholdPrefsState: "success",
   appThresholdPrefs: {
     error_good_threshold: 95,
     error_caution_threshold: 85,
@@ -514,7 +440,7 @@ const renderLoadedPage = async () => {
     changeAppApiKey: jest.fn().mockResolvedValue(true),
     updateAppThresholdPrefs: jest.fn().mockResolvedValue(true),
     saveAppRetention: jest.fn().mockImplementation(async () => {
-      useAppsStore.setState({ updateAppRetentionApiStatus: "success" });
+      useAppsStore.setState({ updateAppRetentionState: "success" });
     }),
   });
 
@@ -580,14 +506,14 @@ describe("Apps Page", () => {
       canRotateApiKey: false,
       canWriteSdkConfig: false,
       canChangeAppThresholdPrefs: false,
-      pageLoadStatus: "Init",
+      pageLoadState: "idle",
       appRetention: { retention: 90 },
       updatedAppRetention: { retention: 90 },
       sdkConfig: null,
-      fetchBillingInfoApiStatus: "loading",
+      billingInfoState: "loading",
       retentionChangeAllowed: false,
-      fetchAppThresholdPrefsApiStatus: "Init",
-      updateAppThresholdPrefsApiStatus: "Init",
+      appThresholdPrefsState: "idle",
+      updateAppThresholdPrefsState: "idle",
       appThresholdPrefs: {
         error_good_threshold: 2,
         error_caution_threshold: 5,
@@ -600,9 +526,9 @@ describe("Apps Page", () => {
         error_spike_min_count_threshold: 100,
         error_spike_min_rate_threshold: 5,
       },
-      updateAppRetentionApiStatus: "Init",
-      appNameChangeApiStatus: "Init",
-      appApiKeyChangeApiStatus: "Init",
+      updateAppRetentionState: "idle",
+      appNameChangeState: "idle",
+      appApiKeyChangeState: "idle",
       fetchPermissions: jest.fn(),
       loadPageData: jest.fn(),
       fetchBillingInfo: jest.fn(),
@@ -616,11 +542,11 @@ describe("Apps Page", () => {
       setAppThresholdPrefs: jest.fn((prefs: any) =>
         useAppsStore.setState({ appThresholdPrefs: prefs }),
       ),
-      setUpdateAppThresholdPrefsApiStatus: jest.fn((status: any) =>
-        useAppsStore.setState({ updateAppThresholdPrefsApiStatus: status }),
+      setUpdateAppThresholdPrefsState: jest.fn((status: any) =>
+        useAppsStore.setState({ updateAppThresholdPrefsState: status }),
       ),
-      setAppNameChangeApiStatus: jest.fn((status: any) =>
-        useAppsStore.setState({ appNameChangeApiStatus: status }),
+      setAppNameChangeState: jest.fn((status: any) =>
+        useAppsStore.setState({ appNameChangeState: status }),
       ),
       reset: jest.fn(),
     });
@@ -664,7 +590,7 @@ describe("Apps Page", () => {
   it("shows loading state while app settings are being fetched", async () => {
     useAppsStore.setState({
       ...defaultLoadedAppsState,
-      pageLoadStatus: "Loading",
+      pageLoadState: "pending",
     });
 
     await renderPage();
@@ -685,7 +611,7 @@ describe("Apps Page", () => {
   it("shows error message when app settings fetch fails", async () => {
     useAppsStore.setState({
       ...defaultLoadedAppsState,
-      pageLoadStatus: "Error",
+      pageLoadState: "error",
       sdkConfig: null,
     });
 
@@ -969,11 +895,10 @@ describe("Apps Page", () => {
     expect(mockRefreshFilters).not.toHaveBeenCalled();
   });
 
-  it("handles cancelled rotate without toasts", async () => {
+  it("re-enables the Rotate button after a failed rotation", async () => {
     useAppsStore.setState({
       ...defaultLoadedAppsState,
       changeAppApiKey: jest.fn().mockResolvedValue(false),
-      appApiKeyChangeApiStatus: "cancelled",
     });
 
     await renderPage();
@@ -1007,7 +932,7 @@ describe("Apps Page", () => {
     useAppsStore.setState({
       ...defaultLoadedAppsState,
       changeAppApiKey: jest.fn().mockImplementation(() => {
-        useAppsStore.setState({ appApiKeyChangeApiStatus: "loading" });
+        useAppsStore.setState({ appApiKeyChangeState: "loading" });
         return pendingPromise;
       }),
     });
@@ -1094,7 +1019,7 @@ describe("Apps Page", () => {
     useAppsStore.setState({
       ...defaultLoadedAppsState,
       changeAppName: jest.fn().mockImplementation(() => {
-        useAppsStore.setState({ appNameChangeApiStatus: "loading" });
+        useAppsStore.setState({ appNameChangeState: "loading" });
         return pendingPromise;
       }),
     });
@@ -1241,7 +1166,7 @@ describe("Apps Page", () => {
     useAppsStore.setState({
       ...defaultLoadedAppsState,
       saveAppRetention: jest.fn().mockImplementation(() => {
-        useAppsStore.setState({ updateAppRetentionApiStatus: "loading" });
+        useAppsStore.setState({ updateAppRetentionState: "loading" });
         return pendingPromise;
       }),
     });
@@ -1284,7 +1209,7 @@ describe("Apps Page", () => {
     useAppsStore.setState({
       ...defaultLoadedAppsState,
       saveAppRetention: jest.fn().mockImplementation(async () => {
-        useAppsStore.setState({ updateAppRetentionApiStatus: "error" });
+        useAppsStore.setState({ updateAppRetentionState: "error" });
       }),
     });
 
@@ -1307,36 +1232,6 @@ describe("Apps Page", () => {
     });
 
     expect(mockToastNegative).toHaveBeenCalledWith("Error saving app settings");
-  });
-
-  it("handles cancelled retention update without toasts", async () => {
-    useAppsStore.setState({
-      ...defaultLoadedAppsState,
-      saveAppRetention: jest.fn().mockImplementation(async () => {
-        useAppsStore.setState({ updateAppRetentionApiStatus: "cancelled" });
-      }),
-    });
-
-    await renderPage();
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
-    });
-
-    await openRetentionDialog();
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Yes, I'm sure" }));
-    });
-
-    expect(mockToastPositive).not.toHaveBeenCalled();
-    expect(mockToastNegative).not.toHaveBeenCalled();
   });
 
   it("cancels retention update and does not call API", async () => {
@@ -1564,7 +1459,7 @@ describe("Apps Page", () => {
     it("shows loading state while threshold prefs are fetched", async () => {
       useAppsStore.setState({
         ...defaultLoadedAppsState,
-        fetchAppThresholdPrefsApiStatus: "loading",
+        appThresholdPrefsState: "loading",
       });
 
       await renderPage();
@@ -1586,7 +1481,7 @@ describe("Apps Page", () => {
     it("shows error message when threshold prefs fetch fails", async () => {
       useAppsStore.setState({
         ...defaultLoadedAppsState,
-        fetchAppThresholdPrefsApiStatus: "error",
+        appThresholdPrefsState: "error",
       });
 
       await renderPage();

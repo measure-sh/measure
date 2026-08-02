@@ -1,9 +1,7 @@
 "use client";
 
-import {
-  ValidateInviteApiStatus,
-  validateInvitesFromServer,
-} from "@/app/api/api_calls";
+import { validateInvitesFromServer } from "@/app/api/api_calls";
+import { ApiError } from "@/app/api/api_error";
 import { fetchCurrentSession, type Session } from "@/app/query/hooks";
 import { queryClient } from "@/app/query/query_client";
 import { useMeasureStoreRegistry } from "@/app/stores/provider";
@@ -57,15 +55,16 @@ export default function Login(props: {
       return;
     }
     const validateInvite = async () => {
-      const result = await validateInvitesFromServer(inviteId as string);
-
-      switch (result.status) {
-        case ValidateInviteApiStatus.Error:
+      try {
+        await validateInvitesFromServer(inviteId as string);
+        setInviteInvalid(false);
+      } catch (e) {
+        // Only a rejection from the server shows that the invite is bad. A
+        // failure with no verdict leaves the invite unjudged, so a bad
+        // connection does not tell the user that the link is invalid.
+        if (e instanceof ApiError) {
           setInviteInvalid(true);
-          break;
-        case ValidateInviteApiStatus.Success:
-          setInviteInvalid(false);
-          break;
+        }
       }
     };
     validateInvite();

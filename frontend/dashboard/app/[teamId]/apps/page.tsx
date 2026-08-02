@@ -12,7 +12,6 @@ import {
 import { useFiltersStore } from "@/app/stores/provider";
 
 import {
-  AppsApiStatus,
   FilterSource,
   defaultAppThresholdPrefs,
   emptyAppRetention,
@@ -41,12 +40,12 @@ import { use, useRef, useState } from "react";
 export default function Apps(props: { params: Promise<{ teamId: string }> }) {
   const params = use(props.params);
   const filters = useFiltersStore((state) => state.filters);
-  const appsApiStatus = useFiltersStore((state) => state.appsApiStatus);
-  // No apps yet → render <Onboarding> via Filters and hide the CreateApp
-  // button so the onboarding flow is the only call-to-action. As soon as
-  // the user creates an app, appsApiStatus flips to Success and the page
-  // falls back to its normal app-settings layout.
-  const hasNoApps = appsApiStatus === AppsApiStatus.NoApps;
+  const appsState = useFiltersStore((state) => state.appsState);
+  // The team has no apps yet. Render <Onboarding> through Filters, and hide
+  // the CreateApp button, so the onboarding flow is the only call to action.
+  // After the user creates an app, the apps query resolves to "loaded", and
+  // the page shows its usual app-settings layout.
+  const hasNoApps = appsState === "no-apps";
 
   // TanStack Query: reads
   const appId = filters.ready ? filters.app?.id : undefined;

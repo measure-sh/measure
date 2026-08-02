@@ -19,18 +19,14 @@ import React, {
 } from "react";
 import {
   App,
-  AppsApiStatus,
   AppVersion,
   BugReportStatus,
-  FiltersApiStatus,
   FilterSource,
   HttpMethod,
-  RootSpanNamesApiStatus,
   SessionType,
   SpanStatus,
 } from "../api/api_calls";
 import {
-  type AppsQueryResult,
   useAppsQuery,
   useFilterOptionsQuery,
   useRootSpanNamesQuery,
@@ -651,24 +647,24 @@ const FiltersComponent = forwardRef<
 
     useEffect(() => {
       if (appsQuery.status === "pending") {
-        store.setApps([], AppsApiStatus.Loading);
+        store.setApps([], "pending");
         return;
       }
       if (appsQuery.status === "error") {
-        store.setApps([], AppsApiStatus.Error);
+        store.setApps([], "error");
         return;
       }
-      store.setApps(appsQuery.data.data, appsQuery.data.status);
+      // A team with no apps also resolves the query. The empty list is the
+      // answer, and not a failure or an unfinished load.
+      const apps = appsQuery.data;
+      store.setApps(apps, apps.length === 0 ? "no-apps" : "loaded");
     }, [appsQuery.status, appsQuery.data]);
 
     useEffect(() => {
       if (appsQuery.status !== "success") {
         return;
       }
-      if (appsQuery.data.status !== AppsApiStatus.Success) {
-        return;
-      }
-      const apps = appsQuery.data.data;
+      const apps = appsQuery.data;
       if (apps.length === 0) {
         return;
       }
@@ -692,26 +688,28 @@ const FiltersComponent = forwardRef<
         return;
       }
       if (filterOptionsQuery.status === "pending") {
-        store.setFilterOptions(null, FiltersApiStatus.Loading);
+        store.setFilterOptions(null, "pending");
         return;
       }
       if (filterOptionsQuery.status === "error") {
-        store.setFilterOptions(null, FiltersApiStatus.Error);
+        store.setFilterOptions(null, "error");
         return;
       }
-      // Query resolved — inner status is Success, NoData, or NotOnboarded.
-      const { status, data } = filterOptionsQuery.data;
-      if (status === FiltersApiStatus.Success && data) {
+      // The query resolved. The result is thus the options themselves, or
+      // one of the three empty outcomes. The kind of an empty outcome is
+      // also the store state.
+      const result = filterOptionsQuery.data;
+      if (result.kind === "options") {
         const selections = applyFilterOptions(
-          data,
+          result.data,
           selectedApp,
           initConfig,
           store,
         );
-        store.setFilterOptions(data, FiltersApiStatus.Success);
+        store.setFilterOptions(result.data, "loaded");
         store.applySelections(selections);
       } else {
-        store.setFilterOptions(null, status);
+        store.setFilterOptions(null, result.kind);
       }
     }, [
       filterOptionsQuery.status,
@@ -730,22 +728,24 @@ const FiltersComponent = forwardRef<
         return;
       }
       if (rootSpanNamesQuery.status === "pending") {
-        store.setRootSpanNames(null, RootSpanNamesApiStatus.Loading);
+        store.setRootSpanNames(null, "pending");
         return;
       }
       if (rootSpanNamesQuery.status === "error") {
-        store.setRootSpanNames(null, RootSpanNamesApiStatus.Error);
+        store.setRootSpanNames(null, "error");
         return;
       }
-      const { status, data } = rootSpanNamesQuery.data;
-      if (status === RootSpanNamesApiStatus.Success && data) {
-        store.setRootSpanNames(data, RootSpanNamesApiStatus.Success);
-        store.setSelectedRootSpanName(
-          resolveRootSpanName(data, initConfig, selectedApp),
-        );
-      } else {
-        store.setRootSpanNames(null, status);
+      // An app that has never reported a trace answers with a null list.
+      // This is not the same as a server that answers with an empty list.
+      const names = rootSpanNamesQuery.data;
+      if (names === null) {
+        store.setRootSpanNames(null, "no-data");
+        return;
       }
+      store.setRootSpanNames(names, "loaded");
+      store.setSelectedRootSpanName(
+        resolveRootSpanName(names, initConfig, selectedApp),
+      );
     }, [
       rootSpanNamesQuery.status,
       rootSpanNamesQuery.data,
@@ -762,8 +762,7 @@ const FiltersComponent = forwardRef<
         });
         if (appIdToSelect) {
           const apps =
-            queryClient.getQueryData<AppsQueryResult>(["filterApps", teamId])
-              ?.data ?? [];
+            queryClient.getQueryData<App[]>(["filterApps", teamId]) ?? [];
           const app = apps.find((a) => a.id === appIdToSelect);
           if (app) {
             store.setSelectedApp(app);
@@ -1376,15 +1375,14 @@ const FiltersComponent = forwardRef<
 
     return (
       <div>
-        {store.appsApiStatus === AppsApiStatus.Loading &&
-          filtersSkeleton(skeletonMainRowCount)}
+        {store.appsState === "pending" && filtersSkeleton(skeletonMainRowCount)}
 
-        {store.appsApiStatus === AppsApiStatus.Error && (
+        {store.appsState === "error" && (
           <p className="font-body text-sm">
             Error fetching apps, please refresh page to try again
           </p>
         )}
-        {store.appsApiStatus === AppsApiStatus.NoApps &&
+        {store.appsState === "no-apps" &&
           (showNotOnboarded ? (
             <Onboarding teamId={teamId} initConfig={initConfig} />
           ) : (
@@ -1400,72 +1398,63 @@ const FiltersComponent = forwardRef<
             </p>
           ))}
 
-        {store.appsApiStatus === AppsApiStatus.Success &&
-          store.filtersApiStatus !== FiltersApiStatus.Success && (
+        {store.appsState === "loaded" &&
+          store.filterOptionsState !== "loaded" && (
             <div className="flex flex-col">
               {showAppSelector &&
-                store.filtersApiStatus === FiltersApiStatus.Loading &&
+                store.filterOptionsState === "pending" &&
                 filtersSkeleton(skeletonMainRowCount - 1, appSelectorDropdown)}
-              {showAppSelector &&
-                store.filtersApiStatus !== FiltersApiStatus.Loading && (
-                  <div className="flex flex-wrap gap-8 items-center">
-                    {appSelectorDropdown}
-                  </div>
-                )}
+              {showAppSelector && store.filterOptionsState !== "pending" && (
+                <div className="flex flex-wrap gap-8 items-center">
+                  {appSelectorDropdown}
+                </div>
+              )}
               <div className="py-4" />
-              {store.filtersApiStatus === FiltersApiStatus.Error && (
+              {store.filterOptionsState === "error" && (
                 <p className="font-body text-sm">
                   Error fetching filters, please refresh page or select a
                   different app to try again
                 </p>
               )}
-              {showNoData &&
-                store.filtersApiStatus === FiltersApiStatus.NoData && (
-                  <p className="font-body text-sm">
-                    No{" "}
-                    {filterSource === FilterSource.Errors ? "errors" : "data"}{" "}
-                    received for this app yet
-                  </p>
-                )}
-              {showNoBuilds &&
-                store.filtersApiStatus === FiltersApiStatus.NoBuilds && (
-                  <p className="font-body text-sm">
-                    No builds uploaded for this app yet
-                  </p>
-                )}
+              {showNoData && store.filterOptionsState === "no-data" && (
+                <p className="font-body text-sm">
+                  No {filterSource === FilterSource.Errors ? "errors" : "data"}{" "}
+                  received for this app yet
+                </p>
+              )}
+              {showNoBuilds && store.filterOptionsState === "no-builds" && (
+                <p className="font-body text-sm">
+                  No builds uploaded for this app yet
+                </p>
+              )}
               {showNotOnboarded &&
-                store.filtersApiStatus === FiltersApiStatus.NotOnboarded && (
+                store.filterOptionsState === "not-onboarded" && (
                   <Onboarding teamId={teamId} initConfig={initConfig} />
                 )}
             </div>
           )}
 
-        {store.appsApiStatus === AppsApiStatus.Success &&
-          store.filtersApiStatus === FiltersApiStatus.Success &&
+        {store.appsState === "loaded" &&
+          store.filterOptionsState === "loaded" &&
           filterSource === FilterSource.Spans &&
-          store.rootSpanNamesApiStatus !== RootSpanNamesApiStatus.Success && (
+          store.rootSpanNamesState !== "loaded" && (
             <div className="flex flex-col">
               {showAppSelector &&
-                store.rootSpanNamesApiStatus ===
-                  RootSpanNamesApiStatus.Loading &&
+                store.rootSpanNamesState === "pending" &&
                 filtersSkeleton(skeletonMainRowCount - 1, appSelectorDropdown)}
-              {showAppSelector &&
-                store.rootSpanNamesApiStatus !==
-                  RootSpanNamesApiStatus.Loading && (
-                  <div className="flex flex-wrap gap-8 items-center">
-                    {appSelectorDropdown}
-                  </div>
-                )}
+              {showAppSelector && store.rootSpanNamesState !== "pending" && (
+                <div className="flex flex-wrap gap-8 items-center">
+                  {appSelectorDropdown}
+                </div>
+              )}
               <div className="py-4" />
-              {store.rootSpanNamesApiStatus ===
-                RootSpanNamesApiStatus.Error && (
+              {store.rootSpanNamesState === "error" && (
                 <p className="font-body text-sm">
                   Error fetching traces list, please refresh page or select a
                   different app to try again
                 </p>
               )}
-              {store.rootSpanNamesApiStatus ===
-                RootSpanNamesApiStatus.NoData && (
+              {store.rootSpanNamesState === "no-data" && (
                 <p className="font-body text-sm">
                   No traces received for this app yet
                 </p>
@@ -1473,11 +1462,11 @@ const FiltersComponent = forwardRef<
             </div>
           )}
 
-        {store.appsApiStatus === AppsApiStatus.Success &&
+        {store.appsState === "loaded" &&
           ((filterSource === FilterSource.Spans &&
-            store.rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
+            store.rootSpanNamesState === "loaded") ||
             filterSource !== FilterSource.Spans) &&
-          store.filtersApiStatus === FiltersApiStatus.Success && (
+          store.filterOptionsState === "loaded" && (
             <div>
               <div className="flex flex-wrap gap-8 items-center">
                 {showAppSelector && (

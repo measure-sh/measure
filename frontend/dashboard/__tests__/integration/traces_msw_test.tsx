@@ -328,12 +328,6 @@ describe("Traces Overview (MSW integration)", () => {
       ).toContain("3 points");
     });
 
-    it("store status is Success after data loads", async () => {
-      await renderAndWaitForData();
-      const { SpansApiStatus } = require("@/app/api/api_calls");
-      // Data loaded successfully - verified by DOM content above
-    });
-
     it("shows error when spans API returns 500", async () => {
       server.use(
         http.get("*/api/apps/:appId/spans", ({ request }) => {

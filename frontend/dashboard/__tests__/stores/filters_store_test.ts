@@ -2,14 +2,11 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 
 import {
   App,
-  AppsApiStatus,
   AppVersion,
   BugReportStatus,
-  FiltersApiStatus,
   FilterSource,
   HttpMethod,
   OsVersion,
-  RootSpanNamesApiStatus,
   SessionType,
   SpanStatus,
 } from "@/app/api/api_calls";
@@ -467,7 +464,7 @@ describe("filtersStore actions", () => {
     const store = createFiltersStore();
     const a = makeApp("a", { onboarded: false });
     const b = makeApp("b", { onboarded: false });
-    store.getState().setApps([a, b], AppsApiStatus.Success);
+    store.getState().setApps([a, b], "loaded");
     store.getState().setSelectedApp(a);
 
     store.getState().markAppOnboarded("a");
@@ -485,7 +482,7 @@ describe("filtersStore actions", () => {
     const store = createFiltersStore();
     const a = makeApp("a", { onboarded: false });
     const b = makeApp("b", { onboarded: false });
-    store.getState().setApps([a, b], AppsApiStatus.Success);
+    store.getState().setApps([a, b], "loaded");
     store.getState().setSelectedApp(b);
 
     store.getState().markAppOnboarded("a");
@@ -497,7 +494,7 @@ describe("filtersStore actions", () => {
   it("resetForTeamChange clears apps and selections but keeps config", () => {
     const store = createFiltersStore();
     store.getState().setConfig(baseConfig);
-    store.getState().setApps([makeApp("a")], AppsApiStatus.Success);
+    store.getState().setApps([makeApp("a")], "loaded");
     store.getState().setSelectedApp(makeApp("a"));
     store.getState().setSelectedVersions([new AppVersion("1.0", "100")]);
 
@@ -513,7 +510,7 @@ describe("filtersStore actions", () => {
   it("reset wipes everything back to initial state", () => {
     const store = createFiltersStore();
     store.getState().setConfig(baseConfig);
-    store.getState().setApps([makeApp("a")], AppsApiStatus.Success);
+    store.getState().setApps([makeApp("a")], "loaded");
     store.getState().setSelectedApp(makeApp("a"));
 
     store.getState().reset();
@@ -538,9 +535,9 @@ describe("filtersStore actions", () => {
       userDefAttrs: [{ key: "plan", type: "string" }],
       userDefAttrOps: new Map([["string", ["eq"]]]),
     };
-    store.getState().setFilterOptions(data, FiltersApiStatus.Success);
+    store.getState().setFilterOptions(data, "loaded");
 
-    expect(store.getState().filtersApiStatus).toBe(FiltersApiStatus.Success);
+    expect(store.getState().filterOptionsState).toBe("loaded");
     expect(store.getState().versions).toEqual(data.versions);
     expect(store.getState().osVersions).toEqual(data.osVersions);
     expect(store.getState().userDefAttrs).toEqual(data.userDefAttrs);
@@ -548,30 +545,22 @@ describe("filtersStore actions", () => {
 
   it("setFilterOptions with null data only updates status", () => {
     const store = createFiltersStore();
-    store.getState().setFilterOptions(null, FiltersApiStatus.NotOnboarded);
-    expect(store.getState().filtersApiStatus).toBe(
-      FiltersApiStatus.NotOnboarded,
-    );
+    store.getState().setFilterOptions(null, "not-onboarded");
+    expect(store.getState().filterOptionsState).toBe("not-onboarded");
     expect(store.getState().versions).toEqual([]);
   });
 
   it("setRootSpanNames stores list and status", () => {
     const store = createFiltersStore();
-    store
-      .getState()
-      .setRootSpanNames(["a", "b"], RootSpanNamesApiStatus.Success);
+    store.getState().setRootSpanNames(["a", "b"], "loaded");
     expect(store.getState().rootSpanNames).toEqual(["a", "b"]);
-    expect(store.getState().rootSpanNamesApiStatus).toBe(
-      RootSpanNamesApiStatus.Success,
-    );
+    expect(store.getState().rootSpanNamesState).toBe("loaded");
   });
 
   it("setRootSpanNames with null data only updates status", () => {
     const store = createFiltersStore();
-    store.getState().setRootSpanNames(null, RootSpanNamesApiStatus.NoData);
-    expect(store.getState().rootSpanNamesApiStatus).toBe(
-      RootSpanNamesApiStatus.NoData,
-    );
+    store.getState().setRootSpanNames(null, "no-data");
+    expect(store.getState().rootSpanNamesState).toBe("no-data");
     expect(store.getState().rootSpanNames).toEqual([]);
   });
 
@@ -618,7 +607,7 @@ describe("computed filters object", () => {
   function readyStore() {
     const store = createFiltersStore();
     store.getState().setConfig(baseConfig);
-    store.getState().setApps([makeApp("a")], AppsApiStatus.Success);
+    store.getState().setApps([makeApp("a")], "loaded");
     store.getState().setSelectedApp(makeApp("a"));
     store.getState().setFilterOptions(
       {
@@ -634,7 +623,7 @@ describe("computed filters object", () => {
         userDefAttrs: [],
         userDefAttrOps: new Map(),
       },
-      FiltersApiStatus.Success,
+      "loaded",
     );
     return store;
   }
@@ -647,8 +636,15 @@ describe("computed filters object", () => {
   it("filters.ready is false while apps are loading", () => {
     const store = createFiltersStore();
     store.getState().setConfig(baseConfig);
-    store.getState().setApps([], AppsApiStatus.Loading);
+    store.getState().setApps([], "pending");
     expect(store.getState().filters.ready).toBe(false);
+  });
+
+  it("filters.ready is false when the team has no apps", () => {
+    const store = readyStore();
+    store.getState().setApps([], "no-apps");
+    expect(store.getState().filters.ready).toBe(false);
+    expect(store.getState().filters.loading).toBe(false);
   });
 
   it("filters.app reflects selectedApp", () => {
@@ -685,7 +681,7 @@ describe("computed filters object", () => {
         userDefAttrs: [],
         userDefAttrOps: new Map(),
       },
-      FiltersApiStatus.Success,
+      "loaded",
     );
     store.getState().setSelectedOsVersions([osVersions[0]]);
     expect(store.getState().filters.osVersions.all).toBe(false);
@@ -702,45 +698,45 @@ describe("computed filters object", () => {
     const store = createFiltersStore();
     store.getState().setConfig(baseConfig);
     mockFetchQuery.mockClear();
-    store.getState().setApps([], AppsApiStatus.Loading);
+    store.getState().setApps([], "pending");
     expect(mockFetchQuery).not.toHaveBeenCalled();
   });
 
-  it("filters.ready is false when both showNoData+showNotOnboarded require Success but status is NoData", () => {
+  it("filters.ready is false when both showNoData+showNotOnboarded require loaded options but the state is no-data", () => {
     const store = createFiltersStore();
     store
       .getState()
       .setConfig({ ...baseConfig, showNoData: true, showNotOnboarded: true });
-    store.getState().setApps([makeApp("a")], AppsApiStatus.Success);
+    store.getState().setApps([makeApp("a")], "loaded");
     store.getState().setSelectedApp(makeApp("a"));
-    store.getState().setFilterOptions(null, FiltersApiStatus.NoData);
+    store.getState().setFilterOptions(null, "no-data");
     expect(store.getState().filters.ready).toBe(false);
   });
 
   it("filters.ready is false on NoBuilds when showNoBuilds is set (filters component renders the NoBuilds UI)", () => {
     const store = createFiltersStore();
     store.getState().setConfig({ ...baseConfig, showNoBuilds: true });
-    store.getState().setApps([makeApp("a")], AppsApiStatus.Success);
+    store.getState().setApps([makeApp("a")], "loaded");
     store.getState().setSelectedApp(makeApp("a"));
-    store.getState().setFilterOptions(null, FiltersApiStatus.NoBuilds);
+    store.getState().setFilterOptions(null, "no-builds");
     expect(store.getState().filters.ready).toBe(false);
   });
 
   it("filters.ready is true on NoBuilds when showNoBuilds is not set", () => {
     const store = createFiltersStore();
     store.getState().setConfig(baseConfig);
-    store.getState().setApps([makeApp("a")], AppsApiStatus.Success);
+    store.getState().setApps([makeApp("a")], "loaded");
     store.getState().setSelectedApp(makeApp("a"));
-    store.getState().setFilterOptions(null, FiltersApiStatus.NoBuilds);
+    store.getState().setFilterOptions(null, "no-builds");
     expect(store.getState().filters.ready).toBe(true);
   });
 
   it("filters.ready is false on NoData when showNoData is set (filters component renders the NoData UI)", () => {
     const store = createFiltersStore();
     store.getState().setConfig({ ...baseConfig, showNoData: true });
-    store.getState().setApps([makeApp("a")], AppsApiStatus.Success);
+    store.getState().setApps([makeApp("a")], "loaded");
     store.getState().setSelectedApp(makeApp("a"));
-    store.getState().setFilterOptions(null, FiltersApiStatus.NoData);
+    store.getState().setFilterOptions(null, "no-data");
     expect(store.getState().filters.ready).toBe(false);
   });
 
@@ -749,9 +745,9 @@ describe("computed filters object", () => {
     store
       .getState()
       .setConfig({ ...baseConfig, showNoData: false, showNotOnboarded: false });
-    store.getState().setApps([makeApp("a")], AppsApiStatus.Success);
+    store.getState().setApps([makeApp("a")], "loaded");
     store.getState().setSelectedApp(makeApp("a"));
-    store.getState().setFilterOptions(null, FiltersApiStatus.NoData);
+    store.getState().setFilterOptions(null, "no-data");
     expect(store.getState().filters.ready).toBe(true);
   });
 });
@@ -825,7 +821,7 @@ describe("errors-source filter state", () => {
     store
       .getState()
       .setConfig({ ...baseConfig, filterSource: FilterSource.Errors });
-    store.getState().setApps([makeApp("a")], AppsApiStatus.Success);
+    store.getState().setApps([makeApp("a")], "loaded");
     store.getState().setSelectedApp(makeApp("a"));
     store.getState().setFilterOptions(
       {
@@ -841,7 +837,7 @@ describe("errors-source filter state", () => {
         userDefAttrs: [],
         userDefAttrOps: new Map(),
       },
-      FiltersApiStatus.Success,
+      "loaded",
     );
     return store;
   }
@@ -860,7 +856,7 @@ describe("errors-source filter state", () => {
     store
       .getState()
       .setConfig({ ...baseConfig, filterSource: FilterSource.Events });
-    store.getState().setApps([makeApp("a")], AppsApiStatus.Success);
+    store.getState().setApps([makeApp("a")], "loaded");
     store.getState().setSelectedApp(makeApp("a"));
     store.getState().setFilterOptions(
       {
@@ -876,7 +872,7 @@ describe("errors-source filter state", () => {
         userDefAttrs: [],
         userDefAttrOps: new Map(),
       },
-      FiltersApiStatus.Success,
+      "loaded",
     );
     store.getState().setSelectedErrorTypes(["error", "anr"]);
     const params = new URLSearchParams(

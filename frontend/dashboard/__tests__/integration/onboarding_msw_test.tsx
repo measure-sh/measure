@@ -154,10 +154,10 @@ function appsListHandler(apps: any[]) {
 }
 
 function notOnboardedFiltersHandler() {
-  // The filters API returns 200 with versions:null to signal NotOnboarded
-  // (the api_calls helper checks selectedApp.onboarded to disambiguate
-  // NotOnboarded from NoData). versions:null + selectedApp.onboarded=false
-  // → FiltersApiStatus.NotOnboarded.
+  // The filters API answers 200 with versions:null when it has no filters
+  // to provide. fetchFiltersFromServer then reads selectedApp.onboarded to
+  // tell the two empty cases apart, so versions:null on an app whose
+  // onboarded flag is false comes back as { kind: "not-onboarded" }.
   return http.get("*/api/apps/:appId/filters", () => {
     return HttpResponse.json({
       versions: null,

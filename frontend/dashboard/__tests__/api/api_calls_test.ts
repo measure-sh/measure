@@ -18,16 +18,7 @@ jest.mock("@/app/api/api_client", () => ({
 }));
 
 import {
-  AlertsOverviewApiStatus,
-  AppApiKeyChangeApiStatus,
-  AppNameChangeApiStatus,
-  AppsApiStatus,
-  AuthzAndMembersApiStatus,
-  BugReportApiStatus,
-  BugReportsOverviewApiStatus,
-  BugReportsOverviewPlotApiStatus,
   BugReportStatus,
-  BuildsApiStatus,
   buildShortFiltersPostBody,
   changeAppApiKeyFromServer,
   changeAppNameFromServer,
@@ -36,19 +27,14 @@ import {
   createAppFromServer,
   createTeamFromServer,
   defaultFilters,
-  DowngradeToFreeApiStatus,
   downgradeToFreeFromServer,
   downloadBuildFile,
-  UndoDowngradeApiStatus,
   undoDowngradeFromServer,
   fetchAlertsOverviewFromServer,
-  FetchAppRetentionApiStatus,
   fetchAppRetentionFromServer,
   fetchAppsFromServer,
-  FetchAppThresholdPrefsApiStatus,
   fetchAppThresholdPrefsFromServer,
   fetchAuthzAndMembersFromServer,
-  FetchBillingInfoApiStatus,
   fetchBillingInfoFromServer,
   fetchBugReportFromServer,
   fetchBugReportsOverviewFromServer,
@@ -60,15 +46,7 @@ import {
   fetchErrorsDistributionPlotFromServer,
   fetchErrorsOverviewFromServer,
   fetchErrorsOverviewPlotFromServer,
-  ErrorGroupCommonPathApiStatus,
-  ErrorsDetailsApiStatus,
-  ErrorsDetailsPlotApiStatus,
-  ErrorsDistributionPlotApiStatus,
-  ErrorsOverviewApiStatus,
-  ErrorsOverviewPlotApiStatus,
-  FetchCheckoutSessionApiStatus,
   fetchCheckoutSessionFromServer,
-  FetchCustomerPortalUrlApiStatus,
   fetchCustomerPortalUrlFromServer,
   fetchFiltersFromServer,
   fetchJourneyFromServer,
@@ -81,7 +59,6 @@ import {
   fetchNetworkPathsFromServer,
   fetchNetworkTimelinePlotFromServer,
   fetchNetworkTrendsFromServer,
-  FetchNotifPrefsApiStatus,
   fetchNotifPrefsFromServer,
   fetchPendingInvitesFromServer,
   fetchRootSpanNamesFromServer,
@@ -93,66 +70,29 @@ import {
   fetchSpanMetricsPlotFromServer,
   fetchSpansFromServer,
   fetchTeamsFromServer,
-  FetchTeamSlackConnectUrlApiStatus,
   fetchTeamSlackConnectUrlFromServer,
-  FetchTeamSlackStatusApiStatus,
   fetchTeamSlackStatusFromServer,
   fetchTraceFromServer,
-  FetchUsageApiStatus,
   fetchUsageFromServer,
   Filters,
-  FiltersApiStatus,
   FilterSource,
-  InviteMemberApiStatus,
   inviteMemberFromServer,
-  JourneyApiStatus,
   JourneyType,
-  MetricsApiStatus,
-  NetworkDomainsApiStatus,
-  NetworkEndpointLatencyPlotApiStatus,
-  NetworkEndpointStatusCodesPlotApiStatus,
-  NetworkEndpointTimelinePlotApiStatus,
-  NetworkOverviewStatusCodesPlotApiStatus,
-  NetworkPathsApiStatus,
-  NetworkTimelinePlotApiStatus,
-  NetworkTrendsApiStatus,
-  PendingInvitesApiStatus,
-  RemoveMemberApiStatus,
   removeMemberFromServer,
-  RemovePendingInviteApiStatus,
   removePendingInviteFromServer,
-  ResendPendingInviteApiStatus,
   resendPendingInviteFromServer,
-  RoleChangeApiStatus,
   saveListFiltersToServer,
   SdkConfig,
-  SdkConfigApiStatus,
   sendTestSlackAlertFromServer,
-  AppHealthPlotApiStatus,
-  SessionTimelineApiStatus,
-  SessionTimelinesOverviewApiStatus,
-  SessionTimelinesOverviewPlotApiStatus,
-  SpanMetricsPlotApiStatus,
-  SpansApiStatus,
-  TeamNameChangeApiStatus,
-  TeamsApiStatus,
-  TestSlackAlertApiStatus,
-  TraceApiStatus,
-  UpdateAppRetentionApiStatus,
   updateAppRetentionFromServer,
-  UpdateAppThresholdPrefsApiStatus,
   updateAppThresholdPrefsFromServer,
-  UpdateBugReportStatusApiStatus,
   updateBugReportStatusFromServer,
-  UpdateNotifPrefsApiStatus,
   updateNotifPrefsFromServer,
-  UpdateSdkConfigApiStatus,
   updateSdkConfigFromServer,
-  UpdateTeamSlackStatusApiStatus,
   updateTeamSlackStatusFromServer,
-  ValidateInviteApiStatus,
   validateInvitesFromServer,
 } from "@/app/api/api_calls";
+import { ApiError, RequestError } from "@/app/api/api_error";
 
 jest.spyOn(console, "log").mockImplementation(() => {});
 jest.spyOn(console, "error").mockImplementation(() => {});
@@ -315,85 +255,95 @@ describe("saveListFiltersToServer", () => {
 // ========================================================================
 describe("simple GET helpers", () => {
   describe("fetchTeamsFromServer", () => {
-    it("hits /api/teams and returns Success with data", async () => {
+    it("hits /api/teams and returns the body", async () => {
       const data = [{ id: "t1", name: "Team 1" }];
       mockApiClientFetch.mockResolvedValueOnce(successResponse(data));
       const result = await fetchTeamsFromServer();
       expect(lastFetchUrl()).toBe("/api/teams");
-      expect(result).toEqual({ status: TeamsApiStatus.Success, data });
+      expect(result).toEqual(data);
     });
 
-    it("returns Error on non-ok response", async () => {
+    it("throws on non-ok response", async () => {
       mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-      const result = await fetchTeamsFromServer();
-      expect(result).toEqual({ status: TeamsApiStatus.Error, data: null });
+      await expect(fetchTeamsFromServer()).rejects.toThrow(ApiError);
     });
 
-    it("returns Cancelled on exception", async () => {
+    it("throws on exception", async () => {
       mockApiClientFetch.mockRejectedValueOnce(new Error("boom"));
-      const result = await fetchTeamsFromServer();
-      expect(result).toEqual({ status: TeamsApiStatus.Cancelled, data: null });
+      await expect(fetchTeamsFromServer()).rejects.toThrow(RequestError);
     });
   });
 
   describe("fetchAppsFromServer", () => {
-    it("returns Success on 200", async () => {
+    it("returns the body on 200", async () => {
       mockApiClientFetch.mockResolvedValueOnce(successResponse([{ id: "a1" }]));
       const result = await fetchAppsFromServer("team-1");
       expect(lastFetchUrl()).toBe("/api/teams/team-1/apps");
-      expect(result.status).toBe(AppsApiStatus.Success);
-      expect(result.data).toEqual([{ id: "a1" }]);
+      expect(result).toEqual([{ id: "a1" }]);
     });
 
-    it("returns NoApps on 404", async () => {
+    it("returns an empty list on 404", async () => {
       mockApiClientFetch.mockResolvedValueOnce(errorResponse(404));
       const result = await fetchAppsFromServer("team-1");
-      expect(result).toEqual({ status: AppsApiStatus.NoApps, data: null });
+      expect(result).toEqual([]);
     });
 
-    it("returns Error on other non-ok statuses", async () => {
+    it("throws on other non-ok statuses", async () => {
       mockApiClientFetch.mockResolvedValueOnce(errorResponse(500));
-      const result = await fetchAppsFromServer("team-1");
-      expect(result).toEqual({ status: AppsApiStatus.Error, data: null });
+      await expect(fetchAppsFromServer("team-1")).rejects.toThrow(ApiError);
     });
 
-    it("returns Cancelled on exception", async () => {
+    it("throws on exception", async () => {
       mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-      const result = await fetchAppsFromServer("team-1");
-      expect(result.status).toBe(AppsApiStatus.Cancelled);
+      await expect(fetchAppsFromServer("team-1")).rejects.toThrow(RequestError);
     });
   });
 
   describe("fetchRootSpanNamesFromServer", () => {
     const app = { id: "app-1" } as any;
 
-    it("hits /spans/roots/names and returns Success", async () => {
+    it("hits /spans/roots/names and returns the names", async () => {
       mockApiClientFetch.mockResolvedValueOnce(
         successResponse({ results: ["main", "db"] }),
       );
       const result = await fetchRootSpanNamesFromServer(app);
       expect(lastFetchUrl()).toBe("/api/apps/app-1/spans/roots/names");
-      expect((result as any).data.results).toEqual(["main", "db"]);
+      expect(result).toEqual(["main", "db"]);
     });
 
-    it("returns NoData when data.results is null", async () => {
+    it("returns null when the app has never reported a trace", async () => {
       mockApiClientFetch.mockResolvedValueOnce(
         successResponse({ results: null }),
       );
       const result = await fetchRootSpanNamesFromServer(app);
-      expect(result.data).toBeNull();
+      expect(result).toBeNull();
     });
 
-    it("returns Error on non-ok", async () => {
+    it("keeps an empty results list distinct from a null one", async () => {
+      mockApiClientFetch.mockResolvedValueOnce(
+        successResponse({ results: [] }),
+      );
+      const result = await fetchRootSpanNamesFromServer(app);
+      expect(result).toEqual([]);
+    });
+
+    it("throws on non-ok", async () => {
       mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-      const result = await fetchRootSpanNamesFromServer(app);
-      expect(result.data).toBeNull();
+      await expect(fetchRootSpanNamesFromServer(app)).rejects.toThrow(ApiError);
     });
 
-    it("returns Cancelled on exception", async () => {
+    it("throws a RequestError when the body is missing altogether", async () => {
+      mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
+      const err = await fetchRootSpanNamesFromServer(app).catch((e) => e);
+      expect(err).toBeInstanceOf(RequestError);
+      expect(err.message).toBe("Failed to fetch root span names");
+    });
+
+    it("throws on exception", async () => {
       mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-      const result = await fetchRootSpanNamesFromServer(app);
-      expect(result.data).toBeNull();
+      await expect(fetchRootSpanNamesFromServer(app)).rejects.toThrow(
+        RequestError,
+      );
     });
   });
 
@@ -404,19 +354,19 @@ describe("simple GET helpers", () => {
       );
       const result = await fetchTraceFromServer("app-1", "t1");
       expect(lastFetchUrl()).toBe("/api/apps/app-1/traces/t1");
-      expect(result.status).toBe(TraceApiStatus.Success);
+      expect(result).toEqual({ trace_id: "t1" });
     });
 
-    it("returns Error on non-ok", async () => {
+    it("throws on non-ok", async () => {
       mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-      const result = await fetchTraceFromServer("a", "t");
-      expect(result.status).toBe(TraceApiStatus.Error);
+      await expect(fetchTraceFromServer("a", "t")).rejects.toThrow(ApiError);
     });
 
-    it("returns Cancelled on exception", async () => {
+    it("throws on exception", async () => {
       mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-      const result = await fetchTraceFromServer("a", "t");
-      expect(result.status).toBe(TraceApiStatus.Cancelled);
+      await expect(fetchTraceFromServer("a", "t")).rejects.toThrow(
+        RequestError,
+      );
     });
   });
 });
@@ -451,7 +401,17 @@ describe("fetchFiltersFromServer", () => {
     expect(url).toContain("ud_attr_keys=1");
   });
 
-  it("returns Success when the server has filter data", async () => {
+  it("throws a RequestError when the body is missing altogether", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
+    const err = await fetchFiltersFromServer(
+      onboardedApp,
+      FilterSource.Events,
+    ).catch((e) => e);
+    expect(err).toBeInstanceOf(RequestError);
+    expect(err.message).toBe("Failed to fetch filters");
+  });
+
+  it("reports options when the server has filter data", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ versions: ["1.0.0"] }),
     );
@@ -459,7 +419,7 @@ describe("fetchFiltersFromServer", () => {
       onboardedApp,
       FilterSource.Events,
     );
-    expect(result.status).toBe(FiltersApiStatus.Success);
+    expect(result).toEqual({ kind: "options", data: { versions: ["1.0.0"] } });
   });
 
   it("returns NoBuilds for the Builds source when the app has no builds", async () => {
@@ -470,10 +430,10 @@ describe("fetchFiltersFromServer", () => {
       onboardedApp,
       FilterSource.Builds,
     );
-    expect(result.status).toBe(FiltersApiStatus.NoBuilds);
+    expect(result).toEqual({ kind: "no-builds" });
   });
 
-  it("returns NoData when the app is onboarded but has no versions", async () => {
+  it("reports no-data when the app is onboarded but has no versions", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ versions: null }),
     );
@@ -481,7 +441,7 @@ describe("fetchFiltersFromServer", () => {
       onboardedApp,
       FilterSource.Events,
     );
-    expect(result.status).toBe(FiltersApiStatus.NoData);
+    expect(result).toEqual({ kind: "no-data" });
   });
 
   it("returns NotOnboarded when the app is not onboarded", async () => {
@@ -492,25 +452,21 @@ describe("fetchFiltersFromServer", () => {
       notOnboardedApp,
       FilterSource.Events,
     );
-    expect(result.status).toBe(FiltersApiStatus.NotOnboarded);
+    expect(result).toEqual({ kind: "not-onboarded" });
   });
 
-  it("returns Error on non-ok", async () => {
+  it("throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    const result = await fetchFiltersFromServer(
-      onboardedApp,
-      FilterSource.Events,
-    );
-    expect(result.status).toBe(FiltersApiStatus.Error);
+    await expect(
+      fetchFiltersFromServer(onboardedApp, FilterSource.Events),
+    ).rejects.toThrow(ApiError);
   });
 
-  it("returns Cancelled on exception", async () => {
+  it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    const result = await fetchFiltersFromServer(
-      onboardedApp,
-      FilterSource.Events,
-    );
-    expect(result.status).toBe(FiltersApiStatus.Cancelled);
+    await expect(
+      fetchFiltersFromServer(onboardedApp, FilterSource.Events),
+    ).rejects.toThrow(RequestError);
   });
 });
 
@@ -537,33 +493,18 @@ describe("fetch functions that use applyGenericFiltersToUrl", () => {
   });
 
   it.each([
-    [
-      "fetchMetricsFromServer",
-      fetchMetricsFromServer,
-      MetricsApiStatus.Success,
-      MetricsApiStatus.Error,
-      MetricsApiStatus.Cancelled,
-    ],
-    [
-      "fetchSpanMetricsPlotFromServer",
-      fetchSpanMetricsPlotFromServer,
-      SpanMetricsPlotApiStatus.Success,
-      SpanMetricsPlotApiStatus.Error,
-      SpanMetricsPlotApiStatus.Cancelled,
-    ],
-  ])(
-    "%s: Success / Error / Cancelled status transitions",
-    async (_name, fn, okStatus, errStatus, cancelStatus) => {
-      mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
-      expect((await (fn as any)(makeFilters())).status).toBe(okStatus);
+    ["fetchMetricsFromServer", fetchMetricsFromServer],
+    ["fetchSpanMetricsPlotFromServer", fetchSpanMetricsPlotFromServer],
+  ])("%s: returns data, throws on failure", async (_name, fn) => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ a: 1 }));
+    expect(await (fn as any)(makeFilters())).toEqual({ a: 1 });
 
-      mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-      expect((await (fn as any)(makeFilters())).status).toBe(errStatus);
+    mockApiClientFetch.mockResolvedValueOnce(errorResponse());
+    await expect((fn as any)(makeFilters())).rejects.toThrow(ApiError);
 
-      mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-      expect((await (fn as any)(makeFilters())).status).toBe(cancelStatus);
-    },
-  );
+    mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
+    await expect((fn as any)(makeFilters())).rejects.toThrow(RequestError);
+  });
 
   it("fetchSpansFromServer includes limit/offset in URL", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
@@ -582,25 +523,25 @@ describe("fetch functions that use applyGenericFiltersToUrl", () => {
     expect(lastFetchUrl()).toContain("offset=20");
   });
 
-  it("fetchSessionTimelinesOverviewPlotFromServer returns NoData when data is null", async () => {
+  it("fetchSessionTimelinesOverviewPlotFromServer returns null when the body is null", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
     const result =
       await fetchSessionTimelinesOverviewPlotFromServer(makeFilters());
-    expect(result.status).toBe(SessionTimelinesOverviewPlotApiStatus.NoData);
+    expect(result).toBeNull();
   });
 
-  it("fetchSessionTimelinesOverviewPlotFromServer returns Error on non-ok", async () => {
+  it("fetchSessionTimelinesOverviewPlotFromServer throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    const result =
-      await fetchSessionTimelinesOverviewPlotFromServer(makeFilters());
-    expect(result.status).toBe(SessionTimelinesOverviewPlotApiStatus.Error);
+    await expect(
+      fetchSessionTimelinesOverviewPlotFromServer(makeFilters()),
+    ).rejects.toThrow(ApiError);
   });
 
-  it("fetchSessionTimelinesOverviewPlotFromServer returns Cancelled on exception", async () => {
+  it("fetchSessionTimelinesOverviewPlotFromServer throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    const result =
-      await fetchSessionTimelinesOverviewPlotFromServer(makeFilters());
-    expect(result.status).toBe(SessionTimelinesOverviewPlotApiStatus.Cancelled);
+    await expect(
+      fetchSessionTimelinesOverviewPlotFromServer(makeFilters()),
+    ).rejects.toThrow(RequestError);
   });
 });
 
@@ -631,16 +572,18 @@ describe("fetchJourneyFromServer", () => {
     expect(lastFetchUrl()).toContain("/api/apps/app-a/journey");
   });
 
-  it("returns Error on non-ok", async () => {
+  it("throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    const r = await fetchJourneyFromServer(false, makeFilters());
-    expect(r.status).toBe(JourneyApiStatus.Error);
+    await expect(fetchJourneyFromServer(false, makeFilters())).rejects.toThrow(
+      ApiError,
+    );
   });
 
-  it("returns Cancelled on exception", async () => {
+  it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    const r = await fetchJourneyFromServer(false, makeFilters());
-    expect(r.status).toBe(JourneyApiStatus.Cancelled);
+    await expect(fetchJourneyFromServer(false, makeFilters())).rejects.toThrow(
+      RequestError,
+    );
   });
 });
 
@@ -648,7 +591,7 @@ describe("fetchJourneyFromServer", () => {
 // fetchAppHealthPlotFromServer — single /health/plots/instances fetch
 // ========================================================================
 describe("fetchAppHealthPlotFromServer", () => {
-  it("returns Success and maps the three server series to display series", async () => {
+  it("maps the three server series to display series", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse([
         { id: "sessions", data: [{ datetime: "2026-01-01", instances: 100 }] },
@@ -658,12 +601,7 @@ describe("fetchAppHealthPlotFromServer", () => {
     );
 
     const r = await fetchAppHealthPlotFromServer(makeFilters());
-    expect(r.status).toBe(AppHealthPlotApiStatus.Success);
-    expect(r.data?.map((s: any) => s.id)).toEqual([
-      "Sessions",
-      "Crashes",
-      "ANRs",
-    ]);
+    expect(r?.map((s: any) => s.id)).toEqual(["Sessions", "Crashes", "ANRs"]);
   });
 
   it("hits the health plots endpoint", async () => {
@@ -674,19 +612,20 @@ describe("fetchAppHealthPlotFromServer", () => {
     );
   });
 
-  it("returns Error when the fetch returns a non-ok response", async () => {
+  it("throws when the fetch returns a non-ok response", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    const r = await fetchAppHealthPlotFromServer(makeFilters());
-    expect(r.status).toBe(AppHealthPlotApiStatus.Error);
+    await expect(fetchAppHealthPlotFromServer(makeFilters())).rejects.toThrow(
+      ApiError,
+    );
   });
 
-  it("returns NoData when the response body is null", async () => {
+  it("returns null when the response body is null", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
     const r = await fetchAppHealthPlotFromServer(makeFilters());
-    expect(r.status).toBe(AppHealthPlotApiStatus.NoData);
+    expect(r).toBeNull();
   });
 
-  it("returns NoData when every series value is zero", async () => {
+  it("returns null when every series value is zero", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse([
         { id: "sessions", data: [{ datetime: "2026-01-01", instances: 0 }] },
@@ -695,7 +634,7 @@ describe("fetchAppHealthPlotFromServer", () => {
       ]),
     );
     const r = await fetchAppHealthPlotFromServer(makeFilters());
-    expect(r.status).toBe(AppHealthPlotApiStatus.NoData);
+    expect(r).toBeNull();
   });
 
   it("drops the ANRs series when all ANR values are zero", async () => {
@@ -707,8 +646,7 @@ describe("fetchAppHealthPlotFromServer", () => {
       ]),
     );
     const r = await fetchAppHealthPlotFromServer(makeFilters());
-    expect(r.status).toBe(AppHealthPlotApiStatus.Success);
-    expect(r.data?.map((s: any) => s.id)).toEqual(["Sessions", "Crashes"]);
+    expect(r?.map((s: any) => s.id)).toEqual(["Sessions", "Crashes"]);
   });
 });
 
@@ -718,7 +656,7 @@ describe("fetchAppHealthPlotFromServer", () => {
 describe("network endpoint fetches", () => {
   const app = { id: "app-1" } as any;
 
-  it("fetchNetworkDomainsFromServer hits /networkRequests/domains with from/to and returns Success with results", async () => {
+  it("fetchNetworkDomainsFromServer hits /networkRequests/domains with from/to and returns the results", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ results: ["example.com"] }),
     );
@@ -727,10 +665,10 @@ describe("network endpoint fetches", () => {
     expect(url).toContain("/api/apps/app-1/networkRequests/domains");
     expect(url).toContain("from=");
     expect(url).toContain("to=");
-    expect(r.status).toBe(NetworkDomainsApiStatus.Success);
+    expect(r).toEqual({ results: ["example.com"] });
   });
 
-  it("fetchNetworkPathsFromServer hits /networkRequests/paths with domain/search and returns Success with results", async () => {
+  it("fetchNetworkPathsFromServer hits /networkRequests/paths with domain/search and returns the results", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ results: ["/api/users"] }),
     );
@@ -744,10 +682,10 @@ describe("network endpoint fetches", () => {
     expect(url).toContain("/api/apps/app-1/networkRequests/paths");
     expect(url).toContain("domain=api.example.com");
     expect(url).toContain("search=search");
-    expect(r.status).toBe(NetworkPathsApiStatus.Success);
+    expect(r).toEqual({ results: ["/api/users"] });
   });
 
-  it("fetchNetworkEndpointLatencyPlotFromServer uses endpointLatency path and returns Success on non-null body", async () => {
+  it("fetchNetworkEndpointLatencyPlotFromServer uses endpointLatency path and returns the body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ points: [1] }));
     const r = await fetchNetworkEndpointLatencyPlotFromServer(
       makeFilters(),
@@ -757,10 +695,10 @@ describe("network endpoint fetches", () => {
     expect(lastFetchUrl()).toContain(
       "/api/apps/app-a/networkRequests/plots/endpointLatency",
     );
-    expect(r.status).toBe(NetworkEndpointLatencyPlotApiStatus.Success);
+    expect(r).toEqual({ points: [1] });
   });
 
-  it("fetchNetworkEndpointStatusCodesPlotFromServer uses endpointStatusCodes path and returns Success on non-null body", async () => {
+  it("fetchNetworkEndpointStatusCodesPlotFromServer uses endpointStatusCodes path and returns the body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ points: [1] }));
     const r = await fetchNetworkEndpointStatusCodesPlotFromServer(
       makeFilters(),
@@ -770,10 +708,10 @@ describe("network endpoint fetches", () => {
     expect(lastFetchUrl()).toContain(
       "/api/apps/app-a/networkRequests/plots/endpointStatusCodes",
     );
-    expect(r.status).toBe(NetworkEndpointStatusCodesPlotApiStatus.Success);
+    expect(r).toEqual({ points: [1] });
   });
 
-  it("fetchNetworkEndpointTimelinePlotFromServer uses endpointTimeline path and returns Success with points", async () => {
+  it("fetchNetworkEndpointTimelinePlotFromServer uses endpointTimeline path and returns the points", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ points: [{ t: 1 }] }),
     );
@@ -785,10 +723,10 @@ describe("network endpoint fetches", () => {
     expect(lastFetchUrl()).toContain(
       "/api/apps/app-a/networkRequests/plots/endpointTimeline",
     );
-    expect(r.status).toBe(NetworkEndpointTimelinePlotApiStatus.Success);
+    expect(r).toEqual({ points: [{ t: 1 }] });
   });
 
-  it("fetchNetworkTimelinePlotFromServer uses overviewTimeline path and returns Success with points", async () => {
+  it("fetchNetworkTimelinePlotFromServer uses overviewTimeline path and returns the points", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ points: [{ t: 1 }] }),
     );
@@ -798,20 +736,20 @@ describe("network endpoint fetches", () => {
       "/api/apps/app-a/networkRequests/plots/overviewTimeline",
     );
     expect(url).toContain("timeline_limit=25");
-    expect(r.status).toBe(NetworkTimelinePlotApiStatus.Success);
+    expect(r).toEqual({ points: [{ t: 1 }] });
   });
 
-  it("fetchNetworkOverviewStatusCodesPlotFromServer uses overviewStatusCodes path and returns Success with data", async () => {
+  it("fetchNetworkOverviewStatusCodesPlotFromServer uses overviewStatusCodes path and returns the body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse([{ code: 200 }]));
     const r =
       await fetchNetworkOverviewStatusCodesPlotFromServer(makeFilters());
     expect(lastFetchUrl()).toContain(
       "/api/apps/app-a/networkRequests/plots/overviewStatusCodes",
     );
-    expect(r.status).toBe(NetworkOverviewStatusCodesPlotApiStatus.Success);
+    expect(r).toEqual([{ code: 200 }]);
   });
 
-  it("fetchNetworkTrendsFromServer uses /networkRequests/trends with trends_limit and handles status transitions", async () => {
+  it("fetchNetworkTrendsFromServer uses /networkRequests/trends with trends_limit and throws on failure", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
     await fetchNetworkTrendsFromServer(makeFilters(), 15);
     const url = lastFetchUrl();
@@ -819,13 +757,13 @@ describe("network endpoint fetches", () => {
     expect(url).toContain("trends_limit=15");
 
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    expect((await fetchNetworkTrendsFromServer(makeFilters())).status).toBe(
-      NetworkTrendsApiStatus.Error,
+    await expect(fetchNetworkTrendsFromServer(makeFilters())).rejects.toThrow(
+      ApiError,
     );
 
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    expect((await fetchNetworkTrendsFromServer(makeFilters())).status).toBe(
-      NetworkTrendsApiStatus.Cancelled,
+    await expect(fetchNetworkTrendsFromServer(makeFilters())).rejects.toThrow(
+      RequestError,
     );
   });
 });
@@ -846,17 +784,17 @@ describe("sessions, bug reports, alerts", () => {
     expect(lastFetchUrl()).toContain("/api/apps/app-a/bugReports");
   });
 
-  it("fetchBugReportsOverviewPlotFromServer returns NoData on null", async () => {
+  it("fetchBugReportsOverviewPlotFromServer returns null on a null body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
     const r = await fetchBugReportsOverviewPlotFromServer(makeFilters());
-    expect(r.status).toBe(BugReportsOverviewPlotApiStatus.NoData);
+    expect(r).toBeNull();
   });
 
-  it("fetchBugReportFromServer returns Success on 200", async () => {
+  it("fetchBugReportFromServer returns the body on 200", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ bug: {} }));
     const r = await fetchBugReportFromServer("app-1", "bug-1");
     expect(lastFetchUrl()).toContain("/api/apps/app-1/bugReports/bug-1");
-    expect(r.status).toBe(BugReportApiStatus.Success);
+    expect(r).toEqual({ bug: {} });
   });
 
   it("updateBugReportStatusFromServer PATCHes with new status", async () => {
@@ -884,16 +822,18 @@ describe("sessions, bug reports, alerts", () => {
     expect(url).toContain("offset=20");
   });
 
-  it("fetchBuildsFromServer returns Error on a non-ok response", async () => {
+  it("fetchBuildsFromServer throws on a non-ok response", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    const result = await fetchBuildsFromServer(makeFilters(), 10, 0);
-    expect(result.status).toBe(BuildsApiStatus.Error);
+    await expect(fetchBuildsFromServer(makeFilters(), 10, 0)).rejects.toThrow(
+      ApiError,
+    );
   });
 
-  it("fetchBuildsFromServer returns Error when the request throws", async () => {
+  it("fetchBuildsFromServer throws when the request throws", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("boom"));
-    const result = await fetchBuildsFromServer(makeFilters(), 10, 0);
-    expect(result.status).toBe(BuildsApiStatus.Error);
+    await expect(fetchBuildsFromServer(makeFilters(), 10, 0)).rejects.toThrow(
+      RequestError,
+    );
   });
 });
 
@@ -955,25 +895,25 @@ describe("downloadBuildFile", () => {
 // ========================================================================
 describe("team management mutations", () => {
   describe("changeTeamNameFromServer", () => {
-    it("returns Success on 200", async () => {
+    it("returns the body on 200", async () => {
       mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
       const r = await changeTeamNameFromServer("t1", "New");
       expect(lastFetchOpts().method).toBe("PATCH");
       expect(JSON.parse(lastFetchOpts().body).name).toBe("New");
-      expect(r.status).toBe(TeamNameChangeApiStatus.Success);
+      expect(r).toBeUndefined();
     });
 
-    it("returns Error on non-ok", async () => {
+    it("throws on non-ok", async () => {
       mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-      expect((await changeTeamNameFromServer("t", "x")).status).toBe(
-        TeamNameChangeApiStatus.Error,
+      await expect(changeTeamNameFromServer("t", "x")).rejects.toThrow(
+        ApiError,
       );
     });
 
-    it("returns Cancelled on exception", async () => {
+    it("throws on exception", async () => {
       mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-      expect((await changeTeamNameFromServer("t", "x")).status).toBe(
-        TeamNameChangeApiStatus.Cancelled,
+      await expect(changeTeamNameFromServer("t", "x")).rejects.toThrow(
+        RequestError,
       );
     });
   });
@@ -1008,12 +948,13 @@ describe("team management mutations", () => {
     expect(body[0].role).toBe("admin"); // lowercased
   });
 
-  it("inviteMemberFromServer returns Error with error message", async () => {
+  it("inviteMemberFromServer throws the server error message", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       mockResponse(false, 400, { error: "bad" }),
     );
-    const r = await inviteMemberFromServer("t1", "x@y.z", "admin");
-    expect(r.status).toBe(InviteMemberApiStatus.Error);
+    await expect(
+      inviteMemberFromServer("t1", "x@y.z", "admin"),
+    ).rejects.toThrow("bad");
   });
 
   it("removeMemberFromServer DELETEs", async () => {
@@ -1036,18 +977,18 @@ describe("team management mutations", () => {
     expect(lastFetchOpts().method).toBe("DELETE");
   });
 
-  it("fetchPendingInvitesFromServer returns Success with data", async () => {
+  it("fetchPendingInvitesFromServer returns the body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse([{ id: "i1" }]));
     const r = await fetchPendingInvitesFromServer("t1");
     expect(lastFetchUrl()).toContain("/api/teams/t1/invites");
-    expect(r.status).toBe(PendingInvitesApiStatus.Success);
+    expect(r).toEqual([{ id: "i1" }]);
   });
 
-  it("fetchAuthzAndMembersFromServer returns Success with data", async () => {
+  it("fetchAuthzAndMembersFromServer returns the body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ members: [] }));
     const r = await fetchAuthzAndMembersFromServer("t1");
     expect(lastFetchUrl()).toContain("/api/teams/t1/authz");
-    expect(r.status).toBe(AuthzAndMembersApiStatus.Success);
+    expect(r).toEqual({ members: [] });
   });
 });
 
@@ -1060,16 +1001,14 @@ describe("slack and notifications", () => {
       successResponse({ url: "https://slack/oauth" }),
     );
     const r = await fetchTeamSlackConnectUrlFromServer("t1");
-    expect(mockApiClientFetch).toHaveBeenCalledWith(
-      "/api/teams/t1/slack/connect-url",
-    );
-    expect(r.status).toBe(FetchTeamSlackConnectUrlApiStatus.Success);
+    expect(lastFetchUrl()).toBe("/api/teams/t1/slack/connect-url");
+    expect(r).toEqual({ url: "https://slack/oauth" });
   });
 
-  it("fetchTeamSlackStatusFromServer returns Success", async () => {
+  it("fetchTeamSlackStatusFromServer returns the status body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ active: true }));
     const r = await fetchTeamSlackStatusFromServer("t1");
-    expect(r.status).toBe(FetchTeamSlackStatusApiStatus.Success);
+    expect(r).toEqual({ active: true });
   });
 
   it("updateTeamSlackStatusFromServer PATCHes with active flag", async () => {
@@ -1188,7 +1127,7 @@ describe("billing endpoints", () => {
     const r = await downgradeToFreeFromServer("t1");
     expect(lastFetchUrl()).toContain("/api/teams/t1/billing/downgrade");
     expect(lastFetchOpts().method).toBe("PATCH");
-    expect(r.status).toBe(DowngradeToFreeApiStatus.Success);
+    expect(r).toEqual({});
   });
 
   it("undoDowngradeFromServer PATCHes the undo-downgrade endpoint", async () => {
@@ -1198,7 +1137,7 @@ describe("billing endpoints", () => {
     const r = await undoDowngradeFromServer("t1");
     expect(lastFetchUrl()).toContain("/api/teams/t1/billing/undo-downgrade");
     expect(lastFetchOpts().method).toBe("PATCH");
-    expect(r.status).toBe(UndoDowngradeApiStatus.Success);
+    expect(r).toEqual({ status: "cancellation_reverted" });
   });
 
   it("fetchCustomerPortalUrlFromServer POSTs with return url", async () => {
@@ -1209,7 +1148,7 @@ describe("billing endpoints", () => {
     expect(lastFetchOpts().method).toBe("POST");
     const body = JSON.parse(lastFetchOpts().body);
     expect(body.return_url).toBe("https://back");
-    expect(r.status).toBe(FetchCustomerPortalUrlApiStatus.Success);
+    expect(r).toEqual({ url: "https://portal" });
   });
 });
 
@@ -1332,142 +1271,74 @@ describe("applyHttpMethodsToUrl and applySpanFiltersToUrl", () => {
 });
 
 // ========================================================================
-// Error / Cancelled paths for the fetch functions that didn't get them
-// in the happy-path tests above. Parameterized to keep it compact.
+// Failure paths for the fetch functions that didn't get them in the
+// happy-path tests above. Parameterized to keep it compact.
 // ========================================================================
-describe("fetch functions: Error / Cancelled paths", () => {
-  const cases: Array<[string, () => Promise<{ status: any }>, any, any]> = [
+describe("fetch functions: failure paths", () => {
+  const cases: Array<[string, () => Promise<unknown>]> = [
     [
       "fetchSpanMetricsPlotFromServer",
       () => fetchSpanMetricsPlotFromServer(makeFilters()),
-      SpanMetricsPlotApiStatus.Error,
-      SpanMetricsPlotApiStatus.Cancelled,
     ],
-    [
-      "fetchSpansFromServer",
-      () => fetchSpansFromServer(makeFilters(), 10, 0),
-      SpansApiStatus.Error,
-      SpansApiStatus.Cancelled,
-    ],
+    ["fetchSpansFromServer", () => fetchSpansFromServer(makeFilters(), 10, 0)],
     [
       "fetchJourneyFromServer",
       () => fetchJourneyFromServer(false, makeFilters()),
-      JourneyApiStatus.Error,
-      JourneyApiStatus.Cancelled,
     ],
-    [
-      "fetchMetricsFromServer",
-      () => fetchMetricsFromServer(makeFilters()),
-      MetricsApiStatus.Error,
-      MetricsApiStatus.Cancelled,
-    ],
+    ["fetchMetricsFromServer", () => fetchMetricsFromServer(makeFilters())],
     [
       "fetchSessionTimelinesOverviewFromServer",
       () => fetchSessionTimelinesOverviewFromServer(makeFilters(), 10, 0),
-      SessionTimelinesOverviewApiStatus.Error,
-      SessionTimelinesOverviewApiStatus.Cancelled,
     ],
     [
       "fetchAuthzAndMembersFromServer",
       () => fetchAuthzAndMembersFromServer("t1"),
-      AuthzAndMembersApiStatus.Error,
-      AuthzAndMembersApiStatus.Cancelled,
     ],
     [
       "fetchSessionTimelineFromServer",
       () => fetchSessionTimelineFromServer("a", "s"),
-      SessionTimelineApiStatus.Error,
-      SessionTimelineApiStatus.Cancelled,
     ],
     [
       "fetchBugReportsOverviewFromServer",
       () => fetchBugReportsOverviewFromServer(makeFilters(), 5, 0),
-      BugReportsOverviewApiStatus.Error,
-      BugReportsOverviewApiStatus.Cancelled,
     ],
     [
       "fetchBugReportsOverviewPlotFromServer",
       () => fetchBugReportsOverviewPlotFromServer(makeFilters()),
-      BugReportsOverviewPlotApiStatus.Error,
-      BugReportsOverviewPlotApiStatus.Cancelled,
     ],
-    [
-      "fetchBugReportFromServer",
-      () => fetchBugReportFromServer("a", "b"),
-      BugReportApiStatus.Error,
-      BugReportApiStatus.Cancelled,
-    ],
+    ["fetchBugReportFromServer", () => fetchBugReportFromServer("a", "b")],
     [
       "fetchAlertsOverviewFromServer",
       () => fetchAlertsOverviewFromServer(makeFilters(), 20, 0),
-      AlertsOverviewApiStatus.Error,
-      AlertsOverviewApiStatus.Cancelled,
     ],
     [
       "fetchPendingInvitesFromServer",
       () => fetchPendingInvitesFromServer("t1"),
-      PendingInvitesApiStatus.Error,
-      PendingInvitesApiStatus.Cancelled,
     ],
     [
       "fetchTeamSlackConnectUrlFromServer",
       () => fetchTeamSlackConnectUrlFromServer("t"),
-      FetchTeamSlackConnectUrlApiStatus.Error,
-      FetchTeamSlackConnectUrlApiStatus.Cancelled,
     ],
     [
       "fetchTeamSlackStatusFromServer",
       () => fetchTeamSlackStatusFromServer("t1"),
-      FetchTeamSlackStatusApiStatus.Error,
-      FetchTeamSlackStatusApiStatus.Cancelled,
     ],
     [
       "fetchAppThresholdPrefsFromServer",
       () => fetchAppThresholdPrefsFromServer("a"),
-      FetchAppThresholdPrefsApiStatus.Error,
-      FetchAppThresholdPrefsApiStatus.Cancelled,
     ],
-    [
-      "fetchAppRetentionFromServer",
-      () => fetchAppRetentionFromServer("a"),
-      FetchAppRetentionApiStatus.Error,
-      FetchAppRetentionApiStatus.Cancelled,
-    ],
-    [
-      "fetchSdkConfigFromServer",
-      () => fetchSdkConfigFromServer("a"),
-      SdkConfigApiStatus.Error,
-      SdkConfigApiStatus.Cancelled,
-    ],
-    [
-      "fetchBillingInfoFromServer",
-      () => fetchBillingInfoFromServer("t"),
-      FetchBillingInfoApiStatus.Error,
-      FetchBillingInfoApiStatus.Cancelled,
-    ],
-    [
-      "fetchUsageFromServer",
-      () => fetchUsageFromServer("t"),
-      FetchUsageApiStatus.Error,
-      FetchUsageApiStatus.Cancelled,
-    ],
+    ["fetchAppRetentionFromServer", () => fetchAppRetentionFromServer("a")],
+    ["fetchSdkConfigFromServer", () => fetchSdkConfigFromServer("a")],
+    ["fetchBillingInfoFromServer", () => fetchBillingInfoFromServer("t")],
+    ["fetchUsageFromServer", () => fetchUsageFromServer("t")],
     [
       "fetchCheckoutSessionFromServer",
       () => fetchCheckoutSessionFromServer("t", "o"),
-      FetchCheckoutSessionApiStatus.Error,
-      FetchCheckoutSessionApiStatus.Cancelled,
     ],
-    [
-      "fetchNotifPrefsFromServer",
-      () => fetchNotifPrefsFromServer(),
-      FetchNotifPrefsApiStatus.Error,
-      FetchNotifPrefsApiStatus.Cancelled,
-    ],
+    ["fetchNotifPrefsFromServer", () => fetchNotifPrefsFromServer()],
     [
       "fetchNetworkDomainsFromServer",
       () => fetchNetworkDomainsFromServer({ id: "a" } as any, makeFilters()),
-      NetworkDomainsApiStatus.Error,
-      NetworkDomainsApiStatus.Cancelled,
     ],
     [
       "fetchNetworkPathsFromServer",
@@ -1478,205 +1349,101 @@ describe("fetch functions: Error / Cancelled paths", () => {
           "s",
           makeFilters(),
         ),
-      NetworkPathsApiStatus.Error,
-      NetworkPathsApiStatus.Cancelled,
     ],
     [
       "fetchNetworkEndpointLatencyPlotFromServer",
       () => fetchNetworkEndpointLatencyPlotFromServer(makeFilters(), "d", "p"),
-      NetworkEndpointLatencyPlotApiStatus.Error,
-      NetworkEndpointLatencyPlotApiStatus.Cancelled,
     ],
     [
       "fetchNetworkEndpointStatusCodesPlotFromServer",
       () =>
         fetchNetworkEndpointStatusCodesPlotFromServer(makeFilters(), "d", "p"),
-      NetworkEndpointStatusCodesPlotApiStatus.Error,
-      NetworkEndpointStatusCodesPlotApiStatus.Cancelled,
     ],
     [
       "fetchNetworkEndpointTimelinePlotFromServer",
       () => fetchNetworkEndpointTimelinePlotFromServer(makeFilters(), "d", "p"),
-      NetworkEndpointTimelinePlotApiStatus.Error,
-      NetworkEndpointTimelinePlotApiStatus.Cancelled,
     ],
     [
       "fetchNetworkTimelinePlotFromServer",
       () => fetchNetworkTimelinePlotFromServer(makeFilters(), 10),
-      NetworkTimelinePlotApiStatus.Error,
-      NetworkTimelinePlotApiStatus.Cancelled,
     ],
     [
       "fetchNetworkOverviewStatusCodesPlotFromServer",
       () => fetchNetworkOverviewStatusCodesPlotFromServer(makeFilters()),
-      NetworkOverviewStatusCodesPlotApiStatus.Error,
-      NetworkOverviewStatusCodesPlotApiStatus.Cancelled,
     ],
   ];
 
-  it.each(cases)(
-    "%s returns Error on non-ok",
-    async (_name, fn, errStatus, _cancelStatus) => {
-      mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-      const result = await fn();
-      expect(result.status).toBe(errStatus);
-    },
-  );
+  it.each(cases)("%s throws on non-ok", async (_name, fn) => {
+    mockApiClientFetch.mockResolvedValueOnce(errorResponse());
+    await expect(fn()).rejects.toThrow(ApiError);
+  });
 
-  it.each(cases)(
-    "%s returns Cancelled on exception",
-    async (_name, fn, _errStatus, cancelStatus) => {
-      mockApiClientFetch.mockRejectedValueOnce(new Error("boom"));
-      const result = await fn();
-      expect(result.status).toBe(cancelStatus);
-    },
-  );
+  it.each(cases)("%s throws on exception", async (_name, fn) => {
+    mockApiClientFetch.mockRejectedValueOnce(new Error("boom"));
+    await expect(fn()).rejects.toThrow(RequestError);
+  });
 });
 
 // ========================================================================
-// Mutation Error / Cancelled paths
+// Mutation failure paths
 // ========================================================================
-describe("mutation functions: Error / Cancelled paths", () => {
-  const mutations: Array<[string, () => Promise<{ status: any }>, any, any]> = [
-    [
-      "createTeamFromServer",
-      () => createTeamFromServer("x") as any,
-      undefined,
-      undefined,
-    ],
-    [
-      "createAppFromServer",
-      () => createAppFromServer("t", "a") as any,
-      undefined,
-      undefined,
-    ],
-    [
-      "changeTeamNameFromServer",
-      () => changeTeamNameFromServer("t", "x"),
-      TeamNameChangeApiStatus.Error,
-      TeamNameChangeApiStatus.Cancelled,
-    ],
-    [
-      "changeRoleFromServer",
-      () => changeRoleFromServer("t", "admin", "m"),
-      RoleChangeApiStatus.Error,
-      RoleChangeApiStatus.Cancelled,
-    ],
+describe("mutation functions: failure paths", () => {
+  const mutations: Array<[string, () => Promise<unknown>]> = [
+    ["createTeamFromServer", () => createTeamFromServer("x") as any],
+    ["createAppFromServer", () => createAppFromServer("t", "a") as any],
+    ["changeTeamNameFromServer", () => changeTeamNameFromServer("t", "x")],
+    ["changeRoleFromServer", () => changeRoleFromServer("t", "admin", "m")],
     [
       "inviteMemberFromServer",
       () => inviteMemberFromServer("t", "x@y.z", "admin"),
-      InviteMemberApiStatus.Error,
-      InviteMemberApiStatus.Cancelled,
     ],
-    [
-      "removeMemberFromServer",
-      () => removeMemberFromServer("t", "m"),
-      RemoveMemberApiStatus.Error,
-      RemoveMemberApiStatus.Cancelled,
-    ],
+    ["removeMemberFromServer", () => removeMemberFromServer("t", "m")],
     [
       "resendPendingInviteFromServer",
       () => resendPendingInviteFromServer("t", "i"),
-      ResendPendingInviteApiStatus.Error,
-      ResendPendingInviteApiStatus.Cancelled,
     ],
     [
       "removePendingInviteFromServer",
       () => removePendingInviteFromServer("t", "i"),
-      RemovePendingInviteApiStatus.Error,
-      RemovePendingInviteApiStatus.Cancelled,
     ],
     [
       "updateTeamSlackStatusFromServer",
       () => updateTeamSlackStatusFromServer("t", true),
-      UpdateTeamSlackStatusApiStatus.Error,
-      UpdateTeamSlackStatusApiStatus.Cancelled,
     ],
-    [
-      "sendTestSlackAlertFromServer",
-      () => sendTestSlackAlertFromServer("t"),
-      TestSlackAlertApiStatus.Error,
-      TestSlackAlertApiStatus.Cancelled,
-    ],
+    ["sendTestSlackAlertFromServer", () => sendTestSlackAlertFromServer("t")],
     [
       "updateAppThresholdPrefsFromServer",
       () => updateAppThresholdPrefsFromServer("a", {} as any),
-      UpdateAppThresholdPrefsApiStatus.Error,
-      UpdateAppThresholdPrefsApiStatus.Cancelled,
     ],
     [
       "updateAppRetentionFromServer",
       () => updateAppRetentionFromServer("a", {} as any),
-      UpdateAppRetentionApiStatus.Error,
-      UpdateAppRetentionApiStatus.Cancelled,
     ],
-    [
-      "changeAppNameFromServer",
-      () => changeAppNameFromServer("a", "n"),
-      AppNameChangeApiStatus.Error,
-      AppNameChangeApiStatus.Cancelled,
-    ],
-    [
-      "changeAppApiKeyFromServer",
-      () => changeAppApiKeyFromServer("a"),
-      AppApiKeyChangeApiStatus.Error,
-      AppApiKeyChangeApiStatus.Cancelled,
-    ],
-    [
-      "updateNotifPrefsFromServer",
-      () => updateNotifPrefsFromServer({} as any),
-      UpdateNotifPrefsApiStatus.Error,
-      UpdateNotifPrefsApiStatus.Cancelled,
-    ],
-    [
-      "updateSdkConfigFromServer",
-      () => updateSdkConfigFromServer("a", {}),
-      UpdateSdkConfigApiStatus.Error,
-      UpdateSdkConfigApiStatus.Cancelled,
-    ],
+    ["changeAppNameFromServer", () => changeAppNameFromServer("a", "n")],
+    ["changeAppApiKeyFromServer", () => changeAppApiKeyFromServer("a")],
+    ["updateNotifPrefsFromServer", () => updateNotifPrefsFromServer({} as any)],
+    ["updateSdkConfigFromServer", () => updateSdkConfigFromServer("a", {})],
     [
       "updateBugReportStatusFromServer",
       () => updateBugReportStatusFromServer("a", "b", 1),
-      UpdateBugReportStatusApiStatus.Error,
-      UpdateBugReportStatusApiStatus.Cancelled,
     ],
-    [
-      "downgradeToFreeFromServer",
-      () => downgradeToFreeFromServer("t"),
-      DowngradeToFreeApiStatus.Error,
-      DowngradeToFreeApiStatus.Cancelled,
-    ],
-    [
-      "undoDowngradeFromServer",
-      () => undoDowngradeFromServer("t"),
-      UndoDowngradeApiStatus.Error,
-      UndoDowngradeApiStatus.Cancelled,
-    ],
+    ["downgradeToFreeFromServer", () => downgradeToFreeFromServer("t")],
+    ["undoDowngradeFromServer", () => undoDowngradeFromServer("t")],
     [
       "fetchCustomerPortalUrlFromServer",
       () => fetchCustomerPortalUrlFromServer("t", "url"),
-      FetchCustomerPortalUrlApiStatus.Error,
-      FetchCustomerPortalUrlApiStatus.Cancelled,
     ],
   ];
 
-  it.each(mutations.filter(([, , err]) => err !== undefined))(
-    "%s returns Error on non-ok",
-    async (_name, fn, errStatus, _cancelStatus) => {
-      mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-      const result = await fn();
-      expect(result.status).toBe(errStatus);
-    },
-  );
+  it.each(mutations)("%s throws on non-ok", async (_name, fn) => {
+    mockApiClientFetch.mockResolvedValueOnce(errorResponse());
+    await expect(fn()).rejects.toThrow(ApiError);
+  });
 
-  it.each(mutations.filter(([, , _err, cancel]) => cancel !== undefined))(
-    "%s returns Cancelled on exception",
-    async (_name, fn, _errStatus, cancelStatus) => {
-      mockApiClientFetch.mockRejectedValueOnce(new Error("boom"));
-      const result = await fn();
-      expect(result.status).toBe(cancelStatus);
-    },
-  );
+  it.each(mutations)("%s throws on exception", async (_name, fn) => {
+    mockApiClientFetch.mockRejectedValueOnce(new Error("boom"));
+    await expect(fn()).rejects.toThrow(RequestError);
+  });
 });
 
 // ========================================================================
@@ -1684,16 +1451,17 @@ describe("mutation functions: Error / Cancelled paths", () => {
 // all SessionType values via session-timeline fetches, etc.
 // ========================================================================
 describe("additional branch coverage", () => {
-  it("fetchSpanMetricsPlotFromServer returns NoData when response data is null", async () => {
+  it("fetchSpanMetricsPlotFromServer returns null when response data is null", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
     const r = await fetchSpanMetricsPlotFromServer(makeFilters());
-    expect(r.status).toBe(SpanMetricsPlotApiStatus.NoData);
+    expect(r).toBeNull();
   });
 
-  it("fetchAppHealthPlotFromServer returns Error when the fetch throws", async () => {
+  it("fetchAppHealthPlotFromServer throws when the fetch throws", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("network down"));
-    const r = await fetchAppHealthPlotFromServer(makeFilters());
-    expect(r.status).toBe(AppHealthPlotApiStatus.Error);
+    await expect(fetchAppHealthPlotFromServer(makeFilters())).rejects.toThrow(
+      RequestError,
+    );
   });
 
   it("appends all span statuses (Unset/Ok/Error) to span endpoint URLs", async () => {
@@ -1746,19 +1514,30 @@ describe("additional branch coverage", () => {
     expect(url).toContain("background=1");
   });
 
-  it("fetchBugReportsOverviewPlotFromServer returns Error on non-ok", async () => {
+  it("fetchBugReportsOverviewPlotFromServer throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    const r = await fetchBugReportsOverviewPlotFromServer(makeFilters());
-    expect(r.status).toBe(BugReportsOverviewPlotApiStatus.Error);
+    await expect(
+      fetchBugReportsOverviewPlotFromServer(makeFilters()),
+    ).rejects.toThrow(ApiError);
   });
 
-  it("fetchUsageFromServer returns NoApps on 404", async () => {
+  it("fetchUsageFromServer returns null on 404", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse(404));
     const r = await fetchUsageFromServer("t1");
-    expect(r.status).toBe(FetchUsageApiStatus.NoApps);
+    expect(r).toBeNull();
   });
 
-  it("fetchNetworkDomainsFromServer returns NoData when data.results is null", async () => {
+  it("fetchNetworkDomainsFromServer reports an unparsable date as a RequestError", async () => {
+    const err = await fetchNetworkDomainsFromServer(
+      { id: "app-1" } as any,
+      makeFilters({ startDate: "not-a-date" }),
+    ).catch((e) => e);
+    expect(err).toBeInstanceOf(RequestError);
+    expect(err.message).toBe("Failed to fetch network domains");
+    expect(mockApiClientFetch).not.toHaveBeenCalled();
+  });
+
+  it("fetchNetworkDomainsFromServer returns null when data.results is null", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ results: null }),
     );
@@ -1766,10 +1545,22 @@ describe("additional branch coverage", () => {
       { id: "a" } as any,
       makeFilters(),
     );
-    expect(r.status).toBe(NetworkDomainsApiStatus.NoData);
+    expect(r).toBeNull();
   });
 
-  it("fetchNetworkPathsFromServer returns NoData when data.results is null", async () => {
+  it("fetchNetworkPathsFromServer reports an unparsable date as a RequestError", async () => {
+    const err = await fetchNetworkPathsFromServer(
+      { id: "app-1" } as any,
+      "api.example.com",
+      "search",
+      makeFilters({ startDate: "not-a-date" }),
+    ).catch((e) => e);
+    expect(err).toBeInstanceOf(RequestError);
+    expect(err.message).toBe("Failed to fetch network paths");
+    expect(mockApiClientFetch).not.toHaveBeenCalled();
+  });
+
+  it("fetchNetworkPathsFromServer returns null when data.results is null", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ results: null }),
     );
@@ -1779,56 +1570,56 @@ describe("additional branch coverage", () => {
       "s",
       makeFilters(),
     );
-    expect(r.status).toBe(NetworkPathsApiStatus.NoData);
+    expect(r).toBeNull();
   });
 
-  it("fetchNetworkEndpointLatencyPlotFromServer returns NoData on null body", async () => {
+  it("fetchNetworkEndpointLatencyPlotFromServer returns null on a null body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
     const r = await fetchNetworkEndpointLatencyPlotFromServer(
       makeFilters(),
       "d",
       "p",
     );
-    expect(r.status).toBe(NetworkEndpointLatencyPlotApiStatus.NoData);
+    expect(r).toBeNull();
   });
 
-  it("fetchNetworkEndpointStatusCodesPlotFromServer returns NoData on null body", async () => {
+  it("fetchNetworkEndpointStatusCodesPlotFromServer returns null on a null body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
     const r = await fetchNetworkEndpointStatusCodesPlotFromServer(
       makeFilters(),
       "d",
       "p",
     );
-    expect(r.status).toBe(NetworkEndpointStatusCodesPlotApiStatus.NoData);
+    expect(r).toBeNull();
   });
 
-  it("fetchNetworkEndpointTimelinePlotFromServer returns NoData on null body", async () => {
+  it("fetchNetworkEndpointTimelinePlotFromServer returns null on a null body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
     const r = await fetchNetworkEndpointTimelinePlotFromServer(
       makeFilters(),
       "d",
       "p",
     );
-    expect(r.status).toBe(NetworkEndpointTimelinePlotApiStatus.NoData);
+    expect(r).toBeNull();
   });
 
-  it("fetchNetworkTimelinePlotFromServer returns NoData on null body", async () => {
+  it("fetchNetworkTimelinePlotFromServer returns null on a null body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
     const r = await fetchNetworkTimelinePlotFromServer(makeFilters(), 10);
-    expect(r.status).toBe(NetworkTimelinePlotApiStatus.NoData);
+    expect(r).toBeNull();
   });
 
-  it("fetchNetworkOverviewStatusCodesPlotFromServer returns NoData on null body", async () => {
+  it("fetchNetworkOverviewStatusCodesPlotFromServer returns null on a null body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
     const r =
       await fetchNetworkOverviewStatusCodesPlotFromServer(makeFilters());
-    expect(r.status).toBe(NetworkOverviewStatusCodesPlotApiStatus.NoData);
+    expect(r).toBeNull();
   });
 
-  it("fetchNetworkTrendsFromServer returns NoData on null body", async () => {
+  it("fetchNetworkTrendsFromServer returns null on a null body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
     const r = await fetchNetworkTrendsFromServer(makeFilters());
-    expect(r.status).toBe(NetworkTrendsApiStatus.NoData);
+    expect(r).toBeNull();
   });
 
   it("AppVersion class constructs name/code/displayName", async () => {
@@ -1861,42 +1652,71 @@ describe("additional branch coverage", () => {
     expect(new OsVersion("windows", "11").displayName).toBe("windows 11");
   });
 
-  it("fetchBugReportsOverviewPlotFromServer returns NoData when data is empty", async () => {
+  it("fetchBugReportsOverviewPlotFromServer passes an empty body through", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
     const r = await fetchBugReportsOverviewPlotFromServer(makeFilters());
-    // Pin whatever the current code considers "no data" for this endpoint.
-    expect([
-      BugReportsOverviewPlotApiStatus.NoData,
-      BugReportsOverviewPlotApiStatus.Success,
-    ]).toContain(r.status);
+    expect(r).toEqual({});
   });
 
-  it("createTeamFromServer returns Error with message on non-ok", async () => {
+  it("createTeamFromServer throws the server message on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       mockResponse(false, 400, { error: "name taken" }),
     );
-    const r = await createTeamFromServer("x");
-    expect(r.status).toBeDefined();
+    await expect(createTeamFromServer("x")).rejects.toThrow("name taken");
   });
 
-  it("createTeamFromServer returns Cancelled on exception", async () => {
+  it("reports a dropped connection as a RequestError naming the operation", async () => {
+    mockApiClientFetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    const err = await createTeamFromServer("x").catch((e) => e);
+    expect(err).toBeInstanceOf(RequestError);
+    expect(err.message).toBe("Failed to create team");
+    expect(err.cause).toBeInstanceOf(TypeError);
+  });
+
+  it("reports an unreadable success body as a RequestError", async () => {
+    mockApiClientFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new SyntaxError("Unexpected end of JSON input");
+      },
+    });
+    const err = await createTeamFromServer("x").catch((e) => e);
+    expect(err).toBeInstanceOf(RequestError);
+    expect(err.message).toBe("Failed to create team");
+  });
+
+  it("createTeamFromServer falls back when the error body is not JSON", async () => {
+    // A proxy that answers 502 with an HTML page makes res.json() throw.
+    // The message that the user sees must still name the operation.
+    mockApiClientFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 502,
+      json: async () => {
+        throw new SyntaxError("Unexpected token '<'");
+      },
+    });
+    const err = await createTeamFromServer("x").catch((e) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBe(502);
+    expect(err.message).toBe("Failed to create team");
+  });
+
+  it("createTeamFromServer throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    const r = await createTeamFromServer("x");
-    expect(r.status).toBeDefined();
+    await expect(createTeamFromServer("x")).rejects.toThrow(RequestError);
   });
 
-  it("createAppFromServer returns Error with message on non-ok", async () => {
+  it("createAppFromServer throws the server message on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       mockResponse(false, 400, { error: "oops" }),
     );
-    const r = await createAppFromServer("t", "a");
-    expect(r.status).toBeDefined();
+    await expect(createAppFromServer("t", "a")).rejects.toThrow("oops");
   });
 
-  it("createAppFromServer returns Cancelled on exception", async () => {
+  it("createAppFromServer throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    const r = await createAppFromServer("t", "a");
-    expect(r.status).toBeDefined();
+    await expect(createAppFromServer("t", "a")).rejects.toThrow(RequestError);
   });
 });
 
@@ -1941,13 +1761,12 @@ function lastFetchParams(): URLSearchParams {
 }
 
 describe("fetchErrorsOverviewFromServer", () => {
-  it("returns Success and data on 200", async () => {
+  it("returns the body on 200", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ results: [{ id: "g1" }] }),
     );
     const r = await fetchErrorsOverviewFromServer(makeErrorsFilters(), 5, 0);
-    expect(r.status).toBe(ErrorsOverviewApiStatus.Success);
-    expect(r.data).toEqual({ results: [{ id: "g1" }] });
+    expect(r).toEqual({ results: [{ id: "g1" }] });
   });
 
   it("hits /apps/:id/errorGroups", async () => {
@@ -2004,26 +1823,28 @@ describe("fetchErrorsOverviewFromServer", () => {
     expect(params.has("custom")).toBe(false);
   });
 
-  it("returns Error on non-ok", async () => {
+  it("throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse(500));
-    const r = await fetchErrorsOverviewFromServer(makeErrorsFilters(), 5, 0);
-    expect(r.status).toBe(ErrorsOverviewApiStatus.Error);
+    await expect(
+      fetchErrorsOverviewFromServer(makeErrorsFilters(), 5, 0),
+    ).rejects.toThrow(ApiError);
   });
 
-  it("returns Cancelled on exception", async () => {
+  it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("boom"));
-    const r = await fetchErrorsOverviewFromServer(makeErrorsFilters(), 5, 0);
-    expect(r.status).toBe(ErrorsOverviewApiStatus.Cancelled);
+    await expect(
+      fetchErrorsOverviewFromServer(makeErrorsFilters(), 5, 0),
+    ).rejects.toThrow(RequestError);
   });
 });
 
 describe("fetchErrorsOverviewPlotFromServer", () => {
-  it("returns Success with data on 200", async () => {
+  it("returns the plot body on 200", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse([{ data: [{ datetime: "x", instances: 1 }] }]),
     );
     const r = await fetchErrorsOverviewPlotFromServer(makeErrorsFilters());
-    expect(r.status).toBe(ErrorsOverviewPlotApiStatus.Success);
+    expect(r).toEqual([{ data: [{ datetime: "x", instances: 1 }] }]);
   });
 
   it("hits /apps/:id/errorGroups/plots/instances", async () => {
@@ -2061,22 +1882,24 @@ describe("fetchErrorsOverviewPlotFromServer", () => {
     expect(params.has("custom")).toBe(false);
   });
 
-  it("returns NoData on null body", async () => {
+  it("returns null on a null body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
     const r = await fetchErrorsOverviewPlotFromServer(makeErrorsFilters());
-    expect(r.status).toBe(ErrorsOverviewPlotApiStatus.NoData);
+    expect(r).toBeNull();
   });
 
-  it("returns Error on non-ok", async () => {
+  it("throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    const r = await fetchErrorsOverviewPlotFromServer(makeErrorsFilters());
-    expect(r.status).toBe(ErrorsOverviewPlotApiStatus.Error);
+    await expect(
+      fetchErrorsOverviewPlotFromServer(makeErrorsFilters()),
+    ).rejects.toThrow(ApiError);
   });
 
-  it("returns Cancelled on exception", async () => {
+  it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    const r = await fetchErrorsOverviewPlotFromServer(makeErrorsFilters());
-    expect(r.status).toBe(ErrorsOverviewPlotApiStatus.Cancelled);
+    await expect(
+      fetchErrorsOverviewPlotFromServer(makeErrorsFilters()),
+    ).rejects.toThrow(RequestError);
   });
 });
 
@@ -2089,7 +1912,7 @@ describe("fetchErrorsDetailsFromServer", () => {
     );
   });
 
-  it("returns Success on 200", async () => {
+  it("returns the body on 200", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ results: [{ id: "e1" }] }),
     );
@@ -2098,8 +1921,7 @@ describe("fetchErrorsDetailsFromServer", () => {
       0,
       makeErrorsFilters(),
     );
-    expect(r.status).toBe(ErrorsDetailsApiStatus.Success);
-    expect(r.data).toEqual({ results: [{ id: "e1" }] });
+    expect(r).toEqual({ results: [{ id: "e1" }] });
   });
 
   it("does NOT append type/severity/custom (single-group endpoint, filters don't apply)", async () => {
@@ -2132,24 +1954,18 @@ describe("fetchErrorsDetailsFromServer", () => {
     expect(params.has("custom")).toBe(false);
   });
 
-  it("returns Error on non-ok", async () => {
+  it("throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    const r = await fetchErrorsDetailsFromServer(
-      "group-1",
-      0,
-      makeErrorsFilters(),
-    );
-    expect(r.status).toBe(ErrorsDetailsApiStatus.Error);
+    await expect(
+      fetchErrorsDetailsFromServer("group-1", 0, makeErrorsFilters()),
+    ).rejects.toThrow(ApiError);
   });
 
-  it("returns Cancelled on exception", async () => {
+  it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    const r = await fetchErrorsDetailsFromServer(
-      "group-1",
-      0,
-      makeErrorsFilters(),
-    );
-    expect(r.status).toBe(ErrorsDetailsApiStatus.Cancelled);
+    await expect(
+      fetchErrorsDetailsFromServer("group-1", 0, makeErrorsFilters()),
+    ).rejects.toThrow(RequestError);
   });
 });
 
@@ -2188,7 +2004,7 @@ describe("fetchErrorGroupCommonPathFromServer", () => {
     expect(url).not.toContain("filter_short_code=");
   });
 
-  it("returns Success on 200", async () => {
+  it("returns the body on 200", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ sessions_analyzed: 3, steps: [] }),
     );
@@ -2196,26 +2012,21 @@ describe("fetchErrorGroupCommonPathFromServer", () => {
       "group-1",
       makeErrorsFilters(),
     );
-    expect(r.status).toBe(ErrorGroupCommonPathApiStatus.Success);
-    expect((r.data as any).sessions_analyzed).toBe(3);
+    expect((r as any).sessions_analyzed).toBe(3);
   });
 
-  it("returns Error on non-ok", async () => {
+  it("throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    const r = await fetchErrorGroupCommonPathFromServer(
-      "group-1",
-      makeErrorsFilters(),
-    );
-    expect(r.status).toBe(ErrorGroupCommonPathApiStatus.Error);
+    await expect(
+      fetchErrorGroupCommonPathFromServer("group-1", makeErrorsFilters()),
+    ).rejects.toThrow(ApiError);
   });
 
-  it("returns Cancelled on exception", async () => {
+  it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    const r = await fetchErrorGroupCommonPathFromServer(
-      "group-1",
-      makeErrorsFilters(),
-    );
-    expect(r.status).toBe(ErrorGroupCommonPathApiStatus.Cancelled);
+    await expect(
+      fetchErrorGroupCommonPathFromServer("group-1", makeErrorsFilters()),
+    ).rejects.toThrow(RequestError);
   });
 });
 
@@ -2249,7 +2060,7 @@ describe("fetchErrorsDetailsPlotFromServer", () => {
     expect(url).not.toContain("custom=");
   });
 
-  it("returns Success on 200", async () => {
+  it("returns the body on 200", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse([{ data: [{ datetime: "x", instances: 1 }] }]),
     );
@@ -2257,34 +2068,30 @@ describe("fetchErrorsDetailsPlotFromServer", () => {
       "group-1",
       makeErrorsFilters(),
     );
-    expect(r.status).toBe(ErrorsDetailsPlotApiStatus.Success);
+    expect(r).toEqual([{ data: [{ datetime: "x", instances: 1 }] }]);
   });
 
-  it("returns NoData on null body", async () => {
+  it("returns null on a null body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
     const r = await fetchErrorsDetailsPlotFromServer(
       "group-1",
       makeErrorsFilters(),
     );
-    expect(r.status).toBe(ErrorsDetailsPlotApiStatus.NoData);
+    expect(r).toBeNull();
   });
 
-  it("returns Error on non-ok", async () => {
+  it("throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    const r = await fetchErrorsDetailsPlotFromServer(
-      "group-1",
-      makeErrorsFilters(),
-    );
-    expect(r.status).toBe(ErrorsDetailsPlotApiStatus.Error);
+    await expect(
+      fetchErrorsDetailsPlotFromServer("group-1", makeErrorsFilters()),
+    ).rejects.toThrow(ApiError);
   });
 
-  it("returns Cancelled on exception", async () => {
+  it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    const r = await fetchErrorsDetailsPlotFromServer(
-      "group-1",
-      makeErrorsFilters(),
-    );
-    expect(r.status).toBe(ErrorsDetailsPlotApiStatus.Cancelled);
+    await expect(
+      fetchErrorsDetailsPlotFromServer("group-1", makeErrorsFilters()),
+    ).rejects.toThrow(RequestError);
   });
 });
 
@@ -2320,7 +2127,7 @@ describe("fetchErrorsDistributionPlotFromServer", () => {
     expect(params.get("custom")).toBeNull();
   });
 
-  it("returns Success on non-empty body", async () => {
+  it("returns the body when it is non-empty", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ os_version: { "android 13": 5 } }),
     );
@@ -2328,19 +2135,19 @@ describe("fetchErrorsDistributionPlotFromServer", () => {
       "group-1",
       makeErrorsFilters(),
     );
-    expect(r.status).toBe(ErrorsDistributionPlotApiStatus.Success);
+    expect(r).toEqual({ os_version: { "android 13": 5 } });
   });
 
-  it("returns NoData on null body", async () => {
+  it("returns null on a null body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
     const r = await fetchErrorsDistributionPlotFromServer(
       "group-1",
       makeErrorsFilters(),
     );
-    expect(r.status).toBe(ErrorsDistributionPlotApiStatus.NoData);
+    expect(r).toBeNull();
   });
 
-  it("returns NoData on body where every attribute is empty", async () => {
+  it("returns null on a body where every attribute is empty", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ os_version: {}, country: {} }),
     );
@@ -2348,25 +2155,21 @@ describe("fetchErrorsDistributionPlotFromServer", () => {
       "group-1",
       makeErrorsFilters(),
     );
-    expect(r.status).toBe(ErrorsDistributionPlotApiStatus.NoData);
+    expect(r).toBeNull();
   });
 
-  it("returns Error on non-ok", async () => {
+  it("throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    const r = await fetchErrorsDistributionPlotFromServer(
-      "group-1",
-      makeErrorsFilters(),
-    );
-    expect(r.status).toBe(ErrorsDistributionPlotApiStatus.Error);
+    await expect(
+      fetchErrorsDistributionPlotFromServer("group-1", makeErrorsFilters()),
+    ).rejects.toThrow(ApiError);
   });
 
-  it("returns Cancelled on exception", async () => {
+  it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    const r = await fetchErrorsDistributionPlotFromServer(
-      "group-1",
-      makeErrorsFilters(),
-    );
-    expect(r.status).toBe(ErrorsDistributionPlotApiStatus.Cancelled);
+    await expect(
+      fetchErrorsDistributionPlotFromServer("group-1", makeErrorsFilters()),
+    ).rejects.toThrow(RequestError);
   });
 });
 
@@ -2374,23 +2177,25 @@ describe("fetchErrorsDistributionPlotFromServer", () => {
 // validateInvitesFromServer
 // ========================================================================
 describe("validateInvitesFromServer", () => {
-  it("returns Success on 200", async () => {
+  it("returns the body on 200", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
     const r = await validateInvitesFromServer("invite-1");
     expect(lastFetchUrl()).toContain("/api/auth/validateInvite");
     expect(lastFetchOpts().method).toBe("POST");
-    expect(r.status).toBe(ValidateInviteApiStatus.Success);
+    expect(r).toBeUndefined();
   });
 
-  it("returns Error on non-ok", async () => {
+  it("throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse(400));
-    const r = await validateInvitesFromServer("invite-1");
-    expect(r.status).toBe(ValidateInviteApiStatus.Error);
+    await expect(validateInvitesFromServer("invite-1")).rejects.toThrow(
+      ApiError,
+    );
   });
 
-  it("returns Cancelled on exception", async () => {
+  it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    const r = await validateInvitesFromServer("invite-1");
-    expect(r.status).toBe(ValidateInviteApiStatus.Cancelled);
+    await expect(validateInvitesFromServer("invite-1")).rejects.toThrow(
+      RequestError,
+    );
   });
 });
