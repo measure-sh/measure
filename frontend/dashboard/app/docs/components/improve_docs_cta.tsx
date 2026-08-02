@@ -28,7 +28,7 @@ export function ImproveDocsCta() {
   })}`;
 
   return (
-    <div className="flex flex-row flex-wrap items-center gap-3 border-y py-3">
+    <div className="flex flex-row flex-wrap items-center gap-3 border-y py-6 mt-4">
       <p className="text-sm font-medium">Think this page can be better?</p>
       <a
         href={href}
