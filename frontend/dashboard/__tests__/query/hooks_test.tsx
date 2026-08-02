@@ -3,19 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import React from "react";
 
-import {
-  AppsApiStatus,
-  BuildsApiStatus,
-  ErrorGroupCommonPathApiStatus,
-  ErrorsDetailsApiStatus,
-  ErrorsDetailsPlotApiStatus,
-  ErrorsDistributionPlotApiStatus,
-  ErrorsOverviewApiStatus,
-  ErrorsOverviewPlotApiStatus,
-  FiltersApiStatus,
-  FilterSource,
-  RootSpanNamesApiStatus,
-} from "@/app/api/api_calls";
+import { FilterSource } from "@/app/api/api_calls";
+import { ApiError } from "@/app/api/api_error";
 
 jest.mock("@/app/api/api_calls", () => {
   const actual = jest.requireActual("@/app/api/api_calls");
@@ -135,54 +124,38 @@ describe("useAppsQuery", () => {
     expect(mockFetchApps).not.toHaveBeenCalled();
   });
 
-  it("returns parsed result on Success", async () => {
-    mockFetchApps.mockResolvedValueOnce({
-      status: AppsApiStatus.Success,
-      data: [{ id: "a1", name: "App 1" }],
-    });
+  it("returns the apps list", async () => {
+    mockFetchApps.mockResolvedValueOnce([{ id: "a1", name: "App 1" }]);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(() => useAppsQuery("team-1"), { wrapper });
 
     await waitFor(() => expect(result.current.status).toBe("success"));
 
-    expect(result.current.data).toEqual({
-      status: AppsApiStatus.Success,
-      data: [{ id: "a1", name: "App 1" }],
-    });
+    expect(result.current.data).toEqual([{ id: "a1", name: "App 1" }]);
     expect(mockFetchApps).toHaveBeenCalledWith("team-1");
   });
 
-  it("passes through NoApps status", async () => {
-    mockFetchApps.mockResolvedValueOnce({
-      status: AppsApiStatus.NoApps,
-      data: null,
-    });
+  it("passes an empty list through", async () => {
+    mockFetchApps.mockResolvedValueOnce([]);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(() => useAppsQuery("team-1"), { wrapper });
 
     await waitFor(() => expect(result.current.status).toBe("success"));
 
-    expect(result.current.data).toEqual({
-      status: AppsApiStatus.NoApps,
-      data: [],
-    });
+    expect(result.current.data).toEqual([]);
   });
 
-  it("throws on Error status", async () => {
-    mockFetchApps.mockResolvedValueOnce({
-      status: AppsApiStatus.Error,
-      data: null,
-    });
+  it("surfaces a failed fetch as a query error", async () => {
+    const failure = new ApiError(500, "request failed");
+    mockFetchApps.mockRejectedValueOnce(failure);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(() => useAppsQuery("team-1"), { wrapper });
 
     await waitFor(() => expect(result.current.status).toBe("error"));
-    expect((result.current.error as Error).message).toMatch(
-      /Failed to fetch apps/,
-    );
+    expect(result.current.error).toBe(failure);
   });
 });
 
@@ -209,16 +182,13 @@ describe("useFilterOptionsQuery", () => {
 
     await waitFor(() => expect(result.current.status).toBe("success"));
 
-    expect(result.current.data).toEqual({
-      status: FiltersApiStatus.NotOnboarded,
-      data: null,
-    });
+    expect(result.current.data).toEqual({ kind: "not-onboarded" });
     expect(mockFetchFilters).not.toHaveBeenCalled();
   });
 
   it("fetches for the Builds source even when the app is never onboarded", async () => {
     mockFetchFilters.mockResolvedValueOnce({
-      status: FiltersApiStatus.Success,
+      kind: "options",
       data: {
         versions: [{ name: "1.0.2", code: "2" }],
         os_versions: null,
@@ -245,13 +215,13 @@ describe("useFilterOptionsQuery", () => {
       notOnboardedApp,
       FilterSource.Builds,
     );
-    expect(result.current.data?.status).toBe(FiltersApiStatus.Success);
-    expect(result.current.data?.data?.versions).toHaveLength(1);
+    expect(result.current.data?.kind).toBe("options");
+    expect((result.current.data as any)?.data?.versions).toHaveLength(1);
   });
 
   it("fetches and parses on Success when app is onboarded", async () => {
     mockFetchFilters.mockResolvedValueOnce({
-      status: FiltersApiStatus.Success,
+      kind: "options",
       data: {
         versions: [{ name: "1.0", code: "100" }],
         os_versions: [{ name: "android", version: "13" }],
@@ -278,17 +248,14 @@ describe("useFilterOptionsQuery", () => {
       onboardedApp,
       FilterSource.Errors,
     );
-    expect(result.current.data?.status).toBe(FiltersApiStatus.Success);
-    expect(result.current.data?.data?.countries).toEqual(["US"]);
-    expect(result.current.data?.data?.versions).toHaveLength(1);
-    expect(result.current.data?.data?.osVersions).toHaveLength(1);
+    expect(result.current.data?.kind).toBe("options");
+    expect((result.current.data as any)?.data?.countries).toEqual(["US"]);
+    expect((result.current.data as any)?.data?.versions).toHaveLength(1);
+    expect((result.current.data as any)?.data?.osVersions).toHaveLength(1);
   });
 
-  it("passes through NoData status", async () => {
-    mockFetchFilters.mockResolvedValueOnce({
-      status: FiltersApiStatus.NoData,
-      data: null,
-    });
+  it("passes the no-data outcome through", async () => {
+    mockFetchFilters.mockResolvedValueOnce({ kind: "no-data" });
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
@@ -297,17 +264,12 @@ describe("useFilterOptionsQuery", () => {
     );
 
     await waitFor(() => expect(result.current.status).toBe("success"));
-    expect(result.current.data).toEqual({
-      status: FiltersApiStatus.NoData,
-      data: null,
-    });
+    expect(result.current.data).toEqual({ kind: "no-data" });
   });
 
-  it("throws on Error status", async () => {
-    mockFetchFilters.mockResolvedValueOnce({
-      status: FiltersApiStatus.Error,
-      data: null,
-    });
+  it("surfaces a failed fetch as a query error", async () => {
+    const failure = new ApiError(500, "request failed");
+    mockFetchFilters.mockRejectedValueOnce(failure);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
@@ -316,11 +278,12 @@ describe("useFilterOptionsQuery", () => {
     );
 
     await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.error).toBe(failure);
   });
 
   it("refetches when the onboarded flag flips", async () => {
     mockFetchFilters.mockResolvedValueOnce({
-      status: FiltersApiStatus.Success,
+      kind: "options",
       data: {
         versions: [{ name: "1.0", code: "100" }],
         os_versions: null,
@@ -346,15 +309,13 @@ describe("useFilterOptionsQuery", () => {
     );
 
     await waitFor(() =>
-      expect(result.current.data?.status).toBe(FiltersApiStatus.NotOnboarded),
+      expect(result.current.data?.kind).toBe("not-onboarded"),
     );
     expect(mockFetchFilters).not.toHaveBeenCalled();
 
     rerender({ app: onboardedApp });
 
-    await waitFor(() =>
-      expect(result.current.data?.status).toBe(FiltersApiStatus.Success),
-    );
+    await waitFor(() => expect(result.current.data?.kind).toBe("options"));
     expect(mockFetchFilters).toHaveBeenCalledTimes(1);
   });
 });
@@ -373,10 +334,7 @@ describe("useRootSpanNamesQuery", () => {
   });
 
   it("fetches when filterSource is Spans and returns the parsed results", async () => {
-    mockFetchRootSpanNames.mockResolvedValueOnce({
-      status: RootSpanNamesApiStatus.Success,
-      data: { results: ["root.a", "root.b"] },
-    });
+    mockFetchRootSpanNames.mockResolvedValueOnce(["root.a", "root.b"]);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
@@ -386,17 +344,12 @@ describe("useRootSpanNamesQuery", () => {
 
     await waitFor(() => expect(result.current.status).toBe("success"));
 
-    expect(result.current.data).toEqual({
-      status: RootSpanNamesApiStatus.Success,
-      data: ["root.a", "root.b"],
-    });
+    expect(result.current.data).toEqual(["root.a", "root.b"]);
   });
 
-  it("throws on Error status", async () => {
-    mockFetchRootSpanNames.mockResolvedValueOnce({
-      status: RootSpanNamesApiStatus.Error,
-      data: null,
-    });
+  it("surfaces a failed fetch as a query error", async () => {
+    const failure = new ApiError(500, "request failed");
+    mockFetchRootSpanNames.mockRejectedValueOnce(failure);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
@@ -405,6 +358,7 @@ describe("useRootSpanNamesQuery", () => {
     );
 
     await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.error).toBe(failure);
   });
 });
 
@@ -533,10 +487,7 @@ describe("useErrorsOverviewQuery", () => {
 
   it("returns success with data once the fetch resolves", async () => {
     mockFiltersState = readyFilters();
-    mockFetchErrorsOverview.mockResolvedValueOnce({
-      status: ErrorsOverviewApiStatus.Success,
-      data: { results: [{ id: "g1" }] },
-    });
+    mockFetchErrorsOverview.mockResolvedValueOnce({ results: [{ id: "g1" }] });
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(() => useErrorsOverviewQuery(0), { wrapper });
@@ -552,20 +503,16 @@ describe("useErrorsOverviewQuery", () => {
     expect((result.current.data as any).results[0].id).toBe("g1");
   });
 
-  it("throws on Error status", async () => {
+  it("surfaces a failed fetch as a query error", async () => {
     mockFiltersState = readyFilters();
-    mockFetchErrorsOverview.mockResolvedValueOnce({
-      status: ErrorsOverviewApiStatus.Error,
-      data: null,
-    });
+    const failure = new ApiError(500, "request failed");
+    mockFetchErrorsOverview.mockRejectedValueOnce(failure);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(() => useErrorsOverviewQuery(0), { wrapper });
 
     await waitFor(() => expect(result.current.status).toBe("error"));
-    expect((result.current.error as Error).message).toMatch(
-      /Failed to fetch errors overview/,
-    );
+    expect(result.current.error).toBe(failure);
   });
 });
 
@@ -581,11 +528,8 @@ describe("useBuildsQuery", () => {
   it("returns success with data once the fetch resolves", async () => {
     mockFiltersState = readyFilters();
     mockFetchBuilds.mockResolvedValueOnce({
-      status: BuildsApiStatus.Success,
-      data: {
-        results: [{ id: "b1" }],
-        meta: { next: false, previous: false },
-      },
+      results: [{ id: "b1" }],
+      meta: { next: false, previous: false },
     });
 
     const { wrapper } = makeWrapper();
@@ -598,20 +542,16 @@ describe("useBuildsQuery", () => {
     expect((result.current.data as any).results[0].id).toBe("b1");
   });
 
-  it("throws on Error status", async () => {
+  it("surfaces a failed fetch as a query error", async () => {
     mockFiltersState = readyFilters();
-    mockFetchBuilds.mockResolvedValueOnce({
-      status: BuildsApiStatus.Error,
-      data: null,
-    });
+    const failure = new ApiError(500, "request failed");
+    mockFetchBuilds.mockRejectedValueOnce(failure);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(() => useBuildsQuery(0), { wrapper });
 
     await waitFor(() => expect(result.current.status).toBe("error"));
-    expect((result.current.error as Error).message).toMatch(
-      /Failed to fetch builds/,
-    );
+    expect(result.current.error).toBe(failure);
   });
 });
 
@@ -628,10 +568,9 @@ describe("useErrorsOverviewPlotQuery", () => {
 
   it("returns mapped data on success", async () => {
     mockFiltersState = readyFilters();
-    mockFetchErrorsOverviewPlot.mockResolvedValueOnce({
-      status: ErrorsOverviewPlotApiStatus.Success,
-      data: [{ id: "android", data: [{ datetime: "x", instances: 1 }] }],
-    });
+    mockFetchErrorsOverviewPlot.mockResolvedValueOnce([
+      { id: "android", data: [{ datetime: "x", instances: 1 }] },
+    ]);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(() => useErrorsOverviewPlotQuery(), {
@@ -647,10 +586,7 @@ describe("useErrorsOverviewPlotQuery", () => {
 
   it("returns null on NoData", async () => {
     mockFiltersState = readyFilters();
-    mockFetchErrorsOverviewPlot.mockResolvedValueOnce({
-      status: ErrorsOverviewPlotApiStatus.NoData,
-      data: null,
-    });
+    mockFetchErrorsOverviewPlot.mockResolvedValueOnce(null);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(() => useErrorsOverviewPlotQuery(), {
@@ -661,12 +597,10 @@ describe("useErrorsOverviewPlotQuery", () => {
     expect(result.current.data).toBeNull();
   });
 
-  it("throws on Error", async () => {
+  it("surfaces a failed fetch as a query error", async () => {
     mockFiltersState = readyFilters();
-    mockFetchErrorsOverviewPlot.mockResolvedValueOnce({
-      status: ErrorsOverviewPlotApiStatus.Error,
-      data: null,
-    });
+    const failure = new ApiError(500, "request failed");
+    mockFetchErrorsOverviewPlot.mockRejectedValueOnce(failure);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(() => useErrorsOverviewPlotQuery(), {
@@ -674,6 +608,7 @@ describe("useErrorsOverviewPlotQuery", () => {
     });
 
     await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.error).toBe(failure);
   });
 });
 
@@ -700,10 +635,7 @@ describe("useErrorsDetailsQuery", () => {
 
   it("returns success with data once the fetch resolves", async () => {
     mockFiltersState = readyFilters();
-    mockFetchErrorsDetails.mockResolvedValueOnce({
-      status: ErrorsDetailsApiStatus.Success,
-      data: { results: [{ id: "e1" }] },
-    });
+    mockFetchErrorsDetails.mockResolvedValueOnce({ results: [{ id: "e1" }] });
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(() => useErrorsDetailsQuery("group-1", 3), {
@@ -721,12 +653,10 @@ describe("useErrorsDetailsQuery", () => {
     );
   });
 
-  it("throws on Error status", async () => {
+  it("surfaces a failed fetch as a query error", async () => {
     mockFiltersState = readyFilters();
-    mockFetchErrorsDetails.mockResolvedValueOnce({
-      status: ErrorsDetailsApiStatus.Error,
-      data: null,
-    });
+    const failure = new ApiError(500, "request failed");
+    mockFetchErrorsDetails.mockRejectedValueOnce(failure);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(() => useErrorsDetailsQuery("group-1", 0), {
@@ -734,6 +664,7 @@ describe("useErrorsDetailsQuery", () => {
     });
 
     await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.error).toBe(failure);
   });
 });
 
@@ -760,10 +691,9 @@ describe("useErrorsDetailsPlotQuery", () => {
 
   it("returns mapped data on success", async () => {
     mockFiltersState = readyFilters();
-    mockFetchErrorsDetailsPlot.mockResolvedValueOnce({
-      status: ErrorsDetailsPlotApiStatus.Success,
-      data: [{ id: "ios", data: [{ datetime: "y", instances: 2 }] }],
-    });
+    mockFetchErrorsDetailsPlot.mockResolvedValueOnce([
+      { id: "ios", data: [{ datetime: "y", instances: 2 }] },
+    ]);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(() => useErrorsDetailsPlotQuery("group-1"), {
@@ -779,10 +709,7 @@ describe("useErrorsDetailsPlotQuery", () => {
 
   it("returns null on NoData", async () => {
     mockFiltersState = readyFilters();
-    mockFetchErrorsDetailsPlot.mockResolvedValueOnce({
-      status: ErrorsDetailsPlotApiStatus.NoData,
-      data: null,
-    });
+    mockFetchErrorsDetailsPlot.mockResolvedValueOnce(null);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(() => useErrorsDetailsPlotQuery("group-1"), {
@@ -793,12 +720,10 @@ describe("useErrorsDetailsPlotQuery", () => {
     expect(result.current.data).toBeNull();
   });
 
-  it("throws on Error", async () => {
+  it("surfaces a failed fetch as a query error", async () => {
     mockFiltersState = readyFilters();
-    mockFetchErrorsDetailsPlot.mockResolvedValueOnce({
-      status: ErrorsDetailsPlotApiStatus.Error,
-      data: null,
-    });
+    const failure = new ApiError(500, "request failed");
+    mockFetchErrorsDetailsPlot.mockRejectedValueOnce(failure);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(() => useErrorsDetailsPlotQuery("group-1"), {
@@ -806,6 +731,7 @@ describe("useErrorsDetailsPlotQuery", () => {
     });
 
     await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.error).toBe(failure);
   });
 });
 
@@ -834,11 +760,8 @@ describe("useErrorsDistributionPlotQuery", () => {
   it("returns parsed distribution data on success", async () => {
     mockFiltersState = readyFilters();
     mockFetchErrorsDistributionPlot.mockResolvedValueOnce({
-      status: ErrorsDistributionPlotApiStatus.Success,
-      data: {
-        os_version: { "android 13": 5 },
-        country: { US: 3 },
-      },
+      os_version: { "android 13": 5 },
+      country: { US: 3 },
     });
 
     const { wrapper } = makeWrapper();
@@ -856,10 +779,7 @@ describe("useErrorsDistributionPlotQuery", () => {
 
   it("returns null on NoData", async () => {
     mockFiltersState = readyFilters();
-    mockFetchErrorsDistributionPlot.mockResolvedValueOnce({
-      status: ErrorsDistributionPlotApiStatus.NoData,
-      data: null,
-    });
+    mockFetchErrorsDistributionPlot.mockResolvedValueOnce(null);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
@@ -871,12 +791,10 @@ describe("useErrorsDistributionPlotQuery", () => {
     expect(result.current.data).toBeNull();
   });
 
-  it("throws on Error", async () => {
+  it("surfaces a failed fetch as a query error", async () => {
     mockFiltersState = readyFilters();
-    mockFetchErrorsDistributionPlot.mockResolvedValueOnce({
-      status: ErrorsDistributionPlotApiStatus.Error,
-      data: null,
-    });
+    const failure = new ApiError(500, "request failed");
+    mockFetchErrorsDistributionPlot.mockRejectedValueOnce(failure);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
@@ -885,6 +803,7 @@ describe("useErrorsDistributionPlotQuery", () => {
     );
 
     await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.error).toBe(failure);
   });
 });
 
@@ -913,8 +832,8 @@ describe("useErrorGroupCommonPathQuery", () => {
   it("returns success with data", async () => {
     mockFiltersState = readyFilters();
     mockFetchErrorGroupCommonPath.mockResolvedValueOnce({
-      status: ErrorGroupCommonPathApiStatus.Success,
-      data: { sessions_analyzed: 7, steps: [] },
+      sessions_analyzed: 7,
+      steps: [],
     });
 
     const { wrapper } = makeWrapper();
@@ -933,12 +852,10 @@ describe("useErrorGroupCommonPathQuery", () => {
     expect(result.current.data?.sessions_analyzed).toBe(7);
   });
 
-  it("throws on Error", async () => {
+  it("surfaces a failed fetch as a query error", async () => {
     mockFiltersState = readyFilters();
-    mockFetchErrorGroupCommonPath.mockResolvedValueOnce({
-      status: ErrorGroupCommonPathApiStatus.Error,
-      data: null,
-    });
+    const failure = new ApiError(500, "request failed");
+    mockFetchErrorGroupCommonPath.mockRejectedValueOnce(failure);
 
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
@@ -947,5 +864,6 @@ describe("useErrorGroupCommonPathQuery", () => {
     );
 
     await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.error).toBe(failure);
   });
 });

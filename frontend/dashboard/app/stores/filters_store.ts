@@ -2,17 +2,14 @@ import { queryClient, SHORT_CODE_STALE_TIME } from "@/app/query/query_client";
 import { createStore } from "zustand/vanilla";
 import {
   App,
-  AppsApiStatus,
   AppVersion,
   BugReportStatus,
   buildShortFiltersPostBody,
   defaultFilters,
   Filters,
-  FiltersApiStatus,
   FilterSource,
   HttpMethod,
   OsVersion,
-  RootSpanNamesApiStatus,
   saveListFiltersToServer,
   SessionType,
   SpanStatus,
@@ -327,14 +324,37 @@ function serializeUrlFilters(
 
 export { urlFiltersKeyMap };
 
+/**
+ * How far the apps query has got. A team with no apps still resolves the
+ * query, so "no-apps" is an answer of its own. It is not a loaded state that
+ * holds an empty list.
+ */
+export type AppsState = "pending" | "error" | "loaded" | "no-apps";
+
+/**
+ * How far the filter options query has got. The three empty outcomes stay
+ * apart, because each page explains them differently. A page that does not
+ * explain an outcome treats it as loaded.
+ */
+export type FilterOptionsState =
+  | "pending"
+  | "error"
+  | "loaded"
+  | "no-data"
+  | "not-onboarded"
+  | "no-builds";
+
+/** How far the root span names query has got. Only the Spans source runs it. */
+export type RootSpanNamesState = "pending" | "error" | "loaded" | "no-data";
+
 interface FiltersStoreState {
   filters: Filters;
 
   config: FilterConfig | null;
 
-  appsApiStatus: AppsApiStatus;
-  filtersApiStatus: FiltersApiStatus;
-  rootSpanNamesApiStatus: RootSpanNamesApiStatus;
+  appsState: AppsState;
+  filterOptionsState: FilterOptionsState;
+  rootSpanNamesState: RootSpanNamesState;
 
   apps: App[];
   versions: AppVersion[];
@@ -384,14 +404,14 @@ interface FiltersStoreState {
 interface FiltersStoreActions {
   setConfig: (config: FilterConfig) => void;
 
-  setApps: (apps: App[], status: AppsApiStatus) => void;
+  setApps: (apps: App[], state: AppsState) => void;
   setFilterOptions: (
     data: FilterOptionsData | null,
-    status: FiltersApiStatus,
+    state: FilterOptionsState,
   ) => void;
   setRootSpanNames: (
     rootSpanNames: string[] | null,
-    status: RootSpanNamesApiStatus,
+    state: RootSpanNamesState,
   ) => void;
   setCurrentTeamId: (teamId: string) => void;
 
@@ -435,9 +455,9 @@ const initialState: FiltersStoreState = {
   filters: defaultFilters,
   config: null,
 
-  appsApiStatus: AppsApiStatus.Loading,
-  filtersApiStatus: FiltersApiStatus.Loading,
-  rootSpanNamesApiStatus: RootSpanNamesApiStatus.Loading,
+  appsState: "pending",
+  filterOptionsState: "pending",
+  rootSpanNamesState: "pending",
 
   apps: [],
   versions: [],
@@ -483,29 +503,27 @@ function computeFilters(state: FiltersStoreState): Filters {
   if (!state.config || !state.selectedApp) {
     return {
       ...defaultFilters,
-      loading: state.appsApiStatus === AppsApiStatus.Loading,
+      loading: state.appsState === "pending",
     };
   }
 
   const config = state.config;
 
-  // A filter options status counts toward ready when it is Success, or an
-  // empty state the page does not surface (its show* flag is false).
-  // Surfaced empty states hold ready back so the page renders the
-  // explanation instead of an empty view.
+  // A filter options state counts toward ready when the options loaded. An
+  // empty outcome also counts, but only when the page does not show it (its
+  // show* flag is false). A shown empty outcome keeps ready false, so the
+  // page shows the explanation and not an empty view.
   const filtersReady =
-    state.filtersApiStatus === FiltersApiStatus.Success ||
-    (!config.showNoData &&
-      state.filtersApiStatus === FiltersApiStatus.NoData) ||
+    state.filterOptionsState === "loaded" ||
+    (!config.showNoData && state.filterOptionsState === "no-data") ||
     (!config.showNotOnboarded &&
-      state.filtersApiStatus === FiltersApiStatus.NotOnboarded) ||
-    (!config.showNoBuilds &&
-      state.filtersApiStatus === FiltersApiStatus.NoBuilds);
+      state.filterOptionsState === "not-onboarded") ||
+    (!config.showNoBuilds && state.filterOptionsState === "no-builds");
 
   const ready =
-    state.appsApiStatus === AppsApiStatus.Success &&
+    state.appsState === "loaded" &&
     ((config.filterSource === FilterSource.Spans &&
-      state.rootSpanNamesApiStatus === RootSpanNamesApiStatus.Success) ||
+      state.rootSpanNamesState === "loaded") ||
       config.filterSource !== FilterSource.Spans) &&
     filtersReady;
 
@@ -554,13 +572,12 @@ function computeFilters(state: FiltersStoreState): Filters {
   };
 
   const loading =
-    state.appsApiStatus === AppsApiStatus.Loading ||
-    (state.appsApiStatus === AppsApiStatus.Success &&
-      state.filtersApiStatus === FiltersApiStatus.Loading) ||
-    (state.appsApiStatus === AppsApiStatus.Success &&
-      state.filtersApiStatus === FiltersApiStatus.Success &&
+    state.appsState === "pending" ||
+    (state.appsState === "loaded" && state.filterOptionsState === "pending") ||
+    (state.appsState === "loaded" &&
+      state.filterOptionsState === "loaded" &&
       config.filterSource === FilterSource.Spans &&
-      state.rootSpanNamesApiStatus === RootSpanNamesApiStatus.Loading);
+      state.rootSpanNamesState === "pending");
 
   return {
     ready,
@@ -979,15 +996,15 @@ export function createFiltersStore() {
         });
       },
 
-      setApps: (apps, status) => set({ apps, appsApiStatus: status }),
+      setApps: (apps, state) => set({ apps, appsState: state }),
 
-      setFilterOptions: (data, status) => {
+      setFilterOptions: (data, state) => {
         if (data === null) {
-          set({ filtersApiStatus: status });
+          set({ filterOptionsState: state });
           return;
         }
         set({
-          filtersApiStatus: status,
+          filterOptionsState: state,
           versions: data.versions,
           osVersions: data.osVersions,
           countries: data.countries,
@@ -1002,12 +1019,12 @@ export function createFiltersStore() {
         });
       },
 
-      setRootSpanNames: (rootSpanNames, status) => {
+      setRootSpanNames: (rootSpanNames, state) => {
         if (rootSpanNames === null) {
-          set({ rootSpanNamesApiStatus: status });
+          set({ rootSpanNamesState: state });
           return;
         }
-        set({ rootSpanNamesApiStatus: status, rootSpanNames });
+        set({ rootSpanNamesState: state, rootSpanNames });
       },
 
       setCurrentTeamId: (teamId) => set({ currentTeamId: teamId }),
@@ -1019,7 +1036,7 @@ export function createFiltersStore() {
         if (prevApp !== null && app !== null && prevApp.id !== app.id) {
           set({
             selectedApp: app,
-            filtersApiStatus: FiltersApiStatus.Loading,
+            filterOptionsState: "pending",
             selectedVersions: [],
             selectedOsVersions: [],
           });

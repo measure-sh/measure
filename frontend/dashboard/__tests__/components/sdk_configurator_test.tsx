@@ -12,13 +12,6 @@ import {
 // Mock API calls
 jest.mock("@/app/api/api_calls", () => ({
   __esModule: true,
-  UpdateSdkConfigApiStatus: {
-    Init: "init",
-    Loading: "loading",
-    Error: "error",
-    Success: "success",
-    Cancelled: "cancelled",
-  },
 }));
 
 // The component calls saveSdkConfigMutation.mutate({ appId, config }, { onSuccess, onError })

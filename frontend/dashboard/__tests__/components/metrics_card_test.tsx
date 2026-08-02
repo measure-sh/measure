@@ -99,8 +99,6 @@ jest.mock("lucide-react", () => ({
   ),
 }));
 
-// MetricsCard now uses string union type 'pending' | 'success' | 'error' instead of MetricsApiStatus enum
-
 describe("MetricsCard", () => {
   const createCrashFreeSessionsProps = (
     overrides = {},

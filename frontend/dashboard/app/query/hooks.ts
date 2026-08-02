@@ -1,70 +1,9 @@
 "use client";
 
 import {
-  AlertsOverviewApiStatus,
-  AppApiKeyChangeApiStatus,
-  AppNameChangeApiStatus,
-  AuthzAndMembersApiStatus,
-  BugReportApiStatus,
-  BugReportsOverviewApiStatus,
-  BugReportsOverviewPlotApiStatus,
-  BuildsApiStatus,
-  CreateAppApiStatus,
-  CreateTeamApiStatus,
-  DowngradeToFreeApiStatus,
-  ErrorGroupCommonPathApiStatus,
-  ErrorsDetailsApiStatus,
-  ErrorsDetailsPlotApiStatus,
-  ErrorsDistributionPlotApiStatus,
-  ErrorsOverviewApiStatus,
-  ErrorsOverviewPlotApiStatus,
-  FetchAppRetentionApiStatus,
-  FetchAppThresholdPrefsApiStatus,
-  FetchBillingInfoApiStatus,
-  FetchCheckoutSessionApiStatus,
-  FetchCustomerPortalUrlApiStatus,
-  FetchNotifPrefsApiStatus,
-  FetchTeamSlackConnectUrlApiStatus,
-  FetchTeamSlackStatusApiStatus,
-  FetchUsageApiStatus,
-  InviteMemberApiStatus,
-  JourneyApiStatus,
   JourneyType,
-  MetricsApiStatus,
-  NetworkDomainsApiStatus,
-  NetworkEndpointLatencyPlotApiStatus,
-  NetworkEndpointStatusCodesPlotApiStatus,
-  NetworkEndpointTimelinePlotApiStatus,
-  NetworkOverviewStatusCodesPlotApiStatus,
-  NetworkPathsApiStatus,
-  NetworkTimelinePlotApiStatus,
-  NetworkTrendsApiStatus,
-  PendingInvitesApiStatus,
-  RemoveMemberApiStatus,
-  RemovePendingInviteApiStatus,
-  ResendPendingInviteApiStatus,
-  RoleChangeApiStatus,
   SdkConfig,
-  SdkConfigApiStatus,
-  SessionTimelineApiStatus,
-  SessionTimelinesOverviewApiStatus,
-  SessionTimelinesOverviewPlotApiStatus,
-  AppHealthPlotApiStatus,
-  SpanMetricsPlotApiStatus,
-  SpansApiStatus,
-  RemoveTeamSlackApiStatus,
   Team,
-  TeamNameChangeApiStatus,
-  TeamsApiStatus,
-  TestSlackAlertApiStatus,
-  TraceApiStatus,
-  UndoDowngradeApiStatus,
-  UpdateAppRetentionApiStatus,
-  UpdateAppThresholdPrefsApiStatus,
-  UpdateBugReportStatusApiStatus,
-  UpdateNotifPrefsApiStatus,
-  UpdateSdkConfigApiStatus,
-  UpdateTeamSlackStatusApiStatus,
   changeAppApiKeyFromServer,
   changeAppNameFromServer,
   changeRoleFromServer,
@@ -132,17 +71,15 @@ import {
 } from "@/app/api/api_calls";
 import {
   App,
-  AppsApiStatus,
   AppVersion,
   fetchAppsFromServer,
   fetchFiltersFromServer,
   fetchRootSpanNamesFromServer,
-  FiltersApiStatus,
   FilterSource,
   OsVersion,
-  RootSpanNamesApiStatus,
   UserDefAttr,
 } from "@/app/api/api_calls";
+import { ApiError } from "@/app/api/api_error";
 import { apiClient } from "@/app/api/api_client";
 import { queryClient } from "@/app/query/query_client";
 import type { FilterOptionsData } from "@/app/stores/filters_store";
@@ -200,38 +137,29 @@ function parseFilterResponse(data: any): FilterOptionsData {
   };
 }
 
-export type AppsQueryResult = {
-  status: AppsApiStatus;
-  data: App[];
-};
-
 export function useAppsQuery(teamId: string | undefined) {
-  return useQuery<AppsQueryResult>({
+  return useQuery<App[]>({
     queryKey: ["filterApps", teamId] as const,
-    queryFn: async () => {
-      const r = await fetchAppsFromServer(teamId!);
-      if (
-        r.status !== AppsApiStatus.Success &&
-        r.status !== AppsApiStatus.NoApps
-      ) {
-        throw new Error("Failed to fetch apps");
-      }
-      return { status: r.status, data: (r.data as App[] | null) ?? [] };
-    },
+    queryFn: () => fetchAppsFromServer(teamId!),
     enabled: !!teamId,
   });
 }
 
-export type FilterOptionsQueryResult = {
-  status: FiltersApiStatus;
-  data: FilterOptionsData | null;
-};
+/**
+ * The parsed form of FilterOptionsResult. It has the same four outcomes, and
+ * the raw server response becomes the option lists that the store holds.
+ */
+export type ParsedFilterOptionsResult =
+  | { kind: "options"; data: FilterOptionsData }
+  | { kind: "no-data" }
+  | { kind: "not-onboarded" }
+  | { kind: "no-builds" };
 
 export function useFilterOptionsQuery(
   app: App | null | undefined,
   filterSource: FilterSource,
 ) {
-  return useQuery<FilterOptionsQueryResult>({
+  return useQuery<ParsedFilterOptionsResult>({
     queryKey: [
       "filterOptions",
       app?.id,
@@ -239,53 +167,30 @@ export function useFilterOptionsQuery(
       app?.onboarded ?? false,
     ] as const,
     queryFn: async () => {
-      // Fast path: never-onboarded apps return NotOnboarded for every
-      // event-derived filterSource, skipping the network round-trip. Builds
-      // can be uploaded before an app is onboarded, so the Builds source
+      // An app that is not onboarded has no events, so every event-derived
+      // filterSource is empty. This code therefore skips the request. The
+      // user can upload a build before onboarding, so the Builds source
       // always asks the server.
       if (!app!.onboarded && filterSource !== FilterSource.Builds) {
-        return { status: FiltersApiStatus.NotOnboarded, data: null };
+        return { kind: "not-onboarded" };
       }
-      const r = await fetchFiltersFromServer(app!, filterSource);
-      if (
-        r.status !== FiltersApiStatus.Success &&
-        r.status !== FiltersApiStatus.NotOnboarded &&
-        r.status !== FiltersApiStatus.NoData &&
-        r.status !== FiltersApiStatus.NoBuilds
-      ) {
-        throw new Error("Failed to fetch filters");
+      const result = await fetchFiltersFromServer(app!, filterSource);
+      if (result.kind !== "options") {
+        return result;
       }
-      const parsed = r.data ? parseFilterResponse(r.data) : null;
-      return { status: r.status, data: parsed };
+      return { kind: "options", data: parseFilterResponse(result.data) };
     },
     enabled: !!app,
   });
 }
 
-export type RootSpanNamesQueryResult = {
-  status: RootSpanNamesApiStatus;
-  data: string[] | null;
-};
-
 export function useRootSpanNamesQuery(
   app: App | null | undefined,
   filterSource: FilterSource,
 ) {
-  return useQuery<RootSpanNamesQueryResult>({
+  return useQuery<string[] | null>({
     queryKey: ["rootSpanNames", app?.id] as const,
-    queryFn: async () => {
-      const r = await fetchRootSpanNamesFromServer(app!);
-      if (
-        r.status !== RootSpanNamesApiStatus.Success &&
-        r.status !== RootSpanNamesApiStatus.NoData
-      ) {
-        throw new Error("Failed to fetch root span names");
-      }
-      return {
-        status: r.status,
-        data: (r.data?.results as string[] | null) ?? null,
-      };
-    },
+    queryFn: () => fetchRootSpanNamesFromServer(app!),
     enabled: !!app && filterSource === FilterSource.Spans,
   });
 }
@@ -388,7 +293,10 @@ export enum RootSpanMetricsQuantile {
 // ─── Shared helpers ──────────────────────────────────────────────────────
 
 /** Standard plot transformation: datetime/instances → x/y */
-function mapPlotData(data: any[]) {
+function mapPlotData(data: any[] | null) {
+  if (data === null) {
+    return null;
+  }
   return data.map((item: any) => ({
     id: item.id,
     data: item.data.map((d: any) => ({ x: d.datetime, y: d.instances })),
@@ -456,6 +364,9 @@ function formatOsVersionKey(key: string): string {
 }
 
 function parseDistributionPlot(resultData: any) {
+  if (resultData === null) {
+    return null;
+  }
   const plotKeys: string[] = [];
   const plot = Object.entries(resultData).map(([attribute, values]) => {
     const transformedValues: { [key: string]: number } = {};
@@ -490,13 +401,7 @@ export function useMetricsQuery() {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
     queryKey: ["metrics", filters.serialisedFilters] as const,
-    queryFn: async () => {
-      const result = await fetchMetricsFromServer(filters);
-      if (result.status !== MetricsApiStatus.Success) {
-        throw new Error("Failed to fetch metrics");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchMetricsFromServer(filters),
     enabled: filters.ready,
   });
 }
@@ -504,13 +409,7 @@ export function useMetricsQuery() {
 export function useAppThresholdPrefsQuery(appId: string | undefined) {
   return useQuery({
     queryKey: ["appThresholdPrefs", appId] as const,
-    queryFn: async () => {
-      const result = await fetchAppThresholdPrefsFromServer(appId!);
-      if (result.status !== FetchAppThresholdPrefsApiStatus.Success) {
-        throw new Error("Failed to fetch threshold prefs");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchAppThresholdPrefsFromServer(appId!),
     enabled: !!appId,
   });
 }
@@ -529,16 +428,7 @@ export function useJourneyQuery(
       bidirectional,
       filters.serialisedFilters,
     ] as const,
-    queryFn: async () => {
-      const result = await fetchJourneyFromServer(bidirectional, filters);
-      if (result.status === JourneyApiStatus.NoData) {
-        return null;
-      }
-      if (result.status !== JourneyApiStatus.Success) {
-        throw new Error("Failed to fetch journey");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchJourneyFromServer(bidirectional, filters),
     enabled: filters.ready,
   });
 }
@@ -551,13 +441,7 @@ export function useNetworkDomainsQuery() {
     queryKey: ["networkDomains", filters.serialisedFilters] as const,
     queryFn: async () => {
       const result = await fetchNetworkDomainsFromServer(filters.app!, filters);
-      if (result.status === NetworkDomainsApiStatus.NoData) {
-        return null;
-      }
-      if (result.status !== NetworkDomainsApiStatus.Success) {
-        throw new Error("Failed to fetch domains");
-      }
-      return result.data.results as string[];
+      return (result?.results ?? null) as string[] | null;
     },
     enabled: filters.ready && !!filters.app,
   });
@@ -579,13 +463,7 @@ export function useNetworkPathsQuery(domain: string, searchPattern: string) {
         searchPattern,
         filters,
       );
-      if (result.status === NetworkPathsApiStatus.NoData) {
-        return null;
-      }
-      if (result.status !== NetworkPathsApiStatus.Success) {
-        throw new Error("Failed to fetch paths");
-      }
-      return result.data.results as string[];
+      return (result?.results ?? null) as string[] | null;
     },
     enabled: filters.ready && !!filters.app && domain !== "",
   });
@@ -595,17 +473,7 @@ export function useNetworkStatusPlotQuery() {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
     queryKey: ["networkStatusPlot", filters.serialisedFilters] as const,
-    queryFn: async () => {
-      const result =
-        await fetchNetworkOverviewStatusCodesPlotFromServer(filters);
-      if (result.status === NetworkOverviewStatusCodesPlotApiStatus.NoData) {
-        return null;
-      }
-      if (result.status !== NetworkOverviewStatusCodesPlotApiStatus.Success) {
-        throw new Error("Failed to fetch status plot");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchNetworkOverviewStatusCodesPlotFromServer(filters),
     enabled: filters.ready && !!filters.app,
   });
 }
@@ -614,16 +482,7 @@ export function useNetworkTimelineQuery() {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
     queryKey: ["networkTimeline", filters.serialisedFilters] as const,
-    queryFn: async () => {
-      const result = await fetchNetworkTimelinePlotFromServer(filters, 10);
-      if (result.status === NetworkTimelinePlotApiStatus.NoData) {
-        return null;
-      }
-      if (result.status !== NetworkTimelinePlotApiStatus.Success) {
-        throw new Error("Failed to fetch timeline");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchNetworkTimelinePlotFromServer(filters, 10),
     enabled: filters.ready && !!filters.app,
   });
 }
@@ -639,20 +498,8 @@ export function useNetworkEndpointLatencyQuery(domain: string, path: string) {
       domain,
       path,
     ] as const,
-    queryFn: async () => {
-      const result = await fetchNetworkEndpointLatencyPlotFromServer(
-        filters,
-        domain,
-        path,
-      );
-      if (result.status === NetworkEndpointLatencyPlotApiStatus.NoData) {
-        return null;
-      }
-      if (result.status !== NetworkEndpointLatencyPlotApiStatus.Success) {
-        throw new Error("Failed to fetch latency");
-      }
-      return result.data;
-    },
+    queryFn: () =>
+      fetchNetworkEndpointLatencyPlotFromServer(filters, domain, path),
     enabled: filters.ready && domain !== "" && path !== "",
   });
 }
@@ -669,20 +516,8 @@ export function useNetworkEndpointStatusCodesQuery(
       domain,
       path,
     ] as const,
-    queryFn: async () => {
-      const result = await fetchNetworkEndpointStatusCodesPlotFromServer(
-        filters,
-        domain,
-        path,
-      );
-      if (result.status === NetworkEndpointStatusCodesPlotApiStatus.NoData) {
-        return null;
-      }
-      if (result.status !== NetworkEndpointStatusCodesPlotApiStatus.Success) {
-        throw new Error("Failed to fetch status codes");
-      }
-      return result.data;
-    },
+    queryFn: () =>
+      fetchNetworkEndpointStatusCodesPlotFromServer(filters, domain, path),
     enabled: filters.ready && domain !== "" && path !== "",
   });
 }
@@ -696,20 +531,8 @@ export function useNetworkEndpointTimelineQuery(domain: string, path: string) {
       domain,
       path,
     ] as const,
-    queryFn: async () => {
-      const result = await fetchNetworkEndpointTimelinePlotFromServer(
-        filters,
-        domain,
-        path,
-      );
-      if (result.status === NetworkEndpointTimelinePlotApiStatus.NoData) {
-        return null;
-      }
-      if (result.status !== NetworkEndpointTimelinePlotApiStatus.Success) {
-        throw new Error("Failed to fetch endpoint timeline");
-      }
-      return result.data;
-    },
+    queryFn: () =>
+      fetchNetworkEndpointTimelinePlotFromServer(filters, domain, path),
     enabled: filters.ready && domain !== "" && path !== "",
   });
 }
@@ -720,16 +543,7 @@ export function useNetworkTrendsQuery(active: boolean) {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
     queryKey: ["networkTrends", filters.serialisedFilters] as const,
-    queryFn: async () => {
-      const result = await fetchNetworkTrendsFromServer(filters, 15);
-      if (result.status === NetworkTrendsApiStatus.NoData) {
-        return null;
-      }
-      if (result.status !== NetworkTrendsApiStatus.Success) {
-        throw new Error("Failed to fetch trends");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchNetworkTrendsFromServer(filters, 15),
     enabled: filters.ready && active,
   });
 }
@@ -742,13 +556,7 @@ export function useBugReportsOverviewPlotQuery() {
     queryKey: ["bugReportsOverviewPlot", filters.serialisedFilters] as const,
     queryFn: async () => {
       const result = await fetchBugReportsOverviewPlotFromServer(filters);
-      if (result.status === BugReportsOverviewPlotApiStatus.NoData) {
-        return null;
-      }
-      if (result.status !== BugReportsOverviewPlotApiStatus.Success) {
-        throw new Error("Failed to fetch bug reports plot");
-      }
-      return mapPlotData(result.data);
+      return mapPlotData(result);
     },
     enabled: filters.ready,
   });
@@ -763,13 +571,7 @@ export function useSessionTimelinesOverviewPlotQuery() {
     ] as const,
     queryFn: async () => {
       const result = await fetchSessionTimelinesOverviewPlotFromServer(filters);
-      if (result.status === SessionTimelinesOverviewPlotApiStatus.NoData) {
-        return null;
-      }
-      if (result.status !== SessionTimelinesOverviewPlotApiStatus.Success) {
-        throw new Error("Failed to fetch session timelines plot");
-      }
-      return mapPlotData(result.data);
+      return mapPlotData(result);
     },
     enabled: filters.ready,
   });
@@ -779,16 +581,7 @@ export function useAppHealthPlotQuery() {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
     queryKey: ["appHealthPlot", filters.serialisedFilters] as const,
-    queryFn: async () => {
-      const result = await fetchAppHealthPlotFromServer(filters);
-      if (result.status === AppHealthPlotApiStatus.NoData) {
-        return null;
-      }
-      if (result.status !== AppHealthPlotApiStatus.Success) {
-        throw new Error("Failed to fetch app health plot");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchAppHealthPlotFromServer(filters),
     enabled: filters.ready,
   });
 }
@@ -799,16 +592,7 @@ export function useSpanMetricsPlotQuery(quantile: RootSpanMetricsQuantile) {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
     queryKey: ["spanMetricsPlot", filters.serialisedFilters] as const,
-    queryFn: async () => {
-      const result = await fetchSpanMetricsPlotFromServer(filters);
-      if (result.status === SpanMetricsPlotApiStatus.NoData) {
-        return null;
-      }
-      if (result.status !== SpanMetricsPlotApiStatus.Success) {
-        throw new Error("Failed to fetch span metrics plot");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchSpanMetricsPlotFromServer(filters),
     select: (rawData) =>
       rawData ? transformSpanMetricsPlotData(rawData, quantile) : null,
     enabled: filters.ready,
@@ -828,17 +612,8 @@ export function useAlertsOverviewQuery(paginationOffset: number) {
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
-    queryFn: async () => {
-      const result = await fetchAlertsOverviewFromServer(
-        filters,
-        ALERTS_LIMIT,
-        paginationOffset,
-      );
-      if (result.status !== AlertsOverviewApiStatus.Success) {
-        throw new Error("Failed to fetch alerts");
-      }
-      return result.data;
-    },
+    queryFn: () =>
+      fetchAlertsOverviewFromServer(filters, ALERTS_LIMIT, paginationOffset),
     enabled: filters.ready,
   });
 }
@@ -856,17 +631,12 @@ export function useBugReportsOverviewQuery(paginationOffset: number) {
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
-    queryFn: async () => {
-      const result = await fetchBugReportsOverviewFromServer(
+    queryFn: () =>
+      fetchBugReportsOverviewFromServer(
         filters,
         BUG_REPORTS_LIMIT,
         paginationOffset,
-      );
-      if (result.status !== BugReportsOverviewApiStatus.Success) {
-        throw new Error("Failed to fetch bug reports");
-      }
-      return result.data;
-    },
+      ),
     enabled: filters.ready,
   });
 }
@@ -880,17 +650,8 @@ export function useBuildsQuery(paginationOffset: number) {
   return useQuery({
     queryKey: ["builds", filters.serialisedFilters, paginationOffset] as const,
     placeholderData: keepPreviousData,
-    queryFn: async () => {
-      const result = await fetchBuildsFromServer(
-        filters,
-        BUILDS_LIMIT,
-        paginationOffset,
-      );
-      if (result.status !== BuildsApiStatus.Success) {
-        throw new Error("Failed to fetch builds");
-      }
-      return result.data;
-    },
+    queryFn: () =>
+      fetchBuildsFromServer(filters, BUILDS_LIMIT, paginationOffset),
     enabled: filters.ready,
   });
 }
@@ -904,17 +665,8 @@ export function useSpansQuery(paginationOffset: number) {
   return useQuery({
     queryKey: ["spans", filters.serialisedFilters, paginationOffset] as const,
     placeholderData: keepPreviousData,
-    queryFn: async () => {
-      const result = await fetchSpansFromServer(
-        filters,
-        TRACES_LIMIT,
-        paginationOffset,
-      );
-      if (result.status !== SpansApiStatus.Success) {
-        throw new Error("Failed to fetch spans");
-      }
-      return result.data;
-    },
+    queryFn: () =>
+      fetchSpansFromServer(filters, TRACES_LIMIT, paginationOffset),
     enabled: filters.ready,
   });
 }
@@ -932,17 +684,12 @@ export function useSessionTimelinesOverviewQuery(paginationOffset: number) {
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
-    queryFn: async () => {
-      const result = await fetchSessionTimelinesOverviewFromServer(
+    queryFn: () =>
+      fetchSessionTimelinesOverviewFromServer(
         filters,
         SESSION_TIMELINES_LIMIT,
         paginationOffset,
-      );
-      if (result.status !== SessionTimelinesOverviewApiStatus.Success) {
-        throw new Error("Failed to fetch session timelines");
-      }
-      return result.data;
-    },
+      ),
     enabled: filters.ready,
   });
 }
@@ -961,17 +708,12 @@ export function useErrorsOverviewQuery(paginationOffset: number) {
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
-    queryFn: async () => {
-      const result = await fetchErrorsOverviewFromServer(
+    queryFn: () =>
+      fetchErrorsOverviewFromServer(
         filters,
         ERRORS_OVERVIEW_LIMIT,
         paginationOffset,
-      );
-      if (result.status !== ErrorsOverviewApiStatus.Success) {
-        throw new Error("Failed to fetch errors overview");
-      }
-      return result.data;
-    },
+      ),
     enabled: filters.ready,
   });
 }
@@ -982,13 +724,7 @@ export function useErrorsOverviewPlotQuery() {
     queryKey: ["errorsOverviewPlot", filters.serialisedFilters] as const,
     queryFn: async () => {
       const result = await fetchErrorsOverviewPlotFromServer(filters);
-      if (result.status === ErrorsOverviewPlotApiStatus.NoData) {
-        return null;
-      }
-      if (result.status !== ErrorsOverviewPlotApiStatus.Success) {
-        throw new Error("Failed to fetch errors plot");
-      }
-      return mapPlotData(result.data);
+      return mapPlotData(result);
     },
     enabled: filters.ready,
   });
@@ -1007,18 +743,13 @@ export function useErrorsDetailsQuery(
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
-    queryFn: async () => {
-      const result = await fetchErrorsDetailsFromServer(
+    queryFn: () =>
+      fetchErrorsDetailsFromServer(
         errorGroupId,
         paginationOffset,
         filters,
         ERRORS_DETAILS_LIMIT,
-      );
-      if (result.status !== ErrorsDetailsApiStatus.Success) {
-        throw new Error("Failed to fetch error details");
-      }
-      return result.data;
-    },
+      ),
     enabled: filters.ready && errorGroupId !== "",
   });
 }
@@ -1036,13 +767,7 @@ export function useErrorsDetailsPlotQuery(errorGroupId: string) {
         errorGroupId,
         filters,
       );
-      if (result.status === ErrorsDetailsPlotApiStatus.NoData) {
-        return null;
-      }
-      if (result.status !== ErrorsDetailsPlotApiStatus.Success) {
-        throw new Error("Failed to fetch error details plot");
-      }
-      return mapPlotData(result.data);
+      return mapPlotData(result);
     },
     enabled: filters.ready && errorGroupId !== "",
   });
@@ -1061,13 +786,7 @@ export function useErrorsDistributionPlotQuery(errorGroupId: string) {
         errorGroupId,
         filters,
       );
-      if (result.status === ErrorsDistributionPlotApiStatus.NoData) {
-        return null;
-      }
-      if (result.status !== ErrorsDistributionPlotApiStatus.Success) {
-        throw new Error("Failed to fetch error distribution plot");
-      }
-      return parseDistributionPlot(result.data);
+      return parseDistributionPlot(result);
     },
     enabled: filters.ready && errorGroupId !== "",
   });
@@ -1082,10 +801,7 @@ export function useErrorGroupCommonPathQuery(errorGroupId: string) {
         errorGroupId,
         filters,
       );
-      if (result.status !== ErrorGroupCommonPathApiStatus.Success) {
-        throw new Error("Failed to fetch error group common path");
-      }
-      return result.data as ExceptionGroupCommonPath;
+      return result as ExceptionGroupCommonPath;
     },
     enabled: !!filters.app && !!errorGroupId,
   });
@@ -1096,13 +812,7 @@ export function useErrorGroupCommonPathQuery(errorGroupId: string) {
 export function useTeamsQuery() {
   return useQuery({
     queryKey: ["teams"] as const,
-    queryFn: async () => {
-      const result = await fetchTeamsFromServer();
-      if (result.status !== TeamsApiStatus.Success) {
-        throw new Error("Failed to fetch teams");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchTeamsFromServer(),
   });
 }
 
@@ -1111,13 +821,7 @@ export function useTeamsQuery() {
 export function useTraceQuery(appId: string, traceId: string) {
   return useQuery({
     queryKey: ["trace", appId, traceId] as const,
-    queryFn: async () => {
-      const result = await fetchTraceFromServer(appId, traceId);
-      if (result.status !== TraceApiStatus.Success) {
-        throw new Error("Failed to fetch trace");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchTraceFromServer(appId, traceId),
     enabled: !!appId && !!traceId,
   });
 }
@@ -1127,13 +831,7 @@ export function useTraceQuery(appId: string, traceId: string) {
 export function useSessionTimelineQuery(appId: string, sessionId: string) {
   return useQuery({
     queryKey: ["sessionTimeline", appId, sessionId] as const,
-    queryFn: async () => {
-      const result = await fetchSessionTimelineFromServer(appId, sessionId);
-      if (result.status !== SessionTimelineApiStatus.Success) {
-        throw new Error("Failed to fetch session timeline");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchSessionTimelineFromServer(appId, sessionId),
     enabled: !!appId && !!sessionId,
   });
 }
@@ -1143,13 +841,7 @@ export function useSessionTimelineQuery(appId: string, sessionId: string) {
 export function useBugReportQuery(appId: string, bugReportId: string) {
   return useQuery({
     queryKey: ["bugReport", appId, bugReportId] as const,
-    queryFn: async () => {
-      const result = await fetchBugReportFromServer(appId, bugReportId);
-      if (result.status !== BugReportApiStatus.Success) {
-        throw new Error("Failed to fetch bug report");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchBugReportFromServer(appId, bugReportId),
     enabled: !!appId && !!bugReportId,
   });
 }
@@ -1161,14 +853,11 @@ export function useToggleBugReportStatusMutation() {
       bugReportId: string;
       newStatus: number;
     }) => {
-      const result = await updateBugReportStatusFromServer(
+      await updateBugReportStatusFromServer(
         params.appId,
         params.bugReportId,
         params.newStatus,
       );
-      if (result.status !== UpdateBugReportStatusApiStatus.Success) {
-        throw new Error("Failed to update bug report status");
-      }
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -1184,21 +873,19 @@ export function useToggleBugReportStatusMutation() {
 export function useNotifPrefsQuery() {
   return useQuery({
     queryKey: ["notifPrefs"] as const,
-    queryFn: async () => {
-      const result = await fetchNotifPrefsFromServer();
-      if (result.status !== FetchNotifPrefsApiStatus.Success) {
-        throw new Error("Failed to fetch notification preferences");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchNotifPrefsFromServer(),
   });
 }
 
 export function useSaveNotifPrefsMutation() {
   return useMutation({
     mutationFn: async (params: { notifPrefs: typeof emptyNotifPrefs }) => {
-      const result = await updateNotifPrefsFromServer(params.notifPrefs);
-      if (result.status !== UpdateNotifPrefsApiStatus.Success) {
+      try {
+        await updateNotifPrefsFromServer(params.notifPrefs);
+      } catch {
+        // The preferences page shows this message below its own heading.
+        // The message therefore names the user's task, and does not repeat
+        // the server's words for the same failure.
         throw new Error("Failed to save notification preferences");
       }
     },
@@ -1212,16 +899,8 @@ export function useSaveNotifPrefsMutation() {
 
 export function useCreateAppMutation() {
   return useMutation({
-    mutationFn: async (params: { teamId: string; appName: string }) => {
-      const result = await createAppFromServer(params.teamId, params.appName);
-      if (result.status === CreateAppApiStatus.Error) {
-        throw new Error(result.error ?? "Failed to create app");
-      }
-      if (result.status !== CreateAppApiStatus.Success) {
-        throw new Error("Failed to create app");
-      }
-      return result.data;
-    },
+    mutationFn: (params: { teamId: string; appName: string }) =>
+      createAppFromServer(params.teamId, params.appName),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teams"] });
     },
@@ -1234,13 +913,7 @@ export function useCreateTeamMutation() {
   return useMutation({
     mutationFn: async (params: { teamName: string }) => {
       const result = await createTeamFromServer(params.teamName);
-      if (result.status === CreateTeamApiStatus.Error) {
-        throw new Error(result.error ?? "Failed to create team");
-      }
-      if (result.status !== CreateTeamApiStatus.Success) {
-        throw new Error("Failed to create team");
-      }
-      return result.data as Team;
+      return result as Team;
     },
     onSuccess: (newTeam) => {
       queryClient.setQueryData<Team[]>(["teams"], (old) =>
@@ -1256,13 +929,7 @@ export function useCreateTeamMutation() {
 export function useAuthzAndMembersQuery(teamId: string | undefined) {
   return useQuery({
     queryKey: ["authzAndMembers", teamId] as const,
-    queryFn: async () => {
-      const result = await fetchAuthzAndMembersFromServer(teamId!);
-      if (result.status !== AuthzAndMembersApiStatus.Success) {
-        throw new Error("Failed to fetch authz and members");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchAuthzAndMembersFromServer(teamId!),
     enabled: !!teamId,
   });
 }
@@ -1270,13 +937,7 @@ export function useAuthzAndMembersQuery(teamId: string | undefined) {
 export function useAppRetentionQuery(appId: string | undefined) {
   return useQuery({
     queryKey: ["appRetention", appId] as const,
-    queryFn: async () => {
-      const result = await fetchAppRetentionFromServer(appId!);
-      if (result.status !== FetchAppRetentionApiStatus.Success) {
-        throw new Error("Failed to fetch app retention");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchAppRetentionFromServer(appId!),
     enabled: !!appId,
   });
 }
@@ -1284,20 +945,12 @@ export function useAppRetentionQuery(appId: string | undefined) {
 export function useSdkConfigQuery(appId: string | undefined) {
   return useQuery({
     queryKey: ["sdkConfig", appId] as const,
-    queryFn: async () => {
-      const result = await fetchSdkConfigFromServer(appId!);
-      if (result.status !== SdkConfigApiStatus.Success) {
-        throw new Error("Failed to fetch SDK config");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchSdkConfigFromServer(appId!),
     enabled: !!appId,
   });
 }
 
-type BillingInfoData = Awaited<
-  ReturnType<typeof fetchBillingInfoFromServer>
->["data"];
+type BillingInfoData = Awaited<ReturnType<typeof fetchBillingInfoFromServer>>;
 
 type RefetchInterval =
   | number
@@ -1310,13 +963,7 @@ export function useBillingInfoQuery(
 ) {
   return useQuery({
     queryKey: ["billingInfo", teamId] as const,
-    queryFn: async () => {
-      const result = await fetchBillingInfoFromServer(teamId!);
-      if (result.status !== FetchBillingInfoApiStatus.Success) {
-        throw new Error("Failed to fetch billing info");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchBillingInfoFromServer(teamId!),
     enabled: !!teamId,
     refetchInterval: opts?.refetchInterval,
   });
@@ -1330,13 +977,7 @@ export function useUpdateAppRetentionMutation() {
       appId: string;
       retention: typeof emptyAppRetention;
     }) => {
-      const result = await updateAppRetentionFromServer(
-        params.appId,
-        params.retention,
-      );
-      if (result.status !== UpdateAppRetentionApiStatus.Success) {
-        throw new Error("Failed to update app retention");
-      }
+      await updateAppRetentionFromServer(params.appId, params.retention);
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -1349,13 +990,7 @@ export function useUpdateAppRetentionMutation() {
 export function useChangeAppNameMutation() {
   return useMutation({
     mutationFn: async (params: { appId: string; appName: string }) => {
-      const result = await changeAppNameFromServer(
-        params.appId,
-        params.appName,
-      );
-      if (result.status !== AppNameChangeApiStatus.Success) {
-        throw new Error("Failed to change app name");
-      }
+      await changeAppNameFromServer(params.appId, params.appName);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teams"] });
@@ -1366,10 +1001,7 @@ export function useChangeAppNameMutation() {
 export function useChangeAppApiKeyMutation() {
   return useMutation({
     mutationFn: async (params: { appId: string }) => {
-      const result = await changeAppApiKeyFromServer(params.appId);
-      if (result.status !== AppApiKeyChangeApiStatus.Success) {
-        throw new Error("Failed to change app API key");
-      }
+      await changeAppApiKeyFromServer(params.appId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teams"] });
@@ -1383,13 +1015,7 @@ export function useUpdateAppThresholdPrefsMutation() {
       appId: string;
       prefs: typeof defaultAppThresholdPrefs;
     }) => {
-      const result = await updateAppThresholdPrefsFromServer(
-        params.appId,
-        params.prefs,
-      );
-      if (result.status !== UpdateAppThresholdPrefsApiStatus.Success) {
-        throw new Error("Failed to update threshold prefs");
-      }
+      await updateAppThresholdPrefsFromServer(params.appId, params.prefs);
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -1403,19 +1029,8 @@ export function useUpdateAppThresholdPrefsMutation() {
 
 export function useSaveSdkConfigMutation() {
   return useMutation({
-    mutationFn: async (params: {
-      appId: string;
-      config: Partial<SdkConfig>;
-    }) => {
-      const result = await updateSdkConfigFromServer(
-        params.appId,
-        params.config,
-      );
-      if (result.status !== UpdateSdkConfigApiStatus.Success) {
-        throw new Error("Failed to save SDK config");
-      }
-      return result.data;
-    },
+    mutationFn: (params: { appId: string; config: Partial<SdkConfig> }) =>
+      updateSdkConfigFromServer(params.appId, params.config),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["sdkConfig", variables.appId],
@@ -1429,13 +1044,7 @@ export function useSaveSdkConfigMutation() {
 export function usePendingInvitesQuery(teamId: string | undefined) {
   return useQuery({
     queryKey: ["pendingInvites", teamId] as const,
-    queryFn: async () => {
-      const result = await fetchPendingInvitesFromServer(teamId!);
-      if (result.status !== PendingInvitesApiStatus.Success) {
-        throw new Error("Failed to fetch pending invites");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchPendingInvitesFromServer(teamId!),
     enabled: !!teamId,
   });
 }
@@ -1448,10 +1057,7 @@ export function useTeamSlackConnectUrlQuery(
     queryKey: ["teamSlackConnectUrl", teamId] as const,
     queryFn: async () => {
       const result = await fetchTeamSlackConnectUrlFromServer(teamId!);
-      if (result.status !== FetchTeamSlackConnectUrlApiStatus.Success) {
-        throw new Error("Failed to fetch Slack connect URL");
-      }
-      return result.data.url as string;
+      return result.url as string;
     },
     enabled: !!teamId && enabled,
   });
@@ -1460,13 +1066,7 @@ export function useTeamSlackConnectUrlQuery(
 export function useTeamSlackStatusQuery(teamId: string | undefined) {
   return useQuery({
     queryKey: ["teamSlackStatus", teamId] as const,
-    queryFn: async () => {
-      const result = await fetchTeamSlackStatusFromServer(teamId!);
-      if (result.status !== FetchTeamSlackStatusApiStatus.Success) {
-        throw new Error("Failed to fetch Slack status");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchTeamSlackStatusFromServer(teamId!),
     enabled: !!teamId,
   });
 }
@@ -1476,13 +1076,7 @@ export function useTeamSlackStatusQuery(teamId: string | undefined) {
 export function useChangeTeamNameMutation() {
   return useMutation({
     mutationFn: async (params: { teamId: string; newName: string }) => {
-      const result = await changeTeamNameFromServer(
-        params.teamId,
-        params.newName,
-      );
-      if (result.status !== TeamNameChangeApiStatus.Success) {
-        throw new Error("Failed to change team name");
-      }
+      await changeTeamNameFromServer(params.teamId, params.newName);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teams"] });
@@ -1497,14 +1091,7 @@ export function useInviteMemberMutation() {
       email: string;
       role: string;
     }) => {
-      const result = await inviteMemberFromServer(
-        params.teamId,
-        params.email,
-        params.role,
-      );
-      if (result.status !== InviteMemberApiStatus.Success) {
-        throw new Error("Failed to invite member");
-      }
+      await inviteMemberFromServer(params.teamId, params.email, params.role);
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -1520,13 +1107,7 @@ export function useInviteMemberMutation() {
 export function useRemoveMemberMutation() {
   return useMutation({
     mutationFn: async (params: { teamId: string; memberId: string }) => {
-      const result = await removeMemberFromServer(
-        params.teamId,
-        params.memberId,
-      );
-      if (result.status !== RemoveMemberApiStatus.Success) {
-        throw new Error("Failed to remove member");
-      }
+      await removeMemberFromServer(params.teamId, params.memberId);
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -1539,13 +1120,7 @@ export function useRemoveMemberMutation() {
 export function useResendPendingInviteMutation() {
   return useMutation({
     mutationFn: async (params: { teamId: string; inviteId: string }) => {
-      const result = await resendPendingInviteFromServer(
-        params.teamId,
-        params.inviteId,
-      );
-      if (result.status !== ResendPendingInviteApiStatus.Success) {
-        throw new Error("Failed to resend invite");
-      }
+      await resendPendingInviteFromServer(params.teamId, params.inviteId);
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -1558,13 +1133,7 @@ export function useResendPendingInviteMutation() {
 export function useRemovePendingInviteMutation() {
   return useMutation({
     mutationFn: async (params: { teamId: string; inviteId: string }) => {
-      const result = await removePendingInviteFromServer(
-        params.teamId,
-        params.inviteId,
-      );
-      if (result.status !== RemovePendingInviteApiStatus.Success) {
-        throw new Error("Failed to remove invite");
-      }
+      await removePendingInviteFromServer(params.teamId, params.inviteId);
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -1581,14 +1150,11 @@ export function useChangeRoleMutation() {
       newRole: string;
       memberId: string;
     }) => {
-      const result = await changeRoleFromServer(
+      await changeRoleFromServer(
         params.teamId,
         params.newRole,
         params.memberId,
       );
-      if (result.status !== RoleChangeApiStatus.Success) {
-        throw new Error("Failed to change role");
-      }
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -1601,13 +1167,7 @@ export function useChangeRoleMutation() {
 export function useUpdateSlackStatusMutation() {
   return useMutation({
     mutationFn: async (params: { teamId: string; status: boolean }) => {
-      const result = await updateTeamSlackStatusFromServer(
-        params.teamId,
-        params.status,
-      );
-      if (result.status !== UpdateTeamSlackStatusApiStatus.Success) {
-        throw new Error("Failed to update Slack status");
-      }
+      await updateTeamSlackStatusFromServer(params.teamId, params.status);
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -1620,10 +1180,7 @@ export function useUpdateSlackStatusMutation() {
 export function useRemoveTeamSlackMutation() {
   return useMutation({
     mutationFn: async (params: { teamId: string }) => {
-      const result = await removeTeamSlackFromServer(params.teamId);
-      if (result.status !== RemoveTeamSlackApiStatus.Success) {
-        throw new Error("Failed to remove Slack integration");
-      }
+      await removeTeamSlackFromServer(params.teamId);
     },
     // Settled, not just success: a failed remove can mean the integration is
     // already gone (removed from another session) or that the response was
@@ -1640,13 +1197,7 @@ export function useRemoveTeamSlackMutation() {
 export function useTestSlackAlertMutation() {
   return useMutation({
     mutationFn: async (params: { teamId: string }) => {
-      const result = await sendTestSlackAlertFromServer(params.teamId);
-      if (result.status === TestSlackAlertApiStatus.Error) {
-        throw new Error(result.error ?? "Failed to send test Slack alert");
-      }
-      if (result.status !== TestSlackAlertApiStatus.Success) {
-        throw new Error("Failed to send test Slack alert");
-      }
+      await sendTestSlackAlertFromServer(params.teamId);
     },
   });
 }
@@ -1656,16 +1207,7 @@ export function useTestSlackAlertMutation() {
 export function useUsageQuery(teamId: string | undefined) {
   return useQuery({
     queryKey: ["usage", teamId] as const,
-    queryFn: async () => {
-      const result = await fetchUsageFromServer(teamId!);
-      if (result.status === FetchUsageApiStatus.NoApps) {
-        return null;
-      }
-      if (result.status !== FetchUsageApiStatus.Success) {
-        throw new Error("Failed to fetch usage");
-      }
-      return result.data;
-    },
+    queryFn: () => fetchUsageFromServer(teamId!),
     enabled: !!teamId,
   });
 }
@@ -1675,10 +1217,7 @@ export function useUsagePermissionsQuery(teamId: string | undefined) {
     queryKey: ["usagePermissions", teamId] as const,
     queryFn: async () => {
       const result = await fetchAuthzAndMembersFromServer(teamId!);
-      if (result.status !== AuthzAndMembersApiStatus.Success) {
-        throw new Error("Failed to fetch usage permissions");
-      }
-      return { canChangePlan: result.data.can_change_billing === true };
+      return { canChangePlan: result.can_change_billing === true };
     },
     enabled: !!teamId,
   });
@@ -1688,16 +1227,8 @@ export function useUsagePermissionsQuery(teamId: string | undefined) {
 
 export function useHandleUpgradeMutation() {
   return useMutation({
-    mutationFn: async (params: { teamId: string; successUrl: string }) => {
-      const result = await fetchCheckoutSessionFromServer(
-        params.teamId,
-        params.successUrl,
-      );
-      if (result.status !== FetchCheckoutSessionApiStatus.Success) {
-        throw new Error("Failed to create checkout session");
-      }
-      return result.data;
-    },
+    mutationFn: (params: { teamId: string; successUrl: string }) =>
+      fetchCheckoutSessionFromServer(params.teamId, params.successUrl),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["billingInfo", variables.teamId],
@@ -1708,13 +1239,8 @@ export function useHandleUpgradeMutation() {
 
 export function useDowngradeToFreeMutation() {
   return useMutation({
-    mutationFn: async (params: { teamId: string }) => {
-      const result = await downgradeToFreeFromServer(params.teamId);
-      if (result.status !== DowngradeToFreeApiStatus.Success) {
-        throw new Error("Failed to downgrade to free");
-      }
-      return result.data;
-    },
+    mutationFn: (params: { teamId: string }) =>
+      downgradeToFreeFromServer(params.teamId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["billingInfo", variables.teamId],
@@ -1725,13 +1251,8 @@ export function useDowngradeToFreeMutation() {
 
 export function useUndoDowngradeMutation() {
   return useMutation({
-    mutationFn: async (params: { teamId: string }) => {
-      const result = await undoDowngradeFromServer(params.teamId);
-      if (result.status !== UndoDowngradeApiStatus.Success) {
-        throw new Error("Failed to undo cancellation");
-      }
-      return result.data;
-    },
+    mutationFn: (params: { teamId: string }) =>
+      undoDowngradeFromServer(params.teamId),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["billingInfo", variables.teamId],
@@ -1744,17 +1265,16 @@ export async function fetchCustomerPortalUrl(
   teamId: string,
   returnUrl: string,
 ): Promise<{ redirect?: string; error?: string }> {
-  const result = await fetchCustomerPortalUrlFromServer(teamId, returnUrl);
-
-  switch (result.status) {
-    case FetchCustomerPortalUrlApiStatus.Success:
-      if (result.data?.url) {
-        return { redirect: result.data.url };
-      }
-      return { error: "No portal URL returned." };
-    case FetchCustomerPortalUrlApiStatus.Error:
+  try {
+    const result = await fetchCustomerPortalUrlFromServer(teamId, returnUrl);
+    if (result?.url) {
+      return { redirect: result.url };
+    }
+    return { error: "No portal URL returned." };
+  } catch (e) {
+    if (e instanceof ApiError) {
       return { error: "Please try again." };
-    default:
-      return { error: "Request was cancelled." };
+    }
+    return { error: "Request was cancelled." };
   }
 }

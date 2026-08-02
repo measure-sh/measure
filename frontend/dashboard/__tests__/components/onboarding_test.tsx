@@ -1,3 +1,4 @@
+import { ApiError } from "@/app/api/api_error";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import {
@@ -51,8 +52,7 @@ jest.mock("@/app/query/hooks", () => ({
     data: { can_create_app: mockCanCreateApp },
   }),
   useAppsQuery: () => ({
-    // AppsApiStatus.Success = 1
-    data: { status: 1, data: mockApps },
+    data: mockApps,
     status: "success",
   }),
 }));
@@ -265,12 +265,9 @@ beforeEach(() => {
   mockIsPending = false;
   mockCanCreateApp = true;
   mockRefetchQueries.mockResolvedValue(undefined);
-  mockFetchAppsFromServer.mockResolvedValue({ status: 1, data: [] });
-  // FiltersApiStatus.Success = 1. Default the polling's filters probe to
-  // Success so tests that drive the apps endpoint to onboarded=true reach
-  // the verified state without per-test setup.
+  mockFetchAppsFromServer.mockResolvedValue([]);
   mockFetchFiltersFromServer.mockResolvedValue({
-    status: 1,
+    kind: "options",
     data: {
       versions: [],
       os_versions: [],
@@ -1330,10 +1327,9 @@ describe("Onboarding — Step 3: Verify", () => {
 
   describe("Polling", () => {
     it("polls fetchAppsFromServer immediately on entering verify step", async () => {
-      mockFetchAppsFromServer.mockResolvedValue({
-        status: 1, // AppsApiStatus.Success
-        data: [makeApp({ id: "target-app", onboarded: false })],
-      });
+      mockFetchAppsFromServer.mockResolvedValue([
+        makeApp({ id: "target-app", onboarded: false }),
+      ]);
       await reachVerifyStep();
       await act(async () => {
         await jest.advanceTimersByTimeAsync(0);
@@ -1343,10 +1339,9 @@ describe("Onboarding — Step 3: Verify", () => {
     });
 
     it("shows waiting state while not yet onboarded", async () => {
-      mockFetchAppsFromServer.mockResolvedValue({
-        status: 1,
-        data: [makeApp({ id: "target-app", onboarded: false })],
-      });
+      mockFetchAppsFromServer.mockResolvedValue([
+        makeApp({ id: "target-app", onboarded: false }),
+      ]);
       await reachVerifyStep();
       await act(async () => {
         await jest.advanceTimersByTimeAsync(0);
@@ -1358,10 +1353,9 @@ describe("Onboarding — Step 3: Verify", () => {
     });
 
     it("polls again every 3 seconds", async () => {
-      mockFetchAppsFromServer.mockResolvedValue({
-        status: 1,
-        data: [makeApp({ id: "target-app", onboarded: false })],
-      });
+      mockFetchAppsFromServer.mockResolvedValue([
+        makeApp({ id: "target-app", onboarded: false }),
+      ]);
       await reachVerifyStep();
       await act(async () => {
         await jest.advanceTimersByTimeAsync(0);
@@ -1379,14 +1373,12 @@ describe("Onboarding — Step 3: Verify", () => {
 
     it("advances to verified state when target app onboarded flips to true", async () => {
       mockFetchAppsFromServer
-        .mockResolvedValueOnce({
-          status: 1,
-          data: [makeApp({ id: "target-app", onboarded: false })],
-        })
-        .mockResolvedValueOnce({
-          status: 1,
-          data: [makeApp({ id: "target-app", onboarded: true })],
-        });
+        .mockResolvedValueOnce([
+          makeApp({ id: "target-app", onboarded: false }),
+        ])
+        .mockResolvedValueOnce([
+          makeApp({ id: "target-app", onboarded: true }),
+        ]);
       await reachVerifyStep();
       await act(async () => {
         await jest.advanceTimersByTimeAsync(0);
@@ -1401,13 +1393,10 @@ describe("Onboarding — Step 3: Verify", () => {
     });
 
     it("ignores onboarded flag of other apps in the response", async () => {
-      mockFetchAppsFromServer.mockResolvedValue({
-        status: 1,
-        data: [
-          makeApp({ id: "target-app", onboarded: false }),
-          makeApp({ id: "other-app", onboarded: true }),
-        ],
-      });
+      mockFetchAppsFromServer.mockResolvedValue([
+        makeApp({ id: "target-app", onboarded: false }),
+        makeApp({ id: "other-app", onboarded: true }),
+      ]);
       await reachVerifyStep();
       await act(async () => {
         await jest.advanceTimersByTimeAsync(3000);
@@ -1418,8 +1407,10 @@ describe("Onboarding — Step 3: Verify", () => {
       expect(screen.getByTestId("onboarding-waiting")).toBeInTheDocument();
     });
 
-    it("does not advance when fetch returns error status", async () => {
-      mockFetchAppsFromServer.mockResolvedValue({ status: 2, data: null });
+    it("does not advance when the apps fetch fails", async () => {
+      mockFetchAppsFromServer.mockRejectedValue(
+        new ApiError(500, "Failed to fetch apps"),
+      );
       await reachVerifyStep();
       await act(async () => {
         await jest.advanceTimersByTimeAsync(3000);
@@ -1428,10 +1419,9 @@ describe("Onboarding — Step 3: Verify", () => {
     });
 
     it("stops polling after onboarded flag flips", async () => {
-      mockFetchAppsFromServer.mockResolvedValue({
-        status: 1,
-        data: [makeApp({ id: "target-app", onboarded: true })],
-      });
+      mockFetchAppsFromServer.mockResolvedValue([
+        makeApp({ id: "target-app", onboarded: true }),
+      ]);
       await reachVerifyStep();
       await act(async () => {
         await jest.advanceTimersByTimeAsync(0);
@@ -1447,10 +1437,9 @@ describe("Onboarding — Step 3: Verify", () => {
 
   describe("Verified state", () => {
     beforeEach(() => {
-      mockFetchAppsFromServer.mockResolvedValue({
-        status: 1,
-        data: [makeApp({ id: "target-app", onboarded: true })],
-      });
+      mockFetchAppsFromServer.mockResolvedValue([
+        makeApp({ id: "target-app", onboarded: true }),
+      ]);
     });
 
     it("shows the success message", async () => {
@@ -1495,10 +1484,9 @@ describe("Onboarding — Step 3: Verify", () => {
 
   describe("Back to integrate", () => {
     it("renders a Back button while waiting for the crash", async () => {
-      mockFetchAppsFromServer.mockResolvedValue({
-        status: 1,
-        data: [makeApp({ id: "target-app", onboarded: false })],
-      });
+      mockFetchAppsFromServer.mockResolvedValue([
+        makeApp({ id: "target-app", onboarded: false }),
+      ]);
       await reachVerifyStep();
       expect(
         screen.getByTestId("onboarding-back-to-integrate-button"),
@@ -1506,10 +1494,9 @@ describe("Onboarding — Step 3: Verify", () => {
     });
 
     it("returns to the integrate step on click", async () => {
-      mockFetchAppsFromServer.mockResolvedValue({
-        status: 1,
-        data: [makeApp({ id: "target-app", onboarded: false })],
-      });
+      mockFetchAppsFromServer.mockResolvedValue([
+        makeApp({ id: "target-app", onboarded: false }),
+      ]);
       await reachVerifyStep();
       await act(async () => {
         fireEvent.click(
@@ -1526,10 +1513,9 @@ describe("Onboarding — Step 3: Verify", () => {
     });
 
     it("preserves the previously selected platform when going back", async () => {
-      mockFetchAppsFromServer.mockResolvedValue({
-        status: 1,
-        data: [makeApp({ id: "target-app", onboarded: false })],
-      });
+      mockFetchAppsFromServer.mockResolvedValue([
+        makeApp({ id: "target-app", onboarded: false }),
+      ]);
       renderOnboarding({ teamId: "team-7" });
       // Pick iOS, advance to verify, go back, iOS should still be selected.
       fireEvent.click(screen.getByTestId("tab-iOS"));
@@ -1551,10 +1537,9 @@ describe("Onboarding — Step 3: Verify", () => {
     });
 
     it("stops polling once the user goes back", async () => {
-      mockFetchAppsFromServer.mockResolvedValue({
-        status: 1,
-        data: [makeApp({ id: "target-app", onboarded: false })],
-      });
+      mockFetchAppsFromServer.mockResolvedValue([
+        makeApp({ id: "target-app", onboarded: false }),
+      ]);
       await reachVerifyStep();
       await act(async () => {
         await jest.advanceTimersByTimeAsync(0);
@@ -1572,10 +1557,9 @@ describe("Onboarding — Step 3: Verify", () => {
     });
 
     it("persists the step rollback to localStorage", async () => {
-      mockFetchAppsFromServer.mockResolvedValue({
-        status: 1,
-        data: [makeApp({ id: "target-app", onboarded: false })],
-      });
+      mockFetchAppsFromServer.mockResolvedValue([
+        makeApp({ id: "target-app", onboarded: false }),
+      ]);
       await reachVerifyStep();
       await act(async () => {
         fireEvent.click(
@@ -1591,10 +1575,9 @@ describe("Onboarding — Step 3: Verify", () => {
 
   describe("Cleanup", () => {
     it("stops polling after the component unmounts", async () => {
-      mockFetchAppsFromServer.mockResolvedValue({
-        status: 1,
-        data: [makeApp({ id: "target-app", onboarded: false })],
-      });
+      mockFetchAppsFromServer.mockResolvedValue([
+        makeApp({ id: "target-app", onboarded: false }),
+      ]);
       const { unmount } = renderOnboarding({ teamId: "team-7" });
       await act(async () => {
         fireEvent.click(screen.getByTestId("onboarding-next-button"));
@@ -1616,10 +1599,9 @@ describe("Onboarding — Step 3: Verify", () => {
       onboardingStoreInstance
         .getState()
         .setOnboardingStep("target-app", "verify");
-      mockFetchAppsFromServer.mockResolvedValue({
-        status: 1,
-        data: [makeApp({ id: "target-app", onboarded: true })],
-      });
+      mockFetchAppsFromServer.mockResolvedValue([
+        makeApp({ id: "target-app", onboarded: true }),
+      ]);
       renderOnboarding({ teamId: "team-7" });
       await act(async () => {
         await jest.advanceTimersByTimeAsync(0);

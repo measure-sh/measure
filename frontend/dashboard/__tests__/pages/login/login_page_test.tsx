@@ -2,12 +2,11 @@ import { promiseParams } from "@/__tests__/helpers/promise_params";
 import Login from "@/app/auth/login/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
+import { ApiError } from "@/app/api/api_error";
 import { act, render, screen } from "@testing-library/react";
 
 const mockRouterReplace = jest.fn();
-const mockValidateInvites = jest.fn((_arg?: any) =>
-  Promise.resolve({ status: "success" }),
-);
+const mockValidateInvites = jest.fn((_arg?: any) => Promise.resolve());
 const mockPosthogIdentify = jest.fn();
 const mockFetchCurrentSession = jest.fn((...args: any[]) =>
   Promise.resolve(null as any),
@@ -33,7 +32,6 @@ jest.mock("@/app/stores/reset_all", () => ({
 }));
 
 jest.mock("@/app/api/api_calls", () => ({
-  ValidateInviteApiStatus: { Error: "error", Success: "success" },
   validateInvitesFromServer: (arg: any) => mockValidateInvites(arg),
 }));
 
@@ -79,7 +77,7 @@ describe("Login Page", () => {
     mockAssign.mockClear();
     mockRouterReplace.mockClear();
     mockValidateInvites.mockClear();
-    mockValidateInvites.mockResolvedValue({ status: "success" });
+    mockValidateInvites.mockResolvedValue(undefined);
     mockPosthogIdentify.mockClear();
     mockFetchCurrentSession.mockReset();
     mockFetchCurrentSession.mockResolvedValue(null);
@@ -282,8 +280,8 @@ describe("Login Page", () => {
     expect(mockValidateInvites).toHaveBeenCalledWith("invite-123");
   });
 
-  it("shows invalid invite message when invite validation fails", async () => {
-    mockValidateInvites.mockResolvedValue({ status: "error" });
+  it("shows invalid invite message when the server rejects the invite", async () => {
+    mockValidateInvites.mockRejectedValue(new ApiError(404, "no such invite"));
 
     await act(async () => {
       render(
@@ -297,11 +295,25 @@ describe("Login Page", () => {
   });
 
   it("does not show invalid invite message when invite is valid", async () => {
-    mockValidateInvites.mockResolvedValue({ status: "success" });
+    mockValidateInvites.mockResolvedValue(undefined);
 
     await act(async () => {
       render(
         <Login searchParams={promiseParams({ inviteId: "good-invite" })} />,
+      );
+    });
+
+    expect(
+      screen.queryByText("Invalid or expired invite link."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("leaves the invite unjudged when the network fails", async () => {
+    mockValidateInvites.mockRejectedValue(new Error("network down"));
+
+    await act(async () => {
+      render(
+        <Login searchParams={promiseParams({ inviteId: "some-invite" })} />,
       );
     });
 

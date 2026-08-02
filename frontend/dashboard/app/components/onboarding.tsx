@@ -6,10 +6,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   App,
-  AppsApiStatus,
   fetchAppsFromServer,
   fetchFiltersFromServer,
-  FiltersApiStatus,
   FilterSource,
 } from "../api/api_calls";
 import {
@@ -584,8 +582,7 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
   const selectedApp = useFiltersStore((state) => state.selectedApp);
 
   const appsQuery = useAppsQuery(teamId);
-  const apps: App[] =
-    appsQuery.data?.status === AppsApiStatus.Success ? appsQuery.data.data : [];
+  const apps: App[] = appsQuery.data ?? [];
 
   const createApp = useCreateAppMutation();
   const { data: authzAndMembers } = useAuthzAndMembersQuery(teamId);
@@ -672,21 +669,22 @@ export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
     // materialised view before proceeding so that the destination page
     // does not show "No Data" when users heads there.
     const firstEventHasLanded = async (): Promise<boolean> => {
-      const appsResult = await fetchAppsFromServer(teamId);
-      if (appsResult.status !== AppsApiStatus.Success || !appsResult.data) {
+      try {
+        const polledApps = await fetchAppsFromServer(teamId);
+        const refetchedApp = polledApps.find((app) => app.id === targetAppId);
+        if (!refetchedApp?.onboarded) {
+          return false;
+        }
+        const errorsFilterResult = await fetchFiltersFromServer(
+          refetchedApp,
+          FilterSource.Errors,
+        );
+        return errorsFilterResult.kind === "options";
+      } catch {
+        // A failed poll looks the same as an app that has not reported yet.
+        // The caller tries again in both conditions.
         return false;
       }
-      const refetchedApp = (appsResult.data as App[]).find(
-        (app) => app.id === targetAppId,
-      );
-      if (!refetchedApp?.onboarded) {
-        return false;
-      }
-      const errorsFilterResult = await fetchFiltersFromServer(
-        refetchedApp,
-        FilterSource.Errors,
-      );
-      return errorsFilterResult.status === FiltersApiStatus.Success;
     };
 
     const pollForFirstEvent = async () => {

@@ -1,6 +1,5 @@
 "use client";
 
-import { UpdateBugReportStatusApiStatus } from "@/app/api/api_calls";
 import { Button } from "@/app/components/button";
 import { buttonVariants } from "@/app/components/button_variants";
 import { Skeleton } from "@/app/components/skeleton";
@@ -96,9 +95,7 @@ export default function BugReport({
 
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [demoStatusToggled, setDemoStatusToggled] = useState(false);
-  const [demoUpdateStatus, setDemoUpdateStatus] = useState(
-    UpdateBugReportStatusApiStatus.Init,
-  );
+  const [demoUpdating, setDemoUpdating] = useState(false);
 
   const displayBugReport = demo
     ? {
@@ -110,18 +107,14 @@ export default function BugReport({
           : demoBugReport.status,
       }
     : bugReportQuery.data;
-  const displayBugReportApiStatus = demo
+  const bugReportState = demo
     ? "success"
     : bugReportQuery.isSuccess
       ? "success"
       : bugReportQuery.isError
         ? "error"
         : "loading";
-  const displayUpdateStatus = demo
-    ? demoUpdateStatus
-    : toggleStatusMutation.isPending
-      ? UpdateBugReportStatusApiStatus.Loading
-      : UpdateBugReportStatusApiStatus.Init;
+  const isUpdating = demo ? demoUpdating : toggleStatusMutation.isPending;
 
   const handleImageError = (key: string) => {
     setImageErrors((prev) => new Set(prev).add(key));
@@ -130,10 +123,10 @@ export default function BugReport({
   const handleToggleStatus: FormEventHandler = async (event) => {
     event.preventDefault();
     if (demo) {
-      setDemoUpdateStatus(UpdateBugReportStatusApiStatus.Loading);
+      setDemoUpdating(true);
       setTimeout(() => {
         setDemoStatusToggled((prev) => !prev);
-        setDemoUpdateStatus(UpdateBugReportStatusApiStatus.Success);
+        setDemoUpdating(false);
       }, 100);
       return;
     }
@@ -161,7 +154,7 @@ export default function BugReport({
       </p>
       <div className="py-2" />
 
-      {displayBugReportApiStatus === "loading" && (
+      {bugReportState === "loading" && (
         <div className="flex flex-col w-full py-4">
           {/* Pills */}
           <div className="flex flex-wrap gap-2 py-2 pb-12">
@@ -191,13 +184,13 @@ export default function BugReport({
         </div>
       )}
 
-      {displayBugReportApiStatus === "error" && (
+      {bugReportState === "error" && (
         <p className="font-body text-sm">
           Error fetching bug report, please refresh page to try again
         </p>
       )}
 
-      {displayBugReportApiStatus === "success" && displayBugReport && (
+      {bugReportState === "success" && displayBugReport && (
         <div>
           <div className="flex flex-wrap gap-2 py-2 pb-12 items-center">
             <Pill
@@ -268,10 +261,7 @@ export default function BugReport({
             <Button
               variant="outline"
               className="w-fit"
-              disabled={
-                !canUpdateStatus ||
-                displayUpdateStatus === UpdateBugReportStatusApiStatus.Loading
-              }
+              disabled={!canUpdateStatus || isUpdating}
               onClick={handleToggleStatus}
             >
               {displayBugReport.status === 0

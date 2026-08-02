@@ -21,49 +21,6 @@ jest.mock("@/app/utils/use_toast", () => ({
 // Mock API calls - only need the enum/constant exports, not the fetch functions
 jest.mock("@/app/api/api_calls", () => ({
   __esModule: true,
-  FetchUsageApiStatus: {
-    Loading: 0,
-    Success: 1,
-    Error: 2,
-    NoApps: 3,
-    Cancelled: 4,
-  },
-  FetchBillingInfoApiStatus: {
-    Loading: 0,
-    Success: 1,
-    Error: 2,
-    Cancelled: 3,
-  },
-  FetchCheckoutSessionApiStatus: {
-    Loading: 0,
-    Success: 1,
-    Error: 2,
-    Cancelled: 3,
-  },
-  DowngradeToFreeApiStatus: {
-    Loading: 0,
-    Success: 1,
-    Error: 2,
-    Cancelled: 3,
-  },
-  AuthzAndMembersApiStatus: {
-    Loading: 0,
-    Success: 1,
-    Error: 2,
-    Cancelled: 3,
-  },
-  FetchSubscriptionInfoApiStatus: {
-    Loading: 0,
-    Success: 1,
-    Error: 2,
-    Cancelled: 3,
-  },
-  FetchCustomerPortalUrlApiStatus: {
-    Loading: 0,
-    Success: 1,
-    Error: 2,
-    Cancelled: 3,
-  },
   emptyUsage: [
     {
       app_id: "",
@@ -78,12 +35,12 @@ jest.mock("@/app/api/api_calls", () => ({
 // --- Bridge store for usage page ---
 const { create: createBridge } = jest.requireActual("zustand") as any;
 const usageBridge = createBridge(() => ({
-  fetchUsageApiStatus: 0, // Loading
+  usageState: "pending",
   usage: [] as any[],
   months: [] as string[],
   selectedMonth: undefined as string | undefined,
   selectedMonthUsage: [] as any[],
-  fetchBillingInfoApiStatus: 0, // Loading
+  billingInfoState: "pending",
   billingInfo: null as any,
   currentUserCanChangePlan: false,
   fetchUsage: jest.fn(),
@@ -97,31 +54,11 @@ const usageBridge = createBridge(() => ({
   reset: jest.fn(),
 }));
 
-function usageStatusMap(s: number) {
-  // 0=Loading, 1=Success, 2=Error, 3=NoApps
-  if (s === 0) {
-    return "pending";
-  }
-  if (s === 1) {
+function queryStatus(state: string) {
+  if (state === "loaded" || state === "no-apps") {
     return "success";
   }
-  if (s === 2) {
-    return "error";
-  }
-  if (s === 3) {
-    return "success";
-  } // NoApps returns null data
-  return "pending";
-}
-
-function billingStatusMap(s: number) {
-  if (s === 0) {
-    return "pending";
-  }
-  if (s === 1) {
-    return "success";
-  }
-  if (s === 2) {
+  if (state === "error") {
     return "error";
   }
   return "pending";
@@ -131,11 +68,10 @@ jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
   useUsageQuery: () => {
     const s = usageBridge.getState();
-    // For NoApps (3), return null as data with success status
     const data =
-      s.fetchUsageApiStatus === 3
+      s.usageState === "no-apps"
         ? null
-        : s.fetchUsageApiStatus === 1 &&
+        : s.usageState === "loaded" &&
             s.usage.length === 0 &&
             s.months.length > 0
           ? // Build usage data from months/selectedMonthUsage
@@ -155,7 +91,7 @@ jest.mock("@/app/query/hooks", () => ({
           : s.usage.length > 0
             ? s.usage
             : undefined;
-    return { data, status: usageStatusMap(s.fetchUsageApiStatus) };
+    return { data, status: queryStatus(s.usageState) };
   },
   useUsagePermissionsQuery: () => {
     const s = usageBridge.getState();
@@ -165,7 +101,7 @@ jest.mock("@/app/query/hooks", () => ({
     const s = usageBridge.getState();
     return {
       data: s.billingInfo,
-      status: billingStatusMap(s.fetchBillingInfoApiStatus),
+      status: queryStatus(s.billingInfoState),
     };
   },
   useHandleUpgradeMutation: () => {
@@ -354,12 +290,12 @@ describe("Usage Page", () => {
 
     // Reset store to defaults
     useUsageStore.setState({
-      fetchUsageApiStatus: 0, // Loading
+      usageState: "pending",
       usage: [],
       months: [],
       selectedMonth: undefined,
       selectedMonthUsage: [],
-      fetchBillingInfoApiStatus: 0, // Loading
+      billingInfoState: "pending",
       billingInfo: null,
       currentUserCanChangePlan: false,
       fetchUsage: jest.fn(),
@@ -397,7 +333,7 @@ describe("Usage Page", () => {
   // ---- Usage section ----
 
   it("shows loading spinner while fetching usage", async () => {
-    useUsageStore.setState({ fetchUsageApiStatus: 0 }); // Loading
+    useUsageStore.setState({ usageState: "pending" }); // Loading
 
     await act(async () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
@@ -408,7 +344,7 @@ describe("Usage Page", () => {
   });
 
   it("shows error message when usage fetch fails", async () => {
-    useUsageStore.setState({ fetchUsageApiStatus: 2 }); // Error
+    useUsageStore.setState({ usageState: "error" }); // Error
 
     await act(async () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
@@ -418,7 +354,7 @@ describe("Usage Page", () => {
   });
 
   it("shows a neutral empty state when no apps exist (no onboarding push)", async () => {
-    useUsageStore.setState({ fetchUsageApiStatus: 3 }); // NoApps
+    useUsageStore.setState({ usageState: "no-apps" }); // NoApps
 
     await act(async () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
@@ -439,7 +375,7 @@ describe("Usage Page", () => {
 
   it("renders pie chart and month dropdown on success", async () => {
     useUsageStore.setState({
-      fetchUsageApiStatus: 1, // Success
+      usageState: "loaded",
       months: ["2025-01", "2025-02"],
       selectedMonth: "2025-02",
       selectedMonthUsage: [
@@ -493,7 +429,7 @@ describe("Usage Page", () => {
   });
 
   it("shows billing loading spinner while billing info loads", async () => {
-    useUsageStore.setState({ fetchBillingInfoApiStatus: 0 }); // Loading
+    useUsageStore.setState({ billingInfoState: "pending" }); // Loading
 
     await act(async () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
@@ -505,7 +441,7 @@ describe("Usage Page", () => {
   });
 
   it("shows billing error message when billing info fetch fails", async () => {
-    useUsageStore.setState({ fetchBillingInfoApiStatus: 2 }); // Error
+    useUsageStore.setState({ billingInfoState: "error" }); // Error
 
     await act(async () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
@@ -516,7 +452,7 @@ describe("Usage Page", () => {
 
   it("renders free plan card with Current Plan badge and pricing when on free plan", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: freeBillingInfo,
       currentUserCanChangePlan: true,
     });
@@ -533,7 +469,7 @@ describe("Usage Page", () => {
 
   it("renders pro plan card with Current Plan badge when on pro plan", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
     });
@@ -551,8 +487,8 @@ describe("Usage Page", () => {
 
   it("shows free plan usage progress bar with percentage and GB", async () => {
     useUsageStore.setState({
-      fetchUsageApiStatus: 1, // Success
-      fetchBillingInfoApiStatus: 1, // Success
+      usageState: "loaded",
+      billingInfoState: "loaded",
       billingInfo: { ...freeBillingInfo, bytes_used: 1_000_000 }, // 1 MB
       months: ["2025-01", "2025-02"],
       selectedMonth: "2025-02",
@@ -584,8 +520,8 @@ describe("Usage Page", () => {
 
   it("shows 0% when there is no usage", async () => {
     useUsageStore.setState({
-      fetchUsageApiStatus: 1, // Success
-      fetchBillingInfoApiStatus: 1, // Success
+      usageState: "loaded",
+      billingInfoState: "loaded",
       billingInfo: freeBillingInfo,
       months: ["2025-02"],
       selectedMonth: "2025-02",
@@ -611,8 +547,8 @@ describe("Usage Page", () => {
 
   it("shows minimum 0.01% for very small usage", async () => {
     useUsageStore.setState({
-      fetchUsageApiStatus: 1, // Success
-      fetchBillingInfoApiStatus: 1, // Success
+      usageState: "loaded",
+      billingInfoState: "loaded",
       billingInfo: { ...freeBillingInfo, bytes_used: 48 },
       months: ["2025-02"],
       selectedMonth: "2025-02",
@@ -639,7 +575,7 @@ describe("Usage Page", () => {
 
   it("does not show free plan progress bar when on pro plan", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
     });
@@ -656,7 +592,7 @@ describe("Usage Page", () => {
 
   it("upgrade button is disabled when user cannot change billing", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: freeBillingInfo,
       currentUserCanChangePlan: false,
     });
@@ -674,7 +610,7 @@ describe("Usage Page", () => {
       .fn()
       .mockResolvedValue({ redirect: "https://checkout.stripe.com/test" });
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: freeBillingInfo,
       currentUserCanChangePlan: true,
       handleUpgrade,
@@ -698,7 +634,7 @@ describe("Usage Page", () => {
       .fn()
       .mockResolvedValue({ alreadyUpgraded: true });
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: freeBillingInfo,
       currentUserCanChangePlan: true,
       handleUpgrade,
@@ -721,7 +657,7 @@ describe("Usage Page", () => {
   it("upgrade error shows toast", async () => {
     const handleUpgrade = jest.fn().mockResolvedValue({ error: true });
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: freeBillingInfo,
       currentUserCanChangePlan: true,
       handleUpgrade,
@@ -746,7 +682,7 @@ describe("Usage Page", () => {
 
   it("clicking downgrade opens confirmation dialog", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
     });
@@ -766,7 +702,7 @@ describe("Usage Page", () => {
   it("confirming downgrade calls API and shows success toast", async () => {
     const handleDowngrade = jest.fn().mockResolvedValue(true);
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
       handleDowngrade,
@@ -803,7 +739,7 @@ describe("Usage Page", () => {
   it("downgrade error shows error toast", async () => {
     const handleDowngrade = jest.fn().mockResolvedValue(false);
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
       handleDowngrade,
@@ -845,7 +781,7 @@ describe("Usage Page", () => {
 
   it("shows Undo Cancellation button when cancellation is scheduled", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: scheduledCancelBillingInfo,
       currentUserCanChangePlan: true,
     });
@@ -860,7 +796,7 @@ describe("Usage Page", () => {
 
   it("shows scheduled-for date below Undo Cancellation button", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: scheduledCancelBillingInfo,
       currentUserCanChangePlan: true,
     });
@@ -875,7 +811,7 @@ describe("Usage Page", () => {
   it("clicking Undo Cancellation calls undo API and shows success toast", async () => {
     const handleUndoDowngrade = jest.fn().mockResolvedValue(true);
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: scheduledCancelBillingInfo,
       currentUserCanChangePlan: true,
       handleUndoDowngrade,
@@ -898,7 +834,7 @@ describe("Usage Page", () => {
   it("Undo Cancellation error shows error toast", async () => {
     const handleUndoDowngrade = jest.fn().mockResolvedValue(false);
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: scheduledCancelBillingInfo,
       currentUserCanChangePlan: true,
       handleUndoDowngrade,
@@ -924,7 +860,7 @@ describe("Usage Page", () => {
     // — Autumn's auto-flip to Free will arrive shortly.
     const pastEnd = Math.floor(Date.UTC(2020, 0, 1) / 1000);
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: {
         ...proBillingInfo,
         canceled_at: 1700100000,
@@ -946,7 +882,7 @@ describe("Usage Page", () => {
 
   it("Undo Cancellation button disabled when user cannot change plan", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: scheduledCancelBillingInfo,
       currentUserCanChangePlan: false,
     });
@@ -960,7 +896,7 @@ describe("Usage Page", () => {
 
   it("pro plan with no scheduled cancellation shows Downgrade button and no scheduled-for line", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: { ...proBillingInfo, canceled_at: 0 },
       currentUserCanChangePlan: true,
     });
@@ -985,7 +921,7 @@ describe("Usage Page", () => {
         }),
     );
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: scheduledCancelBillingInfo,
       currentUserCanChangePlan: true,
       handleUndoDowngrade,
@@ -1009,7 +945,7 @@ describe("Usage Page", () => {
   it('hides "Next invoice" line when cancellation is scheduled', async () => {
     // current_period_end is the cancellation date, not a future invoice.
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: scheduledCancelBillingInfo,
       currentUserCanChangePlan: true,
     });
@@ -1026,7 +962,7 @@ describe("Usage Page", () => {
 
   it('shows "Next invoice" line on Pro plan when no cancellation is scheduled', async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: { ...proBillingInfo, canceled_at: 0 },
       currentUserCanChangePlan: true,
     });
@@ -1047,7 +983,7 @@ describe("Usage Page", () => {
         }),
     );
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: scheduledCancelBillingInfo,
       currentUserCanChangePlan: true,
       handleUndoDowngrade,
@@ -1152,7 +1088,7 @@ describe("Usage Page", () => {
 
   it("shows pro plan feature list and personalised-plans contact prompt when on free plan", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: freeBillingInfo,
     });
 
@@ -1168,7 +1104,7 @@ describe("Usage Page", () => {
 
   it("hides pro plan feature list when on pro plan", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
     });
@@ -1186,7 +1122,7 @@ describe("Usage Page", () => {
 
   it("shows subscription info on pro plan when user can change billing", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
     });
@@ -1204,7 +1140,7 @@ describe("Usage Page", () => {
 
   it("does not show subscription info when on free plan", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: freeBillingInfo,
       currentUserCanChangePlan: true,
     });
@@ -1219,7 +1155,7 @@ describe("Usage Page", () => {
 
   it("does not show subscription info when can_change_billing is false", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: false,
     });
@@ -1233,7 +1169,7 @@ describe("Usage Page", () => {
 
   it("handles missing subscription state gracefully", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: {
         ...proBillingInfo,
         status: undefined,
@@ -1255,7 +1191,7 @@ describe("Usage Page", () => {
 
   it("Free plan card shows 'Data: X of Y used' from Autumn values", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: {
         ...freeBillingInfo,
         bytes_used: 1_000_000_000,
@@ -1280,7 +1216,7 @@ describe("Usage Page", () => {
     // future "use Autumn for everything" attempt doesn't silently delete the
     // pitch bullets.
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: freeBillingInfo,
     });
 
@@ -1303,7 +1239,7 @@ describe("Usage Page", () => {
 
   it("Pro plan Data line shows 'X of Y used' when under quota", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: {
         ...proBillingInfo,
         bytes_used: 1_000_000_000, // 1 GB
@@ -1323,7 +1259,7 @@ describe("Usage Page", () => {
 
   it("Pro plan Data line appends ', Z overage' when used > granted and overage is allowed", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: {
         ...proBillingInfo,
         bytes_used: 30_000_000_000, // 30 GB
@@ -1344,7 +1280,7 @@ describe("Usage Page", () => {
 
   it("Pro plan Token credits line shows 'X of Y used' when agent credits have been used", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: {
         ...proBillingInfo,
         token_credits_used: 1_500_000,
@@ -1365,7 +1301,7 @@ describe("Usage Page", () => {
     // proBillingInfo carries no token credit fields, so usage is zero and the
     // line must not render — we only surface credits once the agent has run.
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
     });
@@ -1381,7 +1317,7 @@ describe("Usage Page", () => {
 
   it("Pro plan Token credits line reads 'X used' when the plan grants no credit allowance", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: {
         ...proBillingInfo,
         token_credits_used: 1_500_000,
@@ -1402,7 +1338,7 @@ describe("Usage Page", () => {
 
   it("Pro plan Token credits line appends ', Z overage' when used > granted and overage is allowed", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: {
         ...proBillingInfo,
         token_credits_used: 12_000_000,
@@ -1424,7 +1360,7 @@ describe("Usage Page", () => {
     // isn't populated yet the whole block is omitted, so "Data:" must not
     // appear on the Pro card.
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: { ...proBillingInfo, status: undefined },
       currentUserCanChangePlan: true,
     });
@@ -1444,7 +1380,7 @@ describe("Usage Page", () => {
 
   it("shows Manage Billing button when on pro plan", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
     });
@@ -1458,7 +1394,7 @@ describe("Usage Page", () => {
 
   it("hides Manage Billing button when on free plan", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: freeBillingInfo,
     });
 
@@ -1471,7 +1407,7 @@ describe("Usage Page", () => {
 
   it("Manage Billing button is disabled when user cannot change billing", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: false,
     });
@@ -1489,7 +1425,7 @@ describe("Usage Page", () => {
       redirect: "https://billing.stripe.com/session/test",
     });
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
       handleManageBilling,
@@ -1521,7 +1457,7 @@ describe("Usage Page", () => {
         }),
     );
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
       handleManageBilling,
@@ -1549,7 +1485,7 @@ describe("Usage Page", () => {
       .fn()
       .mockResolvedValue({ error: "Please try again." });
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
       handleManageBilling,
@@ -1574,7 +1510,7 @@ describe("Usage Page", () => {
       .fn()
       .mockResolvedValue({ error: "Request was cancelled." });
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
       handleManageBilling,
@@ -1603,7 +1539,7 @@ describe("Usage Page", () => {
         }),
     );
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
       handleManageBilling,
@@ -1635,7 +1571,7 @@ describe("Usage Page", () => {
         }),
     );
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
       handleDowngrade,
@@ -1662,7 +1598,7 @@ describe("Usage Page", () => {
 
   it("shows skeleton placeholders while subscription info is loading on pro plan", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
     });
@@ -1680,7 +1616,7 @@ describe("Usage Page", () => {
       .fn()
       .mockResolvedValue({ error: "No portal URL returned." });
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1, // Success
+      billingInfoState: "loaded",
       billingInfo: proBillingInfo,
       currentUserCanChangePlan: true,
       handleManageBilling,
@@ -1706,7 +1642,7 @@ describe("Usage Page", () => {
 
   it("renders Enterprise card with ENTERPRISE title on enterprise plan", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: enterpriseBillingInfo,
     });
 
@@ -1719,7 +1655,7 @@ describe("Usage Page", () => {
 
   it("Enterprise Data line reads 'Unlimited' when bytes_unlimited is true", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: enterpriseBillingInfo,
     });
 
@@ -1735,7 +1671,7 @@ describe("Usage Page", () => {
 
   it("Enterprise Data line reads 'X of Y used' for bounded plans without overage", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: {
         ...enterpriseBillingInfo,
         bytes_unlimited: false,
@@ -1756,7 +1692,7 @@ describe("Usage Page", () => {
 
   it("Enterprise Data line appends ', Z overage' when overage allowed and used > granted", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: {
         ...enterpriseBillingInfo,
         bytes_unlimited: false,
@@ -1777,7 +1713,7 @@ describe("Usage Page", () => {
 
   it("Enterprise Data line omits overage even when used > granted if overage is not allowed", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: {
         ...enterpriseBillingInfo,
         bytes_unlimited: false,
@@ -1799,7 +1735,7 @@ describe("Usage Page", () => {
 
   it("shows retention line when retention_days is set on enterprise", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: enterpriseBillingInfo,
     });
 
@@ -1813,7 +1749,7 @@ describe("Usage Page", () => {
 
   it("hides retention line when retention_days is missing on enterprise", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: { ...enterpriseBillingInfo, retention_days: 0 },
     });
 
@@ -1826,7 +1762,7 @@ describe("Usage Page", () => {
 
   it("shows plan period when both period timestamps are set on enterprise", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: enterpriseBillingInfo,
     });
 
@@ -1839,7 +1775,7 @@ describe("Usage Page", () => {
 
   it("hides plan period when timestamps are missing on enterprise", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: {
         ...enterpriseBillingInfo,
         current_period_start: 0,
@@ -1859,7 +1795,7 @@ describe("Usage Page", () => {
     // aren't recurring. Whatever variant the Data line takes, it's just
     // "Data:".
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: enterpriseBillingInfo,
     });
 
@@ -1874,7 +1810,7 @@ describe("Usage Page", () => {
 
   it("hides Free and Pro cards on enterprise plan", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: enterpriseBillingInfo,
     });
 
@@ -1890,7 +1826,7 @@ describe("Usage Page", () => {
 
   it('hides "personalised plans" footer on enterprise plan', async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: enterpriseBillingInfo,
     });
 
@@ -1903,7 +1839,7 @@ describe("Usage Page", () => {
 
   it("shows Manage Billing button on enterprise plan", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: enterpriseBillingInfo,
       currentUserCanChangePlan: true,
     });
@@ -1917,7 +1853,7 @@ describe("Usage Page", () => {
 
   it("Manage Billing on enterprise is disabled when user cannot change billing", async () => {
     useUsageStore.setState({
-      fetchBillingInfoApiStatus: 1,
+      billingInfoState: "loaded",
       billingInfo: enterpriseBillingInfo,
       currentUserCanChangePlan: false,
     });

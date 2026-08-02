@@ -107,94 +107,6 @@ const mockTeam = { id: "team-1", name: "Team One" };
 
 jest.mock("@/app/api/api_calls", () => ({
   __esModule: true,
-  TeamsApiStatus: {
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  TeamNameChangeApiStatus: {
-    Init: "init",
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  AuthzAndMembersApiStatus: {
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  PendingInvitesApiStatus: {
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  InviteMemberApiStatus: {
-    Init: "init",
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  RemoveMemberApiStatus: {
-    Init: "init",
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  RoleChangeApiStatus: {
-    Init: "init",
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  ResendPendingInviteApiStatus: {
-    Init: "init",
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  RemovePendingInviteApiStatus: {
-    Init: "init",
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  FetchTeamSlackConnectUrlApiStatus: {
-    Init: "init",
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  FetchTeamSlackStatusApiStatus: {
-    Init: "init",
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  UpdateTeamSlackStatusApiStatus: {
-    Init: "init",
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
-  TestSlackAlertApiStatus: {
-    Init: "init",
-    Loading: "loading",
-    Success: "success",
-    Error: "error",
-    Cancelled: "cancelled",
-  },
   defaultAuthzAndMembers: {
     can_invite_roles: ["viewer"],
     can_change_billing: false,
@@ -212,7 +124,7 @@ jest.mock("@/app/api/api_calls", () => ({
 // --- Bridge stores: tests control these, query hook mocks read from them ---
 const { create: createBridge } = jest.requireActual("zustand") as any;
 const teamsStore = createBridge(() => ({
-  teamsApiStatus: "loading",
+  teamsState: "loading",
   teams: null as any,
   selectedTeam: null as any,
   fetchTeams: jest.fn(),
@@ -221,30 +133,30 @@ const teamsStore = createBridge(() => ({
 }));
 const teamPageStore = createBridge(() => ({
   currentUserId: undefined as string | undefined,
-  authzAndMembersApiStatus: "loading",
+  authzAndMembersState: "loading",
   authzAndMembers: {
     can_invite_roles: [] as string[],
     can_rename_team: false,
     can_manage_slack: false,
     members: [] as any[],
   },
-  pendingInvitesApiStatus: "loading",
+  pendingInvitesState: "loading",
   pendingInvites: null as any,
   teamSlackConnectUrl: null as string | null,
-  fetchTeamSlackConnectUrlApiStatus: "init",
+  teamSlackConnectUrlState: "init",
   refetchSlackConnectUrl: jest.fn(),
   teamSlack: null as any,
-  fetchTeamSlackStatusApiStatus: "init",
+  teamSlackState: "init",
   refetchSlackStatus: jest.fn(),
-  updateTeamSlackStatusApiStatus: "init",
-  removeTeamSlackApiStatus: "init",
-  testSlackAlertApiStatus: "init",
-  teamNameChangeApiStatus: "init",
-  inviteMemberApiStatus: "init",
-  removeMemberApiStatus: "init",
-  resendPendingInviteApiStatus: "init",
-  removePendingInviteApiStatus: "init",
-  roleChangeApiStatus: "init",
+  updateSlackStatusState: "init",
+  removeTeamSlackState: "init",
+  testSlackAlertState: "init",
+  teamNameChangeState: "init",
+  inviteMemberState: "init",
+  removeMemberState: "init",
+  resendPendingInviteState: "init",
+  removePendingInviteState: "init",
+  roleChangeState: "init",
   fetchCurrentUserId: jest.fn(),
   fetchAuthzAndMembers: jest.fn(),
   fetchPendingInvites: jest.fn(),
@@ -283,27 +195,27 @@ jest.mock("@/app/query/hooks", () => ({
   },
   useTeamsQuery: () => {
     const s = teamsStore.getState();
-    return { data: s.teams, status: mapStatus(s.teamsApiStatus) };
+    return { data: s.teams, status: mapStatus(s.teamsState) };
   },
   useAuthzAndMembersQuery: () => {
     const s = teamPageStore.getState();
     return {
       data: s.authzAndMembers,
-      status: mapStatus(s.authzAndMembersApiStatus),
+      status: mapStatus(s.authzAndMembersState),
     };
   },
   usePendingInvitesQuery: () => {
     const s = teamPageStore.getState();
     return {
       data: s.pendingInvites,
-      status: mapStatus(s.pendingInvitesApiStatus),
+      status: mapStatus(s.pendingInvitesState),
     };
   },
   useTeamSlackConnectUrlQuery: () => {
     const s = teamPageStore.getState();
     return {
       data: s.teamSlackConnectUrl,
-      status: mapStatus(s.fetchTeamSlackConnectUrlApiStatus),
+      status: mapStatus(s.teamSlackConnectUrlState),
       refetch: s.refetchSlackConnectUrl,
     };
   },
@@ -311,7 +223,7 @@ jest.mock("@/app/query/hooks", () => ({
     const s = teamPageStore.getState();
     return {
       data: s.teamSlack,
-      status: mapStatus(s.fetchTeamSlackStatusApiStatus),
+      status: mapStatus(s.teamSlackState),
       refetch: s.refetchSlackStatus,
     };
   },
@@ -326,7 +238,7 @@ jest.mock("@/app/query/hooks", () => ({
           opts?.onError?.();
         }
       },
-      isPending: s.teamNameChangeApiStatus === "loading",
+      isPending: s.teamNameChangeState === "loading",
     };
   },
   useInviteMemberMutation: () => {
@@ -344,7 +256,7 @@ jest.mock("@/app/query/hooks", () => ({
           opts?.onError?.();
         }
       },
-      isPending: s.inviteMemberApiStatus === "loading",
+      isPending: s.inviteMemberState === "loading",
     };
   },
   useRemoveMemberMutation: () => {
@@ -358,7 +270,7 @@ jest.mock("@/app/query/hooks", () => ({
           opts?.onError?.();
         }
       },
-      isPending: s.removeMemberApiStatus === "loading",
+      isPending: s.removeMemberState === "loading",
     };
   },
   useResendPendingInviteMutation: () => {
@@ -375,7 +287,7 @@ jest.mock("@/app/query/hooks", () => ({
           opts?.onError?.();
         }
       },
-      isPending: s.resendPendingInviteApiStatus === "loading",
+      isPending: s.resendPendingInviteState === "loading",
     };
   },
   useRemovePendingInviteMutation: () => {
@@ -392,7 +304,7 @@ jest.mock("@/app/query/hooks", () => ({
           opts?.onError?.();
         }
       },
-      isPending: s.removePendingInviteApiStatus === "loading",
+      isPending: s.removePendingInviteState === "loading",
     };
   },
   useChangeRoleMutation: () => {
@@ -410,7 +322,7 @@ jest.mock("@/app/query/hooks", () => ({
           opts?.onError?.();
         }
       },
-      isPending: s.roleChangeApiStatus === "loading",
+      isPending: s.roleChangeState === "loading",
     };
   },
   useUpdateSlackStatusMutation: () => {
@@ -424,7 +336,7 @@ jest.mock("@/app/query/hooks", () => ({
           opts?.onError?.();
         }
       },
-      isPending: s.updateTeamSlackStatusApiStatus === "loading",
+      isPending: s.updateSlackStatusState === "loading",
     };
   },
   useRemoveTeamSlackMutation: () => {
@@ -438,7 +350,7 @@ jest.mock("@/app/query/hooks", () => ({
           opts?.onError?.();
         }
       },
-      isPending: s.removeTeamSlackApiStatus === "loading",
+      isPending: s.removeTeamSlackState === "loading",
     };
   },
   useTestSlackAlertMutation: () => {
@@ -452,7 +364,7 @@ jest.mock("@/app/query/hooks", () => ({
           opts?.onError?.(new Error("Failed to send test Slack alert"));
         }
       },
-      isPending: s.testSlackAlertApiStatus === "loading",
+      isPending: s.testSlackAlertState === "loading",
     };
   },
 }));
@@ -558,7 +470,7 @@ jest.mock("@/app/components/confirmation_dialog", () => ({
 
 const setDefaultTeamsState = () => {
   useTeamsStore.setState({
-    teamsApiStatus: "success",
+    teamsState: "success",
     teams: [mockTeam],
     selectedTeam: mockTeam,
   });
@@ -567,13 +479,13 @@ const setDefaultTeamsState = () => {
 const setDefaultTeamPageState = () => {
   useTeamPageStore.setState({
     currentUserId: "user-1",
-    authzAndMembersApiStatus: "success",
+    authzAndMembersState: "success",
     authzAndMembers: defaultAuthz,
-    pendingInvitesApiStatus: "success",
+    pendingInvitesState: "success",
     pendingInvites: defaultPendingInvites,
-    fetchTeamSlackConnectUrlApiStatus: "success",
+    teamSlackConnectUrlState: "success",
     teamSlackConnectUrl: "https://slack/connect",
-    fetchTeamSlackStatusApiStatus: "success",
+    teamSlackState: "success",
     teamSlack: { slack_team_name: "Measure", is_active: true },
   });
 };
@@ -599,7 +511,7 @@ describe("Team Page", () => {
     jest.clearAllMocks();
     mockIsCloud = false;
     useTeamsStore.setState({
-      teamsApiStatus: "loading",
+      teamsState: "loading",
       teams: null,
       selectedTeam: null,
       fetchTeams: jest.fn(),
@@ -608,30 +520,30 @@ describe("Team Page", () => {
     });
     useTeamPageStore.setState({
       currentUserId: undefined,
-      authzAndMembersApiStatus: "loading",
+      authzAndMembersState: "loading",
       authzAndMembers: {
         can_invite_roles: [],
         can_rename_team: false,
         can_manage_slack: false,
         members: [],
       },
-      pendingInvitesApiStatus: "loading",
+      pendingInvitesState: "loading",
       pendingInvites: null,
       teamSlackConnectUrl: null,
-      fetchTeamSlackConnectUrlApiStatus: "init",
+      teamSlackConnectUrlState: "init",
       refetchSlackConnectUrl: jest.fn(),
       teamSlack: null,
-      fetchTeamSlackStatusApiStatus: "init",
+      teamSlackState: "init",
       refetchSlackStatus: jest.fn(),
-      updateTeamSlackStatusApiStatus: "init",
-      removeTeamSlackApiStatus: "init",
-      testSlackAlertApiStatus: "init",
-      teamNameChangeApiStatus: "init",
-      inviteMemberApiStatus: "init",
-      removeMemberApiStatus: "init",
-      resendPendingInviteApiStatus: "init",
-      removePendingInviteApiStatus: "init",
-      roleChangeApiStatus: "init",
+      updateSlackStatusState: "init",
+      removeTeamSlackState: "init",
+      testSlackAlertState: "init",
+      teamNameChangeState: "init",
+      inviteMemberState: "init",
+      removeMemberState: "init",
+      resendPendingInviteState: "init",
+      removePendingInviteState: "init",
+      roleChangeState: "init",
       fetchCurrentUserId: jest.fn(),
       fetchAuthzAndMembers: jest.fn(),
       fetchPendingInvites: jest.fn(),
@@ -699,7 +611,7 @@ describe("Team Page", () => {
 
   it("shows team fetch error when teams API fails", async () => {
     useTeamsStore.setState({
-      teamsApiStatus: "error",
+      teamsState: "error",
       teams: null,
       selectedTeam: null,
     });
@@ -717,13 +629,13 @@ describe("Team Page", () => {
     setDefaultTeamsState();
     useTeamPageStore.setState({
       currentUserId: "user-1",
-      authzAndMembersApiStatus: "error",
+      authzAndMembersState: "error",
       authzAndMembers: defaultAuthz,
-      pendingInvitesApiStatus: "success",
+      pendingInvitesState: "success",
       pendingInvites: defaultPendingInvites,
-      fetchTeamSlackConnectUrlApiStatus: "success",
+      teamSlackConnectUrlState: "success",
       teamSlackConnectUrl: "https://slack/connect",
-      fetchTeamSlackStatusApiStatus: "success",
+      teamSlackState: "success",
       teamSlack: { slack_team_name: "Measure", is_active: true },
     });
 
@@ -741,8 +653,8 @@ describe("Team Page", () => {
     setDefaultTeamsState();
     useTeamPageStore.setState({
       currentUserId: "user-1",
-      authzAndMembersApiStatus: "loading",
-      pendingInvitesApiStatus: "loading",
+      authzAndMembersState: "loading",
+      pendingInvitesState: "loading",
     });
 
     render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
@@ -755,13 +667,13 @@ describe("Team Page", () => {
     setDefaultTeamsState();
     useTeamPageStore.setState({
       currentUserId: "user-1",
-      authzAndMembersApiStatus: "success",
+      authzAndMembersState: "success",
       authzAndMembers: defaultAuthz,
-      pendingInvitesApiStatus: "error",
+      pendingInvitesState: "error",
       pendingInvites: null,
-      fetchTeamSlackConnectUrlApiStatus: "success",
+      teamSlackConnectUrlState: "success",
       teamSlackConnectUrl: "https://slack/connect",
-      fetchTeamSlackStatusApiStatus: "success",
+      teamSlackState: "success",
       teamSlack: { slack_team_name: "Measure", is_active: true },
     });
 
@@ -779,13 +691,13 @@ describe("Team Page", () => {
     setDefaultTeamsState();
     useTeamPageStore.setState({
       currentUserId: "user-1",
-      authzAndMembersApiStatus: "success",
+      authzAndMembersState: "success",
       authzAndMembers: defaultAuthz,
-      pendingInvitesApiStatus: "loading",
+      pendingInvitesState: "loading",
       pendingInvites: null,
-      fetchTeamSlackConnectUrlApiStatus: "success",
+      teamSlackConnectUrlState: "success",
       teamSlackConnectUrl: "https://slack/connect",
-      fetchTeamSlackStatusApiStatus: "success",
+      teamSlackState: "success",
       teamSlack: { slack_team_name: "Measure", is_active: true },
     });
 
@@ -1238,7 +1150,7 @@ describe("Team Page", () => {
       teamSlack: null,
       // The connect url query is disabled for users who cannot manage Slack,
       // so it reports pending forever. The section must not wait on it.
-      fetchTeamSlackConnectUrlApiStatus: "init",
+      teamSlackConnectUrlState: "init",
       teamSlackConnectUrl: null,
     });
 
@@ -1262,7 +1174,7 @@ describe("Team Page", () => {
     setDefaultTeamsState();
     setDefaultTeamPageState();
     useTeamPageStore.setState({
-      fetchTeamSlackStatusApiStatus: "error",
+      teamSlackState: "error",
       teamSlack: null,
     });
 
@@ -1281,7 +1193,7 @@ describe("Team Page", () => {
     setDefaultTeamPageState();
     useTeamPageStore.setState({
       teamSlack: null,
-      fetchTeamSlackConnectUrlApiStatus: "error",
+      teamSlackConnectUrlState: "error",
       teamSlackConnectUrl: null,
     });
 
@@ -1299,7 +1211,7 @@ describe("Team Page", () => {
     setDefaultTeamsState();
     setDefaultTeamPageState();
     useTeamPageStore.setState({
-      fetchTeamSlackConnectUrlApiStatus: "error",
+      teamSlackConnectUrlState: "error",
       teamSlackConnectUrl: null,
     });
 
@@ -1318,7 +1230,7 @@ describe("Team Page", () => {
     setDefaultTeamPageState();
     useTeamPageStore.setState({
       authzAndMembers: { ...defaultAuthz, can_manage_slack: false },
-      fetchTeamSlackConnectUrlApiStatus: "init",
+      teamSlackConnectUrlState: "init",
       teamSlackConnectUrl: null,
     });
 
@@ -1338,7 +1250,7 @@ describe("Team Page", () => {
     setDefaultTeamsState();
     setDefaultTeamPageState();
     useTeamPageStore.setState({
-      fetchTeamSlackStatusApiStatus: "error",
+      teamSlackState: "error",
       teamSlack: null,
       refetchSlackStatus: mockRefetchSlackStatus,
     });
@@ -1356,7 +1268,7 @@ describe("Team Page", () => {
     setDefaultTeamPageState();
     useTeamPageStore.setState({
       teamSlack: null,
-      fetchTeamSlackConnectUrlApiStatus: "error",
+      teamSlackConnectUrlState: "error",
       teamSlackConnectUrl: null,
       refetchSlackConnectUrl: mockRefetchSlackConnectUrl,
       refetchSlackStatus: mockRefetchSlackStatus,
@@ -1374,7 +1286,7 @@ describe("Team Page", () => {
     setDefaultTeamPageState();
     useTeamPageStore.setState({
       teamSlack: null,
-      fetchTeamSlackConnectUrlApiStatus: "loading",
+      teamSlackConnectUrlState: "loading",
       teamSlackConnectUrl: null,
     });
 
@@ -1399,7 +1311,7 @@ describe("Team Page", () => {
         is_active: true,
         needs_reauth: true,
       },
-      fetchTeamSlackConnectUrlApiStatus: "error",
+      teamSlackConnectUrlState: "error",
       teamSlackConnectUrl: null,
     });
 
@@ -1423,7 +1335,7 @@ describe("Team Page", () => {
         is_active: true,
         needs_reauth: true,
       },
-      fetchTeamSlackConnectUrlApiStatus: "loading",
+      teamSlackConnectUrlState: "loading",
       teamSlackConnectUrl: null,
     });
 
@@ -1439,10 +1351,10 @@ describe("Team Page", () => {
     setDefaultTeamsState();
     setDefaultTeamPageState();
     useTeamPageStore.setState({
-      authzAndMembersApiStatus: "error",
+      authzAndMembersState: "error",
       authzAndMembers: null,
       teamSlack: null,
-      fetchTeamSlackConnectUrlApiStatus: "init",
+      teamSlackConnectUrlState: "init",
       teamSlackConnectUrl: null,
     });
 
@@ -1466,9 +1378,9 @@ describe("Team Page", () => {
     setDefaultTeamsState();
     setDefaultTeamPageState();
     useTeamPageStore.setState({
-      authzAndMembersApiStatus: "error",
+      authzAndMembersState: "error",
       authzAndMembers: null,
-      fetchTeamSlackConnectUrlApiStatus: "init",
+      teamSlackConnectUrlState: "init",
       teamSlackConnectUrl: null,
     });
 
@@ -1511,7 +1423,7 @@ describe("Team Page", () => {
         is_active: true,
         needs_reauth: true,
       },
-      fetchTeamSlackConnectUrlApiStatus: "init",
+      teamSlackConnectUrlState: "init",
       teamSlackConnectUrl: null,
     });
 
@@ -1531,7 +1443,7 @@ describe("Team Page", () => {
     setDefaultTeamsState();
     setDefaultTeamPageState();
     useTeamPageStore.setState({
-      fetchTeamSlackStatusApiStatus: "error",
+      teamSlackState: "error",
       teamSlack: null,
     });
 
@@ -1547,7 +1459,7 @@ describe("Team Page", () => {
     setDefaultTeamsState();
     setDefaultTeamPageState();
     useTeamPageStore.setState({
-      fetchTeamSlackStatusApiStatus: "error",
+      teamSlackState: "error",
       teamSlack: null,
     });
 
@@ -1749,13 +1661,13 @@ describe("Team Page", () => {
     setDefaultTeamsState();
     useTeamPageStore.setState({
       currentUserId: undefined,
-      authzAndMembersApiStatus: "success",
+      authzAndMembersState: "success",
       authzAndMembers: defaultAuthz,
-      pendingInvitesApiStatus: "success",
+      pendingInvitesState: "success",
       pendingInvites: defaultPendingInvites,
-      fetchTeamSlackConnectUrlApiStatus: "success",
+      teamSlackConnectUrlState: "success",
       teamSlackConnectUrl: "https://slack/connect",
-      fetchTeamSlackStatusApiStatus: "success",
+      teamSlackState: "success",
       teamSlack: { slack_team_name: "Measure", is_active: true },
     });
 

@@ -1,82 +1,36 @@
+/**
+ * Every server call the dashboard makes lives in this file, as a function
+ * that builds a URL and hands it to `request` below. A fetcher returns the
+ * response body.
+ *
+ * TanStack Query holds whether a call is in flight, and the hooks in
+ * app/query/hooks.ts pass that to components.
+ *
+ * `request` throws on failure: an ApiError when the server answered and
+ * rejected the call, carrying the HTTP status, or a RequestError when no
+ * answer came back, such as a dropped connection or an unreadable body.
+ * Catch ApiError and check `status` where a code is an outcome rather than
+ * a fault.
+ *
+ * An empty result is a return value: null, an empty array, or a
+ * discriminated union when the emptiness has several causes the user needs
+ * to know about.
+ *
+ * A new fetcher needs a URL, a failure message naming the operation for
+ * when the server sends no error of its own, and a return type.
+ */
+
 import {
   formatUserInputDateToServerFormat,
   getPlotTimeGroupForRange,
   getTimeZoneForServer,
 } from "../utils/time_utils";
 import { apiClient } from "./api_client";
+import { ApiError, RequestError } from "./api_error";
 
 export enum JourneyType {
   Paths,
   Exceptions,
-}
-
-export enum ValidateInviteApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum TeamsApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum AppsApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoApps,
-  Cancelled,
-}
-
-export enum RootSpanNamesApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
-export enum SpanMetricsPlotApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
-export enum SpansApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum TraceApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum FiltersApiStatus {
-  Loading,
-  Success,
-  Error,
-  NotOnboarded,
-  NoData,
-  NoBuilds,
-  Cancelled,
-}
-export enum SaveFiltersApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
 }
 
 export enum FilterSource {
@@ -84,440 +38,6 @@ export enum FilterSource {
   Spans,
   Errors,
   Builds,
-}
-
-export enum AppHealthPlotApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
-export enum JourneyApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
-export enum MetricsApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum SessionTimelinesOverviewApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum SessionTimelinesOverviewPlotApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
-export enum ErrorsOverviewApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum ErrorsOverviewPlotApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
-export enum ErrorsDetailsApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum ErrorGroupCommonPathApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum ErrorsDetailsPlotApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
-export enum ErrorsDistributionPlotApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
-export enum CreateTeamApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum CreateAppApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum TeamNameChangeApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum AppNameChangeApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum AppApiKeyChangeApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum RoleChangeApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum PendingInvitesApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum ResendPendingInviteApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum RemovePendingInviteApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum InviteMemberApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum RemoveMemberApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum AuthzAndMembersApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum FetchTeamSlackConnectUrlApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum FetchTeamSlackStatusApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum UpdateTeamSlackStatusApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum RemoveTeamSlackApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum FetchAppThresholdPrefsApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum UpdateAppThresholdPrefsApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum TestSlackAlertApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum SessionTimelineApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum FetchNotifPrefsApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum UpdateNotifPrefsApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum FetchAppRetentionApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum UpdateAppRetentionApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum FetchUsageApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoApps,
-  Cancelled,
-}
-
-export enum FetchCheckoutSessionApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum DowngradeToFreeApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum UndoDowngradeApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum FetchBillingInfoApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum FetchCustomerPortalUrlApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum BugReportsOverviewApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum BugReportsOverviewPlotApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
-export enum BugReportApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum UpdateBugReportStatusApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum BuildsApiStatus {
-  Success,
-  Error,
-}
-
-export enum AlertsOverviewApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum SdkConfigApiStatus {
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum UpdateSdkConfigApiStatus {
-  Init,
-  Loading,
-  Success,
-  Error,
-  Cancelled,
-}
-
-export enum NetworkDomainsApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
-export enum NetworkPathsApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
-export enum NetworkEndpointLatencyPlotApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
-export enum NetworkEndpointTimelinePlotApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
-export enum NetworkEndpointStatusCodesPlotApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
-export enum NetworkTrendsApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
-export enum NetworkOverviewStatusCodesPlotApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
-}
-
-export enum NetworkTimelinePlotApiStatus {
-  Loading,
-  Success,
-  Error,
-  NoData,
-  Cancelled,
 }
 
 export enum SessionType {
@@ -1614,81 +1134,112 @@ function appendHttpMethodsToUrl(url: string, filters: Filters): string {
   return u.toString();
 }
 
+/**
+ * The options for `request`. `failsWith` is the message that the user sees
+ * when the server sends no error of its own. The other options go to fetch.
+ */
+type RequestOptions = RequestInit & {
+  failsWith: string;
+  /**
+   * Set false when body parsing is not needed. Leaving it true on an endpoint
+   * that returns no body will cause the parse to throw and fail the call.
+   */
+  parseBody?: boolean;
+};
+
+/**
+ * Sends a request and returns its parsed body. A server rejection becomes
+ * an ApiError carrying the status, and anything that stops the request
+ * itself from executing becomes a RequestError named after the operation.
+ */
+function request(
+  url: string,
+  opts: RequestOptions & { parseBody: false },
+): Promise<void>;
+function request<T = any>(url: string, opts: RequestOptions): Promise<T>;
+async function request<T = any>(
+  url: string,
+  { failsWith, parseBody = true, ...init }: RequestOptions,
+): Promise<T | void> {
+  let res: Response;
+  try {
+    res = await apiClient.fetch(url, init);
+  } catch (e) {
+    throw new RequestError(failsWith, { cause: e });
+  }
+
+  if (!res.ok) {
+    // A rejected request does not always have a JSON body. A proxy can send
+    // an HTML error page, so use our own message when the parse fails.
+    const body = await res.json().catch(() => null);
+    throw new ApiError(res.status, body?.error ?? failsWith);
+  }
+
+  if (!parseBody) {
+    return;
+  }
+
+  try {
+    return (await res.json()) as T;
+  } catch (e) {
+    throw new RequestError(failsWith, { cause: e });
+  }
+}
+
 export const validateInvitesFromServer = async (inviteId: string) => {
   try {
-    const res = await apiClient.fetch(`/api/auth/validateInvite`, {
+    await request(`/api/auth/validateInvite`, {
       method: "POST",
       body: JSON.stringify({ invite_id: inviteId }),
+      failsWith: "Failed to validate invite",
+      parseBody: false,
     });
-
-    if (!res.ok) {
-      console.log("Validate invite failed with status:", res.status);
-      return { status: ValidateInviteApiStatus.Error };
+  } catch (e) {
+    if (e instanceof ApiError) {
+      console.log("Validate invite failed with status:", e.status);
+    } else {
+      console.log("Validate invite cancelled due to exception");
     }
-
-    console.log("Validate invite succeeded");
-    return { status: ValidateInviteApiStatus.Success };
-  } catch {
-    console.log("Validate invite cancelled due to exception");
-    return { status: ValidateInviteApiStatus.Cancelled };
+    throw e;
   }
+
+  console.log("Validate invite succeeded");
 };
 
 export const fetchTeamsFromServer = async () => {
+  const data: [{ id: string; name: string }] = await request(`/api/teams`, {
+    failsWith: "Failed to fetch teams",
+  });
+
+  return data;
+};
+
+export const fetchAppsFromServer = async (teamId: string): Promise<App[]> => {
   try {
-    const res = await apiClient.fetch(`/api/teams`);
-
-    if (!res.ok) {
-      return { status: TeamsApiStatus.Error, data: null };
+    return await request<App[]>(`/api/teams/${teamId}/apps`, {
+      failsWith: "Failed to fetch apps",
+    });
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) {
+      return [];
     }
-
-    const data: [{ id: string; name: string }] = await res.json();
-
-    return { status: TeamsApiStatus.Success, data: data };
-  } catch {
-    return { status: TeamsApiStatus.Cancelled, data: null };
+    throw e;
   }
 };
 
-export const fetchAppsFromServer = async (teamId: string) => {
-  try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/apps`);
+export const fetchRootSpanNamesFromServer = async (
+  selectedApp: App,
+): Promise<string[] | null> => {
+  const failsWith = "Failed to fetch root span names";
+  const data = await request(`/api/apps/${selectedApp.id}/spans/roots/names`, {
+    failsWith,
+  });
 
-    if (!res.ok && res.status == 404) {
-      return { status: AppsApiStatus.NoApps, data: null };
-    }
-
-    if (!res.ok) {
-      return { status: AppsApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-    return { status: AppsApiStatus.Success, data: data };
-  } catch {
-    return { status: AppsApiStatus.Cancelled, data: null };
+  if (data === null) {
+    throw new RequestError(failsWith);
   }
-};
 
-export const fetchRootSpanNamesFromServer = async (selectedApp: App) => {
-  try {
-    const res = await apiClient.fetch(
-      `/api/apps/${selectedApp.id}/spans/roots/names`,
-    );
-
-    if (!res.ok) {
-      return { status: RootSpanNamesApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    if (data.results === null) {
-      return { status: RootSpanNamesApiStatus.NoData, data: null };
-    }
-
-    return { status: RootSpanNamesApiStatus.Success, data: data };
-  } catch {
-    return { status: RootSpanNamesApiStatus.Cancelled, data: null };
-  }
+  return (data.results as string[] | null) ?? null;
 };
 
 export const fetchSpansFromServer = async (
@@ -1701,19 +1252,9 @@ export const fetchSpansFromServer = async (
   url = await applyGenericFiltersToUrl(url, filters, limit, offset);
   url = appendSpanFiltersToUrl(url, filters);
 
-  try {
-    const res = await apiClient.fetch(url);
+  const data = await request(url, { failsWith: "Failed to fetch spans" });
 
-    if (!res.ok) {
-      return { status: SpansApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: SpansApiStatus.Success, data: data };
-  } catch {
-    return { status: SpansApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchSpanMetricsPlotFromServer = async (filters: Filters) => {
@@ -1723,44 +1264,36 @@ export const fetchSpanMetricsPlotFromServer = async (filters: Filters) => {
   url = appendSpanFiltersToUrl(url, filters);
   url = appendPlotTimeGroupToUrl(url, filters);
 
-  try {
-    const res = await apiClient.fetch(url);
+  const data = await request(url, {
+    failsWith: "Failed to fetch span metrics plot",
+  });
 
-    if (!res.ok) {
-      return { status: SpanMetricsPlotApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    if (data === null) {
-      return { status: SpanMetricsPlotApiStatus.NoData, data: null };
-    }
-
-    return { status: SpanMetricsPlotApiStatus.Success, data: data };
-  } catch {
-    return { status: SpanMetricsPlotApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchTraceFromServer = async (appId: string, traceId: string) => {
-  try {
-    const res = await apiClient.fetch(`/api/apps/${appId}/traces/${traceId}`);
-    if (!res.ok) {
-      return { status: TraceApiStatus.Error, data: null };
-    }
+  const data = await request(`/api/apps/${appId}/traces/${traceId}`, {
+    failsWith: "Failed to fetch trace",
+  });
 
-    const data = await res.json();
-
-    return { status: TraceApiStatus.Success, data: data };
-  } catch {
-    return { status: TraceApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
+
+/**
+ * A filters response is a set of options, or one of three empty outcomes.
+ * The dashboard explains each empty outcome differently: an app that sent no
+ * events, an app with no builds, and an app with no events of this kind.
+ */
+export type FilterOptionsResult =
+  | { kind: "options"; data: any }
+  | { kind: "no-data" }
+  | { kind: "not-onboarded" }
+  | { kind: "no-builds" };
 
 export const fetchFiltersFromServer = async (
   selectedApp: App,
   filterSource: FilterSource,
-) => {
+): Promise<FilterOptionsResult> => {
   let url = `/api/apps/${selectedApp.id}/filters`;
 
   // fetch the user defined attributes
@@ -1776,33 +1309,26 @@ export const fetchFiltersFromServer = async (
     url += "&builds=1";
   }
 
-  try {
-    const res = await apiClient.fetch(url);
+  const failsWith = "Failed to fetch filters";
+  const data = await request(url, { failsWith });
 
-    if (!res.ok) {
-      return { status: FiltersApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    if (data.versions === null) {
-      // Builds are uploaded independently of event data, so an empty
-      // builds source means no builds; the event-derived NoData and
-      // NotOnboarded split does not apply to it.
-      if (filterSource === FilterSource.Builds) {
-        return { status: FiltersApiStatus.NoBuilds, data: null };
-      }
-      if (!selectedApp.onboarded) {
-        return { status: FiltersApiStatus.NotOnboarded, data: null };
-      } else {
-        return { status: FiltersApiStatus.NoData, data: null };
-      }
-    }
-
-    return { status: FiltersApiStatus.Success, data: data };
-  } catch {
-    return { status: FiltersApiStatus.Cancelled, data: null };
+  if (data === null) {
+    throw new RequestError(failsWith);
   }
+
+  if (data.versions === null) {
+    // Builds are uploaded independently of event data, so an empty
+    // builds source means no builds
+    if (filterSource === FilterSource.Builds) {
+      return { kind: "no-builds" };
+    }
+    if (!selectedApp.onboarded) {
+      return { kind: "not-onboarded" };
+    }
+    return { kind: "no-data" };
+  }
+
+  return { kind: "options", data };
 };
 
 export const fetchAppHealthPlotFromServer = async (filters: Filters) => {
@@ -1811,21 +1337,12 @@ export const fetchAppHealthPlotFromServer = async (filters: Filters) => {
   url = await applyGenericFiltersToUrl(url, filters, null, null);
   url = appendPlotTimeGroupToUrl(url, filters);
 
-  let data: any;
-  try {
-    const res = await apiClient.fetch(url);
-
-    if (!res.ok) {
-      return { status: AppHealthPlotApiStatus.Error, data: null };
-    }
-
-    data = await res.json();
-  } catch {
-    return { status: AppHealthPlotApiStatus.Error, data: null };
-  }
+  const data = await request(url, {
+    failsWith: "Failed to fetch app health plot",
+  });
 
   if (data === null) {
-    return { status: AppHealthPlotApiStatus.NoData, data: null };
+    return null;
   }
 
   // The server returns three sparse series keyed by id: "sessions", "crashes"
@@ -1873,9 +1390,9 @@ export const fetchAppHealthPlotFromServer = async (filters: Filters) => {
     buildSeries("ANRs", dateMaps.anrs),
   ];
 
-  // If all are empty, return NoData
+  // If all the series are empty, there is nothing to plot.
   if (result.every((series) => series.data.every((point) => point.y === 0))) {
-    return { status: AppHealthPlotApiStatus.NoData, data: null };
+    return null;
   }
 
   // Remove ANRs if all y values are 0
@@ -1886,10 +1403,7 @@ export const fetchAppHealthPlotFromServer = async (filters: Filters) => {
     return true;
   });
 
-  return {
-    status: AppHealthPlotApiStatus.Success,
-    data: filteredResult,
-  };
+  return filteredResult;
 };
 
 export const fetchJourneyFromServer = async (
@@ -1903,19 +1417,9 @@ export const fetchJourneyFromServer = async (
 
   url = await applyGenericFiltersToUrl(url, filters, null, null);
 
-  try {
-    const res = await apiClient.fetch(url);
+  const data = await request(url, { failsWith: "Failed to fetch journey" });
 
-    if (!res.ok) {
-      return { status: JourneyApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: JourneyApiStatus.Success, data: data };
-  } catch {
-    return { status: JourneyApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchMetricsFromServer = async (filters: Filters) => {
@@ -1923,19 +1427,9 @@ export const fetchMetricsFromServer = async (filters: Filters) => {
 
   url = await applyGenericFiltersToUrl(url, filters, null, null);
 
-  try {
-    const res = await apiClient.fetch(url);
+  const data = await request(url, { failsWith: "Failed to fetch metrics" });
 
-    if (!res.ok) {
-      return { status: MetricsApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: MetricsApiStatus.Success, data: data };
-  } catch {
-    return { status: MetricsApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchSessionTimelinesOverviewFromServer = async (
@@ -1948,19 +1442,11 @@ export const fetchSessionTimelinesOverviewFromServer = async (
   url = await applyGenericFiltersToUrl(url, filters, limit, offset);
   url = appendSessionTypesToUrl(url, filters);
 
-  try {
-    const res = await apiClient.fetch(url);
+  const data = await request(url, {
+    failsWith: "Failed to fetch session timelines overview",
+  });
 
-    if (!res.ok) {
-      return { status: SessionTimelinesOverviewApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: SessionTimelinesOverviewApiStatus.Success, data: data };
-  } catch {
-    return { status: SessionTimelinesOverviewApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchSessionTimelinesOverviewPlotFromServer = async (
@@ -1972,35 +1458,11 @@ export const fetchSessionTimelinesOverviewPlotFromServer = async (
   url = appendSessionTypesToUrl(url, filters);
   url = appendPlotTimeGroupToUrl(url, filters);
 
-  try {
-    const res = await apiClient.fetch(url);
+  const data = await request(url, {
+    failsWith: "Failed to fetch session timelines overview plot",
+  });
 
-    if (!res.ok) {
-      return {
-        status: SessionTimelinesOverviewPlotApiStatus.Error,
-        data: null,
-      };
-    }
-
-    const data = await res.json();
-
-    if (data === null) {
-      return {
-        status: SessionTimelinesOverviewPlotApiStatus.NoData,
-        data: null,
-      };
-    }
-
-    return {
-      status: SessionTimelinesOverviewPlotApiStatus.Success,
-      data: data,
-    };
-  } catch {
-    return {
-      status: SessionTimelinesOverviewPlotApiStatus.Cancelled,
-      data: null,
-    };
-  }
+  return data;
 };
 
 function appendErrorFiltersToUrl(url: string, filters: Filters): string {
@@ -2027,19 +1489,11 @@ export const fetchErrorsOverviewFromServer = async (
   url = await applyGenericFiltersToUrl(url, filters, limit, offset);
   url = appendErrorFiltersToUrl(url, filters);
 
-  try {
-    const res = await apiClient.fetch(url);
+  const data = await request(url, {
+    failsWith: "Failed to fetch errors overview",
+  });
 
-    if (!res.ok) {
-      return { status: ErrorsOverviewApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: ErrorsOverviewApiStatus.Success, data: data };
-  } catch {
-    return { status: ErrorsOverviewApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchErrorsOverviewPlotFromServer = async (filters: Filters) => {
@@ -2049,23 +1503,11 @@ export const fetchErrorsOverviewPlotFromServer = async (filters: Filters) => {
   url = appendPlotTimeGroupToUrl(url, filters);
   url = appendErrorFiltersToUrl(url, filters);
 
-  try {
-    const res = await apiClient.fetch(url);
+  const data = await request(url, {
+    failsWith: "Failed to fetch errors overview plot",
+  });
 
-    if (!res.ok) {
-      return { status: ErrorsOverviewPlotApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    if (data === null) {
-      return { status: ErrorsOverviewPlotApiStatus.NoData, data: null };
-    }
-
-    return { status: ErrorsOverviewPlotApiStatus.Success, data: data };
-  } catch {
-    return { status: ErrorsOverviewPlotApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchErrorsDetailsFromServer = async (
@@ -2078,19 +1520,11 @@ export const fetchErrorsDetailsFromServer = async (
 
   url = await applyGenericFiltersToUrl(url, filters, limit, paginationOffset);
 
-  try {
-    const res = await apiClient.fetch(url);
+  const data = await request(url, {
+    failsWith: "Failed to fetch errors details",
+  });
 
-    if (!res.ok) {
-      return { status: ErrorsDetailsApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: ErrorsDetailsApiStatus.Success, data: data };
-  } catch {
-    return { status: ErrorsDetailsApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchErrorGroupCommonPathFromServer = async (
@@ -2099,19 +1533,11 @@ export const fetchErrorGroupCommonPathFromServer = async (
 ) => {
   const url = `/api/apps/${filters.app!.id}/errorGroups/${errorGroupId}/path`;
 
-  try {
-    const res = await apiClient.fetch(url);
+  const data = await request(url, {
+    failsWith: "Failed to fetch error group common path",
+  });
 
-    if (!res.ok) {
-      return { status: ErrorGroupCommonPathApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: ErrorGroupCommonPathApiStatus.Success, data: data };
-  } catch {
-    return { status: ErrorGroupCommonPathApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchErrorsDetailsPlotFromServer = async (
@@ -2123,23 +1549,11 @@ export const fetchErrorsDetailsPlotFromServer = async (
   url = await applyGenericFiltersToUrl(url, filters, null, null);
   url = appendPlotTimeGroupToUrl(url, filters);
 
-  try {
-    const res = await apiClient.fetch(url);
+  const data = await request(url, {
+    failsWith: "Failed to fetch errors details plot",
+  });
 
-    if (!res.ok) {
-      return { status: ErrorsDetailsPlotApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    if (data === null) {
-      return { status: ErrorsDetailsPlotApiStatus.NoData, data: null };
-    }
-
-    return { status: ErrorsDetailsPlotApiStatus.Success, data: data };
-  } catch {
-    return { status: ErrorsDetailsPlotApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchErrorsDistributionPlotFromServer = async (
@@ -2150,130 +1564,76 @@ export const fetchErrorsDistributionPlotFromServer = async (
 
   url = await applyGenericFiltersToUrl(url, filters, null, null);
 
-  try {
-    const res = await apiClient.fetch(url);
+  const data = await request(url, {
+    failsWith: "Failed to fetch errors distribution plot",
+  });
 
-    if (!res.ok) {
-      return { status: ErrorsDistributionPlotApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    if (
-      data === null ||
-      Object.values(data).every(
-        (value) =>
-          typeof value === "object" &&
-          value !== null &&
-          Object.keys(value).length === 0,
-      )
-    ) {
-      return { status: ErrorsDistributionPlotApiStatus.NoData, data: null };
-    }
-
-    return { status: ErrorsDistributionPlotApiStatus.Success, data: data };
-  } catch {
-    return {
-      status: ErrorsDistributionPlotApiStatus.Cancelled,
-      data: null,
-    };
+  if (
+    data === null ||
+    Object.values(data).every(
+      (value) =>
+        typeof value === "object" &&
+        value !== null &&
+        Object.keys(value).length === 0,
+    )
+  ) {
+    return null;
   }
+
+  return data;
 };
 
 export const fetchAuthzAndMembersFromServer = async (teamId: string) => {
-  try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/authz`);
-    if (!res.ok) {
-      return { status: AuthzAndMembersApiStatus.Error, data: null };
-    }
+  const data = await request(`/api/teams/${teamId}/authz`, {
+    failsWith: "Failed to fetch authz and members",
+  });
 
-    const data = await res.json();
-
-    return { status: AuthzAndMembersApiStatus.Success, data: data };
-  } catch {
-    return { status: AuthzAndMembersApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchSessionTimelineFromServer = async (
   appId: string,
   sessionId: string,
 ) => {
-  try {
-    const res = await apiClient.fetch(
-      `/api/apps/${appId}/sessions/${sessionId}`,
-    );
-    if (!res.ok) {
-      return { status: SessionTimelineApiStatus.Error, data: null };
-    }
+  const data = await request(`/api/apps/${appId}/sessions/${sessionId}`, {
+    failsWith: "Failed to fetch session timeline",
+  });
 
-    const data = await res.json();
-
-    return { status: SessionTimelineApiStatus.Success, data: data };
-  } catch {
-    return { status: SessionTimelineApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const changeTeamNameFromServer = async (
   teamId: string,
   newTeamName: string,
 ) => {
-  const opts = {
+  await request(`/api/teams/${teamId}/rename`, {
     method: "PATCH",
     body: JSON.stringify({ name: newTeamName }),
-  };
+    failsWith: "Failed to change team name",
+    parseBody: false,
+  });
 
-  try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/rename`, opts);
-    if (!res.ok) {
-      return { status: TeamNameChangeApiStatus.Error };
-    }
-
-    return { status: TeamNameChangeApiStatus.Success };
-  } catch {
-    return { status: TeamNameChangeApiStatus.Cancelled };
-  }
+  return;
 };
 
 export const createTeamFromServer = async (teamName: string) => {
-  const opts = {
+  const data = await request(`/api/teams`, {
     method: "POST",
     body: JSON.stringify({ name: teamName }),
-  };
+    failsWith: "Failed to create team",
+  });
 
-  try {
-    const res = await apiClient.fetch(`/api/teams`, opts);
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { status: CreateTeamApiStatus.Error, error: data.error };
-    }
-
-    return { status: CreateTeamApiStatus.Success, data: data };
-  } catch {
-    return { status: CreateTeamApiStatus.Cancelled };
-  }
+  return data;
 };
 
 export const createAppFromServer = async (teamId: string, appName: string) => {
-  const opts = {
+  const data = await request(`/api/teams/${teamId}/apps`, {
     method: "POST",
     body: JSON.stringify({ name: appName }),
-  };
+    failsWith: "Failed to create app",
+  });
 
-  try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/apps`, opts);
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { status: CreateAppApiStatus.Error, error: data.error };
-    }
-
-    return { status: CreateAppApiStatus.Success, data: data };
-  } catch {
-    return { status: CreateAppApiStatus.Cancelled };
-  }
+  return data;
 };
 
 export const changeRoleFromServer = async (
@@ -2281,91 +1641,39 @@ export const changeRoleFromServer = async (
   newRole: string,
   memberId: string,
 ) => {
-  const opts = {
+  await request(`/api/teams/${teamId}/members/${memberId}/role`, {
     method: "PATCH",
     body: JSON.stringify({ role: newRole.toLocaleLowerCase() }),
-  };
-
-  try {
-    const res = await apiClient.fetch(
-      `/api/teams/${teamId}/members/${memberId}/role`,
-      opts,
-    );
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { status: RoleChangeApiStatus.Error, error: data.error };
-    }
-
-    return { status: RoleChangeApiStatus.Success };
-  } catch {
-    return { status: RoleChangeApiStatus.Cancelled };
-  }
+    failsWith: "Failed to change role",
+  });
 };
 
 export const fetchPendingInvitesFromServer = async (teamId: string) => {
-  try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/invites`);
-    const data = await res.json();
+  const data = await request(`/api/teams/${teamId}/invites`, {
+    failsWith: "Failed to fetch pending invites",
+  });
 
-    if (!res.ok) {
-      return { status: PendingInvitesApiStatus.Error, error: data.error };
-    }
-
-    return { status: PendingInvitesApiStatus.Success, data: data };
-  } catch {
-    return { status: PendingInvitesApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const resendPendingInviteFromServer = async (
   teamId: string,
   inviteId: string,
 ) => {
-  const opts = {
+  await request(`/api/teams/${teamId}/invite/${inviteId}`, {
     method: "PATCH",
-  };
-
-  try {
-    const res = await apiClient.fetch(
-      `/api/teams/${teamId}/invite/${inviteId}`,
-      opts,
-    );
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { status: ResendPendingInviteApiStatus.Error, error: data.error };
-    }
-
-    return { status: ResendPendingInviteApiStatus.Success };
-  } catch {
-    return { status: ResendPendingInviteApiStatus.Cancelled };
-  }
+    failsWith: "Failed to resend pending invite",
+  });
 };
 
 export const removePendingInviteFromServer = async (
   teamId: string,
   inviteId: string,
 ) => {
-  const opts = {
+  await request(`/api/teams/${teamId}/invite/${inviteId}`, {
     method: "DELETE",
-  };
-
-  try {
-    const res = await apiClient.fetch(
-      `/api/teams/${teamId}/invite/${inviteId}`,
-      opts,
-    );
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { status: RemovePendingInviteApiStatus.Error, error: data.error };
-    }
-
-    return { status: RemovePendingInviteApiStatus.Success };
-  } catch {
-    return { status: RemovePendingInviteApiStatus.Cancelled };
-  }
+    failsWith: "Failed to remove pending invite",
+  });
 };
 
 export const inviteMemberFromServer = async (
@@ -2374,359 +1682,175 @@ export const inviteMemberFromServer = async (
   role: string,
 ) => {
   const lowerCaseRole = role.toLocaleLowerCase();
-  const opts = {
+  await request(`/api/teams/${teamId}/invite`, {
     method: "POST",
     headers: {
       "Content-Type": `application/json`,
     },
     body: JSON.stringify([{ email: email, role: lowerCaseRole }]),
-  };
-
-  try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/invite`, opts);
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { status: InviteMemberApiStatus.Error, error: data.error };
-    }
-
-    return { status: InviteMemberApiStatus.Success };
-  } catch {
-    return { status: InviteMemberApiStatus.Cancelled };
-  }
+    failsWith: "Failed to invite member",
+  });
 };
 
 export const removeMemberFromServer = async (
   teamId: string,
   memberId: string,
 ) => {
-  const opts = {
+  await request(`/api/teams/${teamId}/members/${memberId}`, {
     method: "DELETE",
-  };
-
-  try {
-    const res = await apiClient.fetch(
-      `/api/teams/${teamId}/members/${memberId}`,
-      opts,
-    );
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { status: RemoveMemberApiStatus.Error, error: data.error };
-    }
-
-    return { status: RemoveMemberApiStatus.Success };
-  } catch {
-    return { status: RemoveMemberApiStatus.Cancelled };
-  }
+    failsWith: "Failed to remove member",
+  });
 };
 
 export const fetchTeamSlackConnectUrlFromServer = async (teamId: string) => {
-  try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/slack/connect-url`);
-    const data = await res.json();
+  const data = await request(`/api/teams/${teamId}/slack/connect-url`, {
+    failsWith: "Failed to fetch team Slack connect url",
+  });
 
-    if (!res.ok) {
-      return {
-        status: FetchTeamSlackConnectUrlApiStatus.Error,
-        error: data.error,
-      };
-    }
-
-    return { status: FetchTeamSlackConnectUrlApiStatus.Success, data: data };
-  } catch {
-    return { status: FetchTeamSlackConnectUrlApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchTeamSlackStatusFromServer = async (teamId: string) => {
-  try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/slack`);
-    const data = await res.json();
+  const data = await request(`/api/teams/${teamId}/slack`, {
+    failsWith: "Failed to fetch team Slack status",
+  });
 
-    if (!res.ok) {
-      return { status: FetchTeamSlackStatusApiStatus.Error, error: data.error };
-    }
-
-    return { status: FetchTeamSlackStatusApiStatus.Success, data: data };
-  } catch {
-    return { status: FetchTeamSlackStatusApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchAppThresholdPrefsFromServer = async (appId: string) => {
-  try {
-    const res = await apiClient.fetch(`/api/apps/${appId}/thresholdPrefs`);
-    const data = await res.json();
+  const data = await request(`/api/apps/${appId}/thresholdPrefs`, {
+    failsWith: "Failed to fetch app threshold prefs",
+  });
 
-    if (!res.ok) {
-      return {
-        status: FetchAppThresholdPrefsApiStatus.Error,
-        error: data.error,
-        data: null,
-      };
-    }
-
-    return { status: FetchAppThresholdPrefsApiStatus.Success, data: data };
-  } catch {
-    return { status: FetchAppThresholdPrefsApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const updateAppThresholdPrefsFromServer = async (
   appId: string,
   prefs: typeof defaultAppThresholdPrefs,
 ) => {
-  const opts = {
+  await request(`/api/apps/${appId}/thresholdPrefs`, {
     method: "PATCH",
     body: JSON.stringify(prefs),
-  };
-
-  try {
-    const res = await apiClient.fetch(
-      `/api/apps/${appId}/thresholdPrefs`,
-      opts,
-    );
-    const data = await res.json();
-
-    if (!res.ok) {
-      return {
-        status: UpdateAppThresholdPrefsApiStatus.Error,
-        error: data.error,
-      };
-    }
-
-    return { status: UpdateAppThresholdPrefsApiStatus.Success };
-  } catch {
-    return { status: UpdateAppThresholdPrefsApiStatus.Cancelled };
-  }
+    failsWith: "Failed to update app threshold prefs",
+  });
 };
 
 export const updateTeamSlackStatusFromServer = async (
   teamId: string,
   slackStatus: boolean,
 ) => {
-  const opts = {
+  await request(`/api/teams/${teamId}/slack/status`, {
     method: "PATCH",
     body: JSON.stringify({ is_active: slackStatus }),
-  };
-
-  try {
-    const res = await apiClient.fetch(
-      `/api/teams/${teamId}/slack/status`,
-      opts,
-    );
-    const data = await res.json();
-
-    if (!res.ok) {
-      return {
-        status: UpdateTeamSlackStatusApiStatus.Error,
-        error: data.error,
-      };
-    }
-
-    return { status: UpdateTeamSlackStatusApiStatus.Success };
-  } catch {
-    return { status: UpdateTeamSlackStatusApiStatus.Cancelled };
-  }
+    failsWith: "Failed to update team Slack status",
+  });
 };
 
 export const removeTeamSlackFromServer = async (teamId: string) => {
-  const opts = {
-    method: "DELETE",
-  };
-
   try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/slack`, opts);
-
-    // A 404 means there is no integration to remove, so the goal state is
-    // already reached. Report success rather than an error.
-    if (res.status === 404) {
-      return { status: RemoveTeamSlackApiStatus.Success };
+    await request(`/api/teams/${teamId}/slack`, {
+      method: "DELETE",
+      failsWith: "Failed to remove team Slack",
+    });
+  } catch (e) {
+    // A 404 shows that there is no integration to remove. The goal state is
+    // already correct, so report success and not an error.
+    if (e instanceof ApiError && e.status === 404) {
+      return;
     }
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      return {
-        status: RemoveTeamSlackApiStatus.Error,
-        error: data.error,
-      };
-    }
-
-    return { status: RemoveTeamSlackApiStatus.Success };
-  } catch {
-    return { status: RemoveTeamSlackApiStatus.Cancelled };
+    throw e;
   }
 };
 
 export const sendTestSlackAlertFromServer = async (teamId: string) => {
-  const opts = {
+  await request(`/api/teams/${teamId}/slack/test`, {
     method: "POST",
-  };
-
-  try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/slack/test`, opts);
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { status: TestSlackAlertApiStatus.Error, error: data.error };
-    }
-
-    return { status: TestSlackAlertApiStatus.Success };
-  } catch {
-    return { status: TestSlackAlertApiStatus.Cancelled };
-  }
+    failsWith: "Failed to send test Slack alert",
+  });
 };
 
 export const fetchNotifPrefsFromServer = async () => {
-  try {
-    const res = await apiClient.fetch(`/api/prefs/notifPrefs`);
+  const data = await request(`/api/prefs/notifPrefs`, {
+    failsWith: "Failed to fetch notif prefs",
+  });
 
-    if (!res.ok) {
-      return { status: FetchNotifPrefsApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: FetchNotifPrefsApiStatus.Success, data: data };
-  } catch {
-    return { status: FetchNotifPrefsApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const updateNotifPrefsFromServer = async (
   notifPrefs: typeof emptyNotifPrefs,
 ) => {
-  const opts = {
+  await request(`/api/prefs/notifPrefs`, {
     method: "PATCH",
     body: JSON.stringify(notifPrefs),
-  };
-
-  try {
-    const res = await apiClient.fetch(`/api/prefs/notifPrefs`, opts);
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { status: UpdateNotifPrefsApiStatus.Error, error: data.error };
-    }
-
-    return { status: UpdateNotifPrefsApiStatus.Success };
-  } catch {
-    return { status: UpdateNotifPrefsApiStatus.Cancelled };
-  }
+    failsWith: "Failed to update notif prefs",
+  });
 };
 
 export const fetchAppRetentionFromServer = async (appId: string) => {
-  try {
-    const res = await apiClient.fetch(`/api/apps/${appId}/retention`);
+  const data = await request(`/api/apps/${appId}/retention`, {
+    failsWith: "Failed to fetch app retention",
+  });
 
-    if (!res.ok) {
-      return { status: FetchAppRetentionApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: FetchAppRetentionApiStatus.Success, data: data };
-  } catch {
-    return { status: FetchAppRetentionApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const updateAppRetentionFromServer = async (
   appdId: string,
   appRetention: typeof emptyAppRetention,
 ) => {
-  const opts = {
+  await request(`/api/apps/${appdId}/retention`, {
     method: "PATCH",
     body: JSON.stringify(appRetention),
-  };
-
-  try {
-    const res = await apiClient.fetch(`/api/apps/${appdId}/retention`, opts);
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { status: UpdateAppRetentionApiStatus.Error, error: data.error };
-    }
-
-    return { status: UpdateAppRetentionApiStatus.Success };
-  } catch {
-    return { status: UpdateAppRetentionApiStatus.Cancelled };
-  }
+    failsWith: "Failed to update app retention",
+  });
 };
 
 export const changeAppNameFromServer = async (
   appId: string,
   newAppName: string,
 ) => {
-  const opts = {
+  await request(`/api/apps/${appId}/rename`, {
     method: "PATCH",
     body: JSON.stringify({ name: newAppName }),
-  };
+    failsWith: "Failed to change app name",
+    parseBody: false,
+  });
 
-  try {
-    const res = await apiClient.fetch(`/api/apps/${appId}/rename`, opts);
-    if (!res.ok) {
-      return { status: AppNameChangeApiStatus.Error };
-    }
-
-    return { status: AppNameChangeApiStatus.Success };
-  } catch {
-    return { status: AppNameChangeApiStatus.Cancelled };
-  }
+  return;
 };
 
 export const changeAppApiKeyFromServer = async (appId: string) => {
-  const opts = {
+  await request(`/api/apps/${appId}/apiKey`, {
     method: "PATCH",
-  };
+    failsWith: "Failed to change app api key",
+    parseBody: false,
+  });
 
-  try {
-    const res = await apiClient.fetch(`/api/apps/${appId}/apiKey`, opts);
-    if (!res.ok) {
-      return { status: AppApiKeyChangeApiStatus.Error };
-    }
-
-    return { status: AppApiKeyChangeApiStatus.Success };
-  } catch {
-    return { status: AppApiKeyChangeApiStatus.Cancelled };
-  }
+  return;
 };
 
 export const fetchBillingInfoFromServer = async (teamId: string) => {
-  try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/billing/info`);
+  const data = await request(`/api/teams/${teamId}/billing/info`, {
+    failsWith: "Failed to fetch billing info",
+  });
 
-    if (!res.ok) {
-      return { status: FetchBillingInfoApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: FetchBillingInfoApiStatus.Success, data: data };
-  } catch {
-    return { status: FetchBillingInfoApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchUsageFromServer = async (teamId: string) => {
   try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/usage`);
-
-    if (!res.ok && res.status == 404) {
-      return { status: FetchUsageApiStatus.NoApps, data: null };
+    return await request(`/api/teams/${teamId}/usage`, {
+      failsWith: "Failed to fetch usage",
+    });
+  } catch (e) {
+    // A team with no apps has no usage to report, and answers with a 404.
+    if (e instanceof ApiError && e.status === 404) {
+      return null;
     }
-
-    if (!res.ok) {
-      return { status: FetchUsageApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: FetchUsageApiStatus.Success, data: data };
-  } catch {
-    return { status: FetchUsageApiStatus.Cancelled, data: null };
+    throw e;
   }
 };
 
@@ -2734,96 +1858,54 @@ export const fetchCheckoutSessionFromServer = async (
   teamId: string,
   successUrl: string,
 ) => {
-  try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/billing/checkout`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        success_url: successUrl,
-      }),
-    });
+  const data = await request(`/api/teams/${teamId}/billing/checkout`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      success_url: successUrl,
+    }),
+    failsWith: "Failed to fetch checkout session",
+  });
 
-    if (!res.ok) {
-      return { status: FetchCheckoutSessionApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: FetchCheckoutSessionApiStatus.Success, data: data };
-  } catch {
-    return { status: FetchCheckoutSessionApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const downgradeToFreeFromServer = async (teamId: string) => {
-  try {
-    const res = await apiClient.fetch(
-      `/api/teams/${teamId}/billing/downgrade`,
-      {
-        method: "PATCH",
-      },
-    );
+  const data = await request(`/api/teams/${teamId}/billing/downgrade`, {
+    method: "PATCH",
+    failsWith: "Failed to downgrade to free",
+  });
 
-    if (!res.ok) {
-      return { status: DowngradeToFreeApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: DowngradeToFreeApiStatus.Success, data: data };
-  } catch {
-    return { status: DowngradeToFreeApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const undoDowngradeFromServer = async (teamId: string) => {
-  try {
-    const res = await apiClient.fetch(
-      `/api/teams/${teamId}/billing/undo-downgrade`,
-      {
-        method: "PATCH",
-      },
-    );
+  const data = await request(`/api/teams/${teamId}/billing/undo-downgrade`, {
+    method: "PATCH",
+    failsWith: "Failed to undo downgrade",
+  });
 
-    if (!res.ok) {
-      return { status: UndoDowngradeApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: UndoDowngradeApiStatus.Success, data: data };
-  } catch {
-    return { status: UndoDowngradeApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchCustomerPortalUrlFromServer = async (
   teamId: string,
   returnUrl: string,
 ) => {
-  try {
-    const res = await apiClient.fetch(`/api/teams/${teamId}/billing/portal`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        return_url: returnUrl,
-      }),
-    });
+  const data = await request(`/api/teams/${teamId}/billing/portal`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      return_url: returnUrl,
+    }),
+    failsWith: "Failed to fetch customer portal url",
+  });
 
-    if (!res.ok) {
-      return { status: FetchCustomerPortalUrlApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: FetchCustomerPortalUrlApiStatus.Success, data: data };
-  } catch {
-    return { status: FetchCustomerPortalUrlApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchBugReportsOverviewFromServer = async (
@@ -2836,19 +1918,11 @@ export const fetchBugReportsOverviewFromServer = async (
   url = await applyGenericFiltersToUrl(url, filters, limit, offset);
   url = appendBugReportStatusesToUrl(url, filters);
 
-  try {
-    const res = await apiClient.fetch(url);
+  const data = await request(url, {
+    failsWith: "Failed to fetch bug reports overview",
+  });
 
-    if (!res.ok) {
-      return { status: BugReportsOverviewApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: BugReportsOverviewApiStatus.Success, data: data };
-  } catch {
-    return { status: BugReportsOverviewApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchBugReportsOverviewPlotFromServer = async (
@@ -2860,43 +1934,22 @@ export const fetchBugReportsOverviewPlotFromServer = async (
   url = appendBugReportStatusesToUrl(url, filters);
   url = appendPlotTimeGroupToUrl(url, filters);
 
-  try {
-    const res = await apiClient.fetch(url);
+  const data = await request(url, {
+    failsWith: "Failed to fetch bug reports overview plot",
+  });
 
-    if (!res.ok) {
-      return { status: BugReportsOverviewPlotApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    if (data === null) {
-      return { status: BugReportsOverviewPlotApiStatus.NoData, data: null };
-    }
-
-    return { status: BugReportsOverviewPlotApiStatus.Success, data: data };
-  } catch {
-    return { status: BugReportsOverviewPlotApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchBugReportFromServer = async (
   appId: string,
   bugReportId: string,
 ) => {
-  try {
-    const res = await apiClient.fetch(
-      `/api/apps/${appId}/bugReports/${bugReportId}`,
-    );
-    if (!res.ok) {
-      return { status: BugReportApiStatus.Error, data: null };
-    }
+  const data = await request(`/api/apps/${appId}/bugReports/${bugReportId}`, {
+    failsWith: "Failed to fetch bug report",
+  });
 
-    const data = await res.json();
-
-    return { status: BugReportApiStatus.Success, data: data };
-  } catch {
-    return { status: BugReportApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const updateBugReportStatusFromServer = async (
@@ -2904,29 +1957,11 @@ export const updateBugReportStatusFromServer = async (
   bugReportId: string,
   status: number,
 ) => {
-  const opts = {
+  await request(`/api/apps/${appId}/bugReports/${bugReportId}`, {
     method: "PATCH",
     body: JSON.stringify({ status: Number(status) }),
-  };
-
-  try {
-    const res = await apiClient.fetch(
-      `/api/apps/${appId}/bugReports/${bugReportId}`,
-      opts,
-    );
-    const data = await res.json();
-
-    if (!res.ok) {
-      return {
-        status: UpdateBugReportStatusApiStatus.Error,
-        error: data.error,
-      };
-    }
-
-    return { status: UpdateBugReportStatusApiStatus.Success };
-  } catch {
-    return { status: UpdateBugReportStatusApiStatus.Cancelled };
-  }
+    failsWith: "Failed to update bug report status",
+  });
 };
 
 // downloadBuildFile triggers a build mapping file download. The download is
@@ -2963,19 +1998,9 @@ export const fetchBuildsFromServer = async (
 
   url = await applyGenericFiltersToUrl(url, filters, limit, offset);
 
-  try {
-    const res = await apiClient.fetch(url);
+  const data = await request(url, { failsWith: "Failed to fetch builds" });
 
-    if (!res.ok) {
-      return { status: BuildsApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: BuildsApiStatus.Success, data: data };
-  } catch {
-    return { status: BuildsApiStatus.Error, data: null };
-  }
+  return data;
 };
 
 export const fetchAlertsOverviewFromServer = async (
@@ -2987,34 +2012,19 @@ export const fetchAlertsOverviewFromServer = async (
 
   url = await applyGenericFiltersToUrl(url, filters, limit, offset);
 
-  try {
-    const res = await apiClient.fetch(url);
+  const data = await request(url, {
+    failsWith: "Failed to fetch alerts overview",
+  });
 
-    if (!res.ok) {
-      return { status: AlertsOverviewApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    return { status: AlertsOverviewApiStatus.Success, data: data };
-  } catch {
-    return { status: AlertsOverviewApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchSdkConfigFromServer = async (appId: String) => {
   const url = `/api/apps/${appId}/config`;
 
-  try {
-    const res = await apiClient.fetch(url);
-    if (!res.ok) {
-      return { status: SdkConfigApiStatus.Error, data: null };
-    }
-    const data = await res.json();
-    return { status: SdkConfigApiStatus.Success, data: data };
-  } catch {
-    return { status: SdkConfigApiStatus.Cancelled, data: null };
-  }
+  const data = await request(url, { failsWith: "Failed to fetch sdk config" });
+
+  return data;
 };
 
 export const updateSdkConfigFromServer = async (
@@ -3023,65 +2033,40 @@ export const updateSdkConfigFromServer = async (
 ) => {
   const url = `/api/apps/${appId}/config`;
 
-  const opts = {
+  const data = await request(url, {
     method: "PATCH",
     body: JSON.stringify(config),
-  };
+    failsWith: "Failed to update sdk config",
+  });
 
-  try {
-    const res = await apiClient.fetch(url, opts);
-    const data = await res.json();
-
-    if (!res.ok) {
-      return {
-        status: UpdateSdkConfigApiStatus.Error,
-        data: null,
-        error: data?.error,
-      };
-    }
-
-    return {
-      status: UpdateSdkConfigApiStatus.Success,
-      data,
-    };
-  } catch {
-    return {
-      status: UpdateSdkConfigApiStatus.Cancelled,
-      data: null,
-    };
-  }
+  return data;
 };
 
 export const fetchNetworkDomainsFromServer = async (
   selectedApp: App,
   filters: Filters,
 ) => {
+  const failsWith = "Failed to fetch network domains";
+
+  // An unparsable date throws before the code builds the request. The caller
+  // must get the same kind of error as it gets for a dropped connection.
+  let url: string;
   try {
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(
-      filters.startDate,
-    );
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(
-      filters.endDate,
-    );
-
-    const res = await apiClient.fetch(
-      `/api/apps/${selectedApp.id}/networkRequests/domains?from=${serverFormattedStartDate}&to=${serverFormattedEndDate}`,
-    );
-
-    if (!res.ok) {
-      return { status: NetworkDomainsApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    if (data.results === null || data.results.length === 0) {
-      return { status: NetworkDomainsApiStatus.NoData, data: null };
-    }
-
-    return { status: NetworkDomainsApiStatus.Success, data: data };
-  } catch {
-    return { status: NetworkDomainsApiStatus.Cancelled, data: null };
+    url = `/api/apps/${selectedApp.id}/networkRequests/domains?from=${formatUserInputDateToServerFormat(filters.startDate)}&to=${formatUserInputDateToServerFormat(filters.endDate)}`;
+  } catch (e) {
+    throw new RequestError(failsWith, { cause: e });
   }
+
+  const data = await request(url, { failsWith });
+
+  if (data === null) {
+    throw new RequestError(failsWith);
+  }
+  if (data.results === null || data.results.length === 0) {
+    return null;
+  }
+
+  return data;
 };
 
 export const fetchNetworkPathsFromServer = async (
@@ -3090,32 +2075,33 @@ export const fetchNetworkPathsFromServer = async (
   search: string,
   filters: Filters,
 ) => {
+  const failsWith = "Failed to fetch network paths";
+
+  // An unparsable date throws before the code builds the request. The caller
+  // must get the same kind of error as it gets for a dropped connection.
+  let url: string;
   try {
-    const serverFormattedStartDate = formatUserInputDateToServerFormat(
-      filters.startDate,
+    const from = encodeURIComponent(
+      formatUserInputDateToServerFormat(filters.startDate),
     );
-    const serverFormattedEndDate = formatUserInputDateToServerFormat(
-      filters.endDate,
+    const to = encodeURIComponent(
+      formatUserInputDateToServerFormat(filters.endDate),
     );
-
-    const res = await apiClient.fetch(
-      `/api/apps/${selectedApp.id}/networkRequests/paths?domain=${encodeURIComponent(domain)}&search=${encodeURIComponent(search)}&from=${encodeURIComponent(serverFormattedStartDate)}&to=${encodeURIComponent(serverFormattedEndDate)}`,
-    );
-
-    if (!res.ok) {
-      return { status: NetworkPathsApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    if (data.results === null || data.results.length === 0) {
-      return { status: NetworkPathsApiStatus.NoData, data: null };
-    }
-
-    return { status: NetworkPathsApiStatus.Success, data: data };
-  } catch {
-    return { status: NetworkPathsApiStatus.Cancelled, data: null };
+    url = `/api/apps/${selectedApp.id}/networkRequests/paths?domain=${encodeURIComponent(domain)}&search=${encodeURIComponent(search)}&from=${from}&to=${to}`;
+  } catch (e) {
+    throw new RequestError(failsWith, { cause: e });
   }
+
+  const data = await request(url, { failsWith });
+
+  if (data === null) {
+    throw new RequestError(failsWith);
+  }
+  if (data.results === null || data.results.length === 0) {
+    return null;
+  }
+
+  return data;
 };
 
 export const fetchNetworkEndpointLatencyPlotFromServer = async (
@@ -3134,26 +2120,11 @@ export const fetchNetworkEndpointLatencyPlotFromServer = async (
   u.searchParams.append("path", path);
   apiUrl = u.toString();
 
-  try {
-    const res = await apiClient.fetch(apiUrl);
+  const data = await request(apiUrl, {
+    failsWith: "Failed to fetch network endpoint latency plot",
+  });
 
-    if (!res.ok) {
-      return { status: NetworkEndpointLatencyPlotApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    if (data === null) {
-      return { status: NetworkEndpointLatencyPlotApiStatus.NoData, data: null };
-    }
-
-    return { status: NetworkEndpointLatencyPlotApiStatus.Success, data: data };
-  } catch {
-    return {
-      status: NetworkEndpointLatencyPlotApiStatus.Cancelled,
-      data: null,
-    };
-  }
+  return data;
 };
 
 export const fetchNetworkEndpointStatusCodesPlotFromServer = async (
@@ -3172,35 +2143,11 @@ export const fetchNetworkEndpointStatusCodesPlotFromServer = async (
   u.searchParams.append("path", path);
   apiUrl = u.toString();
 
-  try {
-    const res = await apiClient.fetch(apiUrl);
+  const data = await request(apiUrl, {
+    failsWith: "Failed to fetch network endpoint status codes plot",
+  });
 
-    if (!res.ok) {
-      return {
-        status: NetworkEndpointStatusCodesPlotApiStatus.Error,
-        data: null,
-      };
-    }
-
-    const data = await res.json();
-
-    if (data === null) {
-      return {
-        status: NetworkEndpointStatusCodesPlotApiStatus.NoData,
-        data: null,
-      };
-    }
-
-    return {
-      status: NetworkEndpointStatusCodesPlotApiStatus.Success,
-      data: data,
-    };
-  } catch {
-    return {
-      status: NetworkEndpointStatusCodesPlotApiStatus.Cancelled,
-      data: null,
-    };
-  }
+  return data;
 };
 
 export const fetchNetworkEndpointTimelinePlotFromServer = async (
@@ -3218,29 +2165,15 @@ export const fetchNetworkEndpointTimelinePlotFromServer = async (
   u.searchParams.append("path", path);
   apiUrl = u.toString();
 
-  try {
-    const res = await apiClient.fetch(apiUrl);
+  const data = await request(apiUrl, {
+    failsWith: "Failed to fetch network endpoint timeline plot",
+  });
 
-    if (!res.ok) {
-      return { status: NetworkEndpointTimelinePlotApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    if (data === null || !data.points || data.points.length === 0) {
-      return {
-        status: NetworkEndpointTimelinePlotApiStatus.NoData,
-        data: null,
-      };
-    }
-
-    return { status: NetworkEndpointTimelinePlotApiStatus.Success, data: data };
-  } catch {
-    return {
-      status: NetworkEndpointTimelinePlotApiStatus.Cancelled,
-      data: null,
-    };
+  if (data === null || !data.points || data.points.length === 0) {
+    return null;
   }
+
+  return data;
 };
 
 export const fetchNetworkTrendsFromServer = async (
@@ -3252,23 +2185,11 @@ export const fetchNetworkTrendsFromServer = async (
   apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
   apiUrl += `&trends_limit=${trendsLimit}`;
 
-  try {
-    const res = await apiClient.fetch(apiUrl);
+  const data = await request(apiUrl, {
+    failsWith: "Failed to fetch network trends",
+  });
 
-    if (!res.ok) {
-      return { status: NetworkTrendsApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    if (data === null) {
-      return { status: NetworkTrendsApiStatus.NoData, data: null };
-    }
-
-    return { status: NetworkTrendsApiStatus.Success, data: data };
-  } catch {
-    return { status: NetworkTrendsApiStatus.Cancelled, data: null };
-  }
+  return data;
 };
 
 export const fetchNetworkTimelinePlotFromServer = async (
@@ -3280,23 +2201,15 @@ export const fetchNetworkTimelinePlotFromServer = async (
   apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
   apiUrl += `&timeline_limit=${timelineLimit}`;
 
-  try {
-    const res = await apiClient.fetch(apiUrl);
+  const data = await request(apiUrl, {
+    failsWith: "Failed to fetch network timeline plot",
+  });
 
-    if (!res.ok) {
-      return { status: NetworkTimelinePlotApiStatus.Error, data: null };
-    }
-
-    const data = await res.json();
-
-    if (data === null || !data.points || data.points.length === 0) {
-      return { status: NetworkTimelinePlotApiStatus.NoData, data: null };
-    }
-
-    return { status: NetworkTimelinePlotApiStatus.Success, data: data };
-  } catch {
-    return { status: NetworkTimelinePlotApiStatus.Cancelled, data: null };
+  if (data === null || !data.points || data.points.length === 0) {
+    return null;
   }
+
+  return data;
 };
 
 export const fetchNetworkOverviewStatusCodesPlotFromServer = async (
@@ -3307,33 +2220,13 @@ export const fetchNetworkOverviewStatusCodesPlotFromServer = async (
   apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
   apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters);
 
-  try {
-    const res = await apiClient.fetch(apiUrl);
+  const data = await request(apiUrl, {
+    failsWith: "Failed to fetch network overview status codes plot",
+  });
 
-    if (!res.ok) {
-      return {
-        status: NetworkOverviewStatusCodesPlotApiStatus.Error,
-        data: null,
-      };
-    }
-
-    const data = await res.json();
-
-    if (data === null || (Array.isArray(data) && data.length === 0)) {
-      return {
-        status: NetworkOverviewStatusCodesPlotApiStatus.NoData,
-        data: null,
-      };
-    }
-
-    return {
-      status: NetworkOverviewStatusCodesPlotApiStatus.Success,
-      data: data,
-    };
-  } catch {
-    return {
-      status: NetworkOverviewStatusCodesPlotApiStatus.Cancelled,
-      data: null,
-    };
+  if (data === null || (Array.isArray(data) && data.length === 0)) {
+    return null;
   }
+
+  return data;
 };
