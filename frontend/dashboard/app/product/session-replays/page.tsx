@@ -35,8 +35,14 @@ export default function ProductSessionReplays() {
       }
       demo={{
         frame: "scaled",
-        heightClassName: "h-[500px] md:h-[745px]",
+        heightClassName: "h-[745px]",
         content: <SessionReplayDemo />,
+        screenshot: {
+          src: "/images/product_screenshots/session_replays.webp",
+          alt: "A Measure session replay showing the replayed screen alongside a timeline of clicks, navigations and network calls",
+          width: 2046,
+          height: 1288,
+        },
       }}
       ctaLocation="product_session_replays"
     />

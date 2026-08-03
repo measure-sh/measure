@@ -37,8 +37,14 @@ export default function ProductNetworkPerformance() {
       }
       demo={{
         frame: "scaled",
-        heightClassName: "h-[380px] md:h-[760px]",
+        heightClassName: "h-[760px]",
         content: <NetworkDemo />,
+        screenshot: {
+          src: "/images/product_screenshots/network_performance.webp",
+          alt: "The Measure network performance view showing HTTP status distribution over time and the slowest endpoints by latency",
+          width: 2278,
+          height: 1916,
+        },
       }}
       ctaLocation="product_network_performance"
     />

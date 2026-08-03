@@ -71,26 +71,26 @@ export default function Home() {
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
         {/* Hero */}
-        <div className="py-24" />
-        <h1 className="text-4xl font-display md:w-4xl text-center px-4">
+        <div className="py-20" />
+        <h1 className="text-4xl font-display max-w-4xl w-full text-center px-4">
           Mobile apps <HandDrawnUnderline color="red">break</HandDrawnUnderline>
           , get to the{" "}
           <HandDrawnUnderline color="green">root cause</HandDrawnUnderline>{" "}
           faster.
         </h1>
-        <div className="py-12" />
+        <div className="py-8" />
         <LandingHeroAnimation />
 
         {/* Main description */}
-        <div className="py-8 md:py-14" />
-        <h2 className="text-xl font-body md:w-4xl text-center px-4">
+        <div className="py-4 md:py-14" />
+        <h2 className="text-xl font-body max-w-4xl w-full text-center px-4">
           Measure helps mobile teams monitor and fix crashes, ANRs, bugs, and
           performance issues. The open source alternative to{" "}
           <span className="font-semibold">Firebase Crashlytics</span>.
         </h2>
 
         {/* CTA 1 */}
-        <div className="py-4 md:py-12" />
+        <div className="py-4 md:py-8" />
         <TrackCtaLink
           location="hero"
           destination="signup"
@@ -104,14 +104,14 @@ export default function Home() {
         </TrackCtaLink>
 
         {/* Trusted By */}
-        <div className="py-16" />
+        <div className="py-12 md:py-16" />
         <div className="flex flex-col w-full items-center">
           <div className="flex flex-col items-center max-w-4xl">
             <p className="text-sm font-display text-center">
               TRUSTED BY HIGH GROWTH MOBILE TEAMS
             </p>
           </div>
-          <div className="py-8" />
+          <div className="py-6" />
           <div
             className="w-full max-w-6xl overflow-hidden"
             style={{
@@ -217,7 +217,7 @@ export default function Home() {
 
         {/* Feature Demos */}
         <div className="w-full flex flex-col items-center py-16 md:py-24">
-          <h2 className="font-display font-regular text-4xl md:w-4xl text-center px-4">
+          <h2 className="font-display font-regular text-4xl max-w-4xl w-full px-4 md:text-center">
             One dashboard, Complete context
           </h2>
           <div className="py-2 md:py-4" />
@@ -226,7 +226,7 @@ export default function Home() {
 
         {/* Intelligent debugging — Measure Agent + MCP Server */}
         <div className="w-full flex items-center flex-col py-16 md:py-24">
-          <h2 className="font-display font-regular text-4xl max-w-4xl text-center px-4">
+          <h2 className="font-display font-regular text-4xl max-w-4xl w-full px-4 md:text-center">
             Intelligent debugging, Seamless integration
           </h2>
           <div className="py-2 md:py-4" />
@@ -235,11 +235,11 @@ export default function Home() {
 
         {/* Adaptive Capture */}
         <div className="w-full flex items-center flex-col py-16 md:py-24">
-          <h2 className="font-display font-regular text-4xl max-w-4xl text-center px-4">
+          <h2 className="font-display font-regular text-4xl max-w-4xl w-full px-4 md:text-center">
             Collect what you need, Only when you need it
           </h2>
           <div className="py-4" />
-          <p className="text-lg font-body text-justify max-w-4xl px-4">
+          <p className="text-lg font-body text-justify max-w-4xl w-full px-4">
             Most monitoring data rots away in a warehouse and runs up your costs
             💰. Our{" "}
             <Link
@@ -259,7 +259,7 @@ export default function Home() {
 
         {/* Testimonials */}
         <div className="w-full flex items-center flex-col py-16 md:py-24">
-          <h2 className="font-display font-regular text-4xl max-w-4xl text-center px-4">
+          <h2 className="font-display font-regular text-4xl max-w-4xl w-full px-4 md:text-center">
             Tried it, Loved it ❤️
           </h2>
           <div className="py-4" />
@@ -268,11 +268,11 @@ export default function Home() {
 
         {/* For Mobile Developers */}
         <div className="w-full flex items-center flex-col py-16 md:py-24">
-          <h2 className="font-display font-regular text-4xl max-w-4xl text-center px-4">
+          <h2 className="font-display font-regular text-4xl max-w-4xl w-full px-4 md:text-center">
             Built For Mobile Devs
           </h2>
           <div className="py-2" />
-          <p className="text-lg font-body md:w-4xl text-justify px-4">
+          <p className="text-lg font-body max-w-4xl w-full text-justify px-4">
             For us, Mobile is not an add-on to an observability product. It{" "}
             <b>is</b> the product. Measure is built by mobile engineers, for
             mobile engineers.

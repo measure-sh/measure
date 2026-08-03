@@ -32,7 +32,7 @@ export default function WhyMeasure() {
       <JsonLd data={webPageJsonLd(seo)} />
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
-        <div className="max-w-6xl mx-auto px-4 py-8 font-body">
+        <div className="max-w-6xl w-full mx-auto px-4 py-8 font-body">
           {/* Header */}
           <div className="py-16" />
           <h1 className="text-5xl font-display mb-2">Why Measure?</h1>
@@ -69,7 +69,7 @@ export default function WhyMeasure() {
                 Measure is the right tool for you.
               </p>
             </div>
-            <div className="flex items-center justify-center w-full md:w-64 flex-shrink-0">
+            <div className="flex items-center justify-center w-full md:w-64 shrink-0">
               <LucideBug className="w-48 h-48 text-rose-600 p-4" />
             </div>
           </div>
@@ -92,7 +92,7 @@ export default function WhyMeasure() {
                 focus it deserves, Measure is the perfect match for you.
               </p>
             </div>
-            <div className="flex items-center justify-center w-full md:w-64 flex-shrink-0">
+            <div className="flex items-center justify-center w-full md:w-64 shrink-0">
               <LucideSmartphone className="w-48 h-48 text-yellow-500 p-4" />
             </div>
           </div>
@@ -119,7 +119,7 @@ export default function WhyMeasure() {
                 Measure is the right community for you.
               </p>
             </div>
-            <div className="flex items-center justify-center w-full md:w-64 flex-shrink-0">
+            <div className="flex items-center justify-center w-full md:w-64 shrink-0">
               <LucideGitPullRequest className="w-48 h-48 text-sky-500 p-4" />
             </div>
           </div>
@@ -157,7 +157,7 @@ export default function WhyMeasure() {
                 for you.
               </p>
             </div>
-            <div className="flex items-center justify-center w-full md:w-64 flex-shrink-0">
+            <div className="flex items-center justify-center w-full md:w-64 shrink-0">
               <LucideCircleDollarSign className="w-48 h-48 text-green-500 p-4" />
             </div>
           </div>

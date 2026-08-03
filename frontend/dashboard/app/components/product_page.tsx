@@ -13,13 +13,26 @@ import ScaledPreview from "./scaled_preview";
 
 // The demo block has three presentations:
 // - "scaled": a full dashboard view rendered inside a ScaledPreview frame;
-//   the frame height varies per page.
+//   the frame height varies per page. Phones get the screenshot instead,
+//   because the preview shrinks the dashboard past reading size.
 // - "wide": the demo manages its own layout and renders in a plain
 //   full-width column (the agent and MCP chat demos).
 // - "card": the demo renders inside a padded, vertically scrollable card
 //   (the adaptive capture demo).
 export type ProductPageDemo =
-  | { frame: "scaled"; heightClassName: string; content: ReactNode }
+  | {
+      frame: "scaled";
+      heightClassName: string;
+      content: ReactNode;
+      // Width and height are the screenshot file's real pixel size, which is
+      // the ratio the browser reserves space from before the image loads.
+      screenshot: {
+        src: string;
+        alt: string;
+        width: number;
+        height: number;
+      };
+    }
   | { frame: "wide"; content: ReactNode }
   | { frame: "card"; content: ReactNode };
 
@@ -40,29 +53,28 @@ export type ProductPageProps = {
 function Demo({ demo }: { demo: ProductPageDemo }) {
   if (demo.frame === "scaled") {
     return (
-      <div
-        className={cn(
-          "relative w-full max-w-[90vw] md:max-w-6xl mt-12 mb-32 mx-auto border border-border rounded-lg shadow-xl overflow-hidden",
-          demo.heightClassName,
-        )}
-      >
-        <ScaledPreview>
-          {/* Demos with sticky elements offset against this py-12 padding;
-              keep the two in sync. */}
-          <div className="bg-background text-foreground min-h-screen px-8 py-12">
-            {demo.content}
-          </div>
+      <>
+        <Image
+          src={demo.screenshot.src}
+          alt={demo.screenshot.alt}
+          width={demo.screenshot.width}
+          height={demo.screenshot.height}
+          sizes="100vw"
+          className="md:hidden w-full h-auto rounded-lg border border-border shadow-sm"
+        />
+        <ScaledPreview heightClassName={demo.heightClassName}>
+          {demo.content}
         </ScaledPreview>
-      </div>
+      </>
     );
   }
 
   if (demo.frame === "wide") {
-    return <div className="w-full md:w-6xl mt-12 mb-24">{demo.content}</div>;
+    return <div className="w-full">{demo.content}</div>;
   }
 
   return (
-    <div className="w-full md:w-6xl md:h-full p-8 mt-12 mb-32 overflow-y-auto border border-border rounded-lg shadow-xl overflow-hidden">
+    <div className="w-full p-8 overflow-y-auto border border-border rounded-lg shadow-xl">
       {demo.content}
     </div>
   );
@@ -81,39 +93,45 @@ export default function ProductPage({
       <JsonLd data={webPageJsonLd(seo)} />
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
-        <div className="py-16" />
-        <h1 className="text-6xl font-display w-full md:w-6xl px-4">{title}</h1>
-        <div className="py-2" />
-        <p className="text-lg font-body md:w-6xl text-justify px-4">{intro}</p>
+        <div className="max-w-6xl w-full mx-auto px-4 py-8 font-body">
+          {/* Header */}
+          <div className="py-16" />
+          <h1 className="text-5xl font-display mb-2">{title}</h1>
+          <div className="py-4" />
+          <p className="text-justify text-lg">{intro}</p>
 
-        <Demo demo={demo} />
-
-        {codingAgentsSection ? (
-          <div className="w-full md:w-6xl px-4 mb-32">
-            <h2 className="text-3xl font-display mb-4">
-              {codingAgentsSection.heading}
-            </h2>
-            <p className="text-justify text-lg">{codingAgentsSection.body}</p>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-12">
-              {codingAgents.map((agent) => (
-                <div
-                  key={agent.alt}
-                  className="relative h-16 rounded-xl border border-border"
-                >
-                  <Image
-                    src={agent.src}
-                    alt={agent.alt}
-                    fill
-                    sizes="(min-width: 768px) 220px, 40vw"
-                    className="object-contain p-5 brightness-0 dark:invert"
-                  />
-                </div>
-              ))}
-            </div>
+          <div className="mt-8">
+            <Demo demo={demo} />
           </div>
-        ) : null}
+
+          {codingAgentsSection ? (
+            <div className="mt-24">
+              <h2 className="text-3xl font-display mb-4">
+                {codingAgentsSection.heading}
+              </h2>
+              <p className="text-justify text-lg">{codingAgentsSection.body}</p>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-12">
+                {codingAgents.map((agent) => (
+                  <div
+                    key={agent.alt}
+                    className="relative h-16 rounded-xl border border-border"
+                  >
+                    <Image
+                      src={agent.src}
+                      alt={agent.alt}
+                      fill
+                      sizes="(min-width: 768px) 220px, 40vw"
+                      className="object-contain p-5 brightness-0 dark:invert"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
 
         {/* CTA */}
+        <div className="mt-24" />
         <TrackCtaLink
           location={ctaLocation}
           destination="signup"

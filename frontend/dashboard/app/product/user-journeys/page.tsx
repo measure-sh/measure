@@ -44,8 +44,14 @@ export default function ProductUserJourneys() {
       }
       demo={{
         frame: "scaled",
-        heightClassName: "h-[400px] md:h-[840px]",
+        heightClassName: "h-[840px]",
         content: <UserJourneysDemo />,
+        screenshot: {
+          src: "/images/product_screenshots/user_journeys.webp",
+          alt: "A user journey graph in Measure showing how users move between screens and which routes are most affected by issues",
+          width: 2300,
+          height: 1996,
+        },
       }}
       ctaLocation="product_user_journeys"
     />

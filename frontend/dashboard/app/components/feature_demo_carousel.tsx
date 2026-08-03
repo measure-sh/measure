@@ -1,9 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import TabSelect, { TabSize } from "./tab_select";
 import ScaledPreview from "./scaled_preview";
+import TabSelect, { TabSize } from "./tab_select";
 
 const BugReport = dynamic(() => import("./bug_report"), { ssr: false });
 const UserJourneys = dynamic(() => import("./user_journeys"), { ssr: false });
@@ -30,7 +31,13 @@ const NetworkOverview = dynamic(() => import("./network_overview"), {
 const features = [
   {
     title: "Session Replays",
-    heightClassName: "h-[500px] md:h-[790px]",
+    heightClassName: "h-[790px]",
+    screenshot: {
+      src: "/images/product_screenshots/session_replays.webp",
+      alt: "A Measure session replay showing the replayed screen alongside a timeline of clicks, navigations and network calls",
+      width: 2046,
+      height: 1288,
+    },
     description: (
       <>
         Debug issues easily with full session replays{" "}
@@ -42,7 +49,13 @@ const features = [
   },
   {
     title: "App Health",
-    heightClassName: "h-[500px] md:h-[975px]",
+    heightClassName: "h-[975px]",
+    screenshot: {
+      src: "/images/product_screenshots/app_health.webp",
+      alt: "The Measure app health dashboard showing crash rate, ANR rate, launch time and app size metrics with trends over time",
+      width: 2300,
+      height: 1996,
+    },
     description: (
       <>
         Monitor important metrics to stay on top of app health{" "}
@@ -54,7 +67,13 @@ const features = [
   },
   {
     title: "Crashes and ANRs",
-    heightClassName: "h-[500px] md:h-[1000px]",
+    heightClassName: "h-[1000px]",
+    screenshot: {
+      src: "/images/product_screenshots/crashes_and_anrs.webp",
+      alt: "A crash detail view in Measure showing the stacktrace, affected sessions and distribution across devices and app versions",
+      width: 2300,
+      height: 1996,
+    },
     description: (
       <>
         Automatically track Crashes <span aria-hidden="true">💥</span> and ANRs{" "}
@@ -66,7 +85,13 @@ const features = [
   },
   {
     title: "Performance Traces",
-    heightClassName: "h-[500px] md:h-[505px]",
+    heightClassName: "h-[505px]",
+    screenshot: {
+      src: "/images/product_screenshots/performance_traces.webp",
+      alt: "A performance trace in Measure showing parent and child spans laid out as a waterfall chart",
+      width: 2280,
+      height: 1208,
+    },
     description: (
       <>
         Analyze app performance with traces and spans{" "}
@@ -78,7 +103,13 @@ const features = [
   },
   {
     title: "Bug Reports",
-    heightClassName: "h-[500px] md:h-[660px]",
+    heightClassName: "h-[660px]",
+    screenshot: {
+      src: "/images/product_screenshots/bug_reports.webp",
+      alt: "A bug report in Measure showing the reporter's screenshot, description and the device and network context captured with it",
+      width: 2284,
+      height: 1338,
+    },
     description: (
       <>
         Capture bug reports with a device shake or SDK function call{" "}
@@ -91,7 +122,13 @@ const features = [
   },
   {
     title: "User Journeys",
-    heightClassName: "h-[500px] md:h-[815px]",
+    heightClassName: "h-[815px]",
+    screenshot: {
+      src: "/images/product_screenshots/user_journeys.webp",
+      alt: "A user journey graph in Measure showing how users move between screens and which routes are most affected by issues",
+      width: 2300,
+      height: 1996,
+    },
     description: (
       <>
         Understand how users move through your app{" "}
@@ -103,7 +140,13 @@ const features = [
   },
   {
     title: "Network Performance",
-    heightClassName: "h-[500px] md:h-[1000px]",
+    heightClassName: "h-[1000px]",
+    screenshot: {
+      src: "/images/product_screenshots/network_performance.webp",
+      alt: "The Measure network performance view showing HTTP status distribution over time and the slowest endpoints by latency",
+      width: 2278,
+      height: 1916,
+    },
     description: (
       <>
         Monitor Network request latency and status codes across your app{" "}
@@ -136,7 +179,24 @@ export default function FeatureDemoCarousel() {
 
   return (
     <>
-      <div className="w-full scale-65 md:scale-100 flex items-center justify-center">
+      <div className="md:hidden max-w-6xl w-full mx-auto mt-8 px-4 font-body">
+        {features.map((feature) => (
+          <div key={feature.title} className="mt-24 first:mt-0">
+            <h3 className="text-3xl font-display mb-4">{feature.title}</h3>
+            <p className="text-justify text-lg">{feature.description}</p>
+            <Image
+              src={feature.screenshot.src}
+              alt={feature.screenshot.alt}
+              width={feature.screenshot.width}
+              height={feature.screenshot.height}
+              sizes="100vw"
+              className="mt-8 w-full h-auto rounded-lg border border-border shadow-sm"
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden md:flex w-full items-center justify-center">
         <TabSelect
           size={TabSize.Large}
           items={Object.values(features.map((f) => f.title))}
@@ -146,24 +206,13 @@ export default function FeatureDemoCarousel() {
           }}
         />
       </div>
-      <div className="py-2 md:py-4" />
-      <p className="text-lg font-body md:w-5xl text-justify px-4">
+      <p className="hidden md:block max-w-5xl w-full px-4 my-8 text-justify text-lg font-body">
         {features[featureIndex].description}
       </p>
-      <div className="py-2 md:py-4" />
 
-      <div
-        className={`relative w-full max-w-[90vw] md:max-w-6xl ${features[featureIndex].heightClassName} mx-auto border border-border rounded-lg shadow-xl overflow-hidden`}
-      >
-        <ScaledPreview>
-          {/* The demos' sticky charts use a -top-12 offset that cancels this
-              py-12 padding so they pin flush to the top — keep them in sync. */}
-          <div
-            key={featureIndex}
-            className="bg-background text-foreground min-h-screen px-8 py-12"
-          >
-            {demos[featureIndex]}
-          </div>
+      <div className="w-full max-w-6xl mx-auto">
+        <ScaledPreview heightClassName={features[featureIndex].heightClassName}>
+          {demos[featureIndex]}
         </ScaledPreview>
       </div>
     </>
