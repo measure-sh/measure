@@ -375,7 +375,7 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
           <div className="py-8" />
           <Skeleton className="h-6 w-52" />
           <div className="flex flex-row items-center mt-2 gap-4">
-            <Skeleton className="h-9 w-[150px]" />
+            <Skeleton className="h-9 w-37.5" />
             <Skeleton className="h-9 w-16" />
           </div>
 

@@ -136,7 +136,7 @@ const NetworkTimelinePlot: React.FC<Props> = ({ data }) => {
 
   if (filteredHeatmapData.length === 0) {
     return (
-      <div className="flex font-body items-center justify-center w-full h-[36rem]">
+      <div className="flex font-body items-center justify-center w-full h-144">
         <p className="text-lg font-display text-center p-4">No Data</p>
       </div>
     );

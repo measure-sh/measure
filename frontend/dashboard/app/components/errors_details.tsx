@@ -196,11 +196,11 @@ function renderAttributeRow(key: string, value: unknown): ReactNode {
         {key}
       </p>
       {isObject ? (
-        <pre className="text-xs font-code whitespace-pre-wrap break-words m-0">
+        <pre className="text-xs font-code whitespace-pre-wrap wrap-break-word m-0">
           {JSON.stringify(value, null, 2)}
         </pre>
       ) : (
-        <p className="text-xs break-words font-code">{String(value)}</p>
+        <p className="text-xs wrap-break-word font-code">{String(value)}</p>
       )}
     </div>
   );
@@ -368,10 +368,10 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
       {!demo && filters.loading && (
         <div className="w-full">
           <div className="flex flex-col md:flex-row w-full">
-            <div className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]">
+            <div className="flex font-body items-center justify-center w-full md:w-1/2 h-128">
               <SkeletonPlot />
             </div>
-            <div className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]">
+            <div className="flex font-body items-center justify-center w-full md:w-1/2 h-128">
               <SkeletonPlot />
             </div>
           </div>
@@ -380,7 +380,7 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
           <Skeleton className="h-8 w-40" />
           <div className="py-4">
             <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-[24rem] w-full rounded-sm mt-3" />
+            <Skeleton className="h-96 w-full rounded-sm mt-3" />
           </div>
 
           <div className="py-12" />

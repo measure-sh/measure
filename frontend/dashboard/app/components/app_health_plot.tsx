@@ -159,7 +159,7 @@ const AppHealthPlot: React.FC<AppHealthPlotProps> = ({ demo = false }) => {
   } as const;
 
   return (
-    <div className="flex font-body items-center justify-center w-full h-[24rem]">
+    <div className="flex font-body items-center justify-center w-full h-96">
       {effectiveStatus === "pending" && <SkeletonPlot />}
       {effectiveStatus === "error" && (
         <p className="text-lg font-display text-center p-4">

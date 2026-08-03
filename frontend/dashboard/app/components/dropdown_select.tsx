@@ -197,7 +197,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
       <PopoverTrigger disabled={disabled} asChild>
         <Button
           variant="outline"
-          className="flex justify-between w-fit min-w-[150px] select-none"
+          className="flex justify-between w-fit min-w-37.5 select-none"
         >
           <span className="truncate">{getDisplayText()}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -209,7 +209,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
             placeholder="Search..."
             value={searchValue}
             onValueChange={setSearchValue}
-            className="h-10 p-1 border border-0 rounded-md focus:ring-0 font-body text-sm"
+            className="h-10 p-1 border-0 rounded-md focus:ring-0 font-body text-sm"
           />
           {isMultiSelect() && items.length > 1 && (
             <div className="flex gap-2 p-2 py-4">

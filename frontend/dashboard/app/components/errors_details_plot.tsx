@@ -117,7 +117,7 @@ const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
   return (
     <div
       data-testid="exception-detail-plot"
-      className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]"
+      className="flex font-body items-center justify-center w-full md:w-1/2 h-128"
     >
       {effectiveStatus === "pending" && <SkeletonPlot />}
       {effectiveStatus === "error" && (

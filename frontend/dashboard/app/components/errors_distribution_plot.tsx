@@ -133,7 +133,7 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
   return (
     <div
       data-testid="exception-distribution-plot"
-      className="flex font-body items-center justify-center w-full md:w-1/2 h-[32rem]"
+      className="flex font-body items-center justify-center w-full md:w-1/2 h-128"
     >
       {effectiveStatus === "pending" && <SkeletonPlot />}
       {effectiveStatus === "error" && (

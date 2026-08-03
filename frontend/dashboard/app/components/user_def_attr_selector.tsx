@@ -195,13 +195,13 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({
 
   return (
     <Command className="bg-transparent">
-      <div className="flex items-center [&_[cmdk-input-wrapper]]:border-b-0">
+      <div className="flex items-center **:[[cmdk-input-wrapper]]:border-b-0">
         <div className="flex-1">
           <CommandInput
             placeholder="Search..."
             value={searchValue}
             onValueChange={setSearchValue}
-            className="h-10 p-1 border border-0 rounded-md focus:ring-0 font-body text-sm"
+            className="h-10 p-1 border-0 rounded-md focus:ring-0 font-body text-sm"
           />
         </div>
         <Button
@@ -225,7 +225,7 @@ const UserDefAttrSelector: React.FC<UserDefAttrSelectorProps> = ({
           <CommandItem
             key={attr.key}
             onSelect={() => toggleAttr(attr)}
-            className="flex flex-col items-start px-4 sm:px-4 px-0 sm:w-full w-fit data-[selected=true]:bg-muted data-[selected=true]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+            className="flex flex-col items-start px-0 sm:px-4 sm:w-full w-fit data-[selected=true]:bg-muted data-[selected=true]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
             tabIndex={0}
             onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
               if (e.key === "Enter") {

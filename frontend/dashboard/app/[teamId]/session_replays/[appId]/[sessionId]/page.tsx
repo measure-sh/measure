@@ -63,10 +63,10 @@ export default function Session(props: {
           <div className="flex flex-col lg:flex-row gap-4 items-stretch">
             {/* Stage, metric lanes, scrubber and transport */}
             <div className="flex flex-col grow min-w-0 gap-3">
-              <Skeleton className="h-[600px] w-full rounded-md" />
+              <Skeleton className="h-150 w-full rounded-md" />
               <div className="flex flex-col gap-1">
-                <Skeleton className="h-[34px] w-full rounded-md" />
-                <Skeleton className="h-[34px] w-full rounded-md" />
+                <Skeleton className="h-8.5 w-full rounded-md" />
+                <Skeleton className="h-8.5 w-full rounded-md" />
               </div>
               <div className="flex flex-col gap-1">
                 <Skeleton className="h-8 w-full rounded-sm" />
@@ -80,7 +80,7 @@ export default function Session(props: {
               </div>
             </div>
             {/* Event list */}
-            <Skeleton className="h-[600px] w-full lg:w-140 shrink-0 rounded-md" />
+            <Skeleton className="h-150 w-full lg:w-140 shrink-0 rounded-md" />
           </div>
         </div>
       )}

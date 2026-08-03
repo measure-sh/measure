@@ -56,7 +56,7 @@ export default function TraceDetails({
             <Skeleton className="h-6 w-32 rounded-full" />
           </div>
           {/* Trace visualization */}
-          <Skeleton className="h-[300px] w-full rounded-lg" />
+          <Skeleton className="h-75 w-full rounded-lg" />
           {/* Button */}
           <div className="py-4" />
           <Skeleton className="h-9 w-44" />

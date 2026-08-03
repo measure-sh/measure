@@ -28,7 +28,7 @@ const ErrorsOverviewPlot: React.FC = () => {
   return (
     <div
       data-testid="exceptions-plot"
-      className="flex font-body items-center justify-center w-full h-[36rem]"
+      className="flex font-body items-center justify-center w-full h-144"
     >
       {status === "pending" && (
         <div data-testid="exceptions-plot-skeleton" className="w-full h-full">

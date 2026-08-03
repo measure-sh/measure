@@ -127,10 +127,10 @@ export default function Home() {
             >
               {[...Array(2)].map((_, i) => (
                 <Fragment key={i}>
-                  <div className="w-[40px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
+                  <div className="w-10 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
                     <KukuFmLogo className="w-full h-full object-contain grayscale brightness-0 dark:invert" />
                   </div>
-                  <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
+                  <div className="w-25 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
                     <Image
                       src="/images/hoichoi_logo.svg"
                       alt="Hoichoi Logo"
@@ -138,7 +138,7 @@ export default function Home() {
                       className="object-contain grayscale brightness-0 dark:invert"
                     />
                   </div>
-                  <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
+                  <div className="w-25 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
                     <Image
                       src="/images/country_delight_logo.webp"
                       alt="Country Delight Logo"
@@ -146,7 +146,7 @@ export default function Home() {
                       className="object-contain grayscale"
                     />
                   </div>
-                  <div className="w-[140px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
+                  <div className="w-35 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
                     <Image
                       src="/images/dashreels_logo.webp"
                       alt="Dashreels Logo"
@@ -154,7 +154,7 @@ export default function Home() {
                       className="object-contain grayscale brightness-0 dark:invert"
                     />
                   </div>
-                  <div className="w-[120px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
+                  <div className="w-30 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
                     <Image
                       src="/images/turtlemint_logo.svg"
                       alt="Turtelmint Logo"
@@ -162,7 +162,7 @@ export default function Home() {
                       className="object-contain grayscale brightness-0 dark:invert"
                     />
                   </div>
-                  <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
+                  <div className="w-25 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
                     <Image
                       src="/images/astro_logo.webp"
                       alt="Astro Logo"
@@ -170,7 +170,7 @@ export default function Home() {
                       className="object-contain grayscale brightness-0 dark:invert"
                     />
                   </div>
-                  <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
+                  <div className="w-25 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
                     <Image
                       src="/images/allofresh_logo.webp"
                       alt="Allofresh Logo"
@@ -178,7 +178,7 @@ export default function Home() {
                       className="object-contain grayscale brightness-0 dark:invert"
                     />
                   </div>
-                  <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
+                  <div className="w-25 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
                     <Image
                       src="/images/smcindia_logo.webp"
                       alt="SMC India Logo"
@@ -192,7 +192,7 @@ export default function Home() {
                       className="object-contain hidden dark:block grayscale brightness-0 dark:invert"
                     />
                   </div>
-                  <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
+                  <div className="w-25 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
                     <Image
                       src="/images/even_logo.webp"
                       alt="Even Logo"
@@ -200,7 +200,7 @@ export default function Home() {
                       className="object-contain grayscale brightness-0 dark:invert"
                     />
                   </div>
-                  <div className="w-[100px] h-[50px] relative flex items-center justify-center shrink-0 mr-48">
+                  <div className="w-25 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
                     <Image
                       src="/images/karya_logo.webp"
                       alt="Karya Logo"

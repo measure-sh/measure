@@ -27,7 +27,7 @@ function SkeletonPlot({
     >
       <div className="flex flex-row flex-1 gap-3">
         {showAxes && (
-          <div className="flex flex-col flex-shrink-0 justify-between py-4">
+          <div className="flex flex-col shrink-0 justify-between py-4">
             {Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="h-3 w-8" />
             ))}
@@ -60,7 +60,7 @@ function SkeletonTable({
         {Array.from({ length: columns }).map((_, i) => (
           <Skeleton
             key={i}
-            className={cn("h-4", i === 0 ? "flex-[2]" : "flex-1")}
+            className={cn("h-4", i === 0 ? "flex-2" : "flex-1")}
           />
         ))}
       </div>
@@ -71,7 +71,7 @@ function SkeletonTable({
               key={colIdx}
               className={cn(
                 "h-4",
-                colIdx === 0 ? "flex-[2]" : "flex-1",
+                colIdx === 0 ? "flex-2" : "flex-1",
                 widths[(rowIdx + colIdx) % widths.length],
               )}
             />
@@ -102,7 +102,7 @@ function SkeletonListPage({
   return (
     <div className="flex flex-col items-center w-full">
       {showPlot && (
-        <div className="flex font-body items-center justify-center w-full h-[36rem]">
+        <div className="flex font-body items-center justify-center w-full h-144">
           <SkeletonPlot />
         </div>
       )}

@@ -820,7 +820,7 @@ const Journey: React.FC<JourneyProps> = ({
                                         `/${teamId}/errors/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`,
                                       )
                               }
-                              className={`block w-full text-left px-3 py-2 border-b border-border/40 last:border-b-0 text-xs break-words font-body transition-colors ${demo ? "cursor-default" : "hover:bg-accent cursor-pointer"}`}
+                              className={`block w-full text-left px-3 py-2 border-b border-border/40 last:border-b-0 text-xs wrap-break-word font-body transition-colors ${demo ? "cursor-default" : "hover:bg-accent cursor-pointer"}`}
                             >
                               <span className="block">{title}</span>
                               <span className="block text-[10px] text-muted-foreground mt-0.5">
@@ -849,7 +849,7 @@ const Journey: React.FC<JourneyProps> = ({
                                         `/${teamId}/errors/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`,
                                       )
                               }
-                              className={`block w-full text-left px-3 py-2 border-b border-border/40 last:border-b-0 text-xs break-words font-body transition-colors ${demo ? "cursor-default" : "hover:bg-accent cursor-pointer"}`}
+                              className={`block w-full text-left px-3 py-2 border-b border-border/40 last:border-b-0 text-xs wrap-break-word font-body transition-colors ${demo ? "cursor-default" : "hover:bg-accent cursor-pointer"}`}
                             >
                               <span className="block">{title}</span>
                               <span className="block text-[10px] text-muted-foreground mt-0.5">

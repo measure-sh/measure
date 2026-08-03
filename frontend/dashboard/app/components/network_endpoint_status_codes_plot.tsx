@@ -52,14 +52,14 @@ const NetworkEndpointStatusCodesPlot: React.FC<Props> = ({
 
   if (!plot || plot.length === 0 || plot[0].data.length === 0) {
     return (
-      <div className="flex font-body items-center justify-center w-full h-[36rem]">
+      <div className="flex font-body items-center justify-center w-full h-144">
         <p className="text-lg font-display text-center p-4">No Data</p>
       </div>
     );
   }
 
   return (
-    <div className="flex font-body items-center justify-center w-full h-[36rem]">
+    <div className="flex font-body items-center justify-center w-full h-144">
       <div className="flex flex-col w-full h-full">
         <div className="size-full">
           <ResponsiveLine

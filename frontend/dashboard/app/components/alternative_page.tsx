@@ -109,7 +109,7 @@ export default function AlternativePage({
               Measure vs {competitorName}
             </h2>
             <div className="overflow-x-auto rounded-xl border border-border">
-              <table className="w-full min-w-[560px] border-collapse text-left">
+              <table className="w-full min-w-140 border-collapse text-left">
                 <thead>
                   <tr className="">
                     <th

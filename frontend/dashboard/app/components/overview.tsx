@@ -74,13 +74,13 @@ export default function Overview({
 
       {!demo && filters.loading && (
         <>
-          <div className="flex font-body items-center justify-center w-full h-[24rem]">
+          <div className="flex font-body items-center justify-center w-full h-96">
             <SkeletonPlot />
           </div>
           <div className="py-8" />
           <div className="flex flex-wrap gap-16 w-full justify-center">
             {Array.from({ length: 9 }).map((_, i) => (
-              <Skeleton key={i} className="w-full md:w-[300px] h-[160px]" />
+              <Skeleton key={i} className="w-full md:w-75 h-40" />
             ))}
           </div>
         </>

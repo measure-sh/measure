@@ -75,7 +75,7 @@ function renderRich(text: string) {
       parts.push(
         <code
           key={key++}
-          className="rounded bg-black/[0.06] px-1 py-0.5 font-code text-[0.85em] text-[#e01e5a] dark:bg-white/10"
+          className="rounded bg-black/6 px-1 py-0.5 font-code text-[0.85em] text-[#e01e5a] dark:bg-white/10"
         >
           {code[1]}
         </code>,
@@ -158,7 +158,7 @@ function MessageRow({
             {name}
           </span>
           {isApp && (
-            <span className="rounded-[3px] bg-black/[0.08] px-1 py-px text-[10px] font-bold uppercase leading-tight tracking-wide text-[#616061] dark:bg-white/10 dark:text-[#abadb0]">
+            <span className="rounded-[3px] bg-black/8 px-1 py-px text-[10px] font-bold uppercase leading-tight tracking-wide text-[#616061] dark:bg-white/10 dark:text-[#abadb0]">
               App
             </span>
           )}
@@ -330,12 +330,12 @@ export default function AgentDemo() {
   return (
     <div className="w-full select-none font-body px-8 md:px-0">
       <div
-        className={`flex h-[520px] w-full overflow-hidden rounded-xl border border-border bg-card shadow-2xl transition-opacity duration-500 md:h-[600px] ${
+        className={`flex h-130 w-full overflow-hidden rounded-xl border border-border bg-card shadow-2xl transition-opacity duration-500 md:h-150 ${
           visible ? "opacity-100" : "opacity-0"
         }`}
       >
         {/* Slack sidebar */}
-        <div className="hidden w-56 shrink-0 flex-col bg-[#3f0e40] md:flex dark:border-r dark:border-white/[0.06] dark:bg-[#131313]">
+        <div className="hidden w-56 shrink-0 flex-col bg-[#3f0e40] md:flex dark:border-r dark:border-white/6 dark:bg-[#131313]">
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
             <span className="text-[15px] font-bold text-white dark:text-[#d1d2d3]">
               {WORKSPACE_NAME}
@@ -409,7 +409,7 @@ export default function AgentDemo() {
                 )}
                 {a1Done && (
                   <div className="mt-2 flex items-baseline gap-2">
-                    <span className="flex h-7 items-end gap-[3px]">
+                    <span className="flex h-7 items-end gap-0.75">
                       {SPARKLINE.map((h) => (
                         <span
                           key={h}

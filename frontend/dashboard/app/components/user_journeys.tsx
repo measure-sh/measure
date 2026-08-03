@@ -91,7 +91,7 @@ export default function UserJourneys({
           <div className="w-full flex justify-end pb-2 pr-2">
             <Skeleton className="h-9 w-40" />
           </div>
-          <div className="w-full h-[800px]">
+          <div className="w-full h-200">
             <div className="py-2" />
             <Skeleton className="h-9 w-full" />
             <Skeleton className="h-3 w-72 mt-4" />
@@ -115,7 +115,7 @@ export default function UserJourneys({
           </div>
 
           {/* Main content area */}
-          <div className="w-full h-[800px]">
+          <div className="w-full h-200">
             {!demo && <div className="py-2" />}
             {!demo && (
               <DebounceTextInput

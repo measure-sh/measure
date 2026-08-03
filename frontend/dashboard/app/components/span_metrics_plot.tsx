@@ -49,7 +49,7 @@ const SpanMetricsPlot: React.FC = () => {
   }
 
   return (
-    <div className="flex font-body items-center justify-center w-full h-[36rem]">
+    <div className="flex font-body items-center justify-center w-full h-144">
       {status === "pending" && <SkeletonPlot />}
       {status === "error" && (
         <p className="text-lg font-display text-center p-4">
