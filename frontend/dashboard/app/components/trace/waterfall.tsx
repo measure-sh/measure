@@ -454,7 +454,7 @@ const TraceWaterfall: React.FC<TraceWaterfallProps> = ({
         </div>
 
         {sidebarOpen && (
-          <div className="border rounded-md overflow-hidden shrink-0 w-[320px] md:w-[360px] lg:w-[400px] flex flex-col">
+          <div className="border rounded-md overflow-hidden shrink-0 w-[320px] md:w-90 lg:w-100 flex flex-col">
             <TraceSidebar
               span={selectedSpan}
               showErrorAsRed={errorHighlightActive}

@@ -21,7 +21,7 @@ export default function HandDrawnUnderline({
       {children}
       <svg
         aria-hidden="true"
-        className="absolute left-0 -bottom-[0.05em] w-full h-[0.25em] overflow-visible"
+        className="absolute left-0 bottom-[-0.05em] w-full h-[0.25em] overflow-visible"
         viewBox="0 0 100 8"
         preserveAspectRatio="none"
       >

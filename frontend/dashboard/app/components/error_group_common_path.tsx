@@ -104,7 +104,7 @@ const ErrorGroupCommonPath: React.FC<ErrorGroupCommonPathProps> = ({
       {commonPathStatus === "pending" && (
         <div className="py-4 flex flex-col gap-3 w-full">
           <Skeleton className="h-4 w-48" />
-          <Skeleton className="h-[24rem] w-full rounded-sm" />
+          <Skeleton className="h-96 w-full rounded-sm" />
         </div>
       )}
       {commonPathStatus === "error" && (
@@ -140,7 +140,7 @@ const ErrorGroupCommonPath: React.FC<ErrorGroupCommonPathProps> = ({
           </div>
 
           <div className="py-4" />
-          <div className="w-full border border-border rounded-sm h-[24rem] overflow-y-auto p-4">
+          <div className="w-full border border-border rounded-sm h-96 overflow-y-auto p-4">
             {filteredSteps.length === 0 ? (
               <p className="text-center text-sm w-full py-24 text-muted-foreground">
                 No events are common in at least {confidenceThreshold}% of

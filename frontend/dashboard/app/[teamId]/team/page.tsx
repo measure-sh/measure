@@ -456,7 +456,7 @@ export default function TeamOverview(props: {
           <Skeleton className="h-6 w-48" />
           <div className="flex flex-row items-center mt-2 gap-2">
             <Skeleton className="h-9 w-96" />
-            <Skeleton className="h-9 w-[150px]" />
+            <Skeleton className="h-9 w-37.5" />
             <Skeleton className="h-9 w-20" />
           </div>
 

@@ -361,7 +361,7 @@ export default function NetworkOverview({
             <Skeleton className="h-3 w-96 mt-2" />
             <div className="py-2" />
             <div className="flex flex-row items-center w-full gap-2">
-              <Skeleton className="h-9 w-[150px]" />
+              <Skeleton className="h-9 w-37.5" />
               <Skeleton className="h-9 flex-1" />
               <Skeleton className="h-9 w-20" />
             </div>
@@ -371,7 +371,7 @@ export default function NetworkOverview({
             <Skeleton className="h-6 w-44" />
             <Skeleton className="h-3 w-80 mt-2" />
             <div className="py-4" />
-            <div className="flex font-body items-center justify-center w-full h-[36rem]">
+            <div className="flex font-body items-center justify-center w-full h-144">
               <SkeletonPlot />
             </div>
 
@@ -385,7 +385,7 @@ export default function NetworkOverview({
             <div className="py-10" />
             <Skeleton className="h-6 w-24" />
             <Skeleton className="h-3 w-72 mt-2" />
-            <div className="flex font-body items-center justify-center w-full h-[36rem]">
+            <div className="flex font-body items-center justify-center w-full h-144">
               <SkeletonPlot />
             </div>
           </div>
@@ -539,7 +539,7 @@ export default function NetworkOverview({
               <InfoTooltip content="HTTP status code distribution over time for all requests made by the app" />
             </div>
             <div className="py-4" />
-            <div className="flex font-body items-center justify-center w-full h-[36rem]">
+            <div className="flex font-body items-center justify-center w-full h-144">
               {(statusPlotStatus === "pending" ||
                 (statusPlotStatus === "success" &&
                   !shouldRenderStatusPlot)) && <SkeletonPlot />}
@@ -603,7 +603,7 @@ export default function NetworkOverview({
               </div>
             )}
             {!shouldRenderTimeline && (
-              <div className="flex font-body items-center justify-center w-full h-[36rem]">
+              <div className="flex font-body items-center justify-center w-full h-144">
                 {timelinePlotStatus === "pending" && <SkeletonPlot />}
                 {(timelinePlotStatus === "nodata" ||
                   timelinePlotStatus === "success") && (

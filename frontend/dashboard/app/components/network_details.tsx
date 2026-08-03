@@ -118,21 +118,21 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
           <div className="py-6" />
           <Skeleton className="h-6 w-24" />
           <div className="py-2" />
-          <div className="flex font-body items-center justify-center w-full h-[36rem]">
+          <div className="flex font-body items-center justify-center w-full h-144">
             <SkeletonPlot />
           </div>
 
           <div className="py-6" />
           <Skeleton className="h-6 w-44" />
           <div className="py-6" />
-          <div className="flex font-body items-center justify-center w-full h-[36rem]">
+          <div className="flex font-body items-center justify-center w-full h-144">
             <SkeletonPlot />
           </div>
 
           <div className="py-6" />
           <Skeleton className="h-6 w-24" />
           <Skeleton className="h-3 w-80 mt-2" />
-          <div className="flex font-body items-center justify-center w-full h-[36rem]">
+          <div className="flex font-body items-center justify-center w-full h-144">
             <SkeletonPlot />
           </div>
         </div>
@@ -144,7 +144,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
           <div className="py-6" />
           <p className="font-display text-xl">Latency</p>
           <div className="py-2" />
-          <div className="flex font-body items-center justify-center w-full h-[36rem]">
+          <div className="flex font-body items-center justify-center w-full h-144">
             {latencyStatus === "pending" && <SkeletonPlot />}
             {latencyStatus === "error" && (
               <p className="font-body text-sm">
@@ -172,7 +172,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
           <div className="py-6" />
           <p className="font-display text-xl">Status Distribution</p>
           <div className="py-6" />
-          <div className="flex font-body items-center justify-center w-full h-[36rem]">
+          <div className="flex font-body items-center justify-center w-full h-144">
             {statusDistributionStatus === "pending" && <SkeletonPlot />}
             {statusDistributionStatus === "error" && (
               <p className="font-body text-sm">
@@ -224,7 +224,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
             </div>
           )}
           {!shouldRenderTimelinePlot && (
-            <div className="flex font-body items-center justify-center w-full h-[36rem]">
+            <div className="flex font-body items-center justify-center w-full h-144">
               {timelineStatus === "pending" && <SkeletonPlot />}
               {timelineStatus === "error" && (
                 <p className="font-body text-sm">

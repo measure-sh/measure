@@ -350,7 +350,7 @@ export default function DashboardLayout({
         </div>
 
         <main className="flex justify-center">
-          <div className="w-full max-w-[1100px] px-4 pb-24">{children}</div>
+          <div className="w-full max-w-275 px-4 pb-24">{children}</div>
         </main>
       </SidebarInset>
     </SidebarProvider>

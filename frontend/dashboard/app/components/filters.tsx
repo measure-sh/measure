@@ -426,7 +426,7 @@ export const ErrorsTypeFilter: React.FC<ErrorsTypeFilterProps> = ({
       <PopoverTrigger disabled={disabled} asChild>
         <Button
           variant="outline"
-          className="flex justify-between w-fit min-w-[150px] select-none"
+          className="flex justify-between w-fit min-w-37.5 select-none"
         >
           <span className="truncate">Type</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -1167,7 +1167,7 @@ const FiltersComponent = forwardRef<
       <div className="flex flex-wrap gap-8 items-center">
         {leadingContent}
         {Array.from({ length: skeletonCount }).map((_, i) => (
-          <Skeleton key={i} className="h-9 w-[150px]" />
+          <Skeleton key={i} className="h-9 w-37.5" />
         ))}
       </div>
     );

@@ -378,7 +378,7 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
         </p>
       )}
       {usageHasNoData && (
-        <div className="w-full h-[36rem] flex items-center justify-center">
+        <div className="w-full h-144 flex items-center justify-center">
           <p className="text-lg font-display text-center p-4">
             No data yet. Send your first event!
           </p>
@@ -388,9 +388,9 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
       {/* Main UI */}
       {usageIsLoading && (
         <div className="flex flex-col items-start w-full">
-          <Skeleton className="h-9 w-[150px]" />
+          <Skeleton className="h-9 w-37.5" />
           <div className="py-4" />
-          <div className="w-full h-[36rem] flex items-center justify-center">
+          <div className="w-full h-144 flex items-center justify-center">
             <Skeleton className="w-72 h-72 rounded-full" />
           </div>
         </div>
@@ -405,7 +405,7 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
             onChangeSelected={(item) => setSelectedMonth(item as string)}
           />
           <div className="py-4" />
-          <div className="w-full h-[36rem]">
+          <div className="w-full h-144">
             <ResponsivePie
               data={selectedMonthUsage}
               theme={chartTheme}

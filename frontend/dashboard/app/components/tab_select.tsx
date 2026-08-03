@@ -36,7 +36,7 @@ const TabSelect: React.FC<TabSelectProps> = ({
           rounded-md
           transition-colors
           outline-hidden
-          focus-visible:border-ring focus-visible:ring-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]
+          focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]
 
           ${
             selected === item

@@ -704,7 +704,7 @@ export default function SdkConfigurator({
             </AccordionTrigger>
             <AccordionContent className={accordionContentStyle}>
               <div className="mt-2 space-y-4">
-                <div className="flex flex-col gap-2 min-h-[2.5rem] sm:flex-row sm:items-center sm:gap-0">
+                <div className="flex flex-col gap-2 min-h-10 sm:flex-row sm:items-center sm:gap-0">
                   <p className="text-sm">Collect screenshot with crashes</p>
                   <Switch
                     data-testid="crash-screenshot-switch"
@@ -759,7 +759,7 @@ export default function SdkConfigurator({
               </AccordionTrigger>
               <AccordionContent className={accordionContentStyle}>
                 <div className="mt-2 space-y-4">
-                  <div className="flex flex-col gap-2 min-h-[2.5rem] sm:flex-row sm:items-center sm:gap-0">
+                  <div className="flex flex-col gap-2 min-h-10 sm:flex-row sm:items-center sm:gap-0">
                     <p className="text-sm">Collect screenshot with ANRs</p>
                     <Switch
                       data-testid="anr-screenshot-switch"
@@ -1188,7 +1188,7 @@ export default function SdkConfigurator({
             </AccordionTrigger>
             <AccordionContent className={accordionContentStyle}>
               <div className="mt-2 space-y-4">
-                <div className="flex flex-col gap-2 min-h-[2.5rem] sm:flex-row sm:items-center sm:gap-0">
+                <div className="flex flex-col gap-2 min-h-10 sm:flex-row sm:items-center sm:gap-0">
                   <p className="text-sm">Screenshot mask level</p>
                   <div className="sm:ml-3">
                     <DropdownSelect
@@ -1239,7 +1239,7 @@ export default function SdkConfigurator({
             </AccordionTrigger>
             <AccordionContent className={accordionContentStyle}>
               <div className="mt-2 space-y-4">
-                <div className="flex flex-col gap-2 min-h-[2.5rem] sm:flex-row sm:items-center sm:gap-0">
+                <div className="flex flex-col gap-2 min-h-10 sm:flex-row sm:items-center sm:gap-0">
                   <p className="text-sm">Automatically collect logs</p>
                   <Switch
                     data-testid="automatic-log-collection-switch"
@@ -1253,7 +1253,7 @@ export default function SdkConfigurator({
                     disabled={!currentUserCanChangeAppSettings}
                   />
                 </div>
-                <div className="flex flex-col gap-2 min-h-[2.5rem] sm:flex-row sm:items-center sm:gap-2">
+                <div className="flex flex-col gap-2 min-h-10 sm:flex-row sm:items-center sm:gap-2">
                   <span className="font-body text-sm">Collect</span>
                   <DropdownSelect
                     data-testid="min-log-level-dropdown"

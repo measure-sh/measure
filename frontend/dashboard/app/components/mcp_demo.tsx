@@ -235,7 +235,7 @@ export default function MCPDemo() {
     <div className="w-full select-none font-display px-8 md:px-0">
       {/* Terminal window */}
       <div
-        className={`flex h-[520px] w-full flex-col overflow-hidden rounded-lg border border-border bg-card shadow-2xl transition-opacity duration-500 md:h-[600px] ${visible ? "opacity-100" : "opacity-0"}`}
+        className={`flex h-130 w-full flex-col overflow-hidden rounded-lg border border-border bg-card shadow-2xl transition-opacity duration-500 md:h-150 ${visible ? "opacity-100" : "opacity-0"}`}
       >
         {/* Title bar */}
         <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">

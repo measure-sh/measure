@@ -178,8 +178,8 @@ export default function BugReport({
           {/* Attachments */}
           <div className="py-4" />
           <div className="flex flex-wrap gap-8">
-            <Skeleton className="h-[200px] w-[200px]" />
-            <Skeleton className="h-[200px] w-[200px]" />
+            <Skeleton className="h-50 w-50" />
+            <Skeleton className="h-50 w-50" />
           </div>
         </div>
       )}

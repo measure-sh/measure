@@ -113,7 +113,7 @@ const AdaptiveCaptureDemo: React.FC<AdaptiveCaptureDemoProps> = ({
                         step={1}
                         className="flex-1"
                       />
-                      <span className="text-xs font-display w-8 text-right flex-shrink-0">
+                      <span className="text-xs font-display w-8 text-right shrink-0">
                         {config.percentage}%
                       </span>
                     </div>

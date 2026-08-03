@@ -170,7 +170,10 @@ const TraceSidebar: React.FC<TraceSidebarProps> = ({
                   {f.key}
                 </p>
                 <p
-                  className={cn("text-xs break-words font-code", f.valueClass)}
+                  className={cn(
+                    "text-xs wrap-break-word font-code",
+                    f.valueClass,
+                  )}
                 >
                   {f.value}
                 </p>
@@ -208,13 +211,13 @@ const TraceSidebar: React.FC<TraceSidebarProps> = ({
                       color.bg,
                     )}
                   />
-                  <p className="text-xs font-code break-words">{c.name}</p>
+                  <p className="text-xs font-code wrap-break-word">{c.name}</p>
                 </div>
                 <div className="flex flex-row gap-2 ml-3.5">
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground select-none">
                     Time
                   </p>
-                  <p className="text-[11px] font-code break-words text-muted-foreground">
+                  <p className="text-[11px] font-code wrap-break-word text-muted-foreground">
                     {formatDateToHumanReadableDateTime(c.timestamp)}
                   </p>
                 </div>

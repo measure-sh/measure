@@ -28,7 +28,7 @@ const BugReportsOverviewPlot: React.FC = () => {
   return (
     <div
       data-testid="bug-reports-plot"
-      className="flex font-body items-center justify-center w-full h-[36rem]"
+      className="flex font-body items-center justify-center w-full h-144"
     >
       {status === "pending" && <SkeletonPlot />}
       {status === "error" && (

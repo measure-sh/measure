@@ -35,7 +35,7 @@ export default function LandingHeroAnimation() {
   }, [resolvedTheme]);
 
   return (
-    <div className="w-80 h-80 md:w-[28rem] md:h-[20rem]">
+    <div className="w-80 h-80 md:w-md md:h-80">
       {animationData && <Lottie animationData={animationData} />}
     </div>
   );
