@@ -2,46 +2,66 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { cn } from "../utils/shadcn_utils";
 import { PortalContainerProvider } from "./portal_container";
 
+// The demos are laid out for a desktop dashboard, so they render at this width
+// inside the iframe and the iframe is scaled down to whatever width the frame
+// gets. At the frame's widest, 1152px, that scale works out to 0.8, which is
+// the ratio each caller's height class was picked against.
+const CONTENT_WIDTH = 1440;
+
 /**
- * Renders `children` inside a same-origin iframe and scales the iframe down to
- * fit this component's width.
+ * The bordered window on the landing and product pages that shows a live
+ * dashboard demo shrunk to fit.
  *
- * The product pages show the full dashboard shrunk into a preview window. Doing
- * that with a CSS `transform: scale()` directly on the dashboard breaks nivo
- * charts: they size themselves from `getBoundingClientRect`, which returns the
- * already-transformed size, so the chart shrinks a second time when the
- * transform paints. An iframe is a separate document — code inside measures
- * against the iframe's own viewport and never sees the outer transform — so the
- * dashboard renders at its true size internally and the whole iframe is scaled
- * as one unit. This is the standard way to render a scaled live UI preview.
+ * `children` render inside a same-origin iframe, and the iframe is scaled as
+ * one unit. Scaling the dashboard directly with a CSS `transform: scale()`
+ * breaks nivo charts, which size themselves from `getBoundingClientRect`: that
+ * returns the already-transformed size, so a chart shrinks a second time when
+ * the transform paints. An iframe is a separate document, so code inside it
+ * measures against the iframe's own viewport and never sees the outer
+ * transform. `children` are portaled into the iframe body, which React context
+ * still flows through, and the host page's stylesheets and theme class are
+ * copied in so the demo matches the surrounding page.
  *
- * `children` are portaled into the iframe body (React context still flows
- * through the portal), and the host page's stylesheets + theme class are
- * mirrored into the iframe so it looks identical.
+ * Below the `md` breakpoint the frame is hidden and callers show a screenshot
+ * instead. Hiding it in CSS alone would still create the iframe and mount the
+ * whole dashboard inside it, so the demo renders only once a media query
+ * reports a wide viewport. That query is unmatched on the first client render,
+ * so the frame starts empty and fills in immediately after, and the iframe
+ * stays hidden until it has measured itself, so neither step shows as a flash.
  */
 export default function ScaledPreview({
+  heightClassName,
   children,
-  contentWidth = 1440,
 }: {
+  heightClassName: string;
   children: React.ReactNode;
-  contentWidth?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [isWideViewport, setIsWideViewport] = useState(false);
   const [body, setBody] = useState<HTMLElement | null>(null);
   const [{ scale, height }, setLayout] = useState({ scale: 0, height: 0 });
+
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 768px)");
+    const update = () => setIsWideViewport(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
 
   // Scale the iframe so its fixed content width fits the container width, and
   // size it so the scaled height fills the container.
   useEffect(() => {
     const el = containerRef.current;
-    if (!el) {
+    if (!el || !isWideViewport) {
       return;
     }
     const measure = () => {
-      const nextScale = el.clientWidth / contentWidth;
+      const nextScale = el.clientWidth / CONTENT_WIDTH;
       setLayout({
         scale: nextScale,
         height: nextScale > 0 ? el.clientHeight / nextScale : 0,
@@ -51,11 +71,14 @@ export default function ScaledPreview({
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [contentWidth]);
+  }, [isWideViewport]);
 
-  // Mirror the host document into the iframe (stylesheets, fonts, theme class)
-  // and expose its body as the portal target.
+  // Copy the host document's stylesheets and theme class into the iframe and
+  // expose its body as the portal target.
   useEffect(() => {
+    if (!isWideViewport) {
+      return;
+    }
     const syncTheme = () => {
       const doc = iframeRef.current?.contentDocument;
       if (doc) {
@@ -96,26 +119,36 @@ export default function ScaledPreview({
       headObserver.disconnect();
       themeObserver.disconnect();
     };
-  }, []);
+  }, [isWideViewport]);
 
   return (
-    <div ref={containerRef} className="h-full w-full">
-      <iframe
-        ref={iframeRef}
-        title="Dashboard preview"
-        style={{
-          border: 0,
-          width: contentWidth,
-          height: height || "100%",
-          transform: `scale(${scale})`,
-          transformOrigin: "top left",
-          visibility: body && scale > 0 ? "visible" : "hidden",
-        }}
-      />
+    <div
+      ref={containerRef}
+      className={cn(
+        "relative hidden md:block w-full border border-border rounded-lg shadow-xl overflow-hidden",
+        heightClassName,
+      )}
+    >
+      {isWideViewport ? (
+        <iframe
+          ref={iframeRef}
+          title="Dashboard preview"
+          style={{
+            border: 0,
+            width: CONTENT_WIDTH,
+            height: height || "100%",
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+            visibility: body && scale > 0 ? "visible" : "hidden",
+          }}
+        />
+      ) : null}
       {body
         ? createPortal(
             <PortalContainerProvider value={body}>
-              {children}
+              <div className="bg-background text-foreground min-h-screen px-8 py-12">
+                {children}
+              </div>
             </PortalContainerProvider>,
             body,
           )

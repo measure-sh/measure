@@ -110,130 +110,120 @@ export default function About() {
       <JsonLd data={webPageJsonLd(seo, "AboutPage")} />
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
-        {/* Main description */}
-        <div className="py-16" />
-        <h1 className="text-5xl font-display md:w-6xl px-4">
-          For mobile engineers, by mobile engineers
-        </h1>
-        <div className="py-4" />
-        <p className="text-lg font-body md:w-6xl text-justify px-4">
-          We built Measure to solve the unique challenges mobile developers face
-          in monitoring production apps.
-          <br />
-          <br /> After spending years in the trenches building mobile apps at
-          scale, we understood that existing tools that are often web and
-          backend centric don&apos;t address mobile-specific needs.
-          <br />
-          <br />
-          For us, mobile is not an add-on to an observability product. Mobile{" "}
-          <b>is</b> the product.
-          <br />
-          <br />
-          We strongly believe that tools for mobile developers can and should be
-          better and that&apos;s what drives us everyday.
-        </p>
-
-        {/* Team */}
-        <div className="py-8 md:py-16" />
-        <div className="w-full flex items-center flex-col py-16 md:py-24">
-          <p className="font-display font-regular text-4xl max-w-4xl text-center px-4">
-            Team
-          </p>
+        <div className="max-w-6xl w-full mx-auto px-4 py-8 font-body">
+          {/* Main description */}
+          <div className="py-16" />
+          <h1 className="text-5xl font-display mb-2">
+            For mobile engineers, by mobile engineers
+          </h1>
           <div className="py-4" />
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4 md:gap-6 lg:gap-8 p-4 md:p-6 lg:p-8 w-full max-w-6xl">
-            {team.map((team, index) => (
-              <Link
-                href={team.url}
-                key={index}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="h-full"
-              >
-                <div className="flex flex-col items-center h-full border border-border p-8 rounded-md bg-card text-card-foreground shadow-sm">
-                  <Image
-                    src={team.profile_pic_url}
-                    alt={`${team.name} Profile Picture`}
-                    width={200}
-                    height={200}
-                    className="rounded-full border border-border"
-                  />
-                  <div className="py-4" />
-                  <p className="font-display text-xl">{team.name}</p>
-                  <p className="font-body">{team.title}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* Investors */}
-        <div className="w-full flex items-center flex-col py-16 md:py-24">
-          <p className="font-display font-regular text-4xl max-w-4xl text-center px-4">
-            Investors
+          <p className="text-justify text-lg">
+            We built Measure to solve the unique challenges mobile developers
+            face in monitoring production apps.
+            <br />
+            <br /> After spending years in the trenches building mobile apps at
+            scale, we understood that existing tools that are often web and
+            backend centric don&apos;t address mobile-specific needs.
+            <br />
+            <br />
+            For us, mobile is not an add-on to an observability product. Mobile{" "}
+            <b>is</b> the product.
+            <br />
+            <br />
+            We strongly believe that tools for mobile developers can and should
+            be better and that&apos;s what drives us everyday.
           </p>
-          <div className="py-8" />
-          <div className="flex flex-col md:flex-row gap-8 p-2 items-center max-w-6xl">
-            <Image
-              src="/images/investor_logos/picus_black.webp"
-              alt={`Picus Capital Logo`}
-              width={200}
-              height={100}
-              className="w-56 h-8 dark:hidden"
-            />
-            <Image
-              src="/images/investor_logos/picus_white.webp"
-              alt={`Picus Capital Logo`}
-              width={200}
-              height={100}
-              className="w-56 h-8 hidden dark:block"
-            />
-            <Image
-              src="/images/investor_logos/devc_black.svg"
-              alt={`DeVC Logo`}
-              width={200}
-              height={100}
-              className="w-56 h-8 dark:hidden"
-            />
-            <Image
-              src="/images/investor_logos/devc_white.svg"
-              alt={`DeVC Logo`}
-              width={200}
-              height={100}
-              className="w-56 h-8 hidden dark:block"
-            />
-            <div className="w-56 flex items-center justify-center">
+
+          {/* Team */}
+          <div className="mt-24">
+            <h2 className="text-3xl font-display mb-8">Team</h2>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4 md:gap-8 w-full">
+              {team.map((member) => (
+                <Link
+                  href={member.url}
+                  key={member.name}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-full"
+                >
+                  <div className="flex flex-col items-center h-full border border-border p-8 rounded-md bg-card text-card-foreground shadow-sm">
+                    <Image
+                      src={member.profile_pic_url}
+                      alt={`${member.name} Profile Picture`}
+                      width={200}
+                      height={200}
+                      className="rounded-full border border-border"
+                    />
+                    <div className="py-4" />
+                    <p className="font-display text-xl">{member.name}</p>
+                    <p className="font-body">{member.title}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Investors */}
+          <div className="mt-24">
+            <h2 className="text-3xl font-display mb-8">Investors</h2>
+            <div className="flex flex-col md:flex-row gap-8 items-start md:items-center">
+              <Image
+                src="/images/investor_logos/picus_black.webp"
+                alt={`Picus Capital Logo`}
+                width={788}
+                height={112}
+                className="h-9 w-auto dark:hidden"
+              />
+              <Image
+                src="/images/investor_logos/picus_white.webp"
+                alt={`Picus Capital Logo`}
+                width={903}
+                height={128}
+                className="h-9 w-auto hidden dark:block"
+              />
+              <Image
+                src="/images/investor_logos/devc_black.svg"
+                alt={`DeVC Logo`}
+                width={210}
+                height={93}
+                className="h-6 w-auto dark:hidden"
+              />
+              <Image
+                src="/images/investor_logos/devc_white.svg"
+                alt={`DeVC Logo`}
+                width={210}
+                height={93}
+                className="h-6 w-auto hidden dark:block"
+              />
               <Image
                 src="/images/investor_logos/astir.svg"
                 alt={`Astir Ventures Logo`}
-                width={200}
-                height={100}
-                className="w-32 h-12 bg-black rounded-sm p-2"
+                width={297}
+                height={150}
+                className="h-10 w-auto bg-black rounded-sm p-2"
               />
+            </div>
+          </div>
+
+          {/* Angel Investors */}
+          <div className="mt-24">
+            <h2 className="text-3xl font-display mb-8">Angels</h2>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-8 items-center w-full">
+              {angels.map((angel) => (
+                <div
+                  key={angel.name}
+                  className="flex flex-col items-center text-center justify-center h-full w-full border border-border p-4 md:p-6 rounded-md bg-card text-card-foreground shadow-sm"
+                >
+                  <p className="font-display text-xl">{angel.name}</p>
+                  <p className="font-body">{angel.title}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Angel Investors */}
-        <div className="w-full flex items-center flex-col py-16 md:py-24">
-          <p className="font-display font-regular text-4xl max-w-4xl text-center px-4">
-            Angels
-          </p>
-          <div className="py-8" />
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 md:gap-16 items-center p-8">
-            {angels.map((angel) => (
-              <div
-                key={angel.name}
-                className="flex flex-col items-center text-center justify-center h-full w-full border border-border p-8 rounded-md bg-card text-card-foreground shadow-sm"
-              >
-                <p className="font-display text-xl">{angel.name}</p>
-                <p className="font-body">{angel.title}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* CTA */}
-        <div className="py-8" />
+        <div className="mt-24" />
         <TrackCtaLink
           location="about"
           destination="signup"

@@ -42,8 +42,14 @@ export default function ProductBugReports() {
       }
       demo={{
         frame: "scaled",
-        heightClassName: "h-[400px] md:h-[630px]",
+        heightClassName: "h-[630px]",
         content: <BugReportDemo />,
+        screenshot: {
+          src: "/images/product_screenshots/bug_reports.webp",
+          alt: "A bug report in Measure showing the reporter's screenshot, description and the device and network context captured with it",
+          width: 2284,
+          height: 1338,
+        },
       }}
       ctaLocation="product_bug_reports"
     />

@@ -78,7 +78,7 @@ export default function AlternativePage({
       <JsonLd data={webPageJsonLd(seo)} />
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
-        <div className="max-w-6xl mx-auto px-4 py-8 font-body">
+        <div className="max-w-6xl w-full mx-auto px-4 py-8 font-body">
           {/* Header */}
           <div className="py-16" />
           <h1 className="text-5xl font-display mb-2">{title}</h1>
@@ -97,7 +97,7 @@ export default function AlternativePage({
                 </h2>
                 <p className="text-justify text-lg">{differentiator.body}</p>
               </div>
-              <div className="flex items-center justify-center w-full md:w-64 flex-shrink-0">
+              <div className="flex items-center justify-center w-full md:w-64 shrink-0">
                 {differentiator.icon}
               </div>
             </div>

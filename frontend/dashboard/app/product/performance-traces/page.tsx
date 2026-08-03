@@ -41,8 +41,14 @@ export default function ProductPerformanceTraces() {
       }
       demo={{
         frame: "scaled",
-        heightClassName: "h-[400px] md:h-[505px]",
+        heightClassName: "h-[505px]",
         content: <TraceDemo />,
+        screenshot: {
+          src: "/images/product_screenshots/performance_traces.webp",
+          alt: "A performance trace in Measure showing parent and child spans laid out as a waterfall chart",
+          width: 2280,
+          height: 1208,
+        },
       }}
       ctaLocation="product_performance_traces"
     />

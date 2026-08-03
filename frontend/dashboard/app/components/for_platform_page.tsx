@@ -53,7 +53,7 @@ export default function ForPlatformPage({
       <JsonLd data={webPageJsonLd(seo)} />
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
-        <div className="max-w-6xl mx-auto px-4 py-8 font-body">
+        <div className="max-w-6xl w-full mx-auto px-4 py-8 font-body">
           {/* Header */}
           <div className="py-16" />
           <h1 className="text-5xl font-display">
@@ -78,10 +78,16 @@ export default function ForPlatformPage({
             <div
               key={feature.heading}
               className={cn(
-                "flex flex-col w-full items-center gap-16 mt-40",
-                index % 2 === 0 ? "md:flex-row-reverse" : "md:flex-row",
+                "flex flex-col w-full items-center gap-8 mt-24 md:mt-32",
+                index % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse",
               )}
             >
+              <div className="flex flex-col flex-1">
+                <h2 className="text-3xl font-display mb-4">
+                  {feature.heading}
+                </h2>
+                <p className="text-justify text-lg">{feature.body}</p>
+              </div>
               <div className="flex items-center justify-center w-full md:flex-1 md:min-w-0">
                 {"logos" in feature ? (
                   <div className="grid grid-cols-2 gap-4 w-full">
@@ -110,12 +116,6 @@ export default function ForPlatformPage({
                     className="w-full h-auto rounded-xl border border-border shadow-sm"
                   />
                 )}
-              </div>
-              <div className="flex flex-col flex-1">
-                <h2 className="text-3xl font-display mb-4">
-                  {feature.heading}
-                </h2>
-                <p className="text-justify text-lg">{feature.body}</p>
               </div>
             </div>
           ))}

@@ -37,8 +37,14 @@ export default function ProductCrashesAndANRs() {
       }
       demo={{
         frame: "scaled",
-        heightClassName: "h-[600px] md:h-[1000px]",
+        heightClassName: "h-[1000px]",
         content: <ExceptionsDemo />,
+        screenshot: {
+          src: "/images/product_screenshots/crashes_and_anrs.webp",
+          alt: "A crash detail view in Measure showing the stacktrace, affected sessions and distribution across devices and app versions",
+          width: 2300,
+          height: 1996,
+        },
       }}
       ctaLocation="product_crashes_and_anrs"
     />
