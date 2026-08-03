@@ -238,7 +238,7 @@ export default function LandingFooter() {
               Docs
             </Link>
             <Link
-              href="https://blog.measure.sh/"
+              href="/blog"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
                 "font-display select-none w-full md:w-fit",
