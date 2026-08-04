@@ -5,7 +5,7 @@ import { render, screen } from "@testing-library/react";
 let lastLineProps: any = null;
 
 jest.mock("@nivo/line", () => ({
-  ResponsiveLine: (props: any) => {
+  ResponsiveLineCanvas: (props: any) => {
     lastLineProps = props;
     return <div data-testid="line-mock" />;
   },
@@ -25,7 +25,7 @@ jest.mock("@/app/utils/time_utils", () => ({
 }));
 
 jest.mock("@/app/utils/shared_styles", () => ({
-  chartTheme: {},
+  useChartForeground: () => "#222222",
   useChartColor: () => ({
     blue: "#38bdf8",
     green: "#34d399",
@@ -71,7 +71,7 @@ describe("NetworkEndpointStatusCodesPlot", () => {
     expect(screen.getByText("No Data")).toBeInTheDocument();
   });
 
-  it("passes correct number of series to ResponsiveLine", () => {
+  it("passes correct number of series to the line chart", () => {
     const statusCodes = [200, 404, 500];
     const data = [
       {
@@ -133,22 +133,22 @@ describe("NetworkEndpointStatusCodesPlot", () => {
       />,
     );
 
-    const tooltip = lastLineProps.sliceTooltip({
-      slice: {
-        points: [
-          {
-            id: "p1",
-            seriesColor: "#e8c1a0",
-            seriesId: "200",
-            data: { xFormatted: "2024-01-01", y: 9, total_count: 10 },
+    // The canvas tooltip receives one nearest point; the full breakdown
+    // comes from the datum's source datapoint.
+    const tooltip = lastLineProps.tooltip({
+      point: {
+        seriesId: "200",
+        data: {
+          xFormatted: "2024-01-01",
+          y: 9,
+          total_count: 10,
+          source: {
+            datetime: "2024-01-01",
+            total_count: 10,
+            count_200: 9,
+            count_500: 1,
           },
-          {
-            id: "p2",
-            seriesColor: "#f47560",
-            seriesId: "500",
-            data: { xFormatted: "2024-01-01", y: 1, total_count: 10 },
-          },
-        ],
+        },
       },
     });
 

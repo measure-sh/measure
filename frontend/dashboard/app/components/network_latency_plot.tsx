@@ -1,9 +1,9 @@
 "use client";
 
-import { ResponsiveLine } from "@nivo/line";
+import { ResponsiveLineCanvas } from "@nivo/line";
 import { useTheme } from "next-themes";
 import React, { useMemo, useState } from "react";
-import { chartTheme, useChartColors } from "../utils/shared_styles";
+import { useChartColors, useChartForeground } from "../utils/shared_styles";
 import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
 import {
   formatMillisToHumanReadable,
@@ -53,6 +53,17 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({
   const chartColors = useChartColors();
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
 
+  const foreground = useChartForeground();
+  const canvasTheme = useMemo(
+    () => ({
+      text: { fill: foreground },
+      axis: { ticks: { text: { fill: foreground } } },
+      legends: { text: { fill: foreground } },
+      crosshair: { line: { stroke: foreground, strokeWidth: 1 } },
+    }),
+    [foreground],
+  );
+
   const plot = useMemo<PlotData | undefined>(() => {
     if (!data) return undefined;
 
@@ -88,10 +99,10 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({
           />
         </div>
         <div className="size-full">
-          <ResponsiveLine
+          <ResponsiveLineCanvas
             data={plot}
             curve="monotoneX"
-            theme={chartTheme}
+            theme={canvasTheme}
             enableArea={true}
             areaOpacity={0.1}
             colors={chartColors}
@@ -137,42 +148,35 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({
               from: "seriesColor",
               modifiers: [["darker", 0.3]],
             }}
-            pointLabelYOffset={-12}
-            useMesh={true}
             enableGridX={false}
             enableGridY={false}
-            enableSlices="x"
-            sliceTooltip={({ slice }) => {
-              const pointData = slice.points[0]?.data as unknown as {
+            tooltip={({ point }) => {
+              const pointData = point.data as unknown as {
+                xFormatted: string;
+                yFormatted: string;
                 count: number;
               };
-              const count = pointData?.count ?? 0;
               return (
                 <PlotTooltipShell>
                   <p className="p-2 font-semibold">
                     {formatPlotTooltipDate(
-                      slice.points[0].data.xFormatted.toString(),
+                      pointData.xFormatted.toString(),
                       plotTimeGroup,
                     )}
                   </p>
                   <p className="px-2 pb-1">
-                    Requests: {count.toLocaleString()}
+                    Requests: {(pointData.count ?? 0).toLocaleString()}
                   </p>
-                  {slice.points.map((point) => (
-                    <div
-                      className="flex flex-row items-center px-2 py-0.5"
-                      key={point.id}
-                    >
-                      <PlotTooltipSwatch color={point.seriesColor} />
-                      <div className="px-1" />
-                      <p>
-                        {quantile}:{" "}
-                        {formatMillisToHumanReadable(
-                          Number(point.data.yFormatted),
-                        )}
-                      </p>
-                    </div>
-                  ))}
+                  <div className="flex flex-row items-center px-2 py-0.5">
+                    <PlotTooltipSwatch color={point.seriesColor} />
+                    <div className="px-1" />
+                    <p>
+                      {quantile}:{" "}
+                      {formatMillisToHumanReadable(
+                        Number(pointData.yFormatted),
+                      )}
+                    </p>
+                  </div>
                 </PlotTooltipShell>
               );
             }}
