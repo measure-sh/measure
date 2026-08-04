@@ -1,6 +1,7 @@
 "use client";
 
 import { Slider } from "@/app/components/slider";
+import { useChartForeground } from "@/app/utils/shared_styles";
 import { formatMillisToHumanReadable } from "@/app/utils/time_utils";
 import { PlotTooltipShell } from "@/app/components/plot_tooltip";
 import { ResponsiveHeatMapCanvas } from "@nivo/heatmap";
@@ -25,7 +26,7 @@ interface Props {
 
 const NetworkTimelinePlot: React.FC<Props> = ({ data }) => {
   const { theme } = useTheme();
-  const foreground = theme === "dark" ? "#ffffff" : "#000000";
+  const foreground = useChartForeground();
   const interval = data.interval;
 
   const canvasTheme = useMemo(
