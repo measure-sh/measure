@@ -38,29 +38,20 @@ const NetworkTimelinePlot: React.FC<Props> = ({ data }) => {
     [foreground],
   );
 
-  const { heatmapData, minBucket, maxBucket } = useMemo(() => {
-    if (!data.points || data.points.length === 0)
-      return { heatmapData: [], minBucket: 0, maxBucket: 0 };
-
-    // Compute total count per endpoint
+  const { endpointOrder, bucketMap, minBucket, maxBucket } = useMemo(() => {
+    // Group by endpoint and bucket (already aligned from backend), and order
+    // endpoints by total count descending (busiest at top).
     const endpointTotals = new Map<string, number>();
-    for (const d of data.points) {
-      const key = `${d.domain}${d.path_pattern}`;
-      endpointTotals.set(key, (endpointTotals.get(key) ?? 0) + d.count);
-    }
-
-    // Sort endpoints by total count descending
-    const sorted = Array.from(endpointTotals.entries()).sort(
-      (a, b) => b[1] - a[1],
-    );
-
-    // Group by endpoint and bucket (already aligned from backend)
     const bucketMap = new Map<string, Map<number, number>>();
     let min = Infinity;
     let max = -Infinity;
 
-    for (const d of data.points) {
+    for (const d of data.points ?? []) {
       const endpoint = `${d.domain}${d.path_pattern}`;
+      endpointTotals.set(
+        endpoint,
+        (endpointTotals.get(endpoint) ?? 0) + d.count,
+      );
 
       min = Math.min(min, d.elapsed);
       max = Math.max(max, d.elapsed);
@@ -73,30 +64,15 @@ const NetworkTimelinePlot: React.FC<Props> = ({ data }) => {
       epBuckets.set(d.elapsed, (epBuckets.get(d.elapsed) ?? 0) + d.count);
     }
 
-    if (min === Infinity)
-      return { heatmapData: [], minBucket: 0, maxBucket: 0 };
+    const endpointOrder = Array.from(endpointTotals.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([endpoint]) => endpoint);
 
-    // Build all bucket labels
-    const allBuckets: number[] = [];
-    for (let b = min; b <= max; b += interval) {
-      allBuckets.push(b);
+    if (min === Infinity) {
+      return { endpointOrder, bucketMap, minBucket: 0, maxBucket: 0 };
     }
-
-    // Build heatmap series sorted by total count descending (busiest at top)
-    const heatmapData = sorted.map(([endpoint]) => {
-      const epBuckets = bucketMap.get(endpoint) ?? new Map();
-      return {
-        id: endpoint,
-        data: allBuckets.map((b) => ({
-          x: formatMillisToHumanReadable(b * 1000),
-          y: epBuckets.get(b) ?? null,
-          rangeLabel: `${formatMillisToHumanReadable(b * 1000)} - ${formatMillisToHumanReadable((b + interval) * 1000)}`,
-        })),
-      };
-    });
-
-    return { heatmapData, minBucket: min, maxBucket: max };
-  }, [data, interval]);
+    return { endpointOrder, bucketMap, minBucket: min, maxBucket: max };
+  }, [data]);
 
   const sliderMin = Math.min(minBucket + 60, maxBucket);
   const defaultEnd = Math.min(minBucket + 120 - interval, maxBucket);
@@ -122,13 +98,69 @@ const NetworkTimelinePlot: React.FC<Props> = ({ data }) => {
     setRangeEnd(value);
   };
 
+  // Cells narrower than a few pixels are painted over by their own 1px
+  // borders and the chart reads as solid black, so wide ranges are shown as
+  // coarser windows: enough native buckets are merged into each column to
+  // keep the column count at or below this limit.
+  const maxColumns = 120;
+
   const filteredHeatmapData = useMemo(() => {
-    const endIndex = Math.floor((debouncedRangeEnd - minBucket) / interval) + 1;
-    return heatmapData.map((series) => ({
-      ...series,
-      data: series.data.slice(0, endIndex),
-    }));
-  }, [heatmapData, minBucket, debouncedRangeEnd, interval]);
+    if (endpointOrder.length === 0) {
+      return [];
+    }
+
+    // Column widths snap to round durations so axis labels and tooltip
+    // ranges read as natural time steps, and dragging the slider only
+    // changes the width when the range crosses a step boundary. The
+    // smallest step that keeps the column count within the limit wins;
+    // doubling past the last step covers ranges beyond it.
+    const columnSteps = [
+      5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 14400,
+    ];
+    const visibleSeconds = debouncedRangeEnd - minBucket + interval;
+    let columnInterval =
+      columnSteps.find(
+        (step) =>
+          step >= interval &&
+          step % interval === 0 &&
+          visibleSeconds / step <= maxColumns,
+      ) ?? columnSteps[columnSteps.length - 1];
+    while (visibleSeconds / columnInterval > maxColumns) {
+      columnInterval *= 2;
+    }
+    const bucketsPerColumn = columnInterval / interval;
+
+    const columns: number[] = [];
+    for (let b = minBucket; b <= debouncedRangeEnd; b += columnInterval) {
+      columns.push(b);
+    }
+
+    return endpointOrder.map((endpoint) => {
+      const epBuckets = bucketMap.get(endpoint) ?? new Map<number, number>();
+      return {
+        id: endpoint,
+        data: columns.map((b) => {
+          // Each bucket holds the average requests per session in its 5
+          // second window, so summing the buckets inside a column gives the
+          // average for the column's whole window.
+          let sum = 0;
+          let hasData = false;
+          for (let i = 0; i < bucketsPerColumn; i++) {
+            const count = epBuckets.get(b + i * interval);
+            if (count !== undefined) {
+              sum += count;
+              hasData = true;
+            }
+          }
+          return {
+            x: formatMillisToHumanReadable(b * 1000),
+            y: hasData ? sum : null,
+            rangeLabel: `${formatMillisToHumanReadable(b * 1000)} - ${formatMillisToHumanReadable((b + columnInterval) * 1000)}`,
+          };
+        }),
+      };
+    });
+  }, [endpointOrder, bucketMap, minBucket, debouncedRangeEnd, interval]);
 
   const containerHeight = Math.min(
     576,
