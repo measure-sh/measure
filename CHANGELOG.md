@@ -107,6 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Keep network timeline readable at wide slider ranges by @anupcowkur in #4182
 - (**frontend**): Use canvas chart for network status distribution plot by @anupcowkur in #4181
 - (**frontend**): Fix footer blog link by @anupcowkur in #4175
 - (**frontend**): Show slack integration state to non-owners on team page by @anupcowkur in #4108
@@ -233,6 +234,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Use canvas charts for network details plots by @anupcowkur
 - (**frontend**): Update header with more links by @anupcowkur in #4179
 - (**frontend**): Resolve tailwind lint warnings by @anupcowkur in #4178
 - (**frontend**): Improve mobile layouts by @anupcowkur in #4177
