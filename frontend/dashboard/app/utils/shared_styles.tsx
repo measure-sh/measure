@@ -1,3 +1,5 @@
+import { useTheme } from "next-themes";
+
 // Mirrors the docs prose links (fumadocs typography plus our fd-primary
 // override in globals.css): same decoration pair, thickness, offset, weight
 // and fade-on-hover, so links look the same on marketing and docs pages.
@@ -42,6 +44,15 @@ export function useChartColor() {
 
 export function useChartColors() {
   return chartColors;
+}
+
+// Concrete foreground for canvas-rendered charts. Canvas fillStyle cannot
+// resolve the `var(--foreground)` that chartTheme uses for SVG charts, so
+// canvas renderers need the `--foreground` token values from globals.css as
+// hex; keep the two in sync.
+export function useChartForeground() {
+  const { theme } = useTheme();
+  return theme === "dark" ? "#fafafa" : "#222222";
 }
 
 export const chartTheme = {
