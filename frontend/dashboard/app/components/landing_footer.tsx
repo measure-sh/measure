@@ -12,23 +12,27 @@ export default function LandingFooter() {
   return (
     <footer className="w-full bg-background text-foreground border-t border-border py-12">
       <div className="flex flex-col md:flex-row gap-12 md:gap-16 w-full px-16">
-        <div className="flex flex-col items-center shrink-0">
+        <div className="flex flex-col items-start md:items-center shrink-0">
+          {/* The logo SVG carries ~4.7% of its width as blank space left of the
+              cat mark, which at 200px wide is ~9px. The negative margin pulls
+              the mark onto the column's left edge so it lines up with the
+              copyright text below; centered desktop layout needs no fix. */}
           <Image
             src="/images/measure_logo_horizontal_black.svg"
             width={200}
             height={80}
             alt={"Measure logo"}
-            className="dark:hidden"
+            className="dark:hidden -ml-2.25 md:ml-0"
           />
           <Image
             src="/images/measure_logo_horizontal_white.svg"
             width={200}
             height={80}
             alt={"Measure logo"}
-            className="hidden dark:block"
+            className="hidden dark:block -ml-2.25 md:ml-0"
           />
           <div className="py-2" />
-          <p className="font-display text-sm text-center">
+          <p className="font-display text-sm text-left md:text-center">
             &copy; {new Date().getFullYear()} Measure, Inc. All rights reserved.
           </p>
           <div className="py-4" />
@@ -56,13 +60,13 @@ export default function LandingFooter() {
         </div>
 
         <div className="grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-x-8 gap-y-12 flex-1 min-w-0">
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <p className="font-display text-2xl md:px-2">Product</p>
+          <div className="flex flex-col items-start gap-4">
+            <p className="font-display text-2xl px-2">Features</p>
             <Link
               href="/product/session-replays"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Session Replays
@@ -71,7 +75,7 @@ export default function LandingFooter() {
               href="/product/app-health"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               App Health
@@ -80,7 +84,7 @@ export default function LandingFooter() {
               href="/product/crashes-and-anrs"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Crashes & ANRs
@@ -89,7 +93,7 @@ export default function LandingFooter() {
               href="/product/performance-traces"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Performance Traces
@@ -98,7 +102,7 @@ export default function LandingFooter() {
               href="/product/bug-reports"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Bug Reports
@@ -107,7 +111,7 @@ export default function LandingFooter() {
               href="/product/user-journeys"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               User Journeys
@@ -116,7 +120,7 @@ export default function LandingFooter() {
               href="/product/network-performance"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Network Performance
@@ -125,16 +129,20 @@ export default function LandingFooter() {
               href="/product/adaptive-capture"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Adaptive Capture
             </Link>
+          </div>
+
+          <div className="flex flex-col items-start gap-4">
+            <p className="font-display text-2xl px-2">AI Debugging</p>
             <Link
               href="/product/agent"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Measure Agent
@@ -143,20 +151,20 @@ export default function LandingFooter() {
               href="/product/mcp"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               MCP Server
             </Link>
           </div>
 
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <p className="font-display text-2xl md:px-2">Platforms</p>
+          <div className="flex flex-col items-start gap-4">
+            <p className="font-display text-2xl px-2">Platforms</p>
             <Link
               href="/for/android"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Android
@@ -165,7 +173,7 @@ export default function LandingFooter() {
               href="/for/ios"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               iOS
@@ -174,7 +182,7 @@ export default function LandingFooter() {
               href="/for/ipados"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               iPadOS
@@ -183,7 +191,7 @@ export default function LandingFooter() {
               href="/for/kmp"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Kotlin Multiplatform
@@ -192,7 +200,7 @@ export default function LandingFooter() {
               href="/for/flutter"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Flutter
@@ -201,20 +209,20 @@ export default function LandingFooter() {
               href="/for/react-native"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               React Native
             </Link>
           </div>
 
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <p className="font-display text-2xl md:px-2">Resources</p>
+          <div className="flex flex-col items-start gap-4">
+            <p className="font-display text-2xl px-2">Resources</p>
             <Link
               href="/why-measure"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Why Measure?
@@ -223,7 +231,7 @@ export default function LandingFooter() {
               href="/pricing"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Pricing
@@ -232,7 +240,7 @@ export default function LandingFooter() {
               href="/docs"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Docs
@@ -241,7 +249,7 @@ export default function LandingFooter() {
               href="/blog"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Blog
@@ -251,20 +259,20 @@ export default function LandingFooter() {
               target="_blank"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               GitHub
             </TrackGithubLink>
           </div>
 
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <p className="font-display text-2xl md:px-2">Alternatives</p>
+          <div className="flex flex-col items-start gap-4">
+            <p className="font-display text-2xl px-2">Alternatives</p>
             <Link
               href="/crashlytics-alternative"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Firebase Crashlytics
@@ -273,7 +281,7 @@ export default function LandingFooter() {
               href="/sentry-alternative"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Sentry
@@ -282,7 +290,7 @@ export default function LandingFooter() {
               href="/bugsnag-alternative"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Bugsnag
@@ -291,7 +299,7 @@ export default function LandingFooter() {
               href="/embrace-alternative"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Embrace
@@ -300,7 +308,7 @@ export default function LandingFooter() {
               href="/luciq-alternative"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Luciq
@@ -309,7 +317,7 @@ export default function LandingFooter() {
               href="/datadog-alternative"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Datadog
@@ -318,20 +326,20 @@ export default function LandingFooter() {
               href="/new-relic-alternative"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               New Relic
             </Link>
           </div>
 
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <p className="font-display text-2xl md:px-2">Company</p>
+          <div className="flex flex-col items-start gap-4">
+            <p className="font-display text-2xl px-2">Company</p>
             <Link
               href="/about"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               About
@@ -340,7 +348,7 @@ export default function LandingFooter() {
               href="/security"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Security
@@ -350,7 +358,7 @@ export default function LandingFooter() {
               target="_blank"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Contact Us
@@ -362,20 +370,20 @@ export default function LandingFooter() {
               rel="noopener noreferrer"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Media Kit
             </Link>
           </div>
 
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <p className="font-display text-2xl md:px-2">Legal</p>
+          <div className="flex flex-col items-start gap-4">
+            <p className="font-display text-2xl px-2">Legal</p>
             <Link
               href="/privacy-policy"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Privacy Policy
@@ -384,7 +392,7 @@ export default function LandingFooter() {
               href="/terms-of-service"
               className={cn(
                 buttonVariants({ variant: "ghost" }),
-                "font-display select-none w-full md:w-fit",
+                "font-display select-none w-full md:w-fit justify-start",
               )}
             >
               Terms of Service
@@ -394,7 +402,7 @@ export default function LandingFooter() {
                 type="button"
                 className={cn(
                   buttonVariants({ variant: "ghost" }),
-                  "font-display select-none w-full md:w-fit",
+                  "font-display select-none w-full md:w-fit justify-start",
                 )}
               >
                 Cookie Preferences
@@ -402,72 +410,84 @@ export default function LandingFooter() {
             </CookiePreferencesLink>
           </div>
 
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <p className="font-display text-2xl md:px-2">Connect</p>
+          <div className="flex flex-col items-start gap-4">
+            <p className="font-display text-2xl px-2">Connect</p>
             <div className="flex flex-row items-center">
               <Link
                 href="https://www.linkedin.com/company/measure-sh"
                 target="_blank"
-                className={cn(buttonVariants({ variant: "ghost" }), "group")}
+                className={cn(
+                  buttonVariants({ variant: "ghost" }),
+                  "group px-3",
+                )}
               >
                 <Image
                   src={"/images/linkedin_logo_black.webp"}
                   alt="LinkedIn Logo"
-                  width={20}
-                  height={20}
+                  width={16}
+                  height={16}
                   className="dark:hidden"
                 />
                 <Image
                   src={"/images/linkedin_logo_white.webp"}
                   alt="LinkedIn Logo"
-                  width={20}
-                  height={20}
+                  width={16}
+                  height={16}
                   className="hidden dark:block"
                 />
               </Link>
               <Link
                 href={siteXUrl}
                 target="_blank"
-                className={cn(buttonVariants({ variant: "ghost" }), "group")}
+                className={cn(
+                  buttonVariants({ variant: "ghost" }),
+                  "group px-3",
+                )}
               >
                 <Image
                   src={"/images/x_logo_black.webp"}
                   alt="X Logo"
-                  width={18}
-                  height={18}
+                  width={14}
+                  height={14}
                   className="dark:hidden"
                 />
                 <Image
                   src={"/images/x_logo_white.webp"}
                   alt="X Logo"
-                  width={18}
-                  height={18}
+                  width={14}
+                  height={14}
                   className="hidden dark:block"
                 />
               </Link>
               <Link
                 href="https://bsky.app/profile/measure.sh"
                 target="_blank"
-                className={cn(buttonVariants({ variant: "ghost" }), "group")}
+                className={cn(
+                  buttonVariants({ variant: "ghost" }),
+                  "group px-3",
+                )}
               >
                 <Image
                   src={"/images/bluesky_logo.svg"}
                   alt="Bluesky Logo"
-                  width={20}
-                  height={20}
+                  width={16}
+                  height={16}
                   className="dark:invert"
                 />
               </Link>
               <Link
                 href="https://discord.com/invite/f6zGkBCt42"
                 target="_blank"
-                className={cn(buttonVariants({ variant: "ghost" }), "group")}
+                className={cn(
+                  buttonVariants({ variant: "ghost" }),
+                  "group px-3",
+                )}
               >
                 <Image
                   src={"/images/discord_logo.svg"}
                   alt="Discord Logo"
-                  width={24}
-                  height={24}
+                  width={18}
+                  height={18}
                   className="dark:invert"
                 />
               </Link>
