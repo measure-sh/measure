@@ -5,6 +5,7 @@ import { Fragment } from "react";
 import AdaptiveCaptureDemo from "./components/adaptive_capture_demo";
 import { Badge } from "./components/badge";
 import { buttonVariants } from "./components/button_variants";
+import { Card } from "./components/card";
 import FeatureDemoCarousel from "./components/feature_demo_carousel";
 import HandDrawnUnderline from "./components/hand_drawn_underline";
 import LandingFooter from "./components/landing_footer";
@@ -278,117 +279,123 @@ export default function Home() {
             mobile engineers.
           </p>
           <div className="py-8" />
-          <div className="flex flex-col md:flex-row bg-card text-card-foreground items-center justify-items-center w-full max-w-6xl">
-            <div className="flex flex-col items-center justify-center w-full md:w-1/2 h-32 border-r md:border-r-0 border-l border-t border-border">
-              <p className="text-4xl font-body text-center">Open Source</p>
-              <div className="py-1" />
-              <TrackGithubLink
-                target="_blank"
-                href="https://github.com/measure-sh/measure"
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "group px-2",
-                )}
-              >
-                <Image
-                  src="/images/github_logo_black.svg"
-                  width={24}
-                  height={24}
-                  className="w-4 h-4 dark:hidden"
-                  alt={"GitHub logo"}
-                />
-                <Image
-                  src="/images/github_logo_white.svg"
-                  width={24}
-                  height={24}
-                  className="w-4 h-4 hidden dark:block"
-                  alt={"GitHub logo"}
-                />
-                <span className="mt-0.5">Star us on Github</span>
-              </TrackGithubLink>
-            </div>
-            <div className="flex flex-col items-center justify-center w-full md:w-1/2 h-32 border-l border-t border-r border-border">
-              <p className="text-4xl font-body text-center">Simple Pricing</p>
-              <p className="text-sm font-display text-center mt-4">
-                Pay only for the{" "}
-                <Link href="/pricing" className={underlineLinkStyle}>
-                  data you use.
-                </Link>{" "}
-                No seat limits or feature restrictions.
-              </p>
-            </div>
-          </div>
-          <div className="w-full bg-card text-card-foreground border border-border p-12 max-w-6xl">
-            <p className="text-4xl font-body text-center">
-              Every mobile platform
-            </p>
-            <div className="py-4" />
-            <div className="flex flex-row gap-16 items-start justify-center flex-wrap">
-              <div className="flex flex-col items-center gap-3">
-                <div className="h-14 flex items-center">
-                  <Image
-                    src="/images/android_logo.svg"
-                    alt=""
-                    width={152}
-                    height={89}
-                    className="h-8 w-auto object-contain"
-                  />
+          <div className="w-full max-w-6xl px-4 md:px-6">
+            <Card className="w-full divide-y divide-border">
+              <div className="flex flex-col md:flex-row items-center divide-y md:divide-y-0 md:divide-x divide-border">
+                <div className="flex flex-col items-center justify-center w-full md:w-1/2 h-32">
+                  <p className="text-4xl font-body text-center">Open Source</p>
+                  <div className="py-1" />
+                  <TrackGithubLink
+                    target="_blank"
+                    href="https://github.com/measure-sh/measure"
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      "group px-2",
+                    )}
+                  >
+                    <Image
+                      src="/images/github_logo_black.svg"
+                      width={24}
+                      height={24}
+                      className="w-4 h-4 dark:hidden"
+                      alt={"GitHub logo"}
+                    />
+                    <Image
+                      src="/images/github_logo_white.svg"
+                      width={24}
+                      height={24}
+                      className="w-4 h-4 hidden dark:block"
+                      alt={"GitHub logo"}
+                    />
+                    <span className="mt-0.5">Star us on Github</span>
+                  </TrackGithubLink>
                 </div>
-                <span className="font-body text-sm">Android</span>
-              </div>
-              <div className="flex flex-col items-center gap-3">
-                <div className="h-14 flex items-center">
-                  <Image
-                    src="/images/ios_logo.svg"
-                    alt=""
-                    width={46}
-                    height={56}
-                    className="h-12 mb-2 w-auto object-contain"
-                  />
+                <div className="flex flex-col items-center justify-center w-full md:w-1/2 h-32">
+                  <p className="text-4xl font-body text-center">
+                    Simple Pricing
+                  </p>
+                  <p className="text-sm font-display text-center mt-4">
+                    Pay only for the{" "}
+                    <Link href="/pricing" className={underlineLinkStyle}>
+                      data you use.
+                    </Link>{" "}
+                    No seat limits.
+                  </p>
                 </div>
-                <span className="font-body text-sm">iOS & iPadOS</span>
               </div>
-              <div className="flex flex-col items-center gap-3">
-                <div className="h-14 flex items-center">
-                  <Image
-                    src="/images/kmp_logo.svg"
-                    alt=""
-                    width={48}
-                    height={48}
-                    className="h-10 w-auto object-contain"
-                  />
+              <div className="p-12">
+                <p className="text-4xl font-body text-center">
+                  Every mobile platform
+                </p>
+                <div className="py-4" />
+                <div className="flex flex-row gap-16 items-start justify-center flex-wrap">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="h-14 flex items-center">
+                      <Image
+                        src="/images/android_logo.svg"
+                        alt=""
+                        width={152}
+                        height={89}
+                        className="h-8 w-auto object-contain"
+                      />
+                    </div>
+                    <span className="font-body text-sm">Android</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="h-14 flex items-center">
+                      <Image
+                        src="/images/ios_logo.svg"
+                        alt=""
+                        width={46}
+                        height={56}
+                        className="h-12 mb-2 w-auto object-contain"
+                      />
+                    </div>
+                    <span className="font-body text-sm">iOS & iPadOS</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="h-14 flex items-center">
+                      <Image
+                        src="/images/kmp_logo.svg"
+                        alt=""
+                        width={48}
+                        height={48}
+                        className="h-10 w-auto object-contain"
+                      />
+                    </div>
+                    <span className="font-body text-sm text-center">
+                      Kotlin
+                      <br />
+                      Multiplatform
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="h-14 flex items-center">
+                      <Image
+                        src="/images/flutter_logo.svg"
+                        alt=""
+                        width={300}
+                        height={371}
+                        className="h-10 w-auto object-contain"
+                      />
+                    </div>
+                    <span className="font-body text-sm">Flutter</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="h-14 flex items-center">
+                      <Image
+                        src="/images/react_native_logo.webp"
+                        alt=""
+                        width={500}
+                        height={445}
+                        className="h-10 w-auto object-contain"
+                      />
+                    </div>
+                    <span className="font-body text-sm">React Native</span>
+                  </div>
                 </div>
-                <span className="font-body text-sm text-center">
-                  Kotlin
-                  <br />
-                  Multiplatform
-                </span>
               </div>
-              <div className="flex flex-col items-center gap-3">
-                <div className="h-14 flex items-center">
-                  <Image
-                    src="/images/flutter_logo.svg"
-                    alt=""
-                    width={300}
-                    height={371}
-                    className="h-10 w-auto object-contain"
-                  />
-                </div>
-                <span className="font-body text-sm">Flutter</span>
-              </div>
-              <div className="flex flex-col items-center gap-3">
-                <div className="h-14 flex items-center">
-                  <Image
-                    src="/images/react_native_logo.webp"
-                    alt=""
-                    width={500}
-                    height={445}
-                    className="h-10 w-auto object-contain"
-                  />
-                </div>
-                <span className="font-body text-sm">React Native</span>
-              </div>
-            </div>
+            </Card>
           </div>
         </div>
 
