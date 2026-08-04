@@ -232,6 +232,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Update header with more links by @anupcowkur in #4179
 - (**frontend**): Resolve tailwind lint warnings by @anupcowkur in #4178
 - (**frontend**): Improve mobile layouts by @anupcowkur in #4177
 - (**frontend**): Update improve docs CTA spacing by @anupcowkur in #4174
