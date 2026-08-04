@@ -141,8 +141,13 @@ export function SyncedInputSlider({
             // font size: the wrapper is display-sized (text-xl/2xl) and inputs
             // inherit font, so without it the ch unit grows with the wrapper.
             style={{ width: `${inputWidth}ch` }}
+            // Josefin Sans reserves outsized descender space below the baseline,
+            // so digits sit high when the line box is centered. text-box trims
+            // the line box to cap height and baseline, which makes the padding
+            // center the ink itself; browsers without text-box keep normal look.
             className={cn(
               "text-base box-content rounded-md border border-input bg-transparent px-2.5 py-1 text-right outline-none",
+              "[text-box:trim-both_cap_alphabetic]",
               "transition-[color,box-shadow,width]",
               "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
             )}
