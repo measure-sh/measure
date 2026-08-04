@@ -53,8 +53,6 @@ const NetworkStatusDistributionPlot: React.FC<
   const chartColor = useChartColor();
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
 
-  // The canvas renderer cannot resolve CSS variables like the shared
-  // chartTheme uses, so the theme needs concrete colors per app theme.
   const foreground = useChartForeground();
   const canvasTheme = useMemo(
     () => ({
@@ -76,6 +74,9 @@ const NetworkStatusDistributionPlot: React.FC<
   const plot = useMemo<PlotData | undefined>(() => {
     if (!data) return undefined;
 
+    // Every datum carries all four status counts so the nearest-point
+    // tooltip can list the full breakdown at that datetime, not only the
+    // hovered series.
     return seriesConfig.map(({ key, id }) => ({
       id,
       data: data.map((d) => ({

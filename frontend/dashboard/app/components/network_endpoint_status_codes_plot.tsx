@@ -1,10 +1,10 @@
 "use client";
 
-import { ResponsiveLine } from "@nivo/line";
+import { ResponsiveLineCanvas } from "@nivo/line";
 import { useTheme } from "next-themes";
 import React, { useMemo } from "react";
 import { numberToKMB } from "../utils/number_utils";
-import { chartTheme, useChartColor } from "../utils/shared_styles";
+import { useChartColor, useChartForeground } from "../utils/shared_styles";
 import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
 import {
   formatPlotTooltipDate,
@@ -27,6 +27,17 @@ const NetworkEndpointStatusCodesPlot: React.FC<Props> = ({
   const chartColor = useChartColor();
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
 
+  const foreground = useChartForeground();
+  const canvasTheme = useMemo(
+    () => ({
+      text: { fill: foreground },
+      axis: { ticks: { text: { fill: foreground } } },
+      legends: { text: { fill: foreground } },
+      crosshair: { line: { stroke: foreground, strokeWidth: 1 } },
+    }),
+    [foreground],
+  );
+
   const bucketColors: Record<number, string> = {
     2: chartColor.green,
     3: chartColor.blue,
@@ -40,12 +51,16 @@ const NetworkEndpointStatusCodesPlot: React.FC<Props> = ({
     if (!data || data.length === 0 || !statusCodes || statusCodes.length === 0)
       return undefined;
 
+    // Every datum carries its source datapoint so the nearest-point tooltip
+    // can list the counts of all status codes at that datetime, not only the
+    // hovered series.
     return statusCodes.map((code) => ({
       id: String(code),
       data: data.map((d) => ({
         x: d.datetime,
         y: d[`count_${code}`] ?? 0,
         total_count: d.total_count,
+        source: d,
       })),
     }));
   }, [data, statusCodes]);
@@ -62,10 +77,10 @@ const NetworkEndpointStatusCodesPlot: React.FC<Props> = ({
     <div className="flex font-body items-center justify-center w-full h-144">
       <div className="flex flex-col w-full h-full">
         <div className="size-full">
-          <ResponsiveLine
+          <ResponsiveLineCanvas
             data={plot}
             curve="monotoneX"
-            theme={chartTheme}
+            theme={canvasTheme}
             enableArea={true}
             areaOpacity={0.1}
             colors={({ id }) => getStatusCodeColor(Number(id))}
@@ -112,46 +127,41 @@ const NetworkEndpointStatusCodesPlot: React.FC<Props> = ({
             pointBorderColor={({ seriesId }: { seriesId: string }) =>
               getStatusCodeColor(Number(seriesId))
             }
-            pointLabelYOffset={-12}
-            useMesh={true}
             enableGridX={false}
             enableGridY={false}
-            enableSlices="x"
-            sliceTooltip={({ slice }) => {
-              const firstPoint = slice.points[0]?.data as unknown as {
+            tooltip={({ point }) => {
+              const pointData = point.data as unknown as {
                 xFormatted: string;
                 total_count: number;
+                source: { [key: string]: any };
               };
-              const total = firstPoint?.total_count ?? 0;
+              const total = pointData.total_count ?? 0;
               const pct = (count: number) =>
                 total > 0 ? ((count / total) * 100).toFixed(1) : "0.0";
               return (
                 <PlotTooltipShell>
                   <p className="p-2 font-semibold">
                     {formatPlotTooltipDate(
-                      slice.points[0].data.xFormatted.toString(),
+                      pointData.xFormatted.toString(),
                       plotTimeGroup,
                     )}
                   </p>
                   <p className="px-2 pb-1">Total: {total.toLocaleString()}</p>
-                  {[...slice.points]
-                    .sort((a, b) => Number(a.seriesId) - Number(b.seriesId))
-                    .map((point) => {
-                      const count = Number(point.data.y);
-                      return (
-                        <div
-                          className="flex flex-row items-center px-2 py-0.5"
-                          key={point.id}
-                        >
-                          <PlotTooltipSwatch color={point.seriesColor} />
-                          <div className="px-1" />
-                          <p>
-                            {point.seriesId}: {count.toLocaleString()} (
-                            {pct(count)}%)
-                          </p>
-                        </div>
-                      );
-                    })}
+                  {statusCodes.map((code) => {
+                    const count = pointData.source[`count_${code}`] ?? 0;
+                    return (
+                      <div
+                        className="flex flex-row items-center px-2 py-0.5"
+                        key={code}
+                      >
+                        <PlotTooltipSwatch color={getStatusCodeColor(code)} />
+                        <div className="px-1" />
+                        <p>
+                          {code}: {count.toLocaleString()} ({pct(count)}%)
+                        </p>
+                      </div>
+                    );
+                  })}
                 </PlotTooltipShell>
               );
             }}
