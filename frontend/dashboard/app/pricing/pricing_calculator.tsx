@@ -82,7 +82,7 @@ export default function PricingCalculator() {
   };
 
   return (
-    <div id="estimator" className="w-full max-w-6xl px-4 md:px-0">
+    <div id="estimator" className="w-full max-w-6xl px-4 md:px-6">
       <div className="bg-card text-card-foreground border-2 border-border rounded-2xl p-8 md:p-12">
         <h3 className="text-4xl font-display text-center">
           Estimate Your Monthly Cost

@@ -36,17 +36,16 @@ export default function Pricing() {
       <LandingHeader />
       <div className="flex flex-col items-center w-full">
         {/* Header */}
-        <div className="py-16" />
-        <h1 className="text-6xl font-display">Pricing</h1>
-
-        <div className="py-8" />
-        <p className="text-lg font-body md:w-6xl text-justify px-4">
-          Simple pricing based on the data used. No stressing over seat limits.
-          No need to buy artificial bundles of crashes and spans - just track
-          what you need to get to the root cause faster.
-        </p>
-
-        <div className="py-8" />
+        <div className="max-w-6xl w-full mx-auto px-4 py-8 font-body">
+          <div className="py-16" />
+          <h1 className="text-5xl font-display mb-2">Pricing</h1>
+          <div className="py-4" />
+          <p className="text-justify text-lg">
+            Simple pricing based on the data used. No stressing over seat
+            limits. No need to buy artificial bundles of crashes and spans -
+            just track what you need to get to the root cause faster.
+          </p>
+        </div>
         <div className="flex flex-col md:flex-row gap-8 w-full max-w-4xl px-4 md:px-0">
           <Card className="w-full md:w-1/2">
             <div className="p-4 md:p-8 flex flex-col items-center">
@@ -70,7 +69,7 @@ export default function Pricing() {
               <p className="text-4xl text-green-900 dark:text-primary font-display py-2">
                 ${MINIMUM_PRICE_AFTER_FREE_TIER} per month
               </p>
-              <ul className="list-disc space-y-2 mt-6">
+              <ul className="list-disc space-y-2 mt-6 px-2">
                 <li className="font-body text-green-900 dark:text-foreground">
                   {INCLUDED_PRO_GB} GB per month included
                 </li>
