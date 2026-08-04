@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 import { useScrollDirection } from "../utils/scroll_utils";
+import { siteXUrl } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
 import {
   Accordion,
@@ -23,7 +24,7 @@ import { ThemeToggle } from "./theme_toggle";
 import TrackCtaLink from "./analytics/track_cta_link";
 import TrackGithubLink from "./analytics/track_github_link";
 
-const productLinks = [
+const capabilityLinks = [
   { href: "/product/session-replays", label: "Session Replays" },
   { href: "/product/app-health", label: "App Health" },
   { href: "/product/crashes-and-anrs", label: "Crashes & ANRs" },
@@ -32,6 +33,9 @@ const productLinks = [
   { href: "/product/user-journeys", label: "User Journeys" },
   { href: "/product/network-performance", label: "Network Performance" },
   { href: "/product/adaptive-capture", label: "Adaptive Capture" },
+];
+
+const aiDebuggingLinks = [
   { href: "/product/agent", label: "Measure Agent" },
   { href: "/product/mcp", label: "MCP Server" },
 ];
@@ -40,9 +44,60 @@ const platformLinks = [
   { href: "/for/android", label: "Android" },
   { href: "/for/ios", label: "iOS" },
   { href: "/for/ipados", label: "iPadOS" },
-  { href: "/for/kmp", label: "Kotlin Multiplatform" },
-  { href: "/for/flutter", label: "Flutter" },
   { href: "/for/react-native", label: "React Native" },
+  { href: "/for/flutter", label: "Flutter" },
+  { href: "/for/kmp", label: "Kotlin Multiplatform" },
+];
+
+const learnLinks = [
+  { href: "/blog", label: "Blog" },
+  { href: "/why-measure", label: "Why Measure?" },
+];
+
+const companyLinks = [
+  { href: "/about", label: "About" },
+  { href: "mailto:hello@measure.sh", label: "Contact Us" },
+];
+
+const alternativeLinks = [
+  { href: "/crashlytics-alternative", label: "Firebase Crashlytics" },
+  { href: "/sentry-alternative", label: "Sentry" },
+  { href: "/bugsnag-alternative", label: "Bugsnag" },
+  { href: "/embrace-alternative", label: "Embrace" },
+  { href: "/luciq-alternative", label: "Luciq" },
+  { href: "/datadog-alternative", label: "Datadog" },
+  { href: "/new-relic-alternative", label: "New Relic" },
+];
+
+const socialLinks = [
+  {
+    href: "https://www.linkedin.com/company/measure-sh",
+    label: "LinkedIn",
+    lightSrc: "/images/linkedin_logo_black.webp",
+    darkSrc: "/images/linkedin_logo_white.webp",
+    size: 16,
+  },
+  {
+    href: siteXUrl,
+    label: "X",
+    lightSrc: "/images/x_logo_black.webp",
+    darkSrc: "/images/x_logo_white.webp",
+    size: 14,
+  },
+  {
+    href: "https://bsky.app/profile/measure.sh",
+    label: "Bluesky",
+    lightSrc: "/images/bluesky_logo.svg",
+    darkSrc: null,
+    size: 16,
+  },
+  {
+    href: "https://discord.com/invite/f6zGkBCt42",
+    label: "Discord",
+    lightSrc: "/images/discord_logo.svg",
+    darkSrc: null,
+    size: 18,
+  },
 ];
 
 const githubUrl = "https://github.com/measure-sh/measure";
@@ -61,6 +116,46 @@ function useIsSmallScreen() {
   );
 }
 
+// Renders the light and dark variants of a social logo. Logos that ship as a
+// single SVG have no dark file and are inverted with CSS instead. These load
+// eagerly because the dropdown mounts them in a portal, where the lazy loader
+// never sees them come into view and leaves the icons blank.
+function SocialLogo({ link }: { link: (typeof socialLinks)[number] }) {
+  if (link.darkSrc === null) {
+    return (
+      <Image
+        src={link.lightSrc}
+        alt={`${link.label} logo`}
+        width={link.size}
+        height={link.size}
+        loading="eager"
+        className="dark:invert"
+      />
+    );
+  }
+
+  return (
+    <>
+      <Image
+        src={link.lightSrc}
+        alt={`${link.label} logo`}
+        width={link.size}
+        height={link.size}
+        loading="eager"
+        className="dark:hidden"
+      />
+      <Image
+        src={link.darkSrc}
+        alt={`${link.label} logo`}
+        width={link.size}
+        height={link.size}
+        loading="eager"
+        className="hidden dark:block"
+      />
+    </>
+  );
+}
+
 const navLinkClassName = cn(
   buttonVariants({ variant: "ghost" }),
   "w-full justify-start",
@@ -69,9 +164,9 @@ const navLinkClassName = cn(
 const dropdownItemClassName =
   "font-display h-9 px-4 py-2 rounded-md cursor-pointer";
 
-// Docs, Blog and Pricing sit alongside the collapsible Product and Platforms
-// sections in the mobile menu, so they copy the accordion trigger's type and
-// height to read as entries of the same list.
+const navSectionTitleClassName =
+  "font-display px-4 py-2 text-sm text-muted-foreground select-none";
+
 const mobileSectionLinkClassName =
   "font-display flex items-center py-4 text-sm font-medium transition-all hover:underline";
 
@@ -93,15 +188,62 @@ function NavDropdown({ label, onOpenChange, children }: NavDropdownProps) {
         {label}
         <ChevronRight className="w-4 h-4 mb-0.5 transition-transform duration-200" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="flex flex-col p-2">
+      <DropdownMenuContent
+        align="start"
+        className="flex flex-row items-start p-2"
+      >
         {children}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
+function NavDropdownSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col min-w-48">
+      <p className={navSectionTitleClassName}>{title}</p>
+      {children}
+    </div>
+  );
+}
+
+function NavDropdownLink({
+  href,
+  label,
+  onSelect,
+}: {
+  href: string;
+  label: string;
+  onSelect?: () => void;
+}) {
+  const external = !href.startsWith("/");
+  return (
+    <DropdownMenuItem className={dropdownItemClassName} asChild>
+      {href === githubUrl ? (
+        <TrackGithubLink href={href} target="_blank" onClick={onSelect}>
+          {label}
+        </TrackGithubLink>
+      ) : (
+        <Link
+          href={href}
+          target={external ? "_blank" : undefined}
+          onClick={onSelect}
+        >
+          {label}
+        </Link>
+      )}
+    </DropdownMenuItem>
+  );
+}
+
 interface LandingHeaderProps {
-  /** Middle nav links (Product, Platforms, Docs, Blog, Pricing). */
+  /** Middle nav links (Product, Resources, Docs, Pricing). */
   showNavLinks?: boolean;
   /** Sign In and Get Started links. */
   showCtas?: boolean;
@@ -194,38 +336,67 @@ export default function LandingHeader({
         {showNavLinks && (
           <div className="hidden ml-16 md:flex md:flex-row md:gap-4 items-center justify-center">
             <NavDropdown label="Product" onOpenChange={setIsDropdownOpen}>
-              {productLinks.map((link) => (
-                <DropdownMenuItem
-                  key={link.href}
-                  className={dropdownItemClassName}
-                  asChild
-                >
-                  <Link href={link.href}>{link.label}</Link>
-                </DropdownMenuItem>
-              ))}
+              <NavDropdownSection title="Features">
+                {capabilityLinks.map((link) => (
+                  <NavDropdownLink key={link.href} {...link} />
+                ))}
+              </NavDropdownSection>
+              <NavDropdownSection title="AI Debugging">
+                {aiDebuggingLinks.map((link) => (
+                  <NavDropdownLink key={link.href} {...link} />
+                ))}
+              </NavDropdownSection>
+              <NavDropdownSection title="Platforms">
+                {platformLinks.map((link) => (
+                  <NavDropdownLink key={link.href} {...link} />
+                ))}
+              </NavDropdownSection>
             </NavDropdown>
-            <NavDropdown label="Platforms" onOpenChange={setIsDropdownOpen}>
-              {platformLinks.map((link) => (
-                <DropdownMenuItem
-                  key={link.href}
-                  className={dropdownItemClassName}
-                  asChild
-                >
-                  <Link href={link.href}>{link.label}</Link>
-                </DropdownMenuItem>
-              ))}
+            <NavDropdown label="Resources" onOpenChange={setIsDropdownOpen}>
+              <div className="flex flex-col gap-3 min-w-48">
+                <NavDropdownSection title="Learn">
+                  {learnLinks.map((link) => (
+                    <NavDropdownLink key={link.href} {...link} />
+                  ))}
+                </NavDropdownSection>
+                <NavDropdownSection title="Company">
+                  {companyLinks.map((link) => (
+                    <NavDropdownLink key={link.href} {...link} />
+                  ))}
+                </NavDropdownSection>
+                <NavDropdownSection title="Connect">
+                  {/* pl-4 plus the items' own px-2 starts the first glyph a
+                      step inside the section title, matching the footer. */}
+                  <div className="flex flex-row items-center pl-4">
+                    {socialLinks.map((link) => (
+                      <DropdownMenuItem
+                        key={link.href}
+                        className={cn(dropdownItemClassName, "px-2")}
+                        asChild
+                      >
+                        <Link
+                          href={link.href}
+                          target="_blank"
+                          aria-label={link.label}
+                        >
+                          <SocialLogo link={link} />
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                </NavDropdownSection>
+              </div>
+              <NavDropdownSection title="Alternatives">
+                {alternativeLinks.map((link) => (
+                  <NavDropdownLink key={link.href} {...link} />
+                ))}
+              </NavDropdownSection>
             </NavDropdown>
             <Link
               href="/docs"
               className={cn(buttonVariants({ variant: "ghost" }))}
             >
               Docs
-            </Link>
-            <Link
-              href="/blog"
-              className={cn(buttonVariants({ variant: "ghost" }))}
-            >
-              Blog
             </Link>
             <Link
               href="/pricing"
@@ -312,7 +483,8 @@ export default function LandingHeader({
                   Product
                 </AccordionTrigger>
                 <AccordionContent className="flex flex-col gap-4">
-                  {productLinks.map((link) => (
+                  <p className={navSectionTitleClassName}>Features</p>
+                  {capabilityLinks.map((link) => (
                     <Link
                       key={link.href}
                       href={link.href}
@@ -322,13 +494,22 @@ export default function LandingHeader({
                       {link.label}
                     </Link>
                   ))}
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="platforms" className="border-b-0">
-                <AccordionTrigger className="font-display">
-                  Platforms
-                </AccordionTrigger>
-                <AccordionContent className="flex flex-col gap-4">
+                  <p className={cn(navSectionTitleClassName, "mt-4")}>
+                    AI Debugging
+                  </p>
+                  {aiDebuggingLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={navLinkClassName}
+                      onClick={closeMobileMenu}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                  <p className={cn(navSectionTitleClassName, "mt-4")}>
+                    Platforms
+                  </p>
                   {platformLinks.map((link) => (
                     <Link
                       key={link.href}
@@ -341,6 +522,85 @@ export default function LandingHeader({
                   ))}
                 </AccordionContent>
               </AccordionItem>
+              <AccordionItem value="resources" className="border-b-0">
+                <AccordionTrigger className="font-display">
+                  Resources
+                </AccordionTrigger>
+                <AccordionContent className="flex flex-col gap-4">
+                  <p className={navSectionTitleClassName}>Learn</p>
+                  {learnLinks.map((link) =>
+                    link.href === githubUrl ? (
+                      <TrackGithubLink
+                        key={link.href}
+                        href={link.href}
+                        target="_blank"
+                        className={navLinkClassName}
+                        onClick={closeMobileMenu}
+                      >
+                        {link.label}
+                      </TrackGithubLink>
+                    ) : (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        target={
+                          link.href.startsWith("/") ? undefined : "_blank"
+                        }
+                        className={navLinkClassName}
+                        onClick={closeMobileMenu}
+                      >
+                        {link.label}
+                      </Link>
+                    ),
+                  )}
+                  <p className={cn(navSectionTitleClassName, "mt-4")}>
+                    Company
+                  </p>
+                  {companyLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      target={link.href.startsWith("/") ? undefined : "_blank"}
+                      className={navLinkClassName}
+                      onClick={closeMobileMenu}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                  <p className={cn(navSectionTitleClassName, "mt-4")}>
+                    Alternatives
+                  </p>
+                  {alternativeLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={navLinkClassName}
+                      onClick={closeMobileMenu}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                  <p className={cn(navSectionTitleClassName, "mt-4")}>
+                    Connect
+                  </p>
+                  <div className="flex flex-row items-center px-2">
+                    {socialLinks.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        target="_blank"
+                        aria-label={link.label}
+                        className={cn(
+                          buttonVariants({ variant: "ghost", size: "icon" }),
+                        )}
+                        onClick={closeMobileMenu}
+                      >
+                        <SocialLogo link={link} />
+                      </Link>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
             </Accordion>
             <div className="w-full px-4 flex flex-col">
               <Link
@@ -349,13 +609,6 @@ export default function LandingHeader({
                 onClick={closeMobileMenu}
               >
                 Docs
-              </Link>
-              <Link
-                href="/blog"
-                className={mobileSectionLinkClassName}
-                onClick={closeMobileMenu}
-              >
-                Blog
               </Link>
               <Link
                 href="/pricing"
