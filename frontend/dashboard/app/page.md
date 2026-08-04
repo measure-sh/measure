@@ -55,7 +55,7 @@ Most monitoring data rots away in a warehouse and runs up your costs 💰. Our [
 For us, Mobile is not an add-on to an observability product. It **is** the product. Measure is built by mobile engineers, for mobile engineers.
 
 - **Open Source** — [Star us on GitHub](https://github.com/measure-sh/measure).
-- **Simple Pricing** — Pay only for the [data you use](/pricing). No seat limits or feature restrictions.
+- **Simple Pricing** — Pay only for the [data you use](/pricing). No seat limits.
 - **Every mobile platform** — Android, iOS, Flutter, React Native (soon).
 
 Get started: <https://measure.sh/auth/login>
