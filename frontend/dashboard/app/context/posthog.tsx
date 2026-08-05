@@ -47,7 +47,7 @@ export function PostHogProvider({
         api_host: proxyPath ?? host,
         ...(proxyPath && { ui_host: "https://us.posthog.com" }),
         person_profiles: "identified_only",
-        defaults: "2025-05-24",
+        defaults: "2026-06-25",
         cookieless_mode: "on_reject",
       });
       // Stay opted out until c15t resolves measurement consent below; with
