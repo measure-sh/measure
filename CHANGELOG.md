@@ -234,6 +234,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Switch to canvas rendering for all line plots by @anupcowkur in #4184
 - (**frontend**): Center digits optically in the cost estimator inputs by @anupcowkur in #4183
 - (**frontend**): Left-align pricing header to match feature pages by @anupcowkur
 - (**frontend**): Merge landing highlight boxes into one rounded card by @anupcowkur
