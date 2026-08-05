@@ -84,7 +84,7 @@ describe("PostHogProvider", () => {
         expect.objectContaining({
           api_host: "https://us.i.posthog.com",
           person_profiles: "identified_only",
-          defaults: "2025-05-24",
+          defaults: "2026-06-25",
           cookieless_mode: "on_reject",
         }),
       );
