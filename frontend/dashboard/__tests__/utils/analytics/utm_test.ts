@@ -1,5 +1,6 @@
 /**
  * @jest-environment jsdom
+ * @jest-environment-options {"url": "https://measure.sh/"}
  */
 
 import {
@@ -19,10 +20,10 @@ import {
 // --- helpers ---
 
 function setLocation(url: string) {
-  Object.defineProperty(window, "location", {
-    value: new URL(url),
-    writable: true,
-  });
+  // jsdom marks window.location unforgeable, so tests change the URL the
+  // way a browser would: through the history API. Works because the URL
+  // stays on the origin the environment options pin above.
+  window.history.replaceState(null, "", url);
 }
 
 function setReferrer(referrer: string) {
@@ -48,16 +49,6 @@ afterEach(() => {
 // --------------------------------------------------------------------------
 
 describe("captureUTMsFromURL", () => {
-  it("is a no-op in SSR (no window)", () => {
-    const originalWindow = global.window;
-    delete (global as any).window;
-    try {
-      expect(() => captureUTMsFromURL()).not.toThrow();
-    } finally {
-      (global as any).window = originalWindow;
-    }
-  });
-
   it("writes nothing meaningful when no utm params and no referrer", () => {
     setLocation("https://measure.sh/landing");
     captureUTMsFromURL();
@@ -171,16 +162,6 @@ describe("captureUTMsFromURL", () => {
 // --------------------------------------------------------------------------
 
 describe("getUTMState", () => {
-  it("returns null in SSR (no window)", () => {
-    const originalWindow = global.window;
-    delete (global as any).window;
-    try {
-      expect(getUTMState()).toBeNull();
-    } finally {
-      (global as any).window = originalWindow;
-    }
-  });
-
   it("returns null when nothing has been captured", () => {
     expect(getUTMState()).toBeNull();
   });

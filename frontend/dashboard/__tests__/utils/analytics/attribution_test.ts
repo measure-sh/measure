@@ -1,5 +1,6 @@
 /**
  * @jest-environment jsdom
+ * @jest-environment-options {"url": "https://measure.sh/"}
  */
 
 import {
@@ -24,11 +25,10 @@ function clearCookies() {
 }
 
 function setLocation(url: string) {
-  // jsdom lets us reassign window.location via a fresh URL.
-  Object.defineProperty(window, "location", {
-    value: new URL(url),
-    writable: true,
-  });
+  // jsdom marks window.location unforgeable, so tests change the URL the
+  // way a browser would: through the history API. Works because the URL
+  // stays on the origin the environment options pin above.
+  window.history.replaceState(null, "", url);
 }
 
 afterEach(() => {
@@ -172,14 +172,13 @@ describe("captureGCLIDFromURL", () => {
   });
 
   it("writes a gclid cookie when the query param is present", () => {
-    // http (not https) so jsdom doesn't reject the Secure flag the helper adds.
-    setLocation("http://measure.sh/landing?gclid=abc123");
+    setLocation("https://measure.sh/landing?gclid=abc123");
     captureGCLIDFromURL();
     expect(document.cookie).toMatch(/gclid=abc123/);
   });
 
   it("URL-encodes special chars in the gclid value when writing", () => {
-    setLocation("http://measure.sh/landing?gclid=a%26b");
+    setLocation("https://measure.sh/landing?gclid=a%26b");
     captureGCLIDFromURL();
     // URLSearchParams decodes %26 → &, then captureGCLIDFromURL re-encodes via encodeURIComponent → %26
     expect(document.cookie).toMatch(/gclid=a%26b/);
@@ -217,7 +216,7 @@ describe("getStoredGCLID", () => {
   });
 
   it("captureGCLIDFromURL → getStoredGCLID round-trip", () => {
-    setLocation("http://measure.sh/landing?gclid=hello-world");
+    setLocation("https://measure.sh/landing?gclid=hello-world");
     captureGCLIDFromURL();
     expect(getStoredGCLID()).toBe("hello-world");
   });

@@ -46,6 +46,7 @@ import { formatToCamelCase } from "@/app/utils/string_utils";
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
 import { toastNegative, toastPositive } from "@/app/utils/use_toast";
 import Image from "next/image";
+import { reloadPage } from "@/app/utils/navigation";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
@@ -324,7 +325,7 @@ export default function TeamOverview(props: {
       {
         onSuccess: () => {
           window.sessionStorage.setItem(teamNameChangeSessionKey, "true");
-          location.reload();
+          reloadPage();
         },
         onError: () => {
           toastNegative("Error changing team name");

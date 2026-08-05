@@ -62,15 +62,13 @@ jest.mock("@/app/utils/env_utils", () => ({
   isCloud: () => false,
 }));
 
+// Full-page navigation goes through the navigation module because jsdom's
+// window.location can't be stubbed; mock it to observe the OAuth redirect.
 const mockAssign = jest.fn();
-Object.defineProperty(window, "location", {
-  value: {
-    ...window.location,
-    assign: mockAssign,
-    href: "http://localhost:3000/auth/login",
-  },
-  writable: true,
-});
+jest.mock("@/app/utils/navigation", () => ({
+  navigateTo: (...args: any[]) => mockAssign(...args),
+  reloadPage: jest.fn(),
+}));
 
 describe("Login Page", () => {
   beforeEach(() => {

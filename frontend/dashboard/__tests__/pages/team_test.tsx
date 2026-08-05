@@ -24,6 +24,14 @@ jest.mock("@/app/utils/use_toast", () => ({
   toastNegative: (...args: any[]) => mockToastNegative(...args),
 }));
 
+// Page reload after a team rename goes through the navigation module
+// because jsdom's window.location can't be stubbed; mock it so the reload
+// is a no-op in tests.
+jest.mock("@/app/utils/navigation", () => ({
+  navigateTo: jest.fn(),
+  reloadPage: jest.fn(),
+}));
+
 let mockIsCloud = false;
 jest.mock("@/app/utils/env_utils", () => ({
   isCloud: () => mockIsCloud,
@@ -505,8 +513,6 @@ const renderPage = async ({
 };
 
 describe("Team Page", () => {
-  const originalLocation = window.location;
-
   beforeEach(() => {
     jest.clearAllMocks();
     mockIsCloud = false;
@@ -565,17 +571,12 @@ describe("Team Page", () => {
     mockSearchParamsToString.mockReset();
     mockSearchParamsToString.mockImplementation(() => "");
     window.sessionStorage.clear();
-    Object.defineProperty(window, "location", {
-      writable: true,
-      value: { ...originalLocation, reload: jest.fn() },
-    });
   });
 
   afterEach(() => {
-    Object.defineProperty(window, "location", {
-      writable: true,
-      value: originalLocation,
-    });
+    // Tests that stage query params via the history API leave them on the
+    // shared jsdom URL; put the URL back so later tests start clean.
+    window.history.replaceState(null, "", "/");
   });
 
   it("renders core sections on successful load", async () => {
@@ -1613,9 +1614,9 @@ describe("Team Page", () => {
 
   it("shows toast from error query param and clears it from URL", async () => {
     // The page reads window.location.search on a short timer after render.
-    // beforeEach replaces window.location with a plain mutable snapshot, so
-    // set the query on it directly and observe the strip via replaceState.
-    window.location.search = "?error=Boom";
+    // Stage the query through the history API (jsdom's location itself
+    // can't be stubbed), then observe the strip via the replaceState spy.
+    window.history.replaceState(null, "", "?error=Boom");
     const replaceStateSpy = jest.spyOn(window.history, "replaceState");
 
     await renderPage();
@@ -1632,7 +1633,7 @@ describe("Team Page", () => {
   });
 
   it("shows toast from success query param and clears it from URL", async () => {
-    window.location.search = "?success=Nice";
+    window.history.replaceState(null, "", "?success=Nice");
     const replaceStateSpy = jest.spyOn(window.history, "replaceState");
 
     await renderPage();

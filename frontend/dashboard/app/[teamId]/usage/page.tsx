@@ -37,6 +37,7 @@ import { ResponsivePie } from "@nivo/pie";
 
 import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialog";
 import { Progress } from "@/app/components/progress";
+import { navigateTo } from "@/app/utils/navigation";
 import { toastNegative, toastPositive } from "@/app/utils/use_toast";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -262,7 +263,7 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
             );
             setIsUpgrading(false);
           } else if (data?.checkout_url) {
-            window.location.href = data.checkout_url;
+            navigateTo(data.checkout_url);
           } else {
             toastNegative("Failed to start checkout", "Please try again.");
             setIsUpgrading(false);
@@ -322,7 +323,7 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
     const result = await fetchCustomerPortalUrl(params.teamId, returnUrl);
 
     if (result.redirect) {
-      window.location.href = result.redirect;
+      navigateTo(result.redirect);
     } else {
       toastNegative("Failed to open billing portal", result.error);
       setIsLoadingPortal(false);

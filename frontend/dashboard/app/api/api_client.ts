@@ -1,3 +1,4 @@
+import { navigateTo } from "@/app/utils/navigation";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import posthog from "posthog-js";
 
@@ -17,8 +18,8 @@ export class ApiClient {
   }
 
   /**
-   * Falls back to `window.location.assign` when no router has been wired
-   * up (auth routes don't mount [teamId]/layout, which is the only caller
+   * Falls back to a full page load when no router has been wired up
+   * (auth routes don't mount [teamId]/layout, which is the only caller
    * of `init`). Short-circuits when already under /auth/ so the login
    * page doesn't loop on itself.
    */
@@ -38,8 +39,7 @@ export class ApiClient {
     }
 
     if (typeof window !== "undefined") {
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the rule wants a router push, but this branch only runs when no router was ever passed to init, so a full page load is the only way left to reach the login page.
-      window.location.assign("/auth/login");
+      navigateTo("/auth/login");
     }
   }
 
