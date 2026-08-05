@@ -17,6 +17,12 @@ const nextConfig = {
     // so long-running API requests aren't cut off.
     proxyTimeout: 90000,
   },
+  // This app is one folder inside a larger repository, and there is a
+  // package-lock.json at the repository root as well as in this folder. Left
+  // to itself the bundler picks the repository root as the base for file
+  // tracing and walks the Go backend and every node_modules alongside it.
+  // Pinning the base to this folder keeps tracing to the dashboard.
+  outputFileTracingRoot: import.meta.dirname,
   // The /page-md/[...path] route handler reads the marketing page.md twins
   // at runtime. Next's tracer can't infer these dynamic reads, so include
   // them explicitly in the standalone output. Without this, agents
