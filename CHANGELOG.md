@@ -148,6 +148,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Upgrade posthog-go to v1.22.0 by @anupcowkur in #4185
 - (**backend**): Sync all go dependencies (#4137) by @detj in #4137
 - (**backend**): Update go dependencies (#4133) by @detj in #4133
 - (**backend**): Delete queued slack alerts when slack connection is removed by @anupcowkur
@@ -234,6 +235,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Move posthog config defaults to 2026-06-25 by @anupcowkur
+- (**frontend**): Upgrade posthog frontend SDKs by @anupcowkur
 - (**frontend**): Switch to canvas rendering for all line plots by @anupcowkur in #4184
 - (**frontend**): Center digits optically in the cost estimator inputs by @anupcowkur in #4183
 - (**frontend**): Left-align pricing header to match feature pages by @anupcowkur
