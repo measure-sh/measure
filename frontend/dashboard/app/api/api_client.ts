@@ -38,6 +38,7 @@ export class ApiClient {
     }
 
     if (typeof window !== "undefined") {
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the rule wants a router push, but this branch only runs when no router was ever passed to init, so a full page load is the only way left to reach the login page.
       window.location.assign("/auth/login");
     }
   }
