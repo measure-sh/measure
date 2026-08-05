@@ -107,6 +107,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Handle a symbolication edge case to prevent panics (#3475) by @detj in #3475
 - (**backend**): Always fetch fresh mappings to prevent false positives (#3464) by @detj in #3464
 - (**backend**): Improve foreground or background session detection (#3459) by @detj in #3459
+- (**frontend**): Skip standalone output on Vercel by @anupcowkur in #4187
+- (**frontend**): Narrow build file tracing to the dashboard by @anupcowkur
 - (**frontend**): Keep network timeline readable at wide slider ranges by @anupcowkur in #4182
 - (**frontend**): Use canvas chart for network status distribution plot by @anupcowkur in #4181
 - (**frontend**): Fix footer blog link by @anupcowkur in #4175
@@ -235,6 +237,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Upgrade nextjs to 16.3.0 by @anupcowkur
 - (**frontend**): Move blog to top level header tab by @anupcowkur in #4186
 - (**frontend**): Move posthog config defaults to 2026-06-25 by @anupcowkur
 - (**frontend**): Upgrade posthog frontend SDKs by @anupcowkur
