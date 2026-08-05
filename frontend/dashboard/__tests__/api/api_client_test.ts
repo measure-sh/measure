@@ -22,7 +22,15 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn() },
 }));
 
+// Full-page navigation goes through the navigation module because jsdom's
+// window.location can't be stubbed; mock it to observe the login redirect.
+jest.mock("@/app/utils/navigation", () => ({
+  navigateTo: jest.fn(),
+  reloadPage: jest.fn(),
+}));
+
 import { ApiClient, apiClient } from "@/app/api/api_client";
+import { navigateTo } from "@/app/utils/navigation";
 import posthog from "posthog-js";
 
 // Silence console.log/error during tests
@@ -59,30 +67,21 @@ describe("ApiClient", () => {
   });
 
   describe("redirectToLogin", () => {
-    let originalLocation: Location;
-    let assignMock: jest.Mock;
-    let pathname: string;
+    const assignMock = navigateTo as jest.Mock;
+
+    // redirectToLogin reads window.location.pathname, which jsdom only
+    // lets tests change through the history API.
+    function setPathname(pathname: string) {
+      window.history.replaceState(null, "", pathname);
+    }
 
     beforeEach(() => {
-      originalLocation = window.location;
-      assignMock = jest.fn();
-      pathname = "/some-team/crashes";
-      Object.defineProperty(window, "location", {
-        configurable: true,
-        value: {
-          get pathname() {
-            return pathname;
-          },
-          assign: assignMock,
-        },
-      });
+      assignMock.mockClear();
+      setPathname("/some-team/crashes");
     });
 
     afterEach(() => {
-      Object.defineProperty(window, "location", {
-        configurable: true,
-        value: originalLocation,
-      });
+      setPathname("/");
     });
 
     it("calls posthog.reset and router.replace when router is set", () => {
@@ -104,7 +103,7 @@ describe("ApiClient", () => {
     });
 
     it("short-circuits when already under /auth/", () => {
-      pathname = "/auth/login";
+      setPathname("/auth/login");
       const router = mockRouter();
       client.init(router);
 
@@ -116,7 +115,7 @@ describe("ApiClient", () => {
     });
 
     it("short-circuits under /auth/ even without a router", () => {
-      pathname = "/auth/callback/github";
+      setPathname("/auth/callback/github");
 
       client.redirectToLogin();
 

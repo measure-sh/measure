@@ -46,6 +46,15 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
 }));
 
+// The page reload after a team rename goes through the navigation module
+// because jsdom's window.location can't be stubbed; mock it so the reload
+// is observable and a no-op in tests.
+const mockReload = jest.fn();
+jest.mock("@/app/utils/navigation", () => ({
+  navigateTo: jest.fn(),
+  reloadPage: (...args: any[]) => mockReload(...args),
+}));
+
 const mockRouterReplace = jest.fn();
 const mockRouterPush = jest.fn();
 const mockSearchParams = new URLSearchParams();
@@ -774,13 +783,9 @@ describe("Team Page — mutations", () => {
         }),
       );
 
-      // Mock location.reload since the component calls it on success
-      const originalLocation = window.location;
-      const reloadMock = jest.fn();
-      Object.defineProperty(window, "location", {
-        value: { ...originalLocation, reload: reloadMock },
-        writable: true,
-      });
+      // The component reloads the page on success through the mocked
+      // navigation module.
+      mockReload.mockClear();
 
       await renderAndWaitForData();
 
@@ -819,12 +824,6 @@ describe("Team Page — mutations", () => {
         },
         { timeout: 5000 },
       );
-
-      // Restore location
-      Object.defineProperty(window, "location", {
-        value: originalLocation,
-        writable: true,
-      });
     });
   });
 
@@ -1656,13 +1655,10 @@ describe("Team Page — mutations", () => {
         }),
       );
 
-      // Mock location.reload since the component calls it on success (should NOT be called)
-      const originalLocation = window.location;
-      const reloadMock = jest.fn();
-      Object.defineProperty(window, "location", {
-        value: { ...originalLocation, reload: reloadMock },
-        writable: true,
-      });
+      // The component only reloads on success, so the mocked navigation
+      // module must stay untouched here.
+      const reloadMock = mockReload;
+      reloadMock.mockClear();
 
       await renderAndWaitForData();
 
@@ -1700,12 +1696,6 @@ describe("Team Page — mutations", () => {
         },
         { timeout: 5000 },
       );
-
-      // Restore location
-      Object.defineProperty(window, "location", {
-        value: originalLocation,
-        writable: true,
-      });
     });
 
     it("invite member API returns 500 — no crash and API was called", async () => {

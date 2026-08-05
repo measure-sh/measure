@@ -18,6 +18,22 @@ jest.mock("@/app/utils/use_toast", () => ({
   toastNegative: (...args: any[]) => mockToastNegative(...args),
 }));
 
+// Stripe checkout and billing-portal redirects go through the navigation
+// module because jsdom's window.location can't be stubbed; mock it to
+// observe the redirect URLs.
+const mockNavigateTo = jest.fn();
+jest.mock("@/app/utils/navigation", () => ({
+  navigateTo: (...args: any[]) => mockNavigateTo(...args),
+  reloadPage: jest.fn(),
+}));
+
+// The real replaceState, kept for staging URLs after beforeEach swaps the
+// method for a mock the page's param-strip assertions observe.
+const realReplaceState = window.history.replaceState.bind(window.history);
+function setUrl(url: string) {
+  realReplaceState(null, "", url);
+}
+
 // Mock API calls - only need the enum/constant exports, not the fetch functions
 jest.mock("@/app/api/api_calls", () => ({
   __esModule: true,
@@ -282,8 +298,6 @@ const enterpriseBillingInfo = {
 };
 
 describe("Usage Page", () => {
-  const originalLocation = window.location;
-
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
@@ -309,25 +323,16 @@ describe("Usage Page", () => {
       reset: jest.fn(),
     });
 
-    // Reset window.location.search
-    Object.defineProperty(window, "location", {
-      writable: true,
-      value: {
-        ...originalLocation,
-        search: "",
-        href: "http://localhost/team1/usage",
-        pathname: "/team1/usage",
-      },
-    });
+    setUrl("/team1/usage");
     window.history.replaceState = jest.fn();
   });
 
   afterEach(() => {
     jest.useRealTimers();
-    Object.defineProperty(window, "location", {
-      writable: true,
-      value: originalLocation,
-    });
+    // Drop the instance mock so History.prototype.replaceState shows
+    // through again, then put the shared jsdom URL back.
+    delete (window.history as any).replaceState;
+    setUrl("/");
   });
 
   // ---- Usage section ----
@@ -626,7 +631,9 @@ describe("Usage Page", () => {
     });
 
     expect(handleUpgrade).toHaveBeenCalled();
-    expect(window.location.href).toBe("https://checkout.stripe.com/test");
+    expect(mockNavigateTo).toHaveBeenCalledWith(
+      "https://checkout.stripe.com/test",
+    );
   });
 
   it("upgrade with already_upgraded response refreshes billing info and shows toast", async () => {
@@ -1007,16 +1014,7 @@ describe("Usage Page", () => {
   // ---- Stripe redirect handling ----
 
   it("shows success toast on ?success=true redirect", async () => {
-    Object.defineProperty(window, "location", {
-      writable: true,
-      value: {
-        ...originalLocation,
-        search: "?success=true",
-        href: "http://localhost/team1/usage?success=true",
-        pathname: "/team1/usage",
-      },
-    });
-    window.history.replaceState = jest.fn();
+    setUrl("/team1/usage?success=true");
 
     await act(async () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
@@ -1033,16 +1031,7 @@ describe("Usage Page", () => {
   });
 
   it("shows cancel toast on ?canceled=true redirect", async () => {
-    Object.defineProperty(window, "location", {
-      writable: true,
-      value: {
-        ...originalLocation,
-        search: "?canceled=true",
-        href: "http://localhost/team1/usage?canceled=true",
-        pathname: "/team1/usage",
-      },
-    });
-    window.history.replaceState = jest.fn();
+    setUrl("/team1/usage?canceled=true");
 
     await act(async () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
@@ -1060,16 +1049,7 @@ describe("Usage Page", () => {
   });
 
   it("shows success toast and clears URL params on success redirect", async () => {
-    Object.defineProperty(window, "location", {
-      writable: true,
-      value: {
-        ...originalLocation,
-        search: "?success=true",
-        href: "http://localhost/team1/usage?success=true",
-        pathname: "/team1/usage",
-      },
-    });
-    window.history.replaceState = jest.fn();
+    setUrl("/team1/usage?success=true");
 
     await act(async () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
@@ -1443,7 +1423,7 @@ describe("Usage Page", () => {
       "team1",
       "http://localhost/team1/usage",
     );
-    expect(window.location.href).toBe(
+    expect(mockNavigateTo).toHaveBeenCalledWith(
       "https://billing.stripe.com/session/test",
     );
   });

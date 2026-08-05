@@ -17,6 +17,13 @@ jest.mock("@/app/api/api_client", () => ({
   ApiClient: class {},
 }));
 
+// Full-page navigation goes through the navigation module because jsdom's
+// window.location can't be stubbed; mock it to observe the download redirect.
+jest.mock("@/app/utils/navigation", () => ({
+  navigateTo: jest.fn(),
+  reloadPage: jest.fn(),
+}));
+
 import {
   BugReportStatus,
   buildShortFiltersPostBody,
@@ -841,21 +848,9 @@ describe("sessions, bug reports, alerts", () => {
 // downloadBuildFile
 // ========================================================================
 describe("downloadBuildFile", () => {
-  const originalLocation = window.location;
-  const assignMock = jest.fn();
-
-  beforeAll(() => {
-    delete (window as any).location;
-    (window as any).location = {
-      origin: originalLocation.origin,
-      href: originalLocation.href,
-      assign: assignMock,
-    };
-  });
-
-  afterAll(() => {
-    (window as any).location = originalLocation;
-  });
+  const assignMock = jest.requireMock<typeof import("@/app/utils/navigation")>(
+    "@/app/utils/navigation",
+  ).navigateTo as jest.Mock;
 
   it("refreshes the session through apiClient before navigating", async () => {
     assignMock.mockClear();

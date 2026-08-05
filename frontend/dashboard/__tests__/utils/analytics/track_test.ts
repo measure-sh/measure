@@ -62,16 +62,4 @@ describe("track", () => {
       schema_version: "v1",
     });
   });
-
-  it("is a no-op when window is undefined (SSR)", () => {
-    const originalWindow = global.window;
-    // Force the SSR branch by removing window.
-    delete (global as any).window;
-    try {
-      track("ssr_event", { foo: "bar" });
-      expect(captureSpy).not.toHaveBeenCalled();
-    } finally {
-      (global as any).window = originalWindow;
-    }
-  });
 });

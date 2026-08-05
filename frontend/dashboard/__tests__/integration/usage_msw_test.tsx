@@ -37,6 +37,15 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
 }));
 
+// Stripe checkout and billing-portal redirects go through the navigation
+// module because jsdom's window.location can't be stubbed; mock it to
+// observe the redirect URLs and keep tests from navigating away.
+const mockNavigateTo = jest.fn();
+jest.mock("@/app/utils/navigation", () => ({
+  navigateTo: (...args: any[]) => mockNavigateTo(...args),
+  reloadPage: jest.fn(),
+}));
+
 jest.mock("next/navigation", () => ({
   __esModule: true,
   useRouter: () => ({ replace: jest.fn(), push: jest.fn() }),
@@ -398,24 +407,8 @@ describe("Usage — billing enabled", () => {
       let capturedBody: any = null;
       let capturedPath: string = "";
 
-      // Mock window.location.href assignment
-      const originalLocation = window.location;
-      const locationSpy = jest.fn();
-      Object.defineProperty(window, "location", {
-        value: {
-          ...originalLocation,
-          search: "",
-          pathname: "/test-team/usage",
-          set href(url: string) {
-            locationSpy(url);
-          },
-          get href() {
-            return "http://localhost/test-team/usage";
-          },
-        },
-        writable: true,
-        configurable: true,
-      });
+      const locationSpy = mockNavigateTo;
+      locationSpy.mockClear();
 
       server.use(
         http.get("*/api/teams/:teamId/billing/info", () => {
@@ -468,13 +461,6 @@ describe("Usage — billing enabled", () => {
         },
         { timeout: 5000 },
       );
-
-      // Restore window.location
-      Object.defineProperty(window, "location", {
-        value: originalLocation,
-        writable: true,
-        configurable: true,
-      });
     });
   });
 
@@ -841,17 +827,9 @@ describe("Usage — billing enabled", () => {
         }),
       );
 
-      // Stub assign so the redirect doesn't navigate away during the test.
-      const originalLocation = window.location;
-      const assignSpy = jest.fn();
-      Object.defineProperty(window, "location", {
-        writable: true,
-        value: {
-          ...originalLocation,
-          assign: assignSpy,
-          href: originalLocation.href,
-        },
-      });
+      // The redirect goes through the mocked navigation module, so the
+      // test observes it without navigating away.
+      mockNavigateTo.mockClear();
 
       renderWithProviders(
         <Usage params={promiseParams({ teamId: "test-team" })} />,
@@ -873,12 +851,6 @@ describe("Usage — billing enabled", () => {
         },
         { timeout: 5000 },
       );
-
-      // Restore window.location for downstream tests.
-      Object.defineProperty(window, "location", {
-        writable: true,
-        value: originalLocation,
-      });
     });
   });
 

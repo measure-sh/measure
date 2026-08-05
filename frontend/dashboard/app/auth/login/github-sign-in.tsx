@@ -7,6 +7,7 @@ import {
   getGAClientID,
   getStoredGCLID,
 } from "@/app/utils/analytics/attribution";
+import { navigateTo } from "@/app/utils/navigation";
 import Image from "next/image";
 
 export default function GitHubSignIn({
@@ -30,13 +31,13 @@ export default function GitHubSignIn({
     }
 
     if (url) {
-      window.location.assign(url);
+      navigateTo(url);
     }
   };
 
   const handleClick = () => {
     if (mcpAuthorizeUrl) {
-      window.location.assign(
+      navigateTo(
         appendAttributionToURL(
           mcpAuthorizeUrl,
           getGAClientID(),

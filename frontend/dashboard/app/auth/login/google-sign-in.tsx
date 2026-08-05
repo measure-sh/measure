@@ -7,6 +7,7 @@ import {
   getGAClientID,
   getStoredGCLID,
 } from "@/app/utils/analytics/attribution";
+import { navigateTo } from "@/app/utils/navigation";
 import Image from "next/image";
 
 const googleClientID = process.env.NEXT_PUBLIC_OAUTH_GOOGLE_KEY;
@@ -34,12 +35,12 @@ export default function GoogleSignIn({
     url.searchParams.set("scope", "openid email profile");
     url.searchParams.set("access_type", "offline");
     url.searchParams.set("prompt", "consent");
-    window.location.assign(url.toString());
+    navigateTo(url.toString());
   };
 
   const handleClick = () => {
     if (mcpAuthorizeUrl) {
-      window.location.assign(
+      navigateTo(
         appendAttributionToURL(
           mcpAuthorizeUrl,
           getGAClientID(),

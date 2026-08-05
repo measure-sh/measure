@@ -25,6 +25,7 @@ import {
   getPlotTimeGroupForRange,
   getTimeZoneForServer,
 } from "../utils/time_utils";
+import { navigateTo } from "../utils/navigation";
 import { apiClient } from "./api_client";
 import { ApiError, RequestError } from "./api_error";
 
@@ -1844,7 +1845,7 @@ export const downloadBuildFile = async (downloadUrl: string) => {
     // can retry.
   }
 
-  window.location.assign(downloadUrl);
+  navigateTo(downloadUrl);
 };
 
 export const fetchBuildsFromServer = async (

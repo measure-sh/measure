@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 
-const mockFetch = jest.fn(() => Promise.resolve({ ok: true, status: 200 }));
+const mockFetch = jest.fn((..._args: any[]) =>
+  Promise.resolve({ ok: true, status: 200 }),
+);
 global.fetch = mockFetch as any;
 
 jest.mock("@/app/stores/provider", () => {
@@ -32,16 +34,13 @@ jest.mock("next/image", () => ({
   default: ({ alt, ...props }: any) => <img alt={alt} {...props} />,
 }));
 
-// Mock window.location.assign
+// Full-page navigation goes through the navigation module because jsdom's
+// window.location can't be stubbed; mock it to observe the OAuth redirect.
 const mockAssign = jest.fn();
-Object.defineProperty(window, "location", {
-  value: {
-    ...window.location,
-    assign: mockAssign,
-    href: "http://localhost:3000/auth/login",
-  },
-  writable: true,
-});
+jest.mock("@/app/utils/navigation", () => ({
+  navigateTo: (...args: any[]) => mockAssign(...args),
+  reloadPage: jest.fn(),
+}));
 
 describe("GoogleSignIn", () => {
   beforeEach(() => {
