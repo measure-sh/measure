@@ -5,17 +5,22 @@ import {
   useSpanMetricsPlotQuery,
 } from "@/app/query/hooks";
 import { useFiltersStore } from "@/app/stores/provider";
-import { ResponsiveLine } from "@nivo/line";
+import { ResponsiveLineCanvas } from "@nivo/line";
 import { useTheme } from "next-themes";
-import React, { useState } from "react";
-import { chartTheme, useChartColors } from "../utils/shared_styles";
+import React, { useMemo, useState } from "react";
+import { useChartCanvasTheme, useChartColors } from "../utils/shared_styles";
 import {
   formatMillisToHumanReadable,
   formatPlotTooltipDate,
   getPlotTimeGroupForRange,
   getPlotTimeGroupNivoConfig,
 } from "../utils/time_utils";
-import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
+import {
+  embedSiblingPoints,
+  PlotTooltipShell,
+  PlotTooltipSwatch,
+  SiblingPoint,
+} from "./plot_tooltip";
 import { SkeletonPlot } from "./skeleton";
 import TabSelect from "./tab_select";
 
@@ -24,14 +29,25 @@ const SpanMetricsPlot: React.FC = () => {
   const [quantile, setQuantile] = useState<RootSpanMetricsQuantile>(
     RootSpanMetricsQuantile.p50,
   );
-  const { data: plot, status } = useSpanMetricsPlotQuery(quantile);
+  const { data: rawPlot, status } = useSpanMetricsPlotQuery(quantile);
   const { theme } = useTheme();
   const chartColors = useChartColors();
+  const canvasTheme = useChartCanvasTheme();
   const plotTimeGroup = getPlotTimeGroupForRange(
     filters.startDate,
     filters.endDate,
   );
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
+
+  const plot = useMemo(() => {
+    if (!rawPlot) {
+      return rawPlot;
+    }
+    return embedSiblingPoints(
+      rawPlot,
+      (_: string, index: number) => chartColors[index % chartColors.length],
+    );
+  }, [rawPlot, chartColors]);
 
   function mapQuantileStringToQuantile(quantile: string) {
     switch (quantile) {
@@ -72,10 +88,10 @@ const SpanMetricsPlot: React.FC = () => {
             />
           </div>
           <div className="size-full">
-            <ResponsiveLine
+            <ResponsiveLineCanvas
               data={plot}
               curve="monotoneX"
-              theme={chartTheme}
+              theme={canvasTheme}
               enableArea={true}
               areaOpacity={0.1}
               colors={chartColors}
@@ -121,35 +137,33 @@ const SpanMetricsPlot: React.FC = () => {
                 from: "seriesColor",
                 modifiers: [["darker", 0.3]],
               }}
-              pointLabelYOffset={-12}
-              useMesh={true}
               enableGridX={false}
               enableGridY={false}
-              enableSlices="x"
-              sliceTooltip={({ slice }) => {
+              tooltip={({ point }) => {
+                const pointData = point.data as unknown as {
+                  xFormatted: string;
+                  siblings: SiblingPoint[];
+                };
                 return (
                   <PlotTooltipShell>
                     <p className="p-2">
                       Date:{" "}
                       {formatPlotTooltipDate(
-                        slice.points[0].data.xFormatted.toString(),
+                        pointData.xFormatted.toString(),
                         plotTimeGroup,
                       )}
                     </p>
-                    {slice.points.map((point) => (
+                    {pointData.siblings.map((sibling) => (
                       <div
                         className="flex flex-row items-center p-2"
-                        key={point.id}
+                        key={sibling.id}
                       >
-                        <PlotTooltipSwatch color={point.seriesColor} />
+                        <PlotTooltipSwatch color={sibling.color} />
                         <div className="px-2" />
-                        <p>{point.seriesId.toString()} - </p>
+                        <p>{sibling.id} - </p>
                         <div className="px-2" />
                         <p>
-                          {formatMillisToHumanReadable(
-                            Number(point.data.yFormatted),
-                          )}{" "}
-                          ({quantile})
+                          {formatMillisToHumanReadable(sibling.y)} ({quantile})
                         </p>
                       </div>
                     ))}

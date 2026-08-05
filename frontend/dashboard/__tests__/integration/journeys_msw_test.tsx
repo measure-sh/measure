@@ -87,11 +87,6 @@ jest.mock("@nivo/sankey", () => ({
   ),
 }));
 
-jest.mock("@nivo/line", () => ({
-  __esModule: true,
-  ResponsiveLine: () => <div data-testid="nivo-line-chart" />,
-}));
-
 // --- MSW ---
 import {
   makeAppFixture,

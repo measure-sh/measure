@@ -3,7 +3,7 @@
 import { ResponsiveLineCanvas } from "@nivo/line";
 import { useTheme } from "next-themes";
 import React, { useMemo, useState } from "react";
-import { useChartColors, useChartForeground } from "../utils/shared_styles";
+import { useChartCanvasTheme, useChartColors } from "../utils/shared_styles";
 import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
 import {
   formatMillisToHumanReadable,
@@ -53,16 +53,7 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({
   const chartColors = useChartColors();
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
 
-  const foreground = useChartForeground();
-  const canvasTheme = useMemo(
-    () => ({
-      text: { fill: foreground },
-      axis: { ticks: { text: { fill: foreground } } },
-      legends: { text: { fill: foreground } },
-      crosshair: { line: { stroke: foreground, strokeWidth: 1 } },
-    }),
-    [foreground],
-  );
+  const canvasTheme = useChartCanvasTheme();
 
   const plot = useMemo<PlotData | undefined>(() => {
     if (!data) return undefined;

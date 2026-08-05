@@ -25,7 +25,7 @@ jest.mock("@/app/utils/time_utils", () => ({
 }));
 
 jest.mock("@/app/utils/shared_styles", () => ({
-  useChartForeground: () => "#222222",
+  useChartCanvasTheme: () => ({}),
   useChartColor: () => ({
     blue: "#38bdf8",
     green: "#34d399",
@@ -133,8 +133,6 @@ describe("NetworkEndpointStatusCodesPlot", () => {
       />,
     );
 
-    // The canvas tooltip receives one nearest point; the full breakdown
-    // comes from the datum's source datapoint.
     const tooltip = lastLineProps.tooltip({
       point: {
         seriesId: "200",

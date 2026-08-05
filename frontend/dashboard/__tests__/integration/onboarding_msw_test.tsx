@@ -68,10 +68,14 @@ jest.mock("next-themes", () => ({
   useTheme: () => ({ theme: "light" }),
 }));
 
-jest.mock("@nivo/line", () => ({
-  __esModule: true,
-  ResponsiveLine: () => <div data-testid="nivo-line-chart" />,
-}));
+jest.mock("@nivo/line", () => {
+  const LineChartStub = () => <div data-testid="nivo-line-chart" />;
+  return {
+    __esModule: true,
+    ResponsiveLine: LineChartStub,
+    ResponsiveLineCanvas: LineChartStub,
+  };
+});
 
 // --- MSW + fixtures ---
 
