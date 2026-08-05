@@ -80,7 +80,6 @@
     "remark-gfm": "^4.0.1",
     "remark-mdx": "^3.1.1",
     "remark-rehype": "^11.1.2",
-    "sharp": "^0.34.3",
     "shiki": "^4.0.2",
     "tailwind-merge": "^3.2.0",
     "tailwindcss": "^4.3.2",
