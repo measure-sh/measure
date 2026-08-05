@@ -235,6 +235,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Move blog to top level header tab by @anupcowkur in #4186
 - (**frontend**): Move posthog config defaults to 2026-06-25 by @anupcowkur
 - (**frontend**): Upgrade posthog frontend SDKs by @anupcowkur
 - (**frontend**): Switch to canvas rendering for all line plots by @anupcowkur in #4184
