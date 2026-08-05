@@ -67,6 +67,12 @@ export async function GET(
     return notAcceptable();
   }
 
-  const raw = fs.readFileSync(file, "utf-8");
+  // The path is built at request time, so the bundler can't tell which files
+  // this reads and falls back to tracing the entire repository into the build
+  // output, which is slow here and fails outright on hosts that check out the
+  // whole monorepo. The page.md files are already listed in
+  // outputFileTracingIncludes in next.config.mjs, so they ship regardless and
+  // the tracer can skip this call.
+  const raw = fs.readFileSync(/*turbopackIgnore: true*/ file, "utf-8");
   return markdownResponse(stripFrontmatter(raw));
 }
