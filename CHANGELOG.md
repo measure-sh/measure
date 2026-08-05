@@ -49,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Add misssing authz check in app retention fetch by @anupcowkur in #4191
 - (**backend**): Fail fast on unreachable valkey at boot (#4162) by @detj in #4162
 - (**backend**): Map mcp oauth cb errors to proper status codes (#4161) by @detj in #4161
 - (**backend**): Symboloader dedup gate `patch_id` failure (#4124) by @detj in #4124
