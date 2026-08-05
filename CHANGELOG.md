@@ -237,6 +237,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/symboloader (#3521) by @dependabot[bot] in #3521
 - (**deps**): Bump github.com/jackc/pgx/v5 in /backend/testinfra (#3520) by @dependabot[bot] in #3520
 - (**deps**): Bump github.com/jackc/pgx/v5 in /self-host/sessionator (#3519) by @dependabot[bot] in #3519
+- (**frontend**): Move the tailwind config into css by @anupcowkur in #4189
 - (**frontend**): Drop the top-level sharp dependency by @anupcowkur in #4188
 - (**frontend**): Upgrade nextjs to 16.3.0 by @anupcowkur
 - (**frontend**): Move blog to top level header tab by @anupcowkur in #4186
