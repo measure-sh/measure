@@ -3,7 +3,12 @@ import { withPostHogConfig } from "@posthog/nextjs-config";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "standalone",
+  // Standalone output exists for the self-hosted Docker image, which copies
+  // .next/standalone and runs its server.js. Vercel builds through its
+  // deployment adapter instead, which assembles per-route functions and never
+  // writes the .next/next-server.js.nft.json trace that the standalone step
+  // reads, so requesting standalone there fails the build with ENOENT.
+  output: process.env.VERCEL ? undefined : "standalone",
   poweredByHeader: false,
   // Without this, fumadocs-mdx's createMDX defaults pageExtensions to a list
   // that includes "md", turning the marketing page.md markdown twins into
