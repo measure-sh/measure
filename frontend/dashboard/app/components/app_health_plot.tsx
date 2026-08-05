@@ -2,18 +2,23 @@
 
 import { useAppHealthPlotQuery } from "@/app/query/hooks";
 import { useFiltersStore } from "@/app/stores/provider";
-import { ResponsiveLine } from "@nivo/line";
+import { ResponsiveLineCanvas } from "@nivo/line";
 import { DateTime } from "luxon";
 import { useTheme } from "next-themes";
-import React from "react";
+import React, { useMemo } from "react";
 import { numberToKMB } from "../utils/number_utils";
-import { chartTheme, useChartColor } from "../utils/shared_styles";
+import { useChartCanvasTheme, useChartColor } from "../utils/shared_styles";
 import {
   formatPlotTooltipDate,
   getPlotTimeGroupForRange,
   getPlotTimeGroupNivoConfig,
 } from "../utils/time_utils";
-import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
+import {
+  embedSiblingPoints,
+  PlotTooltipShell,
+  PlotTooltipSwatch,
+  SiblingPoint,
+} from "./plot_tooltip";
 import { SkeletonPlot } from "./skeleton";
 
 const demoDataDate = DateTime.now();
@@ -144,13 +149,28 @@ const AppHealthPlot: React.FC<AppHealthPlotProps> = ({ demo = false }) => {
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
 
   const effectiveStatus = demo ? "success" : status;
-  const plot = demo ? demoPlot : queryPlot;
+  const rawPlot = demo ? demoPlot : queryPlot;
 
-  const colorMap = {
-    Sessions: chartColor.blue,
-    Crashes: chartColor.red,
-    ANRs: chartColor.amber,
-  } as const;
+  const colorMap = useMemo(
+    () =>
+      ({
+        Sessions: chartColor.blue,
+        Crashes: chartColor.red,
+        ANRs: chartColor.amber,
+      }) as const,
+    [chartColor],
+  );
+
+  const canvasTheme = useChartCanvasTheme();
+  const plot = useMemo(() => {
+    if (!rawPlot) {
+      return rawPlot;
+    }
+    return embedSiblingPoints(
+      rawPlot,
+      (id) => colorMap[id as keyof typeof colorMap] || "#888",
+    );
+  }, [rawPlot, colorMap]);
 
   const labelMap = {
     Sessions: "Sessions",
@@ -172,10 +192,10 @@ const AppHealthPlot: React.FC<AppHealthPlotProps> = ({ demo = false }) => {
       )}
       {effectiveStatus === "success" && plot !== null && plot !== undefined && (
         <div className="size-full">
-          <ResponsiveLine
+          <ResponsiveLineCanvas
             data={plot}
             curve="monotoneX"
-            theme={chartTheme}
+            theme={canvasTheme}
             enableArea={true}
             areaOpacity={0.05}
             colors={({ id }) => colorMap[id as keyof typeof colorMap] || "#888"}
@@ -217,38 +237,36 @@ const AppHealthPlot: React.FC<AppHealthPlotProps> = ({ demo = false }) => {
             pointBorderColor={({ seriesId }: { seriesId: string }) =>
               colorMap[seriesId as keyof typeof colorMap] || "#888"
             }
-            pointLabelYOffset={-12}
-            useMesh={true}
             enableGridX={false}
             enableGridY={false}
-            enableSlices="x"
-            sliceTooltip={({ slice }) => {
+            tooltip={({ point }) => {
+              const pointData = point.data as unknown as {
+                xFormatted: string;
+                siblings: SiblingPoint[];
+              };
               const order = ["Sessions", "Crashes", "ANRs"] as const;
-              const pointsById: Record<string, (typeof slice.points)[number]> =
-                Object.fromEntries(slice.points.map((p) => [p.seriesId, p]));
+              const siblingsById: Record<string, SiblingPoint> =
+                Object.fromEntries(pointData.siblings.map((s) => [s.id, s]));
               return (
                 <PlotTooltipShell>
                   <p className="p-2">
                     Date:{" "}
                     {formatPlotTooltipDate(
-                      slice.points[0].data.xFormatted.toString(),
+                      pointData.xFormatted.toString(),
                       plotTimeGroup,
                     )}
                   </p>
                   {order.map((key) => {
-                    const point = pointsById[key];
-                    if (!point) return null;
+                    const sibling = siblingsById[key];
+                    if (!sibling) return null;
                     return (
-                      <div
-                        className="flex flex-row items-center p-2"
-                        key={point.id}
-                      >
-                        <PlotTooltipSwatch color={colorMap[key]} />
+                      <div className="flex flex-row items-center p-2" key={key}>
+                        <PlotTooltipSwatch color={sibling.color} />
                         <div className="px-2" />
                         <p>{labelMap[key]} - </p>
                         <div className="px-2" />
                         <p>
-                          {point.data.yFormatted} {labelMap[key]}
+                          {sibling.y.toLocaleString()} {labelMap[key]}
                         </p>
                       </div>
                     );

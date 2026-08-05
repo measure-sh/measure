@@ -5,7 +5,7 @@ import { render, screen } from "@testing-library/react";
 let lastLineProps: any = null;
 
 jest.mock("@nivo/line", () => ({
-  ResponsiveLine: (props: any) => {
+  ResponsiveLineCanvas: (props: any) => {
     lastLineProps = props;
     return <div data-testid="line-mock" />;
   },
@@ -189,26 +189,9 @@ describe("AppHealthPlot", () => {
     render(<AppHealthPlot />);
     expect(screen.getByTestId("line-mock")).toBeInTheDocument();
 
-    const tooltip = lastLineProps.sliceTooltip({
-      slice: {
-        points: [
-          {
-            id: "a1",
-            seriesId: "ANRs",
-            data: { xFormatted: "2026-02-01T01:00:00", yFormatted: 1 },
-          },
-          {
-            id: "s1",
-            seriesId: "Sessions",
-            data: { xFormatted: "2026-02-01T01:00:00", yFormatted: 10 },
-          },
-          {
-            id: "c1",
-            seriesId: "Crashes",
-            data: { xFormatted: "2026-02-01T01:00:00", yFormatted: 2 },
-          },
-        ],
-      },
+    const datum = lastLineProps.data[0].data[0];
+    const tooltip = lastLineProps.tooltip({
+      point: { data: { ...datum, xFormatted: "2026-02-01T01:00:00" } },
     });
 
     const { container } = render(tooltip);
@@ -232,21 +215,9 @@ describe("AppHealthPlot", () => {
     });
     render(<AppHealthPlot />);
 
-    const tooltip = lastLineProps.sliceTooltip({
-      slice: {
-        points: [
-          {
-            id: "a1",
-            seriesId: "ANRs",
-            data: { xFormatted: "2026-02-01T01:00:00", yFormatted: 1 },
-          },
-          {
-            id: "s1",
-            seriesId: "Sessions",
-            data: { xFormatted: "2026-02-01T01:00:00", yFormatted: 10 },
-          },
-        ],
-      },
+    const datum = lastLineProps.data[0].data[0];
+    const tooltip = lastLineProps.tooltip({
+      point: { data: { ...datum, xFormatted: "2026-02-01T01:00:00" } },
     });
 
     const { container } = render(tooltip);

@@ -1,7 +1,7 @@
 "use client";
 
 import { Slider } from "@/app/components/slider";
-import { useChartForeground } from "@/app/utils/shared_styles";
+import { useChartCanvasTheme } from "@/app/utils/shared_styles";
 import { formatMillisToHumanReadable } from "@/app/utils/time_utils";
 import { PlotTooltipShell } from "@/app/components/plot_tooltip";
 import { ResponsiveHeatMapCanvas } from "@nivo/heatmap";
@@ -26,17 +26,8 @@ interface Props {
 
 const NetworkTimelinePlot: React.FC<Props> = ({ data }) => {
   const { theme } = useTheme();
-  const foreground = useChartForeground();
   const interval = data.interval;
-
-  const canvasTheme = useMemo(
-    () => ({
-      text: { fill: foreground },
-      axis: { ticks: { text: { fill: foreground } } },
-      legends: { text: { fill: foreground } },
-    }),
-    [foreground],
-  );
+  const canvasTheme = useChartCanvasTheme();
 
   const { endpointOrder, bucketMap, minBucket, maxBucket } = useMemo(() => {
     // Group by endpoint and bucket (already aligned from backend), and order

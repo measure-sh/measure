@@ -1,4 +1,5 @@
 import { useTheme } from "next-themes";
+import { useMemo } from "react";
 
 // Mirrors the docs prose links (fumadocs typography plus our fd-primary
 // override in globals.css): same decoration pair, thickness, offset, weight
@@ -46,13 +47,22 @@ export function useChartColors() {
   return chartColors;
 }
 
-// Concrete foreground for canvas-rendered charts. Canvas fillStyle cannot
-// resolve the `var(--foreground)` that chartTheme uses for SVG charts, so
-// canvas renderers need the `--foreground` token values from globals.css as
-// hex; keep the two in sync.
-export function useChartForeground() {
+// chartTheme rebuilt with concrete colors for canvas renderers. Canvas
+// fillStyle cannot resolve the `var(--foreground)` that chartTheme uses for
+// SVG charts, so this uses the `--foreground` token values from globals.css
+// as hex; keep the two in sync.
+export function useChartCanvasTheme() {
   const { theme } = useTheme();
-  return theme === "dark" ? "#fafafa" : "#222222";
+  const foreground = theme === "dark" ? "#fafafa" : "#222222";
+  return useMemo(
+    () => ({
+      text: { fill: foreground },
+      axis: { ticks: { text: { fill: foreground } } },
+      legends: { text: { fill: foreground } },
+      crosshair: { line: { stroke: foreground, strokeWidth: 1 } },
+    }),
+    [foreground],
+  );
 }
 
 export const chartTheme = {

@@ -5,7 +5,7 @@ import { render, screen } from "@testing-library/react";
 let lastLineProps: any = null;
 
 jest.mock("@nivo/line", () => ({
-  ResponsiveLine: (props: any) => {
+  ResponsiveLineCanvas: (props: any) => {
     lastLineProps = props;
     return <div data-testid="line-mock" />;
   },
@@ -172,28 +172,20 @@ describe("ErrorsOverviewPlot", () => {
     });
     render(<ErrorsOverviewPlot />);
 
-    const many = lastLineProps.sliceTooltip({
-      slice: {
-        points: [
-          {
-            id: "p1",
-            seriesColor: "#111",
-            seriesId: "3.1.0",
-            data: { xFormatted: "2026-02-01T01:00:00", y: 5, yFormatted: 5 },
-          },
-        ],
+    const many = lastLineProps.tooltip({
+      point: {
+        data: {
+          xFormatted: "2026-02-01T01:00:00",
+          siblings: [{ id: "3.1.0", y: 5, color: "#111" }],
+        },
       },
     });
-    const one = lastLineProps.sliceTooltip({
-      slice: {
-        points: [
-          {
-            id: "p2",
-            seriesColor: "#111",
-            seriesId: "3.1.0",
-            data: { xFormatted: "2026-02-01T01:00:00", y: 1, yFormatted: 1 },
-          },
-        ],
+    const one = lastLineProps.tooltip({
+      point: {
+        data: {
+          xFormatted: "2026-02-01T01:00:00",
+          siblings: [{ id: "3.1.0", y: 1, color: "#111" }],
+        },
       },
     });
 

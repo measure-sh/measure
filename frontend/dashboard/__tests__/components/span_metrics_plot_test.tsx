@@ -11,7 +11,7 @@ let lastLineProps: any = null;
 let lastTabSelectProps: any = null;
 
 jest.mock("@nivo/line", () => ({
-  ResponsiveLine: (props: any) => {
+  ResponsiveLineCanvas: (props: any) => {
     lastLineProps = props;
     return <div data-testid="line-mock" />;
   },
@@ -191,16 +191,12 @@ describe("SpanMetricsPlot", () => {
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
 
-    const tooltip = lastLineProps.sliceTooltip({
-      slice: {
-        points: [
-          {
-            id: "p1",
-            seriesColor: "#111",
-            seriesId: "v1",
-            data: { xFormatted: "2026-02-01T01:00:00", yFormatted: 30 },
-          },
-        ],
+    const tooltip = lastLineProps.tooltip({
+      point: {
+        data: {
+          xFormatted: "2026-02-01T01:00:00",
+          siblings: [{ id: "v1", y: 30, color: "#111" }],
+        },
       },
     });
     const { container } = render(tooltip);

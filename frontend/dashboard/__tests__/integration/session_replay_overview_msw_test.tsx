@@ -58,23 +58,22 @@ jest.mock("next-themes", () => ({
   useTheme: () => ({ theme: "light" }),
 }));
 
-jest.mock("@nivo/line", () => ({
-  __esModule: true,
-  ResponsiveLine: ({ data }: any) => (
+jest.mock("@nivo/line", () => {
+  const LineChartStub = ({ data }: any) => (
     <div data-testid="nivo-line-chart">
-      {data?.map((series: any) => (
-        <span key={series.id} data-testid={`chart-series-${series.id}`}>
-          {series.id}: {series.data?.length ?? 0} points
+      {data?.map((s: any) => (
+        <span key={s.id} data-testid={`chart-series-${s.id}`}>
+          {s.id}: {s.data?.length ?? 0} points
         </span>
       ))}
     </div>
-  ),
-  ResponsiveLineCanvas: ({ data }: any) => (
-    <div data-testid="nivo-line-canvas">
-      {JSON.stringify(data?.length ?? 0)} series
-    </div>
-  ),
-}));
+  );
+  return {
+    __esModule: true,
+    ResponsiveLine: LineChartStub,
+    ResponsiveLineCanvas: LineChartStub,
+  };
+});
 
 // --- MSW ---
 import {

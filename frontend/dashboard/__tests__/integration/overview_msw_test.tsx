@@ -54,20 +54,22 @@ jest.mock("next-themes", () => ({
   useTheme: () => ({ theme: "light" }),
 }));
 
-// Nivo charts need a real DOM layout engine which jsdom doesn't have.
-// Stub ResponsiveLine to render a testable placeholder with the data prop.
-jest.mock("@nivo/line", () => ({
-  __esModule: true,
-  ResponsiveLine: ({ data }: any) => (
+jest.mock("@nivo/line", () => {
+  const LineChartStub = ({ data }: any) => (
     <div data-testid="nivo-line-chart">
-      {data?.map((series: any) => (
-        <span key={series.id} data-testid={`chart-series-${series.id}`}>
-          {series.id}: {series.data?.length ?? 0} points
+      {data?.map((s: any) => (
+        <span key={s.id} data-testid={`chart-series-${s.id}`}>
+          {s.id}: {s.data?.length ?? 0} points
         </span>
       ))}
     </div>
-  ),
-}));
+  );
+  return {
+    __esModule: true,
+    ResponsiveLine: LineChartStub,
+    ResponsiveLineCanvas: LineChartStub,
+  };
+});
 
 // --- Restore real fetch (jest config sets globals.fetch to a no-op) ---
 // MSW needs the real fetch/Request to intercept. jsdom provides them.

@@ -2,28 +2,44 @@
 
 import { useBugReportsOverviewPlotQuery } from "@/app/query/hooks";
 import { useFiltersStore } from "@/app/stores/provider";
-import { ResponsiveLine } from "@nivo/line";
+import { ResponsiveLineCanvas } from "@nivo/line";
 import { useTheme } from "next-themes";
-import React from "react";
-import { chartTheme, useChartColors } from "../utils/shared_styles";
+import React, { useMemo } from "react";
+import { useChartCanvasTheme, useChartColors } from "../utils/shared_styles";
 import {
   formatPlotTooltipDate,
   getPlotTimeGroupForRange,
   getPlotTimeGroupNivoConfig,
 } from "../utils/time_utils";
-import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
+import {
+  embedSiblingPoints,
+  PlotTooltipShell,
+  PlotTooltipSwatch,
+  SiblingPoint,
+} from "./plot_tooltip";
 import { SkeletonPlot } from "./skeleton";
 
 const BugReportsOverviewPlot: React.FC = () => {
   const filters = useFiltersStore((state) => state.filters);
-  const { data: plot, status } = useBugReportsOverviewPlotQuery();
+  const { data: rawPlot, status } = useBugReportsOverviewPlotQuery();
   const { theme } = useTheme();
   const chartColors = useChartColors();
+  const canvasTheme = useChartCanvasTheme();
   const plotTimeGroup = getPlotTimeGroupForRange(
     filters.startDate,
     filters.endDate,
   );
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
+
+  const plot = useMemo(() => {
+    if (!rawPlot) {
+      return rawPlot;
+    }
+    return embedSiblingPoints(
+      rawPlot,
+      (_, index) => chartColors[index % chartColors.length],
+    );
+  }, [rawPlot, chartColors]);
 
   return (
     <div
@@ -47,10 +63,10 @@ const BugReportsOverviewPlot: React.FC = () => {
       )}
       {status === "success" && plot !== null && plot !== undefined && (
         <div data-testid="bug-reports-plot-data" className="size-full">
-          <ResponsiveLine
+          <ResponsiveLineCanvas
             data={plot}
             curve="monotoneX"
-            theme={chartTheme}
+            theme={canvasTheme}
             enableArea={true}
             areaOpacity={0.1}
             colors={chartColors}
@@ -97,35 +113,34 @@ const BugReportsOverviewPlot: React.FC = () => {
               from: "seriesColor",
               modifiers: [["darker", 0.3]],
             }}
-            pointLabelYOffset={-12}
-            useMesh={true}
             enableGridX={false}
             enableGridY={false}
-            enableSlices="x"
-            sliceTooltip={({ slice }) => {
+            tooltip={({ point }) => {
+              const pointData = point.data as unknown as {
+                xFormatted: string;
+                siblings: SiblingPoint[];
+              };
               return (
                 <PlotTooltipShell>
                   <p className="p-2">
                     Date:{" "}
                     {formatPlotTooltipDate(
-                      slice.points[0].data.xFormatted.toString(),
+                      pointData.xFormatted.toString(),
                       plotTimeGroup,
                     )}
                   </p>
-                  {slice.points.map((point) => (
+                  {pointData.siblings.map((sibling) => (
                     <div
                       className="flex flex-row items-center p-2"
-                      key={point.id}
+                      key={sibling.id}
                     >
-                      <PlotTooltipSwatch color={point.seriesColor} />
+                      <PlotTooltipSwatch color={sibling.color} />
                       <div className="px-2" />
-                      <p>{point.seriesId.toString()} - </p>
+                      <p>{sibling.id} - </p>
                       <div className="px-2" />
                       <p>
-                        {point.data.yFormatted}{" "}
-                        {(point.data.yFormatted as number) > 1
-                          ? "Bug Reports"
-                          : "Bug Report"}
+                        {sibling.y.toLocaleString()}{" "}
+                        {sibling.y > 1 ? "Bug Reports" : "Bug Report"}
                       </p>
                     </div>
                   ))}

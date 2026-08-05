@@ -4,7 +4,7 @@ import { ResponsiveLineCanvas } from "@nivo/line";
 import { useTheme } from "next-themes";
 import React, { useMemo } from "react";
 import { numberToKMB } from "../utils/number_utils";
-import { useChartColor, useChartForeground } from "../utils/shared_styles";
+import { useChartCanvasTheme, useChartColor } from "../utils/shared_styles";
 import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
 import {
   formatPlotTooltipDate,
@@ -53,16 +53,7 @@ const NetworkStatusDistributionPlot: React.FC<
   const chartColor = useChartColor();
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
 
-  const foreground = useChartForeground();
-  const canvasTheme = useMemo(
-    () => ({
-      text: { fill: foreground },
-      axis: { ticks: { text: { fill: foreground } } },
-      legends: { text: { fill: foreground } },
-      crosshair: { line: { stroke: foreground, strokeWidth: 1 } },
-    }),
-    [foreground],
-  );
+  const canvasTheme = useChartCanvasTheme();
 
   const colorMap = {
     "2xx": chartColor.green,
@@ -74,9 +65,6 @@ const NetworkStatusDistributionPlot: React.FC<
   const plot = useMemo<PlotData | undefined>(() => {
     if (!data) return undefined;
 
-    // Every datum carries all four status counts so the nearest-point
-    // tooltip can list the full breakdown at that datetime, not only the
-    // hovered series.
     return seriesConfig.map(({ key, id }) => ({
       id,
       data: data.map((d) => ({

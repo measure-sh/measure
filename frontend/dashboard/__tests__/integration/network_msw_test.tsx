@@ -72,9 +72,6 @@ jest.mock("next-themes", () => ({
 }));
 
 jest.mock("@nivo/line", () => {
-  // The overview status plot renders with ResponsiveLineCanvas while the
-  // endpoint detail plots still use ResponsiveLine; both get the same stub
-  // so assertions can address any line chart through one set of testids.
   const LineChartStub = ({ data }: any) => (
     <div data-testid="nivo-line-chart">
       {data?.map((s: any) => (
