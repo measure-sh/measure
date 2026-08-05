@@ -73,7 +73,41 @@
     }
 }
 
-@config '../tailwind.config.ts';
+@theme {
+    /* text-5xl and up ship with line-height 1, too tight when a heading
+       wraps; these line-heights give wrapped lines room to breathe. */
+    --text-5xl: 3rem;
+    --text-5xl--line-height: 1.1;
+    --text-6xl: 3.75rem;
+    --text-6xl--line-height: 1.1;
+    --text-7xl: 4.5rem;
+    --text-7xl--line-height: 1.05;
+    --text-8xl: 6rem;
+    --text-8xl--line-height: 1.05;
+    --text-9xl: 8rem;
+    --text-9xl--line-height: 1.05;
+
+    --animate-accordion-down: accordion-down 0.2s ease-out;
+    --animate-accordion-up: accordion-up 0.2s ease-out;
+
+    @keyframes accordion-down {
+        from {
+            height: 0;
+        }
+        to {
+            height: var(--radix-accordion-content-height);
+        }
+    }
+
+    @keyframes accordion-up {
+        from {
+            height: var(--radix-accordion-content-height);
+        }
+        to {
+            height: 0;
+        }
+    }
+}
 
 @layer base {
     html {
@@ -225,6 +259,13 @@
 }
 
 @theme inline {
+    /* next/font defines the three font variables on <body> in layout.tsx,
+       below the :root scope these theme tokens live on, so the utilities
+       must inline the reference for it to resolve where they're used. */
+    --font-display: var(--font-josefin-sans);
+    --font-body: var(--font-work-sans);
+    --font-code: var(--font-fira-code);
+
     --color-background: var(--background);
     --color-foreground: var(--foreground);
     --color-card: var(--card);
