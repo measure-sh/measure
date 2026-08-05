@@ -49,10 +49,7 @@ const platformLinks = [
   { href: "/for/kmp", label: "Kotlin Multiplatform" },
 ];
 
-const learnLinks = [
-  { href: "/blog", label: "Blog" },
-  { href: "/why-measure", label: "Why Measure?" },
-];
+const learnLinks = [{ href: "/why-measure", label: "Why Measure?" }];
 
 const companyLinks = [
   { href: "/about", label: "About" },
@@ -352,6 +349,12 @@ export default function LandingHeader({
                 ))}
               </NavDropdownSection>
             </NavDropdown>
+            <Link
+              href="/blog"
+              className={cn(buttonVariants({ variant: "ghost" }))}
+            >
+              Blog
+            </Link>
             <NavDropdown label="Resources" onOpenChange={setIsDropdownOpen}>
               <div className="flex flex-col gap-3 min-w-48">
                 <NavDropdownSection title="Learn">
@@ -522,6 +525,17 @@ export default function LandingHeader({
                   ))}
                 </AccordionContent>
               </AccordionItem>
+            </Accordion>
+            <div className="w-full px-4 flex flex-col">
+              <Link
+                href="/blog"
+                className={mobileSectionLinkClassName}
+                onClick={closeMobileMenu}
+              >
+                Blog
+              </Link>
+            </div>
+            <Accordion type="single" collapsible className="w-full px-4">
               <AccordionItem value="resources" className="border-b-0">
                 <AccordionTrigger className="font-display">
                   Resources
