@@ -996,7 +996,10 @@ func (af AppFilter) getAppVersions(ctx context.Context, rch driver.Conn) (versio
 		Where("app_id = toUUID(?)", af.AppID).
 		GroupBy("version").
 		GroupBy("code").
-		OrderBy("code::UInt32 desc, version")
+		// string sort only, codes are free-form text. real
+		// ordering happens in Versions.Sort, this just keeps
+		// the input deterministic for its stable sort.
+		OrderBy("code desc, version desc")
 
 	defer stmt.Close()
 
