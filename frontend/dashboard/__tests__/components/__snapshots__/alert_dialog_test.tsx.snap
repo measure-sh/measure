@@ -91,7 +91,7 @@ exports[`Alert Dialog renders correctly in opened state 1`] = `
     <div
       aria-describedby="radix-_r_2_"
       aria-labelledby="radix-_r_1_"
-      class="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg"
+      class="fixed left-[50%] top-[50%] z-50 grid grid-cols-[minmax(0,1fr)] w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg"
       data-state="open"
       id="radix-_r_0_"
       role="dialog"
@@ -99,23 +99,23 @@ exports[`Alert Dialog renders correctly in opened state 1`] = `
       tabindex="-1"
     >
       <div
-        class="flex flex-col space-y-1.5 text-center sm:text-left"
+        class="flex flex-col space-y-1.5 text-left"
       >
         <h2
-          class="text-lg font-semibold leading-none tracking-tight font-display"
+          class="text-lg font-semibold leading-snug tracking-tight pr-6 wrap-anywhere font-display"
           id="radix-_r_1_"
         >
           SOME TITLE TEXT
         </h2>
       </div>
       <p
-        class="text-sm text-muted-foreground"
+        class="text-sm text-muted-foreground wrap-anywhere"
         id="radix-_r_2_"
       >
         SOME BODY TEXT
       </p>
       <div
-        class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2"
+        class="flex flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:justify-end"
       >
         <button
           class="relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 dark:focus-visible:border-ring dark:focus-visible:ring-ring/50 dark:focus-visible:ring-[3px] h-9 px-4 py-2 has-[>svg]:px-3 font-display border border-black select-none"
