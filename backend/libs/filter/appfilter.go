@@ -995,8 +995,7 @@ func (af AppFilter) getAppVersions(ctx context.Context, rch driver.Conn) (versio
 		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", af.AppID).
 		GroupBy("version").
-		GroupBy("code").
-		OrderBy("code::UInt32 desc, version")
+		GroupBy("code")
 
 	defer stmt.Close()
 
