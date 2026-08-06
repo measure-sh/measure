@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :sparkles: New features
 
 
+### :bug: Bug fixes
+
+- (**backend**): Remove redundant version sql sort (#4206) by @detj in #4206
+
 ### :books: Documentation
 
 - (**backend**): Update contributing guide (#4195) by @detj in #4195
