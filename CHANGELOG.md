@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**frontend**): Remove duplicate frontend tests by @anupcowkur in #4207
 
+### :books: Documentation
+
+- (**backend**): Update migration guide (#4208) by @detj in #4208
+
 ## [0.12.0] - 2026-08-06
 
 ### :sparkles: New features
