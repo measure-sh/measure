@@ -481,10 +481,12 @@ To trigger a release, create a signed git tag using [git-cliff](https://git-clif
 
 ```sh
 # bash/zsh
-VERSION=$(git cliff --bumped-version) && git tag -s $VERSION -m $VERSION && git push origin $VERSION
+VERSION=$(git cliff --bumped-version --github-token $(gh auth token)) && git tag -s $VERSION -m $VERSION && git push origin $VERSION
+```
 
+```fish
 # fish
-set VERSION $(git cliff --bumped-version) && git tag -s $VERSION -m $VERSION && git push origin $VERSION
+set VERSION (git cliff --bumped-version --github-token (gh auth token)) && git tag -s $VERSION -m $VERSION && git push origin $VERSION
 ```
 
 ## Documentation
