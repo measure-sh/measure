@@ -5927,8 +5927,9 @@ paths:
         app: files are grouped by `version_name`, `version_code` and, for
         Over-The-Air patch uploads, `patch_id`, keeping the latest file of
         each mapping type. OTA patch builds carry a `patch_id` and empty
-        version fields. Each file's `download_url` is the path of the
-        download endpoint serving that mapping file.
+        version fields, plus a `patch_version` when their upload named one.
+        Each file's `download_url` is the path of the download endpoint
+        serving that mapping file.
 
         Builds are ordered by upload time of their newest file, newest first.
         Pass `limit` and `offset` values to paginate results; pagination
@@ -5994,6 +5995,12 @@ paths:
                         patch_id:
                           type: string
                           description: OTA patch UUID. Present only for OTA patch builds.
+                        patch_version:
+                          type: string
+                          description: |
+                            The patch's human-facing version, as sent to PUT
+                            /builds/ota. Present only for OTA patch builds whose
+                            upload sent one as it is optional.
                         last_updated:
                           type: string
                           description: Upload time of the build's newest file.
@@ -6038,6 +6045,7 @@ paths:
                       - version_name: ""
                         version_code: ""
                         patch_id: 3f0e7c3e-9c31-4d9d-9a4e-2f6a3d0f5b21
+                        patch_version: 1.2.0-patch.3
                         last_updated: "2025-07-08T08:47:12.118Z"
                         files:
                           - id: 5f2a9c7d-1e64-4f0b-a3c2-8d914b6e0aa7
