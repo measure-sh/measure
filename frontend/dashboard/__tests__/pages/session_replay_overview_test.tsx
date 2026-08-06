@@ -138,6 +138,27 @@ describe("SessionReplayOverview Component", () => {
     });
   });
 
+  // Renders the page with the given query data and marks filters ready so the
+  // sessions table and paginator mount.
+  async function renderWithData(data: any) {
+    mockUseSessionReplayOverviewQuery.mockReturnValue({
+      data,
+      status: "success",
+      isFetching: false,
+      error: null,
+    });
+    render(<SessionReplayOverview params={promiseParams({ teamId: "123" })} />);
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          serialisedFilters: "updated",
+          app: { id: "app-1" },
+        },
+      });
+    });
+  }
+
   it("renders the Filters component", () => {
     render(<SessionReplayOverview params={promiseParams({ teamId: "123" })} />);
     expect(screen.getByTestId("filters-mock")).toBeInTheDocument();
@@ -270,6 +291,78 @@ describe("SessionReplayOverview Component", () => {
       fireEvent.keyDown(row!, { key: " " });
     });
     expect(pushMock).toHaveBeenCalledWith("/123/session_replays/app1/session1");
+  });
+
+  it("shows N/A instead of a formatted duration for zero-duration sessions", async () => {
+    // The backend sends duration as the number 0 for sessions with no
+    // measurable span, and the page renders N/A instead of formatting it.
+    await renderWithData({
+      ...mockSessionTimelineData,
+      results: [{ ...mockSessionTimelineData.results[0], duration: 0 }],
+    });
+
+    expect(screen.getByText("N/A")).toBeInTheDocument();
+    expect(screen.queryByText("1s")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["ipados", "17", "1.0(1), iPadOS 17, Apple iPhone 12"],
+    ["android", "14", "1.0(1), Android API Level 14, Apple iPhone 12"],
+    ["harmony", "4", "1.0(1), harmony 4, Apple iPhone 12"],
+  ])(
+    "formats the OS name for os_name=%s in the device info line",
+    async (osName, osVersion, expected) => {
+      await renderWithData({
+        ...mockSessionTimelineData,
+        results: [
+          {
+            ...mockSessionTimelineData.results[0],
+            attribute: {
+              ...mockSessionTimelineData.results[0].attribute,
+              os_name: osName,
+              os_version: osVersion,
+            },
+          },
+        ],
+      });
+
+      expect(screen.getByText(expected)).toBeInTheDocument();
+    },
+  );
+
+  describe("paginator state derived from meta", () => {
+    it("enables Next and disables Previous on the first page", async () => {
+      await renderWithData({
+        ...mockSessionTimelineData,
+        meta: { previous: false, next: true },
+      });
+
+      expect(screen.getByTestId("next-button")).not.toBeDisabled();
+      expect(screen.getByTestId("prev-button")).toBeDisabled();
+    });
+
+    it("enables Previous and disables Next on the last page", async () => {
+      await renderWithData({
+        ...mockSessionTimelineData,
+        meta: { previous: true, next: false },
+      });
+
+      expect(screen.getByTestId("prev-button")).not.toBeDisabled();
+      expect(screen.getByTestId("next-button")).toBeDisabled();
+    });
+
+    it("renders the table shell with both buttons disabled when results are empty", async () => {
+      await renderWithData({
+        results: [],
+        meta: { previous: false, next: false },
+      });
+
+      expect(screen.getByText("Session Replay")).toBeInTheDocument();
+      expect(screen.getByText("Start Time")).toBeInTheDocument();
+      expect(screen.queryByText(/Session ID:/)).not.toBeInTheDocument();
+      expect(screen.getByTestId("prev-button")).toBeDisabled();
+      expect(screen.getByTestId("next-button")).toBeDisabled();
+    });
   });
 
   describe("Pagination offset handling", () => {

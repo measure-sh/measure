@@ -258,6 +258,31 @@ describe("AlertsOverview Component", () => {
     expect(pushMock).toHaveBeenCalledWith("http://example.com/alert1");
   });
 
+  it("renders the table shell with both paginator buttons disabled when results are empty", async () => {
+    mockUseAlertsOverviewQuery.mockReturnValue({
+      data: { results: [], meta: { previous: false, next: false } },
+      status: "success",
+      isFetching: false,
+      error: null,
+    });
+    render(<AlertsOverview params={promiseParams({ teamId: "123" })} />);
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          serialisedFilters: "updated",
+          app: { id: "app-1" },
+        },
+      });
+    });
+
+    expect(screen.getByText("Alert")).toBeInTheDocument();
+    expect(screen.getByText("Time")).toBeInTheDocument();
+    expect(screen.queryByText(/ID:/)).not.toBeInTheDocument();
+    expect(screen.getByTestId("prev-button")).toBeDisabled();
+    expect(screen.getByTestId("next-button")).toBeDisabled();
+  });
+
   describe("Pagination offset handling", () => {
     it("initializes pagination offset to 0 when no offset is provided", async () => {
       mockUseAlertsOverviewQuery.mockReturnValue({

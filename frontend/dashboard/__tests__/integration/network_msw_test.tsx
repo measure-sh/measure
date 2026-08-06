@@ -1,17 +1,15 @@
 /**
  * Integration tests for Network Overview and Details pages.
  *
- * Overview: domain list, endpoint search with path suggestions,
- * status distribution chart, top endpoints table (3 tabs: Latency,
- * Error Rate, Frequency), and request timeline heatmap.
- *
- * Details: latency chart with quantile selector, status code
- * distribution chart, and endpoint timeline. Domain + path come
- * from URL query params.
+ * Covers page/api wiring only: domain auto-selection from the API, HTTP
+ * failure handling for every endpoint, request paths and query params,
+ * URL serialisation, cache behaviour, and re-fetching when filters change.
+ * Rendering behaviour is covered by the unit tests in __tests__/pages and
+ * __tests__/components.
  *
  * Network pages use FilterSource.Events with showNoData=false,
- * showNotOnboarded=true — filters.ready requires apps+filters
- * but NOT NoData/NotOnboarded.
+ * showNotOnboarded=true, so filters.ready requires apps+filters
+ * but not NoData/NotOnboarded.
  */
 import {
   afterAll,
@@ -22,13 +20,7 @@ import {
   expect,
   it,
 } from "@jest/globals";
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 // --- jsdom polyfills ---
@@ -182,63 +174,6 @@ describe("Network Overview (MSW integration)", () => {
   // PAGE LOAD
   // ================================================================
   describe("page load", () => {
-    it('renders "Explore endpoint" section', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Explore endpoint")).toBeTruthy();
-      // Section description now lives in an info tooltip beside the heading.
-      const trigger = screen
-        .getByText("Explore endpoint")
-        .parentElement!.querySelector(
-          '[data-slot="tooltip-trigger"]',
-        ) as HTMLElement;
-      fireEvent.focus(trigger);
-      const content = await waitFor(() => {
-        const el = document.querySelector('[data-slot="tooltip-content"]');
-        if (!el) {
-          throw new Error("tooltip content not visible");
-        }
-        return el as HTMLElement;
-      });
-      expect(content.textContent).toContain(
-        "Search for endpoints using exact paths or wildcard patterns",
-      );
-    });
-
-    it("renders Search button", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Search")).toBeTruthy();
-    });
-
-    it('renders "Status Distribution" section', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Status Distribution")).toBeTruthy();
-      // Section description now lives in an info tooltip beside the heading.
-      const trigger = screen
-        .getByText("Status Distribution")
-        .parentElement!.querySelector(
-          '[data-slot="tooltip-trigger"]',
-        ) as HTMLElement;
-      fireEvent.focus(trigger);
-      const content = await waitFor(() => {
-        const el = document.querySelector('[data-slot="tooltip-content"]');
-        if (!el) {
-          throw new Error("tooltip content not visible");
-        }
-        return el as HTMLElement;
-      });
-      expect(content.textContent).toContain("HTTP status code distribution");
-    });
-
-    it('renders "Top Endpoints" section', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Top Endpoints")).toBeTruthy();
-    });
-
-    it('renders "Timeline" section', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Timeline")).toBeTruthy();
-    });
-
     it("auto-selects first domain from API", async () => {
       await renderAndWaitForData();
       // The component auto-selects the first domain via useEffect.
@@ -285,175 +220,6 @@ describe("Network Overview (MSW integration)", () => {
   // TRENDS TABLE
   // ================================================================
   describe("trends table", () => {
-    it("renders trends table headers", async () => {
-      await renderAndWaitForData();
-      await waitFor(
-        () => {
-          expect(screen.getByText("Endpoint")).toBeTruthy();
-          expect(screen.getByText("Latency (p95)")).toBeTruthy();
-          expect(screen.getByText("Error Rate %")).toBeTruthy();
-          // "Frequency" appears as both tab button and table header
-          expect(
-            screen.getAllByText("Frequency").length,
-          ).toBeGreaterThanOrEqual(1);
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it("renders Latency tab data by default", async () => {
-      await renderAndWaitForData();
-      await waitFor(
-        () => {
-          // Default tab is "Latency" → trends_latency data
-          expect(screen.getByText("api.example.com/v1/checkout")).toBeTruthy();
-          expect(screen.getByText("2.34s")).toBeTruthy(); // 2340ms formatted
-          expect(screen.getByText("5.7%")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it("renders second endpoint in Latency tab with all fields", async () => {
-      await renderAndWaitForData();
-      await waitFor(
-        () => {
-          expect(screen.getByText("api.example.com/v1/users/*")).toBeTruthy();
-          expect(screen.getByText("1.25s")).toBeTruthy(); // 1250ms
-          expect(screen.getByText("2.1%")).toBeTruthy();
-          expect(screen.getByText("84.2K")).toBeTruthy(); // 84200 → "84.2K"
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it("renders tab buttons", async () => {
-      await renderAndWaitForData();
-      await waitFor(
-        () => {
-          // Tab buttons: "Latency", "Error Rate", "Frequency"
-          // "Frequency" also appears as table header, so use role-based query for buttons
-          const buttons = screen.getAllByRole("button");
-          expect(buttons.some((b) => b.textContent === "Latency")).toBe(true);
-          expect(buttons.some((b) => b.textContent === "Error Rate")).toBe(
-            true,
-          );
-          expect(buttons.some((b) => b.textContent === "Frequency")).toBe(true);
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it('clicking "Error Rate" tab button switches data', async () => {
-      await renderAndWaitForData();
-      await waitFor(
-        () => {
-          expect(screen.getByText("Error Rate")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      await act(async () => {
-        fireEvent.click(screen.getByText("Error Rate"));
-      });
-      await waitFor(() => {
-        expect(
-          screen.getByText("api.example.com/v1/users/*/profile"),
-        ).toBeTruthy();
-        expect(screen.getByText("4.3%")).toBeTruthy();
-      });
-    });
-
-    it('clicking "Frequency" tab button shows frequency data', async () => {
-      await renderAndWaitForData();
-      // Find the Frequency tab button (not the table header)
-      let frequencyBtn: HTMLElement | undefined;
-      await waitFor(
-        () => {
-          frequencyBtn = screen
-            .getAllByText("Frequency")
-            .find((el) => el.tagName === "BUTTON");
-          expect(frequencyBtn).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      await act(async () => {
-        fireEvent.click(frequencyBtn!);
-      });
-      await waitFor(() => {
-        expect(screen.getByText("api.example.com/v1/events")).toBeTruthy();
-        expect(screen.getByText("245K")).toBeTruthy(); // 245000 → "245K"
-      });
-    });
-
-    it("frequency tab also shows latency and error rate columns", async () => {
-      await renderAndWaitForData();
-      // Find the Frequency tab button (not the table header)
-      let frequencyBtn: HTMLElement | undefined;
-      await waitFor(
-        () => {
-          frequencyBtn = screen
-            .getAllByText("Frequency")
-            .find((el) => el.tagName === "BUTTON");
-          expect(frequencyBtn).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      await act(async () => {
-        fireEvent.click(frequencyBtn!);
-      });
-      await waitFor(() => {
-        // /v1/events endpoint: p95_latency=180ms, error_rate=0.1%
-        expect(screen.getByText("180ms")).toBeTruthy();
-        expect(screen.getByText("0.1%")).toBeTruthy();
-      });
-    });
-
-    it("clicking endpoint row navigates to details page", async () => {
-      await renderAndWaitForData();
-      await waitFor(
-        () => {
-          expect(screen.getByText("api.example.com/v1/checkout")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      const rows = screen.getAllByRole("row");
-      // Find the row with /v1/checkout
-      const checkoutRow = rows.find((r) =>
-        r.textContent?.includes("/v1/checkout"),
-      );
-      if (checkoutRow) {
-        fireEvent.click(checkoutRow);
-        expect(mockRouterPush).toHaveBeenCalledWith(
-          expect.stringContaining("/test-team/network/details?domain="),
-        );
-      }
-    });
-
-    it('shows "No data" when trends are empty', async () => {
-      server.use(
-        http.get("*/api/apps/:appId/networkRequests/trends", () => {
-          return HttpResponse.json({
-            trends_latency: [],
-            trends_error_rate: [],
-            trends_frequency: [],
-          });
-        }),
-      );
-      renderWithProviders(<NetworkOverview params={{ teamId: "test-team" }} />);
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(/No data available for the selected filters/),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
     it("shows error when trends API returns 500", async () => {
       server.use(
         http.get("*/api/apps/:appId/networkRequests/trends", () => {
@@ -493,26 +259,6 @@ describe("Network Overview (MSW integration)", () => {
         { timeout: 5000 },
       );
     });
-
-    it('shows "No data" when status plot returns null', async () => {
-      server.use(
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/overviewStatusCodes",
-          () => {
-            return HttpResponse.json(null);
-          },
-        ),
-      );
-      renderWithProviders(<NetworkOverview params={{ teamId: "test-team" }} />);
-      await waitFor(
-        () => {
-          expect(
-            screen.getAllByText(/No data available/).length,
-          ).toBeGreaterThanOrEqual(1);
-        },
-        { timeout: 5000 },
-      );
-    });
   });
 
   // ================================================================
@@ -536,92 +282,6 @@ describe("Network Overview (MSW integration)", () => {
           ).toBeTruthy();
         },
         { timeout: 5000 },
-      );
-    });
-
-    it('shows "No data" when timeline returns empty', async () => {
-      server.use(
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/overviewTimeline",
-          () => {
-            return HttpResponse.json({ interval: 5, points: [] });
-          },
-        ),
-      );
-      renderWithProviders(<NetworkOverview params={{ teamId: "test-team" }} />);
-      await waitFor(
-        () => {
-          // Multiple "No data" messages possible (status plot + timeline)
-          const noDataMessages = screen.getAllByText(/No data available/);
-          expect(noDataMessages.length).toBeGreaterThanOrEqual(1);
-        },
-        { timeout: 5000 },
-      );
-    });
-  });
-
-  // ================================================================
-  // ENDPOINT SEARCH
-  // ================================================================
-  describe("endpoint search", () => {
-    it("Search button is disabled when path is empty", async () => {
-      await renderAndWaitForData();
-      const searchBtn = screen.getByText("Search").closest("button")!;
-      expect(searchBtn.disabled).toBe(true);
-    });
-
-    it("Search button is enabled when path is entered", async () => {
-      await renderAndWaitForData();
-      const input = screen.getByPlaceholderText(/Enter a path/);
-      await act(async () => {
-        fireEvent.change(input, { target: { value: "/v1/users" } });
-      });
-      const searchBtn = screen.getByText("Search").closest("button")!;
-      expect(searchBtn.disabled).toBe(false);
-    });
-
-    it("clicking Search navigates to details page", async () => {
-      await renderAndWaitForData();
-      const input = screen.getByPlaceholderText(/Enter a path/);
-      await act(async () => {
-        fireEvent.change(input, { target: { value: "/v1/users" } });
-      });
-      await act(async () => {
-        fireEvent.click(screen.getByText("Search"));
-      });
-      expect(mockRouterPush).toHaveBeenCalledWith(
-        expect.stringContaining("/test-team/network/details?domain="),
-      );
-      expect(mockRouterPush).toHaveBeenCalledWith(
-        expect.stringContaining("path="),
-      );
-    });
-
-    it("Enter key in path input triggers search", async () => {
-      await renderAndWaitForData();
-      const input = screen.getByPlaceholderText(/Enter a path/);
-      await act(async () => {
-        fireEvent.change(input, { target: { value: "/v1/users" } });
-      });
-      await act(async () => {
-        fireEvent.keyDown(input, { key: "Enter" });
-      });
-      expect(mockRouterPush).toHaveBeenCalledWith(
-        expect.stringContaining("/test-team/network/details"),
-      );
-    });
-
-    it("path without leading slash gets / prepended", async () => {
-      await renderAndWaitForData();
-      const input = screen.getByPlaceholderText(/Enter a path/);
-      await act(async () => {
-        fireEvent.change(input, { target: { value: "v1/users" } });
-      });
-      await act(async () => {
-        fireEvent.click(screen.getByText("Search"));
-      });
-      expect(mockRouterPush).toHaveBeenCalledWith(
-        expect.stringContaining("path=%2Fv1%2Fusers"),
       );
     });
   });
@@ -771,47 +431,6 @@ describe("Network Overview (MSW integration)", () => {
       expect(timelineFetches).toBeGreaterThan(initialTimeline);
     });
   });
-
-  // ================================================================
-  // CONCURRENT / RE-RENDER
-  // ================================================================
-  describe("concurrent and re-render", () => {
-    it("re-render after unmount issues a fresh fetch (gcTime: 0)", async () => {
-      let fetchCount = 0;
-      server.use(
-        http.get("*/api/apps/:appId/networkRequests/domains", () => {
-          fetchCount++;
-          return HttpResponse.json(makeNetworkDomainsFixture());
-        }),
-      );
-      const { unmount } = render(
-        <QueryClientProvider client={testQueryClient}>
-          <NetworkOverview params={{ teamId: "test-team" }} />
-        </QueryClientProvider>,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Explore endpoint")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      const initial = fetchCount;
-
-      unmount();
-      render(
-        <QueryClientProvider client={testQueryClient}>
-          <NetworkOverview params={{ teamId: "test-team" }} />
-        </QueryClientProvider>,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Explore endpoint")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      expect(fetchCount).toBeGreaterThan(initial);
-    });
-  });
 });
 
 // ====================================================================
@@ -843,50 +462,6 @@ describe("Network Details (MSW integration)", () => {
   }
 
   // ================================================================
-  // PAGE LOAD
-  // ================================================================
-  describe("page load", () => {
-    it('renders "Latency" section', async () => {
-      await renderAndWaitForDetails();
-      expect(screen.getByText("Latency")).toBeTruthy();
-    });
-
-    it('renders "Status Distribution" section', async () => {
-      await renderAndWaitForDetails();
-      expect(screen.getByText("Status Distribution")).toBeTruthy();
-    });
-
-    it('renders "Timeline" section when data exists', async () => {
-      await renderAndWaitForDetails();
-      await waitFor(() => {
-        expect(screen.getByText("Timeline")).toBeTruthy();
-      });
-    });
-
-    it("hides Timeline section when timeline returns NoData", async () => {
-      server.use(
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/endpointTimeline",
-          () => {
-            return HttpResponse.json(null);
-          },
-        ),
-      );
-      await renderAndWaitForDetails();
-      // Timeline section should not render when NoData
-      // Wait for other sections to render first
-      await waitFor(() => {
-        expect(screen.getByText("Latency")).toBeTruthy();
-        expect(screen.getByText("Status Distribution")).toBeTruthy();
-      });
-      // The timeline section title should not be present
-      const timelineHeaders = screen.queryAllByText("Timeline");
-      // If NoData, the timeline section is not rendered at all
-      // (conditional: timelineStatus !== 'nodata')
-    });
-  });
-
-  // ================================================================
   // ERROR STATES
   // ================================================================
   describe("error states", () => {
@@ -903,26 +478,6 @@ describe("Network Details (MSW integration)", () => {
       await waitFor(
         () => {
           expect(screen.getByText(/Error fetching latency data/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it('shows "No data" when latency returns null', async () => {
-      server.use(
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/endpointLatency",
-          () => {
-            return HttpResponse.json(null);
-          },
-        ),
-      );
-      renderDetails();
-      await waitFor(
-        () => {
-          expect(
-            screen.getAllByText(/No data available/).length,
-          ).toBeGreaterThanOrEqual(1);
         },
         { timeout: 5000 },
       );
@@ -1095,7 +650,7 @@ describe("Network Details (MSW integration)", () => {
 
       unmount();
 
-      // Render with different endpoint — cache miss
+      // Render with a different endpoint so the latency query key changes
       mockSearchParams.set("domain", "cdn.example.com");
       mockSearchParams.set("path", "/images/*");
       renderWithProviders(<NetworkDetails params={{ teamId: "test-team" }} />);
@@ -1166,164 +721,5 @@ describe("Network Details (MSW integration)", () => {
       expect(statusFetches).toBeGreaterThan(initialStatus);
       expect(timelineFetches).toBeGreaterThan(initialTimeline);
     });
-  });
-
-  // ================================================================
-  // DIFFERENT ENDPOINT BYPASSES CACHE
-  // ================================================================
-  describe("endpoint change", () => {
-    it("setting different domain+path bypasses latency cache", async () => {
-      let fetchCount = 0;
-      server.use(
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/endpointLatency",
-          () => {
-            fetchCount++;
-            return HttpResponse.json(makeNetworkEndpointLatencyFixture());
-          },
-        ),
-      );
-
-      // Render with first endpoint
-      const { unmount } = renderWithProviders(
-        <NetworkDetails params={{ teamId: "test-team" }} />,
-      );
-      mockSearchParams.set("domain", "api.example.com");
-      mockSearchParams.set("path", "/v1/users/*/profile");
-      await waitFor(
-        () => {
-          expect(screen.getByText("Latency")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      const initial = fetchCount;
-
-      unmount();
-
-      // Different endpoint → cache miss
-      mockSearchParams.set("domain", "cdn.example.com");
-      mockSearchParams.set("path", "/images/*");
-      renderWithProviders(<NetworkDetails params={{ teamId: "test-team" }} />);
-      await waitFor(
-        () => {
-          expect(screen.getByText("Latency")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      expect(fetchCount).toBeGreaterThan(initial);
-    });
-  });
-
-  // ================================================================
-  // FILTERS SHOWN
-  // ================================================================
-  describe("filters", () => {
-    it("shows app versions filter (unique to details page)", async () => {
-      await renderAndWaitForDetails();
-      expect(screen.getByText("App versions")).toBeTruthy();
-    });
-  });
-});
-
-// ====================================================================
-// AUTH FAILURE FLOW
-// ====================================================================
-describe("Network — auth failure", () => {
-  it("401 on domains fetch triggers token refresh attempt", async () => {
-    let refreshAttempted = false;
-    server.use(
-      http.get("*/api/apps/:appId/networkRequests/domains", () => {
-        return new HttpResponse(null, { status: 401 });
-      }),
-      http.post("*/auth/refresh", () => {
-        refreshAttempted = true;
-        return new HttpResponse(null, { status: 401 });
-      }),
-    );
-    renderWithProviders(<NetworkOverview params={{ teamId: "test-team" }} />);
-    await waitFor(
-      () => {
-        expect(refreshAttempted).toBe(true);
-      },
-      { timeout: 5000 },
-    );
-  });
-
-  it("401 on endpoint latency fetch triggers token refresh attempt", async () => {
-    let refreshAttempted = false;
-    server.use(
-      http.get(
-        "*/api/apps/:appId/networkRequests/plots/endpointLatency",
-        () => {
-          return new HttpResponse(null, { status: 401 });
-        },
-      ),
-      http.post("*/auth/refresh", () => {
-        refreshAttempted = true;
-        return new HttpResponse(null, { status: 401 });
-      }),
-    );
-    mockSearchParams.set("domain", "api.example.com");
-    mockSearchParams.set("path", "/v1/users");
-    renderWithProviders(<NetworkDetails params={{ teamId: "test-team" }} />);
-    await waitFor(
-      () => {
-        expect(refreshAttempted).toBe(true);
-      },
-      { timeout: 5000 },
-    );
-  });
-});
-
-describe("Network — team switch to no-apps team", () => {
-  it("switching from team with apps to team with no apps shows NoApps after store reset", async () => {
-    // Phase 1: render with team that has apps — fully load
-    const { unmount } = renderWithProviders(
-      <NetworkOverview params={{ teamId: "team-with-apps" }} />,
-    );
-
-    await waitFor(
-      () => {
-        expect(screen.getByText("Explore endpoint")).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-
-    // Reset the filtersStore (simulating what onTeamChanged does in the layout)
-    filtersStore.getState().reset();
-
-    // Phase 2: override MSW to return 404 for apps, unmount, re-render with new teamId
-    server.use(
-      http.get("*/api/teams/:teamId/apps", () => {
-        return new HttpResponse(null, { status: 404 });
-      }),
-    );
-
-    unmount();
-
-    renderWithProviders(
-      <NetworkOverview params={{ teamId: "team-no-apps" }} />,
-    );
-
-    // Wait for NoApps message to appear
-    await waitFor(
-      () => {
-        expect(screen.getByTestId("onboarding-step-create")).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-  });
-});
-
-describe("Network page — loading states", () => {
-  it("shows skeleton loading before data arrives", async () => {
-    server.use(
-      http.get("*/api/apps", async () => {
-        await new Promise((r) => setTimeout(r, 200));
-        return HttpResponse.json([]);
-      }),
-    );
-    renderWithProviders(<NetworkOverview params={{ teamId: "test-team" }} />);
-    expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy();
   });
 });

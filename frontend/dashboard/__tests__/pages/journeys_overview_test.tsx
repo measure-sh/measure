@@ -74,6 +74,7 @@ jest.mock("@/app/components/journey", () => ({
   default: (props: any) => (
     <div
       data-testid={`journey-mock-${props.journeyType}`}
+      data-search-text={props.searchText}
     >{`Journey Rendered: ${props.journeyType}`}</div>
   ),
 }));
@@ -232,7 +233,11 @@ describe("UserJourneys Page", () => {
     await act(async () => {
       fireEvent.change(input, { target: { value: "search term" } });
     });
-    // No assertion needed, just ensure no crash and input is present
-    expect(input).toBeInTheDocument();
+    // The page holds searchText in state and passes it to Journey, so the
+    // typed value must reach the rendered Journey as its searchText prop.
+    expect(screen.getByTestId("journey-mock-Paths")).toHaveAttribute(
+      "data-search-text",
+      "search term",
+    );
   });
 });

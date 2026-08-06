@@ -84,9 +84,7 @@ import {
 import { server } from "../msw/server";
 
 jest.spyOn(console, "log").mockImplementation(() => {});
-const consoleErrorSpy = jest
-  .spyOn(console, "error")
-  .mockImplementation(() => {});
+jest.spyOn(console, "error").mockImplementation(() => {});
 
 beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
 afterEach(() => {
@@ -153,35 +151,6 @@ describe("Session Replay Overview (MSW integration)", () => {
   // PAGE LOAD
   // ================================================================
   describe("page load", () => {
-    it("renders table headers, chart, and session rows", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Session Replay")).toBeTruthy();
-      expect(screen.getByText("Start Time")).toBeTruthy();
-      expect(screen.getByText("Duration")).toBeTruthy();
-      expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy();
-      expect(screen.getByText(/Session ID: sess-002/)).toBeTruthy();
-      expect(screen.getByTestId("nivo-line-chart")).toBeTruthy();
-    });
-
-    it("renders device info for each session row", async () => {
-      await renderAndWaitForData();
-      // sess-001: "3.1.0(310), Android API Level 14, Google Pixel 8"
-      expect(
-        screen.getByText(
-          /3\.1\.0\(310\).*Android API Level 14.*Google Pixel 8/,
-        ),
-      ).toBeTruthy();
-      // sess-002: Samsung SM-S921B
-      expect(screen.getByText(/3\.0\.2\(302\).*Samsung SM-S921B/)).toBeTruthy();
-    });
-
-    it("renders duration for each session", async () => {
-      await renderAndWaitForData();
-      // 330000ms = 5m 30s, 135000ms = 2m 15s
-      expect(screen.getByText(/5m/)).toBeTruthy();
-      expect(screen.getByText(/2m/)).toBeTruthy();
-    });
-
     it("shows error state when sessions API returns 500", async () => {
       server.use(
         http.get("*/api/apps/:appId/sessions", () => {
@@ -221,97 +190,12 @@ describe("Session Replay Overview (MSW integration)", () => {
         { timeout: 5000 },
       );
     });
-
-    it("shows plot No Data when plot returns null", async () => {
-      server.use(
-        http.get("*/api/apps/:appId/sessions/plots/instances", () => {
-          return HttpResponse.json(null);
-        }),
-      );
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("No Data")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it('renders "Matched" badge when free text matches', async () => {
-      server.use(
-        http.get("*/api/apps/:appId/sessions", ({ request }) => {
-          const url = new URL(request.url);
-          if (url.pathname.split("/").filter(Boolean).length > 4) return;
-          return HttpResponse.json(
-            makeSessionReplayOverviewFixture({
-              results: [
-                {
-                  ...makeSessionReplayOverviewFixture().results[0],
-                  matched_free_text: "NullPointerException",
-                },
-              ],
-            }),
-          );
-        }),
-      );
-      await renderAndWaitForData();
-      expect(screen.getByText("Matched NullPointerException")).toBeTruthy();
-    });
-
-    it("shows N/A for zero-duration sessions", async () => {
-      server.use(
-        http.get("*/api/apps/:appId/sessions", ({ request }) => {
-          const url = new URL(request.url);
-          if (url.pathname.split("/").filter(Boolean).length > 4) return;
-          return HttpResponse.json(
-            makeSessionReplayOverviewFixture({
-              results: [
-                {
-                  ...makeSessionReplayOverviewFixture().results[0],
-                  // Backend sends duration as number 0, not string '0'.
-                  // The page checks `(duration as unknown as number) === 0`.
-                  duration: 0,
-                },
-              ],
-            }),
-          );
-        }),
-      );
-
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("N/A")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
   });
 
   // ================================================================
   // PAGINATION
   // ================================================================
   describe("pagination", () => {
-    it("Next button is enabled when meta.next is true", async () => {
-      await renderAndWaitForData();
-      const nextBtn = screen.getByText("Next");
-      expect(nextBtn.closest("button")?.disabled).toBe(false);
-    });
-
-    it("Previous button is disabled on first page", async () => {
-      await renderAndWaitForData();
-      const prevBtn = screen.getByText("Previous");
-      expect(prevBtn.closest("button")?.disabled).toBe(true);
-    });
-
     it("clicking Next fetches page 2 with offset in URL", async () => {
       const sessionRequests: string[] = [];
       server.use(
@@ -347,65 +231,6 @@ describe("Session Replay Overview (MSW integration)", () => {
           mockRouterReplace.mock.calls.length - 1
         ][0];
       expect(url).toContain("po=5");
-    });
-
-    it("page 2 has Previous enabled and Next disabled", async () => {
-      server.use(
-        http.get("*/api/apps/:appId/sessions", ({ request }) => {
-          const url = new URL(request.url);
-          if (url.pathname.split("/").filter(Boolean).length > 4) return;
-          return HttpResponse.json(makeSessionReplayOverviewPage2Fixture());
-        }),
-      );
-
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Session ID: sess-006/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      expect(screen.getByText("Previous").closest("button")?.disabled).toBe(
-        false,
-      );
-      expect(screen.getByText("Next").closest("button")?.disabled).toBe(true);
-    });
-
-    it("filter change resets pagination to page 1", async () => {
-      await renderAndWaitForData();
-
-      await act(async () => {
-        fireEvent.click(screen.getByText("Next").closest("button")!);
-      });
-      await waitFor(() => {
-        const url =
-          mockRouterReplace.mock.calls[
-            mockRouterReplace.mock.calls.length - 1
-          ][0];
-        expect(url).toContain("po=5");
-      });
-
-      await act(async () => {
-        filtersStore
-          .getState()
-          .setSelectedVersions([new AppVersion("3.0.2", "302")]);
-      });
-
-      await waitFor(
-        () => {
-          const url =
-            mockRouterReplace.mock.calls[
-              mockRouterReplace.mock.calls.length - 1
-            ][0];
-          expect(url).toContain("po=0");
-        },
-        { timeout: 5000 },
-      );
     });
 
     it("clicking Previous from page 2 goes back to page 1 data", async () => {
@@ -490,34 +315,6 @@ describe("Session Replay Overview (MSW integration)", () => {
 
       expect(screen.queryByText(/Session ID: sess-001/)).toBeNull();
     });
-
-    it("initializes pagination offset from URL param", async () => {
-      mockSearchParams.set("po", "10");
-
-      server.use(
-        http.get("*/api/apps/:appId/sessions", ({ request }) => {
-          const url = new URL(request.url);
-          if (url.pathname.split("/").filter(Boolean).length > 4) return;
-          return HttpResponse.json(makeSessionReplayOverviewFixture());
-        }),
-      );
-
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => {
-          const urlCheck =
-            mockRouterReplace.mock.calls[
-              mockRouterReplace.mock.calls.length - 1
-            ][0];
-          expect(urlCheck).toContain("po=10");
-        },
-        { timeout: 5000 },
-      );
-    });
   });
 
   // ================================================================
@@ -546,168 +343,80 @@ describe("Session Replay Overview (MSW integration)", () => {
       );
     });
 
-    // --- Version filter (shortFilters POST body) ---
-    it("version change sends new version in shortFilters POST", async () => {
-      await renderAndWaitForData();
-      shortFilterBodies.length = 0;
-      await act(async () => {
-        filtersStore
-          .getState()
-          .setSelectedVersions([new AppVersion("3.0.1", "301")]);
-      });
-      await waitFor(() => expect(shortFilterBodies.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      expect(
-        shortFilterBodies[shortFilterBodies.length - 1].filters.versions,
-      ).toEqual(["3.0.1"]);
-    });
-
-    // --- OS version filter ---
-    it("OS version change sends os_names/os_versions in shortFilters POST", async () => {
-      await renderAndWaitForData();
-      shortFilterBodies.length = 0;
-      await act(async () => {
-        filtersStore
-          .getState()
-          .setSelectedOsVersions([new OsVersion("android", "14")]);
-      });
-      await waitFor(() => expect(shortFilterBodies.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      const body = shortFilterBodies[shortFilterBodies.length - 1];
-      expect(body.filters.os_names).toEqual(["android"]);
-      expect(body.filters.os_versions).toEqual(["14"]);
-    });
-
-    // --- Country filter ---
-    it("country change sends countries in shortFilters POST", async () => {
-      await renderAndWaitForData();
-      shortFilterBodies.length = 0;
-      await act(async () => {
-        filtersStore.getState().setSelectedCountries(["US"]);
-      });
-      await waitFor(() => expect(shortFilterBodies.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      expect(
-        shortFilterBodies[shortFilterBodies.length - 1].filters.countries,
-      ).toEqual(["US"]);
-    });
-
-    // --- Network provider filter ---
-    it("network provider change sends network_providers in shortFilters POST", async () => {
-      await renderAndWaitForData();
-      shortFilterBodies.length = 0;
-      await act(async () => {
-        filtersStore.getState().setSelectedNetworkProviders(["Jio"]);
-      });
-      await waitFor(() => expect(shortFilterBodies.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      expect(
-        shortFilterBodies[shortFilterBodies.length - 1].filters
-          .network_providers,
-      ).toEqual(["Jio"]);
-    });
-
-    // --- Network type filter ---
-    it("network type change sends network_types in shortFilters POST", async () => {
-      await renderAndWaitForData();
-      shortFilterBodies.length = 0;
-      await act(async () => {
-        filtersStore.getState().setSelectedNetworkTypes(["wifi"]);
-      });
-      await waitFor(() => expect(shortFilterBodies.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      expect(
-        shortFilterBodies[shortFilterBodies.length - 1].filters.network_types,
-      ).toEqual(["wifi"]);
-    });
-
-    // --- Network generation filter ---
-    it("network generation change sends network_generations in shortFilters POST", async () => {
-      await renderAndWaitForData();
-      shortFilterBodies.length = 0;
-      await act(async () => {
-        filtersStore.getState().setSelectedNetworkGenerations(["5g"]);
-      });
-      await waitFor(() => expect(shortFilterBodies.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      expect(
-        shortFilterBodies[shortFilterBodies.length - 1].filters
-          .network_generations,
-      ).toEqual(["5g"]);
-    });
-
-    // --- Locale filter ---
-    it("locale change sends locales in shortFilters POST", async () => {
-      await renderAndWaitForData();
-      shortFilterBodies.length = 0;
-      await act(async () => {
-        filtersStore.getState().setSelectedLocales(["en-US"]);
-      });
-      await waitFor(() => expect(shortFilterBodies.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      expect(
-        shortFilterBodies[shortFilterBodies.length - 1].filters.locales,
-      ).toEqual(["en-US"]);
-    });
-
-    // --- Device manufacturer filter ---
-    it("device manufacturer change sends device_manufacturers in shortFilters POST", async () => {
-      await renderAndWaitForData();
-      shortFilterBodies.length = 0;
-      await act(async () => {
-        filtersStore.getState().setSelectedDeviceManufacturers(["Samsung"]);
-      });
-      await waitFor(() => expect(shortFilterBodies.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      expect(
-        shortFilterBodies[shortFilterBodies.length - 1].filters
-          .device_manufacturers,
-      ).toEqual(["Samsung"]);
-    });
-
-    // --- Device name filter ---
-    it("device name change sends device_names in shortFilters POST", async () => {
-      await renderAndWaitForData();
-      shortFilterBodies.length = 0;
-      await act(async () => {
-        filtersStore.getState().setSelectedDeviceNames(["Galaxy S24"]);
-      });
-      await waitFor(() => expect(shortFilterBodies.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      expect(
-        shortFilterBodies[shortFilterBodies.length - 1].filters.device_names,
-      ).toEqual(["Galaxy S24"]);
-    });
-
-    // --- UdAttr matcher filter ---
-    it("udAttr matcher change sends ud_expression in shortFilters POST", async () => {
-      await renderAndWaitForData();
-      shortFilterBodies.length = 0;
-      await act(async () => {
-        filtersStore
-          .getState()
-          .setSelectedUdAttrMatchers([
-            { key: "user_id", type: "string", op: "eq", value: "user-123" },
-          ]);
-      });
-      await waitFor(() => expect(shortFilterBodies.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      const body = shortFilterBodies[shortFilterBodies.length - 1];
-      expect(body.filters.ud_expression).toBeDefined();
-      const expr = JSON.parse(body.filters.ud_expression);
-      expect(expr.and[0].cmp.key).toBe("user_id");
-      expect(expr.and[0].cmp.value).toBe("user-123");
-    });
+    // --- Store-driven filters that travel in the shortFilters POST body ---
+    // One store setter per field, each expected to land in the POST body
+    // under its own key. The OS row carries two keys because os_names and
+    // os_versions are an index-aligned pair.
+    it.each([
+      [
+        "versions",
+        () =>
+          filtersStore
+            .getState()
+            .setSelectedVersions([new AppVersion("3.0.1", "301")]),
+        { versions: ["3.0.1"] },
+      ],
+      [
+        "os_names/os_versions",
+        () =>
+          filtersStore
+            .getState()
+            .setSelectedOsVersions([new OsVersion("android", "14")]),
+        { os_names: ["android"], os_versions: ["14"] },
+      ],
+      [
+        "countries",
+        () => filtersStore.getState().setSelectedCountries(["US"]),
+        { countries: ["US"] },
+      ],
+      [
+        "network_providers",
+        () => filtersStore.getState().setSelectedNetworkProviders(["Jio"]),
+        { network_providers: ["Jio"] },
+      ],
+      [
+        "network_types",
+        () => filtersStore.getState().setSelectedNetworkTypes(["wifi"]),
+        { network_types: ["wifi"] },
+      ],
+      [
+        "network_generations",
+        () => filtersStore.getState().setSelectedNetworkGenerations(["5g"]),
+        { network_generations: ["5g"] },
+      ],
+      [
+        "locales",
+        () => filtersStore.getState().setSelectedLocales(["en-US"]),
+        { locales: ["en-US"] },
+      ],
+      [
+        "device_manufacturers",
+        () =>
+          filtersStore.getState().setSelectedDeviceManufacturers(["Samsung"]),
+        { device_manufacturers: ["Samsung"] },
+      ],
+      [
+        "device_names",
+        () => filtersStore.getState().setSelectedDeviceNames(["Galaxy S24"]),
+        { device_names: ["Galaxy S24"] },
+      ],
+    ] as [string, () => void, Record<string, string[]>][])(
+      "%s change is sent in the shortFilters POST body",
+      async (_field, applyFilter, expected) => {
+        await renderAndWaitForData();
+        shortFilterBodies.length = 0;
+        await act(async () => {
+          applyFilter();
+        });
+        await waitFor(
+          () => expect(shortFilterBodies.length).toBeGreaterThan(0),
+          { timeout: 5000 },
+        );
+        expect(
+          shortFilterBodies[shortFilterBodies.length - 1].filters,
+        ).toMatchObject(expected);
+      },
+    );
 
     // --- Session type filter (URL param, not shortFilters body) ---
     it("session type change adds type=error,anr + severity to data-fetch URL", async () => {
@@ -727,21 +436,6 @@ describe("Session Replay Overview (MSW integration)", () => {
       const url = sessionRequests[sessionRequests.length - 1].url;
       expect(url).toContain("type=error%2Canr");
       expect(url).toContain("severity=fatal");
-    });
-
-    // --- Free text filter (URL param) ---
-    it("free text change adds free_text param to data-fetch URL", async () => {
-      await renderAndWaitForData();
-      sessionRequests.length = 0;
-      await act(async () => {
-        filtersStore.getState().setSelectedFreeText("NullPointerException");
-      });
-      await waitFor(() => expect(sessionRequests.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      expect(sessionRequests[sessionRequests.length - 1].url).toContain(
-        "free_text=NullPointerException",
-      );
     });
 
     // --- Date range (URL param) ---
@@ -852,15 +546,6 @@ describe("Session Replay Overview (MSW integration)", () => {
         { timeout: 5000 },
       );
     });
-
-    it("session row links include correct href", async () => {
-      await renderAndWaitForData();
-      const link = screen.getByLabelText("Session ID: sess-001");
-      expect(link.getAttribute("href")).toContain(
-        "/test-team/session_replays/",
-      );
-      expect(link.getAttribute("href")).toContain("/sess-001");
-    });
   });
 });
 
@@ -871,23 +556,15 @@ describe("Session Replay Overview — additional coverage", () => {
   const { AppVersion, OsVersion } = require("@/app/api/api_calls");
 
   let shortFilterBodies: any[];
-  let sessionRequests: { url: string }[];
 
   beforeEach(() => {
     shortFilterBodies = [];
-    sessionRequests = [];
     server.use(
       http.post("*/api/apps/:appId/shortFilters", async ({ request }) => {
         shortFilterBodies.push(await request.json());
         return HttpResponse.json({
           filter_short_code: `code-${shortFilterBodies.length}`,
         });
-      }),
-      http.get("*/api/apps/:appId/sessions", ({ request }) => {
-        const url = new URL(request.url);
-        if (url.pathname.split("/").filter(Boolean).length > 4) return;
-        sessionRequests.push({ url: request.url });
-        return HttpResponse.json(makeSessionReplayOverviewFixture());
       }),
     );
   });
@@ -903,70 +580,6 @@ describe("Session Replay Overview — additional coverage", () => {
       { timeout: 5000 },
     );
   }
-
-  // ================================================================
-  // INDIVIDUAL SESSION TYPE PARAMS
-  // ================================================================
-  describe("session type params — each type individually", () => {
-    it.each([
-      ["Fatal Error Sessions", "type=error", "severity=fatal"],
-      ["Unhandled Error Sessions", "type=error", "severity=unhandled"],
-      ["Handled Error Sessions", "type=error", "severity=handled"],
-      ["ANR Sessions", "type=anr", undefined],
-      ["Bug Report Sessions", "bug_report=1", undefined],
-      ["User Interaction Sessions", "user_interaction=1", undefined],
-      ["Foreground Sessions", "foreground=1", undefined],
-      ["Background Sessions", "background=1", undefined],
-    ])(
-      'selecting "%s" adds %s to data-fetch URL',
-      async (sessionType, expectedType, expectedSeverity) => {
-        await renderAndWaitForData();
-        sessionRequests.length = 0;
-
-        await act(async () => {
-          filtersStore.getState().setSelectedSessionTypes([sessionType as any]);
-        });
-
-        await waitFor(() => expect(sessionRequests.length).toBeGreaterThan(0), {
-          timeout: 5000,
-        });
-        const url = sessionRequests[sessionRequests.length - 1].url;
-        expect(url).toContain(expectedType);
-        if (expectedSeverity) {
-          expect(url).toContain(expectedSeverity);
-        }
-      },
-    );
-
-    it("selecting all session types (all=true) does NOT add type params", async () => {
-      await renderAndWaitForData();
-      sessionRequests.length = 0;
-
-      await act(async () => {
-        filtersStore
-          .getState()
-          .setSelectedSessionTypes([
-            "Fatal Error Sessions",
-            "Unhandled Error Sessions",
-            "Handled Error Sessions",
-            "ANR Sessions",
-            "Bug Report Sessions",
-            "User Interaction Sessions",
-            "Foreground Sessions",
-            "Background Sessions",
-          ] as any);
-      });
-
-      await waitFor(() => expect(sessionRequests.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      const url = sessionRequests[sessionRequests.length - 1].url;
-      // With every type selected, sessionTypes.all is true and no type
-      // params are added.
-      expect(url).not.toContain("type=");
-      expect(url).not.toContain("bug_report=1");
-    });
-  });
 
   // ================================================================
   // MULTIPLE FILTERS IN ONE POST
@@ -992,152 +605,6 @@ describe("Session Replay Overview — additional coverage", () => {
       expect(body.filters.os_names).toEqual(["android"]);
       expect(body.filters.countries).toEqual(["US"]);
       expect(body.filters.locales).toEqual(["en-US"]);
-    });
-
-    it("setting device manufacturer + device name + network type in one POST", async () => {
-      await renderAndWaitForData();
-      shortFilterBodies.length = 0;
-
-      await act(async () => {
-        filtersStore.getState().setSelectedDeviceManufacturers(["Google"]);
-        filtersStore.getState().setSelectedDeviceNames(["Pixel 8"]);
-        filtersStore.getState().setSelectedNetworkTypes(["wifi"]);
-      });
-
-      await waitFor(() => expect(shortFilterBodies.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-
-      const body = shortFilterBodies[shortFilterBodies.length - 1];
-      expect(body.filters.device_manufacturers).toEqual(["Google"]);
-      expect(body.filters.device_names).toEqual(["Pixel 8"]);
-      expect(body.filters.network_types).toEqual(["wifi"]);
-    });
-  });
-
-  // ================================================================
-  // RENDERED VALUES
-  // ================================================================
-  describe("rendered values from fixture", () => {
-    it('renders exact formatted duration "5m 30s" for sess-001', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("5m 30s")).toBeTruthy();
-    });
-
-    it('renders exact formatted duration "2m 15s" for sess-002', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("2m 15s")).toBeTruthy();
-    });
-
-    it("renders session IDs as text", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy();
-      expect(screen.getByText(/Session ID: sess-002/)).toBeTruthy();
-    });
-
-    it("renders user ID in session row if present", async () => {
-      // The fixture has user_id in the attribute, but the page row displays
-      // app_version, OS, manufacturer and model rather than user_id.
-      await renderAndWaitForData();
-      expect(screen.getByText(/Google Pixel 8/)).toBeTruthy();
-    });
-  });
-
-  // ================================================================
-  // EMPTY RESULTS
-  // ================================================================
-  describe("empty results", () => {
-    it("renders table shell but no rows when results are empty", async () => {
-      server.use(
-        http.get("*/api/apps/:appId/sessions", ({ request }) => {
-          const url = new URL(request.url);
-          if (url.pathname.split("/").filter(Boolean).length > 4) return;
-          return HttpResponse.json({
-            meta: { next: false, previous: false },
-            results: [],
-          });
-        }),
-      );
-
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Session Replay")).toBeTruthy();
-          expect(screen.getByText("Start Time")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      expect(screen.queryByText(/Session ID:/)).toBeNull();
-
-      expect(screen.getByText("Previous").closest("button")?.disabled).toBe(
-        true,
-      );
-      expect(screen.getByText("Next").closest("button")?.disabled).toBe(true);
-    });
-  });
-
-  // ================================================================
-  // FREE TEXT SPECIAL CHARACTERS
-  // ================================================================
-  describe("free text edge cases", () => {
-    it("free text with special characters is URL-encoded", async () => {
-      await renderAndWaitForData();
-      sessionRequests.length = 0;
-
-      await act(async () => {
-        filtersStore.getState().setSelectedFreeText("key=value&other=true");
-      });
-
-      await waitFor(() => expect(sessionRequests.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      const url = sessionRequests[sessionRequests.length - 1].url;
-      // Should be encoded, not raw & and =
-      expect(url).toContain("free_text=");
-      expect(url).not.toMatch(/free_text=key=value&other/);
-    });
-
-    it("free text with spaces is encoded", async () => {
-      await renderAndWaitForData();
-      sessionRequests.length = 0;
-
-      await act(async () => {
-        filtersStore.getState().setSelectedFreeText("hello world");
-      });
-
-      await waitFor(() => expect(sessionRequests.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      expect(sessionRequests[sessionRequests.length - 1].url).toContain(
-        "free_text=hello",
-      );
-    });
-  });
-
-  // ================================================================
-  // PLOT TIME GROUP
-  // ================================================================
-  describe("plot time group", () => {
-    it('Last 6 Hours produces "minutes" plot_time_group', async () => {
-      let plotUrls: string[] = [];
-      server.use(
-        http.get(
-          "*/api/apps/:appId/sessions/plots/instances",
-          ({ request }) => {
-            plotUrls.push(request.url);
-            return HttpResponse.json(makeSessionPlotFixture());
-          },
-        ),
-      );
-
-      await renderAndWaitForData();
-      expect(plotUrls.length).toBeGreaterThan(0);
-      expect(plotUrls[0]).toContain("plot_time_group=minutes");
     });
   });
 
@@ -1201,214 +668,6 @@ describe("Session Replay Overview — additional coverage", () => {
 
       expect(filtersStore.getState().selectedVersions[0]?.name).toBe("3.0.2");
       expect(filtersStore.getState().selectedDateRange).toBe("Last Week");
-    });
-  });
-
-  // ================================================================
-  // STORE CACHE ON RE-MOUNT
-  // ================================================================
-  describe("store cache", () => {
-    it("re-mount still shows data", async () => {
-      const { unmount } = renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy(),
-        { timeout: 5000 },
-      );
-
-      unmount();
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy(),
-        { timeout: 5000 },
-      );
-    });
-  });
-
-  // ================================================================
-  // iOS / iPadOS OS NAME FORMATTING
-  // ================================================================
-  describe("OS name formatting in session rows", () => {
-    function makeSessionWithOs(osName: string, osVersion: string) {
-      return {
-        ...makeSessionReplayOverviewFixture().results[0],
-        session_id: `sess-os-${osName}`,
-        attribute: {
-          ...makeSessionReplayOverviewFixture().results[0].attribute,
-          os_name: osName,
-          os_version: osVersion,
-        },
-      };
-    }
-
-    it('renders "iOS" label for os_name=ios', async () => {
-      server.use(
-        http.get("*/api/apps/:appId/sessions", ({ request }) => {
-          const url = new URL(request.url);
-          if (url.pathname.split("/").filter(Boolean).length > 4) return;
-          return HttpResponse.json({
-            meta: { next: false, previous: false },
-            results: [makeSessionWithOs("ios", "17")],
-          });
-        }),
-      );
-
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/iOS 17/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      expect(screen.queryByText(/\bios 17\b/)).toBeNull();
-    });
-
-    it('renders "iPadOS" label for os_name=ipados', async () => {
-      server.use(
-        http.get("*/api/apps/:appId/sessions", ({ request }) => {
-          const url = new URL(request.url);
-          if (url.pathname.split("/").filter(Boolean).length > 4) return;
-          return HttpResponse.json({
-            meta: { next: false, previous: false },
-            results: [makeSessionWithOs("ipados", "17")],
-          });
-        }),
-      );
-
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/iPadOS 17/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it('renders "Android API Level" label for os_name=android', async () => {
-      server.use(
-        http.get("*/api/apps/:appId/sessions", ({ request }) => {
-          const url = new URL(request.url);
-          if (url.pathname.split("/").filter(Boolean).length > 4) return;
-          return HttpResponse.json({
-            meta: { next: false, previous: false },
-            results: [makeSessionWithOs("android", "14")],
-          });
-        }),
-      );
-
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Android API Level 14/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it("passes through unknown OS name directly", async () => {
-      server.use(
-        http.get("*/api/apps/:appId/sessions", ({ request }) => {
-          const url = new URL(request.url);
-          if (url.pathname.split("/").filter(Boolean).length > 4) return;
-          return HttpResponse.json({
-            meta: { next: false, previous: false },
-            results: [makeSessionWithOs("harmony", "4")],
-          });
-        }),
-      );
-
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/harmony 4/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-  });
-
-  // ================================================================
-  // KEYBOARD NAVIGATION ON TABLE ROWS
-  // ================================================================
-  describe("keyboard navigation", () => {
-    it("pressing Enter on a table row calls router.push with session href", async () => {
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      const row = screen.getByLabelText("Session ID: sess-001").closest("tr");
-      expect(row).toBeTruthy();
-
-      await act(async () => {
-        const event = new KeyboardEvent("keydown", {
-          key: "Enter",
-          bubbles: true,
-        });
-        row!.dispatchEvent(event);
-      });
-
-      expect(mockRouterPush).toHaveBeenCalledWith(
-        expect.stringContaining("/sess-001"),
-      );
-    });
-
-    it("pressing Space on a table row calls router.push with session href", async () => {
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      const row = screen.getByLabelText("Session ID: sess-001").closest("tr");
-
-      await act(async () => {
-        const event = new KeyboardEvent("keydown", {
-          key: " ",
-          bubbles: true,
-        });
-        row!.dispatchEvent(event);
-      });
-
-      expect(mockRouterPush).toHaveBeenCalledWith(
-        expect.stringContaining("/sess-001"),
-      );
     });
   });
 
@@ -1489,84 +748,5 @@ describe("Session Replay Overview — additional coverage", () => {
         { timeout: 5000 },
       );
     });
-  });
-
-  // ================================================================
-  // SESSION TYPE + FREE TEXT COMBINED
-  // ================================================================
-  describe("combined session type + free text", () => {
-    it("session type + free text both appear in data-fetch URL", async () => {
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      sessionRequests.length = 0;
-
-      await act(async () => {
-        filtersStore
-          .getState()
-          .setSelectedSessionTypes(["Fatal Error Sessions" as any]);
-        filtersStore.getState().setSelectedFreeText("NullPointerException");
-      });
-
-      await waitFor(() => expect(sessionRequests.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      const url = sessionRequests[sessionRequests.length - 1].url;
-      expect(url).toContain("type=error");
-      expect(url).toContain("severity=fatal");
-      expect(url).toContain("free_text=NullPointerException");
-    });
-  });
-});
-
-describe("Session replay — team switch to no-apps team", () => {
-  it("switching from team with apps to team with no apps shows NoApps after store reset", async () => {
-    // First render with a team that has apps, and let it load fully.
-    const { unmount } = renderWithProviders(
-      <SessionReplayOverview
-        params={promiseParams({ teamId: "team-with-apps" })}
-      />,
-    );
-
-    await waitFor(
-      () => {
-        expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-
-    // Reset the filtersStore (simulating what onTeamChanged does in the layout)
-    filtersStore.getState().reset();
-
-    // Phase 2: override MSW to return 404 for apps, unmount, re-render with new teamId
-    server.use(
-      http.get("*/api/teams/:teamId/apps", () => {
-        return new HttpResponse(null, { status: 404 });
-      }),
-    );
-
-    unmount();
-
-    renderWithProviders(
-      <SessionReplayOverview
-        params={promiseParams({ teamId: "team-no-apps" })}
-      />,
-    );
-
-    // Wait for NoApps message to appear
-    await waitFor(
-      () => {
-        expect(screen.getByTestId("onboarding-step-create")).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
   });
 });

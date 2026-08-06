@@ -1,17 +1,10 @@
 /**
  * Integration tests for Apps settings page.
  *
- * The apps page is a settings/configuration page with:
- * - App metadata display (unique ID, OS, creation date)
- * - SDK variable display (API URL, API key with copy)
- * - SDK Configurator (8 accordion sections)
- * - Error threshold configuration (4 numeric inputs + validation)
- * - Data retention dropdown
- * - App name change form
- * - API key rotation
- * - Create App modal
- * - Permissions controlling which actions are enabled
- * - Confirmation dialogs for destructive actions
+ * These cover the wiring between the page and the API: request paths and
+ * payloads, cache updates after mutations, and how server errors surface in
+ * the UI. Pure rendering and permission-gating behavior is covered by the
+ * unit tests in __tests__/pages/apps_test.tsx.
  */
 import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
@@ -161,68 +154,6 @@ describe("Apps Page (MSW integration)", () => {
   // PAGE LOAD
   // ================================================================
   describe("page load", () => {
-    it('renders "Copy SDK Variables" section', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
-      expect(screen.getByText("API URL")).toBeTruthy();
-      // "API key" appears in both Copy section and Rotate section
-      expect(screen.getAllByText("API key").length).toBeGreaterThanOrEqual(2);
-    });
-
-    it("renders API key from fixture", async () => {
-      await renderAndWaitForData();
-      const inputs = document.querySelectorAll("input[readonly]");
-      const apiKeyInput = Array.from(inputs).find(
-        (i) => (i as HTMLInputElement).value === makeAppFixture().api_key.key,
-      );
-      expect(apiKeyInput).toBeTruthy();
-    });
-
-    it("renders Copy buttons", async () => {
-      await renderAndWaitForData();
-      const copyButtons = screen.getAllByText("Copy");
-      expect(copyButtons.length).toBeGreaterThanOrEqual(2); // API URL + API key
-    });
-
-    it("renders app metadata when onboarded", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Unique Identifier")).toBeTruthy();
-      expect(screen.getByText("sh.measure.demo")).toBeTruthy();
-      expect(screen.getByText("Operating Systems")).toBeTruthy();
-      expect(screen.getByText("android")).toBeTruthy();
-      expect(screen.getByText("Created at")).toBeTruthy();
-    });
-
-    it('renders "Change Error Thresholds" section', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Change Error Thresholds")).toBeTruthy();
-    });
-
-    it("renders threshold labels", async () => {
-      await renderAndWaitForData();
-      // "Good" and "Caution" appear in both labels and description text
-      expect(screen.getAllByText("Good").length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText("Caution").length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText(/Minimum error count/)).toBeTruthy();
-      expect(screen.getByText(/Spike alert threshold/)).toBeTruthy();
-    });
-
-    it('renders "Configure Data Retention" section', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Configure Data Retention")).toBeTruthy();
-    });
-
-    it('renders "Change App Name" section', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Change App Name")).toBeTruthy();
-    });
-
-    it('renders "Rotate API key" section', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Rotate API key")).toBeTruthy();
-      expect(screen.getByText("Rotate")).toBeTruthy();
-    });
-
     it("shows error state when page data fails", async () => {
       server.use(
         http.get("*/api/apps/:appId/retention", () => {
@@ -238,13 +169,6 @@ describe("Apps Page (MSW integration)", () => {
         },
         { timeout: 5000 },
       );
-    });
-
-    it("page data loads successfully", async () => {
-      await renderAndWaitForData();
-      // Verify data rendered in DOM (replaces old store status assertion)
-      expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
-      expect(screen.getByText("Change Error Thresholds")).toBeTruthy();
     });
   });
 
@@ -262,135 +186,6 @@ describe("Apps Page (MSW integration)", () => {
       expect(screen.getByText("Rotate").closest("button")?.disabled).toBe(
         false,
       );
-    });
-
-    it("disables actions when permissions are denied", async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/authz", () => {
-          return HttpResponse.json(
-            makeAuthzFixture({
-              can_rename_app: false,
-              can_rotate_api_key: false,
-              can_change_retention: false,
-              can_change_app_threshold_prefs: false,
-            }),
-          );
-        }),
-      );
-
-      renderWithProviders(
-        <Apps params={promiseParams({ teamId: "test-team" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      // Rename input should be disabled
-      const nameInput = document.getElementById(
-        "change-app-name-input",
-      ) as HTMLInputElement;
-      expect(nameInput?.disabled).toBe(true);
-
-      // Rotate button should be disabled
-      expect(screen.getByText("Rotate").closest("button")?.disabled).toBe(true);
-    });
-  });
-
-  // ================================================================
-  // THRESHOLD PREFS
-  // ================================================================
-  describe("threshold preferences", () => {
-    it("renders threshold values from API", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Change Error Thresholds")).toBeTruthy();
-    });
-
-    it("Save button disabled when no threshold changes", async () => {
-      await renderAndWaitForData();
-      const saveBtn = screen.getByLabelText("Save thresholds");
-      expect(saveBtn.closest("button")?.disabled).toBe(true);
-    });
-
-    it("threshold prefs loading error shows error message", async () => {
-      server.use(
-        http.get("*/api/apps/:appId/thresholdPrefs", () => {
-          return HttpResponse.json({ error: "server error" }, { status: 500 });
-        }),
-      );
-
-      renderWithProviders(
-        <Apps params={promiseParams({ teamId: "test-team" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(/Error fetching app threshold preferences/),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-  });
-
-  // ================================================================
-  // APP NAME CHANGE
-  // ================================================================
-  describe("app name change", () => {
-    it("Save button disabled when name unchanged", async () => {
-      await renderAndWaitForData();
-      const nameInput = document.getElementById(
-        "change-app-name-input",
-      ) as HTMLInputElement;
-      expect(nameInput).toBeTruthy();
-      // Name should be populated with current app name
-      expect(nameInput.value).toBe("measure demo");
-    });
-
-    it("Save button enabled when name changes", async () => {
-      await renderAndWaitForData();
-      const nameInput = document.getElementById(
-        "change-app-name-input",
-      ) as HTMLInputElement;
-
-      await act(async () => {
-        fireEvent.change(nameInput, { target: { value: "new-app-name" } });
-      });
-
-      // The Save button next to rename input should now be enabled
-    });
-  });
-
-  // ================================================================
-  // API KEY ROTATION
-  // ================================================================
-  describe("API key rotation", () => {
-    it("renders Rotate API key section", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Rotate API key")).toBeTruthy();
-      expect(screen.getByText("Rotate").closest("button")).toBeTruthy();
-    });
-  });
-
-  // ================================================================
-  // DATA RETENTION
-  // ================================================================
-  describe("data retention", () => {
-    it("renders data retention section", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Configure Data Retention")).toBeTruthy();
-    });
-  });
-
-  // ================================================================
-  // SDK CONFIG
-  // ================================================================
-  describe("SDK config", () => {
-    it("loads SDK config from API and renders configurator", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Configure Data Collection")).toBeTruthy();
     });
   });
 
@@ -434,105 +229,12 @@ describe("Apps Page (MSW integration)", () => {
       expect(paths.some((p) => p.includes("/config"))).toBe(true);
     });
   });
-
-  // ================================================================
-  // CACHING
-  // ================================================================
-  describe("caching", () => {
-    it("data is cached by TanStack Query", async () => {
-      await renderAndWaitForData();
-      // Data loaded successfully and is cached
-      expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
-    });
-  });
 });
 
 // ====================================================================
-// NOT-ONBOARDED APP
-// ====================================================================
-describe("Apps Page — not-onboarded app", () => {
-  it("shows docs link when unique_identifier is null", async () => {
-    server.use(
-      http.get("*/api/teams/:teamId/apps", () => {
-        return HttpResponse.json([
-          makeAppFixture({ unique_identifier: null, os_names: null }),
-        ]);
-      }),
-    );
-    renderWithProviders(
-      <Apps params={promiseParams({ teamId: "test-team" })} />,
-    );
-    await waitFor(
-      () => {
-        expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-    expect(screen.getByText(/Follow our/)).toBeTruthy();
-    expect(screen.queryByText("Unique Identifier")).toBeNull();
-    expect(screen.queryByText("Operating Systems")).toBeNull();
-  });
-});
-
-// ====================================================================
-// THRESHOLD VALIDATION
-// ====================================================================
-describe("Apps Page — threshold validation", () => {
-  async function renderAndWaitForData() {
-    renderWithProviders(
-      <Apps params={promiseParams({ teamId: "test-team" })} />,
-    );
-    await waitFor(
-      () => {
-        expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-  }
-
-  it("renders threshold section", async () => {
-    await renderAndWaitForData();
-    expect(screen.getByText("Change Error Thresholds")).toBeTruthy();
-  });
-});
-
-// ====================================================================
-// CREATE APP BUTTON
+// CREATE APP
 // ====================================================================
 describe("Apps Page — create app", () => {
-  it("renders Create App button", async () => {
-    renderWithProviders(
-      <Apps params={promiseParams({ teamId: "test-team" })} />,
-    );
-    await waitFor(
-      () => {
-        expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-    expect(screen.getByText("Create App")).toBeTruthy();
-  });
-
-  it("Create App button disabled when permission denied", async () => {
-    server.use(
-      http.get("*/api/teams/:teamId/authz", () => {
-        return HttpResponse.json(makeAuthzFixture({ can_create_app: false }));
-      }),
-    );
-    renderWithProviders(
-      <Apps params={promiseParams({ teamId: "test-team" })} />,
-    );
-    await waitFor(
-      () => {
-        expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-    expect(screen.getByText("Create App").closest("button")?.disabled).toBe(
-      true,
-    );
-  });
-
   it("opens dialog, submits new app name, POSTs to /teams/:teamId/apps and invalidates teams query", async () => {
     let capturedBody: any = null;
     let capturedPath: string = "";
@@ -630,42 +332,6 @@ describe("Apps Page — create app", () => {
 // NO APPS IN TEAM — ONBOARDING TAKES OVER
 // ====================================================================
 describe("Apps Page — no apps in team", () => {
-  function noAppsHandler() {
-    return http.get("*/api/teams/:teamId/apps", () => {
-      return new HttpResponse(null, { status: 404 });
-    });
-  }
-
-  it("renders the Onboarding create step when team has zero apps", async () => {
-    server.use(noAppsHandler());
-    renderWithProviders(
-      <Apps params={promiseParams({ teamId: "test-team" })} />,
-    );
-    await waitFor(
-      () => {
-        expect(screen.getByTestId("onboarding-step-create")).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-  });
-
-  it("hides the Create App button when team has zero apps", async () => {
-    server.use(noAppsHandler());
-    renderWithProviders(
-      <Apps params={promiseParams({ teamId: "test-team" })} />,
-    );
-    await waitFor(
-      () => {
-        expect(screen.getByTestId("onboarding-step-create")).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-    // The page-level Create App button (rendered by <CreateApp>) should be
-    // suppressed while onboarding is the call-to-action. The Onboarding
-    // form has its own submit button labelled "Create app" (lowercase 'a').
-    expect(screen.queryByText("Create App")).toBeNull();
-  });
-
   it("transitions to the settings UI after the first app is created", async () => {
     let appsCallCount = 0;
     const newApp = makeAppFixture({
@@ -715,83 +381,6 @@ describe("Apps Page — no apps in team", () => {
     );
     // Create App button returns alongside the settings UI.
     expect(screen.getByText("Create App")).toBeTruthy();
-  });
-});
-
-// ====================================================================
-// RETENTION SAVE BUTTON STATES
-// ====================================================================
-describe("Apps Page — retention save button", () => {
-  async function renderAndWaitForData() {
-    renderWithProviders(
-      <Apps params={promiseParams({ teamId: "test-team" })} />,
-    );
-    await waitFor(
-      () => {
-        expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-  }
-
-  it("retention section renders", async () => {
-    await renderAndWaitForData();
-    expect(screen.getByText("Configure Data Retention")).toBeTruthy();
-  });
-});
-
-// ====================================================================
-// SDK CONFIGURATOR
-// ====================================================================
-describe("Apps Page — SDK configurator", () => {
-  async function renderAndWaitForData() {
-    renderWithProviders(
-      <Apps params={promiseParams({ teamId: "test-team" })} />,
-    );
-    await waitFor(
-      () => {
-        expect(screen.getByText("Configure Data Collection")).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-  }
-
-  describe("accordion sections", () => {
-    it('renders "Configure Data Collection" heading', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Configure Data Collection")).toBeTruthy();
-    });
-
-    it("renders all 8 accordion section triggers for android app", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Crashes")).toBeTruthy();
-      expect(screen.getByText("ANRs")).toBeTruthy();
-      expect(screen.getByText("Bug Reports")).toBeTruthy();
-      expect(screen.getByText("Traces")).toBeTruthy();
-      expect(screen.getByText("Launch Metrics")).toBeTruthy();
-      expect(screen.getByText("User Journeys")).toBeTruthy();
-      expect(screen.getByText("HTTP")).toBeTruthy();
-      expect(screen.getByText("Screenshot Masking")).toBeTruthy();
-    });
-
-    it("hides ANRs accordion for iOS app", async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/apps", () => {
-          return HttpResponse.json([makeAppFixture({ os_names: ["ios"] })]);
-        }),
-      );
-      renderWithProviders(
-        <Apps params={promiseParams({ teamId: "test-team" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Configure Data Collection")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      expect(screen.getByText("Crashes")).toBeTruthy();
-      expect(screen.queryByText("ANRs")).toBeNull();
-    });
   });
 });
 
@@ -846,7 +435,6 @@ describe("Apps Page — mutations", () => {
 
       // Find the Save button near the rename input (click it to open confirmation dialog)
       const saveButtons = screen.getAllByText("Save");
-      // The rename Save button is the third one (after threshold Save and retention Save)
       const renameSaveBtn = saveButtons.find((btn) => {
         const button = btn.closest("button");
         return button && !button.disabled;
@@ -928,45 +516,6 @@ describe("Apps Page — mutations", () => {
         },
         { timeout: 5000 },
       );
-    });
-  });
-
-  // ================================================================
-  // SAVE RETENTION
-  // ================================================================
-  describe("save retention", () => {
-    it("calls PATCH /apps/:appId/retention after confirmation and updates UI", async () => {
-      let capturedBody: any = null;
-      let retentionUpdated = false;
-      server.use(
-        http.patch("*/api/apps/:appId/retention", async ({ request }) => {
-          capturedBody = await request.json();
-          retentionUpdated = true;
-          return HttpResponse.json({ ok: true });
-        }),
-        http.get("*/api/apps/:appId/retention", () => {
-          if (retentionUpdated) {
-            return HttpResponse.json(
-              makeAppRetentionFixture({ retention: 365 }),
-            );
-          }
-          return HttpResponse.json(makeAppRetentionFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
-
-      // The retention dropdown and Save button are in the "Configure Data Retention" section.
-      // We need to simulate changing the dropdown. The DropdownSelect uses a button to open it.
-      // Since the dropdown is complex, we look for the Save button near retention
-      // and verify the API call is made with the correct body.
-      // For now, we'll verify the retention Save flow triggers correctly
-      // by programmatically calling the mutation since the dropdown component
-      // is tested at the unit level.
-
-      // The current retention is 90 (fixture default).
-      // We verify the data retention section renders.
-      expect(screen.getByText("Configure Data Retention")).toBeTruthy();
     });
   });
 
@@ -1176,314 +725,72 @@ describe("Apps Page — mutations", () => {
   });
 
   // ================================================================
-  // THRESHOLD VALIDATION
-  // ================================================================
-  describe("threshold validation", () => {
-    it("good_threshold <= caution_threshold — no API call made", async () => {
-      let thresholdPatchCalled = false;
-      server.use(
-        http.patch("*/api/apps/:appId/thresholdPrefs", () => {
-          thresholdPatchCalled = true;
-          return HttpResponse.json({ ok: true });
-        }),
-      );
-
-      await renderAndWaitForData();
-
-      // Set good threshold to 95 (below default caution of 98)
-      const goodInput = screen.getByTestId(
-        "error-good-threshold-input",
-      ) as HTMLInputElement;
-      await act(async () => {
-        fireEvent.change(goodInput, { target: { value: "95" } });
-      });
-
-      // Save button should be enabled (values changed)
-      const saveBtn = screen
-        .getByLabelText("Save thresholds")
-        .closest("button")!;
-      await waitFor(() => {
-        expect(saveBtn.disabled).toBe(false);
-      });
-
-      await act(async () => {
-        fireEvent.click(saveBtn);
-      });
-
-      // Validation should prevent API call
-      await new Promise((r) => setTimeout(r, 500));
-      expect(thresholdPatchCalled).toBe(false);
-    });
-
-    it("good_threshold outside 0-100 — no API call made", async () => {
-      let thresholdPatchCalled = false;
-      server.use(
-        http.patch("*/api/apps/:appId/thresholdPrefs", () => {
-          thresholdPatchCalled = true;
-          return HttpResponse.json({ ok: true });
-        }),
-      );
-
-      await renderAndWaitForData();
-
-      // Set good threshold to 0 (invalid: must be > 0)
-      const goodInput = screen.getByTestId(
-        "error-good-threshold-input",
-      ) as HTMLInputElement;
-      await act(async () => {
-        fireEvent.change(goodInput, { target: { value: "0" } });
-      });
-
-      // Also change caution to something lower so the "good > caution" check passes
-      const cautionInput = screen.getByTestId(
-        "error-caution-threshold-input",
-      ) as HTMLInputElement;
-      await act(async () => {
-        fireEvent.change(cautionInput, { target: { value: "-1" } });
-      });
-
-      const saveBtn = screen
-        .getByLabelText("Save thresholds")
-        .closest("button")!;
-      await waitFor(() => {
-        expect(saveBtn.disabled).toBe(false);
-      });
-
-      await act(async () => {
-        fireEvent.click(saveBtn);
-      });
-
-      await new Promise((r) => setTimeout(r, 500));
-      expect(thresholdPatchCalled).toBe(false);
-    });
-  });
-
-  // ================================================================
   // RETENTION MUTATION
   // ================================================================
   describe("retention mutation", () => {
     it("changing retention dropdown and clicking Save calls PATCH /apps/:appId/retention", async () => {
       let capturedBody: any = null;
-      let retentionUpdated = false;
       server.use(
         http.patch("*/api/apps/:appId/retention", async ({ request }) => {
           capturedBody = await request.json();
-          retentionUpdated = true;
           return HttpResponse.json({ ok: true });
         }),
       );
 
       await renderAndWaitForData();
 
-      // The retention dropdown is a DropdownSelect with initial value "3 months" (90 days).
-      // Find the dropdown button that shows "3 months"
+      // The retention dropdown trigger shows the current period, "3 months"
+      // (90 days from the fixture). Open it and pick "1 year".
       const retentionDropdownBtn = screen
         .getByText("3 months")
-        .closest("button");
-      if (retentionDropdownBtn) {
-        await act(async () => {
-          fireEvent.click(retentionDropdownBtn);
-        });
-
-        // Look for "1 year" option
-        await waitFor(
-          () => {
-            expect(screen.getByText("1 year")).toBeTruthy();
-          },
-          { timeout: 3000 },
-        );
-
-        // Click "1 year"
-        await act(async () => {
-          fireEvent.click(screen.getByText("1 year"));
-        });
-      }
-
-      // Find the retention Save button — it's near "Configure Data Retention" section
-      // Look for a Save button that is now enabled (retention changed from 90 to 365)
-      const saveButtons = screen.getAllByText("Save");
-      // The retention Save is distinct from threshold Save (has aria-label) and rename Save
-      // We look for one that is enabled and not the threshold save
-      const retentionSaveBtn = saveButtons.find((btn) => {
-        const button = btn.closest("button");
-        return button && !button.disabled && !button.getAttribute("aria-label");
-      });
-
-      if (retentionSaveBtn) {
-        await act(async () => {
-          fireEvent.click(retentionSaveBtn);
-        });
-
-        // Confirm dialog
-        await waitFor(() => {
-          expect(screen.getByText("Yes, I'm sure")).toBeTruthy();
-        });
-        await act(async () => {
-          fireEvent.click(screen.getByText("Yes, I'm sure"));
-        });
-
-        // Verify API was called
-        await waitFor(
-          () => {
-            expect(capturedBody).toBeTruthy();
-            expect(capturedBody.retention).toBe(365);
-          },
-          { timeout: 5000 },
-        );
-      }
-    });
-  });
-
-  // ================================================================
-  // PERMISSION GATES
-  // ================================================================
-  describe("permission gates", () => {
-    it("rename Save disabled when canRenameApp=false", async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/authz", () => {
-          return HttpResponse.json(makeAuthzFixture({ can_rename_app: false }));
-        }),
-      );
-
-      renderWithProviders(
-        <Apps params={promiseParams({ teamId: "test-team" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      const nameInput = document.getElementById(
-        "change-app-name-input",
-      ) as HTMLInputElement;
-      expect(nameInput.disabled).toBe(true);
-    });
-
-    it("Rotate button disabled when canRotateApiKey=false", async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/authz", () => {
-          return HttpResponse.json(
-            makeAuthzFixture({ can_rotate_api_key: false }),
-          );
-        }),
-      );
-
-      renderWithProviders(
-        <Apps params={promiseParams({ teamId: "test-team" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      expect(screen.getByText("Rotate").closest("button")?.disabled).toBe(true);
-    });
-
-    it("retention Save disabled when canChangeRetention=false", async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/authz", () => {
-          return HttpResponse.json(
-            makeAuthzFixture({ can_change_retention: false }),
-          );
-        }),
-      );
-
-      renderWithProviders(
-        <Apps params={promiseParams({ teamId: "test-team" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Copy SDK Variables")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      // The retention dropdown itself should be disabled
-      const retentionDropdownBtn = screen
-        .getByText("3 months")
-        .closest("button");
-      expect(retentionDropdownBtn?.disabled).toBe(true);
-    });
-
-    it("threshold inputs disabled when canChangeAppThresholdPrefs=false", async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/authz", () => {
-          return HttpResponse.json(
-            makeAuthzFixture({ can_change_app_threshold_prefs: false }),
-          );
-        }),
-      );
-
-      renderWithProviders(
-        <Apps params={promiseParams({ teamId: "test-team" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Change Error Thresholds")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      // Threshold Save should be disabled
-      const saveBtn = screen
-        .getByLabelText("Save thresholds")
         .closest("button")!;
-      expect(saveBtn.disabled).toBe(true);
-    });
-  });
+      expect(retentionDropdownBtn).toBeTruthy();
+      await act(async () => {
+        fireEvent.click(retentionDropdownBtn);
+      });
 
-  // ================================================================
-  // DIALOG CANCEL
-  // ================================================================
-  describe("dialog cancel", () => {
-    it("open rename confirmation then click Cancel — no API call", async () => {
-      let renameCalled = false;
-      server.use(
-        http.patch("*/api/apps/:appId/rename", () => {
-          renameCalled = true;
-          return HttpResponse.json({ ok: true });
-        }),
+      await waitFor(
+        () => {
+          expect(screen.getByText("1 year")).toBeTruthy();
+        },
+        { timeout: 3000 },
       );
 
-      await renderAndWaitForData();
-
-      const nameInput = document.getElementById(
-        "change-app-name-input",
-      ) as HTMLInputElement;
       await act(async () => {
-        fireEvent.change(nameInput, { target: { value: "cancelled-rename" } });
+        fireEvent.click(screen.getByText("1 year"));
       });
 
-      // Click Save to open confirmation dialog
-      const saveButtons = screen.getAllByText("Save");
-      const renameSaveBtn = saveButtons.find((btn) => {
-        const button = btn.closest("button");
-        return button && !button.disabled;
-      });
-      expect(renameSaveBtn).toBeTruthy();
+      // The retention Save is the enabled plain "Save" button; the threshold
+      // save carries an aria-label and the rename save stays disabled because
+      // the name is unchanged.
+      const retentionSaveBtn = screen
+        .getAllByText("Save")
+        .map((el) => el.closest("button")!)
+        .find(
+          (button) => !button.disabled && !button.getAttribute("aria-label"),
+        );
+      expect(retentionSaveBtn).toBeTruthy();
 
       await act(async () => {
-        fireEvent.click(renameSaveBtn!);
+        fireEvent.click(retentionSaveBtn!);
       });
 
-      // Wait for confirmation dialog
+      // Confirm dialog
       await waitFor(() => {
         expect(screen.getByText("Yes, I'm sure")).toBeTruthy();
-        expect(screen.getByText("Cancel")).toBeTruthy();
       });
-
-      // Click Cancel
       await act(async () => {
-        fireEvent.click(screen.getByText("Cancel"));
+        fireEvent.click(screen.getByText("Yes, I'm sure"));
       });
 
-      // Wait and verify no API call
-      await new Promise((r) => setTimeout(r, 300));
-      expect(renameCalled).toBe(false);
+      // Verify API was called with the new retention period
+      await waitFor(
+        () => {
+          expect(capturedBody).toBeTruthy();
+          expect(capturedBody.retention).toBe(365);
+        },
+        { timeout: 5000 },
+      );
     });
   });
 
@@ -1553,47 +860,5 @@ describe("Apps Page — mutations", () => {
         { timeout: 5000 },
       );
     });
-  });
-});
-
-// ====================================================================
-// AUTH FAILURE
-// ====================================================================
-describe("Apps — auth failure", () => {
-  it("401 on authz triggers token refresh attempt", async () => {
-    let refreshAttempted = false;
-    server.use(
-      http.get("*/api/teams/:teamId/authz", () => {
-        return new HttpResponse(null, { status: 401 });
-      }),
-      http.post("*/auth/refresh", () => {
-        refreshAttempted = true;
-        return new HttpResponse(null, { status: 401 });
-      }),
-    );
-    renderWithProviders(
-      <Apps params={promiseParams({ teamId: "test-team" })} />,
-    );
-    await waitFor(
-      () => {
-        expect(refreshAttempted).toBe(true);
-      },
-      { timeout: 5000 },
-    );
-  });
-});
-
-describe("Apps page — loading states", () => {
-  it("shows skeleton loading before data arrives", async () => {
-    server.use(
-      http.get("*/api/apps", async () => {
-        await new Promise((r) => setTimeout(r, 200));
-        return HttpResponse.json([]);
-      }),
-    );
-    renderWithProviders(
-      <Apps params={promiseParams({ teamId: "test-team" })} />,
-    );
-    expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy();
   });
 });

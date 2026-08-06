@@ -313,6 +313,109 @@ describe("BugReportsOverview Component", () => {
     expect(screen.getByText("No Description")).toBeInTheDocument();
   });
 
+  it("does not render matched badge when matched_free_text is empty", async () => {
+    const noMatchData = {
+      results: [{ ...mockBugReportResult, matched_free_text: "" }],
+      meta: { previous: false, next: false },
+    };
+    mockUseBugReportsOverviewQuery.mockReturnValue({
+      data: noMatchData,
+      status: "success",
+      isFetching: false,
+      error: null,
+    });
+    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          serialisedFilters: "updated",
+          app: { id: "app1" },
+        },
+      });
+    });
+
+    expect(screen.queryByText(/Matched /)).not.toBeInTheDocument();
+  });
+
+  // The device info line maps os_name to a display label: android becomes
+  // "Android API Level", ios "iOS", ipados "iPadOS", and any other value is
+  // shown as-is.
+  it.each([
+    {
+      osName: "ipados",
+      osVersion: "17",
+      expected: "1.0(1), iPadOS 17, Apple iPhone 12",
+    },
+    {
+      osName: "android",
+      osVersion: "14",
+      expected: "1.0(1), Android API Level 14, Apple iPhone 12",
+    },
+    {
+      osName: "harmonyos",
+      osVersion: "4",
+      expected: "1.0(1), harmonyos 4, Apple iPhone 12",
+    },
+  ])(
+    "formats device info line for os_name $osName",
+    async ({ osName, osVersion, expected }) => {
+      const osData = {
+        results: [
+          {
+            ...mockBugReportResult,
+            attribute: {
+              ...mockBugReportResult.attribute,
+              os_name: osName,
+              os_version: osVersion,
+            },
+          },
+        ],
+        meta: { previous: false, next: false },
+      };
+      mockUseBugReportsOverviewQuery.mockReturnValue({
+        data: osData,
+        status: "success",
+        isFetching: false,
+        error: null,
+      });
+      render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
+      await act(async () => {
+        useFiltersStore.setState({
+          filters: {
+            ready: true,
+            serialisedFilters: "updated",
+            app: { id: "app1" },
+          },
+        });
+      });
+
+      expect(screen.getByText(expected)).toBeInTheDocument();
+    },
+  );
+
+  it("renders table headers but no rows when results are empty", async () => {
+    mockUseBugReportsOverviewQuery.mockReturnValue({
+      data: { results: [], meta: { previous: false, next: false } },
+      status: "success",
+      isFetching: false,
+      error: null,
+    });
+    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          serialisedFilters: "updated",
+          app: { id: "app1" },
+        },
+      });
+    });
+
+    expect(screen.getByText("Bug Report")).toBeInTheDocument();
+    expect(screen.queryByText("ID: bug1")).not.toBeInTheDocument();
+  });
+
   describe("Pagination offset handling", () => {
     it("initializes pagination offset to 0 when no offset is provided", async () => {
       mockUseBugReportsOverviewQuery.mockReturnValue({

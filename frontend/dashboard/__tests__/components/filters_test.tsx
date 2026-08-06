@@ -521,6 +521,29 @@ describe("Filters — store state after queries resolve", () => {
     });
   });
 
+  it("selects every version covered by a compressed URL index range", async () => {
+    const fixture = {
+      ...filterOptionsFixture,
+      versions: [
+        new AppVersion("1.0", "100"),
+        new AppVersion("2.0", "200"),
+        new AppVersion("3.0", "300"),
+      ],
+    };
+    mockSearchParams = new URLSearchParams("v=0-2");
+    setAppsSuccess([makeApp("a")]);
+    filterOptionsQueryState = {
+      status: "success",
+      data: { kind: "options", data: fixture },
+    };
+    await renderFilters();
+    await waitFor(() => {
+      expect(
+        storeInstance.getState().selectedVersions.map((v: any) => v.name),
+      ).toEqual(["1.0", "2.0", "3.0"]);
+    });
+  });
+
   it("mirrors root span names into the store and selects the first", async () => {
     setAppsSuccess([makeApp("a")]);
     setFiltersSuccess();
@@ -628,6 +651,16 @@ describe("Filters — date initialization", () => {
     await renderFilters();
     await waitFor(() => {
       expect(storeInstance.getState().selectedDateRange).toBe("Last Year");
+    });
+  });
+
+  it("falls back to the default range when the URL dateRange is unknown", async () => {
+    mockSearchParams = new URLSearchParams("d=Not+A+Real+Range");
+    setAppsSuccess([makeApp("a")]);
+    setFiltersSuccess();
+    await renderFilters();
+    await waitFor(() => {
+      expect(storeInstance.getState().selectedDateRange).toBe("Last 6 Hours");
     });
   });
 
@@ -1233,6 +1266,16 @@ describe("Filters — More filters modal pending changes", () => {
     await waitFor(() => {
       expect(screen.getByText("Country: US")).toBeInTheDocument();
     });
+  });
+});
+
+describe("deserializeUrlFilters — version index ranges", () => {
+  it("expands a compressed range into every index in the range", () => {
+    expect(deserializeUrlFilters("v=0-2").versions).toEqual([0, 1, 2]);
+  });
+
+  it("expands a mix of single indices and ranges", () => {
+    expect(deserializeUrlFilters("v=0,2-4").versions).toEqual([0, 2, 3, 4]);
   });
 });
 

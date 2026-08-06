@@ -607,6 +607,9 @@ describe("MetricsCard", () => {
         "alert-triangle-icon",
       );
       expect(alertTriangleIcon).not.toBeInTheDocument();
+      // The size value itself is meaningless across versions, so the card
+      // shows N/A in place of a number.
+      expect(screen.getByText("N/A")).toBeInTheDocument();
       expect(
         screen.getByText(
           "App size metric is only available when a single app version is selected",

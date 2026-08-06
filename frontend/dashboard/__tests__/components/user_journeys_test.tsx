@@ -4,10 +4,11 @@ import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
 const mockRouterReplace = jest.fn();
+let mockSearchParams = new URLSearchParams();
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockRouterReplace }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockSearchParams,
 }));
 
 jest.mock("next/link", () => ({
@@ -94,6 +95,7 @@ const { useFiltersStore } = require("@/app/stores/provider") as any;
 
 describe("UserJourneys", () => {
   beforeEach(() => {
+    mockSearchParams = new URLSearchParams();
     useFiltersStore.setState({
       filters: { ready: false, serialisedFilters: "" },
     });
@@ -157,6 +159,13 @@ describe("UserJourneys", () => {
       fireEvent.click(screen.getByTestId("tab-Exceptions"));
       fireEvent.click(screen.getByTestId("tab-Paths"));
       expect(screen.getByTestId("journey-Paths")).toBeInTheDocument();
+    });
+
+    it("starts on Exceptions tab when the URL has jt=Exceptions", () => {
+      mockSearchParams = new URLSearchParams({ jt: "Exceptions" });
+      render(<UserJourneys demo={true} />);
+      expect(screen.getByTestId("journey-Exceptions")).toBeInTheDocument();
+      expect(screen.queryByTestId("journey-Paths")).not.toBeInTheDocument();
     });
   });
 

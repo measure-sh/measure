@@ -211,6 +211,106 @@ describe("TracesOverview Component", () => {
     ).toBeInTheDocument();
   });
 
+  it.each([
+    [2, "Error"],
+    [0, "Unset"],
+  ])("renders status pill %s as %s", async (status, label) => {
+    mockUseSpansQuery.mockReturnValue({
+      data: {
+        ...mockSpanData,
+        results: [{ ...mockSpanData.results[0], status }],
+      },
+      status: "success",
+      isFetching: false,
+      error: null,
+    });
+    render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          serialisedFilters: "updated",
+          app: { id: "app-1" },
+        },
+      });
+    });
+
+    expect(screen.getByText(label as string)).toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      "android",
+      "14",
+      "Google",
+      "Pixel 8",
+      "1.0(1), Android API Level 14, Google Pixel 8",
+    ],
+    ["ipados", "17", "Apple", "iPad Pro", "1.0(1), iPadOS 17, Apple iPad Pro"],
+    ["harmonyos", "4", "Huawei", "P60", "1.0(1), harmonyos 4, Huawei P60"],
+  ])(
+    "renders the %s device string",
+    async (
+      os_name,
+      os_version,
+      device_manufacturer,
+      device_model,
+      expected,
+    ) => {
+      mockUseSpansQuery.mockReturnValue({
+        data: {
+          ...mockSpanData,
+          results: [
+            {
+              ...mockSpanData.results[0],
+              os_name,
+              os_version,
+              device_manufacturer,
+              device_model,
+            },
+          ],
+        },
+        status: "success",
+        isFetching: false,
+        error: null,
+      });
+      render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
+      await act(async () => {
+        useFiltersStore.setState({
+          filters: {
+            ready: true,
+            serialisedFilters: "updated",
+            app: { id: "app-1" },
+          },
+        });
+      });
+
+      expect(screen.getByText(expected as string)).toBeInTheDocument();
+    },
+  );
+
+  it("renders an empty table when no spans match", async () => {
+    mockUseSpansQuery.mockReturnValue({
+      data: { results: [], meta: { previous: false, next: false } },
+      status: "success",
+      isFetching: false,
+      error: null,
+    });
+    render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          serialisedFilters: "updated",
+          app: { id: "app-1" },
+        },
+      });
+    });
+
+    expect(screen.getByText("Trace")).toBeInTheDocument();
+    expect(screen.queryByText(/ID:/)).not.toBeInTheDocument();
+  });
+
   it("shows error message when API returns error status", async () => {
     mockUseSpansQuery.mockReturnValue({
       data: undefined,
@@ -342,6 +442,89 @@ describe("TracesOverview Component", () => {
       });
 
       expect(replaceMock).toHaveBeenLastCalledWith("?po=5&updated", {
+        scroll: false,
+      });
+    });
+
+    it("decrements offset by 5 on Prev click (not below 0)", async () => {
+      mockUseSpansQuery.mockReturnValue({
+        data: mockSpanData,
+        status: "success",
+        isFetching: false,
+        error: null,
+      });
+      render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
+      await act(async () => {
+        useFiltersStore.setState({
+          filters: {
+            ready: true,
+            serialisedFilters: "updated",
+            app: { id: "app-1" },
+          },
+        });
+      });
+
+      const nextButton = await screen.findByTestId("next-button");
+      await act(async () => {
+        fireEvent.click(nextButton);
+      });
+      expect(replaceMock).toHaveBeenLastCalledWith("?po=5&updated", {
+        scroll: false,
+      });
+
+      const prevButton = await screen.findByTestId("prev-button");
+      await act(async () => {
+        fireEvent.click(prevButton);
+      });
+      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated", {
+        scroll: false,
+      });
+
+      // Clicking Prev again must not go negative
+      await act(async () => {
+        fireEvent.click(prevButton);
+      });
+      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated", {
+        scroll: false,
+      });
+    });
+
+    it("resets pagination offset when filters change", async () => {
+      mockUseSpansQuery.mockReturnValue({
+        data: mockSpanData,
+        status: "success",
+        isFetching: false,
+        error: null,
+      });
+      render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
+      await act(async () => {
+        useFiltersStore.setState({
+          filters: {
+            ready: true,
+            serialisedFilters: "updated",
+            app: { id: "app-1" },
+          },
+        });
+      });
+      const nextButton = await screen.findByTestId("next-button");
+      await act(async () => {
+        fireEvent.click(nextButton);
+      });
+      expect(replaceMock).toHaveBeenLastCalledWith("?po=5&updated", {
+        scroll: false,
+      });
+
+      await act(async () => {
+        useFiltersStore.setState({
+          filters: {
+            ready: true,
+            serialisedFilters: "updated2",
+            app: { id: "app-1" },
+          },
+        });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated2", {
         scroll: false,
       });
     });

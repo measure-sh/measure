@@ -113,6 +113,15 @@ describe("Notifications page", () => {
     });
   });
 
+  it("renders table headers", () => {
+    mockNotifPrefsStatus = "success";
+    mockNotifPrefsData = defaultNotifPrefs;
+    render(<Notifications />);
+
+    expect(screen.getByText("Alert type")).toBeInTheDocument();
+    expect(screen.getByText("Email")).toBeInTheDocument();
+  });
+
   it("renders description text", () => {
     mockNotifPrefsStatus = "success";
     mockNotifPrefsData = defaultNotifPrefs;

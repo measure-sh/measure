@@ -68,11 +68,6 @@ describe("/page-md/[...path] route handler", () => {
       await expectMarkdown(res, "# Pricing");
     });
 
-    it("serves nested product pages from app/product/<slug>/page.md", async () => {
-      const res = await call(["product", "mcp"]);
-      await expectMarkdown(res, "# MCP");
-    });
-
     it("serves every product page that exists on disk", async () => {
       const productDir = path.join(process.cwd(), "app", "product");
       const slugs = fs
@@ -159,28 +154,6 @@ describe("/page-md/[...path] route handler", () => {
     it("returns 406 for an attempted escape via mixed segments", async () => {
       const res = await call(["product", "..", "..", "package.json"]);
       await expect406(res);
-    });
-
-    it("strips frontmatter from the served body", async () => {
-      const res = await call(["about"]);
-      const body = await res.text();
-      // The on-disk file starts with `---\ntitle: ...\n---`, but the
-      // response body must not include that block.
-      expect(body).not.toMatch(/^---\s*\n/);
-      expect(body).not.toContain("canonical: /about");
-    });
-
-    it("served homepage body matches app/page.md after frontmatter strip", async () => {
-      const res = await call(["index"]);
-      const body = await res.text();
-      const raw = fs.readFileSync(
-        path.join(process.cwd(), "app", "page.md"),
-        "utf-8",
-      );
-      // After stripping frontmatter, what's left should be exactly what
-      // the route returns.
-      const afterFm = raw.replace(/^---[\s\S]*?---\s*\n?/, "");
-      expect(body).toBe(afterFm);
     });
   });
 

@@ -32,10 +32,18 @@ jest.mock("@/app/components/filters", () => ({
 
 jest.mock("@/app/components/metrics_card", () => ({
   __esModule: true,
-  default: ({ type, status, launchType }: any) => (
+  default: ({
+    type,
+    status,
+    launchType,
+    errorGoodThreshold,
+    errorCautionThreshold,
+  }: any) => (
     <div
       data-testid={`metrics-card-${type}${launchType ? `-${launchType}` : ""}`}
       data-status={status}
+      data-error-good-threshold={errorGoodThreshold}
+      data-error-caution-threshold={errorCautionThreshold}
     >
       {type}
       {launchType ? ` ${launchType}` : ""}
@@ -241,6 +249,35 @@ describe("MetricsOverview", () => {
         ).toBeInTheDocument();
         expect(screen.getByTestId("metrics-card-app_size")).toBeInTheDocument();
       });
+    });
+  });
+
+  describe("Threshold prefs fallback", () => {
+    beforeEach(() => {
+      useFiltersStore.setState({ filters: readyFilters() });
+      mockUseMetricsQuery.mockReset();
+      mockUseAppThresholdPrefsQuery.mockReset();
+      mockUseMetricsQuery.mockReturnValue({
+        data: mockMetricsData(),
+        status: "success",
+        error: null as Error | null,
+      });
+    });
+
+    it("passes the default thresholds to cards when the prefs query fails", async () => {
+      mockUseAppThresholdPrefsQuery.mockReturnValue({
+        data: undefined,
+        status: "error",
+        error: new Error("prefs failed"),
+      });
+      await act(async () => {
+        render(<MetricsOverview />);
+      });
+      // The failed query leaves data undefined, so the component substitutes
+      // defaultAppThresholdPrefs and the cards still get usable thresholds.
+      const card = screen.getByTestId("metrics-card-crash_free_sessions");
+      expect(card).toHaveAttribute("data-error-good-threshold", "99");
+      expect(card).toHaveAttribute("data-error-caution-threshold", "95");
     });
   });
 
