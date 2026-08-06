@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :sparkles: New features
+
+
 ### :books: Documentation
 
 - (**backend**): Update contributing guide (#4195) by @detj in #4195
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #4198
+- Update README.md [skip ci] by @allcontributors[bot]
 
 ## [0.11.0] - 2026-08-06
 
