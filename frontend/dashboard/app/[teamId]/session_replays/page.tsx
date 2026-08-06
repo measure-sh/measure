@@ -116,11 +116,6 @@ export default function SessionReplayOverview(props: {
         teamId={params.teamId}
         filterSource={FilterSource.Events}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
-        showNoData={true}
-        showNotOnboarded={true}
-        showAppSelector={true}
-        showAppVersions={true}
-        showDates={true}
         showSessionTypes={true}
         showOsVersions={true}
         showCountries={true}
@@ -130,8 +125,6 @@ export default function SessionReplayOverview(props: {
         showLocales={true}
         showDeviceManufacturers={true}
         showDeviceNames={true}
-        showBugReportStatus={false}
-        showHttpMethods={false}
         showUdAttrs={true}
         showFreeText={true}
         freeTextPlaceholder="Search User/Session ID, Logs, Event Type, Target View ID, File/Class name or Exception Traces..."

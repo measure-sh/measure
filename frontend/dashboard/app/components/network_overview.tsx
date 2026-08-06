@@ -332,23 +332,7 @@ export default function NetworkOverview({
           filterSource={FilterSource.Events}
           appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
           showNoData={false}
-          showNotOnboarded={true}
-          showAppSelector={true}
           showAppVersions={false}
-          showDates={true}
-          showSessionTypes={false}
-          showOsVersions={false}
-          showCountries={false}
-          showNetworkTypes={false}
-          showNetworkProviders={false}
-          showNetworkGenerations={false}
-          showLocales={false}
-          showDeviceManufacturers={false}
-          showDeviceNames={false}
-          showBugReportStatus={false}
-          showHttpMethods={false}
-          showUdAttrs={false}
-          showFreeText={false}
         />
       )}
 

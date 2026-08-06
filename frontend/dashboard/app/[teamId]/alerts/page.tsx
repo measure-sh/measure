@@ -87,25 +87,7 @@ export default function AlertsOverview(props: {
         teamId={params.teamId}
         filterSource={FilterSource.Events}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-        showNoData={true}
-        showNotOnboarded={true}
-        showAppSelector={true}
         showAppVersions={false}
-        showDates={true}
-        showSessionTypes={false}
-        showOsVersions={false}
-        showCountries={false}
-        showNetworkTypes={false}
-        showNetworkProviders={false}
-        showNetworkGenerations={false}
-        showLocales={false}
-        showDeviceManufacturers={false}
-        showDeviceNames={false}
-        showBugReportStatus={false}
-        showHttpMethods={false}
-        showUdAttrs={false}
-        showFreeText={false}
-        freeTextPlaceholder="Search User ID, Session Id, Bug Report ID or description.."
       />
       <div className="py-4" />
 
