@@ -667,3 +667,55 @@ func TestRemovedFromTeamEmail(t *testing.T) {
 		}
 	})
 }
+
+// Anyone who can name a team controls a string that several emails place in
+// their HTML body, so markup in a name has to arrive as visible text rather
+// than as tags the mail client parses.
+func TestTeamNameMarkupIsEscaped(t *testing.T) {
+	const payload = `evil<img src="x" onerror="alert(1)">`
+	const escaped = `evil&lt;img src=&#34;x&#34; onerror=&#34;alert(1)&#34;&gt;`
+
+	bodies := map[string]string{}
+
+	_, bodies["AddedToTeamEmail"] = AddedToTeamEmail(payload, "admin", "attacker@example.com", "https://measure.sh", "team-abc")
+	_, bodies["InviteNewUserEmail"] = InviteNewUserEmail("attacker@example.com", "admin", payload, 7, "https://measure.sh", "invite-abc")
+	_, bodies["InviteExistingUserEmail"] = InviteExistingUserEmail("attacker@example.com", "admin", payload, "https://measure.sh")
+	_, bodies["RemovedFromTeamEmail"] = RemovedFromTeamEmail(payload, "attacker@example.com", "https://measure.sh", "team-abc")
+	_, bodies["RoleChangedEmail"] = RoleChangedEmail("admin", "attacker@example.com", payload, "https://measure.sh", "team-abc")
+	_, bodies["UsageLimitEmail"] = UsageLimitEmail(payload, "team-abc", "https://measure.sh", 90)
+	_, bodies["UsageLimitEmail(100)"] = UsageLimitEmail(payload, "team-abc", "https://measure.sh", 100)
+	_, bodies["UpgradeEmail"] = UpgradeEmail(payload, "team-abc", "https://measure.sh")
+	_, bodies["ManualDowngradeEmail"] = ManualDowngradeEmail(payload, "team-abc", "https://measure.sh")
+
+	for name, body := range bodies {
+		if strings.Contains(body, payload) {
+			t.Errorf("%s: body contains unescaped team name markup", name)
+		}
+		if !strings.Contains(body, escaped) {
+			t.Errorf("%s: body missing escaped team name", name)
+		}
+	}
+}
+
+// App names reach the email header through the subject line, which
+// RenderEmailBody places inside <title> and <h1>.
+func TestAppNameMarkupIsEscapedInTitle(t *testing.T) {
+	const payload = `evil<img src=x>`
+	const escaped = `evil&lt;img src=x&gt;`
+
+	bodies := map[string]string{}
+
+	_, bodies["CrashSpikeAlertEmail"] = CrashSpikeAlertEmail(payload, "spiking", "https://measure.sh")
+	_, bodies["AnrSpikeAlertEmail"] = AnrSpikeAlertEmail(payload, "spiking", "https://measure.sh")
+	_, bodies["BugReportAlertEmail"] = BugReportAlertEmail(payload, "a bug", "https://measure.sh")
+	_, bodies["DailySummaryEmail"] = DailySummaryEmail(payload, time.Now(), nil, "https://measure.sh", "team-abc", "app-abc")
+
+	for name, body := range bodies {
+		if strings.Contains(body, payload) {
+			t.Errorf("%s: body contains unescaped app name markup", name)
+		}
+		if !strings.Contains(body, escaped) {
+			t.Errorf("%s: body missing escaped app name", name)
+		}
+	}
+}
