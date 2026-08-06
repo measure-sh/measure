@@ -49,24 +49,6 @@ export default function Overview({
           appVersionsInitialSelectionType={
             AppVersionsInitialSelectionType.Latest
           }
-          showNoData={true}
-          showNotOnboarded={true}
-          showAppSelector={true}
-          showAppVersions={true}
-          showDates={true}
-          showSessionTypes={false}
-          showOsVersions={false}
-          showCountries={false}
-          showNetworkTypes={false}
-          showNetworkProviders={false}
-          showNetworkGenerations={false}
-          showLocales={false}
-          showDeviceManufacturers={false}
-          showDeviceNames={false}
-          showBugReportStatus={false}
-          showHttpMethods={false}
-          showFreeText={false}
-          showUdAttrs={false}
         />
       )}
 

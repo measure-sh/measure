@@ -84,12 +84,6 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
         teamId={teamId}
         filterSource={FilterSource.Errors}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
-        showNoData={true}
-        showNotOnboarded={true}
-        showAppSelector={true}
-        showAppVersions={true}
-        showDates={true}
-        showSessionTypes={false}
         showOsVersions={true}
         showCountries={true}
         showNetworkTypes={true}
@@ -98,10 +92,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
         showLocales={true}
         showDeviceManufacturers={true}
         showDeviceNames={true}
-        showBugReportStatus={false}
-        showHttpMethods={false}
         showUdAttrs={true}
-        showFreeText={false}
         showErrorType={true}
         showSeverity={true}
         showCustomErrors={true}

@@ -91,11 +91,6 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
         filterSource={FilterSource.Events}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
         showNoData={false}
-        showNotOnboarded={true}
-        showAppSelector={true}
-        showAppVersions={true}
-        showDates={true}
-        showSessionTypes={false}
         showOsVersions={true}
         showCountries={true}
         showNetworkTypes={true}
@@ -104,10 +99,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
         showLocales={true}
         showDeviceManufacturers={true}
         showDeviceNames={true}
-        showBugReportStatus={false}
         showHttpMethods={true}
-        showUdAttrs={false}
-        showFreeText={false}
       />
 
       <div className="py-4" />

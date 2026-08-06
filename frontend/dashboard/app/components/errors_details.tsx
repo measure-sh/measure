@@ -341,12 +341,7 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
           appId={appId}
           filterSource={FilterSource.Errors}
           appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-          showNoData={true}
-          showNotOnboarded={true}
           showAppSelector={false}
-          showAppVersions={true}
-          showDates={true}
-          showSessionTypes={false}
           showOsVersions={true}
           showCountries={true}
           showNetworkTypes={true}
@@ -355,10 +350,7 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
           showLocales={true}
           showDeviceManufacturers={true}
           showDeviceNames={true}
-          showBugReportStatus={false}
-          showHttpMethods={false}
           showUdAttrs={true}
-          showFreeText={false}
         />
       )}
 

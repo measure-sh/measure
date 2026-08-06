@@ -92,12 +92,6 @@ export default function BugReportsOverview(props: {
         teamId={params.teamId}
         filterSource={FilterSource.Events}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
-        showNoData={true}
-        showNotOnboarded={true}
-        showAppSelector={true}
-        showAppVersions={true}
-        showDates={true}
-        showSessionTypes={false}
         showOsVersions={true}
         showCountries={true}
         showNetworkTypes={true}
@@ -107,7 +101,6 @@ export default function BugReportsOverview(props: {
         showDeviceManufacturers={true}
         showDeviceNames={true}
         showBugReportStatus={true}
-        showHttpMethods={false}
         showUdAttrs={true}
         showFreeText={true}
         freeTextPlaceholder="Search User ID, Session Id, Bug Report ID or description.."

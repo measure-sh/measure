@@ -87,12 +87,6 @@ export default function TracesOverview(props: {
         teamId={params.teamId}
         filterSource={FilterSource.Spans}
         appVersionsInitialSelectionType={AppVersionsInitialSelectionType.Latest}
-        showNoData={true}
-        showNotOnboarded={true}
-        showAppSelector={true}
-        showAppVersions={true}
-        showDates={true}
-        showSessionTypes={false}
         showOsVersions={true}
         showCountries={true}
         showNetworkTypes={true}
@@ -101,10 +95,7 @@ export default function TracesOverview(props: {
         showLocales={true}
         showDeviceManufacturers={true}
         showDeviceNames={true}
-        showBugReportStatus={false}
-        showHttpMethods={false}
         showUdAttrs={true}
-        showFreeText={false}
       />
       <div className="py-4" />
 

@@ -288,22 +288,8 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
           appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
           showNoData={false}
           showNotOnboarded={hasNoApps}
-          showAppSelector={true}
           showAppVersions={false}
           showDates={false}
-          showSessionTypes={false}
-          showOsVersions={false}
-          showCountries={false}
-          showNetworkTypes={false}
-          showNetworkProviders={false}
-          showNetworkGenerations={false}
-          showLocales={false}
-          showDeviceManufacturers={false}
-          showDeviceNames={false}
-          showBugReportStatus={false}
-          showHttpMethods={false}
-          showUdAttrs={false}
-          showFreeText={false}
         />
 
         {!hasNoApps && (

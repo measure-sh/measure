@@ -81,25 +81,29 @@ interface FiltersProps {
   appId?: string;
   filterSource: FilterSource;
   appVersionsInitialSelectionType: AppVersionsInitialSelectionType;
-  showNoData: boolean;
-  showNotOnboarded: boolean;
+  // Every show* flag is optional and defaults to the value most pages want: the
+  // app selector, date range and app version filters are on, as are the no-data
+  // and not-onboarded states; every other filter is off. A page only uses
+  // the flags where it differs from that baseline.
+  showNoData?: boolean;
+  showNotOnboarded?: boolean;
   showNoBuilds?: boolean;
-  showAppSelector: boolean;
-  showDates: boolean;
-  showAppVersions: boolean;
-  showOsVersions: boolean;
-  showSessionTypes: boolean;
-  showCountries: boolean;
-  showNetworkProviders: boolean;
-  showNetworkTypes: boolean;
-  showNetworkGenerations: boolean;
-  showLocales: boolean;
-  showDeviceManufacturers: boolean;
-  showDeviceNames: boolean;
-  showBugReportStatus: boolean;
-  showHttpMethods: boolean;
-  showUdAttrs: boolean;
-  showFreeText: boolean;
+  showAppSelector?: boolean;
+  showDates?: boolean;
+  showAppVersions?: boolean;
+  showOsVersions?: boolean;
+  showSessionTypes?: boolean;
+  showCountries?: boolean;
+  showNetworkProviders?: boolean;
+  showNetworkTypes?: boolean;
+  showNetworkGenerations?: boolean;
+  showLocales?: boolean;
+  showDeviceManufacturers?: boolean;
+  showDeviceNames?: boolean;
+  showBugReportStatus?: boolean;
+  showHttpMethods?: boolean;
+  showUdAttrs?: boolean;
+  showFreeText?: boolean;
   showErrorType?: boolean;
   showSeverity?: boolean;
   showCustomErrors?: boolean;
@@ -500,25 +504,25 @@ const FiltersComponent = forwardRef<
       appId,
       filterSource,
       appVersionsInitialSelectionType,
-      showNoData,
-      showNotOnboarded,
+      showNoData = true,
+      showNotOnboarded = true,
       showNoBuilds = false,
-      showAppSelector,
-      showDates,
-      showAppVersions,
-      showOsVersions,
-      showSessionTypes,
-      showCountries,
-      showNetworkTypes,
-      showNetworkProviders,
-      showNetworkGenerations,
-      showLocales,
-      showDeviceManufacturers,
-      showDeviceNames,
-      showBugReportStatus,
-      showHttpMethods,
-      showUdAttrs,
-      showFreeText,
+      showAppSelector = true,
+      showDates = true,
+      showAppVersions = true,
+      showOsVersions = false,
+      showSessionTypes = false,
+      showCountries = false,
+      showNetworkTypes = false,
+      showNetworkProviders = false,
+      showNetworkGenerations = false,
+      showLocales = false,
+      showDeviceManufacturers = false,
+      showDeviceNames = false,
+      showBugReportStatus = false,
+      showHttpMethods = false,
+      showUdAttrs = false,
+      showFreeText = false,
       showErrorType = false,
       showSeverity = false,
       showCustomErrors = false,
