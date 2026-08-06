@@ -106,58 +106,6 @@ function renderWithProviders(ui: React.ReactElement) {
 
 describe("Session Replay Details (MSW integration)", () => {
   describe("page load", () => {
-    it("fetches session data for the correct appId and sessionId", async () => {
-      const detailRequests: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/sessions/:sessionId", ({ request }) => {
-          detailRequests.push(request.url);
-          return HttpResponse.json(makeSessionReplayFixture());
-        }),
-      );
-
-      renderWithProviders(
-        <SessionDetail
-          params={promiseParams({
-            teamId: "test-team",
-            appId: "my-app",
-            sessionId: "my-session",
-          })}
-        />,
-      );
-      await waitFor(
-        () => {
-          expect(detailRequests.length).toBeGreaterThan(0);
-        },
-        { timeout: 5000 },
-      );
-
-      expect(detailRequests[0]).toContain(
-        "/api/apps/my-app/sessions/my-session",
-      );
-    });
-
-    it("shows loading spinner before data arrives", async () => {
-      server.use(
-        http.get("*/api/apps/:appId/sessions/:sessionId", async () => {
-          await new Promise((r) => setTimeout(r, 200));
-          return HttpResponse.json(makeSessionReplayFixture());
-        }),
-      );
-
-      renderWithProviders(
-        <SessionDetail
-          params={promiseParams({
-            teamId: "test-team",
-            appId: "app-1",
-            sessionId: "sess-001",
-          })}
-        />,
-      );
-      await waitFor(() => {
-        expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy();
-      });
-    });
-
     it("shows error state when session API returns 500", async () => {
       server.use(
         http.get("*/api/apps/:appId/sessions/:sessionId", () => {
@@ -179,33 +127,6 @@ describe("Session Replay Details (MSW integration)", () => {
           expect(
             screen.getByText(/Error fetching session replay/),
           ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it("hands the fetched session to the replay", async () => {
-      server.use(
-        http.get("*/api/apps/:appId/sessions/:sessionId", () => {
-          return HttpResponse.json(makeSessionReplayFixture());
-        }),
-      );
-      renderWithProviders(
-        <SessionDetail
-          params={promiseParams({
-            teamId: "test-team",
-            appId: "app-1",
-            sessionId: "sess-001",
-          })}
-        />,
-      );
-
-      await waitFor(
-        () => {
-          expect(screen.getByText(/User ID:/)).toBeTruthy();
-          expect(
-            screen.queryByText(/Error fetching session replay/),
-          ).toBeNull();
         },
         { timeout: 5000 },
       );
@@ -278,58 +199,6 @@ describe("Session Replay Details (MSW integration)", () => {
         />,
       );
       await waitFor(() => expect(fetchCount).toBe(2), { timeout: 5000 });
-    });
-
-    it("401 on session detail triggers token refresh", async () => {
-      let refreshAttempted = false;
-      server.use(
-        http.get("*/api/apps/:appId/sessions/:sessionId", () => {
-          return new HttpResponse(null, { status: 401 });
-        }),
-        http.post("*/auth/refresh", () => {
-          refreshAttempted = true;
-          return new HttpResponse(null, { status: 401 });
-        }),
-      );
-
-      renderWithProviders(
-        <SessionDetail
-          params={promiseParams({
-            teamId: "test-team",
-            appId: "app-1",
-            sessionId: "sess-001",
-          })}
-        />,
-      );
-      await waitFor(() => expect(refreshAttempted).toBe(true), {
-        timeout: 5000,
-      });
-    });
-
-    it("shows error on 404 (session not found)", async () => {
-      server.use(
-        http.get("*/api/apps/:appId/sessions/:sessionId", () => {
-          return new HttpResponse(null, { status: 404 });
-        }),
-      );
-
-      renderWithProviders(
-        <SessionDetail
-          params={promiseParams({
-            teamId: "test-team",
-            appId: "app-1",
-            sessionId: "nonexistent",
-          })}
-        />,
-      );
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(/Error fetching session replay/),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
     });
 
     it("filter store state does not interfere with detail page fetch", async () => {

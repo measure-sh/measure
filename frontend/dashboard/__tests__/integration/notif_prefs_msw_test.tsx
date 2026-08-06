@@ -88,127 +88,21 @@ function renderWithProviders(ui: React.ReactElement) {
 }
 
 describe("Notification Preferences (MSW integration)", () => {
-  async function renderAndWaitForData() {
+  it("shows error when fetch fails", async () => {
+    server.use(
+      http.get("*/api/prefs/notifPrefs", () => {
+        return new HttpResponse(null, { status: 500 });
+      }),
+    );
     renderWithProviders(<Notifications />);
     await waitFor(
       () => {
-        expect(screen.getByText("Crash Spike email")).toBeTruthy();
+        expect(
+          screen.getByText(/Failed to fetch notification preferences/),
+        ).toBeTruthy();
       },
       { timeout: 5000 },
     );
-  }
-
-  // ================================================================
-  // PAGE LOAD
-  // ================================================================
-  describe("page load", () => {
-    it("renders description text", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText(/Choose which email notifications/)).toBeTruthy();
-    });
-
-    it("renders table headers", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Alert type")).toBeTruthy();
-      expect(screen.getByText("Email")).toBeTruthy();
-    });
-
-    it("renders all 4 notification row labels", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Crash Spike email")).toBeTruthy();
-      expect(screen.getByText("ANR spike email")).toBeTruthy();
-      expect(screen.getByText("Bug Reports")).toBeTruthy();
-      expect(screen.getByText("Daily Summary")).toBeTruthy();
-    });
-
-    it("renders Save button", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Save")).toBeTruthy();
-    });
-
-    it("loads preferences from API", async () => {
-      await renderAndWaitForData();
-      // Fixture: error_spike=true, app_hang_spike=true, bug_report=false, daily_summary=true
-      // Checkboxes should reflect the loaded state
-      expect(screen.getByText("Crash Spike email")).toBeTruthy();
-      expect(screen.getByText("ANR spike email")).toBeTruthy();
-      expect(screen.getByText("Bug Reports")).toBeTruthy();
-      expect(screen.getByText("Daily Summary")).toBeTruthy();
-    });
-
-    it("shows skeleton loading initially", async () => {
-      // Delay response to observe loading
-      server.use(
-        http.get("*/api/prefs/notifPrefs", async () => {
-          await new Promise((r) => setTimeout(r, 200));
-          return HttpResponse.json(makeNotifPrefsFixture());
-        }),
-      );
-      renderWithProviders(<Notifications />);
-      // Skeleton should be visible, data should not
-      expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy();
-      expect(screen.queryByText("Crash Spike email")).toBeNull();
-    });
-
-    it("shows error when fetch fails", async () => {
-      server.use(
-        http.get("*/api/prefs/notifPrefs", () => {
-          return new HttpResponse(null, { status: 500 });
-        }),
-      );
-      renderWithProviders(<Notifications />);
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(/Failed to fetch notification preferences/),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it("data loads successfully", async () => {
-      await renderAndWaitForData();
-      // Data loaded - all preference rows visible
-      expect(screen.getByText("Save")).toBeTruthy();
-    });
-  });
-
-  // ================================================================
-  // SAVE BUTTON STATE
-  // ================================================================
-  describe("Save button state", () => {
-    it("Save disabled when preferences unchanged", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Save").closest("button")?.disabled).toBe(true);
-    });
-  });
-
-  // ================================================================
-  // API PATHS
-  // ================================================================
-  describe("API paths", () => {
-    it("fetches from /prefs/notifPrefs", async () => {
-      const paths: string[] = [];
-      server.use(
-        http.get("*/api/prefs/notifPrefs", ({ request }) => {
-          paths.push(new URL(request.url).pathname);
-          return HttpResponse.json(makeNotifPrefsFixture());
-        }),
-      );
-      await renderAndWaitForData();
-      expect(paths.some((p) => p.includes("/prefs/notifPrefs"))).toBe(true);
-    });
-  });
-
-  // ================================================================
-  // CACHING
-  // ================================================================
-  describe("caching", () => {
-    it("data is cached by TanStack Query", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Crash Spike email")).toBeTruthy();
-    });
   });
 });
 
@@ -370,120 +264,6 @@ describe("Notification Preferences — mutations", () => {
     await waitFor(
       () => {
         expect(saveBtn.disabled).toBe(false);
-      },
-      { timeout: 5000 },
-    );
-  });
-
-  it("toggling all preferences off and saving calls PATCH with all false", async () => {
-    let capturedBody: any = null;
-    server.use(
-      http.patch("*/api/prefs/notifPrefs", async ({ request }) => {
-        capturedBody = await request.json();
-        return HttpResponse.json({ ok: true });
-      }),
-    );
-
-    await renderAndWaitForData();
-
-    // Fixture: error_spike=true, app_hang_spike=true, bug_report=false, daily_summary=true
-    // Toggle off: error_spike, app_hang_spike, daily_summary (bug_report is already false)
-    const checkboxes = document.querySelectorAll('[data-slot="checkbox"]');
-    const crashSpike = checkboxes[0] as HTMLButtonElement;
-    const anrSpike = checkboxes[1] as HTMLButtonElement;
-    const dailySummary = checkboxes[3] as HTMLButtonElement;
-
-    await act(async () => {
-      fireEvent.click(crashSpike); // true -> false
-      fireEvent.click(anrSpike); // true -> false
-      fireEvent.click(dailySummary); // true -> false
-    });
-
-    const saveBtn = screen.getByText("Save").closest("button")!;
-    await waitFor(() => {
-      expect(saveBtn.disabled).toBe(false);
-    });
-
-    await act(async () => {
-      fireEvent.click(saveBtn);
-    });
-
-    await waitFor(
-      () => {
-        expect(capturedBody).toEqual({
-          error_spike: false,
-          app_hang_spike: false,
-          bug_report: false,
-          daily_summary: false,
-        });
-      },
-      { timeout: 5000 },
-    );
-  });
-
-  it("toggling multiple preferences sends all changes in single PATCH", async () => {
-    let capturedBody: any = null;
-    server.use(
-      http.patch("*/api/prefs/notifPrefs", async ({ request }) => {
-        capturedBody = await request.json();
-        return HttpResponse.json({ ok: true });
-      }),
-    );
-
-    await renderAndWaitForData();
-
-    // Toggle Bug Reports (false -> true) and Daily Summary (true -> false)
-    const checkboxes = document.querySelectorAll('[data-slot="checkbox"]');
-    const bugReportCheckbox = checkboxes[2] as HTMLButtonElement;
-    const dailySummaryCheckbox = checkboxes[3] as HTMLButtonElement;
-
-    await act(async () => {
-      fireEvent.click(bugReportCheckbox);
-      fireEvent.click(dailySummaryCheckbox);
-    });
-
-    const saveBtn = screen.getByText("Save").closest("button")!;
-    await waitFor(() => {
-      expect(saveBtn.disabled).toBe(false);
-    });
-
-    await act(async () => {
-      fireEvent.click(saveBtn);
-    });
-
-    await waitFor(
-      () => {
-        expect(capturedBody).toEqual({
-          error_spike: true,
-          app_hang_spike: true,
-          bug_report: true,
-          daily_summary: false,
-        });
-      },
-      { timeout: 5000 },
-    );
-  });
-});
-
-// ====================================================================
-// AUTH FAILURE
-// ====================================================================
-describe("Notification Preferences — auth failure", () => {
-  it("401 on fetch triggers token refresh attempt", async () => {
-    let refreshAttempted = false;
-    server.use(
-      http.get("*/api/prefs/notifPrefs", () => {
-        return new HttpResponse(null, { status: 401 });
-      }),
-      http.post("*/auth/refresh", () => {
-        refreshAttempted = true;
-        return new HttpResponse(null, { status: 401 });
-      }),
-    );
-    renderWithProviders(<Notifications />);
-    await waitFor(
-      () => {
-        expect(refreshAttempted).toBe(true);
       },
       { timeout: 5000 },
     );

@@ -152,6 +152,18 @@ describe("CreateTeam", () => {
       expect(mockMutateAsync).not.toHaveBeenCalled();
     });
 
+    it("closes the dialog without calling the API when Cancel is clicked", () => {
+      renderCreateTeam();
+      openDialog();
+      fireEvent.change(screen.getByPlaceholderText("Enter team name"), {
+        target: { value: "Some Team" },
+      });
+      fireEvent.click(screen.getByText("Cancel"));
+
+      expect(screen.queryByTestId("dialog")).not.toBeInTheDocument();
+      expect(mockMutateAsync).not.toHaveBeenCalled();
+    });
+
     it("calls createTeam with team name", async () => {
       mockMutateAsync.mockResolvedValue({ id: "team-1" });
       renderCreateTeam();

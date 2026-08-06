@@ -192,7 +192,13 @@ describe("TraceDetails", () => {
           expect.stringContaining("User ID: user-1"),
         );
         expect(pillTexts).toContainEqual(
+          expect.stringContaining("Start Time: formatted:2024-01-01T00:00:00Z"),
+        );
+        expect(pillTexts).toContainEqual(
           expect.stringContaining("Duration: 1200ms"),
+        );
+        expect(pillTexts).toContainEqual(
+          expect.stringContaining("Device: Google Pixel 7"),
         );
         expect(pillTexts).toContainEqual(
           expect.stringContaining("App version: 2.0.0 (200)"),

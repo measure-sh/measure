@@ -188,6 +188,31 @@ describe("ErrorsOverview Page", () => {
     expect(screen.getByText("45.2%")).toBeInTheDocument();
   });
 
+  it("renders table headers without rows for an empty result set", async () => {
+    mockUseErrorsOverviewQuery.mockReturnValue({
+      data: { results: [], meta: { previous: false, next: false } },
+      status: "success",
+      isFetching: false,
+      error: null,
+    });
+    render(<ErrorsOverviewPage params={promiseParams({ teamId: "123" })} />);
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          serialisedFilters: "updated",
+          app: { id: "app-1" },
+        },
+      });
+    });
+
+    expect(screen.getByText("Error")).toBeInTheDocument();
+    expect(
+      screen.queryByText("CheckoutActivity.kt: onClick()"),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows error message when overview query errors", async () => {
     mockUseErrorsOverviewQuery.mockReturnValue({
       data: undefined,

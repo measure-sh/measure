@@ -347,6 +347,153 @@ describe("ErrorGroupDetails Page", () => {
     ).toBeInTheDocument();
   });
 
+  // Renders the page with a single event assembled from sampleErrorEvent plus
+  // the given field overrides, then marks filters ready so the details UI
+  // paints. Used by the ANR and extra-attribute cases below.
+  async function renderPageWithEvent(overrides: Record<string, any>) {
+    mockUseErrorsDetailsQuery.mockReturnValue({
+      data: {
+        results: [{ ...sampleErrorEvent, ...overrides }],
+        meta: { previous: false, next: true },
+      },
+      status: "success",
+      isFetching: false,
+      error: null,
+    });
+    render(
+      <ErrorDetailsPage
+        params={promiseParams({
+          teamId: "123",
+          appId: "app-1",
+          errorGroupId: "g1",
+          errorGroupName: "test",
+        })}
+      />,
+    );
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          serialisedFilters: "updated",
+          app: { id: "app-1", name: "measure demo" },
+        },
+      });
+    });
+  }
+
+  it("renders the ANR stack trace when the event is an ANR", async () => {
+    await renderPageWithEvent({
+      exception: null,
+      anr: {
+        title: "ANR at CheckoutActivity.onClick",
+        stacktrace:
+          "ANR in sh.measure.demo.CheckoutActivity.onClick(CheckoutActivity.kt:42)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)",
+      },
+    });
+    expect(screen.getByText(/ANR in sh\.measure\.demo/)).toBeInTheDocument();
+  });
+
+  it("renders num_code, code, meta, and user_defined_attribute rows when present", async () => {
+    await renderPageWithEvent({
+      num_code: 137,
+      code: "OUT_OF_MEMORY",
+      meta: {
+        error_domain: "PaymentDomain",
+        recoverable: false,
+      },
+      user_defined_attribute: {
+        user_tier: "premium",
+        account_age_days: 142,
+      },
+    });
+
+    expect(screen.getByText("num_code")).toBeInTheDocument();
+    expect(screen.getByText("137")).toBeInTheDocument();
+    expect(screen.getByText("code")).toBeInTheDocument();
+    expect(screen.getByText("OUT_OF_MEMORY")).toBeInTheDocument();
+    expect(screen.getByText("meta")).toBeInTheDocument();
+    expect(screen.getByText(/error_domain/)).toBeInTheDocument();
+    expect(screen.getByText("user_defined_attribute")).toBeInTheDocument();
+    expect(screen.getByText(/user_tier/)).toBeInTheDocument();
+    expect(screen.getByText(/premium/)).toBeInTheDocument();
+  });
+
+  it("omits num_code, code, meta, and user_defined_attribute rows when absent", async () => {
+    await renderPageWithEvent({});
+    expect(screen.queryByText("num_code")).not.toBeInTheDocument();
+    expect(screen.queryByText("code")).not.toBeInTheDocument();
+    expect(screen.queryByText("meta")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("user_defined_attribute"),
+    ).not.toBeInTheDocument();
+  });
+
+  // The events endpoint returns num_code (number or null), code (string), and
+  // meta (object or null) independently, so any combination can arrive. Each
+  // row shows only when its value is available: num_code when it is a number
+  // (including 0), code when it is a non-empty string, meta when it is a
+  // non-null object with keys. The three cases below mirror real iOS error
+  // payloads where that mix occurs.
+
+  it("shows num_code 0 and meta, hides empty code", async () => {
+    await renderPageWithEvent({
+      num_code: 0,
+      code: "",
+      meta: {
+        NSFilePath: "//invalid/file",
+        NSURL: null,
+        NSUnderlyingError: null,
+        NSUserStringVariant: ["Remove"],
+      },
+    });
+
+    // num_code of 0 is a real value, so the row must still show.
+    expect(screen.getByText("num_code")).toBeInTheDocument();
+    expect(screen.getByText("meta")).toBeInTheDocument();
+    expect(screen.getByText(/NSFilePath/)).toBeInTheDocument();
+    // An empty code string hides the code row.
+    expect(screen.queryByText("code")).not.toBeInTheDocument();
+  });
+
+  it("shows num_code 0 and code, hides null meta", async () => {
+    await renderPageWithEvent({
+      num_code: 0,
+      code: "NamedException, Something happened",
+      meta: null,
+    });
+
+    expect(screen.getByText("num_code")).toBeInTheDocument();
+    expect(screen.getByText("code")).toBeInTheDocument();
+    expect(
+      screen.getByText("NamedException, Something happened"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("meta")).not.toBeInTheDocument();
+  });
+
+  it("shows num_code, code, and meta together", async () => {
+    await renderPageWithEvent({
+      num_code: 260,
+      code: "NSCocoaErrorDomain",
+      meta: {
+        NSFilePath: "/path/that/does/not/exist.txt",
+        NSURL: null,
+        NSUnderlyingError: null,
+      },
+    });
+
+    expect(screen.getByText("num_code")).toBeInTheDocument();
+    expect(screen.getByText("260")).toBeInTheDocument();
+    expect(screen.getByText("code")).toBeInTheDocument();
+    expect(screen.getByText("NSCocoaErrorDomain")).toBeInTheDocument();
+    expect(screen.getByText("meta")).toBeInTheDocument();
+    expect(screen.getByText(/NSFilePath/)).toBeInTheDocument();
+  });
+
+  it("hides the meta row when meta is an empty object", async () => {
+    await renderPageWithEvent({ meta: {} });
+    expect(screen.queryByText("meta")).not.toBeInTheDocument();
+  });
+
   it("Next click increments pagination offset by 1 and updates URL", async () => {
     mockUseErrorsDetailsQuery.mockReturnValue({
       data: sampleErrorsDetails,

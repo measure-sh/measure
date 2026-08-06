@@ -498,6 +498,7 @@ describe("Apps Page", () => {
     mockCurrentApp = { ...baseMockApp, api_key: { ...baseMockApp.api_key } };
     useFiltersStore.setState({
       filters: { ready: false, app: null, serialisedFilters: "" },
+      appsState: "loaded",
     });
     useAppsStore.setState({
       canCreateApp: false,
@@ -575,6 +576,43 @@ describe("Apps Page", () => {
       "data-can-change",
       "true",
     );
+  });
+
+  it("shows app metadata for an onboarded app", async () => {
+    await renderLoadedPage();
+
+    expect(screen.getByText("Unique Identifier")).toBeInTheDocument();
+    expect(screen.getByText("com.example.app")).toBeInTheDocument();
+    expect(screen.getByText("Operating Systems")).toBeInTheDocument();
+    expect(screen.getByText("android")).toBeInTheDocument();
+    expect(screen.getByText("Created at")).toBeInTheDocument();
+  });
+
+  it("shows the setup docs link instead of metadata when the app has no unique identifier", async () => {
+    mockCurrentApp = {
+      ...baseMockApp,
+      api_key: { ...baseMockApp.api_key },
+      unique_identifier: null as any,
+      os_names: null as any,
+    };
+
+    await renderLoadedPage();
+
+    expect(screen.getByText(/Follow our/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "docs" })).toHaveAttribute(
+      "href",
+      "/docs",
+    );
+    expect(screen.queryByText("Unique Identifier")).not.toBeInTheDocument();
+    expect(screen.queryByText("Operating Systems")).not.toBeInTheDocument();
+  });
+
+  it("hides the Create App button when the team has no apps", async () => {
+    useFiltersStore.setState({ appsState: "no-apps" });
+
+    await renderLoadedPage();
+
+    expect(screen.queryByTestId("create-app-mock")).not.toBeInTheDocument();
   });
 
   it("does not render settings sections before filters are ready", async () => {
@@ -1769,6 +1807,38 @@ describe("Apps Page", () => {
       expect(mockToastNegative).toHaveBeenCalledWith(
         "Error updating thresholds",
         "Good threshold must be greater than caution threshold",
+      );
+      expect(
+        useAppsStore.getState().updateAppThresholdPrefs,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("makes no API call when the good threshold is set outside 0-100", async () => {
+      await renderLoadedPage();
+
+      // The numeric input clamps typed values into its 0-100 range, so 0 is
+      // the lowest reachable value; validation then rejects it because a good
+      // threshold of 0 can never exceed the caution threshold.
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("error-caution-threshold-input"), {
+          target: { value: "-1" },
+        });
+      });
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("error-good-threshold-input"), {
+          target: { value: "0" },
+        });
+      });
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Save thresholds" }),
+        );
+      });
+
+      expect(mockToastNegative).toHaveBeenCalledWith(
+        "Error updating thresholds",
+        expect.any(String),
       );
       expect(
         useAppsStore.getState().updateAppThresholdPrefs,

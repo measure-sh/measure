@@ -301,6 +301,20 @@ describe("plot time group utils", () => {
     ).toBe("months");
   });
 
+  it("maps the date picker's named ranges to plot time groups", () => {
+    // Durations matching the Last 6 Hours, Last Week, and Last 3 Months
+    // entries of the date range picker.
+    expect(
+      getPlotTimeGroupForRange("2026-02-01T00:00:00Z", "2026-02-01T06:00:00Z"),
+    ).toBe("minutes");
+    expect(
+      getPlotTimeGroupForRange("2026-02-01T00:00:00Z", "2026-02-08T00:00:00Z"),
+    ).toBe("hours");
+    expect(
+      getPlotTimeGroupForRange("2026-01-01T00:00:00Z", "2026-04-01T00:00:00Z"),
+    ).toBe("days");
+  });
+
   it("uses days fallback for invalid or non-increasing ranges", () => {
     expect(getPlotTimeGroupForRange("invalid", "2026-02-01T06:00:00Z")).toBe(
       "days",

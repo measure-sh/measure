@@ -451,6 +451,15 @@ describe("fetchFiltersFromServer", () => {
     expect(result).toEqual({ kind: "no-data" });
   });
 
+  it("reports options when versions is an empty array (onboarded app, no versions yet)", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ versions: [] }));
+    const result = await fetchFiltersFromServer(
+      onboardedApp,
+      FilterSource.Events,
+    );
+    expect(result).toEqual({ kind: "options", data: { versions: [] } });
+  });
+
   it("returns NotOnboarded when the app is not onboarded", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ versions: null }),
@@ -654,6 +663,78 @@ describe("fetchAppHealthPlotFromServer", () => {
     );
     const r = await fetchAppHealthPlotFromServer(makeFilters());
     expect(r?.map((s: any) => s.id)).toEqual(["Sessions", "Crashes"]);
+  });
+
+  it("treats null instances as zero", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse([
+        {
+          id: "sessions",
+          data: [
+            { datetime: "2026-01-01", instances: null },
+            { datetime: "2026-01-02", instances: 100 },
+          ],
+        },
+        { id: "crashes", data: [] },
+        { id: "anrs", data: [] },
+      ]),
+    );
+    const r = await fetchAppHealthPlotFromServer(makeFilters());
+    const sessions = r?.find((s: any) => s.id === "Sessions");
+    expect(sessions?.data.map((p: any) => p.y)).toEqual([0, 100]);
+  });
+
+  it("keeps a series with a single data point", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse([
+        { id: "sessions", data: [{ datetime: "2026-01-01", instances: 500 }] },
+        { id: "crashes", data: [{ datetime: "2026-01-01", instances: 5 }] },
+        { id: "anrs", data: [{ datetime: "2026-01-01", instances: 1 }] },
+      ]),
+    );
+    const r = await fetchAppHealthPlotFromServer(makeFilters());
+    expect(r).toHaveLength(3);
+    for (const series of r!) {
+      expect(series.data).toHaveLength(1);
+    }
+    expect(r![0].data[0]).toMatchObject({ x: "2026-01-01", y: 500 });
+  });
+
+  it("aligns all series on the sorted union of dates, zero-filling gaps", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse([
+        {
+          id: "sessions",
+          data: [
+            { datetime: "2026-01-01", instances: 100 },
+            { datetime: "2026-01-02", instances: 200 },
+          ],
+        },
+        {
+          id: "crashes",
+          data: [
+            { datetime: "2026-01-01", instances: 5 },
+            { datetime: "2026-01-02", instances: 7 },
+            { datetime: "2026-01-03", instances: 3 },
+          ],
+        },
+        { id: "anrs", data: [{ datetime: "2026-01-02", instances: 1 }] },
+      ]),
+    );
+    const r = await fetchAppHealthPlotFromServer(makeFilters());
+    // Three unique dates exist across the series, so every series is padded
+    // to three points with zeroes where it had no data.
+    for (const series of r!) {
+      expect(series.data.map((p: any) => p.x)).toEqual([
+        "2026-01-01",
+        "2026-01-02",
+        "2026-01-03",
+      ]);
+    }
+    const sessions = r!.find((s: any) => s.id === "Sessions");
+    const anrs = r!.find((s: any) => s.id === "ANRs");
+    expect(sessions!.data.map((p: any) => p.y)).toEqual([100, 200, 0]);
+    expect(anrs!.data.map((p: any) => p.y)).toEqual([0, 1, 0]);
   });
 });
 
@@ -1229,6 +1310,12 @@ describe("applyGenericFiltersToUrl filter branches", () => {
     await fetchMetricsFromServer(makeFilters({ freeText: "search me" }));
     expect(lastFetchUrl()).toContain("free_text=search+me");
   });
+
+  it("URL-encodes special characters in free_text", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
+    await fetchMetricsFromServer(makeFilters({ freeText: "a&b=c?d 100%" }));
+    expect(lastFetchUrl()).toContain("free_text=a%26b%3Dc%3Fd+100%25");
+  });
 });
 
 describe("applyHttpMethodsToUrl and applySpanFiltersToUrl", () => {
@@ -1507,6 +1594,29 @@ describe("additional branch coverage", () => {
     expect(url).toContain("user_interaction=1");
     expect(url).toContain("foreground=1");
     expect(url).toContain("background=1");
+  });
+
+  it("emits no session-type params when sessionTypes.all is true", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
+    await fetchSessionReplayOverviewFromServer(
+      makeFilters({
+        sessionTypes: {
+          all: true,
+          selected: ["Fatal Error Sessions", "ANR Sessions"] as any,
+        },
+      }),
+      10,
+      0,
+    );
+    // With every session type selected the server-side filter is a no-op,
+    // so appendSessionTypesToUrl adds nothing to the URL.
+    const url = lastFetchUrl();
+    expect(url).not.toContain("type=");
+    expect(url).not.toContain("severity=");
+    expect(url).not.toContain("bug_report=");
+    expect(url).not.toContain("user_interaction=");
+    expect(url).not.toContain("foreground=");
+    expect(url).not.toContain("background=");
   });
 
   it("fetchBugReportsOverviewPlotFromServer throws on non-ok", async () => {

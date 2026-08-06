@@ -189,17 +189,51 @@ jest.mock("next-themes", () => ({
   useTheme: () => ({ theme: "light" }),
 }));
 
-// Mock ResponsivePie
+// Mock ResponsivePie — renders one span per slice and captures the props of
+// the latest render so tests can call the arcLinkLabel and tooltip functions
+// the page passes in.
+let mockPieProps: any = null;
 jest.mock("@nivo/pie", () => ({
-  ResponsivePie: () => <div data-testid="pie-chart-mock" />,
+  ResponsivePie: (props: any) => {
+    mockPieProps = props;
+    return (
+      <div data-testid="pie-chart-mock">
+        {props.data?.map((d: any) => (
+          <span key={d.id} data-testid={`pie-slice-${d.id}`}>
+            {`${d.label}: ${d.value} sessions, ${d.events} events, ${d.spans} spans`}
+          </span>
+        ))}
+      </div>
+    );
+  },
 }));
 
-// Mock DropdownSelect
+// Mock the tooltip shell so rendering a captured tooltip element needs no
+// real chart styling.
+jest.mock("@/app/components/plot_tooltip", () => ({
+  __esModule: true,
+  PlotTooltipShell: ({ children }: any) => (
+    <div data-testid="plot-tooltip-shell">{children}</div>
+  ),
+}));
+
+// Mock DropdownSelect — renders the current selection and one button per
+// item so tests can pick a month.
 jest.mock("@/app/components/dropdown_select", () => ({
   __esModule: true,
   default: (props: any) => (
     <div data-testid="dropdown-mock">
       <span>{props.title}</span>
+      <span data-testid="dropdown-selected">{props.initialSelected}</span>
+      {props.items?.map((item: string) => (
+        <button
+          key={item}
+          data-testid={`dropdown-item-${item}`}
+          onClick={() => props.onChangeSelected(item)}
+        >
+          {item}
+        </button>
+      ))}
     </div>
   ),
   DropdownSelectType: { SingleString: 0 },
@@ -297,10 +331,56 @@ const enterpriseBillingInfo = {
   current_period_end: 1702678400,
 };
 
+// Raw usage response shape: two apps, each reporting two months, so the page
+// itself derives the month list and per-month slices.
+const rawUsage = [
+  {
+    app_id: "app1",
+    app_name: "My App",
+    monthly_app_usage: [
+      {
+        month_year: "Mar 2026",
+        sessions: 5000,
+        events: 12000,
+        spans: 8000,
+        bytes_in: 100,
+      },
+      {
+        month_year: "Apr 2026",
+        sessions: 6200,
+        events: 15000,
+        spans: 9500,
+        bytes_in: 200,
+      },
+    ],
+  },
+  {
+    app_id: "app2",
+    app_name: "Other App",
+    monthly_app_usage: [
+      {
+        month_year: "Mar 2026",
+        sessions: 2000,
+        events: 4000,
+        spans: 3000,
+        bytes_in: 50,
+      },
+      {
+        month_year: "Apr 2026",
+        sessions: 2500,
+        events: 5000,
+        spans: 3500,
+        bytes_in: 60,
+      },
+    ],
+  },
+];
+
 describe("Usage Page", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    mockPieProps = null;
 
     // Reset store to defaults
     useUsageStore.setState({
@@ -401,6 +481,91 @@ describe("Usage Page", () => {
 
     expect(screen.getByTestId("pie-chart-mock")).toBeInTheDocument();
     expect(screen.getByTestId("dropdown-mock")).toBeInTheDocument();
+  });
+
+  it("maps the selected month's usage into pie slices with per-app values", async () => {
+    useUsageStore.setState({ usageState: "loaded", usage: rawUsage });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    expect(screen.getByTestId("pie-slice-app1")).toHaveTextContent(
+      "My App: 6200 sessions, 15000 events, 9500 spans",
+    );
+    expect(screen.getByTestId("pie-slice-app2")).toHaveTextContent(
+      "Other App: 2500 sessions, 5000 events, 3500 spans",
+    );
+  });
+
+  it("defaults the month selection to the latest month in the data", async () => {
+    useUsageStore.setState({ usageState: "loaded", usage: rawUsage });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    expect(screen.getByTestId("dropdown-selected")).toHaveTextContent(
+      "Apr 2026",
+    );
+  });
+
+  it("month dropdown lists every month present in the usage data", async () => {
+    useUsageStore.setState({ usageState: "loaded", usage: rawUsage });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    expect(screen.getByTestId("dropdown-item-Mar 2026")).toBeInTheDocument();
+    expect(screen.getByTestId("dropdown-item-Apr 2026")).toBeInTheDocument();
+  });
+
+  it("selecting a different month updates the pie data", async () => {
+    useUsageStore.setState({ usageState: "loaded", usage: rawUsage });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    expect(screen.getByTestId("pie-slice-app1")).toHaveTextContent(
+      "My App: 6200 sessions, 15000 events, 9500 spans",
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("dropdown-item-Mar 2026"));
+    });
+
+    expect(screen.getByTestId("pie-slice-app1")).toHaveTextContent(
+      "My App: 5000 sessions, 12000 events, 8000 spans",
+    );
+    expect(screen.getByTestId("pie-slice-app2")).toHaveTextContent(
+      "Other App: 2000 sessions, 4000 events, 3000 spans",
+    );
+  });
+
+  it("formats arc link labels and tooltips from the slice datum", async () => {
+    useUsageStore.setState({ usageState: "loaded", usage: rawUsage });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    expect(mockPieProps).not.toBeNull();
+    expect(mockPieProps.arcLinkLabel({ label: "My App" })).toBe("My App");
+
+    // The tooltip is a render function the page hands to the pie chart; call
+    // it with a slice datum and render the result to check its content.
+    const tooltip = mockPieProps.tooltip({
+      datum: { id: "app1", label: "My App", value: 6200, color: "#00ff00" },
+    });
+    render(<>{tooltip}</>);
+
+    expect(screen.getByTestId("plot-tooltip-shell")).toBeInTheDocument();
+    expect(screen.getByText("My App")).toBeInTheDocument();
+    expect(screen.getByText("Sessions: 6200")).toBeInTheDocument();
+    expect(screen.getByText("Events: 15000")).toBeInTheDocument();
+    expect(screen.getByText("Spans: 9500")).toBeInTheDocument();
   });
 
   // ---- Billing section ----
@@ -772,6 +937,34 @@ describe("Usage Page", () => {
       "Failed to schedule cancellation",
       "Please try again.",
     );
+  });
+
+  it("cancelling the downgrade dialog closes it without calling the downgrade API", async () => {
+    const handleDowngrade = jest.fn();
+    useUsageStore.setState({
+      billingInfoState: "loaded",
+      billingInfo: proBillingInfo,
+      currentUserCanChangePlan: true,
+      handleDowngrade,
+    });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    // Open dialog
+    await act(async () => {
+      fireEvent.click(screen.getByText("Downgrade to Free"));
+    });
+    expect(screen.getByTestId("danger-dialog-mock")).toBeInTheDocument();
+
+    // Cancel instead of confirming
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("dialog-cancel"));
+    });
+
+    expect(screen.queryByTestId("danger-dialog-mock")).not.toBeInTheDocument();
+    expect(handleDowngrade).not.toHaveBeenCalled();
   });
 
   // ---- Scheduled cancellation (canceled_at > 0) ----

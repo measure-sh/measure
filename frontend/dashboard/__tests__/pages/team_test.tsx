@@ -588,6 +588,104 @@ describe("Team Page", () => {
     expect(screen.getByText("Change Team Name")).toBeInTheDocument();
   });
 
+  it("renders members table headers", async () => {
+    await renderPage();
+
+    expect(screen.getByText("Member")).toBeInTheDocument();
+    expect(screen.getByText("Role")).toBeInTheDocument();
+  });
+
+  it("renders member emails in the members table", async () => {
+    await renderPage();
+
+    // owner@test.com also appears as the inviter in the pending invites table.
+    expect(screen.getAllByText("owner@test.com").length).toBeGreaterThan(0);
+    expect(screen.getByText("dev@test.com")).toBeInTheDocument();
+  });
+
+  it("renders the current user's role as camel-cased text", async () => {
+    await renderPage();
+
+    // The current user's row shows the role as plain text ("owner" becomes
+    // "Owner") instead of a role dropdown.
+    expect(screen.getByText("Owner")).toBeInTheDocument();
+  });
+
+  it("keeps Change Role disabled until a different role is selected", async () => {
+    await renderPage();
+
+    const changeRoleButton = screen.getByRole("button", {
+      name: "Change Role",
+    });
+    expect(changeRoleButton).toBeDisabled();
+
+    // The second Roles dropdown belongs to the other member's row; the mock
+    // selects a role different from the member's current one on click.
+    fireEvent.click(screen.getAllByTestId("dropdown-Roles")[1]);
+
+    expect(changeRoleButton).not.toBeDisabled();
+  });
+
+  it("disables Remove when the member cannot be removed", async () => {
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({
+      authzAndMembers: {
+        ...defaultAuthz,
+        members: [
+          defaultAuthz.members[0],
+          {
+            ...defaultAuthz.members[1],
+            authz: {
+              current_user_assignable_roles_for_member: null as any,
+              current_user_can_remove_member: false,
+            },
+          },
+        ],
+      },
+    });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByText("Invite Team Members");
+
+    expect(screen.getByRole("button", { name: "Remove" })).toBeDisabled();
+  });
+
+  it("keeps Invite disabled while the email input is empty", async () => {
+    await renderPage();
+
+    const inviteButton = screen.getByRole("button", { name: "Invite" });
+    expect(inviteButton).toBeDisabled();
+
+    fireEvent.input(screen.getByPlaceholderText("Enter email"), {
+      target: { value: "new@member.com" },
+    });
+
+    expect(inviteButton).not.toBeDisabled();
+  });
+
+  it("renders pending invite email and role", async () => {
+    await renderPage();
+
+    expect(screen.getByText("invitee@test.com")).toBeInTheDocument();
+    // The inviter's email also appears in the members table.
+    expect(screen.getAllByText("owner@test.com").length).toBeGreaterThan(0);
+    // The invite role "viewer" renders camel-cased.
+    expect(screen.getByText("Viewer")).toBeInTheDocument();
+  });
+
+  it("hides the Pending Invites section when there are no pending invites", async () => {
+    setDefaultTeamsState();
+    setDefaultTeamPageState();
+    useTeamPageStore.setState({ pendingInvites: [] });
+
+    render(<TeamOverview params={promiseParams({ teamId: "team-1" })} />);
+    await screen.findByText("Invite Team Members");
+
+    expect(screen.queryByText("Pending Invites")).not.toBeInTheDocument();
+    expect(screen.queryByText("Invitee")).not.toBeInTheDocument();
+  });
+
   it("renders slack integration doc link", async () => {
     await renderPage();
 

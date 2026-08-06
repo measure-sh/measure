@@ -567,6 +567,79 @@ describe("NetworkOverview", () => {
     expect(pushMock).not.toHaveBeenCalled();
   });
 
+  it("disables the Search button while the path input is empty", async () => {
+    setupSuccessfulQueryState();
+    render(<NetworkOverview params={{ teamId: "123" }} />);
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          serialisedFilters: "updated",
+          app: { id: "app1" },
+          startDate: "2024-01-01",
+          endDate: "2024-01-14",
+        },
+      });
+    });
+
+    expect(screen.getByText("Search").closest("button")).toBeDisabled();
+  });
+
+  it("enables the Search button once a path is entered", async () => {
+    setupSuccessfulQueryState();
+    render(<NetworkOverview params={{ teamId: "123" }} />);
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          serialisedFilters: "updated",
+          app: { id: "app1" },
+          startDate: "2024-01-01",
+          endDate: "2024-01-14",
+        },
+      });
+    });
+
+    const input = screen.getByTestId("path-input-mock");
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "/v1/users" } });
+    });
+
+    expect(screen.getByText("Search").closest("button")).not.toBeDisabled();
+  });
+
+  it("prepends a leading slash when the entered path lacks one", async () => {
+    setupSuccessfulQueryState();
+    render(<NetworkOverview params={{ teamId: "123" }} />);
+
+    await act(async () => {
+      useFiltersStore.setState({
+        filters: {
+          ready: true,
+          serialisedFilters: "updated",
+          app: { id: "app1" },
+          startDate: "2024-01-01",
+          endDate: "2024-01-14",
+        },
+      });
+    });
+
+    const input = screen.getByTestId("path-input-mock");
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "v1/users" } });
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Search"));
+    });
+
+    expect(pushMock).toHaveBeenCalledWith(
+      "/123/network/details?domain=api.example.com&path=%2Fv1%2Fusers",
+    );
+  });
+
   it("updates URL when filters change", async () => {
     setupSuccessfulQueryState();
     render(<NetworkOverview params={{ teamId: "123" }} />);

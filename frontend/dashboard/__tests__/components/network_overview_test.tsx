@@ -1,7 +1,23 @@
 import NetworkOverview from "@/app/components/network_overview";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+
+// Radix tooltip positioning measures the trigger with ResizeObserver, which
+// jsdom does not implement.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as any;
+}
 
 const mockRouterReplace = jest.fn();
 const mockRouterPush = jest.fn();
@@ -32,7 +48,10 @@ jest.mock("luxon", () => ({
 
 jest.mock("lucide-react", () => ({
   History: () => <span data-testid="history-icon" />,
-  Info: () => <span data-testid="info-icon" />,
+  // The info icon is the tooltip trigger: Radix merges its trigger props
+  // (data-slot, focus handlers, ref) onto the icon via asChild, so the mock
+  // must spread props through for the tooltip to open in tests.
+  Info: (props: any) => <span data-testid="info-icon" {...props} />,
 }));
 
 jest.mock("@/app/api/api_calls", () => ({
@@ -362,6 +381,93 @@ describe("NetworkOverview", () => {
         });
       });
       expect(screen.getByText("Explore endpoint")).toBeInTheDocument();
+    });
+
+    it("shows Top Endpoints section (NetworkTrends) after domains succeed", async () => {
+      mockUseNetworkDomainsQuery.mockReturnValue({
+        data: ["api.example.com"],
+        status: "success",
+        error: null,
+      });
+      render(<NetworkOverview params={{ teamId: "team-1" }} />);
+      await act(async () => {
+        useFiltersStore.setState({
+          filters: {
+            ready: true,
+            app: { id: "app-1" },
+            serialisedFilters: "a=app-1",
+            startDate: "2024-01-01",
+            endDate: "2024-01-14",
+          },
+        });
+      });
+      // The section body is NetworkTrends, which renders the "Top Endpoints"
+      // heading itself (asserted in network_trends_test.tsx).
+      expect(screen.getByTestId("network-trends")).toBeInTheDocument();
+    });
+
+    // Focuses the info icon beside the given section heading and returns the
+    // tooltip panel once Radix opens it.
+    async function openSectionTooltip(heading: string) {
+      const trigger = screen
+        .getByText(heading)
+        .parentElement!.querySelector(
+          '[data-slot="tooltip-trigger"]',
+        ) as HTMLElement;
+      fireEvent.focus(trigger);
+      return await waitFor(() => {
+        const el = document.querySelector('[data-slot="tooltip-content"]');
+        if (!el) {
+          throw new Error("tooltip content not visible");
+        }
+        return el as HTMLElement;
+      });
+    }
+
+    it("shows the Explore endpoint section tooltip copy", async () => {
+      mockUseNetworkDomainsQuery.mockReturnValue({
+        data: ["api.example.com"],
+        status: "success",
+        error: null,
+      });
+      render(<NetworkOverview params={{ teamId: "team-1" }} />);
+      await act(async () => {
+        useFiltersStore.setState({
+          filters: {
+            ready: true,
+            app: { id: "app-1" },
+            serialisedFilters: "a=app-1",
+            startDate: "2024-01-01",
+            endDate: "2024-01-14",
+          },
+        });
+      });
+      const content = await openSectionTooltip("Explore endpoint");
+      expect(content.textContent).toContain(
+        "Search for endpoints using exact paths or wildcard patterns",
+      );
+    });
+
+    it("shows the Status Distribution section tooltip copy", async () => {
+      mockUseNetworkDomainsQuery.mockReturnValue({
+        data: ["api.example.com"],
+        status: "success",
+        error: null,
+      });
+      render(<NetworkOverview params={{ teamId: "team-1" }} />);
+      await act(async () => {
+        useFiltersStore.setState({
+          filters: {
+            ready: true,
+            app: { id: "app-1" },
+            serialisedFilters: "a=app-1",
+            startDate: "2024-01-01",
+            endDate: "2024-01-14",
+          },
+        });
+      });
+      const content = await openSectionTooltip("Status Distribution");
+      expect(content.textContent).toContain("HTTP status code distribution");
     });
   });
 });

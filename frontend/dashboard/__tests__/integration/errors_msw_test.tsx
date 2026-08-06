@@ -1,10 +1,10 @@
 /**
  * Integration tests for the unified Errors pages.
  *
- * Overview route: lists error groups, renders the overview plot, supports
- * the Errors / ANRs filter pills, severity, and custom flags.
- * Detail route: per-group events list with details plot, distribution plot,
- * and common-path UI.
+ * Covers page/api wiring only: HTTP failure handling on the overview and
+ * detail routes, and how the Type/Severity/Custom filter state serialises
+ * into request query params. Rendering behaviour is covered by the unit
+ * tests in __tests__/pages and __tests__/components.
  *
  * Real React components, Zustand stores, api_calls URL builders, and
  * apiClient.fetch run as they would in the browser. MSW intercepts at the
@@ -21,13 +21,7 @@ import {
   expect,
   it,
 } from "@jest/globals";
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 // --- jsdom polyfills ---
@@ -128,7 +122,6 @@ jest.mock("@nivo/bar", () => ({
 import {
   makeAppFixture,
   makeCrashPlotFixture,
-  makeExceptionInstanceFixture,
   makeExceptionsOverviewFixture,
 } from "../msw/fixtures";
 import { server } from "../msw/server";
@@ -187,63 +180,6 @@ function renderWithProviders(ui: React.ReactElement) {
 // OVERVIEW ROUTE
 // ====================================================================
 describe("Errors Overview (MSW integration)", () => {
-  async function renderAndWaitForData() {
-    renderWithProviders(
-      <ErrorsOverviewPage params={promiseParams({ teamId: "test-team" })} />,
-    );
-    await waitFor(
-      () => {
-        expect(screen.getByText("CheckoutActivity.kt: onClick()")).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-  }
-
-  it("lists error groups from /apps/:id/errorGroups", async () => {
-    await renderAndWaitForData();
-    expect(screen.getByText("CheckoutActivity.kt: onClick()")).toBeTruthy();
-    expect(screen.getByText("ProductFragment.kt: onResume()")).toBeTruthy();
-    expect(
-      screen.getByText(
-        /java\.lang\.NullPointerException:.*null object reference/,
-      ),
-    ).toBeTruthy();
-  });
-
-  it("renders table headers", async () => {
-    await renderAndWaitForData();
-    expect(screen.getByText("Error")).toBeTruthy();
-    expect(screen.getByText("Instances")).toBeTruthy();
-    expect(screen.getByText("Percentage contribution")).toBeTruthy();
-  });
-
-  it("renders count and percentage_contribution from fixture", async () => {
-    await renderAndWaitForData();
-    expect(screen.getByText("1523")).toBeTruthy();
-    expect(screen.getByText("45.2%")).toBeTruthy();
-  });
-
-  it("renders overview plot from /apps/:id/errorGroups/plots/instances", async () => {
-    await renderAndWaitForData();
-    expect(screen.getByTestId("nivo-line-chart")).toBeTruthy();
-    // The crash-plot fixture id is "3.1.0"
-    expect(screen.getByTestId("chart-series-3.1.0")).toBeTruthy();
-  });
-
-  it("row link points to /<teamId>/errors/<appId>/<groupId>/<encoded name>", async () => {
-    await renderAndWaitForData();
-    const links = screen.getAllByRole("link", {
-      name: /CheckoutActivity\.kt: onClick\(\)/,
-    });
-    expect(links.length).toBeGreaterThan(0);
-    const href = links[0].getAttribute("href") ?? "";
-    expect(href).toContain("/test-team/errors/");
-    // Encoded "type@file_name" → java.lang.NullPointerException@CheckoutActivity.kt
-    expect(href).toContain(
-      encodeURIComponent("java.lang.NullPointerException@CheckoutActivity.kt"),
-    );
-  });
-
   it("shows error message when overview fetch fails", async () => {
     server.use(
       http.get("*/api/apps/:appId/errorGroups", ({ request }) => {
@@ -268,129 +204,12 @@ describe("Errors Overview (MSW integration)", () => {
       { timeout: 5000 },
     );
   });
-
-  it("renders empty result set without error groups", async () => {
-    server.use(
-      http.get("*/api/apps/:appId/errorGroups", ({ request }) => {
-        const url = new URL(request.url);
-        if (
-          url.pathname.includes("/plots/") ||
-          url.pathname.match(/errorGroups\/[^/]+\//)
-        ) {
-          return;
-        }
-        return HttpResponse.json({
-          meta: { next: false, previous: false },
-          results: [],
-        });
-      }),
-    );
-
-    renderWithProviders(
-      <ErrorsOverviewPage params={promiseParams({ teamId: "test-team" })} />,
-    );
-    await waitFor(
-      () => {
-        // Headers still render
-        expect(screen.getByText("Error")).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-    expect(screen.queryByText("CheckoutActivity.kt: onClick()")).toBeNull();
-  });
 });
 
 // ====================================================================
 // DETAIL ROUTE
 // ====================================================================
 describe("Errors Detail (MSW integration)", () => {
-  async function renderDetailAndWait() {
-    renderWithProviders(
-      <ErrorDetailsPage
-        params={promiseParams({
-          teamId: "test-team",
-          appId: makeAppFixture().id,
-          errorGroupId: "crash-group-001",
-          errorGroupName: encodeURIComponent("java.lang.NullPointerException"),
-        })}
-      />,
-    );
-    await waitFor(
-      () => {
-        expect(screen.getByText(/Id: instance-001/)).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-  }
-
-  // Renders the detail route with a single event whose fields are taken from
-  // `overrides`, then waits for it to paint. Used by the extra-attribute
-  // (num_code / code / meta / user_defined_attribute) cases below.
-  async function renderDetailWithEvent(overrides: Record<string, any>) {
-    server.use(
-      http.get("*/api/apps/:appId/errorGroups/:groupId/errors", () => {
-        return HttpResponse.json(makeExceptionInstanceFixture(overrides));
-      }),
-    );
-    renderWithProviders(
-      <ErrorDetailsPage
-        params={promiseParams({
-          teamId: "test-team",
-          appId: makeAppFixture().id,
-          errorGroupId: "crash-group-001",
-          errorGroupName: "test",
-        })}
-      />,
-    );
-    await waitFor(
-      () => {
-        expect(screen.getByText(/Id: instance-001/)).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-  }
-
-  it("renders details plot, distribution plot, and common path", async () => {
-    await renderDetailAndWait();
-    // 1 line chart for details plot
-    expect(screen.getByTestId("nivo-line-chart")).toBeTruthy();
-    // Bar chart for distribution plot
-    expect(screen.getByTestId("nivo-bar-chart")).toBeTruthy();
-    // Common path "Common Path" heading
-    expect(screen.getAllByText(/Common Path/).length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("fetches events from /apps/:id/errorGroups/:id/errors and renders details", async () => {
-    await renderDetailAndWait();
-    expect(screen.getByText(/Id: instance-001/)).toBeTruthy();
-    expect(screen.getByText(/App version: 3\.1\.0/)).toBeTruthy();
-    expect(screen.getByText(/Device: GooglePixel 8/)).toBeTruthy();
-    expect(screen.getByText(/Network type: wifi/)).toBeTruthy();
-  });
-
-  it("renders View Session Replay link to the right session", async () => {
-    await renderDetailAndWait();
-    const link = screen.getByText("View Session Replay").closest("a")!;
-    expect(link.getAttribute("href")).toBe(
-      `/test-team/session_replays/${makeAppFixture().id}/sess-crash-001`,
-    );
-  });
-
-  it("renders common path step descriptions from fixture", async () => {
-    await renderDetailAndWait();
-    // Fixture's first 3 steps all have confidence >= 80% (95, 92, 85)
-    expect(screen.getByText("App launched")).toBeTruthy();
-    expect(screen.getByText("MainActivity.onCreate")).toBeTruthy();
-    expect(screen.getByText("CheckoutActivity.onClick")).toBeTruthy();
-  });
-
-  it("renders distribution plot keys from fixture", async () => {
-    await renderDetailAndWait();
-    // The mock bar chart renders one element per key; verify a few present
-    expect(screen.getByTestId("bar-key-Google")).toBeTruthy();
-    expect(screen.getByTestId("bar-key-Samsung")).toBeTruthy();
-  });
-
   it("shows error message when events query errors", async () => {
     server.use(
       http.get("*/api/apps/:appId/errorGroups/:groupId/errors", () => {
@@ -416,147 +235,15 @@ describe("Errors Detail (MSW integration)", () => {
       { timeout: 5000 },
     );
   });
-
-  it("renders ANR stack trace when event is an ANR", async () => {
-    server.use(
-      http.get("*/api/apps/:appId/errorGroups/:groupId/errors", () => {
-        return HttpResponse.json(
-          makeExceptionInstanceFixture({ variant: "anr" }),
-        );
-      }),
-    );
-
-    renderWithProviders(
-      <ErrorDetailsPage
-        params={promiseParams({
-          teamId: "test-team",
-          appId: makeAppFixture().id,
-          errorGroupId: "anr-group-001",
-          errorGroupName: "test",
-        })}
-      />,
-    );
-
-    await waitFor(
-      () => {
-        expect(screen.getByText(/Id: instance-001/)).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-    // The ANR stacktrace text should be present in the rendered DOM
-    expect(
-      screen.getAllByText(/ANR in sh\.measure\.demo/).length,
-    ).toBeGreaterThanOrEqual(1);
-  });
-
-  it("renders num_code, code, meta, and user_defined_attribute rows above threads when present", async () => {
-    await renderDetailWithEvent({
-      num_code: 137,
-      code: "OUT_OF_MEMORY",
-      meta: {
-        error_domain: "PaymentDomain",
-        recoverable: false,
-      },
-      user_defined_attribute: {
-        user_tier: "premium",
-        account_age_days: 142,
-      },
-    });
-
-    expect(screen.getByText("num_code")).toBeTruthy();
-    expect(screen.getByText("137")).toBeTruthy();
-    expect(screen.getByText("code")).toBeTruthy();
-    expect(screen.getByText("OUT_OF_MEMORY")).toBeTruthy();
-    expect(screen.getByText("meta")).toBeTruthy();
-    expect(screen.getByText(/error_domain/)).toBeTruthy();
-    expect(screen.getByText("user_defined_attribute")).toBeTruthy();
-    expect(screen.getByText(/user_tier/)).toBeTruthy();
-    expect(screen.getByText(/premium/)).toBeTruthy();
-  });
-
-  it("omits num_code, code, meta, and user_defined_attribute rows when default/empty", async () => {
-    await renderDetailAndWait();
-    expect(screen.queryByText("num_code")).toBeNull();
-    expect(screen.queryByText("code")).toBeNull();
-    expect(screen.queryByText("meta")).toBeNull();
-    expect(screen.queryByText("user_defined_attribute")).toBeNull();
-  });
-
-  // The detail endpoint returns num_code (number | null), code (string), and
-  // meta (object | null) independently, so any combination can arrive. Each
-  // row must show only when its value is available: num_code when it is a
-  // number (including 0), code when it is a non-empty string, meta when it is
-  // a non-null object with keys. The three cases below mirror real iOS error
-  // payloads where exactly that mix occurs.
-
-  it("shows num_code 0 and meta, hides empty code", async () => {
-    await renderDetailWithEvent({
-      num_code: 0,
-      code: "",
-      meta: {
-        NSFilePath: "//invalid/file",
-        NSURL: null,
-        NSUnderlyingError: null,
-        NSUserStringVariant: ["Remove"],
-      },
-    });
-
-    // num_code === 0 is a real value, not "absent" — it must be shown.
-    expect(screen.getByText("num_code")).toBeTruthy();
-    // meta is a non-empty object → shown as JSON.
-    expect(screen.getByText("meta")).toBeTruthy();
-    expect(screen.getByText(/NSFilePath/)).toBeTruthy();
-    // code is an empty string → hidden.
-    expect(screen.queryByText("code")).toBeNull();
-  });
-
-  it("shows num_code 0 and code, hides null meta", async () => {
-    await renderDetailWithEvent({
-      num_code: 0,
-      code: "NamedException, Something happened",
-      meta: null,
-    });
-
-    expect(screen.getByText("num_code")).toBeTruthy();
-    expect(screen.getByText("code")).toBeTruthy();
-    expect(screen.getByText("NamedException, Something happened")).toBeTruthy();
-    // meta is null → hidden.
-    expect(screen.queryByText("meta")).toBeNull();
-  });
-
-  it("shows num_code, code, and meta together", async () => {
-    await renderDetailWithEvent({
-      num_code: 260,
-      code: "NSCocoaErrorDomain",
-      meta: {
-        NSFilePath: "/path/that/does/not/exist.txt",
-        NSURL: null,
-        NSUnderlyingError: null,
-      },
-    });
-
-    expect(screen.getByText("num_code")).toBeTruthy();
-    expect(screen.getByText("260")).toBeTruthy();
-    expect(screen.getByText("code")).toBeTruthy();
-    expect(screen.getByText("NSCocoaErrorDomain")).toBeTruthy();
-    expect(screen.getByText("meta")).toBeTruthy();
-    expect(screen.getByText(/NSFilePath/)).toBeTruthy();
-  });
-
-  it("hides the meta row when meta is an empty object", async () => {
-    await renderDetailWithEvent({ meta: {} });
-    expect(screen.queryByText("meta")).toBeNull();
-  });
 });
 
 // ====================================================================
-// FILTER BEHAVIOUR — request params reflect Type/Severity/Custom
+// FILTER BEHAVIOUR: request params reflect Type/Severity/Custom
 // ====================================================================
 describe("Errors filter behaviour", () => {
   // Capture every errorGroups request URL so we can inspect query params
   function setupRequestCapture() {
     const errorGroupsRequests: { url: string }[] = [];
-    const errorGroupsPlotRequests: { url: string }[] = [];
     server.use(
       http.get("*/api/apps/:appId/errorGroups", ({ request }) => {
         const url = new URL(request.url);
@@ -570,15 +257,11 @@ describe("Errors filter behaviour", () => {
         errorGroupsRequests.push({ url: request.url });
         return HttpResponse.json(makeExceptionsOverviewFixture());
       }),
-      http.get(
-        "*/api/apps/:appId/errorGroups/plots/instances",
-        ({ request }) => {
-          errorGroupsPlotRequests.push({ url: request.url });
-          return HttpResponse.json(makeCrashPlotFixture());
-        },
-      ),
+      http.get("*/api/apps/:appId/errorGroups/plots/instances", () => {
+        return HttpResponse.json(makeCrashPlotFixture());
+      }),
     );
-    return { errorGroupsRequests, errorGroupsPlotRequests };
+    return { errorGroupsRequests };
   }
 
   async function renderAndWaitForData() {
@@ -593,192 +276,73 @@ describe("Errors filter behaviour", () => {
     );
   }
 
-  it("default request includes both error and anr in type", async () => {
+  it.each([
+    {
+      name: "default request includes both error and anr in type",
+      applyFilters: undefined,
+      contains: ["type=error%2Canr"],
+      absent: [],
+    },
+    {
+      name: "Type=Error only causes type=error in requests",
+      applyFilters: (state: any) => {
+        state.setSelectedErrorTypes(["error"]);
+      },
+      contains: ["type=error"],
+      absent: ["type=anr", "type=error%2Canr"],
+    },
+    {
+      name: "Type=ANR only causes type=anr in requests and no severity/custom",
+      applyFilters: (state: any) => {
+        state.setSelectedErrorTypes(["anr"]);
+        // Severity and custom should be cleared in ANR-only mode
+        state.setSelectedSeverities([]);
+        state.setCustomErrorsOnly(false);
+      },
+      contains: ["type=anr"],
+      absent: ["severity=", "custom="],
+    },
+    {
+      name: "Severity values appear as severity=... in request URL",
+      applyFilters: (state: any) => {
+        state.setSelectedSeverities(["fatal", "handled"]);
+      },
+      // severity is comma-separated; URL encoding turns comma to %2C
+      contains: ["severity=fatal%2Chandled"],
+      absent: [],
+    },
+    {
+      name: "customErrorsOnly=true appears as custom=true in request URL",
+      applyFilters: (state: any) => {
+        state.setCustomErrorsOnly(true);
+      },
+      contains: ["custom=true"],
+      absent: [],
+    },
+  ])("$name", async ({ applyFilters, contains, absent }) => {
     const { errorGroupsRequests } = setupRequestCapture();
     await renderAndWaitForData();
+
+    if (applyFilters) {
+      errorGroupsRequests.length = 0;
+      await act(async () => {
+        applyFilters(filtersStore.getState());
+      });
+      await waitFor(
+        () => {
+          expect(errorGroupsRequests.length).toBeGreaterThan(0);
+        },
+        { timeout: 5000 },
+      );
+    }
+
     expect(errorGroupsRequests.length).toBeGreaterThan(0);
     const lastUrl = errorGroupsRequests[errorGroupsRequests.length - 1].url;
-    expect(lastUrl).toContain("type=error%2Canr");
-  });
-
-  it("Type=Error only causes type=error in requests", async () => {
-    const { errorGroupsRequests, errorGroupsPlotRequests } =
-      setupRequestCapture();
-    await renderAndWaitForData();
-    errorGroupsRequests.length = 0;
-    errorGroupsPlotRequests.length = 0;
-
-    await act(async () => {
-      filtersStore.getState().setSelectedErrorTypes(["error"]);
-    });
-
-    await waitFor(
-      () => {
-        expect(errorGroupsRequests.length).toBeGreaterThan(0);
-      },
-      { timeout: 5000 },
-    );
-
-    const lastUrl = errorGroupsRequests[errorGroupsRequests.length - 1].url;
-    expect(lastUrl).toContain("type=error");
-    expect(lastUrl).not.toContain("type=anr");
-    expect(lastUrl).not.toContain("type=error%2Canr");
-  });
-
-  it("Type=ANR only causes type=anr in requests and no severity/custom", async () => {
-    const { errorGroupsRequests } = setupRequestCapture();
-    await renderAndWaitForData();
-    errorGroupsRequests.length = 0;
-
-    await act(async () => {
-      filtersStore.getState().setSelectedErrorTypes(["anr"]);
-      // Severity and custom should be cleared in ANR-only mode
-      filtersStore.getState().setSelectedSeverities([]);
-      filtersStore.getState().setCustomErrorsOnly(false);
-    });
-
-    await waitFor(
-      () => {
-        expect(errorGroupsRequests.length).toBeGreaterThan(0);
-      },
-      { timeout: 5000 },
-    );
-
-    const lastUrl = errorGroupsRequests[errorGroupsRequests.length - 1].url;
-    expect(lastUrl).toContain("type=anr");
-    expect(lastUrl).not.toContain("severity=");
-    expect(lastUrl).not.toContain("custom=");
-  });
-
-  it("Severity values appear as severity=... in request URL", async () => {
-    const { errorGroupsRequests } = setupRequestCapture();
-    await renderAndWaitForData();
-    errorGroupsRequests.length = 0;
-
-    await act(async () => {
-      filtersStore.getState().setSelectedSeverities(["fatal", "handled"]);
-    });
-
-    await waitFor(
-      () => {
-        expect(errorGroupsRequests.length).toBeGreaterThan(0);
-      },
-      { timeout: 5000 },
-    );
-
-    const lastUrl = errorGroupsRequests[errorGroupsRequests.length - 1].url;
-    // severity is comma-separated; URL encoding turns comma to %2C
-    expect(lastUrl).toContain("severity=fatal%2Chandled");
-  });
-
-  it("customErrorsOnly=true appears as custom=true in request URL", async () => {
-    const { errorGroupsRequests } = setupRequestCapture();
-    await renderAndWaitForData();
-    errorGroupsRequests.length = 0;
-
-    await act(async () => {
-      filtersStore.getState().setCustomErrorsOnly(true);
-    });
-
-    await waitFor(
-      () => {
-        expect(errorGroupsRequests.length).toBeGreaterThan(0);
-      },
-      { timeout: 5000 },
-    );
-
-    const lastUrl = errorGroupsRequests[errorGroupsRequests.length - 1].url;
-    expect(lastUrl).toContain("custom=true");
-  });
-});
-
-// ====================================================================
-// PILLS — Combined error-types pill: label and reset behaviour
-// ====================================================================
-describe("Errors filter pill", () => {
-  async function renderAndWaitForData() {
-    renderWithProviders(
-      <ErrorsOverviewPage params={promiseParams({ teamId: "test-team" })} />,
-    );
-    await waitFor(
-      () => {
-        expect(screen.getByText("CheckoutActivity.kt: onClick()")).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-  }
-
-  it("renders 'ANRs, Fatal Errors' at default state", async () => {
-    await renderAndWaitForData();
-    await waitFor(() => {
-      expect(screen.getByText("ANRs, Fatal Errors")).toBeTruthy();
-    });
-  });
-
-  it("renders only the Errors portion when ANR is deselected", async () => {
-    await renderAndWaitForData();
-    await act(async () => {
-      filtersStore.getState().setSelectedErrorTypes(["error"]);
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Fatal Errors")).toBeTruthy();
-    });
-  });
-
-  it("renders 'ANRs, Errors' alone when ANR is selected and no severity/custom", async () => {
-    await renderAndWaitForData();
-    await act(async () => {
-      filtersStore.getState().setSelectedSeverities([]);
-    });
-    await waitFor(() => {
-      expect(screen.getByText("ANRs, Errors")).toBeTruthy();
-    });
-  });
-
-  it("renders 'ANRs, Custom Errors only - Fatal, Handled' for custom + multiple severities", async () => {
-    await renderAndWaitForData();
-    await act(async () => {
-      filtersStore.getState().setSelectedSeverities(["fatal", "handled"]);
-      filtersStore.getState().setCustomErrorsOnly(true);
-    });
-    await waitFor(
-      () => {
-        expect(
-          screen.getByText("ANRs, Custom Errors only - Fatal, Handled"),
-        ).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-  });
-
-  it("clicking the reset button restores defaults (error + anr, fatal, custom off)", async () => {
-    await renderAndWaitForData();
-    // Diverge from defaults so reset has work to do.
-    await act(async () => {
-      filtersStore.getState().setSelectedErrorTypes(["error"]);
-      filtersStore.getState().setSelectedSeverities(["unhandled"]);
-      filtersStore.getState().setCustomErrorsOnly(true);
-    });
-    await waitFor(() => {
-      expect(screen.getByText("Custom Errors only - Unhandled")).toBeTruthy();
-    });
-
-    const resetButton = screen.getByRole("button", {
-      name: "Reset Custom Errors only - Unhandled",
-    });
-
-    await act(async () => {
-      fireEvent.click(resetButton);
-    });
-
-    await waitFor(
-      () => {
-        const state = filtersStore.getState();
-        expect(state.selectedErrorTypes).toEqual(["error", "anr"]);
-        expect(state.selectedSeverities).toEqual(["fatal"]);
-        expect(state.customErrorsOnly).toBe(false);
-      },
-      { timeout: 5000 },
-    );
+    for (const fragment of contains) {
+      expect(lastUrl).toContain(fragment);
+    }
+    for (const fragment of absent) {
+      expect(lastUrl).not.toContain(fragment);
+    }
   });
 });

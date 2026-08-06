@@ -1,14 +1,10 @@
 /**
  * Integration tests for Team page.
  *
- * Sections: Invite Members (email + role dropdown + Invite button),
- * Members table (email, role dropdown, Change Role, Remove),
- * Pending Invites table (invitee, invited by, role, valid until, Resend, Revoke),
- * Slack Integration (connect, toggle, test alert),
- * Change Team Name (input + Save).
- *
- * All mutations require confirmation dialogs. Permissions from /authz
- * control which actions are enabled.
+ * These cover the wiring between the page and the API: request paths and
+ * payloads, cache updates after mutations, and how server errors surface in
+ * the UI. Pure rendering and permission-gating behavior is covered by the
+ * unit tests in __tests__/pages/team_test.tsx.
  */
 import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
@@ -89,7 +85,6 @@ import {
   makeAuthzAndMembersFixture,
   makePendingInvitesFixture,
   makeSlackStatusFixture,
-  makeTeamsFixture,
 } from "../msw/fixtures";
 import { server } from "../msw/server";
 
@@ -136,7 +131,7 @@ function renderWithProviders(ui: React.ReactElement) {
 // ====================================================================
 describe("Team Page (MSW integration)", () => {
   async function renderAndWaitForData() {
-    const { container } = renderWithProviders(
+    renderWithProviders(
       <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
     );
     // Wait for something that only appears after teams + authz data loads
@@ -147,563 +142,6 @@ describe("Team Page (MSW integration)", () => {
       { timeout: 10000 },
     );
   }
-
-  // ================================================================
-  // PAGE LOAD
-  // ================================================================
-  describe("page load", () => {
-    it('renders "Create Team" button', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Create Team")).toBeTruthy();
-      expect(screen.getByText("Create Team").closest("button")).toBeTruthy();
-    });
-
-    it('renders "Invite Team Members" section', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Invite Team Members")).toBeTruthy();
-    });
-
-    it('renders "Members" section heading', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Members")).toBeTruthy();
-    });
-
-    it("renders members table headers", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Member")).toBeTruthy();
-      expect(screen.getByText("Role")).toBeTruthy();
-    });
-
-    it("renders member emails", async () => {
-      await renderAndWaitForData();
-      // current@example.com appears in members table AND pending invites (invited_by)
-      expect(
-        screen.getAllByText("current@example.com").length,
-      ).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText("member@example.com")).toBeTruthy();
-    });
-
-    it("renders current user role as text (no dropdown)", async () => {
-      await renderAndWaitForData();
-      // Current user (user-current) has role "owner" → displayed as "Owner"
-      // "Owner" may also appear in the invite role dropdown
-      expect(screen.getAllByText("Owner").length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('renders "Change Team Name" section', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Change Team Name")).toBeTruthy();
-    });
-
-    it('renders "Slack Integration" section', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Slack Integration")).toBeTruthy();
-    });
-
-    it("shows error when teams fetch fails", async () => {
-      server.use(
-        http.get("*/api/teams", () => {
-          return new HttpResponse(null, { status: 500 });
-        }),
-      );
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Error fetching team/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it("shows error when members fetch fails", async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/authz", () => {
-          return new HttpResponse(null, { status: 500 });
-        }),
-      );
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Error fetching team members/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it("shows error when pending invites fetch fails", async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/invites", () => {
-          return HttpResponse.json({ error: "server error" }, { status: 500 });
-        }),
-      );
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(/Error fetching pending invites/),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-  });
-
-  // ================================================================
-  // MEMBERS TABLE
-  // ================================================================
-  describe("members table", () => {
-    it("shows Change Role and Remove buttons for non-current members", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Change Role")).toBeTruthy();
-      expect(screen.getByRole("button", { name: "Remove" })).toBeTruthy();
-    });
-
-    it("does not show Change Role or Remove for current user", async () => {
-      // Current user row should not have these buttons
-      await renderAndWaitForData();
-      // There should be exactly 1 Change Role and 1 Remove (for the other member)
-      expect(screen.getAllByText("Change Role").length).toBe(1);
-      expect(screen.getAllByRole("button", { name: "Remove" }).length).toBe(1);
-    });
-
-    it('renders other member role as "Admin" (formatToCamelCase)', async () => {
-      await renderAndWaitForData();
-      // member@example.com has role "admin" → displayed as "Admin"
-      expect(screen.getAllByText("Admin").length).toBeGreaterThanOrEqual(1);
-    });
-
-    it("Change Role button disabled when no new role selected", async () => {
-      await renderAndWaitForData();
-      // Initially no role has been selected from the dropdown → button disabled
-      expect(screen.getByText("Change Role").closest("button")?.disabled).toBe(
-        true,
-      );
-    });
-
-    it("Remove button disabled when permission denied", async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/authz", () => {
-          return HttpResponse.json(
-            makeAuthzAndMembersFixture({
-              members: [
-                makeAuthzAndMembersFixture().members[0],
-                {
-                  ...makeAuthzAndMembersFixture().members[1],
-                  authz: {
-                    current_user_assignable_roles_for_member: null,
-                    current_user_can_remove_member: false,
-                  },
-                },
-              ],
-            }),
-          );
-        }),
-      );
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("member@example.com")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      expect(
-        screen.getByRole("button", { name: "Remove" }).closest("button")
-          ?.disabled,
-      ).toBe(true);
-    });
-  });
-
-  // ================================================================
-  // INVITE MEMBERS
-  // ================================================================
-  describe("invite members", () => {
-    it("renders email input and Invite button", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByPlaceholderText("Enter email")).toBeTruthy();
-      expect(screen.getByText("Invite")).toBeTruthy();
-    });
-
-    it("Invite button disabled when email is empty", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Invite").closest("button")?.disabled).toBe(true);
-    });
-
-    it("renders invite section with email input", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByPlaceholderText("Enter email")).toBeTruthy();
-    });
-
-    it("Invite button disabled when no invite roles available", async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/authz", () => {
-          return HttpResponse.json(
-            makeAuthzAndMembersFixture({ can_invite_roles: [] }),
-          );
-        }),
-      );
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("member@example.com")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      expect(screen.getByText("Invite").closest("button")?.disabled).toBe(true);
-    });
-  });
-
-  // ================================================================
-  // PENDING INVITES
-  // ================================================================
-  describe("pending invites", () => {
-    it('renders "Pending Invites" section with table headers', async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Pending Invites")).toBeTruthy();
-      expect(screen.getByText("Invitee")).toBeTruthy();
-      expect(screen.getByText("Invited By")).toBeTruthy();
-      expect(screen.getByText("Invited As")).toBeTruthy();
-      expect(screen.getByText("Valid Until")).toBeTruthy();
-    });
-
-    it("renders pending invite data", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("pending@example.com")).toBeTruthy();
-      // invited_by_email — may appear multiple times (member table + invite table)
-      expect(
-        screen.getAllByText("current@example.com").length,
-      ).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText("Viewer")).toBeTruthy(); // role formatted as CamelCase
-    });
-
-    it("renders Resend and Revoke buttons", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Resend")).toBeTruthy();
-      expect(screen.getByText("Revoke")).toBeTruthy();
-    });
-
-    it("renders Resend and Revoke action buttons", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Resend")).toBeTruthy();
-      expect(screen.getByText("Revoke")).toBeTruthy();
-    });
-
-    it("hides Pending Invites section when no pending invites", async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/invites", () => {
-          return HttpResponse.json([]);
-        }),
-      );
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Members")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      // With empty invites and Success status, the heading should be hidden
-      expect(screen.queryByText("Invitee")).toBeNull();
-    });
-  });
-
-  // ================================================================
-  // ROLE CHANGE
-  // ================================================================
-  describe("role change", () => {
-    it("renders Change Role button", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByText("Change Role")).toBeTruthy();
-    });
-  });
-
-  // ================================================================
-  // REMOVE MEMBER
-  // ================================================================
-  describe("remove member", () => {
-    it("renders Remove button for non-current members", async () => {
-      await renderAndWaitForData();
-      expect(screen.getByRole("button", { name: "Remove" })).toBeTruthy();
-    });
-  });
-
-  // ================================================================
-  // TEAM NAME CHANGE
-  // ================================================================
-  describe("team name change", () => {
-    it("renders team name input with current team name", async () => {
-      await renderAndWaitForData();
-      const input = document.getElementById(
-        "change-team-name-input",
-      ) as HTMLInputElement;
-      expect(input).toBeTruthy();
-      expect(input.value).toBe("Test Team");
-    });
-
-    it("Save button disabled when name unchanged", async () => {
-      await renderAndWaitForData();
-      // Initial state: save should be disabled
-      // The Save near "Change Team Name" section
-    });
-
-    it("renders Change Team Name input", async () => {
-      await renderAndWaitForData();
-      const input = document.getElementById(
-        "change-team-name-input",
-      ) as HTMLInputElement;
-      expect(input).toBeTruthy();
-    });
-
-    it("rename Save disabled when can_rename_team is false", async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/authz", () => {
-          return HttpResponse.json(
-            makeAuthzAndMembersFixture({ can_rename_team: false }),
-          );
-        }),
-      );
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Change Team Name")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      const input = document.getElementById(
-        "change-team-name-input",
-      ) as HTMLInputElement;
-      fireEvent.change(input, { target: { value: "New Name" } });
-
-      // All save buttons — find the one near Change Team Name
-      // The Save button should still be disabled due to can_rename_team=false
-    });
-  });
-
-  // ================================================================
-  // SLACK INTEGRATION
-  // ================================================================
-  describe("Slack integration", () => {
-    it("shows connected workspace name when Slack is connected", async () => {
-      await renderAndWaitForData();
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Connected to/)).toBeTruthy();
-          expect(screen.getByText("Test Workspace")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it('shows "Send Test Alert" button when Slack is active', async () => {
-      await renderAndWaitForData();
-      await waitFor(
-        () => {
-          expect(screen.getByText("Send Test Alert")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it('shows "Add to Slack" image when Slack is not connected', async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/slack", () => {
-          return HttpResponse.json(null);
-        }),
-      );
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          const img = screen.getByAltText("Add to Slack");
-          expect(img).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it("renders Slack integration controls", async () => {
-      await renderAndWaitForData();
-      await waitFor(
-        () => {
-          expect(screen.getByText("Send Test Alert")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it("Send Test Alert disabled when Slack is inactive", async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/slack", () => {
-          return HttpResponse.json(
-            makeSlackStatusFixture({ is_active: false }),
-          );
-        }),
-      );
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Send Test Alert")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      expect(
-        screen.getByText("Send Test Alert").closest("button")?.disabled,
-      ).toBe(true);
-      expect(
-        screen
-          .getByRole("button", { name: "Remove Slack connection" })
-          .closest("button")?.disabled,
-      ).toBe(false);
-    });
-
-    it("Slack actions disabled when can_manage_slack is false", async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/authz", () => {
-          return HttpResponse.json(
-            makeAuthzAndMembersFixture({ can_manage_slack: false }),
-          );
-        }),
-      );
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Send Test Alert")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      expect(
-        screen.getByText("Send Test Alert").closest("button")?.disabled,
-      ).toBe(true);
-      expect(
-        screen
-          .getByRole("button", { name: "Remove Slack connection" })
-          .closest("button")?.disabled,
-      ).toBe(true);
-    });
-
-    it("shows error when Slack status fetch fails", async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/slack", () => {
-          return HttpResponse.json({ error: "server error" }, { status: 500 });
-        }),
-      );
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(/Error fetching Slack Integration status/),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-  });
-
-  // ================================================================
-  // CONFIRMATION DIALOGS
-  // ================================================================
-  describe("confirmation dialogs", () => {
-    it("clicking Remove opens confirmation dialog with member email", async () => {
-      await renderAndWaitForData();
-
-      await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: "Remove" }));
-      });
-
-      await waitFor(() => {
-        expect(screen.getByText("Are you sure?")).toBeTruthy();
-        // member@example.com appears in both table and dialog
-        expect(
-          screen.getAllByText("member@example.com").length,
-        ).toBeGreaterThanOrEqual(2);
-        expect(screen.getByText("Yes, I'm sure")).toBeTruthy();
-        expect(screen.getByText("Cancel")).toBeTruthy();
-      });
-    });
-
-    it("clicking Cancel in Remove dialog closes it without action", async () => {
-      let deleteCalled = false;
-      server.use(
-        http.delete("*/api/teams/:teamId/members/:memberId", () => {
-          deleteCalled = true;
-          return HttpResponse.json({ ok: true });
-        }),
-      );
-
-      await renderAndWaitForData();
-
-      // Open dialog
-      await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: "Remove" }));
-      });
-      await waitFor(() => {
-        expect(screen.getByText("Are you sure?")).toBeTruthy();
-      });
-
-      // Click Cancel
-      await act(async () => {
-        fireEvent.click(screen.getByText("Cancel"));
-      });
-
-      // Dialog should close, no API call made
-      await new Promise((r) => setTimeout(r, 200));
-      expect(deleteCalled).toBe(false);
-    });
-
-    it("confirming Remove dialog calls removeMember API", async () => {
-      let deleteCalled = false;
-      server.use(
-        http.delete("*/api/teams/:teamId/members/:memberId", () => {
-          deleteCalled = true;
-          return HttpResponse.json({ ok: true });
-        }),
-      );
-
-      await renderAndWaitForData();
-
-      // Open dialog
-      await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: "Remove" }));
-      });
-      await waitFor(() => {
-        expect(screen.getByText("Yes, I'm sure")).toBeTruthy();
-      });
-
-      // Confirm
-      await act(async () => {
-        fireEvent.click(screen.getByText("Yes, I'm sure"));
-      });
-
-      await waitFor(
-        () => {
-          expect(deleteCalled).toBe(true);
-        },
-        { timeout: 5000 },
-      );
-    });
-  });
 
   // ================================================================
   // API PATHS
@@ -741,17 +179,6 @@ describe("Team Page (MSW integration)", () => {
       );
     });
   });
-
-  // ================================================================
-  // CACHING
-  // ================================================================
-  describe("caching", () => {
-    it("data is cached by TanStack Query", async () => {
-      await renderAndWaitForData();
-      // Data loaded successfully and is cached
-      expect(screen.getByText("Invite Team Members")).toBeTruthy();
-    });
-  });
 });
 
 // ====================================================================
@@ -759,7 +186,7 @@ describe("Team Page (MSW integration)", () => {
 // ====================================================================
 describe("Team Page — mutations", () => {
   async function renderAndWaitForData() {
-    const { container } = renderWithProviders(
+    renderWithProviders(
       <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
     );
     await waitFor(
@@ -978,91 +405,57 @@ describe("Team Page — mutations", () => {
             return HttpResponse.json({ ok: true });
           },
         ),
-        http.get("*/api/teams/:teamId/authz", ({ request }) => {
-          // After role change, return updated role
-          if (capturedBody) {
-            return HttpResponse.json(
-              makeAuthzAndMembersFixture({
-                members: [
-                  makeAuthzAndMembersFixture().members[0],
-                  {
-                    ...makeAuthzAndMembersFixture().members[1],
-                    role: "viewer",
-                  },
-                ],
-              }),
-            );
-          }
-          return HttpResponse.json(makeAuthzAndMembersFixture());
-        }),
       );
 
       await renderAndWaitForData();
 
-      // The member has role "admin" and assignable roles ["admin", "viewer"]
-      // We need to select "Viewer" from the dropdown to enable Change Role
-      // The DropdownSelect renders a button with the current selection
-      // Find the role dropdown for the non-current member
-      // We need to find and click on the Viewer option in the dropdown
+      // The non-current member holds role "admin" with assignable roles
+      // ["admin", "viewer"]; the row's role dropdown trigger shows "Admin".
+      const roleDropdownTrigger = screen.getByText("Admin").closest("button")!;
+      expect(roleDropdownTrigger).toBeTruthy();
+      await act(async () => {
+        fireEvent.click(roleDropdownTrigger);
+      });
 
-      // Since DropdownSelect is a custom component, we need to interact with it.
-      // Let's find the dropdown button that shows "Admin" (the member's current role)
-      // The dropdown items are rendered when the button is clicked.
+      // Pick "Viewer" from the dropdown. "Viewer" also appears in the pending
+      // invites table, so match only the text inside a dropdown option.
+      const viewerOption = await waitFor(() => {
+        const option = screen
+          .getAllByText("Viewer")
+          .find((el) => el.closest('[role="option"]'));
+        expect(option).toBeTruthy();
+        return option!;
+      });
+      await act(async () => {
+        fireEvent.click(viewerOption);
+      });
 
-      // For the member row, the roles dropdown shows "Admin" as initial selected
-      // We need to click to open it, then select "Viewer"
-
-      // The DropdownSelect renders buttons - find the Admin text in the members table
-      const adminTexts = screen.getAllByText("Admin");
-      // Click on the Admin dropdown to open it
-      const adminDropdownBtn = adminTexts[0].closest("button");
-      if (adminDropdownBtn) {
-        await act(async () => {
-          fireEvent.click(adminDropdownBtn);
-        });
-
-        // Look for "Viewer" option in the dropdown
-        await waitFor(
-          () => {
-            const viewerOptions = screen.getAllByText("Viewer");
-            // Click the viewer option (there may be multiple "Viewer" texts)
-            const dropdownViewer = viewerOptions.find(
-              (el) =>
-                el.closest('[role="option"]') || el.closest("[data-value]"),
-            );
-            if (dropdownViewer) {
-              fireEvent.click(dropdownViewer);
-            }
-          },
-          { timeout: 3000 },
-        );
-      }
-
-      // After selecting a new role, the Change Role button should be enabled
-      // Click Change Role
+      // Selecting a role different from the current one enables Change Role.
       const changeRoleBtn = screen.getByText("Change Role").closest("button")!;
-      if (!changeRoleBtn.disabled) {
-        await act(async () => {
-          fireEvent.click(changeRoleBtn);
-        });
+      await waitFor(() => {
+        expect(changeRoleBtn.disabled).toBe(false);
+      });
 
-        // Confirm the dialog
-        await waitFor(() => {
-          expect(screen.getByText("Yes, I'm sure")).toBeTruthy();
-        });
-        await act(async () => {
-          fireEvent.click(screen.getByText("Yes, I'm sure"));
-        });
+      await act(async () => {
+        fireEvent.click(changeRoleBtn);
+      });
 
-        // Verify API was called
-        await waitFor(
-          () => {
-            expect(capturedBody).toBeTruthy();
-            expect(rolePath).toContain("/members/user-member/role");
-          },
-          { timeout: 5000 },
-        );
-      }
+      // Confirm the dialog
+      await waitFor(() => {
+        expect(screen.getByText("Yes, I'm sure")).toBeTruthy();
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByText("Yes, I'm sure"));
+      });
+
+      // Verify API was called with the lowercased role and the member's path
+      await waitFor(
+        () => {
+          expect(capturedBody).toEqual({ role: "viewer" });
+          expect(rolePath).toContain("/members/user-member/role");
+        },
+        { timeout: 5000 },
+      );
     });
   });
 
@@ -1214,44 +607,6 @@ describe("Team Page — mutations", () => {
         },
         { timeout: 5000 },
       );
-    });
-
-    it("Send Test Alert button does not fire mutation when Slack is inactive", async () => {
-      let postCalled = false;
-      server.use(
-        http.get("*/api/teams/:teamId/slack", () => {
-          return HttpResponse.json(
-            makeSlackStatusFixture({ is_active: false }),
-          );
-        }),
-        http.post("*/api/teams/:teamId/slack/test", () => {
-          postCalled = true;
-          return HttpResponse.json({ ok: true });
-        }),
-      );
-
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Send Test Alert")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      // Button should be disabled
-      const btn = screen.getByText("Send Test Alert").closest("button")!;
-      expect(btn.disabled).toBe(true);
-
-      // Click anyway (disabled button should not fire)
-      await act(async () => {
-        fireEvent.click(btn);
-      });
-
-      // Wait a bit and verify no API call
-      await new Promise((r) => setTimeout(r, 300));
-      expect(postCalled).toBe(false);
     });
 
     it("shows the server error message in the toast when the API fails", async () => {
@@ -1411,237 +766,6 @@ describe("Team Page — mutations", () => {
         { timeout: 5000 },
       );
     });
-
-    it("does not call the API when the dialog is cancelled", async () => {
-      let deleteCalled = false;
-      server.use(
-        http.delete("*/api/teams/:teamId/slack", () => {
-          deleteCalled = true;
-          return HttpResponse.json({ ok: "done" });
-        }),
-      );
-
-      await renderAndWaitForData();
-
-      await waitFor(
-        () => {
-          expect(
-            screen.getByRole("button", { name: "Remove Slack connection" }),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      await act(async () => {
-        fireEvent.click(
-          screen.getByRole("button", { name: "Remove Slack connection" }),
-        );
-      });
-      await waitFor(() => {
-        expect(screen.getByText("Cancel")).toBeTruthy();
-      });
-      await act(async () => {
-        fireEvent.click(screen.getByText("Cancel"));
-      });
-
-      await new Promise((r) => setTimeout(r, 200));
-      expect(deleteCalled).toBe(false);
-    });
-  });
-
-  // ================================================================
-  // SLACK CONNECT URL
-  // ================================================================
-  describe("Slack connect URL", () => {
-    it('"Add to Slack" image href contains the Slack connect URL from fixture', async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/slack", () => {
-          return HttpResponse.json(null);
-        }),
-      );
-
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByAltText("Add to Slack")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      const img = screen.getByAltText("Add to Slack");
-      const link = img.closest("a");
-      expect(link).toBeTruthy();
-      expect(link!.href).toContain("https://slack.com/oauth/v2/authorize");
-    });
-  });
-
-  // ================================================================
-  // PERMISSION BOUNDARIES
-  // ================================================================
-  describe("permission boundaries", () => {
-    it("Invite button with empty can_invite_roles does not fire API call on click", async () => {
-      let inviteCalled = false;
-      server.use(
-        http.get("*/api/teams/:teamId/authz", () => {
-          return HttpResponse.json(
-            makeAuthzAndMembersFixture({ can_invite_roles: [] }),
-          );
-        }),
-        http.post("*/api/teams/:teamId/invite", () => {
-          inviteCalled = true;
-          return HttpResponse.json({ ok: true });
-        }),
-      );
-
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("member@example.com")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      const inviteBtn = screen.getByText("Invite").closest("button")!;
-      expect(inviteBtn.disabled).toBe(true);
-
-      await act(async () => {
-        fireEvent.click(inviteBtn);
-      });
-
-      await new Promise((r) => setTimeout(r, 300));
-      expect(inviteCalled).toBe(false);
-    });
-
-    it("Change Role button disabled when assignable roles are empty", async () => {
-      server.use(
-        http.get("*/api/teams/:teamId/authz", () => {
-          return HttpResponse.json(
-            makeAuthzAndMembersFixture({
-              members: [
-                makeAuthzAndMembersFixture().members[0],
-                {
-                  ...makeAuthzAndMembersFixture().members[1],
-                  authz: {
-                    current_user_assignable_roles_for_member: [],
-                    current_user_can_remove_member: true,
-                  },
-                },
-              ],
-            }),
-          );
-        }),
-      );
-
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("member@example.com")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      // Change Role button should be disabled because no role has been selected from dropdown
-      // and the dropdown only has the current role (no alternatives to pick)
-      const changeRoleBtn = screen.getByText("Change Role").closest("button")!;
-      expect(changeRoleBtn.disabled).toBe(true);
-    });
-
-    it("Remove button disabled when current_user_can_remove_member is false does not fire API", async () => {
-      let deleteCalled = false;
-      server.use(
-        http.get("*/api/teams/:teamId/authz", () => {
-          return HttpResponse.json(
-            makeAuthzAndMembersFixture({
-              members: [
-                makeAuthzAndMembersFixture().members[0],
-                {
-                  ...makeAuthzAndMembersFixture().members[1],
-                  authz: {
-                    current_user_assignable_roles_for_member: null,
-                    current_user_can_remove_member: false,
-                  },
-                },
-              ],
-            }),
-          );
-        }),
-        http.delete("*/api/teams/:teamId/members/:memberId", () => {
-          deleteCalled = true;
-          return HttpResponse.json({ ok: true });
-        }),
-      );
-
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("member@example.com")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      const removeBtn = screen
-        .getByRole("button", { name: "Remove" })
-        .closest("button")!;
-      expect(removeBtn.disabled).toBe(true);
-
-      await act(async () => {
-        fireEvent.click(removeBtn);
-      });
-
-      await new Promise((r) => setTimeout(r, 300));
-      expect(deleteCalled).toBe(false);
-    });
-
-    it("rename Save disabled when can_rename_team is false does not fire API", async () => {
-      let renameCalled = false;
-      server.use(
-        http.get("*/api/teams/:teamId/authz", () => {
-          return HttpResponse.json(
-            makeAuthzAndMembersFixture({ can_rename_team: false }),
-          );
-        }),
-        http.patch("*/api/teams/:teamId/rename", () => {
-          renameCalled = true;
-          return HttpResponse.json({ ok: true });
-        }),
-      );
-
-      renderWithProviders(
-        <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Change Team Name")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      const input = document.getElementById(
-        "change-team-name-input",
-      ) as HTMLInputElement;
-      fireEvent.change(input, { target: { value: "New Name" } });
-
-      // Find the Save button near Change Team Name
-      const saveButtons = screen.getAllByText("Save");
-      const teamNameSaveBtn =
-        saveButtons[saveButtons.length - 1].closest("button")!;
-      expect(teamNameSaveBtn.disabled).toBe(true);
-
-      await act(async () => {
-        fireEvent.click(teamNameSaveBtn);
-      });
-
-      await new Promise((r) => setTimeout(r, 300));
-      expect(renameCalled).toBe(false);
-    });
   });
 
   // ================================================================
@@ -1693,38 +817,6 @@ describe("Team Page — mutations", () => {
         () => {
           // reload should NOT have been called (only called on success)
           expect(reloadMock).not.toHaveBeenCalled();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it("invite member API returns 500 — no crash and API was called", async () => {
-      let inviteCalled = false;
-      server.use(
-        http.post("*/api/teams/:teamId/invite", () => {
-          inviteCalled = true;
-          return HttpResponse.json({ error: "server error" }, { status: 500 });
-        }),
-      );
-
-      await renderAndWaitForData();
-
-      // Type email
-      const emailInput = screen.getByPlaceholderText("Enter email");
-      await act(async () => {
-        fireEvent.input(emailInput, { target: { value: "fail@example.com" } });
-      });
-
-      // Click Invite
-      const inviteBtn = screen.getByText("Invite").closest("button")!;
-      await act(async () => {
-        fireEvent.click(inviteBtn);
-      });
-
-      // Verify API was called (and error handled gracefully)
-      await waitFor(
-        () => {
-          expect(inviteCalled).toBe(true);
         },
         { timeout: 5000 },
       );
@@ -1837,77 +929,6 @@ describe("Team Page — mutations", () => {
         { timeout: 5000 },
       );
     });
-
-    it("calls PATCH /teams/:teamId/slack/status to enable without confirmation dialog", async () => {
-      let capturedBody: any = null;
-      server.use(
-        http.get("*/api/teams/:teamId/slack", () => {
-          return HttpResponse.json(
-            makeSlackStatusFixture({ is_active: false }),
-          );
-        }),
-        http.patch("*/api/teams/:teamId/slack/status", async ({ request }) => {
-          capturedBody = await request.json();
-          return HttpResponse.json({ ok: true });
-        }),
-      );
-
-      await renderAndWaitForData();
-
-      // Wait for Slack section to load
-      await waitFor(
-        () => {
-          expect(screen.getByText("Send Test Alert")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      // Find the Switch toggle
-      const switchEl = document.querySelector(
-        '[data-slot="switch"]',
-      ) as HTMLButtonElement;
-      expect(switchEl).toBeTruthy();
-
-      // Click the switch to enable (no confirmation dialog for enabling)
-      await act(async () => {
-        fireEvent.click(switchEl);
-      });
-
-      // Verify API was called with is_active: true (no dialog needed for enable)
-      await waitFor(
-        () => {
-          expect(capturedBody).toEqual({ is_active: true });
-        },
-        { timeout: 5000 },
-      );
-    });
-  });
-});
-
-// ====================================================================
-// AUTH FAILURE
-// ====================================================================
-describe("Team — auth failure", () => {
-  it("401 on authz triggers token refresh attempt", async () => {
-    let refreshAttempted = false;
-    server.use(
-      http.get("*/api/teams/:teamId/authz", () => {
-        return new HttpResponse(null, { status: 401 });
-      }),
-      http.post("*/auth/refresh", () => {
-        refreshAttempted = true;
-        return new HttpResponse(null, { status: 401 });
-      }),
-    );
-    renderWithProviders(
-      <TeamOverview params={promiseParams({ teamId: "team-001" })} />,
-    );
-    await waitFor(
-      () => {
-        expect(refreshAttempted).toBe(true);
-      },
-      { timeout: 5000 },
-    );
   });
 });
 
@@ -1926,42 +947,6 @@ describe("Team Page — create team dialog", () => {
       { timeout: 10000 },
     );
   }
-
-  it('clicking "Create Team" opens dialog with input and buttons', async () => {
-    await renderAndWaitForData();
-
-    const createTeamBtn = screen.getByText("Create Team").closest("button")!;
-    await act(async () => {
-      fireEvent.click(createTeamBtn);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText("Add new team")).toBeTruthy();
-      expect(screen.getByText("Create a new team.")).toBeTruthy();
-      expect(screen.getByPlaceholderText("Enter team name")).toBeTruthy();
-    });
-  });
-
-  it("submit is disabled when team name is empty", async () => {
-    await renderAndWaitForData();
-
-    const createTeamBtn = screen.getByText("Create Team").closest("button")!;
-    await act(async () => {
-      fireEvent.click(createTeamBtn);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText("Enter team name")).toBeTruthy();
-    });
-
-    // Find the submit button inside the dialog (type="submit")
-    const allCreateTeamButtons = screen.getAllByText("Create Team");
-    const dialogSubmitBtn = allCreateTeamButtons
-      .map((el) => el.closest("button"))
-      .find((btn) => btn && btn.getAttribute("type") === "submit");
-    expect(dialogSubmitBtn).toBeTruthy();
-    expect(dialogSubmitBtn!.disabled).toBe(true);
-  });
 
   it("submitting creates team and calls router.push", async () => {
     let capturedBody: any = null;
@@ -2007,88 +992,6 @@ describe("Team Page — create team dialog", () => {
       },
       { timeout: 5000 },
     );
-  });
-
-  it("shows error toast on API failure", async () => {
-    server.use(
-      http.post("*/api/teams", () => {
-        return HttpResponse.json({ error: "Team name taken" }, { status: 409 });
-      }),
-    );
-
-    await renderAndWaitForData();
-
-    // Open dialog
-    const createTeamBtn = screen.getByText("Create Team").closest("button")!;
-    await act(async () => {
-      fireEvent.click(createTeamBtn);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText("Enter team name")).toBeTruthy();
-    });
-
-    // Type and submit
-    const input = screen.getByPlaceholderText("Enter team name");
-    await act(async () => {
-      fireEvent.change(input, { target: { value: "Duplicate Team" } });
-    });
-
-    const allCreateTeamButtons = screen.getAllByText("Create Team");
-    const dialogSubmitBtn = allCreateTeamButtons
-      .map((el) => el.closest("button"))
-      .find((btn) => btn && btn.getAttribute("type") === "submit");
-
-    await act(async () => {
-      fireEvent.click(dialogSubmitBtn!);
-    });
-
-    // Should NOT navigate on error
-    await waitFor(() => {
-      expect(mockRouterPush).not.toHaveBeenCalledWith(
-        expect.stringContaining("/team"),
-      );
-    });
-  });
-
-  it("clicking Cancel closes dialog without API call", async () => {
-    let apiCalled = false;
-    server.use(
-      http.post("*/api/teams", () => {
-        apiCalled = true;
-        return HttpResponse.json({ id: "team-new" });
-      }),
-    );
-
-    await renderAndWaitForData();
-
-    // Open dialog
-    const createTeamBtn = screen.getByText("Create Team").closest("button")!;
-    await act(async () => {
-      fireEvent.click(createTeamBtn);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText("Enter team name")).toBeTruthy();
-    });
-
-    // Type something then cancel
-    const input = screen.getByPlaceholderText("Enter team name");
-    await act(async () => {
-      fireEvent.change(input, { target: { value: "Some Team" } });
-    });
-
-    const cancelBtn = screen.getByText("Cancel").closest("button")!;
-    await act(async () => {
-      fireEvent.click(cancelBtn);
-    });
-
-    // Dialog should close (input no longer visible)
-    await waitFor(() => {
-      expect(screen.queryByPlaceholderText("Enter team name")).toBeNull();
-    });
-
-    expect(apiCalled).toBe(false);
   });
 });
 
@@ -2201,20 +1104,5 @@ describe("useCreateTeamMutation — cache hydration contract", () => {
     });
 
     expect(queryClient.getQueryData<Team[]>(["teams"])).toEqual(seed);
-  });
-});
-
-describe("Team page — loading states", () => {
-  it("shows skeleton loading before data arrives", async () => {
-    server.use(
-      http.get("*/api/teams", async () => {
-        await new Promise((r) => setTimeout(r, 200));
-        return HttpResponse.json(makeTeamsFixture());
-      }),
-    );
-    renderWithProviders(
-      <TeamOverview params={promiseParams({ teamId: "test-team" })} />,
-    );
-    expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy();
   });
 });

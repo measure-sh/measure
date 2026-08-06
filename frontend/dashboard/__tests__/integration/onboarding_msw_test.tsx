@@ -6,8 +6,8 @@
  * for the network boundary. Covers:
  *   - Zero apps in team → Onboarding Step 1 renders
  *   - Step 1 form submission → app created → flow advances to Step 2
- *   - App exists but not onboarded → Onboarding starts at Step 2
- *   - Polling detects onboarded flag flip and shows success card
+ *   - App exists but not onboarded → the fetchApps → selectApp chain hands
+ *     the app's API key to the onboarding snippets
  */
 import {
   afterAll,
@@ -201,15 +201,6 @@ describe("Onboarding (MSW integration)", () => {
       });
       expect(screen.getByTestId("onboarding-app-name-input")).toBeTruthy();
     });
-
-    it("does not render the integrate or verify steps initially", async () => {
-      renderWithProviders(<Overview params={{ teamId: "test-team" }} />);
-      await waitFor(() => {
-        expect(screen.getByTestId("onboarding-step-create")).toBeTruthy();
-      });
-      expect(screen.queryByTestId("onboarding-step-integrate")).toBeNull();
-      expect(screen.queryByTestId("onboarding-step-verify")).toBeNull();
-    });
   });
 
   describe("App exists but not onboarded", () => {
@@ -229,24 +220,6 @@ describe("Onboarding (MSW integration)", () => {
           }),
         ]),
         notOnboardedFiltersHandler(),
-      );
-    });
-
-    it("renders Onboarding starting at Step 2 (integrate)", async () => {
-      renderWithProviders(<Overview params={{ teamId: "test-team" }} />);
-      await waitFor(() => {
-        expect(screen.getByTestId("onboarding-step-integrate")).toBeTruthy();
-      });
-      expect(screen.queryByTestId("onboarding-step-create")).toBeNull();
-    });
-
-    it("embeds the real API key in the Android manifest snippet", async () => {
-      renderWithProviders(<Overview params={{ teamId: "test-team" }} />);
-      await waitFor(() => {
-        expect(screen.getByTestId("snippet-manifest")).toBeTruthy();
-      });
-      expect(screen.getByTestId("snippet-manifest").textContent).toContain(
-        "msr_integration_key",
       );
     });
 
@@ -316,100 +289,6 @@ describe("Onboarding (MSW integration)", () => {
       expect(screen.getByTestId("snippet-manifest").textContent).toContain(
         "msr_fresh_key",
       );
-    });
-  });
-
-  describe("Polling detects onboarded flip", () => {
-    it("advances to verified state when the onboarded flag flips", async () => {
-      let appsCallCount = 0;
-      const baseApp = {
-        id: "app-poll",
-        name: "Poll App",
-        api_key: {
-          key: "msr_poll_key",
-          revoked: false,
-          created_at: "",
-          last_seen: null,
-        },
-      };
-
-      server.use(
-        http.get("*/api/teams/:teamId/apps", () => {
-          appsCallCount += 1;
-          // Initial fetch + first verify-step poll return not-onboarded.
-          // Subsequent polls return onboarded.
-          const onboarded = appsCallCount >= 3;
-          return HttpResponse.json([makeAppFixture({ ...baseApp, onboarded })]);
-        }),
-        // The onboarding poller probes /filters after the apps endpoint
-        // confirms onboarded. Mirror the flip here so the pipeline appears
-        // to catch up at the same poll cycle.
-        http.get("*/api/apps/:appId/filters", () => {
-          if (appsCallCount >= 3) {
-            return HttpResponse.json({
-              versions: [{ name: "1.0.0", code: "1" }],
-              os_versions: [],
-              countries: [],
-              network_providers: [],
-              network_types: [],
-              network_generations: [],
-              locales: [],
-              device_manufacturers: [],
-              device_names: [],
-              ud_attrs: null,
-            });
-          }
-          return HttpResponse.json({
-            versions: null,
-            os_versions: null,
-            countries: null,
-            network_providers: null,
-            network_types: null,
-            network_generations: null,
-            locales: null,
-            device_manufacturers: null,
-            device_names: null,
-            ud_attrs: null,
-          });
-        }),
-      );
-
-      renderWithProviders(<Overview params={{ teamId: "test-team" }} />);
-
-      // Wait for initial fetch chain to settle using real timers, then
-      // switch to fake timers for the polling phase.
-      await waitFor(() => {
-        expect(screen.getByTestId("onboarding-step-integrate")).toBeTruthy();
-      });
-
-      jest.useFakeTimers({ doNotFake: ["queueMicrotask"] });
-      try {
-        await act(async () => {
-          fireEvent.click(screen.getByTestId("onboarding-next-button"));
-        });
-        await act(async () => {
-          await jest.advanceTimersByTimeAsync(0);
-        });
-
-        expect(screen.getByTestId("onboarding-waiting")).toBeTruthy();
-
-        // Advance through poll cycles until success card renders.
-        // The fake server flips onboarded on the third call.
-        await act(async () => {
-          await jest.advanceTimersByTimeAsync(3000);
-        });
-        await act(async () => {
-          await jest.advanceTimersByTimeAsync(3000);
-        });
-
-        expect(screen.getByTestId("onboarding-success")).toBeTruthy();
-        expect(
-          screen.getByTestId("onboarding-view-dashboard-button"),
-        ).toBeTruthy();
-      } finally {
-        jest.runOnlyPendingTimers();
-        jest.useRealTimers();
-      }
     });
   });
 });

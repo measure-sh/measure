@@ -1,5 +1,6 @@
 import { promiseParams } from "@/__tests__/helpers/promise_params";
-import Overview from "@/app/[teamId]/overview/page";
+import OverviewPage from "@/app/[teamId]/overview/page";
+import Overview from "@/app/components/overview";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, render, screen } from "@testing-library/react";
@@ -64,12 +65,12 @@ describe("Overview Component", () => {
   });
 
   it("renders the Filters component", () => {
-    render(<Overview params={promiseParams({ teamId: "123" })} />);
+    render(<OverviewPage params={promiseParams({ teamId: "123" })} />);
     expect(screen.getByTestId("filters-mock")).toBeInTheDocument();
   });
 
   it("does not render Journey or MetricsOverview when filters are not ready", () => {
-    render(<Overview params={promiseParams({ teamId: "123" })} />);
+    render(<OverviewPage params={promiseParams({ teamId: "123" })} />);
     expect(screen.queryByTestId("journey-mock")).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("metrics-overview-mock"),
@@ -77,7 +78,7 @@ describe("Overview Component", () => {
   });
 
   it("renders Journey and MetricsOverview when filters become ready and updates URL", async () => {
-    render(<Overview params={promiseParams({ teamId: "123" })} />);
+    render(<OverviewPage params={promiseParams({ teamId: "123" })} />);
 
     await act(async () => {
       useFiltersStore.setState({
@@ -96,5 +97,33 @@ describe("Overview Component", () => {
       await screen.findByTestId("metrics-overview-mock"),
     ).toBeInTheDocument();
     expect(replaceMock).toHaveBeenCalledWith("?updated", { scroll: false });
+  });
+});
+
+describe("Overview component demo mode", () => {
+  beforeEach(() => {
+    replaceMock.mockClear();
+    useFiltersStore.setState({
+      filters: { ready: false, serialisedFilters: "" },
+    });
+  });
+
+  it("renders the plot and metrics without the Filters component", () => {
+    render(<Overview demo={true} />);
+    expect(screen.getByTestId("app-health-plot-mock")).toBeInTheDocument();
+    expect(screen.getByTestId("metrics-overview-mock")).toBeInTheDocument();
+    expect(screen.queryByTestId("filters-mock")).not.toBeInTheDocument();
+  });
+
+  it('shows the "App Health" heading instead of "Overview"', () => {
+    render(<Overview demo={true} />);
+    expect(screen.getByText("App Health")).toBeInTheDocument();
+    expect(screen.queryByText("Overview")).not.toBeInTheDocument();
+  });
+
+  it("renders an empty heading when hideDemoTitle is set", () => {
+    render(<Overview demo={true} hideDemoTitle={true} />);
+    expect(screen.queryByText("App Health")).not.toBeInTheDocument();
+    expect(screen.queryByText("Overview")).not.toBeInTheDocument();
   });
 });
