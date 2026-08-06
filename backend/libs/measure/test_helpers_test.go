@@ -149,10 +149,10 @@ func seedBuildMappingRow(
 	ctx context.Context,
 	t *testing.T,
 	mappingID, appID uuid.UUID,
-	versionName, versionCode, mappingType, patchID string,
+	versionName, versionCode, mappingType, patchID, patchVersion string,
 	lastUpdated time.Time,
 ) {
-	th.SeedBuildMappingRow(ctx, t, mappingID.String(), appID.String(), versionName, versionCode, mappingType, fmt.Sprintf("test/%s", mappingID), patchID, lastUpdated)
+	th.SeedBuildMappingRow(ctx, t, mappingID.String(), appID.String(), versionName, versionCode, mappingType, fmt.Sprintf("test/%s", mappingID), patchID, patchVersion, lastUpdated)
 }
 
 func seedGenericEvents(ctx context.Context, t *testing.T, teamID, appID string, count int, ts time.Time) {

@@ -483,9 +483,9 @@ func TestGetBuildFile(t *testing.T) {
 	patchFileID := uuid.New()
 	pendingUpload := uuid.New()
 	patchID := uuid.New()
-	seedBuildMappingRow(ctx, t, fileID, appID, "1.0.0", "100", "proguard", noPatch, base)
-	seedBuildMappingRow(ctx, t, patchFileID, appID, "", "", "jsbundle", patchID.String(), base)
-	th.SeedBuildMappingRow(ctx, t, pendingUpload.String(), appID.String(), "1.0.0", "100", "dsym", "", noPatch, base)
+	seedBuildMappingRow(ctx, t, fileID, appID, "1.0.0", "100", "proguard", noPatch, "", base)
+	seedBuildMappingRow(ctx, t, patchFileID, appID, "", "", "jsbundle", patchID.String(), "", base)
+	th.SeedBuildMappingRow(ctx, t, pendingUpload.String(), appID.String(), "1.0.0", "100", "dsym", "", noPatch, "", base)
 
 	t.Run("reads one file row", func(t *testing.T) {
 		file, err := GetBuildFile(ctx, deps.PgPool, appID, fileID)
@@ -560,16 +560,16 @@ func TestGetBuildsWithFilterPackagesFilesIntoBuilds(t *testing.T) {
 
 	// version 1.0.0 has a superseded proguard file, its replacement
 	// and an elf_debug file
-	seedBuildMappingRow(ctx, t, oldProguard, appID, "1.0.0", "100", "proguard", noPatch, base)
-	seedBuildMappingRow(ctx, t, newProguard, appID, "1.0.0", "100", "proguard", noPatch, base.Add(10*time.Minute))
-	seedBuildMappingRow(ctx, t, elfDebug, appID, "1.0.0", "100", "elf_debug", noPatch, base.Add(20*time.Minute))
+	seedBuildMappingRow(ctx, t, oldProguard, appID, "1.0.0", "100", "proguard", noPatch, "", base)
+	seedBuildMappingRow(ctx, t, newProguard, appID, "1.0.0", "100", "proguard", noPatch, "", base.Add(10*time.Minute))
+	seedBuildMappingRow(ctx, t, elfDebug, appID, "1.0.0", "100", "elf_debug", noPatch, "", base.Add(20*time.Minute))
 
 	// a file whose upload has not finished processing has an empty
 	// key and stays out of the list
-	th.SeedBuildMappingRow(ctx, t, pendingUpload.String(), appID.String(), "1.0.0", "100", "jsbundle", "", noPatch, base.Add(30*time.Minute))
+	th.SeedBuildMappingRow(ctx, t, pendingUpload.String(), appID.String(), "1.0.0", "100", "jsbundle", "", noPatch, "", base.Add(30*time.Minute))
 
 	// version 2.0.0 has the newest file and sorts first
-	seedBuildMappingRow(ctx, t, v2Proguard, appID, "2.0.0", "200", "proguard", noPatch, base.Add(40*time.Minute))
+	seedBuildMappingRow(ctx, t, v2Proguard, appID, "2.0.0", "200", "proguard", noPatch, "", base.Add(40*time.Minute))
 
 	af := &filter.AppFilter{
 		AppID: appID,
@@ -633,13 +633,15 @@ func TestGetBuildsWithFilterGroupsPatchesSeparately(t *testing.T) {
 	patchOne := uuid.New().String()
 	patchTwo := uuid.New().String()
 
-	seedBuildMappingRow(ctx, t, regular, appID, "1.0.0", "100", "proguard", noPatch, base)
+	seedBuildMappingRow(ctx, t, regular, appID, "1.0.0", "100", "proguard", noPatch, "", base)
 
-	// OTA patch uploads carry a patch id and no version; a re-upload
-	// of the same patch id inserts a new row and the latest one wins
-	seedBuildMappingRow(ctx, t, patchOneOld, appID, "", "", "jsbundle", patchOne, base.Add(10*time.Minute))
-	seedBuildMappingRow(ctx, t, patchOneNew, appID, "", "", "jsbundle", patchOne, base.Add(20*time.Minute))
-	seedBuildMappingRow(ctx, t, patchTwoFile, appID, "", "", "jsbundle", patchTwo, base.Add(30*time.Minute))
+	// OTA patch uploads carry a patch id and no app version; a
+	// re-upload of the same patch id inserts a new row and the latest
+	// one wins. Naming the patch version is optional, so patch two
+	// has an id and no version.
+	seedBuildMappingRow(ctx, t, patchOneOld, appID, "", "", "jsbundle", patchOne, "3.0.9", base.Add(10*time.Minute))
+	seedBuildMappingRow(ctx, t, patchOneNew, appID, "", "", "jsbundle", patchOne, "3.1.0", base.Add(20*time.Minute))
+	seedBuildMappingRow(ctx, t, patchTwoFile, appID, "", "", "jsbundle", patchTwo, "", base.Add(30*time.Minute))
 
 	af := &filter.AppFilter{
 		AppID: appID,
@@ -654,13 +656,15 @@ func TestGetBuildsWithFilterGroupsPatchesSeparately(t *testing.T) {
 		t.Fatalf("want 3 builds, got %d: %+v", len(builds), builds)
 	}
 
-	if builds[0].PatchID != patchTwo || len(builds[0].Files) != 1 || builds[0].Files[0].ID != patchTwoFile {
-		t.Errorf("want patch %s build first with file %s, got %+v", patchTwo, patchTwoFile, builds[0])
+	if builds[0].PatchID != patchTwo || builds[0].PatchVersion != "" || len(builds[0].Files) != 1 || builds[0].Files[0].ID != patchTwoFile {
+		t.Errorf("want patch %s build first with file %s and no patch version, got %+v", patchTwo, patchTwoFile, builds[0])
 	}
-	if builds[1].PatchID != patchOne || len(builds[1].Files) != 1 || builds[1].Files[0].ID != patchOneNew {
-		t.Errorf("want patch %s build with only its latest file %s, got %+v", patchOne, patchOneNew, builds[1])
+	// a build takes its patch version from the same rows its files
+	// came from, so the re-upload's version arrives with its file
+	if builds[1].PatchID != patchOne || builds[1].PatchVersion != "3.1.0" || len(builds[1].Files) != 1 || builds[1].Files[0].ID != patchOneNew {
+		t.Errorf("want patch %s build with only its latest file %s and patch version 3.1.0, got %+v", patchOne, patchOneNew, builds[1])
 	}
-	if builds[2].VersionName != "1.0.0" || builds[2].PatchID != "" {
+	if builds[2].VersionName != "1.0.0" || builds[2].PatchID != "" || builds[2].PatchVersion != "" {
 		t.Errorf("want regular build 1.0.0 last, got %+v", builds[2])
 	}
 }
@@ -681,8 +685,8 @@ func TestGetBuildsWithFilterPaginatesBuilds(t *testing.T) {
 	// not files
 	versions := []string{"1.0.0", "2.0.0", "3.0.0"}
 	for i, v := range versions {
-		seedBuildMappingRow(ctx, t, uuid.New(), appID, v, "100", "proguard", noPatch, base.Add(time.Duration(i)*10*time.Minute))
-		seedBuildMappingRow(ctx, t, uuid.New(), appID, v, "100", "elf_debug", noPatch, base.Add(time.Duration(i)*10*time.Minute+5*time.Minute))
+		seedBuildMappingRow(ctx, t, uuid.New(), appID, v, "100", "proguard", noPatch, "", base.Add(time.Duration(i)*10*time.Minute))
+		seedBuildMappingRow(ctx, t, uuid.New(), appID, v, "100", "elf_debug", noPatch, "", base.Add(time.Duration(i)*10*time.Minute+5*time.Minute))
 	}
 
 	af := &filter.AppFilter{
@@ -732,8 +736,8 @@ func TestGetBuildsWithFilterTimeRange(t *testing.T) {
 	base := time.Now().UTC().Add(-time.Hour).Truncate(time.Millisecond)
 	noPatch := uuid.Nil.String()
 
-	seedBuildMappingRow(ctx, t, uuid.New(), appID, "1.0.0", "100", "proguard", noPatch, base)
-	seedBuildMappingRow(ctx, t, uuid.New(), appID, "2.0.0", "200", "proguard", noPatch, base.Add(30*time.Minute))
+	seedBuildMappingRow(ctx, t, uuid.New(), appID, "1.0.0", "100", "proguard", noPatch, "", base)
+	seedBuildMappingRow(ctx, t, uuid.New(), appID, "2.0.0", "200", "proguard", noPatch, "", base.Add(30*time.Minute))
 
 	af := &filter.AppFilter{
 		AppID: appID,

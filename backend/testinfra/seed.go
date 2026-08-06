@@ -151,20 +151,20 @@ func (h *TestHelper) SeedApp(ctx context.Context, t *testing.T, appID, teamID, a
 }
 
 // SeedBuildMappingRow inserts a single build mapping row with an
-// explicit key and patch id. Only the table row is written; no
-// mapping file object is uploaded. The zero UUID patch id marks a
-// regular build upload; OTA patch uploads carry a patch id and empty
-// version columns. An empty key marks a file whose upload has not
-// finished processing.
-func (h *TestHelper) SeedBuildMappingRow(ctx context.Context, t *testing.T, mappingID, appID, versionName, versionCode, mappingType, key, patchID string, lastUpdated time.Time) {
+// explicit key, patch id and patch version. Only the table row is
+// written; no mapping file object is uploaded. The zero UUID patch id
+// marks a regular build upload; OTA patch uploads carry a patch id and
+// empty version columns, plus a patch version when the SDK sends one.
+// An empty key marks a file whose upload has not finished processing.
+func (h *TestHelper) SeedBuildMappingRow(ctx context.Context, t *testing.T, mappingID, appID, versionName, versionCode, mappingType, key, patchID, patchVersion string, lastUpdated time.Time) {
 	t.Helper()
 
 	_, err := h.PgPool.Exec(ctx,
-		`INSERT INTO build_mappings (id, app_id, version_name, version_code, mapping_type, key, location, fnv1_hash, file_size, patch_id, last_updated)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+		`INSERT INTO build_mappings (id, app_id, version_name, version_code, mapping_type, key, location, fnv1_hash, file_size, patch_id, patch_version, last_updated)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
 		mappingID, appID, versionName, versionCode, mappingType, key,
 		fmt.Sprintf("http://minio.test:9000/msr-symbols-test/%s", key),
-		"0xtesthash", 100, patchID, lastUpdated)
+		"0xtesthash", 100, patchID, patchVersion, lastUpdated)
 	if err != nil {
 		t.Fatalf("seed build mapping row: %v", err)
 	}

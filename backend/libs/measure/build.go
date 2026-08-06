@@ -29,28 +29,31 @@ import (
 // belongs to; they stay out of JSON because the builds list nests
 // files inside their build, which already carries them.
 type BuildFile struct {
-	ID          uuid.UUID `json:"id"`
-	VersionName string    `json:"-"`
-	VersionCode string    `json:"-"`
-	PatchID     uuid.UUID `json:"-"`
-	MappingType string    `json:"mapping_type"`
-	Key         string    `json:"-"`
-	DownloadURL string    `json:"download_url"`
-	FileSize    int64     `json:"filesize"`
-	LastUpdated time.Time `json:"last_updated"`
+	ID           uuid.UUID `json:"id"`
+	VersionName  string    `json:"-"`
+	VersionCode  string    `json:"-"`
+	PatchID      uuid.UUID `json:"-"`
+	PatchVersion string    `json:"-"`
+	MappingType  string    `json:"mapping_type"`
+	Key          string    `json:"-"`
+	DownloadURL  string    `json:"download_url"`
+	FileSize     int64     `json:"filesize"`
+	LastUpdated  time.Time `json:"last_updated"`
 }
 
 // Build represents one build of an app: the mapping files uploaded
 // for a (version_name, version_code, patch_id) group, keeping the
 // latest file of each mapping type. PatchID is empty for regular
 // builds; Over-The-Air patch uploads carry a patch id and empty
-// version columns.
+// version columns. PatchVersion is the version the SDK named the
+// patch, which uploads made before it was collected leave empty.
 type Build struct {
-	VersionName string      `json:"version_name"`
-	VersionCode string      `json:"version_code"`
-	PatchID     string      `json:"patch_id,omitempty"`
-	LastUpdated time.Time   `json:"last_updated"`
-	Files       []BuildFile `json:"files"`
+	VersionName  string      `json:"version_name"`
+	VersionCode  string      `json:"version_code"`
+	PatchID      string      `json:"patch_id,omitempty"`
+	PatchVersion string      `json:"patch_version,omitempty"`
+	LastUpdated  time.Time   `json:"last_updated"`
+	Files        []BuildFile `json:"files"`
 }
 
 // BuildFileDownloadConfig is the storage configuration
@@ -353,6 +356,7 @@ func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, af *filter.AppFi
 		Select("version_name").
 		Select("version_code").
 		Select("patch_id").
+		Select("patch_version").
 		Select("mapping_type").
 		Select("key").
 		Select("file_size").
@@ -398,6 +402,7 @@ func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, af *filter.AppFi
 		Select("latest.version_name").
 		Select("latest.version_code").
 		Select("latest.patch_id").
+		Select("latest.patch_version").
 		Select("latest.mapping_type").
 		Select("latest.key").
 		Select("latest.file_size").
@@ -419,6 +424,7 @@ func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, af *filter.AppFi
 			&file.VersionName,
 			&file.VersionCode,
 			&file.PatchID,
+			&file.PatchVersion,
 			&file.MappingType,
 			&file.Key,
 			&file.FileSize,
@@ -439,9 +445,10 @@ func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, af *filter.AppFi
 			builds[len(builds)-1].VersionCode != file.VersionCode ||
 			builds[len(builds)-1].PatchID != patch {
 			builds = append(builds, Build{
-				VersionName: file.VersionName,
-				VersionCode: file.VersionCode,
-				PatchID:     patch,
+				VersionName:  file.VersionName,
+				VersionCode:  file.VersionCode,
+				PatchID:      patch,
+				PatchVersion: file.PatchVersion,
 			})
 		}
 
