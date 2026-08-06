@@ -391,6 +391,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Add usage notes for patch_id (#3793) by @detj in #3793
 - (**backend**): Add error fields matrix (#3701) by @detj in #3701
 - (**backend**): Update dashboard api docs (#3686) by @detj in #3686
+- (**frontend**): Add migration guide for 0.11.x (#4192) by @detj in #4192
 - Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #4172
 - Update README.md [skip ci] by @allcontributors[bot]
 - Explain self host tradeoffs better by @anupcowkur in #4166
