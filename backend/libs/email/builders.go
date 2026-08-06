@@ -2,13 +2,23 @@ package email
 
 import (
 	"fmt"
+	"html"
 	"time"
 )
+
+// escape turns a value that came from a person into text the mail client
+// renders literally instead of parsing as markup. Team names, roles and
+// email addresses all reach these builders as raw input, so a team named
+// `<img src=...>` would otherwise place that tag inside the HTML body of
+// every invite and membership email sent about the team.
+func escape(s string) string {
+	return html.EscapeString(s)
+}
 
 // AddedToTeamEmail builds the email sent when a user is added to a team.
 func AddedToTeamEmail(teamName, role, addedByEmail, siteOrigin, teamId string) (subject, body string) {
 	subject = "Added to Measure team"
-	msg := fmt.Sprintf("You have been added to team <b>%s</b> as <b>%s</b> by <b>%s</b>", teamName, role, addedByEmail)
+	msg := fmt.Sprintf("You have been added to team <b>%s</b> as <b>%s</b> by <b>%s</b>", escape(teamName), escape(role), escape(addedByEmail))
 	url := siteOrigin + "/" + teamId + "/overview"
 	body = RenderEmailBody(subject, MessageContent(msg), "Go to Dashboard", url)
 	return
@@ -21,7 +31,7 @@ func InviteNewUserEmail(inviterEmail, role, teamName string, validityDays int, s
 	if validityDays != 1 {
 		dayStr = "days"
 	}
-	msg := fmt.Sprintf("You have been invited by <b>%s</b> as <b>%s</b> in team <b>%s</b>! <br/><br/>This invite is valid for <b>%d %s</b>.", inviterEmail, role, teamName, validityDays, dayStr)
+	msg := fmt.Sprintf("You have been invited by <b>%s</b> as <b>%s</b> in team <b>%s</b>! <br/><br/>This invite is valid for <b>%d %s</b>.", escape(inviterEmail), escape(role), escape(teamName), validityDays, dayStr)
 	url := siteOrigin + "/auth/login?inviteId=" + inviteId
 	body = RenderEmailBody(subject, MessageContent(msg), "Join Team", url)
 	return
@@ -30,7 +40,7 @@ func InviteNewUserEmail(inviterEmail, role, teamName string, validityDays int, s
 // InviteExistingUserEmail builds the email sent when an existing user is invited to a team.
 func InviteExistingUserEmail(inviterEmail, role, teamName, siteOrigin string) (subject, body string) {
 	subject = "Invitation to join Measure"
-	msg := fmt.Sprintf("You have been invited by <b>%s</b> as <b>%s</b> in team <b>%s</b>!", inviterEmail, role, teamName)
+	msg := fmt.Sprintf("You have been invited by <b>%s</b> as <b>%s</b> in team <b>%s</b>!", escape(inviterEmail), escape(role), escape(teamName))
 	url := siteOrigin + "/auth/login"
 	body = RenderEmailBody(subject, MessageContent(msg), "Join Team", url)
 	return
@@ -41,7 +51,7 @@ func InviteExistingUserEmail(inviterEmail, role, teamName, siteOrigin string) (s
 // when the member has no team left, which links to the dashboard root.
 func RemovedFromTeamEmail(teamName, removedByEmail, siteOrigin, memberTeamId string) (subject, body string) {
 	subject = "Removed from Measure team"
-	msg := fmt.Sprintf("You have been removed from team <b>%s</b> by <b>%s</b>", teamName, removedByEmail)
+	msg := fmt.Sprintf("You have been removed from team <b>%s</b> by <b>%s</b>", escape(teamName), escape(removedByEmail))
 	url := siteOrigin
 	if memberTeamId != "" {
 		url = siteOrigin + "/" + memberTeamId + "/overview"
@@ -53,7 +63,7 @@ func RemovedFromTeamEmail(teamName, removedByEmail, siteOrigin, memberTeamId str
 // RoleChangedEmail builds the email sent when a user's role is changed.
 func RoleChangedEmail(newRole, changedByEmail, teamName, siteOrigin, teamId string) (subject, body string) {
 	subject = "Role changed in Measure team"
-	msg := fmt.Sprintf("Your role has been changed to <b>%s</b> by <b>%s</b> in team <b>%s</b>", newRole, changedByEmail, teamName)
+	msg := fmt.Sprintf("Your role has been changed to <b>%s</b> by <b>%s</b> in team <b>%s</b>", escape(newRole), escape(changedByEmail), escape(teamName))
 	url := siteOrigin + "/" + teamId + "/overview"
 	body = RenderEmailBody(subject, MessageContent(msg), "Go to Dashboard", url)
 	return
@@ -94,14 +104,14 @@ func AnrAlertURL(siteOrigin, teamId, appId, fingerprint, anrType, fileName strin
 // CrashSpikeAlertEmail builds the crash spike alert email.
 func CrashSpikeAlertEmail(appName, alertMsg, alertURL string) (subject, body string) {
 	subject = appName + " - Crash Spike Alert"
-	body = RenderEmailBody(subject, MessageContent(alertMsg), "View in Dashboard", alertURL)
+	body = RenderEmailBody(escape(subject), MessageContent(alertMsg), "View in Dashboard", alertURL)
 	return
 }
 
 // AnrSpikeAlertEmail builds the ANR spike alert email.
 func AnrSpikeAlertEmail(appName, alertMsg, alertURL string) (subject, body string) {
 	subject = appName + " - ANR Spike Alert"
-	body = RenderEmailBody(subject, MessageContent(alertMsg), "View in Dashboard", alertURL)
+	body = RenderEmailBody(escape(subject), MessageContent(alertMsg), "View in Dashboard", alertURL)
 	return
 }
 
@@ -123,7 +133,7 @@ func BugReportAlertURL(siteOrigin, teamId, appId, bugReportId string) string {
 // BugReportAlertEmail builds the bug report alert email.
 func BugReportAlertEmail(appName, alertMsg, alertURL string) (subject, body string) {
 	subject = appName + " - New Bug Report"
-	body = RenderEmailBody(subject, MessageContent(alertMsg), "View in Dashboard", alertURL)
+	body = RenderEmailBody(escape(subject), MessageContent(alertMsg), "View in Dashboard", alertURL)
 	return
 }
 
@@ -131,7 +141,7 @@ func BugReportAlertEmail(appName, alertMsg, alertURL string) (subject, body stri
 func DailySummaryEmail(appName string, date time.Time, metrics []MetricData, siteOrigin, teamId, appId string) (subject, body string) {
 	subject = appName + " Daily Summary"
 	dashboardURL := fmt.Sprintf("%s/%s/overview?a=%s", siteOrigin, teamId, appId)
-	body = RenderEmailBody(subject, DailySummaryContent(appName, date, metrics), "View Full Dashboard", dashboardURL)
+	body = RenderEmailBody(escape(subject), DailySummaryContent(appName, date, metrics), "View Full Dashboard", dashboardURL)
 	return
 }
 
@@ -146,12 +156,12 @@ func UsageLimitEmail(teamName, teamId, siteOrigin string, threshold int) (subjec
 	case 100:
 		subject = fmt.Sprintf("%s - Usage Limit Reached", teamName)
 		title = "Usage Limit Reached"
-		message = fmt.Sprintf(`Your team <strong>%s</strong> has reached its plan's data limit this month.<br><br>Data ingestion has been paused. Upgrade to Measure Pro to resume.`, teamName)
+		message = fmt.Sprintf(`Your team <strong>%s</strong> has reached its plan's data limit this month.<br><br>Data ingestion has been paused. Upgrade to Measure Pro to resume.`, escape(teamName))
 		ctaText = "Upgrade to Measure Pro"
 	default:
 		subject = fmt.Sprintf("%s - %d%% of Usage Limit Reached", teamName, threshold)
 		title = fmt.Sprintf("%d%% Usage Limit Reached", threshold)
-		message = fmt.Sprintf(`Your team <strong>%s</strong> has used <strong>%d%%</strong> of its plan's data limit this month.<br><br>Consider upgrading to Measure Pro for unlimited usage!`, teamName, threshold)
+		message = fmt.Sprintf(`Your team <strong>%s</strong> has used <strong>%d%%</strong> of its plan's data limit this month.<br><br>Consider upgrading to Measure Pro for unlimited usage!`, escape(teamName), threshold)
 		ctaText = "Upgrade to Measure Pro"
 	}
 
@@ -164,7 +174,7 @@ func UpgradeEmail(teamName, teamId, siteOrigin string) (subject, body string) {
 	subject = fmt.Sprintf("%s - Upgraded to Measure Pro", teamName)
 	title := "Upgraded to Measure Pro"
 	dashboardURL := fmt.Sprintf("%s/%s/usage", siteOrigin, teamId)
-	message := fmt.Sprintf(`Your team <strong>%s</strong> has been upgraded to Measure Pro!`, teamName)
+	message := fmt.Sprintf(`Your team <strong>%s</strong> has been upgraded to Measure Pro!`, escape(teamName))
 	body = RenderEmailBody(title, MessageContent(message), "Go to Dashboard", dashboardURL)
 	return
 }
@@ -174,7 +184,7 @@ func ManualDowngradeEmail(teamName, teamId, siteOrigin string) (subject, body st
 	subject = fmt.Sprintf("%s - Downgraded to Free Plan", teamName)
 	title := "Downgraded to Free Plan"
 	dashboardURL := fmt.Sprintf("%s/%s/usage", siteOrigin, teamId)
-	message := fmt.Sprintf(`Your team <strong>%s</strong> has been downgraded to the free plan.<br><br>Check your dashboard for the new usage and retention limits.`, teamName)
+	message := fmt.Sprintf(`Your team <strong>%s</strong> has been downgraded to the free plan.<br><br>Check your dashboard for the new usage and retention limits.`, escape(teamName))
 	body = RenderEmailBody(title, MessageContent(message), "Go to Dashboard", dashboardURL)
 	return
 }

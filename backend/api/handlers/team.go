@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"backend/libs/email"
 	"backend/libs/measure"
@@ -16,14 +17,22 @@ import (
 
 const maxInvitees = 25
 
+// maxTeamNameLen matches the varchar(256) width of measure.teams.name, so an
+// oversized name is rejected with a 400 here instead of failing in Postgres.
+const maxTeamNameLen = 256
+
 // normalizeTeamName trims a bound team name and reports whether it is usable.
-// A missing field (nil) or a value that is blank after trimming is rejected.
+// A missing field (nil), a value that is blank after trimming, or one longer
+// than the column allows is rejected.
 func normalizeTeamName(name *string) (string, bool) {
 	if name == nil {
 		return "", false
 	}
 	trimmed := strings.TrimSpace(*name)
-	return trimmed, trimmed != ""
+	if trimmed == "" || utf8.RuneCountInString(trimmed) > maxTeamNameLen {
+		return "", false
+	}
+	return trimmed, true
 }
 
 func (h Handlers) CreateTeam(c *gin.Context) {
@@ -45,7 +54,7 @@ func (h Handlers) CreateTeam(c *gin.Context) {
 
 	name, ok := normalizeTeamName(newTeam.Name)
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "team name cannot be empty"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("team name cannot be empty or longer than %d characters", maxTeamNameLen)})
 		return
 	}
 	*newTeam.Name = name
@@ -787,7 +796,7 @@ func (h Handlers) RenameTeam(c *gin.Context) {
 
 	name, ok := normalizeTeamName(payload.Name)
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "team name cannot be empty"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("team name cannot be empty or longer than %d characters", maxTeamNameLen)})
 		return
 	}
 
