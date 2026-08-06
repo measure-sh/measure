@@ -160,6 +160,7 @@ Measure would not be possible without our amazing contributors! ❤️
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/ashyyhere"><img src="https://avatars.githubusercontent.com/u/203688643?v=4?s=100" width="100px;" alt="Ash"/><br /><sub><b>Ash</b></sub></a><br /><a href="#maintenance-ashyyhere" title="Maintenance">🚧</a> <a href="https://github.com/measure-sh/measure/commits?author=ashyyhere" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Gryzor"><img src="https://avatars.githubusercontent.com/u/15253?v=4?s=100" width="100px;" alt="Martin Marconcini"/><br /><sub><b>Martin Marconcini</b></sub></a><br /><a href="https://github.com/measure-sh/measure/commits?author=gryzor" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://forcegt.github.io"><img src="https://avatars.githubusercontent.com/u/31688051?v=4?s=100" width="100px;" alt="Gaurav Thakkar"/><br /><sub><b>Gaurav Thakkar</b></sub></a><br /><a href="https://github.com/measure-sh/measure/commits?author=ForceGT" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/senti-man"><img src="https://avatars.githubusercontent.com/u/312449751?v=4?s=100" width="100px;" alt="sungju Kim"/><br /><sub><b>sungju Kim</b></sub></a><br /><a href="#security-senti-man" title="Security">🛡️</a></td>
     </tr>
   </tbody>
 </table>
