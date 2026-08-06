@@ -21,7 +21,7 @@ import (
 // non-empty storage key.
 func seedBuildMappingRow(ctx context.Context, t *testing.T, mappingID, appID uuid.UUID, versionName, versionCode, mappingType string, lastUpdated time.Time) {
 	t.Helper()
-	th.SeedBuildMappingRow(ctx, t, mappingID.String(), appID.String(), versionName, versionCode, mappingType, "test/"+mappingID.String(), uuid.Nil.String(), lastUpdated)
+	th.SeedBuildMappingRow(ctx, t, mappingID.String(), appID.String(), versionName, versionCode, mappingType, "test/"+mappingID.String(), uuid.Nil.String(), "", lastUpdated)
 }
 
 // configureSymbolsStore uploads the given objects into a fresh
@@ -277,7 +277,7 @@ func TestDownloadBuildFile(t *testing.T) {
 		seedApp(ctx, t, appID, teamID, 90)
 
 		pendingUpload := uuid.New()
-		th.SeedBuildMappingRow(ctx, t, pendingUpload.String(), appID.String(), "1.0.0", "100", "proguard", "", uuid.Nil.String(), time.Now().UTC())
+		th.SeedBuildMappingRow(ctx, t, pendingUpload.String(), appID.String(), "1.0.0", "100", "proguard", "", uuid.Nil.String(), "", time.Now().UTC())
 
 		w := downloadRequest(t, userID, appID.String(), pendingUpload.String())
 		if w.Code != http.StatusNotFound {

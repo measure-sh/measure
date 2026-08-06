@@ -28,6 +28,28 @@ import { use, useEffect, useRef, useState } from "react";
 
 const PAGINATION_LIMIT = 10;
 
+// A build is titled by the app version it was uploaded against. An
+// Over-The-Air patch has no app version. If patch version is present, that
+// becomes the title and patch id is subtitle. If no patch version exists,
+// patch id is the title.
+const describeBuild = (
+  build: any,
+): { title: string; subtitle: string | null } => {
+  if (build.version_name) {
+    return {
+      title: `${build.version_name} (${build.version_code})`,
+      subtitle: null,
+    };
+  }
+  if (build.patch_version) {
+    return {
+      title: `patch_version: ${build.patch_version}`,
+      subtitle: `patch_id: ${build.patch_id}`,
+    };
+  }
+  return { title: `patch_id: ${build.patch_id}`, subtitle: null };
+};
+
 export default function Builds(props: { params: Promise<{ teamId: string }> }) {
   const params = use(props.params);
   const router = useRouter();
@@ -143,31 +165,32 @@ export default function Builds(props: { params: Promise<{ teamId: string }> }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {builds.results?.map(
-                ({ version_name, version_code, patch_id, files }: any) => (
+              {builds.results?.map((build: any) => {
+                const { title, subtitle } = describeBuild(build);
+                return (
                   <TableRow
-                    key={JSON.stringify([version_name, version_code, patch_id])}
+                    key={JSON.stringify([
+                      build.version_name,
+                      build.version_code,
+                      build.patch_id,
+                    ])}
                     data-testid="build-row"
                     className="font-body"
                   >
                     <TableCell className="w-[60%] align-top">
-                      <p className="truncate select-none">
-                        {version_name
-                          ? version_name + " (" + version_code + ")"
-                          : "Patch: " + patch_id}
-                      </p>
-                      {version_name && patch_id && (
+                      <p className="truncate select-none">{title}</p>
+                      {subtitle && (
                         <>
                           <div className="py-0.5" />
                           <p className="text-xs truncate text-muted-foreground select-none">
-                            {"Patch: " + patch_id}
+                            {subtitle}
                           </p>
                         </>
                       )}
                     </TableCell>
                     <TableCell className="w-[40%] align-top">
                       <div className="flex flex-col items-end gap-2">
-                        {files?.map((file: any) => (
+                        {build.files?.map((file: any) => (
                           <div
                             key={file.id}
                             className="flex items-center gap-4 py-0.5"
@@ -199,8 +222,8 @@ export default function Builds(props: { params: Promise<{ teamId: string }> }) {
                       </div>
                     </TableCell>
                   </TableRow>
-                ),
-              )}
+                );
+              })}
             </TableBody>
           </Table>
         </div>

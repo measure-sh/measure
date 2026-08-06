@@ -259,7 +259,7 @@ describe("Builds Component", () => {
     );
   });
 
-  it("renders single and multi file builds for version, patch and version+patch variants", async () => {
+  it("renders single and multi file builds for version and patch variants", async () => {
     const file = (id: string, mappingType: string) => ({
       id,
       mapping_type: mappingType,
@@ -290,6 +290,7 @@ describe("Builds Component", () => {
             version_name: "",
             version_code: "",
             patch_id: "3f0e7c3e-9c31-4d9d-9a4e-2f6a3d0f5b21",
+            patch_version: "3.1.0",
             last_updated: "2020-01-01T00:00:00Z",
             files: [
               file("mapping-4", "jsbundle"),
@@ -302,23 +303,6 @@ describe("Builds Component", () => {
             patch_id: "b2c4e6a8-0d1f-4357-9b8c-2e4a6c8e0a1b",
             last_updated: "2020-01-01T00:00:00Z",
             files: [file("mapping-6", "jsbundle")],
-          },
-          {
-            version_name: "2.4.1",
-            version_code: "2401",
-            patch_id: "9b1de2a7-5c44-4f8e-8a3d-6f2e91c07b55",
-            last_updated: "2020-01-01T00:00:00Z",
-            files: [
-              file("mapping-7", "jsbundle"),
-              file("mapping-8", "elf_debug"),
-            ],
-          },
-          {
-            version_name: "2.4.0",
-            version_code: "2400",
-            patch_id: "d4f6a8b0-2c3e-4579-8d9e-4a6c8e0b2d3f",
-            last_updated: "2020-01-01T00:00:00Z",
-            files: [file("mapping-9", "jsbundle")],
           },
         ],
         meta: { previous: false, next: false },
@@ -338,38 +322,32 @@ describe("Builds Component", () => {
       });
     });
 
-    // Six builds render as six rows, one per group.
-    expect(screen.getAllByTestId("build-row")).toHaveLength(6);
+    // Four builds render as four rows, one per group.
+    expect(screen.getAllByTestId("build-row")).toHaveLength(4);
 
     // Every file shows its mapping type, its own date and a download;
     // the builds themselves carry no date.
     expect(screen.getAllByText("proguard")).toHaveLength(3);
-    expect(screen.getAllByText("elf_debug")).toHaveLength(2);
-    expect(screen.getAllByText("jsbundle")).toHaveLength(4);
-    expect(screen.getAllByText("1 Jan, 2020, 12:00:00 AM")).toHaveLength(9);
-    expect(screen.getAllByRole("link", { name: "Download" })).toHaveLength(9);
+    expect(screen.getAllByText("elf_debug")).toHaveLength(1);
+    expect(screen.getAllByText("jsbundle")).toHaveLength(2);
+    expect(screen.getAllByText("1 Jan, 2020, 12:00:00 AM")).toHaveLength(6);
+    expect(screen.getAllByRole("link", { name: "Download" })).toHaveLength(6);
 
-    // Version-only builds title by version.
+    // Builds uploaded against an app version title by that version.
     expect(screen.getByText("1.0.2 (2)")).toBeInTheDocument();
     expect(screen.getByText("1.0.1 (1)")).toBeInTheDocument();
 
-    // Patch-only builds title by patch id.
+    // A patch that was named by the SDK titles by that name and shows
+    // its id underneath.
+    expect(screen.getByText("patch_version: 3.1.0")).toBeInTheDocument();
     expect(
-      screen.getByText("Patch: 3f0e7c3e-9c31-4d9d-9a4e-2f6a3d0f5b21"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Patch: b2c4e6a8-0d1f-4357-9b8c-2e4a6c8e0a1b"),
+      screen.getByText("patch_id: 3f0e7c3e-9c31-4d9d-9a4e-2f6a3d0f5b21"),
     ).toBeInTheDocument();
 
-    // Builds carrying a version and a patch id keep the version as
-    // the title and show the patch id as a subtitle.
-    expect(screen.getByText("2.4.1 (2401)")).toBeInTheDocument();
+    // A patch with no name falls back to titling by its id, with
+    // nothing underneath.
     expect(
-      screen.getByText("Patch: 9b1de2a7-5c44-4f8e-8a3d-6f2e91c07b55"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("2.4.0 (2400)")).toBeInTheDocument();
-    expect(
-      screen.getByText("Patch: d4f6a8b0-2c3e-4579-8d9e-4a6c8e0b2d3f"),
+      screen.getByText("patch_id: b2c4e6a8-0d1f-4357-9b8c-2e4a6c8e0a1b"),
     ).toBeInTheDocument();
   });
 

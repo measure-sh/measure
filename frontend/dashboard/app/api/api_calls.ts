@@ -490,6 +490,7 @@ export const emptyBuildsResponse = {
     version_name: string;
     version_code: string;
     patch_id?: string;
+    patch_version?: string;
     last_updated: string;
     files: {
       id: string;
