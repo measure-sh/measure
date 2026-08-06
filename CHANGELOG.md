@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :books: Documentation
 
 - (**backend**): Update contributing guide (#4195) by @detj in #4195
+- Update builds fetch api spec with patch_version info by @anupcowkur in #4201
 - Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #4198
 - Update README.md [skip ci] by @allcontributors[bot]
 
