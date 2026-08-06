@@ -1,0 +1,86 @@
+---
+title: "Migration Guide for `v0.11.x`"
+seoTitle: "Self-Hosted Measure v0.11.x Migration Guide"
+description: "Migration guide for self-hosted Measure v0.11.x. Modifies Slack integration, a dedicated MCP/Agent endpoint & configuration migration."
+---
+
+Use this guide only when you are on less than `v0.11.0` and upgrading to `v0.11.x`.
+
+<Callout type="warn">
+
+Steps mentioned in this document will cause downtime.
+
+</Callout>
+
+Follow these steps when upgrading to `0.11.x`. There is some downtime involved. During the downtime SDKs would receive a `503 Service Unavailable` when sending sessions. Once the upgrade is complete, ingestion should resume normally. SDKs will retry sending unsent sessions automatically.
+
+## 1. Shutdown all Measure services
+
+SSH into the VM where Measure is hosted.
+
+```sh
+cd ~/measure/self-host
+```
+
+```sh
+sudo docker compose -f compose.yml -f compose.prod.yml --profile init --profile migrate down --remove-orphans
+```
+
+## 2. Perform the upgrade
+
+Visit [Releases](https://github.com/measure-sh/measure/releases) page to capture the latest tag matching the `v[MAJOR].[MINOR].[PATCH]` format. For example, `v0.11.0`.
+
+```sh
+cd ~/measure
+```
+
+```sh
+git reset --hard # only applies if you have local modifications
+```
+
+```sh
+git fetch --tags
+```
+
+```sh
+# replace <git-tag> with the chosen tag. example: v0.11.0
+git checkout <git-tag>
+```
+
+## 3. Migrate configurations
+
+```sh
+cd ~/measure/self-host
+```
+
+```sh
+sudo ./config.sh --production --ensure
+```
+
+You'll be prompted to enter the agent endpoint, enter your desired endpoint like `https://measure-agent.yourcompany.com`. By this point, the environment variables will be pre-populated with default or empty values.
+
+## 4. Re-configure Slack
+
+<Callout type="info">
+
+Skip this step if you don't wish to use Slack integration.
+
+</Callout>
+
+Starting with `v0.11.x`, the Measure Slack app needs additional permissions & configurations. Visit the [Set up Slack](../slack#configure-slack-settings-for-existing-installation) guide for instructions.
+
+## 5. Configure Measure Agent & MCP
+
+<Callout type="info">
+
+Skip this step if you don't wish to use Measure MCP/Agent.
+
+</Callout>
+
+Starting with `v0.11.x`, the Measure MCP endpoint URL format has changed. Additionally, you can set up the Measure Agent as well. Visit the [Set up Measure Agent](../agent) guide for instructions. After the setup reauthorize the remote [MCP server in your coding agents](../../mcp#connecting-to-mcp-via-coding-agents).
+
+## 6. Start Measure services
+
+```sh
+sudo ./install.sh
+```
