@@ -329,6 +329,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "senti-man",
+      "name": "sungju Kim",
+      "avatar_url": "https://avatars.githubusercontent.com/u/312449751?v=4",
+      "profile": "https://github.com/senti-man",
+      "contributions": [
+        "security"
+      ]
     }
   ],
   "commitType": "docs"
