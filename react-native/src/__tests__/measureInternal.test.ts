@@ -1,3 +1,4 @@
+import { collectExpoAttributes } from '../expoUpdates/expoAttributes';
 import { MeasureInternal } from '../measureInternal';
 import * as measureBridge from '../native/measureBridge';
 
@@ -17,9 +18,14 @@ jest.mock('../exception/errorReportingManager', () => ({
   })),
 }));
 
+jest.mock('../expoUpdates/expoAttributes', () => ({
+  collectExpoAttributes: jest.fn(() => ({})),
+}));
+
 function makeMockInitializer() {
   return {
     logger: { internalLog: jest.fn(), log: jest.fn() },
+    signalProcessor: { setFrameworkAttributes: jest.fn() },
     configLoader: { loadDynamicConfig: jest.fn(() => Promise.resolve(null)) },
     configProvider: { setDynamicConfig: jest.fn() },
     spanProcessor: { onConfigLoaded: jest.fn() },
@@ -202,5 +208,134 @@ describe('MeasureInternal.init with autoStart', () => {
     expect(initializer.customEventCollector.register).not.toHaveBeenCalled();
     expect(measureBridge.enableNativeModule).not.toHaveBeenCalled();
     expect(measureBridge.start).not.toHaveBeenCalled();
+  });
+});
+
+describe('MeasureInternal.init framework attributes', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (collectExpoAttributes as jest.Mock).mockReturnValue({});
+    delete (global as any).__measurePatchId;
+  });
+
+  afterEach(() => {
+    delete (global as any).__measurePatchId;
+  });
+
+  it('does not set framework attributes when there are none', async () => {
+    const initializer = makeMockInitializer();
+    const sdk = new MeasureInternal(initializer);
+
+    await sdk.init({ config: { autoStart: false } as any });
+
+    expect(
+      initializer.signalProcessor.setFrameworkAttributes
+    ).not.toHaveBeenCalled();
+  });
+
+  it('forwards the collected Expo attributes', async () => {
+    (collectExpoAttributes as jest.Mock).mockReturnValue({
+      expo_update_id: 'update-id',
+      is_expo_embedded_launch: false,
+    });
+    const initializer = makeMockInitializer();
+    const sdk = new MeasureInternal(initializer);
+
+    await sdk.init({ config: { autoStart: false } as any });
+
+    expect(
+      initializer.signalProcessor.setFrameworkAttributes
+    ).toHaveBeenCalledWith({
+      expo_update_id: 'update-id',
+      is_expo_embedded_launch: false,
+    });
+  });
+
+  it('combines Expo attributes with the OTA patch identifiers', async () => {
+    (collectExpoAttributes as jest.Mock).mockReturnValue({
+      expo_update_id: 'update-id',
+    });
+    const initializer = makeMockInitializer();
+    const sdk = new MeasureInternal(initializer);
+
+    await sdk.init({
+      config: {
+        autoStart: false,
+        patchId: 'patch-id',
+        patchVersion: 'v1.0.3-hotfix',
+      } as any,
+    });
+
+    expect(
+      initializer.signalProcessor.setFrameworkAttributes
+    ).toHaveBeenCalledWith({
+      expo_update_id: 'update-id',
+      patch_id: 'patch-id',
+      patch_version: 'v1.0.3-hotfix',
+    });
+  });
+
+  it('keeps expo_update_id and patch_id separate', async () => {
+    (collectExpoAttributes as jest.Mock).mockReturnValue({
+      expo_update_id: 'update-id',
+    });
+    const initializer = makeMockInitializer();
+    const sdk = new MeasureInternal(initializer);
+
+    await sdk.init({
+      config: { autoStart: false, patchId: 'patch-id' } as any,
+    });
+
+    const attributes = (
+      initializer.signalProcessor.setFrameworkAttributes as jest.Mock
+    ).mock.calls[0][0];
+    expect(attributes.expo_update_id).toBe('update-id');
+    expect(attributes.patch_id).toBe('patch-id');
+  });
+
+  it('falls back to the Metro-injected patch id', async () => {
+    (global as any).__measurePatchId = 'metro-patch-id';
+    const initializer = makeMockInitializer();
+    const sdk = new MeasureInternal(initializer);
+
+    await sdk.init({ config: { autoStart: false } as any });
+
+    expect(
+      initializer.signalProcessor.setFrameworkAttributes
+    ).toHaveBeenCalledWith({ patch_id: 'metro-patch-id' });
+  });
+
+  it('prefers config.patchId over the Metro-injected patch id', async () => {
+    (global as any).__measurePatchId = 'metro-patch-id';
+    const initializer = makeMockInitializer();
+    const sdk = new MeasureInternal(initializer);
+
+    await sdk.init({
+      config: { autoStart: false, patchId: 'config-patch-id' } as any,
+    });
+
+    expect(
+      initializer.signalProcessor.setFrameworkAttributes
+    ).toHaveBeenCalledWith({ patch_id: 'config-patch-id' });
+  });
+
+  it('sets framework attributes before starting the native SDK', async () => {
+    (collectExpoAttributes as jest.Mock).mockReturnValue({
+      expo_update_id: 'update-id',
+    });
+    const initializer = makeMockInitializer();
+    const order: string[] = [];
+    (
+      initializer.signalProcessor.setFrameworkAttributes as jest.Mock
+    ).mockImplementation(() => order.push('setFrameworkAttributes'));
+    (measureBridge.start as jest.Mock).mockImplementation(() => {
+      order.push('start');
+      return Promise.resolve();
+    });
+    const sdk = new MeasureInternal(initializer);
+
+    await sdk.init({ config: { autoStart: true } as any });
+
+    expect(order).toEqual(['setFrameworkAttributes', 'start']);
   });
 });

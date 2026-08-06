@@ -501,6 +501,15 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			Set(`attribute.app_unique_id`, e.events[i].Attribute.AppUniqueID).
 			Set(`attribute.patch_id`, e.events[i].Attribute.PatchID).
 			Set(`attribute.patch_version`, strings.TrimSpace(e.events[i].Attribute.PatchVersion)).
+			Set(`attribute.expo_update_id`, e.events[i].Attribute.ExpoUpdateID).
+			Set(`attribute.expo_runtime_version`, strings.TrimSpace(e.events[i].Attribute.ExpoRuntimeVersion)).
+			Set(`attribute.is_expo_embedded_launch`, e.events[i].Attribute.IsExpoEmbeddedLaunch).
+			Set(`attribute.is_expo_using_embedded_assets`, e.events[i].Attribute.IsExpoUsingEmbeddedAssets).
+			Set(`attribute.expo_automatic_update_policy`, strings.TrimSpace(e.events[i].Attribute.ExpoAutomaticUpdatePolicy)).
+			Set(`attribute.expo_execution_environment`, strings.TrimSpace(e.events[i].Attribute.ExpoExecutionEnvironment)).
+			Set(`attribute.expo_version`, strings.TrimSpace(e.events[i].Attribute.ExpoVersion)).
+			Set(`attribute.expo_sdk_version`, strings.TrimSpace(e.events[i].Attribute.ExpoSDKVersion)).
+			Set(`attribute.expo_eas_project_id`, strings.TrimSpace(e.events[i].Attribute.ExpoEASProjectID)).
 			Set(`attribute.measure_sdk_version`, e.events[i].Attribute.MeasureSDKVersion).
 			Set(`attribute.thread_name`, e.events[i].Attribute.ThreadName).
 			Set(`attribute.user_id`, e.events[i].Attribute.UserID).
@@ -1068,6 +1077,15 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 			Set(`attribute.app_unique_id`, e.spans[i].Attributes.AppUniqueID).
 			Set(`attribute.patch_id`, e.spans[i].Attributes.PatchID).
 			Set(`attribute.patch_version`, strings.TrimSpace(e.spans[i].Attributes.PatchVersion)).
+			Set(`attribute.expo_update_id`, e.spans[i].Attributes.ExpoUpdateID).
+			Set(`attribute.expo_runtime_version`, strings.TrimSpace(e.spans[i].Attributes.ExpoRuntimeVersion)).
+			Set(`attribute.is_expo_embedded_launch`, e.spans[i].Attributes.IsExpoEmbeddedLaunch).
+			Set(`attribute.is_expo_using_embedded_assets`, e.spans[i].Attributes.IsExpoUsingEmbeddedAssets).
+			Set(`attribute.expo_automatic_update_policy`, strings.TrimSpace(e.spans[i].Attributes.ExpoAutomaticUpdatePolicy)).
+			Set(`attribute.expo_execution_environment`, strings.TrimSpace(e.spans[i].Attributes.ExpoExecutionEnvironment)).
+			Set(`attribute.expo_version`, strings.TrimSpace(e.spans[i].Attributes.ExpoVersion)).
+			Set(`attribute.expo_sdk_version`, strings.TrimSpace(e.spans[i].Attributes.ExpoSDKVersion)).
+			Set(`attribute.expo_eas_project_id`, strings.TrimSpace(e.spans[i].Attributes.ExpoEASProjectID)).
 			Set(`attribute.installation_id`, e.spans[i].Attributes.InstallationID).
 			Set(`attribute.user_id`, e.spans[i].Attributes.UserID).
 			Set(`attribute.measure_sdk_version`, e.spans[i].Attributes.MeasureSDKVersion).

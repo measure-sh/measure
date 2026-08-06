@@ -1,6 +1,7 @@
 import { MeasureConfig } from './config/measureConfig';
 import type { MsrAttachment } from './events/msrAttachment';
 import type { LogSeverity } from './events/logSeverity';
+import { collectExpoAttributes } from './expoUpdates/expoAttributes';
 import { ErrorReportingManager } from './exception/errorReportingManager';
 import { buildExceptionPayload } from './exception/exceptionBuilder';
 import type { MeasureInitializer } from './measureInitializer';
@@ -15,6 +16,9 @@ import {
 import type { Span } from './tracing/span';
 import type { SpanBuilder } from './tracing/spanBuilder';
 import type { ValidAttributeValue } from './utils/attributeValueValidator';
+
+export const PATCH_ID_KEY = 'patch_id';
+export const PATCH_VERSION_KEY = 'patch_version';
 
 export class MeasureInternal {
   private measureInitializer: MeasureInitializer;
@@ -70,16 +74,24 @@ export class MeasureInternal {
         this.measureInitializer.spanProcessor.onConfigLoaded();
       });
 
+    // Framework level attributes are attached to every RN-originated event and
+    // span by the signal processor, keeping them scoped to the React Native
+    // layer.
+    //
     // config.patchId takes priority (manual / CodePush approach).
     // Falls back to global.__measurePatchId injected by withMeasureConfig()
     // in metro.config.js (automated approach).
-    // The patch identifiers are attached to every RN-originated event and span
-    // by the signal processor, keeping them scoped to the React Native layer.
+    const frameworkAttributes: Record<string, any> = collectExpoAttributes();
     const patchId = config?.patchId ?? (global as any).__measurePatchId;
-    if (patchId || config?.patchVersion) {
-      this.measureInitializer.signalProcessor.setPatchInfo(
-        patchId,
-        config?.patchVersion
+    if (patchId) {
+      frameworkAttributes[PATCH_ID_KEY] = patchId;
+    }
+    if (config?.patchVersion) {
+      frameworkAttributes[PATCH_VERSION_KEY] = config.patchVersion;
+    }
+    if (Object.keys(frameworkAttributes).length > 0) {
+      this.measureInitializer.signalProcessor.setFrameworkAttributes(
+        frameworkAttributes
       );
     }
 
