@@ -56,6 +56,7 @@ void main() {
       expect(result, isNotNull);
       expect(result!.type, equals(AttachmentType.layoutSnapshotJson));
       expect(result.id, equals('uuid-1'));
+      expect(result.name, equals('uuid-1.json.gz'));
       expect(result.path, contains('uuid-1'));
       expect(result.size, greaterThan(0));
     });

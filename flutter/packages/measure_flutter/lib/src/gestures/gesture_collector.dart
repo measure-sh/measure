@@ -166,6 +166,7 @@ class GestureCollector {
         type: AttachmentType.layoutSnapshotJson,
         size: fileSize,
         uuid: uuid,
+        fileExtension: 'json.gz',
       );
     } catch (e) {
       _logger.log(

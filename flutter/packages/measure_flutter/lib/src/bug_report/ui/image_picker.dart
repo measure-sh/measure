@@ -3,6 +3,7 @@ import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 
+import '../../utils/file_extension.dart';
 import '../../utils/id_provider.dart';
 
 class ImagePickerWrapper {
@@ -34,6 +35,7 @@ class ImagePickerWrapper {
           type: AttachmentType.screenshot,
           size: size,
           uuid: _idProvider.uuid(),
+          fileExtension: fileExtensionOf(image.path),
         );
         attachments.add(attachment);
       }
