@@ -150,7 +150,7 @@ func TestContentTypeFor(t *testing.T) {
 		// layout_snapshot_json, the type settles it, the bytes are gzip &
 		// the name varies wildly across SDKs
 		{
-			name:           "android gzipped snapshot",
+			name:           "gzipped snapshot resolves by type not extension",
 			attachmentType: "layout_snapshot_json",
 			filename:       "snapshot.json.gz",
 			head:           gzippedJSON,

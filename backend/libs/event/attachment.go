@@ -183,6 +183,8 @@ var fixedContentTypes = map[string]string{
 //
 // name is only a hint, it may be a bare UUID or a fixed literal.
 func contentTypeFor(attachmentType, name string, head []byte) (contentType string) {
+	// type first, a compressed payload's extension resolves to the wrapper,
+	// so ".gz" would win over the json it holds
 	if fixed, ok := fixedContentTypes[attachmentType]; ok {
 		return fixed
 	}
