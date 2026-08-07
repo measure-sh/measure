@@ -187,7 +187,7 @@ func contentTypeFor(attachmentType, name string, head []byte) (contentType strin
 		return fixed
 	}
 
-	// extension first, DetectContentType reports svg as text/xml
+	// extension first, sniffing reports svg as plain text
 	if contentType = mime.TypeByExtension(filepath.Ext(name)); contentType != "" {
 		return
 	}
