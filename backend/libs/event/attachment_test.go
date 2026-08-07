@@ -194,6 +194,27 @@ func TestContentTypeFor(t *testing.T) {
 			expected:       "image/webp",
 		},
 		{
+			name:           "flutter gallery jpeg screenshot",
+			attachmentType: "screenshot",
+			filename:       "93ce9654-844a-4e8f-ac1b-ca0fc479008c.jpg",
+			head:           []byte{0xff, 0xd8, 0xff, 0xe0},
+			expected:       "image/jpeg",
+		},
+		{
+			name:           "flutter gallery png screenshot",
+			attachmentType: "screenshot",
+			filename:       "93ce9654-844a-4e8f-ac1b-ca0fc479008c.png",
+			head:           pngBytes,
+			expected:       "image/png",
+		},
+		{
+			name:           "unregistered image extension falls back to bytes",
+			attachmentType: "screenshot",
+			filename:       "93ce9654-844a-4e8f-ac1b-ca0fc479008c.heic",
+			head:           []byte("\x00\x00\x00\x20ftypheic"),
+			expected:       "application/octet-stream",
+		},
+		{
 			name:           "bare uuid screenshot falls back to bytes",
 			attachmentType: "screenshot",
 			filename:       "93ce9654-844a-4e8f-ac1b-ca0fc479008c",
