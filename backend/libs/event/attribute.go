@@ -36,6 +36,47 @@ type Attribute struct {
 	// optional. Not used for symbolication.
 	PatchVersion string `json:"patch_version"`
 
+	// ExpoUpdateID is the id of the Expo OTA update the
+	// app is running. Optional UUID, reported only by Expo
+	// apps using expo-updates. Independent of PatchID.
+	//
+	// Absent values must be omitted from the payload
+	// entirely — an empty or malformed string fails to
+	// unmarshal and rejects the whole batch.
+	ExpoUpdateID uuid.UUID `json:"expo_update_id"`
+
+	// ExpoRuntimeVersion is the runtime version of the Expo
+	// update. Depending on the app's runtime version policy
+	// this may be a version string or a fingerprint hash.
+	ExpoRuntimeVersion string `json:"expo_runtime_version"`
+
+	// IsExpoEmbeddedLaunch is true if the app launched from
+	// the bundle embedded in the binary rather than a
+	// downloaded update.
+	IsExpoEmbeddedLaunch bool `json:"is_expo_embedded_launch"`
+
+	// IsExpoUsingEmbeddedAssets is true if the app is using
+	// the assets embedded in the binary.
+	IsExpoUsingEmbeddedAssets bool `json:"is_expo_using_embedded_assets"`
+
+	// ExpoAutomaticUpdatePolicy is the policy configured for
+	// Expo automatic updates. One of on_load,
+	// on_error_recovery, wifi_only or never.
+	ExpoAutomaticUpdatePolicy string `json:"expo_automatic_update_policy"`
+
+	// ExpoExecutionEnvironment describes where the app is
+	// running. One of storeClient, standalone or bare.
+	ExpoExecutionEnvironment string `json:"expo_execution_environment"`
+
+	// ExpoVersion is the Expo client version.
+	ExpoVersion string `json:"expo_version"`
+
+	// ExpoSDKVersion is the Expo SDK version.
+	ExpoSDKVersion string `json:"expo_sdk_version"`
+
+	// ExpoEASProjectID is the EAS project identifier.
+	ExpoEASProjectID string `json:"expo_eas_project_id"`
+
 	// MeasureSDKVersion is the measure sdk version
 	// identifier.
 	MeasureSDKVersion string `json:"measure_sdk_version" binding:"required"`
@@ -134,24 +175,30 @@ type Attribute struct {
 // Validate validates an event's attributes.
 func (a Attribute) Validate() error {
 	const (
-		maxThreadNameChars         = 128
-		maxUserIDChars             = 128
-		maxDeviceNameChars         = 32
-		maxDeviceModelChars        = 32
-		maxDeviceManufacturerChars = 256
-		maxDeviceTypeChars         = 32
-		maxOSNameChars             = 32
-		maxOSVersionChars          = 32
-		maxAppVersionChars         = 128
-		maxAppBuildChars           = 32
-		maxAppUniqueIDChars        = 128
-		maxPatchVersionChars       = 256
-		maxMeasureSDKVersion       = 16
-		maxNetworkTypeChars        = 16
-		maxNetworkGenerationChars  = 8
-		maxNetworkProviderChars    = 64
-		maxDeviceLocaleChars       = 64
-		maxDeviceCPUArchChars      = 16
+		maxThreadNameChars                = 128
+		maxUserIDChars                    = 128
+		maxDeviceNameChars                = 32
+		maxDeviceModelChars               = 32
+		maxDeviceManufacturerChars        = 256
+		maxDeviceTypeChars                = 32
+		maxOSNameChars                    = 32
+		maxOSVersionChars                 = 32
+		maxAppVersionChars                = 128
+		maxAppBuildChars                  = 32
+		maxAppUniqueIDChars               = 128
+		maxPatchVersionChars              = 256
+		maxMeasureSDKVersion              = 16
+		maxNetworkTypeChars               = 16
+		maxNetworkGenerationChars         = 8
+		maxNetworkProviderChars           = 64
+		maxDeviceLocaleChars              = 64
+		maxDeviceCPUArchChars             = 16
+		maxExpoRuntimeVersionChars        = 128
+		maxExpoAutomaticUpdatePolicyChars = 32
+		maxExpoExecutionEnvironmentChars  = 32
+		maxExpoVersionChars               = 32
+		maxExpoSDKVersionChars            = 32
+		maxExpoEASProjectIDChars          = 64
 	)
 
 	if len(a.OSName) > maxOSNameChars {
@@ -195,10 +242,28 @@ func (a Attribute) Validate() error {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.app_build`, maxAppBuildChars)
 	}
 	if len(a.AppUniqueID) > maxAppUniqueIDChars {
-		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attrubute.app_unique_id`, maxAppUniqueIDChars)
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.app_unique_id`, maxAppUniqueIDChars)
 	}
 	if len(a.PatchVersion) > maxPatchVersionChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.patch_version`, maxPatchVersionChars)
+	}
+	if len(a.ExpoRuntimeVersion) > maxExpoRuntimeVersionChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.expo_runtime_version`, maxExpoRuntimeVersionChars)
+	}
+	if len(a.ExpoAutomaticUpdatePolicy) > maxExpoAutomaticUpdatePolicyChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.expo_automatic_update_policy`, maxExpoAutomaticUpdatePolicyChars)
+	}
+	if len(a.ExpoExecutionEnvironment) > maxExpoExecutionEnvironmentChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.expo_execution_environment`, maxExpoExecutionEnvironmentChars)
+	}
+	if len(a.ExpoVersion) > maxExpoVersionChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.expo_version`, maxExpoVersionChars)
+	}
+	if len(a.ExpoSDKVersion) > maxExpoSDKVersionChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.expo_sdk_version`, maxExpoSDKVersionChars)
+	}
+	if len(a.ExpoEASProjectID) > maxExpoEASProjectIDChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.expo_eas_project_id`, maxExpoEASProjectIDChars)
 	}
 	if len(a.MeasureSDKVersion) > maxMeasureSDKVersion {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.measure_sdk_version`, maxMeasureSDKVersion)

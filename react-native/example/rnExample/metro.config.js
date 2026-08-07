@@ -21,4 +21,14 @@ const config = withMetroConfig(defaultConfig, {
 
 config.resolver.unstable_enablePackageExports = true;
 
+const expoModulesBlockList = [
+  /[/\\]node_modules[/\\]expo-updates[/\\].*/,
+  /[/\\]node_modules[/\\]expo-constants[/\\].*/,
+];
+
+config.resolver.blockList = [
+  ...[config.resolver.blockList ?? []].flat(),
+  ...expoModulesBlockList,
+];
+
 module.exports = config;

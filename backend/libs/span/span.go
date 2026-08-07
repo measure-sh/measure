@@ -53,25 +53,31 @@ var ValidNetworkGenerations = []string{
 }
 
 const (
-	maxSpanNameChars           = 64
-	maxCheckpointNameChars     = 64
-	maxNumberOfCheckpoints     = 100
-	maxThreadNameChars         = 128
-	maxUserIDChars             = 128
-	maxDeviceNameChars         = 32
-	maxDeviceModelChars        = 32
-	maxDeviceManufacturerChars = 32
-	maxOSNameChars             = 32
-	maxOSVersionChars          = 32
-	maxAppVersionChars         = 128
-	maxAppBuildChars           = 32
-	maxAppUniqueIDChars        = 128
-	maxPatchVersionChars       = 256
-	maxMeasureSDKVersion       = 16
-	maxNetworkTypeChars        = 16
-	maxNetworkGenerationChars  = 8
-	maxNetworkProviderChars    = 64
-	maxDeviceLocaleChars       = 64
+	maxSpanNameChars                  = 64
+	maxCheckpointNameChars            = 64
+	maxNumberOfCheckpoints            = 100
+	maxThreadNameChars                = 128
+	maxUserIDChars                    = 128
+	maxDeviceNameChars                = 32
+	maxDeviceModelChars               = 32
+	maxDeviceManufacturerChars        = 32
+	maxOSNameChars                    = 32
+	maxOSVersionChars                 = 32
+	maxAppVersionChars                = 128
+	maxAppBuildChars                  = 32
+	maxAppUniqueIDChars               = 128
+	maxPatchVersionChars              = 256
+	maxMeasureSDKVersion              = 16
+	maxExpoRuntimeVersionChars        = 128
+	maxExpoAutomaticUpdatePolicyChars = 32
+	maxExpoExecutionEnvironmentChars  = 32
+	maxExpoVersionChars               = 32
+	maxExpoSDKVersionChars            = 32
+	maxExpoEASProjectIDChars          = 64
+	maxNetworkTypeChars               = 16
+	maxNetworkGenerationChars         = 8
+	maxNetworkProviderChars           = 64
+	maxDeviceLocaleChars              = 64
 )
 
 type CheckPointField struct {
@@ -80,28 +86,37 @@ type CheckPointField struct {
 }
 
 type SpanAttributes struct {
-	AppUniqueID              string    `json:"app_unique_id" binding:"required"`
-	InstallationID           uuid.UUID `json:"installation_id" binding:"required"`
-	PatchID                  uuid.UUID `json:"patch_id"`
-	PatchVersion             string    `json:"patch_version"`
-	UserID                   string    `json:"user_id"`
-	MeasureSDKVersion        string    `json:"measure_sdk_version" binding:"required"`
-	AppVersion               string    `json:"app_version" binding:"required"`
-	AppBuild                 string    `json:"app_build" binding:"required"`
-	OSName                   string    `json:"os_name" binding:"required"`
-	OSVersion                string    `json:"os_version" binding:"required"`
-	ThreadName               string    `json:"thread_name"`
-	CountryCode              string    `json:"inet_country_code"`
-	NetworkType              string    `json:"network_type"`
-	NetworkProvider          string    `json:"network_provider"`
-	NetworkGeneration        string    `json:"network_generation"`
-	DeviceName               string    `json:"device_name"`
-	DeviceModel              string    `json:"device_model"`
-	DeviceManufacturer       string    `json:"device_manufacturer"`
-	DeviceLocale             string    `json:"device_locale"`
-	LowPowerModeEnabled      bool      `json:"device_low_power_mode"`
-	ThermalThrottlingEnabled bool      `json:"device_thermal_throttling_enabled"`
-	SessionStartTime         time.Time `json:"session_start_time"`
+	AppUniqueID               string    `json:"app_unique_id" binding:"required"`
+	InstallationID            uuid.UUID `json:"installation_id" binding:"required"`
+	PatchID                   uuid.UUID `json:"patch_id"`
+	PatchVersion              string    `json:"patch_version"`
+	ExpoUpdateID              uuid.UUID `json:"expo_update_id"`
+	ExpoRuntimeVersion        string    `json:"expo_runtime_version"`
+	IsExpoEmbeddedLaunch      bool      `json:"is_expo_embedded_launch"`
+	IsExpoUsingEmbeddedAssets bool      `json:"is_expo_using_embedded_assets"`
+	ExpoAutomaticUpdatePolicy string    `json:"expo_automatic_update_policy"`
+	ExpoExecutionEnvironment  string    `json:"expo_execution_environment"`
+	ExpoVersion               string    `json:"expo_version"`
+	ExpoSDKVersion            string    `json:"expo_sdk_version"`
+	ExpoEASProjectID          string    `json:"expo_eas_project_id"`
+	UserID                    string    `json:"user_id"`
+	MeasureSDKVersion         string    `json:"measure_sdk_version" binding:"required"`
+	AppVersion                string    `json:"app_version" binding:"required"`
+	AppBuild                  string    `json:"app_build" binding:"required"`
+	OSName                    string    `json:"os_name" binding:"required"`
+	OSVersion                 string    `json:"os_version" binding:"required"`
+	ThreadName                string    `json:"thread_name"`
+	CountryCode               string    `json:"inet_country_code"`
+	NetworkType               string    `json:"network_type"`
+	NetworkProvider           string    `json:"network_provider"`
+	NetworkGeneration         string    `json:"network_generation"`
+	DeviceName                string    `json:"device_name"`
+	DeviceModel               string    `json:"device_model"`
+	DeviceManufacturer        string    `json:"device_manufacturer"`
+	DeviceLocale              string    `json:"device_locale"`
+	LowPowerModeEnabled       bool      `json:"device_low_power_mode"`
+	ThermalThrottlingEnabled  bool      `json:"device_thermal_throttling_enabled"`
+	SessionStartTime          time.Time `json:"session_start_time"`
 }
 
 type RootSpanDisplay struct {
@@ -287,6 +302,30 @@ func (s *SpanField) Validate(opts ...ingest.ValidationOptions) error {
 
 	if len(s.Attributes.PatchVersion) > maxPatchVersionChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.patch_version`, maxPatchVersionChars)
+	}
+
+	if len(s.Attributes.ExpoRuntimeVersion) > maxExpoRuntimeVersionChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.expo_runtime_version`, maxExpoRuntimeVersionChars)
+	}
+
+	if len(s.Attributes.ExpoAutomaticUpdatePolicy) > maxExpoAutomaticUpdatePolicyChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.expo_automatic_update_policy`, maxExpoAutomaticUpdatePolicyChars)
+	}
+
+	if len(s.Attributes.ExpoExecutionEnvironment) > maxExpoExecutionEnvironmentChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.expo_execution_environment`, maxExpoExecutionEnvironmentChars)
+	}
+
+	if len(s.Attributes.ExpoVersion) > maxExpoVersionChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.expo_version`, maxExpoVersionChars)
+	}
+
+	if len(s.Attributes.ExpoSDKVersion) > maxExpoSDKVersionChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.expo_sdk_version`, maxExpoSDKVersionChars)
+	}
+
+	if len(s.Attributes.ExpoEASProjectID) > maxExpoEASProjectIDChars {
+		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attributes.expo_eas_project_id`, maxExpoEASProjectIDChars)
 	}
 
 	if len(s.Attributes.UserID) > maxUserIDChars {

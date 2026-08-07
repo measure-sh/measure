@@ -2,19 +2,17 @@ import { trackEvent, trackSpan } from '../native/measureBridge';
 import type { SpanData } from '../tracing/spanData';
 import type { Logger } from '../utils/logger';
 
-const PATCH_ID_KEY = 'patch_id';
-const PATCH_VERSION_KEY = 'patch_version';
-
 /**
  * Protocol for processing events and spans.
  */
 export interface ISignalProcessor {
   /**
-   * Sets the OTA patch identifiers to attach to every event and span tracked
-   * by the React Native SDK. Scoping the attributes here ensures they are only
+   * Sets the framework level attributes to attach to every event and span
+   * tracked by the React Native SDK, such as the OTA patch identifiers and the
+   * Expo update metadata. Scoping the attributes here ensures they are only
    * added to RN-originated signals and not to native events.
    */
-  setPatchInfo(patchId?: string, patchVersion?: string): void;
+  setFrameworkAttributes(attributes: Record<string, any>): void;
 
   /**
    * Tracks a completed span's data.
@@ -41,32 +39,24 @@ export interface ISignalProcessor {
 
 export class SignalProcessor implements ISignalProcessor {
   private logger: Logger;
-  private patchId?: string;
-  private patchVersion?: string;
+  private frameworkAttributes: Record<string, any> = {};
 
   constructor(logger: Logger) {
     this.logger = logger;
   }
 
-  setPatchInfo(patchId?: string, patchVersion?: string): void {
-    this.patchId = patchId;
-    this.patchVersion = patchVersion;
+  setFrameworkAttributes(attributes: Record<string, any>): void {
+    this.frameworkAttributes = { ...attributes };
   }
 
-  private withPatchAttributes(
+  private withFrameworkAttributes(
     attributes: Record<string, any>
   ): Record<string, any> {
-    if (!this.patchId && !this.patchVersion) {
+    const keys = Object.keys(this.frameworkAttributes);
+    if (keys.length === 0) {
       return attributes;
     }
-    const merged = { ...attributes };
-    if (this.patchId) {
-      merged[PATCH_ID_KEY] = this.patchId;
-    }
-    if (this.patchVersion) {
-      merged[PATCH_VERSION_KEY] = this.patchVersion;
-    }
-    return merged;
+    return { ...attributes, ...this.frameworkAttributes };
   }
 
   async trackSpan(spanData: SpanData): Promise<any> {
@@ -78,7 +68,9 @@ export class SignalProcessor implements ISignalProcessor {
         { duration: spanData.duration }
       );
 
-      const attributes = this.withPatchAttributes(spanData.attributes ?? {});
+      const attributes = this.withFrameworkAttributes(
+        spanData.attributes ?? {}
+      );
       const userDefinedAttrs = spanData.userDefinedAttrs ?? {};
 
       const checkpointsDict = (spanData.checkpoints || []).reduce(
@@ -126,7 +118,7 @@ export class SignalProcessor implements ISignalProcessor {
       data,
       type,
       timestamp,
-      this.withPatchAttributes(attributes),
+      this.withFrameworkAttributes(attributes),
       userDefinedAttrs,
       userTriggered,
       sessionId,

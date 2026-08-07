@@ -59,6 +59,15 @@ class Attributes: Codable {
     var deviceLowPowerMode: Bool?
     var osPageSize: UInt8?
     var sessionStartTime: String?
+    var expoUpdateId: String?
+    var expoRuntimeVersion: String?
+    var isExpoEmbeddedLaunch: Bool?
+    var isExpoUsingEmbeddedAssets: Bool?
+    var expoAutomaticUpdatePolicy: String?
+    var expoExecutionEnvironment: String?
+    var expoVersion: String?
+    var expoSdkVersion: String?
+    var expoEasProjectId: String?
 
     enum CodingKeys: String, CodingKey {
         case threadName = "thread_name"
@@ -91,6 +100,15 @@ class Attributes: Codable {
         case deviceThermalThrottlingEnabled = "device_thermal_throttling_enabled"
         case deviceLowPowerMode = "device_low_power_mode"
         case sessionStartTime = "session_start_time"
+        case expoUpdateId = "expo_update_id"
+        case expoRuntimeVersion = "expo_runtime_version"
+        case isExpoEmbeddedLaunch = "is_expo_embedded_launch"
+        case isExpoUsingEmbeddedAssets = "is_expo_using_embedded_assets"
+        case expoAutomaticUpdatePolicy = "expo_automatic_update_policy"
+        case expoExecutionEnvironment = "expo_execution_environment"
+        case expoVersion = "expo_version"
+        case expoSdkVersion = "expo_sdk_version"
+        case expoEasProjectId = "expo_eas_project_id"
     }
 
     init(
@@ -123,7 +141,16 @@ class Attributes: Codable {
         deviceThermalThrottlingEnabled: Bool? = nil,
         deviceLowPowerMode: Bool? = nil,
         osPageSize: UInt8? = nil,
-        sessionStartTime: String? = nil) {
+        sessionStartTime: String? = nil,
+        expoUpdateId: String? = nil,
+        expoRuntimeVersion: String? = nil,
+        isExpoEmbeddedLaunch: Bool? = nil,
+        isExpoUsingEmbeddedAssets: Bool? = nil,
+        expoAutomaticUpdatePolicy: String? = nil,
+        expoExecutionEnvironment: String? = nil,
+        expoVersion: String? = nil,
+        expoSdkVersion: String? = nil,
+        expoEasProjectId: String? = nil) {
            self.threadName = threadName
            self.deviceName = deviceName
            self.deviceModel = deviceModel
@@ -154,6 +181,15 @@ class Attributes: Codable {
            self.deviceLowPowerMode = deviceLowPowerMode
            self.osPageSize = osPageSize
            self.sessionStartTime = sessionStartTime
+           self.expoUpdateId = expoUpdateId
+           self.expoRuntimeVersion = expoRuntimeVersion
+           self.isExpoEmbeddedLaunch = isExpoEmbeddedLaunch
+           self.isExpoUsingEmbeddedAssets = isExpoUsingEmbeddedAssets
+           self.expoAutomaticUpdatePolicy = expoAutomaticUpdatePolicy
+           self.expoExecutionEnvironment = expoExecutionEnvironment
+           self.expoVersion = expoVersion
+           self.expoSdkVersion = expoSdkVersion
+           self.expoEasProjectId = expoEasProjectId
     }
 
     init(dict: [String: Any?]) {
@@ -187,5 +223,14 @@ class Attributes: Codable {
         self.deviceLowPowerMode = dict["device_low_power_mode"] as? Bool
         self.osPageSize = dict["os_page_size"] as? UInt8
         self.sessionStartTime = dict["session_start_time"] as? String
+        self.expoUpdateId = dict["expo_update_id"] as? String
+        self.expoRuntimeVersion = dict["expo_runtime_version"] as? String
+        self.isExpoEmbeddedLaunch = dict["is_expo_embedded_launch"] as? Bool
+        self.isExpoUsingEmbeddedAssets = dict["is_expo_using_embedded_assets"] as? Bool
+        self.expoAutomaticUpdatePolicy = dict["expo_automatic_update_policy"] as? String
+        self.expoExecutionEnvironment = dict["expo_execution_environment"] as? String
+        self.expoVersion = dict["expo_version"] as? String
+        self.expoSdkVersion = dict["expo_sdk_version"] as? String
+        self.expoEasProjectId = dict["expo_eas_project_id"] as? String
     }
 }
