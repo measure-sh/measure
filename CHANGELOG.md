@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### :bug: Bug fixes
+
+- (**backend**): Set correct content type & encoding for multipart uploads (#4211) by @detj in #4211
+
+### :hammer: Misc
+
+- (**frontend**): Make filter component flags optional by @anupcowkur in #4209
+
 ## [0.12.1] - 2026-08-06
 
 ### :hammer: Misc
@@ -2913,6 +2923,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Replace team/:id/invite docs with /auth/invite docs by @anupcowkur in #367
 - (**webapp**): Add API docs for crash & ANR groups APIs by @anupcowkur in #350
 
+[unreleased]: https://github.com/measure-sh/measure/compare/v0.12.1..HEAD
 [0.12.1]: https://github.com/measure-sh/measure/compare/v0.12.0..v0.12.1
 [0.12.0]: https://github.com/measure-sh/measure/compare/v0.11.0..v0.12.0
 [0.11.0]: https://github.com/measure-sh/measure/compare/v0.10.0..v0.11.0
