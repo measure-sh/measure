@@ -394,6 +394,8 @@ services:
       watch:
         - path: ../backend/ingest
           action: rebuild
+        - path: ../backend/libs
+          action: rebuild
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8085/ping"]
       interval: 5s
@@ -456,6 +458,8 @@ services:
       watch:
         - path: ../backend/cleanup
           action: rebuild
+        - path: ../backend/libs
+          action: rebuild
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8081/ping"]
       interval: 5s
@@ -512,6 +516,8 @@ services:
     develop:
       watch:
         - path: ../backend/alerts
+          action: rebuild
+        - path: ../backend/libs
           action: rebuild
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8082/ping"]
@@ -605,6 +611,8 @@ services:
     develop:
       watch:
         - path: ../backend/migrator
+          action: rebuild
+        - path: ../backend/libs
           action: rebuild
     depends_on:
       postgres:

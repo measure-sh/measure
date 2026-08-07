@@ -1,6 +1,7 @@
 package event
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	"backend/libs/objstore"
@@ -104,13 +106,62 @@ func (a Attachment) Validate() error {
 	return nil
 }
 
+// gzipMagic prefixes every gzip stream.
+var gzipMagic = []byte{0x1f, 0x8b}
+
+// sniffEncoding detects gzip content from the leading bytes, then rewinds.
+//
+// SDKs compress some attachments before upload, so the encoding has to be
+// read off the bytes. A filename can't carry it & can't be trusted.
+//
+// The reader is rewound rather than wrapped because the S3 client seeks the
+// body to compute its payload hash. Wrapping it fails every upload.
+//
+// ponytail: non-seekable bodies skip the sniff & claim no encoding, the
+// only upload path opens a seekable multipart file
+func sniffEncoding(r io.Reader) (encoding string, err error) {
+	seeker, ok := r.(io.Seeker)
+	if !ok {
+		return
+	}
+
+	// a read failure leaves n short, so no encoding gets claimed & the
+	// upload surfaces the error itself
+	head := make([]byte, len(gzipMagic))
+	n, _ := io.ReadFull(r, head)
+
+	if _, err = seeker.Seek(0, io.SeekStart); err != nil {
+		return
+	}
+
+	if bytes.Equal(head[:n], gzipMagic) {
+		encoding = "gzip"
+	}
+
+	return
+}
+
+// contentTypeOf derives the mime type from the original filename, ignoring
+// any compression suffix since encoding is tracked separately.
+func contentTypeOf(name string) (contentType string) {
+	base := strings.TrimSuffix(name, ".gz")
+	contentType = mime.TypeByExtension(filepath.Ext(base))
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	return
+}
+
 // Upload uploads raw file bytes to an S3 compatible storage system.
 func (a *Attachment) Upload(ctx context.Context, config UploadConfig) (err error) {
-	// set mime type from extension
-	ext := filepath.Ext(a.Key)
-	contentType := "application/octet-stream"
-	if ext != "" {
-		contentType = mime.TypeByExtension(ext)
+	// derive from the name, the key only retains the last suffix
+	contentType := contentTypeOf(a.Name)
+
+	contentEncoding, errSniff := sniffEncoding(a.Reader)
+	if errSniff != nil {
+		err = errSniff
+		return
 	}
 
 	metadata := map[string]string{
@@ -152,6 +203,7 @@ func (a *Attachment) Upload(ctx context.Context, config UploadConfig) (err error
 
 		writer := obj.NewWriter(ctx)
 		writer.ContentType = contentType
+		writer.ContentEncoding = contentEncoding
 		writer.Metadata = metadata
 
 		if _, err = io.Copy(writer, a.Reader); err != nil {
@@ -175,6 +227,11 @@ func (a *Attachment) Upload(ctx context.Context, config UploadConfig) (err error
 		Body:        a.Reader,
 		Metadata:    metadata,
 		ContentType: aws.String(contentType),
+	}
+
+	// leave unset for uncompressed bytes, an empty header would mislabel them
+	if contentEncoding != "" {
+		putObjectInput.ContentEncoding = aws.String(contentEncoding)
 	}
 
 	// ignore the putObjectOutput, don't need
