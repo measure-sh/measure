@@ -60,6 +60,23 @@ final class AttachmentProcessorTests: XCTestCase {
         XCTAssertNil(attachment?.bytes)
     }
 
+    func test_attachmentName_carriesExtensionDescribingBytes() {
+        let screenshot = sut.getAttachmentObject(for: Data("image".utf8),
+                                                 storageType: .data,
+                                                 attachmentType: .screenshot)
+        XCTAssertEqual(screenshot?.name, "test-uuid.webp")
+
+        let snapshotJson = sut.getAttachmentObject(for: Data("snapshot".utf8),
+                                                   storageType: .gzip,
+                                                   attachmentType: .layoutSnapshotJson)
+        XCTAssertEqual(snapshotJson?.name, "test-uuid.json.gz")
+
+        let snapshot = sut.getAttachmentObject(for: Data("<svg/>".utf8),
+                                               storageType: .data,
+                                               attachmentType: .layoutSnapshot)
+        XCTAssertEqual(snapshot?.name, "test-uuid.svg")
+    }
+
     func test_gzip_returnsBytesAndNilPath() {
         let attachment = sut.getAttachmentObject(for: Data("snapshot".utf8),
                                                   storageType: .gzip,

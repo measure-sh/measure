@@ -35,7 +35,7 @@ final class BaseAttachmentProcessor: AttachmentProcessor {
         let attachmentName: String = {
             switch attachmentType {
             case .layoutSnapshot: return "\(uuid).svg"
-            case .layoutSnapshotJson: return "\(uuid)"
+            case .layoutSnapshotJson: return "\(uuid).json.gz"
             default: return "\(uuid).webp"
             }
         }()
