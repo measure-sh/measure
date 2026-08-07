@@ -59,6 +59,9 @@ type blob struct {
 	// name is the filename with extension
 	// from SDK
 	name string
+	// attachmentType is the SDK's attachment type, it
+	// settles the mime type when the filename can't
+	attachmentType string
 	// key is the s3-like object storage key
 	key string
 	// location is the fully qualified URL
@@ -177,8 +180,11 @@ func (e *eventreq) uploadAttachments() error {
 		})
 
 		eventAttachment := event.Attachment{
-			ID:   id,
-			Name: key,
+			ID: id,
+			// the SDK filename, only a hint, the key drops all
+			// but the last suffix
+			Name: attachment.name,
+			Type: attachment.attachmentType,
 			Key:  key,
 		}
 
@@ -379,8 +385,9 @@ func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 		// see https://github.com/measure-sh/measure/issues/1736
 		for _, attachment := range ev.Attachments {
 			e.attachments[attachment.ID] = &blob{
-				id:   attachment.ID,
-				name: attachment.Name,
+				id:             attachment.ID,
+				name:           attachment.Name,
+				attachmentType: attachment.Type,
 			}
 		}
 
