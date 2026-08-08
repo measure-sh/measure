@@ -60,7 +60,7 @@ const (
 	// attachmentTypeAndroidMethodTrace is a binary trace of every Java/Kotlin
 	// method entry & exit.
 	//
-	// Deprecated: Will be removed in future.
+	// Deprecated: No SDK produces this, kept for older clients.
 	attachmentTypeAndroidMethodTrace = "android_method_trace"
 
 	// attachmentTypeLayoutSnapshot is a wireframe of the view hierarchy,
