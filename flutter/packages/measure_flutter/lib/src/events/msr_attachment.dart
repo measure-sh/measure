@@ -57,6 +57,11 @@ class MsrAttachment {
   bool get hasRawPixels =>
       bytes != null && bytesFormat == AttachmentBytesFormat.rawRgba8888;
 
+  static String _nameFor(String uuid, String? fileExtension) =>
+      (fileExtension == null || fileExtension.isEmpty)
+          ? uuid
+          : '$uuid.$fileExtension';
+
   /// Creates an [MsrAttachment] from encoded image bytes (PNG/JPEG/WebP/etc.).
   ///
   /// Use this factory when you have file content as bytes, such as a
@@ -91,9 +96,10 @@ class MsrAttachment {
     required int height,
     required AttachmentType type,
     required String uuid,
+    String? fileExtension,
   }) {
     return MsrAttachment(
-      name: uuid,
+      name: _nameFor(uuid, fileExtension),
       id: uuid,
       type: type,
       size: bytes.length,
@@ -118,9 +124,10 @@ class MsrAttachment {
     required AttachmentType type,
     required int size,
     required String uuid,
+    String? fileExtension,
   }) {
     return MsrAttachment(
-      name: uuid,
+      name: _nameFor(uuid, fileExtension),
       size: size,
       id: uuid,
       type: type,

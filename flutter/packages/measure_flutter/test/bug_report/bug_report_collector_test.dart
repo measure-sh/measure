@@ -247,7 +247,7 @@ void main() {
 
       if (event.attachments?.isNotEmpty == true) {
         final storedAttachment = event.attachments!.first;
-        expect(storedAttachment.name, equals('uuid-1'));
+        expect(storedAttachment.name, equals('uuid-1.png'));
         expect(storedAttachment.id, equals('uuid-1'));
         expect(storedAttachment.path, contains('uuid-1'));
         expect(storedAttachment.type, equals(AttachmentType.screenshot));

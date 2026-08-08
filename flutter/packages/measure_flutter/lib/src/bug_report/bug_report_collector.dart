@@ -10,6 +10,7 @@ import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
+import 'package:measure_flutter/src/utils/file_extension.dart';
 import 'package:measure_flutter/src/utils/id_provider.dart';
 
 import '../../measure_flutter.dart';
@@ -77,7 +78,9 @@ class BugReportCollector {
 
         final File? file;
         final int sizeBytes;
+        final String fileExtension;
         if (attachment.hasRawPixels) {
+          fileExtension = 'webp';
           final webp = await _methodChannel.encodeWebP(
             pixels: bytes,
             width: attachment.width!,
@@ -90,6 +93,7 @@ class BugReportCollector {
           file = await _fileStorage.writeFile(webp, uuid);
           sizeBytes = webp.length;
         } else {
+          fileExtension = fileExtensionOf(attachment.name);
           file = await _fileStorage.writeFile(bytes, uuid);
           sizeBytes = bytes.length;
         }
@@ -105,7 +109,7 @@ class BugReportCollector {
         );
         storedAttachments.add(
           MsrAttachment(
-            name: uuid,
+            name: fileExtension.isEmpty ? uuid : '$uuid.$fileExtension',
             path: file.path,
             type: attachment.type,
             id: uuid,
