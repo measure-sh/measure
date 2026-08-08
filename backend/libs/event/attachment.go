@@ -53,13 +53,35 @@ type PreSignConfig struct {
 
 // attachment types the SDKs send.
 const (
-	attachmentTypeScreenshot         = "screenshot"
+	// attachmentTypeScreenshot is a raster image of the screen as the user
+	// saw it, encoded as webp, jpeg or png.
+	attachmentTypeScreenshot = "screenshot"
+
+	// attachmentTypeAndroidMethodTrace is a binary trace of every Java/Kotlin
+	// method entry & exit.
+	//
+	// Deprecated: Will be removed in future.
 	attachmentTypeAndroidMethodTrace = "android_method_trace"
-	attachmentTypeLayoutSnapshot     = "layout_snapshot"
+
+	// attachmentTypeLayoutSnapshot is a wireframe of the view hierarchy,
+	// drawn as an SVG on some SDKs & a raster on others.
+	attachmentTypeLayoutSnapshot = "layout_snapshot"
+
+	// attachmentTypeLayoutSnapshotJSON is the view hierarchy as gzipped JSON,
+	// replayed as a wireframe in the dashboard.
 	attachmentTypeLayoutSnapshotJSON = "layout_snapshot_json"
-	attachmentTypePerfettoTrace      = "perfetto_trace"
-	attachmentTypeHeapDump           = "heap_dump"
-	attachmentTypeHeapProfile        = "heap_profile"
+
+	// attachmentTypePerfettoTrace is a protobuf trace of system & app
+	// activity, written by the OS profiler.
+	attachmentTypePerfettoTrace = "perfetto_trace"
+
+	// attachmentTypeHeapDump is a snapshot of every live object on the Java
+	// heap, in HPROF binary format.
+	attachmentTypeHeapDump = "heap_dump"
+
+	// attachmentTypeHeapProfile is a sample of native & Java allocations,
+	// carried in a protobuf trace.
+	attachmentTypeHeapProfile = "heap_profile"
 )
 
 // contentTypeBinary is the fallback for opaque or unrecognized bytes.
