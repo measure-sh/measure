@@ -208,11 +208,13 @@ func TestContentTypeFor(t *testing.T) {
 			expected:       "image/png",
 		},
 		{
-			name:           "unregistered image extension falls back to bytes",
+			// a synthetic extension, real ones like .heic resolve only on
+			// hosts whose mime files define them
+			name:           "unregistered extension falls back to bytes",
 			attachmentType: "screenshot",
-			filename:       "93ce9654-844a-4e8f-ac1b-ca0fc479008c.heic",
-			head:           []byte("\x00\x00\x00\x20ftypheic"),
-			expected:       "application/octet-stream",
+			filename:       "93ce9654-844a-4e8f-ac1b-ca0fc479008c.msrunknown",
+			head:           webpBytes,
+			expected:       "image/webp",
 		},
 		{
 			name:           "bare uuid screenshot falls back to bytes",
