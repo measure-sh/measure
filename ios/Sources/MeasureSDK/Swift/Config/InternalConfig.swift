@@ -11,7 +11,7 @@ import Foundation
 protocol InternalConfig {
     /// The interval between consecutive requests for batch export.
     var batchExportIntervalMs: Number { get }
-    
+
     /// The interval between consecutive requests for attachment export.
     var attachmentExportIntervalMs: Number { get }
 
@@ -63,7 +63,7 @@ protocol InternalConfig {
 
     /// Maximum number of signals (events and spans) in the in memory queue. Defaults to 30.
     var maxInMemorySignalsQueueSize: Number { get }
-    
+
     /// The timeout after which signals are attempted to be flushed to disk in milliseconds.
     /// Defaults to 3000ms.
     var inMemorySignalsQueueFlushRateMs: Number { get }

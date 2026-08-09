@@ -22,6 +22,13 @@ jobs:
         with:
           submodules: recursive
 
+      # SwiftLint ships preinstalled on the macos-15 runner image.
+      - name: Run SwiftLint
+        working-directory: ios
+        run: |
+          swiftlint version
+          swiftlint lint --strict --reporter github-actions-logging
+
       - name: Switch to Xcode 16.4
         run: sudo xcode-select -switch /Applications/Xcode_16.4.app
 

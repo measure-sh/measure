@@ -10,7 +10,7 @@ import Foundation
 final class SessionAttributeProcessor: AttributeProcessor {
     private let sessionManager: SessionManager
     private let timeProvider: TimeProvider
-    
+
     init(sessionManager: SessionManager, timeProvider: TimeProvider) {
         self.sessionManager = sessionManager
         self.timeProvider = timeProvider

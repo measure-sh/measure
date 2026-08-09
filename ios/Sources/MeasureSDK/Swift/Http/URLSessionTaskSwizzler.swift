@@ -112,7 +112,7 @@ private var startTimeKey: UInt8 = 0
 private let isHandlingStateSentinel = NSObject()
 
 extension URLSessionTask {
-    var msr_startTime: UInt64? {
+    var msr_startTime: UInt64? { // swiftlint:disable:this identifier_name
         get { objc_getAssociatedObject(self, &startTimeKey) as? UInt64 }
         set { objc_setAssociatedObject(self, &startTimeKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
     }

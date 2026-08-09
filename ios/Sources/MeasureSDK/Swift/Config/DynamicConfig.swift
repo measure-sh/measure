@@ -74,7 +74,7 @@ protocol DynamicConfig {
     /// Sampling rate for htto events.
     /// Defaults to 100%.
     var httpSamplingRate: Float { get }
-    
+
     /// URLs for which HTTP events should be disabled.
     var httpDisableEventForUrls: [String] { get }
 
@@ -110,7 +110,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
     let httpTrackRequestForUrls: [String]
     let httpTrackResponseForUrls: [String]
     let httpBlockedHeaders: [String]
-    
+
     init(maxEventsInBatch: Number = DefaultConfig.maxEventsInBatch,
          crashTimelineDurationSeconds: Number = DefaultConfig.crashTimelineDurationSeconds,
          anrTimelineDurationSeconds: Number = DefaultConfig.anrTimelineDurationSeconds,
@@ -155,10 +155,10 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         self.httpTrackResponseForUrls = httpTrackResponseForUrls
         self.httpBlockedHeaders = httpBlockedHeaders
     }
-    
+
     init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-    
+        let c = try decoder.container(keyedBy: CodingKeys.self) // swiftlint:disable:this identifier_name
+
         maxEventsInBatch = try c.decodeIfPresent(Number.self, forKey: .maxEventsInBatch) ?? DefaultConfig.maxEventsInBatch
         crashTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .crashTimelineDurationSeconds) ?? DefaultConfig.crashTimelineDurationSeconds
         anrTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .anrTimelineDurationSeconds) ?? DefaultConfig.anrTimelineDurationSeconds

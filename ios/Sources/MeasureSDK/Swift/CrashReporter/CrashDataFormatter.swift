@@ -14,11 +14,11 @@ final class CrashDataFormatter {
     private var isLp64 = true
     private var executableName: String?
 
-    private var crashDict: [String: Any]     { report["crash"]          as? [String: Any]    ?? [:] }
-    private var errorDict: [String: Any]     { crashDict["error"]       as? [String: Any]    ?? [:] }
+    private var crashDict: [String: Any] { report["crash"]          as? [String: Any]    ?? [:] }
+    private var errorDict: [String: Any] { crashDict["error"]       as? [String: Any]    ?? [:] }
     private var threadDicts: [[String: Any]] { crashDict["threads"]     as? [[String: Any]]  ?? [] }
     private var binaryImageDicts: [[String: Any]] { report["binary_images"] as? [[String: Any]] ?? [] }
-    private var systemDict: [String: Any]    { report["system"]         as? [String: Any]    ?? [:] }
+    private var systemDict: [String: Any] { report["system"]         as? [String: Any]    ?? [:] }
 
     init(_ report: [String: Any], sysCtl: SysCtl) {
         self.report = report
@@ -71,16 +71,17 @@ final class CrashDataFormatter {
 
     func parseExceptionDetail(crashedThread: ThreadDetail?) -> ExceptionDetail {
         return ExceptionDetail(
-            type:           parseExceptionName(),
-            message:        parseExceptionReason(),
-            frames:         crashedThread?.frames,
-            signal:         parseSignalName(),
-            threadName:     crashedThread?.name,
+            type: parseExceptionName(),
+            message: parseExceptionReason(),
+            frames: crashedThread?.frames,
+            signal: parseSignalName(),
+            threadName: crashedThread?.name,
             threadSequence: crashedThread?.sequence ?? 0,
-            osBuildNumber:  sysCtl.getOsBuildNumber()
+            osBuildNumber: sysCtl.getOsBuildNumber()
         )
     }
 
+    // swiftlint:disable identifier_name - short bindings mirror the KSCrash report keys being parsed
     func parseExceptionName() -> String {
         if let ns   = errorDict["nsexception"]   as? [String: Any], let n = ns["name"]             as? String { return n }
         if let mach = errorDict["mach"]          as? [String: Any], let n = mach["exception_name"] as? String { return n }
@@ -97,6 +98,7 @@ final class CrashDataFormatter {
         }
         return errorDict["reason"] as? String ?? ""
     }
+    // swiftlint:enable identifier_name
 
     func parseSignalName() -> String {
         return (errorDict["signal"] as? [String: Any])?["name"] as? String ?? ""
@@ -119,7 +121,7 @@ final class CrashDataFormatter {
 
     func parseFrames(_ threadDict: [String: Any], framesToStrip: Int = 0) -> [StackFrame] {
         guard
-            let bt       = threadDict["backtrace"] as? [String: Any],
+            let bt       = threadDict["backtrace"] as? [String: Any], // swiftlint:disable:this identifier_name
             var contents = bt["contents"]          as? [[String: Any]]
         else { return [] }
 
@@ -210,7 +212,7 @@ final class CrashDataFormatter {
         return true // default to 64-bit
     }
 
-    func resolveArch(_ img: [String: Any]) -> String {
+    func resolveArch(_ img: [String: Any]) -> String { // swiftlint:disable:this cyclomatic_complexity
         guard let cpuType = img["cpu_type"] as? UInt64 else { return "???" }
         let cpuSubtype = Int32((img["cpu_subtype"] as? UInt64 ?? 0) & ~UInt64(CPU_SUBTYPE_MASK))
         switch Int32(cpuType) {
@@ -240,7 +242,7 @@ final class CrashDataFormatter {
     }
 
     private func isAppBinary(name: String?) -> Bool {
-        guard let n = name else { return false }
+        guard let n = name else { return false } // swiftlint:disable:this identifier_name
         let short = URL(fileURLWithPath: n).lastPathComponent
         let exec  = executableName ?? ""
         return short == exec

@@ -70,7 +70,7 @@ final class BaseSignalSampler: SignalSampler {
 
         return stableSamplingValue(sessionId: sessionId) < samplingRate
     }
-    
+
     func shouldSampleHttpEvent() -> Bool {
         if configProvider.enableFullCollectionMode {
             return true
@@ -112,7 +112,6 @@ final class BaseSignalSampler: SignalSampler {
         return randomizer.random() < samplingRate
     }
 
-    // TODO: get the official OTEL implementation
     private func longFromBase16String(_ chars: String, offset: Int) -> Int64? {
         guard chars.count >= offset + 16 else {
             return nil

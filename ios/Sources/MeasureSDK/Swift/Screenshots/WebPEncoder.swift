@@ -34,7 +34,7 @@ struct WebPEncoder {
 
         guard let pixelData = context.data else { return nil }
 
-        var output: UnsafeMutablePointer<UInt8>? = nil
+        var output: UnsafeMutablePointer<UInt8>?
         let size = WebPEncodeRGBA(
             pixelData.assumingMemoryBound(to: UInt8.self),
             Int32(width),
@@ -50,7 +50,6 @@ struct WebPEncoder {
         return Data(bytes: outputPtr, count: size)
     }
 
-    
     // Encodes an RGBA pixel buffer to WebP. This is built purposefully
     // for Flutter which encodes the bytes using ImageByteFormat.rawRgba
     static func encode(pixels: Data, width: Int, height: Int, quality: Int) -> Data? {
@@ -61,7 +60,7 @@ struct WebPEncoder {
 
         return pixels.withUnsafeBytes { (buf: UnsafeRawBufferPointer) -> Data? in
             guard let base = buf.baseAddress?.assumingMemoryBound(to: UInt8.self) else { return nil }
-            var output: UnsafeMutablePointer<UInt8>? = nil
+            var output: UnsafeMutablePointer<UInt8>?
             let size = WebPEncodeRGBA(base, Int32(width), Int32(height), Int32(stride), clamped, &output)
             guard size > 0, let outputPtr = output else { return nil }
             defer { WebPFree(outputPtr) }

@@ -86,7 +86,7 @@ struct BaseConfigLoader: ConfigLoader {
         }
     }
 
-    private func refreshConfigFromServer() {
+    private func refreshConfigFromServer() { // swiftlint:disable:this function_body_length
         let now = timeProvider.now()
 
         let lastFetch = userDefaultStorage.getConfigFetchTimestamp()

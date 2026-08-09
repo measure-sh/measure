@@ -12,6 +12,7 @@ protocol UserTriggeredEventCollector {
     func trackError(_ error: Error, attributes: [String: AttributeValue]?, framesToStrip: Int)
     func trackError(_ error: NSError, attributes: [String: AttributeValue]?, framesToStrip: Int)
     func trackException(_ exception: NSException, attributes: [String: AttributeValue]?, framesToStrip: Int)
+    // swiftlint:disable:next function_parameter_count - mirrors the public trackHttpEvent API
     func trackHttpEvent(url: String,
                         method: String,
                         startTime: UInt64,
@@ -105,6 +106,7 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
         }
     }
 
+    // swiftlint:disable:next function_parameter_count function_body_length
     func trackHttpEvent(url: String,
                         method: String,
                         startTime: UInt64,

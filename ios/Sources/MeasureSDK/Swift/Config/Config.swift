@@ -53,7 +53,7 @@ struct Config: InternalConfig, MeasureConfig {
     let httpUrlBlocklist: [String]
     let enableDiagnosticMode: Bool
     let enableDiagnosticModeGesture: Bool
-    
+
     init(enableLogging: Bool = DefaultConfig.enableLogging, // swiftlint:disable:this function_body_length
          autoStart: Bool = DefaultConfig.autoStart,
          enableFullCollectionMode: Bool = DefaultConfig.enableFullCollectionMode,

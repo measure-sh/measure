@@ -24,7 +24,7 @@ class EventToAttachmentMigrationPolicy: NSEntityMigrationPolicy {
         if let attachmentsData = sInstance.value(forKey: "attachments") as? Data {
             let decoder = JSONDecoder()
             let msrAttachments: [MsrAttachment]
-            
+
             do {
                 msrAttachments = try decoder.decode([MsrAttachment].self, from: attachmentsData)
             } catch {

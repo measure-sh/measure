@@ -24,7 +24,7 @@ protocol EventStore {
     func getAllEvents() -> [EventEntity]
 }
 
-final class BaseEventStore: EventStore {
+final class BaseEventStore: EventStore { // swiftlint:disable:this type_body_length
     private let coreDataManager: CoreDataManager
     private let logger: Logger
 
@@ -33,7 +33,7 @@ final class BaseEventStore: EventStore {
         self.logger = logger
     }
 
-    func insertEvent(event: EventEntity) {
+    func insertEvent(event: EventEntity) { // swiftlint:disable:this function_body_length
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return
@@ -392,7 +392,7 @@ final class BaseEventStore: EventStore {
 }
 
 extension EventOb {
-    func toEntity() -> EventEntity? {
+    func toEntity() -> EventEntity? { // swiftlint:disable:this function_body_length
         guard let id = id, let sessionId = sessionId, let timestamp = timestamp, let type = type else {
             return nil
         }
@@ -404,7 +404,7 @@ extension EventOb {
                       let attachmentType = AttachmentType(rawValue: attachmentTypeRawValue) else {
                     return nil
                 }
-                
+
                 return MsrAttachment(
                     name: attachmentOb.name ?? "",
                     type: attachmentType,

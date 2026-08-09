@@ -172,7 +172,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     var isStarted: Bool = false
     var previousSessionCrashed = false
 
-    init(_ measureInitializer: MeasureInitializer) {
+    init(_ measureInitializer: MeasureInitializer) { // swiftlint:disable:this function_body_length
         self.measureInitializer = measureInitializer
         self.lifecycleObserver = LifecycleObserver()
         self.launchTracker.setOnAppLaunchCallback {
@@ -270,7 +270,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         let activityVC = UIActivityViewController(activityItems: files, applicationActivities: nil)
         rootViewController.present(activityVC, animated: true)
     }
-
 
     func start() {
         guard !isStarted else { return }
@@ -565,7 +564,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.appLaunchCollector.enable()
     }
 
-
     private func trackSessionStart(_ sessionId: String, timestamp: Number) {
         self.signalProcessor.track(data: SessionStartData(),
                                    timestamp: timestamp,
@@ -578,4 +576,4 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
                                    needsReporting: true,
                                    synchronous: false)
     }
-}
+} // swiftlint:disable:this file_length
