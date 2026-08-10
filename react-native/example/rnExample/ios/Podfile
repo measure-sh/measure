@@ -27,6 +27,7 @@ end
 
 target 'rnExample' do
   config = use_native_modules!
+  $MeasureDisableSPM = true
 
   pod 'MeasureReactNative', :path => '../../..'
   pod 'measure-sh', :path => '../../../..'

@@ -13,7 +13,7 @@
   // They will be passed down to the ViewController used by React Native.
   MSRConfig *config = [[MSRConfig alloc] initWithEnableLogging:YES
                                                      autoStart:YES
-                                      enableFullCollectionMode:NO
+                                      enableFullCollectionMode:YES
                                         requestHeadersProvider:NULL
                                               maxDiskUsageInMb:@300
                                           enableDiagnosticMode:YES
