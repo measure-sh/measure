@@ -65,7 +65,9 @@ func main() {
 }
 
 func initCron(ctx context.Context) *cron.Cron {
-	cron := cron.New()
+	// recover panics so one failed step doesn't kill the process
+	// & skip every step sequenced after it
+	cron := cron.New(cron.WithChain(cron.Recover(cron.DefaultLogger)))
 
 	// run at 2 AM UTC every day
 	if _, err := cron.AddFunc("0 2 * * *", func() { cleanup.DeleteStaleData(ctx) }); err != nil {
