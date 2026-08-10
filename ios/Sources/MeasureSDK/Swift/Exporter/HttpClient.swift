@@ -9,6 +9,7 @@ import Foundation
 
 protocol HttpClient {
     func sendJsonRequest(url: URL, method: HttpMethod, headers: [String: String], jsonBody: Data) -> HttpResponse
+    // swiftlint:disable:next function_parameter_count
     func uploadFile(
         url: URL, method: HttpMethod, contentType: String, contentEncoding: String?,
         headers: [String: String], fileData: Data
@@ -58,10 +59,12 @@ final class BaseHttpClient: HttpClient {
         return response
     }
 
+    // swiftlint:disable:next function_parameter_count
     func uploadFile(url: URL, method: HttpMethod, contentType: String, contentEncoding: String?, headers: [String: String], fileData: Data) -> HttpResponse {
         return uploadFileWithRedirects(url: url, method: method, contentType: contentType, contentEncoding: contentEncoding, headers: headers, fileData: fileData, redirectCount: 0)
     }
 
+    // swiftlint:disable:next function_parameter_count
     private func uploadFileWithRedirects(
         url: URL, method: HttpMethod, contentType: String, contentEncoding: String?,
         headers: [String: String], fileData: Data, redirectCount: Int
@@ -82,9 +85,10 @@ final class BaseHttpClient: HttpClient {
         let task = session.dataTask(with: request) { data, urlResponse, error in
             response = self.handleRequestCompletion(data: data, urlResponse: urlResponse, error: error) { newUrl in
                 // Handle recursive redirect for file upload
+                // swiftlint:disable:next line_length
                 self.uploadFileWithRedirects(url: newUrl, method: method, contentType: contentType, contentEncoding: contentEncoding, headers: headers, fileData: fileData, redirectCount: redirectCount + 1)
             }
-            semaphore.signal()  
+            semaphore.signal()
         }
 
         task.resume()
@@ -109,7 +113,6 @@ final class BaseHttpClient: HttpClient {
         }
     }
 
-
     private func isRedirect(_ statusCode: Int) -> Bool {
         return statusCode == 307 || statusCode == 308
     }
@@ -133,6 +136,7 @@ final class BaseHttpClient: HttpClient {
         return request
     }
 
+    // swiftlint:disable:next function_parameter_count
     func createFileUploadRequest(
         url: URL, method: HttpMethod, contentType: String, contentEncoding: String?,
         headers: [String: String], fileSize: Int64
@@ -158,7 +162,6 @@ final class BaseHttpClient: HttpClient {
 
         return request
     }
-
 
     private func processResponse(data: Data?, urlResponse: URLResponse?) -> HttpResponse {
         guard let httpResponse = urlResponse as? HTTPURLResponse else {

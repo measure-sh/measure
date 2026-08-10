@@ -145,7 +145,7 @@ final class BaseSystemFileManager: SystemFileManager {
             .appendingPathComponent(ConfigFileConstants.fileName)
             .path
     }
-    
+
     func retrieveFile(atPath path: String) -> Data? {
         let fileURL = URL(fileURLWithPath: path)
 

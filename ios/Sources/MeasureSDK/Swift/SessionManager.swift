@@ -43,7 +43,7 @@ final class BaseSessionManager: SessionManager {
     private var sessionStartTime: Number?
     private var onSessionStarted: ((String) -> Void)?
     var shouldReportJourneyEvents: Bool
-    
+
     /// The current session ID.
     var sessionId: String {
         if let id = currentSessionId {
@@ -53,7 +53,7 @@ final class BaseSessionManager: SessionManager {
             return ""
         }
     }
-    
+
     init(idProvider: IdProvider,
          logger: Logger,
          timeProvider: TimeProvider,
@@ -144,7 +144,7 @@ final class BaseSessionManager: SessionManager {
                 crashed: true,
                 versionCode: versionCode
             )
-            
+
             userDefaultStorage.setRecentSession(recentSession)
             sessionStore.updateNeedsReporting(sessionId: self.sessionId, needsReporting: true)
         }

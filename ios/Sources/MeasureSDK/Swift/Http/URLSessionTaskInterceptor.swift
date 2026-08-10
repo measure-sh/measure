@@ -35,7 +35,7 @@ final class URLSessionTaskInterceptor {
         self.signalSampler = signalSampler
     }
 
-    func urlSessionTask(_ task: URLSessionTask, setState state: URLSessionTask.State) { // swiftlint:disable:this function_body_length
+    func urlSessionTask(_ task: URLSessionTask, setState state: URLSessionTask.State) {
         guard !MSRNetworkInterceptor.isEnabled else { return }
 
         let currentTime = UnsignedNumber(self.timeProvider?.millisTime ?? 0)
@@ -68,7 +68,7 @@ final class URLSessionTaskInterceptor {
         }
     }
 
-    private func processTaskCompletion(url: String?,
+    private func processTaskCompletion(url: String?, // swiftlint:disable:this function_parameter_count
                                        method: String?,
                                        requestHeaders: [String: String]?,
                                        requestBody: String?,
@@ -93,9 +93,9 @@ final class URLSessionTaskInterceptor {
         let responseHeaders = response?.allHeaderFields as? [String: String]
         let safeRequestHeaders = requestHeaders?.filter { configProvider.shouldTrackHttpHeader(key: $0.key) }
         let safeResponseHeaders = responseHeaders?.filter { configProvider.shouldTrackHttpHeader(key: $0.key) }
-        
+
         let shouldTrackReqBody = configProvider.shouldTrackHttpBody(url: url, contentType: requestHeaders?["Content-Type"])
-        
+
         let httpData = HttpData(
             url: url,
             method: normalizedMethod,

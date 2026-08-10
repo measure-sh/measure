@@ -468,7 +468,7 @@ extension Measure {
                                           threadName: threadName,
                                           attachments: attachments)
     }
-    
+
     /// An internal method that adds logs to the Apple unified logging system.
     /// - Parameters:
     ///   - platform: The platform sending the log. `react-native` for React native project or `flutter` for Flutter project.
@@ -1029,7 +1029,7 @@ extension Measure {
     ///   - responseHeaders: The HTTP headers in the response
     ///   - requestBody: An optional request body
     ///   - responseBody: An optional response body
-    @objc public static func trackHttpEventObjc(url: String,
+    @objc public static func trackHttpEventObjc(url: String, // swiftlint:disable:this function_parameter_count - public ObjC API
                                                 method: String,
                                                 startTime: UInt64,
                                                 endTime: UInt64,

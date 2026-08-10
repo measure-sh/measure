@@ -23,6 +23,7 @@ enum ElementType: String, Codable {
     case progress
 }
 
+// swiftlint:disable identifier_name - x/y are the wire-format keys for node coordinates
 struct SnapshotNode: Codable {
     let label: String
     let type: ElementType
@@ -54,3 +55,4 @@ struct SnapshotNode: Codable {
         self.children = children
     }
 }
+// swiftlint:enable identifier_name

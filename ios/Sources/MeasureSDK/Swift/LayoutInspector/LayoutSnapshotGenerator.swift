@@ -87,8 +87,7 @@ final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
                             children: children)
     }
 
-
-    private func resolveElementType(for view: UIView) -> ElementType {
+    private func resolveElementType(for view: UIView) -> ElementType { // swiftlint:disable:this cyclomatic_complexity
         switch view {
         case is UIButton: return .button
         case is UILabel: return .text

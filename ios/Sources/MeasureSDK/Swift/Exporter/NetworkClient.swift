@@ -90,7 +90,7 @@ final class BaseNetworkClient: NetworkClient {
                 let config = try decoder.decode(BaseDynamicConfig.self, from: data)
 
                 // default 5 minutes if backend forgets
-                let cacheControl = 300//config.cacheControlSeconds ?? 300
+                let cacheControl = 300
 
                 return .success(
                     config: config,
@@ -142,7 +142,7 @@ final class BaseNetworkClient: NetworkClient {
 
     private func serializeSpans(spans: [SpanEntity]) -> [[String: Any]] {
         let encoder = JSONEncoder()
-        
+
         return spans.compactMap { spanEntity in
             let spanCodable = spanEntity.toSpanDataCodable()
 

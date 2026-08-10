@@ -22,6 +22,20 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install SwiftLint
+        run: |
+          curl -sSL --retry 3 -o "${RUNNER_TEMP}/portable_swiftlint.zip" \
+            https://github.com/realm/SwiftLint/releases/latest/download/portable_swiftlint.zip
+          unzip -q -o "${RUNNER_TEMP}/portable_swiftlint.zip" -d "${RUNNER_TEMP}/swiftlint"
+          chmod +x "${RUNNER_TEMP}/swiftlint/swiftlint"
+          echo "${RUNNER_TEMP}/swiftlint" >> "$GITHUB_PATH"
+
+      - name: Run SwiftLint
+        working-directory: ios
+        run: |
+          swiftlint version
+          swiftlint lint --strict --reporter github-actions-logging
+
       - name: Switch to Xcode 16.4
         run: sudo xcode-select -switch /Applications/Xcode_16.4.app
 

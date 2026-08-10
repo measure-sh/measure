@@ -1503,6 +1503,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 524CC5CC2C6A4B12001AB506 /* Build configuration list for PBXNativeTarget "Measure" */;
 			buildPhases = (
+				CFA1B2C32E00000100000001 /* Run Script - SwiftLint */,
 				524CC5B52C6A4B11001AB506 /* Headers */,
 				524CC5B62C6A4B11001AB506 /* Sources */,
 				524CC5B72C6A4B11001AB506 /* Frameworks */,
@@ -1689,6 +1690,25 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		CFA1B2C32E00000100000001 /* Run Script - SwiftLint */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Run Script - SwiftLint";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#!/bin/bash\n\n# Lints Sources/MeasureSDK using ios/.swiftlint.yml.\n# Findings are reported as warnings only and never fail the build.\nexport PATH=\"/opt/homebrew/bin:/usr/local/bin:$PATH\"\n\nif ! command -v swiftlint >/dev/null 2>&1; then\n    echo \"warning: SwiftLint not installed. Run 'brew install swiftlint' to lint MeasureSDK sources.\"\n    exit 0\nfi\n\ncd \"${SRCROOT}\" || exit 0\n\n# Rewrite error-severity findings to warnings so lint never breaks the build.\nswiftlint lint --quiet --reporter xcode 2>/dev/null | sed -e 's/: error:/: warning:/'\n\nexit 0\n";
+		};
 		521EE08B2D76D12600BD590B /* Run Script - Copy swiftinterface */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;

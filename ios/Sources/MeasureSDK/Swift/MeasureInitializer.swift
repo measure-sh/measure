@@ -146,7 +146,7 @@ protocol MeasureInitializer {
 /// - `attributeValueValidator`: `AttributeValueValidator` object to validate user defined attributes
 /// - `signalSampler`: `SignalSampler` object that is responsible for managing event sampling.
 ///
-final class BaseMeasureInitializer: MeasureInitializer {
+final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:this type_body_length
     let configLoader: ConfigLoader
     let configProvider: ConfigProvider
     let client: Client

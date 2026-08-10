@@ -245,7 +245,7 @@ final class BaseConfigProvider: ConfigProvider {
     private func compilePattern(_ pattern: String) -> NSRegularExpression {
         let escaped = NSRegularExpression.escapedPattern(for: pattern)
         let regexPattern = escaped.replacingOccurrences(of: "\\*", with: ".*")
-        
+
         let finalPattern: String
         if pattern.contains("*") {
             finalPattern = "^" + regexPattern + "$"
@@ -253,7 +253,7 @@ final class BaseConfigProvider: ConfigProvider {
             // Match base URL and everything under it
             finalPattern = "^" + regexPattern + "(/.*)?$"
         }
-        
+
         do {
             return try NSRegularExpression(pattern: finalPattern, options: [.caseInsensitive])
         } catch {

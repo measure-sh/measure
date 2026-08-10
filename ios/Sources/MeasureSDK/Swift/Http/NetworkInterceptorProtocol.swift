@@ -87,7 +87,7 @@ extension NetworkInterceptorProtocol: URLSessionDataDelegate {
         completionHandler(.allow)
     }
 
-    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) { // swiftlint:disable:this function_body_length
         defer {
             if let error = error {
                 client?.urlProtocol(self, didFailWithError: error)

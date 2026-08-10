@@ -328,6 +328,7 @@ final class BaseExporter: Exporter {
     }
 }
 
+// swiftlint:disable identifier_name - property names must match the server's JSON keys
 private struct ResponseAttachment: Codable {
     let id: String
     let type: String
@@ -336,3 +337,4 @@ private struct ResponseAttachment: Codable {
     let expires_at: String
     let headers: [String: String]?
 }
+// swiftlint:enable identifier_name

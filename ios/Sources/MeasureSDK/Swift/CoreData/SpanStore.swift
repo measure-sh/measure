@@ -226,7 +226,7 @@ final class BaseSpanStore: SpanStore {
             let fetchRequest: NSFetchRequest<NSNumber> = NSFetchRequest(entityName: "SpanOb")
             fetchRequest.resultType = .countResultType
             fetchRequest.predicate = NSPredicate(format: "sessionId == %@", sessionId)
-            
+
             do {
                 count = try context.count(for: fetchRequest)
             } catch {

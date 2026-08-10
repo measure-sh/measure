@@ -163,7 +163,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector { // swiftlint:
                 if isFatal {
                     sessionManager.markCurrentSessionAsCrashed()
                 }
-                var exceptionAttachments: [MsrAttachment]? = nil
+                var exceptionAttachments: [MsrAttachment]?
                 if isFatal && isJsFramework && configProvider.crashTakeScreenshot {
                     let captureScreenshot = {
                         if let window = UIWindow.keyWindow() {
@@ -337,7 +337,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector { // swiftlint:
         for attributeProcessor in attributeProcessors {
             attributeProcessor.appendAttributes(parsedAttributes)
         }
-        
+
         let spanIsSampled = configProvider.enableFullCollectionMode || isSampled
 
         // deserialize checkpoints

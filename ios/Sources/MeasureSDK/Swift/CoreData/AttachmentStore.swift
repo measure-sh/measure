@@ -54,7 +54,7 @@ final class BaseAttachmentStore: AttachmentStore {
                     }
                     context.delete($0)
                 }
-                
+
                 try context.saveIfNeeded()
             } catch {
                 logger.internalLog(
