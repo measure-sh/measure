@@ -577,9 +577,8 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 			From("events final").
 			Where("team_id = toUUID(?)", retention.TeamID).
 			Where("app_id = toUUID(?)", retention.AppID).
-			Where("timestamp < ?", retention.Threshold)
-
-		defer fetchAttachmentsStmt.Close()
+			Where("timestamp < ?", retention.Threshold).
+			Where("attachments not in ('', '[]')")
 
 		attachmentRows, err := server.Server.ChPool.Query(ctx, fetchAttachmentsStmt.String(), fetchAttachmentsStmt.Args()...)
 		if err != nil {
@@ -608,6 +607,9 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 				staleAttachments = append(staleAttachments, attachments...)
 			}
 		}
+
+		attachmentRows.Close()
+		fetchAttachmentsStmt.Close()
 
 		// Delete attachments from object storage
 		if err := deleteAttachments(ctx, staleAttachments); err != nil {
