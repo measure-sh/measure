@@ -22,7 +22,14 @@ jobs:
         with:
           submodules: recursive
 
-      # SwiftLint ships preinstalled on the macos-15 runner image.
+      - name: Install SwiftLint
+        run: |
+          curl -sSL --retry 3 -o "${RUNNER_TEMP}/portable_swiftlint.zip" \
+            https://github.com/realm/SwiftLint/releases/latest/download/portable_swiftlint.zip
+          unzip -q -o "${RUNNER_TEMP}/portable_swiftlint.zip" -d "${RUNNER_TEMP}/swiftlint"
+          chmod +x "${RUNNER_TEMP}/swiftlint/swiftlint"
+          echo "${RUNNER_TEMP}/swiftlint" >> "$GITHUB_PATH"
+
       - name: Run SwiftLint
         working-directory: ios
         run: |
