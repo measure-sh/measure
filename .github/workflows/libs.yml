@@ -21,8 +21,8 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build
+  build-test:
+    name: Build & Test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -47,30 +47,5 @@ jobs:
         run: go build -v ./...
       - name: Vet with ${{ matrix.go-version }}
         run: go vet ./...
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: ["1.25.x", "1.26.x"]
-    defaults:
-      run:
-        working-directory: backend/libs
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-      - name: Setup go
-        uses: actions/setup-go@v6
-        with:
-          go-version: ${{ matrix.go-version }}
-          check-latest: true
-          cache-dependency-path: backend/libs/go.sum
-      - name: Display go version
-        run: go version
-      - name: Install dependencies
-        run: go mod download
-      # Integration tagged tests are skipped, they need containers & resolve
-      # backend/testinfra only through the workspace.
       - name: Test with ${{ matrix.go-version }}
-        run: go test ./...
+        run: go test -tags=integration ./...
