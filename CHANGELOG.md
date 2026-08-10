@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Double close panic in cleanup service (#4219) by @detj in #4219
 - (**backend**): Set correct content type & encoding for multipart uploads (#4211) by @detj in #4211
 
 ### :hammer: Misc
