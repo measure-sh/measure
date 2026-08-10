@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"path/filepath"
 	"slices"
-	"strings"
 	"time"
 
 	"backend/libs/objstore"
@@ -52,8 +51,52 @@ type PreSignConfig struct {
 	Origin                     string
 }
 
+// attachment types the SDKs send.
+const (
+	// attachmentTypeScreenshot is a raster image of the screen as the user
+	// saw it, encoded as webp, jpeg or png.
+	attachmentTypeScreenshot = "screenshot"
+
+	// attachmentTypeAndroidMethodTrace is a binary trace of every Java/Kotlin
+	// method entry & exit.
+	//
+	// Deprecated: No SDK produces this, kept for older clients.
+	attachmentTypeAndroidMethodTrace = "android_method_trace"
+
+	// attachmentTypeLayoutSnapshot is a wireframe of the view hierarchy,
+	// drawn as an SVG on some SDKs & a raster on others.
+	attachmentTypeLayoutSnapshot = "layout_snapshot"
+
+	// attachmentTypeLayoutSnapshotJSON is the view hierarchy as gzipped JSON,
+	// replayed as a wireframe in the dashboard.
+	attachmentTypeLayoutSnapshotJSON = "layout_snapshot_json"
+
+	// attachmentTypePerfettoTrace is a protobuf trace of system & app
+	// activity, written by the OS profiler.
+	attachmentTypePerfettoTrace = "perfetto_trace"
+
+	// attachmentTypeHeapDump is a snapshot of every live object on the Java
+	// heap, in HPROF binary format.
+	attachmentTypeHeapDump = "heap_dump"
+
+	// attachmentTypeHeapProfile is a sample of native & Java allocations,
+	// carried in a protobuf trace.
+	attachmentTypeHeapProfile = "heap_profile"
+)
+
+// contentTypeBinary is the fallback for opaque or unrecognized bytes.
+const contentTypeBinary = "application/octet-stream"
+
 // attachmentTypes is a list of all valid attachment types.
-var attachmentTypes = []string{"screenshot", "android_method_trace", "layout_snapshot", "layout_snapshot_json", "perfetto_trace", "heap_dump", "heap_profile"}
+var attachmentTypes = []string{
+	attachmentTypeScreenshot,
+	attachmentTypeAndroidMethodTrace,
+	attachmentTypeLayoutSnapshot,
+	attachmentTypeLayoutSnapshotJSON,
+	attachmentTypePerfettoTrace,
+	attachmentTypeHeapDump,
+	attachmentTypeHeapProfile,
+}
 
 // isNotFound checks if error is a googleapi
 // not found error.
@@ -109,60 +152,86 @@ func (a Attachment) Validate() error {
 // gzipMagic prefixes every gzip stream.
 var gzipMagic = []byte{0x1f, 0x8b}
 
-// sniffEncoding detects gzip content from the leading bytes, then rewinds.
+// sniffLen is the window http.DetectContentType reads.
+const sniffLen = 512
+
+// sniffBody reads the leading bytes for content detection, then rewinds.
 //
-// SDKs compress some attachments before upload, so the encoding has to be
-// read off the bytes. A filename can't carry it & can't be trusted.
+// Both the encoding & the mime type are read off the bytes because filenames
+// are unreliable. SDKs have shipped bare UUIDs, fixed literals & double
+// extensions, & released SDKs keep sending all of them.
 //
 // The reader is rewound rather than wrapped because the S3 client seeks the
 // body to compute its payload hash. Wrapping it fails every upload.
 //
-// ponytail: non-seekable bodies skip the sniff & claim no encoding, the
-// only upload path opens a seekable multipart file
-func sniffEncoding(r io.Reader) (encoding string, err error) {
+// ponytail: non-seekable bodies skip the sniff, the only upload path opens a
+// seekable multipart file
+func sniffBody(r io.Reader) (head []byte, encoding string, err error) {
 	seeker, ok := r.(io.Seeker)
 	if !ok {
 		return
 	}
 
-	// a read failure leaves n short, so no encoding gets claimed & the
-	// upload surfaces the error itself
-	head := make([]byte, len(gzipMagic))
-	n, _ := io.ReadFull(r, head)
+	// a read failure leaves n short, so nothing gets claimed & the upload
+	// surfaces the error itself
+	buf := make([]byte, sniffLen)
+	n, _ := io.ReadFull(r, buf)
 
 	if _, err = seeker.Seek(0, io.SeekStart); err != nil {
 		return
 	}
 
-	if bytes.Equal(head[:n], gzipMagic) {
+	head = buf[:n]
+	if bytes.HasPrefix(head, gzipMagic) {
 		encoding = "gzip"
 	}
 
 	return
 }
 
-// contentTypeOf derives the mime type from the original filename, ignoring
-// any compression suffix since encoding is tracked separately.
-func contentTypeOf(name string) (contentType string) {
-	base := strings.TrimSuffix(name, ".gz")
-	contentType = mime.TypeByExtension(filepath.Ext(base))
-	if contentType == "" {
-		contentType = "application/octet-stream"
+// fixedContentTypes maps attachment types whose mime type the bytes can't
+// reveal. Compressed payloads report their wrapper & traces are opaque.
+var fixedContentTypes = map[string]string{
+	attachmentTypeLayoutSnapshotJSON: "application/json",
+	attachmentTypePerfettoTrace:      contentTypeBinary,
+	attachmentTypeHeapDump:           contentTypeBinary,
+	attachmentTypeHeapProfile:        contentTypeBinary,
+	attachmentTypeAndroidMethodTrace: contentTypeBinary,
+}
+
+// contentTypeFor resolves the mime type from the attachment type, falling back
+// to the filename then the bytes for the types the type alone can't settle.
+// layout_snapshot is an SVG wireframe on some SDKs & a raster on others.
+//
+// name is only a hint, it may be a bare UUID or a fixed literal.
+func contentTypeFor(attachmentType, name string, head []byte) (contentType string) {
+	// type first, a compressed payload's extension resolves to the wrapper,
+	// so ".gz" would win over the json it holds
+	if fixed, ok := fixedContentTypes[attachmentType]; ok {
+		return fixed
 	}
 
-	return
+	// extension first, sniffing reports svg as plain text
+	if contentType = mime.TypeByExtension(filepath.Ext(name)); contentType != "" {
+		return
+	}
+
+	if len(head) > 0 {
+		return http.DetectContentType(head)
+	}
+
+	return contentTypeBinary
 }
 
 // Upload uploads raw file bytes to an S3 compatible storage system.
 func (a *Attachment) Upload(ctx context.Context, config UploadConfig) (err error) {
-	// derive from the name, the key only retains the last suffix
-	contentType := contentTypeOf(a.Name)
-
-	contentEncoding, errSniff := sniffEncoding(a.Reader)
+	head, contentEncoding, errSniff := sniffBody(a.Reader)
 	if errSniff != nil {
 		err = errSniff
 		return
 	}
+
+	contentType := contentTypeFor(a.Type, a.Name, head)
 
 	metadata := map[string]string{
 		"original_file_name": a.Name,

@@ -89,6 +89,22 @@ class BugReportCollectorImplTest {
     }
 
     @Test
+    fun `attachments sharing a name stay distinct`() {
+        val files = createTestFiles(count = 2)
+        val attachments = mutableSetOf(
+            ParcelableAttachment(name = "screenshot.webp", path = files[0].path),
+            ParcelableAttachment(name = "screenshot.webp", path = files[1].path),
+        )
+        assertEquals(2, attachments.size)
+
+        attachments.remove(
+            ParcelableAttachment(name = "screenshot.webp", path = files[0].path),
+        )
+        assertEquals(1, attachments.size)
+        assertEquals(files[1].path, attachments.first().path)
+    }
+
+    @Test
     fun `valid bug report has at least 1 attachment or 1 character`() {
         val invalid = bugReportCollector.validateBugReport(0, 0)
         assertFalse(invalid)

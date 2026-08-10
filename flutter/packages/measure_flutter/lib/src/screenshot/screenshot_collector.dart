@@ -89,6 +89,7 @@ class DefaultScreenshotCollector extends ScreenshotCollector {
         height: height,
         type: AttachmentType.screenshot,
         uuid: idProvider.uuid(),
+        fileExtension: 'webp',
       );
     } catch (e) {
       logger.log(

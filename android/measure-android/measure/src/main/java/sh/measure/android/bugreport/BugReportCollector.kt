@@ -189,7 +189,10 @@ internal class BugReportCollectorImpl internal constructor(
                             activity.runOnUiThread { onError() }
                             return@submit
                         }
-                        val parcelableAttachment = ParcelableAttachment(name = id, path = path)
+                        val parcelableAttachment = ParcelableAttachment(
+                            name = "screenshot.${compressedBitmap.first}",
+                            path = path,
+                        )
                         activity.runOnUiThread { onSuccess(parcelableAttachment) }
                     }
                 } catch (_: RejectedExecutionException) {
