@@ -209,9 +209,13 @@ post_install do |installer|
     # Compiling those modules resolves includes across KSCrash targets (the
     # KSCrashRecording headers pull in KSCrashNamespace.h from KSCrashCore),
     # so the checkout's include dirs must be on the header search path too.
-    kscrash_sources = '$(OBJROOT)/../../SourcePackages/checkouts/KSCrash/Sources'
-    include_dirs = %w[KSCrashCore KSCrashRecordingCore KSCrashRecording]
-      .map { |t| "#{kscrash_sources}/#{t}/include" }
+    # OBJROOT sits deeper in an archive than in a build, so try both depths.
+    derived_data_roots = ['$(OBJROOT)/../..', '$(OBJROOT)/../../../../..']
+    include_dirs = derived_data_roots.flat_map do |root|
+      %w[KSCrashCore KSCrashRecordingCore KSCrashRecording].map do |t|
+        "#{root}/SourcePackages/checkouts/KSCrash/Sources/#{t}/include"
+      end
+    end
     measure_rn.build_configurations.each do |config|
       flags = Array(config.build_settings['OTHER_SWIFT_FLAGS'] || '$(inherited)')
       module_maps.each { |map| flags.push('-Xcc', "-fmodule-map-file=#{map}") }
