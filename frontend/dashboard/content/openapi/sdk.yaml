@@ -992,13 +992,11 @@ paths:
                               - viewWillDisappear
                               - viewDidDisappear
                               - didReceiveMemoryWarning
-                              - initWithDbName
+                              - initWithNibName
                               - initWithCoder
                               - vcDeinit
                             description: >
-                              Lifecycle state of the view controller. The server
-                              accepts `initWithDbName` (not `initWithNibName`) for the
-                              nib-based initializer.
+                              Lifecycle state of the view controller.
                           class_name:
                             type: string
                             description: View Controller class name.
