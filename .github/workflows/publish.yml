@@ -29,15 +29,18 @@ env:
   API_IMAGE_NAME: measure-sh/api
 
 jobs:
-  build-test-ingest:
-    name: Build & Test Ingest
+  build-test-backend:
+    name: Build & Test ${{ matrix.module }} (${{ matrix.go-version }})
     runs-on: ubuntu-latest
     strategy:
+      # keep every module reporting even if one fails
+      fail-fast: false
       matrix:
+        module: [ingest, api, libs]
         go-version: ["1.25.x", "1.26.x"]
     defaults:
       run:
-        working-directory: backend/ingest
+        working-directory: backend/${{ matrix.module }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -45,11 +48,11 @@ jobs:
       - name: Set Go module cache
         run: echo "GOMODCACHE=$RUNNER_TEMP/gomodcache-${{ matrix.go-version }}" >> "$GITHUB_ENV"
 
-      - name: Setup Go ${{ matrix.go-version}}
+      - name: Setup Go ${{ matrix.go-version }}
         uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
-          cache-dependency-path: backend/ingest/go.sum
+          cache-dependency-path: backend/${{ matrix.module }}/go.sum
 
       - name: Display go version
         run: go version
@@ -60,78 +63,10 @@ jobs:
       - name: Build with ${{ matrix.go-version }}
         run: go build -v ./...
 
-      - name: Test with ${{ matrix.go-version }}
-        run: go test ./...
-
-  build-test-api:
-    name: Build & Test API
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: ["1.25.x", "1.26.x"]
-    defaults:
-      run:
-        working-directory: backend/api
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set Go module cache
-        run: echo "GOMODCACHE=$RUNNER_TEMP/gomodcache-${{ matrix.go-version }}" >> "$GITHUB_ENV"
-
-      - name: Setup Go ${{ matrix.go-version}}
-        uses: actions/setup-go@v6
-        with:
-          go-version: ${{ matrix.go-version }}
-          cache-dependency-path: backend/api/go.sum
-
-      - name: Display go version
-        run: go version
-
-      - name: Install dependencies
-        run: go mod download
-
-      - name: Build with ${{ matrix.go-version }}
-        run: go build -v ./...
-
+      # Integration tests need containers & resolve backend/testinfra through
+      # the workspace, both available on the runner.
       - name: Test with ${{ matrix.go-version }}
         run: go test -tags=integration ./...
-
-  build-test-libs:
-    name: Build & Test Libs
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: ["1.25.x", "1.26.x"]
-    defaults:
-      run:
-        working-directory: backend/libs
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Set Go module cache
-        run: echo "GOMODCACHE=$RUNNER_TEMP/gomodcache-${{ matrix.go-version }}" >> "$GITHUB_ENV"
-
-      - name: Setup Go ${{ matrix.go-version}}
-        uses: actions/setup-go@v6
-        with:
-          go-version: ${{ matrix.go-version }}
-          cache-dependency-path: backend/libs/go.sum
-
-      - name: Display go version
-        run: go version
-
-      - name: Install dependencies
-        run: go mod download
-
-      - name: Build with ${{ matrix.go-version }}
-        run: go build -v ./...
-
-      # Integration tagged tests are skipped, they need containers & resolve
-      # backend/testinfra only through the workspace.
-      - name: Test with ${{ matrix.go-version }}
-        run: go test ./...
 
   build-test-dashboard:
     name: Build & Test dashboard
@@ -159,13 +94,7 @@ jobs:
   trigger-cloud-deploy:
     name: Trigger Cloud Deploy
     runs-on: ubuntu-latest
-    needs:
-      [
-        build-test-ingest,
-        build-test-api,
-        build-test-libs,
-        build-test-dashboard,
-      ]
+    needs: [build-test-backend, build-test-dashboard]
     steps:
       - name: Dispatch Cloud Deploy
         uses: peter-evans/repository-dispatch@v4
