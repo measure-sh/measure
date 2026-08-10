@@ -7,7 +7,6 @@ on:
       - backend/ingest/**/*.go
       - backend/ingest/**/*.mod
       - backend/ingest/**/*.sum
-      - backend/ingest/**/*.go
   push:
     branches:
       - "main"
@@ -17,7 +16,6 @@ on:
       - backend/ingest/**/*.go
       - backend/ingest/**/*.mod
       - backend/ingest/**/*.sum
-      - backend/ingest/**/*.go
     tags:
       - "v*"
 
@@ -29,8 +27,8 @@ env:
   IMAGE_NAME: measure-sh/ingest
 
 jobs:
-  build:
-    name: Build
+  build-test:
+    name: Build & Test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -50,40 +48,19 @@ jobs:
       - name: Display go version
         run: go version
       - name: Install dependencies
-        run: go get .
+        run: go mod download
       - name: Build with ${{ matrix.go-version }}
         run: go build -v ./...
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: ["1.25.x", "1.26.x"]
-    defaults:
-      run:
-        working-directory: backend/ingest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-      - name: Setup go
-        uses: actions/setup-go@v6
-        with:
-          go-version: ${{ matrix.go-version }}
-          check-latest: true
-          cache-dependency-path: backend/ingest/go.sum
-      - name: Display go version
-        run: go version
-      - name: Install dependencies
-        run: go get .
+      - name: Vet with ${{ matrix.go-version }}
+        run: go vet ./...
       - name: Test with ${{ matrix.go-version }}
-        run: go test ./...
+        run: go test -tags=integration ./...
 
   push:
     name: Build and push image
     runs-on: ubuntu-latest
     if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
-    needs: [build, test]
+    needs: [build-test]
     permissions:
       contents: read
       packages: write
