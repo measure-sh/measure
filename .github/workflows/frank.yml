@@ -38,15 +38,15 @@ jobs:
       contents: read
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
       - name: Cache Gradle dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches/modules-2
@@ -59,9 +59,9 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 'lts/*'
       - name: Setup Yarn
         run: |
           corepack enable
@@ -70,7 +70,7 @@ jobs:
         id: yarn-cache-dir
         run: echo "dir=$(yarn config get cacheFolder)" >> $GITHUB_OUTPUT
       - name: Cache Yarn dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.yarn-cache-dir.outputs.dir }}
           key: yarn-${{ hashFiles('react-native/yarn.lock', 'samples/frank/react_native/yarn.lock') }}
@@ -128,13 +128,13 @@ jobs:
       contents: read
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           submodules: recursive
       - name: Switch to Xcode 26.4
         run: sudo xcode-select -switch /Applications/Xcode_26.4.app
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v5
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
@@ -144,9 +144,9 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 'lts/*'
       - name: Setup Yarn
         run: |
           corepack enable
@@ -155,7 +155,7 @@ jobs:
         id: yarn-cache-dir
         run: echo "dir=$(yarn config get cacheFolder)" >> $GITHUB_OUTPUT
       - name: Cache Yarn dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.yarn-cache-dir.outputs.dir }}
           key: yarn-${{ hashFiles('react-native/yarn.lock', 'samples/frank/react_native/yarn.lock') }}
@@ -182,7 +182,7 @@ jobs:
           cd samples/frank && ./setup-secrets.sh
       - name: Restore Measure xcframework cache
         id: xcframework-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: kmp/measure-kmp/build/xcframework/Measure.xcframework
           key: xcframework-${{ hashFiles('ios/Sources/**', 'ios/MeasureSDK.xcodeproj/**', 'ios/Measure.xcworkspace/**', 'ios/Package.resolved') }}
@@ -190,7 +190,7 @@ jobs:
         if: steps.xcframework-cache.outputs.cache-hit != 'true'
         run: bash kmp/measure-kmp/Scripts/build-xcframework.sh
       - name: Cache CocoaPods
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: samples/frank/ios/Pods
           key: pods-${{ hashFiles('samples/frank/ios/Podfile.lock', 'samples/frank/ios/Podfile') }}
