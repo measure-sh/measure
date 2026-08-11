@@ -10,9 +10,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        let apiKey = Bundle.main.object(forInfoDictionaryKey: "MeasureApiKey") as? String ?? ""
-        let apiUrl = Bundle.main.object(forInfoDictionaryKey: "MeasureApiUrl") as? String ?? ""
-        let clientInfo = ClientInfo(apiKey: apiKey, apiUrl: apiUrl)
+        let credentials = CredentialOverrides.effectiveCredentials()
+        let clientInfo = ClientInfo(apiKey: credentials.apiKey, apiUrl: credentials.apiUrl)
         let config = BaseMeasureConfig(
             enableLogging: true,
             enableFullCollectionMode: true,

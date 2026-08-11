@@ -105,6 +105,7 @@ struct HomeScreen: View {
     @ObservedObject var sdkState: MeasureSDKState
 
     @Environment(\.colorScheme) private var colorScheme
+    @State private var showCredentials = false
 
     private var colors: MeasureColors {
         colorScheme == .dark ? .dark : .light
@@ -142,6 +143,9 @@ struct HomeScreen: View {
                 Measure.stop()
             }
         }
+        .sheet(isPresented: $showCredentials) {
+            ConfigureCredentialsView()
+        }
     }
 
     private var sdkToggleCard: some View {
@@ -155,6 +159,15 @@ struct HomeScreen: View {
                     .foregroundStyle(colors.onPrimaryContainer.opacity(0.7))
             }
             Spacer()
+            Button {
+                showCredentials = true
+            } label: {
+                Image(systemName: "gearshape.fill")
+                    .foregroundStyle(colors.onPrimaryContainer)
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, 8)
+            .accessibilityLabel("Configure credentials")
             Toggle(isOn: $sdkState.isRunning) {
                 EmptyView()
             }
@@ -194,6 +207,108 @@ struct HomeScreen: View {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""
         return "v\(version) (\(build))"
+    }
+}
+
+// MARK: - Configure Credentials
+
+private struct ConfigureCredentialsView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var apiUrl: String
+    @State private var apiKey: String
+    @State private var urlError: String?
+    @State private var keyError: String?
+    @State private var hasOverride: Bool
+    @State private var showRelaunchAlert = false
+
+    init() {
+        let credentials = CredentialOverrides.effectiveCredentials()
+        _apiUrl = State(initialValue: credentials.apiUrl)
+        _apiKey = State(initialValue: credentials.apiKey)
+        _hasOverride = State(initialValue: CredentialOverrides.savedCredentials() != nil)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    field("API URL", text: $apiUrl, error: $urlError, keyboardType: .URL)
+                    field("API key", text: $apiKey, error: $keyError, keyboardType: .default)
+                } footer: {
+                    Text(hasOverride
+                         ? "Overriding the credentials this build was compiled with."
+                         : "Using the credentials this build was compiled with.")
+                }
+
+                Section {
+                    Button("Reset to build defaults", role: .destructive) {
+                        CredentialOverrides.clear()
+                        let defaults = CredentialOverrides.bundleCredentials()
+                        apiUrl = defaults.apiUrl
+                        apiKey = defaults.apiKey
+                        urlError = nil
+                        keyError = nil
+                        hasOverride = false
+                        showRelaunchAlert = true
+                    }
+                    .disabled(!hasOverride)
+                }
+            }
+            .navigationTitle("Configure credentials")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }
+                }
+            }
+            .alert("Relaunch to apply", isPresented: $showRelaunchAlert) {
+                Button("Quit app", role: .destructive) { exit(0) }
+                Button("Later", role: .cancel) { dismiss() }
+            } message: {
+                Text("Credentials updated. The SDK reads them at launch, so quit and reopen the app to start reporting with them.")
+            }
+        }
+    }
+
+    private func field(_ label: String,
+                       text: Binding<String>,
+                       error: Binding<String?>,
+                       keyboardType: UIKeyboardType) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            TextField(label, text: text)
+                .keyboardType(keyboardType)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .onChange(of: text.wrappedValue) { _ in
+                    error.wrappedValue = nil
+                }
+            if let message = error.wrappedValue {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+        }
+    }
+
+    private func save() {
+        let trimmedUrl = apiUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        urlError = CredentialOverrides.validationError(forApiUrl: trimmedUrl)
+        keyError = CredentialOverrides.validationError(forApiKey: trimmedKey)
+        guard urlError == nil, keyError == nil else { return }
+
+        CredentialOverrides.save(
+            CredentialOverrides.Credentials(apiUrl: trimmedUrl, apiKey: trimmedKey)
+        )
+        apiUrl = trimmedUrl
+        apiKey = trimmedKey
+        hasOverride = true
+        showRelaunchAlert = true
     }
 }
 
