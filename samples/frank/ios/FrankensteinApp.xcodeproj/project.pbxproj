@@ -15,6 +15,7 @@
 		A1000006 /* FlutterScreenViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000007 /* FlutterScreenViewController.swift */; };
 		A1000007 /* ReactNativeScreenViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000008 /* ReactNativeScreenViewController.swift */; };
 		A1000008 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000009 /* Assets.xcassets */; };
+		A1000009 /* CredentialOverrides.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000010 /* CredentialOverrides.swift */; };
 		AE000001 /* FlutterNativeIntegration in Frameworks */ = {isa = PBXBuildFile; productRef = AD000001 /* FlutterNativeIntegration */; };
 		AE000002 /* Measure in Frameworks */ = {isa = PBXBuildFile; productRef = AD000002 /* Measure */; };
 		B4719E5BF6EE52BCB48B49E0 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 89F7A703A916868C58983EB6 /* PrivacyInfo.xcprivacy */; };
@@ -33,6 +34,7 @@
 		A2000007 /* FlutterScreenViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterScreenViewController.swift; sourceTree = "<group>"; };
 		A2000008 /* ReactNativeScreenViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactNativeScreenViewController.swift; sourceTree = "<group>"; };
 		A2000009 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A2000010 /* CredentialOverrides.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialOverrides.swift; sourceTree = "<group>"; };
 		A3000001 /* FrankensteinApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FrankensteinApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -81,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				A2000001 /* AppDelegate.swift */,
+				A2000010 /* CredentialOverrides.swift */,
 				A2000002 /* HomeViewController.swift */,
 				A2000003 /* NativeIOSViewController.swift */,
 				A2000005 /* CmpScreenViewController.swift */,
@@ -356,6 +359,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1000001 /* AppDelegate.swift in Sources */,
+				A1000009 /* CredentialOverrides.swift in Sources */,
 				A1000002 /* HomeViewController.swift in Sources */,
 				A1000003 /* NativeIOSViewController.swift in Sources */,
 				A1000005 /* CmpScreenViewController.swift in Sources */,
