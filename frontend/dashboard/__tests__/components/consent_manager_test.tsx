@@ -22,6 +22,8 @@ jest.mock("@c15t/nextjs", () => ({
   ),
   ConsentBanner: () => <div data-testid="consent-banner" />,
   ConsentDialog: () => <div data-testid="consent-dialog" />,
+  // Consumed by ConsentedAttributionCapture, mounted inside the provider.
+  useConsentManager: () => ({ has: () => false }),
   policyPackPresets: {
     europeOptIn: () => ({}),
     californiaOptOut: () => ({}),

@@ -10,6 +10,10 @@ import {
 import { googleTagManager } from "@c15t/scripts/google-tag-manager";
 import { PostHogProvider } from "../context/posthog";
 import { isCloud } from "../utils/env_utils";
+import {
+  AttributionCapture,
+  ConsentedAttributionCapture,
+} from "./analytics/attribution_capture";
 import { buttonVariants } from "./button_variants";
 
 // Flip to true to run c15t offline (no backend) for local testing — the
@@ -117,7 +121,12 @@ export function ConsentManager({ children }: { children: React.ReactNode }) {
   } else if (isCloud() && backendURL) {
     init = { mode: "hosted", backendURL };
   } else {
-    return <>{children}</>;
+    return (
+      <>
+        <AttributionCapture />
+        {children}
+      </>
+    );
   }
 
   return (
@@ -145,6 +154,8 @@ export function ConsentManager({ children }: { children: React.ReactNode }) {
           `legalLinks` option above. `hideBranding` removes the c15t watermark. */}
       <ConsentBanner hideBranding legalLinks={["privacyPolicy"]} />
       <ConsentDialog hideBranding legalLinks={["privacyPolicy"]} />
+      {/* Inside the provider: the UTM & gclid writes wait for marketing consent. */}
+      <ConsentedAttributionCapture />
       <PostHogProvider proxyPath="/yrtmlt">{children}</PostHogProvider>
     </ConsentManagerProvider>
   );
