@@ -10,6 +10,7 @@ interface TabSelectProps {
   selected: string;
   size?: TabSize;
   onChangeSelected?: (item: string) => void;
+  className?: string;
 }
 
 const TabSelect: React.FC<TabSelectProps> = ({
@@ -17,6 +18,7 @@ const TabSelect: React.FC<TabSelectProps> = ({
   selected,
   size = TabSize.Small,
   onChangeSelected,
+  className = "",
 }) => {
   const selectItem = (item: string) => {
     onChangeSelected?.(item);
@@ -24,7 +26,7 @@ const TabSelect: React.FC<TabSelectProps> = ({
 
   return (
     <div
-      className={`flex flex-row gap-1 p-1 ${size === TabSize.Large ? "" : "text-xs"}`}
+      className={`flex flex-row gap-1 p-1 ${size === TabSize.Large ? "" : "text-xs"} ${className}`}
     >
       {items.map((item) => (
         <button

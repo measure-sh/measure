@@ -22,7 +22,7 @@ import {
   fetchBugReportFromServer,
   fetchBugReportsOverviewFromServer,
   fetchBugReportsOverviewPlotFromServer,
-  fetchBuildsFromServer,
+  fetchBuildsWithFilter,
   fetchCheckoutSessionFromServer,
   fetchCustomerPortalUrlFromServer,
   fetchErrorGroupCommonPathFromServer,
@@ -73,15 +73,19 @@ import {
   App,
   AppVersion,
   fetchAppsFromServer,
+  fetchFilterKeys,
+  fetchFilterValues,
   fetchFiltersFromServer,
   fetchRootSpanNamesFromServer,
   FilterSource,
   OsVersion,
   UserDefAttr,
 } from "@/app/api/api_calls";
+import type { FilterKeysResponse } from "@/app/api/filter_types";
 import { ApiError } from "@/app/api/api_error";
 import { apiClient } from "@/app/api/api_client";
 import { queryClient } from "@/app/query/query_client";
+import type { DateSelection } from "@/app/components/filter_bar/date_range_select";
 import type { FilterOptionsData } from "@/app/stores/filters_store";
 import { useFiltersStore } from "@/app/stores/provider";
 import {
@@ -181,6 +185,34 @@ export function useFilterOptionsQuery(
       return { kind: "options", data: parseFilterResponse(result.data) };
     },
     enabled: !!app,
+  });
+}
+
+// ─── Dynamic filters ─────────────────────────────────────────────────────
+
+export function useFilterKeysQuery(appId: string | undefined, entity: string) {
+  return useQuery<FilterKeysResponse>({
+    queryKey: ["filterKeys", appId, entity] as const,
+    queryFn: () => fetchFilterKeys(appId!, entity),
+    enabled: !!appId,
+  });
+}
+
+/**
+ * Kept fresh for a minute so reopening a picker does not refetch what was
+ * just shown.
+ */
+export function useFilterValuesQuery(
+  appId: string | undefined,
+  entity: string,
+  keyName: string | null,
+  search: string,
+) {
+  return useQuery({
+    queryKey: ["filterValues", appId, entity, keyName, search] as const,
+    queryFn: () => fetchFilterValues(appId!, entity, keyName!, search),
+    enabled: !!appId && !!keyName,
+    staleTime: 60 * 1000,
   });
 }
 
@@ -642,14 +674,37 @@ export function useBugReportsOverviewQuery(paginationOffset: number) {
 
 const BUILDS_LIMIT = 10;
 
-export function useBuildsQuery(paginationOffset: number) {
-  const filters = useFiltersStore((s) => s.filters);
+export type BuildsFilter = {
+  app: App;
+  date: DateSelection;
+  filterExpr: string | null;
+};
+
+export function useBuildsQuery(
+  filter: BuildsFilter | null,
+  paginationOffset: number,
+) {
   return useQuery({
-    queryKey: ["builds", filters.serialisedFilters, paginationOffset] as const,
+    queryKey: [
+      "builds",
+      filter?.app.id,
+      filter?.date.startDate,
+      filter?.date.endDate,
+      filter?.filterExpr,
+      paginationOffset,
+    ] as const,
     placeholderData: keepPreviousData,
     queryFn: () =>
-      fetchBuildsFromServer(filters, BUILDS_LIMIT, paginationOffset),
-    enabled: filters.ready,
+      fetchBuildsWithFilter(
+        filter!.app.id,
+        filter!.date.startDate,
+        filter!.date.endDate,
+        filter!.filterExpr,
+        BUILDS_LIMIT,
+        paginationOffset,
+      ),
+    enabled: filter !== null,
+    retry: false,
   });
 }
 

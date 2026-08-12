@@ -11,7 +11,7 @@ jest.mock("@/app/api/api_calls", () => {
   return {
     ...actual,
     fetchAppsFromServer: jest.fn(),
-    fetchBuildsFromServer: jest.fn(),
+    fetchBuildsWithFilter: jest.fn(),
     fetchFiltersFromServer: jest.fn(),
     fetchRootSpanNamesFromServer: jest.fn(),
     fetchErrorsOverviewFromServer: jest.fn(),
@@ -31,7 +31,12 @@ jest.mock("@/app/stores/provider", () => ({
   __esModule: true,
   useFiltersStore: (selector?: any) =>
     selector
-      ? selector({ filters: mockFiltersState })
+      ? selector({
+          filters: mockFiltersState,
+          selectedApp: mockFiltersState.app,
+          selectedStartDate: mockFiltersState.startDate ?? "",
+          selectedEndDate: mockFiltersState.endDate ?? "",
+        })
       : { filters: mockFiltersState },
 }));
 
@@ -45,7 +50,7 @@ jest.mock("@/app/api/api_client", () => ({
 
 import {
   fetchAppsFromServer,
-  fetchBuildsFromServer,
+  fetchBuildsWithFilter,
   fetchErrorGroupCommonPathFromServer,
   fetchErrorsDetailsFromServer,
   fetchErrorsDetailsPlotFromServer,
@@ -73,7 +78,7 @@ import {
 } from "@/app/query/hooks";
 
 const mockFetchApps = fetchAppsFromServer as jest.Mock;
-const mockFetchBuilds = fetchBuildsFromServer as jest.Mock;
+const mockFetchBuilds = fetchBuildsWithFilter as jest.Mock;
 const mockFetchFilters = fetchFiltersFromServer as jest.Mock;
 const mockFetchRootSpanNames = fetchRootSpanNamesFromServer as jest.Mock;
 const mockFetchErrorsOverview = fetchErrorsOverviewFromServer as jest.Mock;
@@ -517,38 +522,120 @@ describe("useErrorsOverviewQuery", () => {
 });
 
 describe("useBuildsQuery", () => {
-  it("is disabled when filters.ready is false", () => {
-    mockFiltersState = { ready: false };
+  const filteredBy = (filterExpr: string | null) => ({
+    app: { id: "app-1" } as any,
+    date: {
+      dateRange: "Last 6 Hours",
+      startDate: "2026-01-01T00:00:00Z",
+      endDate: "2026-01-02T00:00:00Z",
+    },
+    filterExpr,
+  });
+
+  it("does not fetch without an app and a date range", () => {
     const { wrapper } = makeWrapper();
-    const { result } = renderHook(() => useBuildsQuery(0), { wrapper });
+    const { result } = renderHook(() => useBuildsQuery(null, 0), {
+      wrapper,
+    });
+
     expect(result.current.fetchStatus).toBe("idle");
     expect(mockFetchBuilds).not.toHaveBeenCalled();
   });
 
-  it("returns success with data once the fetch resolves", async () => {
-    mockFiltersState = readyFilters();
+  it("fetches for the app, range, filter and page, and returns the data", async () => {
     mockFetchBuilds.mockResolvedValueOnce({
       results: [{ id: "b1" }],
       meta: { next: false, previous: false },
     });
 
     const { wrapper } = makeWrapper();
-    const { result } = renderHook(() => useBuildsQuery(20), { wrapper });
+    const { result } = renderHook(
+      () => useBuildsQuery(filteredBy("code-1"), 20),
+      {
+        wrapper,
+      },
+    );
 
     expect(result.current.status).toBe("pending");
     await waitFor(() => expect(result.current.status).toBe("success"));
 
-    expect(mockFetchBuilds).toHaveBeenCalledWith(mockFiltersState, 10, 20);
+    expect(mockFetchBuilds).toHaveBeenCalledWith(
+      "app-1",
+      "2026-01-01T00:00:00Z",
+      "2026-01-02T00:00:00Z",
+      "code-1",
+      10,
+      20,
+    );
+    expect((result.current.data as any).results[0].id).toBe("b1");
+  });
+
+  it("fetches without a filter when none is given", async () => {
+    mockFetchBuilds.mockResolvedValueOnce({
+      results: [],
+      meta: { next: false, previous: false },
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useBuildsQuery(filteredBy(null), 0), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    expect(mockFetchBuilds).toHaveBeenCalledWith(
+      "app-1",
+      "2026-01-01T00:00:00Z",
+      "2026-01-02T00:00:00Z",
+      null,
+      10,
+      0,
+    );
+  });
+
+  it("fetches again for another page, and shows the last one meanwhile", async () => {
+    mockFetchBuilds
+      .mockResolvedValueOnce({
+        results: [{ id: "b1" }],
+        meta: { next: true, previous: false },
+      })
+      // The second page never arrives, so the hook stays mid-fetch.
+      .mockReturnValueOnce(new Promise(() => {}));
+
+    const { wrapper } = makeWrapper();
+    const { result, rerender } = renderHook(
+      ({ offset }) => useBuildsQuery(filteredBy(null), offset),
+      { wrapper, initialProps: { offset: 0 } },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
+    rerender({ offset: 10 });
+
+    await waitFor(() =>
+      expect(mockFetchBuilds).toHaveBeenLastCalledWith(
+        "app-1",
+        "2026-01-01T00:00:00Z",
+        "2026-01-02T00:00:00Z",
+        null,
+        10,
+        10,
+      ),
+    );
+    expect(result.current.isFetching).toBe(true);
     expect((result.current.data as any).results[0].id).toBe("b1");
   });
 
   it("surfaces a failed fetch as a query error", async () => {
-    mockFiltersState = readyFilters();
     const failure = new ApiError(500, "request failed");
     mockFetchBuilds.mockRejectedValueOnce(failure);
 
     const { wrapper } = makeWrapper();
-    const { result } = renderHook(() => useBuildsQuery(0), { wrapper });
+    const { result } = renderHook(
+      () => useBuildsQuery(filteredBy("code-1"), 0),
+      {
+        wrapper,
+      },
+    );
 
     await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.error).toBe(failure);

@@ -388,18 +388,8 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include crashes after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include crashes before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: versions
           in: query
           required: false
@@ -525,18 +515,8 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: from
-          in: query
-          required: false
-          description: "ISO 8601 UTC string in milliseconds precision. Example: `2023-11-01T18:30:00.000Z`."
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: "ISO 8601 UTC string in milliseconds precision. Example: `2023-11-08T18:30:00.000Z`."
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: versions
           in: query
           required: false
@@ -724,18 +704,8 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include data after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include data before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: timezone
           in: query
           required: true
@@ -996,6 +966,187 @@ paths:
           description: Rate limit of the requester has crossed maximum limits.
         "500":
           description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/filters/keys:
+    get:
+      operationId: getFilterKeys
+      tags:
+        - Apps
+      summary: Fetch what an entity can be filtered by
+      description: |
+        Fetches the keys available in an entity, in display order. Each key
+        includes its label and description, the type of value it accepts, the
+        operators that type supports, and where its values come from.
+        `key_groups` lists the groups the keys fall into, also in display order.
+
+        Unrelated to `/apps/{id}/filters`, which serves the older fixed set of
+        app filters.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: App's UUID.
+          schema:
+            type: string
+            format: uuid
+        - name: entity
+          in: query
+          required: true
+          description: Name of the entity to describe.
+          schema:
+            type: string
+            enum:
+              - builds
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FilterKey"
+                  key_groups:
+                    type: array
+                    description: |
+                      The groups these keys fall into, in the order to offer
+                      them in. Every key's `key_group` is one of these.
+                    items:
+                      type: string
+              examples:
+                response:
+                  value:
+                    key_groups:
+                      - Version
+                      - Build
+                    keys:
+                      - name: version_name
+                        label: App version
+                        description: The version of the app.
+                        key_group: Version
+                        value_type: string
+                        operators:
+                          - in
+                          - not_in
+                          - contains
+                          - starts_with
+                        value_suggestion_mode: sample
+                      - name: mapping_type
+                        label: Mapping type
+                        description: "The kind of symbol file uploaded: proguard, dSYM, ELF debug or JS bundle."
+                        key_group: Build
+                        value_type: enum
+                        operators:
+                          - in
+                          - not_in
+                        value_suggestion_mode: full_list
+                      - name: patch_id
+                        label: Patch id
+                        description: The id of an Over-The-Air patch.
+                        key_group: Version
+                        value_type: uuid
+                        operators:
+                          - in
+                          - not_in
+                          - is_set
+                          - is_not_set
+                        value_suggestion_mode: sample
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/filters/values:
+    get:
+      operationId: getFilterValues
+      tags:
+        - Apps
+      summary: Fetch the values one filter key can be set to
+      description: |
+        Fetches the values a single key in an entity can be set to, narrowed
+        by `search`.
+
+        For keys backed by app data, values are read from the entity's own rows,
+        most recently seen first, with rows where the key is unset excluded. For
+        keys with a fixed set of values, such as `mapping_type`, values come
+        from the set the key declares, which a filter cannot go outside.
+
+        Only keys with a `value_suggestion_mode` of `full_list` or `sample` can
+        be listed.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: App's UUID.
+          schema:
+            type: string
+            format: uuid
+        - name: entity
+          in: query
+          required: true
+          description: Name of the entity the key belongs to.
+          schema:
+            type: string
+            enum:
+              - builds
+        - name: key_name
+          in: query
+          required: true
+          description: Name of the key to list values for, as returned by `/apps/{id}/filters/keys`.
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          description: Substring to narrow values by. Values containing it are returned.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Number of values to return. Defaults to 50, cannot be more than 200.
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  values:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FilterValue"
+                  truncated:
+                    type: boolean
+                    description: True when more values matched than were returned.
+              examples:
+                response:
+                  value:
+                    values:
+                      - text: 1.2.0
+                      - text: "1.1.9"
+                      - text: 1.1.8-SNAPSHOT.debug
+                    truncated: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
   /apps/{id}/errorGroups:
     get:
       operationId: getErrorOverview
@@ -1019,18 +1170,8 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: from
-          in: query
-          required: false
-          description: Start time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: versions
           in: query
           required: false
@@ -1251,18 +1392,8 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: from
-          in: query
-          required: false
-          description: Start time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: timezone
           in: query
           required: true
@@ -1397,18 +1528,8 @@ paths:
           description: Error group fingerprint.
           schema:
             type: string
-        - name: from
-          in: query
-          required: false
-          description: Start time boundary for temporal filtering. ISO8601 Datetime string.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: End time boundary for temporal filtering. ISO8601 Datetime string.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: versions
           in: query
           required: false
@@ -1792,18 +1913,8 @@ paths:
           description: Error group fingerprint.
           schema:
             type: string
-        - name: from
-          in: query
-          required: false
-          description: Start time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: timezone
           in: query
           required: true
@@ -1927,18 +2038,8 @@ paths:
           description: Error group fingerprint.
           schema:
             type: string
-        - name: from
-          in: query
-          required: false
-          description: Start time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: End time boundary for temporal filtering. ISO8601 Datetime string. If not passed, a default value is assumed.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: versions
           in: query
           required: false
@@ -2124,18 +2225,8 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include sessions after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include sessions before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: versions
           in: query
           required: false
@@ -2371,18 +2462,8 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include sessions after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include sessions before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: timezone
           in: query
           required: true
@@ -3233,18 +3314,8 @@ paths:
           description: Name of the span for which instances list is being fetched.
           schema:
             type: string
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include sessions after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include sessions before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: versions
           in: query
           required: false
@@ -3447,18 +3518,8 @@ paths:
           description: Name of the span for which metrics plot is being fetched.
           schema:
             type: string
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include sessions after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include sessions before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: plot_time_group
           in: query
           required: false
@@ -3735,18 +3796,8 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include sessions after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include sessions before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: plot_time_group
           in: query
           required: false
@@ -3972,18 +4023,8 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include sessions after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include sessions before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: versions
           in: query
           required: false
@@ -4308,18 +4349,8 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include alerts after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include alerts before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: offset
           in: query
           required: false
@@ -4418,19 +4449,17 @@ paths:
         - Apps
       summary: Fetch an app's builds
       description: |
-        Fetch an app's builds, optionally filtered by upload time.
+        Fetch an app's builds, optionally narrowed by upload time and by a
+        filter expression.
 
         Each build packages the mapping files uploaded for one version of the
         app: files are grouped by `version_name`, `version_code` and, for
-        Over-The-Air patch uploads, `patch_id`, keeping the latest file of
-        each mapping type. OTA patch builds carry a `patch_id` and empty
-        version fields, plus a `patch_version` when their upload named one.
-        Each file's `download_url` is the path of the download endpoint
-        serving that mapping file.
+        Over-The-Air patch uploads, `patch_id`, keeping the latest file of each
+        mapping type. Builds are ordered by their newest file, newest first, and
+        pagination applies to builds rather than to their files.
 
-        Builds are ordered by upload time of their newest file, newest first.
-        Pass `limit` and `offset` values to paginate results; pagination
-        applies to builds, not to their files.
+        A `filter_expr` is applied while files are grouped, so a build whose
+        files do not all match comes back with only the matching ones.
       parameters:
         - name: id
           in: path
@@ -4439,30 +4468,25 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include builds uploaded after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include builds uploaded before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
         - name: offset
           in: query
           required: false
-          description: Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
+          description: Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched. A negative value answers 400.
           schema:
             type: integer
+            minimum: 0
         - name: limit
           in: query
           required: false
-          description: Number of items to return. Used for pagination. Should be used along with `offset`.
+          description: Number of items to return. Used for pagination. Should be used along with `offset`. A value outside the range answers 400.
           schema:
             type: integer
+            minimum: 1
+            maximum: 1000
+            default: 10
       responses:
         "200":
           description: Successful response, no errors.
@@ -4476,10 +4500,17 @@ paths:
                     properties:
                       next:
                         type: boolean
+                        description: True when a build exists beyond this page.
                       previous:
                         type: boolean
+                        description: True when `offset` was above zero, which reports that a page was skipped rather than that it holds builds.
+                    required:
+                      - next
+                      - previous
                   results:
                     type: array
+                    nullable: true
+                    description: Null rather than an empty array when nothing matched.
                     items:
                       type: object
                       properties:
@@ -4500,6 +4531,7 @@ paths:
                             upload sent one as it is optional.
                         last_updated:
                           type: string
+                          format: date-time
                           description: Upload time of the build's newest file.
                         files:
                           type: array
@@ -4509,15 +4541,22 @@ paths:
                             properties:
                               id:
                                 type: string
+                                format: uuid
                               mapping_type:
                                 type: string
-                                description: "`proguard`, `elf_debug`, `jsbundle` or `dsym`."
+                                enum:
+                                  - proguard
+                                  - elf_debug
+                                  - jsbundle
+                                  - dsym
                               download_url:
                                 type: string
                               filesize:
-                                type: number
+                                type: integer
+                                format: int64
                               last_updated:
                                 type: string
+                                format: date-time
               examples:
                 response:
                   value:
@@ -4529,16 +4568,16 @@ paths:
                         version_code: "1200"
                         last_updated: "2025-07-08T09:14:33.712Z"
                         files:
-                          - id: 8bd23e1c-71f0-4a94-9c9c-d5b9b1f27b30
-                            mapping_type: proguard
-                            download_url: /apps/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/builds/8bd23e1c-71f0-4a94-9c9c-d5b9b1f27b30/download
-                            filesize: 8712174
-                            last_updated: "2025-07-08T09:14:33.712Z"
                           - id: 38c4d1a9-9153-4f81-b2e8-63f4a1c05d9b
                             mapping_type: elf_debug
                             download_url: /apps/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/builds/38c4d1a9-9153-4f81-b2e8-63f4a1c05d9b/download
                             filesize: 24509831
                             last_updated: "2025-07-08T09:14:32.409Z"
+                          - id: 8bd23e1c-71f0-4a94-9c9c-d5b9b1f27b30
+                            mapping_type: proguard
+                            download_url: /apps/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/builds/8bd23e1c-71f0-4a94-9c9c-d5b9b1f27b30/download
+                            filesize: 8712174
+                            last_updated: "2025-07-08T09:14:33.712Z"
                       - version_name: ""
                         version_code: ""
                         patch_id: 3f0e7c3e-9c31-4d9d-9a4e-2f6a3d0f5b21
@@ -4551,7 +4590,52 @@ paths:
                             filesize: 3145728
                             last_updated: "2025-07-08T08:47:12.118Z"
         "400":
-          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+          description: |
+            Request URI is malformed or does not meet one or more acceptance
+            criteria. Check the `error` field for more details.
+
+            A refused `filter_expr` answers with `error` reading
+            `invalid_filter_expr` and a `filter_expr_issues` array naming
+            everything wrong with it, so it can all be corrected at once.
+            Parsing stops at the first fault, so text that could not be read
+            yields one issue.
+
+            `from` and `to` must be given together, `to` must not be earlier
+            than `from`, and `from` must not be later than now.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  details:
+                    type: string
+                    description: Sent only when a query parameter could not be read, such as a malformed `from` or a non-integer `limit`.
+                  filter_expr_issues:
+                    type: array
+                    description: Sent only for a filter that was refused.
+                    items:
+                      type: object
+                      properties:
+                        message:
+                          type: string
+                          description: Why it cannot be used.
+                        span:
+                          type: object
+                          description: Where in the filter the issue is. Absent when it is about the filter as a whole, such as one that holds too many conditions, and when the text could not be read at all.
+                          properties:
+                            start:
+                              type: integer
+                              description: Where the issue starts, counted in Unicode code points from zero.
+                            end:
+                              type: integer
+                              description: One past the last code point the issue covers.
+                          required:
+                            - start
+                            - end
+                      required:
+                        - message
         "401":
           description: Either the user's access token is invalid or has expired.
         "403":
@@ -4797,18 +4881,8 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include events after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include events before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
       responses:
         "200":
           description: Successful response, no errors.
@@ -4868,18 +4942,8 @@ paths:
           description: Case-insensitive substring search filter for paths.
           schema:
             type: string
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include events after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include events before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
       responses:
         "200":
           description: Successful response, no errors.
@@ -4932,18 +4996,8 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include events after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include events before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: versions
           in: query
           required: false
@@ -5109,18 +5163,8 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include events after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include events before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: plot_time_group
           in: query
           required: false
@@ -5261,18 +5305,8 @@ paths:
           description: The path of the network endpoint (e.g., `/api/users`).
           schema:
             type: string
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include events after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include events before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: plot_time_group
           in: query
           required: false
@@ -5423,18 +5457,8 @@ paths:
           description: The path of the network endpoint (e.g., `/api/users`).
           schema:
             type: string
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include events after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include events before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: plot_time_group
           in: query
           required: false
@@ -5574,18 +5598,8 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include events after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include events before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: versions
           in: query
           required: false
@@ -5734,18 +5748,8 @@ paths:
           description: The path of the network endpoint (e.g., `/api/users`).
           schema:
             type: string
-        - name: from
-          in: query
-          required: false
-          description: ISO8601 timestamp to include events after this time.
-          schema:
-            type: string
-        - name: to
-          in: query
-          required: false
-          description: ISO8601 timestamp to include events before this time.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
         - name: versions
           in: query
           required: false
@@ -7238,6 +7242,131 @@ paths:
         "500":
           description: Measure server encountered an unfortunate error. Report this to your server administrator.
 components:
+  parameters:
+    From:
+      name: from
+      in: query
+      required: false
+      description: "ISO 8601 UTC string in milliseconds precision. Example: `2023-11-01T18:30:00.000Z`. Omitting both `from` and `to` returns the last seven days."
+      schema:
+        type: string
+    To:
+      name: to
+      in: query
+      required: false
+      description: "ISO 8601 UTC string in milliseconds precision. Example: `2023-11-01T18:30:00.000Z`. Omitting both `from` and `to` returns the last seven days."
+      schema:
+        type: string
+    FilterExpr:
+        name: filter_expr
+        in: query
+        required: false
+        description: |
+          Conditions joined by `AND` or `OR` and grouped with parentheses,
+          each reading `key:operator:values` with the names
+          `/apps/{id}/filters/keys` publishes. `AND` binds tighter than `OR`.
+
+          ```
+          version_name:in:[1.2.0,1.1.9] AND mapping_type:not_in:jsbundle
+          (version_name:contains:SNAPSHOT AND mapping_type:in:proguard) OR patch_id:is_set
+          ```
+
+          An operator taking no values ends its condition, as
+          `patch_id:is_set` does. Double-quote a value holding a space,
+          comma, bracket, colon or quote, with `\"` and `\\` inside.
+
+          At most 4096 bytes, 32 conditions, 4 levels of nesting and 200
+          values in one condition.
+        schema:
+          type: string
+  schemas:
+    FilterKey:
+      type: object
+      description: One thing an entity can be filtered by.
+      properties:
+        name:
+          type: string
+          description: The name `filter_expr` conditions and `key_name` refer to the key by.
+        label:
+          type: string
+          description: What the key is called on screen.
+        description:
+          type: string
+        key_group:
+          type: string
+          description: |
+            The group the key is offered under, and the tab the filter bar
+            puts it in. Always one of the `key_groups` the keys response
+            lists.
+        value_type:
+          type: string
+          description: |
+            The kind of value the key holds, which decides the operators it can
+            offer. A numeric type names the width and sign of the column the key
+            is compared against, so a value outside that range is refused rather
+            than sent to the database.
+          enum:
+            - string
+            - enum
+            - uuid
+            - int32
+            - int64
+            - uint32
+            - float64
+            - bool
+            - datetime
+        operators:
+          type: array
+          description: |
+            The operators this key offers, in the order to show them. A key may
+            offer fewer operators than its type allows but not more.
+          items:
+            type: string
+            enum:
+              - in
+              - not_in
+              - contains
+              - not_contains
+              - starts_with
+              - ends_with
+              - eq
+              - neq
+              - gt
+              - gte
+              - lt
+              - lte
+              - is_set
+              - is_not_set
+              - before
+              - after
+              - between
+        value_suggestion_mode:
+          type: string
+          description: |
+            Where a key's values come from. full_list is a fixed set the key
+            declares and accepts no other values; sample contains values reported
+            by the app, shown as a recent sample but still open to values not in
+            the list; none provides no suggestions and accepts values typed
+            directly. A key that takes no values indicates this through its
+            operators, which take none.
+          enum:
+            - full_list
+            - sample
+            - none
+    FilterValue:
+      type: object
+      description: One value a key can be set to.
+      properties:
+        text:
+          type: string
+          description: The value as it is matched against.
+        label:
+          type: string
+          description: |
+            What to show instead of `text`, when the two differ. Absent when
+            the value reads for itself.
+      required:
+        - text
   securitySchemes:
     bearerAuth:
       type: http

@@ -4,22 +4,14 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
-// Global replace mock for router.replace
 const replaceMock = jest.fn();
-const pushMock = jest.fn();
 
-// Mock next/navigation hooks
 let mockSearchParams = new URLSearchParams();
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({
-    replace: replaceMock,
-    push: pushMock,
-  }),
-  // By default, return empty search params.
+  useRouter: () => ({ replace: replaceMock }),
   useSearchParams: () => mockSearchParams,
 }));
 
-// Mock API calls and constants
 const downloadBuildFileMock = jest.fn();
 jest.mock("@/app/api/api_calls", () => ({
   __esModule: true,
@@ -27,19 +19,20 @@ jest.mock("@/app/api/api_calls", () => ({
     meta: { next: false, previous: false },
     results: [],
   },
-  FilterSource: { Builds: "builds" },
   downloadBuildFile: (url: string) => downloadBuildFileMock(url),
 }));
 
-jest.mock("@/app/stores/provider", () => {
-  const { create } = jest.requireActual("zustand");
-  const filtersStore = create(() => ({
-    filters: { ready: false, serialisedFilters: "" },
-  }));
-  return { __esModule: true, useFiltersStore: filtersStore };
-});
+jest.mock("@/app/stores/filters_store", () => ({
+  __esModule: true,
+  urlFiltersKeyMap: {
+    appId: "a",
+    dateRange: "d",
+    startDate: "sd",
+    endDate: "ed",
+  },
+}));
 
-const mockUseBuildsQuery = jest.fn(() => ({
+const mockUseBuildsQuery = jest.fn((_filter: any, _offset: number) => ({
   data: undefined as any,
   status: "pending" as string,
   isFetching: true,
@@ -48,17 +41,73 @@ const mockUseBuildsQuery = jest.fn(() => ({
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
-  useBuildsQuery: () => mockUseBuildsQuery(),
+  useBuildsQuery: (filter: any, offset: number) =>
+    mockUseBuildsQuery(filter, offset),
   paginationOffsetUrlKey: "po",
 }));
 
-jest.mock("@/app/components/filters", () => ({
-  __esModule: true,
-  default: () => <div data-testid="filters-mock" />,
-  AppVersionsInitialSelectionType: { All: "all" },
-}));
+const mockReportedApp = { id: "app-1", name: "Sample" };
+const mockReportedDate = {
+  dateRange: "Last 6 Hours",
+  startDate: "2026-01-01T00:00:00.000Z",
+  endDate: "2026-01-01T06:00:00.000Z",
+};
 
-// Updated Paginator mock renders Next and Prev buttons.
+// Like the real bar, this stub reports an app and a range as it mounts.
+jest.mock("@/app/components/filter_bar/filter_bar", () => {
+  const { useEffect } = require("react");
+
+  function FilterBarMock(props: any) {
+    const ready = (filterExpr: string | null) => ({
+      status: "ready",
+      app: mockReportedApp,
+      date: mockReportedDate,
+      filterExpr,
+    });
+
+    useEffect(() => {
+      props.onFilterChange(ready(props.requestedFilterExpr));
+    }, []);
+
+    return (
+      <div data-testid="filter-bar-mock">
+        <span data-testid="filter-bar-expr">
+          {props.requestedFilterExpr ?? "none"}
+        </span>
+        <button
+          data-testid="filter-bar-apply"
+          onClick={() => props.onFilterChange(ready("mapping_type:in:dsym"))}
+        >
+          apply
+        </button>
+        <button
+          data-testid="filter-bar-clear"
+          onClick={() => props.onFilterChange(ready(null))}
+        >
+          clear
+        </button>
+        <button
+          data-testid="filter-bar-fail"
+          onClick={() =>
+            props.onFilterChange({
+              status: "error",
+              message: "Error fetching apps, please refresh page to try again",
+            })
+          }
+        >
+          fail
+        </button>
+      </div>
+    );
+  }
+
+  return {
+    __esModule: true,
+    default: FilterBarMock,
+    filterExprUrlKey: "filter_expr",
+  };
+});
+
 jest.mock("@/app/components/paginator", () => ({
   __esModule: true,
   default: (props: any) => (
@@ -82,42 +131,57 @@ jest.mock("@/app/components/paginator", () => ({
   ),
 }));
 
-// Mock LoadingBar component.
 jest.mock("@/app/components/loading_bar", () => () => (
   <div data-testid="loading-bar-mock">LoadingBar Rendered</div>
 ));
 
-// Mock time utils
 jest.mock("@/app/utils/time_utils", () => ({
   formatDateToHumanReadableDateTime: jest.fn(() => "1 Jan, 2020, 12:00:00 AM"),
 }));
 
-const { useFiltersStore } = require("@/app/stores/provider") as any;
-
-const mockBuildResult = {
-  version_name: "1.0.2",
-  version_code: "2",
+const buildFile = (id: string, mappingType: string) => ({
+  id,
+  mapping_type: mappingType,
+  download_url: `/apps/app1/builds/${id}/download`,
+  filesize: 100,
   last_updated: "2020-01-01T00:00:00Z",
-  files: [
-    {
-      id: "mapping-1",
-      mapping_type: "dsym",
-      download_url: "/apps/app1/builds/mapping-1/download",
-      filesize: 100,
-      last_updated: "2020-01-01T00:00:00Z",
-    },
-  ],
-};
+});
 
 const mockBuildsData = {
-  results: [mockBuildResult],
+  results: [
+    {
+      version_name: "1.0.2",
+      version_code: "2",
+      last_updated: "2020-01-01T00:00:00Z",
+      files: [buildFile("mapping-1", "dsym")],
+    },
+  ],
   meta: { previous: true, next: true },
 };
 
-describe("Builds Component", () => {
+function loaded(data: any = mockBuildsData) {
+  mockUseBuildsQuery.mockReturnValue({
+    data,
+    status: "success",
+    isFetching: false,
+    error: null,
+  });
+}
+
+// What the stub bar reports, as the page writes it into the URL.
+const selectionParams =
+  "a=app-1&d=Last+6+Hours&sd=2026-01-01T00%3A00%3A00.000Z&ed=2026-01-01T06%3A00%3A00.000Z";
+
+const selectionUrl = (offset: number, filterParam?: string) =>
+  `?po=${offset}&${selectionParams}${filterParam ? `&${filterParam}` : ""}`;
+
+function renderPage() {
+  return render(<Builds params={promiseParams({ teamId: "123" })} />);
+}
+
+describe("Builds page", () => {
   beforeEach(() => {
     replaceMock.mockClear();
-    pushMock.mockClear();
     downloadBuildFileMock.mockClear();
     mockSearchParams = new URLSearchParams();
     mockUseBuildsQuery.mockReset();
@@ -127,49 +191,79 @@ describe("Builds Component", () => {
       isFetching: true,
       error: null,
     });
-    useFiltersStore.setState({
-      filters: { ready: false, serialisedFilters: "" },
-    });
   });
 
-  it("renders the Filters component", () => {
-    render(<Builds params={promiseParams({ teamId: "123" })} />);
-    expect(screen.getByTestId("filters-mock")).toBeInTheDocument();
+  it("renders the filter bar", () => {
+    renderPage();
+    expect(screen.getByTestId("filter-bar-mock")).toBeInTheDocument();
   });
 
-  it("does not render main builds UI when filters are not ready", () => {
-    render(<Builds params={promiseParams({ teamId: "123" })} />);
+  it("hands the bar the filter the URL opened on", () => {
+    mockSearchParams = new URLSearchParams(
+      "po=0&filter_expr=patch_id%3Ais_set",
+    );
+    loaded();
+    renderPage();
+
+    expect(screen.getByTestId("filter-bar-expr")).toHaveTextContent(
+      "patch_id:is_set",
+    );
+  });
+
+  it("fetches nothing until the bar settles on an app and a range", () => {
+    mockSearchParams = new URLSearchParams(
+      "po=20&filter_expr=patch_id%3Ais_set",
+    );
+    loaded();
+    renderPage();
+
+    expect(mockUseBuildsQuery).toHaveBeenNthCalledWith(1, null, 20);
+  });
+
+  it("fetches the page the URL names, filtered by what the bar reported", () => {
+    mockSearchParams = new URLSearchParams(
+      "po=20&filter_expr=patch_id%3Ais_set",
+    );
+    loaded();
+    renderPage();
+
+    expect(mockUseBuildsQuery).toHaveBeenLastCalledWith(
+      {
+        status: "ready",
+        app: mockReportedApp,
+        date: mockReportedDate,
+        filterExpr: "patch_id:is_set",
+      },
+      20,
+    );
+  });
+
+  it("records what the bar settled on, keeping the page the link asked for", () => {
+    mockSearchParams = new URLSearchParams(
+      "po=20&filter_expr=patch_id%3Ais_set",
+    );
+    loaded();
+    renderPage();
+
+    expect(replaceMock).toHaveBeenCalledTimes(1);
+    expect(replaceMock).toHaveBeenCalledWith(
+      selectionUrl(20, "filter_expr=patch_id%3Ais_set"),
+      { scroll: false },
+    );
+  });
+
+  it("renders no list while the builds are still loading", () => {
+    renderPage();
     expect(screen.queryByTestId("paginator-mock")).not.toBeInTheDocument();
     expect(screen.queryByTestId("loading-bar-mock")).not.toBeInTheDocument();
     expect(screen.queryByText("Build")).not.toBeInTheDocument();
   });
 
-  it("renders main builds UI, updates URL when filters become ready, and renders table headers", async () => {
-    mockUseBuildsQuery.mockReturnValue({
-      data: mockBuildsData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<Builds params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
-    });
+  it("renders the paginator and table headers once the builds arrive", async () => {
+    loaded();
+    renderPage();
 
-    // Check URL update.
-    expect(replaceMock).toHaveBeenCalledWith("?po=0&updated", {
-      scroll: false,
-    });
-
-    // Verify main UI components are rendered.
     expect(await screen.findByTestId("paginator-mock")).toBeInTheDocument();
-    // Check that the table header cells are rendered.
     expect(
       screen.getByRole("columnheader", { name: "Build" }),
     ).toBeInTheDocument();
@@ -178,49 +272,19 @@ describe("Builds Component", () => {
     ).toBeInTheDocument();
   });
 
-  it("displays build data correctly when API returns results", async () => {
-    mockUseBuildsQuery.mockReturnValue({
-      data: mockBuildsData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<Builds params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
-    });
+  it("titles a build by its version and shows each file's type and date", () => {
+    loaded();
+    renderPage();
 
-    // Main line is the version (code); each file shows its mapping
-    // type with its own upload time below it. The build itself shows
-    // no date, so exactly one date renders for the single file.
     expect(screen.getByText("1.0.2 (2)")).toBeInTheDocument();
     expect(screen.getByText("dsym")).toBeInTheDocument();
+    // The date belongs to the file; a build carries none of its own.
     expect(screen.getAllByText("1 Jan, 2020, 12:00:00 AM")).toHaveLength(1);
   });
 
-  it("renders a download link per file pointing at the download endpoint", async () => {
-    mockUseBuildsQuery.mockReturnValue({
-      data: mockBuildsData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<Builds params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
-    });
+  it("points a file's download link at the download endpoint", () => {
+    loaded();
+    renderPage();
 
     const link = screen.getByRole("link", { name: "Download" });
     expect(link).toBeInTheDocument();
@@ -231,23 +295,9 @@ describe("Builds Component", () => {
     expect(link).toHaveAttribute("download");
   });
 
-  it("downloads through the session-refreshing helper on click", async () => {
-    mockUseBuildsQuery.mockReturnValue({
-      data: mockBuildsData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<Builds params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
-    });
+  it("downloads through downloadBuildFile rather than following the link", async () => {
+    loaded();
+    renderPage();
 
     const link = screen.getByRole("link", { name: "Download" });
     await act(async () => {
@@ -259,304 +309,252 @@ describe("Builds Component", () => {
     );
   });
 
-  it("renders single and multi file builds for version and patch variants", async () => {
-    const file = (id: string, mappingType: string) => ({
-      id,
-      mapping_type: mappingType,
-      download_url: `/apps/app1/builds/${id}/download`,
-      filesize: 100,
-      last_updated: "2020-01-01T00:00:00Z",
-    });
-
-    mockUseBuildsQuery.mockReturnValue({
-      data: {
-        results: [
-          {
-            version_name: "1.0.2",
-            version_code: "2",
-            last_updated: "2020-01-01T00:00:00Z",
-            files: [
-              file("mapping-1", "proguard"),
-              file("mapping-2", "elf_debug"),
-            ],
-          },
-          {
-            version_name: "1.0.1",
-            version_code: "1",
-            last_updated: "2020-01-01T00:00:00Z",
-            files: [file("mapping-3", "proguard")],
-          },
-          {
-            version_name: "",
-            version_code: "",
-            patch_id: "3f0e7c3e-9c31-4d9d-9a4e-2f6a3d0f5b21",
-            patch_version: "3.1.0",
-            last_updated: "2020-01-01T00:00:00Z",
-            files: [
-              file("mapping-4", "jsbundle"),
-              file("mapping-5", "proguard"),
-            ],
-          },
-          {
-            version_name: "",
-            version_code: "",
-            patch_id: "b2c4e6a8-0d1f-4357-9b8c-2e4a6c8e0a1b",
-            last_updated: "2020-01-01T00:00:00Z",
-            files: [file("mapping-6", "jsbundle")],
-          },
-        ],
-        meta: { previous: false, next: false },
-      },
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<Builds params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
+  it("titles version builds, patches, and patches with no version", () => {
+    loaded({
+      results: [
+        {
+          version_name: "1.0.2",
+          version_code: "2",
+          last_updated: "2020-01-01T00:00:00Z",
+          files: [
+            buildFile("mapping-1", "proguard"),
+            buildFile("mapping-2", "elf_debug"),
+          ],
         },
-      });
+        {
+          version_name: "1.0.1",
+          version_code: "1",
+          last_updated: "2020-01-01T00:00:00Z",
+          files: [buildFile("mapping-3", "proguard")],
+        },
+        {
+          version_name: "",
+          version_code: "",
+          patch_id: "3f0e7c3e-9c31-4d9d-9a4e-2f6a3d0f5b21",
+          patch_version: "3.1.0",
+          last_updated: "2020-01-01T00:00:00Z",
+          files: [
+            buildFile("mapping-4", "jsbundle"),
+            buildFile("mapping-5", "proguard"),
+          ],
+        },
+        {
+          version_name: "",
+          version_code: "",
+          patch_id: "b2c4e6a8-0d1f-4357-9b8c-2e4a6c8e0a1b",
+          last_updated: "2020-01-01T00:00:00Z",
+          files: [buildFile("mapping-6", "jsbundle")],
+        },
+      ],
+      meta: { previous: false, next: false },
     });
+    renderPage();
 
-    // Four builds render as four rows, one per group.
     expect(screen.getAllByTestId("build-row")).toHaveLength(4);
 
-    // Every file shows its mapping type, its own date and a download;
-    // the builds themselves carry no date.
+    // The type, date and download link are per file, so the counts below are
+    // over the six files, not the four builds.
     expect(screen.getAllByText("proguard")).toHaveLength(3);
     expect(screen.getAllByText("elf_debug")).toHaveLength(1);
     expect(screen.getAllByText("jsbundle")).toHaveLength(2);
     expect(screen.getAllByText("1 Jan, 2020, 12:00:00 AM")).toHaveLength(6);
     expect(screen.getAllByRole("link", { name: "Download" })).toHaveLength(6);
 
-    // Builds uploaded against an app version title by that version.
     expect(screen.getByText("1.0.2 (2)")).toBeInTheDocument();
     expect(screen.getByText("1.0.1 (1)")).toBeInTheDocument();
 
-    // A patch that was named by the SDK titles by that name and shows
-    // its id underneath.
+    // A patch with a version is titled by that version, with its id
+    // underneath; a patch without one is titled by its id alone.
     expect(screen.getByText("patch_version: 3.1.0")).toBeInTheDocument();
     expect(
       screen.getByText("patch_id: 3f0e7c3e-9c31-4d9d-9a4e-2f6a3d0f5b21"),
     ).toBeInTheDocument();
-
-    // A patch with no name falls back to titling by its id, with
-    // nothing underneath.
     expect(
       screen.getByText("patch_id: b2c4e6a8-0d1f-4357-9b8c-2e4a6c8e0a1b"),
     ).toBeInTheDocument();
   });
 
-  it("shows error message when API returns error status", async () => {
+  it("renders an empty table when the server sends no results", () => {
+    loaded({ results: null, meta: { previous: false, next: false } });
+    renderPage();
+
+    expect(
+      screen.getByRole("columnheader", { name: "Build" }),
+    ).toBeInTheDocument();
+    expect(screen.queryAllByTestId("build-row")).toHaveLength(0);
+  });
+
+  it("shows an error when the builds request fails", () => {
     mockUseBuildsQuery.mockReturnValue({
       data: undefined,
       status: "error",
       isFetching: false,
       error: new Error("fail"),
     });
-    render(<Builds params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
-    });
+    renderPage();
 
-    // Check that error message is displayed
     expect(
       screen.getByText(/Error fetching list of builds/),
     ).toBeInTheDocument();
   });
 
-  describe("Pagination offset handling", () => {
-    it("initializes pagination offset to 0 when no offset is provided", async () => {
-      mockUseBuildsQuery.mockReturnValue({
-        data: mockBuildsData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      render(<Builds params={promiseParams({ teamId: "123" })} />);
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app1" },
-          },
-        });
-      });
-      expect(replaceMock).toHaveBeenCalledWith("?po=0&updated", {
-        scroll: false,
-      });
-    });
-
-    it("increments pagination offset when Next is clicked", async () => {
-      mockUseBuildsQuery.mockReturnValue({
-        data: mockBuildsData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      render(<Builds params={promiseParams({ teamId: "123" })} />);
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app1" },
-          },
-        });
-      });
-      const nextButton = await screen.findByTestId("next-button");
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      // The pagination limit is 10 so offset should be 10.
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=10&updated", {
-        scroll: false,
-      });
-    });
-
-    it("decrements pagination offset when Prev is clicked, but not below 0", async () => {
-      mockUseBuildsQuery.mockReturnValue({
-        data: mockBuildsData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      render(<Builds params={promiseParams({ teamId: "123" })} />);
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app1" },
-          },
-        });
-      });
-      const nextButton = await screen.findByTestId("next-button");
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=10&updated", {
-        scroll: false,
-      });
-      const prevButton = await screen.findByTestId("prev-button");
-      await act(async () => {
-        fireEvent.click(prevButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated", {
-        scroll: false,
-      });
-      await act(async () => {
-        fireEvent.click(prevButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated", {
-        scroll: false,
-      });
-    });
-
-    it("resets pagination offset to 0 when filters change (if previous filters were non-default)", async () => {
-      mockUseBuildsQuery.mockReturnValue({
-        data: mockBuildsData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-
-      render(<Builds params={promiseParams({ teamId: "123" })} />);
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app1" },
-          },
-        });
-      });
-      expect(replaceMock).toHaveBeenCalledWith("?po=0&updated", {
-        scroll: false,
-      });
-
-      const nextButton = await screen.findByTestId("next-button");
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=10&updated", {
-        scroll: false,
-      });
-
-      // Now simulate a filter change with a different value.
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated2",
-            app: { id: "app1" },
-          },
-        });
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated2", {
-        scroll: false,
-      });
-    });
-  });
-
-  it("correctly toggles loading bar visibility based on API status", async () => {
+  it("shows the loading bar only while a refetch is in flight", async () => {
     mockUseBuildsQuery.mockReturnValue({
-      data: undefined,
-      status: "pending" as string,
+      data: mockBuildsData,
+      status: "success",
       isFetching: true,
       error: null,
     });
-    render(<Builds params={promiseParams({ teamId: "123" })} />);
+    const { rerender } = renderPage();
 
-    // Set loading state
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
-    });
-
-    // Test the loading state - loading bar should be visible
     const loadingBarContainer =
       screen.getByTestId("loading-bar-mock").parentElement;
     expect(loadingBarContainer).toHaveClass("visible");
     expect(loadingBarContainer).not.toHaveClass("invisible");
 
-    // Set success state
     await act(async () => {
-      mockUseBuildsQuery.mockReturnValue({
-        data: mockBuildsData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
+      loaded();
+      rerender(<Builds params={promiseParams({ teamId: "123" })} />);
     });
 
-    // After loading, the loading bar should be invisible
     await screen.findByText("1.0.2 (2)");
     expect(loadingBarContainer).not.toHaveClass("visible");
     expect(loadingBarContainer).toHaveClass("invisible");
+  });
+
+  describe("a filter the bar could not settle", () => {
+    beforeEach(() => {
+      mockSearchParams = new URLSearchParams(`po=10&${selectionParams}`);
+      loaded();
+    });
+
+    it("is said by the page, in place of the list", async () => {
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("filter-bar-fail"));
+      });
+
+      expect(
+        screen.getByText(
+          "Error fetching apps, please refresh page to try again",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("stops the page fetching anything", async () => {
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("filter-bar-fail"));
+      });
+
+      expect(mockUseBuildsQuery).toHaveBeenLastCalledWith(null, 10);
+    });
+
+    it("leaves the URL where the link had it", async () => {
+      renderPage();
+      replaceMock.mockClear();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("filter-bar-fail"));
+      });
+
+      expect(replaceMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("pagination", () => {
+    it("moves the offset on by the page size when Next is clicked", async () => {
+      mockSearchParams = new URLSearchParams(
+        `po=0&filter_expr=patch_id%3Ais_set&${selectionParams}`,
+      );
+      loaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("next-button"));
+      });
+
+      // Paging keeps everything else the URL was carrying.
+      expect(replaceMock).toHaveBeenLastCalledWith(
+        `?po=10&filter_expr=patch_id%3Ais_set&${selectionParams}`,
+        { scroll: false },
+      );
+    });
+
+    it("moves the offset back when Prev is clicked, and never below zero", async () => {
+      mockSearchParams = new URLSearchParams(
+        "po=10&filter_expr=patch_id%3Ais_set",
+      );
+      loaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("prev-button"));
+      });
+      expect(replaceMock).toHaveBeenLastCalledWith(
+        "?po=0&filter_expr=patch_id%3Ais_set",
+        { scroll: false },
+      );
+
+      mockSearchParams = new URLSearchParams(
+        "po=0&filter_expr=patch_id%3Ais_set",
+      );
+      renderPage();
+      await act(async () => {
+        fireEvent.click(screen.getAllByTestId("prev-button")[1]);
+      });
+      expect(replaceMock).toHaveBeenLastCalledWith(
+        "?po=0&filter_expr=patch_id%3Ais_set",
+        { scroll: false },
+      );
+    });
+
+    it("goes back to the first page when the filter changes", async () => {
+      mockSearchParams = new URLSearchParams(
+        "po=30&filter_expr=patch_id%3Ais_set",
+      );
+      loaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("filter-bar-apply"));
+      });
+
+      expect(replaceMock).toHaveBeenLastCalledWith(
+        selectionUrl(0, "filter_expr=mapping_type%3Ain%3Adsym"),
+        { scroll: false },
+      );
+    });
+
+    it("cannot be used while a refetch is in flight", () => {
+      mockUseBuildsQuery.mockReturnValue({
+        data: mockBuildsData,
+        status: "success",
+        isFetching: true,
+        error: null,
+      });
+      renderPage();
+
+      expect(screen.getByTestId("next-button")).toBeDisabled();
+      expect(screen.getByTestId("prev-button")).toBeDisabled();
+    });
+
+    it("goes back to the first page when the filter is cleared", async () => {
+      mockSearchParams = new URLSearchParams(
+        "po=30&filter_expr=patch_id%3Ais_set",
+      );
+      loaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("filter-bar-clear"));
+      });
+
+      expect(replaceMock).toHaveBeenLastCalledWith(selectionUrl(0), {
+        scroll: false,
+      });
+    });
   });
 });

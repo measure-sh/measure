@@ -162,6 +162,10 @@ func main() {
 		apps.GET(":id/builds", hdl.GetBuilds)
 		apps.GET(":id/builds/:buildFileId/download", hdl.DownloadBuildFile)
 
+		// filters
+		apps.GET(":id/filters/keys", hdl.GetFilterKeys)
+		apps.GET(":id/filters/values", hdl.GetFilterValues)
+
 		// app management
 		apps.GET(":id/config", hdl.GetConfig)
 		apps.PATCH(":id/config", hdl.PatchConfig)

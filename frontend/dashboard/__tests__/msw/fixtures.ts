@@ -1376,3 +1376,67 @@ export function makeNetworkEndpointTimelineFixture() {
     ],
   };
 }
+
+// --- Filter keys (GET /apps/:appId/filters/keys) ---
+
+export function makeFilterKeysFixture(overrides: Record<string, any> = {}) {
+  return {
+    keys: [
+      {
+        name: "version_name",
+        label: "App version",
+        description: "The version the build was uploaded against",
+        key_group: "Version",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "mapping_type",
+        label: "File type",
+        description: "The kind of mapping file the build carries",
+        key_group: "Build",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+    ],
+    key_groups: ["Version", "Build"],
+    ...overrides,
+  };
+}
+
+// --- Filter values (GET /apps/:appId/filters/values) ---
+
+export function makeFilterValuesFixture(overrides: Record<string, any> = {}) {
+  return {
+    values: [{ text: "proguard" }, { text: "dsym" }],
+    truncated: false,
+    ...overrides,
+  };
+}
+
+// --- Builds (GET /apps/:appId/builds) ---
+
+export function makeBuildsFixture(overrides: Record<string, any> = {}) {
+  return {
+    results: [
+      {
+        version_name: "1.0.2",
+        version_code: "2",
+        last_updated: "2026-04-10T00:00:00Z",
+        files: [
+          {
+            id: "3f0e7c3e-9c31-4d9d-9a4e-2f6a3d0f5b21",
+            mapping_type: "proguard",
+            download_url: "/apps/app-1/builds/mapping-1/download",
+            filesize: 1024,
+            last_updated: "2026-04-10T00:00:00Z",
+          },
+        ],
+      },
+    ],
+    meta: { next: false, previous: false },
+    ...overrides,
+  };
+}
