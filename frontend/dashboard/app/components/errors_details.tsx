@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import { cn } from "../utils/shadcn_utils";
+import { selectErrorTrace } from "../utils/error_utils";
 import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
 import { track } from "../utils/analytics/track";
 import {
@@ -276,8 +277,12 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
   };
 
   const firstResult = errorsDetails.results?.[0];
-  const stacktrace =
-    firstResult?.exception?.stacktrace ?? firstResult?.anr?.stacktrace ?? "";
+  const { trace, isThreadDump } = selectErrorTrace(firstResult);
+  // The system's one line cause, naming the deadline that expired.
+  const subject = firstResult?.anr?.subject ?? "";
+  const traceLabel = isThreadDump
+    ? "ART thread dump"
+    : "Thread: " + firstResult?.attribute.thread_name;
 
   const extraAttributeRows: Array<[string, unknown]> = [];
   if (firstResult) {
@@ -547,46 +552,54 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
                       <div className="py-4" />
                     </>
                   )}
+                  {subject && (
+                    <div
+                      data-testid="exception-detail-anr-subject"
+                      className="pb-4"
+                    >
+                      <p className="font-display text-sm font-medium py-4">
+                        Reason
+                      </p>
+                      <p className="font-body text-sm break-words">{subject}</p>
+                    </div>
+                  )}
                   <Accordion
                     type="single"
                     collapsible
-                    defaultValue={
-                      "Thread: " + firstResult.attribute.thread_name
-                    }
+                    defaultValue={traceLabel}
                   >
-                    {stacktrace && (
-                      <AccordionItem
-                        value={"Thread: " + firstResult.attribute.thread_name}
-                      >
+                    {trace && (
+                      <AccordionItem value={traceLabel}>
                         <AccordionTrigger className="font-display">
-                          {"Thread: " + firstResult.attribute.thread_name}
+                          {traceLabel}
                         </AccordionTrigger>
                         <AccordionContent data-testid="exception-detail-main-stacktrace">
                           <CodeBlock
                             language="java"
                             className={stackTraceCodeBlockClassName}
-                            code={stacktrace}
+                            code={trace}
                           />
                         </AccordionContent>
                       </AccordionItem>
                     )}
-                    {firstResult.threads?.map((e, index) => (
-                      <AccordionItem
-                        value={`${e.name}-${index}`}
-                        key={`${e.name}-${index}`}
-                      >
-                        <AccordionTrigger className="font-display">
-                          {"Thread: " + e.name}
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <CodeBlock
-                            language="java"
-                            className={stackTraceCodeBlockClassName}
-                            code={e.frames.join("\n")}
-                          />
-                        </AccordionContent>
-                      </AccordionItem>
-                    )) || []}
+                    {!isThreadDump &&
+                      firstResult.threads?.map((e, index) => (
+                        <AccordionItem
+                          value={`${e.name}-${index}`}
+                          key={`${e.name}-${index}`}
+                        >
+                          <AccordionTrigger className="font-display">
+                            {"Thread: " + e.name}
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <CodeBlock
+                              language="java"
+                              className={stackTraceCodeBlockClassName}
+                              code={e.frames.join("\n")}
+                            />
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
                   </Accordion>
                 </div>
               )}

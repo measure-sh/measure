@@ -1,5 +1,6 @@
 import React from "react";
 import { emptyErrorGroupDetails } from "../api/api_calls";
+import { selectErrorTrace } from "../utils/error_utils";
 import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
 import { toastPositive } from "../utils/use_toast";
 import { Button } from "./button";
@@ -56,6 +57,7 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({
       ["type", errorEvent.type],
       ["severity", errorEvent.severity],
       ["message", errorEvent.exception?.message],
+      ["reason", errorEvent.anr?.subject],
       ["code", errorEvent.code],
       ["num_code", errorEvent.num_code],
       ["timestamp", formatDateToHumanReadableDateTime(errorEvent.timestamp)],
@@ -97,18 +99,21 @@ const CopyAiContext: React.FC<CopyAiContextProps> = ({
       sections.push("## Attachments\n" + attachments);
     }
 
-    const stacktrace =
-      errorEvent.exception?.stacktrace ?? errorEvent.anr?.stacktrace ?? "";
-    if (hasValue(stacktrace)) {
-      sections.push(
-        `## Stack trace (thread: ${errorEvent.attribute.thread_name})\n` +
-          codeBlock(stacktrace),
-      );
+    const { trace, isThreadDump } = selectErrorTrace(errorEvent);
+    if (hasValue(trace)) {
+      const heading = isThreadDump
+        ? "## ART thread dump"
+        : `## Stack trace (thread: ${errorEvent.attribute.thread_name})`;
+      sections.push(heading + "\n" + codeBlock(trace));
     }
 
-    const threads = (errorEvent.threads ?? []).filter(
-      (t) => hasValue(t.name) && t.frames.some(hasValue),
-    );
+    // A thread dump already contains every thread, so listing them again only
+    // spends tokens.
+    const threads = isThreadDump
+      ? []
+      : (errorEvent.threads ?? []).filter(
+          (t) => hasValue(t.name) && t.frames.some(hasValue),
+        );
     if (threads.length > 0) {
       const threadBlocks = threads
         .map((t) => `### ${t.name}\n` + codeBlock(t.frames.join("\n")))

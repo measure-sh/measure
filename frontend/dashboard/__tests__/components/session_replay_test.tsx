@@ -36,6 +36,9 @@ import {
   tickOffsetMs,
   idleSkipThresholdMs,
   projectedExtent,
+  sessionEventTitle,
+  detailRows,
+  eventTrace,
   type LayoutElement,
   type Attachment,
 } from "@/app/components/session_replay";
@@ -2975,6 +2978,57 @@ describe("the player", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/User ID:/)).toBeTruthy();
+    });
+  });
+});
+
+describe("anr events", () => {
+  it("titles an anr with its reason, which is all that tells two apart", () => {
+    expect(
+      sessionEventTitle("anr", {
+        type: "sh.measure.android.anr.AnrError",
+        message: "Broadcast of Intent (sh.measure.sample/.SyncReceiver)",
+      }),
+    ).toBe("Broadcast of Intent (sh.measure.sample/.SyncReceiver)");
+  });
+
+  it("falls back to the anr type when the system reported no reason", () => {
+    expect(
+      sessionEventTitle("anr", {
+        type: "sh.measure.android.anr.AnrError",
+        message: "",
+      }),
+    ).toBe("sh.measure.android.anr.AnrError");
+  });
+
+  it("shows the reason and the dump on their own, not among the rows", () => {
+    const rows = detailRows("anr", {
+      subject: "Input dispatching timed out (sh.measure.sample/.MainActivity)",
+      art_thread_dump: '"main" prio=5 tid=1 Blocked',
+      thread_name: "main",
+    });
+
+    expect(rows.map(([key]) => key)).toEqual(["thread_name"]);
+  });
+
+  it("renders an art thread dump in place of the stacktrace", () => {
+    expect(
+      eventTrace({
+        stacktrace: "at Main.run(Main.java:10)",
+        art_thread_dump: '"main" prio=5 tid=1 Blocked',
+      }),
+    ).toEqual({
+      trace: '"main" prio=5 tid=1 Blocked',
+      traceLabel: "ART THREAD DUMP",
+    });
+  });
+
+  it("keeps the stacktrace when the system recorded no dump", () => {
+    expect(
+      eventTrace({ stacktrace: "at Main.run(Main.java:10)" }),
+    ).toEqual({
+      trace: "at Main.run(Main.java:10)",
+      traceLabel: "STACKTRACE",
     });
   });
 });

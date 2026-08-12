@@ -1980,8 +1980,15 @@ function titleFrom(parts: unknown[], separator: string): string {
     .join(separator);
 }
 
-function sessionEventTitle(eventType: string, eventDetails: any): string {
-  if (eventType === "error" || eventType === "anr") {
+export function sessionEventTitle(
+  eventType: string,
+  eventDetails: any,
+): string {
+  // Every ANR reports the same type, so only the reason tells them apart.
+  if (eventType === "anr") {
+    return String(eventDetails?.message || eventDetails?.type || "");
+  }
+  if (eventType === "error") {
     return titleFrom([eventDetails?.type, eventDetails?.message], ": ");
   }
   if (eventType === "bug_report") {
@@ -2121,10 +2128,37 @@ const detailLinkClass = cn(
   "justify-center w-fit",
 );
 
-function detailRows(eventType: string, eventDetails: any): [string, unknown][] {
+function nonEmptyString(value: unknown): string | null {
+  return typeof value === "string" && value !== "" ? value : null;
+}
+
+/**
+ * The trace shown for an event. An ART thread dump covers every thread, so it
+ * stands in for the stacktrace when the system recorded one.
+ */
+export function eventTrace(eventDetails: any): {
+  trace: string | null;
+  traceLabel: string;
+} {
+  const artThreadDump = nonEmptyString(eventDetails?.art_thread_dump);
+  return {
+    trace: artThreadDump ?? nonEmptyString(eventDetails?.stacktrace),
+    traceLabel: artThreadDump ? "ART THREAD DUMP" : "STACKTRACE",
+  };
+}
+
+export function detailRows(
+  eventType: string,
+  eventDetails: any,
+): [string, unknown][] {
   const rows: [string, unknown][] = [];
   Object.entries(eventDetails).forEach(([key, value]) => {
-    if (key === "stacktrace" || key === "attachments") {
+    if (
+      key === "stacktrace" ||
+      key === "attachments" ||
+      key === "art_thread_dump" ||
+      key === "subject"
+    ) {
       return;
     }
     if (eventType === "http" && (key === "start_time" || key === "end_time")) {
@@ -2180,11 +2214,8 @@ function ReplayEventDetails({
   eventDetails: any;
   demo: boolean;
 }) {
-  const stacktrace =
-    typeof eventDetails.stacktrace === "string" &&
-    eventDetails.stacktrace !== ""
-      ? eventDetails.stacktrace
-      : null;
+  const { trace, traceLabel } = eventTrace(eventDetails);
+  const subject = nonEmptyString(eventDetails.subject);
 
   const link = (() => {
     if (eventType === "error" || eventType === "anr") {
@@ -2237,15 +2268,23 @@ function ReplayEventDetails({
             )}
           </div>
         ))}
-        {stacktrace && (
+        {subject && (
           <div className="flex flex-col gap-0.5 px-3 py-2 border-b border-border/40 last:border-b-0">
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground select-none">
-              STACKTRACE
+              reason
+            </p>
+            <p className="font-body text-xs break-words">{subject}</p>
+          </div>
+        )}
+        {trace && (
+          <div className="flex flex-col gap-0.5 px-3 py-2 border-b border-border/40 last:border-b-0">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground select-none">
+              {traceLabel}
             </p>
             <CodeBlock
               language="java"
               className={cn(CODE_BLOCK_CARD_CLASS, "text-xs leading-relaxed")}
-              code={stacktrace}
+              code={trace}
             />
           </div>
         )}

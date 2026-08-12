@@ -210,7 +210,9 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                             data-testid="exception-row-type"
                             className="text-xs truncate text-muted-foreground mt-0.5 select-none"
                           >
-                            {`${type}${message ? `:${message}` : ""}`}
+                            {error_type === "anr"
+                              ? message
+                              : `${type}${message ? `:${message}` : ""}`}
                           </p>
                           <div className="flex flex-wrap gap-1.5 pt-3">
                             {error_type === "anr" && (
