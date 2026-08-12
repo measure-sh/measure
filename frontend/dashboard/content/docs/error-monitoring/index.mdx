@@ -59,9 +59,13 @@ Thread 0 Crashed:
 
 ## ANR reporting
 
-An [ANR](https://developer.android.com/topic/performance/vitals/anr) (Application Not Responding) happens when the app's main thread is blocked for too long, for example when it can't respond to input within 5 seconds. ANRs are reported automatically.
+An [ANR](https://developer.android.com/topic/performance/vitals/anr) (Application Not Responding) happens when the app's main thread is blocked for too long, for example when it can't respond to input within 5 seconds. ANRs are reported automatically on Android.
 
-On Android 11 and above, [ApplicationExitInfo](https://developer.android.com/reference/android/app/ApplicationExitInfo) is also collected on the next launch to record why the app exited. ANR exits include the thread dump taken by the OS.
+On Android 11 and above, the OS records why the app stopped responding and takes a thread dump of the whole process. Both are collected the next time the app is opened, so an ANR shows up in the dashboard after the next launch. It stays in the session it happened in.
+
+The reason names the deadline that expired, like input dispatch or a broadcast, and is shown above the thread dump. Thread dumps are deobfuscated using the same `mapping.txt` as crashes, uploaded by the [Measure Android Gradle Plugin](/docs/error-monitoring/upload-symbols#android).
+
+An ANR that kills the app before Measure records it is reported from the OS record on the next launch. On Android 10 and below there's no reason or thread dump, and the ANR is reported during the session with the main thread's stack trace.
 
 ## Track a handled error
 

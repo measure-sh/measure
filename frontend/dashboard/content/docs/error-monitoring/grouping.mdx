@@ -22,6 +22,26 @@ java.lang.NullPointerException: Attempt to invoke virtual method 'void com.examp
     ...
 ```
 
+### ANRs
+
+ANRs are grouped by the first stack frame that belongs to your app.
+
+On Android 11 and above that frame comes from the thread dump the OS took, which is the stack it blamed the app on. The dump reaches both an ANR reported during the session and one the OS reported after killing the app, so two reports of the same stall land in one group. Only the main thread is read from it. Where no dump was recorded, because the app outlived the stall or it's running Android 10 or below, the stack captured in the app is used instead.
+
+A frame belongs to your app when its class sits in your app's package or below it. Frames above it are skipped, because a stalled main thread is usually parked in a sleep, a lock, or a call into the system, and those frames look the same for every ANR. When nothing in the stack matches your package, which happens when a build carries a suffixed application id or the code lives in a library, the first frame outside the platform is used instead. When the stack is platform code all the way down, the top frame is used.
+
+- **First frame from your app**: `onReceive` in `SyncReceiver.kt`
+
+```log
+"main" prio=5 tid=1 Sleeping
+  at java.lang.Thread.sleep(Native method)
+  at com.example.app.SyncReceiver.onReceive(SyncReceiver.kt:24)
+  at android.app.ActivityThread.handleReceiver(ActivityThread.java:4402)
+  ...
+```
+
+The reason the OS gave doesn't affect grouping. It only reaches an ANR the OS killed the app for, so grouping by it would split one stall into two groups depending on whether the app survived. It groups an ANR only when there's no frame to group by at all, which happens when the main thread stalled inside native code.
+
 ## iOS
 
 Errors are grouped by the signal and the first stack frame that belongs to your app. Operating-system and framework frames at the top of the stack (like `CoreFoundation` and `libobjc`) are skipped, since the code you can fix is in your own binary.
