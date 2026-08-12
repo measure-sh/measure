@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"backend/libs/filter"
+	"backend/libs/exprfilter"
 	"backend/testinfra"
 
 	"github.com/google/uuid"
@@ -53,7 +53,6 @@ func TestBuildJSONShape(t *testing.T) {
 		t.Fatalf("unmarshal build: %v", err)
 	}
 
-	// a regular build carries no patch_id field at all
 	if _, ok := m["patch_id"]; ok {
 		t.Errorf("want no patch_id for a regular build, got %v", m["patch_id"])
 	}
@@ -95,10 +94,9 @@ func TestBuildJSONShape(t *testing.T) {
 // OpenBuildFileDownload
 // --------------------------------------------------------------------------
 
-// seedDownloadConfig uploads the given objects into a fresh bucket
-// on the MinIO test container and returns the download config
-// pointing at it. A bucket per call keeps object keys from colliding
-// across tests.
+// seedDownloadConfig uploads the given objects into a fresh bucket on
+// the MinIO test container. A bucket per call keeps object keys from
+// colliding across tests.
 func seedDownloadConfig(t *testing.T, objects map[string]testinfra.S3Object) BuildFileDownloadConfig {
 	t.Helper()
 	bucket := "symbols-" + uuid.NewString()
@@ -114,8 +112,6 @@ func seedDownloadConfig(t *testing.T, objects map[string]testinfra.S3Object) Bui
 	}
 }
 
-// streamAll streams the download body into memory and closes the
-// download, failing the test on any error.
 func streamAll(t *testing.T, download *BuildFileDownload) []byte {
 	t.Helper()
 	var buf bytes.Buffer
@@ -316,7 +312,6 @@ func TestOpenBuildFileDownloadDsymMetaMissing(t *testing.T) {
 		t.Fatalf("open download: %v", err)
 	}
 
-	// without the /meta sibling object the bundle name falls back
 	if download.Filename != "debuginfo.dSYM.zip" {
 		t.Errorf("filename = %q, want debuginfo.dSYM.zip", download.Filename)
 	}
@@ -564,19 +559,18 @@ func TestGetBuildsWithFilterPackagesFilesIntoBuilds(t *testing.T) {
 	seedBuildMappingRow(ctx, t, newProguard, appID, "1.0.0", "100", "proguard", noPatch, "", base.Add(10*time.Minute))
 	seedBuildMappingRow(ctx, t, elfDebug, appID, "1.0.0", "100", "elf_debug", noPatch, "", base.Add(20*time.Minute))
 
-	// a file whose upload has not finished processing has an empty
-	// key and stays out of the list
+	// an upload that has not finished processing has an empty key and
+	// stays out of the list
 	th.SeedBuildMappingRow(ctx, t, pendingUpload.String(), appID.String(), "1.0.0", "100", "jsbundle", "", noPatch, "", base.Add(30*time.Minute))
 
-	// version 2.0.0 has the newest file and sorts first
 	seedBuildMappingRow(ctx, t, v2Proguard, appID, "2.0.0", "200", "proguard", noPatch, "", base.Add(40*time.Minute))
 
-	af := &filter.AppFilter{
+	ef := &exprfilter.ExprFilter{
 		AppID: appID,
 		Limit: 10,
 	}
 
-	builds, next, previous, err := GetBuildsWithFilter(ctx, deps.PgPool, af)
+	builds, next, previous, err := GetBuildsWithFilter(ctx, deps.PgPool, ef)
 	if err != nil {
 		t.Fatalf("get builds: %v", err)
 	}
@@ -643,12 +637,12 @@ func TestGetBuildsWithFilterGroupsPatchesSeparately(t *testing.T) {
 	seedBuildMappingRow(ctx, t, patchOneNew, appID, "", "", "jsbundle", patchOne, "3.1.0", base.Add(20*time.Minute))
 	seedBuildMappingRow(ctx, t, patchTwoFile, appID, "", "", "jsbundle", patchTwo, "", base.Add(30*time.Minute))
 
-	af := &filter.AppFilter{
+	ef := &exprfilter.ExprFilter{
 		AppID: appID,
 		Limit: 10,
 	}
 
-	builds, _, _, err := GetBuildsWithFilter(ctx, deps.PgPool, af)
+	builds, _, _, err := GetBuildsWithFilter(ctx, deps.PgPool, ef)
 	if err != nil {
 		t.Fatalf("get builds: %v", err)
 	}
@@ -689,12 +683,12 @@ func TestGetBuildsWithFilterPaginatesBuilds(t *testing.T) {
 		seedBuildMappingRow(ctx, t, uuid.New(), appID, v, "100", "elf_debug", noPatch, "", base.Add(time.Duration(i)*10*time.Minute+5*time.Minute))
 	}
 
-	af := &filter.AppFilter{
+	ef := &exprfilter.ExprFilter{
 		AppID: appID,
 		Limit: 2,
 	}
 
-	builds, next, previous, err := GetBuildsWithFilter(ctx, deps.PgPool, af)
+	builds, next, previous, err := GetBuildsWithFilter(ctx, deps.PgPool, ef)
 	if err != nil {
 		t.Fatalf("get builds: %v", err)
 	}
@@ -710,9 +704,9 @@ func TestGetBuildsWithFilterPaginatesBuilds(t *testing.T) {
 		}
 	}
 
-	af.Offset = 2
+	ef.Offset = 2
 
-	builds, next, previous, err = GetBuildsWithFilter(ctx, deps.PgPool, af)
+	builds, next, previous, err = GetBuildsWithFilter(ctx, deps.PgPool, ef)
 	if err != nil {
 		t.Fatalf("get builds page 2: %v", err)
 	}
@@ -739,18 +733,228 @@ func TestGetBuildsWithFilterTimeRange(t *testing.T) {
 	seedBuildMappingRow(ctx, t, uuid.New(), appID, "1.0.0", "100", "proguard", noPatch, "", base)
 	seedBuildMappingRow(ctx, t, uuid.New(), appID, "2.0.0", "200", "proguard", noPatch, "", base.Add(30*time.Minute))
 
-	af := &filter.AppFilter{
+	ef := &exprfilter.ExprFilter{
 		AppID: appID,
 		Limit: 10,
 		From:  base.Add(15 * time.Minute),
 		To:    base.Add(45 * time.Minute),
 	}
 
-	builds, _, _, err := GetBuildsWithFilter(ctx, deps.PgPool, af)
+	builds, _, _, err := GetBuildsWithFilter(ctx, deps.PgPool, ef)
 	if err != nil {
 		t.Fatalf("get builds: %v", err)
 	}
 	if len(builds) != 1 || builds[0].VersionName != "2.0.0" {
 		t.Fatalf("want only build 2.0.0 inside the time range, got %+v", builds)
 	}
+}
+
+func leaf(keyName string, operator exprfilter.Operator, texts ...string) exprfilter.ExprTree {
+	values := make([]exprfilter.Value, len(texts))
+	for i, text := range texts {
+		values[i] = exprfilter.Value{Text: text}
+	}
+	return exprfilter.ExprTree{Condition: &exprfilter.Condition{KeyName: keyName, Operator: operator, Values: values}}
+}
+
+func TestGetBuildsWithFilterExpression(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	teamID := uuid.New()
+	appID := uuid.New()
+	seedTeam(ctx, t, teamID, testTeamName)
+	seedApp(ctx, t, appID, teamID, 90)
+
+	base := time.Now().UTC().Add(-time.Hour).Truncate(time.Millisecond)
+	noPatch := uuid.Nil.String()
+	patchOne := uuid.New()
+
+	seedBuildMappingRow(ctx, t, uuid.New(), appID, "1.0.0", "100", "proguard", noPatch, "", base)
+	seedBuildMappingRow(ctx, t, uuid.New(), appID, "2.0.0", "200", "proguard", noPatch, "", base.Add(10*time.Minute))
+	seedBuildMappingRow(ctx, t, uuid.New(), appID, "2.0.0", "200", "dsym", noPatch, "", base.Add(20*time.Minute))
+	seedBuildMappingRow(ctx, t, uuid.New(), appID, "", "", "jsbundle", patchOne.String(), "2.0.1-patch.1", base.Add(30*time.Minute))
+
+	// names lists the matched builds, naming a patch build by its id.
+	names := func(builds []Build) []string {
+		out := make([]string, len(builds))
+		for i, build := range builds {
+			if build.VersionName != "" {
+				out[i] = build.VersionName
+				continue
+			}
+			out[i] = build.PatchID
+		}
+		return out
+	}
+
+	run := func(t *testing.T, exprTree *exprfilter.ExprTree) []Build {
+		t.Helper()
+		ef := &exprfilter.ExprFilter{AppID: appID, Limit: 10, ExprTree: exprTree, Entity: exprfilter.BuildsEntity}
+		builds, _, _, err := GetBuildsWithFilter(ctx, deps.PgPool, ef)
+		if err != nil {
+			t.Fatalf("get builds: %v", err)
+		}
+		return builds
+	}
+
+	t.Run("one condition narrows to one version", func(t *testing.T) {
+		exprTree := leaf("version_name", exprfilter.OperatorIn, "2.0.0")
+
+		builds := run(t, &exprTree)
+		if got := names(builds); len(got) != 1 || got[0] != "2.0.0" {
+			t.Errorf("want only 2.0.0, got %v", got)
+		}
+		if len(builds[0].Files) != 2 {
+			t.Errorf("want both files of the matched build, got %d", len(builds[0].Files))
+		}
+	})
+
+	t.Run("several values match any of them", func(t *testing.T) {
+		exprTree := leaf("version_name", exprfilter.OperatorIn, "1.0.0", "2.0.0")
+
+		if got := names(run(t, &exprTree)); len(got) != 2 {
+			t.Errorf("want both versions, got %v", got)
+		}
+	})
+
+	t.Run("an or reaches builds that share no column", func(t *testing.T) {
+		// A version build and an OTA patch have nothing in common: one has
+		// version columns and no patch, the other the reverse. Only an OR
+		// can ask for both.
+		exprTree := exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalOr, Children: []exprfilter.ExprTree{
+			leaf("version_name", exprfilter.OperatorIn, "1.0.0"),
+			leaf("patch_id", exprfilter.OperatorIsSet),
+		}}
+
+		got := names(run(t, &exprTree))
+		if len(got) != 2 {
+			t.Fatalf("want the version build and the patch, got %v", got)
+		}
+		if got[0] != patchOne.String() || got[1] != "1.0.0" {
+			t.Errorf("want the patch first as the newest upload, got %v", got)
+		}
+	})
+
+	t.Run("an or stays inside the app it was asked about", func(t *testing.T) {
+		// The group is joined to the rest of the query with and, so a group
+		// that is not wrapped reads as "(app_id = ? and a) or b" and answers
+		// with another app's builds.
+		otherAppID := uuid.New()
+		seedApp(ctx, t, otherAppID, teamID, 90)
+		seedBuildMappingRow(ctx, t, uuid.New(), otherAppID, "9.9.9", "999", "proguard", noPatch, "", base)
+
+		exprTree := exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalOr, Children: []exprfilter.ExprTree{
+			leaf("version_name", exprfilter.OperatorIn, "1.0.0"),
+			leaf("version_name", exprfilter.OperatorIn, "9.9.9"),
+		}}
+
+		for _, name := range names(run(t, &exprTree)) {
+			if name == "9.9.9" {
+				t.Fatal("want only this app's builds, got one of another app's")
+			}
+		}
+	})
+
+	t.Run("an and narrows within one build", func(t *testing.T) {
+		exprTree := exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
+			leaf("version_name", exprfilter.OperatorIn, "2.0.0"),
+			leaf("mapping_type", exprfilter.OperatorIn, "dsym"),
+		}}
+
+		builds := run(t, &exprTree)
+		if got := names(builds); len(got) != 1 || got[0] != "2.0.0" {
+			t.Fatalf("want only 2.0.0, got %v", got)
+		}
+		if len(builds[0].Files) != 1 || builds[0].Files[0].MappingType != "dsym" {
+			t.Errorf("want only the dsym file, got %+v", builds[0].Files)
+		}
+	})
+
+	t.Run("a nested group keeps its own meaning", func(t *testing.T) {
+		// mapping_type is proguard AND (version 1.0.0 OR a patch): the
+		// patch's only file is a jsbundle, so the group excludes it.
+		exprTree := exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
+			leaf("mapping_type", exprfilter.OperatorIn, "proguard"),
+			{LogicalOperator: exprfilter.LogicalOr, Children: []exprfilter.ExprTree{
+				leaf("version_name", exprfilter.OperatorIn, "1.0.0"),
+				leaf("patch_id", exprfilter.OperatorIsSet),
+			}},
+		}}
+
+		if got := names(run(t, &exprTree)); len(got) != 1 || got[0] != "1.0.0" {
+			t.Errorf("want only 1.0.0, got %v", got)
+		}
+	})
+
+	t.Run("not in excludes", func(t *testing.T) {
+		exprTree := leaf("version_name", exprfilter.OperatorNotIn, "2.0.0")
+
+		got := names(run(t, &exprTree))
+		for _, name := range got {
+			if name == "2.0.0" {
+				t.Errorf("want 2.0.0 excluded, got %v", got)
+			}
+		}
+	})
+
+	t.Run("a patch id names one patch exactly", func(t *testing.T) {
+		exprTree := leaf("patch_id", exprfilter.OperatorIn, patchOne.String())
+
+		if got := names(run(t, &exprTree)); len(got) != 1 || got[0] != patchOne.String() {
+			t.Errorf("want only the patch, got %v", got)
+		}
+	})
+
+	t.Run("is not set finds regular builds", func(t *testing.T) {
+		exprTree := leaf("patch_id", exprfilter.OperatorIsNotSet)
+
+		got := names(run(t, &exprTree))
+		if len(got) != 2 {
+			t.Fatalf("want the two version builds, got %v", got)
+		}
+		for _, name := range got {
+			if name == patchOne.String() {
+				t.Error("want the patch left out")
+			}
+		}
+	})
+
+	t.Run("contains matches part of a version", func(t *testing.T) {
+		exprTree := leaf("version_name", exprfilter.OperatorContains, "2.0")
+
+		if got := names(run(t, &exprTree)); len(got) != 1 || got[0] != "2.0.0" {
+			t.Errorf("want only 2.0.0, got %v", got)
+		}
+	})
+
+	t.Run("a wildcard is searched for rather than obeyed", func(t *testing.T) {
+		exprTree := leaf("version_name", exprfilter.OperatorContains, "%")
+
+		if got := names(run(t, &exprTree)); len(got) != 0 {
+			t.Errorf("want a literal percent sign to match nothing, got %v", got)
+		}
+	})
+
+	t.Run("a key this query cannot answer", func(t *testing.T) {
+		exprTree := leaf("device_cohort", exprfilter.OperatorIn, "beta")
+		ef := &exprfilter.ExprFilter{AppID: appID, Limit: 10, ExprTree: &exprTree, Entity: exprfilter.BuildsEntity}
+
+		_, _, _, err := GetBuildsWithFilter(ctx, deps.PgPool, ef)
+		if !errors.Is(err, exprfilter.ErrKeyNotSupported) {
+			t.Errorf("want ErrKeyNotSupported, got %v", err)
+		}
+	})
+
+	t.Run("no filter lists everything", func(t *testing.T) {
+		ef := &exprfilter.ExprFilter{AppID: appID, Limit: 10}
+
+		builds, _, _, err := GetBuildsWithFilter(ctx, deps.PgPool, ef)
+		if err != nil {
+			t.Fatalf("get builds: %v", err)
+		}
+		if len(builds) != 3 {
+			t.Errorf("want every build, got %v", names(builds))
+		}
+	})
 }

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"backend/libs/filter"
+	"backend/libs/exprfilter"
 	"backend/libs/objstore"
 	"backend/libs/symbol"
 
@@ -342,13 +342,12 @@ func GetBuildFile(ctx context.Context, pg *pgxpool.Pool, appID, buildFileID uuid
 	return file, err
 }
 
-// GetBuildsWithFilter provides a paginated list of an app's builds
-// within the filter's time range, ordered by upload time, newest
-// first. Mapping files uploaded for the same (version_name,
-// version_code, patch_id) group are packaged into one build, keeping
-// the latest file of each mapping type. Pagination applies to
-// builds, not to their files.
-func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, af *filter.AppFilter) (builds []Build, next, previous bool, err error) {
+// GetBuildsWithFilter returns a paginated list of an app's builds in the
+// filter's time range, newest first. Files with the same
+// (version_name, version_code, patch_id) are grouped into one build, keeping
+// only the latest file of each mapping type. Pagination applies to builds,
+// not files.
+func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, ef *exprfilter.ExprFilter) (builds []Build, next, previous bool, err error) {
 	// latest keeps the most recently uploaded file of each mapping
 	// type within every (version_name, version_code, patch_id) group
 	latest := sqlf.PostgreSQL.From("build_mappings").
@@ -361,21 +360,28 @@ func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, af *filter.AppFi
 		Select("key").
 		Select("file_size").
 		Select("last_updated").
-		Where("app_id = ?", af.AppID).
-		// an empty key means the mapping file hasn't finished uploading
-		// and processing yet, so there is nothing to download
+		Where("app_id = ?", ef.AppID).
 		Where("key != ''").
-		// id breaks ties in case last_updated is same
+		// id breaks ties when last_updated is equal
 		OrderBy("version_name, version_code, patch_id, mapping_type, last_updated desc, id")
 
-	if af.HasTimeRange() {
-		latest.Where("last_updated >= ?", af.From)
-		latest.Where("last_updated <= ?", af.To)
+	if ef.HasTimeRange() {
+		latest.Where("last_updated >= ?", ef.From)
+		latest.Where("last_updated <= ?", ef.To)
 	}
 
-	// page selects the builds of the requested page, ordered by
-	// their newest file; the group columns break ties in case
-	// last_updated is same
+	// Apply the filter before grouping so pagination counts only builds
+	// that contain matching files.
+	if ef.HasFilterExpr() {
+		predicate, errFilter := ef.Predicate(nil)
+		if errFilter != nil {
+			return nil, false, false, errFilter
+		}
+		defer predicate.Close()
+		latest.Where(predicate.String(), predicate.Args()...)
+	}
+
+	// Group matching files into builds and order them by their latest file.
 	page := sqlf.PostgreSQL.From("latest").
 		Select("version_name").
 		Select("version_code").
@@ -384,13 +390,13 @@ func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, af *filter.AppFi
 		GroupBy("version_name, version_code, patch_id").
 		OrderBy("build_last_updated desc, version_name desc, version_code desc, patch_id desc")
 
-	if af.Limit > 0 {
-		// fetch one extra build to detect if a next page exists
-		page.Limit(uint64(af.Limit) + 1)
+	if ef.Limit > 0 {
+		// Fetch one extra build to determine whether another page exists.
+		page.Limit(uint64(ef.Limit) + 1)
 	}
 
-	if af.Offset >= 0 {
-		page.Offset(uint64(af.Offset))
+	if ef.Offset >= 0 {
+		page.Offset(uint64(ef.Offset))
 	}
 
 	stmt := sqlf.PostgreSQL.
@@ -438,8 +444,8 @@ func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, af *filter.AppFi
 			patch = file.PatchID.String()
 		}
 
-		// files of one build arrive consecutively, so a new build
-		// starts whenever the group columns change
+		// Files for a build are consecutive, so start a new build when
+		// any of the group columns changes.
 		if len(builds) == 0 ||
 			builds[len(builds)-1].VersionName != file.VersionName ||
 			builds[len(builds)-1].VersionCode != file.VersionCode ||
@@ -463,12 +469,11 @@ func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, af *filter.AppFi
 		return nil, false, false, err
 	}
 
-	// Set pagination next & previous flags
-	if af.Limit > 0 && len(builds) > af.Limit {
-		builds = builds[:af.Limit]
+	if ef.Limit > 0 && len(builds) > ef.Limit {
+		builds = builds[:ef.Limit]
 		next = true
 	}
-	if af.Offset > 0 {
+	if ef.Offset > 0 {
 		previous = true
 	}
 

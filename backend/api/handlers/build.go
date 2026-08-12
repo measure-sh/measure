@@ -9,7 +9,7 @@ import (
 	"net/url"
 
 	"backend/api/server"
-	"backend/libs/filter"
+	"backend/libs/exprfilter"
 	"backend/libs/measure"
 	"backend/libs/objstore"
 
@@ -18,8 +18,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// buildFileDownloadConfig builds the storage config
-// measure.OpenBuildFileDownload needs from the process config.
 func buildFileDownloadConfig(deps *server.Deps) measure.BuildFileDownloadConfig {
 	return measure.BuildFileDownloadConfig{
 		IsCloud:                deps.Config.IsCloud(),
@@ -36,19 +34,19 @@ func (h Handlers) GetBuilds(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		msg := `id invalid or missing`
+		msg := `Id invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
 
-	af := filter.AppFilter{
+	ef := exprfilter.ExprFilter{
 		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
+		Limit: exprfilter.DefaultPaginationLimit,
 	}
 
-	if err := c.ShouldBindQuery(&af); err != nil {
-		msg := `failed to parse query parameters`
+	if err := c.ShouldBindQuery(&ef); err != nil {
+		msg := `Failed to parse query parameters`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   msg,
@@ -57,18 +55,20 @@ func (h Handlers) GetBuilds(c *gin.Context) {
 		return
 	}
 
-	if err := af.Validate(); err != nil {
-		msg := "builds overview request validation failed"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
+	ef.Entity = exprfilter.BuildsEntity
+
+	if err := ef.BuildExprTree(); err != nil {
+		respondFilterError(c, err)
 		return
 	}
 
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
+	if err := ef.Validate(); err != nil {
+		respondFilterError(c, err)
+		return
+	}
+
+	if !ef.HasTimeRange() {
+		ef.SetDefaultTimeRange()
 	}
 
 	app := measure.App{
@@ -110,7 +110,7 @@ func (h Handlers) GetBuilds(c *gin.Context) {
 		return
 	}
 
-	builds, next, previous, err := measure.GetBuildsWithFilter(ctx, deps.PgPool, &af)
+	builds, next, previous, err := measure.GetBuildsWithFilter(ctx, deps.PgPool, &ef)
 	if err != nil {
 		msg := "failed to get app's builds"
 		fmt.Println(msg, err)
@@ -140,7 +140,7 @@ func (h Handlers) DownloadBuildFile(c *gin.Context) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		msg := `id invalid or missing`
+		msg := `Id invalid or missing`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
@@ -219,20 +219,19 @@ func (h Handlers) DownloadBuildFile(c *gin.Context) {
 		}
 	}()
 
-	// No Content-Length: the response streams with chunked transfer
-	// encoding. Load balancers commonly cap buffered (Content-Length)
+	// The response streams with chunked transfer encoding and sets no
+	// Content-Length, because load balancers commonly cap buffered
 	// responses in size but stream chunked ones unbounded.
 	c.Header("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": download.Filename}))
 	c.Header("Content-Type", download.ContentType)
 	c.Status(http.StatusOK)
 
 	// The response is already streaming, so a failure here can no longer
-	// produce an error status. The connection has to die abruptly instead:
-	// a chunked response that returns normally ends with a valid terminator,
-	// so a truncated download would look complete to the client. The stdlib
-	// abort for this is panic(http.ErrAbortHandler), but CapturePanic
-	// recovers every panic and would finish the response cleanly, so the
-	// connection is hijacked and closed directly.
+	// produce an error status, and a chunked response that returns normally
+	// ends with a valid terminator, which would make a truncated download
+	// look complete to the client. panic(http.ErrAbortHandler) cannot be
+	// used because the panic middleware recovers it and finishes the
+	// response cleanly, so the connection is hijacked and closed instead.
 	if err := download.Stream(c.Writer); err != nil {
 		fmt.Println("failed to stream build file download:", err)
 		if hijacker, ok := c.Writer.(http.Hijacker); ok {
@@ -245,15 +244,9 @@ func (h Handlers) DownloadBuildFile(c *gin.Context) {
 
 func (h Handlers) PutBuilds(c *gin.Context) {
 	deps := h.Deps
-	// Proxy to ingest service
-	//
-	// Proxy to ingest service for non-Cloud
-	// environments so that SDKS using API endpoint
-	// continue to work. This is temporary & will be
-	// eventually removed.
-	//
-	// SDK consumers are encouraged to migrate to the
-	// ingest endpoint.
+	// Non-Cloud deployments proxy to the ingest service so SDKs still
+	// using the API endpoint keep working. This is temporary; SDK
+	// consumers should migrate to the ingest endpoint.
 	if !deps.Config.IsCloud() {
 		ingestOrigin := "http://ingest:8085"
 		target, err := url.Parse(ingestOrigin)
@@ -271,16 +264,9 @@ func (h Handlers) PutBuilds(c *gin.Context) {
 	c.Status(http.StatusGone)
 }
 
-// ProxySymbol proxies presigned S3 URLs to an S3-like
-// server.
-//
-// We parse the payload from the incoming request's query
-// string, then construct a new URL by replacing the S3 origin.
-// Next, we create a reverse proxy and configure it to pipe
-// response back to the original caller.
-//
-// The original S3 origin used when constructing the presigned
-// URL must match the proxied presigned URL.
+// ProxySymbol proxies presigned S3 URLs to an S3-like server. The S3
+// origin the presigned URL was constructed with must match the origin
+// the proxied URL is sent to.
 func (h Handlers) ProxySymbol(c *gin.Context) {
 	deps := h.Deps
 	payload := c.Query("payload")

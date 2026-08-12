@@ -1,0 +1,619 @@
+{
+  "comment": "Cases for the filter expression grammar, read by parse_test.go here and by frontend/dashboard/__tests__/components/filter_bar/parse_test.ts. The two parsers are separate implementations of one grammar, so a change to one of them fails.",
+
+  "parse": [
+    {
+      "name": "one condition with one value",
+      "text": "version_name:in:1.2.0",
+      "tree": {
+        "condition": {
+          "key_name": "version_name",
+          "operator": "in",
+          "values": [{ "text": "1.2.0" }]
+        }
+      }
+    },
+    {
+      "name": "one condition with a list of values",
+      "text": "version_name:in:[1.2.0,1.1.9]",
+      "tree": {
+        "condition": {
+          "key_name": "version_name",
+          "operator": "in",
+          "values": [{ "text": "1.2.0" }, { "text": "1.1.9" }]
+        }
+      }
+    },
+    {
+      "name": "a list of one, which a list of many can be edited down to",
+      "text": "version_name:in:[1.2.0]",
+      "tree": {
+        "condition": {
+          "key_name": "version_name",
+          "operator": "in",
+          "values": [{ "text": "1.2.0" }]
+        }
+      }
+    },
+    {
+      "name": "an operator taking no values",
+      "text": "patch_id:is_set",
+      "tree": {
+        "condition": { "key_name": "patch_id", "operator": "is_set" }
+      }
+    },
+    {
+      "name": "conditions joined by and",
+      "text": "version_name:in:1.2.0 AND mapping_type:in:dsym",
+      "tree": {
+        "logical_operator": "and",
+        "children": [
+          {
+            "condition": {
+              "key_name": "version_name",
+              "operator": "in",
+              "values": [{ "text": "1.2.0" }]
+            }
+          },
+          {
+            "condition": {
+              "key_name": "mapping_type",
+              "operator": "in",
+              "values": [{ "text": "dsym" }]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "conditions joined by or",
+      "text": "version_name:in:1.2.0 OR patch_id:is_set",
+      "tree": {
+        "logical_operator": "or",
+        "children": [
+          {
+            "condition": {
+              "key_name": "version_name",
+              "operator": "in",
+              "values": [{ "text": "1.2.0" }]
+            }
+          },
+          { "condition": { "key_name": "patch_id", "operator": "is_set" } }
+        ]
+      }
+    },
+    {
+      "name": "and binds tighter than or",
+      "text": "a:in:1 AND b:in:2 OR c:in:3",
+      "tree": {
+        "logical_operator": "or",
+        "children": [
+          {
+            "logical_operator": "and",
+            "children": [
+              {
+                "condition": {
+                  "key_name": "a",
+                  "operator": "in",
+                  "values": [{ "text": "1" }]
+                }
+              },
+              {
+                "condition": {
+                  "key_name": "b",
+                  "operator": "in",
+                  "values": [{ "text": "2" }]
+                }
+              }
+            ]
+          },
+          {
+            "condition": {
+              "key_name": "c",
+              "operator": "in",
+              "values": [{ "text": "3" }]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "parentheses group against that",
+      "text": "a:in:1 AND (b:in:2 OR c:in:3)",
+      "tree": {
+        "logical_operator": "and",
+        "children": [
+          {
+            "condition": {
+              "key_name": "a",
+              "operator": "in",
+              "values": [{ "text": "1" }]
+            }
+          },
+          {
+            "logical_operator": "or",
+            "children": [
+              {
+                "condition": {
+                  "key_name": "b",
+                  "operator": "in",
+                  "values": [{ "text": "2" }]
+                }
+              },
+              {
+                "condition": {
+                  "key_name": "c",
+                  "operator": "in",
+                  "values": [{ "text": "3" }]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "parentheses around one condition are still a group",
+      "text": "(version_name:in:1.2.0)",
+      "tree": {
+        "logical_operator": "and",
+        "children": [
+          {
+            "condition": {
+              "key_name": "version_name",
+              "operator": "in",
+              "values": [{ "text": "1.2.0" }]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "a run of one with no parentheses is that one",
+      "text": "version_name:in:1.2.0",
+      "tree": {
+        "condition": {
+          "key_name": "version_name",
+          "operator": "in",
+          "values": [{ "text": "1.2.0" }]
+        }
+      }
+    },
+    {
+      "name": "keywords are read whatever their case",
+      "text": "a:in:1 and b:in:2 or c:in:3",
+      "tree": {
+        "logical_operator": "or",
+        "children": [
+          {
+            "logical_operator": "and",
+            "children": [
+              {
+                "condition": {
+                  "key_name": "a",
+                  "operator": "in",
+                  "values": [{ "text": "1" }]
+                }
+              },
+              {
+                "condition": {
+                  "key_name": "b",
+                  "operator": "in",
+                  "values": [{ "text": "2" }]
+                }
+              }
+            ]
+          },
+          {
+            "condition": {
+              "key_name": "c",
+              "operator": "in",
+              "values": [{ "text": "3" }]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "a value starting with a keyword is a value",
+      "text": "version_name:in:android",
+      "tree": {
+        "condition": {
+          "key_name": "version_name",
+          "operator": "in",
+          "values": [{ "text": "android" }]
+        }
+      }
+    },
+    {
+      "name": "punctuation inside a version needs no quotes",
+      "text": "version_name:in:0.11.0-SNAPSHOT.debug",
+      "tree": {
+        "condition": {
+          "key_name": "version_name",
+          "operator": "in",
+          "values": [{ "text": "0.11.0-SNAPSHOT.debug" }]
+        }
+      }
+    },
+    {
+      "name": "a quoted value holds spaces and punctuation",
+      "text": "version_name:in:\"1.2.0 (beta), rc\"",
+      "tree": {
+        "condition": {
+          "key_name": "version_name",
+          "operator": "in",
+          "values": [{ "text": "1.2.0 (beta), rc" }]
+        }
+      }
+    },
+    {
+      "name": "a quoted value holds an escaped quote",
+      "text": "version_name:in:\"say \\\"hi\\\"\"",
+      "tree": {
+        "condition": {
+          "key_name": "version_name",
+          "operator": "in",
+          "values": [{ "text": "say \"hi\"" }]
+        }
+      }
+    },
+    {
+      "name": "a quoted value holds an escaped backslash",
+      "text": "version_name:in:\"back\\\\slash\"",
+      "tree": {
+        "condition": {
+          "key_name": "version_name",
+          "operator": "in",
+          "values": [{ "text": "back\\slash" }]
+        }
+      }
+    },
+    {
+      "name": "spacing is free",
+      "text": "  version_name:in:[ 1.2.0 , 1.1.9 ]   AND   patch_id:is_set  ",
+      "tree": {
+        "logical_operator": "and",
+        "children": [
+          {
+            "condition": {
+              "key_name": "version_name",
+              "operator": "in",
+              "values": [{ "text": "1.2.0" }, { "text": "1.1.9" }]
+            }
+          },
+          { "condition": { "key_name": "patch_id", "operator": "is_set" } }
+        ]
+      }
+    },
+    {
+      "name": "the same key twice, which is how a range is written",
+      "text": "file_size:gt:1000 AND file_size:lt:9000",
+      "tree": {
+        "logical_operator": "and",
+        "children": [
+          {
+            "condition": {
+              "key_name": "file_size",
+              "operator": "gt",
+              "values": [{ "text": "1000" }]
+            }
+          },
+          {
+            "condition": {
+              "key_name": "file_size",
+              "operator": "lt",
+              "values": [{ "text": "9000" }]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "a group nested in a group",
+      "text": "a:in:1 AND (b:in:2 OR (c:in:3 AND d:in:4))",
+      "tree": {
+        "logical_operator": "and",
+        "children": [
+          {
+            "condition": {
+              "key_name": "a",
+              "operator": "in",
+              "values": [{ "text": "1" }]
+            }
+          },
+          {
+            "logical_operator": "or",
+            "children": [
+              {
+                "condition": {
+                  "key_name": "b",
+                  "operator": "in",
+                  "values": [{ "text": "2" }]
+                }
+              },
+              {
+                "logical_operator": "and",
+                "children": [
+                  {
+                    "condition": {
+                      "key_name": "c",
+                      "operator": "in",
+                      "values": [{ "text": "3" }]
+                    }
+                  },
+                  {
+                    "condition": {
+                      "key_name": "d",
+                      "operator": "in",
+                      "values": [{ "text": "4" }]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+
+  "refuse": [
+    { "name": "nothing at all", "text": "   ", "message": "Filter is empty", "position": 0 },
+    {
+      "name": "a key with no operator",
+      "text": "version_name",
+      "message": "needs an operator",
+      "position": 12
+    },
+    {
+      "name": "an operator with no values where the grammar expects them",
+      "text": "version_name:in:",
+      "message": "Expected a value",
+      "position": 16
+    },
+    {
+      "name": "a list left open",
+      "text": "version_name:in:[1.2.0",
+      "message": "List of values is not closed",
+      "position": 22
+    },
+    {
+      "name": "an empty list",
+      "text": "version_name:in:[]",
+      "message": "Expected a value",
+      "position": 17
+    },
+    {
+      "name": "a quote left open",
+      "text": "version_name:in:\"1.2.0",
+      "message": "Quoted value is not closed",
+      "position": 16
+    },
+    {
+      "name": "a group left open",
+      "text": "(version_name:in:1.2.0",
+      "message": "Group is not closed",
+      "position": 22
+    },
+    {
+      "name": "an empty group",
+      "text": "()",
+      "message": "Expected a key",
+      "position": 1
+    },
+    {
+      "name": "a keyword with nothing after it",
+      "text": "version_name:in:1.2.0 AND",
+      "message": "ends where a condition was expected",
+      "position": 25
+    },
+    {
+      "name": "two conditions with nothing joining them",
+      "text": "version_name:in:1.2.0 mapping_type:in:dsym",
+      "message": "Unexpected",
+      "position": 22
+    },
+    {
+      "name": "a stray closing parenthesis",
+      "text": "version_name:in:1.2.0)",
+      "message": "Unexpected",
+      "position": 21
+    },
+    {
+      "name": "a position counts characters rather than bytes",
+      "text": "version_name:in:日本 mapping_type:in:dsym",
+      "message": "Unexpected",
+      "position": 19
+    }
+  ],
+
+  "format": [
+    {
+      "name": "one condition",
+      "text": "version_name:in:1.2.0",
+      "tree": {
+        "condition": {
+          "key_name": "version_name",
+          "operator": "in",
+          "values": [{ "text": "1.2.0" }]
+        }
+      }
+    },
+    {
+      "name": "several values",
+      "text": "version_name:in:[1.2.0,1.1.9]",
+      "tree": {
+        "condition": {
+          "key_name": "version_name",
+          "operator": "in",
+          "values": [{ "text": "1.2.0" }, { "text": "1.1.9" }]
+        }
+      }
+    },
+    {
+      "name": "no values",
+      "text": "patch_id:is_set",
+      "tree": { "condition": { "key_name": "patch_id", "operator": "is_set" } }
+    },
+    {
+      "name": "a group",
+      "text": "version_name:in:1.2.0 AND patch_id:is_set",
+      "tree": {
+        "logical_operator": "and",
+        "children": [
+          {
+            "condition": {
+              "key_name": "version_name",
+              "operator": "in",
+              "values": [{ "text": "1.2.0" }]
+            }
+          },
+          { "condition": { "key_name": "patch_id", "operator": "is_set" } }
+        ]
+      }
+    },
+    {
+      "name": "a group of the other operator inside one",
+      "text": "a:in:1 AND (b:in:2 OR c:in:3)",
+      "tree": {
+        "logical_operator": "and",
+        "children": [
+          {
+            "condition": {
+              "key_name": "a",
+              "operator": "in",
+              "values": [{ "text": "1" }]
+            }
+          },
+          {
+            "logical_operator": "or",
+            "children": [
+              {
+                "condition": {
+                  "key_name": "b",
+                  "operator": "in",
+                  "values": [{ "text": "2" }]
+                }
+              },
+              {
+                "condition": {
+                  "key_name": "c",
+                  "operator": "in",
+                  "values": [{ "text": "3" }]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "a group of the same operator inside one",
+      "text": "a:in:1 AND (b:in:2 AND c:in:3)",
+      "tree": {
+        "logical_operator": "and",
+        "children": [
+          {
+            "condition": {
+              "key_name": "a",
+              "operator": "in",
+              "values": [{ "text": "1" }]
+            }
+          },
+          {
+            "logical_operator": "and",
+            "children": [
+              {
+                "condition": {
+                  "key_name": "b",
+                  "operator": "in",
+                  "values": [{ "text": "2" }]
+                }
+              },
+              {
+                "condition": {
+                  "key_name": "c",
+                  "operator": "in",
+                  "values": [{ "text": "3" }]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "a group of one condition inside another",
+      "text": "a:in:1 AND (b:in:2)",
+      "tree": {
+        "logical_operator": "and",
+        "children": [
+          {
+            "condition": {
+              "key_name": "a",
+              "operator": "in",
+              "values": [{ "text": "1" }]
+            }
+          },
+          {
+            "logical_operator": "and",
+            "children": [
+              {
+                "condition": {
+                  "key_name": "b",
+                  "operator": "in",
+                  "values": [{ "text": "2" }]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "a value needing quotes",
+      "text": "version_name:in:\"1.2.0 (beta)\"",
+      "tree": {
+        "condition": {
+          "key_name": "version_name",
+          "operator": "in",
+          "values": [{ "text": "1.2.0 (beta)" }]
+        }
+      }
+    },
+    {
+      "name": "a value holding a quote",
+      "text": "version_name:in:\"say \\\"hi\\\"\"",
+      "tree": {
+        "condition": {
+          "key_name": "version_name",
+          "operator": "in",
+          "values": [{ "text": "say \"hi\"" }]
+        }
+      }
+    },
+    {
+      "name": "a value holding a backslash, which needs no quotes to be read back",
+      "text": "version_name:in:back\\slash",
+      "tree": {
+        "condition": {
+          "key_name": "version_name",
+          "operator": "in",
+          "values": [{ "text": "back\\slash" }]
+        }
+      }
+    },
+    {
+      "name": "an empty value, which validation refuses but formatting must not lose",
+      "text": "version_name:in:\"\"",
+      "tree": {
+        "condition": {
+          "key_name": "version_name",
+          "operator": "in",
+          "values": [{ "text": "" }]
+        }
+      }
+    }
+  ]
+}

@@ -20,11 +20,14 @@ import {
   makeBugReportDetailFixture,
   makeBugReportsOverviewFixture,
   makeBugReportsPlotFixture,
+  makeBuildsFixture,
   makeCommonPathFixture,
   makeCrashPlotFixture,
   makeExceptionDistributionFixture,
   makeExceptionInstanceFixture,
   makeExceptionsOverviewFixture,
+  makeFilterKeysFixture,
+  makeFilterValuesFixture,
   makeFiltersFixture,
   makeHealthPlotFixture,
   makeJourneyFixture,
@@ -419,5 +422,20 @@ export const handlers = [
   // 67. POST /api/teams/:teamId/billing/portal
   http.post("*/api/teams/:teamId/billing/portal", () => {
     return HttpResponse.json({ url: "https://billing.stripe.com/portal/test" });
+  }),
+
+  // 68. GET /api/apps/:appId/filters/keys
+  http.get("*/api/apps/:appId/filters/keys", () => {
+    return HttpResponse.json(makeFilterKeysFixture());
+  }),
+
+  // 69. GET /api/apps/:appId/filters/values
+  http.get("*/api/apps/:appId/filters/values", () => {
+    return HttpResponse.json(makeFilterValuesFixture());
+  }),
+
+  // 71. GET /api/apps/:appId/builds
+  http.get("*/api/apps/:appId/builds", () => {
+    return HttpResponse.json(makeBuildsFixture());
   }),
 ];

@@ -28,6 +28,7 @@ import {
 import { navigateTo } from "../utils/navigation";
 import { apiClient } from "./api_client";
 import { ApiError, RequestError } from "./api_error";
+import type { FilterKeysResponse, FilterValue } from "./filter_types";
 
 export enum JourneyType {
   Paths,
@@ -501,6 +502,9 @@ export const emptyBuildsResponse = {
     }[];
   }[],
 };
+
+export type Build = (typeof emptyBuildsResponse)["results"][number];
+export type BuildFile = Build["files"][number];
 
 export const emptyBugReport = {
   session_id: "",
@@ -1032,7 +1036,11 @@ async function request<T = any>(
     // A rejected request does not always have a JSON body. A proxy can send
     // an HTML error page, so use our own message when the parse fails.
     const body = await res.json().catch(() => null);
-    throw new ApiError(res.status, body?.error ?? failsWith);
+    throw new ApiError(
+      res.status,
+      body?.error ?? failsWith,
+      body?.filter_expr_issues,
+    );
   }
 
   if (!parseBody) {
@@ -1861,6 +1869,66 @@ export const fetchBuildsFromServer = async (
   const data = await request(url, { failsWith: "Failed to fetch builds" });
 
   return data;
+};
+
+// ─── Dynamic filters ─────────────────────────────────────────────────────
+
+export const fetchFilterKeys = async (
+  appId: string,
+  entity: string,
+): Promise<FilterKeysResponse> => {
+  const data = await request(
+    `/api/apps/${appId}/filters/keys?entity=${encodeURIComponent(entity)}`,
+    { failsWith: "Failed to fetch filter keys" },
+  );
+
+  return { keys: data.keys ?? [], key_groups: data.key_groups ?? [] };
+};
+
+export const fetchFilterValues = async (
+  appId: string,
+  entity: string,
+  keyName: string,
+  search: string,
+): Promise<{ values: FilterValue[]; truncated: boolean }> => {
+  const params = new URLSearchParams({
+    entity: entity,
+    key_name: keyName,
+  });
+  if (search !== "") {
+    params.set("search", search);
+  }
+
+  const data = await request(
+    `/api/apps/${appId}/filters/values?${params.toString()}`,
+    { failsWith: "Failed to fetch filter values" },
+  );
+
+  return { values: data.values ?? [], truncated: data.truncated ?? false };
+};
+
+export const fetchBuildsWithFilter = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  limit: number,
+  offset: number,
+) => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    limit: String(limit),
+    offset: String(offset),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+
+  return await request(`/api/apps/${appId}/builds?${params.toString()}`, {
+    failsWith: "Failed to fetch builds",
+  });
 };
 
 export const fetchAlertsOverviewFromServer = async (
