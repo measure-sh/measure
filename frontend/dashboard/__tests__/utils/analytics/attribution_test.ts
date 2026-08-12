@@ -4,11 +4,9 @@
  */
 
 import {
-  appendAttributionToURL,
   captureGCLIDFromURL,
-  getGAClientID,
+  clearStoredGCLID,
   getStoredGCLID,
-  parseGAClientID,
 } from "@/app/utils/analytics/attribution";
 import { afterEach, describe, expect, it } from "@jest/globals";
 
@@ -33,131 +31,6 @@ function setLocation(url: string) {
 
 afterEach(() => {
   clearCookies();
-});
-
-// --------------------------------------------------------------------------
-// parseGAClientID — pure
-// --------------------------------------------------------------------------
-
-describe("parseGAClientID", () => {
-  it("extracts the client_id from a standard GA1.1 cookie value", () => {
-    expect(parseGAClientID("GA1.1.1234567890.1699999999")).toBe(
-      "1234567890.1699999999",
-    );
-  });
-
-  it("works for GA1.2 (different ga.js cookie version)", () => {
-    expect(parseGAClientID("GA1.2.111.222")).toBe("111.222");
-  });
-
-  it("preserves multi-segment client_id beyond the standard two", () => {
-    expect(parseGAClientID("GA1.1.123.456.789")).toBe("123.456.789");
-  });
-
-  it("returns null when too few segments", () => {
-    expect(parseGAClientID("GA1.1.123")).toBeNull();
-  });
-
-  it("returns null when the prefix is not GA1", () => {
-    expect(parseGAClientID("FOO.1.123.456")).toBeNull();
-  });
-
-  it("returns null for empty string", () => {
-    expect(parseGAClientID("")).toBeNull();
-  });
-
-  it("returns null for null", () => {
-    expect(parseGAClientID(null)).toBeNull();
-  });
-
-  it("returns null for undefined", () => {
-    expect(parseGAClientID(undefined)).toBeNull();
-  });
-});
-
-// --------------------------------------------------------------------------
-// appendAttributionToURL — pure
-// --------------------------------------------------------------------------
-
-describe("appendAttributionToURL", () => {
-  it("returns the URL unchanged when both values are null", () => {
-    expect(appendAttributionToURL("https://x/y", null, null)).toBe(
-      "https://x/y",
-    );
-  });
-
-  it("appends only ga_client_id when gclid is null", () => {
-    expect(appendAttributionToURL("https://x/y", "client-1", null)).toBe(
-      "https://x/y?ga_client_id=client-1",
-    );
-  });
-
-  it("appends only gclid when gaClientId is null", () => {
-    expect(appendAttributionToURL("https://x/y", null, "gclid-abc")).toBe(
-      "https://x/y?gclid=gclid-abc",
-    );
-  });
-
-  it("appends both when both are present", () => {
-    expect(appendAttributionToURL("https://x/y", "c-1", "g-1")).toBe(
-      "https://x/y?ga_client_id=c-1&gclid=g-1",
-    );
-  });
-
-  it("uses & separator when the URL already has a query string", () => {
-    expect(appendAttributionToURL("https://x/y?foo=bar", "c-1", null)).toBe(
-      "https://x/y?foo=bar&ga_client_id=c-1",
-    );
-  });
-
-  it("URL-encodes special chars in values", () => {
-    const got = appendAttributionToURL("https://x/y", "c id", "g/clid");
-    // URLSearchParams encodes space as +, / as %2F
-    expect(got).toBe("https://x/y?ga_client_id=c+id&gclid=g%2Fclid");
-  });
-
-  it("handles relative URLs", () => {
-    expect(appendAttributionToURL("/api/auth/google", "c-1", null)).toBe(
-      "/api/auth/google?ga_client_id=c-1",
-    );
-  });
-});
-
-// --------------------------------------------------------------------------
-// getGAClientID — reads document.cookie
-// --------------------------------------------------------------------------
-
-describe("getGAClientID", () => {
-  it("returns null when no _ga cookie is set", () => {
-    expect(getGAClientID()).toBeNull();
-  });
-
-  it("parses _ga when it is the only cookie", () => {
-    document.cookie = "_ga=GA1.1.111.222; Path=/";
-    expect(getGAClientID()).toBe("111.222");
-  });
-
-  it("finds _ga among multiple cookies", () => {
-    document.cookie = "theme=dark; Path=/";
-    document.cookie = "_ga=GA1.1.111.222; Path=/";
-    document.cookie = "session=abc; Path=/";
-    expect(getGAClientID()).toBe("111.222");
-  });
-
-  it("does not falsely match _gat (similar prefix)", () => {
-    document.cookie = "_gat=1; Path=/";
-    expect(getGAClientID()).toBeNull();
-  });
-
-  it("does not falsely match __ga (extra underscore)", () => {
-    document.cookie = "__ga=GA1.1.999.999; Path=/";
-    expect(getGAClientID()).toBeNull();
-  });
-
-  it("returns null when _ga value is malformed", () => {
-    document.cookie = "_ga=garbage; Path=/";
-    expect(getGAClientID()).toBeNull();
-  });
 });
 
 // --------------------------------------------------------------------------
@@ -219,5 +92,27 @@ describe("getStoredGCLID", () => {
     setLocation("https://measure.sh/landing?gclid=hello-world");
     captureGCLIDFromURL();
     expect(getStoredGCLID()).toBe("hello-world");
+  });
+});
+
+// --------------------------------------------------------------------------
+// clearStoredGCLID — expires the cookie on consent withdrawal
+// --------------------------------------------------------------------------
+
+describe("clearStoredGCLID", () => {
+  it("removes a stored gclid", () => {
+    setLocation("https://measure.sh/landing?gclid=abc123");
+    captureGCLIDFromURL();
+    expect(getStoredGCLID()).toBe("abc123");
+
+    clearStoredGCLID();
+
+    expect(getStoredGCLID()).toBeNull();
+    expect(document.cookie).not.toMatch(/gclid=abc123/);
+  });
+
+  it("is a no-op when no gclid is stored", () => {
+    clearStoredGCLID();
+    expect(getStoredGCLID()).toBeNull();
   });
 });

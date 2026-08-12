@@ -24,7 +24,6 @@ import (
 	"backend/libs/boot"
 	"backend/libs/bus"
 	"backend/libs/chquery"
-	"backend/libs/ga4"
 	"backend/libs/inet"
 	"backend/libs/posthog"
 	"backend/libs/secret"
@@ -75,51 +74,49 @@ type IggyConfig struct {
 // Config is api's parsed runtime configuration. The server package owns it
 // (built by NewConfig) and threads it explicitly into the code that needs it.
 type Config struct {
-	PG                           PostgresConfig
-	CH                           ClickhouseConfig
-	RD                           RedisConfig
-	IG                           IggyConfig
-	ServiceAccountEmail          string
-	SymbolsBucket                string
-	SymbolsBucketRegion          string
-	SymbolsAccessKey             string
-	SymbolsSecretAccessKey       string
-	AttachmentsBucket            string
-	AttachmentsBucketRegion      string
-	AttachmentsAccessKey         string
-	AttachmentsSecretAccessKey   string
-	AWSEndpoint                  string
-	AttachmentOrigin             string
-	SiteOrigin                   string
-	APIOrigin                    string
-	AgentOrigin                  string
-	SymbolicatorOrigin           string
-	OAuthGitHubKey               string
-	OAuthGitHubSecret            string
-	OAuthGoogleKey               string
-	OAuthGoogleSecret            string
-	AccessTokenSecret            []byte
-	RefreshTokenSecret           []byte
-	SmtpHost                     string
-	SmtpPort                     string
-	SmtpUser                     string
-	SmtpPassword                 string
-	EmailDomain                  string
-	TxEmailAddress               string
-	SlackClientID                string
-	SlackClientSecret            string
-	SlackSigningSecret           string
-	SlackOAuthStateSecret        string
-	AutumnSecretKey              string
-	AutumnWebhookSecret          string
-	GA4MeasurementID             string
-	GA4MeasurementProtocolSecret string
-	PostHogAPIKey                string
-	PostHogHost                  string
-	OtelServiceName              string
-	CloudEnv                     bool
-	IngestEnforceTimeWindow      bool
-	BillingEnabled               bool
+	PG                         PostgresConfig
+	CH                         ClickhouseConfig
+	RD                         RedisConfig
+	IG                         IggyConfig
+	ServiceAccountEmail        string
+	SymbolsBucket              string
+	SymbolsBucketRegion        string
+	SymbolsAccessKey           string
+	SymbolsSecretAccessKey     string
+	AttachmentsBucket          string
+	AttachmentsBucketRegion    string
+	AttachmentsAccessKey       string
+	AttachmentsSecretAccessKey string
+	AWSEndpoint                string
+	AttachmentOrigin           string
+	SiteOrigin                 string
+	APIOrigin                  string
+	AgentOrigin                string
+	SymbolicatorOrigin         string
+	OAuthGitHubKey             string
+	OAuthGitHubSecret          string
+	OAuthGoogleKey             string
+	OAuthGoogleSecret          string
+	AccessTokenSecret          []byte
+	RefreshTokenSecret         []byte
+	SmtpHost                   string
+	SmtpPort                   string
+	SmtpUser                   string
+	SmtpPassword               string
+	EmailDomain                string
+	TxEmailAddress             string
+	SlackClientID              string
+	SlackClientSecret          string
+	SlackSigningSecret         string
+	SlackOAuthStateSecret      string
+	AutumnSecretKey            string
+	AutumnWebhookSecret        string
+	PostHogAPIKey              string
+	PostHogHost                string
+	OtelServiceName            string
+	CloudEnv                   bool
+	IngestEnforceTimeWindow    bool
+	BillingEnabled             bool
 }
 
 // IsCloud is true if the service is
@@ -150,7 +147,7 @@ type Deps struct {
 // NewConfig reads the shared environment contract once and returns the parsed
 // configuration. It is the single source of the env contract for every
 // service: never fork it per service, or the contract drifts. It also
-// performs the package-level inits that read the same env (billing, GA4,
+// performs the package-level inits that read the same env (billing,
 // PostHog), keeping those side effects in one place.
 func NewConfig() *Config {
 	cloudEnv := false
@@ -430,21 +427,6 @@ func NewConfig() *Config {
 		SecretKey: autumnSecretKey,
 	})
 
-	ga4MeasurementID := os.Getenv("GA4_MEASUREMENT_ID")
-	if ga4MeasurementID == "" {
-		log.Println("GA4_MEASUREMENT_ID env var is not set, GA4 conversion events will not be sent")
-	}
-
-	ga4MeasurementProtocolSecret, secErr := secret.FromEnvOrFile("GA4_MEASUREMENT_PROTOCOL_SECRET")
-	if secErr != nil {
-		log.Printf("failed to read GA4_MEASUREMENT_PROTOCOL_SECRET: %v", secErr)
-	}
-	if ga4MeasurementProtocolSecret == "" {
-		log.Println("GA4_MEASUREMENT_PROTOCOL_SECRET env var is not set, GA4 conversion events will not be sent")
-	}
-
-	ga4.Init(ga4MeasurementID, ga4MeasurementProtocolSecret)
-
 	posthogAPIKey := os.Getenv("POSTHOG_API_KEY")
 	if posthogAPIKey == "" {
 		log.Println("POSTHOG_API_KEY env var is not set, PostHog events will not be sent")
@@ -482,47 +464,45 @@ func NewConfig() *Config {
 			Username: iggyUsername,
 			Password: iggyPassword,
 		},
-		ServiceAccountEmail:          serviceAccountEmail,
-		SymbolsBucket:                symbolsBucket,
-		SymbolsBucketRegion:          symbolsBucketRegion,
-		SymbolsAccessKey:             symbolsAccessKey,
-		SymbolsSecretAccessKey:       symbolsSecretAccessKey,
-		AttachmentsBucket:            attachmentsBucket,
-		AttachmentsBucketRegion:      attachmentsBucketRegion,
-		AttachmentsAccessKey:         attachmentsAccessKey,
-		AttachmentsSecretAccessKey:   attachmentsSecretAccessKey,
-		AWSEndpoint:                  endpoint,
-		AttachmentOrigin:             attachmentOrigin,
-		SiteOrigin:                   siteOrigin,
-		APIOrigin:                    apiOrigin,
-		AgentOrigin:                  agentOrigin,
-		SymbolicatorOrigin:           symbolicatorOrigin,
-		OAuthGitHubKey:               oauthGitHubKey,
-		OAuthGitHubSecret:            oauthGitHubSecret,
-		OAuthGoogleKey:               oauthGoogleKey,
-		OAuthGoogleSecret:            oauthGoogleSecret,
-		AccessTokenSecret:            []byte(atSecret),
-		RefreshTokenSecret:           []byte(rtSecret),
-		SmtpHost:                     smtpHost,
-		SmtpPort:                     smtpPort,
-		SmtpUser:                     smtpUser,
-		SmtpPassword:                 smtpPassword,
-		EmailDomain:                  emailDomain,
-		TxEmailAddress:               txEmailAddress,
-		SlackClientID:                slackClientID,
-		SlackClientSecret:            slackClientSecret,
-		SlackSigningSecret:           slackSigningSecret,
-		SlackOAuthStateSecret:        slackOAuthStateSecret,
-		AutumnSecretKey:              autumnSecretKey,
-		AutumnWebhookSecret:          autumnWebhookSecret,
-		GA4MeasurementID:             ga4MeasurementID,
-		GA4MeasurementProtocolSecret: ga4MeasurementProtocolSecret,
-		PostHogAPIKey:                posthogAPIKey,
-		PostHogHost:                  posthogHost,
-		OtelServiceName:              otelServiceName,
-		CloudEnv:                     cloudEnv,
-		IngestEnforceTimeWindow:      enforceIngestTimeWindow,
-		BillingEnabled:               billingEnabled,
+		ServiceAccountEmail:        serviceAccountEmail,
+		SymbolsBucket:              symbolsBucket,
+		SymbolsBucketRegion:        symbolsBucketRegion,
+		SymbolsAccessKey:           symbolsAccessKey,
+		SymbolsSecretAccessKey:     symbolsSecretAccessKey,
+		AttachmentsBucket:          attachmentsBucket,
+		AttachmentsBucketRegion:    attachmentsBucketRegion,
+		AttachmentsAccessKey:       attachmentsAccessKey,
+		AttachmentsSecretAccessKey: attachmentsSecretAccessKey,
+		AWSEndpoint:                endpoint,
+		AttachmentOrigin:           attachmentOrigin,
+		SiteOrigin:                 siteOrigin,
+		APIOrigin:                  apiOrigin,
+		AgentOrigin:                agentOrigin,
+		SymbolicatorOrigin:         symbolicatorOrigin,
+		OAuthGitHubKey:             oauthGitHubKey,
+		OAuthGitHubSecret:          oauthGitHubSecret,
+		OAuthGoogleKey:             oauthGoogleKey,
+		OAuthGoogleSecret:          oauthGoogleSecret,
+		AccessTokenSecret:          []byte(atSecret),
+		RefreshTokenSecret:         []byte(rtSecret),
+		SmtpHost:                   smtpHost,
+		SmtpPort:                   smtpPort,
+		SmtpUser:                   smtpUser,
+		SmtpPassword:               smtpPassword,
+		EmailDomain:                emailDomain,
+		TxEmailAddress:             txEmailAddress,
+		SlackClientID:              slackClientID,
+		SlackClientSecret:          slackClientSecret,
+		SlackSigningSecret:         slackSigningSecret,
+		SlackOAuthStateSecret:      slackOAuthStateSecret,
+		AutumnSecretKey:            autumnSecretKey,
+		AutumnWebhookSecret:        autumnWebhookSecret,
+		PostHogAPIKey:              posthogAPIKey,
+		PostHogHost:                posthogHost,
+		OtelServiceName:            otelServiceName,
+		CloudEnv:                   cloudEnv,
+		IngestEnforceTimeWindow:    enforceIngestTimeWindow,
+		BillingEnabled:             billingEnabled,
 	}
 }
 

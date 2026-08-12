@@ -5,6 +5,7 @@
 
 import {
   captureUTMsFromURL,
+  clearStoredUTMs,
   getUTMState,
   UTM_STORAGE_KEY,
 } from "@/app/utils/analytics/utm";
@@ -200,5 +201,27 @@ describe("getUTMState", () => {
     // 80 days after the second call — still within 90 days of refresh
     jest.setSystemTime(new Date("2024-05-20T00:00:00Z"));
     expect(getUTMState()?.first_touch_utm_source).toBe("google");
+  });
+});
+
+// --------------------------------------------------------------------------
+// clearStoredUTMs — drops the record on consent withdrawal
+// --------------------------------------------------------------------------
+
+describe("clearStoredUTMs", () => {
+  it("removes a stored record", () => {
+    setLocation("https://measure.sh/?utm_source=google&utm_medium=cpc");
+    captureUTMsFromURL();
+    expect(getUTMState()?.first_touch_utm_source).toBe("google");
+
+    clearStoredUTMs();
+
+    expect(window.localStorage.getItem(UTM_STORAGE_KEY)).toBeNull();
+    expect(getUTMState()).toBeNull();
+  });
+
+  it("is a no-op when nothing is stored", () => {
+    clearStoredUTMs();
+    expect(getUTMState()).toBeNull();
   });
 });

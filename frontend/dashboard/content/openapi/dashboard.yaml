@@ -63,19 +63,6 @@ paths:
 
         Should pass in type as "code" along with state and code received from Github.
       security: []
-      parameters:
-        - name: ga_client_id
-          in: query
-          required: false
-          description: Optional Google Analytics client identifier forwarded during sign-in.
-          schema:
-            type: string
-        - name: gclid
-          in: query
-          required: false
-          description: Optional Google Ads click identifier forwarded during sign-in.
-          schema:
-            type: string
       requestBody:
         required: true
         content:
@@ -146,19 +133,6 @@ paths:
 
         Should pass in type as "code" along with state and code received from Google.
       security: []
-      parameters:
-        - name: ga_client_id
-          in: query
-          required: false
-          description: Optional Google Analytics client identifier forwarded during sign-in.
-          schema:
-            type: string
-        - name: gclid
-          in: query
-          required: false
-          description: Optional Google Ads click identifier forwarded during sign-in.
-          schema:
-            type: string
       requestBody:
         required: true
         content:

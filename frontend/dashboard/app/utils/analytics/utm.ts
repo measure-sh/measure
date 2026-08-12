@@ -153,5 +153,19 @@ export function getUTMState(): UTMState | null {
   return state;
 }
 
+// clearStoredUTMs drops the persisted record. Called when marketing consent is
+// withdrawn: the record may only be kept while that consent stands.
+// No-op in SSR.
+export function clearStoredUTMs(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // ignore disabled-storage failures
+  }
+}
+
 // Exported storage key so tests and tooling can clear or inspect it.
 export const UTM_STORAGE_KEY = STORAGE_KEY;

@@ -30,7 +30,7 @@ export default function PrivacyPolicy() {
         <div className="max-w-6xl mx-auto px-4 py-8 font-body">
           {/* Header */}
           <h1 className="text-5xl font-display mb-2">Privacy Policy</h1>
-          <p className="text-muted-foreground mb-8">Updated: May 16, 2026</p>
+          <p className="text-muted-foreground mb-8">Updated: Aug 12, 2026</p>
 
           {/* Introduction */}
           <p className="mb-4 text-justify text-lg">
@@ -327,11 +327,14 @@ export default function PrivacyPolicy() {
 
           <p className="mb-4 text-justify text-lg">
             Analytics and Marketing Cookies are only set after you give consent
-            through our cookie banner. You can review or withdraw your consent
-            at any time using the &quot;Cookie Preferences&quot; link in the
-            Website footer. We use a third-party consent management platform to
-            display the cookie banner and to store a record of your consent
-            choices.
+            through our cookie banner. Before you make a choice, and if you
+            decline, our analytics provider runs in a cookieless mode: it stores
+            nothing on your device, does not record your session, and counts
+            visits using a temporary identifier that cannot be linked back to
+            you. You can review or withdraw your consent at any time using the
+            &quot;Cookie Preferences&quot; link in the Website footer. We use a
+            third-party consent management platform to display the cookie banner
+            and to store a record of your consent choices.
           </p>
 
           {/* Use of Your Personal Data */}

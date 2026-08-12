@@ -266,9 +266,6 @@ func (h Handlers) SigninGitHub(c *gin.Context) {
 			return
 		}
 
-		gaClientID := c.Query("ga_client_id")
-		gclid := c.Query("gclid")
-
 		githubToken, err := authsession.ExchangeCodeForToken(deps.Config.SiteOrigin, deps.Config.OAuthGitHubKey, deps.Config.OAuthGitHubSecret, authCode.Code)
 		if err != nil {
 			fmt.Println(msg, err)
@@ -319,12 +316,6 @@ func (h Handlers) SigninGitHub(c *gin.Context) {
 				})
 				return
 			}
-
-			if err := measure.SaveUserAttribution(ctx, deps.PgPool, *msrUser.ID, gaClientID, gclid); err != nil {
-				fmt.Println("failed to save user attribution:", err)
-			}
-
-			measure.FireSignupEvent(ctx, msrUser, "github", gaClientID)
 
 			if err := measure.CreateNotifPref(deps.PgPool, uuid.MustParse(*msrUser.ID)); err != nil {
 				fmt.Println("failed to create notif prefs", err)
@@ -475,9 +466,6 @@ func (h Handlers) SigninGoogle(c *gin.Context) {
 			return
 		}
 
-		gaClientID := c.Query("ga_client_id")
-		gclid := c.Query("gclid")
-
 		redirectURI := fmt.Sprintf("%s/auth/callback/google", deps.Config.SiteOrigin)
 		_, idToken, err := authsession.ExchangeGoogleCode(
 			authCode.Code,
@@ -540,12 +528,6 @@ func (h Handlers) SigninGoogle(c *gin.Context) {
 				})
 				return
 			}
-
-			if err := measure.SaveUserAttribution(ctx, deps.PgPool, *msrUser.ID, gaClientID, gclid); err != nil {
-				fmt.Println("failed to save user attribution:", err)
-			}
-
-			measure.FireSignupEvent(ctx, msrUser, "google", gaClientID)
 
 			if err := measure.CreateNotifPref(deps.PgPool, uuid.MustParse(*msrUser.ID)); err != nil {
 				fmt.Println("failed to create notif prefs", err)

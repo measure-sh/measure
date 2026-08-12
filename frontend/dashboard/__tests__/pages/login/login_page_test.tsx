@@ -58,8 +58,10 @@ jest.mock("posthog-js", () => ({
   posthog: { identify: (...args: [...any[]]) => mockPosthogIdentify(...args) },
 }));
 
+let mockIsCloud = false;
 jest.mock("@/app/utils/env_utils", () => ({
-  isCloud: () => false,
+  __esModule: true,
+  isCloud: () => mockIsCloud,
 }));
 
 // Full-page navigation goes through the navigation module because jsdom's
@@ -72,6 +74,7 @@ jest.mock("@/app/utils/navigation", () => ({
 
 describe("Login Page", () => {
   beforeEach(() => {
+    mockIsCloud = false;
     mockAssign.mockClear();
     mockRouterReplace.mockClear();
     mockValidateInvites.mockClear();
@@ -404,5 +407,31 @@ describe("Login Page", () => {
     );
 
     expect(mockValidateInvites).not.toHaveBeenCalled();
+  });
+
+  it("links terms of service and privacy policy in cloud mode", async () => {
+    mockIsCloud = true;
+
+    await act(async () => {
+      render(<Login searchParams={promiseParams({})} />);
+    });
+
+    expect(screen.getByText(/By continuing, you agree to our/)).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: "Terms of Service" }),
+    ).toHaveAttribute("href", "/terms-of-service");
+    expect(
+      screen.getByRole("link", { name: "Privacy Policy" }),
+    ).toHaveAttribute("href", "/privacy-policy");
+  });
+
+  it("omits the terms notice when self-hosted", async () => {
+    await act(async () => {
+      render(<Login searchParams={promiseParams({})} />);
+    });
+
+    expect(
+      screen.queryByText(/By continuing, you agree to our/),
+    ).not.toBeInTheDocument();
   });
 });

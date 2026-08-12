@@ -7,12 +7,15 @@ import { queryClient } from "@/app/query/query_client";
 import { useMeasureStoreRegistry } from "@/app/stores/provider";
 import { resetAllStores } from "@/app/stores/reset_all";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { posthog } from "posthog-js";
 import { use, useEffect, useState } from "react";
 import { determineAcquisitionSource } from "@/app/utils/analytics/acquisition";
 import { getStoredGCLID } from "@/app/utils/analytics/attribution";
 import { getUTMState } from "@/app/utils/analytics/utm";
+import { isCloud } from "@/app/utils/env_utils";
+import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import GitHubSignIn from "./github-sign-in";
 import GoogleSignIn from "./google-sign-in";
 import Messages from "./messages";
@@ -170,6 +173,20 @@ export default function Login(props: {
           <GitHubSignIn mcpAuthorizeUrl={mcpGitHubUrl} />
         )}
       </div>
+      {/* Cloud only: self-hosted deployments aren't bound by these terms. */}
+      {isCloud() && (
+        <p className="font-body text-center text-sm text-muted-foreground max-w-100">
+          By continuing, you agree to our{" "}
+          <Link href="/terms-of-service" className={underlineLinkStyle}>
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy-policy" className={underlineLinkStyle}>
+            Privacy Policy
+          </Link>
+          .
+        </p>
+      )}
       {!isMcp && inviteInvalid && (
         <p className="font-display text-center text-sm p-2 my-4 text-red-600">
           Invalid or expired invite link.

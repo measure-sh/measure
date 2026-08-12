@@ -1,10 +1,5 @@
 import { NextResponse } from "next/server";
 import { getPosthogServer } from "../../../posthog-server";
-import {
-  appendAttributionToURL,
-  parseCookieValue,
-  parseGAClientID,
-} from "../../../utils/analytics/attribution";
 import { setCookiesFromJWT } from "../../cookie";
 
 export const dynamic = "force-dynamic";
@@ -64,14 +59,7 @@ export async function GET(request: Request) {
   if (!apiOrigin) {
     throw new Error("API_BASE_URL is not set");
   }
-  const cookieHeader = request.headers.get("cookie");
-  const gaClientId = parseGAClientID(parseCookieValue(cookieHeader, "_ga"));
-  const gclid = parseCookieValue(cookieHeader, "gclid");
-  const codeUrl = appendAttributionToURL(
-    `${apiOrigin}/auth/github`,
-    gaClientId,
-    gclid,
-  );
+  const codeUrl = `${apiOrigin}/auth/github`;
 
   const res = await fetch(codeUrl, {
     method: "POST",

@@ -9,7 +9,13 @@ import {
 } from "@c15t/nextjs";
 import { googleTagManager } from "@c15t/scripts/google-tag-manager";
 import { PostHogProvider } from "../context/posthog";
+import { clearStoredGCLID } from "../utils/analytics/attribution";
+import { clearStoredUTMs } from "../utils/analytics/utm";
 import { isCloud } from "../utils/env_utils";
+import {
+  AttributionCapture,
+  ConsentedAttributionCapture,
+} from "./analytics/attribution_capture";
 import { buttonVariants } from "./button_variants";
 
 // Flip to true to run c15t offline (no backend) for local testing — the
@@ -117,7 +123,12 @@ export function ConsentManager({ children }: { children: React.ReactNode }) {
   } else if (isCloud() && backendURL) {
     init = { mode: "hosted", backendURL };
   } else {
-    return <>{children}</>;
+    return (
+      <>
+        <AttributionCapture />
+        {children}
+      </>
+    );
   }
 
   return (
@@ -131,6 +142,20 @@ export function ConsentManager({ children }: { children: React.ReactNode }) {
           : {}),
         consentCategories: ["necessary", "measurement", "marketing"],
         theme: measureTheme,
+        callbacks: {
+          // Withdrawal must also remove what earlier consent allowed us to
+          // store. onConsentChanged fires only on an explicit save that changes
+          // saved consent, so it stays clear of init, hydration & the auto grant
+          // path where nothing was withdrawn. Runs before c15t's revocation
+          // reload, so a synchronous clear completes.
+          onConsentChanged: ({ deniedCategories }) => {
+            if (!deniedCategories.includes("marketing")) {
+              return;
+            }
+            clearStoredUTMs();
+            clearStoredGCLID();
+          },
+        },
         legalLinks: {
           privacyPolicy: { href: "/privacy-policy", target: "_self" },
         },
@@ -145,6 +170,7 @@ export function ConsentManager({ children }: { children: React.ReactNode }) {
           `legalLinks` option above. `hideBranding` removes the c15t watermark. */}
       <ConsentBanner hideBranding legalLinks={["privacyPolicy"]} />
       <ConsentDialog hideBranding legalLinks={["privacyPolicy"]} />
+      <ConsentedAttributionCapture />
       <PostHogProvider proxyPath="/yrtmlt">{children}</PostHogProvider>
     </ConsentManagerProvider>
   );

@@ -178,7 +178,7 @@ describe("GitHub Callback Route", () => {
     expect(mockRedirect.mock.calls[0][1]).toEqual({ status: 302 });
   });
 
-  it("dashboard flow: appends ga_client_id and gclid query params when both cookies are set", async () => {
+  it("dashboard flow: posts to the bare auth URL, ignoring analytics cookies", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: () =>
@@ -197,7 +197,7 @@ describe("GitHub Callback Route", () => {
     );
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:8080/auth/github?ga_client_id=111.222&gclid=gclid-abc",
+      "http://localhost:8080/auth/github",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({
@@ -206,48 +206,6 @@ describe("GitHub Callback Route", () => {
           code: "gh-code",
         }),
       }),
-    );
-  });
-
-  it("dashboard flow: appends only ga_client_id when gclid cookie is absent", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          own_team_id: "team-abc",
-          access_token: "at",
-          refresh_token: "rt",
-        }),
-    });
-
-    await GET(
-      makeRequest("?code=gh-code&state=dashboard-state", "_ga=GA1.1.111.222"),
-    );
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:8080/auth/github?ga_client_id=111.222",
-      expect.anything(),
-    );
-  });
-
-  it("dashboard flow: malformed _ga cookie does not append ga_client_id", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          own_team_id: "team-abc",
-          access_token: "at",
-          refresh_token: "rt",
-        }),
-    });
-
-    await GET(
-      makeRequest("?code=gh-code&state=dashboard-state", "_ga=garbage"),
-    );
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost:8080/auth/github",
-      expect.anything(),
     );
   });
 
