@@ -2,9 +2,14 @@ package sh.measure.android
 
 import android.app.Application
 import sh.measure.android.anr.AnrCollector
+import sh.measure.android.anr.AnrExit
+import sh.measure.android.anr.AnrExitCollector
+import sh.measure.android.anr.AnrExitImpl
+import sh.measure.android.anr.DraftAnrStore
+import sh.measure.android.anr.DraftAnrStoreImpl
+import sh.measure.android.appexit.AppExit
 import sh.measure.android.appexit.AppExitCollector
-import sh.measure.android.appexit.AppExitProvider
-import sh.measure.android.appexit.AppExitProviderImpl
+import sh.measure.android.appexit.AppExitImpl
 import sh.measure.android.applaunch.AppLaunchCollector
 import sh.measure.android.applaunch.LaunchTracker
 import sh.measure.android.attributes.AppAttributeProcessor
@@ -325,12 +330,28 @@ internal class MeasureInitializerImpl(
         signalProcessor = signalProcessor,
         nativeBridge = nativeBridgeImpl,
     ),
-    private val appExitProvider: AppExitProvider = AppExitProviderImpl(
+    private val anrExit: AnrExit = AnrExitImpl(
+        logger = logger,
+        systemServiceProvider = systemServiceProvider,
+    ),
+    private val draftAnrStore: DraftAnrStore = DraftAnrStoreImpl(
+        logger = logger,
+        database = database,
+        fileStorage = fileStorage,
+    ),
+    override val anrExitCollector: AnrExitCollector = AnrExitCollector(
+        anrExit = anrExit,
+        draftAnrStore = draftAnrStore,
+        signalProcessor = signalProcessor,
+        sessionManager = sessionManager,
+        processInfo = processInfoProvider,
+    ),
+    private val appExit: AppExit = AppExitImpl(
         logger = logger,
         systemServiceProvider = systemServiceProvider,
     ),
     override val appExitCollector: AppExitCollector = AppExitCollector(
-        appExitProvider = appExitProvider,
+        appExit = appExit,
         signalProcessor = signalProcessor,
         sessionManager = sessionManager,
     ),
@@ -500,6 +521,7 @@ internal interface MeasureInitializer {
     val sessionManager: SessionManager
     val unhandledExceptionCollector: UnhandledExceptionCollector
     val anrCollector: AnrCollector
+    val anrExitCollector: AnrExitCollector
     val appExitCollector: AppExitCollector
     val cpuUsageCollector: CpuUsageCollector
     val memoryUsageCollector: MemoryUsageCollector

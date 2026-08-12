@@ -52,5 +52,15 @@
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
             android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
+        <receiver
+            android:name=".AnrBroadcastReceiver"
+            android:exported="false" />
+        <service
+            android:name=".AnrService"
+            android:exported="false" />
+        <service
+            android:name=".AnrJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 </manifest>

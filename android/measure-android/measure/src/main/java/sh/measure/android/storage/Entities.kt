@@ -8,6 +8,18 @@ import sh.measure.android.events.EventType
 import sh.measure.android.tracing.SpanStatus
 
 /**
+ * An ANR whose body is still a draft, waiting for the system's thread dump for its
+ * process to be merged into it. [pid] identifies the process that recorded it, taken
+ * from its session.
+ */
+internal data class DraftAnr(
+    val eventId: String,
+    val timestamp: String,
+    val filePath: String?,
+    val pid: Int,
+)
+
+/**
  * Maps an event to [EventTable] in the database.
  */
 internal data class EventEntity(
@@ -65,6 +77,12 @@ internal data class EventEntity(
      * Whether the event needs to be reported to the server.
      */
     val isSampled: Boolean = false,
+
+    /**
+     * Whether the body of the event is not its final version. A draft is stored, but
+     * not exported until it is finalized.
+     */
+    val isDraft: Boolean = false,
 ) {
     init {
         require(filePath != null || serializedData != null) {

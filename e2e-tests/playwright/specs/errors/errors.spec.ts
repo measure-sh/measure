@@ -410,9 +410,9 @@ test.describe("errors", () => {
     test.describe("anr", { tag: "@android" }, () => {
       const anrPill = "ANR";
       const fatalPill = "Fatal";
+      const reason = /^Broadcast of Intent/;
 
-      const selectRow = () =>
-        overview.selectErrorGroupRowByTitle(/NativeAndroidScreen\.kt/);
+      const selectRow = () => overview.selectErrorGroupRowByType(reason);
 
       test.beforeEach(async ({ appId }) => {
         await overview.gotoAnrs(appId);
@@ -421,7 +421,7 @@ test.describe("errors", () => {
 
       test("error group row renders the anr", async () => {
         const row = selectRow();
-        await expect(row).toBeVisible();
+        await expect(row).toContainText("AnrBroadcastReceiver");
         await expect(overview.selectGroupRowPill(row, anrPill)).toBeVisible();
         await expect(overview.selectGroupRowPill(row, fatalPill)).toBeVisible();
         await expect(
@@ -447,11 +447,33 @@ test.describe("errors", () => {
         await expect(detail.selectErrorPill(anrPill)).toBeVisible();
         await expect(detail.selectErrorPill(fatalPill)).toBeVisible();
 
+        await expect(detail.anrReason).toContainText("Broadcast of Intent");
+        await expect(detail.anrReason).toContainText("AnrBroadcastReceiver");
+
+        // The dump covers every thread, so it replaces the SDK's own capture.
+        await expect(detail.artThreadDumpLabel).toBeVisible();
         await expect(detail.errorThreadStacktrace).toContainText(
+          "sh.frankenstein.android.AnrBroadcastReceiver.onReceive",
+        );
+        await expect(detail.errorThreadStacktrace).not.toContainText(
           "sh.measure.android.anr.AnrError",
         );
+
+        // Daemons the runtime starts in every process. Their absence means the
+        // dump was cut short after the thread the system blamed.
         await expect(detail.errorThreadStacktrace).toContainText(
-          "sh.frankenstein.android.NativeAndroidScreenKt",
+          "ReferenceQueueDaemon",
+        );
+        await expect(detail.errorThreadStacktrace).toContainText(
+          "FinalizerWatchdogDaemon",
+        );
+        // The runtime's stats that follow the last thread are dropped.
+        await expect(detail.errorThreadStacktrace).not.toContainText(
+          /Zygote loaded classes/,
+        );
+        // Every frame of the dump is deobfuscated, not just the blamed thread's.
+        await expect(detail.errorThreadStacktrace).not.toContainText(
+          /r8-map-id-/,
         );
       });
 
@@ -465,16 +487,16 @@ test.describe("errors", () => {
         const replay = new SessionReplayPage(page, teamId);
 
         await expect(replay.eventsList).toBeVisible();
-        const event = replay.selectAnr(/sh\.measure\.android\.anr\.AnrError/);
+        const event = replay.selectAnr(/Broadcast of Intent/);
         await expect(event).toBeVisible();
         await expect(replay.selectEventPill(event, anrPill)).toBeVisible();
 
         await event.click();
         await expect(replay.eventDetails).toContainText(
-          "sh.measure.android.anr.AnrError",
+          "Broadcast of Intent",
         );
         await expect(replay.eventDetails).toContainText(
-          "sh.frankenstein.android.NativeAndroidScreenKt",
+          "sh.frankenstein.android.AnrBroadcastReceiver.onReceive",
         );
 
         await replay.openAnrDetails();

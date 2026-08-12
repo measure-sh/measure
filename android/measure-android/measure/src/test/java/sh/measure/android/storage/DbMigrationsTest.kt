@@ -353,4 +353,25 @@ class DbMigrationsTest {
 
         db.close()
     }
+
+    @Test
+    fun `migration v9 to v10 adds pending column to events`() {
+        val db = TestDatabaseHelper.createDatabase(DbVersion.V9)
+
+        // Perform migration
+        DbMigrations.apply(logger, db, DbVersion.V9, DbVersion.V10)
+
+        // Verify the new column exists on events
+        val tableInfoCursor = db.queryTableInfo("events")
+        val columnNames = mutableListOf<String>()
+        if (tableInfoCursor.moveToFirst()) {
+            do {
+                columnNames.add(tableInfoCursor.getString(tableInfoCursor.getColumnIndexOrThrow("name")))
+            } while (tableInfoCursor.moveToNext())
+        }
+        tableInfoCursor.close()
+        assertTrue(columnNames.contains(EventTable.COL_DRAFT))
+
+        db.close()
+    }
 }

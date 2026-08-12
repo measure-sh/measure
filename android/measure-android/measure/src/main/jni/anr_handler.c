@@ -15,6 +15,8 @@
 #define MSR_LOGE(...) __android_log_print(ANDROID_LOG_ERROR, MSR_LOG_TAG, __VA_ARGS__)
 
 static bool is_anr_handler_enabled = false;
+static bool is_anr_handler_installed = false;
+static bool is_jni_cleanup_key_created = false;
 static pthread_mutex_t anr_handler_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static pthread_t watchdog_thread;
@@ -168,7 +170,7 @@ static long long get_current_time_ms() {
         MSR_LOGE("Failed to get current time");
         return -1;
     }
-    return (long long)ts.tv_sec * 1000LL;
+    return (long long)ts.tv_sec * 1000LL + ts.tv_nsec / 1000000LL;
 }
 
 static void block_sigquit() {
@@ -240,6 +242,9 @@ static bool init_jni(JNIEnv *env, jobject bridge) {
     }
 
     // Create a global reference for the bridge object
+    if (gBridgeObj != NULL) {
+        (*env)->DeleteGlobalRef(env, gBridgeObj);
+    }
     gBridgeObj = (*env)->NewGlobalRef(env, bridge);
     if (gBridgeObj == NULL) {
         MSR_LOGE("Failed to create global reference for ");
@@ -253,7 +258,10 @@ static bool init_jni(JNIEnv *env, jobject bridge) {
         return false;
     }
 
-    pthread_key_create(&jni_cleanup_key, detach_env);
+    if (!is_jni_cleanup_key_created) {
+        pthread_key_create(&jni_cleanup_key, detach_env);
+        is_jni_cleanup_key_created = true;
+    }
     return true;
 }
 
@@ -265,28 +273,34 @@ bool msr_enable_anr_handler(JNIEnv *env, jobject bridge) {
         return false;
     }
 
-    if (sem_init(&watchdog_thread_semaphore, /* pshared */ 0, /* initial */ 0) != 0) {
-        MSR_LOGD("Failed to init semaphore");
-    }
+    // installed once and left in place, so enabling again only re-arms it.
+    // a second watchdog thread would wait on the semaphore forever.
+    if (!is_anr_handler_installed) {
+        if (sem_init(&watchdog_thread_semaphore, /* pshared */ 0, /* initial */ 0) != 0) {
+            MSR_LOGD("Failed to init semaphore");
+        }
 
-    // get the thread id of the Android "Signal Catcher" thread
-    if (!init_signal_catcher_tid()) {
-        MSR_LOGD("Failed to get Android signal catcher thread id");
-    }
+        // get the thread id of the Android "Signal Catcher" thread
+        if (!init_signal_catcher_tid()) {
+            MSR_LOGD("Failed to get Android signal catcher thread id");
+        }
 
-    // create a watchdog thread to monitor change to sigquit_detected
-    if (pthread_create(&watchdog_thread, NULL, watchdog_start_routine, NULL) != 0) {
-        MSR_LOGE("Failed to create watchdog thread");
-        pthread_mutex_unlock(&anr_handler_lock);
-        return false;
-    }
+        // create a watchdog thread to monitor change to sigquit_detected
+        if (pthread_create(&watchdog_thread, NULL, watchdog_start_routine, NULL) != 0) {
+            MSR_LOGE("Failed to create watchdog thread");
+            pthread_mutex_unlock(&anr_handler_lock);
+            return false;
+        }
 
-    // install signal handler for SIGQUIT
-    if (!install_signal_handler()) {
-        MSR_LOGE("Failed to install signal handler for SIGQUIT");
-        pthread_detach(watchdog_thread);
-        pthread_mutex_unlock(&anr_handler_lock);
-        return false;
+        // install signal handler for SIGQUIT
+        if (!install_signal_handler()) {
+            MSR_LOGE("Failed to install signal handler for SIGQUIT");
+            pthread_detach(watchdog_thread);
+            pthread_mutex_unlock(&anr_handler_lock);
+            return false;
+        }
+
+        is_anr_handler_installed = true;
     }
 
     // unblock SIGQUIT to break the Android "Signal Catcher" from receiving the signal
@@ -297,6 +311,8 @@ bool msr_enable_anr_handler(JNIEnv *env, jobject bridge) {
     return true;
 }
 
+// the signal handler stays installed, so SIGQUIT keeps reaching the android
+// signal catcher, which writes the trace the system's ANR report is built from.
 void msr_disable_anr_handler(void) {
     pthread_mutex_lock(&anr_handler_lock);
     is_anr_handler_enabled = false;

@@ -1,7 +1,6 @@
 package sh.measure.android.events
 
 import sh.measure.android.SessionManager
-import sh.measure.android.appexit.AppExit
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
@@ -59,35 +58,20 @@ internal interface SignalProcessor {
     )
 
     /**
-     * App exit events can be triggered for an older session. This method is used to track app exit
-     * events for a specific session with the attributes provided.
-     */
-    fun trackAppExit(
-        data: AppExit,
-        timestamp: Long,
-        type: EventType,
-        threadName: String,
-        sessionId: String,
-        sessionStartTime: Long,
-        appVersion: String?,
-        appBuild: String?,
-        isSampled: Boolean = true,
-    )
-
-    /**
-     * Profile events can be delivered by the OS after the session they were captured in has
-     * ended. This method is used to track profile events for a specific session with the
+     * The OS delivers some signals, like a profile or its record of an ANR, only after the
+     * session that produced them has ended. This method tracks them for that session with the
      * attributes provided. The session attributes are left untouched when they are unknown.
      */
-    fun trackProfile(
-        data: ProfileData,
+    fun <T> trackForSession(
+        data: T,
         timestamp: Long,
         type: EventType,
-        attachments: MutableList<Attachment>,
         sessionId: String,
         sessionStartTime: Long?,
         appVersion: String?,
         appBuild: String?,
+        attachments: MutableList<Attachment> = mutableListOf(),
+        threadName: String = Thread.currentThread().name,
         isSampled: Boolean = true,
     )
 
@@ -106,6 +90,9 @@ internal interface SignalProcessor {
      * Tracks a crash event with the given exception data, timestamp, type, attributes and attachments.
      * This method is used to track ANRs and unhandled exceptions. Such events are processed
      * synchronously and are attempted to be exported immediately.
+     *
+     * @param draft Whether the body is not the final version. A draft is stored, but not
+     * exported until it is finalized.
      */
     fun trackCrash(
         data: ExceptionData,
@@ -116,6 +103,7 @@ internal interface SignalProcessor {
         attachments: MutableList<Attachment> = mutableListOf(),
         threadName: String? = null,
         takeScreenshot: Boolean = true,
+        draft: Boolean = false,
     )
 
     fun trackSpan(spanData: SpanData)
@@ -205,51 +193,16 @@ internal class SignalProcessorImpl(
         }
     }
 
-    override fun trackAppExit(
-        data: AppExit,
+    override fun <T> trackForSession(
+        data: T,
         timestamp: Long,
         type: EventType,
-        threadName: String,
-        sessionId: String,
-        sessionStartTime: Long,
-        appVersion: String?,
-        appBuild: String?,
-        isSampled: Boolean,
-    ) {
-        InternalTrace.trace(
-            label = { "msr-trackEvent" },
-            block = {
-                val attributes = mutableMapOf<String, Any?>()
-                val event = createEvent(
-                    data = data,
-                    timestamp = timestamp,
-                    type = type,
-                    attachments = mutableListOf(),
-                    attributes = attributes,
-                    userTriggered = false,
-                    userDefinedAttributes = mutableMapOf(),
-                    sessionId = sessionId,
-                    isSampled = isSampled,
-                ) ?: return@trace
-                applyAttributes(event, threadName)
-                event.updateVersionAttribute(appVersion, appBuild)
-                event.updateSessionStartTimeAttribute(sessionStartTime)
-                InternalTrace.trace(label = { "msr-store-event" }, block = {
-                    signalStore.store(event)
-                })
-            },
-        )
-    }
-
-    override fun trackProfile(
-        data: ProfileData,
-        timestamp: Long,
-        type: EventType,
-        attachments: MutableList<Attachment>,
         sessionId: String,
         sessionStartTime: Long?,
         appVersion: String?,
         appBuild: String?,
+        attachments: MutableList<Attachment>,
+        threadName: String,
         isSampled: Boolean,
     ) {
         InternalTrace.trace(
@@ -266,7 +219,7 @@ internal class SignalProcessorImpl(
                     sessionId = sessionId,
                     isSampled = isSampled,
                 ) ?: return@trace
-                applyAttributes(event, Thread.currentThread().name)
+                applyAttributes(event, threadName)
                 event.updateVersionAttribute(appVersion, appBuild)
                 if (sessionStartTime != null) {
                     event.updateSessionStartTimeAttribute(sessionStartTime)
@@ -288,6 +241,7 @@ internal class SignalProcessorImpl(
         attachments: MutableList<Attachment>,
         threadName: String?,
         takeScreenshot: Boolean,
+        draft: Boolean,
     ) {
         val thread = threadName ?: Thread.currentThread().name
         val event = createEvent(
@@ -299,6 +253,7 @@ internal class SignalProcessorImpl(
             userTriggered = false,
             userDefinedAttributes = userDefinedAttributes,
             isSampled = true,
+            isDraft = draft,
         ) ?: return
         if (event.type == EventType.EXCEPTION) {
             if (configProvider.crashTakeScreenshot && takeScreenshot) {
@@ -383,6 +338,7 @@ internal class SignalProcessorImpl(
         userTriggered: Boolean,
         sessionId: String? = null,
         isSampled: Boolean = false,
+        isDraft: Boolean = false,
     ): Event<T>? {
         if (!validateUserDefinedAttributes(type.value, userDefinedAttributes)) {
             return null
@@ -401,6 +357,7 @@ internal class SignalProcessorImpl(
             userTriggered = userTriggered,
             userDefinedAttributes = userDefinedAttributes,
             isSampled = applyEventSampling(type, resolvedSessionId, resolvedIsSampled),
+            isDraft = isDraft,
         )
     }
 

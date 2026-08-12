@@ -80,15 +80,16 @@ class ProfileCollectorTest {
 
         profileCollector.handleProfilingResult(file.absolutePath, ProfilingTrigger.TRIGGER_TYPE_ANR)
 
-        verify(signalProcessor).trackProfile(
+        verify(signalProcessor).trackForSession(
             data = eq(ProfileData(reason = "anr", format = "perfetto_trace")),
             timestamp = eq(anrTime),
             type = eq(EventType.PROFILE),
-            attachments = any(),
             sessionId = eq("anr-session"),
             sessionStartTime = eq(profileTime - 60_000),
             appVersion = eq("1.0.0"),
             appBuild = eq("100"),
+            attachments = any(),
+            threadName = any(),
             isSampled = eq(true),
         )
     }
@@ -104,15 +105,16 @@ class ProfileCollectorTest {
 
         profileCollector.handleProfilingResult(file.absolutePath, ProfilingTrigger.TRIGGER_TYPE_ANR)
 
-        verify(signalProcessor).trackProfile(
+        verify(signalProcessor).trackForSession(
             data = eq(ProfileData(reason = "anr", format = "perfetto_trace")),
             timestamp = eq(profileTime),
             type = eq(EventType.PROFILE),
-            attachments = any(),
             sessionId = eq("time-session"),
             sessionStartTime = eq(profileTime - 5_000),
             appVersion = eq("1.0.0"),
             appBuild = eq("100"),
+            attachments = any(),
+            threadName = any(),
             isSampled = eq(true),
         )
     }
@@ -129,15 +131,16 @@ class ProfileCollectorTest {
         profileCollector.handleProfilingResult(file.absolutePath, ProfilingTrigger.TRIGGER_TYPE_APP_FULLY_DRAWN)
 
         assertTrue(sessionManager.sessionForAnrCalls.isEmpty())
-        verify(signalProcessor).trackProfile(
+        verify(signalProcessor).trackForSession(
             data = eq(ProfileData(reason = "app_fully_drawn", format = "perfetto_trace")),
             timestamp = eq(profileTime),
             type = eq(EventType.PROFILE),
-            attachments = any(),
             sessionId = eq("launch-session"),
             sessionStartTime = eq(profileTime - 2_000),
             appVersion = eq("1.0.0"),
             appBuild = eq("100"),
+            attachments = any(),
+            threadName = any(),
             isSampled = eq(true),
         )
     }
@@ -149,15 +152,16 @@ class ProfileCollectorTest {
 
         profileCollector.handleProfilingResult(file.absolutePath, ProfilingTrigger.TRIGGER_TYPE_ANR)
 
-        verify(signalProcessor).trackProfile(
+        verify(signalProcessor).trackForSession(
             data = eq(ProfileData(reason = "anr", format = "perfetto_trace")),
             timestamp = any(),
             type = eq(EventType.PROFILE),
-            attachments = any(),
             sessionId = eq(sessionManager.getSessionId()),
             sessionStartTime = isNull(),
             appVersion = isNull(),
             appBuild = isNull(),
+            attachments = any(),
+            threadName = any(),
             isSampled = eq(true),
         )
     }
@@ -176,15 +180,16 @@ class ProfileCollectorTest {
         profileCollector.handleProfilingResult(file.absolutePath, ProfilingTrigger.TRIGGER_TYPE_APP_FULLY_DRAWN)
 
         assertEquals(listOf(profileTime), sessionManager.sessionForTimeCalls)
-        verify(signalProcessor).trackProfile(
+        verify(signalProcessor).trackForSession<ProfileData>(
             data = any(),
             timestamp = eq(profileTime),
             type = any(),
-            attachments = any(),
             sessionId = eq("launch-session"),
             sessionStartTime = eq(profileTime - 2_000),
             appVersion = eq("1.0.0"),
             appBuild = eq("100"),
+            attachments = any(),
+            threadName = any(),
             isSampled = eq(true),
         )
     }
@@ -199,15 +204,16 @@ class ProfileCollectorTest {
         profileCollector.handleProfilingResult(file.absolutePath, ProfilingTrigger.TRIGGER_TYPE_APP_FULLY_DRAWN)
 
         assertEquals(listOf(lastModified), sessionManager.sessionForTimeCalls)
-        verify(signalProcessor).trackProfile(
+        verify(signalProcessor).trackForSession<ProfileData>(
             data = any(),
             timestamp = eq(lastModified),
             type = any(),
-            attachments = any(),
             sessionId = any(),
             sessionStartTime = isNull(),
             appVersion = isNull(),
             appBuild = isNull(),
+            attachments = any(),
+            threadName = any(),
             isSampled = eq(true),
         )
     }

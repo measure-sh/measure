@@ -21,6 +21,7 @@ internal object DbMigrations {
                             DbVersion.V7 -> migrateToV7(this)
                             DbVersion.V8 -> migrateToV8(this)
                             DbVersion.V9 -> migrateToV9(this)
+                            DbVersion.V10 -> migrateToV10(this)
                             else -> logger.log(
                                 LogLevel.Debug,
                                 "Db migration failed: $version not found ",
@@ -148,5 +149,9 @@ internal object DbMigrations {
 
     private fun migrateToV9(db: SQLiteDatabase) {
         db.execSQL("ALTER TABLE ${SessionsTable.TABLE_NAME} ADD COLUMN ${SessionsTable.COL_LAST_ANR_TIME} INTEGER DEFAULT NULL;")
+    }
+
+    private fun migrateToV10(db: SQLiteDatabase) {
+        db.execSQL("ALTER TABLE ${EventTable.TABLE_NAME} ADD COLUMN ${EventTable.COL_DRAFT} INTEGER NOT NULL DEFAULT 0;")
     }
 }

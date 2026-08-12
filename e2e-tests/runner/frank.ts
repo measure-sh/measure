@@ -1,4 +1,4 @@
-import { rmSync, writeFileSync } from "node:fs";
+import { existsSync, rmSync, writeFileSync } from "node:fs";
 import { runOrThrow } from "./exec.ts";
 import { log } from "./log.ts";
 import type { AppKeys } from "./setup-apps.ts";
@@ -37,6 +37,22 @@ export async function buildAndInstallAndroid(repoRoot: string): Promise<void> {
     recursive: true,
     force: true,
   });
+  // Nothing declares flutter-symbols as a build output, so once it is deleted
+  // neither cache notices and the plugin uploads no symbols, leaving Flutter
+  // frames unsymbolicated. Regenerating them takes both: --rerun for Gradle,
+  // which otherwise skips the task, and dropping Flutter's own build cache,
+  // which otherwise reports the AOT step up to date even when forced.
+  const flutterDir = `${frankDir}/flutter`;
+  if (!existsSync(`${flutterDir}/build/flutter-symbols`)) {
+    logger.info("regenerating missing Flutter debug symbols");
+    rmSync(`${flutterDir}/.dart_tool/flutter_build`, {
+      recursive: true,
+      force: true,
+    });
+    await runOrThrow(frankDir, {
+      label,
+    })`./gradlew :flutter:compileFlutterBuildRelease --rerun`;
+  }
   logger.info("assembling Frankenstein Android (release)");
   await runOrThrow(frankDir, { label })`./gradlew :android:app:assembleRelease`;
   const apk = `${frankDir}/android/app/build/outputs/apk/release/app-release.apk`;

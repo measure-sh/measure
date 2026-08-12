@@ -94,8 +94,11 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
                 measure.memoryUsageCollector.onConfigLoaded()
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                // Must be called on msr-io thread
+                // Must be called on msr-io thread. Both read the same exit records,
+                // so the sessions they read are marked only once both have run.
+                measure.anrExitCollector.collect()
                 measure.appExitCollector.collect()
+                measure.sessionManager.markSessionsAppExitTracked()
             }
 
             // must be called last

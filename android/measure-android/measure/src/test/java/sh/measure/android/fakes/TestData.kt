@@ -1,7 +1,8 @@
 package sh.measure.android.fakes
 
 import sh.measure.android.MsrAttachment
-import sh.measure.android.appexit.AppExit
+import sh.measure.android.anr.AnrExitData
+import sh.measure.android.appexit.AppExitData
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
@@ -156,6 +157,7 @@ internal object TestData {
         userTriggered: Boolean = false,
         userDefinedAttributes: Map<String, AttributeValue> = emptyMap(),
         isSampled: Boolean = false,
+        isDraft: Boolean = false,
     ): Event<T> = Event(
         id = id,
         timestamp = timestamp,
@@ -167,6 +169,7 @@ internal object TestData {
         userTriggered = userTriggered,
         userDefinedAttributes = userDefinedAttributes,
         isSampled = isSampled,
+        isDraft = isDraft,
     )
 
     fun getLongClickData(
@@ -402,6 +405,7 @@ internal object TestData {
         attachmentEntities: List<AttachmentEntity> = emptyList(),
         serializedUserDefAttributes: String? = null,
         isSampled: Boolean = false,
+        isDraft: Boolean = false,
     ): EventEntity = EventEntity(
         id = eventId,
         type = type,
@@ -416,6 +420,7 @@ internal object TestData {
         filePath = filePath,
         serializedUserDefAttributes = serializedUserDefAttributes,
         isSampled = isSampled,
+        isDraft = isDraft,
     )
 
     fun getSessionEntity(
@@ -438,16 +443,34 @@ internal object TestData {
         trackJourney = trackJourney,
     )
 
+    /**
+     * An ANR trace the system recorded for the sample app, read as
+     * [android.app.ApplicationExitInfo.getTraceInputStream] would deliver it.
+     */
+    fun rawAnrTrace(): String = javaClass.classLoader!!.getResource("anr_trace_raw.txt")!!.readText()
+
+    fun getAnrExit(
+        pid: Int = 1,
+        timestampMs: Long = 987654321L,
+        threadDump: String? = "DALVIK THREADS (1):",
+        subject: String? = null,
+        foreground: Boolean = true,
+    ): AnrExitData = AnrExitData(
+        pid = pid,
+        timestampMs = timestampMs,
+        threadDump = threadDump,
+        subject = subject,
+        foreground = foreground,
+    )
+
     fun getAppExit(
-        reasonId: Int = 1,
-        reason: String = "reason",
-        importance: String = "importance",
+        reason: String = "LOW_MEMORY",
+        importance: String = "FOREGROUND",
         trace: String? = "trace",
         processName: String = "process-name",
         appExitTimeMs: Long = 987654321L,
         pid: String = "123",
-    ): AppExit = AppExit(
-        reasonId = reasonId,
+    ): AppExitData = AppExitData(
         reason = reason,
         importance = importance,
         trace = trace,

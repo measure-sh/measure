@@ -5,19 +5,23 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 
 /**
- * Listener interface for receiving ANR detection events.
+ * Listener interface for receiving raw SIGQUIT signals.
+ *
+ * The system raises SIGQUIT every time it collects stack traces for the process, so
+ * a single stall can deliver several. Turning these into ANR incidents is the job of
+ * [sh.measure.android.anr.AnrCollector], not of this listener's implementers.
  */
-internal interface AnrListener {
+internal interface SigquitListener {
     /**
-     * Called when an ANR is detected.
+     * Called every time the process receives a SIGQUIT.
      *
-     * @param timestamp the timestamp when the ANR was detected.
+     * @param timestamp the timestamp when the signal was received.
      */
-    fun onAnrDetected(timestamp: Long)
+    fun onSigquit(timestamp: Long)
 }
 
 internal interface NativeBridge {
-    fun enableAnrReporting(anrListener: AnrListener): Boolean
+    fun enableAnrReporting(listener: SigquitListener): Boolean
     fun disableAnrReporting()
 }
 
@@ -39,16 +43,16 @@ internal class NativeBridgeImpl(private val logger: Logger) : NativeBridge {
         }
     }
 
-    private var anrListener: AnrListener? = null
+    private var sigquitListener: SigquitListener? = null
 
     /**
-     * Registers an [AnrListener] to receive ANR detection events.
+     * Registers a [SigquitListener] to receive SIGQUIT signals.
      *
-     * @param anrListener the ANR listener to register.
+     * @param listener the listener to register.
      * @return true if ANR reporting was enabled successfully, false otherwise.
      */
-    override fun enableAnrReporting(anrListener: AnrListener): Boolean {
-        if (this.anrListener != null) {
+    override fun enableAnrReporting(listener: SigquitListener): Boolean {
+        if (this.sigquitListener != null) {
             return true
         }
         val success = try {
@@ -61,23 +65,23 @@ internal class NativeBridgeImpl(private val logger: Logger) : NativeBridge {
         }
 
         if (success) {
-            this.anrListener = anrListener
+            this.sigquitListener = listener
         }
         return success
     }
 
     /**
-     * Disables ANR reporting and unregisters the [AnrListener].
+     * Disables ANR reporting and unregisters the [SigquitListener].
      */
     override fun disableAnrReporting() {
-        if (anrListener == null) {
+        if (sigquitListener == null) {
             logger.log(
                 LogLevel.Debug,
                 "Attempt to disable ANR reporting when it's already disabled",
             )
             return
         }
-        anrListener = null
+        sigquitListener = null
         disableAnrReportingInternal()
     }
 
@@ -92,6 +96,6 @@ internal class NativeBridgeImpl(private val logger: Logger) : NativeBridge {
      * @param timestamp the timestamp when the ANR was detected
      */
     private fun notifyAnrDetected(timestamp: Long) {
-        anrListener?.onAnrDetected(timestamp)
+        sigquitListener?.onSigquit(timestamp)
     }
 }

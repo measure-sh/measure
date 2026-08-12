@@ -1,5 +1,8 @@
 appId: ${APP_ID}
 ---
+# Blocks a broadcast receiver from the background, where its deadline expires
+# silently and the system kills the app. An ANR raised in the foreground puts
+# up the system's ANR dialog, which no flow can tap.
 - launchApp
 - extendedWaitUntil:
     visible: "Native Android"
@@ -7,8 +10,17 @@ appId: ${APP_ID}
 - tapOn: "Native Android"
 - scrollUntilVisible:
     element:
-      text: "Infinite Loop"
-- tapOn: "Infinite Loop"
+      text: "Broadcast Timeout"
+- tapOn: "Broadcast Timeout"
+- pressKey: "Home"
+
+# Nothing on the device signals the kill, which lands about 10s later. The
+# relaunch is where the SDK reads its record.
+- extendedWaitUntil:
+    visible:
+      text: "__maestro_wait_sentinel__"
+    timeout: 25000
+    optional: true
 
 - launchApp
 - extendedWaitUntil:

@@ -7,44 +7,27 @@ import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 
 internal class AppExitCollector(
-    private val appExitProvider: AppExitProvider,
+    private val appExit: AppExit,
     private val signalProcessor: SignalProcessor,
     private val sessionManager: SessionManager,
 ) {
 
     @RequiresApi(Build.VERSION_CODES.R)
     fun collect() {
-        trackANRFromAppExit()
-    }
-
-    @RequiresApi(Build.VERSION_CODES.R)
-    private fun trackANRFromAppExit() {
-        val appExitsMap: Map<Int, AppExit> = appExitProvider.get() ?: return
-        appExitsMap.forEach {
-            val pid = it.key
-            val appExit = it.value
-            val session = sessionManager.getSessionForAppExit(pid)
-            // Limiting tracking of app exit events to just
-            // ANRs for now.
-            if (session != null && appExit.isANR()) {
-                signalProcessor.trackAppExit(
-                    appExit,
-                    // Current time is irrelevant for app exit, using
-                    // the time at which the app exit actually occurred instead.
-                    appExit.app_exit_time_ms,
-                    EventType.APP_EXIT,
-                    sessionId = session.id,
-                    sessionStartTime = session.createdAt,
-                    appVersion = session.appVersion,
-                    appBuild = session.appBuild,
-                    threadName = Thread.currentThread().name,
-                    isSampled = true,
-                )
-                // backfills the ANR time for a session where the real-time
-                // detector's write may have been lost to a fast kill.
-                sessionManager.markSessionWithAnr(session.id, appExit.app_exit_time_ms)
-            }
+        val exits: Map<Int, AppExitData> = appExit.get() ?: return
+        exits.forEach { (pid, exit) ->
+            val session = sessionManager.getSessionForAppExit(pid) ?: return@forEach
+            signalProcessor.trackForSession(
+                exit,
+                // The exit belongs to the moment the system recorded it,
+                // not to this launch.
+                exit.app_exit_time_ms,
+                EventType.APP_EXIT,
+                sessionId = session.id,
+                sessionStartTime = session.createdAt,
+                appVersion = session.appVersion,
+                appBuild = session.appBuild,
+            )
         }
-        sessionManager.markSessionsAppExitTracked()
     }
 }

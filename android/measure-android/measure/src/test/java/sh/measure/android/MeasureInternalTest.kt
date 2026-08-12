@@ -52,6 +52,7 @@ class MeasureInternalTest {
         `when`(initializer.appLaunchCollector).thenReturn(mock())
         `when`(initializer.profileCollector).thenReturn(mock())
         `when`(initializer.networkChangesCollector).thenReturn(mock())
+        `when`(initializer.anrExitCollector).thenReturn(mock())
         `when`(initializer.appExitCollector).thenReturn(mock())
         `when`(initializer.userAttributeProcessor).thenReturn(mock())
         `when`(initializer.configProvider).thenReturn(mock())
@@ -130,7 +131,7 @@ class MeasureInternalTest {
         // TODO: the following assertions require robolectric
         // verify(initializer.cpuUsageCollector).onConfigLoaded()
         // verify(initializer.memoryUsageCollector).onConfigLoaded()
-        // verify(initializer.appExitCollector).collect()
+        // verify(initializer.anrExitCollector).collect()
     }
 
     @Test

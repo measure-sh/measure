@@ -443,6 +443,80 @@ class DatabaseTest {
     }
 
     @Test
+    fun `batchSessions does not batch an event that is still pending`() {
+        val idProvider = FakeIdProvider()
+        val timeProvider = AndroidTimeProvider(TestClock.create())
+
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "session-id-1"))
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "event-id-1",
+                sessionId = "session-id-1",
+                type = EventType.ANR,
+                isSampled = true,
+                isDraft = true,
+            ),
+        )
+
+        // when
+        val batchesCreated = database.batchSessions(
+            idProvider = idProvider,
+            timeProvider = timeProvider,
+            maxBatchSize = 100,
+            insertionBatchSize = 100,
+        )
+
+        // then
+        assertEquals(0, batchesCreated)
+    }
+
+    @Test
+    fun `finalizeDrafts releases the anrs held by a dead process only`() {
+        // given
+        database.insertSession(TestData.getSessionEntity(id = "dead-session", pid = 100))
+        database.insertSession(TestData.getSessionEntity(id = "live-session", pid = 200))
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "dead-anr",
+                sessionId = "dead-session",
+                type = EventType.ANR,
+                isSampled = true,
+                isDraft = true,
+            ),
+        )
+        database.insertEvent(
+            TestData.getEventEntity(
+                eventId = "live-anr",
+                sessionId = "live-session",
+                type = EventType.ANR,
+                isSampled = true,
+                isDraft = true,
+            ),
+        )
+
+        // when
+        database.finalizeDrafts(currentPid = 200)
+
+        // then
+        assertEquals(0, queryPendingFlag("dead-anr"))
+        assertEquals(1, queryPendingFlag("live-anr"))
+    }
+
+    private fun queryPendingFlag(eventId: String): Int = database.readableDatabase.query(
+        EventTable.TABLE_NAME,
+        arrayOf(EventTable.COL_DRAFT),
+        "${EventTable.COL_ID} = ?",
+        arrayOf(eventId),
+        null,
+        null,
+        null,
+    ).use {
+        it.moveToFirst()
+        it.getInt(0)
+    }
+
+    @Test
     fun `batchSessions batches sampled events`() {
         val idProvider = FakeIdProvider()
         val timeProvider = AndroidTimeProvider(TestClock.create())

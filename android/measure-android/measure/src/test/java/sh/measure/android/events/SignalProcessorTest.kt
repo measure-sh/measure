@@ -416,57 +416,21 @@ internal class SignalProcessorTest {
     }
 
     @Test
-    fun `trackAppExit stores event with provided sessionId, session start time and version attributes`() {
-        val appExit = TestData.getAppExit()
-        val timestamp = 1710746412L
-        val type = EventType.APP_EXIT
-        val sessionId = "session-id-app-exit"
-        val sessionStartTime = 1710746000L
-        val appVersion = "app-version"
-        val appBuild = "1000"
-        val isSampled = true
-
-        signalProcessor.trackAppExit(
-            data = appExit,
-            timestamp = timestamp,
-            type = type,
-            sessionId = sessionId,
-            sessionStartTime = sessionStartTime,
-            appVersion = appVersion,
-            appBuild = appBuild,
-            threadName = "thread-name",
-            isSampled = isSampled,
-        )
-
-        assertEquals(1, signalStore.trackedEvents.size)
-        val event = signalStore.trackedEvents.first()
-        assertEquals(type, event.type)
-        assertEquals(sessionId, event.sessionId)
-        assertEquals(
-            sessionStartTime.iso8601Timestamp(),
-            event.attributes[Attribute.SESSION_START_TIME_KEY],
-        )
-        assertEquals(appVersion, event.attributes[Attribute.APP_VERSION_KEY])
-        assertEquals(appBuild, event.attributes[Attribute.APP_BUILD_KEY])
-    }
-
-    @Test
-    fun `trackProfile stores event with provided sessionId, session start time and version attributes`() {
+    fun `trackForSession stores event with provided sessionId, session start time and version attributes`() {
         val profileData = ProfileData(reason = "anr", format = "perfetto_trace")
         val timestamp = 1710746412L
         val sessionId = "session-id-profile"
         val sessionStartTime = 1710746000L
 
-        signalProcessor.trackProfile(
+        signalProcessor.trackForSession(
             data = profileData,
             timestamp = timestamp,
             type = EventType.PROFILE,
-            attachments = mutableListOf(),
             sessionId = sessionId,
             sessionStartTime = sessionStartTime,
             appVersion = "app-version",
             appBuild = "1000",
-            isSampled = true,
+            threadName = "msr-io",
         )
 
         assertEquals(1, signalStore.trackedEvents.size)
@@ -480,22 +444,21 @@ internal class SignalProcessorTest {
         )
         assertEquals("app-version", event.attributes[Attribute.APP_VERSION_KEY])
         assertEquals("1000", event.attributes[Attribute.APP_BUILD_KEY])
+        assertEquals("msr-io", event.attributes[Attribute.THREAD_NAME])
     }
 
     @Test
-    fun `trackProfile leaves session attributes untouched when they are unknown`() {
+    fun `trackForSession leaves session attributes untouched when they are unknown`() {
         val profileData = ProfileData(reason = "anr", format = "perfetto_trace")
 
-        signalProcessor.trackProfile(
+        signalProcessor.trackForSession(
             data = profileData,
             timestamp = 1710746412L,
             type = EventType.PROFILE,
-            attachments = mutableListOf(),
             sessionId = "session-id-profile",
             sessionStartTime = null,
             appVersion = null,
             appBuild = null,
-            isSampled = true,
         )
 
         assertEquals(1, signalStore.trackedEvents.size)
@@ -504,6 +467,26 @@ internal class SignalProcessorTest {
         assertEquals(null, event.attributes[Attribute.SESSION_START_TIME_KEY])
         assertEquals(null, event.attributes[Attribute.APP_VERSION_KEY])
         assertEquals(null, event.attributes[Attribute.APP_BUILD_KEY])
+    }
+
+    @Test
+    fun `trackForSession stores the attachments it is given`() {
+        signalProcessor.trackForSession(
+            data = ProfileData(reason = "anr", format = "perfetto_trace"),
+            timestamp = 1710746412L,
+            type = EventType.PROFILE,
+            sessionId = "session-id-profile",
+            sessionStartTime = null,
+            appVersion = null,
+            appBuild = null,
+            attachments = mutableListOf(
+                TestData.getAttachment(name = "profile.perfetto-trace"),
+            ),
+        )
+
+        val attachments = signalStore.trackedEvents.first().attachments
+        assertEquals(1, attachments.size)
+        assertEquals("profile.perfetto-trace", attachments.first().name)
     }
 
     @Test

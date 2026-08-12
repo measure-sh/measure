@@ -69,6 +69,7 @@ internal class UnhandledExceptionCollectorTest {
             attachments = eq(mutableListOf()),
             threadName = eq(null),
             takeScreenshot = eq(true),
+            draft = eq(false),
         )
     }
 

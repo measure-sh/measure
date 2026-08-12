@@ -1,7 +1,7 @@
 package sh.measure.android.storage
 
 import kotlinx.serialization.encodeToString
-import sh.measure.android.appexit.AppExit
+import sh.measure.android.appexit.AppExitData
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
@@ -156,7 +156,7 @@ internal class SignalStoreImpl(
             }
 
             EventType.APP_EXIT -> {
-                val appExit = data as? AppExit ?: return false
+                val appExit = data as? AppExitData ?: return false
                 return appExit.trace != null
             }
 
@@ -222,6 +222,7 @@ internal class SignalStoreImpl(
                 serializedUserDefAttributes = serializedUserDefAttributes,
                 userTriggered = event.userTriggered,
                 isSampled = isSampled,
+                isDraft = event.isDraft,
             )
         } else {
             return EventEntity(
@@ -238,6 +239,7 @@ internal class SignalStoreImpl(
                 serializedUserDefAttributes = serializedUserDefAttributes,
                 userTriggered = event.userTriggered,
                 isSampled = isSampled,
+                isDraft = event.isDraft,
             )
         }
     }

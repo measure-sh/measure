@@ -6,7 +6,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.modules.SerializersModule
 import sh.measure.android.SessionStartData
-import sh.measure.android.appexit.AppExit
+import sh.measure.android.appexit.AppExitData
 import sh.measure.android.applaunch.ColdLaunchData
 import sh.measure.android.applaunch.HotLaunchData
 import sh.measure.android.applaunch.WarmLaunchData
@@ -83,7 +83,7 @@ internal fun <T> Event<T>.serializeDataToString(): String = when (type) {
     }
 
     EventType.APP_EXIT -> {
-        json.encodeToString(AppExit.serializer(), data as AppExit)
+        json.encodeToString(AppExitData.serializer(), data as AppExitData)
     }
 
     EventType.CLICK -> {

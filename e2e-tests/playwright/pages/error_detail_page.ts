@@ -8,6 +8,8 @@ export class ErrorDetailPage {
   readonly attributeDistributionPlot: Locator;
   readonly commonPathSection: Locator;
   readonly errorThreadStacktrace: Locator;
+  readonly anrReason: Locator;
+  readonly artThreadDumpLabel: Locator;
   readonly timestampPill: Locator;
   readonly devicePill: Locator;
   readonly appVersionPill: Locator;
@@ -29,6 +31,10 @@ export class ErrorDetailPage {
     this.errorThreadStacktrace = page.getByTestId(
       "exception-detail-main-stacktrace",
     );
+    this.anrReason = page.getByTestId("exception-detail-anr-subject");
+    this.artThreadDumpLabel = page.getByText("ART thread dump", {
+      exact: true,
+    });
     this.timestampPill = page.getByTestId("exception-detail-timestamp");
     this.devicePill = page.getByTestId("exception-detail-device");
     this.appVersionPill = page.getByTestId("exception-detail-app-version");

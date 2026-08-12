@@ -1,0 +1,43 @@
+package sh.measure.android.appexit
+
+import android.app.ActivityManager
+import android.app.ApplicationExitInfo
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+
+/**
+ * Represents the data that is collected when an application exits.
+ */
+@Serializable
+internal data class AppExitData(
+    /**
+     * [ApplicationExitInfo.getReason] mapped to a human readable string.
+     */
+    val reason: String,
+
+    /**
+     * @see [ActivityManager.RunningAppProcessInfo.importance]
+     */
+    val importance: String,
+
+    /**
+     * @see [ApplicationExitInfo.getTraceInputStream]
+     */
+    val trace: String?,
+
+    /**
+     * @see [ApplicationExitInfo.getProcessName]
+     */
+    val process_name: String,
+
+    /**
+     * @see [ApplicationExitInfo.getTimestamp]
+     */
+    @Transient
+    val app_exit_time_ms: Long = 0,
+
+    /**
+     * @see [ApplicationExitInfo.getPid]
+     */
+    val pid: String,
+)

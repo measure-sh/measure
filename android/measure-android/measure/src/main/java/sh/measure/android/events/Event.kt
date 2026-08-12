@@ -59,6 +59,12 @@ internal data class Event<T>(
      * A flag to indicate if the event is sampled.
      */
     val isSampled: Boolean,
+
+    /**
+     * A flag to indicate the body of the event is not its final version. A draft is
+     * stored, but not exported until it is finalized.
+     */
+    val isDraft: Boolean = false,
 ) {
     /**
      * Adds an attribute to the event.
