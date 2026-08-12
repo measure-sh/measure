@@ -204,6 +204,7 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
             exception_data,
             exception_handled,
             anr_data,
+            anr_subject,
             position_from_end
           FROM (
             SELECT
@@ -214,6 +215,7 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
               if(e.type = 'exception', e.exception.exceptions, '') AS exception_data,
               if(e.type = 'exception', e.exception.handled, false) AS exception_handled,
               if(e.type = 'anr', e.anr.exceptions, '') AS anr_data,
+              if(e.type = 'anr', e.anr.subject, '') AS anr_subject,
               multiIf(
                 (e.type = 'exception') OR (e.type = 'anr'), e.type,
                 e.type = 'app_exit', concat('App exited: ', coalesce(e.app_exit.reason, 'unknown reason')),
@@ -282,7 +284,8 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
             any(thread_name) AS thread_name,
             any(exception_data) AS exception_data,
             any(exception_handled) AS exception_handled,
-            any(anr_data) AS anr_data
+            any(anr_data) AS anr_data,
+            any(anr_subject) AS anr_subject
           FROM recent_events
           GROUP BY
             position_from_end,
@@ -298,7 +301,8 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
             confidence_pct,
             exception_data,
             exception_handled,
-            anr_data
+            anr_data,
+            anr_subject
           FROM (
             SELECT
               *,
@@ -315,7 +319,8 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
         confidence_pct,
         exception_data,
         exception_handled,
-        anr_data
+        anr_data,
+        anr_subject
       FROM best_event_per_position
       ORDER BY position_from_end DESC
       `,
@@ -359,6 +364,7 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 		var exceptionData string
 		var exceptionHandled bool
 		var anrData string
+		var anrSubject string
 
 		if err := rows.Scan(
 			&eventType,
@@ -368,6 +374,7 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 			&exceptionData,
 			&exceptionHandled,
 			&anrData,
+			&anrSubject,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan reproduction step: %v", err)
 		}
@@ -395,6 +402,7 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 
 		case "anr":
 			var anr event.ANR
+			anr.Subject = anrSubject
 			if anrData != "" && json.Unmarshal([]byte(anrData), &anr.Exceptions) == nil {
 				step.Description = fmt.Sprintf("ANR: %s", formatExceptionMessage(
 					anr.GetType(),

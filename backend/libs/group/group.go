@@ -209,7 +209,13 @@ func (a ANRGroup) GetId() string {
 // GetDisplayTitle provides a user friendly display
 // name for the ANR Group.
 func (a ANRGroup) GetDisplayTitle() string {
-	return a.Type + "@" + a.FileName
+	// A group of ANRs nothing was recorded for has no frame, so its
+	// reason names it.
+	if a.FileName != "" {
+		return a.FileName
+	}
+
+	return a.Message
 }
 
 // EventExists checks if the given event id exists in

@@ -48,6 +48,7 @@ var (
 	basicProguardDebugID     string // UUID-formatted debug ID for the basic proguard mapping
 	realProguardMappingKey   string // unified layout key for the real proguard mapping
 	sqliteProguardMappingKey string // unified layout key for the sqlite proguard mapping
+	anrProguardMappingKey    string // unified layout key for the anr proguard mapping
 	elfDebugMappingKey       string // unified layout key for the ELF debug symbols
 	jsBundleMappingKey       string // unified layout key for the JS bundle
 	jsSourcemapMappingKey    string // unified layout key for the JS sourcemap
@@ -200,6 +201,26 @@ func TestMain(m *testing.M) {
 	})
 	if err != nil {
 		fmt.Printf("failed to upload sqlite mapping to minio: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Upload anr proguard mapping (mapping_anr.txt) to MinIO
+	anrMappingBytes, err := os.ReadFile(filepath.Join(testdataDir, "mapping_anr.txt"))
+	if err != nil {
+		fmt.Printf("failed to read mapping_anr.txt: %v\n", err)
+		os.Exit(1)
+	}
+
+	anrDebugUUID := uuid.NewSHA1(ns, anrMappingBytes)
+	anrProguardMappingKey = symbol.BuildUnifiedLayout(anrDebugUUID.String()) + "/proguard"
+
+	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(symbolsBucket),
+		Key:    aws.String(anrProguardMappingKey),
+		Body:   bytes.NewReader(anrMappingBytes),
+	})
+	if err != nil {
+		fmt.Printf("failed to upload anr mapping to minio: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -1005,11 +1026,14 @@ func TestSymbolicationNoMapping(t *testing.T) {
 	// No build mapping seeded - version has no mapping file
 
 	events := makeJVMExceptionEvents(versionName, versionCode)
+	events = append(events, makeJVMANRRealEvents(t)...)
+	anrIdx := len(events) - 1
 	sources := []Source{newS3Source()}
 
 	// Save original class names
 	origClassName := events[0].Exception.Exceptions[0].Frames[0].ClassName
 	origMethodName := events[0].Exception.Exceptions[0].Frames[0].MethodName
+	origARTThreadDump := events[anrIdx].ANR.ARTThreadDump
 
 	symb := New(symbolicatorOrigin, "android", sources, []SentrySource{newSentrySource()})
 	err := symb.Symbolicate(ctx, pgPool, appID, events, nil)
@@ -1023,6 +1047,9 @@ func TestSymbolicationNoMapping(t *testing.T) {
 	}
 	if events[0].Exception.Exceptions[0].Frames[0].MethodName != origMethodName {
 		t.Errorf("expected method name to remain %q, got %q", origMethodName, events[0].Exception.Exceptions[0].Frames[0].MethodName)
+	}
+	if events[anrIdx].ANR.ARTThreadDump != origARTThreadDump {
+		t.Error("anr art thread dump without mapping must be unchanged")
 	}
 }
 
@@ -1255,6 +1282,58 @@ func makeJVMRealEvents(t *testing.T, fixture, versionName, versionCode string) [
 			Exception: &raw.Exception,
 		},
 	}
+}
+
+// makeJVMANRRealEvents loads an ANR event captured from a real
+// device, carrying the system's art thread dump and subject alongside the
+// SDK's own exception and thread capture. The attribute carries the
+// app version mapping_anr.txt was built from.
+func makeJVMANRRealEvents(t *testing.T) []event.EventField {
+	t.Helper()
+
+	data, err := os.ReadFile(filepath.Join(testdataDir, "jvm_anr_real_input.json"))
+	if err != nil {
+		t.Fatalf("read anr real fixture: %v", err)
+	}
+
+	var raw struct {
+		Attribute event.Attribute `json:"attribute"`
+		ANR       event.ANR       `json:"anr"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		t.Fatalf("unmarshal anr real fixture: %v", err)
+	}
+
+	return []event.EventField{
+		{
+			ID:        uuid.New(),
+			SessionID: uuid.New(),
+			Timestamp: time.Now(),
+			Type:      event.TypeANR,
+			Attribute: raw.Attribute,
+			ANR:       &raw.ANR,
+		},
+	}
+}
+
+func TestJVMANRSymbolicationReal(t *testing.T) {
+	ctx := context.Background()
+	appID := uuid.New()
+
+	events := makeJVMANRRealEvents(t)
+
+	seedApp(ctx, t, appID)
+	seedBuildMappingRow(ctx, t, appID, events[0].Attribute.AppVersion, events[0].Attribute.AppBuild, "proguard", anrProguardMappingKey)
+
+	sources := []Source{newS3Source()}
+	symb := New(symbolicatorOrigin, "android", sources, []SentrySource{newSentrySource()})
+	symb.jvmLambdaWorkaround = true
+	err := symb.Symbolicate(ctx, pgPool, appID, events, nil)
+	if err != nil {
+		t.Fatalf("Symbolicate failed: %v", err)
+	}
+
+	assertStacktraceMatchesGolden(t, "jvm_anr_real_art_thread_dump_golden.txt", events[0].ANR.ARTThreadDump)
 }
 
 func TestJVMSingleExceptionReal(t *testing.T) {

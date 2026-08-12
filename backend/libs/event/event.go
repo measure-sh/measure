@@ -14,6 +14,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"backend/libs/artdump"
 	"backend/libs/ingest"
 	"backend/libs/opsys"
 	"backend/libs/udattr"
@@ -27,6 +28,8 @@ const (
 	maxTypeChars                              = 32
 	maxExceptionDeviceLocaleChars             = 64
 	maxAnrDeviceLocaleChars                   = 64
+	maxAnrArtThreadDumpChars                  = 1024 * 1024
+	maxAnrSubjectChars                        = 1024
 	maxAppExitReasonChars                     = 64
 	maxAppExitImportanceChars                 = 32
 	maxSeverityTextChars                      = 10
@@ -281,6 +284,10 @@ func getValidLifecycleAppTypes(osName string) (types []string) {
 // makeTitle appends the message to the type
 // if message is present.
 func makeTitle(t, m string) (typeMessage string) {
+	if t == "" {
+		return m
+	}
+
 	typeMessage = t
 	if m != "" {
 		typeMessage += GenericPrefix + m
@@ -383,11 +390,17 @@ type Thread struct {
 type Threads []Thread
 
 type ANR struct {
-	Handled     bool           `json:"handled"`
-	Exceptions  ExceptionUnits `json:"exceptions" binding:"required"`
-	Threads     Threads        `json:"threads" binding:"required"`
-	Fingerprint string         `json:"fingerprint"`
-	Foreground  bool           `json:"foreground" binding:"required"`
+	Handled       bool           `json:"handled"`
+	Exceptions    ExceptionUnits `json:"exceptions" binding:"required"`
+	Threads       Threads        `json:"threads" binding:"required"`
+	Fingerprint   string         `json:"fingerprint"`
+	Foreground    bool           `json:"foreground" binding:"required"`
+	ARTThreadDump string         `json:"art_thread_dump"`
+	Subject       string         `json:"subject"`
+
+	// dumpFrames holds the main thread's frames read out of
+	// ARTThreadDump by ReadThreadDump.
+	dumpFrames Frames
 }
 
 type Exception struct {
@@ -809,8 +822,17 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsANR() {
-		if len(e.ANR.Exceptions) < 1 || len(e.ANR.Threads) < 1 {
-			return fmt.Errorf(`%q must contain at least one anr & thread`, `anr`)
+		// An ANR the system reported after killing the app carries the
+		// thread dump in place of a stacktrace of its own.
+		hasStacktrace := len(e.ANR.Exceptions) > 0 && len(e.ANR.Threads) > 0
+		if !hasStacktrace && e.ANR.ARTThreadDump == "" {
+			return fmt.Errorf(`%q must contain a stacktrace or a thread dump`, `anr`)
+		}
+		if len(e.ANR.ARTThreadDump) > maxAnrArtThreadDumpChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `anr.art_thread_dump`, maxAnrArtThreadDumpChars)
+		}
+		if len(e.ANR.Subject) > maxAnrSubjectChars {
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `anr.subject`, maxAnrSubjectChars)
 		}
 	}
 
@@ -2070,13 +2092,26 @@ func (a ANR) IsNested() bool {
 	return len(a.Exceptions) > 1
 }
 
+// HasExceptions returns true if the ANR
+// carries a stacktrace. An ANR recovered
+// from the system's exit record carries
+// none, only the thread dump.
+func (a ANR) HasExceptions() bool {
+	return len(a.Exceptions) > 0
+}
+
 // HasNoFrames returns true if the ANR
 // does not have any frame.
 //
-// This may happen
-// for certain OutOfMemory stacktraces in
-// Android.
+// This may happen for certain OutOfMemory
+// stacktraces in Android, and for an ANR
+// recovered from the system's exit record,
+// which the SDK reports without a stacktrace.
 func (a ANR) HasNoFrames() bool {
+	if !a.HasExceptions() {
+		return true
+	}
+
 	return len(a.Exceptions[len(a.Exceptions)-1].Frames) == 0
 }
 
@@ -2090,46 +2125,125 @@ func (a ANR) GetTitle() string {
 // GetType provides the type of
 // the ANR.
 func (a ANR) GetType() string {
+	if !a.HasExceptions() {
+		return ""
+	}
+
 	return a.Exceptions[len(a.Exceptions)-1].Type
 }
 
-// GetMessage provides the message of
-// the ANR.
+// GetMessage provides the message of the ANR. The SDK writes the same
+// message on every ANR, so the system's reason takes its place.
 func (a ANR) GetMessage() string {
+	if reason := a.GetReason(); reason != "" {
+		return reason
+	}
+
+	if !a.HasExceptions() {
+		return ""
+	}
+
 	return a.Exceptions[len(a.Exceptions)-1].Message
+}
+
+// GetReason names the deadline that expired. Only an ANR matched to its
+// app exit record carries one.
+func (a ANR) GetReason() string {
+	return ANRReason(a.Subject)
+}
+
+// ReadThreadDump reads the stalled main thread out of the system's
+// thread dump. Runs after symbolication has retraced the dump, and
+// before MarkInAppFrames flags what it found.
+func (a *ANR) ReadThreadDump() {
+	dump := artdump.Parse(a.ARTThreadDump)
+	if dump == nil {
+		return
+	}
+
+	main := dump.MainThread()
+	a.dumpFrames = make(Frames, len(main))
+	for i, frame := range main {
+		a.dumpFrames[i] = Frame{
+			ClassName:  frame.ClassName,
+			MethodName: frame.MethodName,
+			FileName:   frame.FileName,
+			LineNum:    frame.LineNum,
+		}
+	}
+}
+
+// MarkInAppFrames flags the frames of the ANR belonging to the
+// app's own code. Obfuscated class names carry no recognizable
+// package, so this runs after symbolication has retraced them.
+func (a *ANR) MarkInAppFrames(packages []string) {
+	for i := range a.Exceptions {
+		a.Exceptions[i].Frames.MarkInApp(packages)
+	}
+	for i := range a.Threads {
+		a.Threads[i].Frames.MarkInApp(packages)
+	}
+	a.dumpFrames.MarkInApp(packages)
+}
+
+// GetRelevantFrame provides the frame the ANR is attributed to.
+//
+// The system's thread dump is the stack it blamed the app on, and it
+// reaches both an ANR the SDK held and one it never saw, so preferring
+// it keeps two reports of one stall together. The SDK's own capture
+// stands in when the app outlived the stall and no dump was recorded.
+//
+// A stalled thread sits several platform frames deep, in a binder
+// transaction or a sleep, and those say nothing about what stalled
+// it. Falling back to the first frame outside the platform covers
+// an app whose classes sit outside the package it reports itself
+// under, such as a build carrying an application id suffix.
+func (a ANR) GetRelevantFrame() Frame {
+	frames := a.dumpFrames
+	if len(frames) == 0 {
+		if a.HasNoFrames() {
+			return Frame{}
+		}
+		frames = a.Exceptions[len(a.Exceptions)-1].Frames
+	}
+
+	if i := slices.IndexFunc(frames, func(f Frame) bool { return f.InApp }); i >= 0 {
+		return frames[i]
+	}
+	if i := slices.IndexFunc(frames, func(f Frame) bool { return !isPlatform(f.ClassName) }); i >= 0 {
+		return frames[i]
+	}
+
+	return frames[0]
 }
 
 // GetFileName provides the file name of
 // the ANR.
 func (a ANR) GetFileName() string {
-	if a.HasNoFrames() {
-		return ""
-	}
-	return a.Exceptions[len(a.Exceptions)-1].Frames[0].FileName
+	return a.GetRelevantFrame().FileName
 }
 
 // GetLineNumber provides the line number of
 // the ANR.
 func (a ANR) GetLineNumber() int32 {
-	if a.HasNoFrames() {
-		return int32(0)
-	}
-	return int32(a.Exceptions[len(a.Exceptions)-1].Frames[0].LineNum)
+	return int32(a.GetRelevantFrame().LineNum)
 }
 
 // GetMethodName provides the method name of
 // the ANR.
 func (a ANR) GetMethodName() string {
-	if a.HasNoFrames() {
-		return ""
-	}
-	return a.Exceptions[len(a.Exceptions)-1].Frames[0].MethodName
+	return a.GetRelevantFrame().MethodName
 }
 
 // GetDisplayTitle provides a user friendly display
 // name for the ANR.
 func (a ANR) GetDisplayTitle() string {
-	return a.GetType() + "@" + a.GetFileName()
+	// An ANR nothing was recorded for has no frame, so its reason names it.
+	if fileName := a.GetFileName(); fileName != "" {
+		return fileName
+	}
+
+	return a.GetMessage()
 }
 
 // Stacktrace writes a formatted stacktrace
@@ -2174,32 +2288,26 @@ func (a ANR) Stacktrace() string {
 
 // ComputeFingerprint computes a fingerprint
 // from the ANR data.
+//
+// The stall's own frame groups an ANR. The exception type takes no part:
+// the SDK writes the same one on every ANR it detects and none at all on
+// one it recovered, which would keep two reports of one stall apart.
+//
+// A reason only reaches an ANR whose process the system killed, so grouping
+// by it would split one stall by whether the app survived. It stands in
+// only where no frame was recorded at all. An ANR that nothing identifies
+// is left without a fingerprint, and so ungrouped, rather than failing the
+// batch it arrived in.
 func (a *ANR) ComputeFingerprint() (err error) {
-	if len(a.Exceptions) == 0 {
-		return fmt.Errorf("error computing ANR fingerprint: no exceptions found")
+	frame := a.GetRelevantFrame()
+
+	fingerprintData := a.GetReason()
+	if frame.MethodName != "" || frame.FileName != "" {
+		fingerprintData = frame.MethodName + ":" + frame.FileName
 	}
 
-	// Get the innermost exception
-	innermostException := a.Exceptions[len(a.Exceptions)-1]
-
-	// Get the exception type
-	exceptionType := innermostException.Type
-
-	// Initialize fingerprint data with the exception type
-	fingerprintData := exceptionType
-
-	// Get the method name and file name from the first frame of the innermost exception
-	if len(innermostException.Frames) > 0 {
-		methodName := innermostException.Frames[0].MethodName
-		fileName := innermostException.Frames[0].FileName
-
-		// Include any non-empty information
-		if methodName != "" {
-			fingerprintData += ":" + methodName
-		}
-		if fileName != "" {
-			fingerprintData += ":" + fileName
-		}
+	if fingerprintData == "" {
+		return nil
 	}
 
 	// Compute the fingerprint

@@ -50,20 +50,22 @@ func (e Exception) GetTimestamp() time.Time {
 // ANR represents anr events suitable
 // for session timeline.
 type ANR struct {
-	EventType   string              `json:"event_type"`
-	Severity    string              `json:"severity"`
-	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
-	GroupId     string              `json:"group_id"`
-	Type        string              `json:"type"`
-	Message     string              `json:"message"`
-	MethodName  string              `json:"method_name"`
-	FileName    string              `json:"file_name"`
-	LineNumber  int32               `json:"line_number"`
-	ThreadName  string              `json:"thread_name"`
-	Stacktrace  string              `json:"stacktrace"`
-	Foreground  bool                `json:"foreground"`
-	Timestamp   time.Time           `json:"timestamp"`
-	Attachments []event.Attachment  `json:"attachments"`
+	EventType     string              `json:"event_type"`
+	Severity      string              `json:"severity"`
+	UDAttribute   *udattr.UDAttribute `json:"user_defined_attribute"`
+	GroupId       string              `json:"group_id"`
+	Type          string              `json:"type"`
+	Message       string              `json:"message"`
+	MethodName    string              `json:"method_name"`
+	FileName      string              `json:"file_name"`
+	LineNumber    int32               `json:"line_number"`
+	ThreadName    string              `json:"thread_name"`
+	Stacktrace    string              `json:"stacktrace"`
+	ARTThreadDump string              `json:"art_thread_dump"`
+	Subject       string              `json:"subject"`
+	Foreground    bool                `json:"foreground"`
+	Timestamp     time.Time           `json:"timestamp"`
+	Attachments   []event.Attachment  `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread
@@ -131,6 +133,8 @@ func ComputeANRs(ctx context.Context, appId *uuid.UUID, events []event.EventFiel
 			e.ANR.GetLineNumber(),
 			e.Attribute.ThreadName,
 			e.ANR.Stacktrace(),
+			e.ANR.ARTThreadDump,
+			e.ANR.Subject,
 			e.ANR.Foreground,
 			e.Timestamp,
 			e.Attachments,

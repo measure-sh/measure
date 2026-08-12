@@ -63,6 +63,63 @@ type Frame struct {
 
 type Frames []Frame
 
+// platformPackages hold the Android platform, the language runtime
+// and this SDK. Whichever packages an app calls its own, it is not
+// responsible for the code under these.
+var platformPackages = []string{
+	"android",
+	"androidx",
+	"com.android",
+	"com.google.android",
+	"dalvik",
+	"java",
+	"javax",
+	"jdk",
+	"kotlin",
+	"kotlinx",
+	"libcore",
+	"sh.measure",
+	"sun",
+}
+
+// MarkInApp flags each frame sitting in one of the given packages
+// or in any of their subpackages.
+func (f Frames) MarkInApp(packages []string) {
+	for i := range f {
+		f[i].InApp = inAnyPackage(f[i].ClassName, packages)
+	}
+}
+
+// isPlatform reports whether a class belongs to the platform rather
+// than to anything the app ships.
+func isPlatform(className string) bool {
+	return inAnyPackage(className, platformPackages)
+}
+
+func inAnyPackage(className string, packages []string) bool {
+	for _, pkg := range packages {
+		if inPackage(className, pkg) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// inPackage reports whether className sits in pkg or one of its
+// subpackages. The match stops at a package boundary, so the
+// package "com.uber" does not claim the classes of "com.ubercab".
+func inPackage(className, pkg string) bool {
+	pkg = strings.TrimSuffix(pkg, ".")
+	if pkg == "" || !strings.HasPrefix(className, pkg) {
+		return false
+	}
+
+	rest := className[len(pkg):]
+
+	return rest == "" || rest[0] == '.'
+}
+
 // CodeInfo provides a serialized
 // version of the frame's code information.
 func (f Frame) CodeInfo() string {

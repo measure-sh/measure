@@ -412,6 +412,10 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		return nil
 	}
 
+	// An Android app's own classes sit under the package it
+	// reports itself under.
+	inAppPackages := []string{e.getAppUniqueID()}
+
 	stmt := sqlf.InsertInto(`events`)
 	defer stmt.Close()
 
@@ -425,6 +429,11 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		errorMeta := "{}"
 
 		if e.events[i].IsANR() {
+			// Both the frames marshalled below and the fingerprint
+			// depend on these having run.
+			e.events[i].ANR.ReadThreadDump()
+			e.events[i].ANR.MarkInAppFrames(inAppPackages)
+
 			marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
 			if err != nil {
 				return err
@@ -548,14 +557,18 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`anr.fingerprint`, e.events[i].ANR.Fingerprint).
 				Set(`anr.exceptions`, anrExceptions).
 				Set(`anr.threads`, anrThreads).
-				Set(`anr.foreground`, e.events[i].ANR.Foreground)
+				Set(`anr.foreground`, e.events[i].ANR.Foreground).
+				Set(`anr.art_thread_dump`, e.events[i].ANR.ARTThreadDump).
+				Set(`anr.subject`, e.events[i].ANR.Subject)
 		} else {
 			row.
 				Set(`anr.handled`, nil).
 				Set(`anr.fingerprint`, nil).
 				Set(`anr.exceptions`, nil).
 				Set(`anr.threads`, nil).
-				Set(`anr.foreground`, nil)
+				Set(`anr.foreground`, nil).
+				Set(`anr.art_thread_dump`, nil).
+				Set(`anr.subject`, nil)
 		}
 
 		// exception

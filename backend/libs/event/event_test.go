@@ -3,6 +3,7 @@ package event
 import (
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -1068,6 +1069,65 @@ func TestValidateLogSeverity(t *testing.T) {
 	})
 }
 
+func TestValidateAnrLimits(t *testing.T) {
+	makeANR := func(artThreadDump, subject string) EventField {
+		return EventField{
+			ID:        uuid.New(),
+			AppID:     uuid.New(),
+			Type:      TypeANR,
+			Timestamp: time.Now(),
+			Attribute: Attribute{OSName: "android"},
+			ANR: &ANR{
+				Exceptions:    ExceptionUnits{{}},
+				Threads:       Threads{{}},
+				ARTThreadDump: artThreadDump,
+				Subject:       subject,
+			},
+		}
+	}
+
+	t.Run("Accepts art thread dump and subject within limits", func(t *testing.T) {
+		ev := makeANR("DALVIK THREADS (1):", "Input dispatching timed out")
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error, got %v", err)
+		}
+	})
+
+	t.Run("Rejects oversized art thread dump", func(t *testing.T) {
+		ev := makeANR(strings.Repeat("a", maxAnrArtThreadDumpChars+1), "")
+		if err := ev.Validate(); err == nil {
+			t.Error("Expected validation error for oversized art thread dump, got nil")
+		}
+	})
+
+	t.Run("Rejects oversized subject", func(t *testing.T) {
+		ev := makeANR("", strings.Repeat("a", maxAnrSubjectChars+1))
+		if err := ev.Validate(); err == nil {
+			t.Error("Expected validation error for oversized subject, got nil")
+		}
+	})
+
+	t.Run("Accepts an ANR carrying only a thread dump", func(t *testing.T) {
+		ev := makeANR("DALVIK THREADS (1):", "Input dispatching timed out")
+		ev.ANR.Exceptions = ExceptionUnits{}
+		ev.ANR.Threads = Threads{}
+
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error, got %v", err)
+		}
+	})
+
+	t.Run("Rejects an ANR carrying neither a stacktrace nor a thread dump", func(t *testing.T) {
+		ev := makeANR("", "")
+		ev.ANR.Exceptions = ExceptionUnits{}
+		ev.ANR.Threads = Threads{}
+
+		if err := ev.Validate(); err == nil {
+			t.Error("Expected validation error for an ANR with no stacktrace or thread dump, got nil")
+		}
+	})
+}
+
 func TestComputeFingerprint(t *testing.T) {
 	t.Run("FrameworkJS with message", func(t *testing.T) {
 		e := Exception{
@@ -1313,9 +1373,341 @@ func TestANRComputeFingerprint(t *testing.T) {
 			t.Fatalf("Unexpected error computing ANR fingerprint: %v", err)
 		}
 
-		expected := "575ddc443e854d811e7e1b2b04868356"
+		expected := "bf7d2a45a2ce63b457874198096cc8e9"
 		if a.Fingerprint != expected {
 			t.Errorf("Expected fingerprint %q, but got %q", expected, a.Fingerprint)
 		}
 	})
+
+	t.Run("groups an ANR without a single frame by its reason", func(t *testing.T) {
+		waitedLonger := ingestedANR(nativeStalledANR("Input dispatching timed out (71005a5 sh.frankenstein.android/sh.frankenstein.android.MainActivity is not responding. Waited 5005ms for MotionEvent)."))
+		waitedShorter := ingestedANR(nativeStalledANR("Input dispatching timed out (8813f2b sh.frankenstein.android/sh.frankenstein.android.MainActivity is not responding. Waited 10009ms for MotionEvent)."))
+		otherDeadline := ingestedANR(nativeStalledANR("No response to onStartJob for sh.frankenstein.android/.AnrJobService"))
+
+		for _, a := range []*ANR{&waitedLonger, &waitedShorter, &otherDeadline} {
+			if err := a.ComputeFingerprint(); err != nil {
+				t.Fatalf("Unexpected error computing ANR fingerprint: %v", err)
+			}
+		}
+
+		if waitedLonger.Fingerprint != waitedShorter.Fingerprint {
+			t.Errorf("Expected the same fingerprint, but got %q and %q", waitedLonger.Fingerprint, waitedShorter.Fingerprint)
+		}
+		if waitedLonger.Fingerprint == otherDeadline.Fingerprint {
+			t.Errorf("Expected different fingerprints, but both were %q", waitedLonger.Fingerprint)
+		}
+	})
+
+	t.Run("leaves an ANR nothing identifies without a fingerprint", func(t *testing.T) {
+		a := ANR{}
+
+		if err := a.ComputeFingerprint(); err != nil {
+			t.Fatalf("Unexpected error computing ANR fingerprint: %v", err)
+		}
+		if a.Fingerprint != "" {
+			t.Errorf("Expected no fingerprint, but got %q", a.Fingerprint)
+		}
+	})
+
+	t.Run("groups a recovered ANR with one carrying a stacktrace", func(t *testing.T) {
+		recovered := ingestedANR(recoveredANR("No response to onStartJob for sh.frankenstein.android/.AnrJobService"))
+		inProcess := ingestedANR(anrStalledIn("java.lang.Thread", "sleep", "onStartJob"))
+
+		if err := recovered.ComputeFingerprint(); err != nil {
+			t.Fatalf("Unexpected error computing ANR fingerprint: %v", err)
+		}
+		if err := inProcess.ComputeFingerprint(); err != nil {
+			t.Fatalf("Unexpected error computing ANR fingerprint: %v", err)
+		}
+
+		if recovered.Fingerprint != inProcess.Fingerprint {
+			t.Errorf("Expected the same fingerprint, but got %q and %q", recovered.Fingerprint, inProcess.Fingerprint)
+		}
+	})
+
+	t.Run("separates stalls in different app methods", func(t *testing.T) {
+		first := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+		second := anrStalledIn("java.lang.Thread", "sleep", "onHandleWork")
+
+		if err := first.ComputeFingerprint(); err != nil {
+			t.Fatalf("Unexpected error computing ANR fingerprint: %v", err)
+		}
+		if err := second.ComputeFingerprint(); err != nil {
+			t.Fatalf("Unexpected error computing ANR fingerprint: %v", err)
+		}
+
+		if first.Fingerprint == second.Fingerprint {
+			t.Errorf("Expected different fingerprints, but both were %q", first.Fingerprint)
+		}
+	})
+
+	t.Run("groups one app method stalling on different platform calls", func(t *testing.T) {
+		first := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+		second := anrStalledIn("android.os.BinderProxy", "transactNative", "onStartJob")
+
+		if err := first.ComputeFingerprint(); err != nil {
+			t.Fatalf("Unexpected error computing ANR fingerprint: %v", err)
+		}
+		if err := second.ComputeFingerprint(); err != nil {
+			t.Fatalf("Unexpected error computing ANR fingerprint: %v", err)
+		}
+
+		if first.Fingerprint != second.Fingerprint {
+			t.Errorf("Expected the same fingerprint, but got %q and %q", first.Fingerprint, second.Fingerprint)
+		}
+	})
+}
+
+// anrStalledIn builds an ANR whose main thread sits in a platform
+// call made from the given app method.
+func anrStalledIn(platformClass, platformMethod, appMethod string) ANR {
+	return ANR{
+		Exceptions: ExceptionUnits{
+			{
+				Type:    "sh.measure.android.anr.AnrError",
+				Message: "Application Not Responding for at least 5s",
+				Frames: Frames{
+					{
+						ClassName:  platformClass,
+						MethodName: platformMethod,
+						FileName:   "Thread.java",
+						LineNum:    451,
+					},
+					{
+						ClassName:  "sh.frankenstein.android.AnrJobService",
+						MethodName: appMethod,
+						FileName:   "AnrComponents.kt",
+						LineNum:    42,
+						InApp:      true,
+					},
+					{
+						ClassName:  "android.os.Handler",
+						MethodName: "dispatchMessage",
+						FileName:   "Handler.java",
+						LineNum:    103,
+					},
+				},
+			},
+		},
+	}
+}
+
+// recoveredANR builds an ANR read from the system's exit record on
+// the launch after it, which carries the thread dump and the subject
+// but no stacktrace.
+func recoveredANR(subject string) ANR {
+	return ANR{
+		Subject: subject,
+		ARTThreadDump: `DALVIK THREADS (2):
+"main" prio=5 tid=1 Blocked
+  at sh.frankenstein.android.AnrJobService.onStartJob(AnrComponents.kt:42)
+`,
+	}
+}
+
+// nativeStalledANR builds an ANR whose main thread sat in native code,
+// leaving the dump without a managed frame to attribute it to.
+func nativeStalledANR(subject string) ANR {
+	return ANR{
+		Subject: subject,
+		ARTThreadDump: `DALVIK THREADS (2):
+"main" prio=5 tid=1 Native
+  at libcore.io.Linux.read(Native method)
+`,
+	}
+}
+
+// ingestedANR runs the preparation the ingest path performs on an ANR
+// before it is fingerprinted.
+func ingestedANR(a ANR) ANR {
+	a.ReadThreadDump()
+	a.MarkInAppFrames([]string{"sh.frankenstein.android"})
+
+	return a
+}
+
+func TestANRWithoutExceptions(t *testing.T) {
+	a := recoveredANR("No response to onStartJob for sh.frankenstein.android/.AnrJobService")
+	reason := "No response to onStartJob (sh.frankenstein.android/.AnrJobService)"
+
+	if !a.HasNoFrames() {
+		t.Error("Expected the ANR to have no frames")
+	}
+	if got := a.GetType(); got != "" {
+		t.Errorf("Expected no type, but got %q", got)
+	}
+	if got := a.GetMessage(); got != reason {
+		t.Errorf("Expected message %q, but got %q", reason, got)
+	}
+	if got := a.GetTitle(); got != reason {
+		t.Errorf("Expected title %q, but got %q", reason, got)
+	}
+	if got := a.GetDisplayTitle(); got != reason {
+		t.Errorf("Expected display title %q, but got %q", reason, got)
+	}
+	if got := a.GetFileName(); got != "" {
+		t.Errorf("Expected no file name, but got %q", got)
+	}
+	if got := a.GetMethodName(); got != "" {
+		t.Errorf("Expected no method name, but got %q", got)
+	}
+	if got := a.GetLineNumber(); got != 0 {
+		t.Errorf("Expected no line number, but got %d", got)
+	}
+	if got := a.Stacktrace(); got != "" {
+		t.Errorf("Expected no stacktrace, but got %q", got)
+	}
+}
+
+func TestANRGetMessage(t *testing.T) {
+	t.Run("prefers the system's reason", func(t *testing.T) {
+		a := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+		a.Subject = "No response to onStartJob for sh.frankenstein.android/.AnrJobService"
+
+		expected := "No response to onStartJob (sh.frankenstein.android/.AnrJobService)"
+		if got := a.GetMessage(); got != expected {
+			t.Errorf("Expected message %q, but got %q", expected, got)
+		}
+	})
+
+	t.Run("falls back to the sdk message without a subject", func(t *testing.T) {
+		a := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+
+		expected := "Application Not Responding for at least 5s"
+		if got := a.GetMessage(); got != expected {
+			t.Errorf("Expected message %q, but got %q", expected, got)
+		}
+	})
+}
+
+func TestANRFingerprintIgnoresTheReason(t *testing.T) {
+	fingerprintOf := func(t *testing.T, subject string) string {
+		t.Helper()
+		a := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+		a.Subject = subject
+		if err := a.ComputeFingerprint(); err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		return a.Fingerprint
+	}
+
+	t.Run("groups a stall the system never reported", func(t *testing.T) {
+		reported := fingerprintOf(t, "No response to onStartJob for sh.frankenstein.android/.AnrJobService")
+		unreported := fingerprintOf(t, "")
+
+		if reported != unreported {
+			t.Errorf("Expected fingerprint %q, but got %q", reported, unreported)
+		}
+	})
+
+	t.Run("groups deadlines expiring in the same method", func(t *testing.T) {
+		job := fingerprintOf(t, "No response to onStartJob for sh.frankenstein.android/.AnrJobService")
+		input := fingerprintOf(t, "Input dispatching timed out (71005a5 sh.frankenstein.android/sh.frankenstein.android.MainActivity is not responding. Waited 5005ms for MotionEvent).")
+
+		if job != input {
+			t.Errorf("Expected fingerprint %q, but got %q", job, input)
+		}
+	})
+}
+
+func TestANRGetRelevantFrame(t *testing.T) {
+	t.Run("returns the first in app frame", func(t *testing.T) {
+		a := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+
+		frame := a.GetRelevantFrame()
+
+		if frame.MethodName != "onStartJob" {
+			t.Errorf("Expected method %q, but got %q", "onStartJob", frame.MethodName)
+		}
+		if frame.FileName != "AnrComponents.kt" {
+			t.Errorf("Expected file %q, but got %q", "AnrComponents.kt", frame.FileName)
+		}
+	})
+
+	t.Run("falls back to the first frame outside the platform", func(t *testing.T) {
+		a := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+		a.Exceptions[0].Frames[1].InApp = false
+
+		frame := a.GetRelevantFrame()
+
+		if frame.MethodName != "onStartJob" {
+			t.Errorf("Expected method %q, but got %q", "onStartJob", frame.MethodName)
+		}
+	})
+
+	t.Run("falls back to the top frame when every frame is platform", func(t *testing.T) {
+		a := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+		a.Exceptions[0].Frames[1].InApp = false
+		a.Exceptions[0].Frames[1].ClassName = "androidx.work.Worker"
+
+		frame := a.GetRelevantFrame()
+
+		if frame.MethodName != "sleep" {
+			t.Errorf("Expected method %q, but got %q", "sleep", frame.MethodName)
+		}
+	})
+
+	// The dump names onStartJob and the SDK's own capture names
+	// onHandleWork, so whichever frame comes back says which won.
+	t.Run("prefers the thread dump over the sdk stacktrace", func(t *testing.T) {
+		a := anrStalledIn("java.lang.Thread", "sleep", "onHandleWork")
+		a.ARTThreadDump = recoveredANR("").ARTThreadDump
+
+		frame := ingestedANR(a).GetRelevantFrame()
+
+		if frame.MethodName != "onStartJob" {
+			t.Errorf("Expected method %q, but got %q", "onStartJob", frame.MethodName)
+		}
+	})
+
+	t.Run("falls back to the sdk stacktrace without a dump", func(t *testing.T) {
+		a := anrStalledIn("java.lang.Thread", "sleep", "onHandleWork")
+
+		frame := ingestedANR(a).GetRelevantFrame()
+
+		if frame.MethodName != "onHandleWork" {
+			t.Errorf("Expected method %q, but got %q", "onHandleWork", frame.MethodName)
+		}
+	})
+
+	t.Run("falls back to the sdk stacktrace when the dump has no managed frame", func(t *testing.T) {
+		a := anrStalledIn("java.lang.Thread", "sleep", "onHandleWork")
+		a.ARTThreadDump = nativeStalledANR("").ARTThreadDump
+
+		frame := ingestedANR(a).GetRelevantFrame()
+
+		if frame.MethodName != "onHandleWork" {
+			t.Errorf("Expected method %q, but got %q", "onHandleWork", frame.MethodName)
+		}
+	})
+}
+
+func TestANRMarkInAppFrames(t *testing.T) {
+	a := anrStalledIn("java.lang.Thread", "sleep", "onStartJob")
+	a.Exceptions[0].Frames[1].InApp = false
+	a.Threads = Threads{
+		{
+			Name: "APP: Locker",
+			Frames: Frames{
+				{ClassName: "java.lang.Thread", MethodName: "sleep"},
+				{ClassName: "sh.frankenstein.android.DeadlockToken", MethodName: "waitForever"},
+			},
+		},
+	}
+
+	a.MarkInAppFrames([]string{"sh.frankenstein.android"})
+
+	if !a.Exceptions[0].Frames[1].InApp {
+		t.Error("Expected the app frame of the stacktrace to be marked in app")
+	}
+	if a.Exceptions[0].Frames[0].InApp {
+		t.Error("Expected the platform frame of the stacktrace to not be marked in app")
+	}
+	if !a.Threads[0].Frames[1].InApp {
+		t.Error("Expected the app frame of the thread to be marked in app")
+	}
+	if a.Threads[0].Frames[0].InApp {
+		t.Error("Expected the platform frame of the thread to not be marked in app")
+	}
 }

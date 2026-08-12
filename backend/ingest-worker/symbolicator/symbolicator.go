@@ -1,6 +1,7 @@
 package symbolicator
 
 import (
+	"backend/libs/artdump"
 	"backend/libs/event"
 	"backend/libs/opsys"
 	"backend/libs/span"
@@ -31,6 +32,10 @@ const logRequest = false
 //
 // set to `true` for quick debugging.
 const logResponse = false
+
+// lambdaSubstr marks an R8 synthesized lambda class, the only
+// classname shape the lambda rewrite applies to.
+const lambdaSubstr = "SyntheticLambda"
 
 var ErrJVMSymbolicationFailure = errors.New("symbolicator received JVM errors")
 var ErrJSSymbolicationFailure = errors.New("symbolicator received JS errors")
@@ -95,6 +100,9 @@ type jvmSymbolicator struct {
 	// ttidSpans stores the index of the TTID span
 	// that needs symbolication.
 	ttidSpans []int
+	// artDumps holds each ANR event's parsed ART thread dump,
+	// keyed by event index.
+	artDumps map[int]*artDumpEntry
 }
 
 // nativeSymbolicator represents a native symbolicator request.
@@ -348,6 +356,10 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 			threads := ev.ANR.Threads
 			s.jvmSymbolicator.parseExceptions(exceptions, threads, i)
 
+			if dump := artdump.Parse(ev.ANR.ARTThreadDump); dump != nil {
+				s.jvmSymbolicator.parseARTDump(dump, i)
+			}
+
 		case event.TypeLifecycleActivity:
 			s.jvmSymbolicator.ensureRequestInitialized()
 
@@ -554,7 +566,6 @@ func (s *jvmSymbolicator) parseExceptions(exceptions event.ExceptionUnits, threa
 func (js jvmSymbolicator) rewriteException(evs []event.EventField, sps []span.SpanField, lambdaWorkaround bool) {
 	stacktraces := js.response.Stacktraces
 	classes := js.response.Classes
-	lambdaSubstr := "SyntheticLambda"
 
 	// exception and ANR events are handled and
 	// rewritten at one go. while other kinds of
@@ -732,6 +743,8 @@ func (js jvmSymbolicator) rewriteException(evs []event.EventField, sps []span.Sp
 			}
 		}
 	}
+
+	js.rewriteARTDumps(evs, lambdaWorkaround)
 
 	// rewrite TTID spans whose names are like
 	//
