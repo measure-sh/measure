@@ -4,7 +4,6 @@ import (
 	"backend/libs/autumn"
 	"backend/libs/boot"
 	"backend/libs/bus"
-	"backend/libs/ga4"
 	"backend/libs/inet"
 	"backend/libs/ingest"
 	"backend/libs/posthog"
@@ -71,32 +70,30 @@ type IggyConfig struct {
 }
 
 type ServerConfig struct {
-	PG                           PostgresConfig
-	CH                           ClickhouseConfig
-	RD                           RedisConfig
-	IG                           IggyConfig
-	ServiceAccountEmail          string
-	SymbolsBucket                string
-	SymbolsBucketRegion          string
-	SymbolsAccessKey             string
-	SymbolsSecretAccessKey       string
-	AttachmentsBucket            string
-	AttachmentsBucketRegion      string
-	AttachmentsAccessKey         string
-	AttachmentsSecretAccessKey   string
-	SystemSymbolsBucket          string
-	AWSEndpoint                  string
-	APIOrigin                    string
-	SymbolicatorOrigin           string
-	SymboloaderOrigin            string
-	GA4MeasurementID             string
-	GA4MeasurementProtocolSecret string
-	PostHogAPIKey                string
-	PostHogHost                  string
-	OtelServiceName              string
-	CloudEnv                     bool
-	IngestEnforceTimeWindow      bool
-	BillingEnabled               bool
+	PG                         PostgresConfig
+	CH                         ClickhouseConfig
+	RD                         RedisConfig
+	IG                         IggyConfig
+	ServiceAccountEmail        string
+	SymbolsBucket              string
+	SymbolsBucketRegion        string
+	SymbolsAccessKey           string
+	SymbolsSecretAccessKey     string
+	AttachmentsBucket          string
+	AttachmentsBucketRegion    string
+	AttachmentsAccessKey       string
+	AttachmentsSecretAccessKey string
+	SystemSymbolsBucket        string
+	AWSEndpoint                string
+	APIOrigin                  string
+	SymbolicatorOrigin         string
+	SymboloaderOrigin          string
+	PostHogAPIKey              string
+	PostHogHost                string
+	OtelServiceName            string
+	CloudEnv                   bool
+	IngestEnforceTimeWindow    bool
+	BillingEnabled             bool
 }
 
 // IsCloud is true if the service is
@@ -247,21 +244,6 @@ func NewConfig() *ServerConfig {
 		autumn.Init(autumn.Config{SecretKey: autumnSecretKey})
 	}
 
-	ga4MeasurementID := os.Getenv("GA4_MEASUREMENT_ID")
-	if ga4MeasurementID == "" {
-		log.Println("GA4_MEASUREMENT_ID env var is not set, GA4 conversion events will not be sent")
-	}
-
-	ga4MeasurementProtocolSecret, secErr := secret.FromEnvOrFile("GA4_MEASUREMENT_PROTOCOL_SECRET")
-	if secErr != nil {
-		log.Printf("failed to read GA4_MEASUREMENT_PROTOCOL_SECRET: %v", secErr)
-	}
-	if ga4MeasurementProtocolSecret == "" {
-		log.Println("GA4_MEASUREMENT_PROTOCOL_SECRET env var is not set, GA4 conversion events will not be sent")
-	}
-
-	ga4.Init(ga4MeasurementID, ga4MeasurementProtocolSecret)
-
 	posthogAPIKey := os.Getenv("POSTHOG_API_KEY")
 	if posthogAPIKey == "" {
 		log.Println("POSTHOG_API_KEY env var is not set, PostHog events will not be sent")
@@ -305,28 +287,26 @@ func NewConfig() *ServerConfig {
 			Username: iggyUsername,
 			Password: iggyPassword,
 		},
-		ServiceAccountEmail:          serviceAccountEmail,
-		SymbolsBucket:                symbolsBucket,
-		SymbolsBucketRegion:          symbolsBucketRegion,
-		SymbolsAccessKey:             symbolsAccessKey,
-		SymbolsSecretAccessKey:       symbolsSecretAccessKey,
-		AttachmentsBucket:            attachmentsBucket,
-		AttachmentsBucketRegion:      attachmentsBucketRegion,
-		AttachmentsAccessKey:         attachmentsAccessKey,
-		AttachmentsSecretAccessKey:   attachmentsSecretAccessKey,
-		SystemSymbolsBucket:          systemSymbolsBucket,
-		AWSEndpoint:                  endpoint,
-		APIOrigin:                    apiOrigin,
-		SymbolicatorOrigin:           symbolicatorOrigin,
-		SymboloaderOrigin:            symboloaderOrigin,
-		GA4MeasurementID:             ga4MeasurementID,
-		GA4MeasurementProtocolSecret: ga4MeasurementProtocolSecret,
-		PostHogAPIKey:                posthogAPIKey,
-		PostHogHost:                  posthogHost,
-		OtelServiceName:              otelServiceName,
-		CloudEnv:                     cloudEnv,
-		IngestEnforceTimeWindow:      enforceIngestTimeWindow,
-		BillingEnabled:               billingEnabled,
+		ServiceAccountEmail:        serviceAccountEmail,
+		SymbolsBucket:              symbolsBucket,
+		SymbolsBucketRegion:        symbolsBucketRegion,
+		SymbolsAccessKey:           symbolsAccessKey,
+		SymbolsSecretAccessKey:     symbolsSecretAccessKey,
+		AttachmentsBucket:          attachmentsBucket,
+		AttachmentsBucketRegion:    attachmentsBucketRegion,
+		AttachmentsAccessKey:       attachmentsAccessKey,
+		AttachmentsSecretAccessKey: attachmentsSecretAccessKey,
+		SystemSymbolsBucket:        systemSymbolsBucket,
+		AWSEndpoint:                endpoint,
+		APIOrigin:                  apiOrigin,
+		SymbolicatorOrigin:         symbolicatorOrigin,
+		SymboloaderOrigin:          symboloaderOrigin,
+		PostHogAPIKey:              posthogAPIKey,
+		PostHogHost:                posthogHost,
+		OtelServiceName:            otelServiceName,
+		CloudEnv:                   cloudEnv,
+		IngestEnforceTimeWindow:    enforceIngestTimeWindow,
+		BillingEnabled:             billingEnabled,
 	}
 }
 

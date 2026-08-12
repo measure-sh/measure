@@ -87,7 +87,6 @@ services:
       - slack-client-secret
       - slack-signing-secret
       - slack-oauth-state-secret
-      - ga4-measurement-protocol-secret
       - autumn-secret-key
       - autumn-webhook-secret
       - oauth-google-secret
@@ -135,8 +134,6 @@ services:
       - SLACK_CLIENT_SECRET_FILE=/run/secrets/slack-client-secret
       - SLACK_SIGNING_SECRET_FILE=/run/secrets/slack-signing-secret
       - SLACK_OAUTH_STATE_SECRET_FILE=/run/secrets/slack-oauth-state-secret
-      - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-}
-      - GA4_MEASUREMENT_PROTOCOL_SECRET_FILE=/run/secrets/ga4-measurement-protocol-secret
       - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
       - POSTHOG_HOST=${POSTHOG_HOST:-}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
@@ -282,7 +279,6 @@ services:
       - symbols-secret-access-key
       - attachments-secret-access-key
       - autumn-secret-key
-      - ga4-measurement-protocol-secret
     environment:
       - POSTGRES_DSN_FILE=/run/secrets/postgres-dsn
       - CLICKHOUSE_DSN_FILE=/run/secrets/clickhouse-dsn
@@ -309,8 +305,6 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
       - BILLING_ENABLED=${BILLING_ENABLED}
       - AUTUMN_SECRET_KEY_FILE=/run/secrets/autumn-secret-key
-      - GA4_MEASUREMENT_ID=${GA4_MEASUREMENT_ID:-}
-      - GA4_MEASUREMENT_PROTOCOL_SECRET_FILE=/run/secrets/ga4-measurement-protocol-secret
       - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
       - POSTHOG_HOST=${POSTHOG_HOST:-}
       - PORT=8086
@@ -884,8 +878,6 @@ secrets:
     environment: "SLACK_SIGNING_SECRET"
   slack-oauth-state-secret:
     environment: "SLACK_OAUTH_STATE_SECRET"
-  ga4-measurement-protocol-secret:
-    environment: "GA4_MEASUREMENT_PROTOCOL_SECRET"
   autumn-secret-key:
     environment: "AUTUMN_SECRET_KEY"
   autumn-webhook-secret:

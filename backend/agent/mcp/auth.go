@@ -82,8 +82,6 @@ type mcpOAuthStatePayload struct {
 	RedirectURI   string `json:"redirect_uri"`
 	CodeChallenge string `json:"code_challenge"`
 	Provider      string `json:"provider"`
-	GAClientID    string `json:"ga_client_id,omitempty"`
-	GCLID         string `json:"gclid,omitempty"`
 }
 
 // mcpTokenInfo holds the validated token metadata returned by mcpValidateToken.
@@ -200,7 +198,7 @@ func mcpRegisterClient(ctx context.Context, deps *server.Deps, clientName string
 
 // mcpAuthorize validates the client, stores OAuth state in Valkey, and returns
 // the provider OAuth redirect URL.
-func mcpAuthorize(ctx context.Context, deps *server.Deps, provider, clientID, redirectURI, mcpState, codeChallenge, gaClientID, gclid string) (providerURL string, err error) {
+func mcpAuthorize(ctx context.Context, deps *server.Deps, provider, clientID, redirectURI, mcpState, codeChallenge string) (providerURL string, err error) {
 	pgPool := deps.PgPool
 	vk := deps.VK
 	siteOrigin := deps.Config.SiteOrigin
@@ -237,8 +235,6 @@ func mcpAuthorize(ctx context.Context, deps *server.Deps, provider, clientID, re
 		RedirectURI:   redirectURI,
 		CodeChallenge: codeChallenge,
 		Provider:      provider,
-		GAClientID:    gaClientID,
-		GCLID:         gclid,
 	}
 	if storeErr := mcpStoreMCPStateInValkey(ctx, vk, oauthState, payload); storeErr != nil {
 		return "", &mcpHTTPError{http.StatusInternalServerError, "failed to store state"}
@@ -348,7 +344,7 @@ func mcpCallback(ctx context.Context, deps *server.Deps, code, state string) (re
 		return "", &mcpHTTPError{http.StatusBadRequest, "unsupported provider in state"}
 	}
 
-	msrUser, fcErr := mcpFindOrCreateUser(ctx, deps, userName, userEmail, providerName, statePayload.GAClientID, statePayload.GCLID)
+	msrUser, fcErr := mcpFindOrCreateUser(ctx, deps, userName, userEmail, providerName)
 	if fcErr != nil {
 		return "", &mcpHTTPError{http.StatusInternalServerError, "failed to find or create user"}
 	}
@@ -476,7 +472,7 @@ func mcpStoreMCPStateInValkey(ctx context.Context, vk valkey.Client, state strin
 
 // mcpFindOrCreateUser finds an existing Measure user by email or creates a new
 // one (including a default team) via the same logic used by SigninGitHub.
-func mcpFindOrCreateUser(ctx context.Context, deps *server.Deps, name, email, provider, gaClientID, gclid string) (mcpUserInfo, error) {
+func mcpFindOrCreateUser(ctx context.Context, deps *server.Deps, name, email, provider string) (mcpUserInfo, error) {
 	msrUser, err := measure.FindUserByEmail(ctx, deps.PgPool, email)
 	if err != nil {
 		return mcpUserInfo{}, fmt.Errorf("failed to find user: %w", err)
@@ -488,12 +484,6 @@ func mcpFindOrCreateUser(ctx context.Context, deps *server.Deps, name, email, pr
 		if err := msrUser.Save(ctx, deps.PgPool, nil); err != nil {
 			return mcpUserInfo{}, fmt.Errorf("%s: %w", msg, err)
 		}
-
-		if err := measure.SaveUserAttribution(ctx, deps.PgPool, *msrUser.ID, gaClientID, gclid); err != nil {
-			fmt.Println("mcp: failed to save user attribution:", err)
-		}
-
-		measure.FireSignupEvent(ctx, msrUser, provider, gaClientID)
 
 		if err := measure.CreateNotifPref(deps.PgPool, uuid.MustParse(*msrUser.ID)); err != nil {
 			fmt.Println("mcp: failed to create notif prefs:", err)
@@ -656,8 +646,6 @@ func (h Handlers) MCPAuthorize(c *gin.Context) {
 	mcpState := c.Query("state")
 	codeChallenge := c.Query("code_challenge")
 	provider := c.Query("provider")
-	gaClientID := c.Query("ga_client_id")
-	gclid := c.Query("gclid")
 
 	if responseType != "code" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "unsupported response_type"})
@@ -681,7 +669,7 @@ func (h Handlers) MCPAuthorize(c *gin.Context) {
 		return
 	}
 
-	providerURL, err := mcpAuthorize(ctx, deps, provider, clientID, redirectURI, mcpState, codeChallenge, gaClientID, gclid)
+	providerURL, err := mcpAuthorize(ctx, deps, provider, clientID, redirectURI, mcpState, codeChallenge)
 	if err != nil {
 		mcpAbortWithError(c, err)
 		return

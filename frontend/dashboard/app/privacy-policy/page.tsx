@@ -330,9 +330,8 @@ export default function PrivacyPolicy() {
             through our cookie banner. Before you make a choice, and if you
             decline, our analytics provider runs in a cookieless mode: it stores
             nothing on your device, does not record your session, and counts
-            visits using a temporary identifier derived from your IP address and
-            browser that is discarded daily and cannot be linked back to you.
-            You can review or withdraw your consent at any time using the
+            visits using a temporary identifier that cannot be linked back to
+            you. You can review or withdraw your consent at any time using the
             &quot;Cookie Preferences&quot; link in the Website footer. We use a
             third-party consent management platform to display the cookie banner
             and to store a record of your consent choices.

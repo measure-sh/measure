@@ -5,8 +5,8 @@ import { useEffect } from "react";
 import { captureGCLIDFromURL } from "@/app/utils/analytics/attribution";
 import { captureUTMsFromURL } from "@/app/utils/analytics/utm";
 
-// Both writes persist to the device, localStorage for the UTMs & a 90 day cookie
-// for the gclid, to attribute signups. That is a marketing purpose with no
+// Both writes persist to the device. The login page reads them back to label a
+// signup's acquisition source in PostHog. That is a marketing purpose with no
 // strictly necessary exemption, so they wait for marketing consent.
 function capture() {
   captureUTMsFromURL();
@@ -21,8 +21,7 @@ export function AttributionCapture() {
 }
 
 // Must render inside ConsentManagerProvider: useConsentManager throws without
-// it. c15t auto grants marketing outside opt-in jurisdictions, so this only
-// withholds the writes where a banner is actually shown.
+// it.
 export function ConsentedAttributionCapture() {
   const { has } = useConsentManager();
   const granted = has("marketing");

@@ -15,6 +15,7 @@ import { determineAcquisitionSource } from "@/app/utils/analytics/acquisition";
 import { getStoredGCLID } from "@/app/utils/analytics/attribution";
 import { getUTMState } from "@/app/utils/analytics/utm";
 import { isCloud } from "@/app/utils/env_utils";
+import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import GitHubSignIn from "./github-sign-in";
 import GoogleSignIn from "./google-sign-in";
 import Messages from "./messages";
@@ -176,11 +177,11 @@ export default function Login(props: {
       {isCloud() && (
         <p className="font-body text-center text-sm text-muted-foreground max-w-100">
           By continuing, you agree to our{" "}
-          <Link href="/terms-of-service" className="underline">
+          <Link href="/terms-of-service" className={underlineLinkStyle}>
             Terms of Service
           </Link>{" "}
           and{" "}
-          <Link href="/privacy-policy" className="underline">
+          <Link href="/privacy-policy" className={underlineLinkStyle}>
             Privacy Policy
           </Link>
           .

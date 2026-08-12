@@ -1,7 +1,7 @@
 // Package posthog is a fire-and-forget client wrapping the official posthog-go
 // SDK. The SDK handles batching and async transport; this package only adds
-// init/skip semantics consistent with backend/libs/ga4 so callers can fire
-// events without worrying about whether PostHog is configured.
+// init/skip semantics so callers can fire events without worrying about
+// whether PostHog is configured.
 package posthog
 
 import (

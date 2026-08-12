@@ -110,25 +110,6 @@ func seedTeamAutumnCustomer(ctx context.Context, t *testing.T, teamID uuid.UUID,
 	th.SeedTeamAutumnCustomer(ctx, t, teamID.String(), autumnCustomerID)
 }
 
-// setUserAttribution inserts a row into measure.user_attribution for a user.
-// Pass empty strings to exercise the SQL NULL → empty-string COALESCE behavior.
-func setUserAttribution(ctx context.Context, t *testing.T, userID, gaClientID, gclid string) {
-	t.Helper()
-	var ga, g any
-	if gaClientID != "" {
-		ga = gaClientID
-	}
-	if gclid != "" {
-		g = gclid
-	}
-	_, err := th.PgPool.Exec(ctx,
-		`INSERT INTO user_attribution (user_id, ga_client_id, gclid) VALUES ($1, $2, $3)`,
-		userID, ga, g)
-	if err != nil {
-		t.Fatalf("insert user_attribution: %v", err)
-	}
-}
-
 func seedTeamAndMemberWithRole(t *testing.T, ctx context.Context, role string) (string, uuid.UUID) {
 	t.Helper()
 

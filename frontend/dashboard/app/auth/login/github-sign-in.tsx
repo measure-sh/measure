@@ -2,11 +2,6 @@
 
 import { signInWithGitHub } from "@/app/auth/oauth";
 import { Button } from "@/app/components/button";
-import {
-  appendAttributionToURL,
-  getGAClientID,
-  getStoredGCLID,
-} from "@/app/utils/analytics/attribution";
 import { navigateTo } from "@/app/utils/navigation";
 import Image from "next/image";
 
@@ -37,13 +32,7 @@ export default function GitHubSignIn({
 
   const handleClick = () => {
     if (mcpAuthorizeUrl) {
-      navigateTo(
-        appendAttributionToURL(
-          mcpAuthorizeUrl,
-          getGAClientID(),
-          getStoredGCLID(),
-        ),
-      );
+      navigateTo(mcpAuthorizeUrl);
       return;
     }
     doGitHubLogin();

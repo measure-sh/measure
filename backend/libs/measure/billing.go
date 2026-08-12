@@ -343,7 +343,6 @@ func HandleBillingUpdated(ctx context.Context, pg *pgxpool.Pool, billingEnabled 
 		if !ok {
 			return
 		}
-		firePaidConversionEvent(ctx, owner, data.CustomerID, *activated)
 		firePurchaseEvent(teamID, owner, data.CustomerID, *activated)
 		fireSubscriptionUpgradedEvent(teamID, owner, data.CustomerID, *activated)
 
