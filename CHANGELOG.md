@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Merge build & test jobs across service workflows (#4221) by @detj in #4221
 - (**backend**): Fold public oci workflow (#4220) by @detj in #4220
+- (**frontend**): Gate marketing attribution capture on consent (#4227) by @detj in #4227
 - (**frontend**): Make filter component flags optional by @anupcowkur in #4209
 
 ## [0.12.1] - 2026-08-06
