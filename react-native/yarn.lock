@@ -2873,7 +2873,7 @@ __metadata:
   resolution: "@measuresh/react-native@portal:../../::locator=%40measuresh%2Freact-native-example%40workspace%3Aexample%2Fexpo"
   peerDependencies:
     react: ">=18.2.0"
-    react-native: ">=0.72.0"
+    react-native: ">=0.73.0"
   languageName: node
   linkType: soft
 
@@ -2882,7 +2882,7 @@ __metadata:
   resolution: "@measuresh/react-native@portal:../../::locator=%40measuresh%2FrnExample%40workspace%3Aexample%2FrnExample"
   peerDependencies:
     react: ">=18.2.0"
-    react-native: ">=0.72.0"
+    react-native: ">=0.73.0"
   languageName: node
   linkType: soft
 
@@ -2915,7 +2915,7 @@ __metadata:
     typescript: ^5.8.3
   peerDependencies:
     react: ">=18.2.0"
-    react-native: ">=0.72.0"
+    react-native: ">=0.73.0"
   languageName: unknown
   linkType: soft
 

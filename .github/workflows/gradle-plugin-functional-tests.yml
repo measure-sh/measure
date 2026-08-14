@@ -1,0 +1,52 @@
+name: Gradle Plugin
+
+on:
+  pull_request:
+    paths:
+      - 'android/measure-gradle-plugin/**'
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'android/measure-gradle-plugin/**'
+
+env:
+  JAVA_VERSION: 21
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  functional-tests:
+    name: Functional tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android/measure-gradle-plugin
+    permissions:
+      contents: read
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'gradle'
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v3
+        with:
+          gradle-root: android/measure-gradle-plugin
+
+      - name: Run functional tests
+        run: ./gradlew functionalTest --no-daemon --no-parallel --no-configuration-cache --stacktrace
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: functional-test-report
+          path: android/measure-gradle-plugin/build/reports/tests/functionalTest
+          retention-days: 7

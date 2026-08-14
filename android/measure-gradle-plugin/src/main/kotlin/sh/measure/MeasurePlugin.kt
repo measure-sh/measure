@@ -3,7 +3,6 @@ package sh.measure
 import com.android.build.api.artifact.SingleArtifact
 import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.api.variant.Variant
-import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -115,13 +114,14 @@ class MeasurePlugin : Plugin<Project> {
 
         val rnBundleArchives = project.objects.fileCollection()
 
+        val manifestDataFileProvider = manifestDataFileProvider(project, variant)
         val uploadBuildProvider =
             project.tasks
                 .register(
                     buildUploadTaskName(variant),
                     BuildUploadTask::class.java,
                 ) {
-                    it.manifestFileProperty.set(manifestDataFileProvider(project, variant))
+                    it.manifestFileProperty.set(manifestDataFileProvider)
                     // When R8 is disabled the obfuscation mapping artifact is absent or
                     // points to a file that is never produced. orElse keeps the collection
                     // (and task graph) resolvable in that case, while still depending on the
@@ -141,17 +141,13 @@ class MeasurePlugin : Plugin<Project> {
                     it.retriesProperty.set(DEFAULT_RETRIES)
                     it.usesService(httpClientProvider)
                     it.httpClientProvider.set(httpClientProvider)
-                }.dependsOn(extractManifestDataProvider)
-                .apply {
-                    configure {
-                        val manifestDataFileProvider = manifestDataFileProvider(project, variant)
-                        it.onlyIf {
-                            manifestDataFileProvider.get().asFile.exists()
-                        }
-                        // using dependsOn would not work as apkSizeProvider and aabSizeProvider will both
-                        // end up running and overwriting each other's output.
-                        it.mustRunAfter(apkSizeProvider, aabSizeProvider)
+                    it.dependsOn(extractManifestDataProvider)
+                    it.onlyIf {
+                        manifestDataFileProvider.get().asFile.exists()
                     }
+                    // using dependsOn would not work as apkSizeProvider and aabSizeProvider will both
+                    // end up running and overwriting each other's output.
+                    it.mustRunAfter(apkSizeProvider, aabSizeProvider)
                 }
 
         // hook up the upload task to run after any assemble<variant> or bundle<variant>
