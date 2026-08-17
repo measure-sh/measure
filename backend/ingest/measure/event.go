@@ -2,6 +2,7 @@ package measure
 
 import (
 	"backend/ingest/server"
+	"backend/libs/bus"
 	"backend/libs/event"
 	"backend/libs/objstore"
 	"backend/libs/span"
@@ -30,8 +31,10 @@ import (
 )
 
 // maxBatchSize is the maximum allowed payload
-// size of event request in bytes.
-var maxBatchSize = 10 * 1024 * 1024
+// size of event request in bytes. Kept under the bus
+// per-message cap of 10,000,000 bytes to leave headroom
+// for the IngestBatch wrapper & JSON re-encoding.
+var maxBatchSize = 9_900_000
 
 var ingestBatchPublishCount metric.Int64Counter
 
@@ -1015,16 +1018,6 @@ func PutEvents(c *gin.Context) {
 		genSignedURLsSpan.End()
 	}
 
-	if eventReq.json {
-		c.JSON(http.StatusOK, IngestResponse{
-			AttachmentUploadInfo: eventReq.attachmentUploadInfos,
-		})
-	} else {
-		c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
-	}
-
-	ingestReqSpan.End()
-
 	batch := IngestBatch{
 		BatchID:  eventReq.id.String(),
 		AppID:    eventReq.appId.String(),
@@ -1038,13 +1031,35 @@ func PutEvents(c *gin.Context) {
 
 	payload, err := json.Marshal(batch)
 	if err != nil {
-		fmt.Println("failed to marshal ingest batch for publish:", err)
+		msg := "failed to marshal ingest batch for publish"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 		return
 	}
 
+	// publish before responding, a failure after the response would silently
+	// drop the batch while the SDK deletes its copy. Detached from the request
+	// context so a client disconnect does not abort a publish about to land.
 	if err := server.Server.BusProducer.Publish(context.Background(), payload); err != nil {
-		fmt.Println("failed to publish ingest batch:", err)
-	} else {
-		ingestBatchPublishCount.Add(c.Request.Context(), 1)
+		msg := "failed to publish ingest batch"
+		fmt.Println(msg, err)
+		if bus.IsOversized(err) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "batch too large to publish"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
 	}
+
+	ingestBatchPublishCount.Add(c.Request.Context(), 1)
+
+	if eventReq.json {
+		c.JSON(http.StatusOK, IngestResponse{
+			AttachmentUploadInfo: eventReq.attachmentUploadInfos,
+		})
+	} else {
+		c.JSON(http.StatusAccepted, gin.H{"ok": "accepted"})
+	}
+
+	ingestReqSpan.End()
 }

@@ -2,10 +2,12 @@ package bus
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"cloud.google.com/go/pubsub/v2"
 	iggcon "github.com/apache/iggy/foreign/go/contracts"
+	ierror "github.com/apache/iggy/foreign/go/errors"
 )
 
 // DefaultStreamName is the global stream for all message streaming operations.
@@ -27,6 +29,16 @@ type Producer interface {
 	Close() error
 }
 
+// IsOversized reports whether a Publish error means the payload exceeded the
+// backend per-message limit. Permanent, the same payload always fails, so
+// callers should reject it rather than retry. Both backends cap at 10,000,000
+// bytes but report it with their own error, so the taxonomy lives here rather
+// than leaking a transport sentinel into callers.
+func IsOversized(err error) bool {
+	return errors.Is(err, pubsub.ErrOversizedMessage) ||
+		errors.Is(err, ierror.ErrTooBigMessagePayload)
+}
+
 // Consumer receives messages from a topic/stream.
 type Consumer interface {
 	// Listen blocks until ctx is cancelled or a fatal error occurs.
@@ -43,9 +55,9 @@ type PubSubOption func(*pubSubConfig)
 type pubSubConfig struct {
 	// projectID is the GCP project ID. Empty means auto-detect from the metadata server.
 	projectID string
-	// publishSettings configures publish behaviour (producer-only).
-	// If nil, the publisher's default settings are used.
-	publishSettings *pubsub.PublishSettings
+	// publishSettings mutates publish behaviour (producer-only).
+	// If nil, pubsub.DefaultPublishSettings is used unchanged.
+	publishSettings func(*pubsub.PublishSettings)
 	// receiveSettings configures receive behaviour (consumer-only).
 	// If nil, the subscriber's default settings are used.
 	receiveSettings *pubsub.ReceiveSettings
@@ -68,11 +80,13 @@ func WithPubSubReceiveSettings(s pubsub.ReceiveSettings) PubSubOption {
 	}
 }
 
-// WithPublishSettings sets the PublishSettings for the Pub/Sub producer.
-// If not provided, pubsub.DefaultPublishSettings is used.
-func WithPubSubPublishSettings(s pubsub.PublishSettings) PubSubOption {
+// WithPubSubPublishSettings mutates pubsub.DefaultPublishSettings for the
+// producer. It takes a mutator rather than a struct because a struct literal
+// cannot express "leave this field alone", so every field the caller omitted
+// would silently be zeroed.
+func WithPubSubPublishSettings(fn func(*pubsub.PublishSettings)) PubSubOption {
 	return func(c *pubSubConfig) {
-		c.publishSettings = &s
+		c.publishSettings = fn
 	}
 }
 
