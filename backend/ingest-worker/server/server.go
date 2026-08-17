@@ -38,6 +38,10 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
+// ackLeaseDuration is the Pub/Sub ack lease held per message. Matches the
+// ingest-batch subscription's ackDeadlineSeconds.
+const ackLeaseDuration = 120 * time.Second
+
 var Server *server
 
 type server struct {
@@ -415,10 +419,19 @@ func Init(config *ServerConfig) {
 		log.Println("pub/sub pull enabled:", pullEnabled)
 
 		if subscription != "" && pullEnabled {
+			// Pin the ack lease to the subscription's ack deadline. Left unset,
+			// the client derives it from the p99 processing time & floors it at
+			// 10s, so fast batches get the shortest lease & every message living
+			// past 5s then depends on a modack landing in time. Pinned at 120s,
+			// anything finishing under ~115s needs no modack at all.
 			consumer, err := bus.NewPubSubConsumer(
 				context.Background(),
 				subscription,
-				bus.WithPubSubReceiveSettings(pubsub.ReceiveSettings{MaxOutstandingMessages: batchSize}),
+				bus.WithPubSubReceiveSettings(pubsub.ReceiveSettings{
+					MaxOutstandingMessages:     batchSize,
+					MinDurationPerAckExtension: ackLeaseDuration,
+					MaxDurationPerAckExtension: ackLeaseDuration,
+				}),
 			)
 			if err != nil {
 				log.Printf("failed to create Pub/Sub consumer: %v\n", err)
