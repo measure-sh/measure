@@ -355,6 +355,14 @@ div.sticky:has(> input[data-object-search-input]) {
     z-index: 10;
 }
 
+/* In the OpenAPI response-code accordions, an expanded panel is a bordered
+   box whose bottom edge ends where the next status code's row begins, so
+   the two nearly touch. Add space below the panel. collapsed panels are
+   hidden, so only the expanded one is affected. */
+[class*="--accordion-panel-height"] {
+    margin-bottom: 0.75rem;
+}
+
 @keyframes marquee {
     0% {
         transform: translateX(0);
