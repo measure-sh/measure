@@ -287,6 +287,41 @@ const nextConfig = {
         destination: "/docs/cpu-memory-monitoring#memory-usage",
         permanent: true,
       },
+      {
+        source: "/docs/features/feature-crash-reporting",
+        destination: "/docs/error-monitoring",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-error-tracking",
+        destination: "/docs/error-monitoring",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-anr-reporting",
+        destination: "/docs/error-monitoring#anr-reporting",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-upload-symbols",
+        destination: "/docs/error-monitoring/upload-symbols",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-profiling",
+        destination: "/docs/performance-tracing/profiling",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-alerts",
+        destination: "/docs/alerts",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-slack-integration",
+        destination: "/docs/integrations#slack",
+        permanent: true,
+      },
       // Profiling moved from a top-level page into the Performance tracing
       // section. Forward the old flat URL.
       {
