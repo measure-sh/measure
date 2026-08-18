@@ -312,6 +312,20 @@ const nextConfig = {
           },
         ],
       },
+      // interactive embeds iframed same-origin by blog posts
+      {
+        source: "/blog/assets/:asset(.*\\.html)",
+        headers: [
+          {
+            key: "X-Frame-Options",
+            value: "SAMEORIGIN",
+          },
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors 'self'",
+          },
+        ],
+      },
       // allow loading assets for PostHog session replays
       {
         source: "/_next/static/:path*",
