@@ -339,6 +339,22 @@
     font-weight: inherit;
 }
 
+/* The fumadocs OpenAPI schema popup has two sticky bars above its
+   scrolling property list: a breadcrumb bar with z-20 and a property
+   filter row without a z-index. Both use --secondary, which this theme
+   defines as a translucent mix. As a result, scrolling rows can paint
+   over the filter row and show through both bars. Keep the filter row
+   above the list and make both bars opaque using the same --secondary
+   mix composited over the popup background. */
+div:has(+ div.sticky > input[data-object-search-input]),
+div.sticky:has(> input[data-object-search-input]) {
+    background-color: color-mix(in oklab, var(--accent) 50%, var(--popover));
+}
+
+div.sticky:has(> input[data-object-search-input]) {
+    z-index: 10;
+}
+
 @keyframes marquee {
     0% {
         transform: translateX(0);
