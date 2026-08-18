@@ -58,6 +58,11 @@ func main() {
 		c.String(http.StatusOK, "pong")
 	})
 
+	// ask well-behaved crawlers not to fetch any route in this service
+	r.GET("/robots.txt", func(c *gin.Context) {
+		c.String(http.StatusOK, "User-agent: *\nDisallow: /\n")
+	})
+
 	// SDK routes
 	r.PUT("/events", measure.ValidateAPIKey(), measure.PutEvents)
 	r.PUT("/builds", measure.ValidateAPIKey(), measure.PutBuilds)

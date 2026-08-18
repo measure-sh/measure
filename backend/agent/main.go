@@ -171,6 +171,11 @@ func main() {
 		c.String(http.StatusOK, "pong")
 	})
 
+	// ask well-behaved crawlers not to fetch any route in this service
+	r.GET("/robots.txt", func(c *gin.Context) {
+		c.String(http.StatusOK, "User-agent: *\nDisallow: /\n")
+	})
+
 	// Attachment URLs in tool results point at this service's origin only
 	// outside cloud; in cloud PreSignURL returns direct GCS signed URLs, so
 	// the read proxy is registered for self-host only.
