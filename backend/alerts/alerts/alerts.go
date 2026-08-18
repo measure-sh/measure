@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
+	"strconv"
 	"time"
 
 	"backend/alerts/server"
 	"backend/alerts/slack"
 	"backend/libs/autumn"
 	"backend/libs/email"
+	"backend/libs/numeric"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -44,38 +47,26 @@ const (
 )
 
 type DailySummaryRow struct {
-	AppID                uuid.UUID
-	Date                 time.Time
-	SessionsValue        string
-	SessionsLabel        string
-	SessionsSubtitle     string
-	SessionsHasWarning   bool
-	SessionsHasError     bool
-	CrashFreeValue       string
-	CrashFreeLabel       string
-	CrashFreeSubtitle    string
-	CrashFreeHasWarning  bool
-	CrashFreeHasError    bool
-	ANRFreeValue         string
-	ANRFreeLabel         string
-	ANRFreeSubtitle      string
-	ANRFreeHasWarning    bool
-	ANRFreeHasError      bool
-	ColdLaunchValue      string
-	ColdLaunchLabel      string
-	ColdLaunchSubtitle   string
-	ColdLaunchHasWarning bool
-	ColdLaunchHasError   bool
-	WarmLaunchValue      string
-	WarmLaunchLabel      string
-	WarmLaunchSubtitle   string
-	WarmLaunchHasWarning bool
-	WarmLaunchHasError   bool
-	HotLaunchValue       string
-	HotLaunchLabel       string
-	HotLaunchSubtitle    string
-	HotLaunchHasWarning  bool
-	HotLaunchHasError    bool
+	AppID uuid.UUID
+	Date  time.Time
+
+	SessionsToday     uint64
+	SessionsYesterday uint64
+
+	CrashSessionsToday     uint64
+	CrashSessionsYesterday uint64
+
+	ANRSessionsToday     uint64
+	ANRSessionsYesterday uint64
+
+	ColdLaunchTodayMs     float64
+	ColdLaunchYesterdayMs float64
+
+	WarmLaunchTodayMs     float64
+	WarmLaunchYesterdayMs float64
+
+	HotLaunchTodayMs     float64
+	HotLaunchYesterdayMs float64
 }
 
 const errorSpikeTimePeriod = time.Hour
@@ -400,6 +391,60 @@ func getAppNameByID(ctx context.Context, appID uuid.UUID) (string, error) {
 	return appName, nil
 }
 
+// formatUnit rounds a measured value to two decimal places, drops trailing
+// zeros, and appends the unit, so a rate reads as 99.5% and a duration as
+// 892.35ms.
+func formatUnit(x float64, unit string) string {
+	return strconv.FormatFloat(math.Round(x*100)/100, 'f', -1, 64) + unit
+}
+
+// freeRate returns the share of sessions that saw no crash (or no ANR) as a
+// percentage. affected must not exceed total.
+func freeRate(total, affected uint64) float64 {
+	if total == 0 {
+		return 0
+	}
+	return float64(total-affected) * 100.0 / float64(total)
+}
+
+// comparison renders the line printed under a metric value, specifying yesterday's
+// figure. Callers pass both days already formatted, so a change too small to survive
+// rounding reads as no change rather than pairing "Up from" with a number identical
+// to the one on the card above it.
+func comparison(todayText, yesterdayText string, up bool) string {
+	if todayText == yesterdayText {
+		return "No change from yesterday"
+	}
+	if up {
+		return fmt.Sprintf("Up from %s yesterday", yesterdayText)
+	}
+	return fmt.Sprintf("Down from %s yesterday", yesterdayText)
+}
+
+// launchMetric builds one of the three launch cards. A day with no launch
+// events of that kind leaves the merged quantile as NaN, which is an absent
+// measurement, so the card says "No Data" and just writes yesterday's
+// duration without "Up" or "Down"
+func launchMetric(label string, todayMs, yesterdayMs float64) email.MetricData {
+	hasYesterday := !math.IsNaN(yesterdayMs) && yesterdayMs != 0
+
+	if math.IsNaN(todayMs) || todayMs == 0 {
+		subtitle := "No previous day data"
+		if hasYesterday {
+			subtitle = fmt.Sprintf("Was %s yesterday", formatUnit(yesterdayMs, "ms"))
+		}
+		return email.MetricData{Value: "No Data", Label: label, Subtitle: subtitle}
+	}
+
+	value := formatUnit(todayMs, "ms")
+	subtitle := "No previous day data"
+	if hasYesterday {
+		subtitle = comparison(value, formatUnit(yesterdayMs, "ms"), todayMs > yesterdayMs)
+	}
+
+	return email.MetricData{Value: value, Label: label, Subtitle: subtitle}
+}
+
 func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]email.MetricData, error) {
 	appThresholdPrefs, err := getAppThresholdPrefs(ctx, app.ID)
 	if err != nil {
@@ -420,9 +465,7 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]em
                     toDate(timestamp) AS date,
                     uniqMerge(unique_sessions) AS total_sessions,
                     uniqMerge(crash_sessions) AS crash_sessions,
-                    uniqMerge(perceived_crash_sessions) AS perceived_crash_sessions,
                     uniqMerge(anr_sessions) AS anr_sessions,
-                    uniqMerge(perceived_anr_sessions) AS perceived_anr_sessions,
                     quantileMerge(0.95)(cold_launch_p95) AS cold_launch_p95_ms,
                     quantileMerge(0.95)(warm_launch_p95) AS warm_launch_p95_ms,
                     quantileMerge(0.95)(hot_launch_p95) AS hot_launch_p95_ms
@@ -445,210 +488,111 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]em
             cd.app_id,
             cd.date,
 
-            -- Sessions
-            toString(cd.total_sessions) AS sessions_value,
-            'Sessions' AS sessions_label,
-            CASE
-                WHEN pd.total_sessions IS NULL OR pd.total_sessions = 0 THEN 'No previous day data'
-                WHEN cd.total_sessions > pd.total_sessions THEN concat(toString(cd.total_sessions - pd.total_sessions), ' greater than yesterday')
-                WHEN cd.total_sessions < pd.total_sessions THEN concat(toString(pd.total_sessions - cd.total_sessions), ' less than yesterday')
-                ELSE 'No change from yesterday'
-            END AS sessions_subtitle,
-            0 AS sessions_has_warning,
-            0 AS sessions_has_error,
+            cd.total_sessions,
+            pd.total_sessions,
 
-            -- Crash-free sessions
-            CASE
-                WHEN cd.total_sessions = 0 THEN '0%'
-                ELSE concat(toString(round((cd.total_sessions - cd.crash_sessions) * 100.0 / cd.total_sessions, 2)), '%')
-            END AS crash_free_value,
-            'Crash free sessions' AS crash_free_label,
-            CASE
-                WHEN pd.total_sessions = 0 OR pd.total_sessions IS NULL THEN 'No previous day data'
-                WHEN (cd.crash_sessions * 1.0 / nullIf(cd.total_sessions, 0)) < (pd.crash_sessions * 1.0 / nullIf(pd.total_sessions, 0)) THEN concat(toString(if(isNaN(round(
-                    ((cd.total_sessions - cd.crash_sessions) * 1.0 / nullIf(cd.total_sessions, 0)) /
-                    nullIf((pd.total_sessions - pd.crash_sessions) * 1.0 / nullIf(pd.total_sessions, 0), 0), 2)), 0, round(
-                    ((cd.total_sessions - cd.crash_sessions) * 1.0 / nullIf(cd.total_sessions, 0)) /
-                    nullIf((pd.total_sessions - pd.crash_sessions) * 1.0 / nullIf(pd.total_sessions, 0), 0), 2))), 'x better than yesterday')
-                WHEN (cd.crash_sessions * 1.0 / nullIf(cd.total_sessions, 0)) > (pd.crash_sessions * 1.0 / nullIf(pd.total_sessions, 0)) THEN concat(toString(if(isNaN(round(
-                    ((cd.total_sessions - cd.crash_sessions) * 1.0 / nullIf(cd.total_sessions, 0)) /
-                    nullIf((pd.total_sessions - pd.crash_sessions) * 1.0 / nullIf(pd.total_sessions, 0), 0), 2)), 0, round(
-                    ((cd.total_sessions - cd.crash_sessions) * 1.0 / nullIf(cd.total_sessions, 0)) /
-                    nullIf((pd.total_sessions - pd.crash_sessions) * 1.0 / nullIf(pd.total_sessions, 0), 0), 2))), 'x worse than yesterday')
-                ELSE 'No change from yesterday'
-            END AS crash_free_subtitle,
-            (cd.total_sessions != 0 AND (cd.total_sessions - cd.crash_sessions) * 100.0 / cd.total_sessions <= ?) AS crash_free_has_warning,
-            (cd.total_sessions != 0 AND (cd.total_sessions - cd.crash_sessions) * 100.0 / cd.total_sessions <= ?) AS crash_free_has_error,
+            cd.crash_sessions,
+            pd.crash_sessions,
 
-            -- ANR-free sessions
-            CASE
-                WHEN cd.total_sessions = 0 THEN '0%'
-                ELSE concat(toString(round((cd.total_sessions - cd.anr_sessions) * 100.0 / cd.total_sessions, 2)), '%')
-            END AS anr_free_value,
-            'ANR free sessions' AS anr_free_label,
-            CASE
-                WHEN pd.total_sessions = 0 OR pd.total_sessions IS NULL THEN 'No previous day data'
-                WHEN (cd.anr_sessions * 1.0 / nullIf(cd.total_sessions, 0)) < (pd.anr_sessions * 1.0 / nullIf(pd.total_sessions, 0)) THEN concat(toString(if(isNaN(round(
-                    ((cd.total_sessions - cd.anr_sessions) * 1.0 / nullIf(cd.total_sessions, 0)) /
-                    nullIf((pd.total_sessions - pd.anr_sessions) * 1.0 / nullIf(pd.total_sessions, 0), 0), 2)), 0, round(
-                    ((cd.total_sessions - cd.anr_sessions) * 1.0 / nullIf(cd.total_sessions, 0)) /
-                    nullIf((pd.total_sessions - pd.anr_sessions) * 1.0 / nullIf(pd.total_sessions, 0), 0), 2))), 'x better than yesterday')
-                WHEN (cd.anr_sessions * 1.0 / nullIf(cd.total_sessions, 0)) > (pd.anr_sessions * 1.0 / nullIf(pd.total_sessions, 0)) THEN concat(toString(if(isNaN(round(
-                    ((cd.total_sessions - cd.anr_sessions) * 1.0 / nullIf(cd.total_sessions, 0)) /
-                    nullIf((pd.total_sessions - pd.anr_sessions) * 1.0 / nullIf(pd.total_sessions, 0), 0), 2)), 0, round(
-                    ((cd.total_sessions - cd.anr_sessions) * 1.0 / nullIf(cd.total_sessions, 0)) /
-                    nullIf((pd.total_sessions - pd.anr_sessions) * 1.0 / nullIf(pd.total_sessions, 0), 0), 2))), 'x worse than yesterday')
-                ELSE 'No change from yesterday'
-            END AS anr_free_subtitle,
-            (cd.total_sessions != 0 AND (cd.total_sessions - cd.anr_sessions) * 100.0 / cd.total_sessions <= ?) AS anr_free_has_warning,
-            (cd.total_sessions != 0 AND (cd.total_sessions - cd.anr_sessions) * 100.0 / cd.total_sessions <= ?) AS anr_free_has_error,
+            cd.anr_sessions,
+            pd.anr_sessions,
 
-            -- Cold Launch
-            CASE
-                WHEN isNaN(cd.cold_launch_p95_ms) OR cd.cold_launch_p95_ms = 0 THEN '0ms'
-                ELSE concat(toString(round(cd.cold_launch_p95_ms, 2)), 'ms')
-            END AS cold_launch_value,
-            'Cold launch time' AS cold_launch_label,
-            CASE
-                WHEN pd.cold_launch_p95_ms IS NULL OR pd.cold_launch_p95_ms = 0 THEN 'No previous day data'
-                WHEN cd.cold_launch_p95_ms < pd.cold_launch_p95_ms THEN concat(toString(round(cd.cold_launch_p95_ms / pd.cold_launch_p95_ms, 2)), 'x better than yesterday')
-                WHEN cd.cold_launch_p95_ms > pd.cold_launch_p95_ms THEN concat(toString(round(cd.cold_launch_p95_ms / pd.cold_launch_p95_ms, 2)), 'x worse than yesterday')
-                ELSE 'No change from yesterday'
-            END AS cold_launch_subtitle,
-            0 AS cold_launch_has_warning,
-            0 AS cold_launch_has_error,
+            cd.cold_launch_p95_ms,
+            pd.cold_launch_p95_ms,
 
-            -- Warm Launch
-            CASE
-                WHEN isNaN(cd.warm_launch_p95_ms) OR cd.warm_launch_p95_ms = 0 THEN '0ms'
-                ELSE concat(toString(round(cd.warm_launch_p95_ms, 2)), 'ms')
-            END AS warm_launch_value,
-            'Warm launch time' AS warm_launch_label,
-            CASE
-                WHEN pd.warm_launch_p95_ms IS NULL OR pd.warm_launch_p95_ms = 0 THEN 'No previous day data'
-                WHEN cd.warm_launch_p95_ms < pd.warm_launch_p95_ms THEN concat(toString(round(cd.warm_launch_p95_ms / pd.warm_launch_p95_ms, 2)), 'x better than yesterday')
-                WHEN cd.warm_launch_p95_ms > pd.warm_launch_p95_ms THEN concat(toString(round(cd.warm_launch_p95_ms / pd.warm_launch_p95_ms, 2)), 'x worse than yesterday')
-                ELSE 'No change from yesterday'
-            END AS warm_launch_subtitle,
-            0 AS warm_launch_has_warning,
-            0 AS warm_launch_has_error,
+            cd.warm_launch_p95_ms,
+            pd.warm_launch_p95_ms,
 
-            -- Hot Launch
-            CASE
-                WHEN isNaN(cd.hot_launch_p95_ms) OR cd.hot_launch_p95_ms = 0 THEN '0ms'
-                ELSE concat(toString(round(cd.hot_launch_p95_ms, 2)), 'ms')
-            END AS hot_launch_value,
-            'Hot launch time' AS hot_launch_label,
-            CASE
-                WHEN pd.hot_launch_p95_ms IS NULL OR pd.hot_launch_p95_ms = 0 THEN 'No previous day data'
-                WHEN cd.hot_launch_p95_ms < pd.hot_launch_p95_ms THEN concat(toString(round(cd.hot_launch_p95_ms / pd.hot_launch_p95_ms, 2)), 'x better than yesterday')
-                WHEN cd.hot_launch_p95_ms > pd.hot_launch_p95_ms THEN concat(toString(round(cd.hot_launch_p95_ms / pd.hot_launch_p95_ms, 2)), 'x worse than yesterday')
-                ELSE 'No change from yesterday'
-            END AS hot_launch_subtitle,
-            0 AS hot_launch_has_warning,
-            0 AS hot_launch_has_error
-
+            cd.hot_launch_p95_ms,
+            pd.hot_launch_p95_ms
 
         FROM current_day cd
         LEFT JOIN previous_day pd ON cd.app_id = pd.app_id
         ORDER BY cd.app_id
 	`
-	row := server.Server.ChPool.QueryRow(
-		ctx,
-		query,
-		date,
-		app.TeamID,
-		app.ID,
-		appThresholdPrefs.ErrorGoodThreshold,
-		appThresholdPrefs.ErrorCautionThreshold,
-		appThresholdPrefs.ErrorGoodThreshold,
-		appThresholdPrefs.ErrorCautionThreshold,
-	)
+	row := server.Server.ChPool.QueryRow(ctx, query, date, app.TeamID, app.ID)
 
 	var summary DailySummaryRow
 	err = row.Scan(
 		&summary.AppID,
 		&summary.Date,
-		&summary.SessionsValue,
-		&summary.SessionsLabel,
-		&summary.SessionsSubtitle,
-		&summary.SessionsHasWarning,
-		&summary.SessionsHasError,
-		&summary.CrashFreeValue,
-		&summary.CrashFreeLabel,
-		&summary.CrashFreeSubtitle,
-		&summary.CrashFreeHasWarning,
-		&summary.CrashFreeHasError,
-		&summary.ANRFreeValue,
-		&summary.ANRFreeLabel,
-		&summary.ANRFreeSubtitle,
-		&summary.ANRFreeHasWarning,
-		&summary.ANRFreeHasError,
-		&summary.ColdLaunchValue,
-		&summary.ColdLaunchLabel,
-		&summary.ColdLaunchSubtitle,
-		&summary.ColdLaunchHasWarning,
-		&summary.ColdLaunchHasError,
-		&summary.WarmLaunchValue,
-		&summary.WarmLaunchLabel,
-		&summary.WarmLaunchSubtitle,
-		&summary.WarmLaunchHasWarning,
-		&summary.WarmLaunchHasError,
-		&summary.HotLaunchValue,
-		&summary.HotLaunchLabel,
-		&summary.HotLaunchSubtitle,
-		&summary.HotLaunchHasWarning,
-		&summary.HotLaunchHasError,
+		&summary.SessionsToday,
+		&summary.SessionsYesterday,
+		&summary.CrashSessionsToday,
+		&summary.CrashSessionsYesterday,
+		&summary.ANRSessionsToday,
+		&summary.ANRSessionsYesterday,
+		&summary.ColdLaunchTodayMs,
+		&summary.ColdLaunchYesterdayMs,
+		&summary.WarmLaunchTodayMs,
+		&summary.WarmLaunchYesterdayMs,
+		&summary.HotLaunchTodayMs,
+		&summary.HotLaunchYesterdayMs,
 	)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to scan daily summary: %w", err)
 	}
 
+	// A previous day with no sessions at all is what a missing row from the
+	// LEFT JOIN looks like, so the session-based cards have nothing to compare
+	// against.
+	hasYesterday := summary.SessionsYesterday > 0
+
+	sessionsValue := numeric.FormatKMB(int64(summary.SessionsToday))
+	sessionsSubtitle := "No previous day data"
+	if hasYesterday {
+		sessionsSubtitle = comparison(sessionsValue, numeric.FormatKMB(int64(summary.SessionsYesterday)), summary.SessionsToday > summary.SessionsYesterday)
+	}
+
+	crashFreeToday := freeRate(summary.SessionsToday, summary.CrashSessionsToday)
+	crashFreeValue := formatUnit(crashFreeToday, "%")
+	crashFreeSubtitle := "No previous day data"
+	if hasYesterday {
+		crashFreeYesterday := freeRate(summary.SessionsYesterday, summary.CrashSessionsYesterday)
+		crashFreeSubtitle = comparison(crashFreeValue, formatUnit(crashFreeYesterday, "%"), crashFreeToday > crashFreeYesterday)
+	}
+
 	metrics := []email.MetricData{
 		{
-			Value:      summary.SessionsValue,
-			Label:      summary.SessionsLabel,
-			HasWarning: summary.SessionsHasWarning,
-			HasError:   summary.SessionsHasError,
-			Subtitle:   summary.SessionsSubtitle,
+			Value:    sessionsValue,
+			Label:    "Sessions",
+			Subtitle: sessionsSubtitle,
 		},
 		{
-			Value:      summary.CrashFreeValue,
-			Label:      summary.CrashFreeLabel,
-			HasWarning: summary.CrashFreeHasWarning,
-			HasError:   summary.CrashFreeHasError,
-			Subtitle:   summary.CrashFreeSubtitle,
-		},
-		{
-			Value:      summary.ANRFreeValue,
-			Label:      summary.ANRFreeLabel,
-			HasWarning: summary.ANRFreeHasWarning,
-			HasError:   summary.ANRFreeHasError,
-			Subtitle:   summary.ANRFreeSubtitle,
-		},
-		{
-			Value:      summary.ColdLaunchValue,
-			Label:      summary.ColdLaunchLabel,
-			HasWarning: summary.ColdLaunchHasWarning,
-			HasError:   summary.ColdLaunchHasError,
-			Subtitle:   summary.ColdLaunchSubtitle,
-		},
-		{
-			Value:      summary.WarmLaunchValue,
-			Label:      summary.WarmLaunchLabel,
-			HasWarning: summary.WarmLaunchHasWarning,
-			HasError:   summary.WarmLaunchHasError,
-			Subtitle:   summary.WarmLaunchSubtitle,
-		},
-		{
-			Value:      summary.HotLaunchValue,
-			Label:      summary.HotLaunchLabel,
-			HasWarning: summary.HotLaunchHasWarning,
-			HasError:   summary.HotLaunchHasError,
-			Subtitle:   summary.HotLaunchSubtitle,
+			Value:      crashFreeValue,
+			Label:      "Crash free sessions",
+			Subtitle:   crashFreeSubtitle,
+			HasWarning: summary.SessionsToday != 0 && crashFreeToday <= appThresholdPrefs.ErrorGoodThreshold,
+			HasError:   summary.SessionsToday != 0 && crashFreeToday <= appThresholdPrefs.ErrorCautionThreshold,
 		},
 	}
+
+	// ANR card is only shown if once an ANR has
+	// been recorded on either day to prevent permanent ANR card with no data in iOS.
+	if summary.ANRSessionsToday > 0 || summary.ANRSessionsYesterday > 0 {
+		anrFreeToday := freeRate(summary.SessionsToday, summary.ANRSessionsToday)
+		anrFreeValue := formatUnit(anrFreeToday, "%")
+		anrFreeSubtitle := "No previous day data"
+		if hasYesterday {
+			anrFreeYesterday := freeRate(summary.SessionsYesterday, summary.ANRSessionsYesterday)
+			anrFreeSubtitle = comparison(anrFreeValue, formatUnit(anrFreeYesterday, "%"), anrFreeToday > anrFreeYesterday)
+		}
+
+		metrics = append(metrics, email.MetricData{
+			Value:      anrFreeValue,
+			Label:      "ANR free sessions",
+			Subtitle:   anrFreeSubtitle,
+			HasWarning: summary.SessionsToday != 0 && anrFreeToday <= appThresholdPrefs.ErrorGoodThreshold,
+			HasError:   summary.SessionsToday != 0 && anrFreeToday <= appThresholdPrefs.ErrorCautionThreshold,
+		})
+	}
+
+	metrics = append(metrics,
+		launchMetric("Cold launch p95", summary.ColdLaunchTodayMs, summary.ColdLaunchYesterdayMs),
+		launchMetric("Warm launch p95", summary.WarmLaunchTodayMs, summary.WarmLaunchYesterdayMs),
+		launchMetric("Hot launch p95", summary.HotLaunchTodayMs, summary.HotLaunchYesterdayMs),
+	)
 
 	bugReportCountQuery := `
 		WITH toDate(?) AS target_date
@@ -666,19 +610,13 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]em
 		return nil, fmt.Errorf("failed to scan bug report count: %w", err)
 	}
 	if todayBugReportCount > 0 {
+		bugValue := numeric.FormatKMB(int64(todayBugReportCount))
 		bugSubtitle := "No previous day data"
 		if yesterdayBugReportCount > 0 {
-			switch {
-			case todayBugReportCount > yesterdayBugReportCount:
-				bugSubtitle = fmt.Sprintf("%d greater than yesterday", todayBugReportCount-yesterdayBugReportCount)
-			case todayBugReportCount < yesterdayBugReportCount:
-				bugSubtitle = fmt.Sprintf("%d less than yesterday", yesterdayBugReportCount-todayBugReportCount)
-			default:
-				bugSubtitle = "No change from yesterday"
-			}
+			bugSubtitle = comparison(bugValue, numeric.FormatKMB(int64(yesterdayBugReportCount)), todayBugReportCount > yesterdayBugReportCount)
 		}
 		metrics = append(metrics, email.MetricData{
-			Value:    fmt.Sprintf("%d", todayBugReportCount),
+			Value:    bugValue,
 			Label:    "Bug reports",
 			Subtitle: bugSubtitle,
 		})

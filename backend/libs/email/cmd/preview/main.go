@@ -129,47 +129,47 @@ func main() {
 	// --- Alerts: Daily Summary ---
 
 	healthyMetrics := []email.MetricData{
-		{Value: "12,847", Label: "Sessions", Subtitle: "1,203 greater than yesterday", HasWarning: false, HasError: false},
-		{Value: "99.72%", Label: "Crash free sessions", Subtitle: "1.01x better than yesterday", HasWarning: false, HasError: false},
+		{Value: "12.85K", Label: "Sessions", Subtitle: "Up from 11.65K yesterday", HasWarning: false, HasError: false},
+		{Value: "99.72%", Label: "Crash free sessions", Subtitle: "Up from 99.69% yesterday", HasWarning: false, HasError: false},
 		{Value: "99.85%", Label: "ANR free sessions", Subtitle: "No change from yesterday", HasWarning: false, HasError: false},
-		{Value: "892ms", Label: "Cold launch p95", Subtitle: "45ms less than yesterday", HasWarning: false, HasError: false},
-		{Value: "234ms", Label: "Warm launch p95", Subtitle: "12ms greater than yesterday", HasWarning: false, HasError: false},
+		{Value: "892.35ms", Label: "Cold launch p95", Subtitle: "Down from 937.53ms yesterday", HasWarning: false, HasError: false},
+		{Value: "234ms", Label: "Warm launch p95", Subtitle: "Up from 222ms yesterday", HasWarning: false, HasError: false},
 		{Value: "98ms", Label: "Hot launch p95", Subtitle: "No change from yesterday", HasWarning: false, HasError: false},
-		{Value: "7", Label: "Bug reports", Subtitle: "3 less than yesterday", HasWarning: false, HasError: false},
+		{Value: "7", Label: "Bug reports", Subtitle: "Down from 10 yesterday", HasWarning: false, HasError: false},
 	}
 	_, body = email.DailySummaryEmail("MyApp", time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC), healthyMetrics, "https://measure.sh", "team-abc", "app-123")
 	add("14-daily-summary-healthy.html", body)
 
 	warningMetrics := []email.MetricData{
-		{Value: "8,421", Label: "Sessions", Subtitle: "3,200 less than yesterday", HasWarning: false, HasError: false},
-		{Value: "93.1%", Label: "Crash free sessions", Subtitle: "0.95x worse than yesterday", HasWarning: true, HasError: false},
-		{Value: "99.2%", Label: "ANR free sessions", Subtitle: "No change from yesterday", HasWarning: false, HasError: false},
-		{Value: "1,450ms", Label: "Cold launch p95", Subtitle: "320ms greater than yesterday", HasWarning: false, HasError: false},
-		{Value: "567ms", Label: "Warm launch p95", Subtitle: "201ms greater than yesterday", HasWarning: false, HasError: false},
-		{Value: "145ms", Label: "Hot launch p95", Subtitle: "47ms greater than yesterday", HasWarning: false, HasError: false},
-		{Value: "18", Label: "Bug reports", Subtitle: "6 greater than yesterday", HasWarning: false, HasError: false},
+		{Value: "8.42K", Label: "Sessions", Subtitle: "Down from 11.62K yesterday", HasWarning: false, HasError: false},
+		{Value: "93.1%", Label: "Crash free sessions", Subtitle: "Down from 95.16% yesterday", HasWarning: true, HasError: false},
+		{Value: "99.2%", Label: "ANR free sessions", Subtitle: "Down from 100% yesterday", HasWarning: false, HasError: false},
+		{Value: "1450.6ms", Label: "Cold launch p95", Subtitle: "Up from 1130.46ms yesterday", HasWarning: false, HasError: false},
+		{Value: "567ms", Label: "Warm launch p95", Subtitle: "Up from 366ms yesterday", HasWarning: false, HasError: false},
+		{Value: "145ms", Label: "Hot launch p95", Subtitle: "Up from 98ms yesterday", HasWarning: false, HasError: false},
+		{Value: "18", Label: "Bug reports", Subtitle: "Up from 12 yesterday", HasWarning: false, HasError: false},
 	}
 	_, body = email.DailySummaryEmail("MyApp", time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC), warningMetrics, "https://measure.sh", "team-abc", "app-123")
 	add("15-daily-summary-warnings.html", body)
 
 	errorMetrics := []email.MetricData{
-		{Value: "3,102", Label: "Sessions", Subtitle: "9,500 less than yesterday", HasWarning: false, HasError: false},
-		{Value: "87.3%", Label: "Crash free sessions", Subtitle: "0.89x worse than yesterday", HasWarning: false, HasError: true},
-		{Value: "82.1%", Label: "ANR free sessions", Subtitle: "0.84x worse than yesterday", HasWarning: false, HasError: true},
-		{Value: "2,340ms", Label: "Cold launch p95", Subtitle: "1,100ms greater than yesterday", HasWarning: false, HasError: false},
-		{Value: "890ms", Label: "Warm launch p95", Subtitle: "524ms greater than yesterday", HasWarning: false, HasError: false},
-		{Value: "312ms", Label: "Hot launch p95", Subtitle: "214ms greater than yesterday", HasWarning: false, HasError: false},
+		{Value: "3.1K", Label: "Sessions", Subtitle: "Down from 12.6K yesterday", HasWarning: false, HasError: false},
+		{Value: "87.3%", Label: "Crash free sessions", Subtitle: "Down from 94.02% yesterday", HasWarning: false, HasError: true},
+		{Value: "82.1%", Label: "ANR free sessions", Subtitle: "Down from 90.88% yesterday", HasWarning: false, HasError: true},
+		{Value: "2340ms", Label: "Cold launch p95", Subtitle: "Up from 1240ms yesterday", HasWarning: false, HasError: false},
+		{Value: "890ms", Label: "Warm launch p95", Subtitle: "Up from 366ms yesterday", HasWarning: false, HasError: false},
+		{Value: "312ms", Label: "Hot launch p95", Subtitle: "Up from 98ms yesterday", HasWarning: false, HasError: false},
 	}
 	_, body = email.DailySummaryEmail("MyApp", time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC), errorMetrics, "https://measure.sh", "team-abc", "app-123")
 	add("16-daily-summary-errors.html", body)
 
 	customThresholdMetrics := []email.MetricData{
-		{Value: "7,890", Label: "Sessions", Subtitle: "540 less than yesterday", HasWarning: false, HasError: false},
-		{Value: "91.2%", Label: "Crash free sessions", Subtitle: "0.96x worse than yesterday", HasWarning: false, HasError: false},
-		{Value: "88.6%", Label: "ANR free sessions", Subtitle: "0.92x worse than yesterday", HasWarning: false, HasError: false},
-		{Value: "1,120ms", Label: "Cold launch p95", Subtitle: "180ms greater than yesterday", HasWarning: false, HasError: false},
-		{Value: "498ms", Label: "Warm launch p95", Subtitle: "77ms greater than yesterday", HasWarning: false, HasError: false},
-		{Value: "132ms", Label: "Hot launch p95", Subtitle: "21ms greater than yesterday", HasWarning: false, HasError: false},
+		{Value: "7.89K", Label: "Sessions", Subtitle: "Down from 8.43K yesterday", HasWarning: false, HasError: false},
+		{Value: "91.2%", Label: "Crash free sessions", Subtitle: "Down from 93.6% yesterday", HasWarning: false, HasError: false},
+		{Value: "88.6%", Label: "ANR free sessions", Subtitle: "Down from 90.1% yesterday", HasWarning: false, HasError: false},
+		{Value: "1120ms", Label: "Cold launch p95", Subtitle: "Up from 940ms yesterday", HasWarning: false, HasError: false},
+		{Value: "498ms", Label: "Warm launch p95", Subtitle: "Up from 421ms yesterday", HasWarning: false, HasError: false},
+		{Value: "132ms", Label: "Hot launch p95", Subtitle: "Up from 111ms yesterday", HasWarning: false, HasError: false},
 	}
 	_, body = email.DailySummaryEmail(
 		"MyApp",
@@ -190,6 +190,27 @@ func main() {
 		"app-123",
 	)
 	add("18-daily-summary-custom-thresholds-lenient.html", body)
+
+	noDataMetrics := []email.MetricData{
+		{Value: "412", Label: "Sessions", Subtitle: "Down from 1.2K yesterday", HasWarning: false, HasError: false},
+		{Value: "100%", Label: "Crash free sessions", Subtitle: "Up from 99.42% yesterday", HasWarning: false, HasError: false},
+		{Value: "100%", Label: "ANR free sessions", Subtitle: "No change from yesterday", HasWarning: false, HasError: false},
+		{Value: "1024ms", Label: "Cold launch p95", Subtitle: "Up from 998.5ms yesterday", HasWarning: false, HasError: false},
+		{Value: "No Data", Label: "Warm launch p95", Subtitle: "Was 366ms yesterday", HasWarning: false, HasError: false},
+		{Value: "No Data", Label: "Hot launch p95", Subtitle: "No previous day data", HasWarning: false, HasError: false},
+	}
+	_, body = email.DailySummaryEmail("MyApp", time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC), noDataMetrics, "https://measure.sh", "team-abc", "app-123")
+	add("19-daily-summary-no-data.html", body)
+
+	noANRMetrics := []email.MetricData{
+		{Value: "6.31K", Label: "Sessions", Subtitle: "Up from 5.98K yesterday", HasWarning: false, HasError: false},
+		{Value: "99.81%", Label: "Crash free sessions", Subtitle: "Down from 99.9% yesterday", HasWarning: false, HasError: false},
+		{Value: "1180ms", Label: "Cold launch p95", Subtitle: "Up from 1102.4ms yesterday", HasWarning: false, HasError: false},
+		{Value: "412ms", Label: "Warm launch p95", Subtitle: "Down from 455ms yesterday", HasWarning: false, HasError: false},
+		{Value: "121ms", Label: "Hot launch p95", Subtitle: "No change from yesterday", HasWarning: false, HasError: false},
+	}
+	_, body = email.DailySummaryEmail("MyApp", time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC), noANRMetrics, "https://measure.sh", "team-abc", "app-123")
+	add("20-daily-summary-no-anr-card.html", body)
 
 	for _, e := range emails {
 		path := filepath.Join(dir, e.name)
