@@ -259,7 +259,7 @@ const nextConfig = {
       },
       {
         source: "/docs/features/feature-app-launch-metrics",
-        destination: "/docs/adaptive-capture#launch-metrics-sampling",
+        destination: "/docs/app-launch-metrics",
         permanent: true,
       },
       {

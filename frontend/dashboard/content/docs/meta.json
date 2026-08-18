@@ -13,6 +13,7 @@
     "gesture-tracking",
     "navigation-tracking",
     "cpu-memory-monitoring",
+    "app-launch-metrics",
     "app-size-monitoring",
     "adaptive-capture",
     "alerts",
