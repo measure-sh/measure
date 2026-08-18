@@ -23,10 +23,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Drop unused postgres tables (#4232) by @detj in #4232
 - (**backend**): Merge build & test jobs across service workflows (#4221) by @detj in #4221
 - (**backend**): Fold public oci workflow (#4220) by @detj in #4220
+- (**frontend**): Redirect removed docs feature pages by @anupcowkur in #4247
+- (**frontend**): Replace deleted docs path in proxy comment and tests by @anupcowkur
+- (**frontend**): Remove docs pages whose content moved elsewhere by @anupcowkur
+- (**frontend**): Move app launch metrics docs to top level by @anupcowkur
+- (**frontend**): Move top endpoints section into endpoint patterns docs by @anupcowkur
+- (**frontend**): Delete unused url smoke test by @anupcowkur
 - (**frontend**): Add space between API response code boxes in docs by @anupcowkur in #4244
 - (**frontend**): Upgrade fumadocs by @anupcowkur
 - (**frontend**): Gate marketing attribution capture on consent (#4227) by @detj in #4227
 - (**frontend**): Make filter component flags optional by @anupcowkur in #4209
+
+### :books: Documentation
+
+- Fix typo by @anupcowkur
+- Fix stale links in README by @anupcowkur
+- Point contributor profiles at GitHub by @anupcowkur
 
 ## [0.12.1] - 2026-08-06
 
