@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :sparkles: New features
+
+
 ### :bug: Bug fixes
 
 - (**backend**): Pin ingest-worker pubsub ack lease (#4240) by @detj in #4240
