@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Pin ingest-worker pubsub ack lease (#4240) by @detj in #4240
 - (**backend**): Double close panic in cleanup service (#4219) by @detj in #4219
 - (**backend**): Set correct content type & encoding for multipart uploads (#4211) by @detj in #4211
+- (**frontend**): Fumadocs popover scroll overlap by @anupcowkur
 
 ### :hammer: Misc
 
@@ -22,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Drop unused postgres tables (#4232) by @detj in #4232
 - (**backend**): Merge build & test jobs across service workflows (#4221) by @detj in #4221
 - (**backend**): Fold public oci workflow (#4220) by @detj in #4220
+- (**frontend**): Add space between API response code boxes in docs by @anupcowkur in #4244
+- (**frontend**): Upgrade fumadocs by @anupcowkur
 - (**frontend**): Gate marketing attribution capture on consent (#4227) by @detj in #4227
 - (**frontend**): Make filter component flags optional by @anupcowkur in #4209
 
