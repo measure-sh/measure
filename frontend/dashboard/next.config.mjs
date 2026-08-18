@@ -249,12 +249,12 @@ const nextConfig = {
       },
       {
         source: "/docs/features/feature-screenshot-masking-swiftui",
-        destination: "/docs/adaptive-capture#screenshot-mask-level",
+        destination: "/docs/error-monitoring/screenshot-masking#ios",
         permanent: true,
       },
       {
         source: "/docs/features/feature-screenshot-masking-flutter",
-        destination: "/docs/adaptive-capture#screenshot-mask-level",
+        destination: "/docs/error-monitoring/screenshot-masking#flutter",
         permanent: true,
       },
       {
