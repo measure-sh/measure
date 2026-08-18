@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Pin ingest-worker pubsub ack lease (#4240) by @detj in #4240
 - (**backend**): Double close panic in cleanup service (#4219) by @detj in #4219
 - (**backend**): Set correct content type & encoding for multipart uploads (#4211) by @detj in #4211
+- (**frontend**): Disallow crawling on non-canonical deployments (#4253) by @detj in #4253
 - (**frontend**): Fumadocs popover scroll overlap by @anupcowkur
 
 ### :hammer: Misc
