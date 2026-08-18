@@ -93,9 +93,9 @@ export function proxy(request: NextRequest) {
   // route. The path after /docs carries over unchanged, so these three
   // requests return the same document:
   //
-  //   /docs/features/feature-crash-reporting.md            (public .md URL)
-  //   /docs/features/feature-crash-reporting  + this Accept header
-  //   /llms.docs/features/feature-crash-reporting           (rewrite target)
+  //   /docs/network-monitoring/endpoint-patterns.md    (public .md URL)
+  //   /docs/network-monitoring/endpoint-patterns  + this Accept header
+  //   /llms.docs/network-monitoring/endpoint-patterns  (rewrite target)
   //
   // An explicit .md suffix is stripped so /docs/foo.md and /docs.md with
   // Accept: text/markdown resolve the same pages as their suffix-free

@@ -87,16 +87,16 @@ describe("blogPostingJsonLd", () => {
 describe("techArticleJsonLd", () => {
   it("builds a TechArticle attributed to the organization", () => {
     const node = techArticleJsonLd({
-      headline: "Crash Reporting",
-      description: "Track crashes.",
-      path: "/docs/features/feature-crash-reporting",
+      headline: "Endpoint patterns",
+      description: "How request URLs are grouped.",
+      path: "/docs/network-monitoring/endpoint-patterns",
     });
     expect(node).toEqual({
       "@type": "TechArticle",
-      headline: "Crash Reporting",
-      description: "Track crashes.",
-      url: `${siteOrigin}/docs/features/feature-crash-reporting`,
-      mainEntityOfPage: `${siteOrigin}/docs/features/feature-crash-reporting`,
+      headline: "Endpoint patterns",
+      description: "How request URLs are grouped.",
+      url: `${siteOrigin}/docs/network-monitoring/endpoint-patterns`,
+      mainEntityOfPage: `${siteOrigin}/docs/network-monitoring/endpoint-patterns`,
       author: organizationJsonLd,
       publisher: organizationJsonLd,
     });
@@ -108,8 +108,8 @@ describe("breadcrumbJsonLd", () => {
     const node = breadcrumbJsonLd([
       { name: "Docs", url: "/docs" },
       {
-        name: "Crash Reporting",
-        url: "/docs/features/feature-crash-reporting",
+        name: "Endpoint patterns",
+        url: "/docs/network-monitoring/endpoint-patterns",
       },
     ]);
     expect(node).toEqual({
@@ -124,8 +124,8 @@ describe("breadcrumbJsonLd", () => {
         {
           "@type": "ListItem",
           position: 2,
-          name: "Crash Reporting",
-          item: `${siteOrigin}/docs/features/feature-crash-reporting`,
+          name: "Endpoint patterns",
+          item: `${siteOrigin}/docs/network-monitoring/endpoint-patterns`,
         },
       ],
     });
@@ -134,15 +134,15 @@ describe("breadcrumbJsonLd", () => {
   it("drops intermediate crumbs without a URL and renumbers positions", () => {
     const node = breadcrumbJsonLd([
       { name: "Docs", url: "/docs" },
-      { name: "Features" },
+      { name: "Network monitoring" },
       {
-        name: "Crash Reporting",
-        url: "/docs/features/feature-crash-reporting",
+        name: "Endpoint patterns",
+        url: "/docs/network-monitoring/endpoint-patterns",
       },
     ]);
     expect(node.itemListElement.map((item) => item.name)).toEqual([
       "Docs",
-      "Crash Reporting",
+      "Endpoint patterns",
     ]);
     expect(node.itemListElement.map((item) => item.position)).toEqual([1, 2]);
   });
@@ -163,12 +163,12 @@ describe("breadcrumbJsonLd", () => {
     const node = breadcrumbJsonLd([
       { name: 42, url: "/docs" },
       {
-        name: "Crash Reporting",
-        url: "/docs/features/feature-crash-reporting",
+        name: "Endpoint patterns",
+        url: "/docs/network-monitoring/endpoint-patterns",
       },
     ]);
     expect(node.itemListElement.map((item) => item.name)).toEqual([
-      "Crash Reporting",
+      "Endpoint patterns",
     ]);
   });
 });

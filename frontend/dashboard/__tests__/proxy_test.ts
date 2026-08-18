@@ -191,10 +191,10 @@ describe("proxy", () => {
 
     it("rewrites nested docs paths", () => {
       const result: any = proxy(
-        makeRequest("/docs/features/feature-crash-reporting"),
+        makeRequest("/docs/network-monitoring/endpoint-patterns"),
       );
       expect(result.url).toBe(
-        "https://measure.sh/llms.docs/features/feature-crash-reporting",
+        "https://measure.sh/llms.docs/network-monitoring/endpoint-patterns",
       );
     });
 
