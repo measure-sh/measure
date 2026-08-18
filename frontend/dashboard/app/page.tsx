@@ -128,7 +128,7 @@ export default function Home() {
             >
               {[...Array(2)].map((_, i) => (
                 <Fragment key={i}>
-                  <div className="w-10 h-8.5 relative flex items-center justify-center shrink-0 mr-48">
+                  <div className="w-6 h-6 relative flex items-center justify-center shrink-0 mr-48">
                     <KukuFmLogo className="w-full h-full object-contain grayscale brightness-0 dark:invert" />
                   </div>
                   <div className="w-25 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
@@ -163,12 +163,12 @@ export default function Home() {
                       className="object-contain grayscale brightness-0 dark:invert"
                     />
                   </div>
-                  <div className="w-30 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
+                  <div className="w-28 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
                     <Image
                       src="/images/turtlemint_logo.svg"
                       alt="Turtelmint Logo"
                       fill
-                      className="object-contain grayscale brightness-0 dark:invert"
+                      className="object-contain grayscale brightness-0 dark:invert -translate-y-1"
                     />
                   </div>
                   <div className="w-25 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
