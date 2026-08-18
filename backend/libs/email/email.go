@@ -170,6 +170,12 @@ func RenderEmailBody(title, contentHTML, ctaText, ctaURL string) string {
     <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { color-scheme: light dark; supported-color-schemes: light dark; }
+        /* Every colour in this email is a hardcoded light one, but declaring
+           dark support above makes a dark-mode browser pick its dark highlight
+           for selected text, which reads as grey on the white panels, so we set
+           our own selection colour here. */
+        ::selection { background-color: #000000; color: #ffffff; }
+        ::-moz-selection { background-color: #000000; color: #ffffff; }
     </style>
     <title>%s</title>
 </head>

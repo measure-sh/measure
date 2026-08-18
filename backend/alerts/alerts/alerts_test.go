@@ -890,10 +890,43 @@ func TestCreateBugReportAlerts(t *testing.T) {
 //	[0] Sessions
 //	[1] Crash-free sessions
 //	[2] ANR-free sessions
-//	[3] Cold launch time (p95)
-//	[4] Warm launch time (p95)
-//	[5] Hot launch time (p95)
+//	[3] Cold launch p95
+//	[4] Warm launch p95
+//	[5] Hot launch p95
 //	[6] Bug reports (only present when count > 0)
+//
+// card returns the summary card carrying the given label. Cards for ANR free
+// sessions and bug reports are only included on days that have something to
+// report, so a card's position in the slice is not fixed and the label is the
+// only reliable way to find it.
+func card(t *testing.T, metrics []email.MetricData, label string) email.MetricData {
+	t.Helper()
+	for _, metric := range metrics {
+		if metric.Label == label {
+			return metric
+		}
+	}
+	t.Fatalf("no card labelled %q among %v", label, cardLabels(metrics))
+	return email.MetricData{}
+}
+
+func cardLabels(metrics []email.MetricData) []string {
+	labels := make([]string, 0, len(metrics))
+	for _, metric := range metrics {
+		labels = append(labels, metric.Label)
+	}
+	return labels
+}
+
+func hasCard(metrics []email.MetricData, label string) bool {
+	for _, metric := range metrics {
+		if metric.Label == label {
+			return true
+		}
+	}
+	return false
+}
+
 func TestGetDailySummaryMetrics(t *testing.T) {
 	// makeApp builds an App value from pre-seeded string IDs.
 	makeApp := func(teamID, appID string) App {
@@ -942,16 +975,16 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[0].Value != "5" {
-			t.Errorf("sessions value: want %q, got %q", "5", metrics[0].Value)
+		if card(t, metrics, "Sessions").Value != "5" {
+			t.Errorf("sessions value: want %q, got %q", "5", card(t, metrics, "Sessions").Value)
 		}
-		if metrics[0].Label != "Sessions" {
-			t.Errorf("sessions label: want %q, got %q", "Sessions", metrics[0].Label)
+		if card(t, metrics, "Sessions").Label != "Sessions" {
+			t.Errorf("sessions label: want %q, got %q", "Sessions", card(t, metrics, "Sessions").Label)
 		}
-		if metrics[0].HasWarning {
+		if card(t, metrics, "Sessions").HasWarning {
 			t.Error("sessions should never have warning")
 		}
-		if metrics[0].HasError {
+		if card(t, metrics, "Sessions").HasError {
 			t.Error("sessions should never have error")
 		}
 	})
@@ -974,8 +1007,8 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[0].Subtitle != "No previous day data" {
-			t.Errorf("sessions subtitle: want %q, got %q", "No previous day data", metrics[0].Subtitle)
+		if card(t, metrics, "Sessions").Subtitle != "No previous day data" {
+			t.Errorf("sessions subtitle: want %q, got %q", "No previous day data", card(t, metrics, "Sessions").Subtitle)
 		}
 	})
 
@@ -999,8 +1032,8 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[0].Subtitle != "2 greater than yesterday" {
-			t.Errorf("sessions subtitle: want %q, got %q", "2 greater than yesterday", metrics[0].Subtitle)
+		if card(t, metrics, "Sessions").Subtitle != "Up from 5 yesterday" {
+			t.Errorf("sessions subtitle: want %q, got %q", "Up from 5 yesterday", card(t, metrics, "Sessions").Subtitle)
 		}
 	})
 
@@ -1024,8 +1057,8 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[0].Subtitle != "2 less than yesterday" {
-			t.Errorf("sessions subtitle: want %q, got %q", "2 less than yesterday", metrics[0].Subtitle)
+		if card(t, metrics, "Sessions").Subtitle != "Down from 5 yesterday" {
+			t.Errorf("sessions subtitle: want %q, got %q", "Down from 5 yesterday", card(t, metrics, "Sessions").Subtitle)
 		}
 	})
 
@@ -1049,8 +1082,36 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[0].Subtitle != "No change from yesterday" {
-			t.Errorf("sessions subtitle: want %q, got %q", "No change from yesterday", metrics[0].Subtitle)
+		if card(t, metrics, "Sessions").Subtitle != "No change from yesterday" {
+			t.Errorf("sessions subtitle: want %q, got %q", "No change from yesterday", card(t, metrics, "Sessions").Subtitle)
+		}
+	})
+
+	t.Run("sessions: counts above a thousand are abbreviated the way the dashboard abbreviates them", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		th.SeedTeam(ctx, t, teamID, "T")
+		th.SeedApp(ctx, t, appID, teamID, "A", 30)
+
+		now := time.Now().UTC()
+		yesterday := now.Add(-25 * time.Hour)
+		th.SeedAppMetrics(ctx, t, teamID, appID, yesterday, 1000, 0, 0)
+		th.SeedAppMetrics(ctx, t, teamID, appID, now, 2500, 0, 0)
+
+		app := makeApp(teamID, appID)
+		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if card(t, metrics, "Sessions").Value != "2.5K" {
+			t.Errorf("sessions value: want %q, got %q", "2.5K", card(t, metrics, "Sessions").Value)
+		}
+		if card(t, metrics, "Sessions").Subtitle != "Up from 1K yesterday" {
+			t.Errorf("sessions subtitle: want %q, got %q", "Up from 1K yesterday", card(t, metrics, "Sessions").Subtitle)
 		}
 	})
 
@@ -1074,13 +1135,13 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[1].Value != "100%" {
-			t.Errorf("crash-free value: want %q, got %q", "100%", metrics[1].Value)
+		if card(t, metrics, "Crash free sessions").Value != "100%" {
+			t.Errorf("crash-free value: want %q, got %q", "100%", card(t, metrics, "Crash free sessions").Value)
 		}
-		if metrics[1].HasWarning {
+		if card(t, metrics, "Crash free sessions").HasWarning {
 			t.Error("crash-free should have no warning at 100%")
 		}
-		if metrics[1].HasError {
+		if card(t, metrics, "Crash free sessions").HasError {
 			t.Error("crash-free should have no error at 100%")
 		}
 	})
@@ -1105,13 +1166,13 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[1].Value != "90%" {
-			t.Errorf("crash-free value: want %q, got %q", "90%", metrics[1].Value)
+		if card(t, metrics, "Crash free sessions").Value != "90%" {
+			t.Errorf("crash-free value: want %q, got %q", "90%", card(t, metrics, "Crash free sessions").Value)
 		}
-		if !metrics[1].HasWarning {
+		if !card(t, metrics, "Crash free sessions").HasWarning {
 			t.Error("crash-free should have warning at 90%")
 		}
-		if metrics[1].HasError {
+		if card(t, metrics, "Crash free sessions").HasError {
 			t.Error("crash-free should not have error at 90%")
 		}
 	})
@@ -1136,13 +1197,13 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[1].Value != "80%" {
-			t.Errorf("crash-free value: want %q, got %q", "80%", metrics[1].Value)
+		if card(t, metrics, "Crash free sessions").Value != "80%" {
+			t.Errorf("crash-free value: want %q, got %q", "80%", card(t, metrics, "Crash free sessions").Value)
 		}
-		if !metrics[1].HasWarning {
+		if !card(t, metrics, "Crash free sessions").HasWarning {
 			t.Error("crash-free should have warning at 80%")
 		}
-		if !metrics[1].HasError {
+		if !card(t, metrics, "Crash free sessions").HasError {
 			t.Error("crash-free should have error at 80%")
 		}
 	})
@@ -1165,8 +1226,8 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[1].Subtitle != "No previous day data" {
-			t.Errorf("crash-free subtitle: want %q, got %q", "No previous day data", metrics[1].Subtitle)
+		if card(t, metrics, "Crash free sessions").Subtitle != "No previous day data" {
+			t.Errorf("crash-free subtitle: want %q, got %q", "No previous day data", card(t, metrics, "Crash free sessions").Subtitle)
 		}
 	})
 
@@ -1184,8 +1245,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		yesterday := now.Add(-25 * time.Hour)
 		// Yesterday: 4 sessions, 2 crashes → 50% crash-free
 		th.SeedAppMetrics(ctx, t, teamID, appID, yesterday, 2, 2, 0)
-		// Today: 4 sessions, 0 crashes → 100% crash-free
-		// ratio = today_rate / yesterday_rate = 1.0 / 0.5 = 2.0 → "2x better than yesterday"
+		// Today: 4 sessions, 0 crashes → crash rate 0, a 100% drop
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 4, 0, 0)
 
 		app := makeApp(teamID, appID)
@@ -1193,8 +1253,8 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[1].Subtitle != "2x better than yesterday" {
-			t.Errorf("crash-free subtitle: want %q, got %q", "2x better than yesterday", metrics[1].Subtitle)
+		if card(t, metrics, "Crash free sessions").Subtitle != "Up from 50% yesterday" {
+			t.Errorf("crash-free subtitle: want %q, got %q", "Up from 50% yesterday", card(t, metrics, "Crash free sessions").Subtitle)
 		}
 	})
 
@@ -1210,10 +1270,9 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		now := time.Now().UTC()
 		yesterday := now.Add(-25 * time.Hour)
-		// Yesterday: 4 sessions, 0 crashes → 100% crash-free
-		th.SeedAppMetrics(ctx, t, teamID, appID, yesterday, 4, 0, 0)
-		// Today: 4 sessions, 2 crashes → 50% crash-free
-		// ratio = today_rate / yesterday_rate = 0.5 / 1.0 = 0.5 → "0.5x worse than yesterday"
+		// Yesterday: 4 sessions, 1 crash → crash rate 0.25
+		th.SeedAppMetrics(ctx, t, teamID, appID, yesterday, 3, 1, 0)
+		// Today: 4 sessions, 2 crashes → crash rate 0.5, a 100% rise
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 2, 2, 0)
 
 		app := makeApp(teamID, appID)
@@ -1221,8 +1280,8 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[1].Subtitle != "0.5x worse than yesterday" {
-			t.Errorf("crash-free subtitle: want %q, got %q", "0.5x worse than yesterday", metrics[1].Subtitle)
+		if card(t, metrics, "Crash free sessions").Subtitle != "Down from 75% yesterday" {
+			t.Errorf("crash-free subtitle: want %q, got %q", "Down from 75% yesterday", card(t, metrics, "Crash free sessions").Subtitle)
 		}
 	})
 
@@ -1247,14 +1306,12 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[1].Subtitle != "No change from yesterday" {
-			t.Errorf("crash-free subtitle: want %q, got %q", "No change from yesterday", metrics[1].Subtitle)
+		if card(t, metrics, "Crash free sessions").Subtitle != "No change from yesterday" {
+			t.Errorf("crash-free subtitle: want %q, got %q", "No change from yesterday", card(t, metrics, "Crash free sessions").Subtitle)
 		}
 	})
 
-	// ---------- ANR-free sessions ----------
-
-	t.Run("anr-free: 100% with no ANRs, no warning or error", func(t *testing.T) {
+	t.Run("crash-free: subtitle compares against a yesterday that had no crashes", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
 		defer cleanupAll(ctx, t)
@@ -1265,6 +1322,70 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		now := time.Now().UTC()
+		yesterday := now.Add(-25 * time.Hour)
+		// Yesterday: 4 sessions, 0 crashes → 100% crash-free
+		th.SeedAppMetrics(ctx, t, teamID, appID, yesterday, 4, 0, 0)
+		// Today: 4 sessions, 2 crashes → crash rate 0.5
+		th.SeedAppMetrics(ctx, t, teamID, appID, now, 2, 2, 0)
+
+		app := makeApp(teamID, appID)
+		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if card(t, metrics, "Crash free sessions").Subtitle != "Down from 100% yesterday" {
+			t.Errorf("crash-free subtitle: want %q, got %q", "Down from 100% yesterday", card(t, metrics, "Crash free sessions").Subtitle)
+		}
+	})
+
+	t.Run("crash-free: subtitle reports real movement when both days are near 100% crash-free", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		th.SeedTeam(ctx, t, teamID, "T")
+		th.SeedApp(ctx, t, appID, teamID, "A", 30)
+
+		now := time.Now().UTC()
+		yesterday := now.Add(-25 * time.Hour)
+		// Yesterday: 400 sessions, 1 crash → 99.75% crash-free
+		th.SeedAppMetrics(ctx, t, teamID, appID, yesterday, 399, 1, 0)
+		// Today: 400 sessions, 2 crashes → 99.5% crash-free. The crash rate
+		// doubled, but the two crash-free rates differ by a quarter of a
+		// percentage point, which is what an earlier crash-free ratio rounded
+		// away into "1x worse than yesterday".
+		th.SeedAppMetrics(ctx, t, teamID, appID, now, 398, 2, 0)
+
+		app := makeApp(teamID, appID)
+		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if card(t, metrics, "Crash free sessions").Value != "99.5%" {
+			t.Errorf("crash-free value: want %q, got %q", "99.5%", card(t, metrics, "Crash free sessions").Value)
+		}
+		if card(t, metrics, "Crash free sessions").Subtitle != "Down from 99.75% yesterday" {
+			t.Errorf("crash-free subtitle: want %q, got %q", "Down from 99.75% yesterday", card(t, metrics, "Crash free sessions").Subtitle)
+		}
+	})
+
+	// ---------- ANR-free sessions ----------
+
+	t.Run("anr-free: card is absent when neither day recorded an ANR", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		th.SeedTeam(ctx, t, teamID, "T")
+		th.SeedApp(ctx, t, appID, teamID, "A", 30)
+
+		now := time.Now().UTC()
+		yesterday := now.AddDate(0, 0, -1)
+		th.SeedAppMetrics(ctx, t, teamID, appID, yesterday, 10, 0, 0)
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 10, 0, 0)
 
 		app := makeApp(teamID, appID)
@@ -1272,13 +1393,38 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[2].Value != "100%" {
-			t.Errorf("anr-free value: want %q, got %q", "100%", metrics[2].Value)
+		if hasCard(metrics, "ANR free sessions") {
+			t.Errorf("anr-free card should be absent, got cards %v", cardLabels(metrics))
 		}
-		if metrics[2].HasWarning {
+	})
+
+	t.Run("anr-free: card is present at 100% when only yesterday recorded an ANR", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		th.SeedTeam(ctx, t, teamID, "T")
+		th.SeedApp(ctx, t, appID, teamID, "A", 30)
+
+		now := time.Now().UTC()
+		yesterday := now.AddDate(0, 0, -1)
+		th.SeedAppMetrics(ctx, t, teamID, appID, yesterday, 9, 0, 1)
+		th.SeedAppMetrics(ctx, t, teamID, appID, now, 10, 0, 0)
+
+		app := makeApp(teamID, appID)
+		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if card(t, metrics, "ANR free sessions").Value != "100%" {
+			t.Errorf("anr-free value: want %q, got %q", "100%", card(t, metrics, "ANR free sessions").Value)
+		}
+		if card(t, metrics, "ANR free sessions").HasWarning {
 			t.Error("anr-free should have no warning at 100%")
 		}
-		if metrics[2].HasError {
+		if card(t, metrics, "ANR free sessions").HasError {
 			t.Error("anr-free should have no error at 100%")
 		}
 	})
@@ -1303,13 +1449,13 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[2].Value != "90%" {
-			t.Errorf("anr-free value: want %q, got %q", "90%", metrics[2].Value)
+		if card(t, metrics, "ANR free sessions").Value != "90%" {
+			t.Errorf("anr-free value: want %q, got %q", "90%", card(t, metrics, "ANR free sessions").Value)
 		}
-		if !metrics[2].HasWarning {
+		if !card(t, metrics, "ANR free sessions").HasWarning {
 			t.Error("anr-free should have warning at 90%")
 		}
-		if metrics[2].HasError {
+		if card(t, metrics, "ANR free sessions").HasError {
 			t.Error("anr-free should not have error at 90%")
 		}
 	})
@@ -1334,13 +1480,13 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[2].Value != "80%" {
-			t.Errorf("anr-free value: want %q, got %q", "80%", metrics[2].Value)
+		if card(t, metrics, "ANR free sessions").Value != "80%" {
+			t.Errorf("anr-free value: want %q, got %q", "80%", card(t, metrics, "ANR free sessions").Value)
 		}
-		if !metrics[2].HasWarning {
+		if !card(t, metrics, "ANR free sessions").HasWarning {
 			t.Error("anr-free should have warning at 80%")
 		}
-		if !metrics[2].HasError {
+		if !card(t, metrics, "ANR free sessions").HasError {
 			t.Error("anr-free should have error at 80%")
 		}
 	})
@@ -1359,8 +1505,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		yesterday := now.Add(-25 * time.Hour)
 		// Yesterday: 4 sessions, 2 ANRs → 50% ANR-free
 		th.SeedAppMetrics(ctx, t, teamID, appID, yesterday, 2, 0, 2)
-		// Today: 4 sessions, 0 ANRs → 100% ANR-free
-		// ratio = 1.0 / 0.5 = 2.0 → "2x better than yesterday"
+		// Today: 4 sessions, 0 ANRs → ANR rate 0, a 100% drop
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 4, 0, 0)
 
 		app := makeApp(teamID, appID)
@@ -1368,8 +1513,8 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[2].Subtitle != "2x better than yesterday" {
-			t.Errorf("anr-free subtitle: want %q, got %q", "2x better than yesterday", metrics[2].Subtitle)
+		if card(t, metrics, "ANR free sessions").Subtitle != "Up from 50% yesterday" {
+			t.Errorf("anr-free subtitle: want %q, got %q", "Up from 50% yesterday", card(t, metrics, "ANR free sessions").Subtitle)
 		}
 	})
 
@@ -1385,10 +1530,9 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		now := time.Now().UTC()
 		yesterday := now.Add(-25 * time.Hour)
-		// Yesterday: 4 sessions, 0 ANRs → 100% ANR-free
-		th.SeedAppMetrics(ctx, t, teamID, appID, yesterday, 4, 0, 0)
-		// Today: 4 sessions, 2 ANRs → 50% ANR-free
-		// ratio = 0.5 / 1.0 = 0.5 → "0.5x worse than yesterday"
+		// Yesterday: 4 sessions, 1 ANR → ANR rate 0.25
+		th.SeedAppMetrics(ctx, t, teamID, appID, yesterday, 3, 0, 1)
+		// Today: 4 sessions, 2 ANRs → ANR rate 0.5, a 100% rise
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 2, 0, 2)
 
 		app := makeApp(teamID, appID)
@@ -1396,8 +1540,35 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[2].Subtitle != "0.5x worse than yesterday" {
-			t.Errorf("anr-free subtitle: want %q, got %q", "0.5x worse than yesterday", metrics[2].Subtitle)
+		if card(t, metrics, "ANR free sessions").Subtitle != "Down from 75% yesterday" {
+			t.Errorf("anr-free subtitle: want %q, got %q", "Down from 75% yesterday", card(t, metrics, "ANR free sessions").Subtitle)
+		}
+	})
+
+	t.Run("anr-free: subtitle compares against a yesterday that had no ANRs", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		th.SeedTeam(ctx, t, teamID, "T")
+		th.SeedApp(ctx, t, appID, teamID, "A", 30)
+
+		now := time.Now().UTC()
+		yesterday := now.Add(-25 * time.Hour)
+		// Yesterday: 4 sessions, 0 ANRs → 100% ANR-free
+		th.SeedAppMetrics(ctx, t, teamID, appID, yesterday, 4, 0, 0)
+		// Today: 4 sessions, 2 ANRs → ANR rate 0.5
+		th.SeedAppMetrics(ctx, t, teamID, appID, now, 2, 0, 2)
+
+		app := makeApp(teamID, appID)
+		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if card(t, metrics, "ANR free sessions").Subtitle != "Down from 100% yesterday" {
+			t.Errorf("anr-free subtitle: want %q, got %q", "Down from 100% yesterday", card(t, metrics, "ANR free sessions").Subtitle)
 		}
 	})
 
@@ -1420,8 +1591,8 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[2].Subtitle != "No previous day data" {
-			t.Errorf("anr-free subtitle: want %q, got %q", "No previous day data", metrics[2].Subtitle)
+		if card(t, metrics, "ANR free sessions").Subtitle != "No previous day data" {
+			t.Errorf("anr-free subtitle: want %q, got %q", "No previous day data", card(t, metrics, "ANR free sessions").Subtitle)
 		}
 	})
 
@@ -1446,8 +1617,8 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[2].Subtitle != "No change from yesterday" {
-			t.Errorf("anr-free subtitle: want %q, got %q", "No change from yesterday", metrics[2].Subtitle)
+		if card(t, metrics, "ANR free sessions").Subtitle != "No change from yesterday" {
+			t.Errorf("anr-free subtitle: want %q, got %q", "No change from yesterday", card(t, metrics, "ANR free sessions").Subtitle)
 		}
 	})
 
@@ -1500,11 +1671,11 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		}
 
 		// With custom thresholds good=99, caution=97, 98% should be warning and not error.
-		if !metrics[1].HasWarning || metrics[1].HasError {
-			t.Fatalf("crash-free flags = (warning=%v, error=%v), want (true,false)", metrics[1].HasWarning, metrics[1].HasError)
+		if !card(t, metrics, "Crash free sessions").HasWarning || card(t, metrics, "Crash free sessions").HasError {
+			t.Fatalf("crash-free flags = (warning=%v, error=%v), want (true,false)", card(t, metrics, "Crash free sessions").HasWarning, card(t, metrics, "Crash free sessions").HasError)
 		}
-		if !metrics[2].HasWarning || metrics[2].HasError {
-			t.Fatalf("anr-free flags = (warning=%v, error=%v), want (true,false)", metrics[2].HasWarning, metrics[2].HasError)
+		if !card(t, metrics, "ANR free sessions").HasWarning || card(t, metrics, "ANR free sessions").HasError {
+			t.Fatalf("anr-free flags = (warning=%v, error=%v), want (true,false)", card(t, metrics, "ANR free sessions").HasWarning, card(t, metrics, "ANR free sessions").HasError)
 		}
 	})
 
@@ -1530,11 +1701,11 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		if !metrics[1].HasWarning || metrics[1].HasError {
-			t.Fatalf("crash-free flags = (warning=%v, error=%v), want (true,false)", metrics[1].HasWarning, metrics[1].HasError)
+		if !card(t, metrics, "Crash free sessions").HasWarning || card(t, metrics, "Crash free sessions").HasError {
+			t.Fatalf("crash-free flags = (warning=%v, error=%v), want (true,false)", card(t, metrics, "Crash free sessions").HasWarning, card(t, metrics, "Crash free sessions").HasError)
 		}
-		if !metrics[2].HasWarning || metrics[2].HasError {
-			t.Fatalf("anr-free flags = (warning=%v, error=%v), want (true,false)", metrics[2].HasWarning, metrics[2].HasError)
+		if !card(t, metrics, "ANR free sessions").HasWarning || card(t, metrics, "ANR free sessions").HasError {
+			t.Fatalf("anr-free flags = (warning=%v, error=%v), want (true,false)", card(t, metrics, "ANR free sessions").HasWarning, card(t, metrics, "ANR free sessions").HasError)
 		}
 	})
 
@@ -1560,11 +1731,11 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		if !metrics[1].HasWarning || !metrics[1].HasError {
-			t.Fatalf("crash-free flags = (warning=%v, error=%v), want (true,true)", metrics[1].HasWarning, metrics[1].HasError)
+		if !card(t, metrics, "Crash free sessions").HasWarning || !card(t, metrics, "Crash free sessions").HasError {
+			t.Fatalf("crash-free flags = (warning=%v, error=%v), want (true,true)", card(t, metrics, "Crash free sessions").HasWarning, card(t, metrics, "Crash free sessions").HasError)
 		}
-		if !metrics[2].HasWarning || !metrics[2].HasError {
-			t.Fatalf("anr-free flags = (warning=%v, error=%v), want (true,true)", metrics[2].HasWarning, metrics[2].HasError)
+		if !card(t, metrics, "ANR free sessions").HasWarning || !card(t, metrics, "ANR free sessions").HasError {
+			t.Fatalf("anr-free flags = (warning=%v, error=%v), want (true,true)", card(t, metrics, "ANR free sessions").HasWarning, card(t, metrics, "ANR free sessions").HasError)
 		}
 	})
 
@@ -1590,11 +1761,11 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		if !metrics[1].HasWarning || metrics[1].HasError {
-			t.Fatalf("crash-free flags = (warning=%v, error=%v), want (true,false)", metrics[1].HasWarning, metrics[1].HasError)
+		if !card(t, metrics, "Crash free sessions").HasWarning || card(t, metrics, "Crash free sessions").HasError {
+			t.Fatalf("crash-free flags = (warning=%v, error=%v), want (true,false)", card(t, metrics, "Crash free sessions").HasWarning, card(t, metrics, "Crash free sessions").HasError)
 		}
-		if !metrics[2].HasWarning || metrics[2].HasError {
-			t.Fatalf("anr-free flags = (warning=%v, error=%v), want (true,false)", metrics[2].HasWarning, metrics[2].HasError)
+		if !card(t, metrics, "ANR free sessions").HasWarning || card(t, metrics, "ANR free sessions").HasError {
+			t.Fatalf("anr-free flags = (warning=%v, error=%v), want (true,false)", card(t, metrics, "ANR free sessions").HasWarning, card(t, metrics, "ANR free sessions").HasError)
 		}
 	})
 
@@ -1620,17 +1791,17 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		if !metrics[1].HasWarning || !metrics[1].HasError {
-			t.Fatalf("crash-free flags = (warning=%v, error=%v), want (true,true)", metrics[1].HasWarning, metrics[1].HasError)
+		if !card(t, metrics, "Crash free sessions").HasWarning || !card(t, metrics, "Crash free sessions").HasError {
+			t.Fatalf("crash-free flags = (warning=%v, error=%v), want (true,true)", card(t, metrics, "Crash free sessions").HasWarning, card(t, metrics, "Crash free sessions").HasError)
 		}
-		if !metrics[2].HasWarning || !metrics[2].HasError {
-			t.Fatalf("anr-free flags = (warning=%v, error=%v), want (true,true)", metrics[2].HasWarning, metrics[2].HasError)
+		if !card(t, metrics, "ANR free sessions").HasWarning || !card(t, metrics, "ANR free sessions").HasError {
+			t.Fatalf("anr-free flags = (warning=%v, error=%v), want (true,true)", card(t, metrics, "ANR free sessions").HasWarning, card(t, metrics, "ANR free sessions").HasError)
 		}
 	})
 
 	// ---------- Launch times ----------
 
-	t.Run("launch: all values are 0ms when no launch events seeded", func(t *testing.T) {
+	t.Run("launch: values are No Data when no launch events seeded", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
 		defer cleanupAll(ctx, t)
@@ -1648,10 +1819,43 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		for i, name := range []string{"cold", "warm", "hot"} {
-			if metrics[3+i].Value != "0ms" {
-				t.Errorf("%s launch value: want %q, got %q", name, "0ms", metrics[3+i].Value)
+		for _, label := range []string{"Cold launch p95", "Warm launch p95", "Hot launch p95"} {
+			if card(t, metrics, label).Value != "No Data" {
+				t.Errorf("%s launch value: want %q, got %q", label, "No Data", card(t, metrics, label).Value)
 			}
+			if card(t, metrics, label).Subtitle != "No previous day data" {
+				t.Errorf("%s launch subtitle: want %q, got %q", label, "No previous day data", card(t, metrics, label).Subtitle)
+			}
+		}
+	})
+
+	t.Run("launch: unmeasured today names yesterday's duration without a direction", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		th.SeedTeam(ctx, t, teamID, "T")
+		th.SeedApp(ctx, t, appID, teamID, "A", 30)
+
+		now := time.Now().UTC()
+		yesterday := now.Add(-25 * time.Hour)
+		// Yesterday recorded a cold launch, today recorded none, so today has no
+		// duration to compare against yesterday's.
+		th.SeedLaunchEvent(ctx, t, teamID, appID, "cold_launch", 900, yesterday)
+		th.SeedAppMetrics(ctx, t, teamID, appID, now, 5, 0, 0)
+
+		app := makeApp(teamID, appID)
+		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if card(t, metrics, "Cold launch p95").Value != "No Data" {
+			t.Errorf("cold launch value: want %q, got %q", "No Data", card(t, metrics, "Cold launch p95").Value)
+		}
+		if card(t, metrics, "Cold launch p95").Subtitle != "Was 900ms yesterday" {
+			t.Errorf("cold launch subtitle: want %q, got %q", "Was 900ms yesterday", card(t, metrics, "Cold launch p95").Subtitle)
 		}
 	})
 
@@ -1675,14 +1879,14 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[3].Value != "500ms" {
-			t.Errorf("cold launch value: want %q, got %q", "500ms", metrics[3].Value)
+		if card(t, metrics, "Cold launch p95").Value != "500ms" {
+			t.Errorf("cold launch value: want %q, got %q", "500ms", card(t, metrics, "Cold launch p95").Value)
 		}
-		if metrics[4].Value != "200ms" {
-			t.Errorf("warm launch value: want %q, got %q", "200ms", metrics[4].Value)
+		if card(t, metrics, "Warm launch p95").Value != "200ms" {
+			t.Errorf("warm launch value: want %q, got %q", "200ms", card(t, metrics, "Warm launch p95").Value)
 		}
-		if metrics[5].Value != "100ms" {
-			t.Errorf("hot launch value: want %q, got %q", "100ms", metrics[5].Value)
+		if card(t, metrics, "Hot launch p95").Value != "100ms" {
+			t.Errorf("hot launch value: want %q, got %q", "100ms", card(t, metrics, "Hot launch p95").Value)
 		}
 	})
 
@@ -1706,9 +1910,9 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		for i, name := range []string{"cold", "warm", "hot"} {
-			if metrics[3+i].Subtitle != "No previous day data" {
-				t.Errorf("%s launch subtitle: want %q, got %q", name, "No previous day data", metrics[3+i].Subtitle)
+		for _, label := range []string{"Cold launch p95", "Warm launch p95", "Hot launch p95"} {
+			if card(t, metrics, label).Subtitle != "No previous day data" {
+				t.Errorf("%s launch subtitle: want %q, got %q", label, "No previous day data", card(t, metrics, label).Subtitle)
 			}
 		}
 	})
@@ -1725,8 +1929,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		now := time.Now().UTC()
 		yesterday := now.Add(-25 * time.Hour)
-		// Yesterday: cold_launch 1000ms; today: 500ms
-		// ratio = round(500 / 1000, 2) = 0.5 → "0.5x better than yesterday"
+		// Yesterday: cold_launch 1000ms; today: 500ms → 500ms faster
 		th.SeedLaunchEvent(ctx, t, teamID, appID, "cold_launch", 1000, yesterday)
 		th.SeedLaunchEvent(ctx, t, teamID, appID, "cold_launch", 500, now)
 
@@ -1735,8 +1938,8 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[3].Subtitle != "0.5x better than yesterday" {
-			t.Errorf("cold launch subtitle: want %q, got %q", "0.5x better than yesterday", metrics[3].Subtitle)
+		if card(t, metrics, "Cold launch p95").Subtitle != "Down from 1000ms yesterday" {
+			t.Errorf("cold launch subtitle: want %q, got %q", "Down from 1000ms yesterday", card(t, metrics, "Cold launch p95").Subtitle)
 		}
 	})
 
@@ -1752,8 +1955,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 
 		now := time.Now().UTC()
 		yesterday := now.Add(-25 * time.Hour)
-		// Yesterday: cold_launch 500ms; today: 1000ms
-		// ratio = round(1000 / 500, 2) = 2 → "2x worse than yesterday"
+		// Yesterday: cold_launch 500ms; today: 1000ms → 500ms slower
 		th.SeedLaunchEvent(ctx, t, teamID, appID, "cold_launch", 500, yesterday)
 		th.SeedLaunchEvent(ctx, t, teamID, appID, "cold_launch", 1000, now)
 
@@ -1762,8 +1964,8 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[3].Subtitle != "2x worse than yesterday" {
-			t.Errorf("cold launch subtitle: want %q, got %q", "2x worse than yesterday", metrics[3].Subtitle)
+		if card(t, metrics, "Cold launch p95").Subtitle != "Up from 500ms yesterday" {
+			t.Errorf("cold launch subtitle: want %q, got %q", "Up from 500ms yesterday", card(t, metrics, "Cold launch p95").Subtitle)
 		}
 	})
 
@@ -1788,8 +1990,8 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if metrics[3].Subtitle != "No change from yesterday" {
-			t.Errorf("cold launch subtitle: want %q, got %q", "No change from yesterday", metrics[3].Subtitle)
+		if card(t, metrics, "Cold launch p95").Subtitle != "No change from yesterday" {
+			t.Errorf("cold launch subtitle: want %q, got %q", "No change from yesterday", card(t, metrics, "Cold launch p95").Subtitle)
 		}
 	})
 
@@ -1813,12 +2015,12 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		for i, name := range []string{"cold", "warm", "hot"} {
-			if metrics[3+i].HasWarning {
-				t.Errorf("%s launch should never have warning", name)
+		for _, label := range []string{"Cold launch p95", "Warm launch p95", "Hot launch p95"} {
+			if card(t, metrics, label).HasWarning {
+				t.Errorf("%s should never have warning", label)
 			}
-			if metrics[3+i].HasError {
-				t.Errorf("%s launch should never have error", name)
+			if card(t, metrics, label).HasError {
+				t.Errorf("%s should never have error", label)
 			}
 		}
 	})
@@ -1847,22 +2049,22 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if len(metrics) != 7 {
-			t.Fatalf("want 7 metrics (6 standard + bug reports), got %d", len(metrics))
+		if !hasCard(metrics, "Bug reports") {
+			t.Fatalf("bug reports card should be present, got cards %v", cardLabels(metrics))
 		}
-		if metrics[6].Value != "3" {
-			t.Errorf("bug report count: want %q, got %q", "3", metrics[6].Value)
+		if card(t, metrics, "Bug reports").Value != "3" {
+			t.Errorf("bug report count: want %q, got %q", "3", card(t, metrics, "Bug reports").Value)
 		}
-		if metrics[6].Label != "Bug reports" {
-			t.Errorf("bug report label: want %q, got %q", "Bug reports", metrics[6].Label)
+		if card(t, metrics, "Bug reports").Label != "Bug reports" {
+			t.Errorf("bug report label: want %q, got %q", "Bug reports", card(t, metrics, "Bug reports").Label)
 		}
-		if metrics[6].Subtitle != "No previous day data" {
-			t.Errorf("bug report subtitle: want %q, got %q", "No previous day data", metrics[6].Subtitle)
+		if card(t, metrics, "Bug reports").Subtitle != "No previous day data" {
+			t.Errorf("bug report subtitle: want %q, got %q", "No previous day data", card(t, metrics, "Bug reports").Subtitle)
 		}
-		if metrics[6].HasWarning {
+		if card(t, metrics, "Bug reports").HasWarning {
 			t.Error("bug report metric should not have warning")
 		}
-		if metrics[6].HasError {
+		if card(t, metrics, "Bug reports").HasError {
 			t.Error("bug report metric should not have error")
 		}
 	})
@@ -1886,8 +2088,8 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if len(metrics) != 6 {
-			t.Errorf("want 6 metrics when no bug reports today, got %d", len(metrics))
+		if hasCard(metrics, "Bug reports") {
+			t.Errorf("bug reports card should be absent, got cards %v", cardLabels(metrics))
 		}
 	})
 
@@ -1917,11 +2119,11 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if len(metrics) != 7 {
-			t.Fatalf("want 7 metrics, got %d", len(metrics))
+		if !hasCard(metrics, "Bug reports") {
+			t.Fatalf("bug reports card should be present, got cards %v", cardLabels(metrics))
 		}
-		if metrics[6].Subtitle != "2 greater than yesterday" {
-			t.Errorf("bug report subtitle: want %q, got %q", "2 greater than yesterday", metrics[6].Subtitle)
+		if card(t, metrics, "Bug reports").Subtitle != "Up from 3 yesterday" {
+			t.Errorf("bug report subtitle: want %q, got %q", "Up from 3 yesterday", card(t, metrics, "Bug reports").Subtitle)
 		}
 	})
 
@@ -1951,11 +2153,11 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if len(metrics) != 7 {
-			t.Fatalf("want 7 metrics, got %d", len(metrics))
+		if !hasCard(metrics, "Bug reports") {
+			t.Fatalf("bug reports card should be present, got cards %v", cardLabels(metrics))
 		}
-		if metrics[6].Subtitle != "2 less than yesterday" {
-			t.Errorf("bug report subtitle: want %q, got %q", "2 less than yesterday", metrics[6].Subtitle)
+		if card(t, metrics, "Bug reports").Subtitle != "Down from 5 yesterday" {
+			t.Errorf("bug report subtitle: want %q, got %q", "Down from 5 yesterday", card(t, metrics, "Bug reports").Subtitle)
 		}
 	})
 
@@ -1985,11 +2187,11 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if len(metrics) != 7 {
-			t.Fatalf("want 7 metrics, got %d", len(metrics))
+		if !hasCard(metrics, "Bug reports") {
+			t.Fatalf("bug reports card should be present, got cards %v", cardLabels(metrics))
 		}
-		if metrics[6].Subtitle != "No change from yesterday" {
-			t.Errorf("bug report subtitle: want %q, got %q", "No change from yesterday", metrics[6].Subtitle)
+		if card(t, metrics, "Bug reports").Subtitle != "No change from yesterday" {
+			t.Errorf("bug report subtitle: want %q, got %q", "No change from yesterday", card(t, metrics, "Bug reports").Subtitle)
 		}
 	})
 }
