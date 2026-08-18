@@ -57,7 +57,7 @@ Understand how [users move](https://measure.sh/product/user-journeys) through yo
 
 ### Network Performance 📡
 
-Monitor and improve [network performance](https://measure.sh/product/user-journeys) across your app. Identify the slowest and most error-prone endoints for targeted improvements.
+Monitor and improve [network performance](https://measure.sh/product/network-performance) across your app. Identify the slowest and most error-prone endoints for targeted improvements.
 
 <img alt="Network Performance" src="./frontend/dashboard/public/images/product_screenshots/network_performance.webp" />
 
@@ -86,7 +86,7 @@ We would love for you to contribute to Measure by opening issues, sending PRs, g
 ## Important Docs
 
 1. [**Getting Started**](https://measure.sh/docs) - Integrate our SDK and start monitoring your apps in no time.
-2. [**Explore Features**](https://measure.sh/docs/features/feature-session-timelines) - Learn about the features available in Measure and how to use them
+2. [**Explore Features**](https://measure.sh/docs/session-replay) - Learn about the features available in Measure and how to use them
 3. [**Contribution Guide**](CONTRIBUTING.md) - Contribute to Measure
 
 ## Platforms
