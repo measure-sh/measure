@@ -45,6 +45,20 @@ Find a specific endpoint on the dashboard with the **Explore endpoint** search b
 | `/api/v1/**` | Everything after the prefix, like `/api/v1/login` or `/api/v1/users/123/profile`. |
 | `/api/*/users/**` | Both wildcards together, like `/api/v2/users/123/orders/456`. |
 
+## Top endpoints
+
+The top endpoints section provides a ranked summary of your app's API endpoints across three dimensions.
+
+| Ranking | Ordered by |
+|---------|------------|
+| **Slowest** | p95 latency, helping identify the slowest APIs affecting user experience. |
+| **Highest error %** | Percentage of 4xx and 5xx responses, highlighting unreliable APIs. |
+| **Most frequent** | Total request count, showing which APIs are called most often.|
+
+Selecting an endpoint opens a detail view with latency percentiles (p50, p90, p95, p99) and status codes over time.
+
+![Top endpoints](/docs/assets/network-top-endpoints.webp)
+
 ## Request timeline
 
 The request timeline is a heatmap of when requests happen relative to session start. It shows the top endpoint patterns ranked by request frequency, and helps answer questions like "which APIs fire on app launch?" and "is anything called repeatedly in the background?"
