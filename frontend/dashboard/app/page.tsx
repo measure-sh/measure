@@ -128,7 +128,7 @@ export default function Home() {
             >
               {[...Array(2)].map((_, i) => (
                 <Fragment key={i}>
-                  <div className="w-10 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
+                  <div className="w-10 h-8.5 relative flex items-center justify-center shrink-0 mr-48">
                     <KukuFmLogo className="w-full h-full object-contain grayscale brightness-0 dark:invert" />
                   </div>
                   <div className="w-25 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
@@ -145,6 +145,14 @@ export default function Home() {
                       alt="Country Delight Logo"
                       fill
                       className="object-contain grayscale"
+                    />
+                  </div>
+                  <div className="w-48 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
+                    <Image
+                      src="/images/porsche_logo.svg"
+                      alt="Porsche Logo"
+                      fill
+                      className="object-contain grayscale brightness-0 dark:invert"
                     />
                   </div>
                   <div className="w-35 h-12.5 relative flex items-center justify-center shrink-0 mr-48">
