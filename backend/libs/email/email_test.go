@@ -92,15 +92,26 @@ func TestUsageLimitContent(t *testing.T) {
 	}
 }
 
-func TestDailySummaryContent(t *testing.T) {
+func TestTeamDailySummaryContent(t *testing.T) {
 	date := time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC)
-	metrics := []MetricData{
-		{Value: "1,234", Label: "Sessions", Subtitle: "Last 24h", HasWarning: false, HasError: false},
-		{Value: "99.5%", Label: "Crash Free", Subtitle: "Target: 99%", HasWarning: true, HasError: false},
-		{Value: "98.0%", Label: "ANR Free", Subtitle: "Target: 99%", HasWarning: false, HasError: true},
+	apps := []AppDailySummary{
+		{
+			AppName: "MyApp",
+			Metrics: []MetricData{
+				{Value: "1,234", Label: "Sessions", Subtitle: "Last 24h", HasWarning: false, HasError: false},
+				{Value: "99.5%", Label: "Crash Free", Subtitle: "Target: 99%", HasWarning: true, HasError: false},
+				{Value: "98.0%", Label: "ANR Free", Subtitle: "Target: 99%", HasWarning: false, HasError: true},
+			},
+		},
+		{
+			AppName: "OtherApp",
+			Metrics: []MetricData{
+				{Value: "5,678", Label: "Sessions", Subtitle: "Last 24h", HasWarning: false, HasError: false},
+			},
+		},
 	}
 
-	content := DailySummaryContent("MyApp", date, metrics)
+	content := TeamDailySummaryContent(date, apps)
 
 	checks := []struct {
 		name    string
@@ -109,6 +120,8 @@ func TestDailySummaryContent(t *testing.T) {
 		{"date", "February 15, 2026"},
 		{"summary label", "Summary for February 15, 2026"},
 		{"comparison label", "Comparisons are between Feb 15, 2026 (12:00 AM UTC to 11:59 PM UTC) and Feb 14, 2026 (12:00 AM UTC to 11:59 PM UTC)."},
+		{"first app name", "MyApp"},
+		{"second app name", "OtherApp"},
 		{"sessions value", "1,234"},
 		{"sessions label", "Sessions"},
 		{"crash free value", "99.5%"},
@@ -124,15 +137,35 @@ func TestDailySummaryContent(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("apps render in order with their metrics under them", func(t *testing.T) {
+		firstApp := strings.Index(content, "MyApp")
+		firstAppMetric := strings.Index(content, "1,234")
+		secondApp := strings.Index(content, "OtherApp")
+		secondAppMetric := strings.Index(content, "5,678")
+
+		if firstApp == -1 || firstAppMetric == -1 || secondApp == -1 || secondAppMetric == -1 {
+			t.Fatal("content should contain both app names and both apps' metrics")
+		}
+		if !(firstApp < firstAppMetric && firstAppMetric < secondApp && secondApp < secondAppMetric) {
+			t.Errorf("expected order: MyApp (%d) < 1,234 (%d) < OtherApp (%d) < 5,678 (%d)",
+				firstApp, firstAppMetric, secondApp, secondAppMetric)
+		}
+	})
 }
 
-func TestDailySummaryContentNoWarnings(t *testing.T) {
+func TestTeamDailySummaryContentNoWarnings(t *testing.T) {
 	date := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	metrics := []MetricData{
-		{Value: "500", Label: "Sessions", Subtitle: "All good"},
+	apps := []AppDailySummary{
+		{
+			AppName: "App",
+			Metrics: []MetricData{
+				{Value: "500", Label: "Sessions", Subtitle: "All good"},
+			},
+		},
 	}
 
-	content := DailySummaryContent("App", date, metrics)
+	content := TeamDailySummaryContent(date, apps)
 
 	if strings.Contains(content, "#e7000b") {
 		t.Error("should not contain error color when no errors")
@@ -708,7 +741,9 @@ func TestAppNameMarkupIsEscapedInTitle(t *testing.T) {
 	_, bodies["CrashSpikeAlertEmail"] = CrashSpikeAlertEmail(payload, "spiking", "https://measure.sh")
 	_, bodies["AnrSpikeAlertEmail"] = AnrSpikeAlertEmail(payload, "spiking", "https://measure.sh")
 	_, bodies["BugReportAlertEmail"] = BugReportAlertEmail(payload, "a bug", "https://measure.sh")
-	_, bodies["DailySummaryEmail"] = DailySummaryEmail(payload, time.Now(), nil, "https://measure.sh", "team-abc", "app-abc")
+	// The team summary places the team name in the subject and each app
+	// name in a section heading, so the payload is exercised in both spots.
+	_, bodies["TeamDailySummaryEmail"] = TeamDailySummaryEmail(payload, time.Now(), []AppDailySummary{{AppName: payload}}, "https://measure.sh", "team-abc")
 
 	for name, body := range bodies {
 		if strings.Contains(body, payload) {

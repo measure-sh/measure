@@ -126,7 +126,9 @@ func main() {
 	_, body = email.ManualDowngradeEmail("Acme Corp", "team-abc", "https://measure.sh")
 	add("12-downgraded-to-free.html", body)
 
-	// --- Alerts: Daily Summary ---
+	// --- Alerts: Team Daily Summary ---
+
+	summaryDate := time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC)
 
 	healthyMetrics := []email.MetricData{
 		{Value: "12.85K", Label: "Sessions", Subtitle: "Up from 11.65K yesterday", HasWarning: false, HasError: false},
@@ -137,8 +139,6 @@ func main() {
 		{Value: "98ms", Label: "Hot launch p95", Subtitle: "No change from yesterday", HasWarning: false, HasError: false},
 		{Value: "7", Label: "Bug reports", Subtitle: "Down from 10 yesterday", HasWarning: false, HasError: false},
 	}
-	_, body = email.DailySummaryEmail("MyApp", time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC), healthyMetrics, "https://measure.sh", "team-abc", "app-123")
-	add("14-daily-summary-healthy.html", body)
 
 	warningMetrics := []email.MetricData{
 		{Value: "8.42K", Label: "Sessions", Subtitle: "Down from 11.62K yesterday", HasWarning: false, HasError: false},
@@ -149,8 +149,6 @@ func main() {
 		{Value: "145ms", Label: "Hot launch p95", Subtitle: "Up from 98ms yesterday", HasWarning: false, HasError: false},
 		{Value: "18", Label: "Bug reports", Subtitle: "Up from 12 yesterday", HasWarning: false, HasError: false},
 	}
-	_, body = email.DailySummaryEmail("MyApp", time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC), warningMetrics, "https://measure.sh", "team-abc", "app-123")
-	add("15-daily-summary-warnings.html", body)
 
 	errorMetrics := []email.MetricData{
 		{Value: "3.1K", Label: "Sessions", Subtitle: "Down from 12.6K yesterday", HasWarning: false, HasError: false},
@@ -160,36 +158,6 @@ func main() {
 		{Value: "890ms", Label: "Warm launch p95", Subtitle: "Up from 366ms yesterday", HasWarning: false, HasError: false},
 		{Value: "312ms", Label: "Hot launch p95", Subtitle: "Up from 98ms yesterday", HasWarning: false, HasError: false},
 	}
-	_, body = email.DailySummaryEmail("MyApp", time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC), errorMetrics, "https://measure.sh", "team-abc", "app-123")
-	add("16-daily-summary-errors.html", body)
-
-	customThresholdMetrics := []email.MetricData{
-		{Value: "7.89K", Label: "Sessions", Subtitle: "Down from 8.43K yesterday", HasWarning: false, HasError: false},
-		{Value: "91.2%", Label: "Crash free sessions", Subtitle: "Down from 93.6% yesterday", HasWarning: false, HasError: false},
-		{Value: "88.6%", Label: "ANR free sessions", Subtitle: "Down from 90.1% yesterday", HasWarning: false, HasError: false},
-		{Value: "1120ms", Label: "Cold launch p95", Subtitle: "Up from 940ms yesterday", HasWarning: false, HasError: false},
-		{Value: "498ms", Label: "Warm launch p95", Subtitle: "Up from 421ms yesterday", HasWarning: false, HasError: false},
-		{Value: "132ms", Label: "Hot launch p95", Subtitle: "Up from 111ms yesterday", HasWarning: false, HasError: false},
-	}
-	_, body = email.DailySummaryEmail(
-		"MyApp",
-		time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC),
-		applyDailySummaryThresholds(customThresholdMetrics, 98, 90),
-		"https://measure.sh",
-		"team-abc",
-		"app-123",
-	)
-	add("17-daily-summary-custom-thresholds-strict.html", body)
-
-	_, body = email.DailySummaryEmail(
-		"MyApp",
-		time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC),
-		applyDailySummaryThresholds(customThresholdMetrics, 92, 85),
-		"https://measure.sh",
-		"team-abc",
-		"app-123",
-	)
-	add("18-daily-summary-custom-thresholds-lenient.html", body)
 
 	noDataMetrics := []email.MetricData{
 		{Value: "412", Label: "Sessions", Subtitle: "Down from 1.2K yesterday", HasWarning: false, HasError: false},
@@ -199,8 +167,6 @@ func main() {
 		{Value: "No Data", Label: "Warm launch p95", Subtitle: "Was 366ms yesterday", HasWarning: false, HasError: false},
 		{Value: "No Data", Label: "Hot launch p95", Subtitle: "No previous day data", HasWarning: false, HasError: false},
 	}
-	_, body = email.DailySummaryEmail("MyApp", time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC), noDataMetrics, "https://measure.sh", "team-abc", "app-123")
-	add("19-daily-summary-no-data.html", body)
 
 	noANRMetrics := []email.MetricData{
 		{Value: "6.31K", Label: "Sessions", Subtitle: "Up from 5.98K yesterday", HasWarning: false, HasError: false},
@@ -209,8 +175,48 @@ func main() {
 		{Value: "412ms", Label: "Warm launch p95", Subtitle: "Down from 455ms yesterday", HasWarning: false, HasError: false},
 		{Value: "121ms", Label: "Hot launch p95", Subtitle: "No change from yesterday", HasWarning: false, HasError: false},
 	}
-	_, body = email.DailySummaryEmail("MyApp", time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC), noANRMetrics, "https://measure.sh", "team-abc", "app-123")
-	add("20-daily-summary-no-anr-card.html", body)
+
+	multiAppSummary := []email.AppDailySummary{
+		{AppName: "Storefront Android", Metrics: healthyMetrics},
+		{AppName: "Storefront iOS", Metrics: warningMetrics},
+		{AppName: "Courier Android", Metrics: errorMetrics},
+		{AppName: "Warehouse Scanner", Metrics: noDataMetrics},
+		{AppName: "Kiosk iOS", Metrics: noANRMetrics},
+	}
+	_, body = email.TeamDailySummaryEmail("Acme Corp", summaryDate, multiAppSummary, "https://measure.sh", "team-abc")
+	add("14-team-daily-summary-multi-app.html", body)
+
+	customThresholdMetrics := []email.MetricData{
+		{Value: "7.89K", Label: "Sessions", Subtitle: "Down from 8.43K yesterday", HasWarning: false, HasError: false},
+		{Value: "91.2%", Label: "Crash free sessions", Subtitle: "Down from 93.6% yesterday", HasWarning: false, HasError: false},
+		{Value: "88.6%", Label: "ANR free sessions", Subtitle: "Down from 90.1% yesterday", HasWarning: false, HasError: false},
+		{Value: "1120ms", Label: "Cold launch p95", Subtitle: "Up from 940ms yesterday", HasWarning: false, HasError: false},
+		{Value: "498ms", Label: "Warm launch p95", Subtitle: "Up from 421ms yesterday", HasWarning: false, HasError: false},
+		{Value: "132ms", Label: "Hot launch p95", Subtitle: "Up from 111ms yesterday", HasWarning: false, HasError: false},
+	}
+	_, body = email.TeamDailySummaryEmail(
+		"Acme Corp",
+		summaryDate,
+		[]email.AppDailySummary{{AppName: "Storefront Android", Metrics: applyDailySummaryThresholds(customThresholdMetrics, 98, 90)}},
+		"https://measure.sh",
+		"team-abc",
+	)
+	add("15-team-daily-summary-custom-thresholds-strict.html", body)
+
+	_, body = email.TeamDailySummaryEmail(
+		"Acme Corp",
+		summaryDate,
+		[]email.AppDailySummary{{AppName: "Storefront Android", Metrics: applyDailySummaryThresholds(customThresholdMetrics, 92, 85)}},
+		"https://measure.sh",
+		"team-abc",
+	)
+	add("16-team-daily-summary-custom-thresholds-lenient.html", body)
+
+	singleAppSummary := []email.AppDailySummary{
+		{AppName: "Storefront Android", Metrics: healthyMetrics},
+	}
+	_, body = email.TeamDailySummaryEmail("Acme Corp", summaryDate, singleAppSummary, "https://measure.sh", "team-abc")
+	add("17-team-daily-summary-single-app.html", body)
 
 	for _, e := range emails {
 		path := filepath.Join(dir, e.name)
