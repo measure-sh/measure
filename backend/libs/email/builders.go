@@ -137,11 +137,12 @@ func BugReportAlertEmail(appName, alertMsg, alertURL string) (subject, body stri
 	return
 }
 
-// DailySummaryEmail builds the daily summary email for an app.
-func DailySummaryEmail(appName string, date time.Time, metrics []MetricData, siteOrigin, teamId, appId string) (subject, body string) {
-	subject = appName + " Daily Summary"
-	dashboardURL := fmt.Sprintf("%s/%s/overview?a=%s", siteOrigin, teamId, appId)
-	body = RenderEmailBody(escape(subject), DailySummaryContent(appName, date, metrics), "View Full Dashboard", dashboardURL)
+// TeamDailySummaryEmail builds the daily summary email for a team,
+// covering all of the team's apps that recorded data.
+func TeamDailySummaryEmail(teamName string, date time.Time, apps []AppDailySummary, siteOrigin, teamId string) (subject, body string) {
+	subject = teamName + " Daily Summary"
+	dashboardURL := fmt.Sprintf("%s/%s/overview", siteOrigin, teamId)
+	body = RenderEmailBody(escape(subject), TeamDailySummaryContent(date, apps), "View Full Dashboard", dashboardURL)
 	return
 }
 

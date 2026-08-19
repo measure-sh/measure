@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,6 +31,13 @@ type MetricData struct {
 	HasWarning bool
 	HasError   bool
 	Subtitle   string
+}
+
+// AppDailySummary is one app's section in the team daily summary:
+// the app's name and its metric cards for the reported day.
+type AppDailySummary struct {
+	AppName string
+	Metrics []MetricData
 }
 
 // SendEmail sends an email immediately using the provided mail client.
@@ -77,16 +85,11 @@ func QueueEmail(ctx context.Context, pool *pgxpool.Pool, tx pgx.Tx, teamID, appI
 		InsertInto("pending_alert_messages").
 		Set("id", uuid.New()).
 		Set("team_id", teamID).
+		Set("app_id", appID).
 		Set("channel", "email").
 		SetExpr("data", "?::jsonb", string(dataJson)).
 		Set("created_at", time.Now()).
 		Set("updated_at", time.Now())
-
-	if appID == nil {
-		insertStmt.SetExpr("app_id", "NULL")
-	} else {
-		insertStmt.Set("app_id", appID)
-	}
 
 	if tx != nil {
 		_, err = tx.Exec(ctx, insertStmt.String(), insertStmt.Args()...)
@@ -265,15 +268,31 @@ func getProgressBarColor(threshold int) string {
 	}
 }
 
-// DailySummaryContent renders the date header and metrics grid
-// for daily summary emails.
-func DailySummaryContent(appName string, date time.Time, metrics []MetricData) string {
+func TeamDailySummaryContent(date time.Time, apps []AppDailySummary) string {
 	formattedDate := date.Format("January 2, 2006")
 	formattedDateShort := date.Format("Jan 2, 2006")
 	comparisonDateShort := date.AddDate(0, 0, -1).Format("Jan 2, 2006")
 
-	metricsHTML := ""
-	for _, metric := range metrics {
+	var appsHTML strings.Builder
+	for i, app := range apps {
+		appsHTML.WriteString(appDailySummarySection(app, i == 0))
+	}
+
+	return fmt.Sprintf(`
+            <!-- Date Header -->
+            <div style="text-align: center; margin-bottom: 32px;">
+                <h2 style="margin: 0; font-size: 18px; color: #2d3748; font-family: 'Josefin Sans', sans-serif; font-weight: 600;">
+                    Summary for %s
+                </h2>
+                <p style="margin: 8px 0 0 0; font-size: 12px; color: #718096;">
+                    Comparisons are between %s (12:00 AM UTC to 11:59 PM UTC) and %s (12:00 AM UTC to 11:59 PM UTC).
+                </p>
+            </div>%s`, formattedDate, formattedDateShort, comparisonDateShort, appsHTML.String())
+}
+
+func appDailySummarySection(app AppDailySummary, first bool) string {
+	var metricsHTML strings.Builder
+	for _, metric := range app.Metrics {
 		icon := ""
 		if metric.HasError {
 			icon = `<div style="position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; background-color: #e7000b; border-radius: 50%;">
@@ -293,10 +312,10 @@ func DailySummaryContent(appName string, date time.Time, metrics []MetricData) s
 					</div>`
 		}
 
-		metricsHTML += fmt.Sprintf(`
+		fmt.Fprintf(&metricsHTML, `
 			<div style="background-color: #ffffff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; position: relative; min-height: 80px;">
 				%s
-				<div style="font-size: 28px; font-weight: 700; color: #1a202c; margin-bottom: 8px; font-family: 'Space Mono', monospace;">
+				<div style="font-size: 22px; font-weight: 700; color: #1a202c; margin-bottom: 8px; font-family: 'Space Mono', monospace;">
 					%s
 				</div>
 				<div style="font-size: 14px; color: #4a5568; font-weight: 500;">
@@ -308,19 +327,23 @@ func DailySummaryContent(appName string, date time.Time, metrics []MetricData) s
 			</div>`, icon, metric.Value, metric.Label, metric.Subtitle)
 	}
 
+	// The date header above the app sections already ends with a 32px bottom
+	// margin, so the first app heading uses a smaller top margin to avoid a
+	// large blank band while later headings keep the wider separation.
+	topMargin := "64px"
+	if first {
+		topMargin = "48px"
+	}
+
 	return fmt.Sprintf(`
-            <!-- Date Header -->
-            <div style="text-align: center; margin-bottom: 32px;">
-                <h2 style="margin: 0; font-size: 18px; color: #2d3748; font-family: 'Josefin Sans', sans-serif; font-weight: 600;">
-                    Summary for %s
-                </h2>
-                <p style="margin: 8px 0 0 0; font-size: 12px; color: #718096;">
-                    Comparisons are between %s (12:00 AM UTC to 11:59 PM UTC) and %s (12:00 AM UTC to 11:59 PM UTC).
-                </p>
-            </div>
+
+            <!-- App Name -->
+            <h3 style="margin: %s 0 16px 0; font-size: 24px; color: #1a202c; font-family: 'Josefin Sans', sans-serif; font-weight: 600; text-align: left;">
+                %s
+            </h3>
 
             <!-- Metrics Grid -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 32px;">
                 %s
-            </div>`, formattedDate, formattedDateShort, comparisonDateShort, metricsHTML)
+            </div>`, topMargin, escape(app.AppName), metricsHTML.String())
 }

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"backend/alerts/server"
+	"backend/alerts/slack"
 	"backend/libs/autumn"
 	autumntest "backend/libs/autumn/testhelpers"
 	"backend/libs/email"
@@ -979,7 +980,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedApp(ctx, t, appID, teamID, "A", 30)
 
 		app := makeApp(teamID, appID)
-		_, err := getDailySummaryMetrics(ctx, time.Now().UTC(), &app)
+		_, _, err := getDailySummaryMetrics(ctx, time.Now().UTC(), &app)
 		if err == nil {
 			t.Error("expected error when no data, got nil")
 		}
@@ -1001,7 +1002,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 5, 0, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1033,7 +1034,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 5, 0, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1058,7 +1059,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, yesterday, 5, 0, 0) // yesterday: 5
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1083,7 +1084,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, yesterday, 5, 0, 0) // yesterday: 5
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1108,7 +1109,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, yesterday, 5, 0, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1133,7 +1134,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 2500, 0, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1161,7 +1162,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 10, 0, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1192,7 +1193,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 9, 1, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1223,7 +1224,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 8, 2, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1252,7 +1253,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 9, 1, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1279,7 +1280,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 4, 0, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1306,7 +1307,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 2, 2, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1332,7 +1333,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 9, 1, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1359,7 +1360,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 2, 2, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1389,7 +1390,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 398, 2, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1419,7 +1420,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 10, 0, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1444,7 +1445,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 10, 0, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1475,7 +1476,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 90, 0, 10)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1506,7 +1507,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 8, 0, 2)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1539,7 +1540,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 4, 0, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1566,7 +1567,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 2, 0, 2)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1593,7 +1594,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 2, 0, 2)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1617,7 +1618,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 9, 0, 1)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1643,7 +1644,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 9, 0, 1)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1695,7 +1696,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 48, 1, 1)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1726,7 +1727,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 96, 2, 2)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1756,7 +1757,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 10, 10, 10)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1786,7 +1787,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 96, 2, 2)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1816,7 +1817,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 90, 5, 5)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1845,7 +1846,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 5, 0, 0) // generic only, no launch events
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1877,7 +1878,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedAppMetrics(ctx, t, teamID, appID, now, 5, 0, 0)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1905,7 +1906,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedLaunchEvent(ctx, t, teamID, appID, "hot_launch", 100, now)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1936,7 +1937,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedLaunchEvent(ctx, t, teamID, appID, "hot_launch", 100, now)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1964,7 +1965,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedLaunchEvent(ctx, t, teamID, appID, "cold_launch", 500, now)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1990,7 +1991,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedLaunchEvent(ctx, t, teamID, appID, "cold_launch", 1000, now)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -2016,7 +2017,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedLaunchEvent(ctx, t, teamID, appID, "cold_launch", 500, now)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -2041,7 +2042,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		th.SeedLaunchEvent(ctx, t, teamID, appID, "hot_launch", 5000, now)
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -2075,7 +2076,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		}
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -2114,7 +2115,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		// No bug reports seeded
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -2145,7 +2146,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		}
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -2179,7 +2180,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		}
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -2213,7 +2214,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		}
 
 		app := makeApp(teamID, appID)
-		metrics, err := getDailySummaryMetrics(ctx, now, &app)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -2321,7 +2322,7 @@ func TestCreateDailySummary(t *testing.T) {
 		}
 	})
 
-	t.Run("multiple apps each get their own daily summary email", func(t *testing.T) {
+	t.Run("multiple apps are combined into one team summary email", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
 		defer cleanupAll(ctx, t)
@@ -2343,8 +2344,79 @@ func TestCreateDailySummary(t *testing.T) {
 
 		CreateDailySummary(ctx)
 
-		if got := countPendingByChannel(ctx, t, "email"); got != 2 {
-			t.Errorf("want 2 daily summary emails (one per app), got %d", got)
+		if got := countPendingByChannel(ctx, t, "email"); got != 1 {
+			t.Fatalf("want 1 team daily summary email covering both apps, got %d", got)
+		}
+
+		var data []byte
+		if err := th.PgPool.QueryRow(ctx,
+			"SELECT data FROM pending_alert_messages WHERE channel = 'email'").Scan(&data); err != nil {
+			t.Fatalf("read queued email: %v", err)
+		}
+		var info email.EmailInfo
+		if err := json.Unmarshal(data, &info); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if info.Subject != "Multi App Team Daily Summary" {
+			t.Errorf("Subject = %q, want %q", info.Subject, "Multi App Team Daily Summary")
+		}
+		for _, appName := range []string{"App One", "App Two"} {
+			if !strings.Contains(info.Body, appName) {
+				t.Errorf("email body does not mention %q", appName)
+			}
+		}
+	})
+
+	t.Run("apps without data are left out and busier apps come first", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		busyApp := uuid.New().String()
+		quietApp := uuid.New().String()
+		emptyApp := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Ordered Team")
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		// Seeded so alphabetical order disagrees with session order: the app
+		// named last has the most sessions and must still come first.
+		th.SeedApp(ctx, t, busyApp, teamID, "Zebra App", 30)
+		th.SeedApp(ctx, t, quietApp, teamID, "Alpha App", 30)
+		th.SeedApp(ctx, t, emptyApp, teamID, "Empty App", 30)
+
+		summaryDate := time.Now().UTC().AddDate(0, 0, -1)
+		th.SeedGenericEvents(ctx, t, teamID, busyApp, 8, summaryDate)
+		th.SeedGenericEvents(ctx, t, teamID, quietApp, 3, summaryDate)
+
+		CreateDailySummary(ctx)
+
+		if got := countPendingByChannel(ctx, t, "email"); got != 1 {
+			t.Fatalf("want 1 team daily summary email, got %d", got)
+		}
+
+		var data []byte
+		if err := th.PgPool.QueryRow(ctx,
+			"SELECT data FROM pending_alert_messages WHERE channel = 'email'").Scan(&data); err != nil {
+			t.Fatalf("read queued email: %v", err)
+		}
+		var info email.EmailInfo
+		if err := json.Unmarshal(data, &info); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+
+		if strings.Contains(info.Body, "Empty App") {
+			t.Error("email body mentions the app with no data")
+		}
+		zebraAt := strings.Index(info.Body, "Zebra App")
+		alphaAt := strings.Index(info.Body, "Alpha App")
+		if zebraAt < 0 || alphaAt < 0 {
+			t.Fatalf("email body is missing an app section: zebra=%d alpha=%d", zebraAt, alphaAt)
+		}
+		if zebraAt > alphaAt {
+			t.Error("app with more sessions should appear before the quieter app")
 		}
 	})
 
@@ -2432,10 +2504,10 @@ func TestCreateDailySummary(t *testing.T) {
 		err := th.PgPool.QueryRow(ctx, `
 			SELECT data->>'body'
 			FROM pending_alert_messages
-			WHERE team_id = $1::uuid AND app_id = $2::uuid AND channel = 'email'
+			WHERE team_id = $1::uuid AND app_id IS NULL AND channel = 'email'
 			ORDER BY created_at DESC
 			LIMIT 1
-		`, teamID, appID).Scan(&emailBody)
+		`, teamID).Scan(&emailBody)
 		if err != nil {
 			t.Fatalf("query daily summary email body: %v", err)
 		}
@@ -2447,10 +2519,10 @@ func TestCreateDailySummary(t *testing.T) {
 		err = th.PgPool.QueryRow(ctx, `
 			SELECT data::text
 			FROM pending_alert_messages
-			WHERE team_id = $1::uuid AND app_id = $2::uuid AND channel = 'slack'
+			WHERE team_id = $1::uuid AND app_id IS NULL AND channel = 'slack'
 			ORDER BY created_at DESC
 			LIMIT 1
-		`, teamID, appID).Scan(&slackRaw)
+		`, teamID).Scan(&slackRaw)
 		if err != nil {
 			t.Fatalf("query daily summary slack payload: %v", err)
 		}
@@ -2499,10 +2571,10 @@ func TestCreateDailySummary(t *testing.T) {
 		err := th.PgPool.QueryRow(ctx, `
 			SELECT data->>'body'
 			FROM pending_alert_messages
-			WHERE team_id = $1::uuid AND app_id = $2::uuid AND channel = 'email'
+			WHERE team_id = $1::uuid AND app_id IS NULL AND channel = 'email'
 			ORDER BY created_at DESC
 			LIMIT 1
-		`, teamID, appID).Scan(&emailBody)
+		`, teamID).Scan(&emailBody)
 		if err != nil {
 			t.Fatalf("query daily summary email body: %v", err)
 		}
@@ -2514,10 +2586,10 @@ func TestCreateDailySummary(t *testing.T) {
 		err = th.PgPool.QueryRow(ctx, `
 			SELECT data::text
 			FROM pending_alert_messages
-			WHERE team_id = $1::uuid AND app_id = $2::uuid AND channel = 'slack'
+			WHERE team_id = $1::uuid AND app_id IS NULL AND channel = 'slack'
 			ORDER BY created_at DESC
 			LIMIT 1
-		`, teamID, appID).Scan(&slackRaw)
+		`, teamID).Scan(&slackRaw)
 		if err != nil {
 			t.Fatalf("query daily summary slack payload: %v", err)
 		}
@@ -2713,6 +2785,258 @@ func TestCreateDailySummary(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
+// Tests — team daily summary Slack formatting and app ordering
+// --------------------------------------------------------------------------
+
+// slackBlockType reads the type string out of any of the concrete Slack block
+// structs, which share no interface beyond the empty one.
+func slackBlockType(t *testing.T, block slack.SlackBlock) string {
+	t.Helper()
+	switch b := block.(type) {
+	case slack.SlackHeaderBlock:
+		return b.Type
+	case slack.SlackSectionBlock:
+		return b.Type
+	case slack.SlackDividerBlock:
+		return b.Type
+	case slack.SlackContextBlock:
+		return b.Type
+	case slack.SlackActionsBlock:
+		return b.Type
+	default:
+		t.Fatalf("unexpected block type %T", block)
+		return ""
+	}
+}
+
+// sectionText returns the mrkdwn text of a section block, failing the test if
+// the block is not a section or carries no text.
+func sectionText(t *testing.T, block slack.SlackBlock) string {
+	t.Helper()
+	section, ok := block.(slack.SlackSectionBlock)
+	if !ok {
+		t.Fatalf("block is %T, want a section", block)
+	}
+	if section.Text == nil {
+		t.Fatal("section block has no text")
+	}
+	return section.Text.Text
+}
+
+// summaryApps builds n app summaries, each with one healthy metric, named so
+// their order in the message is easy to assert on.
+func summaryApps(n int) []email.AppDailySummary {
+	apps := make([]email.AppDailySummary, 0, n)
+	for i := range n {
+		apps = append(apps, email.AppDailySummary{
+			AppName: fmt.Sprintf("App %03d", i+1),
+			Metrics: []email.MetricData{{Label: "Sessions", Value: "10", Subtitle: "No previous day data"}},
+		})
+	}
+	return apps
+}
+
+func TestFormatTeamDailySummarySlackMessage(t *testing.T) {
+	date := time.Date(2026, 8, 18, 0, 0, 0, 0, time.UTC)
+
+	t.Run("multi-app input produces the expected block sequence", func(t *testing.T) {
+		apps := []email.AppDailySummary{
+			{
+				AppName: "Checkout",
+				Metrics: []email.MetricData{
+					{Label: "Sessions", Value: "1.2K", Subtitle: "Up from 1K yesterday"},
+					{Label: "Crash free sessions", Value: "97%", Subtitle: "Down from 99% yesterday", HasWarning: true},
+					{Label: "ANR free sessions", Value: "80%", Subtitle: "Down from 95% yesterday", HasWarning: true, HasError: true},
+				},
+			},
+			{
+				AppName: "Storefront",
+				Metrics: []email.MetricData{
+					{Label: "Sessions", Value: "300", Subtitle: "No change from yesterday"},
+				},
+			},
+		}
+
+		msg := formatTeamDailySummarySlackMessage("Acme", "https://test.measure.sh/team-1/overview", date, apps)
+
+		wantTypes := []string{
+			"header", "section", "divider",
+			"section", "section", "divider",
+			"section", "section", "divider",
+			"actions",
+		}
+		if len(msg.Blocks) != len(wantTypes) {
+			t.Fatalf("got %d blocks, want %d", len(msg.Blocks), len(wantTypes))
+		}
+		for i, want := range wantTypes {
+			if got := slackBlockType(t, msg.Blocks[i]); got != want {
+				t.Errorf("block %d type = %q, want %q", i, got, want)
+			}
+		}
+
+		header := msg.Blocks[0].(slack.SlackHeaderBlock)
+		if header.Text.Text != "Acme — Daily Summary" {
+			t.Errorf("header = %q, want %q", header.Text.Text, "Acme — Daily Summary")
+		}
+		if got := sectionText(t, msg.Blocks[1]); got != "*August 18, 2026*  _(last 24 hours)_" {
+			t.Errorf("date section = %q", got)
+		}
+
+		if got := sectionText(t, msg.Blocks[3]); got != "*Checkout*" {
+			t.Errorf("first app name section = %q, want %q", got, "*Checkout*")
+		}
+		checkoutLines := strings.Split(sectionText(t, msg.Blocks[4]), "\n")
+		if len(checkoutLines) != 3 {
+			t.Fatalf("got %d metric lines for Checkout, want 3", len(checkoutLines))
+		}
+		if checkoutLines[0] != "🟢 *Sessions*  1.2K · _Up from 1K yesterday_" {
+			t.Errorf("healthy metric line = %q", checkoutLines[0])
+		}
+		if !strings.HasPrefix(checkoutLines[1], "🟡 ") {
+			t.Errorf("warning metric line = %q, want a 🟡 prefix", checkoutLines[1])
+		}
+		if !strings.HasPrefix(checkoutLines[2], "🔴 ") {
+			t.Errorf("error metric line = %q, want a 🔴 prefix (error outranks warning)", checkoutLines[2])
+		}
+
+		if got := sectionText(t, msg.Blocks[6]); got != "*Storefront*" {
+			t.Errorf("second app name section = %q, want %q", got, "*Storefront*")
+		}
+
+		actions := msg.Blocks[len(msg.Blocks)-1].(slack.SlackActionsBlock)
+		if len(actions.Elements) != 1 || actions.Elements[0].URL != "https://test.measure.sh/team-1/overview" {
+			t.Errorf("actions block = %+v, want one button pointing at the team overview", actions)
+		}
+	})
+
+	t.Run("app names with mrkdwn control characters are escaped", func(t *testing.T) {
+		apps := []email.AppDailySummary{
+			{
+				AppName: "<Foo & Bar>",
+				Metrics: []email.MetricData{{Label: "Sessions", Value: "10", Subtitle: "No previous day data"}},
+			},
+		}
+
+		msg := formatTeamDailySummarySlackMessage("Team <A&B>", "https://test.measure.sh/team-1/overview", date, apps)
+
+		if got := sectionText(t, msg.Blocks[3]); got != "*&lt;Foo &amp; Bar&gt;*" {
+			t.Errorf("app name section = %q, want %q", got, "*&lt;Foo &amp; Bar&gt;*")
+		}
+		// The header is plain_text, which Slack renders verbatim, so the team
+		// name must stay unescaped there.
+		header := msg.Blocks[0].(slack.SlackHeaderBlock)
+		if header.Text.Text != "Team <A&B> — Daily Summary" {
+			t.Errorf("header = %q, want the unescaped team name", header.Text.Text)
+		}
+	})
+
+	t.Run("a team whose apps all fit gets no omission context block", func(t *testing.T) {
+		msg := formatTeamDailySummarySlackMessage("Acme", "https://test.measure.sh/team-1/overview", date, summaryApps(15))
+
+		// 3 leading blocks + 15 apps * 3 blocks + 1 actions block.
+		if len(msg.Blocks) != 49 {
+			t.Errorf("got %d blocks, want 49", len(msg.Blocks))
+		}
+		for i, block := range msg.Blocks {
+			if slackBlockType(t, block) == "context" {
+				t.Errorf("block %d is a context block, want none when every app fits", i)
+			}
+		}
+	})
+
+	t.Run("more apps than fit are capped at 50 blocks with an omission context block", func(t *testing.T) {
+		msg := formatTeamDailySummarySlackMessage("Acme", "https://test.measure.sh/team-1/overview", date, summaryApps(20))
+
+		if len(msg.Blocks) > 50 {
+			t.Fatalf("got %d blocks, slack rejects more than 50", len(msg.Blocks))
+		}
+		if len(msg.Blocks) != 50 {
+			t.Errorf("got %d blocks, want exactly 50 (15 apps shown plus overhead)", len(msg.Blocks))
+		}
+
+		var joined strings.Builder
+		for _, block := range msg.Blocks {
+			if section, ok := block.(slack.SlackSectionBlock); ok && section.Text != nil {
+				joined.WriteString(section.Text.Text)
+				joined.WriteString("\n")
+			}
+		}
+		if !strings.Contains(joined.String(), "*App 015*") {
+			t.Error("fifteenth app should still be shown")
+		}
+		if strings.Contains(joined.String(), "*App 016*") {
+			t.Error("sixteenth app should be dropped")
+		}
+
+		contextBlock, ok := msg.Blocks[len(msg.Blocks)-2].(slack.SlackContextBlock)
+		if !ok {
+			t.Fatalf("second-to-last block is %T, want the omission context block", msg.Blocks[len(msg.Blocks)-2])
+		}
+		if len(contextBlock.Elements) != 1 || contextBlock.Elements[0].Text != "+5 more apps not shown" {
+			t.Errorf("context block = %+v, want a single \"+5 more apps not shown\" line", contextBlock)
+		}
+		if got := slackBlockType(t, msg.Blocks[len(msg.Blocks)-1]); got != "actions" {
+			t.Errorf("last block type = %q, want actions after the context block", got)
+		}
+	})
+
+	t.Run("a team name over Slack's header limit is truncated with an ellipsis", func(t *testing.T) {
+		longName := strings.Repeat("x", 256)
+		apps := []email.AppDailySummary{
+			{AppName: "Checkout", Metrics: []email.MetricData{{Label: "Sessions", Value: "1", Subtitle: "No previous day data"}}},
+		}
+
+		msg := formatTeamDailySummarySlackMessage(longName, "https://test.measure.sh/team-1/overview", date, apps)
+
+		header := msg.Blocks[0].(slack.SlackHeaderBlock)
+		headerRunes := []rune(header.Text.Text)
+		if len(headerRunes) != slackHeaderTextLimit {
+			t.Errorf("header length = %d runes, want %d", len(headerRunes), slackHeaderTextLimit)
+		}
+		if headerRunes[len(headerRunes)-1] != '…' {
+			t.Errorf("header = %q, want an ellipsis at the end", header.Text.Text)
+		}
+		if !strings.HasPrefix(header.Text.Text, "xxx") {
+			t.Errorf("header = %q, want it to start with the team name", header.Text.Text)
+		}
+	})
+
+	t.Run("a team name within Slack's header limit is kept whole", func(t *testing.T) {
+		apps := []email.AppDailySummary{
+			{AppName: "Checkout", Metrics: []email.MetricData{{Label: "Sessions", Value: "1", Subtitle: "No previous day data"}}},
+		}
+
+		msg := formatTeamDailySummarySlackMessage("Acme", "https://test.measure.sh/team-1/overview", date, apps)
+
+		header := msg.Blocks[0].(slack.SlackHeaderBlock)
+		if header.Text.Text != "Acme — Daily Summary" {
+			t.Errorf("header = %q, want %q", header.Text.Text, "Acme — Daily Summary")
+		}
+	})
+}
+
+func TestSortedAppSummaries(t *testing.T) {
+	entries := []appSummaryWithSessions{
+		{Summary: email.AppDailySummary{AppName: "Bravo"}, SessionsToday: 5},
+		{Summary: email.AppDailySummary{AppName: "Alpha"}, SessionsToday: 5},
+		{Summary: email.AppDailySummary{AppName: "Zulu"}, SessionsToday: 50},
+		{Summary: email.AppDailySummary{AppName: "Quiet"}, SessionsToday: 0},
+	}
+
+	got := sortedAppSummaries(entries)
+
+	want := []string{"Zulu", "Alpha", "Bravo", "Quiet"}
+	if len(got) != len(want) {
+		t.Fatalf("got %d summaries, want %d", len(got), len(want))
+	}
+	for i, name := range want {
+		if got[i].AppName != name {
+			t.Errorf("position %d = %q, want %q (sessions descending, name ascending on ties)", i, got[i].AppName, name)
+		}
+	}
+}
+
+// --------------------------------------------------------------------------
 // Tests — internal helper coverage
 // --------------------------------------------------------------------------
 
@@ -2788,25 +3112,23 @@ func TestScheduleInternalHelpers(t *testing.T) {
 		}
 	})
 
-	t.Run("scheduleDailySummaryEmailForteamMembers sets daily_summary AlertType", func(t *testing.T) {
+	t.Run("scheduleDailySummaryEmailForTeamMembers sets daily_summary AlertType and passes the subject through", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
-		appID := uuid.New().String()
 		userID := uuid.New().String()
 
 		th.SeedTeam(ctx, t, teamID, "Test Team")
 		th.SeedUser(ctx, t, userID, "owner@example.com")
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
-		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
 
-		scheduleDailySummaryEmailForteamMembers(ctx, uuid.MustParse(teamID), uuid.MustParse(appID), "<p>Summary</p>", "Test App")
+		scheduleDailySummaryEmailForTeamMembers(ctx, uuid.MustParse(teamID), "Test Team Daily Summary", "<p>Summary</p>")
 
 		var data []byte
 		err := th.PgPool.QueryRow(ctx,
-			"SELECT data FROM pending_alert_messages WHERE channel = 'email'").Scan(&data)
+			"SELECT data FROM pending_alert_messages WHERE channel = 'email' AND app_id IS NULL").Scan(&data)
 		if err != nil {
 			t.Fatalf("read queued email: %v", err)
 		}
@@ -2817,6 +3139,9 @@ func TestScheduleInternalHelpers(t *testing.T) {
 		}
 		if info.AlertType != "daily_summary" {
 			t.Errorf("AlertType = %q, want %q", info.AlertType, "daily_summary")
+		}
+		if info.Subject != "Test Team Daily Summary" {
+			t.Errorf("Subject = %q, want %q", info.Subject, "Test Team Daily Summary")
 		}
 	})
 }

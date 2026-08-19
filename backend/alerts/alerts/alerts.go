@@ -1,12 +1,15 @@
 package alerts
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"math"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"backend/alerts/server"
@@ -23,12 +26,14 @@ import (
 
 type Team struct {
 	ID               uuid.UUID
+	Name             string
 	AutumnCustomerID *string
 }
 
 type App struct {
 	ID     uuid.UUID
 	TeamID uuid.UUID
+	Name   string
 }
 
 type Alert struct {
@@ -179,12 +184,6 @@ func CreateBugReportAlerts(ctx context.Context) {
 				continue
 			}
 
-			appName, err := getAppNameByID(ctx, app.ID)
-			if err != nil {
-				fmt.Printf("Error fetching app name for app %v: %v\n", app.ID, err)
-				continue
-			}
-
 			for bugReportRows.Next() {
 				var bugReportId string
 				var description string
@@ -248,8 +247,8 @@ func CreateBugReportAlerts(ctx context.Context) {
 					Type:     string(AlertTypeBugReport),
 				}
 
-				scheduleEmailAlertsForteamMembers(ctx, alert, alertMsg, alertUrl, appName)
-				scheduleSlackAlertsForTeamChannels(ctx, alert, alertMsg, alertUrl, appName)
+				scheduleEmailAlertsForteamMembers(ctx, alert, alertMsg, alertUrl, app.Name)
+				scheduleSlackAlertsForTeamChannels(ctx, alert, alertMsg, alertUrl, app.Name)
 			}
 
 			if bugReportRows != nil {
@@ -278,31 +277,61 @@ func CreateDailySummary(ctx context.Context) {
 			continue
 		}
 
+		entries := []appSummaryWithSessions{}
 		for _, app := range apps {
-			appName, err := getAppNameByID(ctx, app.ID)
-			if err != nil {
-				fmt.Printf("Error fetching app name for app %v: %v\n", app.ID, err)
-				continue
-			}
-
-			metrics, err := getDailySummaryMetrics(ctx, date, &app)
+			metrics, sessionsToday, err := getDailySummaryMetrics(ctx, date, &app)
 			if err != nil {
 				fmt.Printf("Error fetching daily summary data for app %v: %v\n", app.ID, err)
 				continue
 			}
 
-			_, dailySummaryEmailBody := email.DailySummaryEmail(appName, date, metrics, server.Server.Config.SiteOrigin, team.ID.String(), app.ID.String())
-			scheduleDailySummaryEmailForteamMembers(ctx, team.ID, app.ID, dailySummaryEmailBody, appName)
-			dashboardURL := fmt.Sprintf("%s/%s/overview?a=%s", server.Server.Config.SiteOrigin, team.ID, app.ID)
-			scheduleDailySummarySlackMessageForTeamChannels(ctx, team.ID, app.ID, dashboardURL, appName, date, metrics)
+			entries = append(entries, appSummaryWithSessions{
+				Summary:       email.AppDailySummary{AppName: app.Name, Metrics: metrics},
+				SessionsToday: sessionsToday,
+			})
 		}
+
+		// An app whose metrics query returns no rows is left out. Teams with all apps in this
+		// state don't get email or slack message
+		if len(entries) == 0 {
+			continue
+		}
+
+		appSummaries := sortedAppSummaries(entries)
+
+		subject, body := email.TeamDailySummaryEmail(team.Name, date, appSummaries, server.Server.Config.SiteOrigin, team.ID.String())
+		scheduleDailySummaryEmailForTeamMembers(ctx, team.ID, subject, body)
+
+		dashboardURL := fmt.Sprintf("%s/%s/overview", server.Server.Config.SiteOrigin, team.ID)
+		scheduleDailySummarySlackMessageForTeamChannels(ctx, team.ID, team.Name, dashboardURL, date, appSummaries)
 	}
+}
+
+type appSummaryWithSessions struct {
+	Summary       email.AppDailySummary
+	SessionsToday uint64
+}
+
+func sortedAppSummaries(entries []appSummaryWithSessions) []email.AppDailySummary {
+	slices.SortStableFunc(entries, func(a, b appSummaryWithSessions) int {
+		if a.SessionsToday != b.SessionsToday {
+			return cmp.Compare(b.SessionsToday, a.SessionsToday)
+		}
+		return cmp.Compare(a.Summary.AppName, b.Summary.AppName)
+	})
+
+	summaries := make([]email.AppDailySummary, 0, len(entries))
+	for _, entry := range entries {
+		summaries = append(summaries, entry.Summary)
+	}
+	return summaries
 }
 
 func getActiveTeams(ctx context.Context) ([]Team, error) {
 	teams := []Team{}
 	stmt := sqlf.PostgreSQL.
 		Select("id").
+		Select("name").
 		Select("autumn_customer_id").
 		From("teams")
 
@@ -315,7 +344,7 @@ func getActiveTeams(ctx context.Context) ([]Team, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var t Team
-		if err := rows.Scan(&t.ID, &t.AutumnCustomerID); err != nil {
+		if err := rows.Scan(&t.ID, &t.Name, &t.AutumnCustomerID); err != nil {
 			return nil, err
 		}
 		teams = append(teams, t)
@@ -356,6 +385,7 @@ func getAppsForTeam(ctx context.Context, teamID uuid.UUID) ([]App, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("id").
 		Select("team_id").
+		Select("app_name").
 		From("apps").
 		Where("team_id = ?", teamID)
 
@@ -368,28 +398,12 @@ func getAppsForTeam(ctx context.Context, teamID uuid.UUID) ([]App, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var a App
-		if err := rows.Scan(&a.ID, &a.TeamID); err != nil {
+		if err := rows.Scan(&a.ID, &a.TeamID, &a.Name); err != nil {
 			return nil, err
 		}
 		apps = append(apps, a)
 	}
 	return apps, nil
-}
-
-func getAppNameByID(ctx context.Context, appID uuid.UUID) (string, error) {
-	appNameStmt := sqlf.PostgreSQL.
-		Select("app_name").
-		From("apps").
-		Where("id = ?", appID)
-
-	defer appNameStmt.Close()
-
-	var appName string
-	err := server.Server.PgPool.QueryRow(ctx, appNameStmt.String(), appNameStmt.Args()...).Scan(&appName)
-	if err != nil {
-		return "", err
-	}
-	return appName, nil
 }
 
 // formatUnit rounds a measured value to two decimal places, drops trailing
@@ -446,7 +460,7 @@ func launchMetric(label string, todayMs, yesterdayMs float64) email.MetricData {
 	return email.MetricData{Value: value, Label: label, Subtitle: subtitle}
 }
 
-func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]email.MetricData, error) {
+func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) (metrics []email.MetricData, sessionsToday uint64, err error) {
 	appThresholdPrefs, err := getAppThresholdPrefs(ctx, app.ID)
 	if err != nil {
 		fmt.Printf("Error fetching app threshold prefs for app %v, using defaults: %v\n", app.ID, err)
@@ -532,7 +546,7 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]em
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to scan daily summary: %w", err)
+		return nil, 0, fmt.Errorf("failed to scan daily summary: %w", err)
 	}
 
 	// A previous day with no sessions at all is what a missing row from the
@@ -554,7 +568,7 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]em
 		crashFreeSubtitle = comparison(crashFreeValue, formatUnit(crashFreeYesterday, "%"), crashFreeToday > crashFreeYesterday)
 	}
 
-	metrics := []email.MetricData{
+	metrics = []email.MetricData{
 		{
 			Value:    sessionsValue,
 			Label:    "Sessions",
@@ -608,7 +622,7 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]em
 	var todayBugReportCount, yesterdayBugReportCount uint64
 	bugCountRow := server.Server.ChPool.QueryRow(ctx, bugReportCountQuery, date, app.ID)
 	if err := bugCountRow.Scan(&todayBugReportCount, &yesterdayBugReportCount); err != nil {
-		return nil, fmt.Errorf("failed to scan bug report count: %w", err)
+		return nil, 0, fmt.Errorf("failed to scan bug report count: %w", err)
 	}
 	if todayBugReportCount > 0 {
 		bugValue := numeric.FormatKMB(int64(todayBugReportCount))
@@ -623,7 +637,7 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) ([]em
 		})
 	}
 
-	return metrics, nil
+	return metrics, summary.SessionsToday, nil
 }
 
 func getAppThresholdPrefs(ctx context.Context, appID uuid.UUID) (AppThresholdPrefs, error) {
@@ -772,20 +786,20 @@ func scheduleSlackAlertsForTeamChannels(ctx context.Context, alert Alert, messag
 	}
 }
 
-func scheduleDailySummaryEmailForteamMembers(ctx context.Context, teamId uuid.UUID, appId uuid.UUID, emailBody, appName string) {
+func scheduleDailySummaryEmailForTeamMembers(ctx context.Context, teamId uuid.UUID, subject, body string) {
 	pendingEmail := email.EmailInfo{
 		From:        server.Server.Config.TxEmailAddress,
-		Subject:     appName + " Daily Summary",
+		Subject:     subject,
 		ContentType: "text/html",
-		Body:        emailBody,
+		Body:        body,
 		AlertType:   "daily_summary",
 	}
-	if err := email.QueueEmailForTeam(ctx, server.Server.PgPool, nil, teamId, appId, pendingEmail); err != nil {
+	if err := email.QueueEmailForTeam(ctx, server.Server.PgPool, nil, teamId, nil, pendingEmail); err != nil {
 		fmt.Printf("Error queueing daily summary emails for team %v: %v\n", teamId, err)
 	}
 }
 
-func scheduleDailySummarySlackMessageForTeamChannels(ctx context.Context, teamId uuid.UUID, appId uuid.UUID, dashboardURL, appName string, date time.Time, metrics []email.MetricData) {
+func scheduleDailySummarySlackMessageForTeamChannels(ctx context.Context, teamId uuid.UUID, teamName, dashboardURL string, date time.Time, apps []email.AppDailySummary) {
 	teamSlackStmt := `
     SELECT bot_token, channel_ids, is_active
     FROM team_slack
@@ -810,7 +824,7 @@ func scheduleDailySummarySlackMessageForTeamChannels(ctx context.Context, teamId
 		return
 	}
 
-	slackMessage := formatDailySummarySlackMessage(appName, dashboardURL, date, metrics)
+	slackMessage := formatTeamDailySummarySlackMessage(teamName, dashboardURL, date, apps)
 
 	for _, channelId := range channelIds {
 		slackData := slack.SlackMessageData{
@@ -829,7 +843,7 @@ func scheduleDailySummarySlackMessageForTeamChannels(ctx context.Context, teamId
 			InsertInto("pending_alert_messages").
 			Set("id", uuid.New()).
 			Set("team_id", teamId).
-			Set("app_id", appId).
+			Set("app_id", nil).
 			Set("channel", "slack").
 			SetExpr("data", "?::jsonb", string(dataJson)).
 			Set("created_at", time.Now()).
@@ -851,7 +865,7 @@ func formatSlackAlertMessage(title, message, url string) slack.SlackMessage {
 			Type: "header",
 			Text: &slack.SlackText{
 				Type: "plain_text",
-				Text: fmt.Sprintf("🚨 %s", title),
+				Text: truncateSlackHeader(fmt.Sprintf("🚨 %s", title)),
 			},
 		},
 	}
@@ -897,20 +911,64 @@ func formatSlackAlertMessage(title, message, url string) slack.SlackMessage {
 	}
 }
 
-func formatDailySummarySlackMessage(appName, dashboardURL string, date time.Time, metrics []email.MetricData) slack.SlackMessage {
+// escapeSlackMrkdwn replaces &, <, and > with their HTML entities. Slack
+// parses these three characters as control characters in mrkdwn text (< and >
+// delimit links and mentions, & starts an entity), so an app named
+// "<Foo & Bar>" would otherwise render wrongly or drop text.
+func escapeSlackMrkdwn(s string) string {
+	s = strings.ReplaceAll(s, "&", "&amp;")
+	s = strings.ReplaceAll(s, "<", "&lt;")
+	s = strings.ReplaceAll(s, ">", "&gt;")
+	return s
+}
+
+// slackHeaderTextLimit is the maximum number of characters Slack accepts in
+// a header block's text.
+const slackHeaderTextLimit = 150
+
+func truncateSlackHeader(text string) string {
+	runes := []rune(text)
+	if len(runes) <= slackHeaderTextLimit {
+		return text
+	}
+	return string(runes[:slackHeaderTextLimit-1]) + "…"
+}
+
+// slackBlockLimit is the maximum number of blocks Slack accepts in a single
+// chat.postMessage call; longer messages are rejected outright.
+const slackBlockLimit = 50
+
+// slackBlocksPerApp is the number of blocks each app adds to the team daily
+// summary message: a section naming the app, a section with its metric lines,
+// and a trailing divider.
+const slackBlocksPerApp = 3
+
+// formatTeamDailySummarySlackMessage builds one Slack message summarizing the
+// day's metrics for every app in apps, in the given order. When the apps do
+// not all fit under Slack's block limit, the trailing apps are dropped and a
+// context line reports how many were left out.
+func formatTeamDailySummarySlackMessage(teamName, dashboardURL string, date time.Time, apps []email.AppDailySummary) slack.SlackMessage {
 	formattedDate := date.Format("January 2, 2006")
 
+	// The header, date section, and leading divider open the message and the
+	// actions block closes it, so four blocks are always present. When apps
+	// are dropped, the context line reporting the omission takes a fifth,
+	// leaving less room for app blocks.
+	shownApps := len(apps)
+	if shownApps > (slackBlockLimit-4)/slackBlocksPerApp {
+		shownApps = (slackBlockLimit - 5) / slackBlocksPerApp
+	}
+	omitted := len(apps) - shownApps
+
 	blocks := []slack.SlackBlock{
-		// Title
 		slack.SlackHeaderBlock{
 			Type: "header",
 			Text: &slack.SlackText{
 				Type: "plain_text",
-				Text: fmt.Sprintf("%s — Daily Summary", appName),
+				Text: truncateSlackHeader(fmt.Sprintf("%s — Daily Summary", teamName)),
 			},
 		},
 
-		// Date subtitle
 		slack.SlackSectionBlock{
 			Type: "section",
 			Text: &slack.SlackText{
@@ -922,42 +980,50 @@ func formatDailySummarySlackMessage(appName, dashboardURL string, date time.Time
 		slack.SlackDividerBlock{Type: "divider"},
 	}
 
-	for _, metric := range metrics {
-		status := "🟢"
-		if metric.HasError {
-			status = "🔴"
-		} else if metric.HasWarning {
-			status = "🟡"
+	for _, app := range apps[:shownApps] {
+		lines := make([]string, 0, len(app.Metrics))
+		for _, metric := range app.Metrics {
+			status := "🟢"
+			if metric.HasError {
+				status = "🔴"
+			} else if metric.HasWarning {
+				status = "🟡"
+			}
+			lines = append(lines, fmt.Sprintf("%s *%s*  %s · _%s_", status, metric.Label, metric.Value, metric.Subtitle))
 		}
 
 		blocks = append(blocks,
 			slack.SlackSectionBlock{
 				Type: "section",
-				Fields: []slack.SlackText{
-					{
-						Type: "mrkdwn",
-						Text: fmt.Sprintf("*%s*", metric.Label),
-					},
-					{
-						Type: "mrkdwn",
-						Text: fmt.Sprintf("%s *%s*\n_%s_", status, metric.Value, metric.Subtitle),
-					},
+				Text: &slack.SlackText{
+					Type: "mrkdwn",
+					Text: fmt.Sprintf("*%s*", escapeSlackMrkdwn(app.AppName)),
 				},
 			},
-			// Spacer between rows
-			slack.SlackContextBlock{
-				Type: "context",
-				Elements: []slack.SlackText{
-					{Type: "mrkdwn", Text: " "},
+			slack.SlackSectionBlock{
+				Type: "section",
+				Text: &slack.SlackText{
+					Type: "mrkdwn",
+					Text: strings.Join(lines, "\n"),
 				},
 			},
+			slack.SlackDividerBlock{Type: "divider"},
 		)
 	}
 
-	// Divider before button
-	blocks = append(blocks, slack.SlackDividerBlock{Type: "divider"})
+	if omitted > 0 {
+		noun := "apps"
+		if omitted == 1 {
+			noun = "app"
+		}
+		blocks = append(blocks, slack.SlackContextBlock{
+			Type: "context",
+			Elements: []slack.SlackText{
+				{Type: "mrkdwn", Text: fmt.Sprintf("+%d more %s not shown", omitted, noun)},
+			},
+		})
+	}
 
-	// Button
 	blocks = append(blocks, slack.SlackActionsBlock{
 		Type: "actions",
 		Elements: []slack.SlackElement{
@@ -1076,12 +1142,6 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 				continue
 			}
 
-			appName, err := getAppNameByID(ctx, app.ID)
-			if err != nil {
-				fmt.Printf("Error fetching app name for app %v: %v\n", app.ID, err)
-				continue
-			}
-
 			alert := Alert{
 				ID:       alertID,
 				TeamID:   team.ID,
@@ -1090,8 +1150,8 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 				Type:     string(AlertTypeCrashSpike),
 			}
 
-			scheduleEmailAlertsForteamMembers(ctx, alert, alertMsg, alertUrl, appName)
-			scheduleSlackAlertsForTeamChannels(ctx, alert, alertMsg, alertUrl, appName)
+			scheduleEmailAlertsForteamMembers(ctx, alert, alertMsg, alertUrl, app.Name)
+			scheduleSlackAlertsForTeamChannels(ctx, alert, alertMsg, alertUrl, app.Name)
 		}
 	}
 
@@ -1196,12 +1256,6 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 				continue
 			}
 
-			appName, err := getAppNameByID(ctx, app.ID)
-			if err != nil {
-				fmt.Printf("Error fetching app name for app %v: %v\n", app.ID, err)
-				continue
-			}
-
 			alert := Alert{
 				ID:       alertID,
 				TeamID:   team.ID,
@@ -1210,8 +1264,8 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 				Type:     string(AlertTypeAnrSpike),
 			}
 
-			scheduleEmailAlertsForteamMembers(ctx, alert, alertMsg, alertUrl, appName)
-			scheduleSlackAlertsForTeamChannels(ctx, alert, alertMsg, alertUrl, appName)
+			scheduleEmailAlertsForteamMembers(ctx, alert, alertMsg, alertUrl, app.Name)
+			scheduleSlackAlertsForTeamChannels(ctx, alert, alertMsg, alertUrl, app.Name)
 		}
 	}
 
