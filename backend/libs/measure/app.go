@@ -2614,7 +2614,7 @@ func (a App) GetIssueFreeMetrics(
 		}
 
 		if perceivedCrashFreeUnselected != 0 {
-			crashFree.Delta = numeric.RoundTwoDecimalsFloat64(perceivedCrashFree.CrashFreeSessions / perceivedCrashFreeUnselected)
+			perceivedCrashFree.Delta = numeric.RoundTwoDecimalsFloat64(perceivedCrashFree.CrashFreeSessions / perceivedCrashFreeUnselected)
 		} else {
 			perceivedCrashFree.Delta = 1
 		}

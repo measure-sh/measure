@@ -502,8 +502,7 @@ paths:
         Both `versions` & `version_codes` should be present if any one of them
         is present, and the number of items in each must be the same. `from` &
         `to` values must be ISO 8601 UTC strings in milliseconds precision and
-        default to a last 7 days time range if not supplied. Only the first
-        version in `versions` & `version_codes` is used to query at the moment.
+        default to a last 7 days time range if not supplied.
 
         `nan` can be true in the response if some computed values result in a
         division by zero error.
@@ -520,13 +519,13 @@ paths:
         - name: versions
           in: query
           required: false
-          description: Comma separated version identifiers. Only the first version will be used to query at the moment.
+          description: Comma separated version identifiers.
           schema:
             type: string
         - name: version_codes
           in: query
           required: false
-          description: Comma separated version codes. Only the first version will be used to query at the moment.
+          description: Comma separated version codes.
           schema:
             type: string
       responses:
@@ -807,6 +806,9 @@ paths:
         `builds=1` to return version filters computed from uploaded build
         mappings instead of event data. If `type`, `span` and `builds` are
         omitted, filters are computed from all events.
+
+        `severity` is not honoured on this endpoint and is ignored if passed.
+        Use it on the errorGroups endpoints instead.
       parameters:
         - name: id
           in: path

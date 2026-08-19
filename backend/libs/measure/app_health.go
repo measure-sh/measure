@@ -101,12 +101,11 @@ func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, af *fi
 			"log_comment": lc.MustPut(logcomment.Root, logcomment.Health).String(),
 		}
 		ectx := chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_instances"))
-		const fatalExpr = "(`exception.severity` = 'fatal' OR (`exception.severity` = '' AND `exception.handled` = false))"
 
 		stmt := sqlf.From("events final").
 			Select(groupExpr.BucketExpr+" as datetime_bucket", af.Timezone).
 			Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
-			Select("countIf(type = ? and "+fatalExpr+") as crashes", event.TypeException).
+			Select("countIf(type = ? and "+config.FatalExceptionExpr+") as crashes", event.TypeException).
 			Select("countIf(type = ?) as anrs", event.TypeANR).
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).

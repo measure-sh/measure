@@ -20,3 +20,10 @@ const AppMetricsTable = "app_metrics final"
 // EventsTable is the name of the table for app's
 // raw events.
 const EventsTable = "events"
+
+// FatalExceptionExpr is the SQL predicate for a fatal exception on the events
+// table. Bridges legacy rows written before the severity column, where only
+// the deprecated handled flag expressed fatality. Must be paired with a
+// type = 'exception' gate: non-exception rows carry empty severity &
+// handled=false, so they satisfy it on their own.
+const FatalExceptionExpr = "(`exception.severity` = 'fatal' OR (`exception.severity` = '' AND `exception.handled` = false))"
