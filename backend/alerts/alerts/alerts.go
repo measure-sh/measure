@@ -981,13 +981,13 @@ func formatTeamDailySummarySlackMessage(teamName, dashboardURL string, date time
 	for _, app := range apps[:shownApps] {
 		lines := make([]string, 0, len(app.Metrics))
 		for _, metric := range app.Metrics {
-			status := "🟢"
+			line := fmt.Sprintf("• *%s*  %s · _%s_", metric.Label, metric.Value, metric.Subtitle)
 			if metric.HasError {
-				status = "🔴"
+				line += " `poor`"
 			} else if metric.HasWarning {
-				status = "🟡"
+				line += " `caution`"
 			}
-			lines = append(lines, fmt.Sprintf("%s *%s*  %s · _%s_", status, metric.Label, metric.Value, metric.Subtitle))
+			lines = append(lines, line)
 		}
 
 		blocks = append(blocks,
