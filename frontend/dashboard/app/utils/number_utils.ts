@@ -35,18 +35,40 @@ export function toMegaBytes(bytes: number): number {
 }
 
 export function numberToKMB(value: number): string {
-  const absValue = Math.abs(value);
   const sign = value < 0 ? "-" : "";
+  const abs = Math.abs(value);
+
+  let divisor: number;
+  let suffix: string;
+  if (abs >= 1_000_000_000) {
+    divisor = 1_000_000_000;
+    suffix = "B";
+  } else if (abs >= 1_000_000) {
+    divisor = 1_000_000;
+    suffix = "M";
+  } else if (abs >= 1000) {
+    divisor = 1000;
+    suffix = "K";
+  } else {
+    return value.toString();
+  }
+
+  let rounded = Math.round((abs / divisor) * 100) / 100;
+
+  // Promote after rounding, e.g. 999.999K → 1M.
+  if (rounded >= 1000) {
+    if (suffix === "K") {
+      rounded = rounded / 1000;
+      suffix = "M";
+    } else if (suffix === "M") {
+      rounded = rounded / 1000;
+      suffix = "B";
+    }
+  }
+
   // Round to 2 decimals, then drop trailing zeros (and a dangling dot) so
   // exact values render cleanly: 6.69M, 1.5M, 1M (not 1.00M).
-  const format = (num: number, suffix: string) =>
-    sign + num.toFixed(2).replace(/\.?0+$/, "") + suffix;
-  if (absValue >= 1_000_000_000) {
-    return format(absValue / 1_000_000_000, "B");
-  } else if (absValue >= 1_000_000) {
-    return format(absValue / 1_000_000, "M");
-  } else if (absValue >= 1000) {
-    return format(absValue / 1000, "K");
-  }
-  return value.toString();
+  const text = rounded.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+
+  return sign + text + suffix;
 }
