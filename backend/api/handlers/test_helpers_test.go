@@ -21,7 +21,7 @@ import (
 )
 
 // --------------------------------------------------------------------------
-// TestMain — one-time setup: spin up containers, run migrations, wire handlers.
+// TestMain: one-time setup, spin up containers, run migrations, wire handlers.
 //
 // This mirrors the harness in libs/measure: thin shims over the importable
 // testinfra.TestHelper. It builds api's own handlers.Handlers so api's gin
@@ -174,10 +174,6 @@ func seedIssueEventWithSeverity(
 	th.SeedIssueEventWithSeverity(ctx, t, teamID, appID, fingerprint, severity, ts)
 }
 
-func seedExceptionGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {
-	th.SeedExceptionGroup(ctx, t, teamID, appID, fingerprint)
-}
-
 func seedFatalExceptionGroupWithCustomFlag(ctx context.Context, t *testing.T, teamID, appID, fingerprint string, isCustom bool) {
 	th.SeedFatalExceptionGroupWithCustomFlag(ctx, t, teamID, appID, fingerprint, isCustom)
 }
@@ -188,10 +184,6 @@ func seedNonfatalExceptionGroup(ctx context.Context, t *testing.T, teamID, appID
 
 func seedIssueEventWithCustomFlag(ctx context.Context, t *testing.T, teamID, appID, fingerprint string, handled, isCustom bool, ts time.Time) {
 	th.SeedIssueEventWithCustomFlag(ctx, t, teamID, appID, fingerprint, handled, isCustom, ts)
-}
-
-func seedAnrGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {
-	th.SeedAnrGroup(ctx, t, teamID, appID, fingerprint)
 }
 
 func seedBugReport(ctx context.Context, t *testing.T, teamID, appID, eventID, description string, ts time.Time) {

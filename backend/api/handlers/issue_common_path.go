@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"backend/api/server"
 	"backend/libs/group"
 	"backend/libs/measure"
 
@@ -12,24 +11,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// Deprecated: Use GetErrorGroupCommonPath instead.
-func (h Handlers) GetCrashGroupCommonPath(c *gin.Context) {
-	deps := h.Deps
-	getCrashOrANRGroupCommonPath(c, deps, group.GroupTypeCrash)
-}
-
-// Deprecated: Use GetErrorGroupCommonPath instead.
-func (h Handlers) GetANRGroupCommonPath(c *gin.Context) {
-	deps := h.Deps
-	getCrashOrANRGroupCommonPath(c, deps, group.GroupTypeANR)
-}
-
 func (h Handlers) GetErrorGroupCommonPath(c *gin.Context) {
 	deps := h.Deps
-	getCrashOrANRGroupCommonPath(c, deps, group.GroupTypeError)
-}
-
-func getCrashOrANRGroupCommonPath(c *gin.Context, deps *server.Deps, groupType group.GroupType) {
 	ctx := c.Request.Context()
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -39,19 +22,9 @@ func getCrashOrANRGroupCommonPath(c *gin.Context, deps *server.Deps, groupType g
 		return
 	}
 
-	// Get groupId from the appropriate param based on type
-	var groupId string
-	switch groupType {
-	case group.GroupTypeCrash:
-		groupId = c.Param("crashGroupId")
-	case group.GroupTypeANR:
-		groupId = c.Param("anrGroupId")
-	case group.GroupTypeError:
-		groupId = c.Param("errorGroupId")
-	}
-
+	groupId := c.Param("errorGroupId")
 	if groupId == "" {
-		msg := fmt.Sprintf(`%s group id is invalid or missing`, groupType)
+		msg := `error group id is invalid or missing`
 		fmt.Println(msg)
 		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
@@ -98,7 +71,7 @@ func getCrashOrANRGroupCommonPath(c *gin.Context, deps *server.Deps, groupType g
 
 	app.TeamId = *team.ID
 
-	data, err := measure.GetIssueGroupCommonPath(ctx, deps.RchPool, *team.ID, id, groupType, groupId)
+	data, err := measure.GetIssueGroupCommonPath(ctx, deps.RchPool, *team.ID, id, group.GroupTypeError, groupId)
 	if err != nil {
 		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

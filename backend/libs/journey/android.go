@@ -498,16 +498,14 @@ func NewJourneyAndroid(events []event.EventField, opts *Options) (journey *Journ
 				if journey.Nodes[c].IsActivity || journey.Nodes[c].IsScreenView {
 					addIssue := false
 
-					// only add exception if requested and if the issue exists
-					// because for crash overview page, we want to show journey
-					// with exceptions only.
+					// only add exception if the caller scoped the journey to a
+					// specific exception group & the event belongs to it.
 					if journey.options.ExceptionGroup != nil && journey.options.ExceptionGroup.EventExists(events[i].ID) {
 						addIssue = true
 					}
 
-					// only add ANR if requested and if the ANR exists
-					// because for ANR overview page, we want to show journey
-					// with ANRs only.
+					// only add ANR if the caller scoped the journey to a
+					// specific ANR group & the event belongs to it.
 					if journey.options.ANRGroup != nil && journey.options.ANRGroup.EventExists(events[i].ID) {
 						addIssue = true
 					}

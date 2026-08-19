@@ -215,9 +215,9 @@ func (h *TestHelper) SeedIngestionUsage(ctx context.Context, t *testing.T, teamI
 
 // EventRow describes one or more rows to insert into the events table. It is
 // the single source of truth for seeding events: every higher-level helper
-// (generic, issue, severity, app-metrics, …) builds an EventRow and delegates
-// to SeedEventRows, so any attribute — app version, severity, handled state,
-// session — can be varied without adding new helpers.
+// (generic, issue, severity, app-metrics, ...) builds an EventRow and delegates
+// to SeedEventRows, so any attribute (app version, severity, handled state,
+// session) can be varied without adding new helpers.
 //
 // Zero-value fields fall back to defaults applied by (EventRow).filled:
 //   - Type:       "test"
@@ -271,7 +271,7 @@ func (r EventRow) filled() EventRow {
 }
 
 // SeedEventRows inserts count rows described by row into the events table using
-// a single bulk INSERT … SELECT FROM numbers(count). Each row gets a fresh id
+// a single bulk INSERT ... SELECT FROM numbers(count). Each row gets a fresh id
 // and installation id; the session id is fresh per row unless row.SessionID
 // pins it, so a batch of generic events represents distinct sessions. Issue
 // payload columns are emitted only for exception/anr events.
@@ -403,7 +403,7 @@ func (r SpanRow) filled() SpanRow {
 }
 
 // SeedSpanRows inserts count rows described by row into the spans table using
-// a single bulk INSERT … SELECT FROM numbers(count). Session, trace and span
+// a single bulk INSERT ... SELECT FROM numbers(count). Session, trace and span
 // ids are fresh per row unless the row pins them. The app and os attribute
 // columns are always written so span_metrics_mv materializes rows.
 // Checkpoints are written at the span's start time.
@@ -524,6 +524,26 @@ func (h *TestHelper) SeedIssueEventWithDataInSession(
 		SessionID:      sessionID,
 		Fingerprint:    fingerprint,
 		Handled:        handled,
+		ExceptionsJSON: exceptionsJSON,
+		Timestamp:      ts,
+	})
+}
+
+// SeedIssueEventWithSeverityInSession inserts an exception event with an
+// explicit session_id, severity and exception JSON, mimicking new-SDK
+// ingestion. Handled is always false: no current SDK sends it.
+func (h *TestHelper) SeedIssueEventWithSeverityInSession(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, sessionID, fingerprint, severity, exceptionsJSON string,
+	ts time.Time,
+) {
+	t.Helper()
+	h.SeedEventRows(ctx, t, teamID, appID, 1, EventRow{
+		Type:           "exception",
+		SessionID:      sessionID,
+		Fingerprint:    fingerprint,
+		Severity:       severity,
 		ExceptionsJSON: exceptionsJSON,
 		Timestamp:      ts,
 	})

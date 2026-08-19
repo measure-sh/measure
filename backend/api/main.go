@@ -115,22 +115,6 @@ func main() {
 		apps.GET(":id/health/plots/instances", hdl.GetHealthOverviewPlotInstances)
 		apps.GET(":id/filters", hdl.GetAppFilters)
 
-		// crashes
-		apps.GET(":id/crashGroups", hdl.GetCrashOverview)
-		apps.GET(":id/crashGroups/plots/instances", hdl.GetCrashOverviewPlotInstances)
-		apps.GET(":id/crashGroups/:crashGroupId/crashes", hdl.GetCrashDetailCrashes)
-		apps.GET(":id/crashGroups/:crashGroupId/path", hdl.GetCrashGroupCommonPath)
-		apps.GET(":id/crashGroups/:crashGroupId/plots/instances", hdl.GetCrashDetailPlotInstances)
-		apps.GET(":id/crashGroups/:crashGroupId/plots/distribution", hdl.GetCrashDetailAttributeDistribution)
-
-		// ANRs
-		apps.GET(":id/anrGroups", hdl.GetANROverview)
-		apps.GET(":id/anrGroups/plots/instances", hdl.GetANROverviewPlotInstances)
-		apps.GET(":id/anrGroups/:anrGroupId/anrs", hdl.GetANRDetailANRs)
-		apps.GET(":id/anrGroups/:anrGroupId/path", hdl.GetANRGroupCommonPath)
-		apps.GET(":id/anrGroups/:anrGroupId/plots/instances", hdl.GetANRDetailPlotInstances)
-		apps.GET(":id/anrGroups/:anrGroupId/plots/distribution", hdl.GetANRDetailAttributeDistribution)
-
 		// errors
 		apps.GET(":id/errorGroups", hdl.GetErrorOverview)
 		apps.GET(":id/errorGroups/plots/instances", hdl.GetErrorOverviewPlotInstances)

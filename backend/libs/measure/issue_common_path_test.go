@@ -272,10 +272,10 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 	})
 
 	// ------------------------------------------------------------------
-	// Row scanning: handled exception with data
+	// Row scanning: severity-derived prefixes
 	// ------------------------------------------------------------------
 
-	t.Run("handled exception shows Handled exception prefix", func(t *testing.T) {
+	t.Run("legacy handled exception shows Handled error prefix", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New()
@@ -287,7 +287,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		now := time.Now().UTC()
 		// Navigation event to satisfy minEventsInSession=2
 		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "HomeScreen", now.Add(-2*time.Second))
-		// Handled exception with JSON data
+		// Legacy handled exception (explicit handled=true, no severity) with JSON data
 		excJSON := `[{"type":"NullPointerException","message":"null ref","frames":[]}]`
 		seedIssueEventWithDataInSession(ctx, t, teamID.String(), appID.String(), sessionID, "exception", fingerprint, true, excJSON, now)
 
@@ -307,13 +307,95 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 
 		found := false
 		for _, s := range result.Steps {
-			if strings.Contains(s.Description, "Handled exception: NullPointerException - null ref") {
+			if strings.Contains(s.Description, "Handled error: NullPointerException - null ref") {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Errorf("expected step with 'Handled exception: NullPointerException - null ref', got steps: %+v", result.Steps)
+			t.Errorf("expected step with 'Handled error: NullPointerException - null ref', got steps: %+v", result.Steps)
+		}
+	})
+
+	t.Run("new-SDK severity=handled shows Handled error prefix", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		fingerprint := "fp-severity-handled-12345678"
+		th.SeedExceptionGroup(ctx, t, teamID.String(), appID.String(), fingerprint)
+
+		sessionID := uuid.New().String()
+		now := time.Now().UTC()
+		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "HomeScreen", now.Add(-2*time.Second))
+		// New-SDK shape: severity set, handled absent (defaults false). Without
+		// the severity fix this renders "Crash: " since handled=false.
+		excJSON := `[{"type":"NullPointerException","message":"null ref","frames":[]}]`
+		seedIssueEventWithSeverityInSession(ctx, t, teamID.String(), appID.String(), sessionID, fingerprint, "handled", excJSON, now)
+
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, fingerprint)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		var result struct {
+			Steps []struct {
+				Description string `json:"description"`
+			} `json:"steps"`
+		}
+		if err := json.Unmarshal(data, &result); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+
+		found := false
+		for _, s := range result.Steps {
+			if strings.Contains(s.Description, "Handled error: NullPointerException - null ref") {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected step with 'Handled error: NullPointerException - null ref', got steps: %+v", result.Steps)
+		}
+	})
+
+	t.Run("new-SDK severity=unhandled shows Unhandled error prefix", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		fingerprint := "fp-severity-unhandled-1234567"
+		th.SeedExceptionGroup(ctx, t, teamID.String(), appID.String(), fingerprint)
+
+		sessionID := uuid.New().String()
+		now := time.Now().UTC()
+		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "HomeScreen", now.Add(-2*time.Second))
+		excJSON := `[{"type":"NullPointerException","message":"null ref","frames":[]}]`
+		seedIssueEventWithSeverityInSession(ctx, t, teamID.String(), appID.String(), sessionID, fingerprint, "unhandled", excJSON, now)
+
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, fingerprint)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		var result struct {
+			Steps []struct {
+				Description string `json:"description"`
+			} `json:"steps"`
+		}
+		if err := json.Unmarshal(data, &result); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+
+		found := false
+		for _, s := range result.Steps {
+			if strings.Contains(s.Description, "Unhandled error: NullPointerException - null ref") {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected step with 'Unhandled error: NullPointerException - null ref', got steps: %+v", result.Steps)
 		}
 	})
 
@@ -376,7 +458,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		sessionID := uuid.New().String()
 		now := time.Now().UTC()
 		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "LoginScreen", now.Add(-2*time.Second))
-		// No exceptions JSON — SeedIssueEventInSession leaves it empty
+		// No exceptions JSON, SeedIssueEventInSession leaves it empty
 		seedIssueEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "exception", fingerprint, false, now)
 
 		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, fingerprint)
@@ -504,7 +586,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		th.SeedExceptionGroup(ctx, t, teamID.String(), appID.String(), fingerprint)
 
 		now := time.Now().UTC()
-		// Session with only 1 event (the crash itself) — should be excluded
+		// Session with only 1 event (the crash itself), should be excluded
 		sessionID := uuid.New().String()
 		seedIssueEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "exception", fingerprint, false, now)
 
@@ -592,7 +674,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 
 		now := time.Now().UTC()
 		excJSON := `[{"type":"IllegalStateException","message":"bad state","frames":[]}]`
-		// Seed 1 session: navigation → crash with data
+		// Seed 1 session: navigation then crash with data
 		sessionID := uuid.New().String()
 		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "DetailScreen", now.Add(-2*time.Second))
 		seedIssueEventWithDataInSession(ctx, t, teamID.String(), appID.String(), sessionID, "exception", fingerprint, false, excJSON, now)
