@@ -67,9 +67,10 @@ func (e *EventANR) ComputeView() {
 		Message:    e.ANR.GetMessage(),
 	}
 
+	e.Threads = []ThreadView{}
+
 	for i := range e.ANR.Threads {
-		var tv ThreadView
-		tv.Name = e.ANR.Threads[i].Name
+		tv := ThreadView{Name: e.ANR.Threads[i].Name, Frames: []string{}}
 		for j := range e.ANR.Threads[i].Frames {
 			tv.Frames = append(tv.Frames, e.ANR.Threads[i].Frames[j].String(FrameworkJVM))
 		}
@@ -91,10 +92,11 @@ func (e *EventException) ComputeView() {
 	var buf bytes.Buffer
 	w := &buf
 
+	e.Threads = []ThreadView{}
+
 	for i := range e.Exception.Threads {
-		var tv ThreadView
+		tv := ThreadView{Name: e.Exception.Threads[i].Name, Frames: []string{}}
 		t := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-		tv.Name = e.Exception.Threads[i].Name
 
 		for j := range e.Exception.Threads[i].Frames {
 			frame := e.Exception.Threads[i].Frames[j]
