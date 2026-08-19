@@ -1,7 +1,7 @@
 import React from "react";
 import { emptyErrorGroupDetails } from "../api/api_calls";
 import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
-import { toastPositive } from "../utils/use_toast";
+import { toastPositive } from "./toast";
 import { Button } from "./button";
 import SimpleTooltip from "./simple_tooltip";
 

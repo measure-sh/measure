@@ -44,7 +44,7 @@ import {
 } from "@/app/utils/shared_styles";
 import { formatToCamelCase } from "@/app/utils/string_utils";
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
-import { toastNegative, toastPositive } from "@/app/utils/use_toast";
+import { toastNegative, toastPositive } from "@/app/components/toast";
 import Image from "next/image";
 import { reloadPage } from "@/app/utils/navigation";
 import Link from "next/link";

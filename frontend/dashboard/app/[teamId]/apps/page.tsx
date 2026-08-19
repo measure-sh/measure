@@ -33,7 +33,7 @@ import { Skeleton } from "@/app/components/skeleton";
 import { isCloud } from "@/app/utils/env_utils";
 import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
-import { toastNegative, toastPositive } from "@/app/utils/use_toast";
+import { toastNegative, toastPositive } from "@/app/components/toast";
 import Link from "next/link";
 import { use, useRef, useState } from "react";
 

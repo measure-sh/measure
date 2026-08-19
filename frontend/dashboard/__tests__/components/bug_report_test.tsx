@@ -30,7 +30,7 @@ jest.mock("@/app/query/hooks", () => ({
   }),
 }));
 
-jest.mock("@/app/utils/use_toast", () => ({
+jest.mock("@/app/components/toast", () => ({
   __esModule: true,
   toastPositive: jest.fn(),
   toastNegative: jest.fn(),

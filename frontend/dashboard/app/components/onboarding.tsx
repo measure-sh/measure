@@ -32,7 +32,7 @@ import {
   underlineLinkStyle,
   warningCalloutStyle,
 } from "../utils/shared_styles";
-import { toastNegative, toastPositive } from "../utils/use_toast";
+import { toastNegative, toastPositive } from "./toast";
 import { Button } from "./button";
 import CodeBlock, { CODE_BLOCK_CARD_CLASS } from "./code_block";
 import { Input } from "./input";

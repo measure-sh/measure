@@ -10,7 +10,7 @@ import {
 } from "@/app/query/hooks";
 import { cn } from "@/app/utils/shadcn_utils";
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
-import { toastNegative, toastPositive } from "@/app/utils/use_toast";
+import { toastNegative, toastPositive } from "@/app/components/toast";
 import { DateTime } from "luxon";
 import Image from "next/image";
 import Link from "next/link";

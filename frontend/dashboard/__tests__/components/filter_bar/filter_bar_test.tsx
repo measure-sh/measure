@@ -6,7 +6,7 @@ const mockUseAppsQuery = jest.fn();
 const mockUseFilterKeysQuery = jest.fn();
 const mockToastNegative = jest.fn();
 
-jest.mock("@/app/utils/use_toast", () => ({
+jest.mock("@/app/components/toast", () => ({
   __esModule: true,
   toastNegative: (text: string) => mockToastNegative(text),
 }));
