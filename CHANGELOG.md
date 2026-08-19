@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Update daily summary email & slack message by @anupcowkur in #4255
 - (**backend**): Remove unused apis from openapi spec (#4234) by @detj in #4234
 - (**backend**): Drop unused postgres tables (#4232) by @detj in #4232
 - (**backend**): Merge build & test jobs across service workflows (#4221) by @detj in #4221
