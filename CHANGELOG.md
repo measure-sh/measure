@@ -9,9 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Send single daily summary per team by @anupcowkur
 
 ### :bug: Bug fixes
 
+- (**backend**): Serialize empty thread frames & threads as arrays (#4264) by @detj in #4264
 - (**backend**): Count only fatal exceptions in metrics & filters (#4257) by @detj in #4257
 - (**backend**): Disallow crawling on public services (#4250) by @detj in #4250
 - (**backend**): Pin ingest-worker pubsub ack lease (#4240) by @detj in #4240
@@ -22,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Restyle metric lines in Slack daily summary by @anupcowkur in #4263
+- (**backend**): Share slack markdown escapers by @anupcowkur
 - (**backend**): Update daily summary email & slack message by @anupcowkur in #4255
 - (**backend**): Remove unused apis from openapi spec (#4234) by @detj in #4234
 - (**backend**): Drop unused postgres tables (#4232) by @detj in #4232
