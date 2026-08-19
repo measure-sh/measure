@@ -403,9 +403,8 @@ func NewJourneyiOS(events []event.EventField, opts *Options) (journey *JourneyiO
 				if journey.Nodes[c].IsViewController || journey.Nodes[c].IsSwiftUI || journey.Nodes[c].IsScreenView {
 					addIssue := false
 
-					// only add exception if requested and if the issue exists
-					// because for crash overview page, we want to show journey
-					// with exceptions only.
+					// only add exception if the caller scoped the journey to a
+					// specific exception group & the event belongs to it.
 					if journey.options.ExceptionGroup != nil && journey.options.ExceptionGroup.EventExists(events[i].ID) {
 						addIssue = true
 					}

@@ -9,6 +9,7 @@ import (
 
 	"backend/libs/event"
 	"backend/libs/filter"
+	"backend/testinfra"
 )
 
 // 32-char fingerprints (events.exception.fingerprint and anr.fingerprint are
@@ -33,8 +34,17 @@ func sumIssueInstances(items []event.IssueInstance) uint64 {
 	return total
 }
 
+// issueBucketCounts maps each row's DateTime bucket to its instance count.
+func issueBucketCounts(items []event.IssueInstance) map[string]uint64 {
+	got := map[string]uint64{}
+	for _, item := range items {
+		got[item.DateTime] += *item.Instances
+	}
+	return got
+}
+
 // seedErrorMixWithFingerprints seeds one unhandled exception, one handled
-// exception, and one ANR — each with its own fingerprint. All exception
+// exception, and one ANR, each with its own fingerprint. All exception
 // events have empty exception.severity (legacy-data shape).
 func seedErrorMixWithFingerprints(
 	ctx context.Context,
@@ -49,7 +59,7 @@ func seedErrorMixWithFingerprints(
 }
 
 // seedErrorMixNewData seeds three exception events with exception.severity
-// populated — one fatal, one handled, one unhandled. Mimics the new-SDK
+// populated, one fatal, one handled, one unhandled. Mimics the new-SDK
 // ingestion shape where severity is set explicitly. No ANR events; this
 // helper targets the severity-aware exception branch only.
 func seedErrorMixNewData(
@@ -65,7 +75,7 @@ func seedErrorMixNewData(
 }
 
 // seedErrorMixLegacyAndNew seeds two legacy exception events (handled=false,
-// handled=true, both with severity=”) and three new-data exception events
+// handled=true, both with severity='') & three new-data exception events
 // (fatal, handled, unhandled with severity populated). Used to verify the
 // severity-aware OR clause bridges both data shapes. No ANR events.
 func seedErrorMixLegacyAndNew(
@@ -81,7 +91,7 @@ func seedErrorMixLegacyAndNew(
 }
 
 // --------------------------------------------------------------------------
-// GetErrorPlotInstances — overview plot, severity-flag routing
+// GetErrorPlotInstances: overview plot, severity-flag routing
 // --------------------------------------------------------------------------
 
 func TestGetErrorPlotInstancesRoutesBySeverity(t *testing.T) {
@@ -276,7 +286,7 @@ func TestGetErrorPlotInstancesEmptyWhenNoMatchingData(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
-// GetErrorGroupPlotInstances — detail plot, fingerprint-scoped routing
+// GetErrorGroupPlotInstances: detail plot, fingerprint-scoped routing
 // --------------------------------------------------------------------------
 
 func TestGetErrorGroupPlotInstancesRoutesBySeverity(t *testing.T) {
@@ -340,6 +350,137 @@ func TestGetErrorGroupPlotInstancesMissingTimezone(t *testing.T) {
 	af := f.appFilter(now.Add(-time.Hour), now.Add(time.Hour), "", filter.PlotTimeGroupDays)
 	if _, err := f.app.GetErrorGroupPlotInstances(f.ctx, deps.RchPool, fpErrUnhandled, af); err == nil {
 		t.Fatal("expected error for missing timezone")
+	}
+}
+
+// --------------------------------------------------------------------------
+// GetErrorPlotInstances & GetErrorGroupPlotInstances: bucketing & defaults
+// --------------------------------------------------------------------------
+
+func TestGetErrorPlotInstancesDefaultsToDaysWhenPlotTimeGroupMissing(t *testing.T) {
+	f := newPlotFixture(t)
+
+	t1 := time.Date(2026, 1, 5, 10, 15, 0, 0, time.UTC)
+	t2 := time.Date(2026, 1, 5, 22, 15, 0, 0, time.UTC)
+	t3 := time.Date(2026, 1, 6, 1, 15, 0, 0, time.UTC)
+	for _, ts := range []time.Time{t1, t2, t3} {
+		seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "exception", "", false, ts)
+	}
+
+	af := f.appFilter(t1.Add(-time.Hour), t3.Add(time.Hour), "UTC", "")
+
+	items, err := f.app.GetErrorPlotInstances(f.ctx, deps.RchPool, af)
+	if err != nil {
+		t.Fatalf("GetErrorPlotInstances: %v", err)
+	}
+	assertBucketCounts(t, issueBucketCounts(items), expectedCounts([]time.Time{t1, t2, t3}, filter.PlotTimeGroupDays, false))
+}
+
+func TestGetErrorGroupPlotInstancesDefaultsToDaysWhenPlotTimeGroupMissing(t *testing.T) {
+	f := newPlotFixture(t)
+
+	fp := "12345678901234567890123456789012"
+	t1 := time.Date(2026, 1, 5, 10, 15, 0, 0, time.UTC)
+	t2 := time.Date(2026, 1, 6, 1, 15, 0, 0, time.UTC)
+	seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "exception", fp, false, t1)
+	seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "exception", fp, false, t2)
+
+	af := f.appFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
+
+	items, err := f.app.GetErrorGroupPlotInstances(f.ctx, deps.RchPool, fp, af)
+	if err != nil {
+		t.Fatalf("GetErrorGroupPlotInstances: %v", err)
+	}
+	assertBucketCounts(t, issueBucketCounts(items), expectedCounts([]time.Time{t1, t2}, filter.PlotTimeGroupDays, false))
+}
+
+// --------------------------------------------------------------------------
+// GetErrorPlotInstances: timezone bucketing
+// --------------------------------------------------------------------------
+
+func TestGetErrorPlotInstancesRespectsTimezoneBucketing(t *testing.T) {
+	f := newPlotFixture(t)
+
+	// 2026-01-05T23:30Z becomes 2026-01-06 in Asia/Kolkata (+05:30).
+	ts := time.Date(2026, 1, 5, 23, 30, 0, 0, time.UTC)
+	seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "exception", "", false, ts)
+
+	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "Asia/Kolkata", filter.PlotTimeGroupDays)
+	items, err := f.app.GetErrorPlotInstances(f.ctx, deps.RchPool, af)
+	if err != nil {
+		t.Fatalf("GetErrorPlotInstances: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("expected 1 day bucket, got %d", len(items))
+	}
+	if items[0].DateTime != "2026-01-06" {
+		t.Fatalf("expected timezone-shifted day bucket 2026-01-06, got %q", items[0].DateTime)
+	}
+}
+
+// --------------------------------------------------------------------------
+// Version filter, applied by the applyCommonFilters closure inside each
+// function. GetErrorPlotInstances & GetErrorGroupPlotInstances each define
+// their own local applyCommonFilters, so version filtering is not shared
+// code & needs coverage on both.
+// --------------------------------------------------------------------------
+
+func TestGetErrorPlotInstancesFiltersByVersion(t *testing.T) {
+	f := newPlotFixture(t)
+	ts := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
+
+	seedEventRows(f.ctx, t, f.teamIDStr(), f.appIDStr(), 1, testinfra.EventRow{
+		Type: "exception", Timestamp: ts, AppVersion: "v1", AppBuild: "1",
+	})
+	seedEventRows(f.ctx, t, f.teamIDStr(), f.appIDStr(), 1, testinfra.EventRow{
+		Type: "exception", Timestamp: ts, AppVersion: "v2", AppBuild: "2",
+	})
+
+	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
+	af.Versions = []string{"v1"}
+	af.VersionCodes = []string{"1"}
+
+	items, err := f.app.GetErrorPlotInstances(f.ctx, deps.RchPool, af)
+	if err != nil {
+		t.Fatalf("GetErrorPlotInstances: %v", err)
+	}
+	if got := sumIssueInstances(items); got != 1 {
+		t.Fatalf("instances = %d, want 1, items=%+v", got, items)
+	}
+	for _, it := range items {
+		if it.Version != "v1(1)" {
+			t.Fatalf("expected only v1(1) version bucket, got %q", it.Version)
+		}
+	}
+}
+
+func TestGetErrorGroupPlotInstancesFiltersByVersion(t *testing.T) {
+	f := newPlotFixture(t)
+	ts := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
+	fp := "12345678901234567890123456789012"
+
+	seedEventRows(f.ctx, t, f.teamIDStr(), f.appIDStr(), 1, testinfra.EventRow{
+		Type: "exception", Fingerprint: fp, Timestamp: ts, AppVersion: "v1", AppBuild: "1",
+	})
+	seedEventRows(f.ctx, t, f.teamIDStr(), f.appIDStr(), 1, testinfra.EventRow{
+		Type: "exception", Fingerprint: fp, Timestamp: ts, AppVersion: "v2", AppBuild: "2",
+	})
+
+	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
+	af.Versions = []string{"v1"}
+	af.VersionCodes = []string{"1"}
+
+	items, err := f.app.GetErrorGroupPlotInstances(f.ctx, deps.RchPool, fp, af)
+	if err != nil {
+		t.Fatalf("GetErrorGroupPlotInstances: %v", err)
+	}
+	if got := sumIssueInstances(items); got != 1 {
+		t.Fatalf("instances = %d, want 1, items=%+v", got, items)
+	}
+	for _, it := range items {
+		if it.Version != "v1 (1)" {
+			t.Fatalf("expected only v1 (1) version bucket, got %q", it.Version)
+		}
 	}
 }
 

@@ -21,7 +21,7 @@ import (
 )
 
 // --------------------------------------------------------------------------
-// TestMain — one-time setup: spin up containers, run migrations, wire server
+// TestMain: one-time setup, spin up containers, run migrations, wire server
 // --------------------------------------------------------------------------
 
 // testConfig and testDeps are local stand-ins for the runtime Config/Deps,
@@ -258,6 +258,15 @@ func seedIssueEventWithDataInSession(
 
 func seedNavigationEventInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, destination string, ts time.Time) {
 	th.SeedNavigationEventInSession(ctx, t, teamID, appID, sessionID, destination, ts)
+}
+
+func seedIssueEventWithSeverityInSession(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, sessionID, fingerprint, severity, exceptionsJSON string,
+	ts time.Time,
+) {
+	th.SeedIssueEventWithSeverityInSession(ctx, t, teamID, appID, sessionID, fingerprint, severity, exceptionsJSON, ts)
 }
 
 // --------------------------------------------------------------------------

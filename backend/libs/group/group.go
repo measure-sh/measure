@@ -10,6 +10,7 @@ import (
 	"backend/libs/ambient"
 	"backend/libs/chquery"
 	"backend/libs/chrono"
+	"backend/libs/config"
 	"backend/libs/event"
 	"backend/libs/filter"
 
@@ -73,7 +74,7 @@ type ANRGroup struct {
 
 // ErrorGroup is the unified response row for the errors-overview
 // endpoint. A single row may represent a fatal exception, a nonfatal
-// (handled or unhandled) exception, or an ANR — disambiguated by the
+// (handled or unhandled) exception, or an ANR, disambiguated by the
 // Type and Severity fields.
 type ErrorGroup struct {
 	AppID      uuid.UUID      `json:"app_id"`
@@ -364,7 +365,8 @@ func GetExceptionGroupsFromFingerprints(ctx context.Context, conn driver.Conn, a
 		Where("timestamp >= toDateTime(?, 3, 'UTC')", af.From).
 		Where("timestamp <= toDateTime(?, 3, 'UTC')", af.To).
 		Where("type = ?", event.TypeException).
-		Where("exception.handled = false").
+		// fatal only: matches the fatal_exception_groups this joins against
+		Where(config.FatalExceptionExpr).
 		Where("exception.fingerprint").In(fingerprints).
 		GroupBy("`exception.fingerprint`")
 

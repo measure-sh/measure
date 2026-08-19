@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"backend/libs/event"
 	"backend/libs/filter"
 	"backend/libs/session"
 	"backend/libs/span"
@@ -128,63 +127,6 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 			to := tc.timestamps[len(tc.timestamps)-1].Add(time.Hour)
 			af := f.appFilter(from, to, "UTC", tc.group)
 
-			t.Run("exception_group_plot", func(t *testing.T) {
-				fingerprint := "12345678901234567890123456789012"
-				for _, ts := range tc.timestamps {
-					seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "exception", fingerprint, false, ts)
-				}
-
-				items, err := f.app.GetExceptionGroupPlotInstances(f.ctx, deps.RchPool, fingerprint, af)
-				if err != nil {
-					t.Fatalf("GetExceptionGroupPlotInstances: %v", err)
-				}
-
-				assertIssueBuckets(t, items, expectedCounts(tc.timestamps, tc.group, false))
-			})
-
-			t.Run("exception_plot", func(t *testing.T) {
-				cleanupAll(f.ctx, t)
-				for _, ts := range tc.timestamps {
-					seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "exception", "", false, ts)
-				}
-
-				items, err := f.app.GetExceptionPlotInstances(f.ctx, deps.RchPool, af)
-				if err != nil {
-					t.Fatalf("GetExceptionPlotInstances: %v", err)
-				}
-
-				assertIssueBuckets(t, items, expectedCounts(tc.timestamps, tc.group, false))
-			})
-
-			t.Run("anr_group_plot", func(t *testing.T) {
-				cleanupAll(f.ctx, t)
-				fingerprint := "abcdefabcdefabcdefabcdefabcdefab"
-				for _, ts := range tc.timestamps {
-					seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "anr", fingerprint, false, ts)
-				}
-
-				items, err := f.app.GetANRGroupPlotInstances(f.ctx, deps.RchPool, fingerprint, af)
-				if err != nil {
-					t.Fatalf("GetANRGroupPlotInstances: %v", err)
-				}
-
-				assertIssueBuckets(t, items, expectedCounts(tc.timestamps, tc.group, false))
-			})
-
-			t.Run("anr_plot", func(t *testing.T) {
-				cleanupAll(f.ctx, t)
-				for _, ts := range tc.timestamps {
-					seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "anr", "", false, ts)
-				}
-
-				items, err := f.app.GetANRPlotInstances(f.ctx, deps.RchPool, af)
-				if err != nil {
-					t.Fatalf("GetANRPlotInstances: %v", err)
-				}
-
-				assertIssueBuckets(t, items, expectedCounts(tc.timestamps, tc.group, false))
-			})
-
 			t.Run("sessions_plot", func(t *testing.T) {
 				cleanupAll(f.ctx, t)
 				seedGenericEvents(f.ctx, t, f.teamIDStr(), f.appIDStr(), 2, tc.timestamps[0])
@@ -241,26 +183,6 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 // Default behavior when plot_time_group is omitted
 // --------------------------------------------------------------------------
 
-func TestExceptionPlotDefaultsToDaysWhenPlotTimeGroupMissing(t *testing.T) {
-	f := newPlotFixture(t)
-
-	t1 := time.Date(2026, 1, 5, 10, 15, 0, 0, time.UTC)
-	t2 := time.Date(2026, 1, 5, 22, 15, 0, 0, time.UTC)
-	t3 := time.Date(2026, 1, 6, 1, 15, 0, 0, time.UTC)
-	for _, ts := range []time.Time{t1, t2, t3} {
-		seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "exception", "", false, ts)
-	}
-
-	af := f.appFilter(t1.Add(-time.Hour), t3.Add(time.Hour), "UTC", "")
-
-	items, err := f.app.GetExceptionPlotInstances(f.ctx, deps.RchPool, af)
-	if err != nil {
-		t.Fatalf("GetExceptionPlotInstances: %v", err)
-	}
-
-	assertIssueBuckets(t, items, expectedCounts([]time.Time{t1, t2, t3}, filter.PlotTimeGroupDays, false))
-}
-
 func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 	f := newPlotFixture(t)
 	now := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
@@ -268,18 +190,6 @@ func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 	t.Run("missing timezone returns error", func(t *testing.T) {
 		af := f.appFilter(now.Add(-time.Hour), now.Add(time.Hour), "", filter.PlotTimeGroupDays)
 
-		if _, err := f.app.GetExceptionPlotInstances(f.ctx, deps.RchPool, af); err == nil {
-			t.Fatalf("expected error for missing timezone in exception plot")
-		}
-		if _, err := f.app.GetExceptionGroupPlotInstances(f.ctx, deps.RchPool, "12345678901234567890123456789012", af); err == nil {
-			t.Fatalf("expected error for missing timezone in exception group plot")
-		}
-		if _, err := f.app.GetANRPlotInstances(f.ctx, deps.RchPool, af); err == nil {
-			t.Fatalf("expected error for missing timezone in anr plot")
-		}
-		if _, err := f.app.GetANRGroupPlotInstances(f.ctx, deps.RchPool, "abcdefabcdefabcdefabcdefabcdefab", af); err == nil {
-			t.Fatalf("expected error for missing timezone in anr group plot")
-		}
 		if _, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, af); err == nil {
 			t.Fatalf("expected error for missing timezone in sessions plot")
 		}
@@ -293,18 +203,6 @@ func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 
 	t.Run("unsupported plot_time_group returns error", func(t *testing.T) {
 		af := f.appFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", "weeks")
-		if _, err := f.app.GetExceptionPlotInstances(f.ctx, deps.RchPool, af); err == nil {
-			t.Fatalf("expected error for unsupported plot_time_group")
-		}
-		if _, err := f.app.GetExceptionGroupPlotInstances(f.ctx, deps.RchPool, "12345678901234567890123456789012", af); err == nil {
-			t.Fatalf("expected error for unsupported plot_time_group in exception group plot")
-		}
-		if _, err := f.app.GetANRPlotInstances(f.ctx, deps.RchPool, af); err == nil {
-			t.Fatalf("expected error for unsupported plot_time_group in anr plot")
-		}
-		if _, err := f.app.GetANRGroupPlotInstances(f.ctx, deps.RchPool, "abcdefabcdefabcdefabcdefabcdefab", af); err == nil {
-			t.Fatalf("expected error for unsupported plot_time_group in anr group plot")
-		}
 		if _, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, af); err == nil {
 			t.Fatalf("expected error for unsupported plot_time_group in sessions plot")
 		}
@@ -318,22 +216,6 @@ func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 
 	t.Run("returns empty results when no matching data", func(t *testing.T) {
 		af := f.appFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
-
-		ex, err := f.app.GetExceptionPlotInstances(f.ctx, deps.RchPool, af)
-		if err != nil {
-			t.Fatalf("GetExceptionPlotInstances: %v", err)
-		}
-		if len(ex) != 0 {
-			t.Fatalf("expected empty exception plot, got %d rows", len(ex))
-		}
-
-		anr, err := f.app.GetANRPlotInstances(f.ctx, deps.RchPool, af)
-		if err != nil {
-			t.Fatalf("GetANRPlotInstances: %v", err)
-		}
-		if len(anr) != 0 {
-			t.Fatalf("expected empty anr plot, got %d rows", len(anr))
-		}
 
 		sessions, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, af)
 		if err != nil {
@@ -364,21 +246,6 @@ func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 // --------------------------------------------------------------------------
 // Timezone behavior
 // --------------------------------------------------------------------------
-
-func TestExceptionPlotRespectsTimezoneBucketing(t *testing.T) {
-	f := newPlotFixture(t)
-
-	// 2026-01-05T23:30Z becomes 2026-01-06 in Asia/Kolkata (+05:30).
-	ts := time.Date(2026, 1, 5, 23, 30, 0, 0, time.UTC)
-	seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "exception", "", false, ts)
-
-	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "Asia/Kolkata", filter.PlotTimeGroupDays)
-	items, err := f.app.GetExceptionPlotInstances(f.ctx, deps.RchPool, af)
-	if err != nil {
-		t.Fatalf("GetExceptionPlotInstances: %v", err)
-	}
-	requireSingleDateBucket(t, items, items[0].DateTime, "2026-01-06", "exception plot")
-}
 
 func TestNonExceptionPlotsRespectTimezoneBucketing(t *testing.T) {
 	f := newPlotFixture(t)
@@ -425,44 +292,6 @@ func TestPlotMethodsDefaultToDaysWhenPlotTimeGroupMissing(t *testing.T) {
 	t1 := time.Date(2026, 1, 5, 10, 15, 0, 0, time.UTC)
 	t2 := time.Date(2026, 1, 6, 1, 15, 0, 0, time.UTC)
 
-	t.Run("exception group", func(t *testing.T) {
-		cleanupAll(f.ctx, t)
-		fp := "12345678901234567890123456789012"
-		seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "exception", fp, false, t1)
-		seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "exception", fp, false, t2)
-		af := f.appFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
-		items, err := f.app.GetExceptionGroupPlotInstances(f.ctx, deps.RchPool, fp, af)
-		if err != nil {
-			t.Fatalf("GetExceptionGroupPlotInstances: %v", err)
-		}
-		assertIssueBuckets(t, items, expectedCounts([]time.Time{t1, t2}, filter.PlotTimeGroupDays, false))
-	})
-
-	t.Run("anr group", func(t *testing.T) {
-		cleanupAll(f.ctx, t)
-		fp := "abcdefabcdefabcdefabcdefabcdefab"
-		seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "anr", fp, false, t1)
-		seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "anr", fp, false, t2)
-		af := f.appFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
-		items, err := f.app.GetANRGroupPlotInstances(f.ctx, deps.RchPool, fp, af)
-		if err != nil {
-			t.Fatalf("GetANRGroupPlotInstances: %v", err)
-		}
-		assertIssueBuckets(t, items, expectedCounts([]time.Time{t1, t2}, filter.PlotTimeGroupDays, false))
-	})
-
-	t.Run("anr overview", func(t *testing.T) {
-		cleanupAll(f.ctx, t)
-		seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "anr", "", false, t1)
-		seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "anr", "", false, t2)
-		af := f.appFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
-		items, err := f.app.GetANRPlotInstances(f.ctx, deps.RchPool, af)
-		if err != nil {
-			t.Fatalf("GetANRPlotInstances: %v", err)
-		}
-		assertIssueBuckets(t, items, expectedCounts([]time.Time{t1, t2}, filter.PlotTimeGroupDays, false))
-	})
-
 	t.Run("sessions", func(t *testing.T) {
 		cleanupAll(f.ctx, t)
 		seedGenericEvents(f.ctx, t, f.teamIDStr(), f.appIDStr(), 1, t1)
@@ -507,32 +336,6 @@ func TestPlotMethodsDefaultToDaysWhenPlotTimeGroupMissing(t *testing.T) {
 func TestPlotMethodsRespectOptionalFilters(t *testing.T) {
 	f := newPlotFixture(t)
 	now := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
-
-	t.Run("exception versions filter", func(t *testing.T) {
-		cleanupAll(f.ctx, t)
-		seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "exception", "", false, now)
-
-		af := f.appFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
-		af.Versions = []string{"v1"}
-		af.VersionCodes = []string{"1"}
-
-		items, err := f.app.GetExceptionPlotInstances(f.ctx, deps.RchPool, af)
-		if err != nil {
-			t.Fatalf("GetExceptionPlotInstances: %v", err)
-		}
-		if len(items) == 0 {
-			t.Fatalf("expected non-empty result for matching version filters")
-		}
-
-		af.VersionCodes = []string{"999"}
-		items, err = f.app.GetExceptionPlotInstances(f.ctx, deps.RchPool, af)
-		if err != nil {
-			t.Fatalf("GetExceptionPlotInstances mismatch filter: %v", err)
-		}
-		if len(items) != 0 {
-			t.Fatalf("expected empty result for non-matching version filters")
-		}
-	})
 
 	t.Run("span status filter", func(t *testing.T) {
 		cleanupAll(f.ctx, t)
@@ -684,7 +487,7 @@ func TestSpanMetricsPlotQuantilesAreMonotonicAndVersionIsolated(t *testing.T) {
 }
 
 // TestSpanMetricsPlotQuantilesForSkewedDistribution checks that each quantile
-// column reports the level it claims — in particular that p99 is the 99th
+// column reports the level it claims, in particular that p99 is the 99th
 // percentile and not the median. Distinct per-Rank durations force the four
 // percentiles to resolve to different values, which requires a spread (rather
 // than uniform) distribution to observe.
@@ -800,15 +603,6 @@ func spanMetricTimesForGroup(group string) []time.Time {
 			time.Date(2026, 1, 6, 1, 0, 0, 0, time.UTC),
 		}
 	}
-}
-
-func assertIssueBuckets(t *testing.T, items []event.IssueInstance, expected map[string]uint64) {
-	t.Helper()
-	got := map[string]uint64{}
-	for _, item := range items {
-		got[item.DateTime] += *item.Instances
-	}
-	assertBucketCounts(t, got, expected)
 }
 
 func assertSessionBuckets(t *testing.T, items []session.SessionInstance, expected map[string]uint64) {
