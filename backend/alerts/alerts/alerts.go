@@ -14,6 +14,7 @@ import (
 
 	"backend/alerts/server"
 	"backend/alerts/slack"
+	"backend/libs/alertmsg"
 	"backend/libs/autumn"
 	"backend/libs/config"
 	"backend/libs/email"
@@ -215,8 +216,8 @@ func CreateBugReportAlerts(ctx context.Context) {
 					continue
 				}
 
-				alertMsg := email.BugReportAlertMessage(description)
-				alertUrl := email.BugReportAlertURL(server.Server.Config.SiteOrigin, team.ID.String(), app.ID.String(), bugReportId)
+				alertMsg := alertmsg.BugReportMessage(description)
+				alertUrl := alertmsg.BugReportURL(server.Server.Config.SiteOrigin, team.ID.String(), app.ID.String(), bugReportId)
 
 				fmt.Printf("Inserting alert for bug report %s\n", bugReportId)
 
@@ -703,7 +704,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 		subject, body = email.BugReportAlertEmail(appName, message, url)
 	} else {
 		subject = appName + " - Alert"
-		body = email.RenderEmailBody(subject, email.MessageContent(message), "View in Dashboard", url)
+		body = email.RenderEmailBody(subject, email.PlainTextContent(message), "View in Dashboard", url)
 	}
 
 	pendingEmail := email.EmailInfo{
@@ -871,12 +872,9 @@ func formatSlackAlertMessage(title, message, url string) slack.SlackMessage {
 		},
 	}
 
-	// The message is shared with the email path and arrives formatted for
-	// HTML, with <br> marking line breaks and app-generated text (a crash
-	// message like "<init>", a user-typed bug report description) left as is.
-	// Rewrite the breaks as newlines, then escape the characters Slack parses
-	// as markup so the text renders literally.
-	message = strings.ReplaceAll(message, "<br>", "\n")
+	// The message carries app-generated text as is (a crash message like
+	// "<init>", a user-typed bug report description), so the characters
+	// Slack parses as markup are escaped for the text to render literally.
 	message = libslack.EscapeMrkdwn(message)
 
 	blocks = append(blocks, slack.SlackSectionBlock{
@@ -1115,8 +1113,8 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 			if method == "" {
 				method = "unknown_method"
 			}
-			alertMsg := email.CrashAlertMessage(file, method, message)
-			alertUrl := email.CrashAlertURL(server.Server.Config.SiteOrigin, team.ID.String(), app.ID.String(), fingerprint, crashType, fileName)
+			alertMsg := alertmsg.CrashSpikeMessage(file, method, message)
+			alertUrl := alertmsg.CrashSpikeURL(server.Server.Config.SiteOrigin, team.ID.String(), app.ID.String(), fingerprint, crashType, fileName)
 
 			fmt.Printf("Inserting alert for crash group %s\n", fingerprint)
 
@@ -1229,8 +1227,8 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 			if method == "" {
 				method = "unknown_method"
 			}
-			alertMsg := email.AnrAlertMessage(file, method, message)
-			alertUrl := email.AnrAlertURL(server.Server.Config.SiteOrigin, team.ID.String(), app.ID.String(), fingerprint, crashType, fileName)
+			alertMsg := alertmsg.AnrSpikeMessage(file, method, message)
+			alertUrl := alertmsg.AnrSpikeURL(server.Server.Config.SiteOrigin, team.ID.String(), app.ID.String(), fingerprint, crashType, fileName)
 
 			fmt.Printf("Inserting alert for anr group %s\n", fingerprint)
 

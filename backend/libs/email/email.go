@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"strings"
 	"time"
 
@@ -228,14 +229,26 @@ func RenderEmailBody(title, contentHTML, ctaText, ctaURL string) string {
 </html>`, title, title, contentHTML, ctaURL, ctaText)
 }
 
-// MessageContent wraps a plain text/HTML message in the standard
-// styled content div. Used for simple notification emails.
+// MessageContent wraps a message in the standard styled content div.
+// The message is trusted as HTML and placed in the email body verbatim,
+// so callers must only pass markup they built themselves; text from
+// outside the codebase belongs in PlainTextContent instead.
 func MessageContent(message string) string {
 	return fmt.Sprintf(`
             <!-- Message -->
             <div style="margin-bottom: 32px; font-size: 16px; line-height: 1.6; color: #4a5568;">
                 %s
             </div>`, message)
+}
+
+// PlainTextContent wraps an untrusted plain text message in the standard
+// styled content div. Unlike MessageContent, which trusts its input as
+// HTML, this escapes the message first and then renders its newlines as
+// <br>, so a crash message or a user-typed bug report description cannot
+// place markup inside the email body.
+func PlainTextContent(message string) string {
+	escaped := html.EscapeString(message)
+	return MessageContent(strings.ReplaceAll(escaped, "\n", "<br>"))
 }
 
 // UsageLimitContent renders a percent-only usage progress bar and message.

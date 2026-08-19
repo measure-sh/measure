@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"backend/libs/alertmsg"
 	"backend/libs/email"
 )
 
@@ -82,28 +83,28 @@ func main() {
 
 	// --- Alerts: Crash & ANR ---
 
-	alertMsg := email.CrashAlertMessage(
+	alertMsg := alertmsg.CrashSpikeMessage(
 		"com.example.myapp.MainActivity.java",
 		"onCreate",
 		"NullPointerException: Attempt to invoke virtual method on a null object reference",
 	)
-	alertURL := email.CrashAlertURL("https://measure.sh", "team-abc", "app-123", "fingerprint-456", "java.lang.NullPointerException", "")
+	alertURL := alertmsg.CrashSpikeURL("https://measure.sh", "team-abc", "app-123", "fingerprint-456", "java.lang.NullPointerException", "")
 	_, body = email.CrashSpikeAlertEmail("MyApp", alertMsg, alertURL)
 	add("06-crash-spike-alert.html", body)
 
-	alertMsg = email.AnrAlertMessage(
+	alertMsg = alertmsg.AnrSpikeMessage(
 		"com.example.myapp.NetworkService.java",
 		"fetchData",
 		"Application Not Responding: Input dispatching timed out",
 	)
-	alertURL = email.AnrAlertURL("https://measure.sh", "team-abc", "app-123", "fingerprint-789", "ANR", "")
+	alertURL = alertmsg.AnrSpikeURL("https://measure.sh", "team-abc", "app-123", "fingerprint-789", "ANR", "")
 	_, body = email.AnrSpikeAlertEmail("MyApp", alertMsg, alertURL)
 	add("07-anr-spike-alert.html", body)
 
 	// --- Alerts: Bug Report ---
 
-	alertMsg = email.BugReportAlertMessage("The app crashes when I click the login button after entering a very long password.")
-	alertURL = email.BugReportAlertURL("https://measure.sh", "team-abc", "app-123", "bug-report-456")
+	alertMsg = alertmsg.BugReportMessage("The app crashes when I click the login button after entering a very long password.")
+	alertURL = alertmsg.BugReportURL("https://measure.sh", "team-abc", "app-123", "bug-report-456")
 	_, body = email.BugReportAlertEmail("MyApp", alertMsg, alertURL)
 	add("07b-bug-report-alert.html", body)
 
