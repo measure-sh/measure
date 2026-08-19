@@ -2532,8 +2532,8 @@ func TestCreateDailySummary(t *testing.T) {
 			t.Fatalf("unmarshal slack payload: %v", err)
 		}
 		payloadJSON, _ := json.Marshal(payload)
-		if !strings.Contains(string(payloadJSON), "🟡") {
-			t.Fatalf("expected slack payload to include warning status icon for custom thresholds")
+		if !strings.Contains(string(payloadJSON), "`caution`") {
+			t.Fatalf("expected slack payload to include the caution status tag for custom thresholds")
 		}
 	})
 
@@ -2599,8 +2599,8 @@ func TestCreateDailySummary(t *testing.T) {
 			t.Fatalf("unmarshal slack payload: %v", err)
 		}
 		payloadJSON, _ := json.Marshal(payload)
-		if !strings.Contains(string(payloadJSON), "🔴") {
-			t.Fatalf("expected slack payload to include error status icon for custom thresholds")
+		if !strings.Contains(string(payloadJSON), "`poor`") {
+			t.Fatalf("expected slack payload to include the poor status tag for custom thresholds")
 		}
 	})
 
@@ -2889,14 +2889,14 @@ func TestFormatTeamDailySummarySlackMessage(t *testing.T) {
 		if len(checkoutLines) != 3 {
 			t.Fatalf("got %d metric lines for Checkout, want 3", len(checkoutLines))
 		}
-		if checkoutLines[0] != "🟢 *Sessions*  1.2K · _Up from 1K yesterday_" {
-			t.Errorf("healthy metric line = %q", checkoutLines[0])
+		if checkoutLines[0] != "• *Sessions*  1.2K · _Up from 1K yesterday_" {
+			t.Errorf("healthy metric line = %q, want no status tag", checkoutLines[0])
 		}
-		if !strings.HasPrefix(checkoutLines[1], "🟡 ") {
-			t.Errorf("warning metric line = %q, want a 🟡 prefix", checkoutLines[1])
+		if !strings.HasSuffix(checkoutLines[1], " `caution`") {
+			t.Errorf("warning metric line = %q, want a trailing `caution` tag", checkoutLines[1])
 		}
-		if !strings.HasPrefix(checkoutLines[2], "🔴 ") {
-			t.Errorf("error metric line = %q, want a 🔴 prefix (error outranks warning)", checkoutLines[2])
+		if !strings.HasSuffix(checkoutLines[2], " `poor`") {
+			t.Errorf("error metric line = %q, want a trailing `poor` tag (error outranks warning)", checkoutLines[2])
 		}
 
 		if got := sectionText(t, msg.Blocks[6]); got != "*Storefront*" {
