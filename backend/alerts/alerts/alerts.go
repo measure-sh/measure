@@ -12,6 +12,7 @@ import (
 	"backend/alerts/server"
 	"backend/alerts/slack"
 	"backend/libs/autumn"
+	"backend/libs/config"
 	"backend/libs/email"
 	"backend/libs/numeric"
 
@@ -979,13 +980,13 @@ func formatDailySummarySlackMessage(appName, dashboardURL string, date time.Time
 func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to time.Time, sessionCount uint64, prefs AppThresholdPrefs) {
 	crashGroupStmt := sqlf.
 		From("events final").
-		Select("exception.fingerprint, count() as crash_count").
+		Select("`exception.fingerprint`, count() as crash_count").
 		Where("team_id = toUUID(?)", team.ID).
 		Where("app_id = toUUID(?)", app.ID).
 		Where("type = 'exception'").
-		Where("exception.handled = false").
+		Where(config.FatalExceptionExpr).
 		Where("timestamp >= ? and timestamp <= ?", from, to).
-		GroupBy("exception.fingerprint")
+		GroupBy("`exception.fingerprint`")
 
 	defer crashGroupStmt.Close()
 
@@ -1101,12 +1102,12 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 
 func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to time.Time, sessionCount uint64, prefs AppThresholdPrefs) {
 	anrGroupStmt := sqlf.From("events final").
-		Select("anr.fingerprint, count() as anr_count").
+		Select("`anr.fingerprint`, count() as anr_count").
 		Where("team_id = toUUID(?)", team.ID).
 		Where("app_id = toUUID(?)", app.ID).
 		Where("type = 'anr'").
 		Where("timestamp >= ? and timestamp <= ?", from, to).
-		GroupBy("anr.fingerprint")
+		GroupBy("`anr.fingerprint`")
 
 	defer anrGroupStmt.Close()
 

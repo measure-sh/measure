@@ -131,6 +131,36 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		}
 	})
 
+	t.Run("handled exceptions do not trigger a crash spike alert", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Handled Team")
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Handled App", 30)
+
+		now := time.Now().UTC()
+		th.SeedGenericEvents(ctx, t, teamID, appID, 200, now.Add(-30*time.Minute))
+		// 110 realistic new-SDK handled (non-fatal) exceptions, past both the
+		// count & rate thresholds. crash_count must exclude them.
+		for i := 0; i < 110; i++ {
+			th.SeedIssueEventWithSeverity(ctx, t, teamID, appID, testCrashFingerprint, "handled", now.Add(-5*time.Minute))
+		}
+		th.SeedExceptionGroup(ctx, t, teamID, appID, testCrashFingerprint)
+
+		CreateCrashAndAnrAlerts(ctx)
+
+		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 0 {
+			t.Errorf("want 0 crash spike alerts for handled exceptions, got %d", got)
+		}
+	})
+
 	t.Run("anr spike fires when count and rate thresholds are both met", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)

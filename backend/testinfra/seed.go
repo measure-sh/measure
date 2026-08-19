@@ -239,6 +239,19 @@ type EventRow struct {
 	Severity       string
 	ExceptionsJSON string
 	IsCustom       bool
+
+	// Device/network attributes, written only when OSName is non-empty.
+	// app_filters_mv requires all nine of these non-empty to emit a row, so
+	// set every field together when a test needs to reach that view.
+	OSName             string
+	OSVersion          string
+	CountryCode        string
+	NetworkProvider    string
+	NetworkType        string
+	NetworkGeneration  string
+	DeviceLocale       string
+	DeviceManufacturer string
+	DeviceName         string
 }
 
 func (r EventRow) filled() EventRow {
@@ -317,6 +330,17 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 			cols = append(cols, "`exception.is_custom`")
 			vals = append(vals, "true")
 		}
+	}
+
+	if row.OSName != "" {
+		cols = append(cols,
+			"`attribute.os_name`", "`attribute.os_version`", "`inet.country_code`",
+			"`attribute.network_provider`", "`attribute.network_type`", "`attribute.network_generation`",
+			"`attribute.device_locale`", "`attribute.device_manufacturer`", "`attribute.device_name`")
+		vals = append(vals,
+			quote(row.OSName), quote(row.OSVersion), quote(row.CountryCode),
+			quote(row.NetworkProvider), quote(row.NetworkType), quote(row.NetworkGeneration),
+			quote(row.DeviceLocale), quote(row.DeviceManufacturer), quote(row.DeviceName))
 	}
 
 	query := fmt.Sprintf("INSERT INTO measure.events (%s) SELECT %s FROM numbers(%d)",
@@ -506,9 +530,9 @@ func (h *TestHelper) SeedIssueEventWithDataInSession(
 }
 
 // SeedIssueEventWithSeverity inserts an exception event with an explicit
-// exception.severity column value, mimicking new-SDK ingestion. The handled
-// bool is set consistently with severity ("handled" → true, others → false).
-// Use this to test the new-data path of severity-aware queries.
+// exception.severity value, mimicking new-SDK ingestion. Handled is always
+// false: no current SDK sends the deprecated handled field, so ingest
+// zero-values it whatever the severity.
 func (h *TestHelper) SeedIssueEventWithSeverity(
 	ctx context.Context,
 	t *testing.T,
@@ -520,8 +544,38 @@ func (h *TestHelper) SeedIssueEventWithSeverity(
 		Type:        "exception",
 		Fingerprint: fingerprint,
 		Severity:    severity,
-		Handled:     severity == "handled",
+		Handled:     false,
 		Timestamp:   ts,
+	})
+}
+
+// SeedIssueEventWithFullAttributes inserts an exception event with an explicit
+// severity, a handled flag & every device/network attribute app_filters_mv
+// requires non-empty to emit a row. Use it to reach that view instead of the
+// SeedAppFilters direct-insert bypass. severity="" with handled=true models a
+// legacy pre-severity handled exception, the row the old predicate excluded.
+func (h *TestHelper) SeedIssueEventWithFullAttributes(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, severity string,
+	handled bool,
+	ts time.Time,
+) {
+	t.Helper()
+	h.SeedEventRows(ctx, t, teamID, appID, 1, EventRow{
+		Type:               "exception",
+		Severity:           severity,
+		Handled:            handled,
+		Timestamp:          ts,
+		OSName:             "Android",
+		OSVersion:          "14",
+		CountryCode:        "US",
+		NetworkProvider:    "carrier",
+		NetworkType:        "wifi",
+		NetworkGeneration:  "4g",
+		DeviceLocale:       "en-US",
+		DeviceManufacturer: "TestCo",
+		DeviceName:         "pixel",
 	})
 }
 
@@ -725,7 +779,8 @@ func (h *TestHelper) SeedAnrGroup(ctx context.Context, t *testing.T, teamID, app
 // a unique session_id, so:
 //
 //	total_sessions = genericCount + crashCount + anrCount
-//	crash_sessions = crashCount   (type="exception", exception.handled=false)
+//	crash_sessions = crashCount   (type="exception", fatal: severity="fatal"
+//	                 or (severity="" and exception.handled=false))
 //	anr_sessions   = anrCount     (type="anr")
 func (h *TestHelper) SeedAppMetrics(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time, genericCount, crashCount, anrCount int) {
 	t.Helper()

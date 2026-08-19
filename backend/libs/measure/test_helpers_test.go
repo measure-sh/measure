@@ -186,6 +186,16 @@ func seedIssueEventWithSeverity(
 	th.SeedIssueEventWithSeverity(ctx, t, teamID, appID, fingerprint, severity, ts)
 }
 
+func seedIssueEventWithFullAttributes(
+	ctx context.Context,
+	t *testing.T,
+	teamID, appID, severity string,
+	handled bool,
+	ts time.Time,
+) {
+	th.SeedIssueEventWithFullAttributes(ctx, t, teamID, appID, severity, handled, ts)
+}
+
 func seedExceptionGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {
 	th.SeedExceptionGroup(ctx, t, teamID, appID, fingerprint)
 }
