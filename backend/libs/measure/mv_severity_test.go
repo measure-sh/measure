@@ -91,7 +91,7 @@ func TestGetIssueFreeMetricsExcludesHandled(t *testing.T) {
 	af.Versions = []string{"v1"}
 	af.VersionCodes = []string{"1"}
 
-	crashFree, _, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, af, filter.Versions{})
+	crashFree, _, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, af)
 	if err != nil {
 		t.Fatalf("GetIssueFreeMetrics: %v", err)
 	}

@@ -63,7 +63,8 @@ export interface BaseMetricsCardProps {
 export interface CrashFreeSessionsProps extends BaseMetricsCardProps {
   type: "crash_free_sessions";
   value: number;
-  delta: number;
+  unselectedValue: number;
+  noComparison: boolean;
   errorGoodThreshold: number;
   errorCautionThreshold: number;
 }
@@ -71,7 +72,8 @@ export interface CrashFreeSessionsProps extends BaseMetricsCardProps {
 export interface PerceivedCrashFreeSessionsProps extends BaseMetricsCardProps {
   type: "perceived_crash_free_sessions";
   value: number;
-  delta: number;
+  unselectedValue: number;
+  noComparison: boolean;
   errorGoodThreshold: number;
   errorCautionThreshold: number;
 }
@@ -79,7 +81,8 @@ export interface PerceivedCrashFreeSessionsProps extends BaseMetricsCardProps {
 export interface AnrFreeSessionsProps extends BaseMetricsCardProps {
   type: "anr_free_sessions";
   value: number;
-  delta: number;
+  unselectedValue: number;
+  noComparison: boolean;
   errorGoodThreshold: number;
   errorCautionThreshold: number;
 }
@@ -87,7 +90,8 @@ export interface AnrFreeSessionsProps extends BaseMetricsCardProps {
 export interface PerceivedAnrFreeSessionsProps extends BaseMetricsCardProps {
   type: "perceived_anr_free_sessions";
   value: number;
-  delta: number;
+  unselectedValue: number;
+  noComparison: boolean;
   errorGoodThreshold: number;
   errorCautionThreshold: number;
 }
@@ -95,8 +99,8 @@ export interface PerceivedAnrFreeSessionsProps extends BaseMetricsCardProps {
 export interface AppStartTimeProps extends BaseMetricsCardProps {
   type: "app_start_time";
   value: number;
-  delta: number;
-  noDelta: boolean;
+  unselectedValue: number;
+  noComparison: boolean;
   launchType: string;
 }
 
@@ -208,9 +212,13 @@ function getStatusIcon(
   }
 }
 
-function getAppStartTimeStatusIcon(delta: number) {
+function getAppStartTimeStatusIcon(
+  value: number,
+  unselectedValue: number,
+  noComparison: boolean,
+) {
   const iconClasses = `${STYLES.icon.status}`;
-  if (delta > 1) {
+  if (!noComparison && value > unselectedValue) {
     return <AlertTriangle className={`${iconClasses} ${STYLES.icon.yellow}`} />;
   } else {
     return <CheckCircle className={`${iconClasses} ${STYLES.icon.green}`} />;
@@ -229,54 +237,59 @@ function getAppSizeStatusIcon(multiVersion: boolean, deltaInBytes: number) {
   }
 }
 
-function getExceptionRateDeltaWithTrendIcon(delta: number) {
-  if (delta > 1) {
+// Equality between the selected and unselected values is decided on the
+// rendered strings, so two values that display identically never show a
+// trend direction the reader cannot see in the numbers.
+function getExceptionRateComparisonWithTrendIcon(
+  value: number,
+  unselectedValue: number,
+) {
+  const selectedText = `${value}%`;
+  const unselectedText = `${unselectedValue}%`;
+  if (selectedText === unselectedText) {
     return (
-      <div className={STYLES.layout.trendContainer}>
-        <TrendingUp className={`${STYLES.icon.trend} ${STYLES.icon.green}`} />
-        <p className={`${STYLES.text.trendText} ${STYLES.icon.green}`}>
-          {delta}x better
-        </p>
-      </div>
+      <p className={`${STYLES.text.subtitle} text-muted-foreground`}>
+        Same as other versions
+      </p>
     );
   }
-  if (delta > 0 && delta < 1) {
-    return (
-      <div className={STYLES.layout.trendContainer}>
-        <TrendingDown
-          className={`${STYLES.icon.trend} ${STYLES.icon.yellow}`}
-        />
-        <p className={`${STYLES.text.trendText} ${STYLES.icon.yellow}`}>
-          {delta}x worse
-        </p>
-      </div>
-    );
-  }
-  return null;
+  const isBetter = value > unselectedValue;
+  const Icon = isBetter ? TrendingUp : TrendingDown;
+  const colorClass = isBetter ? STYLES.icon.green : STYLES.icon.yellow;
+  return (
+    <div className={STYLES.layout.trendContainer}>
+      <Icon className={`${STYLES.icon.trend} ${colorClass}`} />
+      <p className={`${STYLES.text.trendText} ${colorClass}`}>
+        {unselectedText}
+      </p>
+    </div>
+  );
 }
 
-function getAppStartTimeDeltaWithTrendIcon(delta: number) {
-  if (delta > 1) {
+function getAppStartTimeComparisonWithTrendIcon(
+  value: number,
+  unselectedValue: number,
+) {
+  const selectedText = `${value}ms`;
+  const unselectedText = `${unselectedValue}ms`;
+  if (selectedText === unselectedText) {
     return (
-      <div className={STYLES.layout.trendContainer}>
-        <TrendingUp className={`${STYLES.icon.trend} ${STYLES.icon.yellow}`} />
-        <p className={`${STYLES.text.trendText} ${STYLES.icon.yellow}`}>
-          {delta}x slower
-        </p>
-      </div>
+      <p className={`${STYLES.text.subtitle} text-muted-foreground`}>
+        Same as other versions
+      </p>
     );
   }
-  if (delta > 0 && delta < 1) {
-    return (
-      <div className={STYLES.layout.trendContainer}>
-        <TrendingDown className={`${STYLES.icon.trend} ${STYLES.icon.green}`} />
-        <p className={`${STYLES.text.trendText} ${STYLES.icon.green}`}>
-          {delta}x faster
-        </p>
-      </div>
-    );
-  }
-  return null;
+  const isFaster = value < unselectedValue;
+  const Icon = isFaster ? TrendingDown : TrendingUp;
+  const colorClass = isFaster ? STYLES.icon.green : STYLES.icon.yellow;
+  return (
+    <div className={STYLES.layout.trendContainer}>
+      <Icon className={`${STYLES.icon.trend} ${colorClass}`} />
+      <p className={`${STYLES.text.trendText} ${colorClass}`}>
+        {unselectedText}
+      </p>
+    </div>
+  );
 }
 
 function getAppSizeDeltaWithTrendIcon(deltaInBytes: number) {
@@ -352,7 +365,11 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
           <>
             <p className={STYLES.text.mainValue}> {exceptionProps.value}%</p>
             <div className={STYLES.layout.spacer} />
-            {getExceptionRateDeltaWithTrendIcon(exceptionProps.delta)}
+            {!exceptionProps.noComparison &&
+              getExceptionRateComparisonWithTrendIcon(
+                exceptionProps.value,
+                exceptionProps.unselectedValue,
+              )}
           </>
         );
 
@@ -362,8 +379,11 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
           <>
             <p className={STYLES.text.mainValue}> {startTimeProps.value}ms</p>
             <div className={STYLES.layout.spacer} />
-            {!startTimeProps.noDelta &&
-              getAppStartTimeDeltaWithTrendIcon(startTimeProps.delta)}
+            {!startTimeProps.noComparison &&
+              getAppStartTimeComparisonWithTrendIcon(
+                startTimeProps.value,
+                startTimeProps.unselectedValue,
+              )}
           </>
         );
 
@@ -427,8 +447,7 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
               100
               <br />
               <br />
-              Delta value = Crash free sessions percentage of selected app
-              versions / Crash free sessions percentage of unselected app
+              Comparison = Crash free sessions percentage of unselected app
               versions
             </p>
             <br />
@@ -448,8 +467,7 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
               selected app versions) * 100
               <br />
               <br />
-              Delta value = Perceived crash free sessions percentage of selected
-              app versions / Perceived crash free sessions percentage of
+              Comparison = Perceived crash free sessions percentage of
               unselected app versions
             </p>
             <br />
@@ -469,8 +487,8 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
               100
               <br />
               <br />
-              Delta value = ANR free sessions percentage of selected app
-              versions / ANR free sessions percentage of unselected app versions
+              Comparison = ANR free sessions percentage of unselected app
+              versions
             </p>
             <br />
             {renderThresholdStatusIcons(
@@ -489,9 +507,8 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
               app versions) * 100
               <br />
               <br />
-              Delta value = Perceived ANR free sessions percentage of selected
-              app versions / Perceived ANR free sessions percentage of
-              unselected app versions
+              Comparison = Perceived ANR free sessions percentage of unselected
+              app versions
             </p>
             <br />
             {renderThresholdStatusIcons(
@@ -510,9 +527,8 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
               selected app versions
               <br />
               <br />
-              Delta value = p95 {startTimeProps.launchType} launch time of
-              selected app versions / p95 {startTimeProps.launchType} launch
-              time of unselected app versions
+              Comparison = p95 {startTimeProps.launchType} launch time of
+              unselected app versions
             </p>
             <br />
             <StatusIconRow
@@ -614,7 +630,12 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
           exceptionProps.errorCautionThreshold,
         );
       case "app_start_time":
-        return getAppStartTimeStatusIcon((props as AppStartTimeProps).delta);
+        const startTimeProps = props as AppStartTimeProps;
+        return getAppStartTimeStatusIcon(
+          startTimeProps.value,
+          startTimeProps.unselectedValue,
+          startTimeProps.noComparison,
+        );
       case "app_size":
         return getAppSizeStatusIcon(
           (props as AppSizeProps).multiVersion,

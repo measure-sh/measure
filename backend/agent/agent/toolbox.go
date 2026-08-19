@@ -1269,7 +1269,7 @@ func (c *Config) mcpGetMetrics(ctx context.Context, in mcpGetMetricsInput) (*mcp
 		return nil, nil, fmt.Errorf("failed to fetch excluded versions: %w", err)
 	}
 
-	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err := app.GetIssueFreeMetrics(metricsCtx, deps.RchPool, af, excludedVersions)
+	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err := app.GetIssueFreeMetrics(metricsCtx, deps.RchPool, af)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch issue free metrics: %w", err)
 	}
@@ -1286,22 +1286,22 @@ func (c *Config) mcpGetMetrics(ctx context.Context, in mcpGetMetricsInput) (*mcp
 		"anr_free_sessions":             anrFree,
 		"perceived_anr_free_sessions":   perceivedANRFree,
 		"cold_launch": map[string]any{
-			"p95":       launch.ColdLaunchP95,
-			"delta":     launch.ColdDelta,
-			"nan":       launch.ColdNaN,
-			"delta_nan": launch.ColdDeltaNaN,
+			"p95":                launch.ColdLaunchP95,
+			"unselected_p95":     launch.UnselectedColdLaunchP95,
+			"no_data":            launch.ColdNoData,
+			"unselected_no_data": launch.UnselectedColdNoData,
 		},
 		"warm_launch": map[string]any{
-			"p95":       launch.WarmLaunchP95,
-			"delta":     launch.WarmDelta,
-			"nan":       launch.WarmNaN,
-			"delta_nan": launch.WarmDeltaNaN,
+			"p95":                launch.WarmLaunchP95,
+			"unselected_p95":     launch.UnselectedWarmLaunchP95,
+			"no_data":            launch.WarmNoData,
+			"unselected_no_data": launch.UnselectedWarmNoData,
 		},
 		"hot_launch": map[string]any{
-			"p95":       launch.HotLaunchP95,
-			"delta":     launch.HotDelta,
-			"nan":       launch.HotNaN,
-			"delta_nan": launch.HotDeltaNaN,
+			"p95":                launch.HotLaunchP95,
+			"unselected_p95":     launch.UnselectedHotLaunchP95,
+			"no_data":            launch.HotNoData,
+			"unselected_no_data": launch.UnselectedHotNoData,
 		},
 	}
 

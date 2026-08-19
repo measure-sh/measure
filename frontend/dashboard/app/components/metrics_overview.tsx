@@ -11,29 +11,56 @@ const demoMetrics = {
     all_versions: 10000000,
     selected_version: 4100000,
     adoption: 41,
-    nan: false,
+    no_data: false,
   },
-  anr_free_sessions: { anr_free_sessions: 99.7, delta: 1.01, nan: false },
-  cold_launch: { delta: 0.07, nan: false, delta_nan: false, p95: 923 },
-  crash_free_sessions: { crash_free_sessions: 99.1, delta: 1.1, nan: false },
-  hot_launch: { delta: 0.02, nan: false, delta_nan: false, p95: 197 },
+  anr_free_sessions: {
+    anr_free_sessions: 99.7,
+    unselected_anr_free_sessions: 99.2,
+    no_data: false,
+    unselected_no_data: false,
+  },
+  cold_launch: {
+    p95: 923,
+    unselected_p95: 987,
+    no_data: false,
+    unselected_no_data: false,
+  },
+  crash_free_sessions: {
+    crash_free_sessions: 99.1,
+    unselected_crash_free_sessions: 98.2,
+    no_data: false,
+    unselected_no_data: false,
+  },
+  hot_launch: {
+    p95: 197,
+    unselected_p95: 224,
+    no_data: false,
+    unselected_no_data: false,
+  },
   perceived_anr_free_sessions: {
     perceived_anr_free_sessions: 99.8,
-    delta: 1.05,
-    nan: false,
+    unselected_perceived_anr_free_sessions: 99.5,
+    no_data: false,
+    unselected_no_data: false,
   },
   perceived_crash_free_sessions: {
     perceived_crash_free_sessions: 99.6,
-    delta: 1.05,
-    nan: false,
+    unselected_perceived_crash_free_sessions: 99.1,
+    no_data: false,
+    unselected_no_data: false,
   },
   sizes: {
     average_app_size: 23000000,
     selected_app_size: 23345678,
     delta: -345678,
-    nan: false,
+    no_data: false,
   },
-  warm_launch: { delta: 1.03, nan: false, delta_nan: false, p95: 503 },
+  warm_launch: {
+    p95: 503,
+    unselected_p95: 471,
+    no_data: false,
+    unselected_no_data: false,
+  },
 };
 
 interface MetricsOverviewProps {
@@ -57,7 +84,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
       <MetricsCard
         type="app_adoption"
         status={metricsStatus}
-        noData={metrics.adoption.nan}
+        noData={metrics.adoption.no_data}
         value={metrics.adoption.adoption}
         sessions={metrics.adoption.selected_version}
         totalSessions={metrics.adoption.all_versions}
@@ -66,9 +93,12 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
       <MetricsCard
         type="crash_free_sessions"
         status={metricsStatus}
-        noData={metrics.crash_free_sessions.nan}
+        noData={metrics.crash_free_sessions.no_data}
         value={metrics.crash_free_sessions.crash_free_sessions}
-        delta={metrics.crash_free_sessions.delta}
+        unselectedValue={
+          metrics.crash_free_sessions.unselected_crash_free_sessions
+        }
+        noComparison={metrics.crash_free_sessions.unselected_no_data}
         errorGoodThreshold={appThresholdPrefs.error_good_threshold}
         errorCautionThreshold={appThresholdPrefs.error_caution_threshold}
       />
@@ -76,11 +106,15 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
       <MetricsCard
         type="perceived_crash_free_sessions"
         status={metricsStatus}
-        noData={metrics.perceived_crash_free_sessions.nan}
+        noData={metrics.perceived_crash_free_sessions.no_data}
         value={
           metrics.perceived_crash_free_sessions.perceived_crash_free_sessions
         }
-        delta={metrics.perceived_crash_free_sessions.delta}
+        unselectedValue={
+          metrics.perceived_crash_free_sessions
+            .unselected_perceived_crash_free_sessions
+        }
+        noComparison={metrics.perceived_crash_free_sessions.unselected_no_data}
         errorGoodThreshold={appThresholdPrefs.error_good_threshold}
         errorCautionThreshold={appThresholdPrefs.error_caution_threshold}
       />
@@ -89,9 +123,12 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
         <MetricsCard
           type="anr_free_sessions"
           status={metricsStatus}
-          noData={metrics.anr_free_sessions.nan}
+          noData={metrics.anr_free_sessions.no_data}
           value={metrics.anr_free_sessions.anr_free_sessions}
-          delta={metrics.anr_free_sessions.delta}
+          unselectedValue={
+            metrics.anr_free_sessions.unselected_anr_free_sessions
+          }
+          noComparison={metrics.anr_free_sessions.unselected_no_data}
           errorGoodThreshold={appThresholdPrefs.error_good_threshold}
           errorCautionThreshold={appThresholdPrefs.error_caution_threshold}
         />
@@ -101,11 +138,15 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
         <MetricsCard
           type="perceived_anr_free_sessions"
           status={metricsStatus}
-          noData={metrics.perceived_anr_free_sessions.nan}
+          noData={metrics.perceived_anr_free_sessions.no_data}
           value={
             metrics.perceived_anr_free_sessions.perceived_anr_free_sessions
           }
-          delta={metrics.perceived_anr_free_sessions.delta}
+          unselectedValue={
+            metrics.perceived_anr_free_sessions
+              .unselected_perceived_anr_free_sessions
+          }
+          noComparison={metrics.perceived_anr_free_sessions.unselected_no_data}
           errorGoodThreshold={appThresholdPrefs.error_good_threshold}
           errorCautionThreshold={appThresholdPrefs.error_caution_threshold}
         />
@@ -115,30 +156,30 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
         type="app_start_time"
         status={metricsStatus}
         launchType="Cold"
-        noData={metrics.cold_launch.nan}
-        noDelta={metrics.cold_launch.delta_nan}
+        noData={metrics.cold_launch.no_data}
+        noComparison={metrics.cold_launch.unselected_no_data}
         value={metrics.cold_launch.p95}
-        delta={metrics.cold_launch.delta}
+        unselectedValue={metrics.cold_launch.unselected_p95}
       />
 
       <MetricsCard
         type="app_start_time"
         status={metricsStatus}
         launchType="Warm"
-        noData={metrics.warm_launch.nan}
-        noDelta={metrics.warm_launch.delta_nan}
+        noData={metrics.warm_launch.no_data}
+        noComparison={metrics.warm_launch.unselected_no_data}
         value={metrics.warm_launch.p95}
-        delta={metrics.warm_launch.delta}
+        unselectedValue={metrics.warm_launch.unselected_p95}
       />
 
       <MetricsCard
         type="app_start_time"
         status={metricsStatus}
         launchType="Hot"
-        noData={metrics.hot_launch.nan}
-        noDelta={metrics.hot_launch.delta_nan}
+        noData={metrics.hot_launch.no_data}
+        noComparison={metrics.hot_launch.unselected_no_data}
         value={metrics.hot_launch.p95}
-        delta={metrics.hot_launch.delta}
+        unselectedValue={metrics.hot_launch.unselected_p95}
       />
 
       {/* show app size metrics only on single app version selection && only when app size is available */}
@@ -147,7 +188,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
           type="app_size"
           status={metricsStatus}
           multiVersion={filters.versions.selected.length > 1}
-          noData={metrics.sizes.nan}
+          noData={metrics.sizes.no_data}
           valueInBytes={metrics.sizes.selected_app_size}
           deltaInBytes={metrics.sizes.delta}
         />
