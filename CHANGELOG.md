@@ -46,6 +46,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Gate marketing attribution capture on consent (#4227) by @detj in #4227
 - (**frontend**): Make filter component flags optional by @anupcowkur in #4209
 
+### :recycle: Refactor
+
+- (**backend**): Build alert messages as channel-neutral plain text by @anupcowkur in #4265
+
 ### :books: Documentation
 
 - Fix typo by @anupcowkur
