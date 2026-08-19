@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Count only fatal exceptions in metrics & filters (#4257) by @detj in #4257
 - (**backend**): Disallow crawling on public services (#4250) by @detj in #4250
 - (**backend**): Pin ingest-worker pubsub ack lease (#4240) by @detj in #4240
 - (**backend**): Double close panic in cleanup service (#4219) by @detj in #4219
