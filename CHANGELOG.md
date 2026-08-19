@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Fatal-only journeys & remove deprecated crash/anr apis (#4262) by @detj in #4262
 - (**backend**): Serialize empty thread frames & threads as arrays (#4264) by @detj in #4264
 - (**backend**): Count only fatal exceptions in metrics & filters (#4257) by @detj in #4257
 - (**backend**): Disallow crawling on public services (#4250) by @detj in #4250
