@@ -134,6 +134,16 @@ describe("number_utils", () => {
       expect(numberToKMB(-1_500_000)).toBe("-1.5M");
     });
 
+    it("should promote the suffix when rounding reaches the next unit", () => {
+      expect(numberToKMB(999_999)).toBe("1M");
+      expect(numberToKMB(999_999_999)).toBe("1B");
+      expect(numberToKMB(-999_999)).toBe("-1M");
+    });
+
+    it("should keep the billions suffix past a thousand billion", () => {
+      expect(numberToKMB(1_000_000_000_000)).toBe("1000B");
+    });
+
     it("should remove trailing zeros for integer results", () => {
       expect(numberToKMB(2000)).toBe("2K");
       expect(numberToKMB(2_000_000)).toBe("2M");
