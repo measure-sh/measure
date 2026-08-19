@@ -69,71 +69,27 @@ func RoleChangedEmail(newRole, changedByEmail, teamName, siteOrigin, teamId stri
 	return
 }
 
-// CrashAlertMessage builds the alert message string for crash spike alerts.
-// This message is shared across email, DB storage, and Slack notifications.
-func CrashAlertMessage(file, method, crashMessage string) string {
-	return fmt.Sprintf("Crashes are spiking at:<br><br>%s: %s() - %s", file, method, crashMessage)
-}
-
-// AnrAlertMessage builds the alert message string for ANR spike alerts.
-// This message is shared across email, DB storage, and Slack notifications.
-func AnrAlertMessage(file, method, anrMessage string) string {
-	return fmt.Sprintf("ANRs are spiking at:<br><br>%s: %s() - %s", file, method, anrMessage)
-}
-
-// CrashAlertURL builds the dashboard URL for a crash spike alert.
-// This URL is shared across email, DB storage, and Slack notifications.
-func CrashAlertURL(siteOrigin, teamId, appId, fingerprint, crashType, fileName string) string {
-	suffix := ""
-	if fileName != "" {
-		suffix = "@" + fileName
-	}
-	return fmt.Sprintf("%s/%s/errors/%s/%s/%s%s", siteOrigin, teamId, appId, fingerprint, crashType, suffix)
-}
-
-// AnrAlertURL builds the dashboard URL for an ANR spike alert.
-// This URL is shared across email, DB storage, and Slack notifications.
-func AnrAlertURL(siteOrigin, teamId, appId, fingerprint, anrType, fileName string) string {
-	suffix := ""
-	if fileName != "" {
-		suffix = "@" + fileName
-	}
-	return fmt.Sprintf("%s/%s/errors/%s/%s/%s%s", siteOrigin, teamId, appId, fingerprint, anrType, suffix)
-}
-
-// CrashSpikeAlertEmail builds the crash spike alert email.
+// CrashSpikeAlertEmail builds the crash spike alert email from the plain
+// text alert message.
 func CrashSpikeAlertEmail(appName, alertMsg, alertURL string) (subject, body string) {
 	subject = appName + " - Crash Spike Alert"
-	body = RenderEmailBody(escape(subject), MessageContent(alertMsg), "View in Dashboard", alertURL)
+	body = RenderEmailBody(escape(subject), PlainTextContent(alertMsg), "View in Dashboard", alertURL)
 	return
 }
 
-// AnrSpikeAlertEmail builds the ANR spike alert email.
+// AnrSpikeAlertEmail builds the ANR spike alert email from the plain
+// text alert message.
 func AnrSpikeAlertEmail(appName, alertMsg, alertURL string) (subject, body string) {
 	subject = appName + " - ANR Spike Alert"
-	body = RenderEmailBody(escape(subject), MessageContent(alertMsg), "View in Dashboard", alertURL)
+	body = RenderEmailBody(escape(subject), PlainTextContent(alertMsg), "View in Dashboard", alertURL)
 	return
 }
 
-// BugReportAlertMessage builds the alert message string for bug report alerts.
-// This message is shared across email and Slack notifications.
-func BugReportAlertMessage(description string) string {
-	if description == "" {
-		description = "No description provided."
-	}
-	return fmt.Sprintf("A new bug report has been submitted:<br><br>%s", description)
-}
-
-// BugReportAlertURL builds the dashboard URL for a bug report alert.
-// This URL is shared across email and Slack notifications.
-func BugReportAlertURL(siteOrigin, teamId, appId, bugReportId string) string {
-	return fmt.Sprintf("%s/%s/bug_reports/%s/%s", siteOrigin, teamId, appId, bugReportId)
-}
-
-// BugReportAlertEmail builds the bug report alert email.
+// BugReportAlertEmail builds the bug report alert email from the plain
+// text alert message.
 func BugReportAlertEmail(appName, alertMsg, alertURL string) (subject, body string) {
 	subject = appName + " - New Bug Report"
-	body = RenderEmailBody(escape(subject), MessageContent(alertMsg), "View in Dashboard", alertURL)
+	body = RenderEmailBody(escape(subject), PlainTextContent(alertMsg), "View in Dashboard", alertURL)
 	return
 }
 

@@ -4447,7 +4447,7 @@ paths:
                         app_id: 19e26d60-2ad8-4ef7-8aab-333e1f5377fc
                         entity_id: 09ef78940bd258030ebe3937bf1e32a2
                         type: anr_spike
-                        message: "ANRs are spiking at CpuUsageCollector: run() - Application Not Responding for at least 5s"
+                        message: "ANRs are spiking at:\n\nCpuUsageCollector: run() - Application Not Responding for at least 5s"
                         url: http://localhost:3000/29f0f5b2-f03f-4dbe-bd18-acf163b91965/anrs/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/09ef78940bd258030ebe3937bf1e32a2/sh.measure.android.anr.AnrError@CpuUsageCollector
                         created_at: "2025-07-10T11:35:48.069383Z"
                         updated_at: "2025-07-10T11:35:48.069383Z"
@@ -4456,7 +4456,7 @@ paths:
                         app_id: 19e26d60-2ad8-4ef7-8aab-333e1f5377fc
                         entity_id: f94859bc4b47fbf05b4eec2a300de0a4
                         type: crash_spike
-                        message: "Crashes are spiking at ExceptionDemoActivity: onClick() - This is a nested custom exception"
+                        message: "Crashes are spiking at:\n\nExceptionDemoActivity: onClick() - This is a nested custom exception"
                         url: http://localhost:3000/29f0f5b2-f03f-4dbe-bd18-acf163b91965/crashes/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/f94859bc4b47fbf05b4eec2a300de0a4/sh.measure.sample.CustomException@ExceptionDemoActivity
                         created_at: "2025-07-10T11:35:48.057192Z"
                         updated_at: "2025-07-10T11:35:48.057192Z"

@@ -754,3 +754,47 @@ func TestAppNameMarkupIsEscapedInTitle(t *testing.T) {
 		}
 	}
 }
+
+// Alert messages carry crash strings and user-typed bug report
+// descriptions, so markup in them must render as visible text.
+func TestPlainTextContentEscapesMarkupAndRendersNewlines(t *testing.T) {
+	const payload = "Crashes are spiking at:\n\nFoo.kt: <init>() - evil<img src=\"x\" onerror=\"alert(1)\">"
+
+	content := PlainTextContent(payload)
+
+	if strings.Contains(content, `<img`) {
+		t.Error("content contains an unescaped img tag")
+	}
+	if !strings.Contains(content, `evil&lt;img src=&#34;x&#34; onerror=&#34;alert(1)&#34;&gt;`) {
+		t.Error("content missing the escaped markup as visible text")
+	}
+	if !strings.Contains(content, "Foo.kt: &lt;init&gt;() -") {
+		t.Error("content missing the escaped crash frame")
+	}
+	if !strings.Contains(content, "Crashes are spiking at:<br><br>Foo.kt:") {
+		t.Error("content missing <br> line breaks for the message newlines")
+	}
+}
+
+// The alert email builders receive the plain text alert message, so a crash
+// string or bug description with markup must reach the rendered body only
+// in escaped form.
+func TestAlertMessageMarkupIsEscapedInBody(t *testing.T) {
+	const payload = `spiking at <img src=x onerror=alert(1)>`
+	const escaped = `spiking at &lt;img src=x onerror=alert(1)&gt;`
+
+	bodies := map[string]string{}
+
+	_, bodies["CrashSpikeAlertEmail"] = CrashSpikeAlertEmail("MyApp", payload, "https://measure.sh")
+	_, bodies["AnrSpikeAlertEmail"] = AnrSpikeAlertEmail("MyApp", payload, "https://measure.sh")
+	_, bodies["BugReportAlertEmail"] = BugReportAlertEmail("MyApp", payload, "https://measure.sh")
+
+	for name, body := range bodies {
+		if strings.Contains(body, payload) {
+			t.Errorf("%s: body contains unescaped alert message markup", name)
+		}
+		if !strings.Contains(body, escaped) {
+			t.Errorf("%s: body missing escaped alert message", name)
+		}
+	}
+}

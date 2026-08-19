@@ -3016,11 +3016,12 @@ func TestFormatTeamDailySummarySlackMessage(t *testing.T) {
 }
 
 func TestFormatSlackAlertMessage(t *testing.T) {
-	// The message comes from the shared email builders: <br> marks line
-	// breaks and app-generated text carries raw mrkdwn control characters.
+	// The message mimics the alertmsg builders' output, with app-generated
+	// text carrying raw mrkdwn control characters, so only the mrkdwn
+	// escaping should alter it.
 	msg := formatSlackAlertMessage(
 		"Checkout - Crash Spike Alert",
-		"Crashes are spiking at:<br><br>Foo.kt: <init>() - x < 1",
+		"Crashes are spiking at:\n\nFoo.kt: <init>() - x < 1",
 		"https://test.measure.sh/dashboard",
 	)
 
@@ -3029,9 +3030,6 @@ func TestFormatSlackAlertMessage(t *testing.T) {
 		"Foo.kt: &lt;init&gt;() - x &lt; 1"
 	if got != want {
 		t.Errorf("section text = %q, want %q", got, want)
-	}
-	if strings.Contains(got, "<br>") {
-		t.Errorf("section text = %q, want no <br> remnants", got)
 	}
 
 	// The header is plain_text, which Slack renders verbatim, so the title
