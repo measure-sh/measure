@@ -10,7 +10,7 @@ type SessionAdoption struct {
 	AllVersions     uint64  `json:"all_versions"`
 	SelectedVersion uint64  `json:"selected_version"`
 	Adoption        float64 `json:"adoption"`
-	NaN             bool    `json:"nan"`
+	NoData          bool    `json:"no_data"`
 }
 
 // SizeMetric represents compute result of an app's
@@ -19,43 +19,43 @@ type SizeMetric struct {
 	AverageAppSize  float64 `json:"average_app_size"`
 	SelectedAppSize uint64  `json:"selected_app_size"`
 	Delta           float64 `json:"delta"`
-	NaN             bool    `json:"nan"`
+	NoData          bool    `json:"no_data"`
 }
 
 // CrashFreeSesssion represents compute result of an app's
 // crash free sessions.
 type CrashFreeSession struct {
-	CrashFreeSessions float64 `json:"crash_free_sessions"`
-	Delta             float64 `json:"delta"`
-	NaN               bool    `json:"nan"`
-	DeltaNaN          bool    `json:"delta_nan"`
+	CrashFreeSessions           float64 `json:"crash_free_sessions"`
+	UnselectedCrashFreeSessions float64 `json:"unselected_crash_free_sessions"`
+	NoData                      bool    `json:"no_data"`
+	UnselectedNoData            bool    `json:"unselected_no_data"`
 }
 
 // ANRFreeSesssion represents compute result of an app's
 // ANR free sessions.
 type ANRFreeSession struct {
-	ANRFreeSessions float64 `json:"anr_free_sessions"`
-	Delta           float64 `json:"delta"`
-	NaN             bool    `json:"nan"`
-	DeltaNaN        bool    `json:"delta_nan"`
+	ANRFreeSessions           float64 `json:"anr_free_sessions"`
+	UnselectedANRFreeSessions float64 `json:"unselected_anr_free_sessions"`
+	NoData                    bool    `json:"no_data"`
+	UnselectedNoData          bool    `json:"unselected_no_data"`
 }
 
 // PerceivedCrashFreeSesssion represents compute result of an app's
 // perceived crash free sessions.
 type PerceivedCrashFreeSession struct {
-	CrashFreeSessions float64 `json:"perceived_crash_free_sessions"`
-	Delta             float64 `json:"delta"`
-	NaN               bool    `json:"nan"`
-	DeltaNaN          bool    `json:"delta_nan"`
+	CrashFreeSessions           float64 `json:"perceived_crash_free_sessions"`
+	UnselectedCrashFreeSessions float64 `json:"unselected_perceived_crash_free_sessions"`
+	NoData                      bool    `json:"no_data"`
+	UnselectedNoData            bool    `json:"unselected_no_data"`
 }
 
 // PerceivedANRFreeSesssion represents compute result of an app's
 // perceived ANR free sessions.
 type PerceivedANRFreeSession struct {
-	ANRFreeSessions float64 `json:"perceived_anr_free_sessions"`
-	Delta           float64 `json:"delta"`
-	NaN             bool    `json:"nan"`
-	DeltaNaN        bool    `json:"delta_nan"`
+	ANRFreeSessions           float64 `json:"perceived_anr_free_sessions"`
+	UnselectedANRFreeSessions float64 `json:"unselected_perceived_anr_free_sessions"`
+	NoData                    bool    `json:"no_data"`
+	UnselectedNoData          bool    `json:"unselected_no_data"`
 }
 
 // LaunchMetric represents compute result of an app's cold,
@@ -70,138 +70,155 @@ type LaunchMetric struct {
 	// HotLaunchP95 is the computed p95 hot launch.
 	HotLaunchP95 float64 `json:"hot_launch_p95"`
 
-	// ColdDelta is the computed delta for cold launch.
-	ColdDelta float64 `json:"cold_delta"`
+	// UnselectedColdLaunchP95 is the computed p95 cold launch
+	// of the app versions not matched by the filter.
+	UnselectedColdLaunchP95 float64 `json:"unselected_cold_launch_p95"`
 
-	// WarmDelta is the computed delta for warm launch.
-	WarmDelta float64 `json:"warm_delta"`
+	// UnselectedWarmLaunchP95 is the computed p95 warm launch
+	// of the app versions not matched by the filter.
+	UnselectedWarmLaunchP95 float64 `json:"unselected_warm_launch_p95"`
 
-	// HotDelta is the computed delta for hot launch.
-	HotDelta float64 `json:"hot_delta"`
+	// UnselectedHotLaunchP95 is the computed p95 hot launch
+	// of the app versions not matched by the filter.
+	UnselectedHotLaunchP95 float64 `json:"unselected_hot_launch_p95"`
 
-	// ColdNaN is true if p95 cold launch is
-	// not a number.
-	ColdNaN bool `json:"cold_nan"`
+	// ColdNoData is true if there was no data to compute
+	// the p95 cold launch; ColdLaunchP95 is then a placeholder zero.
+	ColdNoData bool `json:"cold_no_data"`
 
-	// WarmNaN is true if p95 warm launch is
-	// not a number.
-	WarmNaN bool `json:"warm_nan"`
+	// WarmNoData is true if there was no data to compute
+	// the p95 warm launch; WarmLaunchP95 is then a placeholder zero.
+	WarmNoData bool `json:"warm_no_data"`
 
-	// HotNaN is true if p95 hot launch is
-	// not a number.
-	HotNaN bool `json:"hot_nan"`
+	// HotNoData is true if there was no data to compute
+	// the p95 hot launch; HotLaunchP95 is then a placeholder zero.
+	HotNoData bool `json:"hot_no_data"`
 
-	// ColdDeltaNaN is true if delta for cold launch
-	// is not a number.
-	ColdDeltaNaN bool `json:"cold_delta_nan"`
+	// UnselectedColdNoData is true if there was no data to compute
+	// the p95 cold launch of the unselected app versions;
+	// UnselectedColdLaunchP95 is then a placeholder zero.
+	UnselectedColdNoData bool `json:"unselected_cold_no_data"`
 
-	// WarmDeltaNaN is true if delta for warm launch
-	// is not a number.
-	WarmDeltaNaN bool `json:"warm_delta_nan"`
+	// UnselectedWarmNoData is true if there was no data to compute
+	// the p95 warm launch of the unselected app versions;
+	// UnselectedWarmLaunchP95 is then a placeholder zero.
+	UnselectedWarmNoData bool `json:"unselected_warm_no_data"`
 
-	// HotDeltaNaN is true if delta for hot launch
-	// is not a number.
-	HotDeltaNaN bool `json:"hot_delta_nan"`
+	// UnselectedHotNoData is true if there was no data to compute
+	// the p95 hot launch of the unselected app versions;
+	// UnselectedHotLaunchP95 is then a placeholder zero.
+	UnselectedHotNoData bool `json:"unselected_hot_no_data"`
 }
 
-// SetNaNs sets the NaN bit if adoption
-// value is NaN.
-func (sa *SessionAdoption) SetNaNs() {
+// SetNoData detects an adoption value that came out as NaN,
+// which happens when there were no sessions to compute the
+// percentage from, and records it as the no-data flag while
+// zeroing the value.
+func (sa *SessionAdoption) SetNoData() {
 	if math.IsNaN(sa.Adoption) {
-		sa.NaN = true
+		sa.NoData = true
 		sa.Adoption = 0
 	}
 }
 
-// SetNaNs sets the NaN bit if size values
-// are NaN.
-func (sm *SizeMetric) SetNaNs() {
-	sm.NaN = true
+// SetNoData marks the size metric as having no data. Callers
+// invoke it when the size computation could not run, so it sets
+// the flag unconditionally.
+func (sm *SizeMetric) SetNoData() {
+	sm.NoData = true
 }
 
-// SetNaNs sets the NaN bit if crash
-// free sessions value(s) are NaN.
-func (cfs *CrashFreeSession) SetNaNs() {
+// SetNoData detects crash free session values that came out
+// as NaN, which happens when there were no sessions to compute
+// the percentage from, and records them as no-data flags while
+// zeroing the values.
+func (cfs *CrashFreeSession) SetNoData() {
 	if math.IsNaN(cfs.CrashFreeSessions) {
-		cfs.NaN = true
+		cfs.NoData = true
 		cfs.CrashFreeSessions = 0
 	}
 
-	if math.IsNaN(cfs.Delta) {
-		cfs.DeltaNaN = true
-		cfs.Delta = 0
+	if math.IsNaN(cfs.UnselectedCrashFreeSessions) {
+		cfs.UnselectedNoData = true
+		cfs.UnselectedCrashFreeSessions = 0
 	}
 }
 
-// SetNaNs sets the NaN bit if ANR
-// free sessions value(s) are NaN.
-func (afs *ANRFreeSession) SetNaNs() {
+// SetNoData detects ANR free session values that came out
+// as NaN, which happens when there were no sessions to compute
+// the percentage from, and records them as no-data flags while
+// zeroing the values.
+func (afs *ANRFreeSession) SetNoData() {
 	if math.IsNaN(afs.ANRFreeSessions) {
-		afs.NaN = true
+		afs.NoData = true
 		afs.ANRFreeSessions = 0
 	}
 
-	if math.IsNaN(afs.Delta) {
-		afs.DeltaNaN = true
-		afs.Delta = 0
+	if math.IsNaN(afs.UnselectedANRFreeSessions) {
+		afs.UnselectedNoData = true
+		afs.UnselectedANRFreeSessions = 0
 	}
 }
 
-// SetNaNs sets the NaN bit if
-// perceived crash free sessions
-// value(s) are NaN.
-func (pcfs *PerceivedCrashFreeSession) SetNaNs() {
+// SetNoData detects perceived crash free session values that
+// came out as NaN, which happens when there were no sessions
+// to compute the percentage from, and records them as no-data
+// flags while zeroing the values.
+func (pcfs *PerceivedCrashFreeSession) SetNoData() {
 	if math.IsNaN(pcfs.CrashFreeSessions) {
-		pcfs.NaN = true
+		pcfs.NoData = true
 		pcfs.CrashFreeSessions = 0
 	}
 
-	if math.IsNaN(pcfs.Delta) {
-		pcfs.DeltaNaN = true
-		pcfs.Delta = 0
+	if math.IsNaN(pcfs.UnselectedCrashFreeSessions) {
+		pcfs.UnselectedNoData = true
+		pcfs.UnselectedCrashFreeSessions = 0
 	}
 }
 
-// SetNaNs sets the NaN bit if
-// perceived crash free sessions
-// value(s) are NaN.
-func (pafs *PerceivedANRFreeSession) SetNaNs() {
+// SetNoData detects perceived ANR free session values that
+// came out as NaN, which happens when there were no sessions
+// to compute the percentage from, and records them as no-data
+// flags while zeroing the values.
+func (pafs *PerceivedANRFreeSession) SetNoData() {
 	if math.IsNaN(pafs.ANRFreeSessions) {
-		pafs.NaN = true
+		pafs.NoData = true
 		pafs.ANRFreeSessions = 0
 	}
 
-	if math.IsNaN(pafs.Delta) {
-		pafs.DeltaNaN = true
-		pafs.Delta = 0
+	if math.IsNaN(pafs.UnselectedANRFreeSessions) {
+		pafs.UnselectedNoData = true
+		pafs.UnselectedANRFreeSessions = 0
 	}
 }
 
-// SetNaNs sets the NaN bits if any cold,
-// warm or hot values are NaN.
-func (lm *LaunchMetric) SetNaNs() {
+// SetNoData detects launch p95 values that came out as NaN,
+// which happens when there were no launch timings to compute
+// the quantile from, and records them as no-data flags while
+// zeroing the values.
+func (lm *LaunchMetric) SetNoData() {
 	if math.IsNaN(lm.ColdLaunchP95) {
-		lm.ColdNaN = true
+		lm.ColdNoData = true
 		lm.ColdLaunchP95 = 0
 	}
-	if math.IsNaN(lm.ColdDelta) || math.IsInf(lm.ColdDelta, 0) {
-		lm.ColdDeltaNaN = true
-		lm.ColdDelta = 0
+	if math.IsNaN(lm.UnselectedColdLaunchP95) {
+		lm.UnselectedColdNoData = true
+		lm.UnselectedColdLaunchP95 = 0
 	}
 	if math.IsNaN(lm.WarmLaunchP95) {
-		lm.WarmNaN = true
+		lm.WarmNoData = true
 		lm.WarmLaunchP95 = 0
 	}
-	if math.IsNaN(lm.WarmDelta) || math.IsInf(lm.WarmDelta, 0) {
-		lm.WarmDeltaNaN = true
-		lm.WarmDelta = 0
+	if math.IsNaN(lm.UnselectedWarmLaunchP95) {
+		lm.UnselectedWarmNoData = true
+		lm.UnselectedWarmLaunchP95 = 0
 	}
 	if math.IsNaN(lm.HotLaunchP95) {
-		lm.HotNaN = true
+		lm.HotNoData = true
 		lm.HotLaunchP95 = 0
 	}
-	if math.IsNaN(lm.HotDelta) || math.IsInf(lm.HotDelta, 0) {
-		lm.HotDeltaNaN = true
-		lm.HotDelta = 0
+	if math.IsNaN(lm.UnselectedHotLaunchP95) {
+		lm.UnselectedHotNoData = true
+		lm.UnselectedHotLaunchP95 = 0
 	}
 }

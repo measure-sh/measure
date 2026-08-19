@@ -530,7 +530,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 		}
 		ctx := chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "issue_free"))
 
-		crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err = app.GetIssueFreeMetrics(ctx, deps.RchPool, &af, excludedVersions)
+		crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err = app.GetIssueFreeMetrics(ctx, deps.RchPool, &af)
 		if err != nil {
 			err = fmt.Errorf("failed to fetch issue free metrics: %w", err)
 		}
@@ -585,22 +585,22 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"cold_launch": gin.H{
-			"p95":       launch.ColdLaunchP95,
-			"delta":     launch.ColdDelta,
-			"nan":       launch.ColdNaN,
-			"delta_nan": launch.ColdDeltaNaN,
+			"p95":                launch.ColdLaunchP95,
+			"unselected_p95":     launch.UnselectedColdLaunchP95,
+			"no_data":            launch.ColdNoData,
+			"unselected_no_data": launch.UnselectedColdNoData,
 		},
 		"warm_launch": gin.H{
-			"p95":       launch.WarmLaunchP95,
-			"delta":     launch.WarmDelta,
-			"nan":       launch.WarmNaN,
-			"delta_nan": launch.WarmDeltaNaN,
+			"p95":                launch.WarmLaunchP95,
+			"unselected_p95":     launch.UnselectedWarmLaunchP95,
+			"no_data":            launch.WarmNoData,
+			"unselected_no_data": launch.UnselectedWarmNoData,
 		},
 		"hot_launch": gin.H{
-			"p95":       launch.HotLaunchP95,
-			"delta":     launch.HotDelta,
-			"nan":       launch.HotNaN,
-			"delta_nan": launch.HotDeltaNaN,
+			"p95":                launch.HotLaunchP95,
+			"unselected_p95":     launch.UnselectedHotLaunchP95,
+			"no_data":            launch.HotNoData,
+			"unselected_no_data": launch.UnselectedHotNoData,
 		},
 		"adoption":                      adoption,
 		"sizes":                         sizes,

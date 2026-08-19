@@ -107,7 +107,8 @@ describe("MetricsCard", () => {
     status: "success" as const,
     noData: false,
     value: 96.5,
-    delta: 1.2,
+    unselectedValue: 95.3,
+    noComparison: false,
     errorGoodThreshold: 95,
     errorCautionThreshold: 85,
     ...overrides,
@@ -120,7 +121,8 @@ describe("MetricsCard", () => {
     status: "success" as const,
     noData: false,
     value: 97.8,
-    delta: 0.8,
+    unselectedValue: 98.4,
+    noComparison: false,
     errorGoodThreshold: 95,
     errorCautionThreshold: 85,
     ...overrides,
@@ -133,7 +135,8 @@ describe("MetricsCard", () => {
     status: "success" as const,
     noData: false,
     value: 94.2,
-    delta: 1.1,
+    unselectedValue: 93.5,
+    noComparison: false,
     errorGoodThreshold: 95,
     errorCautionThreshold: 85,
     ...overrides,
@@ -146,7 +149,8 @@ describe("MetricsCard", () => {
     status: "success" as const,
     noData: false,
     value: 95.5,
-    delta: 0.9,
+    unselectedValue: 96.2,
+    noComparison: false,
     errorGoodThreshold: 95,
     errorCautionThreshold: 85,
     ...overrides,
@@ -156,9 +160,9 @@ describe("MetricsCard", () => {
     type: "app_start_time",
     status: "success" as const,
     noData: false,
-    noDelta: false,
+    noComparison: false,
     value: 1200,
-    delta: 0.8,
+    unselectedValue: 1500,
     launchType: "Cold",
     ...overrides,
   });
@@ -221,11 +225,11 @@ describe("MetricsCard", () => {
       render(<MetricsCard {...props} />);
 
       expect(screen.getByText("96.5%")).toBeInTheDocument();
-      expect(screen.getByText("1.2x better")).toBeInTheDocument();
+      expect(screen.getByText("95.3%")).toBeInTheDocument();
       expect(screen.getByText("Crash free sessions")).toBeInTheDocument();
       const trendingUpIcon = screen.getByTestId("trending-up-icon");
       expect(trendingUpIcon).toHaveClass("text-green-600");
-      const trendingText = screen.getByText("1.2x better");
+      const trendingText = screen.getByText("95.3%");
       expect(trendingText).toHaveClass("text-green-600");
       const cardContent = screen.getByTestId("card-content");
       const checkCircleIcon =
@@ -262,27 +266,57 @@ describe("MetricsCard", () => {
       expect(alertTriangleIconRed).toHaveClass("text-red-600");
     });
 
-    it("should handle delta trends correctly and their colors", () => {
-      // Test improvement (delta > 1)
-      const improvementProps = createCrashFreeSessionsProps({ delta: 1.5 });
-      const { rerender } = render(<MetricsCard {...improvementProps} />);
+    it("should handle comparison trends correctly and their colors", () => {
+      // Selected value above the unselected value
+      const betterProps = createCrashFreeSessionsProps({
+        value: 96.5,
+        unselectedValue: 95.3,
+      });
+      const { rerender } = render(<MetricsCard {...betterProps} />);
       const trendingUpIcon = screen.getByTestId("trending-up-icon");
       expect(trendingUpIcon).toHaveClass("text-green-600");
-      const trendingText = screen.getByText("1.5x better");
+      const trendingText = screen.getByText("95.3%");
       expect(trendingText).toHaveClass("text-green-600");
 
-      // Test regression (0 < delta < 1)
-      const regressionProps = createCrashFreeSessionsProps({ delta: 0.7 });
-      rerender(<MetricsCard {...regressionProps} />);
+      // Selected value below the unselected value
+      const worseProps = createCrashFreeSessionsProps({
+        value: 96.5,
+        unselectedValue: 98.4,
+      });
+      rerender(<MetricsCard {...worseProps} />);
       const trendingDownIcon = screen.getByTestId("trending-down-icon");
       expect(trendingDownIcon).toHaveClass("text-yellow-600");
-      const trendingTextWorse = screen.getByText("0.7x worse");
+      const trendingTextWorse = screen.getByText("98.4%");
       expect(trendingTextWorse).toHaveClass("text-yellow-600");
 
-      // Test no change (delta = 0)
-      const noChangeProps = createCrashFreeSessionsProps({ delta: 0 });
-      rerender(<MetricsCard {...noChangeProps} />);
-      expect(screen.queryByText(/x better|x worse/)).not.toBeInTheDocument();
+      // Both values display the same
+      const sameProps = createCrashFreeSessionsProps({
+        value: 96.5,
+        unselectedValue: 96.5,
+      });
+      rerender(<MetricsCard {...sameProps} />);
+      expect(screen.getByText("Same as other versions")).toBeInTheDocument();
+      expect(screen.getByText("Same as other versions")).toHaveClass(
+        "text-muted-foreground",
+      );
+      expect(screen.queryByTestId("trending-up-icon")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("trending-down-icon"),
+      ).not.toBeInTheDocument();
+
+      // No unselected versions to compare against
+      const noComparisonProps = createCrashFreeSessionsProps({
+        noComparison: true,
+      });
+      rerender(<MetricsCard {...noComparisonProps} />);
+      expect(screen.queryByText("95.3%")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Same as other versions"),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId("trending-up-icon")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("trending-down-icon"),
+      ).not.toBeInTheDocument();
     });
 
     it("should use configurable thresholds for status icon", () => {
@@ -376,7 +410,7 @@ describe("MetricsCard", () => {
       render(<MetricsCard {...props} />);
 
       expect(screen.getByText("97.8%")).toBeInTheDocument();
-      expect(screen.getByText("0.8x worse")).toBeInTheDocument();
+      expect(screen.getByText("98.4%")).toBeInTheDocument();
       expect(
         screen.getByText("Perceived crash free sessions"),
       ).toBeInTheDocument();
@@ -402,7 +436,7 @@ describe("MetricsCard", () => {
       render(<MetricsCard {...props} />);
 
       expect(screen.getByText("94.2%")).toBeInTheDocument();
-      expect(screen.getByText("1.1x better")).toBeInTheDocument();
+      expect(screen.getByText("93.5%")).toBeInTheDocument();
       expect(screen.getByText("ANR free sessions")).toBeInTheDocument();
     });
 
@@ -426,7 +460,7 @@ describe("MetricsCard", () => {
       render(<MetricsCard {...props} />);
 
       expect(screen.getByText("95.5%")).toBeInTheDocument();
-      expect(screen.getByText("0.9x worse")).toBeInTheDocument();
+      expect(screen.getByText("96.2%")).toBeInTheDocument();
       expect(
         screen.getByText("Perceived ANR free sessions"),
       ).toBeInTheDocument();
@@ -439,10 +473,10 @@ describe("MetricsCard", () => {
       render(<MetricsCard {...props} />);
 
       expect(screen.getByText("1200ms")).toBeInTheDocument();
-      expect(screen.getByText("0.8x faster")).toBeInTheDocument();
+      expect(screen.getByText("1500ms")).toBeInTheDocument();
       const trendingDownIcon = screen.getByTestId("trending-down-icon");
       expect(trendingDownIcon).toHaveClass("text-green-600");
-      const trendingText = screen.getByText("0.8x faster");
+      const trendingText = screen.getByText("1500ms");
       expect(trendingText).toHaveClass("text-green-600");
       const cardContent = screen.getByTestId("card-content");
       const checkCircleIcon =
@@ -451,64 +485,100 @@ describe("MetricsCard", () => {
     });
 
     it("should show correct status icons for app start time and their colors", () => {
-      // Test good performance (delta <= 1)
-      const goodProps = createAppStartTimeProps({ delta: 0.8 });
+      // Selected p95 below the unselected p95
+      const goodProps = createAppStartTimeProps({
+        value: 1200,
+        unselectedValue: 1500,
+      });
       const { rerender } = render(<MetricsCard {...goodProps} />);
       const cardContent = screen.getByTestId("card-content");
       const checkCircleIcon =
         within(cardContent).getByTestId("check-circle-icon");
       expect(checkCircleIcon).toHaveClass("text-green-600");
 
-      // Test poor performance (delta > 1)
-      const poorProps = createAppStartTimeProps({ delta: 1.5 });
+      // Selected p95 above the unselected p95
+      const poorProps = createAppStartTimeProps({
+        value: 1200,
+        unselectedValue: 900,
+      });
       rerender(<MetricsCard {...poorProps} />);
       const cardContent2 = screen.getByTestId("card-content");
       const alertTriangleIcon = within(cardContent2).getByTestId(
         "alert-triangle-icon",
       );
       expect(alertTriangleIcon).toHaveClass("text-yellow-600");
+
+      // Slower selected p95 with no comparison still shows the green check
+      const noComparisonProps = createAppStartTimeProps({
+        value: 1200,
+        unselectedValue: 900,
+        noComparison: true,
+      });
+      rerender(<MetricsCard {...noComparisonProps} />);
+      const cardContent3 = screen.getByTestId("card-content");
+      const checkCircleIcon3 =
+        within(cardContent3).getByTestId("check-circle-icon");
+      expect(checkCircleIcon3).toHaveClass("text-green-600");
     });
 
-    it("should handle start time delta trends correctly and their colors", () => {
-      // Test slower performance (delta > 1)
-      const slowerProps = createAppStartTimeProps({ delta: 1.3 });
+    it("should handle start time comparison trends correctly and their colors", () => {
+      // Selected p95 above the unselected p95
+      const slowerProps = createAppStartTimeProps({
+        value: 1200,
+        unselectedValue: 900,
+      });
       const { rerender } = render(<MetricsCard {...slowerProps} />);
       const trendingUpIcon = screen.getByTestId("trending-up-icon");
       expect(trendingUpIcon).toHaveClass("text-yellow-600");
-      const trendingText = screen.getByText("1.3x slower");
+      const trendingText = screen.getByText("900ms");
       expect(trendingText).toHaveClass("text-yellow-600");
 
-      // Test faster performance (0 < delta < 1)
-      const fasterProps = createAppStartTimeProps({ delta: 0.7 });
+      // Selected p95 below the unselected p95
+      const fasterProps = createAppStartTimeProps({
+        value: 1200,
+        unselectedValue: 1500,
+      });
       rerender(<MetricsCard {...fasterProps} />);
       const trendingDownIcon = screen.getByTestId("trending-down-icon");
       expect(trendingDownIcon).toHaveClass("text-green-600");
-      const trendingTextFaster = screen.getByText("0.7x faster");
+      const trendingTextFaster = screen.getByText("1500ms");
       expect(trendingTextFaster).toHaveClass("text-green-600");
+
+      // Both values display the same
+      const sameProps = createAppStartTimeProps({
+        value: 1200,
+        unselectedValue: 1200,
+      });
+      rerender(<MetricsCard {...sameProps} />);
+      expect(screen.getByText("Same as other versions")).toBeInTheDocument();
+      expect(screen.getByText("Same as other versions")).toHaveClass(
+        "text-muted-foreground",
+      );
+      expect(screen.queryByTestId("trending-up-icon")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("trending-down-icon"),
+      ).not.toBeInTheDocument();
     });
 
-    it("should not show delta trend when noDelta is true", () => {
-      // Test slower performance (delta > 1)
+    it("should not show a comparison when noComparison is true", () => {
       const slowerProps = createAppStartTimeProps({
-        delta: 1.3,
-        noDelta: true,
+        value: 1200,
+        unselectedValue: 900,
+        noComparison: true,
       });
       const { rerender } = render(<MetricsCard {...slowerProps} />);
-      const trendingUpIcon = screen.queryByTestId("trending-up-icon");
-      expect(trendingUpIcon).toBeNull();
-      const trendingText = screen.queryByText("1.3x slower");
-      expect(trendingText).toBeNull();
+      expect(screen.queryByTestId("trending-up-icon")).toBeNull();
+      expect(screen.queryByText("900ms")).toBeNull();
 
-      // Test faster performance (0 < delta < 1)
       const fasterProps = createAppStartTimeProps({
-        delta: 0.7,
-        noDelta: true,
+        value: 1200,
+        unselectedValue: 1500,
+        noComparison: true,
       });
       rerender(<MetricsCard {...fasterProps} />);
-      const trendingDownIcon = screen.queryByTestId("trending-down-icon");
-      expect(trendingDownIcon).toBeNull();
-      const trendingTextFaster = screen.queryByText("0.7x faster");
-      expect(trendingTextFaster).toBeNull();
+      expect(screen.queryByTestId("trending-down-icon")).toBeNull();
+      expect(screen.queryByText("1500ms")).toBeNull();
+      expect(screen.queryByText("Same as other versions")).toBeNull();
     });
   });
 
@@ -650,7 +720,7 @@ describe("MetricsCard", () => {
         "Crash free sessions = (1 - Sessions which experienced a crash",
       );
       expect(tooltipContent).toHaveTextContent(
-        "Delta value = Crash free sessions percentage",
+        "Comparison = Crash free sessions percentage of unselected app versions",
       );
       expect(tooltipContent).toHaveTextContent("Good (> 95%)");
       expect(tooltipContent).toHaveTextContent("Caution (> 85%)");
@@ -679,7 +749,7 @@ describe("MetricsCard", () => {
         "App start time = p95 Hot launch time",
       );
       expect(tooltipContent).toHaveTextContent(
-        "Delta value = p95 Hot launch time",
+        "Comparison = p95 Hot launch time of unselected app versions",
       );
     });
 
@@ -712,11 +782,18 @@ describe("MetricsCard", () => {
 
   describe("Edge Cases", () => {
     it("should handle zero values correctly", () => {
-      const props = createCrashFreeSessionsProps({ value: 0, delta: 0 });
+      const props = createCrashFreeSessionsProps({
+        value: 0,
+        unselectedValue: 0,
+      });
       render(<MetricsCard {...props} />);
 
       expect(screen.getByText("0%")).toBeInTheDocument();
-      expect(screen.queryByText(/x better|x worse/)).not.toBeInTheDocument();
+      expect(screen.getByText("Same as other versions")).toBeInTheDocument();
+      expect(screen.queryByTestId("trending-up-icon")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("trending-down-icon"),
+      ).not.toBeInTheDocument();
     });
 
     it("should handle very large numbers in app adoption", () => {

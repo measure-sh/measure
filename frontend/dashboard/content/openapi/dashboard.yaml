@@ -504,8 +504,13 @@ paths:
         `to` values must be ISO 8601 UTC strings in milliseconds precision and
         default to a last 7 days time range if not supplied.
 
-        `nan` can be true in the response if some computed values result in a
-        division by zero error.
+        Each session and launch metric also carries an `unselected_` variant
+        holding the same metric computed over the app versions not selected by
+        the version filters, for comparison against the selected versions.
+
+        `no_data` and `unselected_no_data` are true when there was no data to
+        compute the metric, for example no sessions on that side. The metric
+        value is then a placeholder zero.
       parameters:
         - name: id
           in: path
@@ -545,61 +550,73 @@ paths:
                         type: number
                       adoption:
                         type: number
-                      nan:
+                      no_data:
                         type: boolean
                   anr_free_sessions:
                     type: object
                     properties:
                       anr_free_sessions:
                         type: number
-                      delta:
+                      unselected_anr_free_sessions:
                         type: number
-                      nan:
+                      no_data:
+                        type: boolean
+                      unselected_no_data:
                         type: boolean
                   cold_launch:
                     type: object
                     properties:
-                      delta:
-                        type: number
-                      nan:
-                        type: boolean
                       p95:
                         type: number
+                      unselected_p95:
+                        type: number
+                      no_data:
+                        type: boolean
+                      unselected_no_data:
+                        type: boolean
                   crash_free_sessions:
                     type: object
                     properties:
                       crash_free_sessions:
                         type: number
-                      delta:
+                      unselected_crash_free_sessions:
                         type: number
-                      nan:
+                      no_data:
+                        type: boolean
+                      unselected_no_data:
                         type: boolean
                   hot_launch:
                     type: object
                     properties:
-                      delta:
-                        type: number
-                      nan:
-                        type: boolean
                       p95:
                         type: number
+                      unselected_p95:
+                        type: number
+                      no_data:
+                        type: boolean
+                      unselected_no_data:
+                        type: boolean
                   perceived_anr_free_sessions:
                     type: object
                     properties:
                       perceived_anr_free_sessions:
                         type: number
-                      delta:
+                      unselected_perceived_anr_free_sessions:
                         type: number
-                      nan:
+                      no_data:
+                        type: boolean
+                      unselected_no_data:
                         type: boolean
                   perceived_crash_free_sessions:
                     type: object
                     properties:
                       perceived_crash_free_sessions:
                         type: number
-                      delta:
+                      unselected_perceived_crash_free_sessions:
                         type: number
-                      nan:
+                      no_data:
+                        type: boolean
+                      unselected_no_data:
                         type: boolean
                   sizes:
                     type: object
@@ -610,17 +627,19 @@ paths:
                         type: number
                       delta:
                         type: number
-                      nan:
+                      no_data:
                         type: boolean
                   warm_launch:
                     type: object
                     properties:
-                      delta:
-                        type: number
-                      nan:
-                        type: boolean
                       p95:
                         type: number
+                      unselected_p95:
+                        type: number
+                      no_data:
+                        type: boolean
+                      unselected_no_data:
+                        type: boolean
               examples:
                 response:
                   value:
@@ -628,40 +647,47 @@ paths:
                       all_versions: 53
                       selected_version: 23
                       adoption: 43.4
-                      nan: false
+                      no_data: false
                     anr_free_sessions:
-                      anr_free_sessions: 100
-                      delta: 1
-                      nan: false
+                      anr_free_sessions: 99.4
+                      unselected_anr_free_sessions: 99.1
+                      no_data: false
+                      unselected_no_data: false
                     cold_launch:
-                      delta: 0
-                      nan: true
-                      p95: 0
+                      p95: 923
+                      unselected_p95: 940
+                      no_data: false
+                      unselected_no_data: false
                     crash_free_sessions:
-                      crash_free_sessions: 0
-                      delta: 1
-                      nan: false
+                      crash_free_sessions: 98.2
+                      unselected_crash_free_sessions: 98.6
+                      no_data: false
+                      unselected_no_data: false
                     hot_launch:
-                      delta: 0
-                      nan: true
-                      p95: 0
+                      p95: 152
+                      unselected_p95: 160
+                      no_data: false
+                      unselected_no_data: false
                     perceived_anr_free_sessions:
-                      perceived_anr_free_sessions: 100
-                      delta: 1
-                      nan: false
+                      perceived_anr_free_sessions: 99.6
+                      unselected_perceived_anr_free_sessions: 99.3
+                      no_data: false
+                      unselected_no_data: false
                     perceived_crash_free_sessions:
-                      perceived_crash_free_sessions: 0
-                      delta: 1
-                      nan: false
+                      perceived_crash_free_sessions: 98.5
+                      unselected_perceived_crash_free_sessions: 98.9
+                      no_data: false
+                      unselected_no_data: false
                     sizes:
                       average_app_size: 26298701
                       selected_app_size: 25887094
                       delta: -411607
-                      nan: false
+                      no_data: false
                     warm_launch:
-                      delta: 0
-                      nan: true
-                      p95: 0
+                      p95: 407
+                      unselected_p95: 415
+                      no_data: false
+                      unselected_no_data: false
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":

@@ -10,9 +10,9 @@ import (
 	"backend/testinfra"
 )
 
-// GetIssueFreeMetrics must compute both crashFree.Delta & perceivedCrashFree.Delta
-// as ratios against their own unselected baselines.
-func TestGetIssueFreeMetricsDeltas(t *testing.T) {
+// GetIssueFreeMetrics must compute crash free percentages for the
+// selected app versions and, independently, for the unselected ones.
+func TestGetIssueFreeMetricsUnselected(t *testing.T) {
 	f := newPlotFixture(t)
 	ts := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
 	team, app := f.teamIDStr(), f.appIDStr()
@@ -29,30 +29,59 @@ func TestGetIssueFreeMetricsDeltas(t *testing.T) {
 	af.Versions = []string{"v1"}
 	af.VersionCodes = []string{"1"}
 
-	var unselected filter.Versions
-	unselected.Add("v2", "2")
-
-	crashFree, perceivedCrashFree, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, af, unselected)
+	crashFree, perceivedCrashFree, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, af)
 	if err != nil {
 		t.Fatalf("GetIssueFreeMetrics: %v", err)
 	}
 
 	// selected: (1 - 1/9) * 100 = 88.89, unselected: (1 - 2/10) * 100 = 80.
-	// RoundTwoDecimalsFloat64 rounds up (math.Ceil), so
-	// delta = ceil(88.89 / 80 * 100) / 100 = 1.12.
 	const wantCrashFree = 88.89
-	const wantDelta = 1.12
+	const wantUnselected = 80.0
 
 	if crashFree.CrashFreeSessions != wantCrashFree {
 		t.Errorf("crashFree.CrashFreeSessions = %v, want %v", crashFree.CrashFreeSessions, wantCrashFree)
 	}
-	if crashFree.Delta != wantDelta {
-		t.Errorf("crashFree.Delta = %v, want %v", crashFree.Delta, wantDelta)
+	if crashFree.UnselectedCrashFreeSessions != wantUnselected {
+		t.Errorf("crashFree.UnselectedCrashFreeSessions = %v, want %v", crashFree.UnselectedCrashFreeSessions, wantUnselected)
+	}
+	if crashFree.UnselectedNoData {
+		t.Error("crashFree.UnselectedNoData = true, want false")
 	}
 
 	// Seeds hardcode exception.foreground=true, so perceived values equal
 	// non-perceived ones here.
-	if perceivedCrashFree.Delta != wantDelta {
-		t.Errorf("perceivedCrashFree.Delta = %v, want %v", perceivedCrashFree.Delta, wantDelta)
+	if perceivedCrashFree.UnselectedCrashFreeSessions != wantUnselected {
+		t.Errorf("perceivedCrashFree.UnselectedCrashFreeSessions = %v, want %v", perceivedCrashFree.UnselectedCrashFreeSessions, wantUnselected)
+	}
+}
+
+// When the filter matches every seeded app version, there are no
+// unselected sessions, so the unselected side must report no data
+// with a zero value.
+func TestGetIssueFreeMetricsUnselectedNoData(t *testing.T) {
+	f := newPlotFixture(t)
+	ts := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
+	team, app := f.teamIDStr(), f.appIDStr()
+
+	seedEventRows(f.ctx, t, team, app, 9, testinfra.EventRow{AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+	seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{Type: "exception", AppVersion: "v1", AppBuild: "1", Severity: "fatal", Timestamp: ts})
+
+	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
+	af.Versions = []string{"v1"}
+	af.VersionCodes = []string{"1"}
+
+	crashFree, perceivedCrashFree, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, af)
+	if err != nil {
+		t.Fatalf("GetIssueFreeMetrics: %v", err)
+	}
+
+	if !crashFree.UnselectedNoData {
+		t.Error("crashFree.UnselectedNoData = false, want true")
+	}
+	if crashFree.UnselectedCrashFreeSessions != 0 {
+		t.Errorf("crashFree.UnselectedCrashFreeSessions = %v, want 0", crashFree.UnselectedCrashFreeSessions)
+	}
+	if !perceivedCrashFree.UnselectedNoData {
+		t.Error("perceivedCrashFree.UnselectedNoData = false, want true")
 	}
 }

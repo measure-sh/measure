@@ -2426,7 +2426,7 @@ func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, af *filter.Ap
 
 	// bail out if app has not been onboarded
 	if !a.Onboarded {
-		size.SetNaNs()
+		size.SetNoData()
 		return
 	}
 
@@ -2476,7 +2476,8 @@ func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, af *filter.Ap
 }
 
 // GetIssueFreeMetrics computes crash and anr free sessions
-// percentage and its deltas.
+// percentage for the selected app versions and, separately,
+// for the unselected app versions.
 //
 // - Crash free sessions
 // - Perceived crash free sessions
@@ -2486,7 +2487,6 @@ func (a App) GetIssueFreeMetrics(
 	ctx context.Context,
 	rch driver.Conn,
 	af *filter.AppFilter,
-	unselectedVersions filter.Versions,
 ) (
 	crashFree *metrics.CrashFreeSession,
 	perceivedCrashFree *metrics.PerceivedCrashFreeSession,
@@ -2539,10 +2539,6 @@ func (a App) GetIssueFreeMetrics(
 		perceivedCrashSelected, perceivedCrashUnselected uint64
 		anrSelected, anrUnselected                       uint64
 		perceivedANRSelected, perceivedANRUnselected     uint64
-		crashFreeUnselected                              float64
-		perceivedCrashFreeUnselected                     float64
-		anrFreeUnselected                                float64
-		perceivedANRFreeUnselected                       float64
 	)
 
 	dest := []any{
@@ -2584,88 +2580,32 @@ func (a App) GetIssueFreeMetrics(
 	}
 
 	if unselected == 0 {
-		crashFreeUnselected = math.NaN()
-		perceivedCrashFreeUnselected = math.NaN()
+		crashFree.UnselectedCrashFreeSessions = math.NaN()
+		perceivedCrashFree.UnselectedCrashFreeSessions = math.NaN()
 
 		switch a.Family() {
 		case opsys.Android:
-			anrFreeUnselected = math.NaN()
-			perceivedANRFreeUnselected = math.NaN()
+			anrFree.UnselectedANRFreeSessions = math.NaN()
+			perceivedANRFree.UnselectedANRFreeSessions = math.NaN()
 		}
 	} else {
-		crashFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(crashUnselected) / float64(unselected))) * 100)
-		perceivedCrashFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedCrashUnselected) / float64(unselected))) * 100)
+		crashFree.UnselectedCrashFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(crashUnselected) / float64(unselected))) * 100)
+		perceivedCrashFree.UnselectedCrashFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedCrashUnselected) / float64(unselected))) * 100)
 
 		switch a.Family() {
 		case opsys.Android:
-			anrFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(anrUnselected) / float64(unselected))) * 100)
-			perceivedANRFreeUnselected = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedANRUnselected) / float64(unselected))) * 100)
+			anrFree.UnselectedANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(anrUnselected) / float64(unselected))) * 100)
+			perceivedANRFree.UnselectedANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedANRUnselected) / float64(unselected))) * 100)
 		}
 	}
 
-	// compute delta
-	if unselectedVersions.HasVersions() {
-		// avoid division by zero
-		if crashFreeUnselected != 0 {
-			// Round to two decimal places
-			crashFree.Delta = numeric.RoundTwoDecimalsFloat64(crashFree.CrashFreeSessions / crashFreeUnselected)
-		} else {
-			crashFree.Delta = 1
-		}
-
-		if perceivedCrashFreeUnselected != 0 {
-			perceivedCrashFree.Delta = numeric.RoundTwoDecimalsFloat64(perceivedCrashFree.CrashFreeSessions / perceivedCrashFreeUnselected)
-		} else {
-			perceivedCrashFree.Delta = 1
-		}
-
-		switch a.Family() {
-		case opsys.Android:
-			if anrFreeUnselected != 0 {
-				anrFree.Delta = numeric.RoundTwoDecimalsFloat64(anrFree.ANRFreeSessions / anrFreeUnselected)
-			} else {
-				anrFree.Delta = 1
-			}
-
-			if perceivedANRFreeUnselected != 0 {
-				perceivedANRFree.Delta = numeric.RoundTwoDecimalsFloat64(perceivedANRFree.ANRFreeSessions / perceivedANRFreeUnselected)
-			} else {
-				perceivedANRFree.Delta = 1
-			}
-		}
-
-	} else {
-		// because if there are no unselected
-		// app versions, then:
-		// crash free sessions of unselected app versions = crash free sessions of selected app versions
-		// ratio between the two, will be always 1
-		if crashFree.CrashFreeSessions != 0 {
-			crashFree.Delta = 1
-		}
-
-		if perceivedCrashFree.CrashFreeSessions != 0 {
-			perceivedCrashFree.Delta = 1
-		}
-
-		switch a.Family() {
-		case opsys.Android:
-			if anrFree.ANRFreeSessions != 0 {
-				anrFree.Delta = 1
-			}
-
-			if perceivedANRFree.ANRFreeSessions != 0 {
-				perceivedANRFree.Delta = 1
-			}
-		}
-	}
-
-	crashFree.SetNaNs()
-	perceivedCrashFree.SetNaNs()
+	crashFree.SetNoData()
+	perceivedCrashFree.SetNoData()
 
 	switch a.Family() {
 	case opsys.Android:
-		anrFree.SetNaNs()
-		perceivedANRFree.SetNaNs()
+		anrFree.SetNoData()
+		perceivedANRFree.SetNoData()
 	}
 
 	return
@@ -2695,15 +2635,15 @@ func (a App) GetAdoptionMetrics(ctx context.Context, rch driver.Conn, af *filter
 		return
 	}
 
-	adoption.SetNaNs()
+	adoption.SetNoData()
 
 	return
 }
 
 // GetLaunchMetrics computes cold, warm and hot launch quantiles
-// and deltas while respecting all applicable app filters.
-// Deltas are computed between launch metric values of selected and
-// unselected app versions.
+// while respecting all applicable app filters. Each quantile is
+// computed twice: once over the selected app versions and once
+// over the unselected app versions.
 func (a App) GetLaunchMetrics(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (launch *metrics.LaunchMetric, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	launch = &metrics.LaunchMetric{}
@@ -2723,9 +2663,9 @@ func (a App) GetLaunchMetrics(ctx context.Context, rch driver.Conn, af *filter.A
 		Select("round(quantileMergeIf(0.95)(cold_launch_p95, app_version in (?)), 2) as selected_cold_launch_p95", selectedVersions.Parameterize()).
 		Select("round(quantileMergeIf(0.95)(warm_launch_p95, app_version in (?)), 2) as selected_warm_launch_p95", selectedVersions.Parameterize()).
 		Select("round(quantileMergeIf(0.95)(hot_launch_p95, app_version in (?)), 2) as selected_hot_launch_p95", selectedVersions.Parameterize()).
-		Select("round((selected_cold_launch_p95 / unselected.cold_launch_p95), 2) as cold_delta").
-		Select("round((selected_warm_launch_p95 / unselected.warm_launch_p95), 2) as warm_delta").
-		Select("round((selected_hot_launch_p95 / unselected.hot_launch_p95), 2) as hot_delta").
+		Select("round(unselected.cold_launch_p95, 2) as unselected_cold_launch_p95").
+		Select("round(unselected.warm_launch_p95, 2) as unselected_warm_launch_p95").
+		Select("round(unselected.hot_launch_p95, 2) as unselected_hot_launch_p95").
 		From(config.AppMetricsTable).
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", af.AppID).
@@ -2737,14 +2677,14 @@ func (a App) GetLaunchMetrics(ctx context.Context, rch driver.Conn, af *filter.A
 		&launch.ColdLaunchP95,
 		&launch.WarmLaunchP95,
 		&launch.HotLaunchP95,
-		&launch.ColdDelta,
-		&launch.WarmDelta,
-		&launch.HotDelta,
+		&launch.UnselectedColdLaunchP95,
+		&launch.UnselectedWarmLaunchP95,
+		&launch.UnselectedHotLaunchP95,
 	); err != nil {
 		return
 	}
 
-	launch.SetNaNs()
+	launch.SetNoData()
 
 	return
 }
