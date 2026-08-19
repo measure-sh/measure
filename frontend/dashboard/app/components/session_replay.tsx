@@ -31,7 +31,7 @@ import {
   formatMillisToHumanReadable,
   formatTimestampToChartFormat,
 } from "../utils/time_utils";
-import { toastNegative } from "../utils/use_toast";
+import { toastNegative } from "./toast";
 import { buttonVariants } from "./button_variants";
 import CodeBlock, { CODE_BLOCK_CARD_CLASS } from "./code_block";
 import Pill, { PillType } from "./pill";

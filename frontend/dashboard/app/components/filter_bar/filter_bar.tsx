@@ -17,7 +17,7 @@ import {
   type FilterValue,
 } from "../../api/filter_types";
 import { useAppsQuery, useFilterKeysQuery } from "../../query/hooks";
-import { toastNegative } from "../../utils/use_toast";
+import { toastNegative } from "../toast";
 import { useFiltersStore } from "../../stores/provider";
 import { Skeleton } from "../skeleton";
 import AppSelect from "./app_select";

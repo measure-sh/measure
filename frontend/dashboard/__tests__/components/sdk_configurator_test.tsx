@@ -34,7 +34,7 @@ jest.mock("@/app/query/hooks", () => ({
 }));
 
 // Mock toast utilities
-jest.mock("@/app/utils/use_toast", () => ({
+jest.mock("@/app/components/toast", () => ({
   toastPositive: jest.fn(),
   toastNegative: jest.fn(),
 }));
@@ -277,7 +277,7 @@ describe("SdkConfigurator Component", () => {
   });
 
   it("saves crashes config with correct payload, shows loading state, and displays success toast", async () => {
-    const { toastPositive } = require("@/app/utils/use_toast");
+    const { toastPositive } = require("@/app/components/toast");
     simulateMutateSuccess();
 
     render(
@@ -341,7 +341,7 @@ describe("SdkConfigurator Component", () => {
   });
 
   it("saves ANR config with correct payload on successful save", async () => {
-    const { toastPositive } = require("@/app/utils/use_toast");
+    const { toastPositive } = require("@/app/components/toast");
     simulateMutateSuccess();
 
     render(
@@ -402,7 +402,7 @@ describe("SdkConfigurator Component", () => {
   });
 
   it("saves bug reports config with correct payload on successful save", async () => {
-    const { toastPositive } = require("@/app/utils/use_toast");
+    const { toastPositive } = require("@/app/components/toast");
     simulateMutateSuccess();
 
     render(
@@ -459,7 +459,7 @@ describe("SdkConfigurator Component", () => {
   });
 
   it("saves traces config with correct payload on successful save", async () => {
-    const { toastPositive } = require("@/app/utils/use_toast");
+    const { toastPositive } = require("@/app/components/toast");
     simulateMutateSuccess();
 
     render(
@@ -514,7 +514,7 @@ describe("SdkConfigurator Component", () => {
   });
 
   it("saves HTTP config with correct payload including all URL and header fields", async () => {
-    const { toastPositive } = require("@/app/utils/use_toast");
+    const { toastPositive } = require("@/app/components/toast");
     simulateMutateSuccess();
 
     render(
@@ -612,7 +612,7 @@ describe("SdkConfigurator Component", () => {
   });
 
   it("saves masking config with correct payload on successful save", async () => {
-    const { toastPositive } = require("@/app/utils/use_toast");
+    const { toastPositive } = require("@/app/components/toast");
     simulateMutateSuccess();
 
     render(
@@ -668,7 +668,7 @@ describe("SdkConfigurator Component", () => {
   });
 
   it("saves logs config with correct payload on successful save", async () => {
-    const { toastPositive } = require("@/app/utils/use_toast");
+    const { toastPositive } = require("@/app/components/toast");
     simulateMutateSuccess();
 
     render(
@@ -722,7 +722,7 @@ describe("SdkConfigurator Component", () => {
   });
 
   it("saves logs config with automatic collection disabled on successful save", async () => {
-    const { toastPositive } = require("@/app/utils/use_toast");
+    const { toastPositive } = require("@/app/components/toast");
     simulateMutateSuccess();
 
     render(
@@ -776,7 +776,7 @@ describe("SdkConfigurator Component", () => {
   });
 
   it("displays error toast when save fails and keeps save button enabled", async () => {
-    const { toastNegative } = require("@/app/utils/use_toast");
+    const { toastNegative } = require("@/app/components/toast");
     simulateMutateError();
 
     render(
@@ -823,7 +823,7 @@ describe("SdkConfigurator Component", () => {
   });
 
   it("disables save button on successful save", async () => {
-    const { toastPositive } = require("@/app/utils/use_toast");
+    const { toastPositive } = require("@/app/components/toast");
     simulateMutateSuccess();
 
     render(

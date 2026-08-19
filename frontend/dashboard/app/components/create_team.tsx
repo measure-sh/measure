@@ -3,7 +3,7 @@
 import { Plus } from "lucide-react";
 import React, { FormEventHandler, useState } from "react";
 import { useCreateTeamMutation } from "../query/hooks";
-import { toastNegative, toastPositive } from "../utils/use_toast";
+import { toastNegative, toastPositive } from "./toast";
 import { Button } from "./button";
 import {
   Dialog,

@@ -38,7 +38,7 @@ import { ResponsivePie } from "@nivo/pie";
 import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialog";
 import { Progress } from "@/app/components/progress";
 import { navigateTo } from "@/app/utils/navigation";
-import { toastNegative, toastPositive } from "@/app/utils/use_toast";
+import { toastNegative, toastPositive } from "@/app/components/toast";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { use, useEffect, useState } from "react";

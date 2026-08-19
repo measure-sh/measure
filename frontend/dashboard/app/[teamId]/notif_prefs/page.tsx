@@ -8,7 +8,7 @@ import {
   useNotifPrefsQuery,
   useSaveNotifPrefsMutation,
 } from "@/app/query/hooks";
-import { toastNegative, toastPositive } from "@/app/utils/use_toast";
+import { toastNegative, toastPositive } from "@/app/components/toast";
 import { useState } from "react";
 
 type NotifPrefs = typeof emptyNotifPrefs;

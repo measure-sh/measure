@@ -16,7 +16,7 @@ import SdkConfigNumericInput from "@/app/components/sdk_config_numeric_input";
 import { Switch } from "@/app/components/switch";
 import { useSaveSdkConfigMutation } from "@/app/query/hooks";
 import { track } from "@/app/utils/analytics/track";
-import { toastNegative, toastPositive } from "@/app/utils/use_toast";
+import { toastNegative, toastPositive } from "@/app/components/toast";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";

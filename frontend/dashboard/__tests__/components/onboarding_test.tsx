@@ -94,7 +94,7 @@ jest.mock("@/app/api/api_calls", () => {
   };
 });
 
-jest.mock("@/app/utils/use_toast", () => ({
+jest.mock("@/app/components/toast", () => ({
   toastPositive: (...args: any[]) => mockToastPositive(...args),
   toastNegative: (...args: any[]) => mockToastNegative(...args),
 }));

@@ -40,7 +40,7 @@ const getAppPayload = () => ({
   api_key: { ...mockCurrentApp.api_key },
 });
 
-jest.mock("@/app/utils/use_toast", () => ({
+jest.mock("@/app/components/toast", () => ({
   toastPositive: (...args: any[]) => mockToastPositive(...args),
   toastNegative: (...args: any[]) => mockToastNegative(...args),
 }));

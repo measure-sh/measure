@@ -102,7 +102,7 @@ afterAll(() => server.close());
 // --- Store/component imports ---
 import TeamOverview from "@/app/[teamId]/team/page";
 import { Team } from "@/app/api/api_calls";
-import { Toaster } from "@/app/components/toaster";
+import { Toaster } from "@/app/components/toast";
 import { useCreateTeamMutation } from "@/app/query/hooks";
 import { queryClient } from "@/app/query/query_client";
 import { QueryClientProvider } from "@tanstack/react-query";

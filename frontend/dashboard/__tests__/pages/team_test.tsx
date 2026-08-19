@@ -19,7 +19,7 @@ const mockPush = jest.fn();
 const mockSearchParamsGet = jest.fn((_: string): string | null => null);
 const mockSearchParamsToString = jest.fn(() => "");
 
-jest.mock("@/app/utils/use_toast", () => ({
+jest.mock("@/app/components/toast", () => ({
   toastPositive: (...args: any[]) => mockToastPositive(...args),
   toastNegative: (...args: any[]) => mockToastNegative(...args),
 }));

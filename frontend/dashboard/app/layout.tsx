@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { ClientProviders } from "./components/client_providers";
 import { ConsentManager } from "./components/consent_manager";
 import { ThemeProvider } from "./components/theme_provider";
-import { Toaster } from "./components/toaster";
+import { Toaster } from "./components/toast";
 import "./globals.css";
 import { fira_code, josefin_sans, work_sans } from "./utils/fonts";
 import { siteMetadata } from "./utils/metadata";
