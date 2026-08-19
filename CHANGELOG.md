@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Drop unused postgres tables (#4232) by @detj in #4232
 - (**backend**): Merge build & test jobs across service workflows (#4221) by @detj in #4221
 - (**backend**): Fold public oci workflow (#4220) by @detj in #4220
+- (**frontend**): Match formatKMB with backend by @anupcowkur in #4259
 - (**frontend**): Adjust logo positionings for better alignment by @anupcowkur in #4248
 - (**frontend**): Add porsche logo to landing page by @anupcowkur
 - (**frontend**): Redirect removed docs feature pages by @anupcowkur in #4247
