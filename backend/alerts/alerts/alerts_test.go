@@ -3015,6 +3015,33 @@ func TestFormatTeamDailySummarySlackMessage(t *testing.T) {
 	})
 }
 
+func TestFormatSlackAlertMessage(t *testing.T) {
+	// The message comes from the shared email builders: <br> marks line
+	// breaks and app-generated text carries raw mrkdwn control characters.
+	msg := formatSlackAlertMessage(
+		"Checkout - Crash Spike Alert",
+		"Crashes are spiking at:<br><br>Foo.kt: <init>() - x < 1",
+		"https://test.measure.sh/dashboard",
+	)
+
+	got := sectionText(t, msg.Blocks[1])
+	want := "Crashes are spiking at:\n\n" +
+		"Foo.kt: &lt;init&gt;() - x &lt; 1"
+	if got != want {
+		t.Errorf("section text = %q, want %q", got, want)
+	}
+	if strings.Contains(got, "<br>") {
+		t.Errorf("section text = %q, want no <br> remnants", got)
+	}
+
+	// The header is plain_text, which Slack renders verbatim, so the title
+	// must stay unescaped there.
+	header := msg.Blocks[0].(slack.SlackHeaderBlock)
+	if header.Text.Text != "🚨 Checkout - Crash Spike Alert" {
+		t.Errorf("header = %q, want the unescaped title", header.Text.Text)
+	}
+}
+
 func TestSortedAppSummaries(t *testing.T) {
 	entries := []appSummaryWithSessions{
 		{Summary: email.AppDailySummary{AppName: "Bravo"}, SessionsToday: 5},

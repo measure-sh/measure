@@ -18,6 +18,7 @@ import (
 	"backend/libs/config"
 	"backend/libs/email"
 	"backend/libs/numeric"
+	libslack "backend/libs/slack"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -870,6 +871,14 @@ func formatSlackAlertMessage(title, message, url string) slack.SlackMessage {
 		},
 	}
 
+	// The message is shared with the email path and arrives formatted for
+	// HTML, with <br> marking line breaks and app-generated text (a crash
+	// message like "<init>", a user-typed bug report description) left as is.
+	// Rewrite the breaks as newlines, then escape the characters Slack parses
+	// as markup so the text renders literally.
+	message = strings.ReplaceAll(message, "<br>", "\n")
+	message = libslack.EscapeMrkdwn(message)
+
 	blocks = append(blocks, slack.SlackSectionBlock{
 		Type: "section",
 		Text: &slack.SlackText{
@@ -909,17 +918,6 @@ func formatSlackAlertMessage(title, message, url string) slack.SlackMessage {
 	return slack.SlackMessage{
 		Blocks: blocks,
 	}
-}
-
-// escapeSlackMrkdwn replaces &, <, and > with their HTML entities. Slack
-// parses these three characters as control characters in mrkdwn text (< and >
-// delimit links and mentions, & starts an entity), so an app named
-// "<Foo & Bar>" would otherwise render wrongly or drop text.
-func escapeSlackMrkdwn(s string) string {
-	s = strings.ReplaceAll(s, "&", "&amp;")
-	s = strings.ReplaceAll(s, "<", "&lt;")
-	s = strings.ReplaceAll(s, ">", "&gt;")
-	return s
 }
 
 // slackHeaderTextLimit is the maximum number of characters Slack accepts in
@@ -997,7 +995,7 @@ func formatTeamDailySummarySlackMessage(teamName, dashboardURL string, date time
 				Type: "section",
 				Text: &slack.SlackText{
 					Type: "mrkdwn",
-					Text: fmt.Sprintf("*%s*", escapeSlackMrkdwn(app.AppName)),
+					Text: fmt.Sprintf("*%s*", libslack.EscapeMrkdwn(app.AppName)),
 				},
 			},
 			slack.SlackSectionBlock{

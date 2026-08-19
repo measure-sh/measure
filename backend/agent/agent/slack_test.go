@@ -166,7 +166,7 @@ func TestSlackUnescaper(t *testing.T) {
 	// see what the user typed.
 	in := "crash rate &gt; 2% in Food &amp; Drink?"
 	want := "crash rate > 2% in Food & Drink?"
-	if got := slackUnescaper.Replace(in); got != want {
+	if got := slack.UnescapeMrkdwn(in); got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
 }

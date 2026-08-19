@@ -364,7 +364,7 @@ func (c *Config) slackReply(ctx context.Context, ev slack.AgentEvent, teamID uui
 	}
 
 	question := strings.TrimSpace(slackMentionRE.ReplaceAllString(ev.Text, ""))
-	question = slackUnescaper.Replace(question)
+	question = slack.UnescapeMrkdwn(question)
 	if question == "" {
 		return "Hey! I can help you debug your app, from crashes and errors to slow sessions and network issues. What are you looking into?", nil
 	}
@@ -669,17 +669,6 @@ func noAppsReply(dashboard string) string {
 // slackMentionRE matches user mentions like <@U12345> in message text.
 var slackMentionRE = regexp.MustCompile(`<@[^>]+>`)
 
-// slackUnescaper undoes the HTML escaping Slack applies to message text on
-// the way in, so the model reads ">" where the user typed it instead of
-// "&gt;".
-var slackUnescaper = strings.NewReplacer("&lt;", "<", "&gt;", ">", "&amp;", "&")
-
-// slackEscaper escapes the three characters Slack parses as markup. Replies
-// pass through it so text the model echoes (a "<!channel>" planted in the
-// question, a literal "<30s") renders as text instead of executing with
-// the bot's authority or breaking the message.
-var slackEscaper = strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;")
-
 var (
 	mdHeading = regexp.MustCompile(`(?m)^#{1,6}\s+(.+)$`)
 	mdBold    = regexp.MustCompile(`\*\*(.+?)\*\*`)
@@ -714,12 +703,12 @@ func stripCellMarkup(s string) string {
 // first, so the angle brackets the link rewrite emits survive it.
 func toMrkdwn(text string) string {
 	text, tables := extractTables(text)
-	text = slackEscaper.Replace(text)
+	text = slack.EscapeMrkdwn(text)
 	text = mdHeading.ReplaceAllString(text, "*$1*")
 	text = mdBold.ReplaceAllString(text, "*$1*")
 	text = mdLink.ReplaceAllString(text, "<$2|$1>")
 	for i, tbl := range tables {
-		fenced := "```\n" + slackEscaper.Replace(tbl) + "\n```"
+		fenced := "```\n" + slack.EscapeMrkdwn(tbl) + "\n```"
 		text = strings.Replace(text, tablePlaceholder(i), fenced, 1)
 	}
 	return text
@@ -1084,7 +1073,7 @@ func selectContextMessages(msgs []slack.Message, botUserID, mentionTS, through s
 func renderSlackContext(msgs []slack.Message) string {
 	var b strings.Builder
 	for _, m := range msgs {
-		text := strings.TrimSpace(slackUnescaper.Replace(m.Text))
+		text := strings.TrimSpace(slack.UnescapeMrkdwn(m.Text))
 		if text == "" {
 			continue
 		}
