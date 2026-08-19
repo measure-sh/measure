@@ -112,43 +112,89 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 
 	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "session_count"))
 
+	// The events table ORDER BY key is:
+	//
+	//   (team_id, app_id, app_version, app_build, timestamp, session_id, id)
+	//       1        2         3           4          5           6       7
+	//
+	// A scan can skip data only when the WHERE clause fills this key from
+	// the left. This query knows positions 1 and 2. It also knows session
+	// ids, but session_id is at position 6, behind columns it does not
+	// know, so session ids alone cannot narrow a scan. sessions_index
+	// maps a session id to its app versions and its time range. The
+	// bounds scalar fills positions 3, 4 and 5 with those values. The
+	// table is partitioned by month of timestamp, so the time range also
+	// skips whole partitions. The bounds range still contains every event
+	// of the matched sessions, so the result does not change.
+	//
+	// The bloom filter indexes on the fingerprint columns prune the
+	// issue_pairs scan. ClickHouse computes a scalar once, so one bounds
+	// tuple is cheaper than separate subqueries. affected_sessions uses a
+	// join, not "session_id IN (...)", because an IN set in the key
+	// condition splits the key ranges and disables the skip indexes.
 	countStmt := sqlf.New(`
     WITH
-      ? as fp,
-    session_counts AS (
+      ? AS fp,
+    issue_pairs AS (
+      SELECT session_id, timestamp
+      FROM `+config.EventsTable+`
+      WHERE
+        team_id = toUUID(?)
+        AND app_id = toUUID(?)
+        AND `+fingerprintCondition+`
+      GROUP BY session_id, timestamp
+    ),
+    si AS (
+      SELECT
+        app_version,
+        first_event_timestamp,
+        last_event_timestamp
+      FROM sessions_index
+      WHERE
+        team_id = toUUID(?)
+        AND app_id = toUUID(?)
+        AND session_id IN (SELECT session_id FROM issue_pairs)
+    ),
+    (
+      SELECT (
+        min(first_event_timestamp),
+        max(last_event_timestamp),
+        groupUniqArray((app_version.1, app_version.2))
+      )
+      FROM si
+    ) AS bounds,
+    eligible AS (
       SELECT session_id
       FROM `+config.EventsTable+`
       WHERE
         team_id = toUUID(?)
         AND app_id = toUUID(?)
+        AND timestamp >= bounds.1
+        AND timestamp <= bounds.2
+        AND (attribute.app_version, attribute.app_build) IN bounds.3
       GROUP BY session_id
       HAVING count(*) >= ?
     ),
     affected_sessions AS (
       SELECT
-        e.session_id,
-        max(e.timestamp) as crash_timestamp
-      FROM `+config.EventsTable+` e
-      INNER JOIN session_counts s ON e.session_id = s.session_id
-      WHERE
-        e.team_id = toUUID(?)
-        AND e.app_id = toUUID(?)
-        AND `+fingerprintCondition+`
-      GROUP BY
-        e.session_id,
-        e.timestamp
-      ORDER BY e.timestamp DESC
+        ip.session_id,
+        ip.timestamp
+      FROM issue_pairs ip
+      INNER JOIN eligible el ON ip.session_id = el.session_id
+      ORDER BY ip.timestamp DESC
       LIMIT ?
     )
-    SELECT count(*) as session_count
+    SELECT count(*) AS session_count
     FROM affected_sessions
 `,
 		fingerprint,
 		app.TeamId,
 		*app.ID,
-		minEventsInSession,
 		app.TeamId,
 		*app.ID,
+		app.TeamId,
+		*app.ID,
+		minEventsInSession,
 		sessionsLimit,
 	)
 
@@ -159,42 +205,69 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 		return nil, fmt.Errorf("failed to get session count: %v", err)
 	}
 
+	// This query fills the ORDER BY key the same way as countStmt: the
+	// bounds scalar from sessions_index narrows the session_counts and
+	// recent_events scans without a change to the result. total_cnt
+	// counts the distinct sessions in recent_events. Each session has its
+	// fingerprint event at position one, so total_cnt equals the number
+	// of sessions in analyzed_sessions and serves as the confidence
+	// divisor.
 	stmt := sqlf.New(`
 		WITH
           ? AS fp,
-   	    crash_sessions AS (
+        issue_sessions AS (
           SELECT
             session_id,
-            max(timestamp) AS crash_timestamp
+            max(timestamp) AS issue_timestamp
           FROM `+config.EventsTable+`
           WHERE
-          	team_id = toUUID(?)
+            team_id = toUUID(?)
             AND app_id = toUUID(?)
             AND `+fingerprintCondition+`
           GROUP BY session_id
         ),
+        si AS (
+          SELECT
+            app_version,
+            first_event_timestamp,
+            last_event_timestamp
+          FROM sessions_index
+          WHERE
+            team_id = toUUID(?)
+            AND app_id = toUUID(?)
+            AND session_id IN (SELECT session_id FROM issue_sessions)
+        ),
+        (
+          SELECT (
+            min(first_event_timestamp),
+            max(last_event_timestamp),
+            groupUniqArray((app_version.1, app_version.2))
+          )
+          FROM si
+        ) AS bounds,
         session_counts AS (
           SELECT
             session_id,
             count(*) AS event_count
           FROM `+config.EventsTable+`
           WHERE
-          	team_id = toUUID(?)
-          	AND app_id = toUUID(?)
-            AND session_id IN (SELECT session_id FROM crash_sessions)
+            team_id = toUUID(?)
+            AND app_id = toUUID(?)
+            AND timestamp >= bounds.1
+            AND timestamp <= bounds.2
+            AND (attribute.app_version, attribute.app_build) IN bounds.3
           GROUP BY session_id
         ),
-        crash_events AS (
+        analyzed_sessions AS (
           SELECT
-            cs.session_id,
-            cs.crash_timestamp
-          FROM crash_sessions cs
-          INNER JOIN session_counts sc ON cs.session_id = sc.session_id
+            iss.session_id,
+            iss.issue_timestamp
+          FROM issue_sessions iss
+          INNER JOIN session_counts sc ON iss.session_id = sc.session_id
           WHERE sc.event_count >= ?
-          ORDER BY cs.crash_timestamp DESC
+          ORDER BY iss.issue_timestamp DESC
           LIMIT ?
         ),
-        total_sessions AS (SELECT count(*) AS cnt FROM crash_events),
         recent_events AS (
           SELECT
             session_id,
@@ -205,7 +278,8 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
             exception_handled,
             exception_severity,
             anr_data,
-            position_from_end
+            position_from_end,
+            uniqExact(session_id) OVER () AS total_cnt
           FROM (
             SELECT
               e.session_id,
@@ -265,11 +339,14 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
             ) AS description,
                 row_number() OVER (PARTITION BY e.session_id ORDER BY e.timestamp DESC) AS position_from_end
             FROM `+config.EventsTable+` AS e
-            INNER JOIN crash_events AS ce ON e.session_id = ce.session_id
+            INNER JOIN analyzed_sessions AS a ON e.session_id = a.session_id
             WHERE
               e.team_id = toUUID(?)
               AND e.app_id = toUUID(?)
-              AND e.timestamp <= ce.crash_timestamp
+              AND e.timestamp >= bounds.1
+              AND e.timestamp <= bounds.2
+              AND (e.attribute.app_version, e.attribute.app_build) IN bounds.3
+              AND e.timestamp <= a.issue_timestamp
               AND e.type NOT IN ('cpu_usage', 'memory_usage')
           )
           WHERE position_from_end <= ?
@@ -280,7 +357,7 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
             type,
             description,
             countDistinct(session_id) AS session_count,
-            round((countDistinct(session_id) * 100.) / (SELECT cnt FROM total_sessions), 1) AS confidence_pct,
+            round((countDistinct(session_id) * 100.) / any(total_cnt), 1) AS confidence_pct,
             any(thread_name) AS thread_name,
             any(exception_data) AS exception_data,
             any(exception_handled) AS exception_handled,
@@ -325,6 +402,8 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
       ORDER BY position_from_end DESC
       `,
 		fingerprint,
+		app.TeamId,
+		*app.ID,
 		app.TeamId,
 		*app.ID,
 		app.TeamId,
