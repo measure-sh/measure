@@ -172,6 +172,13 @@ fun NativeAndroidScreen() {
             },
         ),
         DemoItem(
+            title = "Broadcast Timeout",
+            description = "Blocks a receiver on a held lock, background the app to get killed",
+            category = DemoCategory.ANRS,
+
+            action = { AnrBroadcastReceiver.trigger(context) },
+        ),
+        DemoItem(
             title = "Infinite Loop",
             description = "Blocks the main thread forever",
             category = DemoCategory.ANRS,

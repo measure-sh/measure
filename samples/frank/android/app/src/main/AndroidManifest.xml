@@ -52,5 +52,8 @@
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
             android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
+        <receiver
+            android:name=".AnrBroadcastReceiver"
+            android:exported="false" />
     </application>
 </manifest>
