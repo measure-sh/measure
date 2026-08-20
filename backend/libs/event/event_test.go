@@ -3,6 +3,7 @@ package event
 import (
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -1331,6 +1332,133 @@ func TestANRComputeFingerprint(t *testing.T) {
 		expected := "575ddc443e854d811e7e1b2b04868356"
 		if a.Fingerprint != expected {
 			t.Errorf("Expected fingerprint %q, but got %q", expected, a.Fingerprint)
+		}
+	})
+}
+
+func TestValidateANR(t *testing.T) {
+	makeANR := func(anr ANR) EventField {
+		return EventField{
+			ID:        uuid.New(),
+			AppID:     uuid.New(),
+			Type:      TypeANR,
+			Timestamp: time.Now(),
+			Attribute: Attribute{OSName: "android"},
+			ANR:       &anr,
+		}
+	}
+
+	withExceptions := ANR{
+		Exceptions: ExceptionUnits{
+			{
+				Type: "AppNotResponding",
+				Frames: Frames{
+					{
+						MethodName: "blockerMethod",
+						FileName:   "MainActivity.java",
+					},
+				},
+			},
+		},
+		Threads: Threads{
+			{
+				Name: "main",
+				Frames: Frames{
+					{
+						MethodName: "blockerMethod",
+						FileName:   "MainActivity.java",
+					},
+				},
+			},
+		},
+	}
+
+	withThreadDump := ANR{
+		ArtThreadDump: "DALVIK THREADS (1):\n\"main\" prio=5 tid=1 Blocked\n  at sh.foo.Repo.load(Repo.kt:8)\n",
+		Subject:       "Broadcast of Intent { cmp=sh.foo/.Receiver }",
+	}
+
+	t.Run("Accepts an anr with a thread dump and no exceptions", func(t *testing.T) {
+		ev := makeANR(withThreadDump)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for a dump-only anr, got %v", err)
+		}
+	})
+
+	t.Run("Accepts an anr with exceptions and no thread dump", func(t *testing.T) {
+		ev := makeANR(withExceptions)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for a stacktrace anr, got %v", err)
+		}
+	})
+
+	t.Run("Accepts an anr with a thread dump and no subject", func(t *testing.T) {
+		anr := withThreadDump
+		anr.Subject = ""
+		ev := makeANR(anr)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for a dump without a subject, got %v", err)
+		}
+	})
+
+	t.Run("Accepts an anr carrying both representations", func(t *testing.T) {
+		anr := withExceptions
+		anr.ArtThreadDump = withThreadDump.ArtThreadDump
+		ev := makeANR(anr)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for an anr with both representations, got %v", err)
+		}
+	})
+
+	t.Run("Rejects an anr with exceptions but no threads", func(t *testing.T) {
+		anr := withExceptions
+		anr.Threads = nil
+		ev := makeANR(anr)
+		if err := ev.Validate(); err == nil {
+			t.Error("Expected validation error for a stacktrace anr with no threads, got nil")
+		}
+	})
+
+	t.Run("Rejects an anr with neither a thread dump nor exceptions", func(t *testing.T) {
+		ev := makeANR(ANR{Subject: "Input dispatching timed out"})
+		if err := ev.Validate(); err == nil {
+			t.Error("Expected validation error for an anr carrying only a subject, got nil")
+		}
+	})
+
+	t.Run("Accepts a thread dump at the size limit", func(t *testing.T) {
+		anr := withThreadDump
+		anr.ArtThreadDump = strings.Repeat("a", maxANRThreadDumpBytes)
+		ev := makeANR(anr)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for a dump of %d bytes, got %v", maxANRThreadDumpBytes, err)
+		}
+	})
+
+	t.Run("Rejects a thread dump over the size limit", func(t *testing.T) {
+		anr := withThreadDump
+		anr.ArtThreadDump = strings.Repeat("a", maxANRThreadDumpBytes+1)
+		ev := makeANR(anr)
+		if err := ev.Validate(); err == nil {
+			t.Errorf("Expected validation error for a dump of %d bytes, got nil", maxANRThreadDumpBytes+1)
+		}
+	})
+
+	t.Run("Accepts a subject at the size limit", func(t *testing.T) {
+		anr := withThreadDump
+		anr.Subject = strings.Repeat("a", maxANRSubjectBytes)
+		ev := makeANR(anr)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for a subject of %d bytes, got %v", maxANRSubjectBytes, err)
+		}
+	})
+
+	t.Run("Rejects a subject over the size limit", func(t *testing.T) {
+		anr := withThreadDump
+		anr.Subject = strings.Repeat("a", maxANRSubjectBytes+1)
+		ev := makeANR(anr)
+		if err := ev.Validate(); err == nil {
+			t.Errorf("Expected validation error for a subject of %d bytes, got nil", maxANRSubjectBytes+1)
 		}
 	})
 }

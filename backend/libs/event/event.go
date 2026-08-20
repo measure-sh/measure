@@ -74,6 +74,8 @@ const (
 	maxLayoutElementLabelChars                = 512
 	maxBugReportDescChars                     = 4000
 	maxErrorMetaBytes                         = 4096 // Maximum size for marshaled Error.Meta in bytes
+	maxANRThreadDumpBytes                     = 1024 * 1024
+	maxANRSubjectBytes                        = 1024
 	maxEventAttachments                       = 5
 	customNameKeyPattern                      = "^[a-zA-Z0-9_-]+$"
 )
@@ -383,11 +385,13 @@ type Thread struct {
 type Threads []Thread
 
 type ANR struct {
-	Handled     bool           `json:"handled"`
-	Exceptions  ExceptionUnits `json:"exceptions" binding:"required"`
-	Threads     Threads        `json:"threads" binding:"required"`
-	Fingerprint string         `json:"fingerprint"`
-	Foreground  bool           `json:"foreground" binding:"required"`
+	Handled       bool           `json:"handled"`
+	Exceptions    ExceptionUnits `json:"exceptions"`
+	Threads       Threads        `json:"threads"`
+	ArtThreadDump string         `json:"art_thread_dump"`
+	Subject       string         `json:"subject"`
+	Fingerprint   string         `json:"fingerprint"`
+	Foreground    bool           `json:"foreground" binding:"required"`
 }
 
 type Exception struct {
@@ -811,8 +815,16 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsANR() {
-		if len(e.ANR.Exceptions) < 1 || len(e.ANR.Threads) < 1 {
-			return fmt.Errorf(`%q must contain at least one anr & thread`, `anr`)
+		hasStacktrace := len(e.ANR.Exceptions) > 0 && len(e.ANR.Threads) > 0
+		hasThreadDump := e.ANR.ArtThreadDump != ""
+		if !hasStacktrace && !hasThreadDump {
+			return fmt.Errorf(`%q must contain an art thread dump or at least one anr & thread`, `anr`)
+		}
+		if len(e.ANR.ArtThreadDump) > maxANRThreadDumpBytes {
+			return fmt.Errorf(`%q size (%d bytes) exceeds maximum allowed (%d bytes)`, `anr.art_thread_dump`, len(e.ANR.ArtThreadDump), maxANRThreadDumpBytes)
+		}
+		if len(e.ANR.Subject) > maxANRSubjectBytes {
+			return fmt.Errorf(`%q size (%d bytes) exceeds maximum allowed (%d bytes)`, `anr.subject`, len(e.ANR.Subject), maxANRSubjectBytes)
 		}
 	}
 
