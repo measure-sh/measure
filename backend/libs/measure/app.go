@@ -984,6 +984,31 @@ func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, rch driver
 	return
 }
 
+// hydrateANR decodes the JSON columns of an ANR row. Both read paths
+// select these columns and each has to decode them alike, so the
+// projections cannot drift as the ANR schema grows.
+//
+// threadDump is empty for an ANR reported as exceptions.
+func hydrateANR(anr *event.ANR, exceptions, threads, subject, threadDump string) error {
+	if err := json.Unmarshal([]byte(exceptions), &anr.Exceptions); err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal([]byte(threads), &anr.Threads); err != nil {
+		return err
+	}
+
+	anr.Subject = subject
+
+	if threadDump != "" {
+		if err := json.Unmarshal([]byte(threadDump), &anr.ThreadDump); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // GetErrorsWithFilter fetches raw error events (exceptions and/or ANRs)
 // belonging to a single fingerprint, across the sources selected by
 // the filter's severity flags. When no severity flag is set, all
@@ -1200,17 +1225,8 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 				return
 			}
 
-			if err = json.Unmarshal([]byte(exceptions), &e.ANR.Exceptions); err != nil {
+			if err = hydrateANR(&e.ANR, exceptions, threads, subject, threadDump); err != nil {
 				return
-			}
-			if err = json.Unmarshal([]byte(threads), &e.ANR.Threads); err != nil {
-				return
-			}
-			e.ANR.Subject = subject
-			if threadDump != "" {
-				if err = json.Unmarshal([]byte(threadDump), &e.ANR.ThreadDump); err != nil {
-					return
-				}
 			}
 			if err = json.Unmarshal([]byte(attachments), &e.Attachments); err != nil {
 				return
@@ -3288,6 +3304,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 		var exceptionThreads string
 		var anrExceptions string
 		var anrThreads string
+		var anrSubject string
 		var anrThreadDump string
 		var attachments string
 
@@ -3504,7 +3521,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 				&anr.Foreground,
 				&anrExceptions,
 				&anrThreads,
-				&anr.Subject,
+				&anrSubject,
 				&anrThreadDump,
 
 				// app exit
@@ -3599,16 +3616,8 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 
 		switch ev.Type {
 		case event.TypeANR:
-			if err := json.Unmarshal([]byte(anrExceptions), &anr.Exceptions); err != nil {
+			if err := hydrateANR(&anr, anrExceptions, anrThreads, anrSubject, anrThreadDump); err != nil {
 				return nil, err
-			}
-			if err := json.Unmarshal([]byte(anrThreads), &anr.Threads); err != nil {
-				return nil, err
-			}
-			if anrThreadDump != "" {
-				if err := json.Unmarshal([]byte(anrThreadDump), &anr.ThreadDump); err != nil {
-					return nil, err
-				}
 			}
 			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
 				return nil, err
