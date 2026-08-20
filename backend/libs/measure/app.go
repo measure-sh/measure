@@ -1063,7 +1063,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 			Select("exception.exceptions as exceptions").
 			Select("exception.threads as threads").
 			Select("exception.framework as framework").
-			Select("exception.num_code as num_code").
+			Select("if(exception.has_num_code OR exception.num_code != 0, exception.num_code, NULL) as num_code").
 			Select("exception.code as code").
 			Select("exception.meta as meta").
 			Select("if(exception.severity = '', if(exception.handled, 'handled', 'fatal'), exception.severity) as severity").
@@ -3622,7 +3622,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 		`gesture_scroll.end_x`,
 		`gesture_scroll.end_y`,
 		`gesture_scroll.direction`,
-		`exception.num_code`,
+		`if(exception.has_num_code OR exception.num_code != 0, exception.num_code, NULL) as num_code`,
 		`exception.code`,
 		`exception.meta`,
 		`exception.is_custom`,

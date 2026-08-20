@@ -1722,7 +1722,10 @@ paths:
                         severity:
                           type: string
                         num_code:
-                          type: number
+                          type:
+                            - number
+                            - "null"
+                          description: Numeric error code. Null when the SDK did not report one.
                         code:
                           type: string
                         meta:
@@ -1792,7 +1795,7 @@ paths:
                           stacktrace: "java.lang.NullPointerException: Attempt to invoke virtual method\n\tat com.example.MainActivity.onClick(MainActivity.kt:42)"
                           message: Attempt to invoke virtual method on a null object reference
                         severity: fatal
-                        num_code: 0
+                        num_code: null
                         code: ""
                         meta: null
                         user_defined_attribute:

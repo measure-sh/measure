@@ -19,7 +19,7 @@ type Exception struct {
 	GroupId       string              `json:"group_id"`
 	Severity      string              `json:"severity"`
 	IsCustom      bool                `json:"is_custom"`
-	NumCode       int32               `json:"num_code"`
+	NumCode       *int32              `json:"num_code"`
 	Code          string              `json:"code"`
 	Meta          map[string]any      `json:"meta"`
 	Type          string              `json:"type"`

@@ -403,7 +403,9 @@ type Exception struct {
 	// Deprecated: Use Code, NumCode & Meta instead.
 	Error *Error `json:"error"`
 	// NumCode represents the numeric error code.
-	NumCode int32 `json:"num_code"`
+	//
+	// Nil means the SDK did not send it, distinct from a sent 0.
+	NumCode *int32 `json:"num_code"`
 	// Code represents the string error code.
 	Code string `json:"code"`
 	// Meta represents arbitrary metadata
@@ -1611,7 +1613,7 @@ func (e Exception) HasJSFrames() bool {
 // An AppleFamily Exception may optionally have
 // an associated Error.
 func (e Exception) HasError() bool {
-	return e.Code != "" || e.NumCode != 0 || len(e.Meta) != 0 || (e.Error.hasData())
+	return e.Code != "" || e.NumCode != nil || len(e.Meta) != 0 || (e.Error.hasData())
 }
 
 // GetMetaBytes returns the meta bytes of the exception.
