@@ -35,6 +35,11 @@ type ANRView struct {
 	Stacktrace string `json:"stacktrace"`
 	Message    string `json:"message"`
 	Subject    string `json:"subject"`
+	// BlockingThread is the ART header of the thread the ANR is
+	// blamed on, when that is not the main thread. It matches the
+	// name of one of the threads below, and is empty when nothing
+	// was holding the main thread up.
+	BlockingThread string `json:"blocking_thread"`
 }
 
 type EventException struct {
@@ -71,7 +76,11 @@ func (e *EventANR) ComputeView() {
 	}
 
 	if e.ANR.ThreadDump != nil {
-		e.Threads = threadDumpViews(e.ANR.ThreadDump)
+		chain := e.ANR.blameChain()
+		if blocking := rootBlockingThread(chain); blocking != nil {
+			e.ANRView.BlockingThread = blocking.Header
+		}
+		e.Threads = threadDumpViews(e.ANR.ThreadDump, chain)
 		return
 	}
 
@@ -91,24 +100,41 @@ func (e *EventANR) ComputeView() {
 // which carries the state and priority a bare name would lose, and a
 // lock follows the frame it annotates.
 //
-// The main thread is left out. It is already rendered on its own from
+// The top thread is left out. It is already rendered on its own from
 // Stacktrace, and the detail page draws that above this list, so
-// including it here would show the stalled thread twice.
-func threadDumpViews(dump *artdump.Dump) []ThreadView {
-	main := dump.MainThread()
+// including it here would show the same thread twice.
+//
+// The stalled thread comes first among the rest, because when something
+// else is blocking it the reader still wants its stack next. A dump
+// carries dozens of threads and neither should have to be hunted for.
+func threadDumpViews(dump *artdump.Dump, chain []*artdump.Thread) []ThreadView {
 	holders := anrLockHolders(dump)
+	main := dump.MainThread()
+
+	top := main
+	if blocking := rootBlockingThread(chain); blocking != nil {
+		top = blocking
+	}
+
+	view := func(thread *artdump.Thread) ThreadView {
+		return ThreadView{
+			Name:   thread.Header,
+			Frames: anrThreadStack(thread, holders),
+		}
+	}
 
 	views := make([]ThreadView, 0, len(dump.Threads))
+	if main != nil && main != top {
+		views = append(views, view(main))
+	}
+
 	for i := range dump.Threads {
 		thread := &dump.Threads[i]
-		if thread == main {
+		if thread == top || thread == main {
 			continue
 		}
 
-		views = append(views, ThreadView{
-			Name:   thread.Header,
-			Frames: anrThreadStack(thread, holders),
-		})
+		views = append(views, view(thread))
 	}
 
 	return views

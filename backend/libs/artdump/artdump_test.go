@@ -382,7 +382,7 @@ func TestMarkInApp(t *testing.T) {
 		"  native: #00 pc 0004df5c  /data/app/base.apk!/lib/arm64/libapp.so (???)",
 	))
 
-	dump.MarkInApp()
+	dump.markInApp()
 
 	frames := dump.Threads[0].Frames
 	if frames[0].InApp {
@@ -518,6 +518,47 @@ func TestLockRenderNamesTheHolder(t *testing.T) {
 		want := `  - waiting to lock <0x053dd6df> (a java.lang.Object) held by APP: Locker`
 		if got := lock.Render("APP: Locker"); got != want {
 			t.Errorf("got %q, want %q", got, want)
+		}
+	})
+}
+
+func TestThreadByTid(t *testing.T) {
+	dump := Parse(loadDump(t, "api36_deadlock.txt"))
+
+	t.Run("Finds the thread holding a contended lock", func(t *testing.T) {
+		main := dump.MainThread()
+		lock := main.Frames[0].Locks[0]
+		if lock.State != "waiting to lock" {
+			t.Fatalf("the fixture's main thread waits on no lock, got %q", lock.State)
+		}
+
+		holder := dump.ThreadByTid(lock.HolderTid)
+		if holder == nil {
+			t.Fatalf("no thread with tid %d", lock.HolderTid)
+		}
+		if got, want := holder.Name, "APP: Locker"; got != want {
+			t.Errorf("got thread %q, want %q", got, want)
+		}
+	})
+
+	t.Run("Returns nil for a tid the dump does not carry", func(t *testing.T) {
+		if got := dump.ThreadByTid(99999); got != nil {
+			t.Errorf("got thread %q, want none", got.Name)
+		}
+	})
+
+	t.Run("Never matches tid zero", func(t *testing.T) {
+		unattached := 0
+		for i := range dump.Threads {
+			if dump.Threads[i].Tid == 0 {
+				unattached++
+			}
+		}
+		if unattached == 0 {
+			t.Fatal("the fixture has no unattached thread, this test asserts nothing")
+		}
+		if got := dump.ThreadByTid(0); got != nil {
+			t.Errorf("got thread %q, want none", got.Name)
 		}
 	})
 }

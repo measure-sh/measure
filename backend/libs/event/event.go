@@ -2129,54 +2129,53 @@ func (a ANR) IsNested() bool {
 	return len(a.Exceptions) > 1
 }
 
-// HasNoFrames returns true if the ANR
-// does not have any frame.
+// An ANR arrives in one of two shapes. On Android 11 and above it is
+// the ART thread dump the system captured; below that it is the
+// exceptions the SIGQUIT handler assembled. anrSource is that shape,
+// so the accessors can ask once which they are reading rather than
+// each testing for itself.
+type anrSource interface {
+	Type() string
+	Message() string
+	FileName() string
+	MethodName() string
+	LineNumber() int32
+	HasNoFrames() bool
+	Stacktrace() string
+}
+
+// source picks the shape. An ANR carrying both is read as exceptions,
+// so existing fingerprints and titles do not move.
+func (a ANR) source() anrSource {
+	if len(a.Exceptions) == 0 && a.ThreadDump != nil {
+		return threadDumpANR{a}
+	}
+
+	return exceptionANR{a}
+}
+
+// HasNoFrames returns true if the ANR does not have any frame.
 //
-// This may happen
-// for certain OutOfMemory stacktraces in
-// Android.
-func (a ANR) HasNoFrames() bool {
-	if a.hasThreadDump() {
-		return a.groupingFrame().ClassName == ""
-	}
-	if len(a.Exceptions) == 0 {
-		return true
-	}
-	return len(a.Exceptions[len(a.Exceptions)-1].Frames) == 0
-}
+// This may happen for certain OutOfMemory stacktraces in Android.
+func (a ANR) HasNoFrames() bool { return a.source().HasNoFrames() }
 
-// hasThreadDump reports whether the ANR is reported as an ART thread
-// dump rather than as exceptions. An ANR carrying both is read as an
-// exception, so existing fingerprints and titles do not move.
-func (a ANR) hasThreadDump() bool {
-	return len(a.Exceptions) == 0 && a.ThreadDump != nil
-}
+// GetType provides the type of the ANR.
+func (a ANR) GetType() string { return a.source().Type() }
 
-// groupingFrame returns the main thread frame the ANR is grouped,
-// titled and reported on: its first in-app frame, or failing that its
-// first managed frame. The zero frame means neither exists, and its
-// InApp is false, which is what pulls the subject category into the
-// grouping key.
-func (a ANR) groupingFrame() (frame artdump.Frame) {
-	main := a.ThreadDump.MainThread()
-	if main == nil {
-		return
-	}
+// GetMessage provides the message of the ANR.
+func (a ANR) GetMessage() string { return a.source().Message() }
 
-	for _, f := range main.Frames {
-		if f.InApp {
-			return f
-		}
-	}
+// GetFileName provides the file name of the ANR.
+func (a ANR) GetFileName() string { return a.source().FileName() }
 
-	for _, f := range main.Frames {
-		if f.ClassName != "" {
-			return f
-		}
-	}
+// GetMethodName provides the method name of the ANR.
+func (a ANR) GetMethodName() string { return a.source().MethodName() }
 
-	return
-}
+// GetLineNumber provides the line number of the ANR.
+func (a ANR) GetLineNumber() int32 { return a.source().LineNumber() }
+
+// Stacktrace writes a formatted stacktrace from the ANR.
+func (a ANR) Stacktrace() string { return a.source().Stacktrace() }
 
 // GetTitle provides the combined
 // anr's type and message as a
@@ -2185,90 +2184,116 @@ func (a ANR) GetTitle() string {
 	return makeTitle(a.GetType(), a.GetMessage())
 }
 
-// GetType provides the type of
-// the ANR.
-func (a ANR) GetType() string {
-	if a.hasThreadDump() {
-		return ANRSubjectCategory(a.Subject)
-	}
-	if len(a.Exceptions) == 0 {
-		return ""
-	}
-	return a.Exceptions[len(a.Exceptions)-1].Type
-}
-
-// GetMessage provides the message of
-// the ANR.
-func (a ANR) GetMessage() string {
-	if a.hasThreadDump() {
-		return a.Subject
-	}
-	if len(a.Exceptions) == 0 {
-		return ""
-	}
-	return a.Exceptions[len(a.Exceptions)-1].Message
-}
-
-// GetFileName provides the file name of
-// the ANR.
-func (a ANR) GetFileName() string {
-	if a.hasThreadDump() {
-		return a.groupingFrame().FileName
-	}
-	if a.HasNoFrames() {
-		return ""
-	}
-	return a.Exceptions[len(a.Exceptions)-1].Frames[0].FileName
-}
-
-// GetLineNumber provides the line number of
-// the ANR.
-func (a ANR) GetLineNumber() int32 {
-	if a.hasThreadDump() {
-		frame := a.groupingFrame()
-		if frame.LineNum == artdump.NoLineNum {
-			return int32(0)
-		}
-		return int32(frame.LineNum)
-	}
-	if a.HasNoFrames() {
-		return int32(0)
-	}
-	return int32(a.Exceptions[len(a.Exceptions)-1].Frames[0].LineNum)
-}
-
-// GetMethodName provides the method name of
-// the ANR.
-func (a ANR) GetMethodName() string {
-	if a.hasThreadDump() {
-		return a.groupingFrame().MethodName
-	}
-	if a.HasNoFrames() {
-		return ""
-	}
-	return a.Exceptions[len(a.Exceptions)-1].Frames[0].MethodName
-}
-
 // GetDisplayTitle provides a user friendly display
 // name for the ANR.
 func (a ANR) GetDisplayTitle() string {
 	return DisplayTitle(a.GetType(), a.GetFileName())
 }
 
-// Stacktrace writes a formatted stacktrace
-// from the ANR.
-func (a ANR) Stacktrace() string {
-	if a.hasThreadDump() {
-		main := a.ThreadDump.MainThread()
-		if main == nil {
-			return ""
-		}
-		lines := append(
-			[]string{main.Header},
-			anrThreadStack(main, anrLockHolders(a.ThreadDump))...,
-		)
-		return strings.Join(lines, "\n")
+// threadDumpANR reads an ANR reported as an ART thread dump. Everything
+// it answers comes from the thread the ANR is blamed on, which is not
+// always the thread that stalled.
+type threadDumpANR struct {
+	anr ANR
+}
+
+func (d threadDumpANR) Type() string { return ANRSubjectCategory(d.anr.Subject) }
+
+func (d threadDumpANR) Message() string { return d.anr.Subject }
+
+func (d threadDumpANR) FileName() string { return d.anr.groupingFrame().FileName }
+
+func (d threadDumpANR) MethodName() string { return d.anr.groupingFrame().MethodName }
+
+func (d threadDumpANR) LineNumber() int32 {
+	frame := d.anr.groupingFrame()
+	// A frame that printed no source line reports zero, since the
+	// column it lands in has no room for "absent".
+	if frame.LineNum == artdump.NoLineNum {
+		return int32(0)
 	}
+
+	return int32(frame.LineNum)
+}
+
+// HasNoFrames asks whether the blame chain yields any frame to group
+// on, not whether the stalled thread alone has one.
+func (d threadDumpANR) HasNoFrames() bool { return d.anr.groupingFrame().ClassName == "" }
+
+func (d threadDumpANR) Stacktrace() string {
+	top := d.anr.topThread()
+	if top == nil {
+		return ""
+	}
+
+	lines := append(
+		[]string{top.Header},
+		anrThreadStack(top, anrLockHolders(d.anr.ThreadDump))...,
+	)
+
+	return strings.Join(lines, "\n")
+}
+
+// exceptionANR reads an ANR reported as exceptions, which is every ANR
+// below Android 11 and every ANR stored before thread dumps existed.
+type exceptionANR struct {
+	anr ANR
+}
+
+func (e exceptionANR) innermost() ExceptionUnit {
+	return e.anr.Exceptions[len(e.anr.Exceptions)-1]
+}
+
+func (e exceptionANR) Type() string {
+	if len(e.anr.Exceptions) == 0 {
+		return ""
+	}
+
+	return e.innermost().Type
+}
+
+func (e exceptionANR) Message() string {
+	if len(e.anr.Exceptions) == 0 {
+		return ""
+	}
+
+	return e.innermost().Message
+}
+
+func (e exceptionANR) HasNoFrames() bool {
+	if len(e.anr.Exceptions) == 0 {
+		return true
+	}
+
+	return len(e.innermost().Frames) == 0
+}
+
+func (e exceptionANR) FileName() string {
+	if e.HasNoFrames() {
+		return ""
+	}
+
+	return e.innermost().Frames[0].FileName
+}
+
+func (e exceptionANR) MethodName() string {
+	if e.HasNoFrames() {
+		return ""
+	}
+
+	return e.innermost().Frames[0].MethodName
+}
+
+func (e exceptionANR) LineNumber() int32 {
+	if e.HasNoFrames() {
+		return int32(0)
+	}
+
+	return int32(e.innermost().Frames[0].LineNum)
+}
+
+func (e exceptionANR) Stacktrace() string {
+	a := e.anr
 
 	var b strings.Builder
 
@@ -2305,6 +2330,87 @@ func (a ANR) Stacktrace() string {
 	}
 
 	return b.String()
+}
+
+// blameChain returns the threads an ANR can be blamed on, the stalled
+// thread first and whatever is holding it up last.
+//
+// It always contains the stalled thread, so a chain of one means
+// nothing was blocking it. A dump stored before the chain was recorded
+// reads the same way and therefore groups as it did then.
+func (a ANR) blameChain() []*artdump.Thread {
+	if chain := a.ThreadDump.BlockingThreads(); len(chain) > 0 {
+		return chain
+	}
+
+	if main := a.ThreadDump.MainThread(); main != nil {
+		return []*artdump.Thread{main}
+	}
+
+	return nil
+}
+
+// rootBlockingThread returns the thread at the end of a blame chain, or
+// nil when nothing was holding the stalled thread up.
+func rootBlockingThread(chain []*artdump.Thread) *artdump.Thread {
+	if len(chain) < 2 {
+		return nil
+	}
+
+	return chain[len(chain)-1]
+}
+
+// topThread returns the thread the ANR is reported on: the one blocking
+// the app when something is, and the stalled thread itself otherwise.
+// It is the stack shown first on the detail page and the one the
+// session timeline carries, so both name the same thread.
+func (a ANR) topThread() *artdump.Thread {
+	chain := a.blameChain()
+	if len(chain) == 0 {
+		return nil
+	}
+
+	if blocking := rootBlockingThread(chain); blocking != nil {
+		return blocking
+	}
+
+	return chain[0]
+}
+
+// groupingFrame returns the frame the ANR is grouped, titled and
+// reported on.
+//
+// It comes from the deepest thread in the blame chain that runs
+// application code, because that is the code responsible for the stall.
+// The stalled thread is only waiting when something else holds the
+// lock, so grouping on it would split one bug across every call site
+// that contends the lock and merge unrelated bugs that contend it from
+// the same place.
+//
+// Failing that it is the stalled thread's first managed frame. The zero
+// frame means the chain has no managed frame at all, and its InApp is
+// false, which is what pulls the subject category into the grouping key.
+func (a ANR) groupingFrame() (frame artdump.Frame) {
+	chain := a.blameChain()
+	if len(chain) == 0 {
+		return
+	}
+
+	for i := len(chain) - 1; i >= 0; i-- {
+		for _, f := range chain[i].Frames {
+			if f.InApp {
+				return f
+			}
+		}
+	}
+
+	for _, f := range chain[0].Frames {
+		if f.ClassName != "" {
+			return f
+		}
+	}
+
+	return
 }
 
 // ComputeFingerprint computes a fingerprint

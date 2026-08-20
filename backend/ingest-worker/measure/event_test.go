@@ -250,7 +250,7 @@ func TestIngestANRThreadDump(t *testing.T) {
 	// Mirrors the order ingest runs these in: parse, then symbolicate,
 	// then mark, then build the row.
 	eventReq.parseANRThreadDumps()
-	eventReq.markANRInAppFrames()
+	eventReq.annotateANRThreadDumps()
 
 	if err := eventReq.ingestEvents(ctx); err != nil {
 		t.Fatalf("ingestEvents failed: %v", err)
@@ -359,7 +359,7 @@ func TestIngestStacktraceANRStoresNoThreadDump(t *testing.T) {
 	// Mirrors the order ingest runs these in: parse, then symbolicate,
 	// then mark, then build the row.
 	eventReq.parseANRThreadDumps()
-	eventReq.markANRInAppFrames()
+	eventReq.annotateANRThreadDumps()
 
 	if err := eventReq.ingestEvents(ctx); err != nil {
 		t.Fatalf("ingestEvents failed: %v", err)

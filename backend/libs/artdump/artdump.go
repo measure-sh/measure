@@ -62,6 +62,12 @@ type Dump struct {
 	Header  []string `json:"header,omitempty"`
 	Threads []Thread `json:"threads"`
 	Trailer []string `json:"trailer,omitempty"`
+	// BlockingChain lists the ART thread ids standing between the
+	// stalled thread and whatever is holding it up, the stalled thread
+	// first and the root last. It is resolved once, when the dump is
+	// ingested, so that everything reading the dump afterwards shares
+	// one recorded answer instead of deriving its own.
+	BlockingChain []int `json:"blocking_chain,omitempty"`
 }
 
 // Thread represents one thread block in an ART dump.
@@ -226,9 +232,117 @@ func (d *Dump) MainThread() *Thread {
 	return nil
 }
 
-// MarkInApp marks managed frames whose classes do not belong to the
+// ThreadByTid returns the thread ART gave the id tid, or nil when the
+// dump has no such thread. Tid zero never matches: it is what an
+// unattached thread and an unparsable header both leave behind, and a
+// lock never names either as its holder.
+func (d *Dump) ThreadByTid(tid int) *Thread {
+	if tid == 0 {
+		return nil
+	}
+
+	for i := range d.Threads {
+		if d.Threads[i].Tid == tid {
+			return &d.Threads[i]
+		}
+	}
+
+	return nil
+}
+
+// lockStateWaitingToLock is the ART annotation for a thread blocked
+// entering a monitor another thread holds.
+const lockStateWaitingToLock = "waiting to lock"
+
+// Annotate derives the facts everything downstream reads off a dump:
+// which frames are application code, and which threads are holding the
+// app up.
+//
+// It is the only way to apply them, deliberately. They were once two
+// exported calls and every caller had to remember both, which is
+// exactly what went wrong twice: a test helper applied one and not the
+// other, and silently produced dumps that no longer matched what ingest
+// stores.
+//
+// Call it after symbolication. In-app marking judges class names, and
+// an obfuscated name looks like application code whatever it really is.
+func (d *Dump) Annotate() {
+	d.markInApp()
+	d.resolveBlockingChain()
+}
+
+// resolveBlockingChain records which threads are holding the main
+// thread up, so that grouping and rendering agree without either
+// walking the dump again.
+//
+// A thread blocked entering a monitor names the thread holding it, and
+// that is the only blocking relation an ART dump records. "waiting on"
+// is Object.wait, where the waiter has already released the monitor, so
+// whoever holds it now is not the one blocking us.
+//
+// The walk stops on a thread it has already seen, which is a deadlock
+// cycle, and is what makes it terminate. Nothing is recorded when the
+// main thread is not blocked on a monitor at all.
+func (d *Dump) resolveBlockingChain() {
+	main := d.MainThread()
+	if main == nil {
+		return
+	}
+
+	chain := []*Thread{main}
+	seen := map[*Thread]bool{main: true}
+
+	for {
+		holder := d.ThreadByTid(blockedOnTid(chain[len(chain)-1]))
+		if holder == nil || seen[holder] {
+			break
+		}
+
+		chain = append(chain, holder)
+		seen[holder] = true
+	}
+
+	if len(chain) < 2 {
+		return
+	}
+
+	d.BlockingChain = make([]int, 0, len(chain))
+	for _, thread := range chain {
+		d.BlockingChain = append(d.BlockingChain, thread.Tid)
+	}
+}
+
+// BlockingThreads resolves the recorded blocking chain to threads. It
+// is empty when nothing was holding the main thread up.
+func (d *Dump) BlockingThreads() []*Thread {
+	threads := make([]*Thread, 0, len(d.BlockingChain))
+
+	for _, tid := range d.BlockingChain {
+		if thread := d.ThreadByTid(tid); thread != nil {
+			threads = append(threads, thread)
+		}
+	}
+
+	return threads
+}
+
+// blockedOnTid returns the id of the thread holding the monitor this
+// thread is blocked entering, or zero when it is not blocked on one.
+func blockedOnTid(thread *Thread) int {
+	for _, frame := range thread.Frames {
+		for _, lock := range frame.Locks {
+			if lock.State == lockStateWaitingToLock {
+				return lock.HolderTid
+			}
+		}
+	}
+
+	return 0
+}
+
+// markInApp marks managed frames whose classes do not belong to the
 // Android/Java/framework packages as application frames.
-func (d *Dump) MarkInApp() {
+func (d *Dump) markInApp() {
 	for i := range d.Threads {
 		for j := range d.Threads[i].Frames {
 			frame := &d.Threads[i].Frames[j]

@@ -315,18 +315,25 @@ func (e eventreq) parseANRThreadDumps() {
 	}
 }
 
-// markANRInAppFrames marks the application frames in each ANR's thread
-// dump. It runs after symbolication so that the frames it judges carry
+// annotateANRThreadDumps records what the rest of the system reads off
+// an ANR's thread dump: which frames are application code, and which
+// threads are holding the app up.
+//
+// Both are derived once, here, rather than recomputed per request. The
+// fingerprint is frozen at ingest, so deriving the same facts again at
+// read time would let the group and the page it renders disagree.
+//
+// It runs after symbolication, so the frames it judges carry
 // deobfuscated class names, and before the fingerprint, which groups on
-// the first application frame.
-func (e eventreq) markANRInAppFrames() {
+// the first application frame in the blocking chain.
+func (e eventreq) annotateANRThreadDumps() {
 	for _, i := range e.anrIds {
 		anr := e.events[i].ANR
 		if anr == nil || anr.ThreadDump == nil {
 			continue
 		}
 
-		anr.ThreadDump.MarkInApp()
+		anr.ThreadDump.Annotate()
 	}
 }
 
@@ -1462,7 +1469,7 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		fmt.Println("failed to symbolicate", err)
 	}
 
-	eventReq.markANRInAppFrames()
+	eventReq.annotateANRThreadDumps()
 
 	var ingestGroup errgroup.Group
 	ingestGroup.Go(func() error {

@@ -33,8 +33,10 @@ func seedDumpANR(ctx context.Context, t *testing.T, teamID, appID uuid.UUID, fin
 		t.Fatalf("read art dump fixture: %v", err)
 	}
 
+	// The same call ingest makes, so a step added there cannot be
+	// missed here.
 	dump := artdump.Parse(string(raw))
-	dump.MarkInApp()
+	dump.Annotate()
 
 	marshalled, err := json.Marshal(dump)
 	if err != nil {
@@ -77,7 +79,7 @@ func TestGetErrorsWithFilterServesTheThreadDump(t *testing.T) {
 
 	ts := time.Now().UTC().Add(-time.Minute)
 	fingerprint := "artdumpfingerprint00000000000000"
-	seedDumpANR(ctx, t, teamID, appID, fingerprint, ts)
+	seeded := seedDumpANR(ctx, t, teamID, appID, fingerprint, ts)
 
 	a := App{ID: &appID, TeamId: teamID}
 	events, _, _, err := a.GetErrorsWithFilter(ctx, th.ChConn, fingerprint, dumpANRFilter(appID, ts))
@@ -98,10 +100,12 @@ func TestGetErrorsWithFilterServesTheThreadDump(t *testing.T) {
 		}
 	})
 
-	t.Run("Serves the stalled thread's stack", func(t *testing.T) {
+	t.Run("Serves the blocking thread's stack", func(t *testing.T) {
+		// The stacktrace is the thread the ANR is blamed on, which the
+		// session timeline carries too, so both name one thread.
 		for _, want := range []string{
-			`"main" prio=5 tid=1 Blocked`,
-			"sh.frankenstein.android.AnrBroadcastReceiver.onReceive",
+			`"APP: Locker" daemon prio=5 tid=46 Sleeping`,
+			"sh.frankenstein.android.AnrBroadcastReceiver$Companion.trigger$lambda$0",
 		} {
 			if !strings.Contains(got.ANRView.Stacktrace, want) {
 				t.Errorf("Expected the stacktrace to contain %q, got:\n%s", want, got.ANRView.Stacktrace)
@@ -109,46 +113,63 @@ func TestGetErrorsWithFilterServesTheThreadDump(t *testing.T) {
 		}
 	})
 
-	t.Run("Serves every thread", func(t *testing.T) {
-		if len(got.Threads) < 2 {
-			t.Fatalf("Expected the dump's threads, but got %d", len(got.Threads))
-		}
-
-		var locker []string
-		for _, thread := range got.Threads {
-			if strings.HasPrefix(thread.Name, `"APP: Locker"`) {
-				locker = thread.Frames
-			}
-		}
-		if locker == nil {
-			t.Fatal("the lock holder thread is missing from the response")
-		}
-
-		var sleeping bool
-		for _, frame := range locker {
-			if strings.HasPrefix(frame, "  - sleeping on ") {
-				sleeping = true
-			}
-		}
-		if !sleeping {
-			t.Errorf("Expected a lock line among the holder's frames, got:\n%s", strings.Join(locker, "\n"))
+	t.Run("Serves every thread but the blamed one", func(t *testing.T) {
+		// The blamed thread is served as the stacktrace instead, so the
+		// list is every other thread in the dump.
+		want := len(seeded.Threads) - 1
+		if got := len(got.Threads); got != want {
+			t.Errorf("Expected %d threads, but got %d", want, got)
 		}
 	})
 
 	t.Run("Names the thread holding a contended lock", func(t *testing.T) {
-		if !strings.Contains(got.ANRView.Stacktrace, "waiting to lock") {
+		if len(got.Threads) == 0 {
+			t.Fatal("Expected the dump's threads")
+		}
+		stalled := strings.Join(got.Threads[0].Frames, "\n")
+		if !strings.Contains(stalled, "waiting to lock") {
 			t.Fatal("the fixture's main thread waits on no lock, this test asserts nothing")
 		}
-		if !strings.Contains(got.ANRView.Stacktrace, "held by APP: Locker") {
-			t.Errorf("Expected the holder named, got:\n%s", got.ANRView.Stacktrace)
+		if !strings.Contains(stalled, "held by APP: Locker") {
+			t.Errorf("Expected the holder named, got:\n%s", stalled)
 		}
 	})
 
-	t.Run("Leaves the main thread out of the thread list", func(t *testing.T) {
+	t.Run("Puts the stalled thread first and the blamed one only in the stacktrace", func(t *testing.T) {
+		if len(got.Threads) == 0 {
+			t.Fatal("Expected the dump's threads")
+		}
+		if !strings.HasPrefix(got.Threads[0].Name, `"main"`) {
+			t.Errorf("Expected the stalled thread first, but got %q", got.Threads[0].Name)
+		}
 		for _, thread := range got.Threads {
-			if strings.HasPrefix(thread.Name, `"main"`) {
-				t.Error("the main thread is rendered twice, once from the stacktrace and once here")
+			if thread.Name == got.ANRView.BlockingThread {
+				t.Error("the blamed thread is rendered twice, once from the stacktrace and once here")
 			}
+		}
+	})
+
+	t.Run("Blames the thread holding the lock, not the one waiting", func(t *testing.T) {
+		// Main waits at AnrBroadcastReceiver.kt:11. The code that
+		// causes the stall is on the thread holding the lock, which
+		// sleeps forever at line 24.
+		if got, want := got.ANR.GetMethodName(), "trigger$lambda$0"; got != want {
+			t.Errorf("Expected method name %q, but got %q", want, got)
+		}
+		if got, want := got.ANR.GetFileName(), "AnrBroadcastReceiver.kt"; got != want {
+			t.Errorf("Expected file name %q, but got %q", want, got)
+		}
+		if got, want := got.ANR.GetLineNumber(), int32(24); got != want {
+			t.Errorf("Expected line number %d, but got %d", want, got)
+		}
+	})
+
+	t.Run("Names the blocking thread", func(t *testing.T) {
+		if !strings.HasPrefix(got.ANRView.BlockingThread, `"APP: Locker"`) {
+			t.Errorf("Expected the lock holder named, but got %q", got.ANRView.BlockingThread)
+		}
+		if len(got.Threads) == 0 {
+			t.Fatal("Expected the dump's threads")
 		}
 	})
 }
