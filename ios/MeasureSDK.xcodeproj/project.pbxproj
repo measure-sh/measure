@@ -64,6 +64,7 @@
 		526D18512D5A1913009A2E90 /* StackFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17CB2D5A1913009A2E90 /* StackFrame.swift */; };
 		526D18522D5A1913009A2E90 /* ThreadDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17CC2D5A1913009A2E90 /* ThreadDetail.swift */; };
 		526D18552D5A1913009A2E90 /* EventSerializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17D02D5A1913009A2E90 /* EventSerializer.swift */; };
+		CF9A11AB2F70000100AA0001 /* JSONWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF9A11AA2F70000100AA0001 /* JSONWriter.swift */; };
 		526D18572D5A1913009A2E90 /* HttpClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17D22D5A1913009A2E90 /* HttpClient.swift */; };
 		526D18582D5A1913009A2E90 /* HttpModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17D32D5A1913009A2E90 /* HttpModels.swift */; };
 		526D18592D5A1913009A2E90 /* NetworkClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17D42D5A1913009A2E90 /* NetworkClient.swift */; };
@@ -439,6 +440,7 @@
 		526D17CB2D5A1913009A2E90 /* StackFrame.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StackFrame.swift; sourceTree = "<group>"; };
 		526D17CC2D5A1913009A2E90 /* ThreadDetail.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ThreadDetail.swift; sourceTree = "<group>"; };
 		526D17D02D5A1913009A2E90 /* EventSerializer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EventSerializer.swift; sourceTree = "<group>"; };
+		CF9A11AA2F70000100AA0001 /* JSONWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONWriter.swift; sourceTree = "<group>"; };
 		526D17D22D5A1913009A2E90 /* HttpClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HttpClient.swift; sourceTree = "<group>"; };
 		526D17D32D5A1913009A2E90 /* HttpModels.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HttpModels.swift; sourceTree = "<group>"; };
 		526D17D42D5A1913009A2E90 /* NetworkClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NetworkClient.swift; sourceTree = "<group>"; };
@@ -900,6 +902,7 @@
 			children = (
 				526D17D02D5A1913009A2E90 /* EventSerializer.swift */,
 				CF634D482F61966A002B0B81 /* Exporter.swift */,
+				CF9A11AA2F70000100AA0001 /* JSONWriter.swift */,
 				526D17D22D5A1913009A2E90 /* HttpClient.swift */,
 				526D17D32D5A1913009A2E90 /* HttpModels.swift */,
 				526D17D42D5A1913009A2E90 /* NetworkClient.swift */,
@@ -1844,6 +1847,7 @@
 				CF12A68E2E97A761001C8112 /* AttributeValueValidator.swift in Sources */,
 				526D184B2D5A1913009A2E90 /* SignalProcessor.swift in Sources */,
 				526D18552D5A1913009A2E90 /* EventSerializer.swift in Sources */,
+				CF9A11AB2F70000100AA0001 /* JSONWriter.swift in Sources */,
 				52B7F18F2D76AFBB001498BC /* EventOb+CoreDataClass.swift in Sources */,
 				CF1BB4FD2DDF317300588506 /* MotionManager.swift in Sources */,
 				CF83E2E32E0D21EB00FE7041 /* MeasureDispatchQueue.swift in Sources */,

@@ -156,7 +156,7 @@ struct EventEntity {
     }
 
     /// Returns the encoded payload `Data` for the event's `type`, or `nil` for an unknown type.
-    private var payloadData: Data? {
+    var payloadData: Data? {
         switch EventType(rawValue: type) {
         case .exception: return exception
         case .gestureClick: return gestureClick
