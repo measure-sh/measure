@@ -393,13 +393,13 @@ paths:
         - name: versions
           in: query
           required: false
-          description: List of comma separated version identifier strings to return only matching crashes.
+          description: List of comma separated version identifier strings to return only matching issues.
           schema:
             type: string
         - name: version_codes
           in: query
           required: false
-          description: List of comma separated version codes to return only matching crashes.
+          description: List of comma separated version codes to return only matching issues.
           schema:
             type: string
         - name: bigraph
@@ -1182,13 +1182,13 @@ paths:
         - Errors
       summary: Fetch an app's error overview
       description: |
-        Fetch an app's error overview. Returns fatal exceptions, handled
-        exceptions, and ANRs unified into a single list.
+        Fetch an app's error overview. Returns fatal, unhandled & handled
+        errors plus ANRs unified into a single list.
 
         Both `versions` & `version_codes` should be present if any one of them
         is present. When neither `type` nor `severity` is set, all sources
-        (fatal exceptions, nonfatal exceptions, ANRs) are returned.
-        `custom=true` filters exceptions to custom-tracked only and does not
+        (fatal errors, nonfatal errors, ANRs) are returned.
+        `custom=true` filters errors to custom-tracked only & does not
         suppress ANRs. To exclude ANRs explicitly, use `type=error`.
       parameters:
         - name: id

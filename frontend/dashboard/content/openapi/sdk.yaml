@@ -389,9 +389,9 @@ paths:
                             type: boolean
                             deprecated: true
                             description: >
-                              Do not use. Prefer using `severity` for new
-                              integrations; `handled` is retained for backwards
-                              compatibility.
+                              Do not use. `severity` is the field consumed when
+                              present; `handled` is only read when `severity`
+                              is absent.
                           severity:
                             type: string
                             enum:
