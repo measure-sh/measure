@@ -54,7 +54,7 @@ internal class ExporterImpl(
         // Upper bound on the serialized size of a single batch's upload payload.
         // Batches are split so that no batch exceeds this size, keeping each export
         // request small enough to upload reliably.
-        private const val MAX_BATCH_PAYLOAD_SIZE_BYTES = 10 * 1024 * 1024
+        private const val MAX_BATCH_PAYLOAD_SIZE_BYTES = 9_000_000
 
         // Rough estimate of a single signal's (event or span) serialized size, used to
         // convert the payload size limit into a maximum number of signals per batch.

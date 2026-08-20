@@ -201,26 +201,26 @@ internal class ExporterTest {
     @Test
     fun `caps batch size at payload limit when config limit is larger`() {
         whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
-        // Payload limit: 10 MB / 1 KB estimated per signal = 10_240 signals per batch.
+        // Payload limit: 9 MB / 1 KB estimated per signal = 8_789 signals per batch.
         // The config limit is set higher, so the payload limit should take effect.
         configProvider.maxEventsInBatch = 20_000
 
         insertSessionInDb("session1")
-        insertEventsInDb("session1", count = 10_241)
+        insertEventsInDb("session1", count = 8_790)
 
         exporter.export()
 
-        // 10_241 events split into batches of 10_240 and 1.
+        // 8_790 events split into batches of 8_789 and 1.
         val eventsCaptor = argumentCaptor<List<EventPacket>>()
         verify(networkClient, times(2)).execute(any(), eventsCaptor.capture(), any())
         val batchSizes = eventsCaptor.allValues.map { it.size }.sortedDescending()
-        assertEquals(listOf(10_240, 1), batchSizes)
+        assertEquals(listOf(8_789, 1), batchSizes)
     }
 
     @Test
     fun `uses config limit when smaller than payload limit`() {
         whenever(networkClient.execute(any(), any(), any())).thenReturn(HttpResponse.Success())
-        // Config limit (5) is smaller than the payload limit (10_240), so it wins.
+        // Config limit (5) is smaller than the payload limit (8_789), so it wins.
         configProvider.maxEventsInBatch = 5
 
         insertSessionInDb("session1")
