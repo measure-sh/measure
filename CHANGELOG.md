@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Distinguish absent `num_code` from a sent zero (#4274) by @detj in #4274
 - (**backend**): Fatal-only journeys & remove deprecated crash/anr apis (#4262) by @detj in #4262
 - (**backend**): Serialize empty thread frames & threads as arrays (#4264) by @detj in #4264
 - (**backend**): Count only fatal exceptions in metrics & filters (#4257) by @detj in #4257
