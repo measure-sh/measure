@@ -16,6 +16,7 @@ import sh.measure.android.events.SignalProcessor
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.fakes.FakeAppExitProvider
 import sh.measure.android.fakes.FakeSessionManager
+import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
 import sh.measure.android.storage.SessionRecord
 
@@ -28,6 +29,7 @@ class AppExitCollectorTest {
     private val sessionManager = FakeSessionManager()
 
     private val appExitCollector = AppExitCollector(
+        NoopLogger(),
         appExitProvider,
         signalProcessor,
         sessionManager,
