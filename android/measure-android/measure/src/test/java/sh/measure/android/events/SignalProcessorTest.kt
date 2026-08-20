@@ -451,6 +451,58 @@ internal class SignalProcessorTest {
     }
 
     @Test
+    fun `trackAnr stores event against the session that stalled`() {
+        val exceptionData = TestData.getExceptionData(
+            artThreadDump = "DALVIK THREADS (1):\n",
+            subject = "Input dispatching timed out",
+        )
+        val timestamp = 1710746412L
+        val sessionId = "session-id-that-stalled"
+        val sessionStartTime = 1710746000L
+
+        signalProcessor.trackAnr(
+            data = exceptionData,
+            timestamp = timestamp,
+            threadName = "main",
+            sessionId = sessionId,
+            sessionStartTime = sessionStartTime,
+            appVersion = "app-version",
+            appBuild = "1000",
+        )
+
+        assertEquals(1, signalStore.trackedEvents.size)
+        val event = signalStore.trackedEvents.first()
+        assertEquals(EventType.ANR, event.type)
+        assertEquals(sessionId, event.sessionId)
+        assertEquals("main", event.attributes[Attribute.THREAD_NAME])
+        assertEquals(
+            sessionStartTime.iso8601Timestamp(),
+            event.attributes[Attribute.SESSION_START_TIME_KEY],
+        )
+        assertEquals("app-version", event.attributes[Attribute.APP_VERSION_KEY])
+        assertEquals("1000", event.attributes[Attribute.APP_BUILD_KEY])
+        assertTrue(event.isSampled)
+    }
+
+    @Test
+    fun `trackAnr marks the stalled session so a late profile can find it`() {
+        signalProcessor.trackAnr(
+            data = TestData.getExceptionData(artThreadDump = "DALVIK THREADS (1):\n"),
+            timestamp = 1710746412L,
+            threadName = "main",
+            sessionId = "session-id-that-stalled",
+            sessionStartTime = 1710746000L,
+            appVersion = "app-version",
+            appBuild = "1000",
+        )
+
+        assertEquals(
+            listOf("session-id-that-stalled" to 1710746412L),
+            sessionManager.markedAnrSessions,
+        )
+    }
+
+    @Test
     fun `trackProfile stores event with provided sessionId, session start time and version attributes`() {
         val profileData = ProfileData(reason = "anr", format = "perfetto_trace")
         val timestamp = 1710746412L
