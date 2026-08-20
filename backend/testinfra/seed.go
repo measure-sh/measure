@@ -234,11 +234,17 @@ type EventRow struct {
 	// Exception/ANR payload, written only for issue events (Type "exception"
 	// or "anr"). Severity, ExceptionsJSON and IsCustom are written only when
 	// set, leaving ClickHouse column defaults otherwise.
-	Handled        bool
-	Fingerprint    string
-	Severity       string
-	ExceptionsJSON string
-	IsCustom       bool
+	Handled         bool
+	Fingerprint     string
+	Severity        string
+	ExceptionsJSON  string
+	ThreadsJSON     string
+	AttachmentsJSON string
+	IsCustom        bool
+
+	// ART thread dump payload, written only for anr events.
+	Subject        string
+	ThreadDumpJSON string
 
 	// Device/network attributes, written only when OSName is non-empty.
 	// app_filters_mv requires all nine of these non-empty to emit a row, so
@@ -322,6 +328,14 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 			cols = append(cols, "`exception.exceptions`", "`anr.exceptions`")
 			vals = append(vals, quote(row.ExceptionsJSON), quote(row.ExceptionsJSON))
 		}
+		if row.AttachmentsJSON != "" {
+			cols = append(cols, "attachments")
+			vals = append(vals, quoteEscaped(row.AttachmentsJSON))
+		}
+		if row.ThreadsJSON != "" {
+			cols = append(cols, "`exception.threads`", "`anr.threads`")
+			vals = append(vals, quoteEscaped(row.ThreadsJSON), quoteEscaped(row.ThreadsJSON))
+		}
 		if row.Severity != "" {
 			cols = append(cols, "`exception.severity`")
 			vals = append(vals, quote(row.Severity))
@@ -329,6 +343,14 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 		if row.IsCustom {
 			cols = append(cols, "`exception.is_custom`")
 			vals = append(vals, "true")
+		}
+		if row.Subject != "" {
+			cols = append(cols, "`anr.subject`")
+			vals = append(vals, quoteEscaped(row.Subject))
+		}
+		if row.ThreadDumpJSON != "" {
+			cols = append(cols, "`anr.thread_dump`")
+			vals = append(vals, quoteEscaped(row.ThreadDumpJSON))
 		}
 	}
 
@@ -348,6 +370,14 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 	if err := h.ChConn.Exec(ctx, query); err != nil {
 		t.Fatalf("seed event (%s): %v", row.Type, err)
 	}
+}
+
+// quoteEscaped renders a ClickHouse string literal for values that can
+// contain backslashes or quotes of their own, such as embedded JSON.
+func quoteEscaped(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `'`, `\'`)
+	return "'" + s + "'"
 }
 
 // SeedEvents inserts count generic ("test") events at the current time.

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"backend/libs/artdump"
 	"backend/libs/chrono"
 	"backend/libs/udattr"
 
@@ -33,6 +34,7 @@ type ANRView struct {
 	Title      string `json:"title"`
 	Stacktrace string `json:"stacktrace"`
 	Message    string `json:"message"`
+	Subject    string `json:"subject"`
 }
 
 type EventException struct {
@@ -65,6 +67,12 @@ func (e *EventANR) ComputeView() {
 		Title:      e.ANR.GetDisplayTitle(),
 		Stacktrace: e.ANR.Stacktrace(),
 		Message:    e.ANR.GetMessage(),
+		Subject:    e.ANR.Subject,
+	}
+
+	if e.ANR.ThreadDump != nil {
+		e.Threads = threadDumpViews(e.ANR.ThreadDump)
+		return
 	}
 
 	e.Threads = []ThreadView{}
@@ -76,6 +84,38 @@ func (e *EventANR) ComputeView() {
 		}
 		e.Threads = append(e.Threads, tv)
 	}
+}
+
+// threadDumpViews renders an ART thread dump into the thread shape the
+// dashboard already draws. A thread is titled by its whole ART header,
+// which carries the state and priority a bare name would lose, and a
+// lock follows the frame it annotates.
+func threadDumpViews(dump *artdump.Dump) []ThreadView {
+	// A lock names its holder by ART thread id. An unattached thread
+	// has no id and can never hold one.
+	holders := map[int]string{}
+	for _, thread := range dump.Threads {
+		if thread.Tid != 0 {
+			holders[thread.Tid] = thread.Name
+		}
+	}
+
+	views := make([]ThreadView, 0, len(dump.Threads))
+	for _, thread := range dump.Threads {
+		view := ThreadView{Name: thread.Header}
+
+		for _, frame := range thread.Frames {
+			view.Frames = append(view.Frames, frame.Render())
+
+			for _, lock := range frame.Locks {
+				view.Frames = append(view.Frames, lock.Render(holders[lock.HolderTid]))
+			}
+		}
+
+		views = append(views, view)
+	}
+
+	return views
 }
 
 // ComputeView computes a consumer friendly

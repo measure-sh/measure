@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -1803,6 +1804,75 @@ func TestANRGetDisplayTitle(t *testing.T) {
 		anr := dumpANR(inputSubject, noManagedFramesMain)
 		if got, want := anr.GetDisplayTitle(), "Input dispatching timed out"; got != want {
 			t.Errorf("Expected display title %q, but got %q", want, got)
+		}
+	})
+}
+
+func TestComputeViewRendersTheThreadDump(t *testing.T) {
+	dump := `"main" prio=5 tid=1 Blocked
+  at sh.foo.Repo.load(Repo.kt:8)
+  - waiting to lock <0x053dd6df> (a java.lang.Object) held by thread 46
+DumpLatencyMs: 2.47
+
+"APP: Locker" daemon prio=5 tid=46 Sleeping
+  at java.lang.Thread.sleep(Native method)
+  - sleeping on <0x07c5c2d7> (a java.lang.Object)
+  native: #00 pc 0004df5c  /apex/libc.so (syscall+28)`
+
+	e := EventANR{ANR: dumpANR(inputSubject, dump)}
+	e.ComputeView()
+
+	t.Run("Carries the subject", func(t *testing.T) {
+		if got, want := e.ANRView.Subject, inputSubject; got != want {
+			t.Errorf("Expected subject %q, but got %q", want, got)
+		}
+	})
+
+	t.Run("Titles a thread by its whole header", func(t *testing.T) {
+		if len(e.Threads) != 2 {
+			t.Fatalf("Expected 2 threads, but got %d", len(e.Threads))
+		}
+		if got, want := e.Threads[0].Name, `"main" prio=5 tid=1 Blocked`; got != want {
+			t.Errorf("Expected thread name %q, but got %q", want, got)
+		}
+	})
+
+	t.Run("Names the thread holding a lock", func(t *testing.T) {
+		want := "  - waiting to lock <0x053dd6df> (a java.lang.Object) held by APP: Locker"
+		if got := e.Threads[0].Frames[1]; got != want {
+			t.Errorf("Expected %q, but got %q", want, got)
+		}
+	})
+
+	t.Run("Keeps a lock beneath the frame it annotates", func(t *testing.T) {
+		want := []string{
+			"  at java.lang.Thread.sleep(Native method)",
+			"  - sleeping on <0x07c5c2d7> (a java.lang.Object)",
+			"  native: #00 pc 0004df5c  /apex/libc.so (syscall+28)",
+		}
+		if got := e.Threads[1].Frames; !reflect.DeepEqual(got, want) {
+			t.Errorf("Expected frames %q, but got %q", want, got)
+		}
+	})
+
+	t.Run("Leaves a stacktrace ANR on the existing shape", func(t *testing.T) {
+		legacy := EventANR{ANR: ANR{
+			Exceptions: ExceptionUnits{{Type: "AppNotResponding"}},
+			Threads: Threads{{
+				Name:   "main",
+				Frames: Frames{{ClassName: "sh.foo.Repo", MethodName: "load", FileName: "Repo.kt", LineNum: 8}},
+			}},
+		}}
+		legacy.ComputeView()
+
+		if len(legacy.Threads) != 1 {
+			t.Fatalf("Expected 1 thread, but got %d", len(legacy.Threads))
+		}
+		if got, want := legacy.Threads[0].Name, "main"; got != want {
+			t.Errorf("Expected thread name %q, but got %q", want, got)
+		}
+		if legacy.ANRView.Subject != "" {
+			t.Errorf("Expected no subject, but got %q", legacy.ANRView.Subject)
 		}
 	})
 }

@@ -209,10 +209,10 @@ func (t *Thread) stackLines() []string {
 	lines = append(lines, t.Header)
 
 	for _, frame := range t.Frames {
-		lines = append(lines, frame.render())
+		lines = append(lines, frame.Render())
 
 		for _, lock := range frame.Locks {
-			lines = append(lines, lock.render())
+			lines = append(lines, lock.Render(""))
 		}
 	}
 
@@ -305,7 +305,9 @@ func parseLock(line string) (Lock, bool) {
 	return lock, true
 }
 
-func (f *Frame) render() string {
+// Render writes the frame in the original ART format. A frame the
+// parser kept verbatim is returned as it was found.
+func (f *Frame) Render() string {
 	if f.ClassName == "" {
 		return f.RawLine
 	}
@@ -328,7 +330,10 @@ func (f *Frame) render() string {
 	return sb.String()
 }
 
-func (l *Lock) render() string {
+// Render writes the lock in the original ART format. A non-empty holder
+// replaces the thread id ART printed, so a reader sees which thread
+// holds the monitor instead of a number.
+func (l *Lock) Render(holder string) string {
 	var sb strings.Builder
 	sb.WriteString("  - ")
 	sb.WriteString(l.State)
@@ -342,8 +347,13 @@ func (l *Lock) render() string {
 	}
 
 	if l.HolderTid != 0 {
-		sb.WriteString(" held by thread ")
-		sb.WriteString(strconv.Itoa(l.HolderTid))
+		sb.WriteString(" held by ")
+		if holder != "" {
+			sb.WriteString(holder)
+		} else {
+			sb.WriteString("thread ")
+			sb.WriteString(strconv.Itoa(l.HolderTid))
+		}
 	}
 
 	return sb.String()

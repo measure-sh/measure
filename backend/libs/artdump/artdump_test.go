@@ -514,3 +514,25 @@ func TestThreadRenderOmitsTheTrailer(t *testing.T) {
 		t.Errorf("got:\n%s\nwant:\n%s", got, want)
 	}
 }
+
+func TestLockRenderNamesTheHolder(t *testing.T) {
+	thread := parseBlock(t,
+		"  at sh.foo.Repo.load(Repo.kt:8)",
+		"  - waiting to lock <0x053dd6df> (a java.lang.Object) held by thread 46",
+	)
+	lock := thread.Frames[0].Locks[0]
+
+	t.Run("Falls back to the thread id", func(t *testing.T) {
+		want := "  - waiting to lock <0x053dd6df> (a java.lang.Object) held by thread 46"
+		if got := lock.Render(""); got != want {
+			t.Errorf("got %q, want %q", got, want)
+		}
+	})
+
+	t.Run("Uses the holder name when there is one", func(t *testing.T) {
+		want := `  - waiting to lock <0x053dd6df> (a java.lang.Object) held by APP: Locker`
+		if got := lock.Render("APP: Locker"); got != want {
+			t.Errorf("got %q, want %q", got, want)
+		}
+	})
+}

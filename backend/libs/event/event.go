@@ -299,9 +299,9 @@ var anrSubjectCategories = []string{
 // exception type can produce an input that starts with this.
 const anrDumpFingerprintPrefix = "art#"
 
-// anrSubjectCategory reduces an ANR subject to the deadline that expired,
+// ANRSubjectCategory reduces an ANR subject to the deadline that expired,
 // or returns an empty string for a subject it does not recognise.
-func anrSubjectCategory(subject string) string {
+func ANRSubjectCategory(subject string) string {
 	for _, category := range anrSubjectCategories {
 		if strings.Contains(subject, category) {
 			return category
@@ -2189,7 +2189,7 @@ func (a ANR) GetTitle() string {
 // the ANR.
 func (a ANR) GetType() string {
 	if a.hasThreadDump() {
-		return anrSubjectCategory(a.Subject)
+		return ANRSubjectCategory(a.Subject)
 	}
 	if len(a.Exceptions) == 0 {
 		return ""
@@ -2366,7 +2366,7 @@ func (a ANR) dumpFingerprintData() string {
 	var parts []string
 
 	if !frame.InApp {
-		if category := anrSubjectCategory(a.Subject); category != "" {
+		if category := ANRSubjectCategory(a.Subject); category != "" {
 			parts = append(parts, category)
 		}
 	}

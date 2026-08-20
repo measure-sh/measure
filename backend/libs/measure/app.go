@@ -1158,6 +1158,8 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 			Select("attribute.thread_name as thread_name").
 			Select("anr.exceptions as exceptions").
 			Select("anr.threads as threads").
+			Select("anr.subject as subject").
+			Select("anr.thread_dump as thread_dump").
 			Select("attachments").
 			Where("type = ?", event.TypeANR).
 			Where("anr.fingerprint = ?", fingerprint)
@@ -1175,6 +1177,8 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 			var e event.EventANR
 			var exceptions string
 			var threads string
+			var subject string
+			var threadDump string
 			var attachments string
 			if err = rows.Scan(
 				&e.ID,
@@ -1189,6 +1193,8 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 				&e.Attribute.ThreadName,
 				&exceptions,
 				&threads,
+				&subject,
+				&threadDump,
 				&attachments,
 			); err != nil {
 				return
@@ -1199,6 +1205,12 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 			}
 			if err = json.Unmarshal([]byte(threads), &e.ANR.Threads); err != nil {
 				return
+			}
+			e.ANR.Subject = subject
+			if threadDump != "" {
+				if err = json.Unmarshal([]byte(threadDump), &e.ANR.ThreadDump); err != nil {
+					return
+				}
 			}
 			if err = json.Unmarshal([]byte(attachments), &e.Attachments); err != nil {
 				return
@@ -3183,6 +3195,8 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			`anr.foreground`,
 			`anr.exceptions`,
 			`anr.threads`,
+			`anr.subject`,
+			`anr.thread_dump`,
 			`app_exit.reason`,
 			`app_exit.importance`,
 			`app_exit.trace`,
@@ -3274,6 +3288,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 		var exceptionThreads string
 		var anrExceptions string
 		var anrThreads string
+		var anrThreadDump string
 		var attachments string
 
 		var appExit event.AppExit
@@ -3489,6 +3504,8 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 				&anr.Foreground,
 				&anrExceptions,
 				&anrThreads,
+				&anr.Subject,
+				&anrThreadDump,
 
 				// app exit
 				&appExit.Reason,
@@ -3587,6 +3604,11 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			}
 			if err := json.Unmarshal([]byte(anrThreads), &anr.Threads); err != nil {
 				return nil, err
+			}
+			if anrThreadDump != "" {
+				if err := json.Unmarshal([]byte(anrThreadDump), &anr.ThreadDump); err != nil {
+					return nil, err
+				}
 			}
 			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
 				return nil, err
