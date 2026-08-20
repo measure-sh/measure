@@ -13,10 +13,18 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import sh.measure.android.config.DynamicConfig
 import sh.measure.android.events.EventType
+import android.os.Build
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.utils.ManifestMetadata
 
+@RunWith(AndroidJUnit4::class)
+// Below Android 11 the SIGQUIT collector is the ANR source, which is what
+// the crash tracking assertions below expect.
+@Config(sdk = [Build.VERSION_CODES.Q])
 class MeasureInternalTest {
     private val sessionManager = mock<SessionManager>()
     private val signalProcessor = mock<SignalProcessor>()
@@ -321,6 +329,46 @@ class MeasureInternalTest {
 
         verify(initializer.unhandledExceptionCollector).register()
         verify(initializer.anrCollector).register()
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.R])
+    fun `start does not register the sigquit anr collector on api 30 and above`() {
+        val initializer = mockMeasureInitializer()
+        val measureInternal = MeasureInternal(initializer)
+
+        measureInternal.start()
+
+        verify(initializer.unhandledExceptionCollector).register()
+        verify(initializer.anrCollector, never()).register()
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.R])
+    fun `stop does not unregister the sigquit anr collector on api 30 and above`() {
+        val initializer = mockMeasureInitializer()
+        val measureInternal = MeasureInternal(initializer)
+        measureInternal.start()
+
+        measureInternal.stop()
+
+        verify(initializer.unhandledExceptionCollector).unregister()
+        verify(initializer.anrCollector, never()).unregister()
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.R])
+    fun `repeated start and stop cycles leave the sigquit collector untouched on api 30 and above`() {
+        val initializer = mockMeasureInitializer()
+        val measureInternal = MeasureInternal(initializer)
+
+        repeat(3) {
+            measureInternal.start()
+            measureInternal.stop()
+        }
+
+        verify(initializer.anrCollector, never()).register()
+        verify(initializer.anrCollector, never()).unregister()
     }
 
     @Test

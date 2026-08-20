@@ -443,12 +443,24 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
 
     private fun enableCrashTracking() {
         measure.unhandledExceptionCollector.register()
-        measure.anrCollector.register()
+        if (usesSigquitForAnrs()) {
+            measure.anrCollector.register()
+        }
     }
 
     private fun disableCrashTracking() {
         measure.unhandledExceptionCollector.unregister()
-        measure.anrCollector.unregister()
+        if (usesSigquitForAnrs()) {
+            measure.anrCollector.unregister()
+        }
     }
+
+    /**
+     * From Android 11 ANRs are read from [android.app.ApplicationExitInfo] on the
+     * launch after the one they happened in, which is authoritative and reports
+     * the whole ART thread dump. The SIGQUIT handler is the source only below
+     * that, where no exit record exists.
+     */
+    private fun usesSigquitForAnrs(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.R
     fun getDynamicConfigPath(): String? = measure.fileStorage.getConfigPath()
 }
