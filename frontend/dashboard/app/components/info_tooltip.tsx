@@ -32,11 +32,7 @@ export default function InfoTooltip({
       content={content}
       side={side}
       align={align}
-      // Override the simple tooltip panel's `flex flex-col` (which would drop an inline
-      // link onto its own line) and `text-balance` (which leaves the panel
-      // narrower than its width) so descriptive text flows as a normal
-      // paragraph that fills the width with inline links.
-      contentClassName={cn("block text-wrap", contentClassName)}
+      contentClassName={cn("block", contentClassName)}
     >
       <Info className={cn("h-4 w-4 -mt-0.5 shrink-0", className)} />
     </SimpleTooltip>
