@@ -225,8 +225,23 @@ func TestHasError(t *testing.T) {
 		}
 	}
 	{
+		numCode := int32(47)
 		e := Exception{
-			NumCode: 47,
+			NumCode: &numCode,
+		}
+		expected := true
+		got := e.HasError()
+
+		if expected != got {
+			t.Errorf("Expected %v, but got %v", expected, got)
+		}
+	}
+
+	// NumCode sent as zero is still present, not absent
+	{
+		numCode := int32(0)
+		e := Exception{
+			NumCode: &numCode,
 		}
 		expected := true
 		got := e.HasError()

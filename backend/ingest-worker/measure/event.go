@@ -423,6 +423,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		attachments := "[]"
 		binaryImages := "[]"
 		errorMeta := "{}"
+		var numCode int32
 
 		if e.events[i].IsANR() {
 			marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
@@ -469,6 +470,10 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 					return err
 				}
 				errorMeta = string(metaBytes)
+			}
+
+			if e.events[i].Exception.NumCode != nil {
+				numCode = *e.events[i].Exception.NumCode
 			}
 		}
 
@@ -568,7 +573,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.foreground`, e.events[i].Exception.Foreground).
 				Set(`exception.binary_images`, binaryImages).
 				Set(`exception.framework`, e.events[i].Exception.GetFramework()).
-				Set(`exception.num_code`, e.events[i].Exception.NumCode).
+				Set(`exception.num_code`, numCode).
+				Set(`exception.has_num_code`, e.events[i].Exception.NumCode != nil).
 				Set(`exception.code`, e.events[i].Exception.Code).
 				Set(`exception.meta`, errorMeta).
 				Set(`exception.severity`, e.events[i].Exception.GetSeverity()).
@@ -583,6 +589,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.binary_images`, nil).
 				Set(`exception.framework`, nil).
 				Set(`exception.num_code`, nil).
+				Set(`exception.has_num_code`, nil).
 				Set(`exception.code`, nil).
 				Set(`exception.meta`, nil).
 				Set(`exception.severity`, nil).

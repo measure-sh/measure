@@ -43,7 +43,7 @@ type EventException struct {
 	Attribute            Attribute          `json:"attribute"`
 	Exception            Exception          `json:"-"`
 	ExceptionView        ExceptionView      `json:"exception"`
-	NumCode              int32              `json:"num_code"`
+	NumCode              *int32             `json:"num_code"`
 	Code                 string             `json:"code"`
 	Meta                 map[string]any     `json:"meta"`
 	Severity             Severity           `json:"severity"`
