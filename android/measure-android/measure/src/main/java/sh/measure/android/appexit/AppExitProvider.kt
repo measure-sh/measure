@@ -94,7 +94,14 @@ internal class AppExitProviderImpl(
         }
         logger.log(LogLevel.Debug, "Reading ANR thread dump")
 
-        val source: BufferedSource = traceInputStream.source().buffer()
+        // use() closes the buffered source, and with it the trace stream
+        // the system handed us. Every ANR exit record opens one.
+        return traceInputStream.source().buffer().use { source ->
+            readTrace(source)
+        }
+    }
+
+    private fun readTrace(source: BufferedSource): ArtTrace? {
         val buffer = Buffer()
         var subject: String? = null
         var insideSection = false

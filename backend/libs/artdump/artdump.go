@@ -64,9 +64,7 @@ type Dump struct {
 	Trailer []string `json:"trailer,omitempty"`
 	// BlockingChain lists the ART thread ids standing between the
 	// stalled thread and whatever is holding it up, the stalled thread
-	// first and the root last. It is resolved once, when the dump is
-	// ingested, so that everything reading the dump afterwards shares
-	// one recorded answer instead of deriving its own.
+	// first and the root last. Resolved once, at ingest.
 	BlockingChain []int `json:"blocking_chain,omitempty"`
 }
 
@@ -234,8 +232,7 @@ func (d *Dump) MainThread() *Thread {
 
 // ThreadByTid returns the thread ART gave the id tid, or nil when the
 // dump has no such thread. Tid zero never matches: it is what an
-// unattached thread and an unparsable header both leave behind, and a
-// lock never names either as its holder.
+// unattached thread leaves behind, and no lock names it as holder.
 func (d *Dump) ThreadByTid(tid int) *Thread {
 	if tid == 0 {
 		return nil
@@ -254,35 +251,23 @@ func (d *Dump) ThreadByTid(tid int) *Thread {
 // entering a monitor another thread holds.
 const lockStateWaitingToLock = "waiting to lock"
 
-// Annotate derives the facts everything downstream reads off a dump:
-// which frames are application code, and which threads are holding the
-// app up.
-//
-// It is the only way to apply them, deliberately. They were once two
-// exported calls and every caller had to remember both, which is
-// exactly what went wrong twice: a test helper applied one and not the
-// other, and silently produced dumps that no longer matched what ingest
-// stores.
-//
-// Call it after symbolication. In-app marking judges class names, and
-// an obfuscated name looks like application code whatever it really is.
+// Annotate marks the application frames and resolves the blocking
+// chain. Call it after symbolication, so in-app classification judges
+// deobfuscated class names.
 func (d *Dump) Annotate() {
 	d.markInApp()
 	d.resolveBlockingChain()
 }
 
 // resolveBlockingChain records which threads are holding the main
-// thread up, so that grouping and rendering agree without either
-// walking the dump again.
+// thread up.
 //
-// A thread blocked entering a monitor names the thread holding it, and
-// that is the only blocking relation an ART dump records. "waiting on"
-// is Object.wait, where the waiter has already released the monitor, so
-// whoever holds it now is not the one blocking us.
+// "waiting to lock" is the only blocking relation an ART dump records.
+// "waiting on" is Object.wait, where the waiter has already released
+// the monitor, so its holder is not blocking anyone.
 //
-// The walk stops on a thread it has already seen, which is a deadlock
-// cycle, and is what makes it terminate. Nothing is recorded when the
-// main thread is not blocked on a monitor at all.
+// The walk stops on a thread it has seen, which is a deadlock cycle,
+// and is what makes it terminate.
 func (d *Dump) resolveBlockingChain() {
 	main := d.MainThread()
 	if main == nil {

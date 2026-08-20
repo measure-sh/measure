@@ -302,9 +302,8 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
   const stacktrace =
     firstResult?.exception?.stacktrace ?? firstResult?.anr?.stacktrace ?? "";
 
-  // The stacktrace belongs to the thread the ANR is blamed on, which is
-  // the one holding the app up when something is, and the stalled
-  // thread otherwise. The backend decides which, and names it here.
+  // The stacktrace belongs to the thread the ANR is blamed on. The
+  // backend decides which that is and names it here.
   const topThreadValue =
     "Thread: " +
     (firstResult?.anr?.blocking_thread ||
@@ -313,8 +312,7 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
 
   const extraAttributeRows: Array<[string, unknown]> = [];
   if (firstResult) {
-    // The subject names the deadline that expired, which is the context
-    // for reading the stacktrace below it.
+    // The deadline that expired, shown above the stacktrace.
     if (firstResult.anr?.subject) {
       extraAttributeRows.push(["subject", firstResult.anr.subject]);
     }

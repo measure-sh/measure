@@ -36,9 +36,7 @@ type ANRView struct {
 	Message    string `json:"message"`
 	Subject    string `json:"subject"`
 	// BlockingThread is the ART header of the thread the ANR is
-	// blamed on, when that is not the main thread. It matches the
-	// name of one of the threads below, and is empty when nothing
-	// was holding the main thread up.
+	// blamed on, empty when nothing was holding the stalled thread up.
 	BlockingThread string `json:"blocking_thread"`
 }
 
@@ -100,13 +98,8 @@ func (e *EventANR) ComputeView() {
 // which carries the state and priority a bare name would lose, and a
 // lock follows the frame it annotates.
 //
-// The top thread is left out. It is already rendered on its own from
-// Stacktrace, and the detail page draws that above this list, so
-// including it here would show the same thread twice.
-//
-// The stalled thread comes first among the rest, because when something
-// else is blocking it the reader still wants its stack next. A dump
-// carries dozens of threads and neither should have to be hunted for.
+// The top thread is left out, since Stacktrace already renders it. The
+// stalled thread leads the rest.
 func threadDumpViews(dump *artdump.Dump, chain []*artdump.Thread) []ThreadView {
 	holders := anrLockHolders(dump)
 	main := dump.MainThread()
@@ -141,8 +134,7 @@ func threadDumpViews(dump *artdump.Dump, chain []*artdump.Thread) []ThreadView {
 }
 
 // anrLockHolders maps an ART thread id to the thread's name, so a lock
-// can name the thread holding it rather than a number. An unattached
-// thread has no id and can never hold one.
+// can name its holder rather than a number.
 func anrLockHolders(dump *artdump.Dump) map[int]string {
 	holders := map[int]string{}
 	for _, thread := range dump.Threads {
@@ -154,8 +146,8 @@ func anrLockHolders(dump *artdump.Dump) map[int]string {
 	return holders
 }
 
-// anrThreadStack renders a thread's frames, with each lock following the
-// frame it annotates and naming the thread that holds it.
+// anrThreadStack renders a thread's frames, each lock following the
+// frame it annotates.
 func anrThreadStack(thread *artdump.Thread, holders map[int]string) []string {
 	var lines []string
 

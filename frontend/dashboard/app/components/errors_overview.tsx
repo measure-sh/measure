@@ -26,9 +26,8 @@ import {
 
 const PAGINATION_LIMIT = 5;
 
-// An ANR's message is the system's own sentence about the stall, which
-// opens with the very deadline we show as the type. Printing both
-// repeats it, so the message stands alone when it already says it.
+// An ANR's message is the system's own sentence, which opens with the
+// deadline we show as the type. Printing both repeats it.
 function formatErrorSubtitle(type: string, message: string): string {
   if (type && message.startsWith(type)) {
     return message;

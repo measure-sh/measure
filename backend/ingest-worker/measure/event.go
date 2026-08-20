@@ -302,8 +302,9 @@ func (e eventreq) bucketExceptions(ctx context.Context) (err error) {
 	return
 }
 
-// parseANRThreadDumps parses the ART thread
-// dump part of ANR events.
+// parseANRThreadDumps parses the ART thread dump carried by an ANR.
+// Symbolication is best effort and is skipped for batches that need
+// none, so parsing cannot live inside it.
 func (e eventreq) parseANRThreadDumps() {
 	for _, i := range e.anrIds {
 		anr := e.events[i].ANR
@@ -315,17 +316,12 @@ func (e eventreq) parseANRThreadDumps() {
 	}
 }
 
-// annotateANRThreadDumps records what the rest of the system reads off
-// an ANR's thread dump: which frames are application code, and which
-// threads are holding the app up.
+// annotateANRThreadDumps derives once, here, what the fingerprint and
+// the dashboard both read. The fingerprint is frozen at ingest, so
+// recomputing these per request would let the group and the page it
+// renders disagree.
 //
-// Both are derived once, here, rather than recomputed per request. The
-// fingerprint is frozen at ingest, so deriving the same facts again at
-// read time would let the group and the page it renders disagree.
-//
-// It runs after symbolication, so the frames it judges carry
-// deobfuscated class names, and before the fingerprint, which groups on
-// the first application frame in the blocking chain.
+// Runs after symbolication and before the fingerprint.
 func (e eventreq) annotateANRThreadDumps() {
 	for _, i := range e.anrIds {
 		anr := e.events[i].ANR
@@ -463,6 +459,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		var numCode int32
 
 		if e.events[i].IsANR() {
+			// A nil slice marshals to "null"; readers expect "[]".
 			if len(e.events[i].ANR.Exceptions) > 0 {
 				marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
 				if err != nil {

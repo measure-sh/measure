@@ -282,9 +282,8 @@ func getValidLifecycleAppTypes(osName string) (types []string) {
 }
 
 // anrSubjectCategories are the AOSP forms of the ANR subject that the
-// grouping key recognises. ApplicationExitInfo.getDescription() embeds
-// the subject in a longer sentence rather than returning it alone, so
-// these match anywhere in the string.
+// grouping key recognises. getDescription() embeds the subject in a
+// longer sentence, so these match anywhere in the string.
 var anrSubjectCategories = []string{
 	"Input dispatching timed out",
 	"Broadcast of Intent",
@@ -295,8 +294,7 @@ var anrSubjectCategories = []string{
 }
 
 // anrDumpFingerprintPrefix separates thread dump fingerprints from the
-// ones built from exceptions. A class name cannot contain "#", so no
-// exception type can produce an input that starts with this.
+// ones built from exceptions. A class name cannot contain "#".
 const anrDumpFingerprintPrefix = "art#"
 
 // ANRSubjectCategory reduces an ANR subject to the deadline that expired,
@@ -2129,11 +2127,9 @@ func (a ANR) IsNested() bool {
 	return len(a.Exceptions) > 1
 }
 
-// An ANR arrives in one of two shapes. On Android 11 and above it is
-// the ART thread dump the system captured; below that it is the
-// exceptions the SIGQUIT handler assembled. anrSource is that shape,
-// so the accessors can ask once which they are reading rather than
-// each testing for itself.
+// anrSource is the shape an ANR arrived in: the ART thread dump the
+// system captured on Android 11 and above, or the exceptions the
+// SIGQUIT handler assembled below that.
 type anrSource interface {
 	Type() string
 	Message() string
@@ -2190,9 +2186,9 @@ func (a ANR) GetDisplayTitle() string {
 	return DisplayTitle(a.GetType(), a.GetFileName())
 }
 
-// threadDumpANR reads an ANR reported as an ART thread dump. Everything
-// it answers comes from the thread the ANR is blamed on, which is not
-// always the thread that stalled.
+// threadDumpANR reads an ANR reported as an ART thread dump. It answers
+// from the thread the ANR is blamed on, which is not always the thread
+// that stalled.
 type threadDumpANR struct {
 	anr ANR
 }
@@ -2207,8 +2203,7 @@ func (d threadDumpANR) MethodName() string { return d.anr.groupingFrame().Method
 
 func (d threadDumpANR) LineNumber() int32 {
 	frame := d.anr.groupingFrame()
-	// A frame that printed no source line reports zero, since the
-	// column it lands in has no room for "absent".
+	// The column has no room for "absent".
 	if frame.LineNum == artdump.NoLineNum {
 		return int32(0)
 	}
@@ -2216,8 +2211,8 @@ func (d threadDumpANR) LineNumber() int32 {
 	return int32(frame.LineNum)
 }
 
-// HasNoFrames asks whether the blame chain yields any frame to group
-// on, not whether the stalled thread alone has one.
+// HasNoFrames asks whether the blame chain yields a frame to group on,
+// not whether the stalled thread alone has one.
 func (d threadDumpANR) HasNoFrames() bool { return d.anr.groupingFrame().ClassName == "" }
 
 func (d threadDumpANR) Stacktrace() string {
@@ -2235,7 +2230,7 @@ func (d threadDumpANR) Stacktrace() string {
 }
 
 // exceptionANR reads an ANR reported as exceptions, which is every ANR
-// below Android 11 and every ANR stored before thread dumps existed.
+// below Android 11.
 type exceptionANR struct {
 	anr ANR
 }
@@ -2333,11 +2328,9 @@ func (e exceptionANR) Stacktrace() string {
 }
 
 // blameChain returns the threads an ANR can be blamed on, the stalled
-// thread first and whatever is holding it up last.
-//
-// It always contains the stalled thread, so a chain of one means
-// nothing was blocking it. A dump stored before the chain was recorded
-// reads the same way and therefore groups as it did then.
+// thread first and whatever is holding it up last. It always contains
+// the stalled thread, so a chain of one means nothing was blocking it,
+// as does a dump stored before the chain was recorded.
 func (a ANR) blameChain() []*artdump.Thread {
 	if chain := a.ThreadDump.BlockingThreads(); len(chain) > 0 {
 		return chain
@@ -2361,9 +2354,7 @@ func rootBlockingThread(chain []*artdump.Thread) *artdump.Thread {
 }
 
 // topThread returns the thread the ANR is reported on: the one blocking
-// the app when something is, and the stalled thread itself otherwise.
-// It is the stack shown first on the detail page and the one the
-// session timeline carries, so both name the same thread.
+// the app when something is, and the stalled thread otherwise.
 func (a ANR) topThread() *artdump.Thread {
 	chain := a.blameChain()
 	if len(chain) == 0 {
@@ -2378,18 +2369,13 @@ func (a ANR) topThread() *artdump.Thread {
 }
 
 // groupingFrame returns the frame the ANR is grouped, titled and
-// reported on.
-//
-// It comes from the deepest thread in the blame chain that runs
-// application code, because that is the code responsible for the stall.
-// The stalled thread is only waiting when something else holds the
-// lock, so grouping on it would split one bug across every call site
-// that contends the lock and merge unrelated bugs that contend it from
-// the same place.
+// reported on: the deepest frame in the blame chain that runs
+// application code, since the stalled thread is only waiting when
+// something else holds the lock.
 //
 // Failing that it is the stalled thread's first managed frame. The zero
 // frame means the chain has no managed frame at all, and its InApp is
-// false, which is what pulls the subject category into the grouping key.
+// false, which is what pulls the subject category into the key.
 func (a ANR) groupingFrame() (frame artdump.Frame) {
 	chain := a.blameChain()
 	if len(chain) == 0 {
@@ -2425,10 +2411,8 @@ func (a *ANR) ComputeFingerprint() (err error) {
 		fingerprintData = a.exceptionFingerprintData()
 	case a.ThreadDump != nil:
 		fingerprintData = a.dumpFingerprintData()
-		// A dump with neither a recognised subject nor a managed frame
-		// on the main thread has nothing to group on, so it is left
-		// without a fingerprint and bucketANRs skips it. The exception
-		// branch has no equivalent case, and hashes whatever it built.
+		// Nothing to group on. bucketANRs skips an empty fingerprint.
+		// The exception branch hashes whatever it built.
 		if fingerprintData == "" {
 			return nil
 		}
@@ -2466,10 +2450,9 @@ func (a ANR) exceptionFingerprintData() string {
 	return fingerprintData
 }
 
-// dumpFingerprintData builds the grouping key from the main thread's
-// grouping frame. The subject category joins the key only when that
-// frame is not application code, because the same in-app blocking call
-// can trip whichever deadline the user happened to be waiting on.
+// dumpFingerprintData builds the grouping key. The subject category
+// joins it only when the grouping frame is not application code, since
+// the same call can trip whichever deadline the user was waiting on.
 func (a ANR) dumpFingerprintData() string {
 	frame := a.groupingFrame()
 
