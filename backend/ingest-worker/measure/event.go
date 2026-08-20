@@ -4,6 +4,7 @@ import (
 	"backend/ingest-worker/server"
 	"backend/ingest-worker/symbolicator"
 	"backend/libs/ambient"
+	"backend/libs/artdump"
 	"backend/libs/chrono"
 	"backend/libs/event"
 	"backend/libs/group"
@@ -301,6 +302,25 @@ func (e eventreq) bucketExceptions(ctx context.Context) (err error) {
 	return
 }
 
+// parseThreadDumps parses the ART thread dump carried by an ANR so that
+// symbolication, fingerprinting and the stored row all read one parsed
+// representation.
+//
+// This runs ahead of symbolication rather than inside it. Symbolication
+// is best effort, it is skipped when nothing in the batch needs it, and
+// a failure is logged rather than returned, so a dump parsed there
+// would go missing from the row whenever any of that happened.
+func (e eventreq) parseThreadDumps() {
+	for _, i := range e.anrIds {
+		anr := e.events[i].ANR
+		if anr == nil || anr.ArtThreadDump == "" {
+			continue
+		}
+
+		anr.ThreadDump = artdump.Parse(anr.ArtThreadDump)
+	}
+}
+
 // bucketANRs groups ANRs based on similarity.
 func (e eventreq) bucketANRs(ctx context.Context) (err error) {
 	events := e.getANRs()
@@ -418,6 +438,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 	for i := range e.events {
 		anrExceptions := "[]"
 		anrThreads := "[]"
+		anrThreadDump := ""
 		exceptionExceptions := "[]"
 		exceptionThreads := "[]"
 		attachments := "[]"
@@ -426,16 +447,37 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		var numCode int32
 
 		if e.events[i].IsANR() {
-			marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
-			if err != nil {
-				return err
+			// A dump-only ANR carries neither, and a nil slice
+			// marshals to "null", which readers of these columns do
+			// not expect.
+			if len(e.events[i].ANR.Exceptions) > 0 {
+				marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
+				if err != nil {
+					return err
+				}
+				anrExceptions = string(marshalledExceptions)
 			}
-			anrExceptions = string(marshalledExceptions)
-			marshalledThreads, err := json.Marshal(e.events[i].ANR.Threads)
-			if err != nil {
-				return err
+			if len(e.events[i].ANR.Threads) > 0 {
+				marshalledThreads, err := json.Marshal(e.events[i].ANR.Threads)
+				if err != nil {
+					return err
+				}
+				anrThreads = string(marshalledThreads)
 			}
-			anrThreads = string(marshalledThreads)
+
+			// In-app marking has to see deobfuscated class names, and
+			// the fingerprint has to see the in-app marks, so both run
+			// after symbolication and in this order.
+			if dump := e.events[i].ANR.ThreadDump; dump != nil {
+				dump.MarkInApp()
+
+				marshalledDump, err := json.Marshal(dump)
+				if err != nil {
+					return err
+				}
+				anrThreadDump = string(marshalledDump)
+			}
+
 			if err := e.events[i].ANR.ComputeFingerprint(); err != nil {
 				return err
 			}
@@ -553,14 +595,18 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`anr.fingerprint`, e.events[i].ANR.Fingerprint).
 				Set(`anr.exceptions`, anrExceptions).
 				Set(`anr.threads`, anrThreads).
-				Set(`anr.foreground`, e.events[i].ANR.Foreground)
+				Set(`anr.foreground`, e.events[i].ANR.Foreground).
+				Set(`anr.subject`, e.events[i].ANR.Subject).
+				Set(`anr.thread_dump`, anrThreadDump)
 		} else {
 			row.
 				Set(`anr.handled`, nil).
 				Set(`anr.fingerprint`, nil).
 				Set(`anr.exceptions`, nil).
 				Set(`anr.threads`, nil).
-				Set(`anr.foreground`, nil)
+				Set(`anr.foreground`, nil).
+				Set(`anr.subject`, nil).
+				Set(`anr.thread_dump`, nil)
 		}
 
 		// exception
@@ -1323,6 +1369,8 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		}
 		return nil
 	})
+
+	eventReq.parseThreadDumps()
 
 	var symbolicationGroup errgroup.Group
 	symbolicationGroup.Go(func() error {

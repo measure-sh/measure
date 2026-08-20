@@ -14,6 +14,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"backend/libs/artdump"
 	"backend/libs/ingest"
 	"backend/libs/opsys"
 	"backend/libs/udattr"
@@ -280,6 +281,49 @@ func getValidLifecycleAppTypes(osName string) (types []string) {
 	return types
 }
 
+// anrSubjectCategories are the AOSP forms of the ANR subject that the
+// grouping key recognises. ApplicationExitInfo.getDescription() embeds
+// the subject in a longer sentence rather than returning it alone, so
+// these match anywhere in the string.
+var anrSubjectCategories = []string{
+	"Input dispatching timed out",
+	"Broadcast of Intent",
+	"executing service",
+	"ContentProvider not responding",
+	"Context.startForegroundService() did not then call Service.startForeground()",
+	"App requested",
+}
+
+// anrDumpFingerprintPrefix separates thread dump fingerprints from the
+// ones built from exceptions. A class name cannot contain "#", so no
+// exception type can produce an input that starts with this.
+const anrDumpFingerprintPrefix = "art#"
+
+// anrSubjectCategory reduces an ANR subject to the deadline that expired,
+// or returns an empty string for a subject it does not recognise.
+func anrSubjectCategory(subject string) string {
+	for _, category := range anrSubjectCategories {
+		if strings.Contains(subject, category) {
+			return category
+		}
+	}
+
+	return ""
+}
+
+// DisplayTitle joins an error's type and file name, omitting the
+// separator when either half is missing.
+func DisplayTitle(errType, fileName string) string {
+	if errType == "" {
+		return fileName
+	}
+	if fileName == "" {
+		return errType
+	}
+
+	return errType + "@" + fileName
+}
+
 // makeTitle appends the message to the type
 // if message is present.
 func makeTitle(t, m string) (typeMessage string) {
@@ -390,6 +434,7 @@ type ANR struct {
 	Threads       Threads        `json:"threads"`
 	ArtThreadDump string         `json:"art_thread_dump"`
 	Subject       string         `json:"subject"`
+	ThreadDump    *artdump.Dump  `json:"-"`
 	Fingerprint   string         `json:"fingerprint"`
 	Foreground    bool           `json:"foreground" binding:"required"`
 }
@@ -2091,7 +2136,46 @@ func (a ANR) IsNested() bool {
 // for certain OutOfMemory stacktraces in
 // Android.
 func (a ANR) HasNoFrames() bool {
+	if a.hasThreadDump() {
+		return a.groupingFrame().ClassName == ""
+	}
+	if len(a.Exceptions) == 0 {
+		return true
+	}
 	return len(a.Exceptions[len(a.Exceptions)-1].Frames) == 0
+}
+
+// hasThreadDump reports whether the ANR is reported as an ART thread
+// dump rather than as exceptions. An ANR carrying both is read as an
+// exception, so existing fingerprints and titles do not move.
+func (a ANR) hasThreadDump() bool {
+	return len(a.Exceptions) == 0 && a.ThreadDump != nil
+}
+
+// groupingFrame returns the main thread frame the ANR is grouped,
+// titled and reported on: its first in-app frame, or failing that its
+// first managed frame. The zero frame means neither exists, and its
+// InApp is false, which is what pulls the subject category into the
+// grouping key.
+func (a ANR) groupingFrame() (frame artdump.Frame) {
+	main := a.ThreadDump.MainThread()
+	if main == nil {
+		return
+	}
+
+	for _, f := range main.Frames {
+		if f.InApp {
+			return f
+		}
+	}
+
+	for _, f := range main.Frames {
+		if f.ClassName != "" {
+			return f
+		}
+	}
+
+	return
 }
 
 // GetTitle provides the combined
@@ -2104,18 +2188,33 @@ func (a ANR) GetTitle() string {
 // GetType provides the type of
 // the ANR.
 func (a ANR) GetType() string {
+	if a.hasThreadDump() {
+		return anrSubjectCategory(a.Subject)
+	}
+	if len(a.Exceptions) == 0 {
+		return ""
+	}
 	return a.Exceptions[len(a.Exceptions)-1].Type
 }
 
 // GetMessage provides the message of
 // the ANR.
 func (a ANR) GetMessage() string {
+	if a.hasThreadDump() {
+		return a.Subject
+	}
+	if len(a.Exceptions) == 0 {
+		return ""
+	}
 	return a.Exceptions[len(a.Exceptions)-1].Message
 }
 
 // GetFileName provides the file name of
 // the ANR.
 func (a ANR) GetFileName() string {
+	if a.hasThreadDump() {
+		return a.groupingFrame().FileName
+	}
 	if a.HasNoFrames() {
 		return ""
 	}
@@ -2125,6 +2224,13 @@ func (a ANR) GetFileName() string {
 // GetLineNumber provides the line number of
 // the ANR.
 func (a ANR) GetLineNumber() int32 {
+	if a.hasThreadDump() {
+		frame := a.groupingFrame()
+		if frame.LineNum == artdump.NoLineNum {
+			return int32(0)
+		}
+		return int32(frame.LineNum)
+	}
 	if a.HasNoFrames() {
 		return int32(0)
 	}
@@ -2134,6 +2240,9 @@ func (a ANR) GetLineNumber() int32 {
 // GetMethodName provides the method name of
 // the ANR.
 func (a ANR) GetMethodName() string {
+	if a.hasThreadDump() {
+		return a.groupingFrame().MethodName
+	}
 	if a.HasNoFrames() {
 		return ""
 	}
@@ -2143,12 +2252,20 @@ func (a ANR) GetMethodName() string {
 // GetDisplayTitle provides a user friendly display
 // name for the ANR.
 func (a ANR) GetDisplayTitle() string {
-	return a.GetType() + "@" + a.GetFileName()
+	return DisplayTitle(a.GetType(), a.GetFileName())
 }
 
 // Stacktrace writes a formatted stacktrace
 // from the ANR.
 func (a ANR) Stacktrace() string {
+	if a.hasThreadDump() {
+		main := a.ThreadDump.MainThread()
+		if main == nil {
+			return ""
+		}
+		return main.Render()
+	}
+
 	var b strings.Builder
 
 	for i := len(a.Exceptions) - 1; i >= 0; i-- {
@@ -2189,18 +2306,38 @@ func (a ANR) Stacktrace() string {
 // ComputeFingerprint computes a fingerprint
 // from the ANR data.
 func (a *ANR) ComputeFingerprint() (err error) {
-	if len(a.Exceptions) == 0 {
-		return fmt.Errorf("error computing ANR fingerprint: no exceptions found")
+	a.Fingerprint = ""
+
+	var fingerprintData string
+
+	switch {
+	case len(a.Exceptions) > 0:
+		fingerprintData = a.exceptionFingerprintData()
+	case a.ThreadDump != nil:
+		fingerprintData = a.dumpFingerprintData()
+		// A dump with neither a recognised subject nor a managed frame
+		// on the main thread has nothing to group on, so it is left
+		// without a fingerprint and bucketANRs skips it. The exception
+		// branch has no equivalent case, and hashes whatever it built.
+		if fingerprintData == "" {
+			return nil
+		}
+	default:
+		return nil
 	}
 
+	hash := md5.Sum([]byte(fingerprintData))
+	a.Fingerprint = hex.EncodeToString(hash[:])
+
+	return nil
+}
+
+func (a ANR) exceptionFingerprintData() string {
 	// Get the innermost exception
 	innermostException := a.Exceptions[len(a.Exceptions)-1]
 
-	// Get the exception type
-	exceptionType := innermostException.Type
-
 	// Initialize fingerprint data with the exception type
-	fingerprintData := exceptionType
+	fingerprintData := innermostException.Type
 
 	// Get the method name and file name from the first frame of the innermost exception
 	if len(innermostException.Frames) > 0 {
@@ -2216,11 +2353,35 @@ func (a *ANR) ComputeFingerprint() (err error) {
 		}
 	}
 
-	// Compute the fingerprint
-	hash := md5.Sum([]byte(fingerprintData))
-	a.Fingerprint = hex.EncodeToString(hash[:])
+	return fingerprintData
+}
 
-	return nil
+// dumpFingerprintData builds the grouping key from the main thread's
+// grouping frame. The subject category joins the key only when that
+// frame is not application code, because the same in-app blocking call
+// can trip whichever deadline the user happened to be waiting on.
+func (a ANR) dumpFingerprintData() string {
+	frame := a.groupingFrame()
+
+	var parts []string
+
+	if !frame.InApp {
+		if category := anrSubjectCategory(a.Subject); category != "" {
+			parts = append(parts, category)
+		}
+	}
+	if frame.MethodName != "" {
+		parts = append(parts, frame.MethodName)
+	}
+	if frame.FileName != "" {
+		parts = append(parts, frame.FileName)
+	}
+
+	if len(parts) == 0 {
+		return ""
+	}
+
+	return anrDumpFingerprintPrefix + strings.Join(parts, ":")
 }
 
 // Compute computes the most accurate cold launch timing

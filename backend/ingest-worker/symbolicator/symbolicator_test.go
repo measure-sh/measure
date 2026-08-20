@@ -3,6 +3,7 @@
 package symbolicator
 
 import (
+	"backend/libs/artdump"
 	"backend/libs/event"
 	"backend/libs/symbol"
 	"backend/testinfra"
@@ -18,6 +19,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -38,26 +40,27 @@ import (
 const symbolicatorImage = "ghcr.io/getsentry/symbolicator:26.3.1"
 
 var (
-	pgPool                   *pgxpool.Pool
-	symbolicatorOrigin       string
-	minioEndpoint            string
-	s3Client                 *s3.Client
-	s3InContainerClient      *s3.Client // signs presigned URLs reachable from inside containers
-	symbolsBucket            = "test-symbols"
-	basicProguardMappingKey  string // unified layout key for the basic proguard mapping
-	basicProguardDebugID     string // UUID-formatted debug ID for the basic proguard mapping
-	realProguardMappingKey   string // unified layout key for the real proguard mapping
-	sqliteProguardMappingKey string // unified layout key for the sqlite proguard mapping
-	elfDebugMappingKey       string // unified layout key for the ELF debug symbols
-	jsBundleMappingKey       string // unified layout key for the JS bundle
-	jsSourcemapMappingKey    string // unified layout key for the JS sourcemap
-	symbolicatorContainer    testcontainers.Container
-	minioContainer           testcontainers.Container
-	sentrySourceURL          string // URL for the Sentry source handler, reachable from symbolicator container
-	symboloaderOriginURL     string // origin (no path) of the same test HTTP server; used as the /symbols/js host
-	sentryListener           net.Listener
-	update                   = flag.Bool("update", false, "update golden files")
-	testdataDir              string
+	pgPool                    *pgxpool.Pool
+	symbolicatorOrigin        string
+	minioEndpoint             string
+	s3Client                  *s3.Client
+	s3InContainerClient       *s3.Client // signs presigned URLs reachable from inside containers
+	symbolsBucket             = "test-symbols"
+	basicProguardMappingKey   string // unified layout key for the basic proguard mapping
+	basicProguardDebugID      string // UUID-formatted debug ID for the basic proguard mapping
+	realProguardMappingKey    string // unified layout key for the real proguard mapping
+	sqliteProguardMappingKey  string // unified layout key for the sqlite proguard mapping
+	artdumpProguardMappingKey string // unified layout key for the art thread dump proguard mapping
+	elfDebugMappingKey        string // unified layout key for the ELF debug symbols
+	jsBundleMappingKey        string // unified layout key for the JS bundle
+	jsSourcemapMappingKey     string // unified layout key for the JS sourcemap
+	symbolicatorContainer     testcontainers.Container
+	minioContainer            testcontainers.Container
+	sentrySourceURL           string // URL for the Sentry source handler, reachable from symbolicator container
+	symboloaderOriginURL      string // origin (no path) of the same test HTTP server; used as the /symbols/js host
+	sentryListener            net.Listener
+	update                    = flag.Bool("update", false, "update golden files")
+	testdataDir               string
 )
 
 func TestMain(m *testing.M) {
@@ -180,6 +183,26 @@ func TestMain(m *testing.M) {
 	})
 	if err != nil {
 		fmt.Printf("failed to upload real mapping to minio: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Upload the mapping matching the real ART thread dump fixture
+	artdumpMappingBytes, err := os.ReadFile(filepath.Join(testdataDir, "mapping_artdump.txt"))
+	if err != nil {
+		fmt.Printf("failed to read mapping_artdump.txt: %v\n", err)
+		os.Exit(1)
+	}
+
+	artdumpDebugUUID := uuid.NewSHA1(ns, artdumpMappingBytes)
+	artdumpProguardMappingKey = symbol.BuildUnifiedLayout(artdumpDebugUUID.String()) + "/proguard"
+
+	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(symbolsBucket),
+		Key:    aws.String(artdumpProguardMappingKey),
+		Body:   bytes.NewReader(artdumpMappingBytes),
+	})
+	if err != nil {
+		fmt.Printf("failed to upload art thread dump mapping to minio: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -1422,4 +1445,219 @@ func TestJSExceptionSymbolicationNonOTA(t *testing.T) {
 
 	results := extractResult(events)
 	assertMatchesGolden(t, "rn_ios_exception_golden.json", results)
+}
+
+// artDumpFixture is the parser package's real API 33 capture. The
+// symbolicator is pointed at the same bytes rather than at a copy, so
+// the two packages cannot drift apart.
+const artDumpFixture = "../../libs/artdump/testdata/api33_idle_main.txt"
+
+// obfuscatedDumpClasses are every obfuscated class the fixture's managed
+// frames reference. None of them may survive symbolication.
+var obfuscatedDumpClasses = []string{"B0.x", "L0.b", "L0.h", "O.d", "U0.m", "X0.p"}
+
+// deobfuscatedDumpClasses are classes the mapping resolves those frames
+// to. R8 maps a frame by its method and line rather than by its class,
+// so these are not what the mapping's class lines alone would suggest:
+// B0.x, O.d and U0.m all resolve into the exporter.
+var deobfuscatedDumpClasses = []string{
+	"okio.Buffer",
+	"okio.RealBufferedSink",
+	"sh.measure.android.exporter.NetworkClientImpl",
+	"sh.measure.android.exporter.HttpUrlConnectionClient",
+	"sh.measure.android.exporter.ExporterImpl",
+	"sh.measure.android.exporter.ExceptionExporterImpl",
+}
+
+func countLocks(dump *artdump.Dump) (n int) {
+	for _, thread := range dump.Threads {
+		for _, frame := range thread.Frames {
+			n += len(frame.Locks)
+		}
+	}
+	return
+}
+
+func loadArtDump(t *testing.T) string {
+	t.Helper()
+	b, err := os.ReadFile(artDumpFixture)
+	if err != nil {
+		t.Fatalf("read art dump fixture: %v", err)
+	}
+	return string(b)
+}
+
+func makeANRThreadDumpEvents(t *testing.T, versionName, versionCode string) []event.EventField {
+	t.Helper()
+	dump := loadArtDump(t)
+	return []event.EventField{
+		{
+			ID:        uuid.New(),
+			SessionID: uuid.New(),
+			Timestamp: time.Now(),
+			Type:      event.TypeANR,
+			Attribute: event.Attribute{
+				AppVersion: versionName,
+				AppBuild:   versionCode,
+				OSName:     "android",
+			},
+			ANR: &event.ANR{
+				Subject:       "user request after error: Input dispatching timed out",
+				ArtThreadDump: dump,
+				ThreadDump:    artdump.Parse(dump),
+			},
+		},
+	}
+}
+
+// classNames collects every managed frame class in the dump.
+func threadNamed(t *testing.T, dump *artdump.Dump, name string) artdump.Thread {
+	t.Helper()
+	for _, thread := range dump.Threads {
+		if thread.Name == name {
+			return thread
+		}
+	}
+	t.Fatalf("thread %q not found", name)
+	return artdump.Thread{}
+}
+
+func classNames(dump *artdump.Dump) map[string]bool {
+	names := map[string]bool{}
+	for _, thread := range dump.Threads {
+		for _, frame := range thread.Frames {
+			if frame.ClassName != "" {
+				names[frame.ClassName] = true
+			}
+		}
+	}
+	return names
+}
+
+func TestJVMANRThreadDumpSymbolication(t *testing.T) {
+	ctx := context.Background()
+	appID := uuid.New()
+	versionName := "0.0.1"
+	versionCode := "1"
+
+	seedApp(ctx, t, appID)
+	seedBuildMappingRow(ctx, t, appID, versionName, versionCode, "proguard", artdumpProguardMappingKey)
+
+	events := makeANRThreadDumpEvents(t, versionName, versionCode)
+	before := artdump.Parse(loadArtDump(t))
+
+	symb := New(symbolicatorOrigin, "android", []Source{newS3Source()}, []SentrySource{newSentrySource()})
+	if err := symb.Symbolicate(ctx, pgPool, appID, events, nil); err != nil {
+		t.Fatalf("Symbolicate failed: %v", err)
+	}
+
+	after := events[0].ANR.ThreadDump
+	got := classNames(after)
+
+	t.Run("Leaves no obfuscated class behind", func(t *testing.T) {
+		for _, obfuscated := range obfuscatedDumpClasses {
+			if got[obfuscated] {
+				t.Errorf("class %q was not deobfuscated", obfuscated)
+			}
+		}
+	})
+
+	t.Run("Resolves the frames the mapping covers", func(t *testing.T) {
+		for _, deobfuscated := range deobfuscatedDumpClasses {
+			if !got[deobfuscated] {
+				t.Errorf("expected class %q in the symbolicated dump", deobfuscated)
+			}
+		}
+	})
+
+	t.Run("Unfurls inlined frames", func(t *testing.T) {
+		exporter := threadNamed(t, after, "msr-export")
+		sent := threadNamed(t, before, "msr-export")
+		if len(exporter.Frames) <= len(sent.Frames) {
+			t.Fatalf("expected the exporter thread to gain inlined frames, %d became %d",
+				len(sent.Frames), len(exporter.Frames))
+		}
+	})
+
+	t.Run("Keeps every lock", func(t *testing.T) {
+		wanted := countLocks(before)
+		if wanted == 0 {
+			t.Fatal("the fixture carries no locks, this test asserts nothing")
+		}
+		if got := countLocks(after); got != wanted {
+			t.Errorf("expected %d locks after symbolication, but got %d", wanted, got)
+		}
+	})
+
+	t.Run("Keeps every thread and every frame in place", func(t *testing.T) {
+		if len(after.Threads) != len(before.Threads) {
+			t.Fatalf("got %d threads, want %d", len(after.Threads), len(before.Threads))
+		}
+		for i := range after.Threads {
+			if after.Threads[i].Header != before.Threads[i].Header {
+				t.Errorf("thread %d header changed to %q", i, after.Threads[i].Header)
+			}
+			if len(after.Threads[i].Frames) < len(before.Threads[i].Frames) {
+				t.Errorf("thread %q lost frames, %d became %d", after.Threads[i].Name,
+					len(before.Threads[i].Frames), len(after.Threads[i].Frames))
+			}
+		}
+	})
+
+	t.Run("Leaves native frames untouched", func(t *testing.T) {
+		for i := range after.Threads {
+			for j, frame := range before.Threads[i].Frames {
+				if frame.ClassName != "" || j >= len(after.Threads[i].Frames) {
+					continue
+				}
+				if after.Threads[i].Frames[j].RawLine != frame.RawLine {
+					t.Errorf("native frame changed:\n got %q\nwant %q",
+						after.Threads[i].Frames[j].RawLine, frame.RawLine)
+				}
+			}
+		}
+	})
+
+	t.Run("Deobfuscates lock class names", func(t *testing.T) {
+		locked := 0
+		for _, thread := range after.Threads {
+			for _, frame := range thread.Frames {
+				for _, lock := range frame.Locks {
+					locked++
+					if slices.Contains(obfuscatedDumpClasses, lock.ClassName) {
+						t.Errorf("lock class %q was not deobfuscated", lock.ClassName)
+					}
+				}
+			}
+		}
+		if locked == 0 {
+			t.Fatal("the fixture carries no locks, this test asserts nothing")
+		}
+	})
+
+	t.Run("Renders to the golden dump", func(t *testing.T) {
+		assertStacktraceMatchesGolden(t, "jvm_anr_thread_dump_golden.txt", after.Render())
+	})
+}
+
+func TestJVMANRThreadDumpWithoutAMapping(t *testing.T) {
+	ctx := context.Background()
+	appID := uuid.New()
+	versionName := "0.0.1"
+	versionCode := "1"
+
+	seedApp(ctx, t, appID)
+	seedBuildMappingRow(ctx, t, appID, versionName, versionCode, "proguard", basicProguardMappingKey)
+
+	events := makeANRThreadDumpEvents(t, versionName, versionCode)
+	before := artdump.Parse(loadArtDump(t)).Render()
+
+	symb := New(symbolicatorOrigin, "android", []Source{newS3Source()}, []SentrySource{newSentrySource()})
+	if err := symb.Symbolicate(ctx, pgPool, appID, events, nil); err != nil {
+		t.Fatalf("Symbolicate failed: %v", err)
+	}
+
+	if got := events[0].ANR.ThreadDump.Render(); got != before {
+		t.Error("a mapping that matches nothing changed the dump")
+	}
 }

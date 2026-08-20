@@ -1,6 +1,7 @@
 package symbolicator
 
 import (
+	"backend/libs/artdump"
 	"backend/libs/event"
 	"backend/libs/opsys"
 	"backend/libs/span"
@@ -86,12 +87,26 @@ type lineNoEntry [6]int
 // n - result stacktrace's frame's index
 type stacktraceEntry [6]int
 
+// dumpEntry locates one ART thread dump thread in the JVM request.
+//
+// Unlike stacktraceEntry there is one entry per thread rather than per
+// frame, because only a thread's managed frames are symbolicated and
+// they form a single run at the end of the block. frameOffset is where
+// that run starts, so the response splices back over Frames[offset:].
+type dumpEntry struct {
+	eventIndex      int
+	threadIndex     int
+	frameOffset     int
+	stacktraceIndex int
+}
+
 // jvmSymbolicator represents a JVM symbolicator request.
 type jvmSymbolicator struct {
 	request       *requestJVM
 	response      *responseJVM
 	lineNoLUT     []lineNoEntry
 	stacktraceLUT []stacktraceEntry
+	dumpLUT       []dumpEntry
 	// ttidSpans stores the index of the TTID span
 	// that needs symbolication.
 	ttidSpans []int
@@ -348,6 +363,10 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 			threads := ev.ANR.Threads
 			s.jvmSymbolicator.parseExceptions(exceptions, threads, i)
 
+			if ev.ANR.ThreadDump != nil {
+				s.jvmSymbolicator.parseThreadDump(ev.ANR.ThreadDump, i)
+			}
+
 		case event.TypeLifecycleActivity:
 			s.jvmSymbolicator.ensureRequestInitialized()
 
@@ -549,6 +568,125 @@ func (s *jvmSymbolicator) parseExceptions(exceptions event.ExceptionUnits, threa
 	}
 }
 
+// parseThreadDump adds each thread's managed frames to the JVM request
+// and records where the response has to be spliced back in.
+//
+// Native frames and the other lines the parser kept verbatim carry no
+// class to map, so they are left out of the request. A thread whose
+// managed frames are not one contiguous run at the end of the block is
+// skipped rather than symbolicated, because the splice would otherwise
+// write over the lines in between.
+func (s *jvmSymbolicator) parseThreadDump(dump *artdump.Dump, index int) {
+	for t := range dump.Threads {
+		thread := &dump.Threads[t]
+
+		offset := -1
+		frames := []frameJVM{}
+
+		for f := range thread.Frames {
+			frame := &thread.Frames[f]
+
+			for _, lock := range frame.Locks {
+				s.request.AddClass(lock.ClassName)
+			}
+
+			if frame.ClassName == "" {
+				continue
+			}
+			if offset == -1 {
+				offset = f
+			}
+
+			// The symbolicator has no representation for a frame
+			// that printed no line number.
+			line := frame.LineNum
+			if line == artdump.NoLineNum {
+				line = 0
+			}
+
+			frames = append(frames, frameJVM{
+				Index:    len(frames),
+				Function: frame.MethodName,
+				Filename: frame.FileName,
+				LineNo:   line,
+				Module:   frame.ClassName,
+			})
+			s.request.AddClass(frame.ClassName)
+		}
+
+		if offset == -1 || len(frames) != len(thread.Frames)-offset {
+			continue
+		}
+
+		s.dumpLUT = append(s.dumpLUT, dumpEntry{
+			eventIndex:      index,
+			threadIndex:     t,
+			frameOffset:     offset,
+			stacktraceIndex: len(s.request.Stacktraces),
+		})
+		s.request.Stacktraces = append(s.request.Stacktraces, stacktraceJVM{
+			Frames: frames,
+		})
+	}
+}
+
+// rewriteThreadDumps writes symbolicated managed frames and lock class
+// names back into each ANR's parsed thread dump.
+func (js jvmSymbolicator) rewriteThreadDumps(evs []event.EventField) {
+	for _, entry := range js.dumpLUT {
+		ev := &evs[entry.eventIndex]
+		if ev.ANR == nil || ev.ANR.ThreadDump == nil {
+			continue
+		}
+
+		thread := &ev.ANR.ThreadDump.Threads[entry.threadIndex]
+		original := thread.Frames[entry.frameOffset:]
+		out := js.response.Stacktraces[entry.stacktraceIndex].Frames
+
+		// The symbolicator unfurls an inlined frame into several, so
+		// the response can be longer than what was sent. Every output
+		// frame carries the index of the input frame it came from,
+		// which is what carries a missing line number across.
+		managed := make([]artdump.Frame, 0, len(out))
+		for _, frame := range out {
+			rewritten := artdump.Frame{
+				ClassName:  frame.Module,
+				MethodName: frame.Function,
+				FileName:   frame.Filename,
+				LineNum:    frame.LineNo,
+			}
+			if src := frame.Index; src >= 0 && src < len(original) {
+				if original[src].LineNum == artdump.NoLineNum {
+					rewritten.LineNum = artdump.NoLineNum
+				}
+			}
+			managed = append(managed, rewritten)
+		}
+
+		// A lock annotates the physical frame ART printed, which is
+		// the last of the frames an inlined frame unfurls into.
+		for q := range managed {
+			src := out[q].Index
+			if src < 0 || src >= len(original) || len(original[src].Locks) == 0 {
+				continue
+			}
+			if q+1 < len(out) && out[q+1].Index == src {
+				continue
+			}
+			managed[q].Locks = original[src].Locks
+		}
+
+		thread.Frames = append(thread.Frames[:entry.frameOffset:entry.frameOffset], managed...)
+
+		for f := range thread.Frames {
+			for l := range thread.Frames[f].Locks {
+				lock := &thread.Frames[f].Locks[l]
+				lock.ClassName = js.response.rewriteClass(lock.ClassName, lock.ClassName)
+			}
+		}
+	}
+}
+
 // rewriteException partially updates the original
 // events with symbolicated data.
 func (js jvmSymbolicator) rewriteException(evs []event.EventField, sps []span.SpanField, lambdaWorkaround bool) {
@@ -664,6 +802,8 @@ func (js jvmSymbolicator) rewriteException(evs []event.EventField, sps []span.Sp
 			}
 		}
 	}
+
+	js.rewriteThreadDumps(evs)
 
 	// restore negative line numbers
 	for _, entry := range js.lineNoLUT {

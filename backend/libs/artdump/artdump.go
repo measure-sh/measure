@@ -188,22 +188,48 @@ func (d *Dump) Render() string {
 	lines = append(lines, d.Header...)
 
 	for _, thread := range d.Threads {
-		lines = append(lines, thread.Header)
-
-		for _, frame := range thread.Frames {
-			lines = append(lines, frame.render())
-
-			for _, lock := range frame.Locks {
-				lines = append(lines, lock.render())
-			}
-		}
-
+		lines = append(lines, thread.stackLines()...)
 		lines = append(lines, thread.Trailer...)
 	}
 
 	lines = append(lines, d.Trailer...)
 
 	return strings.Join(lines, "\n")
+}
+
+// Render writes the thread's header and stack in the original ART
+// format, without the lines that close the block.
+func (t *Thread) Render() string {
+	return strings.Join(t.stackLines(), "\n")
+}
+
+func (t *Thread) stackLines() []string {
+	lines := make([]string, 0, len(t.Frames)+1)
+
+	lines = append(lines, t.Header)
+
+	for _, frame := range t.Frames {
+		lines = append(lines, frame.render())
+
+		for _, lock := range frame.Locks {
+			lines = append(lines, lock.render())
+		}
+	}
+
+	return lines
+}
+
+// MainThread returns the thread ART names "main", or nil when the dump
+// does not contain one. The returned thread points into the dump, so
+// writes through it are visible in Render and MarkInApp.
+func (d *Dump) MainThread() *Thread {
+	for i := range d.Threads {
+		if d.Threads[i].Name == "main" {
+			return &d.Threads[i]
+		}
+	}
+
+	return nil
 }
 
 // MarkInApp marks managed frames whose classes do not belong to the

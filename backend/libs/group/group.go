@@ -210,7 +210,7 @@ func (a ANRGroup) GetId() string {
 // GetDisplayTitle provides a user friendly display
 // name for the ANR Group.
 func (a ANRGroup) GetDisplayTitle() string {
-	return a.Type + "@" + a.FileName
+	return event.DisplayTitle(a.Type, a.FileName)
 }
 
 // EventExists checks if the given event id exists in

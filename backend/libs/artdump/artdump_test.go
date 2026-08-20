@@ -468,3 +468,49 @@ func TestDeadlockInAPI36Fixture(t *testing.T) {
 		t.Errorf("APP: Locker does not lock %s anywhere in its stack", contended.Object)
 	}
 }
+
+func TestMainThread(t *testing.T) {
+	dump := Parse(loadDump(t, "api36_deadlock.txt"))
+
+	main := dump.MainThread()
+	if main == nil {
+		t.Fatal("got no main thread, want one")
+	}
+	if main.Name != "main" {
+		t.Errorf("got thread %q, want %q", main.Name, "main")
+	}
+}
+
+func TestMainThreadIsAbsent(t *testing.T) {
+	dump := Parse(threadDump("  at sh.foo.Repo.load(Repo.kt:8)"))
+	dump.Threads[0].Name = "msr-io"
+
+	if main := dump.MainThread(); main != nil {
+		t.Errorf("got thread %q, want none", main.Name)
+	}
+}
+
+func TestMainThreadIsAddressable(t *testing.T) {
+	dump := Parse(loadDump(t, "api36_deadlock.txt"))
+
+	dump.MainThread().Frames[0].InApp = true
+
+	if !threadNamed(t, dump, "main").Frames[0].InApp {
+		t.Error("writing through MainThread did not reach the dump")
+	}
+}
+
+func TestThreadRenderOmitsTheTrailer(t *testing.T) {
+	block := []string{
+		"  at java.lang.Thread.sleep(Native method)",
+		"  - sleeping on <0x07c5c2d7> (a java.lang.Object)",
+		"",
+		dumpLatencyPrefix + " 2.47",
+	}
+	thread := parseBlock(t, block...)
+
+	want := mainHeader + "\n" + strings.Join(block[:2], "\n")
+	if got := thread.Render(); got != want {
+		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+	}
+}
