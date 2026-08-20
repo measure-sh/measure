@@ -16,6 +16,8 @@ export class ErrorDetailPage {
   readonly copyAiContextButton: Locator;
   readonly userDefinedAttribute: Locator;
   readonly screenshot: Locator;
+  readonly threadHeaders: Locator;
+  readonly subject: Locator;
 
   constructor(page: Page, teamId: string) {
     this.page = page;
@@ -43,6 +45,28 @@ export class ErrorDetailPage {
       .getByTestId("exception-detail-attribute")
       .filter({ hasText: "user_defined_attribute" });
     this.screenshot = page.getByAltText(/^Screenshot/);
+    this.threadHeaders = page.getByRole("button", { name: /^Thread:/ });
+    this.subject = page
+      .getByTestId("exception-detail-attribute")
+      .filter({ hasText: "subject" });
+  }
+
+  selectThread(name: string | RegExp): Locator {
+    return this.page.getByRole("button", { name, exact: true });
+  }
+
+  // The accordion renders threads in order, so a thread's rank is its
+  // index among the headers. Reading it back this way keeps assertions
+  // about ordering from silently becoming assertions about layout.
+  async threadRank(name: RegExp): Promise<number> {
+    const names = await this.threadHeaders.allTextContents();
+    return names.findIndex((text) => name.test(text));
+  }
+
+  // An accordion's content is a region labelled by the trigger that
+  // opens it, so a thread's stack is addressable by the same name.
+  selectThreadStacktrace(name: string | RegExp): Locator {
+    return this.page.getByRole("region", { name, exact: true });
   }
 
   selectErrorPill(label: string): Locator {

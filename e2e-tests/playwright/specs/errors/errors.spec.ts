@@ -427,6 +427,16 @@ test.describe("errors", () => {
         await expect(
           overview.selectGroupRowPercentageContribution(row),
         ).toBeVisible();
+
+        // The group is titled by the code responsible for the stall,
+        // which is on the thread holding the lock. Main is only waiting
+        // for it, at onReceive on line 11.
+        await expect(
+          overview.selectGroupRowTitle(
+            row,
+            "AnrBroadcastReceiver.kt: trigger$lambda$0()",
+          ),
+        ).toBeVisible();
       });
 
       test("error details renders the anr", async ({ page, teamId }) => {
@@ -447,17 +457,76 @@ test.describe("errors", () => {
         await expect(detail.selectErrorPill(anrPill)).toBeVisible();
         await expect(detail.selectErrorPill(fatalPill)).toBeVisible();
 
+        // The stack shown first belongs to the thread the ANR is blamed
+        // on, which is the one holding the lock, not the one waiting.
         await expect(detail.errorThreadStacktrace).toContainText(
+          "AnrBroadcastReceiver$Companion.trigger$lambda$0",
+        );
+        await expect(detail.errorThreadStacktrace).toContainText(
+          "sleeping on",
+        );
+
+        // An ANR read from app exit info is reported after the process
+        // has been killed, so nothing was on screen to capture.
+        await expect(detail.screenshot).toHaveCount(0);
+
+        // The subject names the deadline that expired, and is shown
+        // above the stacktrace as context for reading it.
+        await expect(detail.subject).toContainText("Broadcast of Intent");
+      });
+
+      test("error details renders the stalled thread once", async ({
+        page,
+        teamId,
+      }) => {
+        await overview.openErrorGroup(selectRow());
+        const detail = new ErrorDetailPage(page, teamId);
+
+        // The stalled thread is drawn above the thread list from the
+        // stacktrace. Leaving it in the list too rendered it twice.
+        await expect(detail.selectThread("Thread: main")).toHaveCount(1);
+        await expect(
+          detail.threadHeaders.filter({ hasText: '"main"' }),
+        ).toHaveCount(0);
+      });
+
+      test("error details renders the other threads from the dump", async ({
+        page,
+        teamId,
+      }) => {
+        await overview.openErrorGroup(selectRow());
+        const detail = new ErrorDetailPage(page, teamId);
+
+        // A thread is titled by its whole ART header, which carries the
+        // state and priority a bare name would lose.
+        const locker = detail.threadHeaders.filter({ hasText: "APP: Locker" });
+        await expect(locker).toHaveCount(1);
+        await expect(locker).toHaveText(
+          /Thread: "APP: Locker" daemon prio=\d+ tid=\d+ Sleeping/,
+        );
+
+        // The thread the ANR is blamed on leads the whole accordion,
+        // and the stalled thread it blocks comes next. Asserting on
+        // rank rather than a fixed index says which of the two is
+        // wrong when this breaks.
+        const blamedRank = await detail.threadRank(/Thread: "APP: Locker"/);
+        const stalledRank = await detail.threadRank(/Thread: "main"/);
+        expect(blamedRank).toBe(0);
+        expect(stalledRank).toBe(1);
+
+        // The stalled thread names the lock it wants and who holds it,
+        // which is what makes the deadlock readable.
+        await detail.selectThread(/Thread: "main"/).click();
+        const stalled = detail.selectThreadStacktrace(/"main"/);
+        await expect(stalled).toContainText(
           "sh.frankenstein.android.AnrBroadcastReceiver.onReceive",
         );
-        // The blocked main thread names the lock it wants and the thread
-        // holding it, which is what makes the deadlock readable.
-        await expect(detail.errorThreadStacktrace).toContainText(
-          "waiting to lock",
-        );
-        await expect(detail.errorThreadStacktrace).toContainText(
-          "held by APP: Locker",
-        );
+        await expect(stalled).toContainText("held by APP: Locker");
+
+        await locker.click();
+        await expect(
+          detail.selectThreadStacktrace(/APP: Locker/),
+        ).toContainText("sleeping on");
       });
 
       test("session replay renders the anr event", async ({
