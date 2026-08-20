@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -146,5 +147,73 @@ func TestGetErrorsWithFilterServesTheThreadDump(t *testing.T) {
 			}
 		}
 		t.Fatal("the fixture carries no contended lock, this test asserts nothing")
+	})
+}
+
+func TestSessionSearchFindsADumpOnlyANR(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	teamID := uuid.New()
+	appID := uuid.New()
+	seedTeam(ctx, t, teamID, "dump-search-team")
+	seedApp(ctx, t, appID, teamID, 30)
+
+	ts := time.Now().UTC().Add(-time.Minute)
+	sessionID := uuid.New()
+
+	seedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+		Type:           event.TypeANR,
+		SessionID:      sessionID.String(),
+		Timestamp:      ts,
+		Fingerprint:    "artdumpsearch00000000000000000000",
+		ExceptionsJSON: "[]",
+		ThreadsJSON:    "[]",
+		Subject:        anrSubject,
+	})
+
+	legacySessionID := uuid.New()
+	seedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+		Type:           event.TypeANR,
+		SessionID:      legacySessionID.String(),
+		Timestamp:      ts,
+		Fingerprint:    "legacyanr000000000000000000000000",
+		ExceptionsJSON: `[{"type":"AppNotResponding","message":"main thread stalled"}]`,
+		ThreadsJSON:    "[]",
+	})
+
+	search := func(t *testing.T, keyword string) []uuid.UUID {
+		t.Helper()
+		af := dumpANRFilter(appID, ts)
+		af.FreeText = keyword
+
+		sessions, _, _, err := App{ID: &appID, TeamId: teamID}.GetSessionsWithFilter(ctx, th.ChConn, af)
+		if err != nil {
+			t.Fatalf("GetSessionsWithFilter failed: %v", err)
+		}
+
+		ids := make([]uuid.UUID, 0, len(sessions))
+		for _, s := range sessions {
+			ids = append(ids, s.SessionID)
+		}
+		return ids
+	}
+
+	t.Run("Finds a dump-only anr by a word from its subject", func(t *testing.T) {
+		if got := search(t, "AnrBroadcastReceiver"); !slices.Contains(got, sessionID) {
+			t.Errorf("Expected session %s among %v", sessionID, got)
+		}
+	})
+
+	t.Run("Still finds a legacy anr by its exception type", func(t *testing.T) {
+		if got := search(t, "AppNotResponding"); !slices.Contains(got, legacySessionID) {
+			t.Errorf("Expected session %s among %v", legacySessionID, got)
+		}
+	})
+
+	t.Run("Does not match an unrelated keyword", func(t *testing.T) {
+		if got := search(t, "NoSuchThingAnywhere"); len(got) != 0 {
+			t.Errorf("Expected no sessions, but got %v", got)
+		}
 	})
 }
