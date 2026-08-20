@@ -1447,8 +1447,8 @@ func TestJSExceptionSymbolicationNonOTA(t *testing.T) {
 	assertMatchesGolden(t, "rn_ios_exception_golden.json", results)
 }
 
-// artDumpFixture is the parser package's real API 33 capture. The
-// symbolicator is pointed at the same bytes rather than at a copy, so
+// artDumpFixture is the parser package's real API 33 capture, the only
+// dump with a matching real mapping. It is read rather than copied so
 // the two packages cannot drift apart.
 const artDumpFixture = "../../libs/artdump/testdata/api33_idle_main.txt"
 
@@ -1484,7 +1484,17 @@ func loadArtDump(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("read art dump fixture: %v", err)
 	}
-	return string(b)
+
+	// This capture predates the SDK trimming its trace at the end of
+	// the thread section, so cut the runtime statistics it still
+	// carries. No dump reaching the backend will have them.
+	dump := string(b)
+	at := strings.Index(dump, "\nZygote loaded classes=")
+	if at < 0 {
+		t.Fatal("fixture prints no runtime statistics, the trim is stale")
+	}
+
+	return dump[:at+1]
 }
 
 func makeANRThreadDumpEvents(t *testing.T, versionName, versionCode string) []event.EventField {
