@@ -21,8 +21,7 @@ import (
 
 const APIKeyPrefix = "msrsh"
 
-// ErrInvalidAPIKey means the key is malformed or fails checksum. Distinct from
-// a lookup failure, which is infrastructure.
+// ErrInvalidAPIKey means the key is malformed or fails checksum.
 var ErrInvalidAPIKey = errors.New("invalid api key")
 
 type APIKey struct {
