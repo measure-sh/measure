@@ -21,6 +21,10 @@ import (
 
 const APIKeyPrefix = "msrsh"
 
+// ErrInvalidAPIKey means the key is malformed or fails checksum. Distinct from
+// a lookup failure, which is infrastructure.
+var ErrInvalidAPIKey = errors.New("invalid api key")
+
 type APIKey struct {
 	appId     uuid.UUID
 	keyPrefix string
@@ -128,16 +132,14 @@ func (a App) RotateAPIKey(pg *pgxpool.Pool) (*APIKey, error) {
 }
 
 func DecodeAPIKey(ctx context.Context, pg *pgxpool.Pool, key string) (*uuid.UUID, error) {
-	defaultErr := errors.New("invalid api key")
-
 	if len(key) < 1 {
-		return nil, defaultErr
+		return nil, ErrInvalidAPIKey
 	}
 
 	parts := strings.Split(key, "_")
 
 	if len(parts) != 3 {
-		return nil, defaultErr
+		return nil, ErrInvalidAPIKey
 	}
 
 	prefix := parts[0]
@@ -145,7 +147,7 @@ func DecodeAPIKey(ctx context.Context, pg *pgxpool.Pool, key string) (*uuid.UUID
 	checksum := parts[2]
 
 	if prefix != APIKeyPrefix {
-		return nil, defaultErr
+		return nil, ErrInvalidAPIKey
 	}
 
 	computedChecksum, err := cipher.ComputeChecksum([]byte(value))
@@ -154,7 +156,7 @@ func DecodeAPIKey(ctx context.Context, pg *pgxpool.Pool, key string) (*uuid.UUID
 	}
 
 	if checksum != *computedChecksum {
-		return nil, defaultErr
+		return nil, ErrInvalidAPIKey
 	}
 
 	stmt := sqlf.PostgreSQL.

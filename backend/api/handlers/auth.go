@@ -66,7 +66,13 @@ func (h Handlers) ValidateAPIKey() gin.HandlerFunc {
 		appId, err := measure.DecodeAPIKey(c, deps.PgPool, key)
 		if err != nil {
 			fmt.Println("api key decode failed:", err)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid api key"})
+			if errors.Is(err, measure.ErrInvalidAPIKey) {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid api key"})
+				return
+			}
+			// lookup failures are infrastructure, a 401 would send callers to rotate a
+			// key that was never wrong.
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to validate api key"})
 			return
 		}
 
@@ -269,7 +275,14 @@ func (h Handlers) SigninGitHub(c *gin.Context) {
 		githubToken, err := authsession.ExchangeCodeForToken(deps.Config.SiteOrigin, deps.Config.OAuthGitHubKey, deps.Config.OAuthGitHubSecret, authCode.Code)
 		if err != nil {
 			fmt.Println(msg, err)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			if errors.Is(err, authsession.ErrInvalidOAuthCode) {
+				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"error":   msg,
+					"details": err.Error(),
+				})
+				return
+			}
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"error":   msg,
 				"details": err.Error(),
 			})
@@ -475,7 +488,14 @@ func (h Handlers) SigninGoogle(c *gin.Context) {
 		)
 		if err != nil {
 			fmt.Println(msg, err)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			if errors.Is(err, authsession.ErrInvalidOAuthCode) {
+				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"error":   msg,
+					"details": err.Error(),
+				})
+				return
+			}
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"error":   msg,
 				"details": err.Error(),
 			})
@@ -697,6 +717,14 @@ func (h Handlers) RefreshToken(c *gin.Context) {
 		})
 		return
 	}
+	if err != nil {
+		msg := "failed to look up session"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
 
 	msg := `failed to refresh session`
 
@@ -799,6 +827,14 @@ func (h Handlers) GetAuthSession(c *gin.Context) {
 		})
 		return
 	}
+	if err != nil {
+		msg := "failed to look up session"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
 
 	ownTeam, err := measure.EnsureDefaultTeam(ctx, deps.PgPool, deps.Config.IsBillingEnabled(), user)
 	if err != nil {
@@ -829,7 +865,7 @@ func (h Handlers) GetAuthSession(c *gin.Context) {
 		avatarUrl = userMeta["picture"].(string)
 	} else {
 		msg := "invalid oauth provider: " + session.OAuthProvider
-		fmt.Println(msg, err)
+		fmt.Println(msg)
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": msg,
 		})

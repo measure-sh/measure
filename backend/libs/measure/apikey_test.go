@@ -5,6 +5,7 @@ package measure
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"backend/libs/cipher"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func mustRawAPIKey(t *testing.T, value string) string {
@@ -279,6 +281,31 @@ func TestDecodeAPIKey(t *testing.T) {
 		_, err := DecodeAPIKey(ctx, deps.PgPool, "badprefix_value_12345678")
 		if err == nil {
 			t.Fatalf("expected error for wrong prefix")
+		}
+	})
+
+	t.Run("malformed key returns ErrInvalidAPIKey", func(t *testing.T) {
+		_, err := DecodeAPIKey(ctx, deps.PgPool, "not-a-valid-key")
+		if !errors.Is(err, ErrInvalidAPIKey) {
+			t.Fatalf("err = %v, want ErrInvalidAPIKey", err)
+		}
+	})
+
+	t.Run("lookup failure is not ErrInvalidAPIKey", func(t *testing.T) {
+		cfg := deps.PgPool.Config().Copy()
+		broken, err := pgxpool.NewWithConfig(ctx, cfg)
+		if err != nil {
+			t.Fatalf("failed to create pool: %v", err)
+		}
+		broken.Close()
+
+		raw := mustRawAPIKey(t, "some-value")
+		_, err = DecodeAPIKey(ctx, broken, raw)
+		if err == nil {
+			t.Fatalf("expected error from closed pool")
+		}
+		if errors.Is(err, ErrInvalidAPIKey) {
+			t.Fatalf("err = %v, want not ErrInvalidAPIKey", err)
 		}
 	})
 }
