@@ -7,9 +7,21 @@ appId: ${APP_ID}
 - tapOn: "Native Android"
 - scrollUntilVisible:
     element:
-      text: "Infinite Loop"
-- tapOn: "Infinite Loop"
+      text: "Broadcast Timeout"
+- tapOn: "Broadcast Timeout"
 
+# Backgrounding the app lets the broadcast deadline expire without the
+# system-owned ANR dialog, which cannot be tapped on these emulator images.
+# The system kills the process and records the exit as an ANR.
+- pressKey: "Home"
+- extendedWaitUntil:
+    visible:
+      text: "__maestro_wait_sentinel__"
+    timeout: 20000
+    optional: true
+
+# The ANR is read from app exit info on the launch after the one it
+# happened in, so the report needs this relaunch to reach the backend.
 - launchApp
 - extendedWaitUntil:
     visible: "Native Android"

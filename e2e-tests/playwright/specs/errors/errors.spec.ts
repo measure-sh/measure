@@ -412,7 +412,7 @@ test.describe("errors", () => {
       const fatalPill = "Fatal";
 
       const selectRow = () =>
-        overview.selectErrorGroupRowByTitle(/NativeAndroidScreen\.kt/);
+        overview.selectErrorGroupRowByTitle(/AnrBroadcastReceiver\.kt/);
 
       test.beforeEach(async ({ appId }) => {
         await overview.gotoAnrs(appId);
@@ -448,10 +448,15 @@ test.describe("errors", () => {
         await expect(detail.selectErrorPill(fatalPill)).toBeVisible();
 
         await expect(detail.errorThreadStacktrace).toContainText(
-          "sh.measure.android.anr.AnrError",
+          "sh.frankenstein.android.AnrBroadcastReceiver.onReceive",
+        );
+        // The blocked main thread names the lock it wants and the thread
+        // holding it, which is what makes the deadlock readable.
+        await expect(detail.errorThreadStacktrace).toContainText(
+          "waiting to lock",
         );
         await expect(detail.errorThreadStacktrace).toContainText(
-          "sh.frankenstein.android.NativeAndroidScreenKt",
+          "held by APP: Locker",
         );
       });
 
@@ -465,16 +470,13 @@ test.describe("errors", () => {
         const replay = new SessionReplayPage(page, teamId);
 
         await expect(replay.eventsList).toBeVisible();
-        const event = replay.selectAnr(/sh\.measure\.android\.anr\.AnrError/);
+        const event = replay.selectAnr(/Broadcast of Intent/);
         await expect(event).toBeVisible();
         await expect(replay.selectEventPill(event, anrPill)).toBeVisible();
 
         await event.click();
         await expect(replay.eventDetails).toContainText(
-          "sh.measure.android.anr.AnrError",
-        );
-        await expect(replay.eventDetails).toContainText(
-          "sh.frankenstein.android.NativeAndroidScreenKt",
+          "sh.frankenstein.android.AnrBroadcastReceiver.onReceive",
         );
 
         await replay.openAnrDetails();
