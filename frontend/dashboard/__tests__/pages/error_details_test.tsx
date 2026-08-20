@@ -96,7 +96,7 @@ jest.mock("@/app/components/paginator", () => ({
   ),
 }));
 
-jest.mock("@/app/components/copy_ai_context", () => ({
+jest.mock("@/app/components/copy_agent_prompt", () => ({
   __esModule: true,
   default: () => <div data-testid="copy-ai-context-mock" />,
 }));
