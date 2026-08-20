@@ -475,19 +475,21 @@ test.describe("errors", () => {
         await expect(detail.subject).toContainText("Broadcast of Intent");
       });
 
-      test("error details renders the stalled thread once", async ({
+      test("error details renders each thread once", async ({
         page,
         teamId,
       }) => {
         await overview.openErrorGroup(selectRow());
         const detail = new ErrorDetailPage(page, teamId);
 
-        // The stalled thread is drawn above the thread list from the
-        // stacktrace. Leaving it in the list too rendered it twice.
-        await expect(detail.selectThread("Thread: main")).toHaveCount(1);
+        // The blamed thread is drawn above the list from the stacktrace
+        // and the rest follow it. A thread in both places rendered twice.
+        await expect(
+          detail.threadHeaders.filter({ hasText: '"APP: Locker"' }),
+        ).toHaveCount(1);
         await expect(
           detail.threadHeaders.filter({ hasText: '"main"' }),
-        ).toHaveCount(0);
+        ).toHaveCount(1);
       });
 
       test("error details renders the other threads from the dump", async ({

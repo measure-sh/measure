@@ -300,12 +300,12 @@ const emptyErrorGroupDetailsItem = {
     title: "",
     stacktrace: "",
     subject: "",
-    blocking_thread: "",
+    blamed_thread: "",
   } as {
     title: string;
     stacktrace: string;
     subject: string;
-    blocking_thread: string;
+    blamed_thread: string;
   } | null,
   severity: "",
   num_code: 0 as number | null,

@@ -143,7 +143,7 @@ func TestGetErrorsWithFilterServesTheThreadDump(t *testing.T) {
 			t.Errorf("Expected the stalled thread first, but got %q", got.Threads[0].Name)
 		}
 		for _, thread := range got.Threads {
-			if thread.Name == got.ANRView.BlockingThread {
+			if thread.Name == got.ANRView.BlamedThread {
 				t.Error("the blamed thread is rendered twice, once from the stacktrace and once here")
 			}
 		}
@@ -164,9 +164,9 @@ func TestGetErrorsWithFilterServesTheThreadDump(t *testing.T) {
 		}
 	})
 
-	t.Run("Names the blocking thread", func(t *testing.T) {
-		if !strings.HasPrefix(got.ANRView.BlockingThread, `"APP: Locker"`) {
-			t.Errorf("Expected the lock holder named, but got %q", got.ANRView.BlockingThread)
+	t.Run("Names the blamed thread", func(t *testing.T) {
+		if !strings.HasPrefix(got.ANRView.BlamedThread, `"APP: Locker"`) {
+			t.Errorf("Expected the lock holder named, but got %q", got.ANRView.BlamedThread)
 		}
 		if len(got.Threads) == 0 {
 			t.Fatal("Expected the dump's threads")

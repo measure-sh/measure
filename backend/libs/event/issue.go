@@ -35,9 +35,9 @@ type ANRView struct {
 	Stacktrace string `json:"stacktrace"`
 	Message    string `json:"message"`
 	Subject    string `json:"subject"`
-	// BlockingThread is the ART header of the thread the ANR is
-	// blamed on, empty when nothing was holding the stalled thread up.
-	BlockingThread string `json:"blocking_thread"`
+	// BlamedThread is the ART header of the thread Stacktrace was taken
+	// from, empty for an ANR that carries no thread dump.
+	BlamedThread string `json:"blamed_thread"`
 }
 
 type EventException struct {
@@ -74,10 +74,11 @@ func (e *EventANR) ComputeView() {
 	}
 
 	if e.ANR.ThreadDump != nil {
-		if blocking := e.ANR.ThreadDump.BlockingThread(); blocking != nil {
-			e.ANRView.BlockingThread = blocking.Header
+		lead, rest := e.ANR.ThreadDump.BlameOrder()
+		if lead != nil {
+			e.ANRView.BlamedThread = lead.Header
 		}
-		e.Threads = threadDumpViews(e.ANR.ThreadDump)
+		e.Threads = threadViews(rest, anrLockHolders(e.ANR.ThreadDump))
 		return
 	}
 
@@ -92,17 +93,13 @@ func (e *EventANR) ComputeView() {
 	}
 }
 
-// threadDumpViews renders an ART thread dump into the thread shape the
-// dashboard already draws. A thread is titled by its whole ART header,
-// which carries the state and priority a bare name would lose, and a
-// lock follows the frame it annotates. Stacktrace renders the lead, so
-// this renders the rest.
-func threadDumpViews(dump *artdump.Dump) []ThreadView {
-	holders := anrLockHolders(dump)
-	_, rest := dump.BlameOrder()
-
-	views := make([]ThreadView, 0, len(rest))
-	for _, thread := range rest {
+// threadViews renders ART threads into the thread shape the dashboard
+// already draws. A thread is titled by its whole ART header, which
+// carries the state and priority a bare name would lose, and a lock
+// follows the frame it annotates.
+func threadViews(threads []*artdump.Thread, holders map[int]string) []ThreadView {
+	views := make([]ThreadView, 0, len(threads))
+	for _, thread := range threads {
 		views = append(views, ThreadView{
 			Name:   thread.Header,
 			Frames: anrThreadStack(thread, holders),

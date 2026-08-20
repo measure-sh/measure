@@ -625,14 +625,25 @@ func TestANRViewNamesTheBlamedThread(t *testing.T) {
 	})
 
 	t.Run("Names the thread the anr is blamed on", func(t *testing.T) {
-		if got := viewOf(inputSubject, blockedByLocker).ANRView.BlockingThread; got != lockerHeader {
-			t.Errorf("Expected blocking thread %q, but got %q", lockerHeader, got)
+		if got := viewOf(inputSubject, blockedByLocker).ANRView.BlamedThread; got != lockerHeader {
+			t.Errorf("Expected blamed thread %q, but got %q", lockerHeader, got)
 		}
 	})
 
-	t.Run("Names no blocking thread when nothing blocks the stalled one", func(t *testing.T) {
-		if got := viewOf(inputSubject, inAppStall).ANRView.BlockingThread; got != "" {
-			t.Errorf("Expected no blocking thread, but got %q", got)
+	t.Run("Names the stalled thread when nothing blocks it", func(t *testing.T) {
+		want := `"main" prio=5 tid=1 Blocked`
+		if got := viewOf(inputSubject, inAppStall).ANRView.BlamedThread; got != want {
+			t.Errorf("Expected blamed thread %q, but got %q", want, got)
+		}
+	})
+
+	t.Run("Names the thread the stacktrace was taken from", func(t *testing.T) {
+		for _, dump := range []string{blockedByLocker, inAppStall, idleMain} {
+			e := viewOf(inputSubject, dump)
+			if !strings.HasPrefix(e.ANRView.Stacktrace, e.ANRView.BlamedThread) {
+				t.Errorf("Expected the stacktrace to open with %q, but got %q",
+					e.ANRView.BlamedThread, e.ANRView.Stacktrace)
+			}
 		}
 	})
 }
@@ -657,7 +668,7 @@ func TestANRViewThreadList(t *testing.T) {
 
 	t.Run("Leaves the blamed thread out, it is already the stacktrace", func(t *testing.T) {
 		for _, thread := range e.Threads {
-			if thread.Name == e.ANRView.BlockingThread {
+			if thread.Name == e.ANRView.BlamedThread {
 				t.Error("the blamed thread is rendered twice")
 			}
 		}
@@ -702,7 +713,7 @@ func TestANRViewKeepsTheExceptionShape(t *testing.T) {
 	if legacy.ANRView.Subject != "" {
 		t.Errorf("Expected no subject, but got %q", legacy.ANRView.Subject)
 	}
-	if legacy.ANRView.BlockingThread != "" {
-		t.Errorf("Expected no blocking thread, but got %q", legacy.ANRView.BlockingThread)
+	if legacy.ANRView.BlamedThread != "" {
+		t.Errorf("Expected no blamed thread, but got %q", legacy.ANRView.BlamedThread)
 	}
 }

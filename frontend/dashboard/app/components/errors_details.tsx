@@ -302,11 +302,11 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
   const stacktrace =
     firstResult?.exception?.stacktrace ?? firstResult?.anr?.stacktrace ?? "";
 
-  // The stacktrace belongs to the thread the ANR is blamed on. The
-  // backend decides which that is and names it here.
+  // An ANR's stacktrace belongs to the thread the backend blamed, and
+  // it names that thread. An exception falls back to the attribute.
   const topThreadValue =
     "Thread: " +
-    (firstResult?.anr?.blocking_thread ||
+    (firstResult?.anr?.blamed_thread ||
       firstResult?.attribute.thread_name ||
       "");
 
