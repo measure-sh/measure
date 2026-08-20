@@ -85,6 +85,25 @@ describe("ErrorsOverview", () => {
     expect(hrefOf(container)).toContain("java.lang.RuntimeException@Repo.kt");
   });
 
+  it("does not repeat the type when the message already opens with it", () => {
+    // An ANR's subject is the system's own sentence, which begins with
+    // the deadline we show as the type.
+    renderWith([
+      group({
+        type: "Input dispatching timed out",
+        message:
+          "Input dispatching timed out (a6d9d84 sh.foo/.MainActivity is not responding. Waited 5004ms for MotionEvent).",
+      }),
+    ]);
+
+    expect(screen.getByTestId("exception-row-type")).toHaveTextContent(
+      "Input dispatching timed out (a6d9d84 sh.foo/.MainActivity is not responding. Waited 5004ms for MotionEvent).",
+    );
+    expect(screen.getByTestId("exception-row-type").textContent).not.toContain(
+      "out:Input",
+    );
+  });
+
   it("renders a group without a type, with no leading colon", () => {
     renderWith([group({ type: "", message: "Input dispatching timed out" })]);
 

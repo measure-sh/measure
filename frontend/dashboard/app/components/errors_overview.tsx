@@ -26,6 +26,17 @@ import {
 
 const PAGINATION_LIMIT = 5;
 
+// An ANR's message is the system's own sentence about the stall, which
+// opens with the very deadline we show as the type. Printing both
+// repeats it, so the message stands alone when it already says it.
+function formatErrorSubtitle(type: string, message: string): string {
+  if (type && message.startsWith(type)) {
+    return message;
+  }
+
+  return [type, message].filter((part) => part).join(":");
+}
+
 interface ErrorsOverviewProps {
   teamId: string;
 }
@@ -213,7 +224,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                             data-testid="exception-row-type"
                             className="text-xs truncate text-muted-foreground mt-0.5 select-none"
                           >
-                            {[type, message].filter((part) => part).join(":")}
+                            {formatErrorSubtitle(type, message)}
                           </p>
                           <div className="flex flex-wrap gap-1.5 pt-3">
                             {error_type === "anr" && (
