@@ -302,15 +302,9 @@ func (e eventreq) bucketExceptions(ctx context.Context) (err error) {
 	return
 }
 
-// parseThreadDumps parses the ART thread dump carried by an ANR so that
-// symbolication, fingerprinting and the stored row all read one parsed
-// representation.
-//
-// This runs ahead of symbolication rather than inside it. Symbolication
-// is best effort, it is skipped when nothing in the batch needs it, and
-// a failure is logged rather than returned, so a dump parsed there
-// would go missing from the row whenever any of that happened.
-func (e eventreq) parseThreadDumps() {
+// parseANRThreadDumps parses the ART thread
+// dump part of ANR events.
+func (e eventreq) parseANRThreadDumps() {
 	for _, i := range e.anrIds {
 		anr := e.events[i].ANR
 		if anr == nil || anr.ArtThreadDump == "" {
@@ -318,6 +312,21 @@ func (e eventreq) parseThreadDumps() {
 		}
 
 		anr.ThreadDump = artdump.Parse(anr.ArtThreadDump)
+	}
+}
+
+// markANRInAppFrames marks the application frames in each ANR's thread
+// dump. It runs after symbolication so that the frames it judges carry
+// deobfuscated class names, and before the fingerprint, which groups on
+// the first application frame.
+func (e eventreq) markANRInAppFrames() {
+	for _, i := range e.anrIds {
+		anr := e.events[i].ANR
+		if anr == nil || anr.ThreadDump == nil {
+			continue
+		}
+
+		anr.ThreadDump.MarkInApp()
 	}
 }
 
@@ -447,9 +456,6 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		var numCode int32
 
 		if e.events[i].IsANR() {
-			// A dump-only ANR carries neither, and a nil slice
-			// marshals to "null", which readers of these columns do
-			// not expect.
 			if len(e.events[i].ANR.Exceptions) > 0 {
 				marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
 				if err != nil {
@@ -464,13 +470,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				}
 				anrThreads = string(marshalledThreads)
 			}
-
-			// In-app marking has to see deobfuscated class names, and
-			// the fingerprint has to see the in-app marks, so both run
-			// after symbolication and in this order.
 			if dump := e.events[i].ANR.ThreadDump; dump != nil {
-				dump.MarkInApp()
-
 				marshalledDump, err := json.Marshal(dump)
 				if err != nil {
 					return err
@@ -1370,7 +1370,11 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		return nil
 	})
 
-	eventReq.parseThreadDumps()
+	// ANR thread dumps are received as raw strings,
+	// parsing makes symbolication possible
+	_, parseANRThreadDumpsSpan := ingestTracer.Start(ingestCtx, "parse-anr-thread-dumps")
+	eventReq.parseANRThreadDumps()
+	parseANRThreadDumpsSpan.End()
 
 	var symbolicationGroup errgroup.Group
 	symbolicationGroup.Go(func() error {
@@ -1457,6 +1461,8 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 	if err := symbolicationGroup.Wait(); err != nil {
 		fmt.Println("failed to symbolicate", err)
 	}
+
+	eventReq.markANRInAppFrames()
 
 	var ingestGroup errgroup.Group
 	ingestGroup.Go(func() error {

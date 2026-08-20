@@ -178,10 +178,12 @@ func TestEventReqGetOSName(t *testing.T) {
 	}
 }
 
-// artDumpFixture is the parser package's real API 33 capture, read
-// directly so the stored row is built from the same bytes the parser
-// and the symbolicator are tested against.
-const artDumpFixture = "../../libs/artdump/testdata/api33_idle_main.txt"
+// artDumpFixture is the parser package's real API 36 capture, trimmed
+// to the thread section exactly as the SDK trims it, so the stored row
+// is built from the shape production actually sends. The API 33 capture
+// predates that trimming and carries a block of runtime statistics no
+// dump will arrive with.
+const artDumpFixture = "../../libs/artdump/testdata/api36_deadlock.txt"
 
 func makeANRThreadDumpRequest(t *testing.T, appID, teamID uuid.UUID) (eventreq, uuid.UUID, string) {
 	t.Helper()
@@ -245,7 +247,10 @@ func TestIngestANRThreadDump(t *testing.T) {
 	seedApp(ctx, t, appID, teamID, 30)
 
 	eventReq, eventID, dump := makeANRThreadDumpRequest(t, appID, teamID)
-	eventReq.parseThreadDumps()
+	// Mirrors the order ingest runs these in: parse, then symbolicate,
+	// then mark, then build the row.
+	eventReq.parseANRThreadDumps()
+	eventReq.markANRInAppFrames()
 
 	if err := eventReq.ingestEvents(ctx); err != nil {
 		t.Fatalf("ingestEvents failed: %v", err)
@@ -330,7 +335,7 @@ func TestIngestANRThreadDump(t *testing.T) {
 	})
 }
 
-func TestIngestStacktraceANRLeavesTheNewColumnsEmpty(t *testing.T) {
+func TestIngestStacktraceANRStoresNoThreadDump(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
 
@@ -351,7 +356,10 @@ func TestIngestStacktraceANRLeavesTheNewColumnsEmpty(t *testing.T) {
 		Threads:    event.Threads{{Name: "main", Frames: event.Frames{{MethodName: "blockerMethod", FileName: "MainActivity.java"}}}},
 		Foreground: true,
 	}
-	eventReq.parseThreadDumps()
+	// Mirrors the order ingest runs these in: parse, then symbolicate,
+	// then mark, then build the row.
+	eventReq.parseANRThreadDumps()
+	eventReq.markANRInAppFrames()
 
 	if err := eventReq.ingestEvents(ctx); err != nil {
 		t.Fatalf("ingestEvents failed: %v", err)
