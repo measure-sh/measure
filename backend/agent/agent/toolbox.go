@@ -589,7 +589,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_journey
 		newTool(&mcpsdk.Tool{
 			Name:        "get_journey",
-			Description: "Get user navigation journey graph with session counts between screens. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
+			Description: "Get an app's journey as a graph of event types. Each link is one observed transition between consecutive events. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
 			InputSchema: mcpMustInferSchema[mcpGetJourneyInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetJourney(ctx, in)
