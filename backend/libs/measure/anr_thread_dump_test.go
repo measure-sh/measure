@@ -136,17 +136,20 @@ func TestGetErrorsWithFilterServesTheThreadDump(t *testing.T) {
 	})
 
 	t.Run("Names the thread holding a contended lock", func(t *testing.T) {
+		if !strings.Contains(got.ANRView.Stacktrace, "waiting to lock") {
+			t.Fatal("the fixture's main thread waits on no lock, this test asserts nothing")
+		}
+		if !strings.Contains(got.ANRView.Stacktrace, "held by APP: Locker") {
+			t.Errorf("Expected the holder named, got:\n%s", got.ANRView.Stacktrace)
+		}
+	})
+
+	t.Run("Leaves the main thread out of the thread list", func(t *testing.T) {
 		for _, thread := range got.Threads {
-			for _, frame := range thread.Frames {
-				if strings.Contains(frame, "waiting to lock") {
-					if !strings.Contains(frame, "held by APP: Locker") {
-						t.Errorf("Expected the holder named, got %q", frame)
-					}
-					return
-				}
+			if strings.HasPrefix(thread.Name, `"main"`) {
+				t.Error("the main thread is rendered twice, once from the stacktrace and once here")
 			}
 		}
-		t.Fatal("the fixture carries no contended lock, this test asserts nothing")
 	})
 }
 

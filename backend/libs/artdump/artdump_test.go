@@ -500,21 +500,6 @@ func TestMainThreadIsAddressable(t *testing.T) {
 	}
 }
 
-func TestThreadRenderOmitsTheTrailer(t *testing.T) {
-	block := []string{
-		"  at java.lang.Thread.sleep(Native method)",
-		"  - sleeping on <0x07c5c2d7> (a java.lang.Object)",
-		"",
-		dumpLatencyPrefix + " 2.47",
-	}
-	thread := parseBlock(t, block...)
-
-	want := mainHeader + "\n" + strings.Join(block[:2], "\n")
-	if got := thread.Render(); got != want {
-		t.Errorf("got:\n%s\nwant:\n%s", got, want)
-	}
-}
-
 func TestLockRenderNamesTheHolder(t *testing.T) {
 	thread := parseBlock(t,
 		"  at sh.foo.Repo.load(Repo.kt:8)",

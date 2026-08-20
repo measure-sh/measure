@@ -1828,19 +1828,21 @@ DumpLatencyMs: 2.47
 		}
 	})
 
-	t.Run("Titles a thread by its whole header", func(t *testing.T) {
-		if len(e.Threads) != 2 {
-			t.Fatalf("Expected 2 threads, but got %d", len(e.Threads))
+	t.Run("Leaves the main thread out of the thread list", func(t *testing.T) {
+		// The detail page renders it above this list from Stacktrace,
+		// so including it here shows the stalled thread twice.
+		if len(e.Threads) != 1 {
+			t.Fatalf("Expected 1 thread beside main, but got %d", len(e.Threads))
 		}
-		if got, want := e.Threads[0].Name, `"main" prio=5 tid=1 Blocked`; got != want {
+		if got, want := e.Threads[0].Name, `"APP: Locker" daemon prio=5 tid=46 Sleeping`; got != want {
 			t.Errorf("Expected thread name %q, but got %q", want, got)
 		}
 	})
 
 	t.Run("Names the thread holding a lock", func(t *testing.T) {
 		want := "  - waiting to lock <0x053dd6df> (a java.lang.Object) held by APP: Locker"
-		if got := e.Threads[0].Frames[1]; got != want {
-			t.Errorf("Expected %q, but got %q", want, got)
+		if !strings.Contains(e.ANRView.Stacktrace, want) {
+			t.Errorf("Expected the main thread stack to contain %q, got:\n%s", want, e.ANRView.Stacktrace)
 		}
 	})
 
@@ -1850,7 +1852,7 @@ DumpLatencyMs: 2.47
 			"  - sleeping on <0x07c5c2d7> (a java.lang.Object)",
 			"  native: #00 pc 0004df5c  /apex/libc.so (syscall+28)",
 		}
-		if got := e.Threads[1].Frames; !reflect.DeepEqual(got, want) {
+		if got := e.Threads[0].Frames; !reflect.DeepEqual(got, want) {
 			t.Errorf("Expected frames %q, but got %q", want, got)
 		}
 	})

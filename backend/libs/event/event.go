@@ -2263,7 +2263,11 @@ func (a ANR) Stacktrace() string {
 		if main == nil {
 			return ""
 		}
-		return main.Render()
+		lines := append(
+			[]string{main.Header},
+			anrThreadStack(main, anrLockHolders(a.ThreadDump))...,
+		)
+		return strings.Join(lines, "\n")
 	}
 
 	var b strings.Builder

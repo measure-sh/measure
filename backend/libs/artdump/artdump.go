@@ -197,12 +197,6 @@ func (d *Dump) Render() string {
 	return strings.Join(lines, "\n")
 }
 
-// Render writes the thread's header and stack in the original ART
-// format, without the lines that close the block.
-func (t *Thread) Render() string {
-	return strings.Join(t.stackLines(), "\n")
-}
-
 func (t *Thread) stackLines() []string {
 	lines := make([]string, 0, len(t.Frames)+1)
 

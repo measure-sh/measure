@@ -90,9 +90,34 @@ func (e *EventANR) ComputeView() {
 // dashboard already draws. A thread is titled by its whole ART header,
 // which carries the state and priority a bare name would lose, and a
 // lock follows the frame it annotates.
+//
+// The main thread is left out. It is already rendered on its own from
+// Stacktrace, and the detail page draws that above this list, so
+// including it here would show the stalled thread twice.
 func threadDumpViews(dump *artdump.Dump) []ThreadView {
-	// A lock names its holder by ART thread id. An unattached thread
-	// has no id and can never hold one.
+	main := dump.MainThread()
+	holders := anrLockHolders(dump)
+
+	views := make([]ThreadView, 0, len(dump.Threads))
+	for i := range dump.Threads {
+		thread := &dump.Threads[i]
+		if thread == main {
+			continue
+		}
+
+		views = append(views, ThreadView{
+			Name:   thread.Header,
+			Frames: anrThreadStack(thread, holders),
+		})
+	}
+
+	return views
+}
+
+// anrLockHolders maps an ART thread id to the thread's name, so a lock
+// can name the thread holding it rather than a number. An unattached
+// thread has no id and can never hold one.
+func anrLockHolders(dump *artdump.Dump) map[int]string {
 	holders := map[int]string{}
 	for _, thread := range dump.Threads {
 		if thread.Tid != 0 {
@@ -100,22 +125,23 @@ func threadDumpViews(dump *artdump.Dump) []ThreadView {
 		}
 	}
 
-	views := make([]ThreadView, 0, len(dump.Threads))
-	for _, thread := range dump.Threads {
-		view := ThreadView{Name: thread.Header}
+	return holders
+}
 
-		for _, frame := range thread.Frames {
-			view.Frames = append(view.Frames, frame.Render())
+// anrThreadStack renders a thread's frames, with each lock following the
+// frame it annotates and naming the thread that holds it.
+func anrThreadStack(thread *artdump.Thread, holders map[int]string) []string {
+	var lines []string
 
-			for _, lock := range frame.Locks {
-				view.Frames = append(view.Frames, lock.Render(holders[lock.HolderTid]))
-			}
+	for _, frame := range thread.Frames {
+		lines = append(lines, frame.Render())
+
+		for _, lock := range frame.Locks {
+			lines = append(lines, lock.Render(holders[lock.HolderTid]))
 		}
-
-		views = append(views, view)
 	}
 
-	return views
+	return lines
 }
 
 // ComputeView computes a consumer friendly
