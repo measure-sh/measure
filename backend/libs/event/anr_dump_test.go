@@ -568,6 +568,34 @@ func TestANRDumpAccessors(t *testing.T) {
 	})
 }
 
+func TestANRWithoutADumpAnswersFromTheSubject(t *testing.T) {
+	// The reproduction-steps query reads anr.subject without the dump,
+	// so the accessors have to answer with what that row holds.
+	anr := ANR{Subject: inputSubject}
+
+	if got, want := anr.GetType(), "Input dispatching timed out"; got != want {
+		t.Errorf("Expected type %q, but got %q", want, got)
+	}
+	if got, want := anr.GetMessage(), inputSubject; got != want {
+		t.Errorf("Expected message %q, but got %q", want, got)
+	}
+	if got := anr.GetFileName(); got != "" {
+		t.Errorf("Expected no file name, but got %q", got)
+	}
+	if got := anr.GetMethodName(); got != "" {
+		t.Errorf("Expected no method name, but got %q", got)
+	}
+	if got := anr.GetLineNumber(); got != 0 {
+		t.Errorf("Expected no line number, but got %d", got)
+	}
+	if !anr.HasNoFrames() {
+		t.Error("Expected no frames")
+	}
+	if got := anr.Stacktrace(); got != "" {
+		t.Errorf("Expected no stacktrace, but got %q", got)
+	}
+}
+
 func TestANRGetDisplayTitle(t *testing.T) {
 	cases := []struct {
 		name    string

@@ -495,7 +495,7 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 			if anrData != "" {
 				_ = json.Unmarshal([]byte(anrData), &anr.Exceptions)
 			}
-			category := event.ANRSubjectCategory(anrSubject)
+			anr.Subject = anrSubject
 
 			switch {
 			case len(anr.Exceptions) > 0:
@@ -505,8 +505,8 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 					anr.GetFileName(),
 					anr.GetMethodName(),
 				))
-			case category != "":
-				step.Description = fmt.Sprintf("ANR: %s", category)
+			case anr.GetType() != "":
+				step.Description = fmt.Sprintf("ANR: %s", anr.GetType())
 			default:
 				step.Description = "ANR (Application Not Responding) occurred"
 			}

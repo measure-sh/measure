@@ -2141,13 +2141,15 @@ type anrSource interface {
 }
 
 // source picks the shape. An ANR carrying both is read as exceptions,
-// so existing fingerprints and titles do not move.
+// so existing fingerprints and titles do not move. Everything else
+// reads as a thread dump, including a dump that was never fetched,
+// which still knows its subject.
 func (a ANR) source() anrSource {
-	if len(a.Exceptions) == 0 && a.ThreadDump != nil {
-		return threadDumpANR{a}
+	if len(a.Exceptions) > 0 {
+		return exceptionANR{a}
 	}
 
-	return exceptionANR{a}
+	return threadDumpANR{a}
 }
 
 // HasNoFrames returns true if the ANR does not have any frame.
@@ -2197,12 +2199,23 @@ func (d threadDumpANR) Type() string { return ANRSubjectCategory(d.anr.Subject) 
 
 func (d threadDumpANR) Message() string { return d.anr.Subject }
 
-func (d threadDumpANR) FileName() string { return d.anr.ThreadDump.BlameFrame().FileName }
+// blameFrame is the frame the dump is grouped and titled on, or the
+// zero frame when the dump was never fetched. Only the subject answers
+// then, which is all a read path that skipped the column can offer.
+func (d threadDumpANR) blameFrame() artdump.Frame {
+	if d.anr.ThreadDump == nil {
+		return artdump.Frame{}
+	}
 
-func (d threadDumpANR) MethodName() string { return d.anr.ThreadDump.BlameFrame().MethodName }
+	return d.anr.ThreadDump.BlameFrame()
+}
+
+func (d threadDumpANR) FileName() string { return d.blameFrame().FileName }
+
+func (d threadDumpANR) MethodName() string { return d.blameFrame().MethodName }
 
 func (d threadDumpANR) LineNumber() int32 {
-	frame := d.anr.ThreadDump.BlameFrame()
+	frame := d.blameFrame()
 	// The column has no room for "absent".
 	if frame.LineNum == artdump.NoLineNum {
 		return int32(0)
@@ -2213,9 +2226,13 @@ func (d threadDumpANR) LineNumber() int32 {
 
 // HasNoFrames asks whether the blame chain yields a frame to group on,
 // not whether the stalled thread alone has one.
-func (d threadDumpANR) HasNoFrames() bool { return d.anr.ThreadDump.BlameFrame().ClassName == "" }
+func (d threadDumpANR) HasNoFrames() bool { return d.blameFrame().ClassName == "" }
 
 func (d threadDumpANR) Stacktrace() string {
+	if d.anr.ThreadDump == nil {
+		return ""
+	}
+
 	lead, _ := d.anr.ThreadDump.BlameOrder()
 	if lead == nil {
 		return ""
