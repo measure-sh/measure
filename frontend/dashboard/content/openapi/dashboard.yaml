@@ -1712,6 +1712,9 @@ paths:
                               type: string
                             message:
                               type: string
+                            subject:
+                              type: string
+                              description: The system reported cause of the ANR, naming the deadline that expired. Empty for ANRs reported below Android 11.
                         severity:
                           type: string
                         num_code:
@@ -1820,6 +1823,7 @@ paths:
                           title: android.app.RemoteServiceException
                           stacktrace: "android.app.RemoteServiceException: Input dispatching timed out\n\tat com.example.MainActivity.onResume(MainActivity.kt:88)"
                           message: Input dispatching timed out
+                          subject: ""
                         severity: fatal
                         attachments: []
                         threads:

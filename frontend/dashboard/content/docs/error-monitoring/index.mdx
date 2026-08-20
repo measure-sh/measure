@@ -61,7 +61,16 @@ Thread 0 Crashed:
 
 An [ANR](https://developer.android.com/topic/performance/vitals/anr) (Application Not Responding) happens when the app's main thread is blocked for too long, for example when it can't respond to input within 5 seconds. ANRs are reported automatically.
 
-On Android 11 and above, [ApplicationExitInfo](https://developer.android.com/reference/android/app/ApplicationExitInfo) is also collected on the next launch to record why the app exited. ANR exits include the thread dump taken by the OS.
+Where the report comes from depends on the Android version.
+
+On Android 11 and above it comes from [ApplicationExitInfo](https://developer.android.com/reference/android/app/ApplicationExitInfo), read on the launch after the one the ANR happened in. The report carries the ART thread dump the operating system captured, so it shows every thread with its state, the locks each thread holds, and the locks each thread is waiting on. A deadlock is readable directly from the report: the blocked thread names the lock it wants and the thread holding it. It also carries the subject, which names the deadline that expired, such as an input dispatch timeout or a broadcast timeout. The ANR is attributed to the session it happened in, not the launch that reported it.
+
+Below Android 11 the report comes from a signal handler running inside the affected process. It carries the main thread's stack and up to 16 other threads, without thread states or lock information.
+
+Two behaviours differ on Android 11 and above, both following from the report being read after the process is gone:
+
+- An ANR the app recovers from is not reported, because the system records no exit for it.
+- No screenshot is captured, because the process has already been killed.
 
 ## Track a handled error
 
@@ -193,10 +202,10 @@ By default the replay covers the 5 minutes before the error. A longer window giv
 
 ## Screenshots
 
-Each crash and ANR includes a screenshot of what was on screen when the issue occurred. Sensitive content is masked on the device before the screenshot is uploaded, and the [screenshot mask level](/docs/adaptive-capture#screenshot-mask-level) controls how much is hidden. See [Screenshot masking](/docs/error-monitoring/screenshot-masking) for how masking works on each platform and the APIs to mask specific views.
+Each crash includes a screenshot of what was on screen when the issue occurred, as does each ANR reported below Android 11. Sensitive content is masked on the device before the screenshot is uploaded, and the [screenshot mask level](/docs/adaptive-capture#screenshot-mask-level) controls how much is hidden. See [Screenshot masking](/docs/error-monitoring/screenshot-masking) for how masking works on each platform and the APIs to mask specific views.
 
 <Callout type="info">
-Screenshots for crashes aren't supported on iOS.
+Screenshots for crashes aren't supported on iOS. ANRs on Android 11 and above are reported after the process has been killed, so they carry no screenshot either.
 </Callout>
 
 ## Alerts
@@ -207,7 +216,7 @@ A spike of crashes or ANRs triggers an alert over email and Slack. Handled error
 
 Crashes and ANRs are configured remotely through [Adaptive Capture](/docs/adaptive-capture), so you can change these without shipping a new build:
 
-- **Screenshots**: whether Measure captures a screenshot on each crash and ANR. On by default.
+- **Screenshots**: whether a screenshot is captured on each crash, and on each ANR below Android 11. On by default.
 - **Session replay duration**: how far back the replay reaches before the error. A longer window gives more context but collects more data. 5 minutes by default.
 - **Screenshot mask level**: how much of each screenshot is masked to keep sensitive content from leaking. Masks all text and media by default.
 

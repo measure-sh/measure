@@ -22,6 +22,19 @@ java.lang.NullPointerException: Attempt to invoke virtual method 'void com.examp
     ...
 ```
 
+### ANRs
+
+An ANR is grouped on the frame that shows where the main thread stalled, which is not the same as its top frame. An idle main thread sits in `nativePollOnce`, so grouping on the top frame would collapse unrelated ANRs into one issue.
+
+On Android 11 and above the frame is picked from the thread dump:
+
+- **The main thread has a frame in your own code**: that frame is the group, keyed by its method and file. The deadline that expired is deliberately left out of the key, because the same blocking call trips whichever deadline the user happened to be waiting on.
+- **The main thread has no frame in your own code**: the group is the deadline together with the main thread's first managed frame. Neither carries the bug alone. An input dispatch timeout parked in `Binder.transact` is a different problem from one parked in `SQLiteConnection.nativeExecute`, and both differ from a main thread that is genuinely idle.
+
+Native frames are never grouped on. They key on an address that differs on every process, or on a symbol like `syscall+28` that says nothing about your app.
+
+Below Android 11 an ANR is grouped like any other Android error, by its type and top frame.
+
 ## iOS
 
 Errors are grouped by the signal and the first stack frame that belongs to your app. Operating-system and framework frames at the top of the stack (like `CoreFoundation` and `libobjc`) are skipped, since the code you can fix is in your own binary.
