@@ -223,9 +223,9 @@ func (d *Dump) LockHolders() map[int]string {
 	return holders
 }
 
-// MainThread returns the thread ART names "main", or nil when the dump
-// does not contain one. The returned thread points into the dump, so
-// writes through it are visible in Render and Annotate.
+// MainThread returns the main thread, or nil when the dump does not
+// contain one. The returned thread points into the dump, so writes
+// through it are visible in Render and Annotate.
 func (d *Dump) MainThread() *Thread {
 	for i := range d.Threads {
 		if d.Threads[i].Name == "main" {
@@ -233,7 +233,8 @@ func (d *Dump) MainThread() *Thread {
 		}
 	}
 
-	return nil
+	// An app that renames its main thread still leaves it thread id 1.
+	return d.ThreadByTid(1)
 }
 
 // ThreadByTid returns the thread ART gave the id tid, or nil when the

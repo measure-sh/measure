@@ -541,9 +541,24 @@ func TestMainThread(t *testing.T) {
 	}
 }
 
-func TestMainThreadIsAbsent(t *testing.T) {
+// An app is free to rename its main thread, and some do. ART still
+// gives it thread id 1.
+func TestMainThreadWasRenamed(t *testing.T) {
 	dump := Parse(threadDump("  at sh.foo.Repo.load(Repo.kt:8)"))
-	dump.Threads[0].Name = "msr-io"
+	dump.Threads[0].Name = "Timber"
+
+	main := dump.MainThread()
+	if main == nil {
+		t.Fatal("got no main thread, want the one ART gave id 1")
+	}
+	if main.Name != "Timber" {
+		t.Errorf("got thread %q, want %q", main.Name, "Timber")
+	}
+}
+
+func TestMainThreadIsAbsent(t *testing.T) {
+	dump := Parse(`"msr-io" daemon prio=5 tid=21 Sleeping
+  at sh.foo.Repo.load(Repo.kt:8)`)
 
 	if main := dump.MainThread(); main != nil {
 		t.Errorf("got thread %q, want none", main.Name)
@@ -756,8 +771,8 @@ func TestBlameOrderPromotesTheStalledThread(t *testing.T) {
 }
 
 func TestBlameOrderWithoutAThreadToBlame(t *testing.T) {
-	dump := Parse(threadDump("  at sh.foo.Repo.load(Repo.kt:8)"))
-	dump.Threads[0].Name = "msr-io"
+	dump := Parse(`"msr-io" daemon prio=5 tid=21 Sleeping
+  at sh.foo.Repo.load(Repo.kt:8)`)
 	dump.Annotate()
 
 	lead, rest := dump.BlameOrder()
