@@ -23,7 +23,7 @@ import {
 } from "./accordion";
 import { buttonVariants } from "./button_variants";
 import CodeBlock, { CODE_BLOCK_CARD_CLASS } from "./code_block";
-import CopyAiContext from "./copy_ai_context";
+import CopyAgentPrompt from "./copy_agent_prompt";
 import ErrorGroupCommonPath from "./error_group_common_path";
 import ErrorsDetailsPlot from "./errors_details_plot";
 import ErrorsDistributionPlot from "./errors_distribution_plot";
@@ -529,7 +529,8 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
                     {!demo && (
                       <>
                         <div className="px-2" />
-                        <CopyAiContext
+                        <CopyAgentPrompt
+                          appId={appId}
                           appName={filters.app!.name}
                           errorEvent={firstResult}
                         />
