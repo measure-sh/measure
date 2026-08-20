@@ -168,8 +168,11 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                     .filter(Boolean)
                     .join("&");
                   // Build base path
-                  const groupName =
-                    type + (file_name !== "" ? "@" + file_name : "");
+                  // An ANR reported as a thread dump has no exception type,
+                  // so joining unconditionally would yield a leading "@".
+                  const groupName = [type, file_name]
+                    .filter((part) => part !== "")
+                    .join("@");
                   const basePath = `/${teamId}/errors/${filters.app!.id}/${id}/${encodeURIComponent(groupName)}`;
                   // Final href with query params if any
                   const href = timestampQuery
@@ -210,7 +213,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                             data-testid="exception-row-type"
                             className="text-xs truncate text-muted-foreground mt-0.5 select-none"
                           >
-                            {`${type}${message ? `:${message}` : ""}`}
+                            {[type, message].filter((part) => part).join(":")}
                           </p>
                           <div className="flex flex-wrap gap-1.5 pt-3">
                             {error_type === "anr" && (
