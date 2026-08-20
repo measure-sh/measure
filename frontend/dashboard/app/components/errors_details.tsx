@@ -190,7 +190,7 @@ function renderAttributeRow(key: string, value: unknown): ReactNode {
     <div
       key={key}
       data-testid="exception-detail-attribute"
-      className="flex flex-col gap-0.5 px-3 py-2 border-b border-border/40 last:border-b-0"
+      className="flex flex-col gap-0.5 py-2 border-b border-border/40 last:border-b-0"
     >
       <p className="text-[10px] uppercase tracking-wide text-muted-foreground select-none">
         {key}
