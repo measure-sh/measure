@@ -299,7 +299,14 @@ const emptyErrorGroupDetailsItem = {
   anr: {
     title: "",
     stacktrace: "",
-  } as { title: string; stacktrace: string } | null,
+    subject: "",
+    blocking_thread: "",
+  } as {
+    title: string;
+    stacktrace: string;
+    subject: string;
+    blocking_thread: string;
+  } | null,
   severity: "",
   num_code: 0 as number | null,
   code: "",

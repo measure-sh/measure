@@ -184,6 +184,29 @@ const stackTraceCodeBlockClassName = cn(
   "text-sm leading-relaxed",
 );
 
+function renderThread(
+  thread: { name: string; frames: string[] },
+  index: number,
+): ReactNode {
+  return (
+    <AccordionItem
+      value={`${thread.name}-${index}`}
+      key={`${thread.name}-${index}`}
+    >
+      <AccordionTrigger className="font-display">
+        {"Thread: " + thread.name}
+      </AccordionTrigger>
+      <AccordionContent>
+        <CodeBlock
+          language="java"
+          className={stackTraceCodeBlockClassName}
+          code={thread.frames.join("\n")}
+        />
+      </AccordionContent>
+    </AccordionItem>
+  );
+}
+
 function renderAttributeRow(key: string, value: unknown): ReactNode {
   const isObject = typeof value === "object" && value !== null;
   return (
@@ -279,8 +302,22 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
   const stacktrace =
     firstResult?.exception?.stacktrace ?? firstResult?.anr?.stacktrace ?? "";
 
+  // The stacktrace belongs to the thread the ANR is blamed on, which is
+  // the one holding the app up when something is, and the stalled
+  // thread otherwise. The backend decides which, and names it here.
+  const topThreadValue =
+    "Thread: " +
+    (firstResult?.anr?.blocking_thread ||
+      firstResult?.attribute.thread_name ||
+      "");
+
   const extraAttributeRows: Array<[string, unknown]> = [];
   if (firstResult) {
+    // The subject names the deadline that expired, which is the context
+    // for reading the stacktrace below it.
+    if (firstResult.anr?.subject) {
+      extraAttributeRows.push(["subject", firstResult.anr.subject]);
+    }
     if (typeof firstResult.num_code === "number") {
       extraAttributeRows.push(["num_code", firstResult.num_code]);
     }
@@ -551,16 +588,12 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
                   <Accordion
                     type="single"
                     collapsible
-                    defaultValue={
-                      "Thread: " + firstResult.attribute.thread_name
-                    }
+                    defaultValue={topThreadValue}
                   >
                     {stacktrace && (
-                      <AccordionItem
-                        value={"Thread: " + firstResult.attribute.thread_name}
-                      >
+                      <AccordionItem value={topThreadValue}>
                         <AccordionTrigger className="font-display">
-                          {"Thread: " + firstResult.attribute.thread_name}
+                          {topThreadValue}
                         </AccordionTrigger>
                         <AccordionContent data-testid="exception-detail-main-stacktrace">
                           <CodeBlock
@@ -571,23 +604,9 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
                         </AccordionContent>
                       </AccordionItem>
                     )}
-                    {firstResult.threads?.map((e, index) => (
-                      <AccordionItem
-                        value={`${e.name}-${index}`}
-                        key={`${e.name}-${index}`}
-                      >
-                        <AccordionTrigger className="font-display">
-                          {"Thread: " + e.name}
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <CodeBlock
-                            language="java"
-                            className={stackTraceCodeBlockClassName}
-                            code={e.frames.join("\n")}
-                          />
-                        </AccordionContent>
-                      </AccordionItem>
-                    )) || []}
+                    {(firstResult.threads ?? []).map((e, index) =>
+                      renderThread(e, index),
+                    )}
                   </Accordion>
                 </div>
               )}
