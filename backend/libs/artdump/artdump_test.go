@@ -219,16 +219,11 @@ func TestParseLocksBelongToPreviousFrame(t *testing.T) {
 	}
 }
 
-func TestParseThreadTrailer(t *testing.T) {
-	trailer := []string{"DumpLatencyMs: 92.0013", ""}
-
-	thread := parseBlock(t, append([]string{anchorFrame}, trailer...)...)
+func TestParseDropsWhatClosesTheBlock(t *testing.T) {
+	thread := parseBlock(t, anchorFrame, "DumpLatencyMs: 92.0013", "")
 
 	if len(thread.Frames) != 1 {
-		t.Errorf("frames = %d, want 1", len(thread.Frames))
-	}
-	if !reflect.DeepEqual(thread.Trailer, trailer) {
-		t.Errorf("trailer = %q, want %q", thread.Trailer, trailer)
+		t.Errorf("frames = %d, want 1, the closing lines became frames", len(thread.Frames))
 	}
 }
 
@@ -244,9 +239,6 @@ func TestParseKeepsTheNoManagedFramesMarker(t *testing.T) {
 	}
 	if got := thread.Frames[1].RawLine; got != marker {
 		t.Errorf("last frame = %q, want %q", got, marker)
-	}
-	if len(thread.Trailer) != 0 {
-		t.Errorf("trailer = %q, want none", thread.Trailer)
 	}
 }
 
@@ -271,37 +263,40 @@ func TestParseMultipleThreads(t *testing.T) {
 	}
 }
 
-func TestParseDumpHeader(t *testing.T) {
-	header := []string{
+func TestParseSkipsThePreamble(t *testing.T) {
+	input := strings.Join([]string{
 		`"quoted, but nothing ART would call a header`,
 		"DALVIK THREADS (1):",
-	}
-	input := strings.Join(append(append([]string{}, header...), mainHeader, anchorFrame), "\n")
+		mainHeader,
+		anchorFrame,
+	}, "\n")
 
 	dump := Parse(input)
 
-	if !reflect.DeepEqual(dump.Header, header) {
-		t.Errorf("header = %q, want %q", dump.Header, header)
-	}
 	if len(dump.Threads) != 1 {
-		t.Errorf("threads = %d, want 1", len(dump.Threads))
+		t.Fatalf("threads = %d, want 1, the preamble opened one", len(dump.Threads))
+	}
+	if got := len(dump.Threads[0].Frames); got != 1 {
+		t.Errorf("frames = %d, want 1", got)
 	}
 }
 
-func TestParseDumpTrailer(t *testing.T) {
-	trailer := []string{
+func TestParseDropsWhatFollowsTheLastThread(t *testing.T) {
+	input := strings.Join([]string{
+		mainHeader,
+		anchorFrame,
+		"",
 		"Zygote loaded classes=29742 post zygote classes=8356",
 		`"not a thread" and not a header`,
-	}
-	input := strings.Join(append([]string{mainHeader, anchorFrame, ""}, trailer...), "\n")
+	}, "\n")
 
 	dump := Parse(input)
 
 	if len(dump.Threads) != 1 {
 		t.Fatalf("threads = %d, want 1, the section must not reopen", len(dump.Threads))
 	}
-	if !reflect.DeepEqual(dump.Trailer, trailer) {
-		t.Errorf("trailer = %q, want %q", dump.Trailer, trailer)
+	if got := len(dump.Threads[0].Frames); got != 1 {
+		t.Errorf("frames = %d, want 1, the trailing lines were absorbed", got)
 	}
 }
 
@@ -314,28 +309,45 @@ func TestParseStopsAtUnknownThreadHeader(t *testing.T) {
 	if len(dump.Threads) != 1 {
 		t.Fatalf("threads = %d, want 1", len(dump.Threads))
 	}
-	if want := []string{odd, anchorFrame}; !reflect.DeepEqual(dump.Trailer, want) {
-		t.Errorf("trailer = %q, want %q", dump.Trailer, want)
+	// The frame below the odd line goes with it, rather than attaching
+	// to the thread above.
+	if got := len(dump.Threads[0].Frames); got != 1 {
+		t.Errorf("frames = %d, want 1", got)
 	}
 }
 
-func TestRenderRoundTrip(t *testing.T) {
-	inputs := []string{
-		"",
-		"\n",
-		"not a dump at all",
-		"DALVIK THREADS (0):\n",
-		threadDump(anchorFrame, "  - locked <0x1> (a java.lang.Object)", "DumpLatencyMs: 1.0", ""),
-		threadDump("  native: #00 pc 0004df5c  /system/lib64/libc.so (syscall+28)"),
-		// ART never prints a blank in the middle of a stack, but if it did
-		// the lines below it would still come back in order.
-		threadDump(anchorFrame, "", "  at java.lang.Thread.run(Thread.java:1012)"),
+func TestRender(t *testing.T) {
+	const nativeFrame = "  native: #00 pc 0004df5c  /system/lib64/libc.so (syscall+28)"
+	const lockLine = "  - locked <0x1> (a java.lang.Object)"
+
+	cases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"nothing at all", "", ""},
+		{"a dump with no threads", "DALVIK THREADS (0):\n", ""},
+		{
+			"a lock follows its frame, the closing lines go",
+			threadDump(anchorFrame, lockLine, "DumpLatencyMs: 1.0", ""),
+			threadDump(anchorFrame, lockLine),
+		},
+		{"a native frame is kept verbatim", threadDump(nativeFrame), threadDump(nativeFrame)},
+		{
+			// ART never prints a blank in the middle of a stack, and if
+			// it did the blank would close the block.
+			"a blank mid stack ends the thread",
+			threadDump(anchorFrame, "", "  at java.lang.Thread.run(Thread.java:1012)"),
+			threadDump(anchorFrame),
+		},
 	}
 
-	for _, input := range inputs {
-		if got := Parse(input).Render(); got != input {
-			t.Errorf("render changed %q at line %d", input, firstDiffLine(input, got))
-		}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := Parse(tc.input).Render(); got != tc.want {
+				t.Errorf("rendered %q at line %d, want %q", got, firstDiffLine(tc.want, got), tc.want)
+			}
+		})
 	}
 }
 
@@ -398,44 +410,91 @@ func TestMarkInApp(t *testing.T) {
 }
 
 func TestParseFixture(t *testing.T) {
-	for _, fixture := range []string{api33Dump, api36Dump} {
-		t.Run(fixture, func(t *testing.T) {
-			input := loadDump(t, fixture)
+	// What each fixture holds, read off the parse when it was added. A
+	// parser that starts dropping lines moves these.
+	fixtures := []struct {
+		name    string
+		threads int
+		frames  int
+		locks   int
+	}{
+		{api33Dump, 43, 342, 15},
+		{api36Dump, 47, 513, 33},
+	}
 
-			dump := Parse(input)
+	for _, fixture := range fixtures {
+		t.Run(fixture.name, func(t *testing.T) {
+			dump := Parse(loadDump(t, fixture.name))
 
-			if got := dump.Render(); got != input {
-				t.Fatalf("render changed the input at line %d", firstDiffLine(input, got))
+			// Reparsing the render is what says the two agree on every
+			// thread, frame and lock of a real dump.
+			if reparsed := Parse(dump.Render()); !reflect.DeepEqual(reparsed, dump) {
+				t.Fatalf("reparsing the render changed the dump at line %d",
+					firstDiffLine(dump.Render(), reparsed.Render()))
 			}
-			if len(dump.Threads) == 0 {
-				t.Fatal("parsed no threads")
-			}
-			// Every real thread prints a stack, so an empty one means the
-			// parser stopped reading part way through the dump.
+
+			frames, locks := 0, 0
 			for _, thread := range dump.Threads {
+				// Every real thread prints a stack, so an empty one
+				// means the parser stopped part way through the dump.
 				if len(thread.Frames) == 0 {
 					t.Errorf("thread %q has no frames", thread.Name)
 				}
+				frames += len(thread.Frames)
+				for _, frame := range thread.Frames {
+					locks += len(frame.Locks)
+				}
+			}
+
+			if len(dump.Threads) != fixture.threads {
+				t.Errorf("threads = %d, want %d", len(dump.Threads), fixture.threads)
+			}
+			if frames != fixture.frames {
+				t.Errorf("frames = %d, want %d", frames, fixture.frames)
+			}
+			if locks != fixture.locks {
+				t.Errorf("locks = %d, want %d", locks, fixture.locks)
 			}
 		})
 	}
 }
 
-func TestParseFixtureTrailer(t *testing.T) {
+// ART follows the last thread with pages of runtime statistics. The SDK
+// trims them, but a dump captured before it did still carries them, and
+// they must not read as more of the last thread.
+func TestLockHolders(t *testing.T) {
+	// An unattached thread has no tid, and no lock names one as holder.
+	dump := Parse(`"main" prio=5 tid=1 Runnable
+  at sh.foo.Repo.load(Repo.kt:8)
+
+"1.io" prio=5 (not attached)`)
+
+	holders := dump.LockHolders()
+
+	if got, want := holders[1], "main"; got != want {
+		t.Errorf("holders[1] = %q, want %q", got, want)
+	}
+	if name, ok := holders[0]; ok {
+		t.Errorf("an unattached thread was recorded as holder %q", name)
+	}
+}
+
+func TestParseDropsTheRuntimeStatistics(t *testing.T) {
 	input := loadDump(t, api33Dump)
-	at := strings.Index(input, "\nZygote loaded classes=")
-	if at < 0 {
-		t.Fatal("fixture prints no runtime statistics")
+	if !strings.Contains(input, "\nZygote loaded classes=") {
+		t.Fatal("fixture prints no runtime statistics, this test asserts nothing")
 	}
 
-	dump := Parse(input)
+	rendered := Parse(input).Render()
 
-	if got, want := strings.Join(dump.Trailer, "\n"), input[at+1:]; got != want {
-		t.Errorf("trailer differs at line %d", firstDiffLine(want, got))
-	}
-	// The SDK trims the statistics away, so this one ends at its last thread.
-	if got := Parse(loadDump(t, api36Dump)); len(got.Trailer) != 0 {
-		t.Errorf("trailer = %q, want none", got.Trailer)
+	for _, line := range []string{
+		"Zygote loaded classes=",
+		"Dumping registered class loaders",
+		"  Metadata:",
+	} {
+		if strings.Contains(rendered, line) {
+			t.Errorf("the statistics survived the parse: %q", line)
+		}
 	}
 }
 
@@ -614,14 +673,15 @@ func TestAnnotateSurvivesTheJSONRoundTrip(t *testing.T) {
 		t.Fatalf("unmarshal: %v", err)
 	}
 
-	if !reflect.DeepEqual(stored.BlockingChain, dump.BlockingChain) {
-		t.Errorf("blocking chain became %v, want %v", stored.BlockingChain, dump.BlockingChain)
+	// Both would be empty if Annotate had done nothing, and then the
+	// comparison below would pass without saying anything.
+	if len(dump.BlockingChain) == 0 || dump.GroupingFrame == nil {
+		t.Fatal("the fixture resolves no chain or frame, this test asserts nothing")
 	}
-	if stored.GroupingFrame == nil {
-		t.Fatal("the grouping frame did not survive storage")
-	}
-	if got, want := stored.GroupingFrame.MethodName, dump.GroupingFrame.MethodName; got != want {
-		t.Errorf("grouping frame became %q, want %q", got, want)
+
+	// The dump holds nothing that storage drops, so this is exact.
+	if !reflect.DeepEqual(&stored, dump) {
+		t.Errorf("storage changed the dump:\n stored %+v\n parsed %+v", stored, *dump)
 	}
 }
 

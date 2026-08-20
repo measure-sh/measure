@@ -78,7 +78,7 @@ func (e *EventANR) ComputeView() {
 		if lead != nil {
 			e.ANRView.BlamedThread = lead.Header
 		}
-		e.Threads = threadViews(rest, anrLockHolders(e.ANR.ThreadDump))
+		e.Threads = threadViews(rest, e.ANR.ThreadDump.LockHolders())
 		return
 	}
 
@@ -102,40 +102,11 @@ func threadViews(threads []*artdump.Thread, holders map[int]string) []ThreadView
 	for _, thread := range threads {
 		views = append(views, ThreadView{
 			Name:   thread.Header,
-			Frames: anrThreadStack(thread, holders),
+			Frames: thread.Stack(holders),
 		})
 	}
 
 	return views
-}
-
-// anrLockHolders maps an ART thread id to the thread's name, so a lock
-// can name its holder rather than a number.
-func anrLockHolders(dump *artdump.Dump) map[int]string {
-	holders := map[int]string{}
-	for _, thread := range dump.Threads {
-		if thread.Tid != 0 {
-			holders[thread.Tid] = thread.Name
-		}
-	}
-
-	return holders
-}
-
-// anrThreadStack renders a thread's frames, each lock following the
-// frame it annotates.
-func anrThreadStack(thread *artdump.Thread, holders map[int]string) []string {
-	var lines []string
-
-	for _, frame := range thread.Frames {
-		lines = append(lines, frame.Render())
-
-		for _, lock := range frame.Locks {
-			lines = append(lines, lock.Render(holders[lock.HolderTid]))
-		}
-	}
-
-	return lines
 }
 
 // ComputeView computes a consumer friendly

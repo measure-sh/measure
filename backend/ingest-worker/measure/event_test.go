@@ -279,13 +279,13 @@ func TestIngestANRThreadDump(t *testing.T) {
 		}
 	})
 
-	t.Run("Stores a dump that round-trips to the original bytes", func(t *testing.T) {
+	t.Run("Stores every thread the dump was parsed into", func(t *testing.T) {
 		var stored artdump.Dump
 		if err := json.Unmarshal([]byte(threadDump), &stored); err != nil {
 			t.Fatalf("stored thread dump is not valid json: %v", err)
 		}
-		if got := stored.Render(); got != dump {
-			t.Error("the stored dump does not render back to the captured bytes")
+		if got, want := stored.Render(), artdump.Parse(dump).Render(); got != want {
+			t.Error("the stored dump is not what the parser produced")
 		}
 	})
 

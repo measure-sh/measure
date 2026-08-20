@@ -1,4 +1,3 @@
-DALVIK THREADS (27):
 "main" prio=5 tid=1 Native
   native: #00 pc 0004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 0022a29c  /apex/com.android.art/lib64/libart.so (art::ConditionVariable::WaitHoldingLocks+136) (BuildId: 4ccb65ae9ac5ad5da3af5a342d5b0b92)
@@ -12,8 +11,6 @@ DALVIK THREADS (27):
   at java.lang.reflect.Method.invoke(Native method)
   at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:548)
   at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
-DumpLatencyMs: 49.9723
-
 "ReferenceQueueDaemon" daemon prio=5 tid=6 Waiting
   at java.lang.Object.wait(Native method)
   - waiting on <0x0504af66> (a java.lang.Class<java.lang.ref.ReferenceQueue>)
@@ -23,8 +20,6 @@ DumpLatencyMs: 49.9723
   - locked <0x0504af66> (a java.lang.Class<java.lang.ref.ReferenceQueue>)
   at java.lang.Daemons$Daemon.run(Daemons.java:131)
   at java.lang.Thread.run(Thread.java:1012)
-DumpLatencyMs: 64.8362
-
 "FinalizerDaemon" daemon prio=5 tid=7 Waiting
   at java.lang.Object.wait(Native method)
   - waiting on <0x0f53f2a7> (a java.lang.Object)
@@ -35,8 +30,6 @@ DumpLatencyMs: 64.8362
   at java.lang.Daemons$FinalizerDaemon.runInternal(Daemons.java:331)
   at java.lang.Daemons$Daemon.run(Daemons.java:131)
   at java.lang.Thread.run(Thread.java:1012)
-DumpLatencyMs: 65.0817
-
 "FinalizerWatchdogDaemon" daemon prio=5 tid=8 Waiting
   at java.lang.Object.wait(Native method)
   - waiting on <0x0ed76354> (a java.lang.Daemons$FinalizerWatchdogDaemon)
@@ -47,8 +40,6 @@ DumpLatencyMs: 65.0817
   at java.lang.Daemons$FinalizerWatchdogDaemon.runInternal(Daemons.java:444)
   at java.lang.Daemons$Daemon.run(Daemons.java:131)
   at java.lang.Thread.run(Thread.java:1012)
-DumpLatencyMs: 65.233
-
 "OkHttp ConnectionPool" daemon prio=5 tid=20 TimedWaiting
   at java.lang.Object.wait(Native method)
   - waiting on <0x08f112fd> (a com.android.okhttp.ConnectionPool)
@@ -57,8 +48,6 @@ DumpLatencyMs: 65.233
   at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
   at java.lang.Thread.run(Thread.java:1012)
-DumpLatencyMs: 96.9458
-
 "Okio Watchdog" daemon prio=5 tid=24 TimedWaiting
   at java.lang.Object.wait(Native method)
   - waiting on <0x0f1c5bf2> (a java.lang.Class<com.android.okhttp.okio.AsyncTimeout>)
@@ -66,8 +55,6 @@ DumpLatencyMs: 96.9458
   - locked <0x0f1c5bf2> (a java.lang.Class<com.android.okhttp.okio.AsyncTimeout>)
   at com.android.okhttp.okio.AsyncTimeout.access$000(AsyncTimeout.java:42)
   at com.android.okhttp.okio.AsyncTimeout$Watchdog.run(AsyncTimeout.java:288)
-DumpLatencyMs: 108.924
-
 "Signal Catcher" daemon prio=10 tid=2 Runnable
   native: #00 pc 004fc1e0  /apex/com.android.art/lib64/libart.so (art::DumpNativeStack+108) (BuildId: 4ccb65ae9ac5ad5da3af5a342d5b0b92)
   native: #01 pc 004fe898  /apex/com.android.art/lib64/libart.so (art::Thread::DumpStack const+376) (BuildId: 4ccb65ae9ac5ad5da3af5a342d5b0b92)
@@ -81,16 +68,12 @@ DumpLatencyMs: 108.924
   native: #09 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #10 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   (no managed stack frames)
-DumpLatencyMs: 4.43271
-
 "perfetto_hprof_listener" prio=10 tid=3 Native (still starting up)
   native: #00 pc 000a20f4  /apex/com.android.runtime/lib64/bionic/libc.so (read+4) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 0002b9c0  /apex/com.android.art/lib64/libperfetto_hprof.so (void* std::__1::__thread_proxy[abi:nn180000]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, ArtPlugin_Initialize::$_7>>+308) (BuildId: 9299b6ce82fd6a7f26e3799ece61cd3f)
   native: #02 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #03 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   (no managed stack frames)
-DumpLatencyMs: 55.6547
-
 "Jit thread pool worker thread 0" daemon prio=5 tid=4 Native
   native: #00 pc 0004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 0022a29c  /apex/com.android.art/lib64/libart.so (art::ConditionVariable::WaitHoldingLocks+136) (BuildId: 4ccb65ae9ac5ad5da3af5a342d5b0b92)
@@ -99,8 +82,6 @@ DumpLatencyMs: 55.6547
   native: #04 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #05 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   (no managed stack frames)
-DumpLatencyMs: 59.8822
-
 "HeapTaskDaemon" daemon prio=5 tid=5 WaitingForTaskProcessor
   native: #00 pc 0004df60  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+32) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 0055c75c  /apex/com.android.art/lib64/libart.so (art::ConditionVariable::TimedWait+232) (BuildId: 4ccb65ae9ac5ad5da3af5a342d5b0b92)
@@ -109,8 +90,6 @@ DumpLatencyMs: 59.8822
   at java.lang.Daemons$HeapTaskDaemon.runInternal(Daemons.java:734)
   at java.lang.Daemons$Daemon.run(Daemons.java:131)
   at java.lang.Thread.run(Thread.java:1012)
-DumpLatencyMs: 60.1657
-
 "binder:9533_1" prio=5 tid=9 Native
   native: #00 pc 000a23d8  /apex/com.android.runtime/lib64/bionic/libc.so (__ioctl+8) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 0005b50c  /apex/com.android.runtime/lib64/bionic/libc.so (ioctl+156) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -121,8 +100,6 @@ DumpLatencyMs: 60.1657
   native: #06 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #07 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   (no managed stack frames)
-DumpLatencyMs: 65.3681
-
 "binder:9533_2" prio=5 tid=10 Native
   native: #00 pc 000a23d8  /apex/com.android.runtime/lib64/bionic/libc.so (__ioctl+8) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 0005b50c  /apex/com.android.runtime/lib64/bionic/libc.so (ioctl+156) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -133,8 +110,6 @@ DumpLatencyMs: 65.3681
   native: #06 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #07 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   (no managed stack frames)
-DumpLatencyMs: 76.2793
-
 "binder:9533_3" prio=5 tid=11 Native
   native: #00 pc 000a23d8  /apex/com.android.runtime/lib64/bionic/libc.so (__ioctl+8) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 0005b50c  /apex/com.android.runtime/lib64/bionic/libc.so (ioctl+156) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -145,8 +120,6 @@ DumpLatencyMs: 76.2793
   native: #06 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #07 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   (no managed stack frames)
-DumpLatencyMs: 76.6778
-
 "Profile Saver" daemon prio=5 tid=12 Native
   native: #00 pc 0004df60  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+32) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 0055c75c  /apex/com.android.art/lib64/libart.so (art::ConditionVariable::TimedWait+232) (BuildId: 4ccb65ae9ac5ad5da3af5a342d5b0b92)
@@ -154,8 +127,6 @@ DumpLatencyMs: 76.6778
   native: #03 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #04 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   (no managed stack frames)
-DumpLatencyMs: 76.9778
-
 "msr-io" prio=5 tid=13 Waiting
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -170,8 +141,6 @@ DumpLatencyMs: 76.9778
   at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
   at java.lang.Thread.run(Thread.java:1012)
-DumpLatencyMs: 77.9094
-
 "msr-default" prio=5 tid=14 TimedWaiting
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -183,8 +152,6 @@ DumpLatencyMs: 77.9094
   at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
   at java.lang.Thread.run(Thread.java:1012)
-DumpLatencyMs: 78.0988
-
 "RenderThread" daemon prio=7 tid=15 Native
   native: #00 pc 000a33b8  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+8) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00010dfc  /system/lib64/libutils.so (android::Looper::pollOnce+176) (BuildId: 5a0d720732600c94ad8354a1188e9f52)
@@ -193,8 +160,6 @@ DumpLatencyMs: 78.0988
   native: #04 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #05 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   (no managed stack frames)
-DumpLatencyMs: 78.2163
-
 "queued-work-looper" prio=5 tid=16 Native
   native: #00 pc 000a33b8  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+8) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00010dfc  /system/lib64/libutils.so (android::Looper::pollOnce+176) (BuildId: 5a0d720732600c94ad8354a1188e9f52)
@@ -204,8 +169,6 @@ DumpLatencyMs: 78.2163
   at android.os.Looper.loopOnce(Looper.java:161)
   at android.os.Looper.loop(Looper.java:288)
   at android.os.HandlerThread.run(HandlerThread.java:67)
-DumpLatencyMs: 92.8691
-
 "flutter-worker-0" prio=5 tid=17 TimedWaiting
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -216,8 +179,6 @@ DumpLatencyMs: 92.8691
   at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
   at java.lang.Thread.run(Thread.java:1012)
-DumpLatencyMs: 96.6875
-
 "flutter-worker-1" prio=5 tid=18 TimedWaiting
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -228,8 +189,6 @@ DumpLatencyMs: 96.6875
   at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
   at java.lang.Thread.run(Thread.java:1012)
-DumpLatencyMs: 96.8375
-
 "msr-export" prio=5 tid=19 Runnable
   at okio.Buffer.writeUtf8(Buffer.java:381)
   at okio.Buffer.writeUtf8(Buffer.java:1160)
@@ -247,8 +206,6 @@ DumpLatencyMs: 96.8375
   at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
   at java.lang.Thread.run(Thread.java:1012)
-DumpLatencyMs: 4.39807
-
 "hwuiTask0" daemon prio=6 tid=21 Native
   native: #00 pc 0004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -260,8 +217,6 @@ DumpLatencyMs: 4.39807
   native: #07 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #08 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   (no managed stack frames)
-DumpLatencyMs: 101.24
-
 "hwuiTask1" daemon prio=6 tid=22 Native
   native: #00 pc 0004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -273,8 +228,6 @@ DumpLatencyMs: 101.24
   native: #07 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #08 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   (no managed stack frames)
-DumpLatencyMs: 108.398
-
 "Thread-4" prio=5 tid=23 Waiting
   at jdk.internal.misc.Unsafe.park(Native method)
   - waiting on an unknown object
@@ -288,8 +241,6 @@ DumpLatencyMs: 108.398
   at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1131)
   at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
   at java.lang.Thread.run(Thread.java:1012)
-DumpLatencyMs: 108.738
-
 "1.raster" prio=8 tid=25 Native
   native: #00 pc 000a33b8  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+8) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00010dfc  /system/lib64/libutils.so (android::Looper::pollOnce+176) (BuildId: 5a0d720732600c94ad8354a1188e9f52)
@@ -300,8 +251,6 @@ DumpLatencyMs: 108.738
   native: #06 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #07 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   (no managed stack frames)
-DumpLatencyMs: 109.193
-
 "binder:9533_4" prio=5 tid=26 Native
   native: #00 pc 000a23d8  /apex/com.android.runtime/lib64/bionic/libc.so (__ioctl+8) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 0005b50c  /apex/com.android.runtime/lib64/bionic/libc.so (ioctl+156) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -312,8 +261,6 @@ DumpLatencyMs: 109.193
   native: #06 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #07 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   (no managed stack frames)
-DumpLatencyMs: 115.581
-
 "Thread-5" prio=10 tid=27 Native
   native: #00 pc 0004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -322,8 +269,6 @@ DumpLatencyMs: 115.581
   native: #04 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #05 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   (no managed stack frames)
-DumpLatencyMs: 115.942
-
 "1.io" prio=5 (not attached)
   native: #00 pc 000a33b8  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+8) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00010dfc  /system/lib64/libutils.so (android::Looper::pollOnce+176) (BuildId: 5a0d720732600c94ad8354a1188e9f52)
@@ -333,7 +278,6 @@ DumpLatencyMs: 115.942
   native: #05 pc 004b0460  /data/app/~~Wjp63ie1zqH8t1ZP7uPuyA==/sh.measure.android.flutter-vtnFgBiwTofE_w-Z_4xtyQ==/lib/arm64/libflutter.so (???) (BuildId: 2c0bd20296bfcbf70a9b1f8a745bd75c64897220)
   native: #06 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #07 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
-
 "io.worker.1" prio=5 (not attached)
   native: #00 pc 0004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -342,7 +286,6 @@ DumpLatencyMs: 115.942
   native: #04 pc 004abf94  /data/app/~~Wjp63ie1zqH8t1ZP7uPuyA==/sh.measure.android.flutter-vtnFgBiwTofE_w-Z_4xtyQ==/lib/arm64/libflutter.so (???) (BuildId: 2c0bd20296bfcbf70a9b1f8a745bd75c64897220)
   native: #05 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #06 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
-
 "io.worker.2" prio=5 (not attached)
   native: #00 pc 0004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -351,7 +294,6 @@ DumpLatencyMs: 115.942
   native: #04 pc 004abf94  /data/app/~~Wjp63ie1zqH8t1ZP7uPuyA==/sh.measure.android.flutter-vtnFgBiwTofE_w-Z_4xtyQ==/lib/arm64/libflutter.so (???) (BuildId: 2c0bd20296bfcbf70a9b1f8a745bd75c64897220)
   native: #05 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #06 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
-
 "io.worker.3" prio=5 (not attached)
   native: #00 pc 0004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -360,14 +302,12 @@ DumpLatencyMs: 115.942
   native: #04 pc 004abf94  /data/app/~~Wjp63ie1zqH8t1ZP7uPuyA==/sh.measure.android.flutter-vtnFgBiwTofE_w-Z_4xtyQ==/lib/arm64/libflutter.so (???) (BuildId: 2c0bd20296bfcbf70a9b1f8a745bd75c64897220)
   native: #05 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #06 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
-
 "dart:io EventHa" prio=10 (not attached)
   native: #00 pc 000a33b8  /apex/com.android.runtime/lib64/bionic/libc.so (__epoll_pwait+8) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 0082cbd4  /data/app/~~Wjp63ie1zqH8t1ZP7uPuyA==/sh.measure.android.flutter-vtnFgBiwTofE_w-Z_4xtyQ==/lib/arm64/libflutter.so (???) (BuildId: 2c0bd20296bfcbf70a9b1f8a745bd75c64897220)
   native: #02 pc 0085ce0c  /data/app/~~Wjp63ie1zqH8t1ZP7uPuyA==/sh.measure.android.flutter-vtnFgBiwTofE_w-Z_4xtyQ==/lib/arm64/libflutter.so (???) (BuildId: 2c0bd20296bfcbf70a9b1f8a745bd75c64897220)
   native: #03 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #04 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
-
 "io.worker.1" prio=8 (not attached)
   native: #00 pc 0004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -376,7 +316,6 @@ DumpLatencyMs: 115.942
   native: #04 pc 004abf94  /data/app/~~Wjp63ie1zqH8t1ZP7uPuyA==/sh.measure.android.flutter-vtnFgBiwTofE_w-Z_4xtyQ==/lib/arm64/libflutter.so (???) (BuildId: 2c0bd20296bfcbf70a9b1f8a745bd75c64897220)
   native: #05 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #06 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
-
 "io.worker.2" prio=8 (not attached)
   native: #00 pc 0004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -385,7 +324,6 @@ DumpLatencyMs: 115.942
   native: #04 pc 004abf94  /data/app/~~Wjp63ie1zqH8t1ZP7uPuyA==/sh.measure.android.flutter-vtnFgBiwTofE_w-Z_4xtyQ==/lib/arm64/libflutter.so (???) (BuildId: 2c0bd20296bfcbf70a9b1f8a745bd75c64897220)
   native: #05 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #06 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
-
 "io.worker.3" prio=8 (not attached)
   native: #00 pc 0004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -394,7 +332,6 @@ DumpLatencyMs: 115.942
   native: #04 pc 004abf94  /data/app/~~Wjp63ie1zqH8t1ZP7uPuyA==/sh.measure.android.flutter-vtnFgBiwTofE_w-Z_4xtyQ==/lib/arm64/libflutter.so (???) (BuildId: 2c0bd20296bfcbf70a9b1f8a745bd75c64897220)
   native: #05 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #06 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
-
 "io.worker.4" prio=8 (not attached)
   native: #00 pc 0004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -403,7 +340,6 @@ DumpLatencyMs: 115.942
   native: #04 pc 004abf94  /data/app/~~Wjp63ie1zqH8t1ZP7uPuyA==/sh.measure.android.flutter-vtnFgBiwTofE_w-Z_4xtyQ==/lib/arm64/libflutter.so (???) (BuildId: 2c0bd20296bfcbf70a9b1f8a745bd75c64897220)
   native: #05 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #06 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
-
 "IplrVkFenceWait" prio=10 (not attached)
   native: #00 pc 0004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -412,7 +348,6 @@ DumpLatencyMs: 115.942
   native: #04 pc 007d8488  /data/app/~~Wjp63ie1zqH8t1ZP7uPuyA==/sh.measure.android.flutter-vtnFgBiwTofE_w-Z_4xtyQ==/lib/arm64/libflutter.so (???) (BuildId: 2c0bd20296bfcbf70a9b1f8a745bd75c64897220)
   native: #05 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #06 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
-
 "IplrVkResMgr" prio=10 (not attached)
   native: #00 pc 0004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -421,7 +356,6 @@ DumpLatencyMs: 115.942
   native: #04 pc 007dec0c  /data/app/~~Wjp63ie1zqH8t1ZP7uPuyA==/sh.measure.android.flutter-vtnFgBiwTofE_w-Z_4xtyQ==/lib/arm64/libflutter.so (???) (BuildId: 2c0bd20296bfcbf70a9b1f8a745bd75c64897220)
   native: #05 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #06 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
-
 "binder:9533_2" prio=5 (not attached)
   native: #00 pc 0004df5c  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+28) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -431,7 +365,6 @@ DumpLatencyMs: 115.942
   native: #05 pc 000a0454  /system/lib64/libgui.so (void* std::__1::__thread_proxy<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, void , android::AsyncWorker*>>+80) (BuildId: 0aa6d0993e3aaa24e598eec4a4bfa745)
   native: #06 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #07 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
-
 "DartWorker" prio=10 (not attached)
   native: #00 pc 0004df60  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+32) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -441,7 +374,6 @@ DumpLatencyMs: 115.942
   native: #05 pc 00911e8c  /data/app/~~Wjp63ie1zqH8t1ZP7uPuyA==/sh.measure.android.flutter-vtnFgBiwTofE_w-Z_4xtyQ==/lib/arm64/libflutter.so (???) (BuildId: 2c0bd20296bfcbf70a9b1f8a745bd75c64897220)
   native: #06 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #07 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
-
 "DartWorker" prio=10 (not attached)
   native: #00 pc 0004df60  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+32) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -452,7 +384,6 @@ DumpLatencyMs: 115.942
   native: #06 pc 00911e8c  /data/app/~~Wjp63ie1zqH8t1ZP7uPuyA==/sh.measure.android.flutter-vtnFgBiwTofE_w-Z_4xtyQ==/lib/arm64/libflutter.so (???) (BuildId: 2c0bd20296bfcbf70a9b1f8a745bd75c64897220)
   native: #07 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #08 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
-
 "DartWorker" prio=10 (not attached)
   native: #00 pc 0004df60  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+32) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -462,7 +393,6 @@ DumpLatencyMs: 115.942
   native: #05 pc 00911e8c  /data/app/~~Wjp63ie1zqH8t1ZP7uPuyA==/sh.measure.android.flutter-vtnFgBiwTofE_w-Z_4xtyQ==/lib/arm64/libflutter.so (???) (BuildId: 2c0bd20296bfcbf70a9b1f8a745bd75c64897220)
   native: #06 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #07 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
-
 "DartWorker" prio=10 (not attached)
   native: #00 pc 0004df60  /apex/com.android.runtime/lib64/bionic/libc.so (syscall+32) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #01 pc 00052664  /apex/com.android.runtime/lib64/bionic/libc.so (__futex_wait_ex+144) (BuildId: 4e07915368c859b1910c68c84a8de75f)
@@ -472,4 +402,3 @@ DumpLatencyMs: 115.942
   native: #05 pc 00911e8c  /data/app/~~Wjp63ie1zqH8t1ZP7uPuyA==/sh.measure.android.flutter-vtnFgBiwTofE_w-Z_4xtyQ==/lib/arm64/libflutter.so (???) (BuildId: 2c0bd20296bfcbf70a9b1f8a745bd75c64897220)
   native: #06 pc 000b63b0  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start+208) (BuildId: 4e07915368c859b1910c68c84a8de75f)
   native: #07 pc 000530b8  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 4e07915368c859b1910c68c84a8de75f)
-

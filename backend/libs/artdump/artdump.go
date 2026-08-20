@@ -48,20 +48,16 @@ var (
 	lockRE = regexp.MustCompile(`^  - (locked|waiting on|waiting to lock|sleeping on) <(0x[0-9a-f]+)> \(a (.+)\)(?: held by thread (\d+))?$`)
 )
 
-// Dump is an ART thread dump split into its header, thread blocks, and
-// trailer.
+// Dump is the thread blocks of an ART thread dump. The lines ART prints
+// around and between them describe the process rather than its threads,
+// and are dropped at parse.
 //
 //	Dump
-//	|- Header     lines above the first thread
 //	|- Threads
 //	|  |- Header   the thread's own first line
 //	|  |- Frames
-//	|  |- Trailer  lines closing the thread block
-//	|- Trailer    lines below the last thread
 type Dump struct {
-	Header  []string `json:"header,omitempty"`
 	Threads []Thread `json:"threads"`
-	Trailer []string `json:"trailer,omitempty"`
 	// BlockingChain lists the ART thread ids standing between the
 	// stalled thread and whatever is holding it up, the stalled thread
 	// first and the root last. Resolved once, at ingest.
@@ -78,14 +74,13 @@ type Dump struct {
 //
 //	"ReferenceQueueDaemon" daemon prio=5 tid=6 Waiting
 //
-// Trailer is the run of lines closing the block, such as DumpLatencyMs
-// and "(no managed stack frames)".
+// "(no managed stack frames)" is a frame, since ART prints it where the
+// frames would go.
 type Thread struct {
-	Header  string   `json:"header"`
-	Name    string   `json:"name"`
-	Tid     int      `json:"tid"`
-	Frames  []Frame  `json:"frames,omitempty"`
-	Trailer []string `json:"trailer,omitempty"`
+	Header string  `json:"header"`
+	Name   string  `json:"name"`
+	Tid    int     `json:"tid"`
+	Frames []Frame `json:"frames,omitempty"`
 }
 
 // Frame represents either a parsed managed stack frame or an unparsed
@@ -116,9 +111,8 @@ func Parse(s string) *Dump {
 	lines := strings.Split(s, "\n")
 	dump := &Dump{}
 
-	// Everything before the first thread header is the dump header.
+	// Everything before the first thread header is preamble.
 	for len(lines) > 0 && !isThreadHeader(lines[0]) {
-		dump.Header = append(dump.Header, lines[0])
 		lines = lines[1:]
 	}
 
@@ -129,9 +123,6 @@ func Parse(s string) *Dump {
 		dump.Threads = append(dump.Threads, thread)
 		lines = rest
 	}
-
-	// Whatever is left after the last thread is the dump trailer.
-	dump.Trailer = append(dump.Trailer, lines...)
 
 	return dump
 }
@@ -163,9 +154,9 @@ func parseThread(lines []string) (Thread, []string) {
 		thread.Frames = append(thread.Frames, parseStackLine(line))
 	}
 
-	// The trailer runs to the end of the dump.
-	for ; i < len(lines) && isThreadTrailer(lines[i]); i++ {
-		thread.Trailer = append(thread.Trailer, lines[i])
+	// Whatever closes the block runs to the end of the dump.
+	for i < len(lines) && isThreadTrailer(lines[i]) {
+		i++
 	}
 
 	return thread, lines[i:]
@@ -188,41 +179,53 @@ func isThreadTrailer(line string) bool {
 	return line == "" || strings.HasPrefix(line, dumpLatencyPrefix)
 }
 
-// Render writes the dump in the original ART format.
+// Render writes the dump's threads in ART's format.
 func (d *Dump) Render() string {
-	lines := make([]string, 0, len(d.Header)+len(d.Trailer)+len(d.Threads)*8)
+	lines := make([]string, 0, len(d.Threads)*8)
 
-	lines = append(lines, d.Header...)
-
-	for _, thread := range d.Threads {
-		lines = append(lines, thread.stackLines()...)
-		lines = append(lines, thread.Trailer...)
+	for i := range d.Threads {
+		thread := &d.Threads[i]
+		lines = append(lines, thread.Header)
+		lines = append(lines, thread.Stack(nil)...)
 	}
-
-	lines = append(lines, d.Trailer...)
 
 	return strings.Join(lines, "\n")
 }
 
-func (t *Thread) stackLines() []string {
-	lines := make([]string, 0, len(t.Frames)+1)
-
-	lines = append(lines, t.Header)
+// Stack writes the thread's frames in ART's format, each lock following
+// the frame it annotates. A lock names its holder from holders, and
+// falls back to the thread id ART printed.
+func (t *Thread) Stack(holders map[int]string) []string {
+	lines := make([]string, 0, len(t.Frames))
 
 	for _, frame := range t.Frames {
 		lines = append(lines, frame.Render())
 
 		for _, lock := range frame.Locks {
-			lines = append(lines, lock.Render(""))
+			lines = append(lines, lock.Render(holders[lock.HolderTid]))
 		}
 	}
 
 	return lines
 }
 
+// LockHolders maps an ART thread id to the thread's name, so a lock can
+// name its holder rather than a number.
+func (d *Dump) LockHolders() map[int]string {
+	holders := map[int]string{}
+
+	for _, thread := range d.Threads {
+		if thread.Tid != 0 {
+			holders[thread.Tid] = thread.Name
+		}
+	}
+
+	return holders
+}
+
 // MainThread returns the thread ART names "main", or nil when the dump
 // does not contain one. The returned thread points into the dump, so
-// writes through it are visible in Render and MarkInApp.
+// writes through it are visible in Render and Annotate.
 func (d *Dump) MainThread() *Thread {
 	for i := range d.Threads {
 		if d.Threads[i].Name == "main" {

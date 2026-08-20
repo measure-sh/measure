@@ -2240,7 +2240,7 @@ func (d threadDumpANR) Stacktrace() string {
 
 	lines := append(
 		[]string{lead.Header},
-		anrThreadStack(lead, anrLockHolders(d.anr.ThreadDump))...,
+		lead.Stack(d.anr.ThreadDump.LockHolders())...,
 	)
 
 	return strings.Join(lines, "\n")
