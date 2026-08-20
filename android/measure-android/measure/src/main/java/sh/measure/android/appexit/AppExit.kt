@@ -55,4 +55,9 @@ internal data class AppExit(
 ) {
     @RequiresApi(Build.VERSION_CODES.R)
     fun isANR(): Boolean = reasonId == ApplicationExitInfo.REASON_ANR
+
+    /**
+     * Whether the process was perceptible to the user when it was killed.
+     */
+    fun isForeground(): Boolean = importance == "FOREGROUND" || importance == "VISIBLE"
 }
