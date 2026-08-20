@@ -19,6 +19,28 @@ internal interface AppExitProvider {
     fun get(): Map<Int, AppExit>?
 }
 
+/**
+ * The ART thread dump the system captured, trimmed to its thread blocks,
+ * along with the subject naming the deadline that expired.
+ */
+internal data class ArtTrace(
+    val threads: String,
+    val subject: String?,
+)
+
+private const val THREAD_SECTION_HEADER = "DALVIK THREADS ("
+private const val SUBJECT_PREFIX = "Subject: "
+private const val SCHEDULER_PREFIX = "  | "
+private const val DUMP_LATENCY_PREFIX = "DumpLatencyMs:"
+
+/**
+ * Traces above this size are truncated on a thread boundary. The exporter
+ * sizes batches assuming far smaller events, and a batch the backend
+ * rejects is deleted whole by the client, so one oversized event would
+ * take unrelated events with it.
+ */
+private const val MAX_TRACE_BYTES = 256 * 1024
+
 internal class AppExitProviderImpl(
     private val logger: Logger,
     private val systemServiceProvider: SystemServiceProvider,
@@ -38,50 +60,94 @@ internal class AppExitProviderImpl(
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    fun ApplicationExitInfo.toAppExit(): AppExit = AppExit(
-        reason = getReasonName(reason),
-        reasonId = reason,
-        importance = getImportanceName(importance),
-        trace = getTraceString(traceInputStream),
-        process_name = processName,
-        app_exit_time_ms = timestamp,
-        pid = pid.toString(),
-    )
+    fun ApplicationExitInfo.toAppExit(): AppExit {
+        val trace = readTrace(traceInputStream)
+        return AppExit(
+            reason = getReasonName(reason),
+            reasonId = reason,
+            importance = getImportanceName(importance),
+            trace = trace?.threads,
+            subject = description?.takeIf { it.isNotBlank() } ?: trace?.subject,
+            process_name = processName,
+            app_exit_time_ms = timestamp,
+            pid = pid.toString(),
+        )
+    }
 
+    /**
+     * Reads the thread blocks and the subject out of an ART trace.
+     *
+     * The trace opens with a subject line and a process summary, carries
+     * the thread blocks, and closes with runtime statistics, GC timings
+     * and a class loader dump. Only the thread blocks are kept, and the
+     * per-thread scheduler lines are dropped, because nothing downstream
+     * reads either.
+     */
     @VisibleForTesting
-    internal fun getTraceString(traceInputStream: InputStream?): String? {
+    internal fun readTrace(traceInputStream: InputStream?): ArtTrace? {
         if (traceInputStream == null) {
             return null
         }
-        logger.log(LogLevel.Debug, "Adding AppExit trace")
-        return traceInputStream.extractContent().bufferedReader().useLines { lines ->
-            lines.joinToString("\n")
-        }
-    }
+        logger.log(LogLevel.Debug, "Reading ANR thread dump")
 
-    private fun InputStream.extractContent(): InputStream {
-        val source: BufferedSource = source().buffer()
+        val source: BufferedSource = traceInputStream.source().buffer()
         val buffer = Buffer()
+        var subject: String? = null
         var insideSection = false
+
         while (!source.exhausted()) {
             val line = source.readUtf8Line() ?: break
 
-            if (line.startsWith("DALVIK THREADS (")) {
-                insideSection = true
-            } else if (line.startsWith("----- Waiting Channels:")) {
-                insideSection = false
+            if (!insideSection) {
+                if (subject == null && line.startsWith(SUBJECT_PREFIX)) {
+                    subject = line.removePrefix(SUBJECT_PREFIX).trim()
+                }
+                if (line.startsWith(THREAD_SECTION_HEADER)) {
+                    insideSection = true
+                    buffer.writeUtf8(line).writeUtf8("\n")
+                }
+                continue
             }
 
-            if (insideSection) {
-                if (line.startsWith("  | ")) {
-                    continue
+            if (isThreadHeader(line)) {
+                if (buffer.size >= MAX_TRACE_BYTES) {
+                    break
                 }
-                buffer.writeUtf8(line)
-                buffer.writeUtf8("\n")
+            } else if (endsThreadSection(line)) {
+                break
             }
+
+            if (line.startsWith(SCHEDULER_PREFIX)) {
+                continue
+            }
+
+            buffer.writeUtf8(line).writeUtf8("\n")
         }
-        return buffer.inputStream()
+
+        if (!insideSection) {
+            return null
+        }
+
+        // The blank line separating the last thread from the statistics
+        // is written before the stop rule sees what follows it, so the
+        // section is closed with exactly one newline.
+        val threads = buffer.readUtf8().trimEnd('\n') + "\n"
+
+        return ArtTrace(threads = threads, subject = subject)
     }
+
+    private fun isThreadHeader(line: String): Boolean = line.startsWith("\"")
+
+    /**
+     * ART indents everything belonging to a thread's stack and prints the
+     * lines closing a block flush left, so a flush left line that opens
+     * no thread and reports no dump latency is the first line after the
+     * thread section.
+     */
+    private fun endsThreadSection(line: String): Boolean = line.isNotEmpty() &&
+        !line.startsWith(" ") &&
+        !isThreadHeader(line) &&
+        !line.startsWith(DUMP_LATENCY_PREFIX)
 
     private fun getImportanceName(importance: Int): String = when (importance) {
         ActivityManager.RunningAppProcessInfo.IMPORTANCE_CACHED -> "CACHED"

@@ -69,6 +69,14 @@ android {
         consumerProguardFiles("consumer-rules.pro")
     }
 
+    sourceSets {
+        // The ART thread dump fixtures live with the backend parser that
+        // reads them, so both are tested on identical bytes.
+        getByName("test") {
+            resources.srcDir("../../../backend/libs/artdump/testdata")
+        }
+    }
+
     buildTypes {
         defaultConfig {
             buildConfigField("String", "MEASURE_SDK_VERSION", "\"$measureSdkVersion\"")

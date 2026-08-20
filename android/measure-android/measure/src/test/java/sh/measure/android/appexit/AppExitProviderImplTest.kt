@@ -5,7 +5,9 @@ import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -15,7 +17,6 @@ import org.robolectric.annotation.Config
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.SystemServiceProvider
-import java.io.ByteArrayInputStream
 
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [Build.VERSION_CODES.R])
@@ -66,44 +67,84 @@ class AppExitProviderImplTest {
     }
 
     @Test
-    fun `getTraceString returns null for null input stream`() {
-        assertNull(appExitProvider.getTraceString(null))
+    fun `readTrace returns null for null input stream`() {
+        assertNull(appExitProvider.readTrace(null))
     }
 
     @Test
-    fun `getTraceString extracts content from trace with just the thread information and stacktrace`() {
-        val sampleTrace = """
-            DALVIK THREADS (6):
-            "main" prio=5 tid=1 Sleeping
-              | group="main" sCount=1 dsCount=0 flags=1 obj=0x74ff9560 self=0x7aaad37000
-              | sysTid=30075 nice=-10 cgrp=default sched=0/0 handle=0x7ab27e1500
-              | state=S schedstat=( 313677631 53881771 473 ) utm=24 stm=7 core=2 HZ=100
-              | stack=0x7ff8479000-0x7ff847b000 stackSize=8188KB
-              | held mutexes=
-              at java.lang.Thread.sleep(Native method)
-              at java.lang.Thread.sleep(Thread.java:373)
-              at java.lang.Thread.sleep(Thread.java:314)
-              at com.example.app.MainActivity.onCreate(MainActivity.kt:15)
-            
-            ----- Waiting Channels: pid 30075 at 2023-04-01 12:34:56 -----
-            Waiting Thread: 4
-        """.trimIndent()
-
-        val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
-        val result = appExitProvider.getTraceString(inputStream)
-
-        val expected = """
-            DALVIK THREADS (6):
-            "main" prio=5 tid=1 Sleeping
-              at java.lang.Thread.sleep(Native method)
-              at java.lang.Thread.sleep(Thread.java:373)
-              at java.lang.Thread.sleep(Thread.java:314)
-              at com.example.app.MainActivity.onCreate(MainActivity.kt:15)
-            
-        """.trimIndent()
-
-        assertEquals(expected, result)
+    fun `readTrace returns null when the trace has no thread section`() {
+        val trace = "Subject: Broadcast of Intent { }\nCmd line: com.example.app\n"
+        assertNull(appExitProvider.readTrace(trace.byteInputStream()))
     }
+
+    @Test
+    fun `readTrace keeps the thread blocks and drops everything else`() {
+        val raw = readFixture("api36_deadlock_raw.txt")
+        val expected = readFixture("api36_deadlock.txt")
+
+        val result = appExitProvider.readTrace(raw.byteInputStream())
+
+        assertEquals(expected, result?.threads)
+    }
+
+    @Test
+    fun `readTrace drops scheduler lines`() {
+        val raw = readFixture("api36_deadlock_raw.txt")
+
+        val result = appExitProvider.readTrace(raw.byteInputStream())
+
+        assertFalse(raw.lines().none { it.startsWith("  | ") })
+        assertTrue(result!!.threads.lines().none { it.startsWith("  | ") })
+    }
+
+    @Test
+    fun `readTrace stops before the runtime statistics`() {
+        val raw = readFixture("api33_idle_main.txt")
+
+        val result = appExitProvider.readTrace(raw.byteInputStream())
+
+        assertTrue(raw.contains("Zygote loaded classes="))
+        assertFalse(result!!.threads.contains("Zygote loaded classes="))
+        assertFalse(result.threads.contains("ART internal metrics"))
+    }
+
+    @Test
+    fun `readTrace reads the subject from the trace`() {
+        val raw = readFixture("api36_deadlock_raw.txt")
+
+        val result = appExitProvider.readTrace(raw.byteInputStream())
+
+        assertTrue(result!!.subject!!.startsWith("Broadcast of Intent {"))
+    }
+
+    @Test
+    fun `readTrace truncates a long trace on a thread boundary`() {
+        val oversized = buildString {
+            append("DALVIK THREADS (400):\n")
+            repeat(400) { index ->
+                append("\"thread-$index\" prio=5 tid=$index Waiting\n")
+                repeat(20) {
+                    append("  at com.example.app.Padding.method$it(Padding.java:$it)\n")
+                }
+                append("\n")
+            }
+        }
+
+        val result = appExitProvider.readTrace(oversized.byteInputStream())!!.threads
+
+        assertTrue(result.length < oversized.length)
+        assertTrue(result.startsWith("DALVIK THREADS (400):\n"))
+
+        // Every thread that survived is whole: the last non-blank line
+        // belongs to a stack, never to a header left without its frames.
+        val lastLine = result.trimEnd('\n').lines().last()
+        assertTrue("truncated mid-thread on: $lastLine", lastLine.startsWith("  at "))
+    }
+
+    private fun readFixture(name: String): String =
+        checkNotNull(javaClass.classLoader?.getResourceAsStream(name)) {
+            "missing test resource $name"
+        }.reader().readText()
 
     private fun mockApplicationExitInfo(
         pid: Int,

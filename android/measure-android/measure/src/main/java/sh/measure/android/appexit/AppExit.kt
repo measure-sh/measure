@@ -33,6 +33,11 @@ internal data class AppExit(
     val trace: String?,
 
     /**
+     * @see [ApplicationExitInfo.getDescription]
+     */
+    val subject: String?,
+
+    /**
      * @see [ApplicationExitInfo.getProcessName]
      */
     val process_name: String,

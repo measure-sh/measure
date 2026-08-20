@@ -446,11 +446,13 @@ internal object TestData {
         processName: String = "process-name",
         appExitTimeMs: Long = 987654321L,
         pid: String = "123",
+        subject: String? = null,
     ): AppExit = AppExit(
         reasonId = reasonId,
         reason = reason,
         importance = importance,
         trace = trace,
+        subject = subject,
         process_name = processName,
         app_exit_time_ms = appExitTimeMs,
         pid = pid,
