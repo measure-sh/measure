@@ -34,7 +34,7 @@ import (
 // size of event request in bytes. Kept under the bus
 // per-message cap of 10,000,000 bytes to leave headroom
 // for the IngestBatch wrapper & JSON re-encoding.
-var maxBatchSize = 9_900_000
+var maxBatchSize = 9_000_000
 
 var ingestBatchPublishCount metric.Int64Counter
 
