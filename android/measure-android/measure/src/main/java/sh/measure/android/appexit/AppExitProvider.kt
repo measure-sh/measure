@@ -67,7 +67,11 @@ internal class AppExitProviderImpl(
             reasonId = reason,
             importance = getImportanceName(importance),
             trace = trace?.threads,
-            subject = description?.takeIf { it.isNotBlank() } ?: trace?.subject,
+            // The trace carries the subject as the system wrote it.
+            // getDescription wraps that same text in its own account of
+            // the kill, "user request after error: ...", which reads as
+            // though the user asked for something.
+            subject = trace?.subject ?: description?.takeIf { it.isNotBlank() },
             process_name = processName,
             app_exit_time_ms = timestamp,
             pid = pid.toString(),

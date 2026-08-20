@@ -109,6 +109,40 @@ class AppExitProviderImplTest {
     }
 
     @Test
+    fun `toAppExit prefers the trace subject over the kill description`() {
+        val raw = readFixture("api36_deadlock_raw.txt")
+        val exitInfo = mockApplicationExitInfo(
+            1,
+            ApplicationExitInfo.REASON_ANR,
+            ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
+        )
+        `when`(exitInfo.traceInputStream).thenReturn(raw.byteInputStream())
+        `when`(exitInfo.description)
+            .thenReturn("user request after error: Broadcast of Intent { }")
+
+        val appExit = with(appExitProvider) { exitInfo.toAppExit() }
+
+        assertTrue(appExit.subject!!.startsWith("Broadcast of Intent {"))
+        assertFalse(appExit.subject!!.contains("user request after error"))
+    }
+
+    @Test
+    fun `toAppExit falls back to the description when the trace has no subject`() {
+        val exitInfo = mockApplicationExitInfo(
+            1,
+            ApplicationExitInfo.REASON_ANR,
+            ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
+        )
+        `when`(exitInfo.traceInputStream)
+            .thenReturn("DALVIK THREADS (1):\n\"main\" prio=5 tid=1 Blocked\n".byteInputStream())
+        `when`(exitInfo.description).thenReturn("user request after error: Input dispatching timed out")
+
+        val appExit = with(appExitProvider) { exitInfo.toAppExit() }
+
+        assertEquals("user request after error: Input dispatching timed out", appExit.subject)
+    }
+
+    @Test
     fun `readTrace reads the subject from the trace`() {
         val raw = readFixture("api36_deadlock_raw.txt")
 
