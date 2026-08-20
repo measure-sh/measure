@@ -24,14 +24,31 @@ java.lang.NullPointerException: Attempt to invoke virtual method 'void com.examp
 
 ### ANRs
 
-An ANR is grouped on the frame that shows where the main thread stalled, which is not the same as its top frame. An idle main thread sits in `nativePollOnce`, so grouping on the top frame would collapse unrelated ANRs into one issue.
+An ANR is grouped on the frame holding the app up, which is often on neither the top of the stack nor the main thread. An idle main thread sits in `nativePollOnce`, so grouping on the top frame would collapse unrelated ANRs into one issue.
 
-On Android 11 and above the frame is picked from the thread dump:
+On Android 11 and above the frame is picked from the thread dump. When the main thread is blocked entering a lock, the dump names the thread holding it, and that thread is followed as far as the chain goes:
 
-- **The main thread has a frame in your own code**: that frame is the group, keyed by its method and file. The deadline that expired is deliberately left out of the key, because the same blocking call trips whichever deadline the user happened to be waiting on.
-- **The main thread has no frame in your own code**: the group is the deadline together with the main thread's first managed frame. Neither carries the bug alone. An input dispatch timeout parked in `Binder.transact` is a different problem from one parked in `SQLiteConnection.nativeExecute`, and both differ from a main thread that is genuinely idle.
+```log
+"main" prio=5 tid=1 Blocked
+  at com.example.app.Receiver.onReceive(Receiver.kt:11)
+  - waiting to lock <0x053dd6df> (a java.lang.Object) held by thread 46
 
-Native frames are never grouped on. They key on an address that differs on every process, or on a symbol like `syscall+28` that says nothing about your app.
+"worker" daemon prio=5 tid=46 Sleeping
+  at java.lang.Thread.sleep(Native method)
+  at com.example.app.Cache.refresh(Cache.kt:24)
+  - locked <0x053dd6df> (a java.lang.Object)
+```
+
+This ANR is grouped on `Cache.refresh`, not on `Receiver.onReceive`. The main thread is only waiting. The code to fix is on the thread that took the lock and did not give it back. Grouping on the waiting frame would split one bug across every call site that touches the lock, and merge unrelated bugs that touch it from the same place.
+
+The rule in full:
+
+- **A thread in the chain runs your own code**: the deepest such frame is the group, keyed by its method and file. The deadline that expired is deliberately left out of the key, because the same blocking call trips whichever deadline the user happened to be waiting on.
+- **Nothing in the chain runs your own code**: the group is the deadline together with the main thread's first managed frame. Neither carries the bug alone. An input dispatch timeout parked in `Binder.transact` is a different problem from one parked in `SQLiteConnection.nativeExecute`, and both differ from a main thread that is genuinely idle.
+
+A main thread that is not blocked on a lock is a chain of one, so it groups on its own first frame in your code.
+
+Two limits are worth knowing. A thread parked in `Object.wait()` has already released its lock, so whoever holds that lock now is not blamed. And native frames are never grouped on: they key on an address that differs on every process, or on a symbol like `syscall+28` that says nothing about your app.
 
 Below Android 11 an ANR is grouped like any other Android error, by its type and top frame.
 
