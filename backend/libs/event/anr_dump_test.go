@@ -214,7 +214,7 @@ func TestANRBlameChain(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			var got []string
-			for _, thread := range dumpANR(inputSubject, c.dump).blameChain() {
+			for _, thread := range dumpANR(inputSubject, c.dump).ThreadDump.BlameThreads() {
 				got = append(got, thread.Name)
 			}
 			if !reflect.DeepEqual(got, c.want) {

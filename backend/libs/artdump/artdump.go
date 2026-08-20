@@ -66,6 +66,9 @@ type Dump struct {
 	// stalled thread and whatever is holding it up, the stalled thread
 	// first and the root last. Resolved once, at ingest.
 	BlockingChain []int `json:"blocking_chain,omitempty"`
+	// GroupingFrame is the frame the ANR is grouped and titled on.
+	// Resolved once, at ingest; nil on dumps stored before it was.
+	GroupingFrame *Frame `json:"grouping_frame,omitempty"`
 }
 
 // Thread represents one thread block in an ART dump.
@@ -257,6 +260,87 @@ const lockStateWaitingToLock = "waiting to lock"
 func (d *Dump) Annotate() {
 	d.markInApp()
 	d.resolveBlockingChain()
+
+	// Depends on both of the above.
+	frame := d.resolveGroupingFrame()
+	d.GroupingFrame = &frame
+}
+
+// BlameThreads returns the threads the ANR can be blamed on, the
+// stalled thread first and whatever is holding it up last. It always
+// contains the stalled thread, so a chain of one means nothing was
+// blocking it.
+func (d *Dump) BlameThreads() []*Thread {
+	if chain := d.blockingThreads(); len(chain) > 0 {
+		return chain
+	}
+
+	if main := d.MainThread(); main != nil {
+		return []*Thread{main}
+	}
+
+	return nil
+}
+
+// BlockingThread returns the thread holding the app up, or nil when
+// nothing is.
+func (d *Dump) BlockingThread() *Thread {
+	chain := d.BlameThreads()
+	if len(chain) < 2 {
+		return nil
+	}
+
+	return chain[len(chain)-1]
+}
+
+// BlamedThread returns the thread the ANR is reported on: the one
+// blocking the app when something is, and the stalled thread otherwise.
+func (d *Dump) BlamedThread() *Thread {
+	if blocking := d.BlockingThread(); blocking != nil {
+		return blocking
+	}
+
+	return d.MainThread()
+}
+
+// BlameFrame returns the frame the ANR is grouped and titled on. A dump
+// stored before the frame was recorded is resolved on read, so it
+// groups as it did then.
+func (d *Dump) BlameFrame() Frame {
+	if d.GroupingFrame != nil {
+		return *d.GroupingFrame
+	}
+
+	return d.resolveGroupingFrame()
+}
+
+// resolveGroupingFrame picks the deepest frame in the blame chain that
+// runs application code, since the stalled thread is only waiting when
+// something else holds the lock.
+//
+// Failing that it is the stalled thread's first managed frame. The zero
+// frame means the chain has no managed frame at all.
+func (d *Dump) resolveGroupingFrame() (frame Frame) {
+	chain := d.BlameThreads()
+	if len(chain) == 0 {
+		return
+	}
+
+	for i := len(chain) - 1; i >= 0; i-- {
+		for _, f := range chain[i].Frames {
+			if f.InApp {
+				return f
+			}
+		}
+	}
+
+	for _, f := range chain[0].Frames {
+		if f.ClassName != "" {
+			return f
+		}
+	}
+
+	return
 }
 
 // resolveBlockingChain records which threads are holding the main
@@ -297,9 +381,9 @@ func (d *Dump) resolveBlockingChain() {
 	}
 }
 
-// BlockingThreads resolves the recorded blocking chain to threads. It
+// blockingThreads resolves the recorded blocking chain to threads. It
 // is empty when nothing was holding the main thread up.
-func (d *Dump) BlockingThreads() []*Thread {
+func (d *Dump) blockingThreads() []*Thread {
 	threads := make([]*Thread, 0, len(d.BlockingChain))
 
 	for _, tid := range d.BlockingChain {

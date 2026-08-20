@@ -74,11 +74,10 @@ func (e *EventANR) ComputeView() {
 	}
 
 	if e.ANR.ThreadDump != nil {
-		chain := e.ANR.blameChain()
-		if blocking := rootBlockingThread(chain); blocking != nil {
+		if blocking := e.ANR.ThreadDump.BlockingThread(); blocking != nil {
 			e.ANRView.BlockingThread = blocking.Header
 		}
-		e.Threads = threadDumpViews(e.ANR.ThreadDump, chain)
+		e.Threads = threadDumpViews(e.ANR.ThreadDump)
 		return
 	}
 
@@ -100,14 +99,10 @@ func (e *EventANR) ComputeView() {
 //
 // The top thread is left out, since Stacktrace already renders it. The
 // stalled thread leads the rest.
-func threadDumpViews(dump *artdump.Dump, chain []*artdump.Thread) []ThreadView {
+func threadDumpViews(dump *artdump.Dump) []ThreadView {
 	holders := anrLockHolders(dump)
 	main := dump.MainThread()
-
-	top := main
-	if blocking := rootBlockingThread(chain); blocking != nil {
-		top = blocking
-	}
+	top := dump.BlamedThread()
 
 	view := func(thread *artdump.Thread) ThreadView {
 		return ThreadView{

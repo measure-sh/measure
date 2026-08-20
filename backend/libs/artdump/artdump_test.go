@@ -1,6 +1,7 @@
 package artdump
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -561,4 +562,65 @@ func TestThreadByTid(t *testing.T) {
 			t.Errorf("got thread %q, want none", got.Name)
 		}
 	})
+}
+
+func TestAnnotateRecordsTheGroupingFrame(t *testing.T) {
+	dump := Parse(loadDump(t, "api36_deadlock.txt"))
+
+	if dump.GroupingFrame != nil {
+		t.Fatal("parsing alone should record no grouping frame")
+	}
+
+	dump.Annotate()
+
+	if dump.GroupingFrame == nil {
+		t.Fatal("Annotate recorded no grouping frame")
+	}
+	if got, want := dump.GroupingFrame.MethodName, "trigger$lambda$0"; got != want {
+		t.Errorf("got method %q, want %q", got, want)
+	}
+}
+
+func TestBlameFrameReadsWhatWasRecorded(t *testing.T) {
+	dump := Parse(loadDump(t, "api36_deadlock.txt"))
+	dump.Annotate()
+
+	// A dump stored before the frame was recorded resolves on read, so
+	// both paths have to agree.
+	derived := *dump.GroupingFrame
+	dump.GroupingFrame = nil
+	if got := dump.BlameFrame(); got.MethodName != derived.MethodName {
+		t.Errorf("resolved %q on read, but recorded %q", got.MethodName, derived.MethodName)
+	}
+
+	// The recorded frame is what BlameFrame returns, not a fresh walk.
+	dump.GroupingFrame = &Frame{MethodName: "recorded"}
+	if got := dump.BlameFrame().MethodName; got != "recorded" {
+		t.Errorf("got %q, want the recorded frame", got)
+	}
+}
+
+func TestAnnotateSurvivesTheJSONRoundTrip(t *testing.T) {
+	dump := Parse(loadDump(t, "api36_deadlock.txt"))
+	dump.Annotate()
+
+	encoded, err := json.Marshal(dump)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+
+	var stored Dump
+	if err := json.Unmarshal(encoded, &stored); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	if !reflect.DeepEqual(stored.BlockingChain, dump.BlockingChain) {
+		t.Errorf("blocking chain became %v, want %v", stored.BlockingChain, dump.BlockingChain)
+	}
+	if stored.GroupingFrame == nil {
+		t.Fatal("the grouping frame did not survive storage")
+	}
+	if got, want := stored.GroupingFrame.MethodName, dump.GroupingFrame.MethodName; got != want {
+		t.Errorf("grouping frame became %q, want %q", got, want)
+	}
 }

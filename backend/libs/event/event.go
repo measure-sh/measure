@@ -2197,12 +2197,12 @@ func (d threadDumpANR) Type() string { return ANRSubjectCategory(d.anr.Subject) 
 
 func (d threadDumpANR) Message() string { return d.anr.Subject }
 
-func (d threadDumpANR) FileName() string { return d.anr.groupingFrame().FileName }
+func (d threadDumpANR) FileName() string { return d.anr.ThreadDump.BlameFrame().FileName }
 
-func (d threadDumpANR) MethodName() string { return d.anr.groupingFrame().MethodName }
+func (d threadDumpANR) MethodName() string { return d.anr.ThreadDump.BlameFrame().MethodName }
 
 func (d threadDumpANR) LineNumber() int32 {
-	frame := d.anr.groupingFrame()
+	frame := d.anr.ThreadDump.BlameFrame()
 	// The column has no room for "absent".
 	if frame.LineNum == artdump.NoLineNum {
 		return int32(0)
@@ -2213,10 +2213,10 @@ func (d threadDumpANR) LineNumber() int32 {
 
 // HasNoFrames asks whether the blame chain yields a frame to group on,
 // not whether the stalled thread alone has one.
-func (d threadDumpANR) HasNoFrames() bool { return d.anr.groupingFrame().ClassName == "" }
+func (d threadDumpANR) HasNoFrames() bool { return d.anr.ThreadDump.BlameFrame().ClassName == "" }
 
 func (d threadDumpANR) Stacktrace() string {
-	top := d.anr.topThread()
+	top := d.anr.ThreadDump.BlamedThread()
 	if top == nil {
 		return ""
 	}
@@ -2327,78 +2327,6 @@ func (e exceptionANR) Stacktrace() string {
 	return b.String()
 }
 
-// blameChain returns the threads an ANR can be blamed on, the stalled
-// thread first and whatever is holding it up last. It always contains
-// the stalled thread, so a chain of one means nothing was blocking it,
-// as does a dump stored before the chain was recorded.
-func (a ANR) blameChain() []*artdump.Thread {
-	if chain := a.ThreadDump.BlockingThreads(); len(chain) > 0 {
-		return chain
-	}
-
-	if main := a.ThreadDump.MainThread(); main != nil {
-		return []*artdump.Thread{main}
-	}
-
-	return nil
-}
-
-// rootBlockingThread returns the thread at the end of a blame chain, or
-// nil when nothing was holding the stalled thread up.
-func rootBlockingThread(chain []*artdump.Thread) *artdump.Thread {
-	if len(chain) < 2 {
-		return nil
-	}
-
-	return chain[len(chain)-1]
-}
-
-// topThread returns the thread the ANR is reported on: the one blocking
-// the app when something is, and the stalled thread otherwise.
-func (a ANR) topThread() *artdump.Thread {
-	chain := a.blameChain()
-	if len(chain) == 0 {
-		return nil
-	}
-
-	if blocking := rootBlockingThread(chain); blocking != nil {
-		return blocking
-	}
-
-	return chain[0]
-}
-
-// groupingFrame returns the frame the ANR is grouped, titled and
-// reported on: the deepest frame in the blame chain that runs
-// application code, since the stalled thread is only waiting when
-// something else holds the lock.
-//
-// Failing that it is the stalled thread's first managed frame. The zero
-// frame means the chain has no managed frame at all, and its InApp is
-// false, which is what pulls the subject category into the key.
-func (a ANR) groupingFrame() (frame artdump.Frame) {
-	chain := a.blameChain()
-	if len(chain) == 0 {
-		return
-	}
-
-	for i := len(chain) - 1; i >= 0; i-- {
-		for _, f := range chain[i].Frames {
-			if f.InApp {
-				return f
-			}
-		}
-	}
-
-	for _, f := range chain[0].Frames {
-		if f.ClassName != "" {
-			return f
-		}
-	}
-
-	return
-}
-
 // ComputeFingerprint computes a fingerprint
 // from the ANR data.
 func (a *ANR) ComputeFingerprint() (err error) {
@@ -2454,7 +2382,7 @@ func (a ANR) exceptionFingerprintData() string {
 // joins it only when the grouping frame is not application code, since
 // the same call can trip whichever deadline the user was waiting on.
 func (a ANR) dumpFingerprintData() string {
-	frame := a.groupingFrame()
+	frame := a.ThreadDump.BlameFrame()
 
 	var parts []string
 
