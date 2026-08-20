@@ -95,34 +95,18 @@ func (e *EventANR) ComputeView() {
 // threadDumpViews renders an ART thread dump into the thread shape the
 // dashboard already draws. A thread is titled by its whole ART header,
 // which carries the state and priority a bare name would lose, and a
-// lock follows the frame it annotates.
-//
-// The top thread is left out, since Stacktrace already renders it. The
-// stalled thread leads the rest.
+// lock follows the frame it annotates. Stacktrace renders the lead, so
+// this renders the rest.
 func threadDumpViews(dump *artdump.Dump) []ThreadView {
 	holders := anrLockHolders(dump)
-	main := dump.MainThread()
-	top := dump.BlamedThread()
+	_, rest := dump.BlameOrder()
 
-	view := func(thread *artdump.Thread) ThreadView {
-		return ThreadView{
+	views := make([]ThreadView, 0, len(rest))
+	for _, thread := range rest {
+		views = append(views, ThreadView{
 			Name:   thread.Header,
 			Frames: anrThreadStack(thread, holders),
-		}
-	}
-
-	views := make([]ThreadView, 0, len(dump.Threads))
-	if main != nil && main != top {
-		views = append(views, view(main))
-	}
-
-	for i := range dump.Threads {
-		thread := &dump.Threads[i]
-		if thread == top || thread == main {
-			continue
-		}
-
-		views = append(views, view(thread))
+		})
 	}
 
 	return views

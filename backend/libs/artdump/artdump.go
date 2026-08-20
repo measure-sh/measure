@@ -303,6 +303,33 @@ func (d *Dump) BlamedThread() *Thread {
 	return d.MainThread()
 }
 
+// BlameOrder splits the dump's threads into the one the ANR is
+// reported on and the rest, in the order they should be shown beneath
+// it: the stalled thread first, then the others as ART printed them.
+//
+// Whatever renders lead and whatever renders rest cannot disagree about
+// which thread is which, and cannot show one twice. lead is nil when
+// the dump names no thread to blame, and then rest holds every thread.
+func (d *Dump) BlameOrder() (lead *Thread, rest []*Thread) {
+	lead = d.BlamedThread()
+
+	rest = make([]*Thread, 0, len(d.Threads))
+	seen := map[*Thread]bool{lead: true}
+
+	if main := d.MainThread(); main != nil && !seen[main] {
+		rest = append(rest, main)
+		seen[main] = true
+	}
+
+	for i := range d.Threads {
+		if thread := &d.Threads[i]; !seen[thread] {
+			rest = append(rest, thread)
+		}
+	}
+
+	return lead, rest
+}
+
 // BlameFrame returns the frame the ANR is grouped and titled on. A dump
 // stored before the frame was recorded is resolved on read, so it
 // groups as it did then.

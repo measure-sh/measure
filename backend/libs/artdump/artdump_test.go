@@ -624,3 +624,88 @@ func TestAnnotateSurvivesTheJSONRoundTrip(t *testing.T) {
 		t.Errorf("grouping frame became %q, want %q", got, want)
 	}
 }
+
+func TestBlameOrderCoversEveryThreadOnce(t *testing.T) {
+	dump := Parse(loadDump(t, "api36_deadlock.txt"))
+	dump.Annotate()
+
+	lead, rest := dump.BlameOrder()
+	if lead == nil {
+		t.Fatal("the fixture names a thread to blame, this test asserts nothing")
+	}
+
+	// The invariant both renderers depend on: one thread is drawn on
+	// its own, the others in the list, and no thread is lost or shown
+	// twice.
+	seen := map[string]int{lead.Header: 1}
+	for _, thread := range rest {
+		seen[thread.Header]++
+	}
+
+	if len(seen) != len(dump.Threads) {
+		t.Errorf("covered %d threads, dump has %d", len(seen), len(dump.Threads))
+	}
+	for header, count := range seen {
+		if count != 1 {
+			t.Errorf("thread %q appears %d times", header, count)
+		}
+	}
+}
+
+func TestBlameOrderLeadsWithTheBlamedThread(t *testing.T) {
+	dump := Parse(loadDump(t, "api36_deadlock.txt"))
+	dump.Annotate()
+
+	lead, rest := dump.BlameOrder()
+
+	if got, want := lead.Name, "APP: Locker"; got != want {
+		t.Errorf("got lead %q, want %q", got, want)
+	}
+	// The stalled thread is the one worth reading next.
+	if got, want := rest[0].Name, "main"; got != want {
+		t.Errorf("got %q after the lead, want %q", got, want)
+	}
+}
+
+func TestBlameOrderPromotesTheStalledThread(t *testing.T) {
+	// ART prints main first, so the promotion only shows itself on a
+	// dump where it does not.
+	dump := Parse(`"worker" prio=5 tid=9 Waiting
+  at sh.foo.Idle.park(Idle.kt:3)
+
+"main" prio=5 tid=1 Blocked
+  at sh.foo.Repo.load(Repo.kt:8)
+  - waiting to lock <0x0aaa0001> (a java.lang.Object) held by thread 46
+
+"APP: Locker" daemon prio=5 tid=46 Sleeping
+  at sh.foo.Cache.refresh(Cache.kt:88)
+  - locked <0x0aaa0001> (a java.lang.Object)`)
+	dump.Annotate()
+
+	lead, rest := dump.BlameOrder()
+
+	if got, want := lead.Name, "APP: Locker"; got != want {
+		t.Fatalf("got lead %q, want %q", got, want)
+	}
+	if got, want := rest[0].Name, "main"; got != want {
+		t.Errorf("got %q after the lead, want the stalled thread %q", got, want)
+	}
+	if got, want := rest[1].Name, "worker"; got != want {
+		t.Errorf("got %q third, want %q", got, want)
+	}
+}
+
+func TestBlameOrderWithoutAThreadToBlame(t *testing.T) {
+	dump := Parse(threadDump("  at sh.foo.Repo.load(Repo.kt:8)"))
+	dump.Threads[0].Name = "msr-io"
+	dump.Annotate()
+
+	lead, rest := dump.BlameOrder()
+
+	if lead != nil {
+		t.Errorf("got lead %q, want none", lead.Name)
+	}
+	if len(rest) != len(dump.Threads) {
+		t.Errorf("got %d threads in rest, want all %d", len(rest), len(dump.Threads))
+	}
+}

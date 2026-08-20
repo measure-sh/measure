@@ -2216,14 +2216,14 @@ func (d threadDumpANR) LineNumber() int32 {
 func (d threadDumpANR) HasNoFrames() bool { return d.anr.ThreadDump.BlameFrame().ClassName == "" }
 
 func (d threadDumpANR) Stacktrace() string {
-	top := d.anr.ThreadDump.BlamedThread()
-	if top == nil {
+	lead, _ := d.anr.ThreadDump.BlameOrder()
+	if lead == nil {
 		return ""
 	}
 
 	lines := append(
-		[]string{top.Header},
-		anrThreadStack(top, anrLockHolders(d.anr.ThreadDump))...,
+		[]string{lead.Header},
+		anrThreadStack(lead, anrLockHolders(d.anr.ThreadDump))...,
 	)
 
 	return strings.Join(lines, "\n")
