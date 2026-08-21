@@ -111,7 +111,7 @@ paths:
                     user_id: 835283a5-cddc-472b-84ad-5ea3319efeed
                     own_team_id: e47ac49d-0697-4e85-8607-1a34536c04e3
         "400":
-          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+          description: Request is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
           description: GitHub rejected the sign-in. The authorization code is invalid, already used or expired.
         "429":
@@ -181,7 +181,7 @@ paths:
                     user_id: 835283a5-cddc-472b-84ad-5ea3319efeed
                     own_team_id: e47ac49d-0697-4e85-8607-1a34536c04e3
         "400":
-          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+          description: Request is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
           description: Google rejected the sign-in. The authorization code is invalid, already used or expired.
         "429":
@@ -227,7 +227,7 @@ paths:
                   value:
                     valid: true
         "400":
-          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+          description: Request is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "410":
           description: Invite has expired.
         "429":
@@ -263,8 +263,6 @@ paths:
                   value:
                     access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDUyMjU2NTl9.XzbpImWw9GXFlIXHCu92QNsA1D8m_Y9ZFVDEDqG_wtM
                     refresh_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDU4Mjg2NTl9.MeMIsk1KEHvPa2AAbDBQWqeKJwQcxbk1lXb7Mhcz-uQ
-        "400":
-          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
           description: Either the user's refresh token is invalid or has expired.
         "403":
@@ -323,8 +321,6 @@ paths:
                       last_sign_in_at: "2024-06-19T22:14:49.77Z"
                       created_at: "2024-06-19T22:14:49.77Z"
                       updated_at: "2024-06-19T22:14:49.77Z"
-        "400":
-          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
           description: Either the user's access token is invalid or has expired.
         "403":
@@ -360,8 +356,6 @@ paths:
                 response:
                   value:
                     ok: true
-        "400":
-          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
           description: Either the user's refresh token is invalid or has expired.
         "403":
@@ -5930,7 +5924,7 @@ paths:
                     id: 269362f4-27a5-4eac-84f8-b2291515edd3
                     name: acme-team
         "400":
-          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+          description: Request is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
           description: Either the user's access token is invalid or has expired.
         "403":
@@ -5970,8 +5964,6 @@ paths:
                     - id: 823f0g9c-2gg7-32mp-x6cj-v368geb129d0
                       name: Team 2
                       role: admin
-        "400":
-          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
           description: Either the user's access token is invalid or has expired.
         "403":
@@ -7204,7 +7196,7 @@ paths:
                     created_at: "2024-01-01T00:00:00Z"
                     updated_at: "2024-01-01T00:00:00Z"
         "400":
-          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+          description: Request is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
           description: Either the user's access token is invalid or has expired.
         "403":
@@ -7263,7 +7255,7 @@ paths:
                   value:
                     ok: done
         "400":
-          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+          description: Request is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
           description: Either the user's access token is invalid or has expired.
         "403":
