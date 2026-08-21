@@ -70,8 +70,6 @@ func (h Handlers) ValidateAPIKey() gin.HandlerFunc {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid api key"})
 				return
 			}
-			// lookup failures are infrastructure, a 401 would send callers to rotate a
-			// key that was never wrong.
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to validate api key"})
 			return
 		}
