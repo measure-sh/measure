@@ -5,7 +5,6 @@ import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -63,7 +62,7 @@ class AppExitProviderImplTest {
         assertEquals(
             "CACHED",
             result?.get(2)?.importance,
-        ) // IMPORTANCE_BACKGROUND is not in the getImportanceName method
+        )
     }
 
     @Test
@@ -78,52 +77,22 @@ class AppExitProviderImplTest {
     }
 
     @Test
-    fun `readTrace keeps the thread blocks and drops everything else`() {
-        val raw = readFixture("api36_deadlock_raw.txt")
-        val expected = readFixture("api36_deadlock.txt")
-
-        val result = appExitProvider.readTrace(raw.byteInputStream())
-
-        assertEquals(expected, result?.threads)
-    }
-
-    @Test
-    fun `readTrace drops scheduler lines`() {
-        val raw = readFixture("api36_deadlock_raw.txt")
-
-        val result = appExitProvider.readTrace(raw.byteInputStream())
-
-        assertFalse(raw.lines().none { it.startsWith("  | ") })
-        assertTrue(result!!.threads.lines().none { it.startsWith("  | ") })
-    }
-
-    @Test
-    fun `readTrace stops before the runtime statistics`() {
-        val raw = readFixture("api33_idle_main.txt")
-
-        val result = appExitProvider.readTrace(raw.byteInputStream())
-
-        assertTrue(raw.contains("Zygote loaded classes="))
-        assertFalse(result!!.threads.contains("Zygote loaded classes="))
-        assertFalse(result.threads.contains("ART internal metrics"))
-    }
-
-    @Test
     fun `toAppExit prefers the trace subject over the kill description`() {
-        val raw = readFixture("api36_deadlock_raw.txt")
         val exitInfo = mockApplicationExitInfo(
             1,
             ApplicationExitInfo.REASON_ANR,
             ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
         )
-        `when`(exitInfo.traceInputStream).thenReturn(raw.byteInputStream())
+        `when`(exitInfo.traceInputStream).thenReturn(
+            "Subject: Broadcast of Intent { }\nDALVIK THREADS (1):\n\"main\" prio=5 tid=1 Blocked\n"
+                .byteInputStream(),
+        )
         `when`(exitInfo.description)
             .thenReturn("user request after error: Broadcast of Intent { }")
 
         val appExit = with(appExitProvider) { exitInfo.toAppExit() }
 
-        assertTrue(appExit.subject!!.startsWith("Broadcast of Intent {"))
-        assertFalse(appExit.subject!!.contains("user request after error"))
+        assertEquals("Broadcast of Intent { }", appExit.subject)
     }
 
     @Test
@@ -140,15 +109,6 @@ class AppExitProviderImplTest {
         val appExit = with(appExitProvider) { exitInfo.toAppExit() }
 
         assertEquals("user request after error: Input dispatching timed out", appExit.subject)
-    }
-
-    @Test
-    fun `readTrace reads the subject from the trace`() {
-        val raw = readFixture("api36_deadlock_raw.txt")
-
-        val result = appExitProvider.readTrace(raw.byteInputStream())
-
-        assertTrue(result!!.subject!!.startsWith("Broadcast of Intent {"))
     }
 
     @Test
@@ -169,16 +129,9 @@ class AppExitProviderImplTest {
         assertTrue(result.length < oversized.length)
         assertTrue(result.startsWith("DALVIK THREADS (400):\n"))
 
-        // Every thread that survived is whole: the last non-blank line
-        // belongs to a stack, never to a header left without its frames.
         val lastLine = result.trimEnd('\n').lines().last()
         assertTrue("truncated mid-thread on: $lastLine", lastLine.startsWith("  at "))
     }
-
-    private fun readFixture(name: String): String =
-        checkNotNull(javaClass.classLoader?.getResourceAsStream(name)) {
-            "missing test resource $name"
-        }.reader().readText()
 
     private fun mockApplicationExitInfo(
         pid: Int,

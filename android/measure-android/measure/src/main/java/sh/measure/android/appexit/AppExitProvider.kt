@@ -32,13 +32,6 @@ private const val THREAD_SECTION_HEADER = "DALVIK THREADS ("
 private const val SUBJECT_PREFIX = "Subject: "
 private const val SCHEDULER_PREFIX = "  | "
 private const val DUMP_LATENCY_PREFIX = "DumpLatencyMs:"
-
-/**
- * Traces above this size are truncated on a thread boundary. The exporter
- * sizes batches assuming far smaller events, and a batch the backend
- * rejects is deleted whole by the client, so one oversized event would
- * take unrelated events with it.
- */
 private const val MAX_TRACE_BYTES = 256 * 1024
 
 internal class AppExitProviderImpl(
@@ -80,12 +73,8 @@ internal class AppExitProviderImpl(
 
     /**
      * Reads the thread blocks and the subject out of an ART trace.
-     *
-     * The trace opens with a subject line and a process summary, carries
-     * the thread blocks, and closes with runtime statistics, GC timings
-     * and a class loader dump. Only the thread blocks are kept, and the
-     * per-thread scheduler lines are dropped, because nothing downstream
-     * reads either.
+     * We are only interested in the threads stacktrace and Subject,
+     * everything else is discarded.
      */
     @VisibleForTesting
     internal fun readTrace(traceInputStream: InputStream?): ArtTrace? {
@@ -93,9 +82,6 @@ internal class AppExitProviderImpl(
             return null
         }
         logger.log(LogLevel.Debug, "Reading ANR thread dump")
-
-        // use() closes the buffered source, and with it the trace stream
-        // the system handed us. Every ANR exit record opens one.
         return traceInputStream.source().buffer().use { source ->
             readTrace(source)
         }
@@ -150,10 +136,9 @@ internal class AppExitProviderImpl(
     private fun isThreadHeader(line: String): Boolean = line.startsWith("\"")
 
     /**
-     * ART indents everything belonging to a thread's stack and prints the
-     * lines closing a block flush left, so a flush left line that opens
-     * no thread and reports no dump latency is the first line after the
-     * thread section.
+     * Inside the thread section every line is blank, indented into a
+     * thread's stack, a quoted thread header, or a dump latency report.
+     * Anything else is the runtime statistics that follow the section.
      */
     private fun endsThreadSection(line: String): Boolean = line.isNotEmpty() &&
         !line.startsWith(" ") &&

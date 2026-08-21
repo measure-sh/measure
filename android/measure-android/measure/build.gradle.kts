@@ -69,14 +69,6 @@ android {
         consumerProguardFiles("consumer-rules.pro")
     }
 
-    sourceSets {
-        // The ART thread dump fixtures live with the backend parser that
-        // reads them, so both are tested on identical bytes.
-        getByName("test") {
-            resources.srcDir("../../../backend/libs/artdump/testdata")
-        }
-    }
-
     buildTypes {
         defaultConfig {
             buildConfigField("String", "MEASURE_SDK_VERSION", "\"$measureSdkVersion\"")
@@ -101,6 +93,9 @@ android {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
             execution = "ANDROIDX_TEST_ORCHESTRATOR"
+            all {
+                it.systemProperty("artdump.update", providers.gradleProperty("artdump.update").getOrElse("false"))
+            }
         }
     }
     buildFeatures {
