@@ -359,10 +359,9 @@ func Init(config *ServerConfig) {
 	if config.CloudEnv {
 		p, err := bus.NewPubSubProducer(ctx, "ingest-batch", bus.WithPubSubPublishSettings(pubsub.PublishSettings{EnableCompression: true}))
 		if err != nil {
-			log.Printf("failed to create Pub/Sub producer: %v\n", err)
-		} else {
-			busProducer = p
+			log.Fatalf("failed to create Pub/Sub producer: %v", err)
 		}
+		busProducer = p
 	} else {
 		p, err := bus.NewIggyProducer(
 			config.IG.Addr,
@@ -373,10 +372,9 @@ func Init(config *ServerConfig) {
 			"ingest-batch",
 		)
 		if err != nil {
-			log.Printf("failed to create Iggy producer: %v\n", err)
-		} else {
-			busProducer = p
+			log.Fatalf("failed to create Iggy producer: %v", err)
 		}
+		busProducer = p
 	}
 
 	Server = &server{

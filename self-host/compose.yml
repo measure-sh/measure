@@ -352,6 +352,7 @@ services:
         libs: ../backend/libs
       args:
         TARGETTYPE: debug
+    restart: unless-stopped
     ports:
       - "8085:8085"
     secrets:
