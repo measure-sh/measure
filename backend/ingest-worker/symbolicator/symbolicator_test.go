@@ -1485,16 +1485,7 @@ func loadArtDump(t *testing.T) string {
 		t.Fatalf("read art dump fixture: %v", err)
 	}
 
-	// This capture predates the SDK trimming its trace at the end of
-	// the thread section, so cut the runtime statistics it still
-	// carries. No dump reaching the backend will have them.
-	dump := string(b)
-	at := strings.Index(dump, "\nZygote loaded classes=")
-	if at < 0 {
-		t.Fatal("fixture prints no runtime statistics, the trim is stale")
-	}
-
-	return dump[:at+1]
+	return string(b)
 }
 
 func makeANRThreadDumpEvents(t *testing.T, versionName, versionCode string) []event.EventField {

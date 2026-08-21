@@ -9,8 +9,9 @@ import (
 	"testing"
 )
 
-// Real ART output. api33Dump is an ANR whose main thread was idle, from an
-// app whose frames are still obfuscated. api36Dump is a deadlock.
+// Real ART output, as the SDK sends it: trimmed to the thread blocks.
+// api33Dump is an ANR whose main thread was idle, from an app whose frames
+// are still obfuscated. api36Dump is a deadlock.
 const (
 	api33Dump = "api33_idle_main.txt"
 	api36Dump = "api36_deadlock.txt"
@@ -476,25 +477,6 @@ func TestLockHolders(t *testing.T) {
 	}
 	if name, ok := holders[0]; ok {
 		t.Errorf("an unattached thread was recorded as holder %q", name)
-	}
-}
-
-func TestParseDropsTheRuntimeStatistics(t *testing.T) {
-	input := loadDump(t, api33Dump)
-	if !strings.Contains(input, "\nZygote loaded classes=") {
-		t.Fatal("fixture prints no runtime statistics, this test asserts nothing")
-	}
-
-	rendered := Parse(input).Render()
-
-	for _, line := range []string{
-		"Zygote loaded classes=",
-		"Dumping registered class loaders",
-		"  Metadata:",
-	} {
-		if strings.Contains(rendered, line) {
-			t.Errorf("the statistics survived the parse: %q", line)
-		}
 	}
 }
 
