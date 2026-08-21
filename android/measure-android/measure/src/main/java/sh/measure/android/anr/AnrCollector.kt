@@ -1,5 +1,6 @@
 package sh.measure.android.anr
 
+import android.os.Build
 import android.os.Looper
 import sh.measure.android.AnrListener
 import sh.measure.android.NativeBridge
@@ -10,6 +11,11 @@ import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.mainHandler
 import sh.measure.android.utils.ProcessInfoProvider
 
+/**
+ * Detects and reports ANRs by listening to SIGQUIT signal. Only
+ * registered for API level 29 and below. See [AppExitCollector]
+ * for API level 30+.
+ */
 internal class AnrCollector(
     private val processInfo: ProcessInfoProvider,
     private val signalProcessor: SignalProcessor,
@@ -21,6 +27,7 @@ internal class AnrCollector(
 
     fun register() {
         if (isRegistered) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) return
         nativeBridge.enableAnrReporting(anrListener = this)
         isRegistered = true
     }

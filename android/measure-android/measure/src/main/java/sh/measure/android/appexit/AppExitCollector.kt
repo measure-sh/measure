@@ -37,27 +37,20 @@ internal class AppExitCollector(
         if (session == null) {
             logger.log(
                 LogLevel.Debug,
-                "Discarding ANR exit for pid $pid, no untracked session matches it",
+                "Discarding ANR exit for pid $pid no matching session found",
             )
             return
         }
 
-        // An ANR without a thread dump has no stack to act on: it cannot be
-        // grouped apart from other ANRs of its kind and renders as an empty
-        // accordion, so it is dropped rather than reported.
         val threadDump = appExit.trace
         if (threadDump.isNullOrEmpty()) {
             logger.log(
                 LogLevel.Debug,
-                "Discarding ANR exit for pid $pid, its thread dump could not be read",
+                "Discarding ANR exit for pid $pid, failed to read thread dump",
             )
             return
         }
 
-        logger.log(
-            LogLevel.Debug,
-            "Tracking ANR for pid $pid from a ${threadDump.length} byte thread dump",
-        )
         signalProcessor.trackAnr(
             data = ExceptionData(
                 exceptions = emptyList(),
@@ -66,12 +59,9 @@ internal class AppExitCollector(
                 art_thread_dump = threadDump,
                 subject = appExit.subject,
             ),
-            // Current time is irrelevant here, the ANR happened in a process
-            // that is already gone.
+            // Use the time when app exit report was written
             timestamp = appExit.app_exit_time_ms,
-            // The stall is always reported against the main thread, which is
-            // what the session timeline and the stacktrace accordion are
-            // labelled by.
+            // ANR events are always reported via the main thread
             threadName = "main",
             sessionId = session.id,
             sessionStartTime = session.createdAt,

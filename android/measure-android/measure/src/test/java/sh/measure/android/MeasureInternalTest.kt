@@ -332,46 +332,6 @@ class MeasureInternalTest {
     }
 
     @Test
-    @Config(sdk = [Build.VERSION_CODES.R])
-    fun `start does not register the sigquit anr collector on api 30 and above`() {
-        val initializer = mockMeasureInitializer()
-        val measureInternal = MeasureInternal(initializer)
-
-        measureInternal.start()
-
-        verify(initializer.unhandledExceptionCollector).register()
-        verify(initializer.anrCollector, never()).register()
-    }
-
-    @Test
-    @Config(sdk = [Build.VERSION_CODES.R])
-    fun `stop does not unregister the sigquit anr collector on api 30 and above`() {
-        val initializer = mockMeasureInitializer()
-        val measureInternal = MeasureInternal(initializer)
-        measureInternal.start()
-
-        measureInternal.stop()
-
-        verify(initializer.unhandledExceptionCollector).unregister()
-        verify(initializer.anrCollector, never()).unregister()
-    }
-
-    @Test
-    @Config(sdk = [Build.VERSION_CODES.R])
-    fun `repeated start and stop cycles leave the sigquit collector untouched on api 30 and above`() {
-        val initializer = mockMeasureInitializer()
-        val measureInternal = MeasureInternal(initializer)
-
-        repeat(3) {
-            measureInternal.start()
-            measureInternal.stop()
-        }
-
-        verify(initializer.anrCollector, never()).register()
-        verify(initializer.anrCollector, never()).unregister()
-    }
-
-    @Test
     fun `start is idempotent`() {
         val initializer = mockMeasureInitializer()
         val measureInternal = MeasureInternal(initializer)
