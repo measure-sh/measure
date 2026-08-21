@@ -1276,7 +1276,6 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 			eventReq.symbolicateEvents[eventReq.events[i].ID] = i
 		}
 		if eventReq.events[i].IsException() {
-			fmt.Println("processing exception: ", eventReq.events[i].ID)
 			eventReq.exceptionIds = append(eventReq.exceptionIds, i)
 		}
 		if eventReq.events[i].IsANR() {

@@ -357,7 +357,12 @@ func Init(config *ServerConfig) {
 
 	var busProducer bus.Producer
 	if config.CloudEnv {
-		p, err := bus.NewPubSubProducer(ctx, "ingest-batch", bus.WithPubSubPublishSettings(pubsub.PublishSettings{EnableCompression: true}))
+		p, err := bus.NewPubSubProducer(ctx, "ingest-batch", bus.WithPubSubPublishSettings(func(s *pubsub.PublishSettings) {
+			s.EnableCompression = true
+			// one message per request & the handler blocks on it, so bundling
+			// only adds DelayThreshold to the request. Flush on every add.
+			s.CountThreshold = 1
+		}))
 		if err != nil {
 			log.Printf("failed to create Pub/Sub producer: %v\n", err)
 		} else {

@@ -427,12 +427,12 @@ final class BaseExporterTests: XCTestCase {
         wait(for: [exp], timeout: 1)
     }
 
-    func testPayloadLimitOf10MBSplitsBatchWhenConfigLimitIsLarger() {
-        // payload limit: 10 MB / 1 KB = 10_240 events per batch
+    func testPayloadLimitSplitsBatchWhenConfigLimitIsLarger() {
+        // payload limit: 9 MB / 1 KB = 8_789 events per batch
         config.maxEventsInBatch = 20_000
         network.executeResponse = .success(body: nil, eTag: nil)
 
-        for i in 0..<10_241 {
+        for i in 0..<8_790 {
             eventStore.insertEvent(event: makeEvent(id: "e\(i)", sessionId: "s1"))
         }
 
@@ -442,7 +442,7 @@ final class BaseExporterTests: XCTestCase {
 
         DispatchQueue.main.async {
             XCTAssertEqual(self.network.executedEventCounts.count, 2)
-            XCTAssertEqual(self.network.executedEventCounts[0], 10_240)
+            XCTAssertEqual(self.network.executedEventCounts[0], 8_789)
             XCTAssertEqual(self.network.executedEventCounts[1], 1)
             exp.fulfill()
         }
@@ -451,7 +451,7 @@ final class BaseExporterTests: XCTestCase {
     }
 
     func testUsesConfigLimitWhenSmallerThanPayloadLimit() {
-        // config limit (5) < payload limit (10_240), so config wins
+        // config limit (5) < payload limit (8_789), so config wins
         config.maxEventsInBatch = 5
         network.executeResponse = .success(body: nil, eTag: nil)
 

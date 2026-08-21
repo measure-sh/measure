@@ -1,6 +1,7 @@
 package measure
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -44,7 +45,13 @@ func ValidateAPIKey() gin.HandlerFunc {
 		appId, err := DecodeAPIKey(c, key)
 		if err != nil {
 			fmt.Println("api key decode failed:", err)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid api key"})
+			if errors.Is(err, ErrInvalidAPIKey) {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid api key"})
+				return
+			}
+			// lookup failures are infrastructure, a 401 would make SDKs discard
+			// the batch instead of retrying.
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to validate api key"})
 			return
 		}
 
