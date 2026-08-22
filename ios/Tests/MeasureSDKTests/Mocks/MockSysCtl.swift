@@ -10,7 +10,7 @@ import Foundation
 
 final class MockSysCtl: SysCtl {
     var mockCpuCores: UInt8 = 0
-    var mockCpuFrequency: UInt64 = 0
+    var mockClockTicksPerSecond: UInt64 = 0
     var mockMaximumAvailableRam: UnsignedNumber = 0
     var processStartTime: UnsignedNumber = 0
     var systemBootTime: UnsignedNumber = 0
@@ -20,8 +20,8 @@ final class MockSysCtl: SysCtl {
         return mockCpuCores
     }
 
-    func getCpuFrequency() -> UInt64 {
-        return mockCpuFrequency
+    func getClockTicksPerSecond() -> UInt64 {
+        return mockClockTicksPerSecond
     }
 
     func getMaximumAvailableRam() -> UnsignedNumber {

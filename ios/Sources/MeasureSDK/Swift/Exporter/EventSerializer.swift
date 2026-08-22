@@ -14,10 +14,10 @@ struct EventSerializer {
         }
 
         var writer = JSONWriter(capacity: (eventEntity.payloadData?.count ?? 0) + (eventEntity.attributes?.count ?? 0) + 512)
-        writer.append(key: "id", string: eventEntity.id)
-        writer.append(key: "session_id", string: eventEntity.sessionId)
-        writer.append(key: "timestamp", string: eventEntity.timestamp)
-        writer.append(key: "type", string: eventEntity.type)
+        writer.append(key: "id", unescapedIdentifier: eventEntity.id)
+        writer.append(key: "session_id", unescapedIdentifier: eventEntity.sessionId)
+        writer.append(key: "timestamp", unescapedIdentifier: eventEntity.timestamp)
+        writer.append(key: "type", unescapedIdentifier: eventEntity.type)
         writer.append(key: "user_triggered", bool: eventEntity.userTriggered)
         writer.append(key: "attribute", rawJson: eventEntity.attributes)
         writer.append(key: "user_defined_attribute", rawJsonObject: eventEntity.userDefinedAttributes)
@@ -31,12 +31,12 @@ struct EventSerializer {
     func serializeSpan(_ spanEntity: SpanEntity) -> Data? {
         var writer = JSONWriter(capacity: (spanEntity.attributes?.count ?? 0) + (spanEntity.checkpoints?.count ?? 0) + 512)
         writer.append(key: "name", string: spanEntity.name ?? "")
-        writer.append(key: "trace_id", string: spanEntity.traceId ?? "")
-        writer.append(key: "span_id", string: spanEntity.spanId)
-        writer.append(key: "parent_id", optionalString: spanEntity.parentId)
-        writer.append(key: "session_id", string: spanEntity.sessionId ?? "")
-        writer.append(key: "start_time", string: spanEntity.startTimeString)
-        writer.append(key: "end_time", string: spanEntity.endTimeString)
+        writer.append(key: "trace_id", unescapedIdentifier: spanEntity.traceId ?? "")
+        writer.append(key: "span_id", unescapedIdentifier: spanEntity.spanId)
+        writer.append(key: "parent_id", optionalUnescapedIdentifier: spanEntity.parentId)
+        writer.append(key: "session_id", unescapedIdentifier: spanEntity.sessionId ?? "")
+        writer.append(key: "start_time", unescapedIdentifier: spanEntity.startTimeString)
+        writer.append(key: "end_time", unescapedIdentifier: spanEntity.endTimeString)
         writer.append(key: "duration", int: spanEntity.duration)
         writer.append(key: "status", int: SpanStatus(rawValue: spanEntity.status ?? 0)?.rawValue ?? SpanStatus.unset.rawValue)
         writer.append(key: "attributes", rawJson: spanEntity.attributes)
@@ -51,9 +51,9 @@ struct EventSerializer {
 
         let serialized = attachments.map { attachment -> Data in
             var writer = JSONWriter(capacity: 128)
-            writer.append(key: "id", string: attachment.id)
-            writer.append(key: "name", string: attachment.name)
-            writer.append(key: "type", string: attachment.type.rawValue)
+            writer.append(key: "id", unescapedIdentifier: attachment.id)
+            writer.append(key: "name", unescapedIdentifier: attachment.name)
+            writer.append(key: "type", unescapedIdentifier: attachment.type.rawValue)
             writer.append(key: "size", int: attachment.size)
             return writer.finalize()
         }

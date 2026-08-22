@@ -8,6 +8,7 @@
 import Foundation
 
 struct JSONWriter {
+    private static let quote = UInt8(ascii: "\"")
     private static let colon = UInt8(ascii: ":")
     private static let comma = UInt8(ascii: ",")
     private static let openBrace = UInt8(ascii: "{")
@@ -37,6 +38,18 @@ struct JSONWriter {
     mutating func append(key: String, optionalString value: String?) {
         guard let value else { return }
         append(key: key, string: value)
+    }
+
+    mutating func append(key: String, unescapedIdentifier value: String) {
+        appendKey(key)
+        buffer.append(Self.quote)
+        buffer.append(contentsOf: value.utf8)
+        buffer.append(Self.quote)
+    }
+
+    mutating func append(key: String, optionalUnescapedIdentifier value: String?) {
+        guard let value else { return }
+        append(key: key, unescapedIdentifier: value)
     }
 
     mutating func append(key: String, int value: Int64) {
@@ -73,7 +86,9 @@ struct JSONWriter {
             buffer.append(Self.comma)
         }
         needsSeparator = true
-        buffer.append(Self.escaped(key))
+        buffer.append(Self.quote)
+        buffer.append(contentsOf: key.utf8)
+        buffer.append(Self.quote)
         buffer.append(Self.colon)
     }
 

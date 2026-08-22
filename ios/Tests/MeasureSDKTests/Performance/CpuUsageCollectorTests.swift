@@ -73,7 +73,7 @@ final class CpuUsageCollectorTests: XCTestCase {
     func testTrackCpuUsageValidData() {
         mockCpuUsageCalculator.mockCpuUsage = 25.5
         mockSysCtl.mockCpuCores = 4
-        mockSysCtl.mockCpuFrequency = 2500
+        mockSysCtl.mockClockTicksPerSecond = 100
         mockConfigProvider.cpuUsageInterval = 1000
         mockTimeProvider.current = 1_000_000
         let expectedTimestamp = mockTimeProvider.now()
@@ -83,13 +83,33 @@ final class CpuUsageCollectorTests: XCTestCase {
         XCTAssertNotNil(mockSignalProcessor.data)
         if let cpuUsageData = mockSignalProcessor.data as? CpuUsageData {
             XCTAssertEqual(cpuUsageData.numCores, 4)
-            XCTAssertEqual(cpuUsageData.clockSpeed, 2500)
+            XCTAssertEqual(cpuUsageData.clockSpeed, 100)
             XCTAssertEqual(cpuUsageData.percentageUsage, 25.5)
         } else {
             XCTFail("Data should be of type CpuUsageData.")
         }
         XCTAssertEqual(mockSignalProcessor.timestamp, expectedTimestamp)
         XCTAssertEqual(mockSignalProcessor.type, .cpuUsage)
+    }
+
+    func testTrackCpuUsageSkipsEventWhenClockTicksUnavailable() {
+        mockCpuUsageCalculator.mockCpuUsage = 25.5
+        mockSysCtl.mockCpuCores = 4
+        mockSysCtl.mockClockTicksPerSecond = 0
+
+        cpuUsageCollector.trackCpuUsage()
+
+        XCTAssertNil(mockSignalProcessor.data, "A zero clock tick rate is rejected by the backend, and a rejected event discards the whole batch.")
+    }
+
+    func testTrackCpuUsageSkipsEventWhenCoreCountUnavailable() {
+        mockCpuUsageCalculator.mockCpuUsage = 25.5
+        mockSysCtl.mockCpuCores = 0
+        mockSysCtl.mockClockTicksPerSecond = 100
+
+        cpuUsageCollector.trackCpuUsage()
+
+        XCTAssertNil(mockSignalProcessor.data, "A zero core count is rejected by the backend.")
     }
 
     func testTrackCpuUsageErrorData() {
