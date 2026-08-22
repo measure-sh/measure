@@ -103,10 +103,21 @@ final class BaseCpuUsageCollector: CpuUsageCollector {
             return
         }
 
+        let numCores = sysCtl.getCpuCores()
+        let clockTicksPerSecond = sysCtl.getClockTicksPerSecond()
+
+        guard numCores > 0, clockTicksPerSecond > 0 else {
+            logger.internalLog(level: .error,
+                               message: "Skipping cpu_usage event: numCores \(numCores), clockTicksPerSecond \(clockTicksPerSecond).",
+                               error: nil,
+                               data: nil)
+            return
+        }
+
         let intervalMs = configProvider.cpuUsageInterval * 1000
 
-        let data = CpuUsageData(numCores: sysCtl.getCpuCores(),
-                                clockSpeed: sysCtl.getCpuFrequency(),
+        let data = CpuUsageData(numCores: numCores,
+                                clockSpeed: clockTicksPerSecond,
                                 startTime: 0,
                                 uptime: 0,
                                 utime: 0,

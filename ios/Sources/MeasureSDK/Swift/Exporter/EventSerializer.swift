@@ -8,64 +8,57 @@
 import Foundation
 
 struct EventSerializer {
-    func getSerialisedEvent(for eventEntity: EventEntity) -> Data? { // swiftlint:disable:this cyclomatic_complexity
+    func getSerialisedEvent(for eventEntity: EventEntity) -> Data? {
         guard let type = EventType(rawValue: eventEntity.type) else {
-            print("Failed to encode event. Unknown event type: \(eventEntity.type)")
             return nil
         }
 
-        let eventType: Codable.Type
+        var writer = JSONWriter(capacity: (eventEntity.payloadData?.count ?? 0) + (eventEntity.attributes?.count ?? 0) + 512)
+        writer.append(key: "id", unescapedIdentifier: eventEntity.id)
+        writer.append(key: "session_id", unescapedIdentifier: eventEntity.sessionId)
+        writer.append(key: "timestamp", unescapedIdentifier: eventEntity.timestamp)
+        writer.append(key: "type", unescapedIdentifier: eventEntity.type)
+        writer.append(key: "user_triggered", bool: eventEntity.userTriggered)
+        writer.append(key: "attribute", rawJson: eventEntity.attributes)
+        writer.append(key: "user_defined_attribute", rawJsonObject: eventEntity.userDefinedAttributes)
+        writer.append(key: "attachments", rawJson: Self.serializeAttachments(eventEntity.attachments))
 
-        switch type {
-        case .exception:
-            eventType = Exception.self
-        case .gestureClick:
-            eventType = ClickData.self
-        case .gestureLongClick:
-            eventType = LongClickData.self
-        case .gestureScroll:
-            eventType = ScrollData.self
-        case .lifecycleApp:
-            eventType = ApplicationLifecycleData.self
-        case .lifecycleViewController:
-            eventType = VCLifecycleData.self
-        case .lifecycleSwiftUI:
-            eventType = SwiftUILifecycleData.self
-        case .cpuUsage:
-            eventType = CpuUsageData.self
-        case .memoryUsageAbsolute:
-            eventType = MemoryUsageData.self
-        case .coldLaunch:
-            eventType = ColdLaunchData.self
-        case .warmLaunch:
-            eventType = WarmLaunchData.self
-        case .hotLaunch:
-            eventType = HotLaunchData.self
-        case .http:
-            eventType = HttpData.self
-        case .networkChange:
-            eventType = NetworkChangeData.self
-        case .custom:
-            eventType = CustomEventData.self
-        case .log:
-            eventType = LogData.self
-        case .screenView:
-            eventType = ScreenViewData.self
-        case .bugReport:
-            eventType = BugReportData.self
-        case .sessionStart:
-            eventType = SessionStartData.self
-        }
+        writer.append(key: type.rawValue, rawJson: eventEntity.payloadData)
 
-        // Call the generic helper function
-        return serialiseEvent(eventEntity, as: eventType)
+        return writer.finalize()
     }
 
-    private func serialiseEvent<T: Codable>(_ eventEntity: EventEntity, as type: T.Type) -> Data? {
-        let event: Event<T> = eventEntity.getEvent()
+    func serializeSpan(_ spanEntity: SpanEntity) -> Data? {
+        var writer = JSONWriter(capacity: (spanEntity.attributes?.count ?? 0) + (spanEntity.checkpoints?.count ?? 0) + 512)
+        writer.append(key: "name", string: spanEntity.name ?? "")
+        writer.append(key: "trace_id", unescapedIdentifier: spanEntity.traceId ?? "")
+        writer.append(key: "span_id", unescapedIdentifier: spanEntity.spanId)
+        writer.append(key: "parent_id", optionalUnescapedIdentifier: spanEntity.parentId)
+        writer.append(key: "session_id", unescapedIdentifier: spanEntity.sessionId ?? "")
+        writer.append(key: "start_time", unescapedIdentifier: spanEntity.startTimeString)
+        writer.append(key: "end_time", unescapedIdentifier: spanEntity.endTimeString)
+        writer.append(key: "duration", int: spanEntity.duration)
+        writer.append(key: "status", int: SpanStatus(rawValue: spanEntity.status ?? 0)?.rawValue ?? SpanStatus.unset.rawValue)
+        writer.append(key: "attributes", rawJson: spanEntity.attributes)
+        writer.append(key: "user_defined_attribute", rawJson: spanEntity.userDefinedAttrs)
+        writer.append(key: "checkpoints", rawJson: spanEntity.checkpoints, fallback: Data("[]".utf8))
 
-        let encoder = JSONEncoder()
-        return try? encoder.encode(event)
+        return writer.finalize()
+    }
+
+    private static func serializeAttachments(_ attachments: [MsrAttachment]?) -> Data? {
+        guard let attachments else { return nil }
+
+        let serialized = attachments.map { attachment -> Data in
+            var writer = JSONWriter(capacity: 128)
+            writer.append(key: "id", unescapedIdentifier: attachment.id)
+            writer.append(key: "name", unescapedIdentifier: attachment.name)
+            writer.append(key: "type", unescapedIdentifier: attachment.type.rawValue)
+            writer.append(key: "size", int: attachment.size)
+            return writer.finalize()
+        }
+
+        return JSONWriter.array(of: serialized)
     }
 
     static func serializeUserDefinedAttribute(_ userDefinedAttribute: [String: AttributeValue]?) -> String? {
