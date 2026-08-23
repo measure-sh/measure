@@ -1,5 +1,5 @@
 import { blogSource, getSortedBlogPosts } from "@/app/utils/blog_source";
-import { renderPageMarkdown } from "@/app/utils/llms/markdown_generator";
+import { renderPageMarkdown } from "@/app/utils/llms/page_markdown";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://measure.sh";
 

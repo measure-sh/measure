@@ -1,4 +1,4 @@
-import { generateLlmsTxt } from "@/app/utils/llms/markdown_generator";
+import { generateLlmsTxt } from "@/app/utils/llms/llms_txt";
 
 // Prerendered at build time: the docs tree, the blog posts and the
 // marketing page.md twins are all fixed at build.

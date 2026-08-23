@@ -1,4 +1,4 @@
-import { renderPageMarkdown } from "@/app/utils/llms/markdown_generator";
+import { renderPageMarkdown } from "@/app/utils/llms/page_markdown";
 import { source } from "@/app/utils/docs_source";
 
 // Serves each docs page as processed markdown. Public URLs are the page

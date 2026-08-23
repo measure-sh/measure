@@ -1,7 +1,7 @@
 // Folder is named `page-md`, not `_md`: Next.js App Router treats
 // underscore-prefixed folders as private and excludes them from routing.
 // Don't rename to anything starting with `_` or this handler silently 404s.
-import { stripFrontmatter } from "@/app/utils/llms/frontmatter";
+import { stripFrontmatter } from "@/app/utils/frontmatter";
 import fs from "fs";
 import { type NextRequest, NextResponse } from "next/server";
 import path from "path";
