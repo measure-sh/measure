@@ -26,7 +26,7 @@ function collectPageUrls(nodes: PageTree.Node[]): string[] {
   return urls;
 }
 
-export async function generateLlmsFullTxt(): Promise<string> {
+async function docsSections(): Promise<string[]> {
   const tree = source.getPageTree();
   const urls = ["/docs", ...collectPageUrls(tree.children)];
   const byUrl = new Map(source.getPages().map((page) => [page.url, page]));
@@ -44,17 +44,44 @@ export async function generateLlmsFullTxt(): Promise<string> {
     }
     sections.push(await renderPageMarkdown(page));
   }
+  return sections;
+}
 
+async function blogSections(): Promise<string[]> {
+  const sections: string[] = [];
   for (const post of getSortedBlogPosts()) {
     sections.push(await renderPageMarkdown(post));
   }
+  return sections;
+}
 
+function pagesSections(): string[] {
+  const sections: string[] = [];
   for (const p of walkPagesWithMd()) {
     const raw = fs.readFileSync(p.filePath, "utf-8");
     const cleaned = stripFrontmatter(raw);
     const sourceUrl = p.slug === "/" ? SITE_URL : `${SITE_URL}${p.slug}`;
     sections.push(`---\nSource: ${sourceUrl}\n---\n\n${cleaned}`);
   }
+  return sections;
+}
 
-  return sections.join("\n\n");
+export async function generateDocsFullTxt(): Promise<string> {
+  return (await docsSections()).join("\n\n");
+}
+
+export async function generateBlogsFullTxt(): Promise<string> {
+  return (await blogSections()).join("\n\n");
+}
+
+export function generatePagesFullTxt(): string {
+  return pagesSections().join("\n\n");
+}
+
+export async function generateLlmsFullTxt(): Promise<string> {
+  return [
+    ...(await docsSections()),
+    ...(await blogSections()),
+    ...pagesSections(),
+  ].join("\n\n");
 }

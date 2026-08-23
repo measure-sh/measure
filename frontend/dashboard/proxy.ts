@@ -27,7 +27,7 @@
  *   intentionally omitted from the markdown; keep copy, prices, links,
  *   and definitions aligned and drop the chrome.
  *
- *   `app/utils/llms/markdown_generator.ts` walks `app/` for folders containing both `page.tsx`
+ *   `app/utils/llms/marketing_pages.ts` walks `app/` for folders containing both `page.tsx`
  *   and `page.md` (no skip list; the dual-file check is the filter) and
  *   emits the `## Pages` section in `llms.txt` plus the marketing
  *   portion of `llms-full.txt`.
