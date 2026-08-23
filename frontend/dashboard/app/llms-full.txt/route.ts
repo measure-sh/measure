@@ -1,7 +1,7 @@
 import { generateLlmsFullTxt } from "@/app/utils/llms/llms_full_txt";
 
-// Prerendered at build time: the docs tree, the blog posts and the
-// marketing page.md twins are all fixed at build.
+// The docs tree, the blog posts, and the marketing page.md twins are
+// fixed at build time, so the response can be prerendered.
 export const dynamic = "force-static";
 
 export async function GET() {

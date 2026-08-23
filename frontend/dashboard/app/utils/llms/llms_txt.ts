@@ -3,8 +3,8 @@ import { docsSectionLines } from "@/app/utils/llms/docs_sections";
 import { source } from "@/app/utils/docs_source";
 import { walkPagesWithMd } from "@/app/utils/llms/marketing_pages";
 
-// Jest cannot import this module: docs_source loads the compiled fumadocs
-// content, which uses top-level await.
+// Jest cannot import this module. docs_source loads the compiled
+// fumadocs content, which uses top-level await.
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://measure.sh";
 

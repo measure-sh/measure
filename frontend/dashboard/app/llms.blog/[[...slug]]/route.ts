@@ -3,14 +3,13 @@ import { renderPageMarkdown } from "@/app/utils/llms/page_markdown";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://measure.sh";
 
-// Serves each blog post as processed markdown, the same contract as the
-// docs /llms.docs route: public URLs are the post URL with a .md suffix
-// (/blog/foo.md), rewritten here by next.config, and the proxy lands
-// markdown-preferring requests for /blog/* here. The bare /llms.blog URL
-// (public /blog.md) returns a markdown index of all posts, since the blog
-// index is not itself a collection page. Prerendered at build: the post
-// list is fixed at build, and with dynamicParams off unknown slugs 404
-// without running the handler.
+// Public URLs are the post URL with a .md suffix (/blog/foo.md).
+// next.config rewrites them to this route. The proxy also sends
+// markdown-preferring requests for /blog/* here. The bare URL (public
+// /blog.md) returns a markdown index, because the blog index page has no
+// markdown source of its own. The post list is fixed at build time. With
+// dynamicParams off, an unknown slug returns 404 without running the
+// handler.
 export const dynamic = "force-static";
 export const dynamicParams = false;
 

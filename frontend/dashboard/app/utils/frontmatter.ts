@@ -16,7 +16,6 @@ export function splitFrontmatter(text: string): {
   return { frontmatter: match[1], body: text.slice(match[0].length) };
 }
 
-/** The markdown source without its leading frontmatter block. */
 export function stripFrontmatter(text: string): string {
   return splitFrontmatter(text).body;
 }

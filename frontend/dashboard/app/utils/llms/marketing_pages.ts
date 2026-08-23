@@ -66,7 +66,6 @@ export function walkPagesWithMd(): MarketingPage[] {
   }
 
   walk(APP_DIR, []);
-  // Homepage first, then alphabetical by slug.
   return pages.sort((a, b) => {
     if (a.slug === "/") return -1;
     if (b.slug === "/") return 1;

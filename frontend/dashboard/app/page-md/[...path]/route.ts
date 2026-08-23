@@ -1,6 +1,6 @@
-// Folder is named `page-md`, not `_md`: Next.js App Router treats
-// underscore-prefixed folders as private and excludes them from routing.
-// Don't rename to anything starting with `_` or this handler silently 404s.
+// Next.js excludes underscore-prefixed folders from routing. A rename of
+// page-md to a name that starts with "_" makes this handler return 404
+// with no build error.
 import { stripFrontmatter } from "@/app/utils/frontmatter";
 import fs from "fs";
 import { type NextRequest, NextResponse } from "next/server";
@@ -33,9 +33,8 @@ function markdownResponse(body: string) {
 }
 
 /**
- * Resolve URL segments to a colocated `page.md` next to the route's
- * `page.tsx`. The proxy rewrites `/` to `/page-md/index` so the homepage
- * lands here as ["index"] — translate that back to `app/page.md`.
+ * The proxy rewrites "/" to "/page-md/index". The segment ["index"]
+ * therefore maps to app/page.md.
  */
 function resolvePageMd(segments: string[]): string | null {
   const rel =
@@ -44,7 +43,8 @@ function resolvePageMd(segments: string[]): string | null {
       : path.join(...segments, "page.md");
 
   const candidate = path.join(APP_DIR, rel);
-  // path.join collapses any "..", and the startsWith guard catches escapes
+  // path.join collapses ".." segments, so the startsWith check rejects
+  // any path outside APP_DIR.
   if (!candidate.startsWith(`${APP_DIR}${path.sep}`)) {
     return null;
   }
@@ -67,12 +67,11 @@ export async function GET(
     return notAcceptable();
   }
 
-  // The path is built at request time, so the bundler can't tell which files
-  // this reads and falls back to tracing the entire repository into the build
-  // output, which is slow here and fails outright on hosts that check out the
-  // whole monorepo. The page.md files are already listed in
-  // outputFileTracingIncludes in next.config.mjs, so they ship regardless and
-  // the tracer can skip this call.
+  // The path is computed at request time. The bundler cannot see which
+  // files this call reads, so it would trace the entire repository into
+  // the build output. That is slow and fails on hosts that check out the
+  // whole monorepo. next.config.mjs lists the page.md files in
+  // outputFileTracingIncludes, so they ship without the trace.
   const raw = fs.readFileSync(/*turbopackIgnore: true*/ file, "utf-8");
   return markdownResponse(stripFrontmatter(raw));
 }
