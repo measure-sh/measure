@@ -3,6 +3,7 @@ import {
   stripFrontmatter,
 } from "@/app/utils/llms/frontmatter";
 import { getSortedBlogPosts } from "@/app/utils/blog_source";
+import { docsSectionLines } from "@/app/utils/llms/docs_sections";
 import { source } from "@/app/utils/docs_source";
 import { toStandaloneMarkdown } from "@/app/utils/llms/standalone_markdown";
 import fs from "fs";
@@ -87,48 +88,11 @@ export function walkPagesWithMd(): MarketingPage[] {
   });
 }
 
-function nodeName(node: { name?: React.ReactNode }): string {
-  return typeof node.name === "string" ? node.name : String(node.name ?? "");
-}
-
 /**
- * Link label for a page node. Prefers the frontmatter title from the
- * source: tree names can be ReactNodes (the OpenAPI plugin wraps API page
- * names in a method badge element), which don't stringify.
- */
-function pageLabel(
-  node: { name?: React.ReactNode; url: string },
-  titles: Map<string, string | undefined>,
-): string {
-  return titles.get(node.url) ?? nodeName(node);
-}
-
-/** Page links of a tree branch, flattening nested folders. */
-function collectPageLinks(
-  nodes: PageTree.Node[],
-  titles: Map<string, string | undefined>,
-): string[] {
-  const lines: string[] = [];
-  for (const node of nodes) {
-    if (node.type === "page") {
-      lines.push(`- [${pageLabel(node, titles)}](${SITE_URL}${node.url})`);
-    } else if (node.type === "folder") {
-      if (node.index) {
-        lines.push(
-          `- [${pageLabel(node.index, titles)}](${SITE_URL}${node.index.url})`,
-        );
-      }
-      lines.push(...collectPageLinks(node.children, titles));
-    }
-  }
-  return lines;
-}
-
-/**
- * llms.txt: an H1 + blockquote description, one H2 section per sidebar
- * group, standalone pages under "## Docs", blog posts newest first under
- * "## Blog", the marketing pages with markdown twins under "## Pages",
- * and an Optional section pointing at llms-full.txt.
+ * llms.txt: an H1 + blockquote description, all docs under "## Docs" with
+ * one "### <group>" subsection per sidebar group, blog posts newest first
+ * under "## Blog", the marketing pages with markdown twins under
+ * "## Pages", and an Optional section pointing at llms-full.txt.
  */
 export function generateLlmsTxt(): string {
   const tree = source.getPageTree();
@@ -138,33 +102,14 @@ export function generateLlmsTxt(): string {
   const lines: string[] = [];
   lines.push("# measure.sh");
   lines.push("");
-  lines.push("> Open source tool to monitor mobile apps");
+  lines.push(
+    "> Measure helps mobile teams monitor and fix crashes, ANRs, bugs, and performance issues. The open source alternative to Firebase Crashlytics.",
+  );
   lines.push("");
 
-  const standalone: string[] = [];
-
-  for (const node of tree.children) {
-    if (node.type === "folder") {
-      lines.push(`## ${nodeName(node)}`);
-      lines.push("");
-      if (node.index) {
-        lines.push(
-          `- [${pageLabel(node.index, titles)}](${SITE_URL}${node.index.url})`,
-        );
-      }
-      lines.push(...collectPageLinks(node.children, titles));
-      lines.push("");
-    } else if (node.type === "page") {
-      standalone.push(`- [${pageLabel(node, titles)}](${SITE_URL}${node.url})`);
-    }
-  }
-
-  if (standalone.length > 0) {
-    lines.push("## Docs");
-    lines.push("");
-    lines.push(...standalone);
-    lines.push("");
-  }
+  lines.push("## Docs");
+  lines.push("");
+  lines.push(...docsSectionLines(tree.children, titles, SITE_URL));
 
   const posts = getSortedBlogPosts();
   if (posts.length > 0) {
