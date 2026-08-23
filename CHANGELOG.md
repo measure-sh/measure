@@ -41,6 +41,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Fold public oci workflow (#4220) by @detj in #4220
 - (**deps**): Bump github.com/moby/go-archive in /backend/testinfra (#4277) by @dependabot[bot] in #4277
 - (**deps**): Bump github.com/moby/go-archive in /backend/ingest-worker (#4276) by @dependabot[bot] in #4276
+- (**frontend**): Split llms-full.txt by section by @anupcowkur in #4279
+- (**frontend**): Improve comments in llm md generation code by @anupcowkur
+- (**frontend**): Split llms markdown_generator by output by @anupcowkur
+- (**frontend**): Follow sidebar structure in llms.txt by @anupcowkur
+- (**frontend**): Add test for docs meta.json coverage by @anupcowkur
 - (**frontend**): Adjust attr spacing in error details page by @anupcowkur in #4273
 - (**frontend**): Replace radix toast with base ui toast by @anupcowkur in #4266
 - (**frontend**): Match formatKMB with backend by @anupcowkur in #4259
