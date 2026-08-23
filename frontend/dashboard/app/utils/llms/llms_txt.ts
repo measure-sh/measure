@@ -49,7 +49,16 @@ export function generateLlmsTxt(): string {
   lines.push("## Optional");
   lines.push("");
   lines.push(
-    `- [llms-full.txt](${SITE_URL}/llms-full.txt): Complete documentation in a single file`,
+    `- [llms-full.txt](${SITE_URL}/llms-full.txt): All documentation pages, blog posts, and website pages in a single file`,
+  );
+  lines.push(
+    `- [llms-docs-full.txt](${SITE_URL}/llms-docs-full.txt): All documentation pages in one file`,
+  );
+  lines.push(
+    `- [llms-blogs-full.txt](${SITE_URL}/llms-blogs-full.txt): All blog posts in one file`,
+  );
+  lines.push(
+    `- [llms-pages-full.txt](${SITE_URL}/llms-pages-full.txt): All website pages in one file`,
   );
   lines.push("");
 
