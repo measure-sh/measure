@@ -1,11 +1,11 @@
 import { renderPageMarkdown } from "@/app/utils/llms/page_markdown";
 import { source } from "@/app/utils/docs_source";
 
-// Serves each docs page as processed markdown. Public URLs are the page
-// URL with a .md suffix (/docs/foo.md), rewritten here by next.config;
-// the proxy also lands markdown-preferring requests for /docs/* here.
-// Prerendered at build: the docs source is fixed at build, and with
-// dynamicParams off unknown slugs 404 without running the handler.
+// Public URLs are the page URL with a .md suffix (/docs/foo.md).
+// next.config rewrites them to this route. The proxy also sends
+// markdown-preferring requests for /docs/* here. The docs source is fixed
+// at build time. With dynamicParams off, an unknown slug returns 404
+// without running the handler.
 export const dynamic = "force-static";
 export const dynamicParams = false;
 

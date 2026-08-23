@@ -6,8 +6,8 @@ import { renderPageMarkdown } from "@/app/utils/llms/page_markdown";
 import fs from "fs";
 import type * as PageTree from "fumadocs-core/page-tree";
 
-// Jest cannot import this module: docs_source loads the compiled fumadocs
-// content, which uses top-level await.
+// Jest cannot import this module. docs_source loads the compiled
+// fumadocs content, which uses top-level await.
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://measure.sh";
 
