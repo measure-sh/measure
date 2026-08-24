@@ -1,6 +1,28 @@
 import { createMDX } from "fumadocs-mdx/next";
 import { withPostHogConfig } from "@posthog/nextjs-config";
 
+// These sources are markdown/plain-text alternates of canonical HTML pages.
+// They stay crawlable on purpose, X-Robots-Tag: noindex keeps them out of
+// the search index without blocking access.
+const NOINDEX_SOURCES = [
+  "/docs.md",
+  "/docs/:path*.md",
+  "/blog.md",
+  "/blog/:path*.md",
+  "/llms.docs",
+  "/llms.docs/:path*",
+  "/llms.blog",
+  "/llms.blog/:path*",
+  "/llms.txt",
+  "/llms-full.txt",
+  "/llms-docs-full.txt",
+  "/llms-blogs-full.txt",
+  "/llms-pages-full.txt",
+  "/page-md/:path*",
+  "/docs/api/dashboard/:path*",
+  "/docs/api/sdk/:path*",
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Standalone output exists for the self-hosted Docker image, which copies
@@ -329,6 +351,18 @@ const nextConfig = {
         destination: "/docs/performance-tracing/profiling",
         permanent: true,
       },
+      // MCP and Performance tracing moved out of features/ into their own
+      // top-level pages. Forward the old URLs.
+      {
+        source: "/docs/features/feature-mcp",
+        destination: "/docs/mcp",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-performance-tracing",
+        destination: "/docs/performance-tracing",
+        permanent: true,
+      },
     ];
   },
   async headers() {
@@ -370,6 +404,15 @@ const nextConfig = {
           },
         ],
       },
+      ...NOINDEX_SOURCES.map((source) => ({
+        source,
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex",
+          },
+        ],
+      })),
     ];
   },
 };

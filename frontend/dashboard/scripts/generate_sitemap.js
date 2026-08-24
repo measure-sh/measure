@@ -101,7 +101,11 @@ function isDynamic(route) {
   return /\[.+?\]/.test(route);
 }
 
-const EXCLUDED_PREFIXES = ["/auth/"];
+// The generated OpenAPI operation pages under these prefixes are thin
+// near-duplicates (no description, body is a JSX component) and are
+// noindexed in next.config.mjs. Keep them out of the sitemap too. Trailing
+// slash keeps /docs/api itself, the reference entry point, in the sitemap.
+const EXCLUDED_PREFIXES = ["/auth/", "/docs/api/dashboard/", "/docs/api/sdk/"];
 
 function isExcluded(route) {
   return EXCLUDED_PREFIXES.some((prefix) => route.startsWith(prefix));
@@ -146,6 +150,7 @@ function main() {
   }
 
   for (const route of getDocsRoutes()) {
+    if (isExcluded(route)) continue;
     routes.add(route);
   }
 
