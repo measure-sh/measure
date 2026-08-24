@@ -34,21 +34,14 @@ final class BaseNetworkClient: NetworkClient {
     }
 
     func execute(batchId: String, events: [EventEntity], spans: [SpanEntity]) -> HttpResponse {
-        let serializedEvents = self.serializeEvents(events: events)
-        let serializedSpans = self.serializeSpans(spans: spans)
+        let serializedEvents = events.compactMap { eventSerializer.getSerialisedEvent(for: $0) }
+        let serializedSpans = spans.compactMap { eventSerializer.serializeSpan($0) }
 
         if serializedEvents.isEmpty && serializedSpans.isEmpty {
             return .success(body: "{}", eTag: nil)
         }
 
-        let payload: [String: Any] = [
-            "events": serializedEvents,
-            "spans": serializedSpans
-        ]
-
-        guard let jsonBody = try? JSONSerialization.data(withJSONObject: payload, options: []) else {
-            return .error(.unknownError("Failed to serialize batch JSON payload"))
-        }
+        let jsonBody = buildBatchPayload(events: serializedEvents, spans: serializedSpans)
 
         return httpClient.sendJsonRequest(url: baseUrl.appendingPathComponent(eventsEndpoint),
                                           method: .put,
@@ -111,47 +104,16 @@ final class BaseNetworkClient: NetworkClient {
         }
     }
 
-    private func serializeEvents(events: [EventEntity]) -> [[String: Any]] {
-        return events.compactMap { event in
-            guard let eventWrapperData = eventSerializer.getSerialisedEvent(for: event) else {
-                return [:]
-            }
+    private func buildBatchPayload(events: [Data], spans: [Data]) -> Data {
+        let payloadSize = (events + spans).reduce(0) { $0 + $1.count + 1 }
 
-            guard var fullEventDict = (try? JSONSerialization.jsonObject(with: eventWrapperData, options: [])) as? [String: Any] else {
-                return [:]
-            }
+        var jsonBody = Data(capacity: payloadSize + 32)
+        jsonBody.append(contentsOf: "{\"events\":".utf8)
+        JSONWriter.appendArray(of: events, to: &jsonBody)
+        jsonBody.append(contentsOf: ",\"spans\":".utf8)
+        JSONWriter.appendArray(of: spans, to: &jsonBody)
+        jsonBody.append(contentsOf: "}".utf8)
 
-            fullEventDict.removeValue(forKey: "timestampInMillis")
-            if let userDefinedAttributeString = fullEventDict["user_defined_attribute"] as? String,
-               let attributeData = userDefinedAttributeString.data(using: .utf8),
-               let attributeDict = try? JSONSerialization.jsonObject(with: attributeData, options: []) as? [String: Any] {
-                fullEventDict["user_defined_attribute"] = attributeDict
-            }
-            if let attachments = fullEventDict["attachments"] as? [[String: Any]] {
-                let cleanedAttachments = attachments.map { attachment in
-                    let requiredKeys: Set<String> = ["id", "name", "type", "size"]
-                    return attachment.filter { requiredKeys.contains($0.key) }
-                }
-
-                fullEventDict["attachments"] = cleanedAttachments
-            }
-
-            return fullEventDict
-        }
-    }
-
-    private func serializeSpans(spans: [SpanEntity]) -> [[String: Any]] {
-        let encoder = JSONEncoder()
-
-        return spans.compactMap { spanEntity in
-            let spanCodable = spanEntity.toSpanDataCodable()
-
-            guard let data = try? encoder.encode(spanCodable) else { return nil }
-
-            guard let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
-                return nil
-            }
-            return jsonObject
-        }
+        return jsonBody
     }
 }

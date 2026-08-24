@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum EventType: String, Codable {
+enum EventType: String, Codable, CaseIterable {
     case exception
     case gestureClick = "gesture_click"
     case gestureLongClick = "gesture_long_click"
