@@ -30,28 +30,52 @@ export default function TermsOfService() {
           <div className="py-16" />
           <h1 className="text-6xl font-display mb-2">Terms of Service</h1>
           <p className="text-muted-foreground mb-8">
-            Updated: September 10, 2025
+            Last Updated: Aug 17, 2026
           </p>
           <h2 className="text-3xl font-display mt-8 mb-4">Measure Cloud</h2>
+          <p className="mb-4 text-justify text-lg">
+            PLEASE READ THESE TERMS OF USE CAREFULLY. BY SIGNING UP TO AND/OR
+            USING THIS PLATFORM AND OUR SERVICES, YOU AGREE TO BE BOUND BY ALL
+            OF THE BELOW TERMS AND CONDITIONS AND PRIVACY POLICY.
+          </p>
+          <p className="mb-4 text-justify text-lg">
+            Measure Inc. (&ldquo;Company&rdquo;, &ldquo;We&rdquo; or
+            &ldquo;Us&rdquo; and their connotations) owns and operates Our
+            website at{" "}
+            <Link
+              target="_blank"
+              className={underlineLinkStyle}
+              href="https://measure.sh"
+            >
+              https://measure.sh
+            </Link>{" "}
+            (&ldquo;Website&rdquo;) and Our mobile SDK on iOS or Android called
+            (&ldquo;SDK&rdquo;). The Website and the SDK are together called as
+            &ldquo;Platform&rdquo;.
+          </p>
+          <p className="mb-4 text-justify text-lg">
+            These terms of use (&ldquo;Terms&rdquo;) describe the terms on which
+            the Company grants Users (defined below) access to the Platform and
+            shall be read with the privacy policy available{" "}
+            <Link className={underlineLinkStyle} href="/privacy-policy">
+              here
+            </Link>{" "}
+            (&ldquo;Privacy Policy&rdquo;). The users of the Platform are herein
+            referred to as &ldquo;You&rdquo;, &ldquo;Your&rdquo; or
+            &ldquo;User(s)&rdquo;.
+          </p>
           <p className="mb-8 text-justify text-lg">
-            Please read these terms of service carefully before using our
-            Service.
+            These Terms along with the Privacy Policy constitute the entire
+            agreement between the Company and You with respect to Your use of
+            the Platform and/or the Services (defined below).
           </p>
 
-          {/* Interpretation and Definitions */}
+          {/* Definitions and Interpretation */}
           <h3 className="text-2xl font-display mt-8 mb-4">
-            Interpretation and Definitions
+            Definitions and Interpretation
           </h3>
 
-          <h4 className="text-xl font-display mt-6 mb-3">Interpretation</h4>
-          <p className="mb-6 text-justify text-lg">
-            The words of which the initial letter is capitalized have meanings
-            defined under the following conditions. The following definitions
-            shall have the same meaning regardless of whether they appear in
-            singular or in plural.
-          </p>
-
-          <h4 className="text-xl font-display mt-6 mb-3">Definitions</h4>
+          <h4 className="text-xl font-display mt-6 mb-3">1.1. Definitions</h4>
           <p className="mb-4 text-justify text-lg">
             For the purposes of these Terms of Service:
           </p>
@@ -61,7 +85,7 @@ export default function TermsOfService() {
               <dt className="font-semibold">Affiliate</dt>
               <dd className="mt-1 text-justify">
                 means an entity that controls, is controlled by or is under
-                common control with a party, where &quot;control&quot; means
+                common control with a party, where &ldquo;control&rdquo; means
                 ownership of 50% or more of the shares, equity interest or other
                 securities entitled to vote for election of directors or other
                 managing authority.
@@ -86,10 +110,11 @@ export default function TermsOfService() {
             <div>
               <dt className="font-semibold">Company</dt>
               <dd className="mt-1 text-justify">
-                (referred to as &quot;the Company&quot;,
-                &quot;We&quot;,&quot;we&quot;, &quot;Us&quot;, &quot;us&quot;,
-                &quot;Our&quot; or &quot;our&quot; in this Agreement) refers to
-                Measure Inc., 8 The Green, Ste A, Dover, DE 19901.
+                (referred to as &ldquo;the Company&rdquo;,
+                &ldquo;We&rdquo;,&ldquo;we&rdquo;, &ldquo;Us&rdquo;,
+                &ldquo;us&rdquo;, &ldquo;Our&rdquo; or &ldquo;our&rdquo; in this
+                Agreement) refers to Measure Inc., 8 The Green, Ste A, Dover, DE
+                19901.
               </dd>
             </div>
 
@@ -136,9 +161,9 @@ export default function TermsOfService() {
             <div>
               <dt className="font-semibold">Terms of Service</dt>
               <dd className="mt-1 text-justify">
-                (also referred as &quot;Terms&quot;) mean these Terms of Service
-                that form the entire agreement between you and the Company
-                regarding the use of the Service.
+                (also referred as &ldquo;Terms&rdquo;) mean these Terms of
+                Service that form the entire agreement between you and the
+                Company regarding the use of the Service.
               </dd>
             </div>
 
@@ -166,14 +191,35 @@ export default function TermsOfService() {
             <div>
               <dt className="font-semibold">You/Your</dt>
               <dd className="mt-1 text-justify">
-                (referred to as &quot;You&quot;, &quot;you&quot;,
-                &quot;Your&quot; or &quot;your&quot; in this Agreement) is the
-                individual accessing or using the Service, or the company or
+                (referred to as &ldquo;You&rdquo;, &ldquo;you&rdquo;,
+                &ldquo;Your&rdquo; or &ldquo;your&rdquo; in this Agreement) is
+                the individual accessing or using the Service, or the company or
                 other legal entity on behalf of which such individual is
                 accessing or using the Service, as applicable.
               </dd>
             </div>
           </dl>
+
+          <h4 className="text-xl font-display mt-6 mb-3">
+            1.2. Interpretation
+          </h4>
+          <p className="mb-4 text-justify text-lg">
+            In this Agreement, unless the context requires otherwise:
+          </p>
+          <ul className="list-disc ml-6 mb-8 space-y-3 text-lg">
+            <li className="text-justify">
+              the headings are inserted for ease of reference only and shall not
+              affect the construction or interpretation of this Agreement;
+            </li>
+            <li className="text-justify">
+              references to one gender include all genders;
+            </li>
+            <li className="text-justify">
+              any reference to any Law is a reference to it as it may have been,
+              or may from time to time be, amended, modified, consolidated or
+              re-enacted (with or without modification);
+            </li>
+          </ul>
 
           {/* Acknowledgment */}
           <h3 className="text-2xl font-display mt-12 mb-4">Acknowledgment</h3>
@@ -373,17 +419,117 @@ export default function TermsOfService() {
             policies of any third-party web sites or services that you visit.
           </p>
 
+          {/* Representations and Warranties */}
+          <h3 className="text-2xl font-display mt-12 mb-4">
+            Representations and Warranties
+          </h3>
+          <p className="mb-4 text-justify text-lg">
+            Each Party hereby represents and warrants for itself, as at the date
+            of the Order Form, to the other Party as follows:
+          </p>
+          <p className="mb-4 text-justify text-lg">
+            <strong>1.1. Organization:</strong> It is duly incorporated and
+            validly existing and registered in accordance with the applicable
+            laws.
+          </p>
+          <p className="mb-4 text-justify text-lg">
+            <strong>1.2. Authority:</strong> It has full corporate or other
+            organizational power and authority to agree to, and to perform its
+            obligations under these Terms. The execution, delivery and
+            performance of these Terms by it have been duly and validly
+            authorized by all necessary corporate action and are not subject to
+            encumbrances of any nature.
+          </p>
+          <p className="mb-4 text-justify text-lg">
+            <strong>1.3. Binding Effect:</strong> These Terms constitute legal,
+            valid and binding obligations of the Party, enforceable in
+            accordance with its terms.
+          </p>
+          <p className="mb-4 text-justify text-lg">
+            <strong>1.4. No Violation:</strong> The execution, delivery and
+            performance of these Terms will not (i) violate or conflict with any
+            provision of its constitutional documents, (ii) violate or conflict
+            with any Applicable Laws or permit, consents or authorizations,
+            applicable to the Party, or (iii) constitute a breach of or under
+            any contract, agreement, arrangement or judgement to which it is a
+            party to.
+          </p>
+          <p className="mb-4 text-justify text-lg">
+            <strong>1.5. No Proceedings:</strong> To the knowledge of the Party,
+            except as disclosed in writing, that there is no proceeding,
+            inquiry, investigation or litigation by any person, whether pending
+            or threatened against the Party that would be reasonably likely to
+            result in monetary damages, injunctive relief, or the taking of any
+            other action that would be reasonably expected to (in any of the
+            foregoing cases) impair the ability of the Party to perform its
+            obligations under these Terms.
+          </p>
+          <p className="mb-8 text-justify text-lg">
+            <strong>1.6. Consents:</strong> It is not required to (i) obtain any
+            authorization, or waiver, of, (ii) to make any filing or
+            registration with, or (iii) give any notice to, any authority in
+            connection with or as a condition to the execution, delivery and
+            performance of these Terms.
+          </p>
+
+          {/* Our Intellectual Property Rights */}
+          <h3 className="text-2xl font-display mt-12 mb-4">
+            Our Intellectual Property Rights
+          </h3>
+          <p className="mb-8 text-justify text-lg">
+            The User acknowledges that it is obtaining the right to access the
+            Platform and use the Services, and that irrespective of any use of
+            the words &ldquo;purchase&rdquo;, &ldquo;sale&rdquo; or like terms,
+            in no case will any ownership rights be conveyed or be deemed to be
+            conveyed to the User under these terms. User agrees that the Company
+            or its suppliers retain all rights, title, and interest (including
+            all intellectual property rights) in and to the Platform, Services,
+            all documentation, services deliverables, and any and all related
+            and underlying technology and documentation and any derivative
+            works, modifications or improvements of any of the foregoing
+            (including but not limited to all texts, graphics, photos,
+            illustrations, questionnaire content, logos), including Feedback
+            (collectively, &ldquo;Company Technology&rdquo;). You shall not
+            copy, download, publish, distribute or reproduce any of the
+            information contained on this Platform or social media in any form
+            without the prior written consent of the Company. Except as
+            expressly set forth in these terms, no rights in any Company
+            Technology are granted to the User.
+          </p>
+
           {/* Termination */}
           <h3 className="text-2xl font-display mt-12 mb-4">Termination</h3>
           <p className="mb-4 text-justify text-lg">
-            We may terminate or suspend your Account immediately, without prior
-            notice or liability, for any reason whatsoever, including without
-            limitation if you breach these Terms of Service.
+            You understand and agree that the Company may remove, restrict,
+            cancel or suspend access to and/or use of the Service and any part
+            of it if the Company considers (in the sole discretion of Company)
+            that You have breached any of these Terms.
           </p>
           <p className="mb-8 text-justify text-lg">
-            Upon termination, your right to use the Service will cease
-            immediately. If you wish to terminate your Account, you may simply
-            discontinue using the Service.
+            Please note that if Your access to the Platform and/ or the Services
+            has been removed, restricted, cancelled or suspended, We do not have
+            an obligation to restore the same unless otherwise required under
+            applicable law. If You wish to terminate Your account, You may
+            simply discontinue using the Service. If You believe Your access has
+            been terminated in error, You may contact Us at{" "}
+            <Link
+              target="_blank"
+              className={underlineLinkStyle}
+              href="mailto:privacy@measure.sh"
+            >
+              privacy@measure.sh
+            </Link>
+            .
+          </p>
+
+          {/* Indemnification */}
+          <h3 className="text-2xl font-display mt-12 mb-4">Indemnification</h3>
+          <p className="mb-8 text-justify text-lg">
+            You hereby indemnify to the fullest extent the Company and its
+            officers, directors, employees and agents from and against any
+            and/or all liabilities, costs, demands, causes of action, damages
+            and expenses arising in any way related to Your breach of any of the
+            provisions of these Terms.
           </p>
 
           {/* Limitation of Liability */}
@@ -419,13 +565,13 @@ export default function TermsOfService() {
             greatest extent permitted by law.
           </p>
 
-          {/* "AS IS" and "AS AVAILABLE" Disclaimer */}
+          {/* &ldquo;AS IS&rdquo; and &ldquo;AS AVAILABLE&rdquo; Disclaimer */}
           <h3 className="text-2xl font-display mt-12 mb-4">
-            &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; Disclaimer
+            &ldquo;AS IS&rdquo; and &ldquo;AS AVAILABLE&rdquo; Disclaimer
           </h3>
           <p className="mb-4 text-justify text-lg">
-            The Service is provided to you &quot;AS IS&quot; and &quot;AS
-            AVAILABLE&quot; and with all faults and defects without warranty of
+            The Service is provided to you &ldquo;AS IS&rdquo; and &ldquo;AS
+            AVAILABLE&rdquo; and with all faults and defects without warranty of
             any kind. To the maximum extent permitted under applicable law, the
             Company, on its own behalf and on behalf of its Affiliates and its
             and their respective licensors and service providers, expressly
@@ -463,23 +609,14 @@ export default function TermsOfService() {
             enforceable under applicable law.
           </p>
 
-          {/* Governing Law */}
-          <h3 className="text-2xl font-display mt-12 mb-4">Governing Law</h3>
-          <p className="mb-8 text-justify text-lg">
-            The laws of the Country, excluding its conflicts of law rules, shall
-            govern this Terms and your use of the Service. Your use of the
-            Application may also be subject to other local, state, national, or
-            international laws.
-          </p>
-
-          {/* Disputes Resolution */}
+          {/* Compliance with Laws */}
           <h3 className="text-2xl font-display mt-12 mb-4">
-            Disputes Resolution
+            Compliance with Laws
           </h3>
           <p className="mb-8 text-justify text-lg">
-            If you have any concern or dispute about the Service, you agree to
-            first try to resolve the dispute informally by contacting the
-            Company.
+            Each of the Parties confirm, in respect of itself, that it has
+            complied with and has requisite approvals/ licenses/ permissions
+            under Applicable Laws.
           </p>
 
           {/* For European Union (EU) Users */}
@@ -498,7 +635,7 @@ export default function TermsOfService() {
           </h3>
           <p className="mb-8 text-justify text-lg">
             If you are a U.S. federal government end user, our Service is a
-            &quot;Commercial Item&quot; as that term is defined at 48 C.F.R.
+            &ldquo;Commercial Item&rdquo; as that term is defined at 48 C.F.R.
             §2.101.
           </p>
 
@@ -509,15 +646,54 @@ export default function TermsOfService() {
           <p className="mb-8 text-justify text-lg">
             You represent and warrant that (i) you are not located in a country
             that is subject to the United States government embargo, or that has
-            been designated by the United States government as a &quot;terrorist
-            supporting&quot; country, and (ii) you are not listed on any United
-            States government list of prohibited or restricted parties.
+            been designated by the United States government as a
+            &ldquo;terrorist supporting&rdquo; country, and (ii) you are not
+            listed on any United States government list of prohibited or
+            restricted parties.
           </p>
 
-          {/* Severability and Waiver */}
-          <h3 className="text-2xl font-display mt-12 mb-4">
-            Severability and Waiver
-          </h3>
+          {/* Miscellaneous */}
+          <h3 className="text-2xl font-display mt-12 mb-4">Miscellaneous</h3>
+
+          <h4 className="text-xl font-display mt-6 mb-3">Governing Law</h4>
+          <p className="mb-4 text-justify text-lg">
+            This Agreement shall be governed by the laws of the State of
+            California without regard to its conflict of laws provisions, and
+            shall, subject to Dispute Resolution Clause below, be subject to the
+            courts of California.
+          </p>
+          <p className="mb-6 text-justify text-lg">
+            Your use of the Application may also be subject to other local,
+            state, national, or international laws.
+          </p>
+
+          <h4 className="text-xl font-display mt-6 mb-3">
+            Disputes Resolution
+          </h4>
+          <p className="mb-4 text-justify text-lg">
+            The Parties shall attempt in good faith to resolve any disputes,
+            differences or Claims arising out of or relating to this Agreement
+            promptly by negotiation amongst the management of Company and you.
+          </p>
+          <p className="mb-6 text-justify text-lg">
+            Any dispute or Claim which is not amicably settled between the
+            Parties within thirty (30) days of written notice of such dispute or
+            Claim having been furnished by the complaining Party to the other
+            Party, shall be resolved by arbitration under the rules of Judicial
+            Administration and Arbitration Services (&ldquo;JAMS&rdquo;) in
+            effect at the time of submission, as modified by this Clause. The
+            arbitration will be heard and determined by a single arbitrator
+            selected by mutual agreement of the Parties, or, failing agreement
+            within thirty (30) days following the date of receipt by the
+            respondent of the claim, by JAMS. Such arbitration will take place
+            in California. The arbitration award so given will be a final and
+            binding determination of the dispute and will be fully enforceable
+            in any court of competent jurisdiction. Except in a proceeding to
+            enforce the results of the arbitration or as otherwise required by
+            law, neither Party nor any arbitrator may disclose the existence,
+            content or results of any arbitration hereunder without the prior
+            written agreement of both Parties.
+          </p>
 
           <h4 className="text-xl font-display mt-6 mb-3">Severability</h4>
           <p className="mb-6 text-justify text-lg">
@@ -537,6 +713,36 @@ export default function TermsOfService() {
             constitute a waiver of any subsequent breach.
           </p>
 
+          {/* Force Majeure */}
+          <h3 className="text-2xl font-display mt-12 mb-4">Force Majeure</h3>
+          <p className="mb-8 text-justify text-lg">
+            The Company shall not be liable for any delay or failure of
+            performance in respect of obligations under these Terms, caused by
+            events beyond the reasonable control of the Company, including but
+            not limited to acts of God, wars, insurrections, riots, sabotage,
+            passing or repealing of any law, ordinance, direction, or order by
+            any governmental, statutory, regulatory, or judicial authority,
+            and/or any such event.
+          </p>
+
+          {/* Assignment */}
+          <h3 className="text-2xl font-display mt-12 mb-4">Assignment</h3>
+          <p className="mb-8 text-justify text-lg">
+            The Company is allowed to assign, transfer, and subcontract its
+            rights and/or obligations under these Terms without any
+            notification. However, You are not allowed to assign, transfer, or
+            subcontract any of Your rights and/or obligations under these Terms.
+          </p>
+
+          {/* Entire Agreement */}
+          <h3 className="text-2xl font-display mt-12 mb-4">Entire Agreement</h3>
+          <p className="mb-8 text-justify text-lg">
+            These Terms read along with our Privacy Policy constitute the entire
+            agreement between the Company and You in relation to Your use of
+            this Platform and supersede all prior agreements and understandings
+            between the parties.
+          </p>
+
           {/* Translation Interpretation */}
           <h3 className="text-2xl font-display mt-12 mb-4">
             Translation Interpretation
@@ -545,6 +751,23 @@ export default function TermsOfService() {
             These Terms of Service may have been translated if we have made them
             available to you on our Service. You agree that the original English
             text shall prevail in the case of a dispute.
+          </p>
+
+          {/* Self Hosted */}
+          <h2 className="text-3xl font-display mt-12 mb-4">Self Hosted</h2>
+          <p className="mb-8 text-justify text-lg">
+            Please note that the Terms of Service listed above apply
+            specifically to the Measure Cloud service. The Self Hosted version
+            of the software is governed by the terms of the Apache License 2.0,
+            available in the source code{" "}
+            <Link
+              target="_blank"
+              className={underlineLinkStyle}
+              href="https://github.com/measure-sh/measure/blob/main/LICENSE"
+            >
+              here
+            </Link>
+            .
           </p>
 
           {/* Changes to These Terms of Service */}
@@ -573,27 +796,10 @@ export default function TermsOfService() {
             <Link
               target="_blank"
               className={underlineLinkStyle}
-              href="mailto:hello@measure.sh"
+              href="mailto:privacy@measure.sh"
             >
-              hello@measure.sh
+              privacy@measure.sh
             </Link>
-          </p>
-
-          {/* Self Hosted */}
-          <h2 className="text-3xl font-display mt-12 mb-4">Self Hosted</h2>
-          <p className="mb-8 text-justify text-lg">
-            Please note that the Terms of Service listed above apply
-            specifically to the Measure Cloud service. The Self Hosted version
-            of the software is governed by the terms of the Apache License 2.0,
-            available in the source code{" "}
-            <Link
-              target="_blank"
-              className={underlineLinkStyle}
-              href="https://github.com/measure-sh/measure/blob/main/LICENSE"
-            >
-              here
-            </Link>
-            .
           </p>
         </div>
 
