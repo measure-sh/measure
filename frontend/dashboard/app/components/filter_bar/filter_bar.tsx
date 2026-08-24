@@ -16,10 +16,15 @@ import {
   type FilterOperator,
   type FilterValue,
 } from "../../api/filter_types";
-import { useAppsQuery, useFilterKeysQuery } from "../../query/hooks";
+import {
+  useAppsQuery,
+  useFilterKeysQuery,
+  useRootSpanNamesQuery,
+} from "../../query/hooks";
 import { toastNegative } from "../toast";
 import { useFiltersStore } from "../../stores/provider";
 import { Skeleton } from "../skeleton";
+import DropdownSelect, { DropdownSelectType } from "../dropdown_select";
 import AppSelect from "./app_select";
 import DateRangeSelect, {
   type DateSelection,
@@ -81,6 +86,8 @@ function normalizeFilterExpr(
   return writeFilterExpr(buildConditionGroup(parsed.tree, keys));
 }
 
+export type ReadyFilterState = Extract<FilterState, { status: "ready" }>;
+
 export type FilterState =
   | { status: "pending" }
   | { status: "error"; message: string }
@@ -89,6 +96,11 @@ export type FilterState =
       app: App;
       date: DateSelection;
       filterExpr: string | null;
+      rootSpanName: string | null;
+      // True when the caller's request was applied unchanged: the user made no
+      // edits and nothing requested was discarded. Unrequested fields count as
+      // honored.
+      appliedAsRequested: boolean;
     };
 
 interface FilterBarProps {
@@ -99,6 +111,8 @@ interface FilterBarProps {
   requestedDateRange: UncheckedDateRange;
   requestedFilterExpr: string | null;
   filterExprIssues?: FilterExprIssue[] | null;
+  showRootSpanSelector?: boolean;
+  requestedRootSpanName?: string | null;
   onFilterChange: (state: FilterState) => void;
 }
 
@@ -110,11 +124,12 @@ export default function FilterBar({
   requestedDateRange,
   requestedFilterExpr,
   filterExprIssues,
+  showRootSpanSelector = false,
+  requestedRootSpanName = null,
   onFilterChange,
 }: FilterBarProps) {
   const store = useFiltersStore();
-  const selectedApp = useFiltersStore((s) => s.selectedApp);
-  const apps = useFiltersStore((s) => s.apps);
+  const rememberedAppId = useFiltersStore((s) => s.selectedApp?.id);
 
   const [keyListOpen, setKeyListOpen] = useState(false);
   const [editingAsText, setEditingAsText] = useState(false);
@@ -138,7 +153,104 @@ export default function FilterBar({
   const addConditionButtonRef = useRef<HTMLButtonElement>(null);
 
   const appsQuery = useAppsQuery(teamId);
-  const keysQuery = useFilterKeysQuery(selectedApp?.id, entity);
+  const apps = useMemo(() => appsQuery.data ?? [], [appsQuery.data]);
+
+  const [editedApp, setEditedApp] = useState<App | null>(null);
+  // The user's pick wins, then the app requested, then the app
+  // from store, then the first app as fallback
+  const selectedApp =
+    apps.find((app) => app.id === editedApp?.id) ??
+    apps.find((app) => app.id === requestedAppId) ??
+    apps.find((app) => app.id === rememberedAppId) ??
+    apps[0] ??
+    null;
+
+  useEffect(() => {
+    if (selectedApp && selectedApp.id !== rememberedAppId) {
+      store.setSelectedApp(selectedApp);
+    }
+  }, [selectedApp?.id]);
+
+  const parsedRequestedFilter = useMemo(
+    () => (requestedFilterExpr ? parseFilterExpr(requestedFilterExpr) : null),
+    [requestedFilterExpr],
+  );
+
+  // The keys listing caps how many custom keys it returns, so a custom key
+  // the requested expression specifies can be missing from it. Asking the query
+  // for those names resolves them, and the discard check below then keeps
+  // the expression.
+  const requestedCustomKeyNames = useMemo(() => {
+    const names = (parsedRequestedFilter?.tokens ?? [])
+      .filter(
+        (token) => token.kind === "key" && token.text.startsWith("custom."),
+      )
+      .map((token) => token.text);
+    return [...new Set(names)].sort();
+  }, [parsedRequestedFilter]);
+
+  // A custom key typed into the text editor can be beyond the listing cap
+  // as well, so names in the draft join the request. A draft name is only
+  // sent once its condition has an operator, which keeps the query key
+  // stable while the user is still typing the key name itself.
+  const queriedCustomKeyNames = useMemo(() => {
+    const parsedDraft = editedFilter
+      ? parseFilterExpr(editedFilter.draftExpr, { draft: true })
+      : null;
+    const draftNames = (parsedDraft?.tokens ?? [])
+      .filter(
+        (token, index, tokens) =>
+          token.kind === "key" &&
+          token.text.startsWith("custom.") &&
+          tokens[index + 2]?.kind === "operator",
+      )
+      .map((token) => token.text);
+    return [...new Set([...requestedCustomKeyNames, ...draftNames])].sort();
+  }, [editedFilter, requestedCustomKeyNames]);
+
+  const keysQuery = useFilterKeysQuery(
+    selectedApp?.id,
+    entity,
+    queriedCustomKeyNames,
+  );
+
+  const rootSpanNamesQuery = useRootSpanNamesQuery(
+    showRootSpanSelector ? selectedApp : null,
+  );
+  // The server answers null when the app has never
+  // reported a trace; both mean there is nothing to select.
+  const rootSpanNames = useMemo(
+    () => rootSpanNamesQuery.data ?? [],
+    [rootSpanNamesQuery.data],
+  );
+
+  const [selectedRootSpanName, setSelectedRootSpanName] = useState<
+    string | null
+  >(null);
+  const resolvedRootSpanName = useMemo(() => {
+    if (!showRootSpanSelector || rootSpanNames.length === 0) {
+      return null;
+    }
+    // An app switch replaces the list
+    if (selectedRootSpanName && rootSpanNames.includes(selectedRootSpanName)) {
+      return selectedRootSpanName;
+    }
+    if (
+      requestedAppId === selectedApp?.id &&
+      requestedRootSpanName &&
+      rootSpanNames.includes(requestedRootSpanName)
+    ) {
+      return requestedRootSpanName;
+    }
+    return rootSpanNames[0];
+  }, [
+    showRootSpanSelector,
+    rootSpanNames,
+    selectedRootSpanName,
+    requestedAppId,
+    requestedRootSpanName,
+    selectedApp?.id,
+  ]);
 
   // The requested date range takes precedence over the persisted store range.
   const initialDate = useMemo(
@@ -171,28 +283,10 @@ export default function FilterBar({
 
     const loaded = appsQuery.data;
     store.setApps(loaded, loaded.length === 0 ? "no-apps" : "loaded");
-    if (loaded.length === 0) {
-      return;
-    }
-
-    // Falling back to the stored app stops moving between pages from jumping to
-    // another app.
-    const chosenApp =
-      loaded.find((app: App) => app.id === requestedAppId) ??
-      loaded.find((app: App) => app.id === selectedApp?.id) ??
-      loaded[0];
-    if (chosenApp.id !== selectedApp?.id) {
-      store.setSelectedApp(chosenApp);
-    }
   }, [appsQuery.status, appsQuery.data]);
 
   const keys = keysQuery.data?.keys ?? [];
   const keyGroups = keysQuery.data?.key_groups ?? [];
-
-  const parsedRequestedFilter = useMemo(
-    () => (requestedFilterExpr ? parseFilterExpr(requestedFilterExpr) : null),
-    [requestedFilterExpr],
-  );
 
   const checkingRequestedFilter =
     editedFilter === null &&
@@ -251,7 +345,7 @@ export default function FilterBar({
   // builds request fails otherwise |  nothing              | fetch error
   // apps or keys cannot be fetched |  skeleton or disabled | fetch error
   // the team has no apps           |  skeleton             | a prompt to add one
-  // url names one it cannot use    |  falls back to default| rows as normal, toast
+  // request names one it can't use |  falls back to default| rows as normal, toast
   //
   // The filter is cleared only in the last case.
   const ownFilterIssues = useMemo(
@@ -300,7 +394,60 @@ export default function FilterBar({
       : `${first.message} (+${rest.length} more)`;
   }, [draftFilterIssues]);
 
-  const filterState: FilterState = useMemo(() => {
+  // The requested app, date, filter expression and root span name can each
+  // be invalid for this app. We discard those, use defaults instead and we
+  // inform the user via a toast.
+  const appDiscarded =
+    requestedAppId !== null &&
+    appsQuery.status === "success" &&
+    !appsQuery.data.some((app: App) => app.id === requestedAppId);
+
+  const dateDiscarded =
+    requestedDateRange.dateRange !== null &&
+    !isValidDateRange(requestedDateRange);
+
+  const rootSpanNameDiscarded =
+    showRootSpanSelector &&
+    requestedRootSpanName !== null &&
+    requestedAppId === selectedApp?.id &&
+    rootSpanNamesQuery.isSuccess &&
+    !rootSpanNames.includes(requestedRootSpanName);
+
+  const anythingDiscarded =
+    appDiscarded ||
+    dateDiscarded ||
+    rootSpanNameDiscarded ||
+    requestedFilterDiscarded;
+
+  // The ready state is the caller's unchanged request, as long as the
+  // user has made no edits and nothing was discarded. The app is checked
+  // by ID because a requested app may no longer be available, in which
+  // case it is replaced with a fallback.
+  const appliedAsRequested =
+    editedApp === null &&
+    editedDate === null &&
+    editedFilter === null &&
+    selectedRootSpanName === null &&
+    !dateDiscarded &&
+    !requestedFilterDiscarded &&
+    !rootSpanNameDiscarded &&
+    (requestedAppId === null || selectedApp?.id === requestedAppId);
+
+  // The readiness of the app, date and filter expression, before the root
+  // span selector is considered. The bar's own controls render once this is
+  // ready, so a slow or failed root span names fetch leaves the app select
+  // usable.
+  const baseFilterState = useMemo<
+    | { status: "pending" }
+    | { status: "error"; message: string }
+    | {
+        status: "ready";
+        app: App;
+        date: DateSelection;
+        filterExpr: string | null;
+        appliedAsRequested: boolean;
+      }
+  >(() => {
     if (appsQuery.status === "error") {
       return {
         status: "error",
@@ -332,6 +479,7 @@ export default function FilterBar({
       app: selectedApp,
       date,
       filterExpr: currentFilterExpr,
+      appliedAsRequested,
     };
   }, [
     appsQuery.status,
@@ -341,26 +489,47 @@ export default function FilterBar({
     date,
     checkingRequestedFilter,
     currentFilterExpr,
+    appliedAsRequested,
+  ]);
+
+  // With the selector shown, the ready state is held back until a name has
+  // resolved, because the page's span queries cannot run without one.
+  const filterState: FilterState = useMemo(() => {
+    if (baseFilterState.status !== "ready") {
+      return baseFilterState;
+    }
+    if (!showRootSpanSelector) {
+      return { ...baseFilterState, rootSpanName: null };
+    }
+    if (rootSpanNamesQuery.isError) {
+      return {
+        status: "error",
+        message:
+          "Error fetching traces list, please refresh page or select a different app to try again",
+      };
+    }
+    if (rootSpanNamesQuery.isSuccess && rootSpanNames.length === 0) {
+      return {
+        status: "error",
+        message: "No traces received for this app yet",
+      };
+    }
+    if (resolvedRootSpanName === null) {
+      return { status: "pending" };
+    }
+    return { ...baseFilterState, rootSpanName: resolvedRootSpanName };
+  }, [
+    baseFilterState,
+    showRootSpanSelector,
+    rootSpanNamesQuery.isError,
+    rootSpanNamesQuery.isSuccess,
+    rootSpanNames,
+    resolvedRootSpanName,
   ]);
 
   useEffect(() => {
     onFilterChange(filterState);
   }, [filterState]);
-
-  // The requested app, date and filter expression can each be one this app
-  // cannot use. We discard those, use defaults instead and we inform the
-  // user via a toast.
-  const appDiscarded =
-    requestedAppId !== null &&
-    appsQuery.status === "success" &&
-    !appsQuery.data.some((app: App) => app.id === requestedAppId);
-
-  const dateDiscarded =
-    requestedDateRange.dateRange !== null &&
-    !isValidDateRange(requestedDateRange);
-
-  const anythingDiscarded =
-    appDiscarded || dateDiscarded || requestedFilterDiscarded;
 
   useEffect(() => {
     if (anythingDiscarded) {
@@ -373,9 +542,10 @@ export default function FilterBar({
   }, [focusedId]);
 
   function setApp(app: App) {
-    store.setSelectedApp(app);
+    setEditedApp(app);
     // Clear filters on app change
     setEditedFilter({ draftExpr: "", appliedExpr: null });
+    setSelectedRootSpanName(null);
   }
 
   // Turns an edit to the conditions back into the text the bar holds.
@@ -494,7 +664,7 @@ export default function FilterBar({
   if (
     !selectedApp ||
     (!keysUnavailable &&
-      (filterState.status !== "ready" || keysQuery.isPending))
+      (baseFilterState.status !== "ready" || keysQuery.isPending))
   ) {
     return (
       <div className="flex flex-wrap gap-4 items-center w-full">
@@ -523,6 +693,23 @@ export default function FilterBar({
     <div className="flex flex-wrap gap-4 items-start w-full">
       <AppSelect apps={apps} selected={selectedApp} onChange={setApp} />
       <DateRangeSelect selection={date} onChange={setEditedDate} />
+      {showRootSpanSelector &&
+        (rootSpanNamesQuery.isPending ? (
+          <Skeleton className="h-9 w-37.5" />
+        ) : resolvedRootSpanName !== null ? (
+          <DropdownSelect
+            title="Trace Name"
+            type={DropdownSelectType.SingleString}
+            items={rootSpanNames}
+            initialSelected={resolvedRootSpanName}
+            onChangeSelected={(item) => {
+              const name = item as string;
+              if (name !== resolvedRootSpanName) {
+                setSelectedRootSpanName(name);
+              }
+            }}
+          />
+        ) : null)}
 
       <div className="flex-1 min-w-64">
         <div

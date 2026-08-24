@@ -37,7 +37,6 @@ export enum JourneyType {
 
 export enum FilterSource {
   Events,
-  Spans,
   Errors,
   Builds,
 }
@@ -51,12 +50,6 @@ export enum SessionType {
   UserInteraction = "User Interaction Sessions",
   Foreground = "Foreground Sessions",
   Background = "Background Sessions",
-}
-
-export enum SpanStatus {
-  Unset = "Unset",
-  Ok = "Ok",
-  Error = "Error",
 }
 
 export enum BugReportStatus {
@@ -646,12 +639,10 @@ export type Filters = {
   ready: boolean;
   loading: boolean;
   app: App | null;
-  rootSpanName: string;
   startDate: string;
   endDate: string;
   versions: { selected: AppVersion[]; all: boolean };
   sessionTypes: { selected: SessionType[]; all: boolean };
-  spanStatuses: { selected: SpanStatus[]; all: boolean };
   bugReportStatuses: { selected: BugReportStatus[]; all: boolean };
   httpMethods: { selected: HttpMethod[]; all: boolean };
   osVersions: { selected: OsVersion[]; all: boolean };
@@ -679,12 +670,10 @@ export const defaultFilters: Filters = {
   ready: false,
   loading: true,
   app: null,
-  rootSpanName: "",
   startDate: "",
   endDate: "",
   versions: { selected: [], all: false },
   sessionTypes: { selected: [], all: false },
-  spanStatuses: { selected: [], all: false },
   bugReportStatuses: { selected: [], all: false },
   httpMethods: { selected: [], all: false },
   osVersions: { selected: [], all: false },
@@ -843,24 +832,6 @@ async function applyGenericFiltersToUrl(
   // leaking onto endpoints that don't filter by session content (e.g.
   // /errorGroups, which uses its own `type` param for selectedErrorTypes).
 
-  // Append span name if needed
-  if (filters.rootSpanName !== "") {
-    searchParams.append("span_name", encodeURIComponent(filters.rootSpanName));
-  }
-
-  // Append span statuses if needed
-  if (!filters.spanStatuses.all && filters.spanStatuses.selected.length > 0) {
-    filters.spanStatuses.selected.forEach((v) => {
-      if (v === SpanStatus.Unset) {
-        searchParams.append("span_statuses", "0");
-      } else if (v === SpanStatus.Ok) {
-        searchParams.append("span_statuses", "1");
-      } else if (v === SpanStatus.Error) {
-        searchParams.append("span_statuses", "2");
-      }
-    });
-  }
-
   // Append bug report statuses if needed
   if (
     !filters.bugReportStatuses.all &&
@@ -949,28 +920,6 @@ function appendSessionTypesToUrl(url: string, filters: Filters): string {
     if (severities.size > 0) {
       u.searchParams.append("severity", Array.from(severities).join(","));
     }
-  }
-  return u.toString();
-}
-
-function appendSpanFiltersToUrl(url: string, filters: Filters): string {
-  const u = new URL(url, window.location.origin);
-  if (filters.rootSpanName !== "") {
-    u.searchParams.append(
-      "span_name",
-      encodeURIComponent(filters.rootSpanName),
-    );
-  }
-  if (!filters.spanStatuses.all && filters.spanStatuses.selected.length > 0) {
-    filters.spanStatuses.selected.forEach((v) => {
-      if (v === SpanStatus.Unset) {
-        u.searchParams.append("span_statuses", "0");
-      } else if (v === SpanStatus.Ok) {
-        u.searchParams.append("span_statuses", "1");
-      } else if (v === SpanStatus.Error) {
-        u.searchParams.append("span_statuses", "2");
-      }
-    });
   }
   return u.toString();
 }
@@ -1114,35 +1063,6 @@ export const fetchRootSpanNamesFromServer = async (
   return (data.results as string[] | null) ?? null;
 };
 
-export const fetchSpansFromServer = async (
-  filters: Filters,
-  limit: number,
-  offset: number,
-) => {
-  var url = `/api/apps/${filters.app!.id}/spans?`;
-
-  url = await applyGenericFiltersToUrl(url, filters, limit, offset);
-  url = appendSpanFiltersToUrl(url, filters);
-
-  const data = await request(url, { failsWith: "Failed to fetch spans" });
-
-  return data;
-};
-
-export const fetchSpanMetricsPlotFromServer = async (filters: Filters) => {
-  var url = `/api/apps/${filters.app!.id}/spans/plots/metrics?`;
-
-  url = await applyGenericFiltersToUrl(url, filters, null, null);
-  url = appendSpanFiltersToUrl(url, filters);
-  url = appendPlotTimeGroupToUrl(url, filters);
-
-  const data = await request(url, {
-    failsWith: "Failed to fetch span metrics plot",
-  });
-
-  return data;
-};
-
 export const fetchTraceFromServer = async (appId: string, traceId: string) => {
   const data = await request(`/api/apps/${appId}/traces/${traceId}`, {
     failsWith: "Failed to fetch trace",
@@ -1171,11 +1091,9 @@ export const fetchFiltersFromServer = async (
   // fetch the user defined attributes
   url += "?ud_attr_keys=1";
 
-  // if filter is for Spans, Errors or Builds we append a query param
+  // if filter is for Errors or Builds we append a query param
   // indicating it
-  if (filterSource === FilterSource.Spans) {
-    url += "&span=1";
-  } else if (filterSource === FilterSource.Errors) {
+  if (filterSource === FilterSource.Errors) {
     url += "&type=error,anr";
   } else if (filterSource === FilterSource.Builds) {
     url += "&builds=1";
@@ -1861,28 +1779,20 @@ export const downloadBuildFile = async (downloadUrl: string) => {
   navigateTo(downloadUrl);
 };
 
-export const fetchBuildsFromServer = async (
-  filters: Filters,
-  limit: number,
-  offset: number,
-) => {
-  var url = `/api/apps/${filters.app!.id}/builds?`;
-
-  url = await applyGenericFiltersToUrl(url, filters, limit, offset);
-
-  const data = await request(url, { failsWith: "Failed to fetch builds" });
-
-  return data;
-};
-
 // ─── Dynamic filters ─────────────────────────────────────────────────────
 
 export const fetchFilterKeys = async (
   appId: string,
   entity: string,
+  keyNames: string[],
 ): Promise<FilterKeysResponse> => {
+  // Keys the caller specifies are resolved even when the app has more custom
+  // keys than the listing returns.
+  const keyParams = keyNames
+    .map((name) => `&key=${encodeURIComponent(name)}`)
+    .join("");
   const data = await request(
-    `/api/apps/${appId}/filters/keys?entity=${encodeURIComponent(entity)}`,
+    `/api/apps/${appId}/filters/keys?entity=${encodeURIComponent(entity)}${keyParams}`,
     { failsWith: "Failed to fetch filter keys" },
   );
 
@@ -1911,7 +1821,7 @@ export const fetchFilterValues = async (
   return { values: data.values ?? [], truncated: data.truncated ?? false };
 };
 
-export const fetchBuildsWithFilter = async (
+export const fetchBuildsFromServer = async (
   appId: string,
   startDate: string,
   endDate: string,
@@ -1933,6 +1843,56 @@ export const fetchBuildsWithFilter = async (
   return await request(`/api/apps/${appId}/builds?${params.toString()}`, {
     failsWith: "Failed to fetch builds",
   });
+};
+
+export const fetchSpansFromServer = async (
+  appId: string,
+  spanName: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  limit: number,
+  offset: number,
+) => {
+  const params = new URLSearchParams({
+    span_name: spanName,
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    limit: String(limit),
+    offset: String(offset),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+
+  return await request(`/api/apps/${appId}/spans?${params.toString()}`, {
+    failsWith: "Failed to fetch spans",
+  });
+};
+
+export const fetchSpanMetricsPlotFromServer = async (
+  appId: string,
+  spanName: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+) => {
+  const params = new URLSearchParams({
+    span_name: spanName,
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    plot_time_group: getPlotTimeGroupForRange(startDate, endDate),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+
+  return await request(
+    `/api/apps/${appId}/spans/plots/metrics?${params.toString()}`,
+    { failsWith: "Failed to fetch span metrics plot" },
+  );
 };
 
 export const fetchAlertsOverviewFromServer = async (

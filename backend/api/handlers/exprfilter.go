@@ -34,9 +34,9 @@ func respondFilterError(c *gin.Context, err error) {
 	})
 }
 
-// authorizeAppRead reports whether the caller may read the app. It answers the
-// request itself and returns false when they may not.
-func (h Handlers) authorizeAppRead(c *gin.Context, appID uuid.UUID) bool {
+// authorizeAppRead reports whether the caller may read the app, along with the
+// id of the team owning it. Returns false when they may not.
+func (h Handlers) authorizeAppRead(c *gin.Context, appID uuid.UUID) (teamID uuid.UUID, ok bool) {
 	ctx := c.Request.Context()
 	deps := h.Deps
 
@@ -46,11 +46,11 @@ func (h Handlers) authorizeAppRead(c *gin.Context, appID uuid.UUID) bool {
 		msg := "Failed to get team from app id"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return false
+		return uuid.Nil, false
 	}
 	if team == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("No team exists for app [%s]", appID)})
-		return false
+		return uuid.Nil, false
 	}
 
 	userId := c.GetString("userId")
@@ -59,7 +59,7 @@ func (h Handlers) authorizeAppRead(c *gin.Context, appID uuid.UUID) bool {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return false
+		return uuid.Nil, false
 	}
 
 	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
@@ -67,18 +67,20 @@ func (h Handlers) authorizeAppRead(c *gin.Context, appID uuid.UUID) bool {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return false
+		return uuid.Nil, false
 	}
 
 	if !okTeam || !okApp {
 		c.JSON(http.StatusForbidden, gin.H{"error": `you are not authorized to access this app`})
-		return false
+		return uuid.Nil, false
 	}
 
-	return true
+	return *team.ID, true
 }
 
 func (h Handlers) GetFilterKeys(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	appID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": `id invalid or missing`})
@@ -91,15 +93,24 @@ func (h Handlers) GetFilterKeys(c *gin.Context) {
 		return
 	}
 
-	if !h.authorizeAppRead(c, appID) {
+	teamID, ok := h.authorizeAppRead(c, appID)
+	if !ok {
 		return
 	}
 
-	keys := entity.Keys
+	ctx = exprfilter.WithFilterQuerySettings(ctx, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode, "filter_keys")
+	keys, keysTruncated, err := entity.ListKeys(ctx, h.Deps.PgPool, h.Deps.RchPool, teamID, appID, c.QueryArray("key"))
+	if err != nil {
+		msg := "Failed to read the filter keys"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"keys":       keys,
-		"key_groups": exprfilter.ListKeyGroups(keys),
+		"keys":           keys,
+		"key_groups":     exprfilter.ListKeyGroups(keys),
+		"keys_truncated": keysTruncated,
 	})
 }
 
@@ -141,12 +152,20 @@ func (h Handlers) GetFilterValues(c *gin.Context) {
 		return
 	}
 
-	if !h.authorizeAppRead(c, appID) {
+	teamID, authorized := h.authorizeAppRead(c, appID)
+	if !authorized {
 		return
 	}
 
-	key, ok := exprfilter.IndexKeysByName(entity.Keys)[queryParams.KeyName]
-	if !ok {
+	ctx = exprfilter.WithFilterQuerySettings(ctx, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode, "filter_values")
+	key, found, err := entity.FindKey(ctx, h.Deps.RchPool, teamID, appID, queryParams.KeyName)
+	if err != nil {
+		msg := "Failed to read the filter values"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+	if !found {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": fmt.Sprintf("Entity %q has no key %q", entity.Name, queryParams.KeyName),
 		})
@@ -160,7 +179,7 @@ func (h Handlers) GetFilterValues(c *gin.Context) {
 		return
 	}
 
-	valueList, err := entity.SuggestKeyValues(ctx, h.Deps.PgPool, h.Deps.ChPool, appID, key, exprfilter.ValueRequest{
+	valueList, err := entity.SuggestKeyValues(ctx, h.Deps.PgPool, h.Deps.RchPool, teamID, appID, key, exprfilter.ValueRequest{
 		Search: queryParams.Search,
 		Limit:  queryParams.Limit,
 	})

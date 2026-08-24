@@ -22,7 +22,7 @@ import {
   fetchBugReportFromServer,
   fetchBugReportsOverviewFromServer,
   fetchBugReportsOverviewPlotFromServer,
-  fetchBuildsWithFilter,
+  fetchBuildsFromServer,
   fetchCheckoutSessionFromServer,
   fetchCustomerPortalUrlFromServer,
   fetchErrorGroupCommonPathFromServer,
@@ -85,7 +85,6 @@ import type { FilterKeysResponse } from "@/app/api/filter_types";
 import { ApiError } from "@/app/api/api_error";
 import { apiClient } from "@/app/api/api_client";
 import { queryClient } from "@/app/query/query_client";
-import type { DateSelection } from "@/app/components/filter_bar/date_range_select";
 import type { FilterOptionsData } from "@/app/stores/filters_store";
 import { useFiltersStore } from "@/app/stores/provider";
 import {
@@ -190,11 +189,19 @@ export function useFilterOptionsQuery(
 
 // ─── Dynamic filters ─────────────────────────────────────────────────────
 
-export function useFilterKeysQuery(appId: string | undefined, entity: string) {
+export function useFilterKeysQuery(
+  appId: string | undefined,
+  entity: string,
+  keyNames: string[],
+) {
   return useQuery<FilterKeysResponse>({
-    queryKey: ["filterKeys", appId, entity] as const,
-    queryFn: () => fetchFilterKeys(appId!, entity),
+    queryKey: ["filterKeys", appId, entity, keyNames] as const,
+    queryFn: () => fetchFilterKeys(appId!, entity, keyNames),
     enabled: !!appId,
+    // The key names grow while the user types a custom key into the filter
+    // text editor; keeping the last response stops every loaded key from
+    // being flagged unknown during the refetch.
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -216,14 +223,11 @@ export function useFilterValuesQuery(
   });
 }
 
-export function useRootSpanNamesQuery(
-  app: App | null | undefined,
-  filterSource: FilterSource,
-) {
+export function useRootSpanNamesQuery(app: App | null | undefined) {
   return useQuery<string[] | null>({
     queryKey: ["rootSpanNames", app?.id] as const,
     queryFn: () => fetchRootSpanNamesFromServer(app!),
-    enabled: !!app && filterSource === FilterSource.Spans,
+    enabled: !!app,
   });
 }
 
@@ -308,6 +312,18 @@ export type ExceptionGroupCommonPath = {
 // ─── Constants re-exported for components ────────────────────────────────
 
 export const paginationOffsetUrlKey = "po";
+
+/**
+ * Query inputs for the pages whose filter lives in the URL. The page derives
+ * these from searchParams, so a query's filter and pagination offset always
+ * come from the same URL snapshot.
+ */
+export type FilterParams = {
+  appId: string;
+  startDate: string;
+  endDate: string;
+  filterExpr: string | null;
+};
 
 export enum TrendsTab {
   Latency = "Latency",
@@ -617,14 +633,29 @@ export function useAppHealthPlotQuery() {
 
 // ─── Plot: Span Metrics ──────────────────────────────────────────────────
 
-export function useSpanMetricsPlotQuery(quantile: RootSpanMetricsQuantile) {
-  const filters = useFiltersStore((s) => s.filters);
+export function useSpanMetricsPlotQuery(
+  params: FilterParams | null,
+  spanName: string | null,
+) {
   return useQuery({
-    queryKey: ["spanMetricsPlot", filters.serialisedFilters] as const,
-    queryFn: () => fetchSpanMetricsPlotFromServer(filters),
-    select: (rawData) =>
-      rawData ? transformSpanMetricsPlotData(rawData, quantile) : null,
-    enabled: filters.ready,
+    queryKey: [
+      "spanMetricsPlot",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+      spanName,
+    ] as const,
+    queryFn: () =>
+      fetchSpanMetricsPlotFromServer(
+        params!.appId,
+        spanName!,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+      ),
+    enabled: params !== null && spanName !== null,
+    retry: false,
   });
 }
 
@@ -674,36 +705,30 @@ export function useBugReportsOverviewQuery(paginationOffset: number) {
 
 const BUILDS_LIMIT = 10;
 
-export type BuildsFilter = {
-  app: App;
-  date: DateSelection;
-  filterExpr: string | null;
-};
-
 export function useBuildsQuery(
-  filter: BuildsFilter | null,
+  params: FilterParams | null,
   paginationOffset: number,
 ) {
   return useQuery({
     queryKey: [
       "builds",
-      filter?.app.id,
-      filter?.date.startDate,
-      filter?.date.endDate,
-      filter?.filterExpr,
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
     queryFn: () =>
-      fetchBuildsWithFilter(
-        filter!.app.id,
-        filter!.date.startDate,
-        filter!.date.endDate,
-        filter!.filterExpr,
+      fetchBuildsFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
         BUILDS_LIMIT,
         paginationOffset,
       ),
-    enabled: filter !== null,
+    enabled: params !== null,
     retry: false,
   });
 }
@@ -712,14 +737,34 @@ export function useBuildsQuery(
 
 const TRACES_LIMIT = 5;
 
-export function useSpansQuery(paginationOffset: number) {
-  const filters = useFiltersStore((s) => s.filters);
+export function useSpansQuery(
+  params: FilterParams | null,
+  spanName: string | null,
+  paginationOffset: number,
+) {
   return useQuery({
-    queryKey: ["spans", filters.serialisedFilters, paginationOffset] as const,
+    queryKey: [
+      "spans",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+      spanName,
+      paginationOffset,
+    ] as const,
     placeholderData: keepPreviousData,
     queryFn: () =>
-      fetchSpansFromServer(filters, TRACES_LIMIT, paginationOffset),
-    enabled: filters.ready,
+      fetchSpansFromServer(
+        params!.appId,
+        spanName!,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+        TRACES_LIMIT,
+        paginationOffset,
+      ),
+    enabled: params !== null && spanName !== null,
+    retry: false,
   });
 }
 

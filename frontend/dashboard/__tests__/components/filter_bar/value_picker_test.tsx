@@ -380,4 +380,63 @@ describe("ValuePicker", () => {
       expect(onOpenChange).not.toHaveBeenCalled();
     });
   });
+
+  describe("a user-defined key", () => {
+    it("lists the fetched values for a bool key and replaces on pick", () => {
+      valuesLoaded([{ text: "true" }, { text: "false" }]);
+      const { onChange, onOpenChange } = renderPicker({
+        keyName: "custom.is_premium",
+        valueType: "bool",
+        valueSuggestionMode: "full_list",
+        takesOneValue: true,
+      });
+
+      expect(mockUseFilterValuesQuery).toHaveBeenLastCalledWith(
+        "app-1",
+        "builds",
+        "custom.is_premium",
+        "",
+      );
+      expect(screen.getByTestId("filter-value-true")).toBeInTheDocument();
+      expect(screen.getByTestId("filter-value-false")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId("filter-value-true"));
+
+      expect(onChange).toHaveBeenCalledWith([{ text: "true" }]);
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+
+    it("asks for a string key's suggestions under its full dotted name", () => {
+      valuesLoaded([{ text: "pro" }]);
+      renderPicker({
+        keyName: "custom.plan",
+        valueSuggestionMode: "sample",
+      });
+
+      fireEvent.change(screen.getByTestId("value-search"), {
+        target: { value: "fr" },
+      });
+
+      expect(mockUseFilterValuesQuery).toHaveBeenLastCalledWith(
+        "app-1",
+        "builds",
+        "custom.plan",
+        "fr",
+      );
+    });
+
+    it("takes a typed whole number, unbounded, for an int64 key", () => {
+      renderPicker({
+        keyName: "custom.launch_count",
+        valueType: "int64",
+        valueSuggestionMode: "none",
+      });
+
+      const input = screen.getByTestId("filter-value-input");
+      expect(input).toHaveAttribute("type", "number");
+      expect(input).toHaveAttribute("step", "1");
+      expect(input).not.toHaveAttribute("min");
+      expect(input).not.toHaveAttribute("max");
+    });
+  });
 });

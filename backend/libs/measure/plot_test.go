@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"backend/libs/exprfilter"
 	"backend/libs/filter"
 	"backend/libs/session"
 	"backend/libs/span"
@@ -57,6 +58,19 @@ func (f plotFixture) appFilter(from, to time.Time, timezone, plotTimeGroup strin
 		af.PlotTimeGroup = plotTimeGroup
 	}
 	return af
+}
+
+func (f plotFixture) spanExprFilter(from, to time.Time, timezone, plotTimeGroup string) *exprfilter.ExprFilter {
+	return &exprfilter.ExprFilter{
+		AppID:         f.appID,
+		TeamID:        f.teamID,
+		Entity:        exprfilter.SpansEntity,
+		From:          from,
+		To:            to,
+		Timezone:      timezone,
+		Limit:         exprfilter.DefaultPaginationLimit,
+		PlotTimeGroup: plotTimeGroup,
+	}
 }
 
 func (f plotFixture) teamIDStr() string { return f.teamID.String() }
@@ -119,7 +133,6 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 	}
 
 	for _, tc := range groups {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			cleanupAll(f.ctx, t)
 
@@ -144,7 +157,7 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 				cleanupAll(f.ctx, t)
 
 				spanTimes := spanMetricTimesForGroup(tc.group)
-				afSpan := f.appFilter(spanTimes[0].Add(-time.Hour), spanTimes[len(spanTimes)-1].Add(time.Hour), "UTC", tc.group)
+				efSpan := f.spanExprFilter(spanTimes[0].Add(-time.Hour), spanTimes[len(spanTimes)-1].Add(time.Hour), "UTC", tc.group)
 				for _, ts := range spanTimes {
 					seedSpan(
 						f.ctx, t, f.teamIDStr(), f.appIDStr(),
@@ -154,7 +167,7 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 					)
 				}
 
-				items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", afSpan)
+				items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", efSpan)
 				if err != nil {
 					t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 				}
@@ -196,9 +209,6 @@ func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 		if _, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, af); err == nil {
 			t.Fatalf("expected error for missing timezone in bug report plot")
 		}
-		if _, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", af); err == nil {
-			t.Fatalf("expected error for missing timezone in span metrics plot")
-		}
 	})
 
 	t.Run("unsupported plot_time_group returns error", func(t *testing.T) {
@@ -208,9 +218,6 @@ func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 		}
 		if _, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, af); err == nil {
 			t.Fatalf("expected error for unsupported plot_time_group in bug report plot")
-		}
-		if _, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", af); err == nil {
-			t.Fatalf("expected error for unsupported plot_time_group in span metrics plot")
 		}
 	})
 
@@ -225,7 +232,7 @@ func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 			t.Fatalf("expected empty sessions plot, got %d rows", len(sessions))
 		}
 
-		spans, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", af)
+		spans, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", f.spanExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays))
 		if err != nil {
 			t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 		}
@@ -267,8 +274,8 @@ func TestNonExceptionPlotsRespectTimezoneBucketing(t *testing.T) {
 	t.Run("span metrics", func(t *testing.T) {
 		cleanupAll(f.ctx, t)
 		seedSpan(f.ctx, t, f.teamIDStr(), f.appIDStr(), "http_request", 1, ts, ts.Add(750*time.Millisecond), "v1", "1")
-		af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "Asia/Kolkata", filter.PlotTimeGroupDays)
-		items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", af)
+		ef := f.spanExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "Asia/Kolkata", exprfilter.PlotTimeGroupDays)
+		items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
 		if err != nil {
 			t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 		}
@@ -308,8 +315,8 @@ func TestPlotMethodsDefaultToDaysWhenPlotTimeGroupMissing(t *testing.T) {
 		cleanupAll(f.ctx, t)
 		seedSpan(f.ctx, t, f.teamIDStr(), f.appIDStr(), "http_request", 1, t1, t1.Add(time.Second), "v1", "1")
 		seedSpan(f.ctx, t, f.teamIDStr(), f.appIDStr(), "http_request", 1, t2, t2.Add(time.Second), "v1", "1")
-		af := f.appFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
-		items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", af)
+		ef := f.spanExprFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
+		items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
 		if err != nil {
 			t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 		}
@@ -336,30 +343,6 @@ func TestPlotMethodsDefaultToDaysWhenPlotTimeGroupMissing(t *testing.T) {
 func TestPlotMethodsRespectOptionalFilters(t *testing.T) {
 	f := newPlotFixture(t)
 	now := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
-
-	t.Run("span status filter", func(t *testing.T) {
-		cleanupAll(f.ctx, t)
-		seedSpan(f.ctx, t, f.teamIDStr(), f.appIDStr(), "http_request", 1, now, now.Add(time.Second), "v1", "1")
-
-		af := f.appFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
-		af.SpanStatuses = []int8{1}
-		items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", af)
-		if err != nil {
-			t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
-		}
-		if len(items) == 0 {
-			t.Fatalf("expected non-empty span metrics for matching status")
-		}
-
-		af.SpanStatuses = []int8{2}
-		items, err = f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", af)
-		if err != nil {
-			t.Fatalf("GetMetricsPlotForSpanNameWithFilter mismatch status: %v", err)
-		}
-		if len(items) != 0 {
-			t.Fatalf("expected empty span metrics for non-matching status")
-		}
-	})
 
 	t.Run("bug report status filter", func(t *testing.T) {
 		cleanupAll(f.ctx, t)
@@ -396,14 +379,14 @@ func TestSpanMetricsPlotQuantilesForUniformDurations(t *testing.T) {
 
 	// Same duration for all rows in one bucket/version should make all quantiles
 	// collapse to the same value.
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		start := base.Add(time.Duration(i) * time.Minute)
 		end := start.Add(3 * time.Second)
 		seedSpan(f.ctx, t, f.teamIDStr(), f.appIDStr(), "http_request", 1, start, end, "v1", "1")
 	}
 
-	af := f.appFilter(base.Add(-time.Hour), base.Add(time.Hour), "UTC", filter.PlotTimeGroupHours)
-	items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", af)
+	ef := f.spanExprFilter(base.Add(-time.Hour), base.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupHours)
+	items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
 	if err != nil {
 		t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 	}
@@ -430,20 +413,20 @@ func TestSpanMetricsPlotQuantilesAreMonotonicAndVersionIsolated(t *testing.T) {
 	base := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
 
 	// Version v1 has lower uniform durations.
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		secs := 2
 		start := base.Add(time.Duration(secs) * time.Minute)
 		seedSpan(f.ctx, t, f.teamIDStr(), f.appIDStr(), "http_request", 1, start, start.Add(time.Duration(secs)*time.Second), "v1", "1")
 	}
 	// Version v2 has higher uniform durations.
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		secs := 8
 		start := base.Add(time.Duration(secs) * time.Minute)
 		seedSpan(f.ctx, t, f.teamIDStr(), f.appIDStr(), "http_request", 1, start, start.Add(time.Duration(secs)*time.Second), "v2", "2")
 	}
 
-	af := f.appFilter(base.Add(-time.Hour), base.Add(time.Hour), "UTC", filter.PlotTimeGroupHours)
-	items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", af)
+	ef := f.spanExprFilter(base.Add(-time.Hour), base.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupHours)
+	items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
 	if err != nil {
 		t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 	}
@@ -498,13 +481,13 @@ func TestSpanMetricsPlotQuantilesForSkewedDistribution(t *testing.T) {
 	// 101 spans with durations 1s..101s in a single version and 15-minute
 	// bucket. Sorted durations are v[Rank] = (Rank+1)*1000ms, and ClickHouse's
 	// quantile lands on v[level*100], giving exact, non-interpolated percentiles.
-	for i := 0; i < 101; i++ {
+	for i := range 101 {
 		dur := time.Duration(i+1) * time.Second
 		seedSpan(f.ctx, t, f.teamIDStr(), f.appIDStr(), "http_request", 1, base, base.Add(dur), "v1", "1")
 	}
 
-	af := f.appFilter(base.Add(-time.Hour), base.Add(time.Hour), "UTC", filter.PlotTimeGroupHours)
-	items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", af)
+	ef := f.spanExprFilter(base.Add(-time.Hour), base.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupHours)
+	items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
 	if err != nil {
 		t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 	}

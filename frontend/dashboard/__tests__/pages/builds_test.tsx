@@ -4,12 +4,39 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
-const replaceMock = jest.fn();
-
+// The mocked router applies each replace back into the mocked searchParams
+// and notifies subscribers, the way the real router re-renders the page with
+// the URL it just wrote. The page's query reads the URL, so without this it
+// would never see what the bar settled on.
 let mockSearchParams = new URLSearchParams();
+const searchParamsSubscribers = new Set<() => void>();
+const applyReplaceUrl = (url: string) => {
+  mockSearchParams = new URLSearchParams(url.split("?")[1] ?? "");
+  searchParamsSubscribers.forEach((notify) => notify());
+};
+// Holds a replace's URL for the test to apply later, modeling the real
+// router landing a write one render after the call.
+let mockDeferReplace = false;
+let deferredReplaceUrl: string | null = null;
+const replaceMock = jest.fn((url: string, _options?: { scroll: boolean }) => {
+  if (mockDeferReplace) {
+    deferredReplaceUrl = url;
+    return;
+  }
+  applyReplaceUrl(url);
+});
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ replace: replaceMock }),
-  useSearchParams: () => mockSearchParams,
+  useSearchParams: () => {
+    const { useSyncExternalStore } = require("react");
+    return useSyncExternalStore(
+      (notify: () => void) => {
+        searchParamsSubscribers.add(notify);
+        return () => searchParamsSubscribers.delete(notify);
+      },
+      () => mockSearchParams,
+    );
+  },
 }));
 
 const downloadBuildFileMock = jest.fn();
@@ -53,20 +80,33 @@ const mockReportedDate = {
   endDate: "2026-01-01T06:00:00.000Z",
 };
 
-// Like the real bar, this stub reports an app and a range as it mounts.
+// Makes the stub drop the URL's filter on mount, like the bar discarding
+// a filter it cannot read.
+let mockMountDiscardsFilter = false;
+
+// Only an undiscarded mount report carries appliedAsRequested true; a
+// report from a button models a user edit.
 jest.mock("@/app/components/filter_bar/filter_bar", () => {
   const { useEffect } = require("react");
 
   function FilterBarMock(props: any) {
-    const ready = (filterExpr: string | null) => ({
+    const ready = (
+      filterExpr: string | null,
+      appliedAsRequested: boolean = false,
+    ) => ({
       status: "ready",
       app: mockReportedApp,
       date: mockReportedDate,
       filterExpr,
+      appliedAsRequested,
     });
 
     useEffect(() => {
-      props.onFilterChange(ready(props.requestedFilterExpr));
+      if (mockMountDiscardsFilter) {
+        props.onFilterChange(ready(null, false));
+      } else {
+        props.onFilterChange(ready(props.requestedFilterExpr, true));
+      }
     }, []);
 
     return (
@@ -183,6 +223,9 @@ describe("Builds page", () => {
   beforeEach(() => {
     replaceMock.mockClear();
     downloadBuildFileMock.mockClear();
+    mockMountDiscardsFilter = false;
+    mockDeferReplace = false;
+    deferredReplaceUrl = null;
     mockSearchParams = new URLSearchParams();
     mockUseBuildsQuery.mockReset();
     mockUseBuildsQuery.mockReturnValue({
@@ -229,13 +272,47 @@ describe("Builds page", () => {
 
     expect(mockUseBuildsQuery).toHaveBeenLastCalledWith(
       {
-        status: "ready",
-        app: mockReportedApp,
-        date: mockReportedDate,
+        appId: mockReportedApp.id,
+        startDate: mockReportedDate.startDate,
+        endDate: mockReportedDate.endDate,
         filterExpr: "patch_id:is_set",
       },
       20,
     );
+  });
+
+  it("never fetches a filter the bar discarded on mount", async () => {
+    mockMountDiscardsFilter = true;
+    mockDeferReplace = true;
+    mockSearchParams = new URLSearchParams(
+      `po=30&filter_expr=patch_id%3Ais_set&${selectionParams}`,
+    );
+    loaded();
+    renderPage();
+
+    // The write has not landed, so the URL still holds the discarded
+    // filter and the query stays disabled.
+    expect(mockUseBuildsQuery).toHaveBeenLastCalledWith(null, 30);
+
+    await act(async () => {
+      applyReplaceUrl(deferredReplaceUrl!);
+    });
+
+    expect(replaceMock).toHaveBeenLastCalledWith(selectionUrl(0), {
+      scroll: false,
+    });
+    expect(mockUseBuildsQuery).toHaveBeenLastCalledWith(
+      {
+        appId: mockReportedApp.id,
+        startDate: mockReportedDate.startDate,
+        endDate: mockReportedDate.endDate,
+        filterExpr: null,
+      },
+      0,
+    );
+    for (const [params] of mockUseBuildsQuery.mock.calls) {
+      expect(params?.filterExpr ?? null).not.toBe("patch_id:is_set");
+    }
   });
 
   it("records what the bar settled on, keeping the page the link asked for", () => {
@@ -478,7 +555,7 @@ describe("Builds page", () => {
 
       // Paging keeps everything else the URL was carrying.
       expect(replaceMock).toHaveBeenLastCalledWith(
-        `?po=10&filter_expr=patch_id%3Ais_set&${selectionParams}`,
+        selectionUrl(10, "filter_expr=patch_id%3Ais_set"),
         { scroll: false },
       );
     });
@@ -494,7 +571,7 @@ describe("Builds page", () => {
         fireEvent.click(screen.getByTestId("prev-button"));
       });
       expect(replaceMock).toHaveBeenLastCalledWith(
-        "?po=0&filter_expr=patch_id%3Ais_set",
+        selectionUrl(0, "filter_expr=patch_id%3Ais_set"),
         { scroll: false },
       );
 
@@ -506,7 +583,7 @@ describe("Builds page", () => {
         fireEvent.click(screen.getAllByTestId("prev-button")[1]);
       });
       expect(replaceMock).toHaveBeenLastCalledWith(
-        "?po=0&filter_expr=patch_id%3Ais_set",
+        selectionUrl(0, "filter_expr=patch_id%3Ais_set"),
         { scroll: false },
       );
     });
@@ -526,6 +603,18 @@ describe("Builds page", () => {
         selectionUrl(0, "filter_expr=mapping_type%3Ain%3Adsym"),
         { scroll: false },
       );
+      // The changed filter and the reset offset reach the query together,
+      // through the URL, so the new filter is never fetched at the page the
+      // old filter was on.
+      expect(mockUseBuildsQuery).toHaveBeenLastCalledWith(
+        expect.objectContaining({ filterExpr: "mapping_type:in:dsym" }),
+        0,
+      );
+      for (const [params, offset] of mockUseBuildsQuery.mock.calls) {
+        if (params?.filterExpr === "mapping_type:in:dsym") {
+          expect(offset).toBe(0);
+        }
+      }
     });
 
     it("cannot be used while a refetch is in flight", () => {

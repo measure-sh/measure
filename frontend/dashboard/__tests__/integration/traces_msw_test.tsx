@@ -1,10 +1,10 @@
 /**
  * Integration tests for Traces Overview and Detail pages.
  *
- * Overview: paginated spans list with 4 columns (Trace, Start Time,
- * Duration, Status), span metrics plot with quantile selector, and
- * 10 filter types. Uses FilterSource.Spans which adds span_name and
- * span_statuses filters.
+ * Overview: FilterBar-driven spans list with 4 columns (Trace, Start Time,
+ * Duration, Status), a span metrics plot with quantile selector, and a
+ * root span ("Trace Name") selector the FilterBar owns and whose resolved
+ * choice the span queries require.
  *
  * Detail: single trace with pills (User ID, Start Time, Duration,
  * Device, App version, Network type), TraceWaterfall timeline visualization,
@@ -26,6 +26,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
@@ -36,13 +37,33 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
 }));
 
-const mockRouterReplace = jest.fn();
 const mockRouterPush = jest.fn();
-const mockSearchParams = new URLSearchParams();
+
+// The mocked router applies each replace back into the mocked searchParams
+// and notifies subscribers, the way the real router re-renders the page with
+// the URL it just wrote. The page's queries read the URL, so without this
+// they would never see what the bar settled on.
+let mockSearchParams = new URLSearchParams();
+const searchParamsSubscribers = new Set<() => void>();
+const mockRouterReplace = jest.fn(
+  (url: string, _options?: { scroll: boolean }) => {
+    mockSearchParams = new URLSearchParams(url.split("?")[1] ?? "");
+    searchParamsSubscribers.forEach((notify) => notify());
+  },
+);
 jest.mock("next/navigation", () => ({
   __esModule: true,
   useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
-  useSearchParams: () => mockSearchParams,
+  useSearchParams: () => {
+    const { useSyncExternalStore } = require("react");
+    return useSyncExternalStore(
+      (notify: () => void) => {
+        searchParamsSubscribers.add(notify);
+        return () => searchParamsSubscribers.delete(notify);
+      },
+      () => mockSearchParams,
+    );
+  },
   usePathname: () => "/test-team/traces",
 }));
 
@@ -76,6 +97,18 @@ jest.mock("@nivo/line", () => {
     ResponsiveLineCanvas: LineChartStub,
   };
 });
+
+// The trace name select and the filter pickers are Radix popovers, which
+// need a resize observer and pointer capture that jsdom does not have.
+(globalThis as any).ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+Element.prototype.scrollIntoView = jest.fn();
+Element.prototype.hasPointerCapture = jest.fn(() => false);
+Element.prototype.setPointerCapture = jest.fn();
+Element.prototype.releasePointerCapture = jest.fn();
 
 // --- MSW ---
 import {
@@ -120,12 +153,16 @@ jest.mock("@/app/stores/provider", () => {
   };
 });
 
+const appId = makeAppFixture().id;
+
+// What the default root span names handler serves, in order.
+const firstRootSpanName = "checkout_full_display";
+
 beforeEach(() => {
   filtersStore = createFiltersStore();
   onboardingStore = createOnboardingStore();
   queryClient.clear();
-  filtersStore.getState().reset();
-  for (const key of [...mockSearchParams.keys()]) mockSearchParams.delete(key);
+  mockSearchParams = new URLSearchParams();
   const { apiClient } = require("@/app/api/api_client");
   apiClient.init({ replace: jest.fn(), push: jest.fn() });
 });
@@ -140,137 +177,210 @@ function renderWithProviders(ui: React.ReactElement) {
 // TRACES OVERVIEW
 // ====================================================================
 describe("Traces Overview (MSW integration)", () => {
-  const { AppVersion, OsVersion } = require("@/app/api/api_calls");
-
-  async function renderAndWaitForData() {
-    renderWithProviders(
+  function renderPage() {
+    return renderWithProviders(
       <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
     );
+  }
+
+  function recordSpansRequests() {
+    const sent: URL[] = [];
+    server.use(
+      http.get("*/api/apps/:appId/spans", ({ request }) => {
+        const url = new URL(request.url);
+        if (
+          url.pathname.includes("/plots/") ||
+          url.pathname.includes("/roots/")
+        ) {
+          return;
+        }
+        sent.push(url);
+        return HttpResponse.json(makeSpansOverviewFixture());
+      }),
+    );
+    return sent;
+  }
+
+  async function waitForSpans() {
     await waitFor(
-      () => {
-        // Wait for the trace ID to appear in the table (not span name which also appears in root span names dropdown)
-        expect(screen.getByText("ID: trace-001")).toBeTruthy();
-      },
+      () => expect(screen.getByText("ID: trace-001")).toBeTruthy(),
       { timeout: 5000 },
     );
   }
 
-  // ================================================================
-  // PAGE LOAD
-  // ================================================================
-  describe("page load", () => {
-    it("shows error when spans API returns 500", async () => {
-      server.use(
-        http.get("*/api/apps/:appId/spans", ({ request }) => {
-          const url = new URL(request.url);
-          if (
-            url.pathname.includes("/plots/") ||
-            url.pathname.includes("/roots/")
-          )
-            return;
-          return new HttpResponse(null, { status: 500 });
-        }),
-      );
+  describe("opening the page", () => {
+    it("lists the spans the server sent under the plot", async () => {
+      renderPage();
+      await waitForSpans();
 
-      renderWithProviders(
-        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(/Error fetching list of traces/),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
+      expect(screen.getByText("ID: trace-002")).toBeTruthy();
+      expect(screen.getByTestId("nivo-line-chart")).toBeTruthy();
     });
 
-    it("shows plot error when plot API returns 500", async () => {
+    it("asks for the first root span over the range it settled on", async () => {
+      const sent = recordSpansRequests();
+      renderPage();
+      await waitForSpans();
+
+      expect(sent).toHaveLength(1);
+      expect(sent[0].pathname).toBe(`/api/apps/${appId}/spans`);
+      expect(sent[0].searchParams.get("span_name")).toBe(firstRootSpanName);
+      const from = sent[0].searchParams.get("from")!;
+      const to = sent[0].searchParams.get("to")!;
+      expect(from).toMatch(/Z$/);
+      expect(to).toMatch(/Z$/);
+      expect(sent[0].searchParams.get("timezone")).toBeTruthy();
+      expect(sent[0].searchParams.get("limit")).toBe("5");
+      expect(sent[0].searchParams.get("offset")).toBe("0");
+      expect(sent[0].searchParams.has("filter_expr")).toBe(false);
+      expect(sent[0].searchParams.has("filter_short_code")).toBe(false);
+      expect(sent[0].searchParams.has("span_statuses")).toBe(false);
+    });
+
+    it("sends the span and time group in the plot request", async () => {
+      const plotUrls: URL[] = [];
       server.use(
-        http.get("*/api/apps/:appId/spans/plots/metrics", () => {
-          return new HttpResponse(null, { status: 500 });
+        http.get("*/api/apps/:appId/spans/plots/metrics", ({ request }) => {
+          plotUrls.push(new URL(request.url));
+          return HttpResponse.json(makeSpanMetricsPlotFixture());
         }),
       );
+      renderPage();
+      await waitForSpans();
 
-      renderWithProviders(
-        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
+      await waitFor(() => expect(plotUrls.length).toBeGreaterThan(0));
+      expect(plotUrls[0].searchParams.get("span_name")).toBe(firstRootSpanName);
+      expect(plotUrls[0].searchParams.get("plot_time_group")).toBeTruthy();
+      expect(plotUrls[0].searchParams.has("filter_expr")).toBe(false);
+    });
+
+    it("records the app, range and span name it settled on in the URL", async () => {
+      renderPage();
+      await waitForSpans();
+
+      const written = new URLSearchParams(
+        mockRouterReplace.mock.calls[0][0].slice(1),
       );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Error fetching plot/)).toBeTruthy();
-        },
-        { timeout: 5000 },
+      expect(written.get("a")).toBe(appId);
+      expect(written.get("d")).toBe("Last 6 Hours");
+      expect(written.get("sd")).toBeTruthy();
+      expect(written.get("ed")).toBeTruthy();
+      expect(written.get("po")).toBe("0");
+      expect(written.get("r")).toBe(firstRootSpanName);
+    });
+  });
+
+  describe("root span selection", () => {
+    it("restores the name a link asked for when its app matches", async () => {
+      mockSearchParams = new URLSearchParams(
+        `po=0&a=${appId}&r=api_fetch_payments`,
+      );
+      const sent = recordSpansRequests();
+      renderPage();
+      await waitForSpans();
+
+      expect(sent[0].searchParams.get("span_name")).toBe("api_fetch_payments");
+    });
+
+    it("picking another name refetches for it from page one", async () => {
+      const sent = recordSpansRequests();
+      renderPage();
+      await waitForSpans();
+
+      fireEvent.click(screen.getByRole("button", { name: firstRootSpanName }));
+      const list = within(await screen.findByRole("dialog"));
+      await act(async () => {
+        fireEvent.click(list.getByText("api_fetch_payments"));
+      });
+
+      await waitFor(() => expect(sent.length).toBeGreaterThan(1));
+      const last = sent[sent.length - 1];
+      expect(last.searchParams.get("span_name")).toBe("api_fetch_payments");
+      expect(last.searchParams.get("offset")).toBe("0");
+
+      const written = new URLSearchParams(
+        mockRouterReplace.mock.calls[
+          mockRouterReplace.mock.calls.length - 1
+        ][0].slice(1),
+      );
+      expect(written.get("r")).toBe("api_fetch_payments");
+      expect(written.get("po")).toBe("0");
+    });
+
+    it("falls back to the first name when the link's app is not the selected one", async () => {
+      mockSearchParams = new URLSearchParams(
+        `po=0&a=some-other-app&r=api_fetch_payments`,
+      );
+      const sent = recordSpansRequests();
+      renderPage();
+      await waitForSpans();
+
+      expect(sent[0].searchParams.get("span_name")).toBe(firstRootSpanName);
+    });
+
+    it("falls back to the first name when the link names an unknown span", async () => {
+      mockSearchParams = new URLSearchParams(`po=0&a=${appId}&r=span.gone`);
+      const sent = recordSpansRequests();
+      renderPage();
+      await waitForSpans();
+
+      expect(sent[0].searchParams.get("span_name")).toBe(firstRootSpanName);
+    });
+
+    it("says there is no data when the app never reported a trace", async () => {
+      server.use(
+        http.get("*/api/apps/:appId/spans/roots/names", () => {
+          return HttpResponse.json({ results: null });
+        }),
+      );
+      renderPage();
+
+      expect(
+        await screen.findByText("No traces received for this app yet"),
+      ).toBeTruthy();
+      expect(screen.queryByText("ID: trace-001")).toBeNull();
+    });
+  });
+
+  describe("a link carrying a filter", () => {
+    it("filters the spans and the plot by it", async () => {
+      mockSearchParams = new URLSearchParams(
+        `po=0&filter_expr=${encodeURIComponent("version_name:in:3.1.0")}`,
+      );
+      const sent = recordSpansRequests();
+      const plotUrls: URL[] = [];
+      server.use(
+        http.get("*/api/apps/:appId/spans/plots/metrics", ({ request }) => {
+          plotUrls.push(new URL(request.url));
+          return HttpResponse.json(makeSpanMetricsPlotFixture());
+        }),
+      );
+      renderPage();
+      await waitForSpans();
+
+      expect(sent[0].searchParams.get("filter_expr")).toBe(
+        "version_name:in:3.1.0",
+      );
+      await waitFor(() => expect(plotUrls.length).toBeGreaterThan(0));
+      expect(plotUrls[0].searchParams.get("filter_expr")).toBe(
+        "version_name:in:3.1.0",
       );
     });
   });
 
-  // ================================================================
-  // PAGINATION
-  // ================================================================
-  describe("pagination", () => {
-    it("clicking Next renders page 2 data, Previous returns to page 1", async () => {
-      const page2Fixture = makeSpansOverviewFixture({
-        meta: { next: false, previous: true },
-        results: [
-          {
-            ...makeSpansOverviewFixture().results[0],
-            span_name: "page2_span_render_ui",
-            trace_id: "trace-page2",
-          },
-        ],
-      });
-
+  describe("deep links", () => {
+    it("with po=5 asks for page 2", async () => {
       server.use(
         http.get("*/api/apps/:appId/spans", ({ request }) => {
           const url = new URL(request.url);
           if (
             url.pathname.includes("/plots/") ||
             url.pathname.includes("/roots/")
-          )
+          ) {
             return;
+          }
           const offset = url.searchParams.get("offset");
-          if (offset === "5") return HttpResponse.json(page2Fixture);
-          return HttpResponse.json(makeSpansOverviewFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
-      expect(screen.getByText("ID: trace-001")).toBeTruthy();
-
-      await act(async () => {
-        fireEvent.click(screen.getByText("Next").closest("button")!);
-      });
-      await waitFor(
-        () => {
-          expect(screen.getByText("ID: trace-page2")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      expect(screen.queryByText("ID: trace-001")).toBeNull();
-
-      await act(async () => {
-        fireEvent.click(screen.getByText("Previous").closest("button")!);
-      });
-      await waitFor(
-        () => {
-          expect(screen.getByText("ID: trace-001")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      expect(screen.queryByText("ID: trace-page2")).toBeNull();
-    });
-
-    it("deep-link with po=5 renders page 2 data", async () => {
-      server.use(
-        http.get("*/api/apps/:appId/spans", ({ request }) => {
-          const url = new URL(request.url);
-          if (
-            url.pathname.includes("/plots/") ||
-            url.pathname.includes("/roots/")
-          )
-            return;
-          const offset = url.searchParams.get("offset");
-          if (offset === "5")
+          if (offset === "5") {
             return HttpResponse.json(
               makeSpansOverviewFixture({
                 results: [
@@ -282,14 +392,13 @@ describe("Traces Overview (MSW integration)", () => {
                 ],
               }),
             );
+          }
           return HttpResponse.json(makeSpansOverviewFixture());
         }),
       );
 
-      mockSearchParams.set("po", "5");
-      renderWithProviders(
-        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
-      );
+      mockSearchParams = new URLSearchParams("po=5");
+      renderPage();
       await waitFor(
         () => {
           expect(screen.getByText("ID: trace-deep-link")).toBeTruthy();
@@ -300,383 +409,71 @@ describe("Traces Overview (MSW integration)", () => {
     });
   });
 
-  // ================================================================
-  // FILTERS
-  // ================================================================
-  describe("filters", () => {
-    let shortFilterBodies: any[];
-
-    beforeEach(() => {
-      shortFilterBodies = [];
-      server.use(
-        http.post("*/api/apps/:appId/shortFilters", async ({ request }) => {
-          shortFilterBodies.push(await request.json());
-          return HttpResponse.json({
-            filter_short_code: `code-${shortFilterBodies.length}`,
-          });
-        }),
-      );
-    });
-
-    it.each([
-      [
-        "versions",
-        () =>
-          filtersStore
-            .getState()
-            .setSelectedVersions([new AppVersion("3.0.1", "301")]),
-        ["3.0.1"],
-      ],
-      [
-        "os_names",
-        () =>
-          filtersStore
-            .getState()
-            .setSelectedOsVersions([new OsVersion("android", "14")]),
-        ["android"],
-      ],
-      [
-        "countries",
-        () => filtersStore.getState().setSelectedCountries(["DE"]),
-        ["DE"],
-      ],
-      [
-        "network_providers",
-        () => filtersStore.getState().setSelectedNetworkProviders(["Jio"]),
-        ["Jio"],
-      ],
-      [
-        "network_types",
-        () => filtersStore.getState().setSelectedNetworkTypes(["cellular"]),
-        ["cellular"],
-      ],
-      [
-        "network_generations",
-        () => filtersStore.getState().setSelectedNetworkGenerations(["5g"]),
-        ["5g"],
-      ],
-      [
-        "locales",
-        () => filtersStore.getState().setSelectedLocales(["hi-IN"]),
-        ["hi-IN"],
-      ],
-      [
-        "device_manufacturers",
-        () =>
-          filtersStore.getState().setSelectedDeviceManufacturers(["Samsung"]),
-        ["Samsung"],
-      ],
-      [
-        "device_names",
-        () => filtersStore.getState().setSelectedDeviceNames(["Galaxy S24"]),
-        ["Galaxy S24"],
-      ],
-    ])(
-      "%s filter change is sent in shortFilters POST",
-      async (field, applyFilter, expected) => {
-        await renderAndWaitForData();
-        shortFilterBodies.length = 0;
-        await act(async () => {
-          (applyFilter as () => void)();
-        });
-        await waitFor(
-          () => expect(shortFilterBodies.length).toBeGreaterThan(0),
-          { timeout: 5000 },
-        );
-        expect(
-          shortFilterBodies[shortFilterBodies.length - 1].filters[
-            field as string
-          ],
-        ).toEqual(expected);
-      },
-    );
-
-    it("span status filter sends span_statuses in request URL", async () => {
-      const requestUrls: string[] = [];
+  describe("when the server fails", () => {
+    it("shows the error message", async () => {
       server.use(
         http.get("*/api/apps/:appId/spans", ({ request }) => {
           const url = new URL(request.url);
           if (
             url.pathname.includes("/plots/") ||
             url.pathname.includes("/roots/")
-          )
+          ) {
             return;
-          requestUrls.push(url.toString());
-          return HttpResponse.json(makeSpansOverviewFixture());
+          }
+          return new HttpResponse(null, { status: 500 });
         }),
       );
+      renderPage();
 
-      await renderAndWaitForData();
-      requestUrls.length = 0;
-
-      const { SpanStatus } = require("@/app/api/api_calls");
-      await act(async () => {
-        filtersStore.getState().setSelectedSpanStatuses([SpanStatus.Error]);
-      });
-
-      await waitFor(() => expect(requestUrls.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      expect(requestUrls[requestUrls.length - 1]).toContain("span_statuses=2");
+      expect(
+        await screen.findByText(/Error fetching list of traces/),
+      ).toBeTruthy();
     });
 
-    it("multiple span statuses sends multiple params", async () => {
-      const requestUrls: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/spans", ({ request }) => {
-          const url = new URL(request.url);
-          if (
-            url.pathname.includes("/plots/") ||
-            url.pathname.includes("/roots/")
-          )
-            return;
-          requestUrls.push(url.toString());
-          return HttpResponse.json(makeSpansOverviewFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
-      requestUrls.length = 0;
-
-      const { SpanStatus } = require("@/app/api/api_calls");
-      await act(async () => {
-        filtersStore
-          .getState()
-          .setSelectedSpanStatuses([SpanStatus.Ok, SpanStatus.Error]);
-      });
-
-      await waitFor(() => expect(requestUrls.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      const lastUrl = requestUrls[requestUrls.length - 1];
-      expect(lastUrl).toContain("span_statuses=1");
-      expect(lastUrl).toContain("span_statuses=2");
-    });
-
-    it("root span name change sends span_name in request URL", async () => {
-      const requestUrls: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/spans", ({ request }) => {
-          const url = new URL(request.url);
-          if (
-            url.pathname.includes("/plots/") ||
-            url.pathname.includes("/roots/")
-          )
-            return;
-          requestUrls.push(url.toString());
-          return HttpResponse.json(makeSpansOverviewFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
-      requestUrls.length = 0;
-
-      await act(async () => {
-        filtersStore.getState().setSelectedRootSpanName("api_fetch_payments");
-      });
-
-      await waitFor(() => expect(requestUrls.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      const lastUrl = requestUrls[requestUrls.length - 1];
-      expect(lastUrl).toContain("span_name=");
-      expect(decodeURIComponent(lastUrl)).toContain("api_fetch_payments");
-    });
-
-    it("root span name is also sent in plot request URL", async () => {
-      const plotUrls: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/spans/plots/metrics", ({ request }) => {
-          plotUrls.push(new URL(request.url).toString());
-          return HttpResponse.json(makeSpanMetricsPlotFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
-      plotUrls.length = 0;
-
-      await act(async () => {
-        filtersStore.getState().setSelectedRootSpanName("api_fetch_payments");
-      });
-
-      await waitFor(() => expect(plotUrls.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      expect(decodeURIComponent(plotUrls[plotUrls.length - 1])).toContain(
-        "api_fetch_payments",
-      );
-    });
-  });
-
-  // ================================================================
-  // URL SYNC
-  // ================================================================
-  describe("URL sync", () => {
-    it("serialises filters into URL", async () => {
-      await renderAndWaitForData();
-      const url =
-        mockRouterReplace.mock.calls[
-          mockRouterReplace.mock.calls.length - 1
-        ][0];
-      expect(url).toContain("a=");
-      expect(url).toContain("sd=");
-      expect(url).toContain("ed=");
-    });
-  });
-
-  // ================================================================
-  // REQUEST URL PARAMS
-  // ================================================================
-  describe("request URL params", () => {
-    it("sends limit=5 and offset in request URL", async () => {
-      const requestUrls: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/spans", ({ request }) => {
-          const url = new URL(request.url);
-          if (
-            url.pathname.includes("/plots/") ||
-            url.pathname.includes("/roots/")
-          )
-            return;
-          requestUrls.push(url.toString());
-          return HttpResponse.json(makeSpansOverviewFixture());
-        }),
-      );
-      await renderAndWaitForData();
-      expect(requestUrls[requestUrls.length - 1]).toContain("limit=5");
-      expect(requestUrls[requestUrls.length - 1]).toContain("offset=0");
-    });
-
-    it("request URL contains correct app ID", async () => {
-      const requestPaths: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/spans", ({ request }) => {
-          const url = new URL(request.url);
-          if (
-            url.pathname.includes("/plots/") ||
-            url.pathname.includes("/roots/")
-          )
-            return;
-          requestPaths.push(url.pathname);
-          return HttpResponse.json(makeSpansOverviewFixture());
-        }),
-      );
-      await renderAndWaitForData();
-      expect(requestPaths[requestPaths.length - 1]).toContain(
-        `/apps/${makeAppFixture().id}/spans`,
-      );
-    });
-  });
-
-  // ================================================================
-  // API PATH VERIFICATION
-  // ================================================================
-  describe("API paths", () => {
-    it("fetches from /spans path", async () => {
-      const requestPaths: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/spans", ({ request }) => {
-          const url = new URL(request.url);
-          if (
-            url.pathname.includes("/plots/") ||
-            url.pathname.includes("/roots/")
-          )
-            return;
-          requestPaths.push(url.pathname);
-          return HttpResponse.json(makeSpansOverviewFixture());
-        }),
-      );
-      await renderAndWaitForData();
-      expect(requestPaths.some((p) => p.endsWith("/spans"))).toBe(true);
-    });
-
-    it("plot endpoint uses /spans/plots/metrics", async () => {
-      const plotPaths: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/spans/plots/metrics", ({ request }) => {
-          plotPaths.push(new URL(request.url).pathname);
-          return HttpResponse.json(makeSpanMetricsPlotFixture());
-        }),
-      );
-      await renderAndWaitForData();
-      expect(plotPaths.some((p) => p.includes("/spans/plots/metrics"))).toBe(
-        true,
-      );
-    });
-  });
-
-  // ================================================================
-  // PLOT STORE
-  // ================================================================
-  describe("plot store", () => {
-    it("plot re-fetches on filter change", async () => {
-      let plotFetchCount = 0;
+    it("says so when the plot cannot be fetched", async () => {
       server.use(
         http.get("*/api/apps/:appId/spans/plots/metrics", () => {
-          plotFetchCount++;
-          return HttpResponse.json(makeSpanMetricsPlotFixture());
+          return new HttpResponse(null, { status: 500 });
         }),
       );
-      await renderAndWaitForData();
-      const initial = plotFetchCount;
+      renderPage();
 
-      await act(async () => {
-        filtersStore
-          .getState()
-          .setSelectedVersions([new AppVersion("3.0.1", "301")]);
-      });
-      await waitFor(
-        () => {
-          expect(plotFetchCount).toBeGreaterThan(initial);
-        },
-        { timeout: 5000 },
+      expect(await screen.findByText(/Error fetching plot/)).toBeTruthy();
+    });
+
+    it("says so when the root span names cannot be fetched", async () => {
+      server.use(
+        http.get("*/api/apps/:appId/spans/roots/names", () => {
+          return new HttpResponse(null, { status: 500 });
+        }),
       );
+      renderPage();
+
+      expect(
+        await screen.findByText(/Error fetching traces list/),
+      ).toBeTruthy();
+    });
+
+    it("says so when the team's apps cannot be fetched", async () => {
+      server.use(
+        http.get("*/api/teams/:teamId/apps", () => {
+          return new HttpResponse(null, { status: 500 });
+        }),
+      );
+      renderPage();
+
+      expect(await screen.findByText(/Error fetching apps/)).toBeTruthy();
     });
   });
 
-  // ================================================================
-  // CONCURRENT / RE-RENDER
-  // ================================================================
-  describe("concurrent and re-render", () => {
-    it("rapid filter changes settle on the last one", async () => {
-      await renderAndWaitForData();
-      await act(async () => {
-        filtersStore
-          .getState()
-          .setSelectedVersions([new AppVersion("3.0.2", "302")]);
-        filtersStore
-          .getState()
-          .setSelectedVersions([new AppVersion("3.0.1", "301")]);
-        filtersStore
-          .getState()
-          .setSelectedVersions([new AppVersion("3.1.0", "310")]);
-      });
-      await waitFor(() => {
-        expect(filtersStore.getState().selectedVersions[0]?.name).toBe("3.1.0");
-      });
-    });
-
+  describe("re-render", () => {
     it("re-render still shows data", async () => {
-      const { unmount } = renderWithProviders(
-        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("ID: trace-001")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
+      const { unmount } = renderPage();
+      await waitForSpans();
 
       unmount();
-      renderWithProviders(
-        <TracesOverview params={promiseParams({ teamId: "test-team" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("ID: trace-001")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
+      renderPage();
+      await waitForSpans();
     });
   });
 });

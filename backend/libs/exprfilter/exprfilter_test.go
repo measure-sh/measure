@@ -120,6 +120,23 @@ func TestExprFilterValidate(t *testing.T) {
 			wantErr: "`offset` cannot be negative",
 		},
 		{
+			name: "a valid plot time group",
+			build: func() *ExprFilter {
+				ef := base()
+				ef.PlotTimeGroup = PlotTimeGroupHours
+				return ef
+			},
+		},
+		{
+			name: "an unknown plot time group",
+			build: func() *ExprFilter {
+				ef := base()
+				ef.PlotTimeGroup = "weeks"
+				return ef
+			},
+			wantErr: "`plot_time_group` must be one of",
+		},
+		{
 			name: "a filter with no entity to check it against",
 			build: func() *ExprFilter {
 				ef := base()
@@ -205,7 +222,7 @@ func TestTimeRangeHelpers(t *testing.T) {
 		t.Error("want no range before one is set")
 	}
 
-	ef.SetDefaultTimeRange()
+	ef.SetDefaultTimeRangeIfUnset()
 
 	if !ef.HasTimeRange() {
 		t.Fatal("want a range after the default is set")
@@ -215,6 +232,12 @@ func TestTimeRangeHelpers(t *testing.T) {
 	}
 	if ef.To.After(time.Now().UTC().Add(time.Minute)) {
 		t.Error("want the range to end around now")
+	}
+
+	oneSided := &ExprFilter{From: time.Now().UTC().Add(-time.Hour)}
+	oneSided.SetDefaultTimeRangeIfUnset()
+	if !oneSided.To.IsZero() {
+		t.Error("want a one-sided range kept for Validate, got a default")
 	}
 }
 

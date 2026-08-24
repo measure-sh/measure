@@ -2,9 +2,10 @@
 
 import {
   RootSpanMetricsQuantile,
-  useSpanMetricsPlotQuery,
+  transformSpanMetricsPlotData,
+  type FilterParams,
+  type useSpanMetricsPlotQuery,
 } from "@/app/query/hooks";
-import { useFiltersStore } from "@/app/stores/provider";
 import { ResponsiveLineCanvas } from "@nivo/line";
 import { useTheme } from "next-themes";
 import React, { useMemo, useState } from "react";
@@ -24,30 +25,32 @@ import {
 import { SkeletonPlot } from "./skeleton";
 import TabSelect from "./tab_select";
 
-const SpanMetricsPlot: React.FC = () => {
-  const filters = useFiltersStore((state) => state.filters);
+const SpanMetricsPlot: React.FC<{
+  filterParams: FilterParams;
+  query: ReturnType<typeof useSpanMetricsPlotQuery>;
+}> = ({ filterParams, query }) => {
   const [quantile, setQuantile] = useState<RootSpanMetricsQuantile>(
     RootSpanMetricsQuantile.p50,
   );
-  const { data: rawPlot, status } = useSpanMetricsPlotQuery(quantile);
+  const { data: rawData, status } = query;
   const { theme } = useTheme();
   const chartColors = useChartColors();
   const canvasTheme = useChartCanvasTheme();
   const plotTimeGroup = getPlotTimeGroupForRange(
-    filters.startDate,
-    filters.endDate,
+    filterParams.startDate,
+    filterParams.endDate,
   );
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
 
   const plot = useMemo(() => {
-    if (!rawPlot) {
-      return rawPlot;
+    if (!rawData) {
+      return rawData;
     }
     return embedSiblingPoints(
-      rawPlot,
+      transformSpanMetricsPlotData(rawData, quantile),
       (_: string, index: number) => chartColors[index % chartColors.length],
     );
-  }, [rawPlot, chartColors]);
+  }, [rawData, quantile, chartColors]);
 
   function mapQuantileStringToQuantile(quantile: string) {
     switch (quantile) {

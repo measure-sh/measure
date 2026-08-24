@@ -355,6 +355,40 @@
           }
         ]
       }
+    },
+    {
+      "name": "a user-defined attribute key carries the custom. prefix",
+      "text": "custom.is_premium:eq:true",
+      "tree": {
+        "condition": {
+          "key_name": "custom.is_premium",
+          "operator": "eq",
+          "values": [{ "text": "true" }]
+        }
+      }
+    },
+    {
+      "name": "a custom key beside a built-in key",
+      "text": "custom.plan:in:[pro,free] AND version_name:in:1.2.0",
+      "tree": {
+        "logical_operator": "and",
+        "children": [
+          {
+            "condition": {
+              "key_name": "custom.plan",
+              "operator": "in",
+              "values": [{ "text": "pro" }, { "text": "free" }]
+            }
+          },
+          {
+            "condition": {
+              "key_name": "version_name",
+              "operator": "in",
+              "values": [{ "text": "1.2.0" }]
+            }
+          }
+        ]
+      }
     }
   ],
 
@@ -455,6 +489,17 @@
       "name": "no values",
       "text": "patch_id:is_set",
       "tree": { "condition": { "key_name": "patch_id", "operator": "is_set" } }
+    },
+    {
+      "name": "a custom key keeps its prefix",
+      "text": "custom.is_premium:eq:true",
+      "tree": {
+        "condition": {
+          "key_name": "custom.is_premium",
+          "operator": "eq",
+          "values": [{ "text": "true" }]
+        }
+      }
     },
     {
       "name": "a group",

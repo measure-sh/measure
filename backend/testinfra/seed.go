@@ -365,19 +365,32 @@ func (h *TestHelper) SeedEvents(ctx context.Context, t *testing.T, teamID, appID
 //   - StartTime:  time.Now().UTC()
 //   - EndTime:    StartTime + Duration (Duration defaults to 100ms)
 //   - AppVersion: "v1", AppBuild: "1"
+//   - OSName: "Android", OSVersion: "14"
 //   - SessionID, TraceID, SpanID: fresh per inserted row
+//
+// The device, network and country attributes stay empty strings unless set,
+// as they are for a span whose SDK did not report them.
 type SpanRow struct {
-	SpanName    string
-	SessionID   string
-	TraceID     string
-	SpanID      string
-	Status      uint8
-	StartTime   time.Time
-	EndTime     time.Time
-	Duration    time.Duration
-	AppVersion  string
-	AppBuild    string
-	Checkpoints []string
+	SpanName           string
+	SessionID          string
+	TraceID            string
+	SpanID             string
+	Status             uint8
+	StartTime          time.Time
+	EndTime            time.Time
+	Duration           time.Duration
+	AppVersion         string
+	AppBuild           string
+	OSName             string
+	OSVersion          string
+	CountryCode        string
+	NetworkProvider    string
+	NetworkType        string
+	NetworkGeneration  string
+	DeviceLocale       string
+	DeviceManufacturer string
+	DeviceName         string
+	Checkpoints        []string
 }
 
 func (r SpanRow) filled() SpanRow {
@@ -398,6 +411,12 @@ func (r SpanRow) filled() SpanRow {
 	}
 	if r.AppBuild == "" {
 		r.AppBuild = "1"
+	}
+	if r.OSName == "" {
+		r.OSName = "Android"
+	}
+	if r.OSVersion == "" {
+		r.OSVersion = "14"
 	}
 	return r
 }
@@ -436,6 +455,9 @@ func (h *TestHelper) SeedSpanRows(ctx context.Context, t *testing.T, teamID, app
 		"status", "start_time", "end_time",
 		"`attribute.app_unique_id`", "`attribute.installation_id`",
 		"`attribute.measure_sdk_version`", "`attribute.app_version`", "`attribute.os_version`",
+		"`attribute.country_code`", "`attribute.network_provider`",
+		"`attribute.network_type`", "`attribute.network_generation`",
+		"`attribute.device_locale`", "`attribute.device_manufacturer`", "`attribute.device_name`",
 		"`attribute.device_low_power_mode`", "`attribute.device_thermal_throttling_enabled`",
 	}
 	vals := []string{
@@ -443,7 +465,11 @@ func (h *TestHelper) SeedSpanRows(ctx context.Context, t *testing.T, teamID, app
 		spanExpr, traceExpr, sessionExpr,
 		fmt.Sprintf("%d", row.Status), chTime(row.StartTime), chTime(row.EndTime),
 		"'com.test'", "generateUUIDv4()",
-		"'0.1'", fmt.Sprintf("('%s','%s')", row.AppVersion, row.AppBuild), "('Android','14')",
+		"'0.1'", fmt.Sprintf("('%s','%s')", row.AppVersion, row.AppBuild),
+		fmt.Sprintf("('%s','%s')", row.OSName, row.OSVersion),
+		quote(row.CountryCode), quote(row.NetworkProvider),
+		quote(row.NetworkType), quote(row.NetworkGeneration),
+		quote(row.DeviceLocale), quote(row.DeviceManufacturer), quote(row.DeviceName),
 		"false", "false",
 	}
 
@@ -460,6 +486,75 @@ func (h *TestHelper) SeedSpanRows(ctx context.Context, t *testing.T, teamID, app
 		strings.Join(cols, ", "), strings.Join(vals, ", "), count)
 	if err := h.ChConn.Exec(ctx, query); err != nil {
 		t.Fatalf("seed span (%s): %v", row.SpanName, err)
+	}
+}
+
+// SpanUDAttrRow describes one row to insert into the span_user_def_attrs
+// table: one user-defined attribute of one span. Values of every type are
+// stored as text in the one value column, with Type naming which of
+// "string", "int64", "float64" or "bool" the text holds.
+//
+// Zero-value fields fall back to defaults:
+//   - Type:       "string"
+//   - Timestamp:  time.Now().UTC()
+//   - AppVersion: "v1", AppBuild: "1"
+//   - OSName: "Android", OSVersion: "14"
+//   - SessionID, SpanID: fresh per row
+//
+// Pin SpanID (exactly 16 characters) to attach the attribute to a span seeded
+// with the same id.
+type SpanUDAttrRow struct {
+	SpanID     string
+	SessionID  string
+	Key        string
+	Type       string
+	Value      string
+	Timestamp  time.Time
+	AppVersion string
+	AppBuild   string
+	OSName     string
+	OSVersion  string
+}
+
+// SeedSpanUDAttrRow inserts one row described by row into the
+// span_user_def_attrs table.
+func (h *TestHelper) SeedSpanUDAttrRow(ctx context.Context, t *testing.T, teamID, appID string, row SpanUDAttrRow) {
+	t.Helper()
+
+	if row.SpanID == "" {
+		row.SpanID = strings.ReplaceAll(uuid.New().String(), "-", "")[:16]
+	}
+	if row.SessionID == "" {
+		row.SessionID = uuid.New().String()
+	}
+	if row.Type == "" {
+		row.Type = "string"
+	}
+	if row.Timestamp.IsZero() {
+		row.Timestamp = time.Now().UTC()
+	}
+	if row.AppVersion == "" {
+		row.AppVersion = "v1"
+	}
+	if row.AppBuild == "" {
+		row.AppBuild = "1"
+	}
+	if row.OSName == "" {
+		row.OSName = "Android"
+	}
+	if row.OSVersion == "" {
+		row.OSVersion = "14"
+	}
+
+	query := fmt.Sprintf(`INSERT INTO measure.span_user_def_attrs
+		(team_id, app_id, span_id, session_id, app_version, os_version, key, type, value, timestamp)
+		VALUES ('%s', '%s', '%s', '%s', ('%s','%s'), ('%s','%s'), '%s', '%s', '%s', toDateTime64('%s', 3, 'UTC'))`,
+		teamID, appID, row.SpanID, row.SessionID,
+		row.AppVersion, row.AppBuild, row.OSName, row.OSVersion,
+		row.Key, row.Type, row.Value,
+		row.Timestamp.UTC().Format("2006-01-02 15:04:05.000"))
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed span user-defined attribute (%s): %v", row.Key, err)
 	}
 }
 

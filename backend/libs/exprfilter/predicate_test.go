@@ -56,7 +56,7 @@ func bindTestKey(condition Condition) (*sqlf.Stmt, error) {
 	return nil, fmt.Errorf("key %q cannot be filtered with %q", condition.KeyName, condition.Operator)
 }
 
-func fetchTestKeySuggestions(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
+func fetchTestKeySuggestions(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
 	return ValueList{}, nil
 }
 

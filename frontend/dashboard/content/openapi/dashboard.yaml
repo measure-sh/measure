@@ -725,23 +725,8 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: timezone
-          in: query
-          required: true
-          description: IANA timezone used to bucket and format datetime values in the response.
-          schema:
-            type: string
-        - name: plot_time_group
-          in: query
-          required: false
-          description: "Time bucket used for plot aggregation. Accepted values: `minutes`, `hours`, `days`, `months`. Defaults to `days`."
-          schema:
-            type: string
-            enum:
-              - minutes
-              - hours
-              - days
-              - months
+        - $ref: "#/components/parameters/Timezone"
+        - $ref: "#/components/parameters/PlotTimeGroup"
         - name: versions
           in: query
           required: false
@@ -1018,6 +1003,21 @@ paths:
             type: string
             enum:
               - builds
+              - spans
+        - name: key
+          in: query
+          required: false
+          description: |
+            Name of a key to resolve and include even when the custom key
+            listing is truncated. Repeat the parameter for each name, like
+            `key=custom.plan&key=custom.tier`. Keys not present in app data
+            are ignored.
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
       responses:
         "200":
           description: Successful response, no errors.
@@ -1037,12 +1037,18 @@ paths:
                       them in. Every key's `key_group` is one of these.
                     items:
                       type: string
+                  keys_truncated:
+                    type: boolean
+                    description: |
+                      True when the app has more custom keys than the listing
+                      returns.
               examples:
                 response:
                   value:
                     key_groups:
                       - Version
                       - Build
+                    keys_truncated: false
                     keys:
                       - name: version_name
                         label: App version
@@ -1118,6 +1124,7 @@ paths:
             type: string
             enum:
               - builds
+              - spans
         - name: key_name
           in: query
           required: true
@@ -1416,18 +1423,8 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: timezone
-          in: query
-          required: true
-          description: "Client timezone for time bucket alignment. Example: `Asia/Kolkata`."
-          schema:
-            type: string
-        - name: plot_time_group
-          in: query
-          required: false
-          description: "Time bucket granularity. Accepted values: `minutes`, `hours`, `days`, `months`. Defaults to `days`."
-          schema:
-            type: string
+        - $ref: "#/components/parameters/Timezone"
+        - $ref: "#/components/parameters/PlotTimeGroup"
         - name: versions
           in: query
           required: false
@@ -1940,18 +1937,8 @@ paths:
             type: string
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: timezone
-          in: query
-          required: true
-          description: "Client timezone for time bucket alignment. Example: `Asia/Kolkata`."
-          schema:
-            type: string
-        - name: plot_time_group
-          in: query
-          required: false
-          description: "Time bucket granularity. Accepted values: `minutes`, `hours`, `days`, `months`. Defaults to `days`."
-          schema:
-            type: string
+        - $ref: "#/components/parameters/Timezone"
+        - $ref: "#/components/parameters/PlotTimeGroup"
         - name: versions
           in: query
           required: false
@@ -2489,18 +2476,8 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: timezone
-          in: query
-          required: true
-          description: IANA timezone used to bucket and format datetime values in the response.
-          schema:
-            type: string
-        - name: plot_time_group
-          in: query
-          required: false
-          description: "Time bucket used for plot aggregation. Accepted values: `minutes`, `hours`, `days`, `months`. Defaults to `days`."
-          schema:
-            type: string
+        - $ref: "#/components/parameters/Timezone"
+        - $ref: "#/components/parameters/PlotTimeGroup"
         - name: versions
           in: query
           required: false
@@ -3320,11 +3297,10 @@ paths:
         - Traces
       summary: Fetch a span's list of instances
       description: |
-        Fetch a span's list of instances with optional filters.
+        Fetch a span's list of instances, optionally narrowed by a filter
+        expression.
 
-        For multiple comma separated fields, make sure no whitespace characters
-        exist before or after commas. Pass `limit` and `offset` values to
-        paginate results.
+        Pass `limit` and `offset` values to paginate results.
       parameters:
         - name: id
           in: path
@@ -3341,60 +3317,7 @@ paths:
             type: string
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version codes to return only matching sessions.
-          schema:
-            type: string
-        - name: countries
-          in: query
-          required: false
-          description: List of comma separated country identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: device_names
-          in: query
-          required: false
-          description: List of comma separated device name identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: device_manufacturers
-          in: query
-          required: false
-          description: List of comma separated device manufacturer identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: locales
-          in: query
-          required: false
-          description: List of comma separated device locale identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_providers
-          in: query
-          required: false
-          description: List of comma separated network provider identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_types
-          in: query
-          required: false
-          description: List of comma separated network type identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_generations
-          in: query
-          required: false
-          description: List of comma separated network generation identifier strings to return only matching sessions.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/FilterExpr"
         - name: offset
           in: query
           required: false
@@ -3407,22 +3330,6 @@ paths:
           description: Number of items to return. Used for pagination. Should be used along with `offset`.
           schema:
             type: integer
-        - name: filter_short_code
-          in: query
-          required: false
-          description: Code representing combination of filters.
-          schema:
-            type: string
-        - name: span_statuses
-          in: query
-          required: false
-          description: Should be 0 (Unset), 1 (Ok) or 2 (Error). If multiple statuses are required, they should be passed as multiple query params like `span_statuses=0&span_statuses=1&span_statuses=2`.
-          style: form
-          explode: true
-          schema:
-            type: array
-            items:
-              type: integer
       responses:
         "200":
           description: Successful response, no errors.
@@ -3524,11 +3431,8 @@ paths:
         - Traces
       summary: Fetch a span's metrics plot
       description: |
-        Fetch a span's metrics plot with optional filters.
-
-        For multiple comma separated fields, make sure no whitespace characters
-        exist before or after commas. Pass `limit` and `offset` values to
-        paginate results.
+        Fetch a span's metrics plot, optionally narrowed by a filter
+        expression.
       parameters:
         - name: id
           in: path
@@ -3545,94 +3449,9 @@ paths:
             type: string
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: plot_time_group
-          in: query
-          required: false
-          description: "Time bucket used for plot aggregation. Accepted values: `minutes`, `hours`, `days`, `months`. Defaults to `days`."
-          schema:
-            type: string
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version codes to return only matching sessions.
-          schema:
-            type: string
-        - name: countries
-          in: query
-          required: false
-          description: List of comma separated country identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: device_names
-          in: query
-          required: false
-          description: List of comma separated device name identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: device_manufacturers
-          in: query
-          required: false
-          description: List of comma separated device manufacturer identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: locales
-          in: query
-          required: false
-          description: List of comma separated device locale identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_providers
-          in: query
-          required: false
-          description: List of comma separated network provider identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_types
-          in: query
-          required: false
-          description: List of comma separated network type identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_generations
-          in: query
-          required: false
-          description: List of comma separated network generation identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: offset
-          in: query
-          required: false
-          description: Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
-          schema:
-            type: integer
-        - name: limit
-          in: query
-          required: false
-          description: Number of items to return. Used for pagination. Should be used along with `offset`.
-          schema:
-            type: integer
-        - name: filter_short_code
-          in: query
-          required: false
-          description: Code representing combination of filters.
-          schema:
-            type: string
-        - name: span_statuses
-          in: query
-          required: false
-          description: Should be 0 (Unset), 1 (Ok) or 2 (Error). If multiple statuses are required, they should be passed as multiple query params like `span_statuses=0&span_statuses=1&span_statuses=2`.
-          style: form
-          explode: true
-          schema:
-            type: array
-            items:
-              type: integer
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/Timezone"
+        - $ref: "#/components/parameters/PlotTimeGroup"
       responses:
         "200":
           description: Successful response, no errors.
@@ -3823,12 +3642,7 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: plot_time_group
-          in: query
-          required: false
-          description: "Time bucket used for plot aggregation. Accepted values: `minutes`, `hours`, `days`, `months`. Defaults to `days`."
-          schema:
-            type: string
+        - $ref: "#/components/parameters/PlotTimeGroup"
         - name: versions
           in: query
           required: false
@@ -5190,12 +5004,7 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: plot_time_group
-          in: query
-          required: false
-          description: "Time bucketing granularity. One of: `minutes`, `hours`, `days`, `months`. Defaults to `days`."
-          schema:
-            type: string
+        - $ref: "#/components/parameters/PlotTimeGroup"
         - name: versions
           in: query
           required: false
@@ -5332,12 +5141,7 @@ paths:
             type: string
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: plot_time_group
-          in: query
-          required: false
-          description: "Time bucketing granularity. One of: `minutes`, `hours`, `days`, `months`. Defaults to `days`."
-          schema:
-            type: string
+        - $ref: "#/components/parameters/PlotTimeGroup"
         - name: versions
           in: query
           required: false
@@ -5484,12 +5288,7 @@ paths:
             type: string
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: plot_time_group
-          in: query
-          required: false
-          description: "Time bucketing granularity. One of: `minutes`, `hours`, `days`, `months`. Defaults to `days`."
-          schema:
-            type: string
+        - $ref: "#/components/parameters/PlotTimeGroup"
         - name: versions
           in: query
           required: false
@@ -7280,6 +7079,25 @@ components:
       description: "ISO 8601 UTC string in milliseconds precision. Example: `2023-11-01T18:30:00.000Z`. Omitting both `from` and `to` returns the last seven days."
       schema:
         type: string
+    Timezone:
+      name: timezone
+      in: query
+      required: true
+      description: "IANA timezone used to bucket and format datetime values in the response. Example: `Asia/Kolkata`."
+      schema:
+        type: string
+    PlotTimeGroup:
+      name: plot_time_group
+      in: query
+      required: false
+      description: "Time bucket used for plot aggregation. Defaults to `days`."
+      schema:
+        type: string
+        enum:
+          - minutes
+          - hours
+          - days
+          - months
     FilterExpr:
         name: filter_expr
         in: query

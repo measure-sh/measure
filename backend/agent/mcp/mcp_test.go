@@ -13,13 +13,17 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
+
+	"backend/testinfra"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -1591,7 +1595,7 @@ func TestMCPToolsList(t *testing.T) {
 	}
 
 	expectedTools := []string{
-		"list_apps", "get_filters", "get_metrics",
+		"list_apps", "get_filters", "get_filter_keys", "get_filter_values", "get_metrics",
 		"get_app_health_over_time",
 		"get_errors", "get_error",
 		"get_errors_over_time", "get_error_over_time", "get_error_distribution",
@@ -2412,6 +2416,324 @@ func TestMCPGetFilters(t *testing.T) {
 	})
 }
 
+func TestMCPGetFilterKeys(t *testing.T) {
+	ctx := context.Background()
+	setupToolTest := func(t *testing.T, email string) (uuid.UUID, string) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), email)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, email+" team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := "msr_" + email
+		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		return appID, rawToken
+	}
+
+	t.Run("unknown entity", func(t *testing.T) {
+		appID, rawToken := setupToolTest(t, "fkeys1@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_filter_keys", map[string]any{"app_id": appID.String(), "entity": "bogus"})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for unknown entity")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "bogus") {
+			t.Errorf("error text %q should name the unknown entity", text)
+		}
+	})
+	t.Run("spans keys", func(t *testing.T) {
+		appID, rawToken := setupToolTest(t, "fkeys2@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_filter_keys", map[string]any{"app_id": appID.String(), "entity": "spans"})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+
+		var result struct {
+			Keys []struct {
+				Name                string   `json:"name"`
+				Label               string   `json:"label"`
+				KeyGroup            string   `json:"key_group"`
+				ValueType           string   `json:"value_type"`
+				Operators           []string `json:"operators"`
+				ValueSuggestionMode string   `json:"value_suggestion_mode"`
+			} `json:"keys"`
+			KeyGroups []string `json:"key_groups"`
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &result); err != nil {
+			t.Fatalf("parse filter keys response: %v", err)
+		}
+
+		keysByName := make(map[string]bool)
+		for _, key := range result.Keys {
+			keysByName[key.Name] = true
+			if key.Label == "" || key.KeyGroup == "" || key.ValueType == "" || len(key.Operators) == 0 || key.ValueSuggestionMode == "" {
+				t.Errorf("key %q is missing fields: %+v", key.Name, key)
+			}
+		}
+		for _, want := range []string{"version_name", "version_code", "span_status", "os_name", "country"} {
+			if !keysByName[want] {
+				t.Errorf("spans keys missing %q", want)
+			}
+		}
+		if len(result.KeyGroups) == 0 {
+			t.Error("want non-empty key_groups")
+		}
+	})
+	t.Run("a user-defined attribute joins the spans keys", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "fkeys3@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "fkeys3 team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := "msr_fkeys3@mcp.test"
+		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+
+		seedSpanUDAttr(ctx, t, teamID.String(), appID.String(), testinfra.SpanUDAttrRow{Key: "plan", Value: "pro"})
+
+		resp := callMCPTool(t, rawToken, "get_filter_keys", map[string]any{"app_id": appID.String(), "entity": "spans"})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+
+		var result struct {
+			Keys []struct {
+				Name     string `json:"name"`
+				Label    string `json:"label"`
+				KeyGroup string `json:"key_group"`
+			} `json:"keys"`
+			KeyGroups     []string `json:"key_groups"`
+			KeysTruncated bool     `json:"keys_truncated"`
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &result); err != nil {
+			t.Fatalf("parse filter keys response: %v", err)
+		}
+
+		found := false
+		for _, key := range result.Keys {
+			if key.Name == "custom.plan" {
+				found = true
+				if key.Label != "plan" || key.KeyGroup != "Custom" {
+					t.Errorf("want the label unprefixed under the Custom group, got %+v", key)
+				}
+			}
+		}
+		if !found {
+			t.Error("want the seeded attribute listed as custom.plan")
+		}
+		if !slices.Contains(result.KeyGroups, "Custom") {
+			t.Errorf("want the Custom group listed, got %v", result.KeyGroups)
+		}
+		if result.KeysTruncated {
+			t.Error("want the listing complete for one attribute")
+		}
+	})
+	t.Run("a key requested through the keys input is included", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "fkeys4@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "fkeys4 team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := "msr_fkeys4@mcp.test"
+		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+
+		seedSpanUDAttr(ctx, t, teamID.String(), appID.String(), testinfra.SpanUDAttrRow{Key: "plan", Value: "pro"})
+
+		resp := callMCPTool(t, rawToken, "get_filter_keys", map[string]any{
+			"app_id": appID.String(),
+			"entity": "spans",
+			"keys":   []string{"custom.plan", "custom.ghost"},
+		})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+
+		var result struct {
+			Keys []struct {
+				Name string `json:"name"`
+			} `json:"keys"`
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &result); err != nil {
+			t.Fatalf("parse filter keys response: %v", err)
+		}
+
+		planCount := 0
+		ghostFound := false
+		for _, key := range result.Keys {
+			if key.Name == "custom.plan" {
+				planCount++
+			}
+			if key.Name == "custom.ghost" {
+				ghostFound = true
+			}
+		}
+		if planCount != 1 {
+			t.Errorf("want custom.plan once, got it %d times", planCount)
+		}
+		if ghostFound {
+			t.Error("want a name the app never reported left out")
+		}
+	})
+}
+
+func TestMCPGetFilterValues(t *testing.T) {
+	ctx := context.Background()
+	setupToolTest := func(t *testing.T, email string) (uuid.UUID, uuid.UUID, string) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), email)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, email+" team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := "msr_" + email
+		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		return appID, teamID, rawToken
+	}
+	now := time.Now().UTC()
+
+	valueTexts := func(t *testing.T, resp map[string]any) []string {
+		t.Helper()
+		var result struct {
+			Values []struct {
+				Text string `json:"text"`
+			} `json:"values"`
+			Truncated bool `json:"truncated"`
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &result); err != nil {
+			t.Fatalf("parse filter values response: %v", err)
+		}
+		texts := make([]string, len(result.Values))
+		for i, value := range result.Values {
+			texts[i] = value.Text
+		}
+		return texts
+	}
+
+	t.Run("missing key_name", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "fvals1@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_filter_values", map[string]any{"app_id": appID.String(), "entity": "spans"})
+		if !isToolError(resp) {
+			t.Error("want tool error for missing key_name")
+		}
+	})
+	t.Run("unknown key", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "fvals2@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_filter_values", map[string]any{"app_id": appID.String(), "entity": "spans", "key_name": "bogus_key"})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for unknown key")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "bogus_key") {
+			t.Errorf("error text %q should name the unknown key", text)
+		}
+	})
+	t.Run("seeded span values", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "fvals3@mcp.test")
+		// The span_filters rollup serving these values keeps only spans
+		// carrying every attribute, so the seeds set them all.
+		th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{
+			SpanName: "checkout", Status: 1, StartTime: now.Add(-2*time.Hour),
+			AppVersion: "v1", AppBuild: "1",
+			CountryCode: "US", NetworkProvider: "T-Mobile", NetworkType: "wifi",
+			NetworkGeneration: "5g", DeviceLocale: "en-US",
+			DeviceManufacturer: "Google", DeviceName: "pixel 4a",
+		})
+		th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{
+			SpanName: "checkout", Status: 1, StartTime: now.Add(-time.Hour),
+			AppVersion: "v2", AppBuild: "2",
+			CountryCode: "US", NetworkProvider: "T-Mobile", NetworkType: "wifi",
+			NetworkGeneration: "5g", DeviceLocale: "en-US",
+			DeviceManufacturer: "Google", DeviceName: "pixel 4a",
+		})
+
+		resp := callMCPTool(t, rawToken, "get_filter_values", map[string]any{"app_id": appID.String(), "entity": "spans", "key_name": "version_name"})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		// Both versions appear in the same month, so the alphabetical
+		// tiebreak orders them.
+		texts := valueTexts(t, resp)
+		if !reflect.DeepEqual(texts, []string{"v1", "v2"}) {
+			t.Errorf("want versions [v1 v2], got %v", texts)
+		}
+	})
+	t.Run("search narrows values", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "fvals4@mcp.test")
+		th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{
+			SpanName: "checkout", Status: 1, StartTime: now.Add(-2*time.Hour),
+			AppVersion: "1.2.0", AppBuild: "1",
+			CountryCode: "US", NetworkProvider: "T-Mobile", NetworkType: "wifi",
+			NetworkGeneration: "5g", DeviceLocale: "en-US",
+			DeviceManufacturer: "Google", DeviceName: "pixel 4a",
+		})
+		th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{
+			SpanName: "checkout", Status: 1, StartTime: now.Add(-time.Hour),
+			AppVersion: "2.0.0", AppBuild: "2",
+			CountryCode: "US", NetworkProvider: "T-Mobile", NetworkType: "wifi",
+			NetworkGeneration: "5g", DeviceLocale: "en-US",
+			DeviceManufacturer: "Google", DeviceName: "pixel 4a",
+		})
+
+		resp := callMCPTool(t, rawToken, "get_filter_values", map[string]any{"app_id": appID.String(), "entity": "spans", "key_name": "version_name", "search": "1.2"})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		texts := valueTexts(t, resp)
+		if !reflect.DeepEqual(texts, []string{"1.2.0"}) {
+			t.Errorf("want [1.2.0], got %v", texts)
+		}
+	})
+	t.Run("enum key lists its full set", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "fvals5@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_filter_values", map[string]any{"app_id": appID.String(), "entity": "spans", "key_name": "span_status"})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		texts := valueTexts(t, resp)
+		if !reflect.DeepEqual(texts, []string{"unset", "ok", "error"}) {
+			t.Errorf("want [unset ok error], got %v", texts)
+		}
+	})
+	t.Run("limit above the maximum", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "fvals6@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_filter_values", map[string]any{"app_id": appID.String(), "entity": "spans", "key_name": "version_name", "limit": 1000})
+		if !isToolError(resp) {
+			t.Error("want tool error for limit above the maximum")
+		}
+	})
+	t.Run("a user-defined attribute serves its values", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "fvals7@mcp.test")
+		seedSpanUDAttr(ctx, t, teamID.String(), appID.String(), testinfra.SpanUDAttrRow{Key: "plan", Value: "free", Timestamp: now.Add(-2 * time.Hour)})
+		seedSpanUDAttr(ctx, t, teamID.String(), appID.String(), testinfra.SpanUDAttrRow{Key: "plan", Value: "pro", Timestamp: now.Add(-time.Hour)})
+
+		resp := callMCPTool(t, rawToken, "get_filter_values", map[string]any{"app_id": appID.String(), "entity": "spans", "key_name": "custom.plan"})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		texts := valueTexts(t, resp)
+		if !reflect.DeepEqual(texts, []string{"pro", "free"}) {
+			t.Errorf("want [pro free] most recent first, got %v", texts)
+		}
+	})
+	t.Run("an unknown user-defined attribute", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "fvals8@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_filter_values", map[string]any{"app_id": appID.String(), "entity": "spans", "key_name": "custom.nope"})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for an attribute the app's spans never reported")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "custom.nope") {
+			t.Errorf("error text %q should name the unknown key", text)
+		}
+	})
+}
+
 func TestMCPGetMetrics(t *testing.T) {
 	ctx := context.Background()
 
@@ -2785,9 +3107,7 @@ func TestMCPGetSessions(t *testing.T) {
 		t.Run("with error filter "+ec.name, func(t *testing.T) {
 			appID, rawToken := setupToolTest(t, "sess"+strings.ReplaceAll(ec.name, " ", "")+"@mcp.test")
 			args := map[string]any{"app_id": appID.String(), "from": from, "to": to}
-			for k, v := range ec.args {
-				args[k] = v
-			}
+			maps.Copy(args, ec.args)
 			resp := callMCPTool(t, rawToken, "get_sessions", args)
 			if isToolError(resp) {
 				t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
@@ -3071,7 +3391,7 @@ func TestMCPGetRootSpanNames(t *testing.T) {
 
 func TestMCPGetSpanInstances(t *testing.T) {
 	ctx := context.Background()
-	setupToolTest := func(t *testing.T, email string) (uuid.UUID, string) {
+	setupToolTest := func(t *testing.T, email string) (uuid.UUID, uuid.UUID, string) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), email)
@@ -3082,24 +3402,108 @@ func TestMCPGetSpanInstances(t *testing.T) {
 		seedApp(ctx, t, appID, teamID, 30)
 		rawToken := "msr_" + email
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
-		return appID, rawToken
+		return appID, teamID, rawToken
 	}
 	now := time.Now().UTC()
 	from := now.Add(-7 * 24 * time.Hour).Format(time.RFC3339)
 	to := now.Format(time.RFC3339)
 
 	t.Run("missing root_span_name", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "si@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_span_instances", map[string]any{"app_id": appID.String()})
+		appID, _, rawToken := setupToolTest(t, "si@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_span_instances", map[string]any{"app_id": appID.String(), "from": from, "to": to})
 		if !isToolError(resp) {
 			t.Error("want tool error for missing root_span_name")
 		}
 	})
 	t.Run("valid call", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "si2@mcp.test")
+		appID, _, rawToken := setupToolTest(t, "si2@mcp.test")
 		resp := callMCPTool(t, rawToken, "get_span_instances", map[string]any{"app_id": appID.String(), "root_span_name": "some-span", "from": from, "to": to})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+	})
+	t.Run("filter_expr narrows results", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "si3@mcp.test")
+		seedSpan(ctx, t, teamID.String(), appID.String(), "checkout", 1, now.Add(-time.Hour), now.Add(-time.Hour+time.Second), "v1", "1")
+		seedSpan(ctx, t, teamID.String(), appID.String(), "checkout", 1, now.Add(-time.Hour), now.Add(-time.Hour+time.Second), "v2", "2")
+
+		args := map[string]any{"app_id": appID.String(), "root_span_name": "checkout", "from": from, "to": to}
+		resp := callMCPTool(t, rawToken, "get_span_instances", args)
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		var spans []map[string]any
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &spans); err != nil {
+			t.Fatalf("unmarshal spans: %v", err)
+		}
+		if len(spans) != 2 {
+			t.Fatalf("want 2 spans with no filter, got %d", len(spans))
+		}
+
+		args["filter_expr"] = "version_name:in:v1"
+		resp = callMCPTool(t, rawToken, "get_span_instances", args)
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &spans); err != nil {
+			t.Fatalf("unmarshal filtered spans: %v", err)
+		}
+		if len(spans) != 1 {
+			t.Fatalf("want 1 span with version filter, got %d", len(spans))
+		}
+		if spans[0]["app_version"] != "v1" {
+			t.Errorf("filtered span app_version = %v, want v1", spans[0]["app_version"])
+		}
+	})
+	t.Run("invalid filter_expr returns the issue", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "si4@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_span_instances", map[string]any{"app_id": appID.String(), "root_span_name": "checkout", "from": from, "to": to, "filter_expr": "bogus_key:in:x"})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for unknown filter key")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "Unknown key") || !strings.Contains(text, "bogus_key") {
+			t.Errorf("error text %q should name the unknown key", text)
+		}
+	})
+	t.Run("unparseable filter_expr returns the parse error", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "si5@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_span_instances", map[string]any{"app_id": appID.String(), "root_span_name": "checkout", "from": from, "to": to, "filter_expr": "version_name:in:v1 AND"})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for unparseable filter")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "filter_expr could not be parsed") {
+			t.Errorf("error text %q should report the parse failure", text)
+		}
+	})
+	t.Run("a custom filter_expr narrows results", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "si6@mcp.test")
+		traceOne := seedSpan(ctx, t, teamID.String(), appID.String(), "checkout", 1, now.Add(-time.Hour), now.Add(-time.Hour+time.Second), "v1", "1")
+		seedSpan(ctx, t, teamID.String(), appID.String(), "checkout", 1, now.Add(-time.Hour), now.Add(-time.Hour+time.Second), "v2", "2")
+		seedSpanUDAttr(ctx, t, teamID.String(), appID.String(), testinfra.SpanUDAttrRow{SpanID: traceOne[:16], Key: "plan", Value: "pro", Timestamp: now.Add(-time.Hour)})
+
+		resp := callMCPTool(t, rawToken, "get_span_instances", map[string]any{"app_id": appID.String(), "root_span_name": "checkout", "from": from, "to": to, "filter_expr": "custom.plan:in:pro"})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		var spans []map[string]any
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &spans); err != nil {
+			t.Fatalf("unmarshal spans: %v", err)
+		}
+		if len(spans) != 1 {
+			t.Fatalf("want 1 span with the custom filter, got %d", len(spans))
+		}
+		if spans[0]["app_version"] != "v1" {
+			t.Errorf("filtered span app_version = %v, want v1", spans[0]["app_version"])
+		}
+	})
+	t.Run("an unknown custom key returns the issue", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "si7@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_span_instances", map[string]any{"app_id": appID.String(), "root_span_name": "checkout", "from": from, "to": to, "filter_expr": "custom.nope:in:x"})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for an attribute the app's spans never reported")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "Unknown key") || !strings.Contains(text, "custom.nope") {
+			t.Errorf("error text %q should name the unknown key", text)
 		}
 	})
 }
@@ -3140,6 +3544,25 @@ func TestMCPGetSpanMetricsPlot(t *testing.T) {
 		resp := callMCPTool(t, rawToken, "get_span_metrics_over_time", map[string]any{"app_id": appID.String(), "root_span_name": "some-span", "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+	})
+	t.Run("valid filter_expr is accepted", func(t *testing.T) {
+		appID, rawToken := setupToolTest(t, "smplot4@mcp.test")
+		now := time.Now().UTC()
+		resp := callMCPTool(t, rawToken, "get_span_metrics_over_time", map[string]any{"app_id": appID.String(), "root_span_name": "some-span", "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339), "filter_expr": "version_name:in:v1 AND span_status:in:error"})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+	})
+	t.Run("invalid filter_expr returns the issue", func(t *testing.T) {
+		appID, rawToken := setupToolTest(t, "smplot5@mcp.test")
+		now := time.Now().UTC()
+		resp := callMCPTool(t, rawToken, "get_span_metrics_over_time", map[string]any{"app_id": appID.String(), "root_span_name": "some-span", "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339), "filter_expr": "span_status:in:bogus"})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for invalid span_status value")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "span_status") || !strings.Contains(text, "bogus") {
+			t.Errorf("error text %q should name the bad value", text)
 		}
 	})
 }
@@ -3587,6 +4010,8 @@ func TestMCPAccessControl(t *testing.T) {
 		args map[string]any
 	}{
 		{"get_filters", map[string]any{"app_id": appA.String()}},
+		{"get_filter_keys", map[string]any{"app_id": appA.String(), "entity": "spans"}},
+		{"get_filter_values", map[string]any{"app_id": appA.String(), "entity": "spans", "key_name": "version_name"}},
 		{"get_metrics", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
 		{"get_app_health_over_time", map[string]any{"app_id": appA.String(), "timezone": "UTC", "from": from, "to": to}},
 		{"get_errors", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
@@ -3632,6 +4057,8 @@ func TestMCPInvalidAppIDFormat(t *testing.T) {
 		args map[string]any
 	}{
 		{"get_filters", map[string]any{"app_id": "not-a-uuid"}},
+		{"get_filter_keys", map[string]any{"app_id": "not-a-uuid", "entity": "spans"}},
+		{"get_filter_values", map[string]any{"app_id": "not-a-uuid", "entity": "spans", "key_name": "version_name"}},
 		{"get_errors", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_sessions", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_metrics", map[string]any{"app_id": "not-a-uuid"}},
@@ -3985,7 +4412,7 @@ func callMCPTool(t *testing.T, rawToken, toolName string, args map[string]any) m
 // The format is "event: message\ndata: {json}\n\n".
 func parseSSEData(t *testing.T, body string) map[string]any {
 	t.Helper()
-	for _, line := range strings.Split(body, "\n") {
+	for line := range strings.SplitSeq(body, "\n") {
 		if strings.HasPrefix(line, "data: ") {
 			var resp map[string]any
 			if err := json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &resp); err != nil {

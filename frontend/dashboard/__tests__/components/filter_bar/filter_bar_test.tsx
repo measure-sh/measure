@@ -4,6 +4,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 
 const mockUseAppsQuery = jest.fn();
 const mockUseFilterKeysQuery = jest.fn();
+const mockUseRootSpanNamesQuery = jest.fn();
 const mockToastNegative = jest.fn();
 
 jest.mock("@/app/components/toast", () => ({
@@ -14,8 +15,12 @@ jest.mock("@/app/components/toast", () => ({
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
   useAppsQuery: (teamId: string) => mockUseAppsQuery(teamId),
-  useFilterKeysQuery: (appId: string | undefined, entity: string) =>
-    mockUseFilterKeysQuery(appId, entity),
+  useFilterKeysQuery: (
+    appId: string | undefined,
+    entity: string,
+    keyNames: string[],
+  ) => mockUseFilterKeysQuery(appId, entity, keyNames),
+  useRootSpanNamesQuery: (app: unknown) => mockUseRootSpanNamesQuery(app),
 }));
 
 const { useStore } = jest.requireActual("zustand") as any;
@@ -170,6 +175,28 @@ const versionKey = {
   operators: ["in", "not_in"],
 } as unknown as FilterKey;
 
+// The server serves a user-defined attribute key with a `custom.` prefix on
+// the name and the raw attribute name as the label.
+const customPremiumKey = {
+  name: "custom.is_premium",
+  label: "is_premium",
+  key_group: "Custom",
+  description: "A user-defined attribute",
+  value_type: "bool",
+  value_suggestion_mode: "full_list",
+  operators: ["eq"],
+} as unknown as FilterKey;
+
+const customPlanKey = {
+  name: "custom.plan",
+  label: "plan",
+  key_group: "Custom",
+  description: "A user-defined attribute",
+  value_type: "string",
+  value_suggestion_mode: "sample",
+  operators: ["in", "not_in", "contains"],
+} as unknown as FilterKey;
+
 function appsLoaded(loaded: App[] = apps) {
   mockUseAppsQuery.mockReturnValue({
     status: "success",
@@ -177,9 +204,12 @@ function appsLoaded(loaded: App[] = apps) {
   } as any);
 }
 
-function keysLoaded(keys: FilterKey[] = [mappingTypeKey, versionKey]) {
+function keysLoaded(
+  keys: FilterKey[] = [mappingTypeKey, versionKey],
+  keyGroups: string[] = ["Build", "Version"],
+) {
   mockUseFilterKeysQuery.mockReturnValue({
-    data: { keys, key_groups: ["Build", "Version"] },
+    data: { keys, key_groups: keyGroups },
     isPending: false,
     isError: false,
   } as any);
@@ -264,6 +294,14 @@ describe("FilterBar", () => {
     storeInstance = createFiltersStore();
     appsLoaded();
     keysLoaded();
+    // Most tests leave the root span selector off, so the bar passes null
+    // and the query stays in its disabled pending state.
+    mockUseRootSpanNamesQuery.mockReturnValue({
+      data: undefined,
+      isPending: true,
+      isError: false,
+      isSuccess: false,
+    });
     mockToastNegative.mockClear();
   });
 
@@ -291,11 +329,82 @@ describe("FilterBar", () => {
       expect(lastState(onFilterChange)).toMatchObject({ app: apps[1] });
     });
 
+    it("reports the request as applied when everything asked for is honoured", async () => {
+      const { onFilterChange } = await renderBar({
+        requestedAppId: "app-2",
+        requestedDateRange: {
+          dateRange: "Last Week",
+          startDate: null,
+          endDate: null,
+        },
+      });
+
+      expect(lastState(onFilterChange)).toMatchObject({
+        status: "ready",
+        appliedAsRequested: true,
+      });
+    });
+
     it("keeps the app another page left on the store", async () => {
       storeInstance.getState().setSelectedApp(apps[1]);
       const { onFilterChange } = await renderBar();
 
       expect(lastState(onFilterChange)).toMatchObject({ app: apps[1] });
+    });
+
+    it("toasts when the requested root span name is unknown to the app", async () => {
+      mockUseRootSpanNamesQuery.mockReturnValue({
+        data: ["checkout", "startup"],
+        isPending: false,
+        isError: false,
+        isSuccess: true,
+      });
+      const { onFilterChange } = await renderBar({
+        requestedAppId: "app-1",
+        showRootSpanSelector: true,
+        requestedRootSpanName: "gone",
+      });
+
+      expect(mockToastNegative).toHaveBeenCalledWith(
+        "Some filters were invalid, page reset to defaults",
+      );
+      expect(lastState(onFilterChange)).toMatchObject({
+        status: "ready",
+        rootSpanName: "checkout",
+        appliedAsRequested: false,
+      });
+    });
+
+    it("does not toast for a root span name with no requested app", async () => {
+      mockUseRootSpanNamesQuery.mockReturnValue({
+        data: ["checkout", "startup"],
+        isPending: false,
+        isError: false,
+        isSuccess: true,
+      });
+      // The link's name belongs to the app the link asked for; without a
+      // requested app the name is not judged against the selected app's list.
+      await renderBar({
+        showRootSpanSelector: true,
+        requestedRootSpanName: "gone",
+      });
+
+      expect(mockToastNegative).not.toHaveBeenCalled();
+    });
+
+    it("ranks the requested app above the one another page left on the store", async () => {
+      storeInstance.getState().setSelectedApp(apps[1]);
+      const { onFilterChange } = await renderBar({ requestedAppId: "app-1" });
+
+      // Every ready state carries the requested app; a first report built
+      // from the remembered app would overwrite the link's app in the URL.
+      for (const [state] of onFilterChange.mock.calls) {
+        if (state.status === "ready") {
+          expect(state.app).toEqual(apps[0]);
+        }
+      }
+      expect(lastState(onFilterChange)).toMatchObject({ app: apps[0] });
+      expect(storeInstance.getState().selectedApp).toEqual(apps[0]);
     });
 
     it("falls back to the team's first app when the requested one is gone", async () => {
@@ -464,6 +573,33 @@ describe("FilterBar", () => {
       });
     });
 
+    it("keeps a custom key the keys listing left out", async () => {
+      // The app has more custom keys than the listing returns, so the
+      // server serves custom.plan only when the request specifies it.
+      mockUseFilterKeysQuery.mockImplementation(
+        (_appId: string | undefined, _entity: string, keyNames: string[]) => ({
+          data: {
+            keys: keyNames.includes("custom.plan")
+              ? [mappingTypeKey, versionKey, customPlanKey]
+              : [mappingTypeKey, versionKey],
+            key_groups: ["Build", "Version", "Custom"],
+          },
+          isPending: false,
+          isError: false,
+        }),
+      );
+
+      const { onFilterChange } = await renderBar({
+        requestedFilterExpr: "custom.plan:in:pro",
+      });
+
+      expect(lastState(onFilterChange)).toMatchObject({
+        status: "ready",
+        filterExpr: "custom.plan:in:pro",
+      });
+      expect(mockToastNegative).not.toHaveBeenCalled();
+    });
+
     it("filters nothing when it names a key this app does not have", async () => {
       const { onFilterChange } = await renderBar({
         requestedFilterExpr: "device_cohort:in:new",
@@ -537,6 +673,20 @@ describe("FilterBar", () => {
 
       expect(lastState(onFilterChange)).toMatchObject({
         filterExpr: "mapping_type:in:dsym",
+      });
+    });
+
+    it("no longer reports the request as applied once the filter is edited", async () => {
+      const { onFilterChange } = await renderBar();
+
+      expect(lastState(onFilterChange)).toMatchObject({
+        appliedAsRequested: true,
+      });
+
+      await addCondition();
+
+      expect(lastState(onFilterChange)).toMatchObject({
+        appliedAsRequested: false,
       });
     });
 
@@ -1083,6 +1233,127 @@ describe("FilterBar", () => {
     });
   });
 
+  describe("a user-defined key", () => {
+    beforeEach(() => {
+      keysLoaded(
+        [mappingTypeKey, versionKey, customPremiumKey, customPlanKey],
+        ["Build", "Version", "Custom"],
+      );
+    });
+
+    it("draws a requested custom condition and filters by it", async () => {
+      const { onFilterChange } = await renderBar({
+        requestedFilterExpr: "custom.is_premium:eq:true",
+      });
+
+      expect(screen.getByTestId("operator-picker")).toBeInTheDocument();
+      expect(lastState(onFilterChange)).toMatchObject({
+        status: "ready",
+        filterExpr: "custom.is_premium:eq:true",
+      });
+    });
+
+    it("names the condition by the raw attribute name", async () => {
+      await renderBar();
+
+      await click(
+        wholeFilterPicker().getByTestId("pick-key-custom.is_premium"),
+      );
+
+      // The key control of the new condition takes focus, so the text on it is
+      // what the chip shows for this key.
+      expect(document.activeElement?.textContent).toBe("is_premium");
+    });
+
+    it("serializes a picked custom key under its full dotted name", async () => {
+      const { onFilterChange } = await renderBar();
+
+      await addCondition(wholeFilterPicker(), "custom.plan");
+
+      expect(lastState(onFilterChange)).toMatchObject({
+        filterExpr: "custom.plan:in:dsym",
+      });
+    });
+
+    it("asks the keys query for a custom key typed by hand", async () => {
+      // The app has more custom keys than the listing returns, so the
+      // server serves custom.plan only when the request specifies it.
+      mockUseFilterKeysQuery.mockImplementation(
+        (_appId: string | undefined, _entity: string, keyNames: string[]) => ({
+          data: {
+            keys: keyNames.includes("custom.plan")
+              ? [mappingTypeKey, versionKey, customPlanKey]
+              : [mappingTypeKey, versionKey],
+            key_groups: ["Build", "Version", "Custom"],
+          },
+          isPending: false,
+          isError: false,
+        }),
+      );
+
+      const { onFilterChange } = await renderBar();
+
+      await click(screen.getByLabelText("Edit as text"));
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("filter-text"), {
+          target: { value: "custom.plan:in:pro" },
+        });
+      });
+
+      expect(mockUseFilterKeysQuery).toHaveBeenLastCalledWith(
+        "app-1",
+        "builds",
+        ["custom.plan"],
+      );
+      expect(screen.queryByTestId("filter-issue")).not.toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.keyDown(screen.getByTestId("filter-text"), { key: "Enter" });
+      });
+
+      expect(lastState(onFilterChange)).toMatchObject({
+        filterExpr: "custom.plan:in:pro",
+      });
+    });
+
+    it("does not ask for a custom key still being typed", async () => {
+      await renderBar();
+
+      await click(screen.getByLabelText("Edit as text"));
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("filter-text"), {
+          target: { value: "custom.pl" },
+        });
+      });
+
+      expect(mockUseFilterKeysQuery).toHaveBeenLastCalledWith(
+        "app-1",
+        "builds",
+        [],
+      );
+    });
+
+    it("round-trips a typed custom condition through the text editor", async () => {
+      const { onFilterChange } = await renderBar();
+
+      await click(screen.getByLabelText("Edit as text"));
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("filter-text"), {
+          target: {
+            value: "custom.plan:in:pro AND custom.is_premium:eq:true",
+          },
+        });
+      });
+      await click(screen.getByLabelText("Edit as conditions"));
+
+      expect(screen.queryByTestId("filter-issue")).not.toBeInTheDocument();
+      expect(screen.getAllByLabelText("Remove condition")).toHaveLength(2);
+      expect(lastState(onFilterChange)).toMatchObject({
+        filterExpr: "custom.plan:in:pro AND custom.is_premium:eq:true",
+      });
+    });
+  });
+
   describe("while the keys are on their way", () => {
     it("shows no bar to filter with", async () => {
       mockUseFilterKeysQuery.mockReturnValue({
@@ -1204,11 +1475,17 @@ describe("FilterBar", () => {
     });
 
     it("says so for an expression that cannot be read", async () => {
-      await renderBar({ requestedFilterExpr: "mapping_type:in:" });
+      const { onFilterChange } = await renderBar({
+        requestedFilterExpr: "mapping_type:in:",
+      });
 
       expect(mockToastNegative).toHaveBeenCalledWith(
         "Some filters were invalid, page reset to defaults",
       );
+      expect(lastState(onFilterChange)).toMatchObject({
+        status: "ready",
+        appliedAsRequested: false,
+      });
     });
 
     it("says so once, however much was refused", async () => {

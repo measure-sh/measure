@@ -12,7 +12,6 @@ import {
   OsVersion,
   saveListFiltersToServer,
   SessionType,
-  SpanStatus,
   UdAttrMatcher,
   UserDefAttr,
 } from "../api/api_calls";
@@ -50,13 +49,11 @@ export type FilterConfig = {
 
 export type URLFilters = {
   appId?: string;
-  rootSpanName?: string;
   startDate?: string;
   endDate?: string;
   dateRange?: string;
   versions?: number[];
   sessionTypes?: SessionType[];
-  spanStatuses?: SpanStatus[];
   bugReportStatuses?: BugReportStatus[];
   httpMethods?: HttpMethod[];
   osVersions?: number[];
@@ -119,7 +116,6 @@ export const defaultSessionTypes = [
   SessionType.Foreground,
   SessionType.UserInteraction,
 ];
-const allSpanStatuses = [SpanStatus.Unset, SpanStatus.Ok, SpanStatus.Error];
 const allBugReportStatuses = [BugReportStatus.Open, BugReportStatus.Closed];
 
 const urlFiltersKeyMap = {
@@ -130,7 +126,6 @@ const urlFiltersKeyMap = {
   endDate: "ed",
   versions: "v",
   sessionTypes: "st",
-  spanStatuses: "ss",
   bugReportStatuses: "bs",
   httpMethods: "hm",
   osVersions: "os",
@@ -250,10 +245,6 @@ function serializeUrlFilters(
       case "appId":
         if (!config.showAppSelector) return;
         break;
-      case "rootSpanName":
-      case "spanStatuses":
-        if (config.filterSource !== FilterSource.Spans) return;
-        break;
       case "errorTypes":
       case "severities":
       case "customErrorsOnly":
@@ -289,7 +280,6 @@ function serializeUrlFilters(
           )
           .join("|");
         break;
-      case "spanStatuses":
       case "bugReportStatuses":
       case "httpMethods":
         if ((value as string[]).length === 0) return;
@@ -344,9 +334,6 @@ export type FilterOptionsState =
   | "not-onboarded"
   | "no-builds";
 
-/** How far the root span names query has got. Only the Spans source runs it. */
-export type RootSpanNamesState = "pending" | "error" | "loaded" | "no-data";
-
 interface FiltersStoreState {
   filters: Filters;
 
@@ -354,11 +341,9 @@ interface FiltersStoreState {
 
   appsState: AppsState;
   filterOptionsState: FilterOptionsState;
-  rootSpanNamesState: RootSpanNamesState;
 
   apps: App[];
   versions: AppVersion[];
-  rootSpanNames: string[];
   osVersions: OsVersion[];
   countries: string[];
   networkProviders: string[];
@@ -379,9 +364,7 @@ interface FiltersStoreState {
   // Per-page selections — reset to URL filter (if present) or default on
   // every Filters mount via applyFilterOptions.
   selectedVersions: AppVersion[];
-  selectedRootSpanName: string;
   selectedSessionTypes: SessionType[];
-  selectedSpanStatuses: SpanStatus[];
   selectedBugReportStatuses: BugReportStatus[];
   selectedHttpMethods: HttpMethod[];
   selectedOsVersions: OsVersion[];
@@ -409,20 +392,14 @@ interface FiltersStoreActions {
     data: FilterOptionsData | null,
     state: FilterOptionsState,
   ) => void;
-  setRootSpanNames: (
-    rootSpanNames: string[] | null,
-    state: RootSpanNamesState,
-  ) => void;
   setCurrentTeamId: (teamId: string) => void;
 
   setSelectedApp: (app: App | null) => void;
-  setSelectedRootSpanName: (name: string) => void;
   setSelectedDateRange: (range: string) => void;
   setSelectedStartDate: (date: string) => void;
   setSelectedEndDate: (date: string) => void;
   setSelectedVersions: (versions: AppVersion[]) => void;
   setSelectedSessionTypes: (types: SessionType[]) => void;
-  setSelectedSpanStatuses: (statuses: SpanStatus[]) => void;
   setSelectedBugReportStatuses: (statuses: BugReportStatus[]) => void;
   setSelectedHttpMethods: (methods: HttpMethod[]) => void;
   setSelectedOsVersions: (versions: OsVersion[]) => void;
@@ -457,11 +434,9 @@ const initialState: FiltersStoreState = {
 
   appsState: "pending",
   filterOptionsState: "pending",
-  rootSpanNamesState: "pending",
 
   apps: [],
   versions: [],
-  rootSpanNames: [],
   osVersions: [],
   countries: [],
   networkProviders: [],
@@ -474,13 +449,11 @@ const initialState: FiltersStoreState = {
   userDefAttrOps: new Map(),
 
   selectedApp: null,
-  selectedRootSpanName: "",
   selectedDateRange: "",
   selectedStartDate: "",
   selectedEndDate: "",
   selectedVersions: [],
   selectedSessionTypes: defaultSessionTypes,
-  selectedSpanStatuses: [],
   selectedBugReportStatuses: [BugReportStatus.Open],
   selectedHttpMethods: allHttpMethods,
   selectedOsVersions: [],
@@ -520,16 +493,10 @@ function computeFilters(state: FiltersStoreState): Filters {
       state.filterOptionsState === "not-onboarded") ||
     (!config.showNoBuilds && state.filterOptionsState === "no-builds");
 
-  const ready =
-    state.appsState === "loaded" &&
-    ((config.filterSource === FilterSource.Spans &&
-      state.rootSpanNamesState === "loaded") ||
-      config.filterSource !== FilterSource.Spans) &&
-    filtersReady;
+  const ready = state.appsState === "loaded" && filtersReady;
 
   const updatedUrlFilters: URLFilters = {
     appId: state.selectedApp.id,
-    rootSpanName: state.selectedRootSpanName,
     startDate: state.selectedStartDate,
     endDate: state.selectedEndDate,
     dateRange: state.selectedDateRange || undefined,
@@ -539,7 +506,6 @@ function computeFilters(state: FiltersStoreState): Filters {
       ),
     ),
     sessionTypes: state.selectedSessionTypes,
-    spanStatuses: state.selectedSpanStatuses,
     bugReportStatuses: state.selectedBugReportStatuses,
     httpMethods: state.selectedHttpMethods,
     osVersions: state.selectedOsVersions.map((os) =>
@@ -573,17 +539,12 @@ function computeFilters(state: FiltersStoreState): Filters {
 
   const loading =
     state.appsState === "pending" ||
-    (state.appsState === "loaded" && state.filterOptionsState === "pending") ||
-    (state.appsState === "loaded" &&
-      state.filterOptionsState === "loaded" &&
-      config.filterSource === FilterSource.Spans &&
-      state.rootSpanNamesState === "pending");
+    (state.appsState === "loaded" && state.filterOptionsState === "pending");
 
   return {
     ready,
     loading,
     app: state.selectedApp,
-    rootSpanName: state.selectedRootSpanName,
     startDate: state.selectedStartDate,
     endDate: state.selectedEndDate,
     versions: {
@@ -593,10 +554,6 @@ function computeFilters(state: FiltersStoreState): Filters {
     sessionTypes: {
       selected: state.selectedSessionTypes,
       all: state.selectedSessionTypes.length === allSessionTypes.length,
-    },
-    spanStatuses: {
-      selected: state.selectedSpanStatuses,
-      all: state.selectedSpanStatuses.length === allSpanStatuses.length,
     },
     bugReportStatuses: {
       selected: state.selectedBugReportStatuses,
@@ -665,8 +622,7 @@ export function applyFilterOptions(
   initConfig: InitConfig,
   _currentState: FiltersStoreState,
 ): Partial<FiltersStoreState> {
-  const { urlFilters, appVersionsInitialSelectionType, filterSource } =
-    initConfig;
+  const { urlFilters, appVersionsInitialSelectionType } = initConfig;
   // Pages that hide the app selector (e.g. crash/trace details) don't write
   // `a=appId` into the URL, but they DO write filter selections. Treat URL
   // filters as applicable when the URL has no appId at all — the indices
@@ -756,18 +712,6 @@ export function applyFilterOptions(
     selectedUdAttrMatchers = [];
   }
 
-  let selectedSpanStatuses: SpanStatus[];
-  if (isUrlMatch && urlFilters.spanStatuses) {
-    selectedSpanStatuses = urlFilters.spanStatuses
-      .filter((s: string) =>
-        Object.values(SpanStatus).includes(s as SpanStatus),
-      )
-      .map((s: string) => s as SpanStatus);
-  } else {
-    selectedSpanStatuses =
-      filterSource === FilterSource.Spans ? allSpanStatuses : [];
-  }
-
   let selectedBugReportStatuses: BugReportStatus[];
   if (isUrlMatch && urlFilters.bugReportStatuses) {
     selectedBugReportStatuses = urlFilters.bugReportStatuses
@@ -851,7 +795,6 @@ export function applyFilterOptions(
     selectedDeviceManufacturers,
     selectedDeviceNames,
     selectedUdAttrMatchers,
-    selectedSpanStatuses,
     selectedBugReportStatuses,
     selectedHttpMethods,
     selectedSessionTypes,
@@ -903,23 +846,6 @@ export function pickApp(
 // so their key order matches and stringify comparison is reliable.
 export function appsEqual(a: App, b: App): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
-}
-
-export function resolveRootSpanName(
-  rootSpanNames: string[],
-  initConfig: InitConfig,
-  app: App,
-): string {
-  if (
-    initConfig.urlFilters.appId === app.id &&
-    initConfig.urlFilters.rootSpanName
-  ) {
-    const found = rootSpanNames.find(
-      (name) => name === initConfig.urlFilters.rootSpanName,
-    );
-    return found ?? rootSpanNames[0];
-  }
-  return rootSpanNames[0];
 }
 
 // Signature of the exact /shortFilters POST that saveListFiltersToServer
@@ -984,12 +910,10 @@ export function createFiltersStore() {
           selectedDeviceManufacturers: [],
           selectedDeviceNames: [],
           selectedSessionTypes: [],
-          selectedSpanStatuses: [],
           selectedBugReportStatuses: [],
           selectedHttpMethods: [],
           selectedUdAttrMatchers: [],
           selectedFreeText: "",
-          selectedRootSpanName: "",
           selectedErrorTypes: ["error", "anr"],
           selectedSeverities: [],
           customErrorsOnly: false,
@@ -1019,14 +943,6 @@ export function createFiltersStore() {
         });
       },
 
-      setRootSpanNames: (rootSpanNames, state) => {
-        if (rootSpanNames === null) {
-          set({ rootSpanNamesState: state });
-          return;
-        }
-        set({ rootSpanNamesState: state, rootSpanNames });
-      },
-
       setCurrentTeamId: (teamId) => set({ currentTeamId: teamId }),
 
       setSelectedApp: (app) => {
@@ -1045,14 +961,11 @@ export function createFiltersStore() {
         }
       },
 
-      setSelectedRootSpanName: (name) => set({ selectedRootSpanName: name }),
       setSelectedDateRange: (range) => set({ selectedDateRange: range }),
       setSelectedStartDate: (date) => set({ selectedStartDate: date }),
       setSelectedEndDate: (date) => set({ selectedEndDate: date }),
       setSelectedVersions: (versions) => set({ selectedVersions: versions }),
       setSelectedSessionTypes: (types) => set({ selectedSessionTypes: types }),
-      setSelectedSpanStatuses: (statuses) =>
-        set({ selectedSpanStatuses: statuses }),
       setSelectedBugReportStatuses: (statuses) =>
         set({ selectedBugReportStatuses: statuses }),
       setSelectedHttpMethods: (methods) =>

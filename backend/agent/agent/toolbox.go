@@ -4,6 +4,7 @@ import (
 	"backend/agent/server"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"reflect"
@@ -15,6 +16,7 @@ import (
 	"backend/libs/ambient"
 	"backend/libs/chquery"
 	"backend/libs/event"
+	"backend/libs/exprfilter"
 	"backend/libs/filter"
 	"backend/libs/group"
 	"backend/libs/measure"
@@ -415,6 +417,24 @@ func commonTools(cfg *Config) []Tool {
 			return cfg.mcpGetFilters(ctx, in)
 		}),
 
+		// get_filter_keys
+		newTool(&mcpsdk.Tool{
+			Name:        "get_filter_keys",
+			Description: "List the filter keys of an entity (spans or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
+			InputSchema: mcpMustInferSchema[mcpGetFilterKeysInput](),
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFilterKeysInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetFilterKeys(ctx, in)
+		}),
+
+		// get_filter_values
+		newTool(&mcpsdk.Tool{
+			Name:        "get_filter_values",
+			Description: "List the values a filter key can be set to for an app, for use in a filter_expr, optionally narrowed by a search string. truncated in the result says more values matched. get_filter_keys lists the keys; a key whose value_suggestion_mode is none takes typed values and has no list.",
+			InputSchema: mcpMustInferSchema[mcpGetFilterValuesInput](),
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFilterValuesInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetFilterValues(ctx, in)
+		}),
+
 		// get_metrics
 		newTool(&mcpsdk.Tool{
 			Name:        "get_metrics",
@@ -553,8 +573,8 @@ func commonTools(cfg *Config) []Tool {
 		// get_span_instances
 		newTool(&mcpsdk.Tool{
 			Name:        "get_span_instances",
-			Description: "Get span instances for a root span name. Covers all app versions unless versions/version_codes narrow it; get_filters with span=true lists the versions seen in span data.",
-			InputSchema: mcpMustInferSchema[mcpGetSpanInstancesInput](),
+			Description: "Get span instances for a root span name. Covers every span unless filter_expr narrows it; " + mcpFilterExprToolsHint + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetSpanInstancesInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSpanInstancesInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSpanInstances(ctx, in)
 		}),
@@ -562,8 +582,8 @@ func commonTools(cfg *Config) []Tool {
 		// get_span_metrics_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_span_metrics_over_time",
-			Description: "Get p50/p90/p95/p99 duration metrics over time for a span name. Covers all app versions unless versions/version_codes narrow it; get_filters with span=true lists the versions seen in span data.",
-			InputSchema: mcpMustInferSchema[mcpGetSpanMetricsOverTimeInput](),
+			Description: "Get p50/p90/p95/p99 duration metrics over time for a span name. Covers every span unless filter_expr narrows it; " + mcpFilterExprToolsHint + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetSpanMetricsOverTimeInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSpanMetricsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSpanMetricsOverTime(ctx, in)
 		}),
@@ -678,6 +698,36 @@ func commonTools(cfg *Config) []Tool {
 	}
 }
 
+// mcpFilterExprToolsHint tells the client where the vocabulary of a
+// filter_expr comes from. It is shared by every tool that takes one.
+const mcpFilterExprToolsHint = "get_filter_keys with entity spans lists the keys and operators a filter_expr may use, get_filter_values lists a key's suggested values"
+
+// mcpFilterExprGrammar is the filter_expr grammar, condensed from
+// backend/libs/exprfilter/parse.go, shared as the field's schema description
+// by every tool that takes one.
+const mcpFilterExprGrammar = "Filter expression narrowing the spans. A condition is key:operator:value or key:operator:[v1,v2]; a no-value operator like is_set is written key:operator. Conditions join with AND / OR, parentheses group, and AND binds tighter than OR. A value holding a space, comma, bracket, colon or quote is written in double quotes. Example: version_name:in:[1.2.0,1.1.9] AND span_status:in:error. User-defined span attribute keys appear under the Custom key group and carry the custom. prefix, as in custom.is_premium:eq:true. " + mcpFilterExprToolsHint
+
+// mcpMustInferFilterExprSchema infers a JSON schema from a Go type and sets
+// the shared grammar text as the description of its "filter_expr" property.
+// A struct tag cannot hold a constant, so the description is set here. Used
+// by tools whose input carries a filter_expr field.
+func mcpMustInferFilterExprSchema[T any]() json.RawMessage {
+	schema, err := jsonschema.For[T](nil)
+	if err != nil {
+		panic("mcp: failed to infer schema: " + err.Error())
+	}
+	p, ok := schema.Properties["filter_expr"]
+	if !ok {
+		panic("mcp: schema has no filter_expr property")
+	}
+	p.Description = mcpFilterExprGrammar
+	data, err := schema.MarshalJSON()
+	if err != nil {
+		panic("mcp: failed to marshal schema: " + err.Error())
+	}
+	return json.RawMessage(data)
+}
+
 // mcpMustInferSchema infers a JSON schema from a Go type.
 func mcpMustInferSchema[T any]() json.RawMessage {
 	schema, err := jsonschema.For[T](nil)
@@ -751,6 +801,18 @@ type mcpGetFiltersInput struct {
 	ErrorTypes []string `json:"error_types,omitempty" jsonschema:"Narrow the event-derived options to errors of these types: 'error' (exceptions) and/or 'anr'. Mutually exclusive with span and builds. Omitted, options cover all events, not only errors"`
 	Span       bool     `json:"span,omitempty" jsonschema:"Scope filter options to span data. Required for span-relevant options; omitted, options derive from event data, not spans. Mutually exclusive with error_types and builds"`
 	Builds     bool     `json:"builds,omitempty" jsonschema:"Scope filter options to uploaded builds. Required for build-relevant versions; omitted, versions derive from event data, not build mappings. Mutually exclusive with span and error_types"`
+}
+type mcpGetFilterKeysInput struct {
+	AppID  string   `json:"app_id" jsonschema:"UUID of the app to query"`
+	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans or builds"`
+	Keys   []string `json:"keys,omitempty" jsonschema:"Key names you already know, for example from the user's request, to include in the result even when the listing is truncated"`
+}
+type mcpGetFilterValuesInput struct {
+	AppID   string `json:"app_id" jsonschema:"UUID of the app to query"`
+	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans or builds"`
+	KeyName string `json:"key_name" jsonschema:"Name of the filter key to list values for, as get_filter_keys returns it"`
+	Search  string `json:"search,omitempty" jsonschema:"Return only values containing this text"`
+	Limit   int    `json:"limit,omitempty" jsonschema:"Maximum number of values to return (default: 50, max: 200)"`
 }
 type mcpGetMetricsInput struct {
 	mcpCommonFilters
@@ -830,16 +892,20 @@ type mcpGetRootSpanNamesInput struct {
 	AppID string `json:"app_id" jsonschema:"UUID of the app"`
 }
 type mcpGetSpanInstancesInput struct {
-	mcpCommonFilters
+	AppID        string `json:"app_id" jsonschema:"UUID of the app to query"`
 	RootSpanName string `json:"root_span_name" jsonschema:"Name of the root span to query"`
-	SpanStatuses []int  `json:"span_statuses,omitempty" jsonschema:"Filter by span status: 0=Unset, 1=Ok, 2=Error"`
+	From         string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To           string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr   string `json:"filter_expr,omitempty"`
 	Limit        int    `json:"limit,omitempty" jsonschema:"Maximum number of spans to return (default: 10)"`
 	Offset       int    `json:"offset,omitempty" jsonschema:"Number of spans to skip for pagination (default: 0)"`
 }
 type mcpGetSpanMetricsOverTimeInput struct {
-	mcpCommonFilters
+	AppID        string `json:"app_id" jsonschema:"UUID of the app to query"`
 	RootSpanName string `json:"root_span_name" jsonschema:"Name of the root span to query"`
-	SpanStatuses []int  `json:"span_statuses,omitempty" jsonschema:"Filter by span status: 0=Unset, 1=Ok, 2=Error"`
+	From         string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To           string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr   string `json:"filter_expr,omitempty"`
 	Timezone     string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
 }
 type mcpGetTraceInput struct {
@@ -1062,6 +1128,56 @@ func (c *Config) mcpBuildAppFilter(ctx context.Context, appID uuid.UUID, cf mcpC
 	return af, nil
 }
 
+// mcpSpanExprFilter builds the exprfilter.ExprFilter the span query tools pass
+// to the spans queries, parsing the tool's filter_expr input into the filter
+// tree. The caller still sets Limit, Offset and Timezone, then runs Validate.
+func mcpSpanExprFilter(appID, teamID uuid.UUID, fromStr, toStr, filterExpr string) (*exprfilter.ExprFilter, error) {
+	from, to, err := mcpParseTimeRangeStrings(fromStr, toStr)
+	if err != nil {
+		return nil, err
+	}
+
+	ef := &exprfilter.ExprFilter{
+		AppID:      appID,
+		TeamID:     teamID,
+		Entity:     exprfilter.SpansEntity,
+		From:       from,
+		To:         to,
+		Limit:      exprfilter.DefaultPaginationLimit,
+		FilterExpr: filterExpr,
+	}
+
+	if err := ef.BuildExprTree(); err != nil {
+		return nil, mcpFilterExprError(err)
+	}
+
+	return ef, nil
+}
+
+// mcpFilterExprError renders a filter_expr parse or validation failure as one
+// error whose text names each problem and where in the expression it is, so
+// the model can correct the expression and call again. Other errors pass
+// through unchanged.
+func mcpFilterExprError(err error) error {
+	var parseErr *exprfilter.ParseError
+	var invalid *exprfilter.ValidationError
+	switch {
+	case errors.As(err, &parseErr):
+		return fmt.Errorf("filter_expr could not be parsed: %s at position %d", parseErr.Message, parseErr.Position)
+	case errors.As(err, &invalid):
+		messages := make([]string, len(invalid.Issues))
+		for i, issue := range invalid.Issues {
+			if issue.Span != nil {
+				messages[i] = fmt.Sprintf("%s (characters %d-%d)", issue.Message, issue.Span.Start, issue.Span.End)
+			} else {
+				messages[i] = issue.Message
+			}
+		}
+		return fmt.Errorf("filter_expr is invalid: %s", strings.Join(messages, "; "))
+	}
+	return err
+}
+
 // mcpApplyErrorFilters validates and applies the error-scoping filters onto an
 // AppFilter. Empty fields leave the filter unscoped (all error sources).
 func mcpApplyErrorFilters(af *filter.AppFilter, ef mcpErrorFilters) error {
@@ -1228,6 +1344,83 @@ func (c *Config) mcpGetFilters(ctx context.Context, in mcpGetFiltersInput) (*mcp
 		return nil, nil, fmt.Errorf("failed to get filters: %v", err)
 	}
 	data, _ := json.Marshal(fl)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetFilterKeys(ctx context.Context, in mcpGetFilterKeysInput) (*mcpsdk.CallToolResult, any, error) {
+	entity, err := exprfilter.FindByName(in.Entity)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ctx = exprfilter.WithFilterQuerySettings(ctx, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode, "filter_keys")
+	keys, keysTruncated, err := entity.ListKeys(ctx, c.Deps.PgPool, c.Deps.RchPool, teamID, appID, in.Keys)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get filter keys: %v", err)
+	}
+
+	result := map[string]any{
+		"keys":           keys,
+		"key_groups":     exprfilter.ListKeyGroups(keys),
+		"keys_truncated": keysTruncated,
+	}
+	data, _ := json.Marshal(result)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetFilterValues(ctx context.Context, in mcpGetFilterValuesInput) (*mcpsdk.CallToolResult, any, error) {
+	deps := c.Deps
+	entity, err := exprfilter.FindByName(in.Entity)
+	if err != nil {
+		return nil, nil, err
+	}
+	if in.KeyName == "" {
+		return nil, nil, fmt.Errorf("key_name is required")
+	}
+
+	limit := in.Limit
+	if limit <= 0 {
+		limit = exprfilter.DefaultValueLimit
+	}
+	if limit > exprfilter.MaxValueLimit {
+		return nil, nil, fmt.Errorf("limit cannot be more than %d", exprfilter.MaxValueLimit)
+	}
+
+	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ctx = exprfilter.WithFilterQuerySettings(ctx, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode, "filter_values")
+	key, found, err := entity.FindKey(ctx, deps.RchPool, teamID, appID, in.KeyName)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get filter values: %v", err)
+	}
+	if !found {
+		return nil, nil, fmt.Errorf("entity %q has no key %q", entity.Name, in.KeyName)
+	}
+	if key.ValueSuggestionMode == exprfilter.ValueSuggestionModeNone {
+		return nil, nil, fmt.Errorf("key %q takes typed values only and has no value list", key.Name)
+	}
+
+	valueList, err := entity.SuggestKeyValues(ctx, deps.PgPool, deps.RchPool, teamID, appID, key, exprfilter.ValueRequest{
+		Search: in.Search,
+		Limit:  limit,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get filter values: %v", err)
+	}
+
+	result := map[string]any{
+		"values":    valueList.Values,
+		"truncated": valueList.Truncated,
+	}
+	data, _ := json.Marshal(result)
 	return mcpTextResult(string(data)), nil, nil
 }
 
@@ -1752,7 +1945,7 @@ func (c *Config) mcpGetSpanInstances(ctx context.Context, in mcpGetSpanInstances
 		return nil, nil, err
 	}
 
-	af, err := c.mcpBuildAppFilter(ctx, appID, in.mcpCommonFilters)
+	ef, err := mcpSpanExprFilter(appID, teamID, in.From, in.To, in.FilterExpr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1764,21 +1957,20 @@ func (c *Config) mcpGetSpanInstances(ctx context.Context, in mcpGetSpanInstances
 	if limit > 30 {
 		limit = 30
 	}
-	af.Limit = limit
-	af.Offset = in.Offset
-	af.Span = true
+	ef.Limit = limit
+	ef.Offset = in.Offset
 
-	if len(in.SpanStatuses) > 0 {
-		statuses := make([]int8, len(in.SpanStatuses))
-		for i, s := range in.SpanStatuses {
-			statuses[i] = int8(s)
-		}
-		af.SpanStatuses = statuses
+	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
+		return nil, nil, fmt.Errorf("failed to read the filter's custom keys: %v", err)
+	}
+
+	if err := ef.Validate(); err != nil {
+		return nil, nil, mcpFilterExprError(err)
 	}
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	spanCtx := ambient.WithTeamId(ctx, teamID)
-	spans, _, _, spanErr := app.GetSpansForSpanNameWithFilter(spanCtx, deps.RchPool, in.RootSpanName, af)
+	spans, _, _, spanErr := app.GetSpansForSpanNameWithFilter(spanCtx, deps.RchPool, in.RootSpanName, ef)
 	if spanErr != nil {
 		return nil, nil, fmt.Errorf("failed to get span instances: %v", spanErr)
 	}
@@ -1800,25 +1992,23 @@ func (c *Config) mcpGetSpanMetricsOverTime(ctx context.Context, in mcpGetSpanMet
 		return nil, nil, err
 	}
 
-	af, err := c.mcpBuildAppFilter(ctx, appID, in.mcpCommonFilters)
+	ef, err := mcpSpanExprFilter(appID, teamID, in.From, in.To, in.FilterExpr)
 	if err != nil {
 		return nil, nil, err
 	}
-	af.Timezone = in.Timezone
-	af.Limit = filter.DefaultPaginationLimit
-	af.Span = true
+	ef.Timezone = in.Timezone
 
-	if len(in.SpanStatuses) > 0 {
-		statuses := make([]int8, len(in.SpanStatuses))
-		for i, s := range in.SpanStatuses {
-			statuses[i] = int8(s)
-		}
-		af.SpanStatuses = statuses
+	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
+		return nil, nil, fmt.Errorf("failed to read the filter's custom keys: %v", err)
+	}
+
+	if err := ef.Validate(); err != nil {
+		return nil, nil, mcpFilterExprError(err)
 	}
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	plotCtx := ambient.WithTeamId(ctx, teamID)
-	instances, plotErr := app.GetMetricsPlotForSpanNameWithFilter(plotCtx, deps.RchPool, in.RootSpanName, af)
+	instances, plotErr := app.GetMetricsPlotForSpanNameWithFilter(plotCtx, deps.RchPool, in.RootSpanName, ef)
 	if plotErr != nil {
 		return nil, nil, fmt.Errorf("failed to get span metrics plot: %v", plotErr)
 	}
