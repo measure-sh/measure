@@ -8,7 +8,6 @@ import {
   HttpMethod,
   OsVersion,
   SessionType,
-  SpanStatus,
 } from "@/app/api/api_calls";
 
 const mockFetchQuery = jest.fn((..._args: any[]) => Promise.resolve(null));
@@ -25,7 +24,6 @@ import {
   type FilterOptionsData,
   type InitConfig,
   pickApp,
-  resolveRootSpanName,
 } from "@/app/stores/filters_store";
 
 function makeApp(id: string, overrides: Partial<App> = {}): App {
@@ -183,36 +181,6 @@ describe("appsEqual", () => {
   });
 });
 
-describe("resolveRootSpanName", () => {
-  const app = makeApp("a");
-
-  it("returns the URL rootSpanName when the URL appId matches", () => {
-    expect(
-      resolveRootSpanName(
-        ["root.a", "root.b"],
-        initConfig({ appId: "a", rootSpanName: "root.b" }),
-        app,
-      ),
-    ).toBe("root.b");
-  });
-
-  it("falls back to first when URL rootSpanName is invalid for current data", () => {
-    expect(
-      resolveRootSpanName(
-        ["root.a", "root.b"],
-        initConfig({ appId: "a", rootSpanName: "missing" }),
-        app,
-      ),
-    ).toBe("root.a");
-  });
-
-  it("returns first when no URL rootSpanName", () => {
-    expect(resolveRootSpanName(["root.a", "root.b"], initConfig({}), app)).toBe(
-      "root.a",
-    );
-  });
-});
-
 describe("applyFilterOptions", () => {
   const app = makeApp("a");
 
@@ -346,26 +314,6 @@ describe("applyFilterOptions", () => {
     expect(patch.selectedUdAttrMatchers).toEqual([
       { key: "plan", type: "string", op: "eq", value: "pro" },
     ]);
-  });
-
-  it("defaults span statuses to all when filterSource is Spans", () => {
-    const cfg = { ...initConfig({}), filterSource: FilterSource.Spans };
-    const patch = applyFilterOptions(emptyOptions(), app, cfg, state());
-    expect(patch.selectedSpanStatuses).toEqual([
-      SpanStatus.Unset,
-      SpanStatus.Ok,
-      SpanStatus.Error,
-    ]);
-  });
-
-  it("defaults span statuses to [] for non-Spans filterSource", () => {
-    const patch = applyFilterOptions(
-      emptyOptions(),
-      app,
-      initConfig({}),
-      state(),
-    );
-    expect(patch.selectedSpanStatuses).toEqual([]);
   });
 
   it("defaults bug report statuses to [Open]", () => {
@@ -548,20 +496,6 @@ describe("filtersStore actions", () => {
     store.getState().setFilterOptions(null, "not-onboarded");
     expect(store.getState().filterOptionsState).toBe("not-onboarded");
     expect(store.getState().versions).toEqual([]);
-  });
-
-  it("setRootSpanNames stores list and status", () => {
-    const store = createFiltersStore();
-    store.getState().setRootSpanNames(["a", "b"], "loaded");
-    expect(store.getState().rootSpanNames).toEqual(["a", "b"]);
-    expect(store.getState().rootSpanNamesState).toBe("loaded");
-  });
-
-  it("setRootSpanNames with null data only updates status", () => {
-    const store = createFiltersStore();
-    store.getState().setRootSpanNames(null, "no-data");
-    expect(store.getState().rootSpanNamesState).toBe("no-data");
-    expect(store.getState().rootSpanNames).toEqual([]);
   });
 
   it("setConfig wipes per-page selections when filterSource changes", () => {

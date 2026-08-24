@@ -11,9 +11,12 @@ jest.mock("@/app/api/api_calls", () => {
   return {
     ...actual,
     fetchAppsFromServer: jest.fn(),
-    fetchBuildsWithFilter: jest.fn(),
+    fetchBuildsFromServer: jest.fn(),
+    fetchFilterKeys: jest.fn(),
     fetchFiltersFromServer: jest.fn(),
     fetchRootSpanNamesFromServer: jest.fn(),
+    fetchSpansFromServer: jest.fn(),
+    fetchSpanMetricsPlotFromServer: jest.fn(),
     fetchErrorsOverviewFromServer: jest.fn(),
     fetchErrorsOverviewPlotFromServer: jest.fn(),
     fetchErrorsDetailsFromServer: jest.fn(),
@@ -50,15 +53,18 @@ jest.mock("@/app/api/api_client", () => ({
 
 import {
   fetchAppsFromServer,
-  fetchBuildsWithFilter,
+  fetchBuildsFromServer,
   fetchErrorGroupCommonPathFromServer,
   fetchErrorsDetailsFromServer,
   fetchErrorsDetailsPlotFromServer,
   fetchErrorsDistributionPlotFromServer,
   fetchErrorsOverviewFromServer,
   fetchErrorsOverviewPlotFromServer,
+  fetchFilterKeys,
   fetchFiltersFromServer,
   fetchRootSpanNamesFromServer,
+  fetchSpanMetricsPlotFromServer,
+  fetchSpansFromServer,
 } from "@/app/api/api_calls";
 import { apiClient } from "@/app/api/api_client";
 import {
@@ -72,15 +78,21 @@ import {
   useErrorsDistributionPlotQuery,
   useErrorsOverviewPlotQuery,
   useErrorsOverviewQuery,
+  useFilterKeysQuery,
   useFilterOptionsQuery,
   useRootSpanNamesQuery,
   useSessionQuery,
+  useSpanMetricsPlotQuery,
+  useSpansQuery,
 } from "@/app/query/hooks";
 
 const mockFetchApps = fetchAppsFromServer as jest.Mock;
-const mockFetchBuilds = fetchBuildsWithFilter as jest.Mock;
+const mockFetchBuilds = fetchBuildsFromServer as jest.Mock;
+const mockFetchFilterKeys = fetchFilterKeys as jest.Mock;
 const mockFetchFilters = fetchFiltersFromServer as jest.Mock;
 const mockFetchRootSpanNames = fetchRootSpanNamesFromServer as jest.Mock;
+const mockFetchSpans = fetchSpansFromServer as jest.Mock;
+const mockFetchSpanMetricsPlot = fetchSpanMetricsPlotFromServer as jest.Mock;
 const mockFetchErrorsOverview = fetchErrorsOverviewFromServer as jest.Mock;
 const mockFetchErrorsOverviewPlot =
   fetchErrorsOverviewPlotFromServer as jest.Mock;
@@ -325,31 +337,77 @@ describe("useFilterOptionsQuery", () => {
   });
 });
 
-describe("useRootSpanNamesQuery", () => {
-  const app = { id: "a1", name: "App 1", onboarded: true } as any;
-
-  it("is disabled when filterSource is not Spans", () => {
-    const { wrapper } = makeWrapper();
-    const { result } = renderHook(
-      () => useRootSpanNamesQuery(app, FilterSource.Errors),
-      { wrapper },
-    );
-    expect(result.current.fetchStatus).toBe("idle");
-    expect(mockFetchRootSpanNames).not.toHaveBeenCalled();
-  });
-
-  it("fetches when filterSource is Spans and returns the parsed results", async () => {
-    mockFetchRootSpanNames.mockResolvedValueOnce(["root.a", "root.b"]);
+describe("useFilterKeysQuery", () => {
+  it("keeps the last keys while a changed name set refetches", async () => {
+    mockFetchFilterKeys
+      .mockResolvedValueOnce({ keys: [{ name: "k1" }], key_groups: ["g"] })
+      // The second response never arrives, so the hook stays mid-fetch.
+      .mockReturnValueOnce(new Promise(() => {}));
 
     const { wrapper } = makeWrapper();
-    const { result } = renderHook(
-      () => useRootSpanNamesQuery(app, FilterSource.Spans),
-      { wrapper },
+    const { result, rerender } = renderHook(
+      ({ names }: { names: string[] }) =>
+        useFilterKeysQuery("app-1", "builds", names),
+      { wrapper, initialProps: { names: [] as string[] } },
     );
 
     await waitFor(() => expect(result.current.status).toBe("success"));
 
+    rerender({ names: ["custom.plan"] });
+
+    await waitFor(() =>
+      expect(mockFetchFilterKeys).toHaveBeenLastCalledWith("app-1", "builds", [
+        "custom.plan",
+      ]),
+    );
+    expect(result.current.isFetching).toBe(true);
+    expect(result.current.data?.keys).toEqual([{ name: "k1" }]);
+  });
+});
+
+describe("useRootSpanNamesQuery", () => {
+  const app = { id: "a1", name: "App 1", onboarded: true } as any;
+
+  it("is disabled without an app", () => {
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useRootSpanNamesQuery(null), {
+      wrapper,
+    });
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchRootSpanNames).not.toHaveBeenCalled();
+  });
+
+  it("fetches for the app and returns the parsed results", async () => {
+    mockFetchRootSpanNames.mockResolvedValueOnce(["root.a", "root.b"]);
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useRootSpanNamesQuery(app), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
     expect(result.current.data).toEqual(["root.a", "root.b"]);
+    expect(mockFetchRootSpanNames).toHaveBeenCalledWith(app);
+  });
+
+  it("refetches when the app changes", async () => {
+    mockFetchRootSpanNames
+      .mockResolvedValueOnce(["root.a"])
+      .mockResolvedValueOnce(["root.b"]);
+
+    const { wrapper } = makeWrapper();
+    const { result, rerender } = renderHook(
+      ({ current }: { current: any }) => useRootSpanNamesQuery(current),
+      { wrapper, initialProps: { current: app } },
+    );
+
+    await waitFor(() => expect(result.current.data).toEqual(["root.a"]));
+
+    rerender({ current: { ...app, id: "a2" } });
+
+    await waitFor(() => expect(result.current.data).toEqual(["root.b"]));
+    expect(mockFetchRootSpanNames).toHaveBeenCalledTimes(2);
   });
 
   it("surfaces a failed fetch as a query error", async () => {
@@ -357,10 +415,9 @@ describe("useRootSpanNamesQuery", () => {
     mockFetchRootSpanNames.mockRejectedValueOnce(failure);
 
     const { wrapper } = makeWrapper();
-    const { result } = renderHook(
-      () => useRootSpanNamesQuery(app, FilterSource.Spans),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useRootSpanNamesQuery(app), {
+      wrapper,
+    });
 
     await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.error).toBe(failure);
@@ -523,12 +580,9 @@ describe("useErrorsOverviewQuery", () => {
 
 describe("useBuildsQuery", () => {
   const filteredBy = (filterExpr: string | null) => ({
-    app: { id: "app-1" } as any,
-    date: {
-      dateRange: "Last 6 Hours",
-      startDate: "2026-01-01T00:00:00Z",
-      endDate: "2026-01-02T00:00:00Z",
-    },
+    appId: "app-1",
+    startDate: "2026-01-01T00:00:00Z",
+    endDate: "2026-01-02T00:00:00Z",
     filterExpr,
   });
 
@@ -635,6 +689,216 @@ describe("useBuildsQuery", () => {
       {
         wrapper,
       },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.error).toBe(failure);
+  });
+});
+
+describe("useSpansQuery", () => {
+  const filteredBy = (filterExpr: string | null) => ({
+    appId: "app-1",
+    startDate: "2026-01-01T00:00:00Z",
+    endDate: "2026-01-02T00:00:00Z",
+    filterExpr,
+  });
+
+  it("does not fetch without an app and a date range", () => {
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useSpansQuery(null, "root.a", 0), {
+      wrapper,
+    });
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchSpans).not.toHaveBeenCalled();
+  });
+
+  it("does not fetch without a span name", () => {
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useSpansQuery(filteredBy(null), null, 0),
+      { wrapper },
+    );
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchSpans).not.toHaveBeenCalled();
+  });
+
+  it("fetches for the span, range, filter and page, and returns the data", async () => {
+    mockFetchSpans.mockResolvedValueOnce({
+      results: [{ span_id: "s1" }],
+      meta: { next: false, previous: false },
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useSpansQuery(filteredBy("span_status:in:error"), "root.a", 10),
+      { wrapper },
+    );
+
+    expect(result.current.status).toBe("pending");
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
+    expect(mockFetchSpans).toHaveBeenCalledWith(
+      "app-1",
+      "root.a",
+      "2026-01-01T00:00:00Z",
+      "2026-01-02T00:00:00Z",
+      "span_status:in:error",
+      5,
+      10,
+    );
+    expect((result.current.data as any).results[0].span_id).toBe("s1");
+  });
+
+  it("fetches without a filter when none is given", async () => {
+    mockFetchSpans.mockResolvedValueOnce({
+      results: [],
+      meta: { next: false, previous: false },
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useSpansQuery(filteredBy(null), "root.a", 0),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    expect(mockFetchSpans).toHaveBeenCalledWith(
+      "app-1",
+      "root.a",
+      "2026-01-01T00:00:00Z",
+      "2026-01-02T00:00:00Z",
+      null,
+      5,
+      0,
+    );
+  });
+
+  it("fetches again for another page, and shows the last one meanwhile", async () => {
+    mockFetchSpans
+      .mockResolvedValueOnce({
+        results: [{ span_id: "s1" }],
+        meta: { next: true, previous: false },
+      })
+      // The second page never arrives, so the hook stays mid-fetch.
+      .mockReturnValueOnce(new Promise(() => {}));
+
+    const { wrapper } = makeWrapper();
+    const { result, rerender } = renderHook(
+      ({ offset }) => useSpansQuery(filteredBy(null), "root.a", offset),
+      { wrapper, initialProps: { offset: 0 } },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
+    rerender({ offset: 5 });
+
+    await waitFor(() =>
+      expect(mockFetchSpans).toHaveBeenLastCalledWith(
+        "app-1",
+        "root.a",
+        "2026-01-01T00:00:00Z",
+        "2026-01-02T00:00:00Z",
+        null,
+        5,
+        5,
+      ),
+    );
+    expect(result.current.isFetching).toBe(true);
+    expect((result.current.data as any).results[0].span_id).toBe("s1");
+  });
+
+  it("surfaces a failed fetch as a query error", async () => {
+    const failure = new ApiError(500, "request failed");
+    mockFetchSpans.mockRejectedValueOnce(failure);
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useSpansQuery(filteredBy(null), "root.a", 0),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.error).toBe(failure);
+  });
+});
+
+describe("useSpanMetricsPlotQuery", () => {
+  const filteredBy = (filterExpr: string | null) => ({
+    appId: "app-1",
+    startDate: "2026-01-01T00:00:00Z",
+    endDate: "2026-01-02T00:00:00Z",
+    filterExpr,
+  });
+
+  it("does not fetch without an app and a date range", () => {
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useSpanMetricsPlotQuery(null, "root.a"),
+      { wrapper },
+    );
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchSpanMetricsPlot).not.toHaveBeenCalled();
+  });
+
+  it("does not fetch without a span name", () => {
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useSpanMetricsPlotQuery(filteredBy(null), null),
+      { wrapper },
+    );
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchSpanMetricsPlot).not.toHaveBeenCalled();
+  });
+
+  it("fetches for the span, range and filter, and returns the raw plot", async () => {
+    const rawPlot = [{ id: "v1", data: [{ datetime: "2026-01-01", p50: 1 }] }];
+    mockFetchSpanMetricsPlot.mockResolvedValueOnce(rawPlot);
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useSpanMetricsPlotQuery(filteredBy("span_status:in:ok"), "root.a"),
+      { wrapper },
+    );
+
+    expect(result.current.status).toBe("pending");
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
+    expect(mockFetchSpanMetricsPlot).toHaveBeenCalledWith(
+      "app-1",
+      "root.a",
+      "2026-01-01T00:00:00Z",
+      "2026-01-02T00:00:00Z",
+      "span_status:in:ok",
+    );
+    expect(result.current.data).toEqual(rawPlot);
+  });
+
+  it("passes a null plot through", async () => {
+    mockFetchSpanMetricsPlot.mockResolvedValueOnce(null);
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useSpanMetricsPlotQuery(filteredBy(null), "root.a"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    expect(result.current.data).toBeNull();
+  });
+
+  it("surfaces a failed fetch as a query error", async () => {
+    const failure = new ApiError(500, "request failed");
+    mockFetchSpanMetricsPlot.mockRejectedValueOnce(failure);
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useSpanMetricsPlotQuery(filteredBy(null), "root.a"),
+      { wrapper },
     );
 
     await waitFor(() => expect(result.current.status).toBe("error"));

@@ -24,13 +24,8 @@ import {
   FilterSource,
   HttpMethod,
   SessionType,
-  SpanStatus,
 } from "../api/api_calls";
-import {
-  useAppsQuery,
-  useFilterOptionsQuery,
-  useRootSpanNamesQuery,
-} from "../query/hooks";
+import { useAppsQuery, useFilterOptionsQuery } from "../query/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   applyFilterOptions,
@@ -41,7 +36,6 @@ import {
   type Filters,
   type InitConfig,
   pickApp,
-  resolveRootSpanName,
   type URLFilters,
   urlFiltersKeyMap,
 } from "../stores/filters_store";
@@ -152,10 +146,8 @@ enum DateRange {
 
 function isStringKey(
   key: string,
-): key is "appId" | "rootSpanName" | "startDate" | "endDate" | "freeText" {
-  return ["appId", "rootSpanName", "startDate", "endDate", "freeText"].includes(
-    key,
-  );
+): key is "appId" | "startDate" | "endDate" | "freeText" {
+  return ["appId", "startDate", "endDate", "freeText"].includes(key);
 }
 
 // A filter's selection as chip text. `label` is the compact form shown on the
@@ -226,14 +218,6 @@ export function deserializeUrlFilters(queryString: string): URLFilters {
               return { key, type, op, value: val } as UdAttrMatcher;
             })
             .filter((m) => m.key && m.type && m.op && m.value);
-          break;
-
-        case "spanStatuses":
-          result[originalKey] = value
-            .split(",")
-            .filter((s): s is SpanStatus =>
-              Object.values(SpanStatus).includes(s as SpanStatus),
-            );
           break;
 
         case "bugReportStatuses":
@@ -722,41 +706,6 @@ const FiltersComponent = forwardRef<
       selectedApp?.onboarded,
     ]);
 
-    const rootSpanNamesQuery = useRootSpanNamesQuery(selectedApp, filterSource);
-
-    useEffect(() => {
-      if (filterSource !== FilterSource.Spans) {
-        return;
-      }
-      if (!selectedApp) {
-        return;
-      }
-      if (rootSpanNamesQuery.status === "pending") {
-        store.setRootSpanNames(null, "pending");
-        return;
-      }
-      if (rootSpanNamesQuery.status === "error") {
-        store.setRootSpanNames(null, "error");
-        return;
-      }
-      // An app that has never reported a trace answers with a null list.
-      // This is not the same as a server that answers with an empty list.
-      const names = rootSpanNamesQuery.data;
-      if (names === null) {
-        store.setRootSpanNames(null, "no-data");
-        return;
-      }
-      store.setRootSpanNames(names, "loaded");
-      store.setSelectedRootSpanName(
-        resolveRootSpanName(names, initConfig, selectedApp),
-      );
-    }, [
-      rootSpanNamesQuery.status,
-      rootSpanNamesQuery.data,
-      selectedApp?.id,
-      filterSource,
-    ]);
-
     // Refetch apps + filter-option queries, then optionally focus a
     // specific app once the fresh apps list lands.
     const refresh = useCallback(
@@ -775,13 +724,8 @@ const FiltersComponent = forwardRef<
         await queryClient.refetchQueries({
           queryKey: ["filterOptions", selectedApp?.id],
         });
-        if (filterSource === FilterSource.Spans) {
-          await queryClient.refetchQueries({
-            queryKey: ["rootSpanNames", selectedApp?.id],
-          });
-        }
       },
-      [teamId, selectedApp?.id, filterSource, store],
+      [teamId, selectedApp?.id, store],
     );
 
     useImperativeHandle(ref, () => ({ refresh }), [refresh]);
@@ -803,7 +747,6 @@ const FiltersComponent = forwardRef<
     // confirms.
     type PendingModalFilters = {
       selectedSessionTypes: SessionType[];
-      selectedSpanStatuses: SpanStatus[];
       selectedBugReportStatuses: BugReportStatus[];
       selectedHttpMethods: HttpMethod[];
       selectedOsVersions: typeof store.selectedOsVersions;
@@ -819,7 +762,6 @@ const FiltersComponent = forwardRef<
     const [pendingModalFilters, setPendingModalFilters] =
       useState<PendingModalFilters>(() => ({
         selectedSessionTypes: store.selectedSessionTypes,
-        selectedSpanStatuses: store.selectedSpanStatuses,
         selectedBugReportStatuses: store.selectedBugReportStatuses,
         selectedHttpMethods: store.selectedHttpMethods,
         selectedOsVersions: store.selectedOsVersions,
@@ -843,7 +785,6 @@ const FiltersComponent = forwardRef<
       if (moreFiltersOpen) {
         setPendingModalFilters({
           selectedSessionTypes: store.selectedSessionTypes,
-          selectedSpanStatuses: store.selectedSpanStatuses,
           selectedBugReportStatuses: store.selectedBugReportStatuses,
           selectedHttpMethods: store.selectedHttpMethods,
           selectedOsVersions: store.selectedOsVersions,
@@ -862,7 +803,6 @@ const FiltersComponent = forwardRef<
     // Commit the pending snapshot to the store and close the modal.
     const saveMoreFilters = () => {
       store.setSelectedSessionTypes(pendingModalFilters.selectedSessionTypes);
-      store.setSelectedSpanStatuses(pendingModalFilters.selectedSpanStatuses);
       store.setSelectedBugReportStatuses(
         pendingModalFilters.selectedBugReportStatuses,
       );
@@ -910,7 +850,6 @@ const FiltersComponent = forwardRef<
     // (no loaded data) so the skeleton can reserve the trigger's slot.
     const hasMoreFiltersConfig =
       showSessionTypes ||
-      filterSource === FilterSource.Spans ||
       showBugReportStatus ||
       showHttpMethods ||
       showOsVersions ||
@@ -934,12 +873,11 @@ const FiltersComponent = forwardRef<
     const showSeverityControl =
       isErrorsSource && showSeverity && !onlyAnrSelected;
 
-    // Dropdowns that stay inline: app, trace name, date range, app versions,
+    // Dropdowns that stay inline: app, date range, app versions,
     // the Errors-only controls, plus the "More filters" trigger.
     const skeletonMainRowCount =
       [
         showAppSelector,
-        filterSource === FilterSource.Spans,
         showDates,
         showAppVersions,
         showErrorTypeControl,
@@ -950,7 +888,6 @@ const FiltersComponent = forwardRef<
     // trigger so it never opens an empty modal.
     const hasMoreFilters =
       showSessionTypes ||
-      filterSource === FilterSource.Spans ||
       showBugReportStatus ||
       showHttpMethods ||
       (showOsVersions && store.osVersions.length > 0) ||
@@ -982,23 +919,6 @@ const FiltersComponent = forwardRef<
           : resetAction(() =>
               store.setSelectedSessionTypes(defaultSessionTypes),
             ),
-      });
-    }
-    if (
-      filterSource === FilterSource.Spans &&
-      store.selectedSpanStatuses.length > 0
-    ) {
-      filterChips.push({
-        key: "spanStatuses",
-        ...chipLabels("Span Status", store.selectedSpanStatuses),
-        action:
-          store.selectedSpanStatuses.length === Object.values(SpanStatus).length
-            ? undefined
-            : resetAction(() =>
-                store.setSelectedSpanStatuses(
-                  Object.values(SpanStatus) as SpanStatus[],
-                ),
-              ),
       });
     }
     if (showBugReportStatus && store.selectedBugReportStatuses.length > 0) {
@@ -1201,20 +1121,6 @@ const FiltersComponent = forwardRef<
               setPendingModalFilters((p) => ({
                 ...p,
                 selectedSessionTypes: items as SessionType[],
-              }))
-            }
-          />
-        )}
-        {filterSource === FilterSource.Spans && (
-          <StringMultiRow
-            rowKey="spanStatuses"
-            title="Span Status"
-            items={Object.values(SpanStatus)}
-            selected={pendingModalFilters.selectedSpanStatuses}
-            onChange={(items) =>
-              setPendingModalFilters((p) => ({
-                ...p,
-                selectedSpanStatuses: items as SpanStatus[],
               }))
             }
           />
@@ -1439,37 +1345,6 @@ const FiltersComponent = forwardRef<
           )}
 
         {store.appsState === "loaded" &&
-          store.filterOptionsState === "loaded" &&
-          filterSource === FilterSource.Spans &&
-          store.rootSpanNamesState !== "loaded" && (
-            <div className="flex flex-col">
-              {showAppSelector &&
-                store.rootSpanNamesState === "pending" &&
-                filtersSkeleton(skeletonMainRowCount - 1, appSelectorDropdown)}
-              {showAppSelector && store.rootSpanNamesState !== "pending" && (
-                <div className="flex flex-wrap gap-8 items-center">
-                  {appSelectorDropdown}
-                </div>
-              )}
-              <div className="py-4" />
-              {store.rootSpanNamesState === "error" && (
-                <p className="font-body text-sm">
-                  Error fetching traces list, please refresh page or select a
-                  different app to try again
-                </p>
-              )}
-              {store.rootSpanNamesState === "no-data" && (
-                <p className="font-body text-sm">
-                  No traces received for this app yet
-                </p>
-              )}
-            </div>
-          )}
-
-        {store.appsState === "loaded" &&
-          ((filterSource === FilterSource.Spans &&
-            store.rootSpanNamesState === "loaded") ||
-            filterSource !== FilterSource.Spans) &&
           store.filterOptionsState === "loaded" && (
             <div>
               <div className="flex flex-wrap gap-8 items-center">
@@ -1483,18 +1358,6 @@ const FiltersComponent = forwardRef<
                       const app = store.apps.find((e) => e.name === item);
                       if (app) store.setSelectedApp(app);
                     }}
-                  />
-                )}
-
-                {filterSource === FilterSource.Spans && (
-                  <DropdownSelect
-                    title="Trace Name"
-                    type={DropdownSelectType.SingleString}
-                    items={store.rootSpanNames}
-                    initialSelected={store.selectedRootSpanName}
-                    onChangeSelected={(item) =>
-                      store.setSelectedRootSpanName(item as string)
-                    }
                   />
                 )}
 

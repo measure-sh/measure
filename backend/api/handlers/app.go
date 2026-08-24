@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"sort"
 	"strconv"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"backend/libs/chquery"
 	"backend/libs/config"
 	"backend/libs/event"
+	"backend/libs/exprfilter"
 	"backend/libs/filter"
 	"backend/libs/journey"
 	"backend/libs/logcomment"
@@ -777,7 +777,6 @@ func (h Handlers) GetAppFilters(c *gin.Context) {
 	})
 }
 
-
 func (h Handlers) GetErrorOverview(c *gin.Context) {
 	deps := h.Deps
 	ctx := c.Request.Context()
@@ -1512,7 +1511,6 @@ func (h Handlers) GetErrorDetailAttributeDistribution(c *gin.Context) {
 
 	c.JSON(http.StatusOK, distribution)
 }
-
 
 func (h Handlers) CreateApp(c *gin.Context) {
 	deps := h.Deps
@@ -2772,28 +2770,20 @@ func (h Handlers) GetSpansForSpanName(c *gin.Context) {
 		return
 	}
 
-	rawSpanName := c.Query("span_name")
-	if rawSpanName == "" {
+	spanName := c.Query("span_name")
+	if spanName == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Missing span_name query param",
 		})
 		return
 	}
 
-	spanName, err := url.QueryUnescape(rawSpanName)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid span_name query param",
-		})
-		return
-	}
-
-	af := filter.AppFilter{
+	ef := exprfilter.ExprFilter{
 		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
+		Limit: exprfilter.DefaultPaginationLimit,
 	}
 
-	if err := c.ShouldBindQuery(&af); err != nil {
+	if err := c.ShouldBindQuery(&ef); err != nil {
 		msg := `failed to parse query parameters`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -2803,44 +2793,14 @@ func (h Handlers) GetSpansForSpanName(c *gin.Context) {
 		return
 	}
 
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
+	ef.Entity = exprfilter.SpansEntity
+
+	if err := ef.BuildExprTree(); err != nil {
+		respondFilterError(c, err)
 		return
 	}
 
-	msg := "root spans request validation failed"
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
-	}
+	ef.SetDefaultTimeRangeIfUnset()
 
 	app := measure.App{
 		ID: &id,
@@ -2892,6 +2852,7 @@ func (h Handlers) GetSpansForSpanName(c *gin.Context) {
 	}
 
 	app.TeamId = *team.ID
+	ef.TeamID = *team.ID
 
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
@@ -2901,7 +2862,21 @@ func (h Handlers) GetSpansForSpanName(c *gin.Context) {
 
 	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "list"))
 
-	spans, next, previous, err := app.GetSpansForSpanNameWithFilter(ctx, deps.RchPool, spanName, &af)
+	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
+		msg := "failed to read the filter's custom keys"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if err := ef.Validate(); err != nil {
+		respondFilterError(c, err)
+		return
+	}
+
+	spans, next, previous, err := app.GetSpansForSpanNameWithFilter(ctx, deps.RchPool, spanName, &ef)
 	if err != nil {
 		msg := "failed to get app's root spans"
 		fmt.Println(msg, err)
@@ -2933,28 +2908,20 @@ func (h Handlers) GetMetricsPlotForSpanName(c *gin.Context) {
 		return
 	}
 
-	rawSpanName := c.Query("span_name")
-	if rawSpanName == "" {
+	spanName := c.Query("span_name")
+	if spanName == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Missing span_name query param",
 		})
 		return
 	}
 
-	spanName, err := url.QueryUnescape(rawSpanName)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid span_name query param",
-		})
-		return
-	}
-
-	af := filter.AppFilter{
+	ef := exprfilter.ExprFilter{
 		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
+		Limit: exprfilter.DefaultPaginationLimit,
 	}
 
-	if err := c.ShouldBindQuery(&af); err != nil {
+	if err := c.ShouldBindQuery(&ef); err != nil {
 		msg := `failed to parse query parameters`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -2964,44 +2931,14 @@ func (h Handlers) GetMetricsPlotForSpanName(c *gin.Context) {
 		return
 	}
 
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
+	ef.Entity = exprfilter.SpansEntity
+
+	if err := ef.BuildExprTree(); err != nil {
+		respondFilterError(c, err)
 		return
 	}
 
-	msg := "span plot request validation failed"
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
-	}
+	ef.SetDefaultTimeRangeIfUnset()
 
 	app := measure.App{
 		ID: &id,
@@ -3053,6 +2990,7 @@ func (h Handlers) GetMetricsPlotForSpanName(c *gin.Context) {
 	}
 
 	app.TeamId = *team.ID
+	ef.TeamID = *team.ID
 
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
@@ -3061,7 +2999,21 @@ func (h Handlers) GetMetricsPlotForSpanName(c *gin.Context) {
 
 	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_metrics"))
 
-	spanMetricsPlotInstances, err := app.GetMetricsPlotForSpanNameWithFilter(ctx, deps.RchPool, spanName, &af)
+	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
+		msg := "failed to read the filter's custom keys"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if err := ef.Validate(); err != nil {
+		respondFilterError(c, err)
+		return
+	}
+
+	spanMetricsPlotInstances, err := app.GetMetricsPlotForSpanNameWithFilter(ctx, deps.RchPool, spanName, &ef)
 	if err != nil {
 		msg := "failed to get span's plot"
 		fmt.Println(msg, err)

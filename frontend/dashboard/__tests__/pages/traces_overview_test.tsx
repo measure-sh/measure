@@ -4,66 +4,193 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
-// Global replace mock for router.replace
-const replaceMock = jest.fn();
 const pushMock = jest.fn();
 
-// Mock next/navigation hooks
+// The mocked router applies each replace back into the mocked searchParams
+// and notifies subscribers, the way the real router re-renders the page with
+// the URL it just wrote. The page's queries read the URL, so without this
+// they would never see what the bar settled on.
+let mockSearchParams = new URLSearchParams();
+const searchParamsSubscribers = new Set<() => void>();
+const applyReplaceUrl = (url: string) => {
+  mockSearchParams = new URLSearchParams(url.split("?")[1] ?? "");
+  searchParamsSubscribers.forEach((notify) => notify());
+};
+// Holds a replace's URL for the test to apply later, modeling the real
+// router landing a write one render after the call.
+let mockDeferReplace = false;
+let deferredReplaceUrl: string | null = null;
+const replaceMock = jest.fn((url: string, _options?: { scroll: boolean }) => {
+  if (mockDeferReplace) {
+    deferredReplaceUrl = url;
+    return;
+  }
+  applyReplaceUrl(url);
+});
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({
-    replace: replaceMock,
-    push: pushMock,
-  }),
-  // By default, return empty search params.
-  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ replace: replaceMock, push: pushMock }),
+  useSearchParams: () => {
+    const { useSyncExternalStore } = require("react");
+    return useSyncExternalStore(
+      (notify: () => void) => {
+        searchParamsSubscribers.add(notify);
+        return () => searchParamsSubscribers.delete(notify);
+      },
+      () => mockSearchParams,
+    );
+  },
 }));
 
-// Mock API calls and constants
 jest.mock("@/app/api/api_calls", () => ({
   __esModule: true,
   emptySpansResponse: {
     meta: { next: false, previous: false },
     results: [],
   },
-  FilterSource: { Spans: "spans" },
 }));
 
-jest.mock("@/app/stores/provider", () => {
-  const { create } = jest.requireActual("zustand");
-  const filtersStore = create(() => ({
-    filters: { ready: false, serialisedFilters: "" },
-  }));
-  return {
-    __esModule: true,
-    useFiltersStore: filtersStore,
-  };
-});
+jest.mock("@/app/stores/filters_store", () => ({
+  __esModule: true,
+  urlFiltersKeyMap: {
+    appId: "a",
+    dateRange: "d",
+    startDate: "sd",
+    endDate: "ed",
+    rootSpanName: "r",
+  },
+}));
 
-const mockUseSpansQuery = jest.fn(() => ({
+const pendingQueryState = () => ({
   data: undefined as any,
   status: "pending" as string,
   isFetching: true,
   error: null as Error | null,
-}));
+});
+
+const mockUseSpansQuery = jest.fn(
+  (_filter: any, _spanName: string | null, _offset: number) =>
+    pendingQueryState(),
+);
+const mockUseSpanMetricsPlotQuery = jest.fn(
+  (_filter: any, _spanName: string | null) => pendingQueryState(),
+);
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
-  useSpansQuery: () => mockUseSpansQuery(),
+  useSpansQuery: (filter: any, spanName: string | null, offset: number) =>
+    mockUseSpansQuery(filter, spanName, offset),
+  useSpanMetricsPlotQuery: (filter: any, spanName: string | null) =>
+    mockUseSpanMetricsPlotQuery(filter, spanName),
   paginationOffsetUrlKey: "po",
 }));
 
-jest.mock("@/app/components/filters", () => ({
+const mockReportedApp = { id: "app-1", name: "Sample" };
+const mockReportedDate = {
+  dateRange: "Last 6 Hours",
+  startDate: "2026-01-01T00:00:00.000Z",
+  endDate: "2026-01-01T06:00:00.000Z",
+};
+
+// Set before render to make the stub open with a trace name of its own in
+// place of the URL's, the way the real bar substitutes a default when the
+// app no longer has the requested name.
+let mockMountSubstitutesName = false;
+
+// Like the real bar, this stub reports an app, a range and a resolved trace
+// name as it mounts, and offers buttons that report a changed filter, a
+// changed trace name, or a failure. Only the mount report carries
+// appliedAsRequested true, and only when nothing was substituted; a report
+// from a button models a user edit.
+jest.mock("@/app/components/filter_bar/filter_bar", () => {
+  const { useEffect } = require("react");
+
+  function FilterBarMock(props: any) {
+    const ready = (
+      filterExpr: string | null,
+      // The real bar restores the URL's name when it can, so the stub
+      // reports it back too and falls back to a first name of its own.
+      rootSpanName: string = props.requestedRootSpanName ?? "span.first",
+      appliedAsRequested: boolean = false,
+    ) => ({
+      status: "ready",
+      app: mockReportedApp,
+      date: mockReportedDate,
+      filterExpr,
+      rootSpanName,
+      appliedAsRequested,
+    });
+
+    useEffect(() => {
+      if (mockMountSubstitutesName) {
+        props.onFilterChange(
+          ready(props.requestedFilterExpr, "span.substitute", false),
+        );
+      } else {
+        props.onFilterChange(ready(props.requestedFilterExpr, undefined, true));
+      }
+    }, []);
+
+    return (
+      <div data-testid="filter-bar-mock">
+        <span data-testid="filter-bar-expr">
+          {props.requestedFilterExpr ?? "none"}
+        </span>
+        <span data-testid="filter-bar-requested-name">
+          {props.requestedRootSpanName ?? "none"}
+        </span>
+        <span data-testid="filter-bar-selector-shown">
+          {String(props.showRootSpanSelector ?? false)}
+        </span>
+        <button
+          data-testid="filter-bar-apply"
+          onClick={() => props.onFilterChange(ready("span_status:in:error"))}
+        >
+          apply
+        </button>
+        <button
+          data-testid="filter-bar-pick-name"
+          onClick={() =>
+            props.onFilterChange(
+              ready(props.requestedFilterExpr, "span.second"),
+            )
+          }
+        >
+          pick name
+        </button>
+        <button
+          data-testid="filter-bar-fail"
+          onClick={() =>
+            props.onFilterChange({
+              status: "error",
+              message: "Error fetching apps, please refresh page to try again",
+            })
+          }
+        >
+          fail
+        </button>
+      </div>
+    );
+  }
+
+  return {
+    __esModule: true,
+    default: FilterBarMock,
+    filterExprUrlKey: "filter_expr",
+  };
+});
+
+jest.mock("@/app/components/skeleton", () => ({
   __esModule: true,
-  default: () => <div data-testid="filters-mock" />,
-  AppVersionsInitialSelectionType: { All: "all" },
+  SkeletonListPage: () => <div data-testid="skeleton-list-page-mock" />,
 }));
 
-// Mock SpanMetricsPlot component.
-jest.mock("@/app/components/span_metrics_plot", () => () => (
-  <div data-testid="span-metrics-plot-mock">TracesOverviewPlot Rendered</div>
-));
+jest.mock("@/app/components/span_metrics_plot", () => ({
+  __esModule: true,
+  default: () => (
+    <div data-testid="span-metrics-plot-mock">TracesOverviewPlot Rendered</div>
+  ),
+}));
 
-// Updated Paginator mock renders Next and Prev buttons.
 jest.mock("@/app/components/paginator", () => ({
   __esModule: true,
   default: (props: any) => (
@@ -87,19 +214,15 @@ jest.mock("@/app/components/paginator", () => ({
   ),
 }));
 
-// Mock LoadingBar component.
 jest.mock("@/app/components/loading_bar", () => () => (
   <div data-testid="loading-bar-mock">LoadingBar Rendered</div>
 ));
 
-// Mock time utils
 jest.mock("@/app/utils/time_utils", () => ({
   formatDateToHumanReadableDate: jest.fn(() => "Jan 1, 2020"),
   formatDateToHumanReadableTime: jest.fn(() => "12:00 AM"),
   formatMillisToHumanReadable: jest.fn(() => "5s"),
 }));
-
-const { useFiltersStore } = require("@/app/stores/provider") as any;
 
 const mockSpanData = {
   results: [
@@ -123,57 +246,131 @@ const mockSpanData = {
   meta: { previous: true, next: true },
 };
 
-describe("TracesOverview Component", () => {
+function spansLoaded(data: any = mockSpanData) {
+  mockUseSpansQuery.mockReturnValue({
+    data,
+    status: "success",
+    isFetching: false,
+    error: null,
+  });
+}
+
+// What the stub bar reports, as the page writes it into the URL.
+const selectionParams =
+  "a=app-1&d=Last+6+Hours&sd=2026-01-01T00%3A00%3A00.000Z&ed=2026-01-01T06%3A00%3A00.000Z";
+
+// The names in these tests are URL-safe, so they appear in the URL as-is.
+const selectionUrl = (
+  offset: number,
+  spanName = "span.first",
+  filterParam?: string,
+) =>
+  `?po=${offset}&${selectionParams}&r=${spanName}${filterParam ? `&${filterParam}` : ""}`;
+
+function renderPage() {
+  return render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
+}
+
+describe("TracesOverview page", () => {
   beforeEach(() => {
     replaceMock.mockClear();
     pushMock.mockClear();
+    mockMountSubstitutesName = false;
+    mockDeferReplace = false;
+    deferredReplaceUrl = null;
+    mockSearchParams = new URLSearchParams();
     mockUseSpansQuery.mockReset();
-    mockUseSpansQuery.mockReturnValue({
-      data: undefined,
-      status: "pending" as string,
-      isFetching: true,
-      error: null,
-    });
-    useFiltersStore.setState({
-      filters: { ready: false, serialisedFilters: "" },
-    });
+    mockUseSpansQuery.mockReturnValue(pendingQueryState());
+    mockUseSpanMetricsPlotQuery.mockReset();
+    mockUseSpanMetricsPlotQuery.mockReturnValue(pendingQueryState());
   });
 
-  it("renders the Filters component", () => {
-    render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
-    expect(screen.getByTestId("filters-mock")).toBeInTheDocument();
+  it("renders the filter bar", () => {
+    renderPage();
+    expect(screen.getByTestId("filter-bar-mock")).toBeInTheDocument();
   });
 
-  it("does not render main traces UI when filters are not ready", () => {
-    render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
-    expect(
-      screen.queryByTestId("span-metrics-plot-mock"),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByTestId("paginator-mock")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("loading-bar-mock")).not.toBeInTheDocument();
+  it("asks the bar to show the trace name selector", () => {
+    renderPage();
+    expect(screen.getByTestId("filter-bar-selector-shown")).toHaveTextContent(
+      "true",
+    );
   });
 
-  it("renders main traces UI when filters are ready and data is loaded", async () => {
-    mockUseSpansQuery.mockReturnValue({
-      data: mockSpanData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+  it("hands the bar the filter the URL opened on", () => {
+    mockSearchParams = new URLSearchParams(
+      "po=0&filter_expr=span_status%3Ain%3Aerror",
+    );
+    spansLoaded();
+    renderPage();
 
-    expect(replaceMock).toHaveBeenCalledWith("?po=0&updated", {
-      scroll: false,
-    });
+    expect(screen.getByTestId("filter-bar-expr")).toHaveTextContent(
+      "span_status:in:error",
+    );
+  });
+
+  it("hands the bar the trace name the URL opened on", () => {
+    mockSearchParams = new URLSearchParams("po=0&a=app-1&r=span.second");
+    spansLoaded();
+    renderPage();
+
+    expect(screen.getByTestId("filter-bar-requested-name")).toHaveTextContent(
+      "span.second",
+    );
+  });
+
+  it("fetches nothing until the bar settles on an app, a range and a name", () => {
+    spansLoaded();
+    renderPage();
+
+    expect(mockUseSpansQuery).toHaveBeenNthCalledWith(1, null, null, 0);
+  });
+
+  it("fetches spans and the plot for the name the bar reported", () => {
+    spansLoaded();
+    renderPage();
+
+    expect(mockUseSpansQuery).toHaveBeenLastCalledWith(
+      {
+        appId: mockReportedApp.id,
+        startDate: mockReportedDate.startDate,
+        endDate: mockReportedDate.endDate,
+        filterExpr: null,
+      },
+      "span.first",
+      0,
+    );
+    expect(mockUseSpanMetricsPlotQuery).toHaveBeenLastCalledWith(
+      expect.objectContaining({ appId: mockReportedApp.id }),
+      "span.first",
+    );
+  });
+
+  it("records what the bar settled on, keeping the page the link asked for", () => {
+    mockSearchParams = new URLSearchParams(
+      "po=20&filter_expr=span_status%3Ain%3Aerror",
+    );
+    spansLoaded();
+    renderPage();
+
+    expect(replaceMock).toHaveBeenCalledTimes(1);
+    expect(replaceMock).toHaveBeenCalledWith(
+      selectionUrl(20, "span.first", "filter_expr=span_status%3Ain%3Aerror"),
+      { scroll: false },
+    );
+  });
+
+  it("keeps the plot area up with paging disabled while the spans load", () => {
+    renderPage();
+    expect(screen.getByTestId("span-metrics-plot-mock")).toBeInTheDocument();
+    expect(screen.getByTestId("next-button")).toBeDisabled();
+    expect(screen.getByTestId("prev-button")).toBeDisabled();
+  });
+
+  it("renders the plot, paginator and table headers once ready", async () => {
+    spansLoaded();
+    renderPage();
+
     expect(
       await screen.findByTestId("span-metrics-plot-mock"),
     ).toBeInTheDocument();
@@ -183,23 +380,9 @@ describe("TracesOverview Component", () => {
     expect(screen.getByText("Status")).toBeInTheDocument();
   });
 
-  it("displays span data correctly", async () => {
-    mockUseSpansQuery.mockReturnValue({
-      data: mockSpanData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+  it("displays span data correctly", () => {
+    spansLoaded();
+    renderPage();
 
     expect(screen.getByText("Test Span")).toBeInTheDocument();
     expect(screen.getByText("Jan 1, 2020")).toBeInTheDocument();
@@ -214,26 +397,12 @@ describe("TracesOverview Component", () => {
   it.each([
     [2, "Error"],
     [0, "Unset"],
-  ])("renders status pill %s as %s", async (status, label) => {
-    mockUseSpansQuery.mockReturnValue({
-      data: {
-        ...mockSpanData,
-        results: [{ ...mockSpanData.results[0], status }],
-      },
-      status: "success",
-      isFetching: false,
-      error: null,
+  ])("renders status pill %s as %s", (status, label) => {
+    spansLoaded({
+      ...mockSpanData,
+      results: [{ ...mockSpanData.results[0], status }],
     });
-    render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+    renderPage();
 
     expect(screen.getByText(label as string)).toBeInTheDocument();
   });
@@ -250,84 +419,41 @@ describe("TracesOverview Component", () => {
     ["harmonyos", "4", "Huawei", "P60", "1.0(1), harmonyos 4, Huawei P60"],
   ])(
     "renders the %s device string",
-    async (
-      os_name,
-      os_version,
-      device_manufacturer,
-      device_model,
-      expected,
-    ) => {
-      mockUseSpansQuery.mockReturnValue({
-        data: {
-          ...mockSpanData,
-          results: [
-            {
-              ...mockSpanData.results[0],
-              os_name,
-              os_version,
-              device_manufacturer,
-              device_model,
-            },
-          ],
-        },
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app-1" },
+    (os_name, os_version, device_manufacturer, device_model, expected) => {
+      spansLoaded({
+        ...mockSpanData,
+        results: [
+          {
+            ...mockSpanData.results[0],
+            os_name,
+            os_version,
+            device_manufacturer,
+            device_model,
           },
-        });
+        ],
       });
+      renderPage();
 
       expect(screen.getByText(expected as string)).toBeInTheDocument();
     },
   );
 
-  it("renders an empty table when no spans match", async () => {
-    mockUseSpansQuery.mockReturnValue({
-      data: { results: [], meta: { previous: false, next: false } },
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+  it("renders an empty table when no spans match", () => {
+    spansLoaded({ results: [], meta: { previous: false, next: false } });
+    renderPage();
 
     expect(screen.getByText("Trace")).toBeInTheDocument();
     expect(screen.queryByText(/ID:/)).not.toBeInTheDocument();
   });
 
-  it("shows error message when API returns error status", async () => {
+  it("shows an error message when the spans request fails", () => {
     mockUseSpansQuery.mockReturnValue({
       data: undefined,
       status: "error",
       isFetching: false,
       error: new Error("fail"),
     });
-    render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+    renderPage();
 
     expect(
       screen.getByText(/Error fetching list of traces/),
@@ -335,22 +461,8 @@ describe("TracesOverview Component", () => {
   });
 
   it("renders appropriate link for each span", async () => {
-    mockUseSpansQuery.mockReturnValue({
-      data: mockSpanData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+    spansLoaded();
+    renderPage();
 
     const link = screen.getByRole("link", { name: /ID: trace1/i });
     expect(link).toBeInTheDocument();
@@ -368,210 +480,209 @@ describe("TracesOverview Component", () => {
     expect(pushMock).toHaveBeenCalledWith("/123/traces/app1/trace1");
   });
 
-  describe("Pagination", () => {
-    it("renders paginator with correct enabled state", async () => {
-      mockUseSpansQuery.mockReturnValue({
-        data: mockSpanData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app-1" },
-          },
-        });
-      });
-
-      const prevButton = screen.getByTestId("prev-button");
-      const nextButton = screen.getByTestId("next-button");
-      expect(prevButton).not.toBeDisabled();
-      expect(nextButton).not.toBeDisabled();
+  describe("a filter the bar could not settle", () => {
+    beforeEach(() => {
+      mockSearchParams = new URLSearchParams(`po=10&${selectionParams}`);
+      spansLoaded();
     });
 
-    it("disables paginator buttons during loading", async () => {
-      mockUseSpansQuery.mockReturnValue({
-        data: mockSpanData,
-        status: "pending" as string,
-        isFetching: true,
-        error: null,
-      });
-      render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
+    it("is said by the page, in place of the list", async () => {
+      renderPage();
+
       await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app-1" },
-          },
-        });
+        fireEvent.click(screen.getByTestId("filter-bar-fail"));
       });
 
-      const prevButton = screen.getByTestId("prev-button");
-      const nextButton = screen.getByTestId("next-button");
-      expect(prevButton).toBeDisabled();
-      expect(nextButton).toBeDisabled();
+      expect(
+        screen.getByText(
+          "Error fetching apps, please refresh page to try again",
+        ),
+      ).toBeInTheDocument();
     });
 
-    it("includes pagination offset in URL", async () => {
-      mockUseSpansQuery.mockReturnValue({
-        data: mockSpanData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
+    it("stops the page fetching anything", async () => {
+      renderPage();
+
       await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app-1" },
-          },
-        });
+        fireEvent.click(screen.getByTestId("filter-bar-fail"));
       });
 
-      // Click next to change offset
-      const nextButton = screen.getByTestId("next-button");
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=5&updated", {
-        scroll: false,
-      });
+      // The name stays readable from the URL, but the null filter keeps the
+      // query disabled.
+      expect(mockUseSpansQuery).toHaveBeenLastCalledWith(
+        null,
+        "span.first",
+        10,
+      );
     });
 
-    it("decrements offset by 5 on Prev click (not below 0)", async () => {
-      mockUseSpansQuery.mockReturnValue({
-        data: mockSpanData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app-1" },
-          },
-        });
-      });
-
-      const nextButton = await screen.findByTestId("next-button");
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=5&updated", {
-        scroll: false,
-      });
-
-      const prevButton = await screen.findByTestId("prev-button");
-      await act(async () => {
-        fireEvent.click(prevButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated", {
-        scroll: false,
-      });
-
-      // Clicking Prev again must not go negative
-      await act(async () => {
-        fireEvent.click(prevButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated", {
-        scroll: false,
-      });
-    });
-
-    it("resets pagination offset when filters change", async () => {
-      mockUseSpansQuery.mockReturnValue({
-        data: mockSpanData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app-1" },
-          },
-        });
-      });
-      const nextButton = await screen.findByTestId("next-button");
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=5&updated", {
-        scroll: false,
-      });
+    it("leaves the URL where the link had it", async () => {
+      renderPage();
+      replaceMock.mockClear();
 
       await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated2",
-            app: { id: "app-1" },
-          },
-        });
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        fireEvent.click(screen.getByTestId("filter-bar-fail"));
       });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated2", {
-        scroll: false,
-      });
+
+      expect(replaceMock).not.toHaveBeenCalled();
     });
   });
 
-  it("correctly toggles loading bar visibility", async () => {
+  describe("pagination", () => {
+    it("moves the offset on by the page size when Next is clicked", async () => {
+      mockSearchParams = new URLSearchParams(
+        `po=0&r=span.first&${selectionParams}`,
+      );
+      spansLoaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("next-button"));
+      });
+
+      // Paging keeps everything else the URL was carrying.
+      expect(replaceMock).toHaveBeenLastCalledWith(selectionUrl(5), {
+        scroll: false,
+      });
+    });
+
+    it("moves the offset back when Prev is clicked, and never below zero", async () => {
+      mockSearchParams = new URLSearchParams("po=5&r=span.first&a=app-1");
+      spansLoaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("prev-button"));
+      });
+      expect(replaceMock).toHaveBeenLastCalledWith(selectionUrl(0), {
+        scroll: false,
+      });
+
+      mockSearchParams = new URLSearchParams("po=0&r=span.first&a=app-1");
+      renderPage();
+      await act(async () => {
+        fireEvent.click(screen.getAllByTestId("prev-button")[1]);
+      });
+      expect(replaceMock).toHaveBeenLastCalledWith(selectionUrl(0), {
+        scroll: false,
+      });
+    });
+
+    it("goes back to the first page when the filter changes", async () => {
+      mockSearchParams = new URLSearchParams("po=30&a=app-1&r=span.first");
+      spansLoaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("filter-bar-apply"));
+      });
+
+      expect(replaceMock).toHaveBeenLastCalledWith(
+        selectionUrl(0, "span.first", "filter_expr=span_status%3Ain%3Aerror"),
+        { scroll: false },
+      );
+    });
+
+    it("goes back to the first page when the bar reports another name", async () => {
+      mockSearchParams = new URLSearchParams(`po=30&${selectionParams}`);
+      spansLoaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("filter-bar-pick-name"));
+      });
+
+      expect(replaceMock).toHaveBeenLastCalledWith(
+        selectionUrl(0, "span.second"),
+        { scroll: false },
+      );
+      // The changed name and the reset offset reach the queries together,
+      // through the URL, so the new name is never fetched at the page the
+      // old name was on.
+      expect(mockUseSpansQuery).toHaveBeenLastCalledWith(
+        expect.anything(),
+        "span.second",
+        0,
+      );
+      for (const [, spanName, offset] of mockUseSpansQuery.mock.calls) {
+        if (spanName === "span.second") {
+          expect(offset).toBe(0);
+        }
+      }
+    });
+
+    it("goes back to the first page when the bar opens on a substituted name", async () => {
+      mockMountSubstitutesName = true;
+      mockDeferReplace = true;
+      mockSearchParams = new URLSearchParams(
+        `po=30&r=span.gone&${selectionParams}`,
+      );
+      spansLoaded();
+      renderPage();
+
+      // The write has not landed, so the URL still holds the dead name
+      // and the queries stay disabled.
+      expect(mockUseSpansQuery).toHaveBeenLastCalledWith(null, "span.gone", 30);
+
+      await act(async () => {
+        applyReplaceUrl(deferredReplaceUrl!);
+      });
+
+      expect(replaceMock).toHaveBeenLastCalledWith(
+        selectionUrl(0, "span.substitute"),
+        { scroll: false },
+      );
+      // The substituted name is never fetched at the page the URL's name
+      // was on.
+      expect(mockUseSpansQuery).toHaveBeenLastCalledWith(
+        expect.anything(),
+        "span.substitute",
+        0,
+      );
+      for (const [filter, spanName, offset] of mockUseSpansQuery.mock.calls) {
+        if (spanName === "span.substitute") {
+          expect(offset).toBe(0);
+        }
+        if (spanName === "span.gone") {
+          expect(filter).toBeNull();
+        }
+      }
+    });
+
+    it("cannot be used while a refetch is in flight", () => {
+      mockUseSpansQuery.mockReturnValue({
+        data: mockSpanData,
+        status: "success",
+        isFetching: true,
+        error: null,
+      });
+      renderPage();
+
+      expect(screen.getByTestId("next-button")).toBeDisabled();
+      expect(screen.getByTestId("prev-button")).toBeDisabled();
+    });
+  });
+
+  it("shows the loading bar only while a refetch is in flight", async () => {
     mockUseSpansQuery.mockReturnValue({
-      data: undefined,
-      status: "pending" as string,
+      data: mockSpanData,
+      status: "success",
       isFetching: true,
       error: null,
     });
-    render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
-
-    // Set loading state
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+    const { rerender } = renderPage();
 
     const loadingBarContainer =
       screen.getByTestId("loading-bar-mock").parentElement;
     expect(loadingBarContainer).toHaveClass("visible");
     expect(loadingBarContainer).not.toHaveClass("invisible");
 
-    // Set success state
     await act(async () => {
-      mockUseSpansQuery.mockReturnValue({
-        data: mockSpanData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
+      spansLoaded();
+      rerender(<TracesOverview params={promiseParams({ teamId: "123" })} />);
     });
 
+    await screen.findByText("Test Span");
     expect(loadingBarContainer).not.toHaveClass("visible");
     expect(loadingBarContainer).toHaveClass("invisible");
   });

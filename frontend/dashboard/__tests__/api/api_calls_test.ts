@@ -392,12 +392,6 @@ describe("fetchFiltersFromServer", () => {
     expect(url).toContain("type=error,anr");
   });
 
-  it("appends span=1 for Spans filterSource", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({ versions: [] }));
-    await fetchFiltersFromServer(onboardedApp, FilterSource.Spans);
-    expect(lastFetchUrl()).toContain("span=1");
-  });
-
   it("has no source-specific param for Events", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ versions: [] }));
     await fetchFiltersFromServer(onboardedApp, FilterSource.Events);
@@ -508,28 +502,19 @@ describe("fetch functions that use applyGenericFiltersToUrl", () => {
     expect(lastFetchUrl()).not.toContain("filter_short_code");
   });
 
-  it.each([
-    ["fetchMetricsFromServer", fetchMetricsFromServer],
-    ["fetchSpanMetricsPlotFromServer", fetchSpanMetricsPlotFromServer],
-  ])("%s: returns data, throws on failure", async (_name, fn) => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({ a: 1 }));
-    expect(await (fn as any)(makeFilters())).toEqual({ a: 1 });
+  it.each([["fetchMetricsFromServer", fetchMetricsFromServer]])(
+    "%s: returns data, throws on failure",
+    async (_name, fn) => {
+      mockApiClientFetch.mockResolvedValueOnce(successResponse({ a: 1 }));
+      expect(await (fn as any)(makeFilters())).toEqual({ a: 1 });
 
-    mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    await expect((fn as any)(makeFilters())).rejects.toThrow(ApiError);
+      mockApiClientFetch.mockResolvedValueOnce(errorResponse());
+      await expect((fn as any)(makeFilters())).rejects.toThrow(ApiError);
 
-    mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    await expect((fn as any)(makeFilters())).rejects.toThrow(RequestError);
-  });
-
-  it("fetchSpansFromServer includes limit/offset in URL", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    await fetchSpansFromServer(makeFilters(), 50, 100);
-    const url = lastFetchUrl();
-    expect(url).toContain("/api/apps/app-a/spans");
-    expect(url).toContain("limit=50");
-    expect(url).toContain("offset=100");
-  });
+      mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
+      await expect((fn as any)(makeFilters())).rejects.toThrow(RequestError);
+    },
+  );
 
   it("fetchSessionReplayOverviewFromServer includes limit/offset", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
@@ -898,30 +883,66 @@ describe("sessions, bug reports, alerts", () => {
     expect(lastFetchUrl()).toContain("/api/apps/app-a/alerts");
   });
 
-  it("fetchBuildsFromServer hits /builds with filters and pagination", async () => {
+  it("fetchBuildsFromServer hits /builds with the range, expression and pagination", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
-    await fetchBuildsFromServer(makeFilters(), 10, 20);
+    await fetchBuildsFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      "version_name:in:v1",
+      10,
+      20,
+    );
     const url = lastFetchUrl();
     expect(url).toContain("/api/apps/app-a/builds");
-    expect(url).toContain("filter_short_code=code-123");
     expect(url).toContain("from=");
     expect(url).toContain("to=");
+    expect(url).toContain(
+      `filter_expr=${encodeURIComponent("version_name:in:v1")}`,
+    );
     expect(url).toContain("limit=10");
     expect(url).toContain("offset=20");
   });
 
+  it("fetchBuildsFromServer omits filter_expr when there is none", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await fetchBuildsFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      null,
+      10,
+      0,
+    );
+    expect(lastFetchUrl()).not.toContain("filter_expr");
+  });
+
   it("fetchBuildsFromServer throws on a non-ok response", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    await expect(fetchBuildsFromServer(makeFilters(), 10, 0)).rejects.toThrow(
-      ApiError,
-    );
+    await expect(
+      fetchBuildsFromServer(
+        "app-a",
+        "2026-04-01T00:00:00.000Z",
+        "2026-04-10T00:00:00.000Z",
+        null,
+        10,
+        0,
+      ),
+    ).rejects.toThrow(ApiError);
   });
 
   it("fetchBuildsFromServer throws when the request throws", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("boom"));
-    await expect(fetchBuildsFromServer(makeFilters(), 10, 0)).rejects.toThrow(
-      RequestError,
-    );
+    await expect(
+      fetchBuildsFromServer(
+        "app-a",
+        "2026-04-01T00:00:00.000Z",
+        "2026-04-10T00:00:00.000Z",
+        null,
+        10,
+        0,
+      ),
+    ).rejects.toThrow(RequestError);
   });
 });
 
@@ -1231,7 +1252,7 @@ describe("billing endpoints", () => {
 // ========================================================================
 // applyGenericFiltersToUrl — exercised via any function that uses it.
 // These tests cover the per-field append branches (session types, span
-// statuses, bug report statuses, free text, span name, span filters,
+// statuses, bug report statuses, free text, span filters,
 // http methods) by passing filters with non-default values.
 // ========================================================================
 describe("applyGenericFiltersToUrl filter branches", () => {
@@ -1260,27 +1281,6 @@ describe("applyGenericFiltersToUrl filter branches", () => {
     expect(url).not.toContain("user_interaction=");
     expect(url).not.toContain("foreground=");
     expect(url).not.toContain("background=");
-  });
-
-  it("appends rootSpanName when non-empty", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
-    await fetchMetricsFromServer(makeFilters({ rootSpanName: "my_root_span" }));
-    expect(lastFetchUrl()).toContain("span_name=");
-  });
-
-  it("appends span statuses for each SpanStatus", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
-    await fetchMetricsFromServer(
-      makeFilters({
-        spanStatuses: {
-          all: false,
-          selected: ["Unset", "Ok", "Error"] as any,
-        },
-      }),
-    );
-    const url = lastFetchUrl();
-    // Each status value becomes a span_statuses query param.
-    expect(url.match(/span_statuses=\d/g)?.length).toBe(3);
   });
 
   it("appends bug_report_statuses for Open/Closed", async () => {
@@ -1318,7 +1318,7 @@ describe("applyGenericFiltersToUrl filter branches", () => {
   });
 });
 
-describe("applyHttpMethodsToUrl and applySpanFiltersToUrl", () => {
+describe("applyHttpMethodsToUrl", () => {
   it("appends http_methods params for selected methods", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
     await fetchNetworkEndpointLatencyPlotFromServer(
@@ -1332,23 +1332,108 @@ describe("applyHttpMethodsToUrl and applySpanFiltersToUrl", () => {
     expect(url).toContain("http_methods=get");
     expect(url).toContain("http_methods=post");
   });
+});
 
-  it("appends span filters to fetchSpansFromServer URL", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    await fetchSpansFromServer(
-      makeFilters({
-        rootSpanName: "root",
-        spanStatuses: {
-          all: false,
-          selected: ["Error"] as any,
-        },
-      }),
+// ========================================================================
+// Expression-filter span fetchers
+// ========================================================================
+describe("fetchSpansFromServer", () => {
+  const call = (filterExpr: string | null = null, spanName = "root.a") =>
+    fetchSpansFromServer(
+      "app-a",
+      spanName,
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      filterExpr,
+      5,
       10,
-      0,
     );
-    const url = lastFetchUrl();
-    expect(url).toContain("/api/apps/app-a/spans");
-    expect(url).toContain("span_name=");
+
+  it("sends the span, range, timezone and page in the URL", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await call();
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/spans");
+    expect(url.searchParams.get("span_name")).toBe("root.a");
+    expect(url.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    expect(url.searchParams.get("limit")).toBe("5");
+    expect(url.searchParams.get("offset")).toBe("10");
+    expect(url.searchParams.has("filter_expr")).toBe(false);
+  });
+
+  it("carries a span name with reserved characters intact", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await call(null, "load & render 100%");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("span_name")).toBe("load & render 100%");
+  });
+
+  it("sends the filter expression when one is given", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await call("span_status:in:error");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("filter_expr")).toBe("span_status:in:error");
+  });
+
+  it("returns data, throws on failure", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ a: 1 }));
+    expect(await call()).toEqual({ a: 1 });
+
+    mockApiClientFetch.mockResolvedValueOnce(errorResponse());
+    await expect(call()).rejects.toThrow(ApiError);
+
+    mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
+    await expect(call()).rejects.toThrow(RequestError);
+  });
+});
+
+describe("fetchSpanMetricsPlotFromServer", () => {
+  const call = (filterExpr: string | null = null) =>
+    fetchSpanMetricsPlotFromServer(
+      "app-a",
+      "root.a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      filterExpr,
+    );
+
+  it("sends the span, range, timezone and time group in the URL", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
+    await call();
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/spans/plots/metrics");
+    expect(url.searchParams.get("span_name")).toBe("root.a");
+    expect(url.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    // A nine day range buckets by day.
+    expect(url.searchParams.get("plot_time_group")).toBe("days");
+    expect(url.searchParams.has("filter_expr")).toBe(false);
+  });
+
+  it("sends the filter expression when one is given", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
+    await call("span_status:in:ok");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("filter_expr")).toBe("span_status:in:ok");
+  });
+
+  it("returns null when response data is null", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
+    expect(await call()).toBeNull();
+  });
+
+  it("returns data, throws on failure", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse([{ id: "v1" }]));
+    expect(await call()).toEqual([{ id: "v1" }]);
+
+    mockApiClientFetch.mockResolvedValueOnce(errorResponse());
+    await expect(call()).rejects.toThrow(ApiError);
+
+    mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
+    await expect(call()).rejects.toThrow(RequestError);
   });
 });
 
@@ -1358,11 +1443,6 @@ describe("applyHttpMethodsToUrl and applySpanFiltersToUrl", () => {
 // ========================================================================
 describe("fetch functions: failure paths", () => {
   const cases: Array<[string, () => Promise<unknown>]> = [
-    [
-      "fetchSpanMetricsPlotFromServer",
-      () => fetchSpanMetricsPlotFromServer(makeFilters()),
-    ],
-    ["fetchSpansFromServer", () => fetchSpansFromServer(makeFilters(), 10, 0)],
     [
       "fetchJourneyFromServer",
       () => fetchJourneyFromServer(false, makeFilters()),
@@ -1529,39 +1609,15 @@ describe("mutation functions: failure paths", () => {
 });
 
 // ========================================================================
-// Additional branch coverage — NoData paths, all SpanStatus values,
-// all SessionType values via session replay fetches, etc.
+// Additional branch coverage — NoData paths, all SessionType values via
+// session replay fetches, etc.
 // ========================================================================
 describe("additional branch coverage", () => {
-  it("fetchSpanMetricsPlotFromServer returns null when response data is null", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    const r = await fetchSpanMetricsPlotFromServer(makeFilters());
-    expect(r).toBeNull();
-  });
-
   it("fetchAppHealthPlotFromServer throws when the fetch throws", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("network down"));
     await expect(fetchAppHealthPlotFromServer(makeFilters())).rejects.toThrow(
       RequestError,
     );
-  });
-
-  it("appends all span statuses (Unset/Ok/Error) to span endpoint URLs", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    await fetchSpansFromServer(
-      makeFilters({
-        spanStatuses: {
-          all: false,
-          selected: ["Unset", "Ok", "Error"] as any,
-        },
-      }),
-      10,
-      0,
-    );
-    const url = lastFetchUrl();
-    expect(url).toContain("span_statuses=0");
-    expect(url).toContain("span_statuses=1");
-    expect(url).toContain("span_statuses=2");
   });
 
   it("appends all session types via fetchSessionReplayOverviewFromServer", async () => {

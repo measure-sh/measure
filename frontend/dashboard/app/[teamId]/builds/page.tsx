@@ -2,6 +2,7 @@
 
 import FilterBar, {
   type FilterState,
+  type ReadyFilterState,
   filterExprUrlKey,
 } from "@/app/components/filter_bar/filter_bar";
 import { filterExprIssuesIn } from "@/app/api/api_error";
@@ -24,8 +25,6 @@ const {
   endDate: endDateUrlKey,
 } = urlFiltersKeyMap;
 
-type ReadyFilter = Extract<FilterState, { status: "ready" }>;
-
 function readRequestedFilters(searchParams: ReadonlyURLSearchParams) {
   return {
     app: searchParams.get(appIdUrlKey),
@@ -38,7 +37,7 @@ function readRequestedFilters(searchParams: ReadonlyURLSearchParams) {
   };
 }
 
-function buildFilterUrl(filter: ReadyFilter, paginationOffset: number) {
+function buildFilterUrl(filter: ReadyFilterState, paginationOffset: number) {
   const urlParams = new URLSearchParams();
   urlParams.set(paginationOffsetUrlKey, String(paginationOffset));
   urlParams.set(appIdUrlKey, filter.app.id);
@@ -63,22 +62,37 @@ export default function Builds(props: { params: Promise<{ teamId: string }> }) {
   const [filterState, setFilterState] = useState<FilterState>({
     status: "pending",
   });
-  const readyFilter = filterState.status === "ready" ? filterState : null;
 
-  const buildsQuery = useBuildsQuery(readyFilter, paginationOffset);
+  // The query reads the filter and the pagination offset from the URL, so
+  // each fetch uses one searchParams snapshot. The filter is null until the
+  // URL matches the bar's report. A value the bar discarded is never fetched.
+  const filterParams =
+    filterState.status === "ready" &&
+    requestedFilters.app === filterState.app.id &&
+    requestedFilters.dateRange.startDate === filterState.date.startDate &&
+    requestedFilters.dateRange.endDate === filterState.date.endDate &&
+    requestedFilters.filterExpr === filterState.filterExpr
+      ? {
+          appId: requestedFilters.app,
+          startDate: requestedFilters.dateRange.startDate,
+          endDate: requestedFilters.dateRange.endDate,
+          filterExpr: requestedFilters.filterExpr,
+        }
+      : null;
+
+  const buildsQuery = useBuildsQuery(filterParams, paginationOffset);
 
   const filterExprIssues = filterExprIssuesIn(buildsQuery.error);
 
   const onFilterChange = (newFilterState: FilterState) => {
-    const hasInitializedFilters = readyFilter !== null;
     setFilterState(newFilterState);
 
     if (newFilterState.status !== "ready") {
       return;
     }
-    // The first ready state is the one the page opened on, so it keeps the
-    // page the link asked for. Every change after that starts at page one.
-    const offset = hasInitializedFilters ? 0 : paginationOffset;
+    // The URL's pagination offset is kept only when the bar applied the URL's
+    // request unchanged. Any edit or substitution starts back at page one.
+    const offset = newFilterState.appliedAsRequested ? paginationOffset : 0;
     router.replace(buildFilterUrl(newFilterState, offset), { scroll: false });
   };
 

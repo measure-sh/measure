@@ -67,9 +67,7 @@ func (h Handlers) GetBuilds(c *gin.Context) {
 		return
 	}
 
-	if !ef.HasTimeRange() {
-		ef.SetDefaultTimeRange()
-	}
+	ef.SetDefaultTimeRangeIfUnset()
 
 	app := measure.App{
 		ID: &id,

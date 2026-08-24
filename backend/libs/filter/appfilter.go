@@ -172,10 +172,6 @@ type AppFilter struct {
 	// data.
 	Builds bool `form:"builds"`
 
-	// SpanStatuses represents the list of status of
-	// a span to be filtered on.
-	SpanStatuses []int8 `form:"span_statuses"`
-
 	// BugReportStatuses represents the list of status of
 	// a bug report to be filtered on.
 	BugReportStatuses []int8 `form:"bug_report_statuses"`
@@ -473,12 +469,6 @@ func (af *AppFilter) Validate() error {
 		}
 	}
 
-	for _, status := range af.SpanStatuses {
-		if status < 0 || status > 2 {
-			return fmt.Errorf("`span_statuses` values must be 0 (Unset), 1 (Ok) or 2 (Error)")
-		}
-	}
-
 	if af.HasPlotTimeGroup() {
 		if _, ok := validPlotTimeGroups[af.PlotTimeGroup]; !ok {
 			return fmt.Errorf("`plot_time_group` must be one of: %s, %s, %s, %s", PlotTimeGroupMinutes, PlotTimeGroupHours, PlotTimeGroupDays, PlotTimeGroupMonths)
@@ -640,12 +630,6 @@ func (af *AppFilter) SetDefaultPlotTimeGroup() {
 // keyword was supplied.
 func (af AppFilter) HasFreeText() bool {
 	return af.FreeText != ""
-}
-
-// HasSpanStatuses returns true if at least
-// one span statuses are requested.
-func (af AppFilter) HasSpanStatuses() bool {
-	return len(af.SpanStatuses) > 0
 }
 
 // HasBugReportStatuses returns true if at least

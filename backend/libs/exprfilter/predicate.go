@@ -18,8 +18,8 @@ type KeyBinding func(condition Condition) (*sqlf.Stmt, error)
 //	defer predicate.Close()
 //	stmt.Where(predicate.String(), predicate.Args()...)
 //
-// keyBindingOverrides replaces the key binding for specific keys. Pass nil
-// when the entity's own binding should write every condition.
+// keyBindingOverrides replaces the key binding for specific keys; every other
+// key binds through the entity.
 func (ef *ExprFilter) Predicate(keyBindingOverrides map[string]KeyBinding) (*sqlf.Stmt, error) {
 	bindLeaf := func(condition Condition) (*sqlf.Stmt, error) {
 		if keyBinding, overridden := keyBindingOverrides[condition.KeyName]; overridden {

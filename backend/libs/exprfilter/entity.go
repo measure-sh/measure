@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
+	"backend/libs/chquery"
 	"backend/libs/symbol"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -33,13 +35,34 @@ type Entity struct {
 	// SuggestKeyValues lists what one key can be set to, narrowed by what has been
 	// typed. Both pools are passed because which one an entity reads is its own
 	// choice.
-	SuggestKeyValues func(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error)
+	SuggestKeyValues func(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error)
+
+	// FetchCustomKeys lists the keys an app's user-defined attributes add to
+	// the entity's fixed set. Nil for an entity whose keys are all fixed.
+	FetchCustomKeys func(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, limit int) ([]Key, bool, error)
+
+	// FetchCustomKeysByName reads the entity's custom keys with the given
+	// names, each name without the custom prefix. A name not present in
+	// user defined attributes yields no key. Nil for an entity whose keys are all fixed.
+	FetchCustomKeysByName func(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, rawNames []string) ([]Key, error)
+
+	// BindCustomKey builds the KeyBinding for one custom key. Nil for an
+	// entity whose keys are all fixed.
+	BindCustomKey func(teamID, appID uuid.UUID, from, to time.Time, key Key) KeyBinding
+
+	// MaxTimeBucketWidth is the widest time bucket used by any of the entity's
+	// tables. Bucketed queries may include rows from this bucket past the range
+	// end, so custom key bindings must be resolved that far past it. Zero means
+	// all tables store raw timestamps.
+	MaxTimeBucketWidth time.Duration
 }
 
 func FindByName(name string) (Entity, error) {
 	switch name {
 	case BuildsEntity.Name:
 		return BuildsEntity, nil
+	case SpansEntity.Name:
+		return SpansEntity, nil
 	}
 
 	return Entity{}, fmt.Errorf("Unknown filter entity %q", name)
@@ -47,12 +70,22 @@ func FindByName(name string) (Entity, error) {
 
 // The groups a key can belong to.
 const (
-	KeyGroupVersion KeyGroup = "Version"
-	KeyGroupBuild   KeyGroup = "Build"
+	KeyGroupVersion  KeyGroup = "Version"
+	KeyGroupBuild    KeyGroup = "Build"
+	KeyGroupSpan     KeyGroup = "Span"
+	KeyGroupOS       KeyGroup = "OS"
+	KeyGroupDevice   KeyGroup = "Device"
+	KeyGroupNetwork  KeyGroup = "Network"
+	KeyGroupLocation KeyGroup = "Location"
+	KeyGroupCustom   KeyGroup = "Custom"
 )
 
 // keyGroupOrder is the order the filter bar shows groups in.
-var keyGroupOrder = []KeyGroup{KeyGroupVersion, KeyGroupBuild}
+var keyGroupOrder = []KeyGroup{
+	KeyGroupVersion, KeyGroupBuild, KeyGroupSpan,
+	KeyGroupOS, KeyGroupDevice, KeyGroupNetwork, KeyGroupLocation,
+	KeyGroupCustom,
+}
 
 // ListKeyGroups lists the groups a set of keys falls into, in the order the
 // filter bar shows them.
@@ -134,6 +167,113 @@ var (
 		ValueSuggestionMode: ValueSuggestionModeFullList,
 		EnumValues:          mappingTypes(),
 	}
+
+	spanStatus = Key{
+		Name:                "span_status",
+		Label:               "Span status",
+		Description:         "Status of the span.",
+		KeyGroup:            KeyGroupSpan,
+		ValueType:           ValueTypeEnum,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeFullList,
+		EnumValues:          []string{"unset", "ok", "error"},
+	}
+
+	osName = Key{
+		Name:                "os_name",
+		Label:               "OS name",
+		Description:         "The name of the operating system.",
+		KeyGroup:            KeyGroupOS,
+		ValueType:           ValueTypeString,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeSample,
+	}
+
+	osVersion = Key{
+		Name:        "os_version",
+		Label:       "OS version",
+		Description: "The version of the operating system.",
+		KeyGroup:    KeyGroupOS,
+		ValueType:   ValueTypeString,
+		Operators: []Operator{
+			OperatorIn, OperatorNotIn,
+			OperatorContains, OperatorStartsWith,
+		},
+		ValueSuggestionMode: ValueSuggestionModeSample,
+	}
+
+	deviceName = Key{
+		Name:        "device_name",
+		Label:       "Device name",
+		Description: "The name of the device.",
+		KeyGroup:    KeyGroupDevice,
+		ValueType:   ValueTypeString,
+		Operators: []Operator{
+			OperatorIn, OperatorNotIn,
+			OperatorContains, OperatorStartsWith,
+		},
+		ValueSuggestionMode: ValueSuggestionModeSample,
+	}
+
+	deviceManufacturer = Key{
+		Name:                "device_manufacturer",
+		Label:               "Device manufacturer",
+		Description:         "The manufacturer of the device.",
+		KeyGroup:            KeyGroupDevice,
+		ValueType:           ValueTypeString,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeSample,
+	}
+
+	locale = Key{
+		Name:                "locale",
+		Label:               "Locale",
+		Description:         "The device locale.",
+		KeyGroup:            KeyGroupDevice,
+		ValueType:           ValueTypeString,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeSample,
+	}
+
+	networkType = Key{
+		Name:                "network_type",
+		Label:               "Network type",
+		Description:         "The kind of network connection: wifi, cellular and so on.",
+		KeyGroup:            KeyGroupNetwork,
+		ValueType:           ValueTypeString,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeSample,
+	}
+
+	networkGeneration = Key{
+		Name:                "network_generation",
+		Label:               "Network generation",
+		Description:         "The cellular network generation: 2g, 3g, 4g and so on.",
+		KeyGroup:            KeyGroupNetwork,
+		ValueType:           ValueTypeString,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeSample,
+	}
+
+	networkProvider = Key{
+		Name:                "network_provider",
+		Label:               "Network provider",
+		Description:         "The name of the network service provider.",
+		KeyGroup:            KeyGroupNetwork,
+		ValueType:           ValueTypeString,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeSample,
+	}
+
+	country = Key{
+		Name:                "country",
+		Label:               "Country",
+		Description:         "The country the device was in, as a country code.",
+		KeyGroup:            KeyGroupLocation,
+		ValueType:           ValueTypeString,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeSample,
+	}
 )
 
 func mappingTypes() []string {
@@ -143,6 +283,176 @@ func mappingTypes() []string {
 		names[i] = mappingType.String()
 	}
 	return names
+}
+
+// narrowEnumValues narrows a key's fixed value set by what has been typed. An
+// enum key carries its values itself, so no table is read.
+func narrowEnumValues(key Key, valueRequest ValueRequest) ValueList {
+	values := []Value{}
+	for _, text := range key.EnumValues {
+		if valueRequest.Search != "" && !strings.Contains(strings.ToLower(text), strings.ToLower(valueRequest.Search)) {
+			continue
+		}
+		values = append(values, Value{Text: text})
+	}
+
+	limit := valueRequest.Limit
+	if limit <= 0 {
+		limit = DefaultValueLimit
+	}
+	if len(values) > limit {
+		return ValueList{Values: values[:limit], Truncated: true}
+	}
+	return ValueList{Values: values}
+}
+
+func readCustomKeys(ctx context.Context, ch driver.Conn, teamID uuid.UUID, stmt *sqlf.Stmt) ([]Key, error) {
+	ctx = chquery.WithTeamScope(ctx, teamID)
+
+	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read the user-defined attribute keys: %w", err)
+	}
+	defer rows.Close()
+
+	keys := []Key{}
+	for rows.Next() {
+		var rawName, storedType string
+		if err := rows.Scan(&rawName, &storedType); err != nil {
+			return nil, fmt.Errorf("Failed to read the user-defined attribute keys: %w", err)
+		}
+		valueType, ok := customValueTypes[storedType]
+		if !ok {
+			return nil, fmt.Errorf("Attribute %q stores values of unknown type %q", rawName, storedType)
+		}
+		keys = append(keys, CustomKey(rawName, valueType))
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("Failed to read the user-defined attribute keys: %w", err)
+	}
+
+	return keys, nil
+}
+
+var comparisonSQL = map[Operator]string{
+	OperatorEq:  "=",
+	OperatorNeq: "!=",
+	OperatorGt:  ">",
+	OperatorGte: ">=",
+	OperatorLt:  "<",
+	OperatorLte: "<=",
+}
+
+// bindCustomKeyToMembership turns each condition on a user-defined attribute
+// key into an id membership subquery against the given attribute table; every
+// such table stores the same key, type, value and timestamp columns. The
+// value column holds the text form of every type, so a numeric condition
+// compares through a cast, and a row whose text is not numeric casts to null
+// and matches nothing.
+func bindCustomKeyToMembership(table, idColumn string) func(teamID, appID uuid.UUID, from, to time.Time, key Key) KeyBinding {
+	return func(teamID, appID uuid.UUID, from, to time.Time, key Key) KeyBinding {
+		rawName := strings.TrimPrefix(key.Name, CustomKeyPrefix)
+		storedType := string(key.ValueType)
+
+		return func(condition Condition) (*sqlf.Stmt, error) {
+			presence := func(operator string) *sqlf.Stmt {
+				text := idColumn + " " + operator + " (" +
+					"select " + idColumn + " from " + table +
+					" where team_id = toUUID(?) and app_id = toUUID(?)" +
+					" and timestamp >= ? and timestamp <= ?" +
+					" and key = ?)"
+				return sqlf.New(text, teamID, appID, from, to, rawName)
+			}
+			membership := func(operator string, valueComparison string, valueArgs ...any) *sqlf.Stmt {
+				text := idColumn + " " + operator + " (" +
+					"select " + idColumn + " from " + table +
+					" where team_id = toUUID(?) and app_id = toUUID(?)" +
+					" and timestamp >= ? and timestamp <= ?" +
+					" and key = ? and type = ?" +
+					valueComparison +
+					")"
+				args := append([]any{teamID, appID, from, to, rawName, storedType}, valueArgs...)
+				return sqlf.New(text, args...)
+			}
+
+			// An attribute rewritten under a new type keeps its old rows so type is ingnored
+			// by presence operators.
+			switch condition.Operator {
+			case OperatorIsSet:
+				return presence("in"), nil
+			case OperatorIsNotSet:
+				return presence("not in"), nil
+			}
+
+			switch key.ValueType {
+			case ValueTypeString:
+				switch condition.Operator {
+				case OperatorIn:
+					return membership("in", " and value in ?", condition.TextValues()), nil
+				case OperatorNotIn:
+					// A negative condition negates the membership itself, so
+					// a span without the attribute also matches, like a fixed
+					// key's empty column value does.
+					return membership("not in", " and value in ?", condition.TextValues()), nil
+				case OperatorContains:
+					return membership("in", " and value ilike ?", "%"+EscapeLikeWildcards(condition.TextValue())+"%"), nil
+				case OperatorNotContains:
+					return membership("not in", " and value ilike ?", "%"+EscapeLikeWildcards(condition.TextValue())+"%"), nil
+				case OperatorStartsWith:
+					return membership("in", " and value ilike ?", EscapeLikeWildcards(condition.TextValue())+"%"), nil
+				case OperatorEndsWith:
+					return membership("in", " and value ilike ?", "%"+EscapeLikeWildcards(condition.TextValue())), nil
+				}
+
+			case ValueTypeInt64:
+				if condition.Operator == OperatorNeq {
+					number, err := condition.IntegerValue()
+					if err != nil {
+						return nil, err
+					}
+					return membership("not in", " and toInt64OrNull(value) = ?", number), nil
+				}
+				if comparison, ok := comparisonSQL[condition.Operator]; ok {
+					number, err := condition.IntegerValue()
+					if err != nil {
+						return nil, err
+					}
+					return membership("in", " and toInt64OrNull(value) "+comparison+" ?", number), nil
+				}
+
+			case ValueTypeFloat64:
+				if condition.Operator == OperatorNeq {
+					number, err := condition.FloatValue()
+					if err != nil {
+						return nil, err
+					}
+					return membership("not in", " and toFloat64OrNull(value) = ?", number), nil
+				}
+				if comparison, ok := comparisonSQL[condition.Operator]; ok {
+					number, err := condition.FloatValue()
+					if err != nil {
+						return nil, err
+					}
+					return membership("in", " and toFloat64OrNull(value) "+comparison+" ?", number), nil
+				}
+
+			case ValueTypeBool:
+				if condition.Operator == OperatorEq {
+					yes, err := condition.BoolValue()
+					if err != nil {
+						return nil, err
+					}
+					text := "false"
+					if yes {
+						text = "true"
+					}
+					return membership("in", " and value = ?", text), nil
+				}
+			}
+
+			return nil, fmt.Errorf("Key %q cannot be filtered with %q", condition.KeyName, condition.Operator)
+		}
+	}
 }
 
 // BuildsEntity is an app's uploaded builds. Both its filtering and its
@@ -230,19 +540,10 @@ func bindBuildsKey(condition Condition) (*sqlf.Stmt, error) {
 // fetchBuildsKeySuggestions lists what one key can be set to, narrowed by what has been
 // typed. It asks for one row past the limit so it can report that more matched
 // without counting them. Builds are read from Postgres only, so the ClickHouse
-// connection is unused here.
-func fetchBuildsKeySuggestions(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
-	// An enum key carries its values itself, so the search narrows that set here
-	// instead of a column.
+// connection and the team id are unused here.
+func fetchBuildsKeySuggestions(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
 	if len(key.EnumValues) > 0 {
-		values := []Value{}
-		for _, text := range key.EnumValues {
-			if valueRequest.Search != "" && !strings.Contains(strings.ToLower(text), strings.ToLower(valueRequest.Search)) {
-				continue
-			}
-			values = append(values, Value{Text: text})
-		}
-		return ValueList{Values: values}, nil
+		return narrowEnumValues(key, valueRequest), nil
 	}
 
 	if key.ValueSuggestionMode == ValueSuggestionModeNone {
@@ -289,6 +590,346 @@ func fetchBuildsKeySuggestions(ctx context.Context, pgPool *pgxpool.Pool, chPool
 	for rows.Next() {
 		var text string
 		var recency any
+		if err := rows.Scan(&text, &recency); err != nil {
+			return ValueList{}, fmt.Errorf("Failed to read the values of key %q: %w", key.Name, err)
+		}
+		values = append(values, Value{Text: text})
+	}
+	if err := rows.Err(); err != nil {
+		return ValueList{}, fmt.Errorf("Failed to read the values of key %q: %w", key.Name, err)
+	}
+
+	if len(values) > limit {
+		return ValueList{Values: values[:limit], Truncated: true}, nil
+	}
+
+	return ValueList{Values: values}, nil
+}
+
+// SpansEntity is an app's performance trace spans. Both its filtering and its
+// value lists read the spans table in ClickHouse. The span_metrics rollup
+// stores the same fields as flat columns, which SpanMetricsKeyBindings maps
+// for queries that aggregate over it.
+var SpansEntity = Entity{
+	Name:                  "spans",
+	Keys:                  spansKeys,
+	BindKey:               bindSpansKeyToColumns(spansTableColumns),
+	SuggestKeyValues:      fetchSpansKeySuggestions,
+	FetchCustomKeys:       fetchSpanCustomKeys,
+	FetchCustomKeysByName: fetchSpanCustomKeysByName,
+	BindCustomKey:         bindCustomKeyToMembership("span_user_def_attrs", "span_id"),
+	// span_metrics groups spans into 15-minute buckets by start time. A query
+	// can therefore include spans whose bucket extends past the range end.
+	MaxTimeBucketWidth: 15 * time.Minute,
+}
+
+var spansKeys = []Key{
+	versionName,
+	versionCode,
+	spanStatus,
+	osName,
+	osVersion,
+	deviceName,
+	deviceManufacturer,
+	locale,
+	networkType,
+	networkGeneration,
+	networkProvider,
+	country,
+}
+
+// The column expression each spans key compares against, per table. The spans
+// table nests device and network attributes in attribute-prefixed columns and
+// the span_metrics rollup stores the same fields as flat columns; both hold
+// the app and os versions as (name, version) tuples.
+var (
+	spansTableColumns = map[string]string{
+		versionName.Name:        "tupleElement(attribute.app_version, 1)",
+		versionCode.Name:        "tupleElement(attribute.app_version, 2)",
+		spanStatus.Name:         "status",
+		osName.Name:             "tupleElement(attribute.os_version, 1)",
+		osVersion.Name:          "tupleElement(attribute.os_version, 2)",
+		deviceName.Name:         "attribute.device_name",
+		deviceManufacturer.Name: "attribute.device_manufacturer",
+		locale.Name:             "attribute.device_locale",
+		networkType.Name:        "attribute.network_type",
+		networkGeneration.Name:  "attribute.network_generation",
+		networkProvider.Name:    "attribute.network_provider",
+		country.Name:            "attribute.country_code",
+	}
+
+	spanFilterColumns = map[string]string{
+		versionName.Name:        "tupleElement(app_version, 1)",
+		versionCode.Name:        "tupleElement(app_version, 2)",
+		osName.Name:             "tupleElement(os_version, 1)",
+		osVersion.Name:          "tupleElement(os_version, 2)",
+		deviceName.Name:         "device_name",
+		deviceManufacturer.Name: "device_manufacturer",
+		locale.Name:             "device_locale",
+		networkType.Name:        "network_type",
+		networkGeneration.Name:  "network_generation",
+		networkProvider.Name:    "network_provider",
+		country.Name:            "country_code",
+	}
+
+	spanMetricsTableColumns = map[string]string{
+		versionName.Name:        "tupleElement(app_version, 1)",
+		versionCode.Name:        "tupleElement(app_version, 2)",
+		spanStatus.Name:         "status",
+		osName.Name:             "tupleElement(os_version, 1)",
+		osVersion.Name:          "tupleElement(os_version, 2)",
+		deviceName.Name:         "device_name",
+		deviceManufacturer.Name: "device_manufacturer",
+		locale.Name:             "device_locale",
+		networkType.Name:        "network_type",
+		networkGeneration.Name:  "network_generation",
+		networkProvider.Name:    "network_provider",
+		country.Name:            "country_code",
+	}
+)
+
+// SpanMetricsKeyBindings maps every fixed spans key onto the flat columns of
+// the span_metrics rollup, as Predicate overrides for queries that read that
+// table.
+func SpanMetricsKeyBindings() map[string]KeyBinding {
+	binding := bindSpansKeyToColumns(spanMetricsTableColumns)
+	overrides := make(map[string]KeyBinding, len(spansKeys))
+	for _, key := range spansKeys {
+		overrides[key.Name] = binding
+	}
+	return overrides
+}
+
+// spanStatusCodes maps the status names a filter carries to the integer codes
+// the status column stores.
+var spanStatusCodes = map[string]int8{
+	"unset": 0,
+	"ok":    1,
+	"error": 2,
+}
+
+// bindSpansKeyToColumns compares one key against the column expression the
+// mapping names for it.
+func bindSpansKeyToColumns(columns map[string]string) KeyBinding {
+	return func(condition Condition) (*sqlf.Stmt, error) {
+		column, ok := columns[condition.KeyName]
+		if !ok {
+			return nil, fmt.Errorf("%w: %q", ErrKeyNotSupported, condition.KeyName)
+		}
+
+		if condition.KeyName == spanStatus.Name {
+			return bindSpanStatusCondition(column, condition)
+		}
+
+		switch condition.Operator {
+		case OperatorIn:
+			return sqlf.New(column+" in ?", condition.TextValues()), nil
+		case OperatorNotIn:
+			return sqlf.New(column+" not in ?", condition.TextValues()), nil
+		case OperatorContains:
+			return sqlf.New(column+" ilike ?", "%"+EscapeLikeWildcards(condition.TextValue())+"%"), nil
+		case OperatorStartsWith:
+			return sqlf.New(column+" ilike ?", EscapeLikeWildcards(condition.TextValue())+"%"), nil
+		}
+
+		return nil, fmt.Errorf("Key %q cannot be filtered with %q", condition.KeyName, condition.Operator)
+	}
+}
+
+func bindSpanStatusCondition(column string, condition Condition) (*sqlf.Stmt, error) {
+	codes := make([]int8, 0, len(condition.Values))
+	for _, name := range condition.TextValues() {
+		code, ok := spanStatusCodes[name]
+		if !ok {
+			return nil, fmt.Errorf("Key %q has no value %q", condition.KeyName, name)
+		}
+		codes = append(codes, code)
+	}
+
+	switch condition.Operator {
+	case OperatorIn:
+		return sqlf.New(column+" in ?", codes), nil
+	case OperatorNotIn:
+		return sqlf.New(column+" not in ?", codes), nil
+	}
+
+	return nil, fmt.Errorf("Key %q cannot be filtered with %q", condition.KeyName, condition.Operator)
+}
+
+// fetchSpansKeySuggestions lists what one key can be set to, narrowed by what
+// has been typed. Values are read from the spans table in ClickHouse, most
+// recently seen first, asking for one row past the limit so it can report that
+// more matched without counting them.
+func fetchSpansKeySuggestions(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
+	if len(key.EnumValues) > 0 {
+		return narrowEnumValues(key, valueRequest), nil
+	}
+
+	if key.ValueSuggestionMode == ValueSuggestionModeNone {
+		return ValueList{}, fmt.Errorf("Key %q takes typed-in values only", key.Name)
+	}
+
+	if strings.HasPrefix(key.Name, CustomKeyPrefix) {
+		return fetchSpanCustomKeySuggestions(ctx, chPool, teamID, appID, key, valueRequest)
+	}
+
+	column, ok := spanFilterColumns[key.Name]
+	if !ok {
+		return ValueList{}, fmt.Errorf("%w: %q", ErrKeyNotSupported, key.Name)
+	}
+
+	limit := valueRequest.Limit
+	if limit <= 0 {
+		limit = DefaultValueLimit
+	}
+
+	ctx = chquery.WithTeamScope(ctx, teamID)
+
+	// A span that did not carry an attribute holds an empty string in that
+	// column, so those rows are left out. Recency carries month granularity,
+	// so values seen in the same month order alphabetically.
+	stmt := sqlf.
+		From("span_filters").
+		Select(column+" as suggested_value").
+		Select("max(end_of_month) as recency").
+		Where("team_id = toUUID(?)", teamID).
+		Where("app_id = toUUID(?)", appID).
+		Where(column + " <> ''").
+		GroupBy("suggested_value").
+		OrderBy("recency desc, suggested_value").
+		Limit(limit + 1)
+
+	defer stmt.Close()
+
+	if valueRequest.Search != "" {
+		stmt.Where(column+" ilike ?", "%"+EscapeLikeWildcards(valueRequest.Search)+"%")
+	}
+
+	rows, err := chPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return ValueList{}, fmt.Errorf("Failed to read the values of key %q: %w", key.Name, err)
+	}
+	defer rows.Close()
+
+	values := []Value{}
+	for rows.Next() {
+		var text string
+		var recency time.Time
+		if err := rows.Scan(&text, &recency); err != nil {
+			return ValueList{}, fmt.Errorf("Failed to read the values of key %q: %w", key.Name, err)
+		}
+		values = append(values, Value{Text: text})
+	}
+	if err := rows.Err(); err != nil {
+		return ValueList{}, fmt.Errorf("Failed to read the values of key %q: %w", key.Name, err)
+	}
+
+	if len(values) > limit {
+		return ValueList{Values: values[:limit], Truncated: true}, nil
+	}
+
+	return ValueList{Values: values}, nil
+}
+
+// The custom keys of spans are the user-defined attributes an app set on
+// its spans. The span_user_def_attrs table holds one row per span, attribute
+// and value, with the value of every type stored in one String column, and
+// each condition on one becomes a span_id membership subquery against it.
+// The attributes are read from ClickHouse, so the Postgres pool the entity
+// fields carry is unused here.
+
+// fetchSpanCustomKeys lists the filter keys for every user-defined attribute
+// of an app's spans, ordered by name. It asks for one key past the limit so
+// it can report that more exist without counting them.
+func fetchSpanCustomKeys(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, limit int) ([]Key, bool, error) {
+	stmt := spanCustomKeyQuery(teamID, appID).
+		Limit(limit + 1).
+		// Most granules hold rows of this team and app anyway, so skip
+		// indexes cost analysis without pruning reads.
+		Clause("settings use_skip_indexes = 0")
+
+	defer stmt.Close()
+
+	keys, err := readCustomKeys(ctx, chPool, teamID, stmt)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if len(keys) > limit {
+		return keys[:limit], true, nil
+	}
+	return keys, false, nil
+}
+
+// fetchSpanCustomKeysByName reads the filter keys for the named user-defined
+// span attributes of one app.
+func fetchSpanCustomKeysByName(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, rawNames []string) ([]Key, error) {
+	if len(rawNames) == 0 {
+		return nil, nil
+	}
+
+	stmt := spanCustomKeyQuery(teamID, appID).
+		Where("key in ?", rawNames)
+
+	defer stmt.Close()
+
+	return readCustomKeys(ctx, chPool, teamID, stmt)
+}
+
+// spanCustomKeyQuery reads an app's user-defined span attribute keys with
+// their types. An attribute rewritten under a new type keeps one row per
+// type, so the type written last is the one its key offers.
+func spanCustomKeyQuery(teamID, appID uuid.UUID) *sqlf.Stmt {
+	return sqlf.
+		From("span_user_def_attrs final").
+		Select("key").
+		Select("argMax(type, timestamp) as type").
+		Where("team_id = toUUID(?)", teamID).
+		Where("app_id = toUUID(?)", appID).
+		GroupBy("key").
+		OrderBy("key")
+}
+
+// fetchSpanCustomKeySuggestions lists what one user-defined attribute has
+// been set to, most recently written first, asking for one row past the limit
+// so it can report that more matched without counting them. Empty ones are left out.
+func fetchSpanCustomKeySuggestions(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
+	limit := valueRequest.Limit
+	if limit <= 0 {
+		limit = DefaultValueLimit
+	}
+
+	ctx = chquery.WithTeamScope(ctx, teamID)
+
+	stmt := sqlf.
+		From("span_user_def_attrs").
+		Select("value").
+		Select("max(timestamp) as recency").
+		Where("team_id = toUUID(?)", teamID).
+		Where("app_id = toUUID(?)", appID).
+		Where("key = ?", strings.TrimPrefix(key.Name, CustomKeyPrefix)).
+		Where("type = ?", string(key.ValueType)).
+		Where("value <> ''").
+		GroupBy("value").
+		OrderBy("recency desc").
+		Limit(limit + 1)
+
+	defer stmt.Close()
+
+	if valueRequest.Search != "" {
+		stmt.Where("value ilike ?", "%"+EscapeLikeWildcards(valueRequest.Search)+"%")
+	}
+
+	rows, err := chPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return ValueList{}, fmt.Errorf("Failed to read the values of key %q: %w", key.Name, err)
+	}
+	defer rows.Close()
+
+	values := []Value{}
+	for rows.Next() {
+		var text string
+		var recency time.Time
 		if err := rows.Scan(&text, &recency); err != nil {
 			return ValueList{}, fmt.Errorf("Failed to read the values of key %q: %w", key.Name, err)
 		}

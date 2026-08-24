@@ -69,6 +69,7 @@ import type { FilterKey } from "@/app/api/filter_types";
 import KeyPicker, {
   OperatorPicker,
 } from "@/app/components/filter_bar/key_picker";
+import { operatorLabels as filterBarOperatorLabels } from "@/app/components/filter_bar/operators";
 
 const key = (
   name: string,
@@ -271,6 +272,37 @@ describe("KeyPicker", () => {
 
     expect(screen.getByTestId("lands-here")).toHaveFocus();
   });
+
+  describe("a user-defined key", () => {
+    const customKey = key(
+      "custom.is_premium",
+      "is_premium",
+      "Custom",
+      "A user-defined attribute",
+    );
+    const withCustom = {
+      keys: [...keys, customKey],
+      keyGroups: [...keyGroups, "Custom"],
+    };
+
+    it("shows the Custom tab, and the key by its raw name", () => {
+      openPicker(withCustom);
+
+      fireEvent.click(screen.getByTestId("tab-Custom"));
+
+      expect(screen.getByText("is_premium")).toBeInTheDocument();
+      expect(screen.queryByText("custom.is_premium")).not.toBeInTheDocument();
+    });
+
+    it("reports the key with its full dotted name when picked", () => {
+      const { onSelect } = openPicker(withCustom);
+
+      fireEvent.click(screen.getByTestId("tab-Custom"));
+      fireEvent.click(screen.getByTestId("filter-key-custom.is_premium"));
+
+      expect(onSelect).toHaveBeenCalledWith(customKey);
+    });
+  });
 });
 
 describe("OperatorPicker", () => {
@@ -306,6 +338,52 @@ describe("OperatorPicker", () => {
 
     expect(screen.getByTestId("filter-op-between")).toHaveTextContent(
       "between",
+    );
+  });
+
+  it("has a label for every comparison a number key offers", () => {
+    render(
+      <OperatorPicker
+        operators={["eq", "neq", "gt", "gte", "lt", "lte"]}
+        selected={null}
+        operatorLabels={filterBarOperatorLabels}
+        onSelect={jest.fn()}
+        open
+        trigger={<button>open</button>}
+      />,
+    );
+
+    expect(screen.getByTestId("filter-op-eq")).toHaveTextContent("=");
+    expect(screen.getByTestId("filter-op-neq")).toHaveTextContent("≠");
+    expect(screen.getByTestId("filter-op-gt")).toHaveTextContent(">");
+    expect(screen.getByTestId("filter-op-gte")).toHaveTextContent("≥");
+    expect(screen.getByTestId("filter-op-lt")).toHaveTextContent("<");
+    expect(screen.getByTestId("filter-op-lte")).toHaveTextContent("≤");
+  });
+
+  it("has a label for every match a text key offers", () => {
+    render(
+      <OperatorPicker
+        operators={["contains", "not_contains", "starts_with", "ends_with"]}
+        selected={null}
+        operatorLabels={filterBarOperatorLabels}
+        onSelect={jest.fn()}
+        open
+        trigger={<button>open</button>}
+      />,
+    );
+
+    expect(screen.getByTestId("filter-op-contains")).toHaveTextContent(
+      "contains",
+    );
+    expect(screen.getByTestId("filter-op-not_contains")).toHaveTextContent(
+      "does not contain",
+    );
+    expect(screen.getByTestId("filter-op-starts_with")).toHaveTextContent(
+      "starts with",
+    );
+    expect(screen.getByTestId("filter-op-ends_with")).toHaveTextContent(
+      "ends with",
     );
   });
 

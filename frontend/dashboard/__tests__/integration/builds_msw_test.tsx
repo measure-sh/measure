@@ -24,12 +24,31 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
 }));
 
-const mockRouterReplace = jest.fn();
+// The mocked router applies each replace back into the mocked searchParams
+// and notifies subscribers, the way the real router re-renders the page with
+// the URL it just wrote. The page's query reads the URL, so without this it
+// would never see what the bar settled on.
 let mockSearchParams = new URLSearchParams();
+const searchParamsSubscribers = new Set<() => void>();
+const mockRouterReplace = jest.fn(
+  (url: string, _options?: { scroll: boolean }) => {
+    mockSearchParams = new URLSearchParams(url.split("?")[1] ?? "");
+    searchParamsSubscribers.forEach((notify) => notify());
+  },
+);
 jest.mock("next/navigation", () => ({
   __esModule: true,
   useRouter: () => ({ replace: mockRouterReplace, push: jest.fn() }),
-  useSearchParams: () => mockSearchParams,
+  useSearchParams: () => {
+    const { useSyncExternalStore } = require("react");
+    return useSyncExternalStore(
+      (notify: () => void) => {
+        searchParamsSubscribers.add(notify);
+        return () => searchParamsSubscribers.delete(notify);
+      },
+      () => mockSearchParams,
+    );
+  },
   usePathname: () => "/test-team/builds",
 }));
 

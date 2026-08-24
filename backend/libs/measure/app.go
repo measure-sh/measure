@@ -14,6 +14,7 @@ import (
 	"backend/libs/chquery"
 	"backend/libs/config"
 	"backend/libs/event"
+	"backend/libs/exprfilter"
 	"backend/libs/filter"
 	"backend/libs/group"
 	"backend/libs/metrics"
@@ -265,7 +266,7 @@ func resolveErrorSources(af *filter.AppFilter) (queryANR, wantHandledTrue, wantH
 
 // applyExceptionSeverityFilter adds a WHERE clause to s restricting events to
 // those matching severities. Bridges new data (exception.severity populated)
-// and legacy data (exception.severity = '', falls back to exception.handled).
+// and legacy data (exception.severity not present, falls back to exception.handled).
 // Legacy mapping: handled=false matches both fatal and unhandled
 // (indistinguishable in legacy data); handled=true matches handled.
 //
@@ -2273,9 +2274,10 @@ func (a App) FetchTracesForSessionId(ctx context.Context, rch driver.Conn, sessi
 	return
 }
 
-// GetSpansForSpanNameWithFilter provides list of spans for the given span name that matches various
-// filter criteria in a paginated fashion.
-func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, rch driver.Conn, spanName string, af *filter.AppFilter) (rootSpans []span.RootSpanDisplay, next, previous bool, err error) {
+// GetSpansForSpanNameWithFilter provides the list of spans for the given
+// span name that matches the filter expression, newest first, in a paginated
+// fashion.
+func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, rch driver.Conn, spanName string, ef *exprfilter.ExprFilter) (rootSpans []span.RootSpanDisplay, next, previous bool, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.
 		From("spans final").
@@ -2295,95 +2297,29 @@ func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, rch driver.Conn,
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
 		Where("span_name = ?", spanName).
-		Where("start_time >= ? and end_time <= ?", af.From, af.To)
+		Where("start_time >= ? and end_time <= ?", ef.From, ef.To)
 
-	if af.HasSpanStatuses() {
-		stmt.Where("status").In(af.SpanStatuses)
-	}
+	defer stmt.Close()
 
-	if af.HasVersions() {
-		stmt.Where("`attribute.app_version`.1 in ?", af.Versions)
-		stmt.Where("`attribute.app_version`.2 in ?", af.VersionCodes)
-	}
-
-	if af.HasOSVersions() {
-		selectedOSVersions, err := af.OSVersionPairs()
-		if err != nil {
-			return rootSpans, next, previous, err
+	if ef.HasFilterExpr() {
+		predicate, errPredicate := ef.Predicate(nil)
+		if errPredicate != nil {
+			err = errPredicate
+			return
 		}
-
-		stmt.Where("attribute.os_version in (?)", selectedOSVersions.Parameterize())
-	}
-
-	if af.HasCountries() {
-		stmt.Where("attribute.country_code in ?", af.Countries)
-	}
-
-	if af.HasNetworkProviders() {
-		stmt.Where("attribute.network_provider in ?", af.NetworkProviders)
-	}
-
-	if af.HasNetworkTypes() {
-		stmt.Where("attribute.network_type in ?", af.NetworkTypes)
-	}
-
-	if af.HasNetworkGenerations() {
-		stmt.Where("attribute.network_generation in ?", af.NetworkGenerations)
-	}
-
-	if af.HasDeviceLocales() {
-		stmt.Where("attribute.device_locale in ?", af.Locales)
-	}
-
-	if af.HasDeviceManufacturers() {
-		stmt.Where("attribute.device_manufacturer in ?", af.DeviceManufacturers)
-	}
-
-	if af.HasDeviceNames() {
-		stmt.Where("attribute.device_name in ?", af.DeviceNames)
-	}
-
-	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.
-			From("span_user_def_attrs").
-			Select("span_id").
-			Where("team_id = toUUID(?)", a.TeamId).
-			Where("app_id = toUUID(?)", a.ID).
-			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-
-		if af.HasVersions() {
-			subQuery.
-				Where("app_version.1 in ?", af.Versions).
-				Where("app_version.2 in ?", af.VersionCodes)
-		}
-
-		if af.HasOSVersions() {
-			selectedOSVersions, errVersions := af.OSVersionPairs()
-			if err != nil {
-				err = errVersions
-				return
-			}
-
-			subQuery.
-				Where("os_version in (?)", selectedOSVersions.Parameterize())
-		}
-
-		af.UDExpression.Augment(subQuery)
-		subQuery.GroupBy("span_id")
-		stmt.SubQuery("span_id in (", ")", subQuery)
+		defer predicate.Close()
+		stmt.Where(predicate.String(), predicate.Args()...)
 	}
 
 	stmt.OrderBy("start_time desc")
 
-	if af.Limit > 0 {
-		stmt.Limit(uint64(af.Limit) + 1)
+	if ef.Limit > 0 {
+		stmt.Limit(uint64(ef.Limit) + 1)
 	}
 
-	if af.Offset >= 0 {
-		stmt.Offset(uint64(af.Offset))
+	if ef.Offset >= 0 {
+		stmt.Offset(uint64(ef.Offset))
 	}
-
-	defer stmt.Close()
 
 	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -2400,45 +2336,45 @@ func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, rch driver.Conn,
 			return
 		}
 
-		if err = rows.Err(); err != nil {
-			return
-		}
-
 		rootSpan.Duration = time.Duration(rootSpan.EndTime.Sub(rootSpan.StartTime).Milliseconds())
 
 		rootSpans = append(rootSpans, rootSpan)
 	}
 
-	err = rows.Err()
+	if err = rows.Err(); err != nil {
+		return
+	}
 
 	resultLen := len(rootSpans)
 
 	// Set pagination next & previous flags
-	if resultLen > af.Limit {
+	if resultLen > ef.Limit {
 		rootSpans = rootSpans[:resultLen-1]
 		next = true
 	}
-	if af.Offset > 0 {
+	if ef.Offset > 0 {
 		previous = true
 	}
 
 	return
 }
 
-// GetMetricsPlotForSpanNameWithFilter provides p50, p90, p95 and p99 duration metrics
-// for the given span name with the applied filtering criteria
-func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, rch driver.Conn, spanName string, af *filter.AppFilter) (spanMetricsPlotInstances []span.SpanMetricsPlotInstance, err error) {
+// GetMetricsPlotForSpanNameWithFilter provides p50, p90, p95 and p99
+// duration metrics for the given span name that matches the filter
+// expression.
+func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, rch driver.Conn, spanName string, ef *exprfilter.ExprFilter) (spanMetricsPlotInstances []span.SpanMetricsPlotInstance, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	if !af.HasTimezone() {
+	if ef.Timezone == "" {
 		err = fmt.Errorf("timezone is required")
 		return
 	}
 
-	if !af.HasPlotTimeGroup() {
-		af.SetDefaultPlotTimeGroup()
+	plotTimeGroup := ef.PlotTimeGroup
+	if plotTimeGroup == "" {
+		plotTimeGroup = exprfilter.PlotTimeGroupDays
 	}
 
-	groupExpr, err := GetPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	groupExpr, err := GetPlotTimeGroupExpr("timestamp", plotTimeGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -2446,7 +2382,7 @@ func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, rch driver
 	stmt := sqlf.
 		From("span_metrics").
 		Select("concat(tupleElement(app_version, 1), ' ', '(', tupleElement(app_version, 2), ')') app_version_fmt").
-		Select(groupExpr.BucketExpr+" as datetime_bucket", af.Timezone).
+		Select(groupExpr.BucketExpr+" as datetime_bucket", ef.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 		Select("round(quantileMerge(0.50)(p50), 2) as p50").
 		Select("round(quantileMerge(0.90)(p90), 2) as p90").
@@ -2455,88 +2391,21 @@ func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, rch driver
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
 		Where("span_name = ?", spanName).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To)
 
-	if af.HasVersions() {
-		stmt.Where("app_version.1 in ?", af.Versions)
-		stmt.Where("app_version.2 in ?", af.VersionCodes)
-	}
+	defer stmt.Close()
 
-	if af.HasSpanStatuses() {
-		stmt.Where("status").In(af.SpanStatuses)
-	}
-
-	if af.HasOSVersions() {
-		selectedOSVersions, err := af.OSVersionPairs()
-		if err != nil {
-			return nil, err
+	if ef.HasFilterExpr() {
+		predicate, errPredicate := ef.Predicate(exprfilter.SpanMetricsKeyBindings())
+		if errPredicate != nil {
+			return nil, errPredicate
 		}
-
-		stmt.Where("os_version in (?)", selectedOSVersions.Parameterize())
-	}
-
-	if af.HasCountries() {
-		stmt.Where("country_code in ?", af.Countries)
-	}
-
-	if af.HasNetworkProviders() {
-		stmt.Where("network_provider in ?", af.NetworkProviders)
-	}
-
-	if af.HasNetworkTypes() {
-		stmt.Where("network_type in ?", af.NetworkTypes)
-	}
-
-	if af.HasNetworkGenerations() {
-		stmt.Where("network_generation in ?", af.NetworkGenerations)
-	}
-
-	if af.HasDeviceLocales() {
-		stmt.Where("device_locale in ?", af.Locales)
-	}
-
-	if af.HasDeviceManufacturers() {
-		stmt.Where("device_manufacturer in ?", af.DeviceManufacturers)
-	}
-
-	if af.HasDeviceNames() {
-		stmt.Where("device_name in ?", af.DeviceNames)
-	}
-
-	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.
-			From("span_user_def_attrs").
-			Select("span_id").
-			Where("team_id = toUUID(?)", a.TeamId).
-			Where("app_id = toUUID(?)", a.ID).
-			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-
-		if af.HasVersions() {
-			subQuery.
-				Where("app_version.1 in ?", af.Versions).
-				Where("app_version.2 in ?", af.VersionCodes)
-		}
-
-		if af.HasOSVersions() {
-			selectedOSVersions, errVersions := af.OSVersionPairs()
-			if err != nil {
-				err = errVersions
-				return
-			}
-
-			subQuery.
-				Where("os_version in (?)", selectedOSVersions.Parameterize())
-		}
-
-		af.UDExpression.Augment(subQuery)
-		subQuery.GroupBy("span_id")
-		stmt.SubQuery("span_id in (", ")", subQuery)
+		defer predicate.Close()
+		stmt.Where(predicate.String(), predicate.Args()...)
 	}
 
 	stmt.GroupBy("app_version, datetime_bucket")
 	stmt.OrderBy("datetime_bucket, tupleElement(app_version, 2) desc")
-
-	defer stmt.Close()
 
 	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {

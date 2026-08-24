@@ -43,13 +43,11 @@ jest.mock("@/app/query/query_client", () => ({
 
 let appsQueryState: any = { status: "pending", data: undefined };
 let filterOptionsQueryState: any = { status: "pending", data: undefined };
-let rootSpanNamesQueryState: any = { status: "pending", data: undefined };
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
   useAppsQuery: () => appsQueryState,
   useFilterOptionsQuery: () => filterOptionsQueryState,
-  useRootSpanNamesQuery: () => rootSpanNamesQueryState,
 }));
 
 jest.mock("@/app/components/dropdown_select", () => ({
@@ -235,35 +233,12 @@ function setFiltersPending() {
   filterOptionsQueryState = { status: "pending", data: undefined };
 }
 
-function setRootSpansSuccess(names = ["root.a", "root.b"]) {
-  rootSpanNamesQueryState = {
-    status: "success",
-    data: names,
-  };
-}
-// An app that has never reported a trace answers with a null list. The
-// fetcher sends the null through, and does not change it to an empty array.
-function setRootSpansNoData() {
-  rootSpanNamesQueryState = { status: "success", data: null };
-}
-function setRootSpansPending() {
-  rootSpanNamesQueryState = { status: "pending", data: undefined };
-}
-function setRootSpansError() {
-  rootSpanNamesQueryState = {
-    status: "error",
-    data: undefined,
-    error: new Error(),
-  };
-}
-
 let sessionStorageData: Record<string, string> = {};
 
 beforeEach(() => {
   storeInstance = createFiltersStore();
   setAppsPending();
   setFiltersPending();
-  setRootSpansPending();
   mockSearchParams = new URLSearchParams();
   mockPathname = "/team-1/overview";
   sessionStorageData = {};
@@ -393,60 +368,6 @@ describe("Filters — filter options states", () => {
   });
 });
 
-describe("Filters — Span filter source", () => {
-  beforeEach(() => {
-    setAppsSuccess([makeApp("a")]);
-    setFiltersSuccess();
-  });
-
-  it("shows the trace name skeleton while root span names load", async () => {
-    setRootSpansPending();
-    await renderFilters({ filterSource: FilterSource.Spans });
-    await waitFor(() => {
-      expect(screen.getAllByTestId("skeleton-mock").length).toBeGreaterThan(0);
-    });
-  });
-
-  it("shows the trace name error when the root span names query fails", async () => {
-    setRootSpansError();
-    await renderFilters({ filterSource: FilterSource.Spans });
-    await waitFor(() => {
-      expect(
-        screen.getByText(/Error fetching traces list/),
-      ).toBeInTheDocument();
-    });
-  });
-
-  it("shows the no-traces message when the app has never reported a trace", async () => {
-    setRootSpansNoData();
-    await renderFilters({ filterSource: FilterSource.Spans });
-    await waitFor(() => {
-      expect(
-        screen.getByText(/No traces received for this app yet/),
-      ).toBeInTheDocument();
-    });
-    expect(storeInstance.getState().rootSpanNamesState).toBe("no-data");
-  });
-
-  it("renders the trace name dropdown once root span names load", async () => {
-    setRootSpansSuccess();
-    await renderFilters({ filterSource: FilterSource.Spans });
-    await waitFor(() => {
-      expect(screen.getByTestId("dropdown-Trace Name")).toBeInTheDocument();
-    });
-  });
-
-  it("does not render the trace name dropdown when filterSource is not Spans", async () => {
-    setRootSpansSuccess();
-    await renderFilters({ filterSource: FilterSource.Events });
-    await waitFor(() => {
-      expect(
-        screen.queryByTestId("dropdown-Trace Name"),
-      ).not.toBeInTheDocument();
-    });
-  });
-});
-
 describe("Filters — store state after queries resolve", () => {
   it("mirrors apps and statuses into the store on resolve", async () => {
     setAppsSuccess([makeApp("a")]);
@@ -541,18 +462,6 @@ describe("Filters — store state after queries resolve", () => {
       expect(
         storeInstance.getState().selectedVersions.map((v: any) => v.name),
       ).toEqual(["1.0", "2.0", "3.0"]);
-    });
-  });
-
-  it("mirrors root span names into the store and selects the first", async () => {
-    setAppsSuccess([makeApp("a")]);
-    setFiltersSuccess();
-    setRootSpansSuccess(["traceA", "traceB"]);
-    await renderFilters({ filterSource: FilterSource.Spans });
-    await waitFor(() => {
-      const state = storeInstance.getState();
-      expect(state.rootSpanNames).toEqual(["traceA", "traceB"]);
-      expect(state.selectedRootSpanName).toBe("traceA");
     });
   });
 });

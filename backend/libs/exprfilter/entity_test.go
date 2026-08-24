@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var allEntities = []Entity{BuildsEntity}
+var allEntities = []Entity{BuildsEntity, SpansEntity}
 
 func sampleValues(t *testing.T, key Key, operator Operator) []Value {
 	t.Helper()
@@ -213,6 +213,72 @@ func TestBuildsEntityOffersEveryBuildKey(t *testing.T) {
 		if _, ok := byName[name]; !ok {
 			t.Errorf("want a %q key on the builds entity", name)
 		}
+	}
+}
+
+func TestSpansEntityOffersEverySpanKey(t *testing.T) {
+	byName := IndexKeysByName(SpansEntity.Keys)
+
+	wanted := []string{
+		"version_name", "version_code", "span_status",
+		"os_name", "os_version",
+		"device_name", "device_manufacturer", "locale",
+		"network_type", "network_generation", "network_provider",
+		"country",
+	}
+	for _, name := range wanted {
+		if _, ok := byName[name]; !ok {
+			t.Errorf("want a %q key on the spans entity", name)
+		}
+	}
+	if len(SpansEntity.Keys) != len(wanted) {
+		t.Errorf("want %d spans keys, got %d", len(wanted), len(SpansEntity.Keys))
+	}
+}
+
+func TestSpansBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
+	_, err := SpansEntity.BindKey(Condition{
+		KeyName:  "mapping_type",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "proguard"}},
+	})
+
+	if err == nil {
+		t.Fatal("want a key the spans entity does not have refused")
+	}
+	if !strings.Contains(err.Error(), "mapping_type") {
+		t.Errorf("want the key named, got %q", err)
+	}
+}
+
+func TestSpanStatusBindsTheColumnCodes(t *testing.T) {
+	stmt, err := SpansEntity.BindKey(Condition{
+		KeyName:  "span_status",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "unset"}, {Text: "error"}},
+	})
+	if err != nil {
+		t.Fatalf("bind span_status: %v", err)
+	}
+	defer stmt.Close()
+
+	if got := stmt.String(); got != "status in ?" {
+		t.Errorf("want the status column compared, got %q", got)
+	}
+	args := stmt.Args()
+	if len(args) != 1 {
+		t.Fatalf("want one bound argument, got %v", args)
+	}
+	if got, ok := args[0].([]int8); !ok || !slices.Equal(got, []int8{0, 2}) {
+		t.Errorf("want the codes [0 2] bound, got %v", args[0])
+	}
+
+	if _, err := SpansEntity.BindKey(Condition{
+		KeyName:  "span_status",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "cancelled"}},
+	}); err == nil {
+		t.Error("want a status name the column does not store refused")
 	}
 }
 

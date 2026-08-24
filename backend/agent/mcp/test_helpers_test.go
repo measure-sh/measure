@@ -121,6 +121,10 @@ func seedSpan(
 	return th.SeedSpan(ctx, t, teamID, appID, spanName, status, startTime, endTime, appVersion, appBuild)
 }
 
+func seedSpanUDAttr(ctx context.Context, t *testing.T, teamID, appID string, row testinfra.SpanUDAttrRow) {
+	th.SeedSpanUDAttrRow(ctx, t, teamID, appID, row)
+}
+
 func seedEventWithSession(ctx context.Context, t *testing.T, teamID, appID, sessionID string, ts time.Time) {
 	th.SeedEventWithSession(ctx, t, teamID, appID, sessionID, ts)
 }

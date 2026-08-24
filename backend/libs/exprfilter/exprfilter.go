@@ -1,10 +1,18 @@
 package exprfilter
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
+	"backend/libs/chquery"
+	"backend/libs/config"
+	"backend/libs/logcomment"
+
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/google/uuid"
 )
 
@@ -13,6 +21,21 @@ const DefaultDuration = time.Hour * 24 * 7
 const DefaultPaginationLimit = 10
 
 const MaxPaginationLimit = 1000
+
+// The granularities a plot endpoint can bucket its time axis by.
+const (
+	PlotTimeGroupMinutes = "minutes"
+	PlotTimeGroupHours   = "hours"
+	PlotTimeGroupDays    = "days"
+	PlotTimeGroupMonths  = "months"
+)
+
+var plotTimeGroups = []string{
+	PlotTimeGroupMinutes,
+	PlotTimeGroupHours,
+	PlotTimeGroupDays,
+	PlotTimeGroupMonths,
+}
 
 type ExprFilter struct {
 	AppID  uuid.UUID
@@ -27,6 +50,10 @@ type ExprFilter struct {
 
 	Limit  int `form:"limit"`
 	Offset int `form:"offset"`
+
+	// PlotTimeGroup is the time bucketing a plot endpoint groups by. Endpoints
+	// that do not plot leave it empty.
+	PlotTimeGroup string `form:"plot_time_group"`
 
 	// FilterExpr is the text form of the filter, as a link or an API request
 	// carries it. ExprTree is the parsed form.
@@ -43,7 +70,12 @@ func (ef *ExprFilter) HasTimeRange() bool {
 	return !ef.From.IsZero() && !ef.To.IsZero()
 }
 
-func (ef *ExprFilter) SetDefaultTimeRange() {
+// SetDefaultTimeRangeIfUnset fills the time range when the request gave neither
+// bound. A request giving only is left alone, so it can be rejected during validation.
+func (ef *ExprFilter) SetDefaultTimeRangeIfUnset() {
+	if !ef.From.IsZero() || !ef.To.IsZero() {
+		return
+	}
 	to := time.Now().UTC()
 	ef.From = to.Add(-DefaultDuration)
 	ef.To = to
@@ -89,6 +121,10 @@ func (ef *ExprFilter) Validate() error {
 		return errors.New("`offset` cannot be negative")
 	}
 
+	if ef.PlotTimeGroup != "" && !slices.Contains(plotTimeGroups, ef.PlotTimeGroup) {
+		return fmt.Errorf("`plot_time_group` must be one of: %s", strings.Join(plotTimeGroups, ", "))
+	}
+
 	if !ef.HasFilterExpr() {
 		return nil
 	}
@@ -98,4 +134,18 @@ func (ef *ExprFilter) Validate() error {
 	}
 
 	return ValidateFilterExpr(ef.ExprTree, IndexKeysByName(ef.Entity.Keys))
+}
+
+// WithFilterQuerySettings carries the ClickHouse settings for filter key and
+// value reads: a log comment specifying the query and, in release mode, a short
+// query cache, since the same lists are asked for on every picker open.
+func WithFilterQuerySettings(ctx context.Context, releaseMode, debugMode bool, queryName string) context.Context {
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment":       lc.MustPut(logcomment.Root, logcomment.Filters).String(),
+		"use_query_cache":   releaseMode,
+		"query_cache_ttl":   int(config.DefaultQueryCacheTTL.Seconds()),
+		"force_primary_key": debugMode,
+	}
+	return chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, queryName))
 }
