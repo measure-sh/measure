@@ -19,6 +19,7 @@ import { docsRouteFromFile } from "@/scripts/generate_sitemap";
 const ROOT = path.resolve(__dirname, "..", "..");
 const APP_DIR = path.join(ROOT, "app");
 const CONTENT_DOCS_DIR = path.join(ROOT, "content", "docs");
+const CONTENT_BLOG_DIR = path.join(ROOT, "content", "blog");
 const PUBLIC_DIR = path.join(ROOT, "public");
 const REPO_ROOT = path.resolve(ROOT, "..", "..");
 
@@ -39,6 +40,14 @@ function walkFiles(dir: string, suffix: string): string[] {
 
 function docsPageFiles(): string[] {
   return walkFiles(CONTENT_DOCS_DIR, ".mdx");
+}
+
+/** Blog posts are not part of the docs page tree, so only their links are checked. */
+function blogPostFiles(): string[] {
+  if (!fs.existsSync(CONTENT_BLOG_DIR)) {
+    return [];
+  }
+  return walkFiles(CONTENT_BLOG_DIR, ".mdx");
 }
 
 /** The /docs route of a content file. */
@@ -175,7 +184,7 @@ function extractLinks(mdxFile: string): DocLink[] {
     /!?\[[^\]]*\]\(([^()\s]+)(?:\s+"[^"]*")?\)/g,
   )) {
     links.push({
-      file: path.relative(CONTENT_DOCS_DIR, mdxFile),
+      file: path.relative(ROOT, mdxFile),
       line: content.slice(0, match.index).split("\n").length,
       target: match[1],
     });
@@ -184,7 +193,8 @@ function extractLinks(mdxFile: string): DocLink[] {
 }
 
 describe("docs internal links", () => {
-  const allLinks = docsPageFiles().flatMap(extractLinks);
+  const allLinks = docsPageFiles().flatMap((file) => extractLinks(file));
+  const blogLinks = blogPostFiles().flatMap((file) => extractLinks(file));
 
   function describeLink(link: DocLink, reason: string): string {
     return `${link.file}:${link.line} -> ${link.target} (${reason})`;
@@ -194,15 +204,18 @@ describe("docs internal links", () => {
     expect(allLinks.length).toBeGreaterThan(0);
   });
 
-  it("uses only absolute, anchor, or external targets", () => {
+  it("uses only absolute, anchor, or external targets (docs & blog)", () => {
     // Docs pages are routed from a virtual page tree: relative links have
     // no file tree to resolve against, so every link must be a /docs
-    // route, a root-relative asset, an anchor, or an external URL.
+    // route, a root-relative asset, an anchor, or an external URL. Blog
+    // posts render from the file directly, but relative links still 404
+    // once the site rewrites file paths into post URLs, so they get the
+    // same check even though they are not part of the docs page tree.
     const failures: string[] = [];
 
-    for (const link of allLinks) {
+    for (const link of [...allLinks, ...blogLinks]) {
       if (!/^(https?:|mailto:|#|\/)/.test(link.target)) {
-        failures.push(describeLink(link, "relative link in MDX docs"));
+        failures.push(describeLink(link, "relative link in MDX"));
       }
     }
 
@@ -292,7 +305,7 @@ describe("docs internal links", () => {
 
       let targetFile: string | null;
       if (targetPath === "") {
-        targetFile = path.join(CONTENT_DOCS_DIR, link.file);
+        targetFile = path.join(ROOT, link.file);
       } else if (targetPath.startsWith("/docs")) {
         targetFile = mdxFileForSlug(targetPath.replace(/\/$/, ""));
       } else {

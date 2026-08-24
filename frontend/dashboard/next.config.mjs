@@ -351,8 +351,8 @@ const nextConfig = {
         destination: "/docs/performance-tracing/profiling",
         permanent: true,
       },
-      // MCP and Performance tracing moved out of features/ into their own
-      // top-level pages. Forward the old URLs.
+      // MCP, Performance tracing, Agent & Logs moved out of features/ into
+      // their own top-level pages. Forward the old URLs.
       {
         source: "/docs/features/feature-mcp",
         destination: "/docs/mcp",
@@ -361,6 +361,61 @@ const nextConfig = {
       {
         source: "/docs/features/feature-performance-tracing",
         destination: "/docs/performance-tracing",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-agent",
+        destination: "/docs/agent",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-logs",
+        destination: "/docs/logs",
+        permanent: true,
+      },
+      // The sdk-upgrade-guides/ folder was deleted with no redirects. Forward
+      // each guide & the older flat URL form to its platform's getting
+      // started page.
+      {
+        source: "/docs/sdk-upgrade-guides/android-v0.16.0",
+        destination: "/docs/getting-started/android",
+        permanent: true,
+      },
+      {
+        source: "/docs/sdk-upgrade-guides/ios-v0.9.0",
+        destination: "/docs/getting-started/ios",
+        permanent: true,
+      },
+      {
+        source: "/docs/sdk-upgrade-guides/measure_flutter-v0.4.0",
+        destination: "/docs/getting-started/flutter",
+        permanent: true,
+      },
+      {
+        source: "/docs/android-v0.16.0",
+        destination: "/docs/getting-started/android",
+        permanent: true,
+      },
+      {
+        source: "/docs/ios-v0.9.0",
+        destination: "/docs/getting-started/ios",
+        permanent: true,
+      },
+      // The section index has no page of its own. Temporary, like the
+      // /docs/getting-started & /docs/api/* folder entries above, so it
+      // isn't hard-cached if the folder gains a page later.
+      {
+        source: "/docs/sdk-upgrade-guides",
+        destination: "/docs",
+        permanent: false,
+      },
+      // "measre" is misspelled, not a typo in this repo (file was
+      // measure_flutter-v0.4.0.mdx). It is an inbound link on someone else's
+      // site. Keep the misspelling as-is, do not "fix" it, that would drop
+      // the redirect.
+      {
+        source: "/docs/sdk-upgrade-guides/measre_flutter-v0.4.0",
+        destination: "/docs/getting-started/flutter",
         permanent: true,
       },
     ];
