@@ -68,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**frontend**): Update legal (#4282) by @detj in #4282
 - Fix typo by @anupcowkur
 - Fix stale links in README by @anupcowkur
 - Point contributor profiles at GitHub by @anupcowkur
