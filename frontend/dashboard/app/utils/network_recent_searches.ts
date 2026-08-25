@@ -1,7 +1,6 @@
 const STORAGE_KEY_PREFIX = "network_recent_searches";
-const MAX_RESULTS = 5;
-
-interface RecentSearchEntry {
+const MAX_STORED_RECENT_SEARCHES = 10;
+export interface RecentSearchEntry {
   domain: string;
   path: string;
 }
@@ -24,7 +23,7 @@ function writeEntries(teamId: string, entries: RecentSearchEntry[]): void {
   try {
     localStorage.setItem(storageKey(teamId), JSON.stringify(entries));
   } catch {
-    // silently fail if localStorage unavailable
+    // Local storage can be unavailable in restricted browser contexts.
   }
 }
 
@@ -34,15 +33,11 @@ export function addRecentSearch(
   path: string,
 ): void {
   let entries = readEntries(teamId);
-  entries = entries.filter((e) => !(e.domain === domain && e.path === path));
+  entries = entries.filter(
+    (entry) => !(entry.domain === domain && entry.path === path),
+  );
   entries.unshift({ domain, path });
-  // Keep only MAX_RESULTS per domain
-  const domainCount: Record<string, number> = {};
-  entries = entries.filter((e) => {
-    domainCount[e.domain] = (domainCount[e.domain] || 0) + 1;
-    return domainCount[e.domain] <= MAX_RESULTS;
-  });
-  writeEntries(teamId, entries);
+  writeEntries(teamId, entries.slice(0, MAX_STORED_RECENT_SEARCHES));
 }
 
 export function removeRecentSearch(
@@ -50,22 +45,14 @@ export function removeRecentSearch(
   domain: string,
   path: string,
 ): void {
-  const entries = readEntries(teamId).filter(
-    (e) => !(e.domain === domain && e.path === path),
+  writeEntries(
+    teamId,
+    readEntries(teamId).filter(
+      (entry) => !(entry.domain === domain && entry.path === path),
+    ),
   );
-  writeEntries(teamId, entries);
 }
 
-export function getRecentSearchesForDomain(
-  teamId: string,
-  domain: string,
-  query?: string,
-): string[] {
-  const entries = readEntries(teamId).filter((e) => e.domain === domain);
-
-  const filtered = query
-    ? entries.filter((e) => e.path.toLowerCase().includes(query.toLowerCase()))
-    : entries;
-
-  return filtered.slice(0, MAX_RESULTS).map((e) => e.path);
+export function getRecentSearches(teamId: string): RecentSearchEntry[] {
+  return readEntries(teamId);
 }

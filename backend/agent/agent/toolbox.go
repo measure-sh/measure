@@ -624,24 +624,6 @@ func commonTools(cfg *Config) []Tool {
 			return cfg.mcpGetErrorCommonPath(ctx, in)
 		}),
 
-		// get_network_unique_domains
-		newTool(&mcpsdk.Tool{
-			Name:        "get_network_unique_domains",
-			Description: "Get all unique domains observed in HTTP requests for an app",
-			InputSchema: mcpMustInferSchema[mcpGetUniqueDomainsInput](),
-		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetUniqueDomainsInput) (*mcpsdk.CallToolResult, any, error) {
-			return cfg.mcpGetUniqueDomains(ctx, in)
-		}),
-
-		// get_network_paths_for_domain
-		newTool(&mcpsdk.Tool{
-			Name:        "get_network_paths_for_domain",
-			Description: "Get all unique URL paths for a domain from HTTP requests, with optional search query",
-			InputSchema: mcpMustInferSchema[mcpGetPathsForDomainInput](),
-		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetPathsForDomainInput) (*mcpsdk.CallToolResult, any, error) {
-			return cfg.mcpGetPathsForDomain(ctx, in)
-		}),
-
 		// get_network_metrics_trends
 		newTool(&mcpsdk.Tool{
 			Name:        "get_network_metrics_trends",
@@ -654,46 +636,37 @@ func commonTools(cfg *Config) []Tool {
 		// get_network_status_codes_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_network_status_codes_over_time",
-			Description: "Get HTTP status code distribution over time across all network requests",
+			Description: "Get HTTP status-class counts over time for the whole app or a selected endpoint.",
 			InputSchema: mcpMustInferSchema[mcpGetAppHttpStatusCodesOverTimeInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetAppHttpStatusCodesOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetAppStatusCodesOverTime(ctx, in)
 		}),
 
-		// get_network_endpoint_latency_over_time
-		newTool(&mcpsdk.Tool{
-			Name:        "get_network_endpoint_latency_over_time",
-			Description: "Get latency percentiles (p50/p90/p95/p99) over time for a specific endpoint",
-			InputSchema: mcpMustInferSchema[mcpGetHttpEndpointLatencyOverTimeInput](),
-		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetHttpEndpointLatencyOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
-			return cfg.mcpGetHttpEndpointLatencyOverTime(ctx, in)
-		}),
-
 		// get_network_endpoint_status_codes_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_network_endpoint_status_codes_over_time",
-			Description: "Get HTTP status code distribution over time for a specific endpoint ",
+			Description: "Get exact HTTP status-code counts over time for the whole app or a selected endpoint.",
 			InputSchema: mcpMustInferSchema[mcpGetHttpEndpointStatusCodesOverTimeInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetHttpEndpointStatusCodesOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetHttpEndpointStatusCodesOverTime(ctx, in)
 		}),
 
-		// get_network_requests_timeline
+		// get_network_latency_over_time
 		newTool(&mcpsdk.Tool{
-			Name:        "get_network_requests_timeline",
-			Description: "Get HTTP requests timeline showing when top endpoints are typically called during a session",
+			Name:        "get_network_latency_over_time",
+			Description: "Get latency percentiles over time for the whole app or a selected endpoint.",
+			InputSchema: mcpMustInferSchema[mcpGetNetworkLatencyOverTimeInput](),
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetNetworkLatencyOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetNetworkLatencyOverTime(ctx, in)
+		}),
+
+		// get_network_timeline
+		newTool(&mcpsdk.Tool{
+			Name:        "get_network_timeline",
+			Description: "Get the HTTP request timeline for the whole app or a selected endpoint.",
 			InputSchema: mcpMustInferSchema[mcpGetNetworkTimelineInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetNetworkTimelineInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetNetworkTimeline(ctx, in)
-		}),
-
-		// get_network_endpoint_timeline
-		newTool(&mcpsdk.Tool{
-			Name:        "get_network_endpoint_timeline",
-			Description: "Get HTTP requests timeline for a specific endpoint showing when it is typically called during a session. Only works for known path patterns.",
-			InputSchema: mcpMustInferSchema[mcpGetNetworkEndpointTimelineInput](),
-		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetNetworkEndpointTimelineInput) (*mcpsdk.CallToolResult, any, error) {
-			return cfg.mcpGetNetworkEndpointTimeline(ctx, in)
 		}),
 	}
 }
@@ -941,45 +914,32 @@ type mcpNetworkFilters struct {
 	mcpCommonFilters
 	HttpMethods []string `json:"http_methods,omitempty" jsonschema:"Filter by HTTP methods (e.g. get, post)"`
 }
-type mcpGetUniqueDomainsInput struct {
-	AppID string `json:"app_id" jsonschema:"UUID of the app"`
-	From  string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
-	To    string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
-}
-type mcpGetPathsForDomainInput struct {
-	AppID  string `json:"app_id" jsonschema:"UUID of the app"`
-	Domain string `json:"domain" jsonschema:"Domain to fetch paths for"`
-	Search string `json:"search,omitempty" jsonschema:"Search term to filter paths"`
-	From   string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
-	To     string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
-}
 type mcpGetNetworkTrendsInput struct {
 	mcpNetworkFilters
 	Limit int `json:"limit,omitempty" jsonschema:"Maximum number of endpoints to return per category (1-50, default 10)"`
 }
 type mcpGetAppHttpStatusCodesOverTimeInput struct {
 	mcpNetworkFilters
+	Domain   string `json:"domain,omitempty" jsonschema:"Restrict to an exact domain or * wildcard pattern (e.g. api.example.com or *.example.com)"`
+	Path     string `json:"path,omitempty" jsonschema:"Restrict to an exact, * or ** path pattern across all domains when domain is omitted (e.g. /v1/users or /v1/*)"`
 	Timezone string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
 }
-type mcpGetHttpEndpointLatencyOverTimeInput struct {
+type mcpGetNetworkLatencyOverTimeInput struct {
 	mcpNetworkFilters
-	Domain   string `json:"domain" jsonschema:"Domain to query (e.g. api.example.com)"`
-	Path     string `json:"path" jsonschema:"Path to query (e.g. /v1/users)"`
+	Domain   string `json:"domain,omitempty" jsonschema:"Restrict to an exact domain or * wildcard pattern (e.g. api.example.com or *.example.com)"`
+	Path     string `json:"path,omitempty" jsonschema:"Restrict to an exact, * or ** path pattern across all domains when domain is omitted (e.g. /v1/users or /v1/*)"`
 	Timezone string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
 }
 type mcpGetHttpEndpointStatusCodesOverTimeInput struct {
 	mcpNetworkFilters
-	Domain   string `json:"domain" jsonschema:"Domain to query (e.g. api.example.com)"`
-	Path     string `json:"path" jsonschema:"Path to query (e.g. /v1/users)"`
+	Domain   string `json:"domain,omitempty" jsonschema:"Restrict to a domain (e.g. api.example.com)"`
+	Path     string `json:"path,omitempty" jsonschema:"Restrict to a path across all domains when domain is omitted (e.g. /v1/users)"`
 	Timezone string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
 }
 type mcpGetNetworkTimelineInput struct {
 	mcpNetworkFilters
-}
-type mcpGetNetworkEndpointTimelineInput struct {
-	mcpNetworkFilters
-	Domain string `json:"domain" jsonschema:"Domain to query (e.g. api.example.com)"`
-	Path   string `json:"path" jsonschema:"Path to query (e.g. /v1/users)"`
+	Domain string `json:"domain,omitempty" jsonschema:"Restrict to an exact domain or * wildcard pattern (e.g. api.example.com or *.example.com)"`
+	Path   string `json:"path,omitempty" jsonschema:"Restrict to an exact, * or ** path pattern across all domains when domain is omitted (e.g. /v1/users or /v1/*)"`
 }
 
 // --------------------------------------------------------------------------
@@ -2202,56 +2162,6 @@ func (c *Config) mcpBuildNetworkFilter(ctx context.Context, appID uuid.UUID, nf 
 	return af, nil
 }
 
-func (c *Config) mcpGetUniqueDomains(ctx context.Context, in mcpGetUniqueDomainsInput) (*mcpsdk.CallToolResult, any, error) {
-	deps := c.Deps
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	from, to, err := mcpParseTimeRangeStrings(in.From, in.To)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	domains, err := network.FetchDomains(ctx, deps.RchPool, appID, teamID, from, to)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get network domains: %v", err)
-	}
-	if domains == nil {
-		domains = []string{}
-	}
-	data, _ := json.Marshal(domains)
-	return mcpTextResult(string(data)), nil, nil
-}
-
-func (c *Config) mcpGetPathsForDomain(ctx context.Context, in mcpGetPathsForDomainInput) (*mcpsdk.CallToolResult, any, error) {
-	deps := c.Deps
-	if in.Domain == "" {
-		return nil, nil, fmt.Errorf("domain is required")
-	}
-
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	from, to, err := mcpParseTimeRangeStrings(in.From, in.To)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	paths, err := network.FetchPaths(ctx, deps.RchPool, appID, teamID, in.Domain, in.Search, from, to)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get network paths: %v", err)
-	}
-	if paths == nil {
-		paths = []string{}
-	}
-	data, _ := json.Marshal(paths)
-	return mcpTextResult(string(data)), nil, nil
-}
-
 func (c *Config) mcpGetNetworkTrends(ctx context.Context, in mcpGetNetworkTrendsInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
 	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
@@ -2303,7 +2213,7 @@ func (c *Config) mcpGetAppStatusCodesOverTime(ctx context.Context, in mcpGetAppH
 		return nil, nil, fmt.Errorf("failed to compute time group expression: %v", err)
 	}
 
-	result, err := network.GetNetworkOverviewStatusCodesPlot(ctx, deps.RchPool, appID, teamID, af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetStatusCodesPlot(ctx, deps.RchPool, appID, teamID, in.Domain, in.Path, af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network status overview over time: %v", err)
 	}
@@ -2311,14 +2221,8 @@ func (c *Config) mcpGetAppStatusCodesOverTime(ctx context.Context, in mcpGetAppH
 	return mcpTextResult(string(data)), nil, nil
 }
 
-func (c *Config) mcpGetHttpEndpointLatencyOverTime(ctx context.Context, in mcpGetHttpEndpointLatencyOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
+func (c *Config) mcpGetNetworkLatencyOverTime(ctx context.Context, in mcpGetNetworkLatencyOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
-	if in.Domain == "" {
-		return nil, nil, fmt.Errorf("domain is required")
-	}
-	if in.Path == "" {
-		return nil, nil, fmt.Errorf("path is required")
-	}
 	if in.Timezone == "" {
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
@@ -2327,9 +2231,6 @@ func (c *Config) mcpGetHttpEndpointLatencyOverTime(ctx context.Context, in mcpGe
 	if err != nil {
 		return nil, nil, err
 	}
-
-	domain := in.Domain
-	path := in.Path
 
 	af, err := c.mcpBuildNetworkFilter(ctx, appID, in.mcpNetworkFilters)
 	if err != nil {
@@ -2343,7 +2244,7 @@ func (c *Config) mcpGetHttpEndpointLatencyOverTime(ctx context.Context, in mcpGe
 		return nil, nil, fmt.Errorf("failed to compute time group expression: %v", err)
 	}
 
-	result, err := network.GetEndpointLatencyPlot(ctx, deps.RchPool, appID, teamID, domain, path, af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetLatencyPlot(ctx, deps.RchPool, appID, teamID, in.Domain, in.Path, af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network latency over time: %v", err)
 	}
@@ -2353,11 +2254,8 @@ func (c *Config) mcpGetHttpEndpointLatencyOverTime(ctx context.Context, in mcpGe
 
 func (c *Config) mcpGetHttpEndpointStatusCodesOverTime(ctx context.Context, in mcpGetHttpEndpointStatusCodesOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
-	if in.Domain == "" {
-		return nil, nil, fmt.Errorf("domain is required")
-	}
-	if in.Path == "" {
-		return nil, nil, fmt.Errorf("path is required")
+	if in.Domain == "" && in.Path == "" {
+		return nil, nil, fmt.Errorf("domain or path is required")
 	}
 	if in.Timezone == "" {
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
@@ -2367,9 +2265,6 @@ func (c *Config) mcpGetHttpEndpointStatusCodesOverTime(ctx context.Context, in m
 	if err != nil {
 		return nil, nil, err
 	}
-
-	domain := in.Domain
-	path := in.Path
 
 	af, err := c.mcpBuildNetworkFilter(ctx, appID, in.mcpNetworkFilters)
 	if err != nil {
@@ -2383,9 +2278,9 @@ func (c *Config) mcpGetHttpEndpointStatusCodesOverTime(ctx context.Context, in m
 		return nil, nil, fmt.Errorf("failed to compute time group expression: %v", err)
 	}
 
-	result, err := network.GetEndpointStatusCodesPlot(ctx, deps.RchPool, appID, teamID, domain, path, af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetEndpointStatusCodesPlot(ctx, deps.RchPool, appID, teamID, in.Domain, in.Path, af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get network status distribution over time: %v", err)
+		return nil, nil, fmt.Errorf("failed to get network endpoint status codes over time: %v", err)
 	}
 	data, _ := json.Marshal(result)
 	return mcpTextResult(string(data)), nil, nil
@@ -2403,39 +2298,9 @@ func (c *Config) mcpGetNetworkTimeline(ctx context.Context, in mcpGetNetworkTime
 		return nil, nil, err
 	}
 
-	result, err := network.FetchOverviewTimelinePlot(ctx, deps.RchPool, appID, teamID, af, 0)
+	result, err := network.FetchTimelinePlot(ctx, deps.RchPool, appID, teamID, in.Domain, in.Path, af)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network request timeline: %v", err)
-	}
-	data, _ := json.Marshal(result)
-	return mcpTextResult(string(data)), nil, nil
-}
-
-func (c *Config) mcpGetNetworkEndpointTimeline(ctx context.Context, in mcpGetNetworkEndpointTimelineInput) (*mcpsdk.CallToolResult, any, error) {
-	deps := c.Deps
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if in.Domain == "" {
-		return nil, nil, fmt.Errorf("domain is required")
-	}
-	if in.Path == "" {
-		return nil, nil, fmt.Errorf("path is required")
-	}
-
-	domain := in.Domain
-	path := in.Path
-
-	af, err := c.mcpBuildNetworkFilter(ctx, appID, in.mcpNetworkFilters)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	result, err := network.FetchEndpointTimelinePlot(ctx, deps.RchPool, appID, teamID, domain, path, af)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get network endpoint timeline: %v", err)
 	}
 	data, _ := json.Marshal(result)
 	return mcpTextResult(string(data)), nil, nil

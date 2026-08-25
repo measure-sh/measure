@@ -1,6 +1,7 @@
 "use client";
 
 import InfoTooltip from "@/app/components/info_tooltip";
+import Link from "next/link";
 import LoadingBar from "@/app/components/loading_bar";
 import {
   Table,
@@ -14,8 +15,7 @@ import { TrendsTab, useNetworkTrendsQuery } from "@/app/query/hooks";
 import { numberToKMB } from "@/app/utils/number_utils";
 import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import { formatMillisToHumanReadable } from "@/app/utils/time_utils";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 interface TrendsEndpoint {
@@ -156,6 +156,7 @@ export default function NetworkTrends({
   active = true,
 }: NetworkTrendsProps) {
   const router = useRouter();
+  const currentSearchParams = useSearchParams();
   const trendsQuery = useNetworkTrendsQuery(active);
 
   const [selectedTab, setSelectedTab] = useState<TrendsTab>(TrendsTab.Latency);
@@ -171,11 +172,14 @@ export default function NetworkTrends({
     return trendsQuery.status;
   })();
 
-  const navigateToEndpoint = (endpoint: TrendsEndpoint) => {
-    if (demo || !teamId) return;
-    router.push(
-      `/${teamId}/network/details?domain=${encodeURIComponent(endpoint.domain)}&path=${encodeURIComponent(endpoint.path_pattern)}`,
-    );
+  const selectable = !demo && !!teamId;
+
+  const detailsHref = (endpoint: TrendsEndpoint) => {
+    const params = new URLSearchParams(currentSearchParams.toString());
+    params.set("domain", endpoint.domain);
+    params.set("path", endpoint.path_pattern);
+    params.set("from", "top_endpoint");
+    return `/${teamId}/network/details?${params.toString()}`;
   };
 
   const activeTabData = getActiveTabData(trends, selectedTab);
@@ -225,7 +229,7 @@ export default function NetworkTrends({
           tabButtons}
       </div>
       {effectiveStatus === "pending" && (
-        <div className="w-full" style={{ minHeight: 480 }}>
+        <div className="w-full mt-6" style={{ minHeight: 480 }}>
           <LoadingBar />
         </div>
       )}
@@ -233,7 +237,7 @@ export default function NetworkTrends({
       {effectiveStatus === "success" && activeTabData.length > 0 && (
         <>
           <div className="py-6" />
-          <Table>
+          <Table className="font-display select-none">
             <TableHeader>
               <TableRow>
                 <TableHead style={{ width: "55%" }}>Endpoint</TableHead>
@@ -243,29 +247,57 @@ export default function NetworkTrends({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {activeTabData.map((endpoint, index) => (
-                <TableRow
-                  key={index}
-                  className={demo ? "" : "cursor-pointer"}
-                  onClick={() => navigateToEndpoint(endpoint)}
-                >
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-mono truncate">
+              {activeTabData.map((endpoint) => {
+                const endpointSelection = `${endpoint.domain}${endpoint.path_pattern}`;
+                const href = selectable ? detailsHref(endpoint) : "";
+                return (
+                  <TableRow
+                    key={endpointSelection}
+                    data-testid="network-endpoint-row"
+                    className={`font-body ${selectable ? "cursor-pointer" : ""}`}
+                    aria-label={endpointSelection}
+                    tabIndex={selectable ? 0 : -1}
+                    onClick={(e) => {
+                      if (!selectable) return;
+                      // The endpoint cell is a real link. It marks the plain
+                      // clicks it handles, and leaves modified ones to the
+                      // browser so open-in-new-tab does not also navigate here.
+                      if (e.defaultPrevented) return;
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+                        return;
+                      }
+                      router.push(href);
+                    }}
+                    onKeyDown={(e) => {
+                      if (!selectable) return;
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        router.push(href);
+                      }
+                    }}
+                  >
+                    <TableCell className="relative p-0 font-mono truncate">
+                      {selectable && (
+                        <Link
+                          href={href}
+                          className="absolute inset-0 z-10 cursor-pointer"
+                          tabIndex={-1}
+                          aria-label={endpointSelection}
+                        />
+                      )}
+                      <div className="pointer-events-none p-4">
                         {endpoint.domain}
                         {endpoint.path_pattern}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-body">
-                    {formatMillisToHumanReadable(endpoint.p95_latency)}
-                  </TableCell>
-                  <TableCell className="font-body">{`${endpoint.error_rate}%`}</TableCell>
-                  <TableCell className="font-body">
-                    {numberToKMB(endpoint.frequency)}
-                  </TableCell>
-                </TableRow>
-              ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {formatMillisToHumanReadable(endpoint.p95_latency)}
+                    </TableCell>
+                    <TableCell>{`${endpoint.error_rate}%`}</TableCell>
+                    <TableCell>{numberToKMB(endpoint.frequency)}</TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </>

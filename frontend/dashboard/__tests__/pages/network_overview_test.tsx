@@ -1,12 +1,7 @@
 import NetworkOverview from "@/app/components/network_overview";
-import {
-  addRecentSearch,
-  getRecentSearchesForDomain,
-  removeRecentSearch,
-} from "@/app/utils/network_recent_searches";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 
 // Global router mocks
 const replaceMock = jest.fn();
@@ -19,6 +14,7 @@ jest.mock("next/navigation", () => ({
     push: pushMock,
   }),
   useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/test-team/network",
 }));
 
 // Mock API calls
@@ -35,13 +31,7 @@ jest.mock("@/app/stores/provider", () => {
   return { __esModule: true, useFiltersStore: filtersStore };
 });
 
-const mockUseNetworkDomainsQuery = jest.fn(() => ({
-  data: null as any,
-  status: "pending" as string,
-  error: null as Error | null,
-}));
-
-const mockUseNetworkPathsQuery = jest.fn(() => ({
+const mockUseNetworkLatencyQuery = jest.fn(() => ({
   data: null as any,
   status: "pending" as string,
   error: null as Error | null,
@@ -61,9 +51,8 @@ const mockUseNetworkTimelineQuery = jest.fn(() => ({
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
-  useNetworkDomainsQuery: () => mockUseNetworkDomainsQuery(),
-  useNetworkPathsQuery: () => mockUseNetworkPathsQuery(),
-  useNetworkStatusPlotQuery: () => mockUseNetworkStatusPlotQuery(),
+  useNetworkLatencyQuery: () => mockUseNetworkLatencyQuery(),
+  useNetworkStatusCodesQuery: () => mockUseNetworkStatusPlotQuery(),
   useNetworkTimelineQuery: () => mockUseNetworkTimelineQuery(),
 }));
 
@@ -108,6 +97,16 @@ jest.mock("@/app/components/network_timeline_plot", () => ({
   NetworkTimelineDataPoint: {},
 }));
 
+jest.mock("@/app/components/network_endpoint_search", () => ({
+  __esModule: true,
+  default: () => <div data-testid="endpoint-search-mock" />,
+}));
+
+jest.mock("@/app/components/network_latency_plot", () => ({
+  __esModule: true,
+  default: () => <div data-testid="latency-plot-mock">LatencyPlot</div>,
+}));
+
 jest.mock("@/app/components/network_trends", () => ({
   __esModule: true,
   default: (props: any) => (
@@ -129,28 +128,6 @@ jest.mock("@/app/components/tooltip", () => ({
   TooltipTrigger: (props: any) => <div>{props.children}</div>,
 }));
 
-jest.mock("@/app/components/dropdown_select", () => ({
-  __esModule: true,
-  default: (props: any) => (
-    <select
-      data-testid="domain-dropdown-mock"
-      value={props.initialSelected}
-      onChange={(e) => props.onChangeSelected(e.target.value)}
-    >
-      {(props.items || []).map((item: string) => (
-        <option key={item} value={item}>
-          {item}
-        </option>
-      ))}
-    </select>
-  ),
-  DropdownSelectType: { SingleString: "single_string" },
-}));
-
-jest.mock("@/app/components/input", () => ({
-  Input: (props: any) => <input data-testid="path-input-mock" {...props} />,
-}));
-
 jest.mock("next/link", () => ({
   __esModule: true,
   default: ({ href, children, className }: any) => (
@@ -160,25 +137,24 @@ jest.mock("next/link", () => ({
   ),
 }));
 
-jest.mock("@/app/utils/network_recent_searches", () => ({
-  addRecentSearch: jest.fn(),
-  removeRecentSearch: jest.fn(),
-  getRecentSearchesForDomain: jest.fn(() => []),
-}));
-
 jest.mock("@/app/utils/shared_styles", () => ({
   underlineLinkStyle: "underline-link",
 }));
 
+const readyFilters = {
+  ready: true,
+  serialisedFilters: "updated",
+  app: { id: "app1" },
+  startDate: "2024-01-01",
+  endDate: "2024-01-14",
+};
+
 // Helper to set queries to a fully successful state
 function setupSuccessfulQueryState() {
-  mockUseNetworkDomainsQuery.mockReturnValue({
-    data: ["api.example.com", "cdn.example.com"],
-    status: "success",
-    error: null as Error | null,
-  });
-  mockUseNetworkPathsQuery.mockReturnValue({
-    data: ["/v1/users", "/v1/orders"],
+  mockUseNetworkLatencyQuery.mockReturnValue({
+    data: [
+      { datetime: "2024-01-01", p50: 1, p90: 2, p95: 3, p99: 4, count: 5 },
+    ],
     status: "success",
     error: null as Error | null,
   });
@@ -217,16 +193,10 @@ describe("NetworkOverview - Demo mode", () => {
   beforeEach(() => {
     replaceMock.mockClear();
     pushMock.mockClear();
-    mockUseNetworkDomainsQuery.mockReset();
-    mockUseNetworkPathsQuery.mockReset();
+    mockUseNetworkLatencyQuery.mockReset();
     mockUseNetworkStatusPlotQuery.mockReset();
     mockUseNetworkTimelineQuery.mockReset();
-    mockUseNetworkDomainsQuery.mockReturnValue({
-      data: null,
-      status: "pending" as string,
-      error: null,
-    });
-    mockUseNetworkPathsQuery.mockReturnValue({
+    mockUseNetworkLatencyQuery.mockReturnValue({
       data: null,
       status: "pending" as string,
       error: null,
@@ -248,7 +218,9 @@ describe("NetworkOverview - Demo mode", () => {
 
     expect(screen.getByText("Network Performance")).toBeInTheDocument();
     expect(screen.queryByText("Beta")).not.toBeInTheDocument();
-    expect(screen.getByText("Status Distribution")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("status-distribution-plot-mock"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Timeline")).toBeInTheDocument();
     expect(screen.queryByTestId("filters-mock")).not.toBeInTheDocument();
   });
@@ -258,10 +230,9 @@ describe("NetworkOverview - Demo mode", () => {
     expect(screen.getByTestId("network-trends-mock")).toBeInTheDocument();
   });
 
-  it("does not render the search endpoint section in demo mode", () => {
+  it("does not render Filters in demo mode", () => {
     render(<NetworkOverview demo={true} />);
-    expect(screen.queryByText("Explore endpoint")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("path-input-mock")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("filters-mock")).not.toBeInTheDocument();
   });
 
   it("hides title and beta badge when hideDemoTitle is true", () => {
@@ -275,16 +246,10 @@ describe("NetworkOverview", () => {
   beforeEach(() => {
     replaceMock.mockClear();
     pushMock.mockClear();
-    mockUseNetworkDomainsQuery.mockReset();
-    mockUseNetworkPathsQuery.mockReset();
+    mockUseNetworkLatencyQuery.mockReset();
     mockUseNetworkStatusPlotQuery.mockReset();
     mockUseNetworkTimelineQuery.mockReset();
-    mockUseNetworkDomainsQuery.mockReturnValue({
-      data: null,
-      status: "pending" as string,
-      error: null,
-    });
-    mockUseNetworkPathsQuery.mockReturnValue({
+    mockUseNetworkLatencyQuery.mockReturnValue({
       data: null,
       status: "pending" as string,
       error: null,
@@ -302,9 +267,6 @@ describe("NetworkOverview", () => {
     useFiltersStore.setState({
       filters: { ready: false, serialisedFilters: "" },
     });
-    (addRecentSearch as jest.Mock).mockClear();
-    (removeRecentSearch as jest.Mock).mockClear();
-    (getRecentSearchesForDomain as jest.Mock).mockReset().mockReturnValue([]);
   });
 
   it("renders Filters component and does not render main UI when filters are not ready", () => {
@@ -312,25 +274,20 @@ describe("NetworkOverview", () => {
 
     expect(screen.getByTestId("filters-mock")).toBeInTheDocument();
     expect(screen.queryByText("Status Distribution")).not.toBeInTheDocument();
-    expect(screen.queryByText("Explore endpoint")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("network-domains-mock"),
+    ).not.toBeInTheDocument();
   });
 
-  it("shows loading spinner while domains are loading", async () => {
-    mockUseNetworkDomainsQuery.mockReturnValue({
-      data: null,
-      status: "pending" as string,
-      error: null,
-    });
+  it("shows skeletons while filters are loading", async () => {
     render(<NetworkOverview params={{ teamId: "123" }} />);
 
     await act(async () => {
       useFiltersStore.setState({
         filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
+          ready: false,
+          loading: true,
+          serialisedFilters: "",
         },
       });
     });
@@ -340,90 +297,29 @@ describe("NetworkOverview", () => {
     );
   });
 
-  it("renders main content after domains load successfully and updates URL", async () => {
+  it("renders main content once filters are ready and updates URL", async () => {
     setupSuccessfulQueryState();
     render(<NetworkOverview params={{ teamId: "123" }} />);
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
+      useFiltersStore.setState({ filters: readyFilters });
     });
 
     // URL should be updated
-    expect(replaceMock).toHaveBeenCalledWith("?updated", { scroll: false });
+    expect(replaceMock).toHaveBeenCalledWith("/test-team/network?updated", {
+      scroll: false,
+    });
 
-    // Main sections should be visible
-    expect(screen.getByText("Explore endpoint")).toBeInTheDocument();
-    expect(screen.getByText("Status Distribution")).toBeInTheDocument();
-    expect(screen.getByText("Timeline")).toBeInTheDocument();
+    // Unscoped: the search, the status plot, the ranking and the timeline.
+    expect(screen.getByTestId("endpoint-search-mock")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("status-distribution-plot-mock"),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("network-trends-mock")).toBeInTheDocument();
-  });
-
-  it("shows error message when domains API returns error", async () => {
-    mockUseNetworkDomainsQuery.mockReturnValue({
-      data: null,
-      status: "error",
-      error: new Error("fail"),
-    });
-    render(<NetworkOverview params={{ teamId: "123" }} />);
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
-    });
-
-    expect(
-      screen.getByText(
-        "Error fetching domains, please change filters & try again",
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it("shows no data message when domains API returns no data", async () => {
-    mockUseNetworkDomainsQuery.mockReturnValue({
-      data: null,
-      status: "success",
-      error: null,
-    });
-    render(<NetworkOverview params={{ teamId: "123" }} />);
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
-    });
-
-    expect(
-      screen.getByText("No data available for the selected app"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Timeline")).toBeInTheDocument();
   });
 
   it("shows status plot error message when status codes API fails", async () => {
-    mockUseNetworkDomainsQuery.mockReturnValue({
-      data: ["api.example.com"],
-      status: "success",
-      error: null,
-    });
     mockUseNetworkStatusPlotQuery.mockReturnValue({
       data: null,
       status: "error",
@@ -432,30 +328,17 @@ describe("NetworkOverview", () => {
     render(<NetworkOverview params={{ teamId: "123" }} />);
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
+      useFiltersStore.setState({ filters: readyFilters });
     });
 
     expect(
       screen.getByText(
-        "Error fetching status overview, please change filters & try again",
+        "Error fetching status distribution, please change filters & try again",
       ),
     ).toBeInTheDocument();
   });
 
   it("shows no data message when status codes API returns no data", async () => {
-    mockUseNetworkDomainsQuery.mockReturnValue({
-      data: ["api.example.com"],
-      status: "success",
-      error: null,
-    });
     mockUseNetworkStatusPlotQuery.mockReturnValue({
       data: null,
       status: "success",
@@ -464,28 +347,15 @@ describe("NetworkOverview", () => {
     render(<NetworkOverview params={{ teamId: "123" }} />);
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
+      useFiltersStore.setState({ filters: readyFilters });
     });
 
     expect(
-      screen.getByText("No data available for the selected filters"),
-    ).toBeInTheDocument();
+      screen.getAllByText("No data available for the selected filters").length,
+    ).toBeGreaterThan(0);
   });
 
   it("shows timeline error message when timeline API fails", async () => {
-    mockUseNetworkDomainsQuery.mockReturnValue({
-      data: ["api.example.com"],
-      status: "success",
-      error: null,
-    });
     mockUseNetworkTimelineQuery.mockReturnValue({
       data: null,
       status: "error",
@@ -494,15 +364,7 @@ describe("NetworkOverview", () => {
     render(<NetworkOverview params={{ teamId: "123" }} />);
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
+      useFiltersStore.setState({ filters: readyFilters });
     });
 
     expect(
@@ -512,330 +374,30 @@ describe("NetworkOverview", () => {
     ).toBeInTheDocument();
   });
 
-  it("navigates to details page when search is performed with a path", async () => {
-    setupSuccessfulQueryState();
-    render(<NetworkOverview params={{ teamId: "123" }} />);
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
-    });
-
-    const input = screen.getByTestId("path-input-mock");
-    await act(async () => {
-      fireEvent.change(input, { target: { value: "/v1/users" } });
-    });
-
-    // Simulate pressing Enter
-    await act(async () => {
-      fireEvent.keyDown(input, { key: "Enter" });
-    });
-
-    expect(pushMock).toHaveBeenCalledWith(
-      "/123/network/details?domain=api.example.com&path=%2Fv1%2Fusers",
-    );
-  });
-
-  it("does not navigate when search path is empty", async () => {
-    setupSuccessfulQueryState();
-    render(<NetworkOverview params={{ teamId: "123" }} />);
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
-    });
-
-    const input = screen.getByTestId("path-input-mock");
-    await act(async () => {
-      fireEvent.keyDown(input, { key: "Enter" });
-    });
-
-    expect(pushMock).not.toHaveBeenCalled();
-  });
-
-  it("disables the Search button while the path input is empty", async () => {
-    setupSuccessfulQueryState();
-    render(<NetworkOverview params={{ teamId: "123" }} />);
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
-    });
-
-    expect(screen.getByText("Search").closest("button")).toBeDisabled();
-  });
-
-  it("enables the Search button once a path is entered", async () => {
-    setupSuccessfulQueryState();
-    render(<NetworkOverview params={{ teamId: "123" }} />);
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
-    });
-
-    const input = screen.getByTestId("path-input-mock");
-    await act(async () => {
-      fireEvent.change(input, { target: { value: "/v1/users" } });
-    });
-
-    expect(screen.getByText("Search").closest("button")).not.toBeDisabled();
-  });
-
-  it("prepends a leading slash when the entered path lacks one", async () => {
-    setupSuccessfulQueryState();
-    render(<NetworkOverview params={{ teamId: "123" }} />);
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
-    });
-
-    const input = screen.getByTestId("path-input-mock");
-    await act(async () => {
-      fireEvent.change(input, { target: { value: "v1/users" } });
-    });
-
-    await act(async () => {
-      fireEvent.click(screen.getByText("Search"));
-    });
-
-    expect(pushMock).toHaveBeenCalledWith(
-      "/123/network/details?domain=api.example.com&path=%2Fv1%2Fusers",
-    );
-  });
-
   it("updates URL when filters change", async () => {
     setupSuccessfulQueryState();
     render(<NetworkOverview params={{ teamId: "123" }} />);
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
+      useFiltersStore.setState({ filters: readyFilters });
     });
 
-    expect(replaceMock).toHaveBeenCalledWith("?updated", { scroll: false });
+    expect(replaceMock).toHaveBeenCalledWith("/test-team/network?updated", {
+      scroll: false,
+    });
 
     // Change filters
     await act(async () => {
       useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated2",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
+        filters: { ...readyFilters, serialisedFilters: "updated2" },
       });
     });
 
-    expect(replaceMock).toHaveBeenLastCalledWith("?updated2", {
-      scroll: false,
-    });
-  });
-
-  it("navigates to details page when Search button is clicked", async () => {
-    setupSuccessfulQueryState();
-    render(<NetworkOverview params={{ teamId: "123" }} />);
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
-    });
-
-    const input = screen.getByTestId("path-input-mock");
-    await act(async () => {
-      fireEvent.change(input, { target: { value: "/v1/users" } });
-    });
-
-    await act(async () => {
-      fireEvent.click(screen.getByText("Search"));
-    });
-
-    expect(pushMock).toHaveBeenCalledWith(
-      "/123/network/details?domain=api.example.com&path=%2Fv1%2Fusers",
+    expect(replaceMock).toHaveBeenLastCalledWith(
+      "/test-team/network?updated2",
+      {
+        scroll: false,
+      },
     );
-  });
-
-  it("calls addRecentSearch when navigating via Enter", async () => {
-    setupSuccessfulQueryState();
-    render(<NetworkOverview params={{ teamId: "123" }} />);
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
-    });
-
-    const input = screen.getByTestId("path-input-mock");
-    await act(async () => {
-      fireEvent.change(input, { target: { value: "/v1/users" } });
-    });
-
-    await act(async () => {
-      fireEvent.keyDown(input, { key: "Enter" });
-    });
-
-    expect(addRecentSearch).toHaveBeenCalledWith(
-      "123",
-      "api.example.com",
-      "/v1/users",
-    );
-  });
-
-  it("shows recent search suggestions when input is focused", async () => {
-    (getRecentSearchesForDomain as jest.Mock).mockReturnValue([
-      "/v1/recent",
-      "/v1/old",
-    ]);
-
-    setupSuccessfulQueryState();
-    render(<NetworkOverview params={{ teamId: "123" }} />);
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
-    });
-
-    const input = screen.getByTestId("path-input-mock");
-    await act(async () => {
-      fireEvent.focus(input);
-    });
-
-    expect(screen.getByText("/v1/recent")).toBeInTheDocument();
-    expect(screen.getByText("/v1/old")).toBeInTheDocument();
-  });
-
-  it("removes a recent search when Remove is clicked", async () => {
-    (getRecentSearchesForDomain as jest.Mock).mockReturnValue([
-      "/v1/recent",
-      "/v1/old",
-    ]);
-
-    setupSuccessfulQueryState();
-    render(<NetworkOverview params={{ teamId: "123" }} />);
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
-    });
-
-    const input = screen.getByTestId("path-input-mock");
-    await act(async () => {
-      fireEvent.focus(input);
-    });
-
-    const removeButtons = screen.getAllByText("Remove");
-    await act(async () => {
-      fireEvent.mouseDown(removeButtons[0]);
-    });
-
-    expect(removeRecentSearch).toHaveBeenCalledWith(
-      "123",
-      "api.example.com",
-      "/v1/recent",
-    );
-  });
-
-  it("selects a recent search path when clicked", async () => {
-    (getRecentSearchesForDomain as jest.Mock).mockReturnValue([
-      "/v1/recent",
-      "/v1/old",
-    ]);
-
-    setupSuccessfulQueryState();
-    render(<NetworkOverview params={{ teamId: "123" }} />);
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-          startDate: "2024-01-01",
-          endDate: "2024-01-14",
-        },
-      });
-    });
-
-    const input = screen.getByTestId("path-input-mock");
-    await act(async () => {
-      fireEvent.focus(input);
-    });
-
-    await act(async () => {
-      fireEvent.mouseDown(screen.getByText("/v1/recent"));
-    });
-
-    expect((input as HTMLInputElement).value).toBe("/v1/recent");
   });
 });

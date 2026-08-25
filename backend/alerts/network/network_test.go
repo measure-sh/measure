@@ -228,6 +228,35 @@ func TestGenerateMetrics_InsertsAggregatedMetrics(t *testing.T) {
 	}
 }
 
+func TestGenerateMetrics_WildcardMatchesOnePathSegment(t *testing.T) {
+	ctx := context.Background()
+	defer th.CleanupAll(ctx, t)
+
+	teamID := uuid.New().String()
+	appID := uuid.New().String()
+	th.SeedTeam(ctx, t, teamID, "Test Team")
+	th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
+
+	now := time.Now().UTC()
+	th.SeedUrlPattern(ctx, t, teamID, appID, "api.example.com", "/users/*/orders")
+	th.SeedHttpEvent(ctx, t, teamID, appID, "https://api.example.com/users/123/orders", "GET", 200, 11, now.Add(-30*time.Minute))
+	th.SeedHttpEvent(ctx, t, teamID, appID, "https://api.example.com/users/a/b/orders", "GET", 200, 17, now.Add(-30*time.Minute))
+
+	GenerateMetrics(ctx)
+
+	var count uint64
+	err := th.ChConn.QueryRow(ctx,
+		"SELECT sum(request_count) FROM http_metrics WHERE team_id = ? AND app_id = ? AND path = ?",
+		teamID, appID, "/users/*/orders",
+	).Scan(&count)
+	if err != nil {
+		t.Fatalf("query wildcard aggregate: %v", err)
+	}
+	if count != 11 {
+		t.Errorf("wildcard aggregate count = %d, want 11", count)
+	}
+}
+
 func TestGenerateMetrics_UpdatesMetricsReportedAtTimestamp(t *testing.T) {
 	ctx := context.Background()
 	defer th.CleanupAll(ctx, t)

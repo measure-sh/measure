@@ -4700,18 +4700,20 @@ paths:
           description: Rate limit of the requester has crossed maximum limits.
         "500":
           description: Measure server encountered an unfortunate error. Report this to your server administrator.
-  /apps/{id}/networkRequests/domains:
+  /apps/{id}/networkRequests/endpoints:
     get:
-      operationId: getNetworkRequestsDomains
+      operationId: getNetworkRequestsEndpoints
       tags:
         - Network Requests
-      summary: Fetch an app's unique network request domains
+      summary: List an app's network endpoints
       description: |
-        Fetch an app's unique network request domains ordered by request
-        frequency.
+        An empty query returns up to 20 generated endpoint patterns. A non-empty
+        query returns a de-duplicated union of up to 20 matching generated
+        endpoint patterns and up to 20 matching captured request paths (up to
+        40 results total). Each source is ranked by request count.
 
-        `from` & `to` will default to a last 24 hours time range if not
-        supplied.
+        Use `query` to search endpoint text or enter a domain and path pattern.
+        `from` and `to` default to the last seven days when omitted.
       parameters:
         - name: id
           in: path
@@ -4722,67 +4724,12 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-      responses:
-        "200":
-          description: Successful response, no errors.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  results:
-                    type: array
-                    items:
-                      type: string
-              examples:
-                response:
-                  value:
-                    results:
-                      - api.example.com
-                      - cdn.example.com
-        "400":
-          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
-        "401":
-          description: Either the user's access token is invalid or has expired.
-        "403":
-          description: Requester does not have access to this resource.
-        "429":
-          description: Rate limit of the requester has crossed maximum limits.
-        "500":
-          description: Measure server encountered an unfortunate error. Report this to your server administrator.
-  /apps/{id}/networkRequests/paths:
-    get:
-      operationId: getNetworkRequestsPaths
-      tags:
-        - Network Requests
-      summary: Fetch an app's network request paths for a domain
-      description: |
-        Fetch an app's network request paths for a given domain.
-
-        Results are limited to 10 paths ordered alphabetically. `from` & `to`
-        will default to a last 24 hours time range if not supplied.
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: App's UUID.
-          schema:
-            type: string
-            format: uuid
-        - name: domain
-          in: query
-          required: true
-          description: The domain to fetch paths for.
-          schema:
-            type: string
-        - name: search
+        - name: query
           in: query
           required: false
-          description: Case-insensitive substring search filter for paths.
+          description: Endpoint text or a domain and path pattern.
           schema:
             type: string
-        - $ref: "#/components/parameters/From"
-        - $ref: "#/components/parameters/To"
       responses:
         "200":
           description: Successful response, no errors.
@@ -4793,15 +4740,22 @@ paths:
                 properties:
                   results:
                     type: array
+                    maxItems: 40
                     items:
-                      type: string
+                      type: object
+                      properties:
+                        domain:
+                          type: string
+                        path_pattern:
+                          type: string
               examples:
                 response:
                   value:
                     results:
-                      - /api/users
-                      - /api/users/{id}
-                      - /api/products
+                      - domain: api.example.com
+                        path_pattern: /api/users/*
+                      - domain: cdn.example.com
+                        path_pattern: /assets/**
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
@@ -4822,9 +4776,8 @@ paths:
         Fetch an app's network request trends showing top endpoints by latency,
         error rate and frequency.
 
-        Both `versions` & `version_codes` should be present if any one of them
-        is present. `from` & `to` will default to a last 24 hours time range if
-        not supplied. Results are limited to the top `trends_limit` most
+        `from` & `to` will default to a last seven days time range if not
+        supplied. Results are limited to the top `trends_limit` most
         relevant endpoints per category (default 10, max 50). P95 latency is in
         milliseconds. Error rate is a percentage (0-100).
       parameters:
@@ -4837,60 +4790,6 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version code identifier strings.
-          schema:
-            type: string
-        - name: os_versions
-          in: query
-          required: false
-          description: List of comma separated OS version identifier strings.
-          schema:
-            type: string
-        - name: device_manufacturers
-          in: query
-          required: false
-          description: List of comma separated device manufacturer identifier strings.
-          schema:
-            type: string
-        - name: network_providers
-          in: query
-          required: false
-          description: List of comma separated network provider identifier strings.
-          schema:
-            type: string
-        - name: network_types
-          in: query
-          required: false
-          description: List of comma separated network type identifier strings.
-          schema:
-            type: string
-        - name: network_generations
-          in: query
-          required: false
-          description: List of comma separated network generation identifier strings.
-          schema:
-            type: string
-        - name: locales
-          in: query
-          required: false
-          description: List of comma separated locale identifier strings.
-          schema:
-            type: string
-        - name: http_methods
-          in: query
-          required: false
-          description: List of comma separated HTTP method strings.
-          schema:
-            type: string
         - name: trends_limit
           in: query
           required: false
@@ -4981,18 +4880,18 @@ paths:
           description: Rate limit of the requester has crossed maximum limits.
         "500":
           description: Measure server encountered an unfortunate error. Report this to your server administrator.
-  /apps/{id}/networkRequests/plots/overviewStatusCodes:
+  /apps/{id}/networkRequests/plots/statusCodes:
     get:
-      operationId: getNetworkOverviewStatusCodesPlot
+      operationId: getNetworkStatusCodesPlot
       tags:
         - Network Requests
-      summary: Fetch an app's overall network status distribution plot
+      summary: Fetch HTTP status-class counts over time
       description: |
-        Fetch an app's overall network status distribution plot across all
-        endpoints.
+        Fetch HTTP status-class counts over time for the app, or an optional
+        endpoint selection.
 
         Both `versions` & `version_codes` should be present if any one of them
-        is present. `from` & `to` will default to a last 24 hours time range if
+        is present. `from` & `to` will default to a last seven days time range if
         not supplied.
       parameters:
         - name: id
@@ -5002,8 +4901,21 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: domain
+          in: query
+          required: false
+          description: Exact domain or `*` wildcard pattern.
+          schema:
+            type: string
+        - name: path
+          in: query
+          required: false
+          description: Exact path or a `*` or trailing `**` pattern. Without a domain, searches every domain.
+          schema:
+            type: string
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/Timezone"
         - $ref: "#/components/parameters/PlotTimeGroup"
         - name: versions
           in: query
@@ -5106,17 +5018,17 @@ paths:
           description: Rate limit of the requester has crossed maximum limits.
         "500":
           description: Measure server encountered an unfortunate error. Report this to your server administrator.
-  /apps/{id}/networkRequests/plots/endpointLatency:
+  /apps/{id}/networkRequests/plots/latency:
     get:
-      operationId: getNetworkEndpointLatencyPlot
+      operationId: getNetworkLatencyPlot
       tags:
         - Network Requests
-      summary: Fetch a network endpoint's latency percentiles plot
+      summary: Fetch latency percentiles over time
       description: |
-        Fetch a network endpoint's latency percentiles plot over time.
+        Fetch latency percentiles for the app, or an optional endpoint selection.
 
         Both `versions` & `version_codes` should be present if any one of them
-        is present. `from` & `to` will default to a last 24 hours time range if
+        is present. `from` & `to` will default to a last seven days time range if
         not supplied. Latency values (`p50`, `p90`, `p95`, `p99`) are in
         milliseconds and may be null.
       parameters:
@@ -5129,18 +5041,19 @@ paths:
             format: uuid
         - name: domain
           in: query
-          required: true
-          description: The domain of the network endpoint (e.g., `api.example.com`).
+          required: false
+          description: Exact domain or `*` wildcard pattern.
           schema:
             type: string
         - name: path
           in: query
-          required: true
-          description: The path of the network endpoint (e.g., `/api/users`).
+          required: false
+          description: Exact path or a `*` or trailing `**` pattern. Without a domain, searches every domain.
           schema:
             type: string
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/Timezone"
         - $ref: "#/components/parameters/PlotTimeGroup"
         - name: versions
           in: query
@@ -5256,13 +5169,14 @@ paths:
       operationId: getNetworkEndpointStatusCodesPlot
       tags:
         - Network Requests
-      summary: Fetch a network endpoint's status distribution plot
+      summary: Fetch exact HTTP status-code counts over time
       description: |
-        Fetch a network endpoint's HTTP status code distribution plot over
-        time.
+        Fetch exact HTTP status-code counts over time for a domain, path, or
+        endpoint selection. At least one of `domain` or `path` is required.
+        When `domain` is omitted, `path` matches across all domains.
 
         Both `versions` & `version_codes` should be present if any one of them
-        is present. `from` & `to` will default to a last 24 hours time range if
+        is present. `from` & `to` will default to a last seven days time range if
         not supplied. `status_codes` lists all distinct HTTP status codes
         observed. `data_points` contains per-bucket counts keyed by exact
         status code (e.g., `count_200`, `count_404`), not by status class.
@@ -5276,18 +5190,19 @@ paths:
             format: uuid
         - name: domain
           in: query
-          required: true
-          description: The domain of the network endpoint (e.g., `api.example.com`).
+          required: false
+          description: Exact domain or `*` wildcard pattern.
           schema:
             type: string
         - name: path
           in: query
-          required: true
-          description: The path of the network endpoint (e.g., `/api/users`).
+          required: false
+          description: Exact path or a `*` or trailing `**` pattern; matches across all domains when domain is omitted.
           schema:
             type: string
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/Timezone"
         - $ref: "#/components/parameters/PlotTimeGroup"
         - name: versions
           in: query
@@ -5397,20 +5312,18 @@ paths:
           description: Rate limit of the requester has crossed maximum limits.
         "500":
           description: Measure server encountered an unfortunate error. Report this to your server administrator.
-  /apps/{id}/networkRequests/plots/overviewTimeline:
+  /apps/{id}/networkRequests/plots/timeline:
     get:
-      operationId: getNetworkOverviewTimelinePlot
+      operationId: getNetworkTimelinePlot
       tags:
         - Network Requests
-      summary: Fetch an app's overview network request timeline plot
+      summary: Fetch an endpoint request timeline
       description: |
-        Fetch an app's overview network request timeline plot showing request
-        frequency per endpoint across all endpoints.
+        Fetch the request timeline for the app or an optional endpoint selection.
 
         Both `versions` & `version_codes` should be present if any one of them
-        is present. `from` & `to` will default to a last 24 hours time range if
-        not supplied. Results are limited to the top `timeline_limit`
-        most-requested endpoints (default 10, max 50). `interval` is the time
+        is present. `from` & `to` will default to a last seven days time range if
+        not supplied. Results include up to 10 endpoint patterns. `interval` is the time
         bucket size in seconds. `elapsed` represents seconds of elapsed time
         within sessions. `count` is the average request count per session for
         that endpoint in that bucket.
@@ -5424,156 +5337,18 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version code identifier strings.
-          schema:
-            type: string
-        - name: os_versions
-          in: query
-          required: false
-          description: List of comma separated OS version identifier strings.
-          schema:
-            type: string
-        - name: device_manufacturers
-          in: query
-          required: false
-          description: List of comma separated device manufacturer identifier strings.
-          schema:
-            type: string
-        - name: network_providers
-          in: query
-          required: false
-          description: List of comma separated network provider identifier strings.
-          schema:
-            type: string
-        - name: network_types
-          in: query
-          required: false
-          description: List of comma separated network type identifier strings.
-          schema:
-            type: string
-        - name: network_generations
-          in: query
-          required: false
-          description: List of comma separated network generation identifier strings.
-          schema:
-            type: string
-        - name: locales
-          in: query
-          required: false
-          description: List of comma separated locale identifier strings.
-          schema:
-            type: string
-        - name: http_methods
-          in: query
-          required: false
-          description: List of comma separated HTTP method strings.
-          schema:
-            type: string
-        - name: timeline_limit
-          in: query
-          required: false
-          description: Maximum number of top endpoints to include. Defaults to 10, max 50.
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Successful response, no errors.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  interval:
-                    type: number
-                    description: Time bucket size in seconds.
-                  points:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        elapsed:
-                          type: number
-                          description: Seconds of elapsed time within sessions.
-                        domain:
-                          type: string
-                        path_pattern:
-                          type: string
-                        count:
-                          type: number
-                          description: Average request count per session for the endpoint in the bucket.
-              examples:
-                response:
-                  value:
-                    interval: 5
-                    points:
-                      - elapsed: 0
-                        domain: api.example.com
-                        path_pattern: /api/users
-                        count: 125.5
-                      - elapsed: 5
-                        domain: api.example.com
-                        path_pattern: /api/users
-                        count: 128.3
-                      - elapsed: 0
-                        domain: cdn.example.com
-                        path_pattern: /images/avatar.png
-                        count: 45.2
-        "400":
-          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
-        "401":
-          description: Either the user's access token is invalid or has expired.
-        "403":
-          description: Requester does not have access to this resource.
-        "429":
-          description: Rate limit of the requester has crossed maximum limits.
-        "500":
-          description: Measure server encountered an unfortunate error. Report this to your server administrator.
-  /apps/{id}/networkRequests/plots/endpointTimeline:
-    get:
-      operationId: getNetworkEndpointTimelinePlot
-      tags:
-        - Network Requests
-      summary: Fetch a network endpoint's request timeline plot
-      description: |
-        Fetch a network endpoint's request timeline plot showing request
-        frequency in 5-second buckets.
-
-        Both `versions` & `version_codes` should be present if any one of them
-        is present. `from` & `to` will default to a last 24 hours time range if
-        not supplied. `interval` is the time bucket size in seconds. `elapsed`
-        represents seconds of elapsed time within sessions. `count` is the
-        average request count per session for that endpoint in that bucket.
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: App's UUID.
-          schema:
-            type: string
-            format: uuid
         - name: domain
           in: query
-          required: true
-          description: The domain of the network endpoint (e.g., `api.example.com`).
+          required: false
+          description: Exact domain or `*` wildcard pattern.
           schema:
             type: string
         - name: path
           in: query
-          required: true
-          description: The path of the network endpoint (e.g., `/api/users`).
+          required: false
+          description: Exact path or a `*` or trailing `**` pattern. Without a domain, searches every domain.
           schema:
             type: string
-        - $ref: "#/components/parameters/From"
-        - $ref: "#/components/parameters/To"
         - name: versions
           in: query
           required: false
@@ -5596,6 +5371,12 @@ paths:
           in: query
           required: false
           description: List of comma separated device manufacturer identifier strings.
+          schema:
+            type: string
+        - name: device_names
+          in: query
+          required: false
+          description: List of comma separated device name identifier strings.
           schema:
             type: string
         - name: network_providers
@@ -5668,11 +5449,15 @@ paths:
                       - elapsed: 0
                         domain: api.example.com
                         path_pattern: /api/users
-                        count: 1.25
+                        count: 125.5
                       - elapsed: 5
                         domain: api.example.com
                         path_pattern: /api/users
-                        count: 1.5
+                        count: 128.3
+                      - elapsed: 0
+                        domain: cdn.example.com
+                        path_pattern: /images/avatar.png
+                        count: 45.2
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":

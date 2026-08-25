@@ -245,49 +245,21 @@ describe("AppBreadcrumbs", () => {
     });
   });
 
-  describe("Network details — special handling via search params", () => {
-    it('renders "Details" when no domain or path in search params', () => {
-      mockPathname = "/team-123/network/details";
-      mockSearchParams = new URLSearchParams();
-      render(<AppBreadcrumbs />);
-      expect(screen.getByText("Network").closest("a")).toHaveAttribute(
-        "href",
-        "/team-123/network",
-      );
-      expect(screen.getByText("Details")).toBeInTheDocument();
-    });
-
-    it("renders domain+path from search params when present", () => {
-      mockPathname = "/team-123/network/details";
-      mockSearchParams = new URLSearchParams(
-        "domain=api.example.com&path=/v1/users",
-      );
-      render(<AppBreadcrumbs />);
-      expect(screen.getByText("api.example.com/v1/users")).toBeInTheDocument();
-    });
-
-    it("renders just domain when path is missing", () => {
-      mockPathname = "/team-123/network/details";
-      mockSearchParams = new URLSearchParams("domain=cdn.example.com");
-      render(<AppBreadcrumbs />);
-      expect(screen.getByText("cdn.example.com")).toBeInTheDocument();
-    });
-
-    it("renders just path when domain is missing", () => {
+  describe("Network details — endpoint label from search params", () => {
+    it("renders a path-only endpoint selection", () => {
       mockPathname = "/team-123/network/details";
       mockSearchParams = new URLSearchParams("path=/images/*");
       render(<AppBreadcrumbs />);
       expect(screen.getByText("/images/*")).toBeInTheDocument();
     });
 
-    it("does NOT apply domain+path logic on /network section page itself", () => {
-      mockPathname = "/team-123/network";
+    it("does not use endpoint search params outside network details", () => {
+      mockPathname = "/team-123/errors/details";
       mockSearchParams = new URLSearchParams(
         "domain=api.example.com&path=/v1/users",
       );
       render(<AppBreadcrumbs />);
-      // On the section page, breadcrumb shows "Network" only — domain/path not used
-      expect(screen.getByText("Network")).toBeInTheDocument();
+      expect(screen.getByText("Endpoint details")).toBeInTheDocument();
       expect(screen.queryByText("api.example.com/v1/users")).toBeNull();
     });
   });

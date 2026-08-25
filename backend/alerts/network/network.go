@@ -279,6 +279,50 @@ func deletePatterns(ctx context.Context, patterns []UrlPattern, teamID, appID uu
 	return nil
 }
 
+// pathPatternMatchExpression returns a ClickHouse expression for paths where
+// a complete "*" segment matches one non-empty segment and a final "**"
+// matches one or more descendant segments. Keep this in sync with the copy in
+// backend/libs/network/network.go, which uses the same match in dashboard
+// queries.
+func pathPatternMatchExpression(pathExpression, patternExpression string) string {
+	pathParts := fmt.Sprintf("splitByChar('/', %s)", pathExpression)
+	patternParts := fmt.Sprintf("splitByChar('/', %s)", patternExpression)
+	prefixPatternParts := fmt.Sprintf(
+		"arraySlice(%s, 1, length(%s) - 1)",
+		patternParts,
+		patternParts,
+	)
+	prefixPathParts := fmt.Sprintf(
+		"arraySlice(%s, 1, length(%s) - 1)",
+		pathParts,
+		patternParts,
+	)
+
+	matchesExpression := func(paths, patterns string) string {
+		return "arrayAll(index -> if(arrayElement(" + patterns + ", index) = '*', arrayElement(" + paths + ", index) != '', arrayElement(" + paths + ", index) = arrayElement(" + patterns + ", index)), range(1, length(" + patterns + ") + 1))"
+	}
+
+	descendantMatch := fmt.Sprintf(
+		"length(%s) > length(%s) - 1 AND %s",
+		pathParts,
+		patternParts,
+		matchesExpression(prefixPathParts, prefixPatternParts),
+	)
+	exactMatch := fmt.Sprintf(
+		"length(%s) = length(%s) AND %s",
+		pathParts,
+		patternParts,
+		matchesExpression(pathParts, patternParts),
+	)
+
+	return fmt.Sprintf(
+		"multiIf((%[1]s = '**' OR endsWith(%[1]s, '/**')), %[2]s, %[3]s)",
+		patternExpression,
+		descendantMatch,
+		exactMatch,
+	)
+}
+
 func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from, to time.Time) error {
 	stmt := sqlf.
 		Select("e.team_id").
@@ -311,20 +355,11 @@ func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from,
 		// and the counts are summed per bucket across rows.
 		Select("sumMapIf([toUInt32(intDiv(e.session_elapsed_ms, 5000) * 5)], [toUInt64(1)], e.session_elapsed_ms > 0)").
 		Select("uniqCombined64State(e.session_id)").
-		// The multiIf uses different matching strategies
-		// based on the pattern type:
-		// - patterns ending with "**" and no other "*" are matched with startsWith
-		// - patterns with "*" in the middle are matched with LIKE
-		// - exact matches are matched with equality
-		From(`http_events e
+		From(fmt.Sprintf(`http_events e
 			JOIN (
 				SELECT domain, path FROM url_patterns FINAL
 				WHERE team_id = toUUID(?) AND app_id = toUUID(?)
-			) p ON e.domain = p.domain AND multiIf(
-				endsWith(p.path, '**') AND position(substring(p.path, 1, length(p.path) - 2), '*') = 0, startsWith(e.path, substring(p.path, 1, length(p.path) - 2)),
-				position(p.path, '*') > 0, e.path LIKE replaceAll(p.path, '*', '%'),
-				e.path = p.path
-			)`, teamID, appID).
+			) p ON e.domain = p.domain AND %s`, pathPatternMatchExpression("e.path", "p.path")), teamID, appID).
 		Where("e.team_id = toUUID(?)", teamID).
 		Where("e.app_id = toUUID(?)", appID).
 		Where("e.inserted_at >= ?", from).

@@ -33,12 +33,10 @@ import {
   fetchErrorsOverviewPlotFromServer,
   fetchJourneyFromServer,
   fetchMetricsFromServer,
-  fetchNetworkDomainsFromServer,
-  fetchNetworkEndpointLatencyPlotFromServer,
+  fetchNetworkEndpointsFromServer,
   fetchNetworkEndpointStatusCodesPlotFromServer,
-  fetchNetworkEndpointTimelinePlotFromServer,
-  fetchNetworkOverviewStatusCodesPlotFromServer,
-  fetchNetworkPathsFromServer,
+  fetchNetworkLatencyPlotFromServer,
+  fetchNetworkStatusCodesPlotFromServer,
   fetchNetworkTimelinePlotFromServer,
   fetchNetworkTrendsFromServer,
   fetchNotifPrefsFromServer,
@@ -481,74 +479,51 @@ export function useJourneyQuery(
   });
 }
 
-// ─── Network: Overview ───────────────────────────────────────────────────
+// ─── Network ─────────────────────────────────────────────────────────────
 
-export function useNetworkDomainsQuery() {
+// The network plot queries are scoped by an endpoint selection: an empty domain
+// is every endpoint, a domain on its own is one domain, and a domain with a
+// path is one endpoint.
+
+const NETWORK_TRENDS_LIMIT = 10;
+
+export function useNetworkEndpointsQuery(query: string, enabled: boolean) {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
-    queryKey: ["networkDomains", filters.serialisedFilters] as const,
-    queryFn: async () => {
-      const result = await fetchNetworkDomainsFromServer(filters.app!, filters);
-      return (result?.results ?? null) as string[] | null;
-    },
-    enabled: filters.ready && !!filters.app,
+    queryKey: ["networkEndpoints", filters.serialisedFilters, query] as const,
+    queryFn: ({ signal }) =>
+      fetchNetworkEndpointsFromServer(filters, query, signal),
+    enabled: enabled && filters.ready && !!filters.app,
   });
 }
 
-export function useNetworkPathsQuery(domain: string, searchPattern: string) {
+export function useNetworkLatencyQuery(domain: string, path: string) {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
     queryKey: [
-      "networkPaths",
-      filters.serialisedFilters,
-      domain,
-      searchPattern,
-    ] as const,
-    queryFn: async () => {
-      const result = await fetchNetworkPathsFromServer(
-        filters.app!,
-        domain,
-        searchPattern,
-        filters,
-      );
-      return (result?.results ?? null) as string[] | null;
-    },
-    enabled: filters.ready && !!filters.app && domain !== "",
-  });
-}
-
-export function useNetworkStatusPlotQuery() {
-  const filters = useFiltersStore((s) => s.filters);
-  return useQuery({
-    queryKey: ["networkStatusPlot", filters.serialisedFilters] as const,
-    queryFn: () => fetchNetworkOverviewStatusCodesPlotFromServer(filters),
-    enabled: filters.ready && !!filters.app,
-  });
-}
-
-export function useNetworkTimelineQuery() {
-  const filters = useFiltersStore((s) => s.filters);
-  return useQuery({
-    queryKey: ["networkTimeline", filters.serialisedFilters] as const,
-    queryFn: () => fetchNetworkTimelinePlotFromServer(filters, 10),
-    enabled: filters.ready && !!filters.app,
-  });
-}
-
-// ─── Network: Details ────────────────────────────────────────────────────
-
-export function useNetworkEndpointLatencyQuery(domain: string, path: string) {
-  const filters = useFiltersStore((s) => s.filters);
-  return useQuery({
-    queryKey: [
-      "networkEndpointLatency",
+      "networkLatency",
       filters.serialisedFilters,
       domain,
       path,
     ] as const,
-    queryFn: () =>
-      fetchNetworkEndpointLatencyPlotFromServer(filters, domain, path),
-    enabled: filters.ready && domain !== "" && path !== "",
+    queryFn: () => fetchNetworkLatencyPlotFromServer(filters, domain, path),
+    // Latency only renders once a domain or path scope is picked, so a page
+    // without either has nothing to fetch.
+    enabled: filters.ready && !!filters.app && (domain !== "" || path !== ""),
+  });
+}
+
+export function useNetworkStatusCodesQuery(domain: string, path: string) {
+  const filters = useFiltersStore((s) => s.filters);
+  return useQuery({
+    queryKey: [
+      "networkStatusCodes",
+      filters.serialisedFilters,
+      domain,
+      path,
+    ] as const,
+    queryFn: () => fetchNetworkStatusCodesPlotFromServer(filters, domain, path),
+    enabled: filters.ready && !!filters.app,
   });
 }
 
@@ -566,32 +541,29 @@ export function useNetworkEndpointStatusCodesQuery(
     ] as const,
     queryFn: () =>
       fetchNetworkEndpointStatusCodesPlotFromServer(filters, domain, path),
-    enabled: filters.ready && domain !== "" && path !== "",
+    enabled: filters.ready && !!filters.app && (domain !== "" || path !== ""),
   });
 }
 
-export function useNetworkEndpointTimelineQuery(domain: string, path: string) {
+export function useNetworkTimelineQuery(domain: string, path: string) {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
     queryKey: [
-      "networkEndpointTimeline",
+      "networkTimeline",
       filters.serialisedFilters,
       domain,
       path,
     ] as const,
-    queryFn: () =>
-      fetchNetworkEndpointTimelinePlotFromServer(filters, domain, path),
-    enabled: filters.ready && domain !== "" && path !== "",
+    queryFn: () => fetchNetworkTimelinePlotFromServer(filters, domain, path),
+    enabled: filters.ready && !!filters.app,
   });
 }
-
-// ─── Network: Trends ─────────────────────────────────────────────────────
 
 export function useNetworkTrendsQuery(active: boolean) {
   const filters = useFiltersStore((s) => s.filters);
   return useQuery({
     queryKey: ["networkTrends", filters.serialisedFilters] as const,
-    queryFn: () => fetchNetworkTrendsFromServer(filters, 15),
+    queryFn: () => fetchNetworkTrendsFromServer(filters, NETWORK_TRENDS_LIMIT),
     enabled: filters.ready && active,
   });
 }

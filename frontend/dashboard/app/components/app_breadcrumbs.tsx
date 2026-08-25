@@ -39,11 +39,10 @@ function resolveSectionTitle(slug: string): string {
 }
 
 const subrouteTitles: Record<string, string> = {
-  details: "Details",
+  details: "Endpoint details",
 };
 
-// Helper text shown as an info tooltip beside the section title in the
-// breadcrumb, for sections that have no in-page heading to attach it to.
+// Helper text shown as an info tooltip beside section titles in the breadcrumb.
 const sectionInfo: Record<string, ReactNode> = {
   session_replays: (
     <>
@@ -84,16 +83,15 @@ export default function AppBreadcrumbs() {
 
   const lastSegment = rest[rest.length - 1];
   const lastLabel = (() => {
-    if (sectionSlug === "network" && lastSegment === "details") {
-      const domain = searchParams.get("domain") ?? "";
-      const path = searchParams.get("path") ?? "";
-      if (domain || path) {
-        return domain + path;
-      }
-      return "Details";
-    }
     if (!lastSegment) {
       return "";
+    }
+    if (sectionSlug === "network" && lastSegment === "details") {
+      const domain = searchParams.get("domain");
+      const path = searchParams.get("path");
+      if (domain || path) {
+        return `${domain ?? ""}${path ?? ""}`;
+      }
     }
     return subrouteTitles[lastSegment] ?? decodeURIComponent(lastSegment);
   })();

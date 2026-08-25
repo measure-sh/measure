@@ -58,12 +58,10 @@ import {
   fetchFiltersFromServer,
   fetchJourneyFromServer,
   fetchMetricsFromServer,
-  fetchNetworkDomainsFromServer,
-  fetchNetworkEndpointLatencyPlotFromServer,
   fetchNetworkEndpointStatusCodesPlotFromServer,
-  fetchNetworkEndpointTimelinePlotFromServer,
-  fetchNetworkOverviewStatusCodesPlotFromServer,
-  fetchNetworkPathsFromServer,
+  fetchNetworkLatencyPlotFromServer,
+  fetchNetworkStatusCodesPlotFromServer,
+  fetchNetworkEndpointsFromServer,
   fetchNetworkTimelinePlotFromServer,
   fetchNetworkTrendsFromServer,
   fetchNotifPrefsFromServer,
@@ -727,99 +725,101 @@ describe("fetchAppHealthPlotFromServer", () => {
 // Network endpoint fetches
 // ========================================================================
 describe("network endpoint fetches", () => {
-  const app = { id: "app-1" } as any;
+  const scoped = ["example.com", "/api/users"] as const;
 
-  it("fetchNetworkDomainsFromServer hits /networkRequests/domains with from/to and returns the results", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ results: ["example.com"] }),
-    );
-    const r = await fetchNetworkDomainsFromServer(app, makeFilters());
+  it("fetchNetworkEndpointsFromServer hits /networkRequests/endpoints and returns them", async () => {
+    const results = [{ domain: "example.com", path_pattern: "/v1/users/*" }];
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results }));
+    const r = await fetchNetworkEndpointsFromServer(makeFilters(), "users");
     const url = lastFetchUrl();
-    expect(url).toContain("/api/apps/app-1/networkRequests/domains");
-    expect(url).toContain("from=");
-    expect(url).toContain("to=");
-    expect(r).toEqual({ results: ["example.com"] });
+    expect(url).toContain("/api/apps/app-a/networkRequests/endpoints");
+    expect(url).toContain("query=users");
+    expect(r).toEqual(results);
   });
 
-  it("fetchNetworkPathsFromServer hits /networkRequests/paths with domain/search and returns the results", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ results: ["/api/users"] }),
-    );
-    const r = await fetchNetworkPathsFromServer(
-      app,
-      "api.example.com",
-      "search",
+  it("fetchNetworkEndpointsFromServer forwards a cancellation signal", async () => {
+    const controller = new AbortController();
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+
+    await fetchNetworkEndpointsFromServer(
       makeFilters(),
+      "users",
+      controller.signal,
     );
-    const url = lastFetchUrl();
-    expect(url).toContain("/api/apps/app-1/networkRequests/paths");
-    expect(url).toContain("domain=api.example.com");
-    expect(url).toContain("search=search");
-    expect(r).toEqual({ results: ["/api/users"] });
+
+    expect(mockApiClientFetch.mock.calls[0][1]).toMatchObject({
+      signal: controller.signal,
+    });
   });
 
-  it("fetchNetworkEndpointLatencyPlotFromServer uses endpointLatency path and returns the body", async () => {
+  it("fetchNetworkEndpointsFromServer forwards selected HTTP methods", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await fetchNetworkEndpointsFromServer(
+      makeFilters({
+        httpMethods: { all: false, selected: ["GET", "POST"] as any },
+      }),
+      "users",
+    );
+
+    expect(lastFetchUrl()).toContain("http_methods=GET");
+    expect(lastFetchUrl()).toContain("http_methods=POST");
+  });
+
+  it("fetchNetworkEndpointsFromServer omits an empty query and tolerates no results", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse({ results: null }),
+    );
+    const r = await fetchNetworkEndpointsFromServer(makeFilters(), "");
+    expect(lastFetchUrl()).not.toContain("query=");
+    expect(r).toEqual([]);
+  });
+
+  it("fetchNetworkLatencyPlotFromServer uses the latency path and sends the scope", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ points: [1] }));
-    const r = await fetchNetworkEndpointLatencyPlotFromServer(
-      makeFilters(),
-      "example.com",
-      "/api/users",
-    );
-    expect(lastFetchUrl()).toContain(
-      "/api/apps/app-a/networkRequests/plots/endpointLatency",
-    );
+    const r = await fetchNetworkLatencyPlotFromServer(makeFilters(), ...scoped);
+    const url = lastFetchUrl();
+    expect(url).toContain("/api/apps/app-a/networkRequests/plots/latency");
+    expect(url).toContain("domain=example.com");
+    expect(url).toContain("path=%2Fapi%2Fusers");
     expect(r).toEqual({ points: [1] });
   });
 
-  it("fetchNetworkEndpointStatusCodesPlotFromServer uses endpointStatusCodes path and returns the body", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({ points: [1] }));
+  it("fetchNetworkEndpointStatusCodesPlotFromServer uses the endpointStatusCodes path and returns the body", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse({ status_codes: [200], data_points: [{ count_200: 1 }] }),
+    );
     const r = await fetchNetworkEndpointStatusCodesPlotFromServer(
       makeFilters(),
-      "example.com",
-      "/api/users",
+      ...scoped,
     );
     expect(lastFetchUrl()).toContain(
       "/api/apps/app-a/networkRequests/plots/endpointStatusCodes",
     );
-    expect(r).toEqual({ points: [1] });
+    expect(lastFetchUrl()).toContain("domain=example.com");
+    expect(lastFetchUrl()).toContain("path=%2Fapi%2Fusers");
+    expect(r).toEqual({ status_codes: [200], data_points: [{ count_200: 1 }] });
   });
 
-  it("fetchNetworkEndpointTimelinePlotFromServer uses endpointTimeline path and returns the points", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ points: [{ t: 1 }] }),
-    );
-    const r = await fetchNetworkEndpointTimelinePlotFromServer(
-      makeFilters(),
-      "example.com",
-      "/api/users",
-    );
-    expect(lastFetchUrl()).toContain(
-      "/api/apps/app-a/networkRequests/plots/endpointTimeline",
-    );
-    expect(r).toEqual({ points: [{ t: 1 }] });
-  });
-
-  it("fetchNetworkTimelinePlotFromServer uses overviewTimeline path and returns the points", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ points: [{ t: 1 }] }),
-    );
-    const r = await fetchNetworkTimelinePlotFromServer(makeFilters(), 25);
-    const url = lastFetchUrl();
-    expect(url).toContain(
-      "/api/apps/app-a/networkRequests/plots/overviewTimeline",
-    );
-    expect(url).toContain("timeline_limit=25");
-    expect(r).toEqual({ points: [{ t: 1 }] });
-  });
-
-  it("fetchNetworkOverviewStatusCodesPlotFromServer uses overviewStatusCodes path and returns the body", async () => {
+  it("fetchNetworkStatusCodesPlotFromServer sends an empty scope for every endpoint", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse([{ code: 200 }]));
-    const r =
-      await fetchNetworkOverviewStatusCodesPlotFromServer(makeFilters());
-    expect(lastFetchUrl()).toContain(
-      "/api/apps/app-a/networkRequests/plots/overviewStatusCodes",
+    await fetchNetworkStatusCodesPlotFromServer(makeFilters(), "", "");
+    const url = lastFetchUrl();
+    expect(url).toContain("domain=&");
+    expect(url).toContain("path=");
+  });
+
+  it("fetchNetworkTimelinePlotFromServer uses the timeline path and returns the points", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse({ points: [{ t: 1 }] }),
     );
-    expect(r).toEqual([{ code: 200 }]);
+    const r = await fetchNetworkTimelinePlotFromServer(
+      makeFilters(),
+      ...scoped,
+    );
+    expect(lastFetchUrl()).toContain(
+      "/api/apps/app-a/networkRequests/plots/timeline",
+    );
+    expect(r).toEqual({ points: [{ t: 1 }] });
   });
 
   it("fetchNetworkTrendsFromServer uses /networkRequests/trends with trends_limit and throws on failure", async () => {
@@ -1321,7 +1321,7 @@ describe("applyGenericFiltersToUrl filter branches", () => {
 describe("applyHttpMethodsToUrl", () => {
   it("appends http_methods params for selected methods", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    await fetchNetworkEndpointLatencyPlotFromServer(
+    await fetchNetworkLatencyPlotFromServer(
       makeFilters({
         httpMethods: { all: false, selected: ["get", "post"] as any },
       }),
@@ -1499,39 +1499,29 @@ describe("fetch functions: failure paths", () => {
     ],
     ["fetchNotifPrefsFromServer", () => fetchNotifPrefsFromServer()],
     [
-      "fetchNetworkDomainsFromServer",
-      () => fetchNetworkDomainsFromServer({ id: "a" } as any, makeFilters()),
+      "fetchNetworkEndpointsFromServer",
+      () => fetchNetworkEndpointsFromServer(makeFilters(), "q"),
     ],
     [
-      "fetchNetworkPathsFromServer",
-      () =>
-        fetchNetworkPathsFromServer(
-          { id: "a" } as any,
-          "d",
-          "s",
-          makeFilters(),
-        ),
+      "fetchNetworkLatencyPlotFromServer",
+      () => fetchNetworkLatencyPlotFromServer(makeFilters(), "d", "p"),
     ],
     [
-      "fetchNetworkEndpointLatencyPlotFromServer",
-      () => fetchNetworkEndpointLatencyPlotFromServer(makeFilters(), "d", "p"),
+      "fetchNetworkTimelinePlotFromServer",
+      () => fetchNetworkTimelinePlotFromServer(makeFilters(), "d", "p"),
+    ],
+    [
+      "fetchNetworkStatusCodesPlotFromServer",
+      () => fetchNetworkStatusCodesPlotFromServer(makeFilters(), "", ""),
     ],
     [
       "fetchNetworkEndpointStatusCodesPlotFromServer",
       () =>
-        fetchNetworkEndpointStatusCodesPlotFromServer(makeFilters(), "d", "p"),
-    ],
-    [
-      "fetchNetworkEndpointTimelinePlotFromServer",
-      () => fetchNetworkEndpointTimelinePlotFromServer(makeFilters(), "d", "p"),
-    ],
-    [
-      "fetchNetworkTimelinePlotFromServer",
-      () => fetchNetworkTimelinePlotFromServer(makeFilters(), 10),
-    ],
-    [
-      "fetchNetworkOverviewStatusCodesPlotFromServer",
-      () => fetchNetworkOverviewStatusCodesPlotFromServer(makeFilters()),
+        fetchNetworkEndpointStatusCodesPlotFromServer(
+          makeFilters(),
+          "example.com",
+          "/api/users",
+        ),
     ],
   ];
 
@@ -1688,92 +1678,9 @@ describe("additional branch coverage", () => {
     expect(r).toBeNull();
   });
 
-  it("fetchNetworkDomainsFromServer reports an unparsable date as a RequestError", async () => {
-    const err = await fetchNetworkDomainsFromServer(
-      { id: "app-1" } as any,
-      makeFilters({ startDate: "not-a-date" }),
-    ).catch((e) => e);
-    expect(err).toBeInstanceOf(RequestError);
-    expect(err.message).toBe("Failed to fetch network domains");
-    expect(mockApiClientFetch).not.toHaveBeenCalled();
-  });
-
-  it("fetchNetworkDomainsFromServer returns null when data.results is null", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ results: null }),
-    );
-    const r = await fetchNetworkDomainsFromServer(
-      { id: "a" } as any,
-      makeFilters(),
-    );
-    expect(r).toBeNull();
-  });
-
-  it("fetchNetworkPathsFromServer reports an unparsable date as a RequestError", async () => {
-    const err = await fetchNetworkPathsFromServer(
-      { id: "app-1" } as any,
-      "api.example.com",
-      "search",
-      makeFilters({ startDate: "not-a-date" }),
-    ).catch((e) => e);
-    expect(err).toBeInstanceOf(RequestError);
-    expect(err.message).toBe("Failed to fetch network paths");
-    expect(mockApiClientFetch).not.toHaveBeenCalled();
-  });
-
-  it("fetchNetworkPathsFromServer returns null when data.results is null", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ results: null }),
-    );
-    const r = await fetchNetworkPathsFromServer(
-      { id: "a" } as any,
-      "d",
-      "s",
-      makeFilters(),
-    );
-    expect(r).toBeNull();
-  });
-
-  it("fetchNetworkEndpointLatencyPlotFromServer returns null on a null body", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    const r = await fetchNetworkEndpointLatencyPlotFromServer(
-      makeFilters(),
-      "d",
-      "p",
-    );
-    expect(r).toBeNull();
-  });
-
-  it("fetchNetworkEndpointStatusCodesPlotFromServer returns null on a null body", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    const r = await fetchNetworkEndpointStatusCodesPlotFromServer(
-      makeFilters(),
-      "d",
-      "p",
-    );
-    expect(r).toBeNull();
-  });
-
-  it("fetchNetworkEndpointTimelinePlotFromServer returns null on a null body", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    const r = await fetchNetworkEndpointTimelinePlotFromServer(
-      makeFilters(),
-      "d",
-      "p",
-    );
-    expect(r).toBeNull();
-  });
-
   it("fetchNetworkTimelinePlotFromServer returns null on a null body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    const r = await fetchNetworkTimelinePlotFromServer(makeFilters(), 10);
-    expect(r).toBeNull();
-  });
-
-  it("fetchNetworkOverviewStatusCodesPlotFromServer returns null on a null body", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    const r =
-      await fetchNetworkOverviewStatusCodesPlotFromServer(makeFilters());
+    const r = await fetchNetworkTimelinePlotFromServer(makeFilters(), "", "");
     expect(r).toBeNull();
   });
 
