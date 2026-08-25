@@ -210,6 +210,17 @@ describe("isExcluded", () => {
     expect(isExcluded("/docs")).toBe(false);
     expect(isExcluded("/docs/features/feature-example")).toBe(false);
   });
+
+  it("returns true for generated OpenAPI operation pages", () => {
+    expect(isExcluded("/docs/api/dashboard/teams/getTeamSlack")).toBe(true);
+    expect(isExcluded("/docs/api/sdk/events/postEvents")).toBe(true);
+  });
+
+  it("returns false for the API reference entry points", () => {
+    expect(isExcluded("/docs/api")).toBe(false);
+    expect(isExcluded("/docs/api/dashboard")).toBe(false);
+    expect(isExcluded("/docs/api/sdk")).toBe(false);
+  });
 });
 
 // ─── walk ───────────────────────────────────────────────────────────────────
@@ -365,17 +376,26 @@ describe("main", () => {
     expect(writtenContent).not.toContain(`${SITE_URL}/auth/login`);
   });
 
-  it("includes every docs page", () => {
+  it("includes every non-excluded docs page", () => {
     main();
 
     // getDocsRoutes derives routes from the content/docs sources on disk;
     // the derivation itself is covered by the getDocsRoutes tests, so this
-    // only asserts that every derived route lands in the sitemap.
-    const routes = getDocsRoutes();
+    // only asserts that every derived, non-excluded route lands in the
+    // sitemap.
+    const routes = getDocsRoutes().filter((route) => !isExcluded(route));
     expect(routes.length).toBeGreaterThan(0);
     for (const route of routes) {
       expect(writtenContent).toContain(`<loc>${SITE_URL}${route}</loc>`);
     }
+  });
+
+  it("excludes generated OpenAPI operation pages but keeps their section index", () => {
+    main();
+
+    expect(writtenContent).not.toContain(`${SITE_URL}/docs/api/dashboard/`);
+    expect(writtenContent).not.toContain(`${SITE_URL}/docs/api/sdk/`);
+    expect(writtenContent).toContain(`<loc>${SITE_URL}/docs/api</loc>`);
   });
 
   it("includes every blog post and tag page", () => {

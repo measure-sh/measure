@@ -1,6 +1,25 @@
 import { createMDX } from "fumadocs-mdx/next";
 import { withPostHogConfig } from "@posthog/nextjs-config";
 
+const NOINDEX_SOURCES = [
+  "/docs.md",
+  "/docs/:path*.md",
+  "/blog.md",
+  "/blog/:path*.md",
+  "/llms.docs",
+  "/llms.docs/:path*",
+  "/llms.blog",
+  "/llms.blog/:path*",
+  "/llms.txt",
+  "/llms-full.txt",
+  "/llms-docs-full.txt",
+  "/llms-blogs-full.txt",
+  "/llms-pages-full.txt",
+  "/page-md/:path*",
+  "/docs/api/dashboard/:path*",
+  "/docs/api/sdk/:path*",
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Standalone output exists for the self-hosted Docker image, which copies
@@ -329,6 +348,61 @@ const nextConfig = {
         destination: "/docs/performance-tracing/profiling",
         permanent: true,
       },
+      {
+        source: "/docs/features/feature-mcp",
+        destination: "/docs/mcp",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-performance-tracing",
+        destination: "/docs/performance-tracing",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-agent",
+        destination: "/docs/agent",
+        permanent: true,
+      },
+      {
+        source: "/docs/features/feature-logs",
+        destination: "/docs/logs",
+        permanent: true,
+      },
+      {
+        source: "/docs/sdk-upgrade-guides/android-v0.16.0",
+        destination: "/docs/getting-started/android",
+        permanent: true,
+      },
+      {
+        source: "/docs/sdk-upgrade-guides/ios-v0.9.0",
+        destination: "/docs/getting-started/ios",
+        permanent: true,
+      },
+      {
+        source: "/docs/sdk-upgrade-guides/measure_flutter-v0.4.0",
+        destination: "/docs/getting-started/flutter",
+        permanent: true,
+      },
+      {
+        source: "/docs/android-v0.16.0",
+        destination: "/docs/getting-started/android",
+        permanent: true,
+      },
+      {
+        source: "/docs/ios-v0.9.0",
+        destination: "/docs/getting-started/ios",
+        permanent: true,
+      },
+      {
+        source: "/docs/sdk-upgrade-guides",
+        destination: "/docs",
+        permanent: false,
+      },
+      {
+        source: "/docs/sdk-upgrade-guides/measre_flutter-v0.4.0",
+        destination: "/docs/getting-started/flutter",
+        permanent: true,
+      },
     ];
   },
   async headers() {
@@ -370,6 +444,15 @@ const nextConfig = {
           },
         ],
       },
+      ...NOINDEX_SOURCES.map((source) => ({
+        source,
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex",
+          },
+        ],
+      })),
     ];
   },
 };
