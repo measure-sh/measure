@@ -28,7 +28,7 @@ final class BaseExporter: Exporter {
     private let isExporting = AtomicBool(false)
     private let systemFileManager: SystemFileManager
     private var backgroundTaskId: UIBackgroundTaskIdentifier = .invalid
-    private static let maxBatchPayloadSizeBytes = 10 * 1024 * 1024
+    private static let maxBatchPayloadSizeBytes = 9_000_000
     private static let estimatedEventSizeBytes = 1024
 
     init(

@@ -43,9 +43,12 @@ func NewPubSubProducer(ctx context.Context, topic string, opts ...PubSubOption) 
 	topicName := fmt.Sprintf("projects/%s/topics/%s", projectID, topic)
 	publisher := client.Publisher(topicName)
 
+	settings := pubsub.DefaultPublishSettings
 	if cfg.publishSettings != nil {
-		publisher.PublishSettings = *cfg.publishSettings
+		cfg.publishSettings(&settings)
 	}
+	publisher.PublishSettings = settings
+
 	// The client rejects keyed messages (PublishOrdered) unless ordering is
 	// enabled up front; keyless publishes are unaffected by the flag, so it
 	// is always on rather than another option.

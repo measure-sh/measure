@@ -60,8 +60,7 @@ paths:
 
         Usage notes:
 
-        - Maximum size of one request must not exceed **10 MiB**. This limit includes
-          the combination of events and blob data.
+        - Maximum size of one request must not exceed **9 MB**. The limit includes the combination of events and blob data.
         - Each request must contain a unique UUIDv4 id, set as the header `msr-req-id`.
           If a request fails, the client must retry the same payload with the same
           `msr-req-id` to ensure idempotency.
@@ -1730,8 +1729,8 @@ paths:
                     ok: accepted, known event request
         "400":
           description: >
-            Request body is malformed or does not meet one or more acceptance
-            criteria. Check the `error` field for more details.
+            Request body is malformed or does not meet one or more acceptance criteria. Check the `error` field for more
+            details.
           content:
             application/json:
               schema:

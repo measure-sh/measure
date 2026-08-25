@@ -301,13 +301,23 @@ func TestWithPubSubReceiveSettings(t *testing.T) {
 
 func TestWithPubSubPublishSettings(t *testing.T) {
 	cfg := &pubSubConfig{}
-	WithPubSubPublishSettings(pubsub.PublishSettings{CountThreshold: 25})(cfg)
+	WithPubSubPublishSettings(func(s *pubsub.PublishSettings) {
+		s.CountThreshold = 25
+	})(cfg)
 
 	if cfg.publishSettings == nil {
 		t.Fatal("publishSettings is nil, want non-nil")
 	}
-	if cfg.publishSettings.CountThreshold != 25 {
-		t.Errorf("CountThreshold = %d, want 25", cfg.publishSettings.CountThreshold)
+
+	settings := pubsub.DefaultPublishSettings
+	cfg.publishSettings(&settings)
+
+	if settings.CountThreshold != 25 {
+		t.Errorf("CountThreshold = %d, want 25", settings.CountThreshold)
+	}
+	// fields the caller left alone keep their defaults rather than zeroing.
+	if settings.Timeout != pubsub.DefaultPublishSettings.Timeout {
+		t.Errorf("Timeout = %v, want %v", settings.Timeout, pubsub.DefaultPublishSettings.Timeout)
 	}
 }
 
