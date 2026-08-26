@@ -376,7 +376,7 @@ extension BugReportingViewController: UICollectionViewDataSource {
             imageData = systemFileManager.retrieveFile(atPath: path)
         }
         if let data = imageData, let image = UIImage(data: data) {
-            cell.configure(with: image, isDarkModeEnabled: bugReportConfig.colors.isDarkMode)
+            cell.configure(with: image, colors: bugReportConfig.colors)
             cell.onDelete = { [weak self] in
                 guard let self = self else { return }
                 if let path = self.attachments[indexPath.item].path {
