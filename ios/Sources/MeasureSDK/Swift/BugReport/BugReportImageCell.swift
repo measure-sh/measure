@@ -12,7 +12,7 @@ class BugReportImageCell: UICollectionViewCell {
     private let screenshotImageView = UIImageView()
     private let deleteButton = UIButton(type: .system)
     var onDelete: (() -> Void)?
-    private var isDarkModeEnabled: Bool = false
+    private var colors: MsrColors = BugReportConfig.default.colors
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -26,10 +26,8 @@ class BugReportImageCell: UICollectionViewCell {
     private func setupViews() {
         backgroundColor = .clear
 
-        containerView.backgroundColor = isDarkModeEnabled ? UIColor(white: 0.15, alpha: 1) : .white
         containerView.layer.cornerRadius = 8
         containerView.layer.borderWidth = 1
-        containerView.layer.borderColor = isDarkModeEnabled ? UIColor.gray.cgColor : UIColor.lightGray.cgColor
         containerView.clipsToBounds = true
         containerView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(containerView)
@@ -39,12 +37,12 @@ class BugReportImageCell: UICollectionViewCell {
         containerView.addSubview(screenshotImageView)
 
         deleteButton.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
-        deleteButton.tintColor = isDarkModeEnabled ? .white : .black
-        deleteButton.backgroundColor = isDarkModeEnabled ? UIColor(white: 0, alpha: 0.5) : UIColor(white: 1, alpha: 0.5)
         deleteButton.layer.cornerRadius = 12
         deleteButton.translatesAutoresizingMaskIntoConstraints = false
         deleteButton.addTarget(self, action: #selector(deleteButtonTapped), for: .touchUpInside)
         containerView.addSubview(deleteButton)
+
+        applyColors()
 
         NSLayoutConstraint.activate([
             containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
@@ -64,15 +62,17 @@ class BugReportImageCell: UICollectionViewCell {
         ])
     }
 
-    func configure(with image: UIImage, isDarkModeEnabled: Bool) {
-        self.isDarkModeEnabled = isDarkModeEnabled
-        screenshotImageView.image = image
+    private func applyColors() {
+        containerView.backgroundColor = colors.background
+        containerView.layer.borderColor = colors.placeholder.cgColor
+        deleteButton.tintColor = colors.text
+        deleteButton.backgroundColor = colors.buttonBackground
+    }
 
-        // Update colors based on mode
-        containerView.backgroundColor = isDarkModeEnabled ? UIColor(white: 0.15, alpha: 1) : .white
-        containerView.layer.borderColor = isDarkModeEnabled ? UIColor.gray.cgColor : UIColor.lightGray.cgColor
-        deleteButton.tintColor = isDarkModeEnabled ? .white : .black
-        deleteButton.backgroundColor = isDarkModeEnabled ? UIColor(white: 0, alpha: 0.5) : UIColor(white: 1, alpha: 0.5)
+    func configure(with image: UIImage, colors: MsrColors) {
+        self.colors = colors
+        screenshotImageView.image = image
+        applyColors()
     }
 
     @objc private func deleteButtonTapped() {
