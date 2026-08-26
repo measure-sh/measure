@@ -5,6 +5,7 @@ package network
 import (
 	"backend/libs/filter"
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -15,275 +16,253 @@ import (
 // http_events queries
 // --------------------------------------------------------------------------
 
-func TestFetchDomains(t *testing.T) {
+func TestFetchEndpoints(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("returns domains ordered by count DESC", func(t *testing.T) {
+	t.Run("browses only generated patterns when the search is empty", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New()
 		appID := uuid.New()
 		now := time.Now().UTC()
+		af := &filter.AppFilter{AppID: appID, From: now.Add(-time.Hour), To: now.Add(time.Hour)}
 
-		// Seed more events for domain-b so it should appear first
-		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://domain-a.com/path", "GET", 200, 5, now)
-		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://domain-b.com/path", "GET", 200, 10, now)
+		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/pattern")
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/raw-only", "GET", 200, 1, now)
 
-		from := now.Add(-1 * time.Hour)
-		to := now.Add(1 * time.Hour)
-		domains, err := FetchDomains(ctx, deps.ChPool, appID, teamID, from, to)
+		endpoints, err := FetchEndpoints(ctx, deps.ChPool, appID, teamID, "", af)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if len(domains) != 2 {
-			t.Fatalf("expected 2 domains, got %d", len(domains))
-		}
-		if domains[0] != "domain-b.com" {
-			t.Errorf("expected first domain domain-b.com, got %s", domains[0])
-		}
-		if domains[1] != "domain-a.com" {
-			t.Errorf("expected second domain domain-a.com, got %s", domains[1])
+		want := []Endpoint{{Domain: "api.example.com", PathPattern: "/v1/pattern"}}
+		if !slices.Equal(endpoints, want) {
+			t.Fatalf("endpoints = %v, want %v", endpoints, want)
 		}
 	})
 
-	t.Run("no events returns empty slice", func(t *testing.T) {
+	t.Run("returns a raw endpoint when the app has no patterns", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New()
 		appID := uuid.New()
 		now := time.Now().UTC()
+		appFilter := &filter.AppFilter{
+			AppID:    appID,
+			From:     now.Add(-time.Hour),
+			To:       now.Add(time.Hour),
+			Timezone: "UTC",
+		}
 
-		from := now.Add(-1 * time.Hour)
-		to := now.Add(1 * time.Hour)
-		domains, err := FetchDomains(ctx, deps.ChPool, appID, teamID, from, to)
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/fallback", "GET", 200, 1, now)
+
+		endpoints, err := FetchEndpoints(ctx, deps.ChPool, appID, teamID, "fallback", appFilter)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if domains != nil {
-			t.Errorf("expected nil, got %v", domains)
+		if want := (Endpoint{Domain: "api.example.com", PathPattern: "/v1/fallback"}); len(endpoints) != 1 || endpoints[0] != want {
+			t.Fatalf("endpoints = %v, want [%v]", endpoints, want)
 		}
 	})
 
-	t.Run("events outside time range are excluded", func(t *testing.T) {
+	t.Run("returns a raw endpoint when no generated pattern matches", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New()
 		appID := uuid.New()
 		now := time.Now().UTC()
-		old := now.AddDate(0, 0, -31)
+		appFilter := &filter.AppFilter{
+			AppID:    appID,
+			From:     now.Add(-time.Hour),
+			To:       now.Add(time.Hour),
+			Timezone: "UTC",
+		}
 
-		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://old-domain.com/path", "GET", 200, 5, old)
-		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://new-domain.com/path", "GET", 200, 5, now)
+		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/known")
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/raw-only", "GET", 200, 1, now)
 
-		// Query a range that only includes recent events
-		from := now.Add(-1 * time.Hour)
-		to := now.Add(1 * time.Hour)
-		domains, err := FetchDomains(ctx, deps.ChPool, appID, teamID, from, to)
+		endpoints, err := FetchEndpoints(ctx, deps.ChPool, appID, teamID, "raw-only", appFilter)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if len(domains) != 1 {
-			t.Errorf("expected 1 domain, got %d: %v", len(domains), domains)
+		if want := (Endpoint{Domain: "api.example.com", PathPattern: "/v1/raw-only"}); len(endpoints) != 1 || endpoints[0] != want {
+			t.Fatalf("endpoints = %v, want [%v]", endpoints, want)
 		}
 	})
 
-	t.Run("time range is clamped to minimum of 1 week", func(t *testing.T) {
+	t.Run("applies the dashboard time range and event filters", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New()
 		appID := uuid.New()
 		now := time.Now().UTC()
-		threeDaysAgo := now.AddDate(0, 0, -3)
+		af := &filter.AppFilter{
+			AppID:       appID,
+			From:        now.Add(-time.Hour),
+			To:          now.Add(time.Hour),
+			HttpMethods: []string{"GET"},
+		}
 
-		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://recent-domain.com/path", "GET", 200, 5, threeDaysAgo)
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/visible", "GET", 200, 1, now)
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/post", "POST", 200, 1, now)
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/old", "GET", 200, 1, now.Add(-24*time.Hour))
 
-		// Pass a 1-hour range that would normally miss the 3-day-old event,
-		// but the 1-week minimum clamp should include it.
-		from := now.Add(-1 * time.Hour)
-		to := now.Add(1 * time.Hour)
-		domains, err := FetchDomains(ctx, deps.ChPool, appID, teamID, from, to)
+		endpoints, err := FetchEndpoints(ctx, deps.ChPool, appID, teamID, "v1", af)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if len(domains) != 1 {
-			t.Errorf("expected 1 domain due to 1-week clamp, got %d: %v", len(domains), domains)
+		if want := (Endpoint{Domain: "api.example.com", PathPattern: "/v1/visible"}); len(endpoints) != 1 || endpoints[0] != want {
+			t.Fatalf("endpoints = %v, want [%v]", endpoints, want)
+		}
+	})
+
+	t.Run("finds patterns and raw endpoints from a host and path prefix", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		now := time.Now().UTC()
+		af := &filter.AppFilter{AppID: appID, From: now.Add(-time.Hour), To: now.Add(time.Hour)}
+
+		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/products/*")
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/products/123", "GET", 200, 1, now)
+
+		endpoints, err := FetchEndpoints(ctx, deps.ChPool, appID, teamID, "api.example.com/v1/product", af)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := []Endpoint{
+			{Domain: "api.example.com", PathPattern: "/v1/products/*"},
+			{Domain: "api.example.com", PathPattern: "/v1/products/123"},
+		}
+		if !slices.Equal(endpoints, want) {
+			t.Fatalf("endpoints = %v, want %v", endpoints, want)
+		}
+	})
+
+	t.Run("returns matching patterns before raw wildcard results", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		now := time.Now().UTC()
+		af := &filter.AppFilter{AppID: appID, From: now.Add(-time.Hour), To: now.Add(time.Hour)}
+
+		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users/*")
+		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/orders/*")
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users/123", "GET", 200, 1, now)
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/orders/456", "GET", 200, 1, now)
+
+		endpoints, err := FetchEndpoints(ctx, deps.ChPool, appID, teamID, "api.example.com/v1/users/**", af)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := []Endpoint{
+			{Domain: "api.example.com", PathPattern: "/v1/users/*"},
+			{Domain: "api.example.com", PathPattern: "/v1/users/123"},
+		}
+		if !slices.Equal(endpoints, want) {
+			t.Fatalf("endpoints = %v, want %v", endpoints, want)
+		}
+	})
+
+	t.Run("returns generated patterns outside the active time range", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		now := time.Now().UTC()
+		af := &filter.AppFilter{AppID: appID, From: now.Add(-time.Hour), To: now.Add(time.Hour)}
+
+		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/stale/*")
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/stale/123", "GET", 200, 1, now.Add(-24*time.Hour))
+
+		endpoints, err := FetchEndpoints(ctx, deps.ChPool, appID, teamID, "stale", af)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := []Endpoint{{Domain: "api.example.com", PathPattern: "/v1/stale/*"}}
+		if !slices.Equal(endpoints, want) {
+			t.Fatalf("endpoints = %v, want %v", endpoints, want)
+		}
+	})
+
+	t.Run("matches path wildcards across slashes", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		now := time.Now().UTC()
+		af := &filter.AppFilter{AppID: appID, From: now.Add(-time.Hour), To: now.Add(time.Hour)}
+
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users/123/profile", "GET", 200, 1, now)
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users/123/settings/profile", "GET", 200, 1, now)
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://other.example.com/v1/users/456/profile", "GET", 200, 1, now)
+
+		endpoints, err := FetchEndpoints(ctx, deps.ChPool, appID, teamID, "api.example.com/v1/users/*/profile", af)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := []Endpoint{
+			{Domain: "api.example.com", PathPattern: "/v1/users/123/profile"},
+			{Domain: "api.example.com", PathPattern: "/v1/users/123/settings/profile"},
+		}
+		if !slices.Equal(endpoints, want) {
+			t.Fatalf("endpoints = %v, want %v", endpoints, want)
+		}
+	})
+
+	t.Run("matches descendants beneath a double wildcard", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		now := time.Now().UTC()
+		af := &filter.AppFilter{AppID: appID, From: now.Add(-time.Hour), To: now.Add(time.Hour)}
+
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users", "GET", 200, 1, now)
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users/123", "GET", 200, 1, now)
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users/123/orders", "GET", 200, 1, now)
+
+		endpoints, err := FetchEndpoints(ctx, deps.ChPool, appID, teamID, "/v1/users/**", af)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := []Endpoint{
+			{Domain: "api.example.com", PathPattern: "/v1/users/123"},
+			{Domain: "api.example.com", PathPattern: "/v1/users/123/orders"},
+		}
+		if len(endpoints) != len(want) {
+			t.Fatalf("endpoints = %v, want %v", endpoints, want)
+		}
+		for i := range want {
+			if endpoints[i] != want[i] {
+				t.Errorf("endpoint[%d] = %v, want %v", i, endpoints[i], want[i])
+			}
+		}
+	})
+
+	t.Run("returns raw endpoints from domains without matching patterns", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		now := time.Now().UTC()
+		af := &filter.AppFilter{AppID: appID, From: now.Add(-time.Hour), To: now.Add(time.Hour)}
+
+		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "patterns.example.com", "/v1/known")
+		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://raw.example.com/v1/raw", "GET", 200, 1, now)
+
+		endpoints, err := FetchEndpoints(ctx, deps.ChPool, appID, teamID, "raw.example.com/**", af)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if want := (Endpoint{Domain: "raw.example.com", PathPattern: "/v1/raw"}); len(endpoints) != 1 || endpoints[0] != want {
+			t.Fatalf("endpoints = %v, want [%v]", endpoints, want)
 		}
 	})
 }
 
-func TestFetchPaths(t *testing.T) {
-	ctx := context.Background()
-
-	t.Run("returns paths from url_patterns ordered by path", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-
-		teamID := uuid.New()
-		appID := uuid.New()
-		now := time.Now().UTC()
-
-		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users")
-		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/orders")
-		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/items")
-
-		from := now.Add(-1 * time.Hour)
-		to := now.Add(1 * time.Hour)
-		paths, err := FetchPaths(ctx, deps.ChPool, appID, teamID, "api.example.com", "", from, to)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(paths) != 3 {
-			t.Fatalf("expected 3 paths, got %d", len(paths))
-		}
-		// Should be alphabetical: items, orders, users
-		if paths[0] != "/v1/items" {
-			t.Errorf("expected /v1/items, got %s", paths[0])
-		}
-		if paths[1] != "/v1/orders" {
-			t.Errorf("expected /v1/orders, got %s", paths[1])
-		}
-		if paths[2] != "/v1/users" {
-			t.Errorf("expected /v1/users, got %s", paths[2])
-		}
-	})
-
-	t.Run("search filter on patterns", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-
-		teamID := uuid.New()
-		appID := uuid.New()
-		now := time.Now().UTC()
-
-		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users")
-		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/orders")
-
-		from := now.Add(-1 * time.Hour)
-		to := now.Add(1 * time.Hour)
-		paths, err := FetchPaths(ctx, deps.ChPool, appID, teamID, "api.example.com", "user", from, to)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(paths) != 1 {
-			t.Fatalf("expected 1 path, got %d: %v", len(paths), paths)
-		}
-		if paths[0] != "/v1/users" {
-			t.Errorf("expected /v1/users, got %s", paths[0])
-		}
-	})
-
-	t.Run("fallback to http_events when no patterns match search", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-
-		teamID := uuid.New()
-		appID := uuid.New()
-		now := time.Now().UTC()
-
-		// No url_patterns, but seed http_events
-		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/fallback", "GET", 200, 5, now)
-
-		from := now.Add(-1 * time.Hour)
-		to := now.Add(1 * time.Hour)
-		paths, err := FetchPaths(ctx, deps.ChPool, appID, teamID, "api.example.com", "fallback", from, to)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(paths) != 1 {
-			t.Fatalf("expected 1 path, got %d: %v", len(paths), paths)
-		}
-		if paths[0] != "/v1/fallback" {
-			t.Errorf("expected /v1/fallback, got %s", paths[0])
-		}
-	})
-
-	t.Run("fallback to http_events when no patterns exist and no search query", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-
-		teamID := uuid.New()
-		appID := uuid.New()
-		now := time.Now().UTC()
-
-		// No url_patterns, but seed http_events
-		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/all-paths", "GET", 200, 5, now)
-
-		from := now.Add(-1 * time.Hour)
-		to := now.Add(1 * time.Hour)
-		paths, err := FetchPaths(ctx, deps.ChPool, appID, teamID, "api.example.com", "", from, to)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(paths) != 1 {
-			t.Fatalf("expected 1 path, got %d: %v", len(paths), paths)
-		}
-		if paths[0] != "/v1/all-paths" {
-			t.Errorf("expected /v1/all-paths, got %s", paths[0])
-		}
-	})
-
-	t.Run("fallback time range is clamped to minimum of 1 week", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-
-		teamID := uuid.New()
-		appID := uuid.New()
-		now := time.Now().UTC()
-		threeDaysAgo := now.AddDate(0, 0, -3)
-
-		// Seed http_event 3 days ago, no url_patterns
-		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/old-path", "GET", 200, 5, threeDaysAgo)
-
-		// Pass a 1-hour range that would normally miss the 3-day-old event,
-		// but the 1-week minimum clamp should include it.
-		from := now.Add(-1 * time.Hour)
-		to := now.Add(1 * time.Hour)
-		paths, err := FetchPaths(ctx, deps.ChPool, appID, teamID, "api.example.com", "old-path", from, to)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(paths) != 1 {
-			t.Errorf("expected 1 path due to 1-week clamp, got %d: %v", len(paths), paths)
-		}
-	})
-
-	t.Run("fallback excludes events outside clamped time range", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-
-		teamID := uuid.New()
-		appID := uuid.New()
-		now := time.Now().UTC()
-		old := now.AddDate(0, 0, -31)
-
-		// Seed http_event 31 days ago (outside 1-week clamp), no url_patterns
-		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/ancient", "GET", 200, 5, old)
-
-		from := now.Add(-1 * time.Hour)
-		to := now.Add(1 * time.Hour)
-		paths, err := FetchPaths(ctx, deps.ChPool, appID, teamID, "api.example.com", "ancient", from, to)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if paths != nil {
-			t.Errorf("expected nil for events outside clamped range, got %v", paths)
-		}
-	})
-
-	t.Run("no results returns empty", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-
-		teamID := uuid.New()
-		appID := uuid.New()
-		now := time.Now().UTC()
-
-		from := now.Add(-1 * time.Hour)
-		to := now.Add(1 * time.Hour)
-		paths, err := FetchPaths(ctx, deps.ChPool, appID, teamID, "nonexistent.com", "", from, to)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if paths != nil {
-			t.Errorf("expected nil, got %v", paths)
-		}
-	})
-}
-
-func TestGetNetworkOverviewStatusCodesPlot(t *testing.T) {
+func TestGetStatusCodesPlot(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
 
@@ -306,7 +285,7 @@ func TestGetNetworkOverviewStatusCodesPlot(t *testing.T) {
 	bucketExpr := "toStartOfHour(timestamp, ?)"
 	datetimeFormat := "%Y-%m-%d %H:00:00"
 
-	result, err := GetNetworkOverviewStatusCodesPlot(ctx, deps.ChPool, appID, teamID, af, bucketExpr, datetimeFormat)
+	result, err := GetStatusCodesPlot(ctx, deps.ChPool, appID, teamID, "", "", af, bucketExpr, datetimeFormat)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -333,7 +312,64 @@ func TestGetNetworkOverviewStatusCodesPlot(t *testing.T) {
 	}
 }
 
-func TestGetEndpointLatencyPlot(t *testing.T) {
+func TestGetEndpointStatusCodesPlot(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	teamID := uuid.New()
+	appID := uuid.New()
+	now := time.Now().UTC().Truncate(time.Hour)
+
+	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/path", "GET", 200, 10, now)
+	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/path", "GET", 201, 3, now)
+	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/path", "GET", 404, 2, now)
+	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/other", "GET", 500, 7, now)
+
+	af := &filter.AppFilter{
+		AppID:    appID,
+		From:     now.Add(-time.Hour),
+		To:       now.Add(time.Hour),
+		Timezone: "UTC",
+	}
+
+	result, err := GetEndpointStatusCodesPlot(
+		ctx,
+		deps.ChPool,
+		appID,
+		teamID,
+		"api.example.com",
+		"/path",
+		af,
+		"toStartOfHour(timestamp, ?)",
+		"%Y-%m-%d %H:00:00",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if got, want := result.StatusCodes, []int{200, 201, 404}; !slices.Equal(got, want) {
+		t.Fatalf("status codes = %v, want %v", got, want)
+	}
+	if len(result.DataPoints) != 1 {
+		t.Fatalf("data points = %d, want 1", len(result.DataPoints))
+	}
+
+	dataPoint := result.DataPoints[0]
+	if dataPoint["count_200"] != uint64(10) {
+		t.Errorf("count_200 = %v, want 10", dataPoint["count_200"])
+	}
+	if dataPoint["count_201"] != uint64(3) {
+		t.Errorf("count_201 = %v, want 3", dataPoint["count_201"])
+	}
+	if dataPoint["count_404"] != uint64(2) {
+		t.Errorf("count_404 = %v, want 2", dataPoint["count_404"])
+	}
+	if dataPoint["total_count"] != uint64(15) {
+		t.Errorf("total_count = %v, want 15", dataPoint["total_count"])
+	}
+}
+
+func TestGetLatencyPlot(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
 
@@ -353,7 +389,7 @@ func TestGetEndpointLatencyPlot(t *testing.T) {
 	bucketExpr := "toStartOfHour(timestamp, ?)"
 	datetimeFormat := "%Y-%m-%d %H:00:00"
 
-	result, err := GetEndpointLatencyPlot(ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", af, bucketExpr, datetimeFormat)
+	result, err := GetLatencyPlot(ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", af, bucketExpr, datetimeFormat)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -381,7 +417,38 @@ func TestGetEndpointLatencyPlot(t *testing.T) {
 	}
 }
 
-func TestGetEndpointLatencyPlot_HttpMethodFilter(t *testing.T) {
+func TestGetLatencyPlot_WildcardMatchesOnePathSegment(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	teamID := uuid.New()
+	appID := uuid.New()
+	now := time.Now().UTC().Truncate(time.Hour)
+	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/users/123/orders", "GET", 200, 11, now)
+	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/users/a/b/orders", "GET", 200, 17, now)
+
+	af := &filter.AppFilter{
+		AppID:    appID,
+		From:     now.Add(-1 * time.Hour),
+		To:       now.Add(1 * time.Hour),
+		Timezone: "UTC",
+	}
+	result, err := GetLatencyPlot(
+		ctx, deps.ChPool, appID, teamID, "api.example.com", "/users/*/orders", af,
+		"toStartOfHour(timestamp, ?)", "%Y-%m-%d %H:00:00",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result) != 1 {
+		t.Fatalf("expected 1 data point, got %d", len(result))
+	}
+	if got := result[0]["count"]; got != uint64(11) {
+		t.Errorf("count = %v, want 11", got)
+	}
+}
+
+func TestGetLatencyPlot_HttpMethodFilter(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("matching method returns results", func(t *testing.T) {
@@ -404,7 +471,7 @@ func TestGetEndpointLatencyPlot_HttpMethodFilter(t *testing.T) {
 		bucketExpr := "toStartOfHour(timestamp, ?)"
 		datetimeFormat := "%Y-%m-%d %H:00:00"
 
-		result, err := GetEndpointLatencyPlot(ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", af, bucketExpr, datetimeFormat)
+		result, err := GetLatencyPlot(ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", af, bucketExpr, datetimeFormat)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -433,7 +500,7 @@ func TestGetEndpointLatencyPlot_HttpMethodFilter(t *testing.T) {
 		bucketExpr := "toStartOfHour(timestamp, ?)"
 		datetimeFormat := "%Y-%m-%d %H:00:00"
 
-		result, err := GetEndpointLatencyPlot(ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", af, bucketExpr, datetimeFormat)
+		result, err := GetLatencyPlot(ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", af, bucketExpr, datetimeFormat)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -443,7 +510,7 @@ func TestGetEndpointLatencyPlot_HttpMethodFilter(t *testing.T) {
 	})
 }
 
-func TestGetEndpointLatencyPlot_AppVersionFilter(t *testing.T) {
+func TestGetLatencyPlot_AppVersionFilter(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("matching version returns results", func(t *testing.T) {
@@ -467,7 +534,7 @@ func TestGetEndpointLatencyPlot_AppVersionFilter(t *testing.T) {
 		bucketExpr := "toStartOfHour(timestamp, ?)"
 		datetimeFormat := "%Y-%m-%d %H:00:00"
 
-		result, err := GetEndpointLatencyPlot(ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", af, bucketExpr, datetimeFormat)
+		result, err := GetLatencyPlot(ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", af, bucketExpr, datetimeFormat)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -497,7 +564,7 @@ func TestGetEndpointLatencyPlot_AppVersionFilter(t *testing.T) {
 		bucketExpr := "toStartOfHour(timestamp, ?)"
 		datetimeFormat := "%Y-%m-%d %H:00:00"
 
-		result, err := GetEndpointLatencyPlot(ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", af, bucketExpr, datetimeFormat)
+		result, err := GetLatencyPlot(ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", af, bucketExpr, datetimeFormat)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -505,64 +572,6 @@ func TestGetEndpointLatencyPlot_AppVersionFilter(t *testing.T) {
 			t.Fatalf("expected 0 data points, got %d", len(result))
 		}
 	})
-}
-
-func TestGetEndpointStatusCodesPlot(t *testing.T) {
-	ctx := context.Background()
-	defer cleanupAll(ctx, t)
-
-	teamID := uuid.New()
-	appID := uuid.New()
-	now := time.Now().UTC().Truncate(time.Hour)
-
-	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users", "GET", 200, 8, now)
-	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users", "GET", 404, 3, now)
-	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users", "GET", 500, 1, now)
-
-	af := &filter.AppFilter{
-		AppID:    appID,
-		From:     now.Add(-1 * time.Hour),
-		To:       now.Add(1 * time.Hour),
-		Timezone: "UTC",
-	}
-
-	bucketExpr := "toStartOfHour(timestamp, ?)"
-	datetimeFormat := "%Y-%m-%d %H:00:00"
-
-	resp, err := GetEndpointStatusCodesPlot(ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", af, bucketExpr, datetimeFormat)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	// Verify status codes
-	expectedCodes := []int{200, 404, 500}
-	if len(resp.StatusCodes) != len(expectedCodes) {
-		t.Fatalf("expected status codes %v, got %v", expectedCodes, resp.StatusCodes)
-	}
-	for i, code := range expectedCodes {
-		if resp.StatusCodes[i] != code {
-			t.Errorf("status_codes[%d] = %d, want %d", i, resp.StatusCodes[i], code)
-		}
-	}
-
-	// Verify data points
-	if len(resp.DataPoints) != 1 {
-		t.Fatalf("expected 1 data point, got %d", len(resp.DataPoints))
-	}
-
-	dp := resp.DataPoints[0]
-	if dp["count_200"] != uint64(8) {
-		t.Errorf("count_200 = %v, want 8", dp["count_200"])
-	}
-	if dp["count_404"] != uint64(3) {
-		t.Errorf("count_404 = %v, want 3", dp["count_404"])
-	}
-	if dp["count_500"] != uint64(1) {
-		t.Errorf("count_500 = %v, want 1", dp["count_500"])
-	}
-	if dp["total_count"] != uint64(12) {
-		t.Errorf("total_count = %v, want 12", dp["total_count"])
-	}
 }
 
 // --------------------------------------------------------------------------
@@ -641,7 +650,7 @@ func TestFetchTrends(t *testing.T) {
 	})
 }
 
-func TestFetchOverviewTimelinePlot(t *testing.T) {
+func TestFetchTimelinePlot_Unscoped(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
 
@@ -657,7 +666,7 @@ func TestFetchOverviewTimelinePlot(t *testing.T) {
 		To:    now.Add(1 * time.Hour),
 	}
 
-	resp, err := FetchOverviewTimelinePlot(ctx, deps.ChPool, appID, teamID, af, defaultOverviewTimelineMax)
+	resp, err := FetchTimelinePlot(ctx, deps.ChPool, appID, teamID, "", "", af)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -678,7 +687,7 @@ func TestFetchOverviewTimelinePlot(t *testing.T) {
 	}
 }
 
-func TestFetchEndpointTimelinePlot(t *testing.T) {
+func TestFetchTimelinePlot(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("returns timeline for existing pattern", func(t *testing.T) {
@@ -697,7 +706,7 @@ func TestFetchEndpointTimelinePlot(t *testing.T) {
 			To:    now.Add(1 * time.Hour),
 		}
 
-		resp, err := FetchEndpointTimelinePlot(ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", af)
+		resp, err := FetchTimelinePlot(ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", af)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -719,7 +728,7 @@ func TestFetchEndpointTimelinePlot(t *testing.T) {
 		}
 	})
 
-	t.Run("non-existent pattern returns nil", func(t *testing.T) {
+	t.Run("non-existent pattern returns no points", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New()
@@ -732,12 +741,15 @@ func TestFetchEndpointTimelinePlot(t *testing.T) {
 			To:    now.Add(1 * time.Hour),
 		}
 
-		resp, err := FetchEndpointTimelinePlot(ctx, deps.ChPool, appID, teamID, "nonexistent.com", "/v1/nope", af)
+		resp, err := FetchTimelinePlot(ctx, deps.ChPool, appID, teamID, "nonexistent.com", "/v1/nope", af)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if resp != nil {
-			t.Errorf("expected nil response, got %+v", resp)
+		if resp == nil {
+			t.Fatal("expected an empty response, got nil")
+		}
+		if len(resp.Points) != 0 {
+			t.Errorf("expected no points, got %+v", resp.Points)
 		}
 	})
 }

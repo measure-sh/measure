@@ -941,6 +941,19 @@ function appendBugReportStatusesToUrl(url: string, filters: Filters): string {
   return u.toString();
 }
 
+// Adds the network page's endpoint selection to a plot request. Empty values are sent as
+// empty, which the server reads as "every domain" or "every path".
+function appendEndpointSelectionToUrl(
+  url: string,
+  domain: string,
+  path: string,
+): string {
+  const u = new URL(url, window.location.origin);
+  u.searchParams.set("domain", domain);
+  u.searchParams.set("path", path);
+  return u.toString();
+}
+
 function appendHttpMethodsToUrl(url: string, filters: Filters): string {
   const u = new URL(url, window.location.origin);
   if (!filters.httpMethods.all && filters.httpMethods.selected.length > 0) {
@@ -1934,87 +1947,73 @@ export const updateSdkConfigFromServer = async (
   return data;
 };
 
-export const fetchNetworkDomainsFromServer = async (
-  selectedApp: App,
+export type NetworkEndpoint = { domain: string; path_pattern: string };
+
+export const fetchNetworkEndpointsFromServer = async (
   filters: Filters,
-) => {
-  const failsWith = "Failed to fetch network domains";
+  query: string,
+  signal?: AbortSignal,
+): Promise<NetworkEndpoint[]> => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/endpoints?`;
 
-  // An unparsable date throws before the code builds the request. The caller
-  // must get the same kind of error as it gets for a dropped connection.
-  let url: string;
-  try {
-    url = `/api/apps/${selectedApp.id}/networkRequests/domains?from=${formatUserInputDateToServerFormat(filters.startDate)}&to=${formatUserInputDateToServerFormat(filters.endDate)}`;
-  } catch (e) {
-    throw new RequestError(failsWith, { cause: e });
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
+  apiUrl = appendHttpMethodsToUrl(apiUrl, filters);
+
+  const u = new URL(apiUrl, window.location.origin);
+  if (query !== "") {
+    u.searchParams.append("query", query);
   }
 
-  const data = await request(url, { failsWith });
+  const data = await request(u.toString(), {
+    failsWith: "Failed to fetch network endpoints",
+    signal,
+  });
 
-  if (data === null) {
-    throw new RequestError(failsWith);
-  }
-  if (data.results === null || data.results.length === 0) {
-    return null;
-  }
-
-  return data;
+  return (data?.results as NetworkEndpoint[] | null) ?? [];
 };
 
-export const fetchNetworkPathsFromServer = async (
-  selectedApp: App,
-  domain: string,
-  search: string,
-  filters: Filters,
-) => {
-  const failsWith = "Failed to fetch network paths";
-
-  // An unparsable date throws before the code builds the request. The caller
-  // must get the same kind of error as it gets for a dropped connection.
-  let url: string;
-  try {
-    const from = encodeURIComponent(
-      formatUserInputDateToServerFormat(filters.startDate),
-    );
-    const to = encodeURIComponent(
-      formatUserInputDateToServerFormat(filters.endDate),
-    );
-    url = `/api/apps/${selectedApp.id}/networkRequests/paths?domain=${encodeURIComponent(domain)}&search=${encodeURIComponent(search)}&from=${from}&to=${to}`;
-  } catch (e) {
-    throw new RequestError(failsWith, { cause: e });
-  }
-
-  const data = await request(url, { failsWith });
-
-  if (data === null) {
-    throw new RequestError(failsWith);
-  }
-  if (data.results === null || data.results.length === 0) {
-    return null;
-  }
-
-  return data;
-};
-
-export const fetchNetworkEndpointLatencyPlotFromServer = async (
+// The three plots below take the page's endpoint selection. An empty domain covers every
+// domain, and an empty path every path within one.
+export const fetchNetworkLatencyPlotFromServer = async (
   filters: Filters,
   domain: string,
   path: string,
 ) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/endpointLatency?`;
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/latency?`;
 
   apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
   apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters);
   apiUrl = appendHttpMethodsToUrl(apiUrl, filters);
-
-  const u = new URL(apiUrl, window.location.origin);
-  u.searchParams.append("domain", domain);
-  u.searchParams.append("path", path);
-  apiUrl = u.toString();
+  apiUrl = appendEndpointSelectionToUrl(apiUrl, domain, path);
 
   const data = await request(apiUrl, {
-    failsWith: "Failed to fetch network endpoint latency plot",
+    failsWith: "Failed to fetch network latency plot",
   });
+
+  return data === null || (Array.isArray(data) && data.length === 0)
+    ? null
+    : data;
+};
+
+export const fetchNetworkStatusCodesPlotFromServer = async (
+  filters: Filters,
+  domain: string,
+  path: string,
+) => {
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/statusCodes?`;
+
+  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
+  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters);
+  apiUrl = appendHttpMethodsToUrl(apiUrl, filters);
+  apiUrl = appendEndpointSelectionToUrl(apiUrl, domain, path);
+
+  const data = await request(apiUrl, {
+    failsWith: "Failed to fetch network status codes plot",
+  });
+
+  if (data === null || (Array.isArray(data) && data.length === 0)) {
+    return null;
+  }
 
   return data;
 };
@@ -2029,36 +2028,32 @@ export const fetchNetworkEndpointStatusCodesPlotFromServer = async (
   apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
   apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters);
   apiUrl = appendHttpMethodsToUrl(apiUrl, filters);
-
-  const u = new URL(apiUrl, window.location.origin);
-  u.searchParams.append("domain", domain);
-  u.searchParams.append("path", path);
-  apiUrl = u.toString();
+  apiUrl = appendEndpointSelectionToUrl(apiUrl, domain, path);
 
   const data = await request(apiUrl, {
     failsWith: "Failed to fetch network endpoint status codes plot",
   });
 
+  if (data === null || !data.data_points || data.data_points.length === 0) {
+    return null;
+  }
+
   return data;
 };
 
-export const fetchNetworkEndpointTimelinePlotFromServer = async (
+export const fetchNetworkTimelinePlotFromServer = async (
   filters: Filters,
   domain: string,
   path: string,
 ) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/endpointTimeline?`;
+  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/timeline?`;
 
   apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
   apiUrl = appendHttpMethodsToUrl(apiUrl, filters);
-
-  const u = new URL(apiUrl, window.location.origin);
-  u.searchParams.append("domain", domain);
-  u.searchParams.append("path", path);
-  apiUrl = u.toString();
+  apiUrl = appendEndpointSelectionToUrl(apiUrl, domain, path);
 
   const data = await request(apiUrl, {
-    failsWith: "Failed to fetch network endpoint timeline plot",
+    failsWith: "Failed to fetch network timeline plot",
   });
 
   if (data === null || !data.points || data.points.length === 0) {
@@ -2080,45 +2075,6 @@ export const fetchNetworkTrendsFromServer = async (
   const data = await request(apiUrl, {
     failsWith: "Failed to fetch network trends",
   });
-
-  return data;
-};
-
-export const fetchNetworkTimelinePlotFromServer = async (
-  filters: Filters,
-  timelineLimit: number,
-) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/overviewTimeline?`;
-
-  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
-  apiUrl += `&timeline_limit=${timelineLimit}`;
-
-  const data = await request(apiUrl, {
-    failsWith: "Failed to fetch network timeline plot",
-  });
-
-  if (data === null || !data.points || data.points.length === 0) {
-    return null;
-  }
-
-  return data;
-};
-
-export const fetchNetworkOverviewStatusCodesPlotFromServer = async (
-  filters: Filters,
-) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/overviewStatusCodes?`;
-
-  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
-  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters);
-
-  const data = await request(apiUrl, {
-    failsWith: "Failed to fetch network overview status codes plot",
-  });
-
-  if (data === null || (Array.isArray(data) && data.length === 0)) {
-    return null;
-  }
 
   return data;
 };

@@ -162,14 +162,12 @@ func main() {
 		apps.PATCH(":id/retention", hdl.UpdateAppRetention)
 
 		// network requests
-		apps.GET(":id/networkRequests/domains", hdl.GetNetworkRequestsDomains)
-		apps.GET(":id/networkRequests/paths", hdl.GetNetworkRequestsPaths)
+		apps.GET(":id/networkRequests/endpoints", hdl.GetNetworkRequestsEndpoints)
 		apps.GET(":id/networkRequests/trends", hdl.GetNetworkRequestsTrends)
-		apps.GET(":id/networkRequests/plots/overviewStatusCodes", hdl.GetNetworkOverviewStatusCodesPlot)
-		apps.GET(":id/networkRequests/plots/overviewTimeline", hdl.GetNetworkOverviewTimelinePlot)
-		apps.GET(":id/networkRequests/plots/endpointLatency", hdl.GetNetworkEndpointLatencyPlot)
+		apps.GET(":id/networkRequests/plots/statusCodes", hdl.GetNetworkStatusCodesPlot)
 		apps.GET(":id/networkRequests/plots/endpointStatusCodes", hdl.GetNetworkEndpointStatusCodesPlot)
-		apps.GET(":id/networkRequests/plots/endpointTimeline", hdl.GetNetworkEndpointTimelinePlot)
+		apps.GET(":id/networkRequests/plots/latency", hdl.GetNetworkEndpointLatencyPlot)
+		apps.GET(":id/networkRequests/plots/timeline", hdl.GetNetworkEndpointTimelinePlot)
 
 		// misc
 		apps.PATCH(":id/rename", hdl.RenameApp)

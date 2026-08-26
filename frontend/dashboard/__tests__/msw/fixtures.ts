@@ -974,21 +974,21 @@ export function makeAlertsOverviewFixture(overrides: Record<string, any> = {}) {
   };
 }
 
-// --- Network Domains (GET /apps/:appId/networkRequests/domains) ---
+// --- Network Endpoints (GET /apps/:appId/networkRequests/endpoints) ---
 
-export function makeNetworkDomainsFixture() {
-  return { results: ["api.example.com", "cdn.example.com"] };
-}
-
-// --- Network Paths (GET /apps/:appId/networkRequests/paths) ---
-
-export function makeNetworkPathsFixture() {
-  return { results: ["/v1/users/*/profile", "/v1/orders", "/v2/search"] };
+export function makeNetworkEndpointsFixture() {
+  return {
+    results: [
+      { domain: "api.example.com", path_pattern: "/v1/users/*/profile" },
+      { domain: "api.example.com", path_pattern: "/v1/orders" },
+      { domain: "cdn.example.com", path_pattern: "/images/*" },
+    ],
+  };
 }
 
 // --- Network Overview Status Codes Plot ---
 
-export function makeNetworkOverviewStatusCodesFixture() {
+export function makeNetworkStatusCodesFixture() {
   return [
     {
       datetime: "2026-04-01T00:00:00Z",
@@ -1015,6 +1015,28 @@ export function makeNetworkOverviewStatusCodesFixture() {
       count_5xx: 100,
     },
   ];
+}
+
+export function makeNetworkEndpointStatusCodesFixture() {
+  return {
+    status_codes: [200, 201, 404],
+    data_points: [
+      {
+        datetime: "2026-04-01T00:00:00Z",
+        total_count: 5000,
+        count_200: 4600,
+        count_201: 100,
+        count_404: 300,
+      },
+      {
+        datetime: "2026-04-02T00:00:00Z",
+        total_count: 5200,
+        count_200: 4800,
+        count_201: 150,
+        count_404: 250,
+      },
+    ],
+  };
 }
 
 // --- Network Trends (GET /apps/:appId/networkRequests/trends) ---
@@ -1132,30 +1154,6 @@ export function makeNetworkEndpointLatencyFixture() {
 }
 
 // --- Network Endpoint Status Codes Plot ---
-
-export function makeNetworkEndpointStatusCodesFixture() {
-  return {
-    status_codes: [200, 201, 400, 500],
-    data_points: [
-      {
-        datetime: "2026-04-01T00:00:00Z",
-        total_count: 1200,
-        count_200: 1000,
-        count_201: 150,
-        count_400: 30,
-        count_500: 20,
-      },
-      {
-        datetime: "2026-04-02T00:00:00Z",
-        total_count: 1350,
-        count_200: 1150,
-        count_201: 140,
-        count_400: 35,
-        count_500: 25,
-      },
-    ],
-  };
-}
 
 // --- Network Endpoint Timeline ---
 
@@ -1369,26 +1367,6 @@ export function makeNotifPrefsFixture(overrides: Record<string, any> = {}) {
     bug_report: false,
     daily_summary: true,
     ...overrides,
-  };
-}
-
-export function makeNetworkEndpointTimelineFixture() {
-  return {
-    interval: 5,
-    points: [
-      {
-        elapsed: 0,
-        domain: "api.example.com",
-        path_pattern: "/v1/users/*/profile",
-        count: 1.5,
-      },
-      {
-        elapsed: 5,
-        domain: "api.example.com",
-        path_pattern: "/v1/users/*/profile",
-        count: 2.0,
-      },
-    ],
   };
 }
 

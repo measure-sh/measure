@@ -2,15 +2,11 @@
 
 import { FilterSource } from "@/app/api/api_calls";
 
-import { Button } from "@/app/components/button";
-import DropdownSelect, {
-  DropdownSelectType,
-} from "@/app/components/dropdown_select";
 import Filters, {
   AppVersionsInitialSelectionType,
 } from "@/app/components/filters";
 import InfoTooltip from "@/app/components/info_tooltip";
-import { Input } from "@/app/components/input";
+import NetworkEndpointSearch from "@/app/components/network_endpoint_search";
 import NetworkStatusDistributionPlot from "@/app/components/network_status_distribution_plot";
 import NetworkTimelinePlot, {
   NetworkTimelineData,
@@ -23,24 +19,16 @@ import {
   SkeletonTable,
 } from "@/app/components/skeleton";
 import {
-  useNetworkDomainsQuery,
-  useNetworkPathsQuery,
-  useNetworkStatusPlotQuery,
+  useNetworkStatusCodesQuery,
   useNetworkTimelineQuery,
 } from "@/app/query/hooks";
 import { useFiltersStore } from "@/app/stores/provider";
-import {
-  addRecentSearch,
-  getRecentSearchesForDomain,
-  removeRecentSearch,
-} from "@/app/utils/network_recent_searches";
 import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import { getPlotTimeGroupForRange } from "@/app/utils/time_utils";
-import { History } from "lucide-react";
 import { DateTime } from "luxon";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 interface NetworkOverviewProps {
   params?: { teamId: string };
@@ -203,36 +191,19 @@ export default function NetworkOverview({
   hideDemoTitle = false,
 }: NetworkOverviewProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const filters = useFiltersStore((state) => state.filters);
 
-  const domainsQuery = useNetworkDomainsQuery();
-
-  const [searchDomain, setSearchDomain] = useState("");
-  const [searchPathPattern, setSearchPathPattern] = useState("");
-
-  const pathsQuery = useNetworkPathsQuery(searchDomain, searchPathPattern);
-  const statusPlotQuery = useNetworkStatusPlotQuery();
-  const timelineQuery = useNetworkTimelineQuery();
+  const statusCodesQuery = useNetworkStatusCodesQuery("", "");
+  const timelineQuery = useNetworkTimelineQuery("", "");
 
   // In demo mode, use static data instead of store data
-  const domainsStatus = demo
-    ? ("success" as const)
-    : domainsQuery.status === "success" && domainsQuery.data === null
-      ? ("nodata" as const)
-      : domainsQuery.status;
-  const domains = demo
-    ? [
-        "payments.demo-provider.com",
-        "store.demo-provider.com",
-        "cdn.demo-provider.com",
-      ]
-    : (domainsQuery.data ?? []);
   const statusPlotStatus = demo
     ? ("success" as const)
-    : statusPlotQuery.status === "success" && statusPlotQuery.data === null
+    : statusCodesQuery.status === "success" && statusCodesQuery.data === null
       ? ("nodata" as const)
-      : statusPlotQuery.status;
-  const statusPlotData = demo ? demoStatusData : (statusPlotQuery.data ?? []);
+      : statusCodesQuery.status;
+  const statusPlotData = demo ? demoStatusData : (statusCodesQuery.data ?? []);
   const timelinePlotStatus = demo
     ? ("success" as const)
     : timelineQuery.status === "success" && timelineQuery.data === null
@@ -241,10 +212,6 @@ export default function NetworkOverview({
   const timelinePlotData = demo
     ? demoTimelineData
     : (timelineQuery.data ?? null);
-  const paths = pathsQuery.data ?? [];
-
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [recentPaths, setRecentPaths] = useState<string[]>([]);
 
   const plotTimeGroup = demo
     ? "days"
@@ -258,66 +225,14 @@ export default function NetworkOverview({
       timelinePlotData !== null &&
       timelinePlotData.points.length > 0;
 
-  // Auto-select the first domain the first time domains load. The one-shot flag
-  // avoids re-selecting if the user later clears the field.
-  const [didAutoSelectDomain, setDidAutoSelectDomain] = useState(false);
-  if (
-    !demo &&
-    !didAutoSelectDomain &&
-    domainsQuery.status === "success" &&
-    domainsQuery.data &&
-    domainsQuery.data.length > 0 &&
-    searchDomain === ""
-  ) {
-    setDidAutoSelectDomain(true);
-    setSearchDomain(domainsQuery.data[0]);
-    setSearchPathPattern("");
-  }
-
-  const handleSearch = () => {
-    if (demo) return;
-    if (searchPathPattern.trim() === "") return;
-    const path = searchPathPattern.startsWith("/")
-      ? searchPathPattern
-      : "/" + searchPathPattern;
-    const domain = searchDomain.endsWith("/")
-      ? searchDomain.slice(0, -1)
-      : searchDomain;
-    addRecentSearch(params!.teamId, domain, path);
-    router.push(
-      `/${params!.teamId}/network/details?domain=${encodeURIComponent(domain)}&path=${encodeURIComponent(path)}`,
-    );
-  };
-
   // Sync filters to URL
   useEffect(() => {
     if (demo) return;
     if (!filters.ready) return;
-    router.replace(`?${filters.serialisedFilters!}`, { scroll: false });
-  }, [filters.ready, filters.serialisedFilters]);
-
-  // Re-sync recent paths from storage when the domain or pattern changes. The
-  // list stays locally mutable — users can remove individual entries below.
-  const [prevSearch, setPrevSearch] = useState({
-    domain: searchDomain,
-    pattern: searchPathPattern,
-  });
-  if (
-    !demo &&
-    (prevSearch.domain !== searchDomain ||
-      prevSearch.pattern !== searchPathPattern)
-  ) {
-    setPrevSearch({ domain: searchDomain, pattern: searchPathPattern });
-    setRecentPaths(
-      searchDomain
-        ? getRecentSearchesForDomain(
-            params!.teamId,
-            searchDomain,
-            searchPathPattern,
-          )
-        : [],
-    );
-  }
+    router.replace(`${pathname}?${filters.serialisedFilters!}`, {
+      scroll: false,
+    });
+  }, [filters.ready, filters.serialisedFilters, pathname]);
 
   return (
     <div className="flex flex-col items-start">
@@ -331,198 +246,71 @@ export default function NetworkOverview({
           teamId={params.teamId}
           filterSource={FilterSource.Events}
           appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-          showNoData={false}
-          showAppVersions={false}
+          showOsVersions={true}
+          showCountries={true}
+          showNetworkTypes={true}
+          showNetworkProviders={true}
+          showNetworkGenerations={true}
+          showLocales={true}
+          showDeviceManufacturers={true}
+          showDeviceNames={true}
+          showHttpMethods={true}
         />
       )}
 
-      {!demo &&
-        (filters.loading || (filters.ready && domainsStatus === "pending")) && (
-          <div className="flex flex-col w-full">
-            {/* Explore endpoint */}
-            <div className="py-8" />
-            <Skeleton className="h-6 w-40" />
-            <Skeleton className="h-3 w-96 mt-2" />
-            <div className="py-2" />
-            <div className="flex flex-row items-center w-full gap-2">
-              <Skeleton className="h-9 w-37.5" />
-              <Skeleton className="h-9 flex-1" />
-              <Skeleton className="h-9 w-20" />
-            </div>
-
-            {/* Status Distribution */}
-            <div className="py-8" />
-            <Skeleton className="h-6 w-44" />
-            <Skeleton className="h-3 w-80 mt-2" />
-            <div className="py-4" />
-            <div className="flex font-body items-center justify-center w-full h-144">
-              <SkeletonPlot />
-            </div>
-
-            {/* Top Endpoints */}
-            <div className="py-8" />
-            <Skeleton className="h-6 w-36" />
-            <Skeleton className="h-3 w-64 mt-2" />
-            <SkeletonTable rows={5} columns={5} />
-
-            {/* Timeline */}
-            <div className="py-10" />
-            <Skeleton className="h-6 w-24" />
-            <Skeleton className="h-3 w-72 mt-2" />
-            <div className="flex font-body items-center justify-center w-full h-144">
-              <SkeletonPlot />
-            </div>
+      {!demo && filters.loading && (
+        <div className="flex flex-col w-full">
+          <div className="py-4" />
+          <Skeleton className="h-9 w-full" />
+          <div className="py-6" />
+          <div className="flex font-body items-center justify-center w-full h-144">
+            <SkeletonPlot />
           </div>
-        )}
+          <div className="py-6" />
+          <div className="flex font-body items-center justify-center w-full h-144">
+            <SkeletonPlot />
+          </div>
+          <div className="py-8" />
+          <Skeleton className="h-6 w-36" />
+          <SkeletonTable rows={5} columns={4} />
+        </div>
+      )}
 
-      {(demo || (filters.ready && domainsStatus === "success")) && (
+      {(demo || filters.ready) && (
         <>
-          {/* Search endpoint - hidden in demo mode */}
-          {!demo && (
+          {!demo && params && (
             <>
               <div className="py-8" />
               <div className="flex items-center gap-2">
-                <p className="font-display text-xl">Explore endpoint</p>
+                <p className="font-display text-xl">Explore Endpoints</p>
                 <InfoTooltip
                   content={
                     <>
-                      Search for endpoints using exact paths or wildcard
-                      patterns.{" "}
                       <Link
                         href="/docs/network-monitoring/endpoint-patterns#searching-for-endpoints"
                         className={underlineLinkStyle}
                       >
                         Learn more
                       </Link>{" "}
-                      about how to use wildcard patterns to search.
+                      about endpoint search and using wildcards.
                     </>
                   }
                 />
               </div>
-              <div className="py-2" />
-              <div className="flex flex-row items-center w-full">
-                <DropdownSelect
-                  type={DropdownSelectType.SingleString}
-                  title="Domain"
-                  items={domains}
-                  initialSelected={
-                    domainsStatus === "pending" ? "Loading..." : searchDomain
-                  }
-                  onChangeSelected={(item) => {
-                    setSearchDomain(item as string);
-                    setSearchPathPattern("");
-                  }}
-                  disabled={domainsStatus !== "success"}
-                />
-                <div className="px-2" />
-                <div className="relative flex-1">
-                  <Input
-                    type="text"
-                    placeholder="Enter a path like /v1/users/*/profile"
-                    className="w-full font-body"
-                    value={searchPathPattern}
-                    onChange={(e) => {
-                      setSearchPathPattern(e.target.value.replace(/\s/g, ""));
-                      setShowSuggestions(true);
-                    }}
-                    onFocus={() => setShowSuggestions(true)}
-                    onBlur={() => setShowSuggestions(false)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        setShowSuggestions(false);
-                        handleSearch();
-                      } else if (e.key === "Escape") {
-                        setShowSuggestions(false);
-                      }
-                    }}
-                  />
-                  {showSuggestions &&
-                    (recentPaths.length > 0 || paths.length > 0) && (
-                      <div className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border border-border bg-popover text-popover-foreground shadow-lg p-1">
-                        {recentPaths.length > 0 && (
-                          <>
-                            {recentPaths.map((path) => (
-                              <div
-                                key={`recent-${path}`}
-                                className="flex items-center gap-2 rounded-sm px-2 py-1.5 hover:bg-accent hover:text-accent-foreground group"
-                              >
-                                <History className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-accent-foreground" />
-                                <button
-                                  type="button"
-                                  className="flex-1 text-left text-sm font-display translate-y-0.5 group-hover:text-accent-foreground cursor-pointer"
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    setSearchPathPattern(path);
-                                    setShowSuggestions(false);
-                                  }}
-                                >
-                                  {path}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="px-2 py-0.5 text-xs text-muted-foreground group-hover:text-accent-foreground opacity-0 group-hover:opacity-100 cursor-pointer"
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    removeRecentSearch(
-                                      params!.teamId,
-                                      searchDomain,
-                                      path,
-                                    );
-                                    setRecentPaths((prev) =>
-                                      prev.filter((p) => p !== path),
-                                    );
-                                  }}
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            ))}
-                          </>
-                        )}
-                        {paths.length > 0 && (
-                          <div className={recentPaths.length > 0 ? "mt-4" : ""}>
-                            {paths.map((path) => (
-                              <button
-                                key={`suggestion-${path}`}
-                                type="button"
-                                className="w-full px-2 py-1.5 text-left text-sm font-display rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  setSearchPathPattern(path);
-                                  setShowSuggestions(false);
-                                }}
-                              >
-                                {path}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                </div>
-                <Button
-                  variant="outline"
-                  className="m-4"
-                  disabled={
-                    searchPathPattern.trim() === "" ||
-                    domainsStatus !== "success"
-                  }
-                  onClick={handleSearch}
-                >
-                  Search
-                </Button>
-              </div>
-              <div className="py-8" />
+              <div className="py-4" />
+              <NetworkEndpointSearch
+                key={params.teamId}
+                teamId={params.teamId}
+              />
             </>
           )}
 
-          {/* Status Overview Section */}
+          <div className="py-8" />
+
+          {/* Status Distribution Section */}
           <div className="w-full">
-            <div className="flex items-center gap-2">
-              <p className="font-display text-xl">Status Distribution</p>
-              <InfoTooltip content="HTTP status code distribution over time for all requests made by the app" />
-            </div>
-            <div className="py-4" />
+            <p className="font-display text-xl">Status Distribution</p>
+            <div className="py-2" />
             <div className="flex font-body items-center justify-center w-full h-144">
               {(statusPlotStatus === "pending" ||
                 (statusPlotStatus === "success" &&
@@ -540,8 +328,8 @@ export default function NetworkOverview({
               )}
               {statusPlotStatus === "error" && (
                 <p className="font-body text-sm">
-                  Error fetching status overview, please change filters & try
-                  again
+                  Error fetching status distribution, please change filters &
+                  try again
                 </p>
               )}
             </div>
@@ -605,16 +393,6 @@ export default function NetworkOverview({
             )}
           </div>
         </>
-      )}
-      {!demo && domainsStatus === "error" && (
-        <p className="pt-8 font-body text-sm">
-          Error fetching domains, please change filters & try again
-        </p>
-      )}
-      {!demo && domainsStatus === "nodata" && (
-        <p className="pt-8 font-body text-sm">
-          No data available for the selected app
-        </p>
       )}
     </div>
   );

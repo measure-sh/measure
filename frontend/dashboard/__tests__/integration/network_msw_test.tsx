@@ -1,15 +1,14 @@
 /**
  * Integration tests for Network Overview and Details pages.
  *
- * Covers page/api wiring only: domain auto-selection from the API, HTTP
- * failure handling for every endpoint, request paths and query params,
+ * Covers page/api wiring only: endpoint suggestions, HTTP failure handling
+ * for every network endpoint, request paths and query params,
  * URL serialisation, cache behaviour, and re-fetching when filters change.
- * Rendering behaviour is covered by the unit tests in __tests__/pages and
- * __tests__/components.
+ * Rendering behaviour is covered by focused page/component tests.
  *
- * Network pages use FilterSource.Events with showNoData=false,
- * showNotOnboarded=true, so filters.ready requires apps+filters
- * but not NoData/NotOnboarded.
+ * Network pages use FilterSource.Events with showNoData=true and
+ * showNotOnboarded=true, so filters.ready requires apps+filters and has a
+ * dedicated empty state for NoData/NotOnboarded.
  */
 import {
   afterAll,
@@ -20,7 +19,13 @@ import {
   expect,
   it,
 } from "@jest/globals";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 // --- jsdom polyfills ---
@@ -42,6 +47,7 @@ jest.mock("posthog-js", () => ({
 const mockRouterReplace = jest.fn();
 const mockRouterPush = jest.fn();
 const mockSearchParams = new URLSearchParams();
+const appFixtureId = "b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f";
 jest.mock("next/navigation", () => ({
   __esModule: true,
   useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
@@ -89,13 +95,11 @@ jest.mock("@nivo/heatmap", () => ({
 
 // --- MSW ---
 import {
-  makeNetworkDomainsFixture,
-  makeNetworkEndpointLatencyFixture,
-  makeNetworkEndpointStatusCodesFixture,
-  makeNetworkEndpointTimelineFixture,
-  makeNetworkOverviewStatusCodesFixture,
+  makeNetworkStatusCodesFixture,
+  makeNetworkEndpointsFixture,
   makeNetworkTimelineFixture,
   makeNetworkTrendsFixture,
+  makeFiltersFixture,
 } from "../msw/fixtures";
 import { server } from "../msw/server";
 
@@ -111,7 +115,6 @@ afterEach(() => {
 afterAll(() => server.close());
 
 // --- Store/component imports ---
-import NetworkDetails from "@/app/components/network_details";
 import NetworkOverview from "@/app/components/network_overview";
 import { createFiltersStore } from "@/app/stores/filters_store";
 import { createOnboardingStore } from "@/app/stores/onboarding_store";
@@ -163,8 +166,8 @@ describe("Network Overview (MSW integration)", () => {
     renderWithProviders(<NetworkOverview params={{ teamId: "test-team" }} />);
     await waitFor(
       () => {
-        // Wait for domains to load and trends table to appear
-        expect(screen.getByText("Explore endpoint")).toBeTruthy();
+        // Wait for the endpoint ranking to appear
+        expect(screen.getByText("Top Endpoints")).toBeTruthy();
       },
       { timeout: 5000 },
     );
@@ -174,45 +177,28 @@ describe("Network Overview (MSW integration)", () => {
   // PAGE LOAD
   // ================================================================
   describe("page load", () => {
-    it("auto-selects first domain from API", async () => {
+    it("lists the app's endpoints from the API", async () => {
       await renderAndWaitForData();
-      // The component auto-selects the first domain via useEffect.
-      // The domain dropdown shows the selected domain text.
       await waitFor(() => {
-        expect(screen.getByText("api.example.com")).toBeTruthy();
+        expect(screen.getByText("api.example.com/v1/checkout")).toBeTruthy();
       });
     });
 
-    it("shows error when domains API returns 500", async () => {
+    it("shows the shared empty state when the app has no data", async () => {
       server.use(
-        http.get("*/api/apps/:appId/networkRequests/domains", () => {
-          return new HttpResponse(null, { status: 500 });
-        }),
+        http.get("*/api/apps/:appId/filters", () =>
+          HttpResponse.json(makeFiltersFixture({ versions: null })),
+        ),
       );
-      renderWithProviders(<NetworkOverview params={{ teamId: "test-team" }} />);
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Error fetching domains/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
 
-    it('shows "No data" when domains API returns no data', async () => {
-      server.use(
-        http.get("*/api/apps/:appId/networkRequests/domains", () => {
-          return HttpResponse.json({ results: null });
-        }),
-      );
       renderWithProviders(<NetworkOverview params={{ teamId: "test-team" }} />);
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(/No data available for the selected app/),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("No data received for this app yet"),
+        ).toBeTruthy();
+      });
+      expect(screen.queryByText("Status Distribution")).toBeNull();
     });
   });
 
@@ -242,18 +228,15 @@ describe("Network Overview (MSW integration)", () => {
   describe("status distribution plot", () => {
     it("shows error when status plot API returns 500", async () => {
       server.use(
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/overviewStatusCodes",
-          () => {
-            return new HttpResponse(null, { status: 500 });
-          },
-        ),
+        http.get("*/api/apps/:appId/networkRequests/plots/statusCodes", () => {
+          return new HttpResponse(null, { status: 500 });
+        }),
       );
       renderWithProviders(<NetworkOverview params={{ teamId: "test-team" }} />);
       await waitFor(
         () => {
           expect(
-            screen.getByText(/Error fetching status overview/),
+            screen.getByText(/Error fetching status distribution/),
           ).toBeTruthy();
         },
         { timeout: 5000 },
@@ -267,12 +250,9 @@ describe("Network Overview (MSW integration)", () => {
   describe("timeline plot", () => {
     it("shows error when timeline API returns 500", async () => {
       server.use(
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/overviewTimeline",
-          () => {
-            return new HttpResponse(null, { status: 500 });
-          },
-        ),
+        http.get("*/api/apps/:appId/networkRequests/plots/timeline", () => {
+          return new HttpResponse(null, { status: 500 });
+        }),
       );
       renderWithProviders(<NetworkOverview params={{ teamId: "test-team" }} />);
       await waitFor(
@@ -306,18 +286,24 @@ describe("Network Overview (MSW integration)", () => {
   // API PATHS
   // ================================================================
   describe("API paths", () => {
-    it("fetches domains from /networkRequests/domains", async () => {
+    it("fetches the endpoint list from /networkRequests/endpoints", async () => {
       const paths: string[] = [];
       server.use(
-        http.get("*/api/apps/:appId/networkRequests/domains", ({ request }) => {
-          paths.push(new URL(request.url).pathname);
-          return HttpResponse.json(makeNetworkDomainsFixture());
-        }),
+        http.get(
+          "*/api/apps/:appId/networkRequests/endpoints",
+          ({ request }) => {
+            paths.push(new URL(request.url).pathname);
+            return HttpResponse.json(makeNetworkEndpointsFixture());
+          },
+        ),
       );
       await renderAndWaitForData();
-      expect(paths.some((p) => p.includes("/networkRequests/domains"))).toBe(
-        true,
-      );
+      fireEvent.focus(screen.getByTestId("network-endpoint-search"));
+      await waitFor(() => {
+        expect(
+          paths.some((p) => p.includes("/networkRequests/endpoints")),
+        ).toBe(true);
+      });
     });
 
     it("fetches trends from /networkRequests/trends", async () => {
@@ -335,16 +321,32 @@ describe("Network Overview (MSW integration)", () => {
     });
   });
 
+  describe("endpoint selection", () => {
+    it("opens the selected endpoint's detail route", async () => {
+      await renderAndWaitForData();
+      fireEvent.focus(screen.getByTestId("network-endpoint-search"));
+      await waitFor(() => {
+        expect(
+          screen.getAllByTestId("network-endpoint-suggestion"),
+        ).toHaveLength(3);
+      });
+      fireEvent.click(screen.getAllByTestId("network-endpoint-suggestion")[0]);
+      expect(mockRouterPush).toHaveBeenCalledWith(
+        "/test-team/network/details?domain=api.example.com&path=%2Fv1%2Fusers%2F*%2Fprofile&from=search",
+      );
+    });
+  });
+
   // ================================================================
   // CACHING
   // ================================================================
   describe("caching", () => {
-    it("re-render with same filters re-fetches domains (gcTime: 0 evicts on unmount)", async () => {
+    it("re-render with same filters re-fetches the status plot (gcTime: 0 evicts on unmount)", async () => {
       let fetchCount = 0;
       server.use(
-        http.get("*/api/apps/:appId/networkRequests/domains", () => {
+        http.get("*/api/apps/:appId/networkRequests/plots/statusCodes", () => {
           fetchCount++;
-          return HttpResponse.json(makeNetworkDomainsFixture());
+          return HttpResponse.json(makeNetworkStatusCodesFixture());
         }),
       );
       const { unmount } = render(
@@ -354,7 +356,7 @@ describe("Network Overview (MSW integration)", () => {
       );
       await waitFor(
         () => {
-          expect(screen.getByText("Explore endpoint")).toBeTruthy();
+          expect(screen.getByText("Top Endpoints")).toBeTruthy();
         },
         { timeout: 5000 },
       );
@@ -368,7 +370,7 @@ describe("Network Overview (MSW integration)", () => {
       );
       await waitFor(
         () => {
-          expect(screen.getByText("Explore endpoint")).toBeTruthy();
+          expect(screen.getByText("Top Endpoints")).toBeTruthy();
         },
         { timeout: 5000 },
       );
@@ -380,33 +382,21 @@ describe("Network Overview (MSW integration)", () => {
   // FILTER CHANGE RE-FETCH
   // ================================================================
   describe("filter change re-fetch", () => {
-    it("date range change re-fetches domains, status plot, and timeline", async () => {
-      let domainsFetches = 0;
+    it("date range change re-fetches the status plot and timeline", async () => {
       let statusPlotFetches = 0;
       let timelineFetches = 0;
       server.use(
-        http.get("*/api/apps/:appId/networkRequests/domains", () => {
-          domainsFetches++;
-          return HttpResponse.json(makeNetworkDomainsFixture());
+        http.get("*/api/apps/:appId/networkRequests/plots/statusCodes", () => {
+          statusPlotFetches++;
+          return HttpResponse.json(makeNetworkStatusCodesFixture());
         }),
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/overviewStatusCodes",
-          () => {
-            statusPlotFetches++;
-            return HttpResponse.json(makeNetworkOverviewStatusCodesFixture());
-          },
-        ),
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/overviewTimeline",
-          () => {
-            timelineFetches++;
-            return HttpResponse.json(makeNetworkTimelineFixture());
-          },
-        ),
+        http.get("*/api/apps/:appId/networkRequests/plots/timeline", () => {
+          timelineFetches++;
+          return HttpResponse.json(makeNetworkTimelineFixture());
+        }),
       );
 
       await renderAndWaitForData();
-      const initialDomains = domainsFetches;
       const initialStatus = statusPlotFetches;
       const initialTimeline = timelineFetches;
 
@@ -436,290 +426,3 @@ describe("Network Overview (MSW integration)", () => {
 // ====================================================================
 // NETWORK DETAILS
 // ====================================================================
-describe("Network Details (MSW integration)", () => {
-  function renderDetails(
-    domain = "api.example.com",
-    path = "/v1/users/*/profile",
-  ) {
-    mockSearchParams.set("domain", domain);
-    mockSearchParams.set("path", path);
-    return renderWithProviders(
-      <NetworkDetails params={{ teamId: "test-team" }} />,
-    );
-  }
-
-  async function renderAndWaitForDetails(
-    domain = "api.example.com",
-    path = "/v1/users/*/profile",
-  ) {
-    renderDetails(domain, path);
-    await waitFor(
-      () => {
-        expect(screen.getByText("Latency")).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-  }
-
-  // ================================================================
-  // ERROR STATES
-  // ================================================================
-  describe("error states", () => {
-    it("shows error when latency API returns 500", async () => {
-      server.use(
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/endpointLatency",
-          () => {
-            return new HttpResponse(null, { status: 500 });
-          },
-        ),
-      );
-      renderDetails();
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Error fetching latency data/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it("shows error when status distribution API returns 500", async () => {
-      server.use(
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/endpointStatusCodes",
-          () => {
-            return new HttpResponse(null, { status: 500 });
-          },
-        ),
-      );
-      renderDetails();
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(/Error fetching status distribution/),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it("shows error when endpoint timeline API returns 500", async () => {
-      server.use(
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/endpointTimeline",
-          () => {
-            return new HttpResponse(null, { status: 500 });
-          },
-        ),
-      );
-      renderDetails();
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Error fetching timeline data/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-  });
-
-  // ================================================================
-  // API PATHS
-  // ================================================================
-  describe("API paths", () => {
-    it("sends domain and path in latency request URL", async () => {
-      const requestUrls: string[] = [];
-      server.use(
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/endpointLatency",
-          ({ request }) => {
-            requestUrls.push(new URL(request.url).toString());
-            return HttpResponse.json(makeNetworkEndpointLatencyFixture());
-          },
-        ),
-      );
-      await renderAndWaitForDetails();
-      const lastUrl = requestUrls[requestUrls.length - 1];
-      expect(lastUrl).toContain("domain=");
-      expect(lastUrl).toContain("path=");
-    });
-
-    it("sends domain and path in status codes request URL", async () => {
-      const requestUrls: string[] = [];
-      server.use(
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/endpointStatusCodes",
-          ({ request }) => {
-            requestUrls.push(new URL(request.url).toString());
-            return HttpResponse.json(makeNetworkEndpointStatusCodesFixture());
-          },
-        ),
-      );
-      await renderAndWaitForDetails();
-      const lastUrl = requestUrls[requestUrls.length - 1];
-      expect(lastUrl).toContain("domain=");
-      expect(lastUrl).toContain("path=");
-    });
-  });
-
-  // ================================================================
-  // URL SYNC
-  // ================================================================
-  describe("URL sync", () => {
-    it("serialises filters + domain + path into URL", async () => {
-      await renderAndWaitForDetails();
-      expect(mockRouterReplace).toHaveBeenCalled();
-      const url =
-        mockRouterReplace.mock.calls[
-          mockRouterReplace.mock.calls.length - 1
-        ][0];
-      expect(url).toContain("domain=");
-      expect(url).toContain("path=");
-    });
-  });
-
-  // ================================================================
-  // CACHING
-  // ================================================================
-  describe("caching", () => {
-    it("re-render with same params re-fetches latency (gcTime: 0)", async () => {
-      let fetchCount = 0;
-      server.use(
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/endpointLatency",
-          () => {
-            fetchCount++;
-            return HttpResponse.json(makeNetworkEndpointLatencyFixture());
-          },
-        ),
-      );
-      mockSearchParams.set("domain", "api.example.com");
-      mockSearchParams.set("path", "/v1/users/*/profile");
-      const { unmount } = render(
-        <QueryClientProvider client={testQueryClient}>
-          <NetworkDetails params={{ teamId: "test-team" }} />
-        </QueryClientProvider>,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Latency")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      const initial = fetchCount;
-
-      unmount();
-      render(
-        <QueryClientProvider client={testQueryClient}>
-          <NetworkDetails params={{ teamId: "test-team" }} />
-        </QueryClientProvider>,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Latency")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      expect(fetchCount).toBeGreaterThan(initial);
-    });
-
-    it("different domain+path bypasses cache and re-fetches", async () => {
-      let fetchCount = 0;
-      server.use(
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/endpointLatency",
-          () => {
-            fetchCount++;
-            return HttpResponse.json(makeNetworkEndpointLatencyFixture());
-          },
-        ),
-      );
-
-      // Render with first endpoint
-      const { unmount } = renderWithProviders(
-        <NetworkDetails params={{ teamId: "test-team" }} />,
-      );
-      mockSearchParams.set("domain", "api.example.com");
-      mockSearchParams.set("path", "/v1/users/*/profile");
-      await waitFor(
-        () => {
-          expect(screen.getByText("Latency")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      const initial = fetchCount;
-
-      unmount();
-
-      // Render with a different endpoint so the latency query key changes
-      mockSearchParams.set("domain", "cdn.example.com");
-      mockSearchParams.set("path", "/images/*");
-      renderWithProviders(<NetworkDetails params={{ teamId: "test-team" }} />);
-      await waitFor(
-        () => {
-          expect(screen.getByText("Latency")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      expect(fetchCount).toBeGreaterThan(initial);
-    });
-  });
-
-  // ================================================================
-  // FILTER CHANGE RE-FETCH
-  // ================================================================
-  describe("filter change re-fetch", () => {
-    it("date range change re-fetches all 3 endpoints", async () => {
-      let latencyFetches = 0;
-      let statusFetches = 0;
-      let timelineFetches = 0;
-      server.use(
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/endpointLatency",
-          () => {
-            latencyFetches++;
-            return HttpResponse.json(makeNetworkEndpointLatencyFixture());
-          },
-        ),
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/endpointStatusCodes",
-          () => {
-            statusFetches++;
-            return HttpResponse.json(makeNetworkEndpointStatusCodesFixture());
-          },
-        ),
-        http.get(
-          "*/api/apps/:appId/networkRequests/plots/endpointTimeline",
-          () => {
-            timelineFetches++;
-            return HttpResponse.json(makeNetworkEndpointTimelineFixture());
-          },
-        ),
-      );
-
-      await renderAndWaitForDetails();
-      const initialLatency = latencyFetches;
-      const initialStatus = statusFetches;
-      const initialTimeline = timelineFetches;
-
-      const now = new Date();
-      await act(async () => {
-        filtersStore.getState().setSelectedDateRange("Last Week");
-        filtersStore
-          .getState()
-          .setSelectedStartDate(
-            new Date(now.getTime() - 7 * 86400000).toISOString(),
-          );
-        filtersStore.getState().setSelectedEndDate(now.toISOString());
-      });
-
-      await waitFor(
-        () => {
-          expect(latencyFetches).toBeGreaterThan(initialLatency);
-        },
-        { timeout: 5000 },
-      );
-      expect(statusFetches).toBeGreaterThan(initialStatus);
-      expect(timelineFetches).toBeGreaterThan(initialTimeline);
-    });
-  });
-});

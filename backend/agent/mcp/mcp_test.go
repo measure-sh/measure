@@ -1588,10 +1588,14 @@ func TestMCPToolsList(t *testing.T) {
 	tools, _ := result["tools"].([]any)
 
 	toolNames := make(map[string]bool)
+	toolSchemas := make(map[string]map[string]any)
 	for _, tool := range tools {
 		tm, _ := tool.(map[string]any)
 		name, _ := tm["name"].(string)
 		toolNames[name] = true
+		if schema, ok := tm["inputSchema"].(map[string]any); ok {
+			toolSchemas[name] = schema
+		}
 	}
 
 	expectedTools := []string{
@@ -1605,11 +1609,11 @@ func TestMCPToolsList(t *testing.T) {
 		"update_bug_report_status",
 		"get_root_span_names", "get_span_instances", "get_span_metrics_over_time",
 		"get_trace", "get_alerts", "get_journey",
-		"get_network_unique_domains", "get_network_paths_for_domain", "get_network_metrics_trends",
+		"get_network_metrics_trends",
 		"get_network_status_codes_over_time",
-		"get_network_endpoint_latency_over_time", "get_network_endpoint_status_codes_over_time",
-		"get_network_requests_timeline",
-		"get_network_endpoint_timeline",
+		"get_network_endpoint_status_codes_over_time",
+		"get_network_latency_over_time",
+		"get_network_timeline",
 		"ask_question",
 	}
 	for _, expected := range expectedTools {
@@ -1619,6 +1623,22 @@ func TestMCPToolsList(t *testing.T) {
 	}
 	if len(tools) != len(expectedTools) {
 		t.Errorf("want %d tools, got %d", len(expectedTools), len(tools))
+	}
+	if toolNames["get_network_endpoints"] {
+		t.Error("get_network_endpoints should not be exposed over MCP")
+	}
+	for _, name := range []string{
+		"get_network_status_codes_over_time",
+		"get_network_latency_over_time",
+		"get_network_timeline",
+	} {
+		schema := toolSchemas[name]
+		required, _ := schema["required"].([]any)
+		for _, field := range required {
+			if field == "domain" || field == "path" {
+				t.Errorf("tool %q advertises optional field %q as required", name, field)
+			}
+		}
 	}
 }
 
@@ -3686,75 +3706,121 @@ func TestMCPGetJourney(t *testing.T) {
 	})
 }
 
-func TestMCPGetNetworkDomains(t *testing.T) {
+func TestMCPNetworkSelectionScopes(t *testing.T) {
 	ctx := context.Background()
-	setupToolTest := func(t *testing.T, email string) (uuid.UUID, string) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), email)
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, email+" team")
-		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
-		appID := uuid.New()
-		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
-		return appID, rawToken
+	cleanupAll(ctx, t)
+
+	userID := uuid.New()
+	teamID := uuid.New()
+	appID := uuid.New()
+	rawToken := "msr_networkscopes"
+	seedUser(ctx, t, userID.String(), "networkscopes@mcp.test")
+	seedTeam(ctx, t, teamID, "network scopes team")
+	seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+	seedApp(ctx, t, appID, teamID, 30)
+	seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+
+	now := time.Now().UTC().Truncate(15 * time.Minute)
+	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://a.example.com/one", "GET", 200, 5, now)
+	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://a.example.com/two", "GET", 404, 2, now)
+	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://b.example.com/three", "GET", 500, 3, now)
+	seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "a.example.com", "/one", 5, 5, 0, 0, now)
+	seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "a.example.com", "/two", 2, 0, 2, 0, now)
+	seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "b.example.com", "/three", 3, 0, 0, 3, now)
+
+	from := now.Add(-time.Hour).Format(time.RFC3339)
+	to := now.Add(time.Hour).Format(time.RFC3339)
+	scopes := []struct {
+		name   string
+		args   map[string]any
+		count  float64
+		points int
+	}{
+		{"app", map[string]any{}, 10, 3},
+		{"domain", map[string]any{"domain": "a.example.com"}, 7, 2},
+		{"endpoint", map[string]any{"domain": "a.example.com", "path": "/one"}, 5, 1},
+		{"path across domains", map[string]any{"path": "/one"}, 5, 1},
+		{"wildcard endpoint pattern", map[string]any{"domain": "*.example.com", "path": "/*"}, 10, 3},
 	}
 
-	t.Run("missing app_id", func(t *testing.T) {
-		_, rawToken := setupToolTest(t, "netdom1@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_network_unique_domains", nil)
-		if !isToolError(resp) {
-			t.Error("want tool error for missing app_id")
+	sumDataPoints := func(t *testing.T, content, field string) float64 {
+		t.Helper()
+		var points []map[string]any
+		if err := json.Unmarshal([]byte(content), &points); err != nil {
+			t.Fatalf("response is not a data-point array: %v", err)
 		}
-	})
-	t.Run("valid call", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "netdom2@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_network_unique_domains", map[string]any{"app_id": appID.String()})
-		if isToolError(resp) {
-			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		var total float64
+		for _, point := range points {
+			total += point[field].(float64)
 		}
-	})
-}
+		return total
+	}
+	for _, scope := range scopes {
+		t.Run(scope.name, func(t *testing.T) {
+			plotArgs := map[string]any{"app_id": appID.String(), "from": from, "to": to, "timezone": "UTC"}
+			for key, value := range scope.args {
+				plotArgs[key] = value
+			}
 
-func TestMCPGetNetworkPaths(t *testing.T) {
-	ctx := context.Background()
-	setupToolTest := func(t *testing.T, email string) (uuid.UUID, string) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), email)
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, email+" team")
-		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
-		appID := uuid.New()
-		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
-		return appID, rawToken
+			bucket := callMCPTool(t, rawToken, "get_network_status_codes_over_time", plotArgs)
+			if isToolError(bucket) {
+				t.Fatalf("bucket tool error: %s", extractTextContent(t, bucket))
+			}
+			if got := sumDataPoints(t, extractTextContent(t, bucket), "total_count"); got != scope.count {
+				t.Errorf("bucket total = %v, want %v", got, scope.count)
+			}
+
+			latency := callMCPTool(t, rawToken, "get_network_latency_over_time", plotArgs)
+			if isToolError(latency) {
+				t.Fatalf("latency tool error: %s", extractTextContent(t, latency))
+			}
+			if got := sumDataPoints(t, extractTextContent(t, latency), "count"); got != scope.count {
+				t.Errorf("latency total = %v, want %v", got, scope.count)
+			}
+
+			timelineArgs := map[string]any{"app_id": appID.String(), "from": from, "to": to}
+			for key, value := range scope.args {
+				timelineArgs[key] = value
+			}
+			timeline := callMCPTool(t, rawToken, "get_network_timeline", timelineArgs)
+			if isToolError(timeline) {
+				t.Fatalf("timeline tool error: %s", extractTextContent(t, timeline))
+			}
+			var timelineResult struct {
+				Points []any `json:"points"`
+			}
+			if err := json.Unmarshal([]byte(extractTextContent(t, timeline)), &timelineResult); err != nil {
+				t.Fatalf("timeline response is not JSON: %v", err)
+			}
+			if len(timelineResult.Points) != scope.points*2 {
+				t.Errorf("timeline points = %d, want %d", len(timelineResult.Points), scope.points*2)
+			}
+		})
 	}
 
-	t.Run("missing app_id", func(t *testing.T) {
-		_, rawToken := setupToolTest(t, "netpath1@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_network_paths_for_domain", map[string]any{"domain": "example.com"})
-		if !isToolError(resp) {
-			t.Error("want tool error for missing app_id")
-		}
+	exactStatusCodes := callMCPTool(t, rawToken, "get_network_endpoint_status_codes_over_time", map[string]any{
+		"app_id":   appID.String(),
+		"path":     "/one",
+		"from":     from,
+		"to":       to,
+		"timezone": "UTC",
 	})
-	t.Run("missing domain", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "netpath2@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_network_paths_for_domain", map[string]any{"app_id": appID.String()})
-		if !isToolError(resp) {
-			t.Error("want tool error for missing domain")
-		}
-	})
-	t.Run("valid call", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "netpath3@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_network_paths_for_domain", map[string]any{"app_id": appID.String(), "domain": "example.com"})
-		if isToolError(resp) {
-			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
-		}
-	})
+	if isToolError(exactStatusCodes) {
+		t.Fatalf("exact status-code tool error: %s", extractTextContent(t, exactStatusCodes))
+	}
+	var exactResult struct {
+		StatusCodes []int            `json:"status_codes"`
+		DataPoints  []map[string]any `json:"data_points"`
+	}
+	if err := json.Unmarshal([]byte(extractTextContent(t, exactStatusCodes)), &exactResult); err != nil {
+		t.Fatalf("exact status-code response is not JSON: %v", err)
+	}
+	if len(exactResult.StatusCodes) != 1 || exactResult.StatusCodes[0] != 200 {
+		t.Errorf("status codes = %v, want [200]", exactResult.StatusCodes)
+	}
+	if len(exactResult.DataPoints) != 1 || exactResult.DataPoints[0]["count_200"] != float64(5) {
+		t.Errorf("data points = %v, want one count_200=5", exactResult.DataPoints)
+	}
 }
 
 func TestMCPGetNetworkTrends(t *testing.T) {
@@ -3841,62 +3907,15 @@ func TestMCPGetNetworkDetailLatencyOverTime(t *testing.T) {
 
 	t.Run("missing timezone", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "netdetlat1@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_network_endpoint_latency_over_time", map[string]any{"app_id": appID.String(), "domain": "api.example.com", "path": "/v1/users"})
+		resp := callMCPTool(t, rawToken, "get_network_latency_over_time", map[string]any{"app_id": appID.String(), "domain": "api.example.com", "path": "/v1/users"})
 		if !isToolError(resp) {
 			t.Error("want tool error for missing timezone")
-		}
-	})
-	t.Run("missing domain", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "netdetlat2@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_network_endpoint_latency_over_time", map[string]any{"app_id": appID.String(), "timezone": "UTC"})
-		if !isToolError(resp) {
-			t.Error("want tool error for missing domain")
 		}
 	})
 	t.Run("valid call", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "netdetlat3@mcp.test")
 		now := time.Now().UTC()
-		resp := callMCPTool(t, rawToken, "get_network_endpoint_latency_over_time", map[string]any{"app_id": appID.String(), "domain": "api.example.com", "path": "/v1/users", "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
-		if isToolError(resp) {
-			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
-		}
-	})
-}
-
-func TestMCPGetNetworkDetailStatusOverTime(t *testing.T) {
-	ctx := context.Background()
-	setupToolTest := func(t *testing.T, email string) (uuid.UUID, string) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), email)
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, email+" team")
-		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
-		appID := uuid.New()
-		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
-		return appID, rawToken
-	}
-
-	t.Run("missing timezone", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "netdetstat1@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_network_endpoint_status_codes_over_time", map[string]any{"app_id": appID.String(), "domain": "api.example.com", "path": "/v1/users"})
-		if !isToolError(resp) {
-			t.Error("want tool error for missing timezone")
-		}
-	})
-	t.Run("missing domain", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "netdetstat2@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_network_endpoint_status_codes_over_time", map[string]any{"app_id": appID.String(), "timezone": "UTC"})
-		if !isToolError(resp) {
-			t.Error("want tool error for missing domain")
-		}
-	})
-	t.Run("valid call", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "netdetstat3@mcp.test")
-		now := time.Now().UTC()
-		resp := callMCPTool(t, rawToken, "get_network_endpoint_status_codes_over_time", map[string]any{"app_id": appID.String(), "domain": "api.example.com", "path": "/v1/users", "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
+		resp := callMCPTool(t, rawToken, "get_network_latency_over_time", map[string]any{"app_id": appID.String(), "domain": "api.example.com", "path": "/v1/users", "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
@@ -3921,7 +3940,7 @@ func TestMCPGetNetworkTimeline(t *testing.T) {
 
 	t.Run("missing app_id", func(t *testing.T) {
 		_, rawToken := setupToolTest(t, "nettl1@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_network_requests_timeline", nil)
+		resp := callMCPTool(t, rawToken, "get_network_timeline", nil)
 		if !isToolError(resp) {
 			t.Error("want tool error for missing app_id")
 		}
@@ -3929,7 +3948,7 @@ func TestMCPGetNetworkTimeline(t *testing.T) {
 	t.Run("valid call", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "nettl2@mcp.test")
 		now := time.Now().UTC()
-		resp := callMCPTool(t, rawToken, "get_network_requests_timeline", map[string]any{"app_id": appID.String(), "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
+		resp := callMCPTool(t, rawToken, "get_network_timeline", map[string]any{"app_id": appID.String(), "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
@@ -3954,23 +3973,15 @@ func TestMCPGetNetworkEndpointTimeline(t *testing.T) {
 
 	t.Run("missing app_id", func(t *testing.T) {
 		_, rawToken := setupToolTest(t, "neteptl1@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_network_endpoint_timeline", nil)
+		resp := callMCPTool(t, rawToken, "get_network_timeline", nil)
 		if !isToolError(resp) {
 			t.Error("want tool error for missing app_id")
-		}
-	})
-	t.Run("missing domain", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "neteptl2@mcp.test")
-		now := time.Now().UTC()
-		resp := callMCPTool(t, rawToken, "get_network_endpoint_timeline", map[string]any{"app_id": appID.String(), "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
-		if !isToolError(resp) {
-			t.Error("want tool error for missing domain")
 		}
 	})
 	t.Run("valid call", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "neteptl3@mcp.test")
 		now := time.Now().UTC()
-		resp := callMCPTool(t, rawToken, "get_network_endpoint_timeline", map[string]any{"app_id": appID.String(), "domain": "api.example.com", "path": "/v1/users", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
+		resp := callMCPTool(t, rawToken, "get_network_timeline", map[string]any{"app_id": appID.String(), "domain": "api.example.com", "path": "/v1/users", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}

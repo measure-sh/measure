@@ -12,6 +12,7 @@ const mockRouterPush = jest.fn();
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockRouterPush }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 jest.mock("next/link", () => ({
@@ -151,7 +152,7 @@ describe("NetworkTrends", () => {
         error: null,
       });
       await act(async () => {
-        render(<NetworkTrends teamId="team-1" />);
+        render(<NetworkTrends />);
       });
       expect(screen.getByTestId("loading-bar")).toBeInTheDocument();
     });
@@ -166,7 +167,7 @@ describe("NetworkTrends", () => {
         error: new Error("fail"),
       });
       await act(async () => {
-        render(<NetworkTrends teamId="team-1" />);
+        render(<NetworkTrends />);
       });
       await waitFor(() => {
         expect(screen.getByText(/Error fetching overview/)).toBeInTheDocument();
@@ -183,7 +184,7 @@ describe("NetworkTrends", () => {
         error: null,
       });
       await act(async () => {
-        render(<NetworkTrends teamId="team-1" />);
+        render(<NetworkTrends />);
       });
       await waitFor(() => {
         expect(screen.getByText(/No data available/)).toBeInTheDocument();
@@ -203,7 +204,7 @@ describe("NetworkTrends", () => {
 
     it("renders table with endpoint data", async () => {
       await act(async () => {
-        render(<NetworkTrends teamId="team-1" />);
+        render(<NetworkTrends />);
       });
       await waitFor(() => {
         expect(
@@ -217,7 +218,7 @@ describe("NetworkTrends", () => {
 
     it("shows latency, error rate and frequency columns", async () => {
       await act(async () => {
-        render(<NetworkTrends teamId="team-1" />);
+        render(<NetworkTrends />);
       });
       await waitFor(() => {
         expect(screen.getByText("Latency (p95)")).toBeInTheDocument();
@@ -231,7 +232,7 @@ describe("NetworkTrends", () => {
 
     it("renders tab buttons (Latency, Error Rate, Frequency)", async () => {
       await act(async () => {
-        render(<NetworkTrends teamId="team-1" />);
+        render(<NetworkTrends />);
       });
       await waitFor(() => {
         // Use getAllByText for 'Frequency' since the table header also says 'Frequency'
@@ -245,7 +246,7 @@ describe("NetworkTrends", () => {
 
     it("switches data when tab is clicked", async () => {
       await act(async () => {
-        render(<NetworkTrends teamId="team-1" />);
+        render(<NetworkTrends />);
       });
       await waitFor(() => {
         expect(
@@ -269,7 +270,7 @@ describe("NetworkTrends", () => {
       });
     });
 
-    it("navigates to endpoint details on row click", async () => {
+    it("opens endpoint details when its row is clicked", async () => {
       await act(async () => {
         render(<NetworkTrends teamId="team-1" />);
       });
@@ -283,8 +284,92 @@ describe("NetworkTrends", () => {
         screen.getByText("api.example.com/v1/checkout").closest("tr")!,
       );
       expect(mockRouterPush).toHaveBeenCalledWith(
-        "/team-1/network/details?domain=api.example.com&path=%2Fv1%2Fcheckout",
+        "/team-1/network/details?domain=api.example.com&path=%2Fv1%2Fcheckout&from=top_endpoint",
       );
+    });
+
+    it("links the endpoint text to its details page", async () => {
+      await act(async () => {
+        render(<NetworkTrends teamId="team-1" />);
+      });
+      await waitFor(() => {
+        expect(
+          screen.getByText("api.example.com/v1/checkout"),
+        ).toBeInTheDocument();
+      });
+
+      expect(screen.getAllByRole("link")[0]).toHaveAttribute(
+        "href",
+        "/team-1/network/details?domain=api.example.com&path=%2Fv1%2Fcheckout&from=top_endpoint",
+      );
+    });
+
+    it("leaves a modified endpoint click to the browser", async () => {
+      await act(async () => {
+        render(<NetworkTrends teamId="team-1" />);
+      });
+      await waitFor(() => {
+        expect(
+          screen.getByText("api.example.com/v1/checkout"),
+        ).toBeInTheDocument();
+      });
+
+      expect(
+        fireEvent.click(
+          screen.getByText("api.example.com/v1/checkout").closest("tr")!,
+          { metaKey: true },
+        ),
+      ).toBe(true);
+      expect(mockRouterPush).not.toHaveBeenCalled();
+    });
+
+    it("opens endpoint details on Enter", async () => {
+      await act(async () => {
+        render(<NetworkTrends teamId="team-1" />);
+      });
+      await waitFor(() => {
+        expect(
+          screen.getByText("api.example.com/v1/checkout"),
+        ).toBeInTheDocument();
+      });
+
+      fireEvent.keyDown(
+        screen.getByText("api.example.com/v1/checkout").closest("tr")!,
+        { key: "Enter" },
+      );
+      expect(mockRouterPush).toHaveBeenCalledWith(
+        "/team-1/network/details?domain=api.example.com&path=%2Fv1%2Fcheckout&from=top_endpoint",
+      );
+    });
+  });
+
+  describe("Docs link", () => {
+    it("offers the endpoint patterns tooltip beside the title", async () => {
+      useFiltersStore.setState({ filters: readyFilters() });
+      mockUseNetworkTrendsQuery.mockReturnValue({
+        data: mockTrendsData(),
+        status: "success",
+        error: null as Error | null,
+      });
+      await act(async () => {
+        render(<NetworkTrends />);
+      });
+      expect(
+        screen
+          .getByText("Top Endpoints")
+          .parentElement!.querySelector('[data-slot="tooltip-trigger"]'),
+      ).toBeTruthy();
+    });
+
+    it("drops the tooltip in demo mode", async () => {
+      await act(async () => {
+        render(<NetworkTrends demo={true} />);
+      });
+      expect(
+        screen
+          .getByText("Top Endpoints")
+          .parentElement!.querySelector('[data-slot="tooltip-trigger"]'),
+      ).toBeNull();
     });
   });
 
@@ -298,7 +383,7 @@ describe("NetworkTrends", () => {
       expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
     });
 
-    it("does not navigate on row click in demo mode", async () => {
+    it("does not navigate from a demo row click", async () => {
       await act(async () => {
         render(<NetworkTrends demo={true} />);
       });

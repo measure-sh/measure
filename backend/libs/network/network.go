@@ -20,16 +20,24 @@ import (
 )
 
 const (
-	maxPathSuggestions         = 10
-	defaultOverviewTimelineMax = 10
+	searchResultsLimit = 20
+
+	maxTimelineEndpointPatterns = 10
 )
 
-// MetricsDataPoint represents a single data point
-// in a time series.
+// MetricsDataPoint is one time-series data point.
 type MetricsDataPoint map[string]any
 
-// TrendMetric represents metrics for
-// a single endpoint.
+// EndpointStatusCodesPlotResponse contains a
+// time series for each observed HTTP status
+// code.
+type EndpointStatusCodesPlotResponse struct {
+	StatusCodes []int              `json:"status_codes"`
+	DataPoints  []MetricsDataPoint `json:"data_points"`
+}
+
+// TrendMetric contains metrics for one
+// endpoint pattern.
 type TrendMetric struct {
 	Domain      string  `json:"domain"`
 	PathPattern string  `json:"path_pattern"`
@@ -38,23 +46,23 @@ type TrendMetric struct {
 	Frequency   uint64  `json:"frequency"`
 }
 
-// TrendsResponse contains high-level network
-// performance summary metrics.
+// TrendsResponse groups endpoint rankings
+// by latency, error rate, and frequency.
 type TrendsResponse struct {
 	TrendsLatency   []TrendMetric `json:"trends_latency"`
 	TrendsErrorRate []TrendMetric `json:"trends_error_rate"`
 	TrendsFrequency []TrendMetric `json:"trends_frequency"`
 }
 
-// TimeRange is a period between
-// two points in time.
-type TimeRange struct {
-	From time.Time
-	To   time.Time
+// Endpoint represents a domain and URL path pattern.
+type Endpoint struct {
+	Domain      string `json:"domain"`
+	PathPattern string `json:"path_pattern"`
 }
 
-// TimelinePoint represents a single URL
-// pattern's per-session average request count bucket.
+// TimelinePoint is the per-session average
+// request count for one endpoint and time
+// bucket.
 type TimelinePoint struct {
 	Elapsed     uint32  `json:"elapsed"`
 	Domain      string  `json:"domain"`
@@ -62,28 +70,33 @@ type TimelinePoint struct {
 	Count       float64 `json:"count"`
 }
 
-// TimelineResponse wraps timeline points with
-// the bucket interval size in seconds.
+// TimelineResponse includes timeline points
+// and their bucket interval in seconds.
 type TimelineResponse struct {
 	Interval uint32          `json:"interval"`
 	Points   []TimelinePoint `json:"points"`
 }
 
-// EndpointStatusCodesPlotResponse wraps
-// per-status-code time series data.
-type EndpointStatusCodesPlotResponse struct {
-	StatusCodes []int              `json:"status_codes"`
-	DataPoints  []MetricsDataPoint `json:"data_points"`
+// searchInput represents a parsed picker search.
+type searchInput struct {
+	text     string
+	domain   string
+	path     string
+	wildcard bool
 }
 
-// perSessionAvg computes the average count per
-// session, rounded to 2 decimal places.
-func perSessionAvg(count, sessions uint64) float64 {
-	return math.Round(float64(count)/float64(sessions)*100) / 100
+// withQueryName tags a query with its name
+// for the ClickHouse query log.
+func withQueryName(ctx context.Context, name string) context.Context {
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
+	}
+	return chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, name))
 }
 
-// applyEventsFilters applies common filters from
-// AppFilter to the query statement.
+// applyEventsFilters applies supported
+// AppFilter criteria to http_events.
 func applyEventsFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
 	if af.HasVersions() {
 		selectedVersions, err := af.VersionPairs()
@@ -115,70 +128,215 @@ func applyEventsFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
 		stmt.Where("`attribute.device_manufacturer`").In(af.DeviceManufacturers)
 	}
 
+	if af.HasDeviceNames() {
+		stmt.Where("`attribute.device_name`").In(af.DeviceNames)
+	}
+
 	if af.HasDeviceLocales() {
 		stmt.Where("`attribute.device_locale`").In(af.Locales)
 	}
 
-	// Add device name filter
+	if af.HasCountries() {
+		stmt.Where("`inet.country_code`").In(af.Countries)
+	}
 
 	if af.HasHttpMethods() {
 		stmt.Where("method").In(af.HttpMethods)
 	}
 }
 
-// applyPathFilter adds path matching to the query.
-// Optimizes to use startsWith when possible.
-func applyPathFilter(stmt *sqlf.Stmt, pathPattern string) {
-	if prefix, ok := strings.CutSuffix(pathPattern, "**"); ok {
-		if !strings.Contains(prefix, "*") {
-			stmt.Where("startsWith(path, ?)", prefix)
-		} else {
-			likePattern := strings.ReplaceAll(prefix, "*", "%") + "%"
-			stmt.Where("path LIKE ?", likePattern)
+// applyMetricsFilters applies supported
+// AppFilter criteria to http_metrics.
+func applyMetricsFilters(stmt *sqlf.Stmt, af *filter.AppFilter) {
+	if af.HasVersions() {
+		selectedVersions, err := af.VersionPairs()
+		if err == nil {
+			stmt.Having("hasAny(groupUniqArrayArray(`app_versions`), [?])", selectedVersions.Parameterize())
 		}
+	}
+	if af.HasOSVersions() {
+		selectedOSVersions, err := af.OSVersionPairs()
+		if err == nil {
+			stmt.Having("hasAny(groupUniqArrayArray(`os_versions`), [?])", selectedOSVersions.Parameterize())
+		}
+	}
+	if af.HasDeviceManufacturers() {
+		stmt.Having("hasAny(groupUniqArrayArray(`device_manufacturers`), ?)", af.DeviceManufacturers)
+	}
+	if af.HasDeviceNames() {
+		stmt.Having("hasAny(groupUniqArrayArray(`device_names`), ?)", af.DeviceNames)
+	}
+	if af.HasNetworkProviders() {
+		stmt.Having("hasAny(groupUniqArrayArray(`network_providers`), ?)", af.NetworkProviders)
+	}
+	if af.HasNetworkTypes() {
+		stmt.Having("hasAny(groupUniqArrayArray(`network_types`), ?)", af.NetworkTypes)
+	}
+	if af.HasNetworkGenerations() {
+		stmt.Having("hasAny(groupUniqArrayArray(`network_generations`), ?)", af.NetworkGenerations)
+	}
+	if af.HasDeviceLocales() {
+		stmt.Having("hasAny(groupUniqArrayArray(`device_locales`), ?)", af.Locales)
+	}
+	if af.HasHttpMethods() {
+		stmt.Having("hasAny(groupUniqArrayArray(`methods`), ?)", af.HttpMethods)
+	}
+	if af.HasCountries() {
+		stmt.Having("hasAny(groupUniqArrayArray(`inet.country_code`), ?)", af.Countries)
+	}
+}
+
+func applyDomainFilter(stmt *sqlf.Stmt, domain string) {
+	if domain == "" {
 		return
 	}
 
-	if strings.Contains(pathPattern, "*") {
-		likePattern := strings.ReplaceAll(pathPattern, "*", "%")
-		stmt.Where("path LIKE ?", likePattern)
+	if strings.Contains(domain, "*") {
+		stmt.Where("domain LIKE ?", searchWildcardsToLike(domain))
 		return
 	}
 
-	stmt.Where("path = ?", pathPattern)
+	stmt.Where("domain = ?", domain)
 }
 
-// patternExists checks if a path pattern exists in
-// the url_patterns table for the given app.
-func patternExists(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, domain, pathPattern string) (bool, error) {
-	ctx = chquery.WithTeamScope(ctx, teamId)
-	stmt := sqlf.
-		Select("1").
-		From("url_patterns FINAL").
-		Where("team_id = toUUID(?)", teamId).
-		Where("app_id = toUUID(?)", appId).
-		Where("domain = ?", domain).
-		Where("path = ?", pathPattern).
-		Limit(1)
-
-	defer stmt.Close()
-
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
-	}
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "pattern_exists"))
-
-	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return false, err
-	}
-
-	return rows.Next(), rows.Err()
+// searchWildcardsToLike translates * to SQL LIKE's %.
+func searchWildcardsToLike(pattern string) string {
+	return strings.ReplaceAll(pattern, "*", "%")
 }
 
-// fetchTrendsCategory queries a single trends
-// category from http_metrics.
+// endpointSearchCondition builds the SQL condition
+// for search.
+// - Plain text matches any part of a domain or path
+// - Domain/path input matches a domain suffix and a path prefix
+// - Asterisks use SQL LIKE semantics
+func endpointSearchCondition(domainColumn, pathColumn string, search searchInput) (string, []any) {
+	domain := fmt.Sprintf("lower(%s)", domainColumn)
+	path := fmt.Sprintf("lower(%s)", pathColumn)
+
+	switch {
+	case !search.wildcard && search.path == "":
+		// "users" matches either a domain or path containing "users".
+		condition := fmt.Sprintf("(%s LIKE concat('%%', lower(?), '%%') OR %s LIKE concat('%%', lower(?), '%%'))", domain, path)
+		return condition, []any{search.text, search.text}
+
+	case !search.wildcard && search.domain == "":
+		// "/v1/users" matches paths containing "/v1/users".
+		return fmt.Sprintf("%s LIKE concat('%%', lower(?), '%%')", path), []any{search.path}
+
+	case !search.wildcard:
+		// "api.example.com/v1" matches a domain suffix and path prefix.
+		condition := fmt.Sprintf("endsWith(%s, lower(?)) AND startsWith(%s, lower(?))", domain, path)
+		return condition, []any{search.domain, search.path}
+
+	case search.path == "":
+		// "api*" wildcard-matches domains.
+		return fmt.Sprintf("%s LIKE lower(?)", domain), []any{searchPatternToLikePrefix(search.text)}
+
+	case search.domain == "":
+		// "users/*" wildcard-matches paths.
+		pathPattern := searchPatternToLikePrefix(search.path)
+		return fmt.Sprintf("%s LIKE lower(?)", path), []any{"%" + pathPattern}
+
+	default:
+		// "api.example.com/v1/*" matches the domain and a wildcard path.
+		condition := fmt.Sprintf("%s LIKE lower(?) AND %s LIKE lower(?)", domain, path)
+		return condition, []any{searchWildcardsToLike(search.domain), searchPatternToLikePrefix(search.path)}
+	}
+}
+
+func searchPatternToLikePrefix(pattern string) string {
+	return strings.TrimRight(searchWildcardsToLike(pattern), "%") + "%"
+}
+
+// pathPatternMatchExpression returns a ClickHouse expression for paths where
+// a complete "*" segment matches one non-empty segment and a final "**"
+// matches one or more descendant segments.
+func pathPatternMatchExpression(pathExpression, patternExpression string) string {
+	pathParts := fmt.Sprintf("splitByChar('/', %s)", pathExpression)
+	patternParts := fmt.Sprintf("splitByChar('/', %s)", patternExpression)
+	prefixPatternParts := fmt.Sprintf(
+		"arraySlice(%s, 1, length(%s) - 1)",
+		patternParts,
+		patternParts,
+	)
+	prefixPathParts := fmt.Sprintf(
+		"arraySlice(%s, 1, length(%s) - 1)",
+		pathParts,
+		patternParts,
+	)
+
+	matchesExpression := func(paths, patterns string) string {
+		return "arrayAll(index -> if(arrayElement(" + patterns + ", index) = '*', arrayElement(" + paths + ", index) != '', arrayElement(" + paths + ", index) = arrayElement(" + patterns + ", index)), range(1, length(" + patterns + ") + 1))"
+	}
+
+	descendantMatch := fmt.Sprintf(
+		"length(%s) > length(%s) - 1 AND %s",
+		pathParts,
+		patternParts,
+		matchesExpression(prefixPathParts, prefixPatternParts),
+	)
+	exactMatch := fmt.Sprintf(
+		"length(%s) = length(%s) AND %s",
+		pathParts,
+		patternParts,
+		matchesExpression(pathParts, patternParts),
+	)
+
+	return fmt.Sprintf(
+		"multiIf((%[1]s = '**' OR endsWith(%[1]s, '/**')), %[2]s, %[3]s)",
+		patternExpression,
+		descendantMatch,
+		exactMatch,
+	)
+}
+
+// pathPatternMatchPredicate uses simple path predicates where they preserve
+// the wildcard rules. Other wildcard patterns keep the full matcher behind a
+// literal-prefix filter.
+func pathPatternMatchPredicate(pathExpression, pattern string) (string, []any) {
+	if !strings.Contains(pattern, "*") {
+		return pathExpression + " = ?", []any{pattern}
+	}
+
+	if hasTrailingDescendantWildcard(pattern) {
+		prefix := strings.TrimSuffix(pattern, "**")
+		if !strings.Contains(prefix, "*") {
+			if prefix == "" {
+				return "1", nil
+			}
+			return "startsWith(" + pathExpression + ", ?)", []any{prefix}
+		}
+	}
+
+	expression := pathPatternMatchExpression(pathExpression, "?")
+	args := make([]any, strings.Count(expression, "?"))
+	for i := range args {
+		args[i] = pattern
+	}
+
+	literalPrefix := pattern[:strings.Index(pattern, "*")]
+	if literalPrefix != "" {
+		return "startsWith(" + pathExpression + ", ?) AND (" + expression + ")", append([]any{literalPrefix}, args...)
+	}
+
+	return expression, args
+}
+
+func hasTrailingDescendantWildcard(pattern string) bool {
+	return pattern == "**" || strings.HasSuffix(pattern, "/**")
+}
+
+// applyPathFilter adds segment-aware endpoint-pattern matching.
+func applyPathFilter(stmt *sqlf.Stmt, pathPattern string) {
+	if pathPattern == "" {
+		return
+	}
+
+	condition, args := pathPatternMatchPredicate("path", pathPattern)
+	stmt.Where(condition, args...)
+}
+
+// fetchTrendsCategory returns one endpoint ranking from http_metrics.
 func fetchTrendsCategory(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, af *filter.AppFilter, orderBy string, limit int) ([]TrendMetric, error) {
 	ctx = chquery.WithTeamScope(ctx, teamId)
 	stmt := sqlf.
@@ -199,11 +357,7 @@ func fetchTrendsCategory(ctx context.Context, ch driver.Conn, appId, teamId uuid
 
 	defer stmt.Close()
 
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
-	}
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "fetch_trends_category"))
+	ctx = withQueryName(ctx, "fetch_trends_category")
 
 	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -231,145 +385,135 @@ func fetchTrendsCategory(ctx context.Context, ch driver.Conn, appId, teamId uuid
 	return tm, nil
 }
 
-// FetchDomains returns list of unique domains for a
-// given app and team within the given time range.
-func FetchDomains(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, from, to time.Time) (domains []string, err error) {
-	ctx = chquery.WithTeamScope(ctx, teamId)
-	// clamp to a minimum of 1 week
-	// as smaller time ranges may not
-	// have enough data available
-	minDuration := 7 * 24 * time.Hour
-	if to.Sub(from) < minDuration {
-		from = to.Add(-minDuration)
-	}
-
-	stmt := sqlf.
-		Select("domain").
-		From("http_events").
-		Where("team_id = toUUID(?)", teamId).
-		Where("app_id = toUUID(?)", appId).
-		Where("timestamp >= ?", from).
-		Where("timestamp < ?", to).
-		GroupBy("domain").
-		OrderBy("count() DESC")
-
-	defer stmt.Close()
-
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
-	}
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "fetch_domains"))
-
-	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
+func scanEndpoints(rows driver.Rows) (endpoints []Endpoint, err error) {
+	endpoints = []Endpoint{}
 	for rows.Next() {
-		var domain string
-		if err = rows.Scan(&domain); err != nil {
+		var e Endpoint
+		if err = rows.Scan(&e.Domain, &e.PathPattern); err != nil {
 			return
 		}
-		domains = append(domains, domain)
+		endpoints = append(endpoints, e)
 	}
 	err = rows.Err()
 	return
 }
 
-// FetchPaths returns list of unique paths for a
-// given app, team and domain. The from/to time range
-// is used only for the fallback http_events search,
-// clamped to a minimum of 1 week.
-func FetchPaths(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, domain, search string, from, to time.Time) (paths []string, err error) {
+// FetchEndpoints returns matching generated patterns and raw request paths.
+func FetchEndpoints(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, search string, af *filter.AppFilter) (endpoints []Endpoint, err error) {
 	ctx = chquery.WithTeamScope(ctx, teamId)
-	stmt := sqlf.
-		Select("path").
-		From("url_patterns FINAL").
-		Where("team_id = toUUID(?)", teamId).
-		Where("app_id = toUUID(?)", appId).
-		Where("domain = ?", domain)
 
-	if search != "" {
-		stmt.Where("lower(path) LIKE concat('%', lower(?), '%')", search)
+	// parse the search query
+	search = strings.TrimSpace(search)
+	input := searchInput{wildcard: strings.Contains(search, "*")}
+	if strings.HasPrefix(search, "/") {
+		input.path = search
+	} else if prefix, suffix, hasPath := strings.Cut(search, "/"); !hasPath {
+		input.text = search
+	} else if strings.Contains(prefix, ".") || strings.Contains(prefix, ":") || prefix == "localhost" || prefix == "*" {
+		input.domain = prefix
+		input.path = "/" + suffix
+	} else {
+		input.path = "/" + search
 	}
 
-	stmt.OrderBy("path").Limit(maxPathSuggestions)
-	defer stmt.Close()
+	// return initial suggestions from
+	// url_patterns when input is just
+	// plain text with no path or domain
+	if input.text == "" && input.path == "" {
+		stmt := sqlf.
+			Select("domain").
+			Select("path").
+			From("url_patterns FINAL").
+			Where("team_id = toUUID(?)", teamId).
+			Where("app_id = toUUID(?)", appId).
+			OrderBy("domain, path").
+			Limit(searchResultsLimit)
+		defer stmt.Close()
 
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
-	}
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "fetch_paths"))
-
-	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return
-	}
-
-	for rows.Next() {
-		var path string
-		if err = rows.Scan(&path); err != nil {
-			return
-		}
-		paths = append(paths, path)
-	}
-	err = rows.Err()
-	if err != nil {
-		return
-	}
-
-	// Fallback to http_events if no patterns found
-	if len(paths) == 0 {
-		// clamp to a minimum of 1 week
-		// as smaller time ranges may not
-		// have enough data available
-		minDuration := 7 * 24 * time.Hour
-		if to.Sub(from) < minDuration {
-			from = to.Add(-minDuration)
+		rows, err := ch.Query(withQueryName(ctx, "fetch_endpoint_suggestions"), stmt.String(), stmt.Args()...)
+		if err != nil {
+			return nil, err
 		}
 
-		eventsStmt := sqlf.
-			Select("DISTINCT path").
+		return scanEndpoints(rows)
+	}
+
+	var patterns, rawEndpoints []Endpoint
+	var endpointsGroup errgroup.Group
+
+	// Search url_patterns by ignoring filters
+	endpointsGroup.Go(func() error {
+		stmt := sqlf.
+			Select("domain").
+			Select("path").
+			From("url_patterns FINAL").
+			Where("team_id = toUUID(?)", teamId).
+			Where("app_id = toUUID(?)", appId)
+		defer stmt.Close()
+
+		condition, args := endpointSearchCondition("domain", "path", input)
+		stmt.Where(condition, args...)
+		stmt.OrderBy("domain, path").
+			Limit(searchResultsLimit)
+
+		rows, err := ch.Query(withQueryName(ctx, "fetch_endpoints_patterns"), stmt.String(), stmt.Args()...)
+		if err != nil {
+			return err
+		}
+		patterns, err = scanEndpoints(rows)
+		return err
+	})
+
+	// Search http_events with filters
+	endpointsGroup.Go(func() error {
+		stmt := sqlf.
+			Select("domain").
+			Select("path").
 			From("http_events").
 			Where("team_id = toUUID(?)", teamId).
 			Where("app_id = toUUID(?)", appId).
-			Where("domain = ?", domain).
-			Where("timestamp >= ?", from).
-			Where("timestamp < ?", to)
+			Where("timestamp >= ?", af.From).
+			Where("timestamp < ?", af.To)
+		defer stmt.Close()
 
-		if search != "" {
-			eventsStmt.Where("lower(path) LIKE concat('%', lower(?), '%')", search)
+		condition, args := endpointSearchCondition("domain", "path", input)
+		stmt.Where(condition, args...)
+		applyEventsFilters(stmt, af)
+		stmt.GroupBy("domain, path").
+			OrderBy("count() DESC, domain, path").
+			Limit(searchResultsLimit)
+
+		rows, err := ch.Query(withQueryName(ctx, "fetch_endpoints_events"), stmt.String(), stmt.Args()...)
+		if err != nil {
+			return err
 		}
+		rawEndpoints, err = scanEndpoints(rows)
+		return err
+	})
 
-		eventsStmt.OrderBy("path").
-			Limit(maxPathSuggestions)
-
-		defer eventsStmt.Close()
-
-		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "fetch_paths_fallback"))
-
-		eventsRows, eventsErr := ch.Query(ctx, eventsStmt.String(), eventsStmt.Args()...)
-		if eventsErr != nil {
-			err = eventsErr
-			return
-		}
-
-		for eventsRows.Next() {
-			var path string
-			if err = eventsRows.Scan(&path); err != nil {
-				return
-			}
-			paths = append(paths, path)
-		}
-		err = eventsRows.Err()
+	if err = endpointsGroup.Wait(); err != nil {
+		return nil, err
 	}
-	return
+
+	// remove duplicates from the two sources
+	// while maintaining the order
+	seen := make(map[Endpoint]struct{}, len(patterns))
+	endpoints = make([]Endpoint, 0, len(patterns)+len(rawEndpoints))
+	for _, endpoint := range patterns {
+		seen[endpoint] = struct{}{}
+		endpoints = append(endpoints, endpoint)
+	}
+	for _, endpoint := range rawEndpoints {
+		if _, exists := seen[endpoint]; exists {
+			continue
+		}
+		endpoints = append(endpoints, endpoint)
+	}
+
+	return endpoints, nil
 }
 
-// FetchTrends returns top endpoint patterns by latency
-// error rate and frequency.
+// FetchTrends returns endpoint rankings by latency, error rate, and frequency.
 func FetchTrends(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, af *filter.AppFilter, limit int) (*TrendsResponse, error) {
 	var result TrendsResponse
 	var trendsGroup errgroup.Group
@@ -396,9 +540,8 @@ func FetchTrends(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, a
 	return &result, nil
 }
 
-// GetNetworkOverviewStatusCodesPlot returns a distribution
-// of status codes over time.
-func GetNetworkOverviewStatusCodesPlot(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, af *filter.AppFilter, bucketExpr, datetimeFormat string) (result []MetricsDataPoint, err error) {
+// GetStatusCodesPlot returns HTTP status-class counts over time for an optional endpoint selection.
+func GetStatusCodesPlot(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, domain, path string, af *filter.AppFilter, bucketExpr, datetimeFormat string) (result []MetricsDataPoint, err error) {
 	ctx = chquery.WithTeamScope(ctx, teamId)
 	stmt := sqlf.From("http_events").
 		Select(bucketExpr+" as datetime_bucket", af.Timezone).
@@ -412,14 +555,15 @@ func GetNetworkOverviewStatusCodesPlot(ctx context.Context, ch driver.Conn, appI
 		Where("app_id = toUUID(?)", appId).
 		Where("timestamp >= ?", af.From).
 		Where("timestamp < ?", af.To)
+
+	applyDomainFilter(stmt, domain)
+	applyPathFilter(stmt, path)
+	applyEventsFilters(stmt, af)
+
 	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
 	defer stmt.Close()
 
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
-	}
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "overview_status_codes_plot"))
+	ctx = withQueryName(ctx, "status_codes_plot")
 
 	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -447,97 +591,89 @@ func GetNetworkOverviewStatusCodesPlot(ctx context.Context, ch driver.Conn, appI
 	return
 }
 
-// FetchOverviewTimelinePlot returns 5-second average request
-// count buckets (per session) for URL patterns of a given app.
-func FetchOverviewTimelinePlot(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, af *filter.AppFilter, limit int) (*TimelineResponse, error) {
+// GetEndpointStatusCodesPlot returns exact HTTP status-code counts over time.
+func GetEndpointStatusCodesPlot(
+	ctx context.Context,
+	ch driver.Conn,
+	appId, teamId uuid.UUID,
+	domain, path string,
+	af *filter.AppFilter,
+	bucketExpr, datetimeFormat string,
+) (*EndpointStatusCodesPlotResponse, error) {
 	ctx = chquery.WithTeamScope(ctx, teamId)
-	if limit <= 0 {
-		limit = defaultOverviewTimelineMax
-	}
-
-	stmt := sqlf.
-		Select("domain").
-		Select("path").
-		// sumMap merges per-row {elapsed_sec: req_count} maps by
-		// summing values for matching keys.
-		// e.g. row1={0:3, 5:7} + row2={0:1, 5:4} => {0:4, 5:11}
-		Select("(sumMap(session_elapsed_counts) AS elapsed_count_pairs).1 AS bucket_secs").
-		Select("elapsed_count_pairs.2 AS bucket_counts").
-		Select("uniqCombined64Merge(session_count) AS sessions").
-		From("http_metrics").
+	stmt := sqlf.From("http_events").
+		Select(bucketExpr+" as datetime_bucket", af.Timezone).
+		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
+		Select("status_code").
+		Select("count() as count").
 		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", appId).
+		Where("status_code != ?", 0).
 		Where("timestamp >= ?", af.From).
 		Where("timestamp < ?", af.To)
 
-	stmt.GroupBy("domain, path").
-		OrderBy("sum(request_count) DESC").
-		Limit(limit)
+	applyDomainFilter(stmt, domain)
+	applyPathFilter(stmt, path)
+	applyEventsFilters(stmt, af)
 
+	stmt.GroupBy("datetime_bucket, status_code").OrderBy("datetime_bucket, status_code")
 	defer stmt.Close()
 
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
-	}
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "overview_timeline_plot"))
-
-	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
+	rows, err := ch.Query(withQueryName(ctx, "endpoint_status_codes_plot"), stmt.String(), stmt.Args()...)
 	if err != nil {
 		return nil, err
 	}
 
-	var points []TimelinePoint
+	dataPointsByDatetime := make(map[string]MetricsDataPoint)
+	datetimeOrder := make([]string, 0)
+	statusCodeSet := make(map[int]struct{})
 	for rows.Next() {
-		var domain, path string
-		var bucketSecs []uint32
-		var bucketCounts []uint64
-		var sessions uint64
-		if err := rows.Scan(&domain, &path, &bucketSecs, &bucketCounts, &sessions); err != nil {
+		var datetimeBucket time.Time
+		var datetime string
+		var statusCode uint16
+		var count uint64
+		if err := rows.Scan(&datetimeBucket, &datetime, &statusCode, &count); err != nil {
 			return nil, err
 		}
-		if sessions == 0 || len(bucketSecs) == 0 {
-			continue
-		}
-		var hasData bool
-		for _, c := range bucketCounts {
-			if c > 0 {
-				hasData = true
-				break
+
+		dataPoint, ok := dataPointsByDatetime[datetime]
+		if !ok {
+			dataPoint = MetricsDataPoint{
+				"datetime":    datetime,
+				"total_count": uint64(0),
 			}
+			dataPointsByDatetime[datetime] = dataPoint
+			datetimeOrder = append(datetimeOrder, datetime)
 		}
-		if !hasData {
-			continue
-		}
-		for i, sec := range bucketSecs {
-			avg := perSessionAvg(bucketCounts[i], sessions)
-			if avg > 0 {
-				points = append(points, TimelinePoint{
-					Elapsed:     sec,
-					Domain:      domain,
-					PathPattern: path,
-					Count:       avg,
-				})
-			}
-		}
+
+		code := int(statusCode)
+		dataPoint[fmt.Sprintf("count_%d", code)] = count
+		dataPoint["total_count"] = dataPoint["total_count"].(uint64) + count
+		statusCodeSet[code] = struct{}{}
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	sort.Slice(points, func(i, j int) bool {
-		return points[i].Elapsed < points[j].Elapsed
-	})
-
-	if points == nil {
-		points = []TimelinePoint{}
+	statusCodes := make([]int, 0, len(statusCodeSet))
+	for code := range statusCodeSet {
+		statusCodes = append(statusCodes, code)
 	}
-	return &TimelineResponse{Interval: 5, Points: points}, nil
+	sort.Ints(statusCodes)
+
+	dataPoints := make([]MetricsDataPoint, 0, len(datetimeOrder))
+	for _, datetime := range datetimeOrder {
+		dataPoints = append(dataPoints, dataPointsByDatetime[datetime])
+	}
+
+	return &EndpointStatusCodesPlotResponse{
+		StatusCodes: statusCodes,
+		DataPoints:  dataPoints,
+	}, nil
 }
 
-// GetEndpointLatencyPlot returns latency percentiles
-// for a given domain and path.
-func GetEndpointLatencyPlot(
+// GetLatencyPlot returns latency percentiles over time for an optional endpoint selection.
+func GetLatencyPlot(
 	ctx context.Context,
 	ch driver.Conn,
 	appId, teamId uuid.UUID,
@@ -556,22 +692,18 @@ func GetEndpointLatencyPlot(
 		Select("count() as count").
 		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", appId).
-		Where("domain = ?", domain).
 		Where("status_code != ?", 0).
 		Where("timestamp >= ?", af.From).
 		Where("timestamp < ?", af.To)
 
+	applyDomainFilter(stmt, domain)
 	applyPathFilter(stmt, path)
 	applyEventsFilters(stmt, af)
 
 	stmt.GroupBy("datetime_bucket").OrderBy("datetime_bucket")
 	defer stmt.Close()
 
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
-	}
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "endpoint_latency_plot"))
+	ctx = withQueryName(ctx, "latency_plot")
 
 	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -599,106 +731,10 @@ func GetEndpointLatencyPlot(
 	return result, nil
 }
 
-// GetEndpointStatusCodesPlot returns per-status-code
-// distribution for a given domain and path.
-func GetEndpointStatusCodesPlot(
-	ctx context.Context,
-	ch driver.Conn,
-	appId, teamId uuid.UUID,
-	domain, path string,
-	af *filter.AppFilter,
-	bucketExpr, datetimeFormat string,
-) (*EndpointStatusCodesPlotResponse, error) {
+// FetchTimelinePlot returns five-second, per-session request-count buckets for
+// the whole app or a selected domain and path pattern.
+func FetchTimelinePlot(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, domain, pathPattern string, af *filter.AppFilter) (*TimelineResponse, error) {
 	ctx = chquery.WithTeamScope(ctx, teamId)
-
-	stmt := sqlf.From("http_events").
-		Select(bucketExpr+" as datetime_bucket", af.Timezone).
-		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
-		Select("status_code").
-		Select("count() as count").
-		Where("team_id = toUUID(?)", teamId).
-		Where("app_id = toUUID(?)", appId).
-		Where("domain = ?", domain).
-		Where("status_code != ?", 0).
-		Where("timestamp >= ?", af.From).
-		Where("timestamp < ?", af.To)
-
-	applyPathFilter(stmt, path)
-	applyEventsFilters(stmt, af)
-
-	stmt.GroupBy("datetime_bucket, status_code").OrderBy("datetime_bucket, status_code")
-	defer stmt.Close()
-
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
-	}
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "endpoint_status_codes_plot"))
-
-	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return nil, err
-	}
-
-	dpMap := make(map[string]MetricsDataPoint)
-	dpOrder := make([]string, 0)
-	codeSet := make(map[int]struct{})
-
-	for rows.Next() {
-		var db time.Time
-		var dt string
-		var statusCode uint16
-		var count uint64
-		if err = rows.Scan(&db, &dt, &statusCode, &count); err != nil {
-			return nil, err
-		}
-
-		dp, ok := dpMap[dt]
-		if !ok {
-			dp = MetricsDataPoint{
-				"datetime":    dt,
-				"total_count": uint64(0),
-			}
-			dpMap[dt] = dp
-			dpOrder = append(dpOrder, dt)
-		}
-
-		code := int(statusCode)
-		dp[fmt.Sprintf("count_%d", code)] = count
-		dp["total_count"] = dp["total_count"].(uint64) + count
-		codeSet[code] = struct{}{}
-	}
-
-	statusCodes := make([]int, 0, len(codeSet))
-	for code := range codeSet {
-		statusCodes = append(statusCodes, code)
-	}
-	sort.Ints(statusCodes)
-
-	dataPoints := make([]MetricsDataPoint, 0, len(dpOrder))
-	for _, dt := range dpOrder {
-		dataPoints = append(dataPoints, dpMap[dt])
-	}
-
-	return &EndpointStatusCodesPlotResponse{
-		StatusCodes: statusCodes,
-		DataPoints:  dataPoints,
-	}, nil
-}
-
-// FetchEndpointTimelinePlot returns 5-second average request
-// count buckets (per session) for a single URL pattern.
-// It first checks whether the given path is a known pattern
-// in the url_patterns table; if not, it returns nil.
-func FetchEndpointTimelinePlot(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, domain, pathPattern string, af *filter.AppFilter) (*TimelineResponse, error) {
-	ctx = chquery.WithTeamScope(ctx, teamId)
-	exists, err := patternExists(ctx, ch, appId, teamId, domain, pathPattern)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, nil
-	}
 
 	stmt := sqlf.
 		Select("domain").
@@ -709,55 +745,22 @@ func FetchEndpointTimelinePlot(ctx context.Context, ch driver.Conn, appId, teamI
 		From("http_metrics").
 		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", appId).
-		Where("domain = ?", domain).
 		Where("timestamp >= ?", af.From).
 		Where("timestamp < ?", af.To)
 
-	stmt.Where("path = ?", pathPattern)
+	applyDomainFilter(stmt, domain)
+	applyPathFilter(stmt, pathPattern)
 
-	if af.HasVersions() {
-		selectedVersions, err := af.VersionPairs()
-		if err == nil {
-			stmt.Having("hasAny(groupUniqArrayArray(`app_versions`), [?])", selectedVersions.Parameterize())
-		}
-	}
-	if af.HasOSVersions() {
-		selectedOSVersions, err := af.OSVersionPairs()
-		if err == nil {
-			stmt.Having("hasAny(groupUniqArrayArray(`os_versions`), [?])", selectedOSVersions.Parameterize())
-		}
-	}
-	if af.HasDeviceManufacturers() {
-		stmt.Having("hasAny(groupUniqArrayArray(`device_manufacturers`), ?)", af.DeviceManufacturers)
-	}
-	if af.HasNetworkProviders() {
-		stmt.Having("hasAny(groupUniqArrayArray(`network_providers`), ?)", af.NetworkProviders)
-	}
-	if af.HasNetworkTypes() {
-		stmt.Having("hasAny(groupUniqArrayArray(`network_types`), ?)", af.NetworkTypes)
-	}
-	if af.HasNetworkGenerations() {
-		stmt.Having("hasAny(groupUniqArrayArray(`network_generations`), ?)", af.NetworkGenerations)
-	}
-	if af.HasDeviceLocales() {
-		stmt.Having("hasAny(groupUniqArrayArray(`device_locales`), ?)", af.Locales)
-	}
-	if af.HasHttpMethods() {
-		stmt.Having("hasAny(groupUniqArrayArray(`methods`), ?)", af.HttpMethods)
-	}
-	if af.HasCountries() {
-		stmt.Having("hasAny(groupUniqArrayArray(`inet.country_code`), ?)", af.Countries)
-	}
+	applyMetricsFilters(stmt, af)
 
-	stmt.GroupBy("domain, path")
+	// A broad selection may match many patterns; retain the most requested ones.
+	stmt.GroupBy("domain, path").
+		OrderBy("sum(request_count) DESC").
+		Limit(maxTimelineEndpointPatterns)
 
 	defer stmt.Close()
 
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.MustPut(logcomment.Root, logcomment.Network).String(),
-	}
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "endpoint_timeline_plot"))
+	ctx = withQueryName(ctx, "timeline_plot")
 
 	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -787,7 +790,7 @@ func FetchEndpointTimelinePlot(ctx context.Context, ch driver.Conn, appId, teamI
 			continue
 		}
 		for i, sec := range bucketSecs {
-			avg := perSessionAvg(bucketCounts[i], sessions)
+			avg := math.Round(float64(bucketCounts[i])/float64(sessions)*100) / 100
 			if avg > 0 {
 				points = append(points, TimelinePoint{
 					Elapsed:     sec,

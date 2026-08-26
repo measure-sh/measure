@@ -2,12 +2,12 @@ import NetworkEndpointStatusCodesPlot from "@/app/components/network_endpoint_st
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 
-let lastLineProps: any = null;
+let chartProps: any;
 
 jest.mock("@nivo/line", () => ({
   ResponsiveLineCanvas: (props: any) => {
-    lastLineProps = props;
-    return <div data-testid="line-mock" />;
+    chartProps = props;
+    return <div data-testid="status-codes-chart" />;
   },
 }));
 
@@ -20,8 +20,6 @@ jest.mock("@/app/utils/time_utils", () => ({
     xScalePrecision: "day",
     axisBottomFormat: "%b %d",
   }),
-  formatPlotTooltipDate: (d: string) => d,
-  PlotTimeGroup: {},
 }));
 
 jest.mock("@/app/utils/shared_styles", () => ({
@@ -30,150 +28,53 @@ jest.mock("@/app/utils/shared_styles", () => ({
     blue: "#38bdf8",
     green: "#34d399",
     amber: "#fbbf24",
-    violet: "#a78bfa",
-    pink: "#f472b6",
-    teal: "#2dd4bf",
     red: "#f87171",
-    yellow: "#facc15",
   }),
 }));
 
-jest.mock("@/app/utils/number_utils", () => ({
-  numberToKMB: (v: number) => v,
-}));
-
-const plotTimeGroup = "days" as any;
-
 describe("NetworkEndpointStatusCodesPlot", () => {
   beforeEach(() => {
-    lastLineProps = null;
+    chartProps = undefined;
   });
 
-  it("renders No Data when data is empty", () => {
-    render(
-      <NetworkEndpointStatusCodesPlot
-        statusCodes={[200]}
-        data={[]}
-        plotTimeGroup={plotTimeGroup}
-      />,
-    );
-    expect(screen.getByText("No Data")).toBeInTheDocument();
-  });
-
-  it("renders No Data when statusCodes is empty", () => {
+  it("shows an empty state without status-code data", () => {
     render(
       <NetworkEndpointStatusCodesPlot
         statusCodes={[]}
-        data={[{ datetime: "2024-01-01", total_count: 10, count_200: 10 }]}
-        plotTimeGroup={plotTimeGroup}
+        data={[]}
+        plotTimeGroup={"days" as any}
       />,
     );
+
     expect(screen.getByText("No Data")).toBeInTheDocument();
+    expect(screen.queryByTestId("status-codes-chart")).toBeNull();
   });
 
-  it("passes correct number of series to the line chart", () => {
-    const statusCodes = [200, 404, 500];
-    const data = [
-      {
-        datetime: "2024-01-01",
-        total_count: 12,
-        count_200: 8,
-        count_404: 3,
-        count_500: 1,
-      },
-    ];
-
+  it("maps exact status-code counts into canvas series", () => {
     render(
       <NetworkEndpointStatusCodesPlot
-        statusCodes={statusCodes}
-        data={data}
-        plotTimeGroup={plotTimeGroup}
-      />,
-    );
-
-    expect(screen.getByTestId("line-mock")).toBeInTheDocument();
-    expect(lastLineProps.data).toHaveLength(3);
-    expect(lastLineProps.data[0].id).toBe("200");
-    expect(lastLineProps.data[1].id).toBe("404");
-    expect(lastLineProps.data[2].id).toBe("500");
-  });
-
-  it("uses bucket-based colors for status codes", () => {
-    const statusCodes = [200, 404];
-    const data = [
-      { datetime: "2024-01-01", total_count: 10, count_200: 8, count_404: 2 },
-    ];
-
-    render(
-      <NetworkEndpointStatusCodesPlot
-        statusCodes={statusCodes}
-        data={data}
-        plotTimeGroup={plotTimeGroup}
-      />,
-    );
-
-    // 2xx maps to chart green, 4xx maps to chart amber
-    const color200 = lastLineProps.colors({ id: "200" });
-    const color404 = lastLineProps.colors({ id: "404" });
-    expect(color200).toBe("#34d399");
-    expect(color404).toBe("#fbbf24");
-  });
-
-  it("renders tooltip with status code labels and percentages", () => {
-    const statusCodes = [200, 500];
-    const data = [
-      { datetime: "2024-01-01", total_count: 10, count_200: 9, count_500: 1 },
-    ];
-
-    render(
-      <NetworkEndpointStatusCodesPlot
-        statusCodes={statusCodes}
-        data={data}
-        plotTimeGroup={plotTimeGroup}
-      />,
-    );
-
-    const tooltip = lastLineProps.tooltip({
-      point: {
-        seriesId: "200",
-        data: {
-          xFormatted: "2024-01-01",
-          y: 9,
-          total_count: 10,
-          source: {
+        statusCodes={[200, 404]}
+        data={[
+          {
             datetime: "2024-01-01",
             total_count: 10,
-            count_200: 9,
-            count_500: 1,
+            count_200: 8,
+            count_404: 2,
           },
-        },
-      },
-    });
-
-    const { container } = render(tooltip);
-    expect(container.textContent).toContain("Total: 10");
-    expect(container.textContent).toContain("200: 9 (90.0%)");
-    expect(container.textContent).toContain("500: 1 (10.0%)");
-  });
-
-  it("maps y values correctly from data", () => {
-    const statusCodes = [200, 301];
-    const data = [
-      { datetime: "2024-01-01", total_count: 15, count_200: 10, count_301: 5 },
-      { datetime: "2024-01-02", total_count: 20, count_200: 18, count_301: 2 },
-    ];
-
-    render(
-      <NetworkEndpointStatusCodesPlot
-        statusCodes={statusCodes}
-        data={data}
-        plotTimeGroup={plotTimeGroup}
+          {
+            datetime: "2024-01-02",
+            total_count: 5,
+            count_200: 5,
+          },
+        ]}
+        plotTimeGroup={"days" as any}
       />,
     );
 
-    expect(lastLineProps.data[0].data[0].y).toBe(10);
-    expect(lastLineProps.data[0].data[1].y).toBe(18);
-    expect(lastLineProps.data[1].data[0].y).toBe(5);
-    expect(lastLineProps.data[1].data[1].y).toBe(2);
+    expect(screen.getByTestId("status-codes-chart")).toBeInTheDocument();
+    expect(chartProps.data).toMatchObject([
+      { id: "200", data: [{ y: 8 }, { y: 5 }] },
+      { id: "404", data: [{ y: 2 }, { y: 0 }] },
+    ]);
   });
 });

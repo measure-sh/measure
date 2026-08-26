@@ -32,12 +32,10 @@ import {
   makeHealthPlotFixture,
   makeJourneyFixture,
   makeMetricsFixture,
-  makeNetworkDomainsFixture,
-  makeNetworkEndpointLatencyFixture,
   makeNetworkEndpointStatusCodesFixture,
-  makeNetworkEndpointTimelineFixture,
-  makeNetworkOverviewStatusCodesFixture,
-  makeNetworkPathsFixture,
+  makeNetworkEndpointLatencyFixture,
+  makeNetworkStatusCodesFixture,
+  makeNetworkEndpointsFixture,
   makeNetworkTimelineFixture,
   makeNetworkTrendsFixture,
   makeNotifPrefsFixture,
@@ -209,42 +207,24 @@ export const handlers = [
     return HttpResponse.json(makeTraceDetailFixture());
   }),
 
-  // --- Network endpoints (31-38) ---
+  // --- Network endpoints ---
 
-  // 31. GET /api/apps/:appId/networkRequests/domains
-  http.get("*/api/apps/:appId/networkRequests/domains", () => {
-    return HttpResponse.json(makeNetworkDomainsFixture());
+  // 31. GET /api/apps/:appId/networkRequests/endpoints
+  http.get("*/api/apps/:appId/networkRequests/endpoints", () => {
+    return HttpResponse.json(makeNetworkEndpointsFixture());
   }),
 
-  // 32. GET /api/apps/:appId/networkRequests/paths
-  http.get("*/api/apps/:appId/networkRequests/paths", () => {
-    return HttpResponse.json(makeNetworkPathsFixture());
-  }),
-
-  // 33. GET /api/apps/:appId/networkRequests/plots/overviewStatusCodes
-  http.get(
-    "*/api/apps/:appId/networkRequests/plots/overviewStatusCodes",
-    () => {
-      return HttpResponse.json(makeNetworkOverviewStatusCodesFixture());
-    },
-  ),
-
-  // 34. GET /api/apps/:appId/networkRequests/trends
+  // 32. GET /api/apps/:appId/networkRequests/trends
   http.get("*/api/apps/:appId/networkRequests/trends", () => {
     return HttpResponse.json(makeNetworkTrendsFixture());
   }),
 
-  // 35. GET /api/apps/:appId/networkRequests/plots/overviewTimeline
-  http.get("*/api/apps/:appId/networkRequests/plots/overviewTimeline", () => {
-    return HttpResponse.json(makeNetworkTimelineFixture());
+  // 33. GET /api/apps/:appId/networkRequests/plots/statusCodes
+  http.get("*/api/apps/:appId/networkRequests/plots/statusCodes", () => {
+    return HttpResponse.json(makeNetworkStatusCodesFixture());
   }),
 
-  // 36. GET /api/apps/:appId/networkRequests/plots/endpointLatency
-  http.get("*/api/apps/:appId/networkRequests/plots/endpointLatency", () => {
-    return HttpResponse.json(makeNetworkEndpointLatencyFixture());
-  }),
-
-  // 37. GET /api/apps/:appId/networkRequests/plots/endpointStatusCodes
+  // 34. GET /api/apps/:appId/networkRequests/plots/endpointStatusCodes
   http.get(
     "*/api/apps/:appId/networkRequests/plots/endpointStatusCodes",
     () => {
@@ -252,9 +232,14 @@ export const handlers = [
     },
   ),
 
-  // 38. GET /api/apps/:appId/networkRequests/plots/endpointTimeline
-  http.get("*/api/apps/:appId/networkRequests/plots/endpointTimeline", () => {
-    return HttpResponse.json(makeNetworkEndpointTimelineFixture());
+  // 35. GET /api/apps/:appId/networkRequests/plots/latency
+  http.get("*/api/apps/:appId/networkRequests/plots/latency", () => {
+    return HttpResponse.json(makeNetworkEndpointLatencyFixture());
+  }),
+
+  // 36. GET /api/apps/:appId/networkRequests/plots/timeline
+  http.get("*/api/apps/:appId/networkRequests/plots/timeline", () => {
+    return HttpResponse.json(makeNetworkTimelineFixture());
   }),
 
   // --- Apps settings endpoints (39-47) ---

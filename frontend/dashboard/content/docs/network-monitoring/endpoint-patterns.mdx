@@ -36,14 +36,21 @@ A brand-new or low-traffic endpoint won't show up in [Network Monitoring](/docs/
 
 ## Searching for endpoints
 
-Find a specific endpoint on the dashboard with the **Explore endpoint** search bar. Type an exact path, or use wildcards to match several at once. `*` matches a single segment, the same wildcard you see in patterns. `**` matches everything after a prefix, so it only works at the end.
+Search for an endpoint or explore a group of related endpoints. Type a domain, path, or keyword, then select a matching result to view its charts.
 
-| Pattern | Matches |
-|---------|---------|
-| `/v1/login` | Only the exact path `/v1/login`. |
-| `/users/*/orders` | Any single segment in place of `*`, like `/users/123/orders` or `/users/abc/orders`. |
-| `/api/v1/**` | Everything after the prefix, like `/api/v1/login` or `/api/v1/users/123/profile`. |
-| `/api/*/users/**` | Both wildcards together, like `/api/v2/users/123/orders/456`. |
+| Search | Example |
+|--------|---------|
+| Free text search | Enter any text like `users` |
+| Domain | `api.example.com` |
+| Everything below a path | `api.example.com/v1/` |
+| A specific endpoint | `api.example.com/v1/products/123` |
+| Routes one level below a path | `api.example.com/v1/*` |
+| All routes below a path, nested included | `api.example.com/v1/**` |
+
+Search is not case-sensitive. You can also use wildcards to explore a group of endpoints:
+
+* Use `*` for one part of a URL path. For example, `/v1/*` matches `/v1/cart`, but not `/v1/products/123`.
+* Use `**` at the end of a path to include all nested routes. For example, `/v1/**` includes both `/v1/cart` and `/v1/products/123`.
 
 ## Top endpoints
 
