@@ -42,7 +42,7 @@ final class BaseSessionManager: SessionManager {
     private let signalSampler: SignalSampler
     private var sessionStartTime: Number?
     private var onSessionStarted: ((String) -> Void)?
-    private let previousRecentSession: RecentSession?
+    private let previousSession: RecentSession?
     var shouldReportJourneyEvents: Bool
 
     /// The current session ID.
@@ -75,7 +75,7 @@ final class BaseSessionManager: SessionManager {
         self.versionCode = versionCode
         self.shouldReportJourneyEvents = false
         self.signalSampler = signalSampler
-        self.previousRecentSession = userDefaultStorage.getRecentSession()
+        self.previousSession = userDefaultStorage.getRecentSession()
     }
 
     func setOnSessionStarted(_ callback: ((String) -> Void)?) {
@@ -130,10 +130,10 @@ final class BaseSessionManager: SessionManager {
 
     func setPreviousSessionCrashed(_ crashed: Bool) {
         self.previousSessionCrashed = crashed
-        guard crashed, let previousRecentSession else { return }
+        guard crashed, let previousSession else { return }
 
-        sessionStore.markCrashedSession(sessionId: previousRecentSession.id)
-        sessionStore.updateNeedsReporting(sessionId: previousRecentSession.id, needsReporting: true)
+        sessionStore.markCrashedSession(sessionId: previousSession.id)
+        sessionStore.updateNeedsReporting(sessionId: previousSession.id, needsReporting: true)
     }
 
     func markCurrentSessionAsCrashed() {
