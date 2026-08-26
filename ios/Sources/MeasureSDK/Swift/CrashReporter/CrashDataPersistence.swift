@@ -44,6 +44,11 @@ final class BaseCrashDataPersistence: CrashDataPersistence {
 
     func prepareCrashFile() {
         if let crashFilePath = systemFileManager.getCrashFilePath() {
+            if crashFileDescriptor != -1 {
+                close(crashFileDescriptor)
+                crashFileDescriptor = -1
+            }
+
             crashFileDescriptor = open(crashFilePath.path, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)
             if crashFileDescriptor == -1 {
                 logger.internalLog(level: .error, message: "CrashDataPersistence: Failed to open crash log file at \(crashFilePath.path)", error: nil, data: nil)
