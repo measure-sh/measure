@@ -558,7 +558,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleCollector.disable()
         self.spanCollector.disabled()
         self.internalSignalCollector.disable()
-        self.systemCrashReporter.disable()
     }
 
     private func registerAlwaysOnCollectors() {

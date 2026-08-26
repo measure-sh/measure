@@ -46,11 +46,6 @@ final class BaseSystemCrashReporter: SystemCrashReporter {
         crashDataPersistence.prepareCrashFile()
 
         if Self.isKSCrashInstalled {
-            if kscm_activateMonitors() {
-                logger.log(level: .info, message: "SystemCrashReporter: Crash monitors re-activated.", error: nil, data: nil)
-            } else {
-                logger.internalLog(level: .error, message: "SystemCrashReporter: Failed to re-activate crash monitors.", error: nil, data: nil)
-            }
             return
         }
 
