@@ -64,6 +64,20 @@ export function webPageJsonLd(
   };
 }
 
+export function faqPageJsonLd(faqs: { question: string; answer: string }[]) {
+  return {
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.answer,
+      },
+    })),
+  };
+}
+
 export function blogPostingJsonLd({
   title,
   description,

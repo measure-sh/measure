@@ -34,7 +34,7 @@ export type AlternativePageProps = {
   ctaLocation: string;
 };
 
-function ComparisonCell({
+export function ComparisonCell({
   value,
   emphasis,
 }: {
