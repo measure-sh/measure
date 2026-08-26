@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Fold public oci workflow (#4220) by @detj in #4220
 - (**deps**): Bump github.com/moby/go-archive in /backend/testinfra (#4277) by @dependabot[bot] in #4277
 - (**deps**): Bump github.com/moby/go-archive in /backend/ingest-worker (#4276) by @dependabot[bot] in #4276
+- (**frontend**): Improve network navigation and search (#4292) by @abhaysood in #4292
 - (**frontend**): Noindex markdown twins & thin api reference pages (#4291) by @detj in #4291
 - (**frontend**): Split llms-full.txt by section by @anupcowkur in #4279
 - (**frontend**): Improve comments in llm md generation code by @anupcowkur
