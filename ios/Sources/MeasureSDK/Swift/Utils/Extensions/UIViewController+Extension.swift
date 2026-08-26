@@ -10,20 +10,17 @@ import UIKit
 extension UIViewController {
     /// Returns true if the view controller is considered the initial/root controller of the app
     var isInitialViewController: Bool {
-        // Check if this is the root view controller
-        if #available(iOS 13.0, *) {
-            if let windowScene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
-               let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController {
-                return self === rootVC || isInitial(in: rootVC)
-            }
+        let foregroundRootVC = (UIApplication.shared.connectedScenes
+            .first { $0.activationState == .foregroundActive } as? UIWindowScene)?
+            .windows
+            .first { $0.isKeyWindow }?
+            .rootViewController
+
+        guard let rootVC = foregroundRootVC ?? UIWindow.keyWindow()?.rootViewController else {
+            return false
         }
 
-        // Fallback to AppDelegate window
-        if let rootVC = UIApplication.shared.windows.first(where: { $0.isKeyWindow })?.rootViewController {
-            return self === rootVC || isInitial(in: rootVC)
-        }
-
-        return false
+        return self === rootVC || isInitial(in: rootVC)
     }
 
     private func isInitial(in rootVC: UIViewController) -> Bool {
