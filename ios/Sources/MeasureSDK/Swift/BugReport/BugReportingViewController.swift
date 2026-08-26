@@ -89,9 +89,7 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
         view.addSubview(navBar)
 
         // Cancel button with cross icon
-        if #available(iOS 13.0, *) {
-            cancelButton.setImage(UIImage(systemName: "xmark"), for: .normal)
-        }
+        cancelButton.setImage(UIImage(systemName: "xmark"), for: .normal)
         cancelButton.setTitle(nil, for: .normal)
         cancelButton.tintColor = bugReportConfig.colors.text
         cancelButton.backgroundColor = bugReportConfig.colors.buttonBackground
@@ -171,13 +169,11 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
 
     private func setupActionButtons() {
         // Configure screenshot button
-        if #available(iOS 13.0, *) {
-            let screenshotConfig = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
-            let screenshotImage = UIImage(systemName: "camera.fill", withConfiguration: screenshotConfig)
-            screenshotButton.setImage(screenshotImage, for: .normal)
-            screenshotButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 0)
-            screenshotButton.titleEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: -8)
-        }
+        let screenshotConfig = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+        let screenshotImage = UIImage(systemName: "camera.fill", withConfiguration: screenshotConfig)
+        screenshotButton.setImage(screenshotImage, for: .normal)
+        screenshotButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 0)
+        screenshotButton.titleEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: -8)
         screenshotButton.setTitle(bugReportConfig.text.screenshotButton, for: .normal)
         screenshotButton.setTitleColor(bugReportConfig.colors.text, for: .normal)
         screenshotButton.tintColor = bugReportConfig.colors.text
@@ -190,13 +186,11 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
         view.addSubview(screenshotButton)
 
         // Configure gallery button
-        if #available(iOS 13.0, *) {
-            let galleryConfig = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
-            let galleryImage = UIImage(systemName: "photo.fill", withConfiguration: galleryConfig)
-            galleryButton.setImage(galleryImage, for: .normal)
-            galleryButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 0)
-            galleryButton.titleEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: -8)
-        }
+        let galleryConfig = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+        let galleryImage = UIImage(systemName: "photo.fill", withConfiguration: galleryConfig)
+        galleryButton.setImage(galleryImage, for: .normal)
+        galleryButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 0)
+        galleryButton.titleEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: -8)
         galleryButton.setTitle(bugReportConfig.text.galleryButton, for: .normal)
         galleryButton.setTitleColor(bugReportConfig.colors.text, for: .normal)
         galleryButton.tintColor = bugReportConfig.colors.text
@@ -382,7 +376,7 @@ extension BugReportingViewController: UICollectionViewDataSource {
             imageData = systemFileManager.retrieveFile(atPath: path)
         }
         if let data = imageData, let image = UIImage(data: data) {
-            cell.configure(with: image, isDarkModeEnabled: false)
+            cell.configure(with: image, isDarkModeEnabled: bugReportConfig.colors.isDarkMode)
             cell.onDelete = { [weak self] in
                 guard let self = self else { return }
                 if let path = self.attachments[indexPath.item].path {

@@ -31,20 +31,17 @@ private struct MsrRedactUIView: UIViewRepresentable {
 }
 
 private struct MsrMaskModifier: ViewModifier {
-    @available(iOS 13.0, *)
     func body(content: Content) -> some View {
         content.overlay(MsrRedactUIView(behavior: .mask).disabled(true))
     }
 }
 
 private struct MsrUnmaskModifier: ViewModifier {
-    @available(iOS 13.0, *)
     func body(content: Content) -> some View {
         content.overlay(MsrRedactUIView(behavior: .unmask).disabled(true))
     }
 }
 
-@available(iOS 13.0, *)
 public extension View {
     /// Explicitly marks this SwiftUI view as sensitive so it gets masked
     /// in screenshots. Use this for views that cannot be automatically

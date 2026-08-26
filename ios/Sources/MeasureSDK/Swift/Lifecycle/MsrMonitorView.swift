@@ -19,7 +19,7 @@ import SwiftUI
 ///     }
 /// }
 /// ```
-@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
+@available(macOS 10.15, tvOS 13, watchOS 6.0, *)
 public struct MsrMonitorView<Content: View>: View {
     @State private var hasViewAppeared = false
 
@@ -46,11 +46,11 @@ public struct MsrMonitorView<Content: View>: View {
     }
 }
 
-@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
+@available(macOS 10.15, tvOS 13, watchOS 6.0, *)
 @available(*, deprecated, renamed: "MsrMonitorView")
 public typealias MsrMoniterView<Content: View> = MsrMonitorView<Content>
 
-@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
+@available(macOS 10.15, tvOS 13, watchOS 6.0, *)
 public extension View {
     /// An extension function on View that wraps the view in an MsrMonitorView to monitor its lifecycle events.
     /// - Parameter viewName: viewName: An optional String representing the name of the view to be monitored. If nil, it defaults to the type name of the view itself.

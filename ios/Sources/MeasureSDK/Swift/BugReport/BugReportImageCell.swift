@@ -38,9 +38,7 @@ class BugReportImageCell: UICollectionViewCell {
         screenshotImageView.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(screenshotImageView)
 
-        if #available(iOS 13.0, *) {
-            deleteButton.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
-        }
+        deleteButton.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
         deleteButton.tintColor = isDarkModeEnabled ? .white : .black
         deleteButton.backgroundColor = isDarkModeEnabled ? UIColor(white: 0, alpha: 0.5) : UIColor(white: 1, alpha: 0.5)
         deleteButton.layer.cornerRadius = 12

@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "measure_flutter",
     platforms: [
-        .iOS("12.0")
+        .iOS("13.0")
     ],
     products: [
         .library(name: "measure-flutter", targets: ["measure_flutter"])

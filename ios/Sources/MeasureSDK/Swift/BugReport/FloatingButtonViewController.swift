@@ -40,9 +40,7 @@ final class FloatingButtonViewController: UIViewController {
         self.configProvider = configProvider
         self.systemFileManager = systemFileManager
 
-        if #available(iOS 13.0, *) {
-            button.setImage(UIImage(systemName: "camera.fill"), for: .normal)
-        }
+        button.setImage(UIImage(systemName: "camera.fill"), for: .normal)
         button.tintColor = bugReportConfig.colors.floatingButtonIcon
         button.backgroundColor = bugReportConfig.colors.floatingButtonBackground
         button.layer.cornerRadius = 25
