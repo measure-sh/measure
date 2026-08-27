@@ -37,6 +37,11 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
     private let maxAttachmentsLabel = UILabel()
     private var attachments: [MsrAttachment]
 
+    private var previewImages: [String: UIImage] = [:]
+
+    private static let cellSize = CGSize(width: 100, height: 140)
+    private static let thumbnailScale: CGFloat = 0.8
+
     private let screenshotButton = UIButton(type: .system)
     private let galleryButton = UIButton(type: .system)
 
@@ -293,11 +298,32 @@ class BugReportingViewController: UIViewController, UINavigationControllerDelega
         }
     }
 
-    func addAttachment(_ attachment: MsrAttachment) {
+    func addAttachment(_ attachment: MsrAttachment, previewImage: UIImage? = nil) {
         guard attachments.count < configProvider.maxAttachmentsInBugReport else { return }
         attachments.append(attachment)
+        if let previewImage = previewImage {
+            previewImages[attachment.id] = Self.thumbnail(from: previewImage)
+        }
         imagesCollectionView.reloadData()
         updateActionButtonsState()
+    }
+
+    private static func thumbnail(from image: UIImage) -> UIImage {
+        let box = CGSize(width: cellSize.width * thumbnailScale,
+                         height: cellSize.height * thumbnailScale)
+        let size = image.size
+        guard size.width > 0, size.height > 0 else { return image }
+
+        let ratio = min(box.width / size.width, box.height / size.height)
+        guard ratio < 1 else { return image }
+
+        let target = CGSize(width: (size.width * ratio).rounded(),
+                            height: (size.height * ratio).rounded())
+        let format = UIGraphicsImageRendererFormat.default()
+        format.opaque = true
+        return UIGraphicsImageRenderer(size: target, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: target))
+        }
     }
 
     private func updateActionButtonsState() {
@@ -371,17 +397,26 @@ extension BugReportingViewController: UICollectionViewDataSource {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ImageCell", for: indexPath) as? BugReportImageCell else {
             return UICollectionViewCell()
         }
-        var imageData = attachments[indexPath.item].bytes
-        if imageData == nil, let path = attachments[indexPath.item].path {
-            imageData = systemFileManager.retrieveFile(atPath: path)
+        let attachment = attachments[indexPath.item]
+
+        var image = previewImages[attachment.id]
+        if image == nil {
+            var imageData = attachment.bytes
+            if imageData == nil, let path = attachment.path {
+                imageData = systemFileManager.retrieveFile(atPath: path)
+            }
+            image = imageData.flatMap { UIImage(data: $0) }
         }
-        if let data = imageData, let image = UIImage(data: data) {
+
+        if let image = image {
             cell.configure(with: image, colors: bugReportConfig.colors)
             cell.onDelete = { [weak self] in
                 guard let self = self else { return }
-                if let path = self.attachments[indexPath.item].path {
+                let removed = self.attachments[indexPath.item]
+                if let path = removed.path {
                     self.systemFileManager.deleteFile(atPath: path)
                 }
+                self.previewImages.removeValue(forKey: removed.id)
                 self.attachments.remove(at: indexPath.item)
                 collectionView.reloadData()
                 self.updateActionButtonsState()
@@ -394,7 +429,7 @@ extension BugReportingViewController: UICollectionViewDataSource {
 // MARK: - UICollectionViewDelegateFlowLayout
 extension BugReportingViewController: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        return CGSize(width: 100, height: 140)
+        return Self.cellSize
     }
 }
 
@@ -403,7 +438,8 @@ extension BugReportingViewController: UIImagePickerControllerDelegate {
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         if let image = info[.editedImage] as? UIImage ?? info[.originalImage] as? UIImage,
            let imageData = WebPEncoder.encode(image, quality: CGFloat(configProvider.screenshotCompressionQuality) / 100.0) {
-            addAttachment(MsrAttachment(name: galleryImageName, type: .screenshot, size: Int64(imageData.count), id: idProvider.uuid(), bytes: imageData, path: nil))
+            addAttachment(MsrAttachment(name: galleryImageName, type: .screenshot, size: Int64(imageData.count), id: idProvider.uuid(), bytes: imageData, path: nil),
+                          previewImage: image)
         }
         picker.dismiss(animated: true)
     }

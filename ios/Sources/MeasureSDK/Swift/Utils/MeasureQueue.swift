@@ -17,4 +17,9 @@ struct MeasureQueue {
         let queue = DispatchQueue(label: "sh.measure.attachment.exporter", qos: .utility)
         return queue
     }()
+
+    static let screenshotProcessor: DispatchQueue = {
+        let queue = DispatchQueue(label: "sh.measure.screenshot.processor", qos: .userInitiated)
+        return queue
+    }()
 }

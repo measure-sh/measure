@@ -62,12 +62,30 @@ final class BaseBugReportManager: BugReportManager {
 
             if takeScreenshot,
                let window = UIWindow.keyWindow() {
-                screenshotGenerator.generate(window: window, name: screenshotName, storageType: .data, sync: false) { attachment in
-                    if let attachment = attachment {
-                        self.localAttachments.append(attachment)
+                var hasOpened = false
+                var redactedImage: UIImage?
+                screenshotGenerator.generate(
+                    window: window,
+                    name: screenshotName,
+                    storageType: .data,
+                    sync: false,
+                    onRedactedImage: { image in
+                        redactedImage = image
+                        guard !hasOpened else { return }
+                        hasOpened = true
+                        finishOpening()
+                    },
+                    completion: { attachment in
+                        if let attachment = attachment {
+                            self.localAttachments.append(attachment)
+                            self.bugReportingViewController?.addAttachment(attachment, previewImage: redactedImage)
+                        }
+                        if !hasOpened {
+                            hasOpened = true
+                            finishOpening()
+                        }
                     }
-                    finishOpening()
-                }
+                )
             } else {
                 finishOpening()
             }
@@ -75,6 +93,11 @@ final class BaseBugReportManager: BugReportManager {
     }
 
     private func openBugReportViewController() {
+        guard let root = UIWindow.keyWindow()?.rootViewController else {
+            clearState()
+            return
+        }
+
         let bugVC = BugReportingViewController(description: description,
                                                attachments: self.localAttachments,
                                                configProvider: configProvider,
@@ -84,14 +107,13 @@ final class BaseBugReportManager: BugReportManager {
         bugVC.modalPresentationStyle = .fullScreen
         bugVC.delegate = self
         self.bugReportingViewController = bugVC
-        if let root = UIWindow.keyWindow()?.rootViewController {
-            var top = root
-            while let presented = top.presentedViewController {
-                top = presented
-            }
-            top.present(bugVC, animated: true) {
-                self.isBugReporterOpen = true
-            }
+
+        var top = root
+        while let presented = top.presentedViewController {
+            top = presented
+        }
+        top.present(bugVC, animated: true) {
+            self.isBugReporterOpen = true
         }
     }
 

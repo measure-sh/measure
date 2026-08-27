@@ -10,8 +10,17 @@ import UIKit
 
 final class MockScreenshotGenerator: ScreenshotGenerator {
     var attachment: MsrAttachment?
+    var redactedImage: UIImage?
 
-    func generate(window: UIWindow, name: String, storageType: AttachmentStorageType, sync: Bool, completion: @escaping (MsrAttachment?) -> Void) {
+    func generate(window: UIWindow, // swiftlint:disable:this function_parameter_count
+                  name: String,
+                  storageType: AttachmentStorageType,
+                  sync: Bool,
+                  onRedactedImage: ((UIImage) -> Void)?,
+                  completion: @escaping (MsrAttachment?) -> Void) {
+        if let redactedImage = redactedImage {
+            onRedactedImage?(redactedImage)
+        }
         completion(attachment)
     }
 
