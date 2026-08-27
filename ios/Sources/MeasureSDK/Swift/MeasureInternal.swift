@@ -204,6 +204,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         previousSessionCrashed = crashReportManager.hasPendingCrashReport
         self.sessionManager.setOnSessionStarted { [weak self] sessionId in
             guard let self else { return }
+            self.crashDataPersistence.sessionId = sessionId
             if let timestamp = self.sessionManager.getSessionStartTime() {
                 self.trackSessionStart(sessionId, timestamp: timestamp)
             }
@@ -557,7 +558,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleCollector.disable()
         self.spanCollector.disabled()
         self.internalSignalCollector.disable()
-        self.systemCrashReporter.disable()
     }
 
     private func registerAlwaysOnCollectors() {
