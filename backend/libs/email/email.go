@@ -15,6 +15,9 @@ import (
 	"github.com/wneessen/go-mail"
 )
 
+// fromName is the sender display name shown in mail clients.
+const fromName = "Measure Notification"
+
 // EmailInfo describes an email to be sent or queued.
 type EmailInfo struct {
 	From        string `json:"from"`
@@ -41,6 +44,24 @@ type AppDailySummary struct {
 	Metrics []MetricData
 }
 
+// buildMessage constructs the mail.Msg for an EmailInfo, setting a display
+// name on the From address.
+func buildMessage(info EmailInfo) (message *mail.Msg, err error) {
+	message = mail.NewMsg()
+	if err = message.FromFormat(fromName, info.From); err != nil {
+		fmt.Printf("failed to set From address: %s\n", err)
+		return nil, err
+	}
+	if err = message.To(info.To); err != nil {
+		fmt.Printf("failed to set To address: %s\n", err)
+		return nil, err
+	}
+	message.Subject(info.Subject)
+	message.SetBodyString(mail.ContentType(info.ContentType), info.Body)
+
+	return message, nil
+}
+
 // SendEmail sends an email immediately using the provided mail client.
 // Use QueueEmail instead to queue an email for later delivery.
 func SendEmail(client *mail.Client, info EmailInfo) error {
@@ -48,17 +69,10 @@ func SendEmail(client *mail.Client, info EmailInfo) error {
 		return fmt.Errorf("email client is not initialized")
 	}
 
-	message := mail.NewMsg()
-	if err := message.From(info.From); err != nil {
-		fmt.Printf("failed to set From address: %s\n", err)
+	message, err := buildMessage(info)
+	if err != nil {
 		return err
 	}
-	if err := message.To(info.To); err != nil {
-		fmt.Printf("failed to set To address: %s\n", err)
-		return err
-	}
-	message.Subject(info.Subject)
-	message.SetBodyString(mail.ContentType(info.ContentType), info.Body)
 
 	if err := client.DialAndSend(message); err != nil {
 		fmt.Printf("failed to send mail: %s\n", err)

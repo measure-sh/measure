@@ -10,22 +10,20 @@ import "fmt"
 
 // CrashSpikeMessage builds the plain text message for a crash spike alert.
 func CrashSpikeMessage(file, method, message string) string {
-	return fmt.Sprintf("Crashes are spiking at:\n\n%s: %s() - %s", file, method, message)
+	return fmt.Sprintf("%s: %s() - %s", file, method, message)
 }
 
 // AnrSpikeMessage builds the plain text message for an ANR spike alert.
 func AnrSpikeMessage(file, method, message string) string {
-	return fmt.Sprintf("ANRs are spiking at:\n\n%s: %s() - %s", file, method, message)
+	return fmt.Sprintf("%s: %s() - %s", file, method, message)
 }
 
 // BugReportMessage builds the plain text message for a bug report alert.
-// An empty description is replaced with a placeholder so the alert never
-// reads as truncated.
 func BugReportMessage(description string) string {
 	if description == "" {
-		description = "No description provided."
+		return "No description provided."
 	}
-	return fmt.Sprintf("A new bug report has been submitted:\n\n%s", description)
+	return description
 }
 
 // CrashSpikeURL builds the dashboard URL for a crash spike alert. A
