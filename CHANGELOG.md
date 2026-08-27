@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Quote ilike patterns in user defined attr filters (#4302) by @detj in #4302
 - (**backend**): Fail ingest boot when the bus producer is unavailable (#4275) by @detj in #4275
 - (**backend**): Report auth infra failures as 500 not 401 (#4269) by @detj in #4269
 - (**backend**): Distinguish absent `num_code` from a sent zero (#4274) by @detj in #4274
