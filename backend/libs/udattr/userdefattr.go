@@ -400,9 +400,9 @@ func (c *UDComparison) Augment(stmt *sqlf.Stmt) {
 	case OpEq, OpNeq, OpGt, OpGte, OpLt, OpLte:
 		exprFunc(fmt.Sprintf("(key = ? AND type = ? AND value %s ?)", opSymbol), c.Key, c.Type.String(), c.Value)
 	case OpContains:
-		exprFunc(fmt.Sprintf("(key = ? AND type = ? AND value %s %%?%%)", opSymbol), c.Key, c.Type.String(), c.EscapedValue())
+		exprFunc(fmt.Sprintf("(key = ? AND type = ? AND value %s ?)", opSymbol), c.Key, c.Type.String(), "%"+c.EscapedValue()+"%")
 	case OpStartsWith:
-		exprFunc(fmt.Sprintf("(key = ? AND type = ? AND value %s ?%%)", opSymbol), c.Key, c.Type.String(), c.EscapedValue())
+		exprFunc(fmt.Sprintf("(key = ? AND type = ? AND value %s ?)", opSymbol), c.Key, c.Type.String(), c.EscapedValue()+"%")
 	}
 }
 

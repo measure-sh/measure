@@ -446,8 +446,8 @@ func TestAugmentComparison(t *testing.T) {
 		defer stmt.Close()
 
 		cmpStringContains.Augment(stmt)
-		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value ilike %?%)"
-		expectedArgs := []any{true, "preference", "string", "spicy"}
+		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value ilike ?)"
+		expectedArgs := []any{true, "preference", "string", "%spicy%"}
 		gotStmt := stmt.String()
 		gotArgs := stmt.Args()
 
@@ -468,8 +468,8 @@ func TestAugmentComparison(t *testing.T) {
 		defer stmt.Close()
 
 		cmpStringStartsWith.Augment(stmt)
-		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value ilike ?%)"
-		expectedArgs := []any{true, "name", "string", "Dr"}
+		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value ilike ?)"
+		expectedArgs := []any{true, "name", "string", "Dr%"}
 		gotStmt := stmt.String()
 		gotArgs := stmt.Args()
 
@@ -597,9 +597,9 @@ func TestAugmentExpression(t *testing.T) {
 		defer stmt.Close()
 		exprEscaped.Augment(stmt)
 
-		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value ilike %?%)"
+		expectedStmt := "SELECT id, name FROM users WHERE is_active = ? AND (key = ? AND type = ? AND value ilike ?)"
 		gotStmt := stmt.String()
-		expectedArgs := []any{true, "username", "string", "ali\\%ce"}
+		expectedArgs := []any{true, "username", "string", "%ali\\%ce%"}
 		gotArgs := stmt.Args()
 
 		if expectedStmt != gotStmt {
