@@ -73,7 +73,7 @@ func RoleChangedEmail(newRole, changedByEmail, teamName, siteOrigin, teamId stri
 // text alert message.
 func CrashSpikeAlertEmail(appName, alertMsg, alertURL string) (subject, body string) {
 	subject = appName + " - Crash Spike Alert"
-	body = RenderEmailBody(escape(subject), PlainTextContent(alertMsg), "View in Dashboard", alertURL)
+	body = RenderEmailBody(escape(appName), PlainTextContent(alertMsg), "View in Dashboard", alertURL)
 	return
 }
 
@@ -81,7 +81,7 @@ func CrashSpikeAlertEmail(appName, alertMsg, alertURL string) (subject, body str
 // text alert message.
 func AnrSpikeAlertEmail(appName, alertMsg, alertURL string) (subject, body string) {
 	subject = appName + " - ANR Spike Alert"
-	body = RenderEmailBody(escape(subject), PlainTextContent(alertMsg), "View in Dashboard", alertURL)
+	body = RenderEmailBody(escape(appName), PlainTextContent(alertMsg), "View in Dashboard", alertURL)
 	return
 }
 
@@ -89,7 +89,7 @@ func AnrSpikeAlertEmail(appName, alertMsg, alertURL string) (subject, body strin
 // text alert message.
 func BugReportAlertEmail(appName, alertMsg, alertURL string) (subject, body string) {
 	subject = appName + " - New Bug Report"
-	body = RenderEmailBody(escape(subject), PlainTextContent(alertMsg), "View in Dashboard", alertURL)
+	body = RenderEmailBody(escape(appName), PlainTextContent(alertMsg), "View in Dashboard", alertURL)
 	return
 }
 

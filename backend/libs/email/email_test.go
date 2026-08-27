@@ -539,6 +539,25 @@ func TestQueueEmailOmitsEmptyAlertType(t *testing.T) {
 	}
 }
 
+func TestBuildMessageSetsFromName(t *testing.T) {
+	message, err := buildMessage(EmailInfo{
+		From:        testFromEmail,
+		To:          testToEmail,
+		Subject:     "Test",
+		ContentType: "text/html",
+		Body:        "<p>Hello</p>",
+	})
+	if err != nil {
+		t.Fatalf("buildMessage: %v", err)
+	}
+
+	from := message.GetFromString()
+	want := `"Measure Notification" <test@example.com>`
+	if len(from) != 1 || from[0] != want {
+		t.Errorf("From header = %v, want [%q]", from, want)
+	}
+}
+
 func TestSendEmailNilClient(t *testing.T) {
 	err := SendEmail(nil, EmailInfo{
 		From:        testFromEmail,

@@ -4,7 +4,7 @@ import "testing"
 
 func TestCrashSpikeMessage(t *testing.T) {
 	got := CrashSpikeMessage("Foo.kt", "<init>", "x < 1")
-	want := "Crashes are spiking at:\n\nFoo.kt: <init>() - x < 1"
+	want := "Foo.kt: <init>() - x < 1"
 	if got != want {
 		t.Errorf("CrashSpikeMessage = %q, want %q", got, want)
 	}
@@ -12,7 +12,7 @@ func TestCrashSpikeMessage(t *testing.T) {
 
 func TestAnrSpikeMessage(t *testing.T) {
 	got := AnrSpikeMessage("Bar.kt", "run", "Input dispatching timed out")
-	want := "ANRs are spiking at:\n\nBar.kt: run() - Input dispatching timed out"
+	want := "Bar.kt: run() - Input dispatching timed out"
 	if got != want {
 		t.Errorf("AnrSpikeMessage = %q, want %q", got, want)
 	}
@@ -21,7 +21,7 @@ func TestAnrSpikeMessage(t *testing.T) {
 func TestBugReportMessage(t *testing.T) {
 	t.Run("carries the description through unchanged", func(t *testing.T) {
 		got := BugReportMessage("Login button <b>does nothing</b>")
-		want := "A new bug report has been submitted:\n\nLogin button <b>does nothing</b>"
+		want := "Login button <b>does nothing</b>"
 		if got != want {
 			t.Errorf("BugReportMessage = %q, want %q", got, want)
 		}
@@ -29,7 +29,7 @@ func TestBugReportMessage(t *testing.T) {
 
 	t.Run("replaces an empty description with a placeholder", func(t *testing.T) {
 		got := BugReportMessage("")
-		want := "A new bug report has been submitted:\n\nNo description provided."
+		want := "No description provided."
 		if got != want {
 			t.Errorf("BugReportMessage = %q, want %q", got, want)
 		}
