@@ -15,6 +15,7 @@ import sh.measure.android.attributes.NetworkStateAttributeProcessor
 import sh.measure.android.attributes.PowerStateAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.bugreport.AccelerometerShakeDetector
+import sh.measure.android.bugreport.AttachmentEncoderImpl
 import sh.measure.android.bugreport.BugReportCollector
 import sh.measure.android.bugreport.BugReportCollectorImpl
 import sh.measure.android.bugreport.ShakeBugReportCollector
@@ -420,11 +421,15 @@ internal class TestMeasureInitializer(
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         ioExecutor = executorServiceRegistry.ioExecutor(),
-        fileStorage = fileStorage,
-        idProvider = idProvider,
         configProvider = configProvider,
-        sessionManager = sessionManager,
         resumedActivityProvider = resumedActivityProvider,
+        attachmentEncoder = AttachmentEncoderImpl(
+            logger = logger,
+            configProvider = configProvider,
+            fileStorage = fileStorage,
+            idProvider = idProvider,
+            sessionManager = sessionManager,
+        ),
     ),
     override val customEventCollector: CustomEventCollector = CustomEventCollector(
         logger = logger,

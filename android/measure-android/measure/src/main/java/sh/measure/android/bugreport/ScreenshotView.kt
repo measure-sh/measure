@@ -1,6 +1,7 @@
 package sh.measure.android.bugreport
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import android.util.AttributeSet
 import android.view.View
@@ -9,8 +10,6 @@ import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import sh.measure.android.R
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
 internal class ScreenshotView @JvmOverloads constructor(
     context: Context,
@@ -18,7 +17,6 @@ internal class ScreenshotView @JvmOverloads constructor(
     defStyleAttr: Int = 0,
     defStyleRes: Int = 0,
 ) : FrameLayout(context, attrs, defStyleAttr, defStyleRes) {
-    private val imageExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private val imageView: ImageView
     private val closeButton: ImageButton
     private var removeListener: (() -> Unit)? = null
@@ -30,6 +28,12 @@ internal class ScreenshotView @JvmOverloads constructor(
         closeButton.setOnClickListener {
             removeListener?.invoke()
         }
+    }
+
+    fun setImageFromBitmap(bitmap: Bitmap) {
+        setInitialStateBeforeAnimation()
+        imageView.setImageBitmap(bitmap)
+        animateAppearance()
     }
 
     fun setImageFromPath(path: String) {
@@ -62,7 +66,6 @@ internal class ScreenshotView @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        imageExecutor.shutdown()
         removeListener = null
     }
 

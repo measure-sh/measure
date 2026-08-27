@@ -6,7 +6,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.annotation.MainThread
 import sh.measure.android.MsrAttachment
-import sh.measure.android.bugreport.BugReportCollector.Companion.MAX_OUTPUT_IMAGE_WIDTH
+import sh.measure.android.bugreport.AttachmentEncoder.Companion.sampleSizeFor
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.AttachmentType
 import sh.measure.android.executors.MeasureExecutorService
@@ -16,7 +16,6 @@ import sh.measure.android.mainHandler
 import sh.measure.android.screenshot.ScreenshotMask
 import java.lang.ref.WeakReference
 import java.util.concurrent.RejectedExecutionException
-import kotlin.math.roundToInt
 
 internal class AttachmentHelper(
     private val logger: Logger,
@@ -113,11 +112,7 @@ internal class AttachmentHelper(
                         onError?.let { mainHandler.post(it) }
                         return@submit
                     }
-                    val sampleSize = if (options.outWidth > MAX_OUTPUT_IMAGE_WIDTH) {
-                        (options.outWidth.toFloat() / MAX_OUTPUT_IMAGE_WIDTH.toFloat()).roundToInt()
-                    } else {
-                        1
-                    }
+                    val sampleSize = sampleSizeFor(options.outWidth)
                     options.apply {
                         inJustDecodeBounds = false
                         inSampleSize = sampleSize

@@ -17,6 +17,7 @@ import sh.measure.android.attributes.SessionAttributeProcessor
 import sh.measure.android.attributes.SpanDeviceAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.bugreport.AccelerometerShakeDetector
+import sh.measure.android.bugreport.AttachmentEncoderImpl
 import sh.measure.android.bugreport.BugReportCollector
 import sh.measure.android.bugreport.BugReportCollectorImpl
 import sh.measure.android.bugreport.ShakeBugReportCollector
@@ -452,14 +453,18 @@ internal class MeasureInitializerImpl(
     ),
     override val bugReportCollector: BugReportCollector = BugReportCollectorImpl(
         logger = logger,
-        fileStorage = fileStorage,
         configProvider = configProvider,
         ioExecutor = executorServiceRegistry.ioExecutor(),
-        idProvider = idProvider,
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
-        sessionManager = sessionManager,
         resumedActivityProvider = resumedActivityProvider,
+        attachmentEncoder = AttachmentEncoderImpl(
+            logger = logger,
+            configProvider = configProvider,
+            fileStorage = fileStorage,
+            idProvider = idProvider,
+            sessionManager = sessionManager,
+        ),
     ),
     override val shakeBugReportCollector: ShakeBugReportCollector = ShakeBugReportCollector(
         shakeDetector = AccelerometerShakeDetector(

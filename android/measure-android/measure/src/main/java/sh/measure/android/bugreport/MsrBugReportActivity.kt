@@ -19,13 +19,11 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickMultipleVisualMedia
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.annotation.RequiresApi
-import androidx.core.content.IntentCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import sh.measure.android.Measure
 import sh.measure.android.R
-import sh.measure.android.bugreport.BugReportCollector.Companion.INITIAL_SCREENSHOT_EXTRA
 import sh.measure.android.bugreport.BugReportCollector.Companion.MAX_ATTACHMENTS_EXTRA
 import sh.measure.android.bugreport.BugReportCollector.Companion.MAX_DESCRIPTION_LENGTH
 
@@ -37,10 +35,11 @@ internal class MsrBugReportActivity : ComponentActivity() {
     private lateinit var tvSend: TextView
     private lateinit var hsvScreenshots: HorizontalScrollView
     private lateinit var bugReportCollector: BugReportCollector
+    private var session: BugReportSession? = null
+    private var captureView: ScreenshotView? = null
     private var maxAttachments: Int = 1
-    private var uris: MutableSet<Uri> = mutableSetOf()
-    private var attachments: MutableSet<ParcelableAttachment> = mutableSetOf()
-    private val totalAttachments: Int get() = attachments.size + uris.size
+    private val attachments: MutableList<BugReportAttachment> = mutableListOf()
+    private val totalAttachments: Int get() = attachments.size
 
     private val pickMultipleMedia =
         registerForActivityResult(PickMultipleVisualMedia()) { selectedUris ->
@@ -52,19 +51,14 @@ internal class MsrBugReportActivity : ComponentActivity() {
     }
 
     companion object {
-        private const val PARCEL_SCREENSHOTS = "parcel_screenshots"
-        private const val PARCEL_URIS = "parcel_uris"
+        private const val PARCEL_ATTACHMENTS = "parcel_attachments"
 
         fun launch(
             context: Context,
-            initialScreenshot: ParcelableAttachment? = null,
             maxAttachmentsInBugReport: Int,
             maxDescriptionLengthInBugReport: Int,
         ) {
             val intent = Intent(context, MsrBugReportActivity::class.java)
-            initialScreenshot?.let {
-                intent.putExtra(INITIAL_SCREENSHOT_EXTRA, it)
-            }
             intent.putExtra(MAX_ATTACHMENTS_EXTRA, maxAttachmentsInBugReport)
             intent.putExtra(MAX_DESCRIPTION_LENGTH, maxDescriptionLengthInBugReport)
             context.startActivity(intent)
@@ -73,6 +67,7 @@ internal class MsrBugReportActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        bugReportCollector = Measure.getBugReportCollector()
         setContentView(R.layout.msr_bug_report_activity)
         handleEdgeToEdgeDisplay()
         initViews()
@@ -89,22 +84,30 @@ internal class MsrBugReportActivity : ComponentActivity() {
         bugReportCollector.setBugReportFlowInactive()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        session?.screenshot?.setListener(null)
+        if (isFinishing) {
+            session?.let { bugReportCollector.discardSession(it) }
+        }
+        session = null
+        captureView = null
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putParcelableArray(PARCEL_SCREENSHOTS, attachments.toTypedArray())
-        outState.putParcelableArray(PARCEL_URIS, uris.toTypedArray())
+        outState.putParcelableArray(PARCEL_ATTACHMENTS, attachments.toTypedArray())
     }
 
     private fun setupInitialState(savedInstanceState: Bundle?) {
-        bugReportCollector = Measure.getBugReportCollector()
+        session = bugReportCollector.getSession()
         maxAttachments = intent.getIntExtra(MAX_ATTACHMENTS_EXTRA, 1)
         tvChooseImage.visibility = View.VISIBLE
-        if (savedInstanceState == null) {
-            showInitialScreenshot()
-        } else {
+        if (savedInstanceState != null) {
             restoreState(savedInstanceState)
-            restoreViews()
         }
+        reconcileCapture(isRestored = savedInstanceState != null)
+        addAttachmentViews()
     }
 
     private fun initViews() {
@@ -177,18 +180,6 @@ internal class MsrBugReportActivity : ComponentActivity() {
         }
     }
 
-    private fun showInitialScreenshot() {
-        val screenshot = getInitialScreenshot() ?: return
-        attachments.add(screenshot)
-        addAttachmentView(screenshot)
-    }
-
-    private fun getInitialScreenshot(): ParcelableAttachment? = IntentCompat.getParcelableExtra(
-        intent,
-        INITIAL_SCREENSHOT_EXTRA,
-        ParcelableAttachment::class.java,
-    )
-
     private fun restoreState(savedInstanceState: Bundle) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             restoreStateApi33(savedInstanceState)
@@ -200,51 +191,103 @@ internal class MsrBugReportActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private fun restoreStateApi33(savedInstanceState: Bundle) {
         savedInstanceState.getParcelableArray(
-            PARCEL_SCREENSHOTS,
-            ParcelableAttachment::class.java,
+            PARCEL_ATTACHMENTS,
+            BugReportAttachment::class.java,
         )?.let { attachments.addAll(it.toList()) }
-
-        savedInstanceState.getParcelableArray(PARCEL_URIS, Uri::class.java)
-            ?.let { uris.addAll(it.toList()) }
     }
 
     @Suppress("DEPRECATION")
     private fun restoreStateLegacy(savedInstanceState: Bundle) {
-        savedInstanceState.getParcelableArray(PARCEL_SCREENSHOTS)
-            ?.let { attachments.addAll(it.filterIsInstance<ParcelableAttachment>()) }
-
-        savedInstanceState.getParcelableArray(PARCEL_URIS)
-            ?.let { uris.addAll(it.filterIsInstance<Uri>()) }
+        savedInstanceState.getParcelableArray(PARCEL_ATTACHMENTS)
+            ?.let { attachments.addAll(it.filterIsInstance<BugReportAttachment>()) }
     }
 
-    private fun restoreViews() {
+    private fun reconcileCapture(isRestored: Boolean) {
+        if (!isRestored) {
+            when (val encoded = session?.screenshot?.encoded) {
+                null -> if (session?.screenshot?.isPreparing() == true) {
+                    attachments.add(BugReportAttachment.Capture)
+                }
+
+                else -> attachments.add(
+                    BugReportAttachment.Screenshot(encoded.name, encoded.path),
+                )
+            }
+            return
+        }
+        val index = attachments.indexOf(BugReportAttachment.Capture)
+        if (index < 0) {
+            return
+        }
+        val slot = session?.screenshot
+        val encoded = slot?.encoded
+        when {
+            encoded != null -> attachments[index] =
+                BugReportAttachment.Screenshot(encoded.name, encoded.path)
+
+            slot?.isPreparing() == true -> Unit
+            else -> attachments.removeAt(index)
+        }
+    }
+
+    private fun addAttachmentViews() {
         attachments.forEach { attachment -> addAttachmentView(attachment) }
-        uris.forEach { uri -> addUriView(uri) }
         updateAddImageClickListener()
     }
 
-    private fun addAttachmentView(attachment: ParcelableAttachment) {
-        ScreenshotView(this).apply {
-            setImageFromPath(attachment.path)
-            setRemoveClickListener {
-                attachments.remove(attachment)
-                slScreenshotsContainer.removeView(this)
-                updateAddImageClickListener()
+    private fun addAttachmentView(attachment: BugReportAttachment) {
+        val view = ScreenshotView(this)
+        when (attachment) {
+            BugReportAttachment.Capture -> {
+                val slot = session?.screenshot
+                slot?.preview?.let { view.setImageFromBitmap(it) }
+                captureView = view
+                if (slot != null && slot.isPreparing()) {
+                    slot.setListener(::onScreenshotEncoded)
+                }
             }
-            slScreenshotsContainer.addView(this)
+
+            is BugReportAttachment.Screenshot -> view.setImageFromPath(attachment.path)
+            is BugReportAttachment.Image -> view.setImageFromUri(attachment.uri)
         }
+        view.setRemoveClickListener { removeAttachment(attachment, view) }
+        slScreenshotsContainer.addView(view)
     }
 
-    private fun addUriView(uri: Uri) {
-        ScreenshotView(this).apply {
-            setImageFromUri(uri)
-            setRemoveClickListener {
-                uris.remove(uri)
-                slScreenshotsContainer.removeView(this)
-                updateAddImageClickListener()
-            }
-            slScreenshotsContainer.addView(this)
+    private fun removeAttachment(attachment: BugReportAttachment, view: ScreenshotView) {
+        attachments.remove(attachment)
+        if (isSessionCapture(attachment)) {
+            captureView = null
+            session?.screenshot?.setListener(null)
+            session?.let { bugReportCollector.discardScreenshot(it) }
         }
+        slScreenshotsContainer.removeView(view)
+        updateAddImageClickListener()
+    }
+
+    private fun isSessionCapture(attachment: BugReportAttachment): Boolean = when (attachment) {
+        BugReportAttachment.Capture -> true
+        is BugReportAttachment.Screenshot -> attachment.path == session?.screenshot?.encoded?.path
+        is BugReportAttachment.Image -> false
+    }
+
+    private fun onScreenshotEncoded(encoded: EncodedScreenshot?) {
+        val index = attachments.indexOf(BugReportAttachment.Capture)
+        if (index < 0) {
+            return
+        }
+        val view = captureView
+        captureView = null
+        if (encoded == null) {
+            attachments.removeAt(index)
+            view?.let { slScreenshotsContainer.removeView(it) }
+            updateAddImageClickListener()
+            return
+        }
+        val screenshot = BugReportAttachment.Screenshot(encoded.name, encoded.path)
+        attachments[index] = screenshot
+        view ?: return
+        view.setRemoveClickListener { removeAttachment(screenshot, view) }
     }
 
     private fun handleSelectedUris(selectedUris: List<Uri>) {
@@ -252,7 +295,10 @@ internal class MsrBugReportActivity : ComponentActivity() {
             showMaxAttachmentsToast()
         } else {
             val maxAllowed = maxAttachments - totalAttachments
-            val newUris = selectedUris.filter { it !in uris }.take(maxAllowed)
+            val existingUris =
+                attachments.filterIsInstance<BugReportAttachment.Image>().map { it.uri }
+            val newUris =
+                selectedUris.distinct().filter { it !in existingUris }.take(maxAllowed)
 
             // Take persistent URI permissions to prevent SecurityException when reading the image.
             newUris.forEach { uri ->
@@ -271,14 +317,13 @@ internal class MsrBugReportActivity : ComponentActivity() {
                 }
             }
 
-            uris.addAll(newUris)
-            showSelectedImages(newUris)
+            newUris.forEach { uri ->
+                val attachment = BugReportAttachment.Image(uri)
+                attachments.add(attachment)
+                addAttachmentView(attachment)
+            }
         }
         updateAddImageClickListener()
-    }
-
-    private fun showSelectedImages(uris: List<Uri>) {
-        uris.forEach { addUriView(it) }
     }
 
     private fun showMaxAttachmentsToast() {
@@ -313,7 +358,6 @@ internal class MsrBugReportActivity : ComponentActivity() {
             this,
             etDescription.text.toString(),
             attachments.toList(),
-            uris.toList(),
         )
     }
 }
