@@ -60,6 +60,11 @@ type ExprFilter struct {
 	FilterExpr string `form:"filter_expr"`
 
 	ExprTree *ExprTree
+
+	// customBinder writes the SQL for the custom-key conditions of one filter
+	// group. ResolveCustomKeys sets it; nil when the filter mentions no
+	// custom keys or the entity has none.
+	customBinder GroupKeyBinding
 }
 
 func (ef *ExprFilter) HasFilterExpr() bool {

@@ -210,6 +210,136 @@ func TestPredicateTakesAnOverrideForOneKey(t *testing.T) {
 	}
 }
 
+// fakeCustomBinder records each call and returns a marker fragment naming the
+// conditions it received.
+type fakeCustomBinder struct {
+	calls []struct {
+		operator LogicalOperator
+		keyNames []string
+	}
+}
+
+func (b *fakeCustomBinder) bind(operator LogicalOperator, conditions []Condition) (*sqlf.Stmt, error) {
+	keyNames := make([]string, len(conditions))
+	for i, condition := range conditions {
+		keyNames[i] = condition.KeyName
+	}
+	b.calls = append(b.calls, struct {
+		operator LogicalOperator
+		keyNames []string
+	}{operator, keyNames})
+	return sqlf.New("custom ?", strings.Join(keyNames, ",")), nil
+}
+
+func TestPredicateBatchesAGroupsCustomConditions(t *testing.T) {
+	t.Run("a mixed group appends the batch after the other children", func(t *testing.T) {
+		exprTree := &ExprTree{LogicalOperator: LogicalAnd, Children: []ExprTree{
+			*leafExprTree("custom.plan", OperatorIn, "pro"),
+			*leafExprTree("version_name", OperatorIn, "1.2.0"),
+			*leafExprTree("custom.retries", OperatorGt, "9"),
+		}}
+		binder := &fakeCustomBinder{}
+		ef := testFilters(exprTree)
+		ef.customBinder = binder.bind
+
+		predicate, err := ef.Predicate(nil)
+		if err != nil {
+			t.Fatalf("Predicate: %v", err)
+		}
+		defer predicate.Close()
+
+		want := "((version_name = any(?)) and (custom ?))"
+		if got := predicate.String(); got != want {
+			t.Errorf("\n got %s\nwant %s", got, want)
+		}
+		if len(binder.calls) != 1 || binder.calls[0].operator != LogicalAnd {
+			t.Fatalf("want one binder call with the group's operator, got %+v", binder.calls)
+		}
+		if got := binder.calls[0].keyNames; len(got) != 2 || got[0] != "custom.plan" || got[1] != "custom.retries" {
+			t.Errorf("want both custom conditions batched in order, got %v", got)
+		}
+		args := predicate.Args()
+		if len(args) != 2 || args[1] != "custom.plan,custom.retries" {
+			t.Errorf("want the batch's arguments after the other children's, got %v", args)
+		}
+	})
+
+	t.Run("a nested group gets its own binder call", func(t *testing.T) {
+		exprTree := &ExprTree{LogicalOperator: LogicalAnd, Children: []ExprTree{
+			*leafExprTree("custom.plan", OperatorIn, "pro"),
+			{LogicalOperator: LogicalOr, Children: []ExprTree{
+				*leafExprTree("custom.coupon", OperatorIsSet),
+				*leafExprTree("custom.retries", OperatorGt, "9"),
+			}},
+		}}
+		binder := &fakeCustomBinder{}
+		ef := testFilters(exprTree)
+		ef.customBinder = binder.bind
+
+		predicate, err := ef.Predicate(nil)
+		if err != nil {
+			t.Fatalf("Predicate: %v", err)
+		}
+		defer predicate.Close()
+
+		want := "((((custom ?))) and (custom ?))"
+		if got := predicate.String(); got != want {
+			t.Errorf("\n got %s\nwant %s", got, want)
+		}
+		if len(binder.calls) != 2 {
+			t.Fatalf("want one binder call per group, got %+v", binder.calls)
+		}
+		if binder.calls[0].operator != LogicalOr || len(binder.calls[0].keyNames) != 2 {
+			t.Errorf("want the nested group's conditions bound under or, got %+v", binder.calls[0])
+		}
+		if binder.calls[1].operator != LogicalAnd || len(binder.calls[1].keyNames) != 1 {
+			t.Errorf("want the outer group's condition bound under and, got %+v", binder.calls[1])
+		}
+	})
+
+	t.Run("a custom-only group is the batch alone", func(t *testing.T) {
+		exprTree := &ExprTree{LogicalOperator: LogicalOr, Children: []ExprTree{
+			*leafExprTree("custom.plan", OperatorIn, "pro"),
+			*leafExprTree("custom.retries", OperatorGt, "9"),
+		}}
+		binder := &fakeCustomBinder{}
+		ef := testFilters(exprTree)
+		ef.customBinder = binder.bind
+
+		predicate, err := ef.Predicate(nil)
+		if err != nil {
+			t.Fatalf("Predicate: %v", err)
+		}
+		defer predicate.Close()
+
+		if got := predicate.String(); got != "((custom ?))" {
+			t.Errorf("want the batch as the group's one child, got %s", got)
+		}
+		if len(binder.calls) != 1 || binder.calls[0].operator != LogicalOr {
+			t.Fatalf("want one binder call with the group's operator, got %+v", binder.calls)
+		}
+	})
+
+	t.Run("a custom leaf at the root is a singleton binder call", func(t *testing.T) {
+		binder := &fakeCustomBinder{}
+		ef := testFilters(leafExprTree("custom.plan", OperatorIn, "pro"))
+		ef.customBinder = binder.bind
+
+		predicate, err := ef.Predicate(nil)
+		if err != nil {
+			t.Fatalf("Predicate: %v", err)
+		}
+		defer predicate.Close()
+
+		if got := predicate.String(); got != "custom ?" {
+			t.Errorf("want the binder's fragment unwrapped, got %s", got)
+		}
+		if len(binder.calls) != 1 || len(binder.calls[0].keyNames) != 1 {
+			t.Fatalf("want one binder call with the one condition, got %+v", binder.calls)
+		}
+	})
+}
+
 func TestEscapeLikeWildcards(t *testing.T) {
 	if got := EscapeLikeWildcards(`100% _sure\`); got != `100\% \_sure\\` {
 		t.Errorf("want the wildcards turned off, got %q", got)

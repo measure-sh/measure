@@ -1,6 +1,7 @@
 package exprfilter
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/leporo/sqlf"
@@ -10,6 +11,11 @@ import (
 // into a boolean SQL expression, with the values to bind. An override written
 // for a single key needs to handle every operator that key offers.
 type KeyBinding func(condition Condition) (*sqlf.Stmt, error)
+
+// GroupKeyBinding turns the custom-key conditions of one filter group into a
+// single boolean SQL expression, with the values to bind. Binding a group at
+// once lets sibling conditions share one scan of the attribute table.
+type GroupKeyBinding func(operator LogicalOperator, conditions []Condition) (*sqlf.Stmt, error)
 
 // Predicate turns the filter into a boolean SQL expression and its bind values.
 // The caller can use it in a WHERE, HAVING, or any other SQL clause:
@@ -53,7 +59,50 @@ func (ef *ExprFilter) Predicate(keyBindingOverrides map[string]KeyBinding) (*sql
 		return sqlf.New(text.String(), args...), nil
 	}
 
-	return WalkExprTree(ef.ExprTree, bindLeaf, joinGroup)
+	isCustom := func(condition Condition) bool {
+		return ef.customBinder != nil && strings.HasPrefix(condition.KeyName, CustomKeyPrefix)
+	}
+
+	var walk func(node *ExprTree) (*sqlf.Stmt, error)
+	walk = func(node *ExprTree) (*sqlf.Stmt, error) {
+		if !node.IsGroup() {
+			if isCustom(*node.Condition) {
+				return ef.customBinder(LogicalAnd, []Condition{*node.Condition})
+			}
+			return bindLeaf(*node.Condition)
+		}
+
+		// The batch's fragment goes after the group's other children; position
+		// inside an and/or group carries no meaning.
+		children := make([]*sqlf.Stmt, 0, len(node.Children))
+		customBatch := []Condition{}
+		for i := range node.Children {
+			child := &node.Children[i]
+			if child.Condition != nil && isCustom(*child.Condition) {
+				customBatch = append(customBatch, *child.Condition)
+				continue
+			}
+			converted, err := walk(child)
+			if err != nil {
+				return nil, err
+			}
+			children = append(children, converted)
+		}
+		if len(customBatch) > 0 {
+			converted, err := ef.customBinder(node.LogicalOperator, customBatch)
+			if err != nil {
+				return nil, err
+			}
+			children = append(children, converted)
+		}
+
+		return joinGroup(node.LogicalOperator, children)
+	}
+
+	if ef.ExprTree == nil {
+		return nil, errors.New("Filter expression is empty")
+	}
+	return walk(ef.ExprTree)
 }
 
 // EscapeLikeWildcards escapes the wildcards of a LIKE pattern, so a search for
