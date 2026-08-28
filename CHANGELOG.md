@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Note the unbounded custom key discovery scans by @anupcowkur in #4313
 - (**backend**): Correct documentation accuracy (#4268) by @detj in #4268
 - (**backend**): Reduce clickhouse reads in issue common path query by @anupcowkur in #4267
 - (**backend**): Restyle metric lines in Slack daily summary by @anupcowkur in #4263
@@ -69,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :zap: Performance
 
+- (**backend**): Push root version conditions into custom attribute subqueries by @anupcowkur
 - (**backend**): Collapse sibling custom span attr filters into one scan by @anupcowkur
 
 ### :recycle: Refactor
