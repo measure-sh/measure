@@ -5,11 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.13.0] - 2026-08-28
+
+### :bug: Bug fixes
+
+
+- (**ios**): Apply correct theming to bug report attachment thumbnail (#4296) by @adwinross in #4296
+- (**ios**): Ignore non http urls in url session interceptor (#4157) by @adwinross in #4157
+- (**ios**): Correct misspelled lifecycle api names (#4153) by @adwinross in #4153
+
+### :hammer: Misc
+
+
+- (**ios**): Stop dropping crash reports before export (#4298) by @adwinross in #4298
+- (**ios**): Raise minimum deployment target to ios 13 (#4295) by @adwinross in #4295
+- (**ios**): Update json serialisation logic (#4270) by @adwinross in #4270
+- (**ios**): Allow modifying sdk credentials in frank app (#4225) by @adwinross in #4225
+- (**ios**): Add swift lint check on ci (#4216) by @adwinross in #4216
+- (**ios**): Update docs (#4210) by @adwinross in #4210
+- (**ios**): Remove attribute.platform from event payload (#4152) by @adwinross in #4152
+- (**ios**): Update prepare release to update version in package.json (#4125) by @adwinross in #4125
+
+### :zap: Performance
+
+
+- (**ios**): Improve bug report screen transition (#4306) by @adwinross in #4306
+
 ## [ios-v0.12.1] - 2026-07-23
 
 ### :hammer: Misc
 
 
+- (**ios**): Prepare sdk release 0.12.1 (#4123) by @adwinross in #4123
 - (**ios**): Update podspec to add proper import for measure webp (#4117) by @adwinross in #4117
 
 ## [ios-v0.12.0] - 2026-07-22
@@ -445,6 +472,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677) by @adwinross in #1677
 - (**ios**): Initial project setup  (#1034) by @adwinross in #1034
 
+[ios-v0.13.0]: https://github.com/measure-sh/measure/compare/ios-v0.12.1..ios-v0.13.0
 [ios-v0.12.1]: https://github.com/measure-sh/measure/compare/ios-v0.12.0..ios-v0.12.1
 [ios-v0.12.0]: https://github.com/measure-sh/measure/compare/ios-v0.11.0..ios-v0.12.0
 [ios-v0.11.0]: https://github.com/measure-sh/measure/compare/ios-v0.10.0..ios-v0.11.0
