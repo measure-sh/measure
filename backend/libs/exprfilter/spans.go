@@ -287,6 +287,10 @@ func fetchSpanCustomKeysByName(ctx context.Context, pgPool *pgxpool.Pool, chPool
 // spanCustomKeyQuery reads an app's user-defined span attribute keys with
 // their types. An attribute rewritten under a new type keeps one row per
 // type, so the type written last is the one its key offers.
+//
+// The scan is on the full table without a time bound. If needed in future:
+// time bound it so only keys in time range show up or add a rollup
+// of distinct keys and values like the span_filters rollupthat fixed keys read.
 func spanCustomKeyQuery(teamID, appID uuid.UUID) *sqlf.Stmt {
 	return sqlf.
 		From("span_user_def_attrs final").
@@ -301,6 +305,10 @@ func spanCustomKeyQuery(teamID, appID uuid.UUID) *sqlf.Stmt {
 // fetchSpanCustomKeySuggestions lists what one user-defined attribute has
 // been set to, most recently written first, asking for one row past the limit
 // so it can report that more matched without counting them. Empty ones are left out.
+//
+// The scan is on the full table without a time bound. If needed in future: time bound
+// it so only suggestions in time range show up or add a rollup of distinct keys and
+// values like the span_filters rollup that fixed keys read.
 func fetchSpanCustomKeySuggestions(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
 	limit := valueRequest.Limit
 	if limit <= 0 {
