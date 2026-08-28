@@ -4,6 +4,7 @@ package measure
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -292,12 +293,12 @@ func newCustomKeySpanFixture(t *testing.T) (spanFixture, time.Time) {
 	th.SeedSpanUDAttrRow(f.ctx, t, f.teamID.String(), f.appID.String(), testinfra.SpanUDAttrRow{SpanID: spanOne, Key: "retries", Type: "int64", Value: "9", Timestamp: base})
 	th.SeedSpanUDAttrRow(f.ctx, t, f.teamID.String(), f.appID.String(), testinfra.SpanUDAttrRow{SpanID: spanOne, Key: "is_premium", Type: "bool", Value: "true", Timestamp: base})
 	th.SeedSpanUDAttrRow(f.ctx, t, f.teamID.String(), f.appID.String(), testinfra.SpanUDAttrRow{SpanID: spanOne, Key: "coupon", Value: "WELCOME", Timestamp: base})
-	th.SeedSpanUDAttrRow(f.ctx, t, f.teamID.String(), f.appID.String(), testinfra.SpanUDAttrRow{SpanID: spanTwo, Key: "plan", Value: "free", Timestamp: base.Add(10 * time.Minute)})
-	th.SeedSpanUDAttrRow(f.ctx, t, f.teamID.String(), f.appID.String(), testinfra.SpanUDAttrRow{SpanID: spanTwo, Key: "retries", Type: "int64", Value: "10", Timestamp: base.Add(10 * time.Minute)})
+	th.SeedSpanUDAttrRow(f.ctx, t, f.teamID.String(), f.appID.String(), testinfra.SpanUDAttrRow{SpanID: spanTwo, Key: "plan", Value: "free", AppVersion: "v2", AppBuild: "2", Timestamp: base.Add(10 * time.Minute)})
+	th.SeedSpanUDAttrRow(f.ctx, t, f.teamID.String(), f.appID.String(), testinfra.SpanUDAttrRow{SpanID: spanTwo, Key: "retries", Type: "int64", Value: "10", AppVersion: "v2", AppBuild: "2", Timestamp: base.Add(10 * time.Minute)})
 	// The badge attribute changes type over time: the older row is a string,
 	// the newer a bool, so the key resolves as bool.
 	th.SeedSpanUDAttrRow(f.ctx, t, f.teamID.String(), f.appID.String(), testinfra.SpanUDAttrRow{SpanID: spanOne, Key: "badge", Value: "gold", Timestamp: base})
-	th.SeedSpanUDAttrRow(f.ctx, t, f.teamID.String(), f.appID.String(), testinfra.SpanUDAttrRow{SpanID: spanTwo, Key: "badge", Type: "bool", Value: "true", Timestamp: base.Add(10 * time.Minute)})
+	th.SeedSpanUDAttrRow(f.ctx, t, f.teamID.String(), f.appID.String(), testinfra.SpanUDAttrRow{SpanID: spanTwo, Key: "badge", Type: "bool", Value: "true", AppVersion: "v2", AppBuild: "2", Timestamp: base.Add(10 * time.Minute)})
 
 	return f, base
 }
@@ -507,6 +508,37 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 		}
 	})
 
+	t.Run("a root version condition narrows the attribute scan without changing results", func(t *testing.T) {
+		customOnly := exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
+			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
+			leaf("custom.retries", exprfilter.OperatorGt, "5"),
+		}}
+		withVersion := exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
+			leaf("version_name", exprfilter.OperatorIn, "v1"),
+			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
+			leaf("custom.retries", exprfilter.OperatorGt, "5"),
+		}}
+
+		got, want := listVersions(t, withVersion), listVersions(t, customOnly)
+		if !slices.Equal(got, want) {
+			t.Fatalf("want the version condition to leave the result unchanged, got %v want %v", got, want)
+		}
+		if len(got) != 1 || got[0] != "v1" {
+			t.Fatalf("want [v1], got %v", got)
+		}
+	})
+
+	t.Run("a root version condition matching no attributed span returns nothing", func(t *testing.T) {
+		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
+			leaf("version_name", exprfilter.OperatorIn, "v2"),
+			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
+			leaf("custom.retries", exprfilter.OperatorGt, "5"),
+		}})
+		if len(got) != 0 {
+			t.Fatalf("want no spans, got %v", got)
+		}
+	})
+
 	t.Run("an unknown custom key fails validation", func(t *testing.T) {
 		exprTree := leaf("custom.nope", exprfilter.OperatorIn, "x")
 		ef := f.exprFilter(from, to, &exprTree)
@@ -607,6 +639,17 @@ func TestGetMetricsPlotForSpanNameWithCustomKeys(t *testing.T) {
 		}})
 		if len(got) != 1 || !got["v2 (2)"] {
 			t.Fatalf("want only v2 (2), got %v", got)
+		}
+	})
+
+	t.Run("a root version condition narrows the rollup's attribute scan", func(t *testing.T) {
+		got := plotVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
+			leaf("version_name", exprfilter.OperatorIn, "v1"),
+			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
+			leaf("custom.retries", exprfilter.OperatorGt, "5"),
+		}})
+		if len(got) != 1 || !got["v1 (1)"] {
+			t.Fatalf("want only v1 (1), got %v", got)
 		}
 	})
 }

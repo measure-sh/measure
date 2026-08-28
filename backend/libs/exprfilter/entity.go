@@ -48,13 +48,25 @@ type Entity struct {
 
 	// BindCustomKeys builds the GroupKeyBinding for the given custom keys.
 	// Nil for an entity whose keys are all fixed.
-	BindCustomKeys func(teamID, appID uuid.UUID, from, to time.Time, keys []Key) GroupKeyBinding
+	BindCustomKeys func(scope CustomKeyScope, keys []Key) GroupKeyBinding
 
 	// MaxTimeBucketWidth is the widest time bucket used by any of the entity's
 	// tables. Bucketed queries may include rows from this bucket past the range
 	// end, so custom key bindings must be resolved that far past it. Zero means
 	// all tables store raw timestamps.
 	MaxTimeBucketWidth time.Duration
+}
+
+// CustomKeyScope is the request context a custom-key binding queries with.
+// The version lists mirror app version conditions already present in the filter.
+// A custom key binding may use it to reduce scans.
+type CustomKeyScope struct {
+	TeamID       uuid.UUID
+	AppID        uuid.UUID
+	From         time.Time
+	To           time.Time
+	VersionNames [][]string
+	VersionCodes [][]string
 }
 
 func FindByName(name string) (Entity, error) {

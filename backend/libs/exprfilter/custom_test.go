@@ -136,7 +136,7 @@ func TestResolveCustomKeysBindsEveryMentionedKey(t *testing.T) {
 			}
 			return keys, nil
 		},
-		BindCustomKeys: func(teamID, appID uuid.UUID, from, to time.Time, boundKeys []Key) GroupKeyBinding {
+		BindCustomKeys: func(scope CustomKeyScope, boundKeys []Key) GroupKeyBinding {
 			names := make([]string, len(boundKeys))
 			for i, key := range boundKeys {
 				names[i] = key.Name
@@ -227,12 +227,26 @@ func customCondition(keyName string, operator Operator, texts ...string) Conditi
 	return Condition{KeyName: keyName, Operator: operator, Values: values}
 }
 
+func testCustomKeyScope() CustomKeyScope {
+	return CustomKeyScope{
+		TeamID: uuid.New(),
+		AppID:  uuid.New(),
+		From:   time.Now().UTC().Add(-time.Hour),
+		To:     time.Now().UTC(),
+	}
+}
+
 // bindCustomGroup writes the SQL for one batch of custom-key conditions,
 // failing the test on a binding error.
 func bindCustomGroup(t *testing.T, keys []Key, operator LogicalOperator, conditions []Condition) (string, []any) {
 	t.Helper()
+	return bindCustomGroupInScope(t, testCustomKeyScope(), keys, operator, conditions)
+}
 
-	binding := SpansEntity.BindCustomKeys(uuid.New(), uuid.New(), time.Now().UTC().Add(-time.Hour), time.Now().UTC(), keys)
+func bindCustomGroupInScope(t *testing.T, scope CustomKeyScope, keys []Key, operator LogicalOperator, conditions []Condition) (string, []any) {
+	t.Helper()
+
+	binding := SpansEntity.BindCustomKeys(scope, keys)
 
 	stmt, err := binding(operator, conditions)
 	if err != nil {
@@ -378,7 +392,7 @@ func TestBindSpanCustomKeyEscapesLikeWildcards(t *testing.T) {
 
 func TestBindSpanCustomKeyRefusesAnOperatorTheTypeDoesNotOffer(t *testing.T) {
 	key := CustomKey("retries", ValueTypeInt64)
-	binding := SpansEntity.BindCustomKeys(uuid.New(), uuid.New(), time.Now().UTC().Add(-time.Hour), time.Now().UTC(), []Key{key})
+	binding := SpansEntity.BindCustomKeys(testCustomKeyScope(), []Key{key})
 
 	_, err := binding(LogicalAnd, []Condition{customCondition(key.Name, OperatorContains, "9")})
 	if err == nil {
@@ -538,5 +552,172 @@ func TestBindCustomGroupDedupesTheKeyList(t *testing.T) {
 	rawNames, ok := args[4].([]string)
 	if !ok || !slices.Equal(rawNames, []string{"retries"}) {
 		t.Errorf("want the key bound once, got %v", args[4])
+	}
+}
+
+func TestCollectRootVersionConditions(t *testing.T) {
+	assertLists := func(t *testing.T, label string, got, want [][]string) {
+		t.Helper()
+		if !slices.EqualFunc(got, want, slices.Equal) {
+			t.Errorf("want %s %v, got %v", label, want, got)
+		}
+	}
+
+	t.Run("a root leaf's in-list", func(t *testing.T) {
+		names, codes := collectRootVersionConditions(leafExprTree("version_name", OperatorIn, "v1", "v2"))
+		assertLists(t, "names", names, [][]string{{"v1", "v2"}})
+		assertLists(t, "codes", codes, nil)
+	})
+
+	t.Run("direct children of a root and-group", func(t *testing.T) {
+		names, codes := collectRootVersionConditions(&ExprTree{LogicalOperator: LogicalAnd, Children: []ExprTree{
+			*leafExprTree("version_name", OperatorIn, "v1"),
+			*leafExprTree("custom.plan", OperatorIn, "pro"),
+			*leafExprTree("version_code", OperatorIn, "7"),
+		}})
+		assertLists(t, "names", names, [][]string{{"v1"}})
+		assertLists(t, "codes", codes, [][]string{{"7"}})
+	})
+
+	t.Run("each condition keeps its own list", func(t *testing.T) {
+		names, _ := collectRootVersionConditions(&ExprTree{LogicalOperator: LogicalAnd, Children: []ExprTree{
+			*leafExprTree("version_name", OperatorIn, "v1"),
+			*leafExprTree("version_name", OperatorIn, "v2", "v3"),
+		}})
+		assertLists(t, "names", names, [][]string{{"v1"}, {"v2", "v3"}})
+	})
+
+	t.Run("an or root bounds nothing", func(t *testing.T) {
+		names, codes := collectRootVersionConditions(&ExprTree{LogicalOperator: LogicalOr, Children: []ExprTree{
+			*leafExprTree("version_name", OperatorIn, "v1"),
+			*leafExprTree("custom.plan", OperatorIn, "pro"),
+		}})
+		assertLists(t, "names", names, nil)
+		assertLists(t, "codes", codes, nil)
+	})
+
+	t.Run("not_in bounds nothing", func(t *testing.T) {
+		names, _ := collectRootVersionConditions(leafExprTree("version_name", OperatorNotIn, "v1"))
+		assertLists(t, "names", names, nil)
+	})
+
+	t.Run("contains bounds nothing", func(t *testing.T) {
+		names, _ := collectRootVersionConditions(leafExprTree("version_name", OperatorContains, "v"))
+		assertLists(t, "names", names, nil)
+	})
+
+	t.Run("a nested group's condition is not collected", func(t *testing.T) {
+		names, _ := collectRootVersionConditions(&ExprTree{LogicalOperator: LogicalAnd, Children: []ExprTree{
+			*leafExprTree("custom.plan", OperatorIn, "pro"),
+			{LogicalOperator: LogicalOr, Children: []ExprTree{
+				*leafExprTree("version_name", OperatorIn, "v1"),
+				*leafExprTree("custom.retries", OperatorGt, "9"),
+			}},
+		}})
+		assertLists(t, "names", names, nil)
+	})
+
+	t.Run("an empty tree", func(t *testing.T) {
+		names, codes := collectRootVersionConditions(nil)
+		assertLists(t, "names", names, nil)
+		assertLists(t, "codes", codes, nil)
+	})
+}
+
+func TestBindCustomGroupAppendsRootVersionConditionsToTheScan(t *testing.T) {
+	keys := []Key{CustomKey("plan", ValueTypeString), CustomKey("retries", ValueTypeInt64)}
+	twoConditions := []Condition{
+		customCondition("custom.plan", OperatorIn, "pro"),
+		customCondition("custom.retries", OperatorGt, "9"),
+	}
+
+	const scan = "select span_id from span_user_def_attrs where team_id = toUUID(?) and app_id = toUUID(?) and timestamp >= ? and timestamp <= ?"
+	const havingTwo = " group by span_id having countIf(key = ? and type = ? and value in ?) > 0 and countIf(key = ? and type = ? and toInt64OrNull(value) > ?) > 0"
+
+	tests := []struct {
+		name         string
+		versionNames [][]string
+		versionCodes [][]string
+		conditions   []Condition
+		want         string
+		wantArgs     int
+	}{
+		{
+			name:         "version names narrow a grouped scan",
+			versionNames: [][]string{{"v1"}},
+			conditions:   twoConditions,
+			want:         "span_id in (" + scan + " and tupleElement(app_version, 1) in ? and key in ?" + havingTwo + ")",
+			wantArgs:     12,
+		},
+		{
+			name:         "version names narrow a lone condition's scan",
+			versionNames: [][]string{{"v1"}},
+			conditions:   []Condition{customCondition("custom.plan", OperatorIn, "pro")},
+			want:         "span_id in (" + scan + " and tupleElement(app_version, 1) in ? and key = ? and type = ? and value in ?)",
+			wantArgs:     8,
+		},
+		{
+			name:         "version codes push independently",
+			versionCodes: [][]string{{"7"}},
+			conditions:   twoConditions,
+			want:         "span_id in (" + scan + " and tupleElement(app_version, 2) in ? and key in ?" + havingTwo + ")",
+			wantArgs:     12,
+		},
+		{
+			name:         "names and codes push together",
+			versionNames: [][]string{{"v1"}},
+			versionCodes: [][]string{{"7"}},
+			conditions:   twoConditions,
+			want:         "span_id in (" + scan + " and tupleElement(app_version, 1) in ? and tupleElement(app_version, 2) in ? and key in ?" + havingTwo + ")",
+			wantArgs:     13,
+		},
+		{
+			name:         "each condition keeps its own clause",
+			versionNames: [][]string{{"v1"}, {"v2", "v3"}},
+			conditions:   twoConditions,
+			want:         "span_id in (" + scan + " and tupleElement(app_version, 1) in ? and tupleElement(app_version, 1) in ? and key in ?" + havingTwo + ")",
+			wantArgs:     13,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			scope := testCustomKeyScope()
+			scope.VersionNames = test.versionNames
+			scope.VersionCodes = test.versionCodes
+
+			got, args := bindCustomGroupInScope(t, scope, keys, LogicalAnd, test.conditions)
+			if got != test.want {
+				t.Errorf("\n got %s\nwant %s", got, test.want)
+			}
+			if len(args) != test.wantArgs {
+				t.Errorf("want %d bound arguments, got %d: %v", test.wantArgs, len(args), args)
+			}
+		})
+	}
+}
+
+func TestBindCustomGroupBindsVersionArgsAfterTheTimeRange(t *testing.T) {
+	scope := testCustomKeyScope()
+	scope.VersionNames = [][]string{{"v1"}}
+	scope.VersionCodes = [][]string{{"7"}}
+	keys := []Key{CustomKey("plan", ValueTypeString), CustomKey("retries", ValueTypeInt64)}
+
+	_, args := bindCustomGroupInScope(t, scope, keys, LogicalAnd, []Condition{
+		customCondition("custom.plan", OperatorIn, "pro"),
+		customCondition("custom.retries", OperatorGt, "9"),
+	})
+
+	if names, ok := args[4].([]string); !ok || !slices.Equal(names, []string{"v1"}) {
+		t.Errorf("want the version names after the time range, got %v", args[4])
+	}
+	if codes, ok := args[5].([]string); !ok || !slices.Equal(codes, []string{"7"}) {
+		t.Errorf("want the version codes next, got %v", args[5])
+	}
+	if rawNames, ok := args[6].([]string); !ok || !slices.Equal(rawNames, []string{"plan", "retries"}) {
+		t.Errorf("want the key list after the version clauses, got %v", args[6])
+	}
+	if len(args) != 13 || args[7] != "plan" {
+		t.Errorf("want the having terms last in %d arguments, got %v", 13, args)
 	}
 }
