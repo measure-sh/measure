@@ -108,6 +108,10 @@ type iggyConfig struct {
 	pollInterval time.Duration
 	// pollingStrategy selects how the server determines the next batch of messages (consumer-only).
 	pollingStrategy *iggcon.PollingStrategy
+	// processingConcurrency is the maximum number of messages whose handlers
+	// may run concurrently within one poll result.
+	// A value less than 1 falls back to 1.
+	processingConcurrency int
 }
 
 // WithIggyPartitionID routes all produced messages to the given partition ID.
@@ -140,6 +144,18 @@ func WithIggyBatchSize(n int) IggyOption {
 func WithIggyPollInterval(d time.Duration) IggyOption {
 	return func(c *iggyConfig) {
 		c.pollInterval = d
+	}
+}
+
+// WithIggyProcessingConcurrency sets the maximum number of Iggy messages
+// processed concurrently inside a single consumer.
+//
+// The default is 1, which preserves the original serial processing behavior.
+func WithIggyProcessingConcurrency(concurrency int) IggyOption {
+	return func(c *iggyConfig) {
+		if concurrency > 0 {
+			c.processingConcurrency = concurrency
+		}
 	}
 }
 
