@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/leporo/sqlf"
 )
 
@@ -129,10 +127,7 @@ func matchCustomCondition(key Key, condition Condition) (customConditionMatch, e
 type customMembershipBinder struct {
 	table      string
 	idColumn   string
-	teamID     uuid.UUID
-	appID      uuid.UUID
-	from       time.Time
-	to         time.Time
+	scope      CustomKeyScope
 	keysByName map[string]Key
 }
 
@@ -143,15 +138,12 @@ const customAttrScope = " where team_id = toUUID(?) and app_id = toUUID(?)" +
 // bindCustomConditionsToMembership creates a GroupKeyBinding for custom-key
 // conditions. Multiple conditions are evaluated with countIf over one grouped
 // query instead of generating a separate subquery for each condition.
-func bindCustomConditionsToMembership(table, idColumn string) func(teamID, appID uuid.UUID, from, to time.Time, keys []Key) GroupKeyBinding {
-	return func(teamID, appID uuid.UUID, from, to time.Time, keys []Key) GroupKeyBinding {
+func bindCustomConditionsToMembership(table, idColumn string) func(scope CustomKeyScope, keys []Key) GroupKeyBinding {
+	return func(scope CustomKeyScope, keys []Key) GroupKeyBinding {
 		binder := &customMembershipBinder{
 			table:      table,
 			idColumn:   idColumn,
-			teamID:     teamID,
-			appID:      appID,
-			from:       from,
-			to:         to,
+			scope:      scope,
 			keysByName: IndexKeysByName(keys),
 		}
 		return binder.bind
@@ -261,6 +253,22 @@ func (b *customMembershipBinder) anyOf(matches []customConditionMatch) *sqlf.Stm
 	return sqlf.New(text.String(), args...)
 }
 
+// versionConditions writes the scope's version lists as subquery conditions to
+// reduce the rows scanned.
+func (b *customMembershipBinder) versionConditions() (string, []any) {
+	var text strings.Builder
+	args := []any{}
+	for _, names := range b.scope.VersionNames {
+		text.WriteString(" and tupleElement(app_version, 1) in ?")
+		args = append(args, names)
+	}
+	for _, codes := range b.scope.VersionCodes {
+		text.WriteString(" and tupleElement(app_version, 2) in ?")
+		args = append(args, codes)
+	}
+	return text.String(), args
+}
+
 // single builds the membership query for one condition.
 // Negated conditions use NOT IN so IDs without the attribute also match.
 func (b *customMembershipBinder) single(match customConditionMatch) (string, []any) {
@@ -268,13 +276,16 @@ func (b *customMembershipBinder) single(match customConditionMatch) (string, []a
 	if match.negated {
 		operator = "not in"
 	}
+	versionSQL, versionArgs := b.versionConditions()
 	text := b.idColumn + " " + operator + " (" +
 		"select " + b.idColumn + " from " + b.table +
 		customAttrScope +
+		versionSQL +
 		" and " + match.sql +
 		")"
-	args := make([]any, 0, 4+len(match.args))
-	args = append(args, b.teamID, b.appID, b.from, b.to)
+	args := make([]any, 0, 4+len(versionArgs)+len(match.args))
+	args = append(args, b.scope.TeamID, b.scope.AppID, b.scope.From, b.scope.To)
+	args = append(args, versionArgs...)
 	args = append(args, match.args...)
 	return text, args
 }
@@ -289,15 +300,19 @@ func (b *customMembershipBinder) grouped(operator string, matches []customCondit
 		}
 	}
 
+	versionSQL, versionArgs := b.versionConditions()
 	text := b.idColumn + " " + operator + " (" +
 		"select " + b.idColumn + " from " + b.table +
 		customAttrScope +
+		versionSQL +
 		" and key in ?" +
 		" group by " + b.idColumn +
 		" having " + having +
 		")"
-	args := make([]any, 0, 5+len(havingArgs))
-	args = append(args, b.teamID, b.appID, b.from, b.to, rawNames)
+	args := make([]any, 0, 5+len(versionArgs)+len(havingArgs))
+	args = append(args, b.scope.TeamID, b.scope.AppID, b.scope.From, b.scope.To)
+	args = append(args, versionArgs...)
+	args = append(args, rawNames)
 	args = append(args, havingArgs...)
 	return text, args
 }

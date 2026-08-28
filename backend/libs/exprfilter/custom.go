@@ -155,6 +155,39 @@ func collectCustomKeyNames(exprTree *ExprTree) []string {
 	return rawNames
 }
 
+// Only a condition at the root or a direct child of a root and-group bounds
+// every matching row; or-groups, negation, and text matching do not.
+func collectRootVersionConditions(exprTree *ExprTree) (versionNames, versionCodes [][]string) {
+	if exprTree == nil {
+		return nil, nil
+	}
+
+	rootConditions := []*Condition{}
+	if exprTree.Condition != nil {
+		rootConditions = append(rootConditions, exprTree.Condition)
+	} else if exprTree.LogicalOperator == LogicalAnd {
+		for i := range exprTree.Children {
+			if child := &exprTree.Children[i]; child.Condition != nil {
+				rootConditions = append(rootConditions, child.Condition)
+			}
+		}
+	}
+
+	for _, condition := range rootConditions {
+		if condition.Operator != OperatorIn {
+			continue
+		}
+		switch condition.KeyName {
+		case versionName.Name:
+			versionNames = append(versionNames, condition.TextValues())
+		case versionCode.Name:
+			versionCodes = append(versionCodes, condition.TextValues())
+		}
+	}
+
+	return versionNames, versionCodes
+}
+
 // ResolveCustomKeys reads the custom keys in the filter expression,
 // extends this request's copy of the entity with them for validation, and
 // installs the group binder Predicate routes their conditions to. Keys not
@@ -179,7 +212,14 @@ func (ef *ExprFilter) ResolveCustomKeys(ctx context.Context, chPool driver.Conn)
 	// array untouched.
 	ef.Entity.Keys = append(slices.Clip(ef.Entity.Keys), keys...)
 
-	to := ef.To.Add(ef.Entity.MaxTimeBucketWidth)
-	ef.customBinder = ef.Entity.BindCustomKeys(ef.TeamID, ef.AppID, ef.From, to, keys)
+	versionNames, versionCodes := collectRootVersionConditions(ef.ExprTree)
+	ef.customBinder = ef.Entity.BindCustomKeys(CustomKeyScope{
+		TeamID:       ef.TeamID,
+		AppID:        ef.AppID,
+		From:         ef.From,
+		To:           ef.To.Add(ef.Entity.MaxTimeBucketWidth),
+		VersionNames: versionNames,
+		VersionCodes: versionCodes,
+	}, keys)
 	return nil
 }
