@@ -9,7 +9,6 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/leporo/sqlf"
 )
 
 // A custom key is a user-defined attribute the app reported, offered as a
@@ -156,18 +155,17 @@ func collectCustomKeyNames(exprTree *ExprTree) []string {
 	return rawNames
 }
 
-// ResolveCustomKeys reads the custom keys the filter expression mentions and
-// extends this request's copy of the entity with them, so validation accepts
-// them and Predicate writes their conditions like any other key's. A
-// mentioned name the app never reported stays out, so validation reports it
-// as an unknown key.
+// ResolveCustomKeys reads the custom keys in the filter expression,
+// extends this request's copy of the entity with them for validation, and
+// installs the group binder Predicate routes their conditions to. Keys not
+// reported by the app are left out so validation reports them as unknown.
 func (ef *ExprFilter) ResolveCustomKeys(ctx context.Context, chPool driver.Conn) error {
 	rawNames := collectCustomKeyNames(ef.ExprTree)
 	if len(rawNames) == 0 {
 		return nil
 	}
 
-	if ef.Entity.FetchCustomKeysByName == nil || ef.Entity.BindCustomKey == nil {
+	if ef.Entity.FetchCustomKeysByName == nil || ef.Entity.BindCustomKeys == nil {
 		return nil
 	}
 
@@ -182,21 +180,6 @@ func (ef *ExprFilter) ResolveCustomKeys(ctx context.Context, chPool driver.Conn)
 	ef.Entity.Keys = append(slices.Clip(ef.Entity.Keys), keys...)
 
 	to := ef.To.Add(ef.Entity.MaxTimeBucketWidth)
-
-	// The wrapped binding handles custom keys itself and hands fixed keys to
-	// the original binding. Predicate uses it for conditions not covered by the
-	// override map, so overriding only fixed keys still resolves custom
-	// conditions correctly.
-	customKeyBindings := make(map[string]KeyBinding, len(keys))
-	for _, key := range keys {
-		customKeyBindings[key.Name] = ef.Entity.BindCustomKey(ef.TeamID, ef.AppID, ef.From, to, key)
-	}
-	fixedKeyBinding := ef.Entity.BindKey
-	ef.Entity.BindKey = func(condition Condition) (*sqlf.Stmt, error) {
-		if keyBinding, isCustom := customKeyBindings[condition.KeyName]; isCustom {
-			return keyBinding(condition)
-		}
-		return fixedKeyBinding(condition)
-	}
+	ef.customBinder = ef.Entity.BindCustomKeys(ef.TeamID, ef.AppID, ef.From, to, keys)
 	return nil
 }

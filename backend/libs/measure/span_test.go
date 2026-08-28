@@ -432,6 +432,81 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 		}
 	})
 
+	t.Run("two custom conditions under and share one scan", func(t *testing.T) {
+		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
+			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
+			leaf("custom.retries", exprfilter.OperatorGt, "5"),
+		}})
+		if len(got) != 1 || got[0] != "v1" {
+			t.Fatalf("want [v1], got %v", got)
+		}
+	})
+
+	t.Run("a positive and a negative under and", func(t *testing.T) {
+		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
+			leaf("custom.retries", exprfilter.OperatorGt, "5"),
+			leaf("custom.plan", exprfilter.OperatorNotIn, "pro"),
+		}})
+		if len(got) != 1 || got[0] != "v2" {
+			t.Fatalf("want [v2], got %v", got)
+		}
+	})
+
+	t.Run("a positive and is_not_set under and", func(t *testing.T) {
+		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
+			leaf("custom.plan", exprfilter.OperatorIn, "pro", "free"),
+			leaf("custom.coupon", exprfilter.OperatorIsNotSet),
+		}})
+		if len(got) != 1 || got[0] != "v2" {
+			t.Fatalf("want [v2], got %v", got)
+		}
+	})
+
+	t.Run("negatives only under and keep spans without the attributes", func(t *testing.T) {
+		// Only the pro span carries an offending row for either condition.
+		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
+			leaf("custom.plan", exprfilter.OperatorNotIn, "pro"),
+			leaf("custom.coupon", exprfilter.OperatorIsNotSet),
+		}})
+		if len(got) != 3 {
+			t.Fatalf("want the three spans without plan pro or a coupon, got %v", got)
+		}
+	})
+
+	t.Run("or of two positive custom conditions", func(t *testing.T) {
+		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalOr, Children: []exprfilter.ExprTree{
+			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
+			leaf("custom.retries", exprfilter.OperatorGt, "9"),
+		}})
+		if len(got) != 2 {
+			t.Fatalf("want both attributed spans, got %v", got)
+		}
+	})
+
+	t.Run("or with a negative keeps spans without the attribute", func(t *testing.T) {
+		// Only the pro span is excluded: it carries the coupon and its retries
+		// value of 9 is not above 9.
+		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalOr, Children: []exprfilter.ExprTree{
+			leaf("custom.retries", exprfilter.OperatorGt, "9"),
+			leaf("custom.coupon", exprfilter.OperatorIsNotSet),
+		}})
+		if len(got) != 3 {
+			t.Fatalf("want every span but the couponed one, got %v", got)
+		}
+	})
+
+	t.Run("a numeric comparison inside a shared scan", func(t *testing.T) {
+		// The scan also reads the plan rows, whose text is not numeric, so the
+		// numeric term evaluates over rows that cast to null.
+		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
+			leaf("custom.plan", exprfilter.OperatorIn, "free"),
+			leaf("custom.retries", exprfilter.OperatorGt, "9"),
+		}})
+		if len(got) != 1 || got[0] != "v2" {
+			t.Fatalf("want [v2], got %v", got)
+		}
+	})
+
 	t.Run("an unknown custom key fails validation", func(t *testing.T) {
 		exprTree := leaf("custom.nope", exprfilter.OperatorIn, "x")
 		ef := f.exprFilter(from, to, &exprTree)
@@ -504,6 +579,31 @@ func TestGetMetricsPlotForSpanNameWithCustomKeys(t *testing.T) {
 		got := plotVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
 			leaf("custom.plan", exprfilter.OperatorIn, "free"),
 			leaf("os_name", exprfilter.OperatorIn, "Android"),
+		}})
+		if len(got) != 1 || !got["v2 (2)"] {
+			t.Fatalf("want only v2 (2), got %v", got)
+		}
+	})
+
+	t.Run("two custom conditions under and share one scan", func(t *testing.T) {
+		got := plotVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
+			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
+			leaf("custom.retries", exprfilter.OperatorGt, "5"),
+		}})
+		if len(got) != 1 || !got["v1 (1)"] {
+			t.Fatalf("want only v1 (1), got %v", got)
+		}
+	})
+
+	t.Run("or with a negative beside a built-in key", func(t *testing.T) {
+		// The only iOS span carries no attributes at all, so it can match only
+		// through the negative side.
+		got := plotVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
+			leaf("os_name", exprfilter.OperatorIn, "iOS"),
+			{LogicalOperator: exprfilter.LogicalOr, Children: []exprfilter.ExprTree{
+				leaf("custom.plan", exprfilter.OperatorIn, "pro"),
+				leaf("custom.coupon", exprfilter.OperatorIsNotSet),
+			}},
 		}})
 		if len(got) != 1 || !got["v2 (2)"] {
 			t.Fatalf("want only v2 (2), got %v", got)

@@ -126,6 +126,7 @@ func TestCollectCustomKeyNames(t *testing.T) {
 func TestResolveCustomKeysBindsEveryMentionedKey(t *testing.T) {
 	keys := []Key{CustomKey("plan", ValueTypeString), CustomKey("retries", ValueTypeInt64)}
 
+	binderCalls := 0
 	entity := Entity{
 		Name: "stub",
 		Keys: []Key{versionName},
@@ -135,9 +136,21 @@ func TestResolveCustomKeysBindsEveryMentionedKey(t *testing.T) {
 			}
 			return keys, nil
 		},
-		BindCustomKey: func(teamID, appID uuid.UUID, from, to time.Time, key Key) KeyBinding {
-			return func(condition Condition) (*sqlf.Stmt, error) {
-				return sqlf.New("bound ?", key.Name), nil
+		BindCustomKeys: func(teamID, appID uuid.UUID, from, to time.Time, boundKeys []Key) GroupKeyBinding {
+			names := make([]string, len(boundKeys))
+			for i, key := range boundKeys {
+				names[i] = key.Name
+			}
+			if !slices.Equal(names, []string{"custom.plan", "custom.retries"}) {
+				t.Errorf("want every fetched key handed to the binder, got %v", names)
+			}
+			return func(operator LogicalOperator, conditions []Condition) (*sqlf.Stmt, error) {
+				binderCalls++
+				conditionNames := make([]string, len(conditions))
+				for i, condition := range conditions {
+					conditionNames[i] = condition.KeyName
+				}
+				return sqlf.New("bound ?", strings.Join(conditionNames, ",")), nil
 			}
 		},
 	}
@@ -155,19 +168,29 @@ func TestResolveCustomKeysBindsEveryMentionedKey(t *testing.T) {
 	if err := ef.ResolveCustomKeys(context.Background(), nil); err != nil {
 		t.Fatalf("ResolveCustomKeys: %v", err)
 	}
+	if ef.customBinder == nil {
+		t.Fatal("want the group binder installed on the filter")
+	}
 	byName := IndexKeysByName(ef.Entity.Keys)
 	for _, key := range keys {
 		if _, found := byName[key.Name]; !found {
 			t.Errorf("want %q added to the request's key set", key.Name)
 		}
-		stmt, err := ef.Entity.BindKey(Condition{KeyName: key.Name, Operator: OperatorIn, Values: []Value{{Text: "x"}}})
-		if err != nil {
-			t.Fatalf("bind %q through the entity: %v", key.Name, err)
-		}
-		if stmt.String() != "bound ?" || stmt.Args()[0] != key.Name {
-			t.Errorf("want the custom binding of %q used, got %q %v", key.Name, stmt.String(), stmt.Args())
-		}
-		stmt.Close()
+	}
+
+	predicate, err := ef.Predicate(nil)
+	if err != nil {
+		t.Fatalf("Predicate: %v", err)
+	}
+	defer predicate.Close()
+	if binderCalls != 1 {
+		t.Errorf("want both conditions bound in one binder call, got %d calls", binderCalls)
+	}
+	if got := predicate.String(); got != "((bound ?))" {
+		t.Errorf("want the binder's fragment as the group's one child, got %q", got)
+	}
+	if got := predicate.Args()[0]; got != "custom.plan,custom.retries" {
+		t.Errorf("want both conditions in the one call, got %v", got)
 	}
 }
 
@@ -196,22 +219,24 @@ func TestFindKeyWithoutCustomKeysReportsACustomKeyNotFound(t *testing.T) {
 	}
 }
 
-// bindCustom writes the SQL for one condition on a custom key of the given
-// value type, failing the test on a binding error.
-func bindCustom(t *testing.T, valueType ValueType, operator Operator, texts ...string) (string, []any) {
-	t.Helper()
-
-	key := CustomKey("plan", valueType)
-	binding := SpansEntity.BindCustomKey(uuid.New(), uuid.New(), time.Now().UTC().Add(-time.Hour), time.Now().UTC(), key)
-
+func customCondition(keyName string, operator Operator, texts ...string) Condition {
 	values := make([]Value, len(texts))
 	for i, text := range texts {
 		values[i] = Value{Text: text}
 	}
+	return Condition{KeyName: keyName, Operator: operator, Values: values}
+}
 
-	stmt, err := binding(Condition{KeyName: key.Name, Operator: operator, Values: values})
+// bindCustomGroup writes the SQL for one batch of custom-key conditions,
+// failing the test on a binding error.
+func bindCustomGroup(t *testing.T, keys []Key, operator LogicalOperator, conditions []Condition) (string, []any) {
+	t.Helper()
+
+	binding := SpansEntity.BindCustomKeys(uuid.New(), uuid.New(), time.Now().UTC().Add(-time.Hour), time.Now().UTC(), keys)
+
+	stmt, err := binding(operator, conditions)
 	if err != nil {
-		t.Fatalf("bind %s %s: %v", valueType, operator, err)
+		t.Fatalf("bind %v: %v", conditions, err)
 	}
 	defer stmt.Close()
 
@@ -219,9 +244,20 @@ func bindCustom(t *testing.T, valueType ValueType, operator Operator, texts ...s
 	return stmt.String(), slices.Clone(stmt.Args())
 }
 
+// bindCustom writes the SQL for one condition on a custom key of the given
+// value type, failing the test on a binding error.
+func bindCustom(t *testing.T, valueType ValueType, operator Operator, texts ...string) (string, []any) {
+	t.Helper()
+
+	key := CustomKey("plan", valueType)
+	return bindCustomGroup(t, []Key{key}, LogicalAnd, []Condition{customCondition(key.Name, operator, texts...)})
+}
+
 const customSubqueryScope = "select span_id from span_user_def_attrs where team_id = toUUID(?) and app_id = toUUID(?) and timestamp >= ? and timestamp <= ? and key = ? and type = ?"
 
 const customPresenceScope = "select span_id from span_user_def_attrs where team_id = toUUID(?) and app_id = toUUID(?) and timestamp >= ? and timestamp <= ? and key = ?"
+
+const customGroupedScope = "select span_id from span_user_def_attrs where team_id = toUUID(?) and app_id = toUUID(?) and timestamp >= ? and timestamp <= ? and key in ? group by span_id having "
 
 func TestBindSpanCustomKeyWritesAMembershipSubquery(t *testing.T) {
 	tests := []struct {
@@ -342,13 +378,165 @@ func TestBindSpanCustomKeyEscapesLikeWildcards(t *testing.T) {
 
 func TestBindSpanCustomKeyRefusesAnOperatorTheTypeDoesNotOffer(t *testing.T) {
 	key := CustomKey("retries", ValueTypeInt64)
-	binding := SpansEntity.BindCustomKey(uuid.New(), uuid.New(), time.Now().UTC().Add(-time.Hour), time.Now().UTC(), key)
+	binding := SpansEntity.BindCustomKeys(uuid.New(), uuid.New(), time.Now().UTC().Add(-time.Hour), time.Now().UTC(), []Key{key})
 
-	_, err := binding(Condition{KeyName: key.Name, Operator: OperatorContains, Values: []Value{{Text: "9"}}})
+	_, err := binding(LogicalAnd, []Condition{customCondition(key.Name, OperatorContains, "9")})
 	if err == nil {
 		t.Fatal("want a text operator on a number key refused")
 	}
 	if !strings.Contains(err.Error(), "custom.retries") {
 		t.Errorf("want the key named, got %q", err)
+	}
+}
+
+func TestBindCustomGroupCollapsesSiblingsIntoOneScan(t *testing.T) {
+	keys := []Key{
+		CustomKey("plan", ValueTypeString),
+		CustomKey("retries", ValueTypeInt64),
+		CustomKey("coupon", ValueTypeString),
+	}
+
+	tests := []struct {
+		name       string
+		operator   LogicalOperator
+		conditions []Condition
+		want       string
+		wantArgs   int
+	}{
+		{
+			name:     "and of two positives",
+			operator: LogicalAnd,
+			conditions: []Condition{
+				customCondition("custom.plan", OperatorIn, "pro"),
+				customCondition("custom.retries", OperatorGt, "9"),
+			},
+			want:     "span_id in (" + customGroupedScope + "countIf(key = ? and type = ? and value in ?) > 0 and countIf(key = ? and type = ? and toInt64OrNull(value) > ?) > 0)",
+			wantArgs: 11,
+		},
+		{
+			name:     "and of a positive and a negative",
+			operator: LogicalAnd,
+			conditions: []Condition{
+				customCondition("custom.plan", OperatorIn, "pro"),
+				customCondition("custom.coupon", OperatorNotIn, "WELCOME"),
+			},
+			want:     "span_id in (" + customGroupedScope + "countIf(key = ? and type = ? and value in ?) > 0 and countIf(key = ? and type = ? and value in ?) = 0)",
+			wantArgs: 11,
+		},
+		{
+			name:     "and of a positive and is_not_set drops the type from the presence term",
+			operator: LogicalAnd,
+			conditions: []Condition{
+				customCondition("custom.plan", OperatorIn, "pro"),
+				customCondition("custom.coupon", OperatorIsNotSet),
+			},
+			want:     "span_id in (" + customGroupedScope + "countIf(key = ? and type = ? and value in ?) > 0 and countIf(key = ?) = 0)",
+			wantArgs: 9,
+		},
+		{
+			name:     "and of negatives only excludes the ids with an offending row",
+			operator: LogicalAnd,
+			conditions: []Condition{
+				customCondition("custom.plan", OperatorNotIn, "pro"),
+				customCondition("custom.coupon", OperatorIsNotSet),
+			},
+			want:     "span_id not in (" + customGroupedScope + "countIf(key = ? and type = ? and value in ?) > 0 or countIf(key = ?) > 0)",
+			wantArgs: 9,
+		},
+		{
+			name:     "or of two positives",
+			operator: LogicalOr,
+			conditions: []Condition{
+				customCondition("custom.plan", OperatorIn, "pro"),
+				customCondition("custom.retries", OperatorGt, "9"),
+			},
+			want:     "span_id in (" + customGroupedScope + "countIf(key = ? and type = ? and value in ?) > 0 or countIf(key = ? and type = ? and toInt64OrNull(value) > ?) > 0)",
+			wantArgs: 11,
+		},
+		{
+			name:     "or with a negative keeps the negative's own subquery",
+			operator: LogicalOr,
+			conditions: []Condition{
+				customCondition("custom.plan", OperatorIn, "pro"),
+				customCondition("custom.coupon", OperatorIsNotSet),
+			},
+			want:     "span_id in (" + customSubqueryScope + " and value in ?) or span_id not in (" + customPresenceScope + ")",
+			wantArgs: 12,
+		},
+		{
+			name:     "or of two positives and a negative joins the shared scan to the negative's subquery",
+			operator: LogicalOr,
+			conditions: []Condition{
+				customCondition("custom.plan", OperatorIn, "pro"),
+				customCondition("custom.retries", OperatorGt, "9"),
+				customCondition("custom.coupon", OperatorIsNotSet),
+			},
+			want:     "span_id in (" + customGroupedScope + "countIf(key = ? and type = ? and value in ?) > 0 or countIf(key = ? and type = ? and toInt64OrNull(value) > ?) > 0) or span_id not in (" + customPresenceScope + ")",
+			wantArgs: 16,
+		},
+		{
+			name:     "the same key twice makes two independent terms",
+			operator: LogicalAnd,
+			conditions: []Condition{
+				customCondition("custom.retries", OperatorGt, "5"),
+				customCondition("custom.retries", OperatorLt, "10"),
+			},
+			want:     "span_id in (" + customGroupedScope + "countIf(key = ? and type = ? and toInt64OrNull(value) > ?) > 0 and countIf(key = ? and type = ? and toInt64OrNull(value) < ?) > 0)",
+			wantArgs: 11,
+		},
+		{
+			name:       "a lone condition compares its rows directly",
+			operator:   LogicalAnd,
+			conditions: []Condition{customCondition("custom.plan", OperatorIn, "pro")},
+			want:       "span_id in (" + customSubqueryScope + " and value in ?)",
+			wantArgs:   7,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, args := bindCustomGroup(t, keys, test.operator, test.conditions)
+			if got != test.want {
+				t.Errorf("\n got %s\nwant %s", got, test.want)
+			}
+			if len(args) != test.wantArgs {
+				t.Errorf("want %d bound arguments, got %d: %v", test.wantArgs, len(args), args)
+			}
+		})
+	}
+}
+
+func TestBindCustomGroupBindsScopeThenKeysThenTerms(t *testing.T) {
+	keys := []Key{CustomKey("plan", ValueTypeString), CustomKey("retries", ValueTypeInt64)}
+	_, args := bindCustomGroup(t, keys, LogicalAnd, []Condition{
+		customCondition("custom.plan", OperatorIn, "pro"),
+		customCondition("custom.retries", OperatorGt, "9"),
+	})
+
+	rawNames, ok := args[4].([]string)
+	if !ok || !slices.Equal(rawNames, []string{"plan", "retries"}) {
+		t.Errorf("want the raw key names bound after the scope, got %v", args[4])
+	}
+	if args[5] != "plan" || args[6] != "string" {
+		t.Errorf("want the first term's key and type next, got %v %v", args[5], args[6])
+	}
+	if values, ok := args[7].([]string); !ok || !slices.Equal(values, []string{"pro"}) {
+		t.Errorf("want the first term's values next, got %v", args[7])
+	}
+	if args[8] != "retries" || args[9] != "int64" || args[10] != int64(9) {
+		t.Errorf("want the second term's arguments last, got %v %v %v", args[8], args[9], args[10])
+	}
+}
+
+func TestBindCustomGroupDedupesTheKeyList(t *testing.T) {
+	keys := []Key{CustomKey("retries", ValueTypeInt64)}
+	_, args := bindCustomGroup(t, keys, LogicalAnd, []Condition{
+		customCondition("custom.retries", OperatorGt, "5"),
+		customCondition("custom.retries", OperatorLt, "10"),
+	})
+
+	rawNames, ok := args[4].([]string)
+	if !ok || !slices.Equal(rawNames, []string{"retries"}) {
+		t.Errorf("want the key bound once, got %v", args[4])
 	}
 }
