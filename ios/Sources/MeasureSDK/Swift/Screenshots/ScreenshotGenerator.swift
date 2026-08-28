@@ -10,10 +10,11 @@ import WebKit
 import AVKit
 
 protocol ScreenshotGenerator {
-    func generate(window: UIWindow,
+    func generate(window: UIWindow, // swiftlint:disable:this function_parameter_count
                   name: String,
                   storageType: AttachmentStorageType,
                   sync: Bool,
+                  onRedactedImage: ((UIImage) -> Void)?,
                   completion: @escaping (MsrAttachment?) -> Void)
 
     func generate(viewController: UIViewController,
@@ -60,64 +61,44 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
                   name: String,
                   storageType: AttachmentStorageType,
                   sync: Bool = false,
+                  onRedactedImage: ((UIImage) -> Void)? = nil,
                   completion: @escaping (MsrAttachment?) -> Void) {
-        let work = { [weak self] in
-            guard let self = self else {
+        if sync {
+            let runInline = { [weak self] in
+                guard let self = self, let captured = self.captureScreenshot(window: window) else {
+                    completion(nil)
+                    return
+                }
+                completion(self.processScreenshot(captured.screenshot,
+                                                  sensitiveFrames: captured.sensitiveFrames,
+                                                  storageType: storageType,
+                                                  publishRedacted: { onRedactedImage?($0) }))
+            }
+            if Thread.isMainThread {
+                runInline()
+            } else {
+                DispatchQueue.main.sync(execute: runInline)
+            }
+            return
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, let captured = self.captureScreenshot(window: window) else {
                 completion(nil)
                 return
             }
 
-            SignPost.trace(subcategory: "Attachment", label: "generateScreenshot") {
-                let level = self.configProvider.screenshotMaskLevel
-                let typesToMask = self.typesToMask(for: level)
-                let fragmentsToMask = self.classNameFragmentsToMask(for: level)
-                let result = self.findSensitiveFrames(in: window, rootView: window, types: typesToMask, fragments: fragmentsToMask)
-
-                // Subtract exempt frames from sensitive frames
-                var sensitiveFrames = result.sensitive
-                if !result.exempt.isEmpty {
-                    sensitiveFrames = sensitiveFrames.filter { frame in
-                        !result.exempt.contains { $0.intersects(frame) }
-                    }
+            MeasureQueue.screenshotProcessor.async {
+                let attachment = self.processScreenshot(
+                    captured.screenshot,
+                    sensitiveFrames: captured.sensitiveFrames,
+                    storageType: storageType
+                ) { image in
+                    guard let onRedactedImage = onRedactedImage else { return }
+                    DispatchQueue.main.async { onRedactedImage(image) }
                 }
-
-                let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
-                let screenshot = renderer.image { _ in
-                    window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
-                }
-
-                guard let redactedImage = self.redactScreenshot(
-                    screenshot,
-                    sensitiveFrames: sensitiveFrames,
-                    maskColor: self.maskColor
-                ) else {
-                    completion(nil)
-                    return
-                }
-
-                guard let compressedData = WebPEncoder.encode(redactedImage, quality: CGFloat(self.configProvider.screenshotCompressionQuality) / 100.0) else {
-                    self.logger.log(level: .debug, message: "ScreenshotGenerator: Failed to compress image.", error: nil, data: nil)
-                    completion(nil)
-                    return
-                }
-
-                let attachment = self.attachmentProcessor.getAttachmentObject(
-                    for: compressedData,
-                    storageType: storageType,
-                    attachmentType: .screenshot
-                )
-                completion(attachment)
+                DispatchQueue.main.async { completion(attachment) }
             }
-        }
-
-        if sync {
-            if Thread.isMainThread {
-                work()
-            } else {
-                DispatchQueue.main.sync(execute: work)
-            }
-        } else {
-            DispatchQueue.main.async(execute: work)
         }
     }
 
@@ -139,11 +120,61 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
         }
     }
 
+    private func captureScreenshot(window: UIWindow) -> (screenshot: UIImage, sensitiveFrames: [CGRect])? {
+        SignPost.trace(subcategory: "Attachment", label: "captureScreenshot") {
+            let level = configProvider.screenshotMaskLevel
+            let result = findSensitiveFrames(in: window,
+                                             rootView: window,
+                                             types: typesToMask(for: level),
+                                             fragments: classNameFragmentsToMask(for: level))
+
+            // Subtract exempt frames from sensitive frames
+            var sensitiveFrames = result.sensitive
+            if !result.exempt.isEmpty {
+                sensitiveFrames = sensitiveFrames.filter { frame in
+                    !result.exempt.contains { $0.intersects(frame) }
+                }
+            }
+
+            let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
+            let screenshot = renderer.image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }
+            return (screenshot, sensitiveFrames)
+        }
+    }
+
+    private func processScreenshot(_ screenshot: UIImage,
+                                   sensitiveFrames: [CGRect],
+                                   storageType: AttachmentStorageType,
+                                   publishRedacted: (UIImage) -> Void) -> MsrAttachment? {
+        SignPost.trace(subcategory: "Attachment", label: "processScreenshot") {
+            guard let redactedImage = redactScreenshot(screenshot,
+                                                      sensitiveFrames: sensitiveFrames,
+                                                      maskColor: maskColor) else {
+                return nil
+            }
+
+            publishRedacted(redactedImage)
+
+            let quality = CGFloat(configProvider.screenshotCompressionQuality) / 100.0
+            guard let compressedData = WebPEncoder.encode(redactedImage, quality: quality) else {
+                logger.log(level: .debug, message: "ScreenshotGenerator: Failed to compress image.", error: nil, data: nil)
+                return nil
+            }
+
+            return attachmentProcessor.getAttachmentObject(for: compressedData,
+                                                           storageType: storageType,
+                                                           attachmentType: .screenshot)
+        }
+    }
+
     private func findSensitiveFrames(in view: UIView, rootView: UIView, types: [UIView.Type], fragments: [String]) -> (sensitive: [CGRect], exempt: [CGRect]) {
         var sensitive: [CGRect] = []
         var exempt: [CGRect] = []
 
-        // Per-instance override from .msrMask() takes highest priority
+        let className = String(describing: type(of: view))
+
         if MsrRedactViewHelper.shouldMask(view) {
             sensitive.append(view.convert(view.bounds, to: rootView))
         } else if MsrRedactViewHelper.shouldUnmask(view) {
@@ -151,7 +182,6 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
             exempt.append(view.convert(view.bounds, to: rootView))
         } else {
             // Fall through to class-based and fragment-based checks
-            let className = String(describing: type(of: view))
             let matchesType = types.contains { view.isKind(of: $0) }
             let matchesFragment = fragments.contains { className.contains($0) }
 
@@ -163,7 +193,6 @@ final class BaseScreenshotGenerator: ScreenshotGenerator {
         // Skip subtree traversal for known crash-prone view types.
         // The view itself is still masked above if it matched — only
         // traversal into its children is skipped.
-        let className = String(describing: type(of: view))
         let isBlocked = traversalBlocklist.contains { className.contains($0) }
         guard !isBlocked else {
             return (sensitive, exempt)

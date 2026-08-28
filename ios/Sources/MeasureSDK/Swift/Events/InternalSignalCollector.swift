@@ -170,11 +170,13 @@ final class BaseInternalSignalCollector: InternalSignalCollector { // swiftlint:
                             self.screenshotGenerator.generate(window: window,
                                                               name: screenshotName,
                                                               storageType: .data,
-                                                              sync: true) { attachment in
+                                                              sync: true,
+                                                              onRedactedImage: nil,
+                                                              completion: { attachment in
                                 if let attachment = attachment {
                                     exceptionAttachments = [attachment]
                                 }
-                            }
+                            })
                         }
                     }
                     if Thread.isMainThread {
