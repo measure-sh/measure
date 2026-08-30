@@ -52,7 +52,7 @@ type BillingInfo struct {
 	BytesGranted     float64   `json:"bytes_granted"`
 	BytesUsed        float64   `json:"bytes_used"`
 	// BytesUnlimited is true when the customer's bytes feature is configured
-	// as unlimited in Autumn — typically only on bespoke Enterprise plans.
+	// as unlimited in Autumn, typically only on enterprise plans.
 	BytesUnlimited bool `json:"bytes_unlimited"`
 	// BytesOverageAllowed is true when the customer's plan permits going
 	// over BytesGranted (Pro: yes, Free: no, Enterprise: depends).
@@ -122,10 +122,10 @@ func GetAutumnCustomerID(ctx context.Context, pool *pgxpool.Pool, teamID uuid.UU
 // plan currently in effect.
 //
 // A customer can hold several active products at once: Autumn auto-attaches
-// the Free product on customer create, and attaching a bespoke plan from the
-// Autumn dashboard does not detach it unless the two share a product group.
+// the Free product on customer create, and attaching an enterprise plan from
+// the Autumn dashboard does not detach it unless the two share a product group.
 // The highest tier wins, using the same order as planRank: any non-free,
-// non-pro plan (bespoke Enterprise) over Pro over Free.
+// non-pro plan counts as enterprise and wins over Pro, which wins over Free.
 func DeterminePlan(c *autumn.Customer) string {
 	var activePlans []string
 	for _, s := range c.Subscriptions {
@@ -354,8 +354,8 @@ func HandleBillingUpdated(ctx context.Context, pg *pgxpool.Pool, billingEnabled 
 }
 
 // planRank orders plans by tier so a transition's direction can be read from the
-// plans that activated and expired: Free < Pro < everything else (custom
-// Enterprise plans).
+// plans that activated and expired: Free < Pro < everything else (enterprise
+// plans).
 func planRank(planID string) int {
 	switch planID {
 	case AutumnPlanFree:
