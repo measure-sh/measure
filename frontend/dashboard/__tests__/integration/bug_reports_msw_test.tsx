@@ -11,6 +11,7 @@
  *   - the bug_reports filter entity (bug_report_status, user_id, ...)
  *   - PATCH endpoint for status toggle
  */
+import { mockRouter } from "@/__tests__/helpers/mock_router";
 import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
@@ -38,33 +39,11 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
 }));
 
-const mockRouterPush = jest.fn();
+const mockRouterReplace = mockRouter.replaceMock;
+const mockRouterPush = mockRouter.pushMock;
 
-// The mocked router applies each replace back into the mocked searchParams
-// and notifies subscribers, the way the real router re-renders the page with
-// the URL it just wrote. The page's queries read the URL, so without this
-// they would never see what the bar settled on.
-let mockSearchParams = new URLSearchParams();
-const searchParamsSubscribers = new Set<() => void>();
-const mockRouterReplace = jest.fn(
-  (url: string, _options?: { scroll: boolean }) => {
-    mockSearchParams = new URLSearchParams(url.split("?")[1] ?? "");
-    searchParamsSubscribers.forEach((notify) => notify());
-  },
-);
 jest.mock("next/navigation", () => ({
-  __esModule: true,
-  useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
-  useSearchParams: () => {
-    const { useSyncExternalStore } = require("react");
-    return useSyncExternalStore(
-      (notify: () => void) => {
-        searchParamsSubscribers.add(notify);
-        return () => searchParamsSubscribers.delete(notify);
-      },
-      () => mockSearchParams,
-    );
-  },
+  ...require("@/__tests__/helpers/mock_router").nextNavigationMock(),
   usePathname: () => "/test-team/bug_reports",
 }));
 
@@ -166,7 +145,7 @@ beforeEach(() => {
   filtersStore = createFiltersStore();
   onboardingStore = createOnboardingStore();
   queryClient.clear();
-  mockSearchParams = new URLSearchParams();
+  mockRouter.searchParams = new URLSearchParams();
   const { apiClient } = require("@/app/api/api_client");
   apiClient.init({ replace: jest.fn(), push: jest.fn() });
 });
@@ -312,7 +291,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
   // ================================================================
   describe("a link carrying a filter", () => {
     it("filters the bug reports and the plot by it", async () => {
-      mockSearchParams = new URLSearchParams(
+      mockRouter.searchParams = new URLSearchParams(
         `po=0&filter_expr=${encodeURIComponent("bug_report_status:in:open")}`,
       );
       const sent = recordBugReportsRequests();
@@ -339,7 +318,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
     });
 
     it("draws it as a condition a person can edit", async () => {
-      mockSearchParams = new URLSearchParams(
+      mockRouter.searchParams = new URLSearchParams(
         `po=0&filter_expr=${encodeURIComponent("bug_report_status:in:open")}`,
       );
       renderPage();
@@ -352,7 +331,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
     });
 
     it("filters by nothing when it cannot be read", async () => {
-      mockSearchParams = new URLSearchParams(
+      mockRouter.searchParams = new URLSearchParams(
         `po=0&filter_expr=${encodeURIComponent("bug_report_status:in:")}`,
       );
       const sent = recordBugReportsRequests();
@@ -481,7 +460,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
         }),
       );
 
-      mockSearchParams = new URLSearchParams("po=5");
+      mockRouter.searchParams = new URLSearchParams("po=5");
       renderPage();
       await waitFor(
         () => {

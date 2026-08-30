@@ -1,45 +1,17 @@
+import { mockRouter } from "@/__tests__/helpers/mock_router";
 import { promiseParams } from "@/__tests__/helpers/promise_params";
 import TracesOverview from "@/app/[teamId]/traces/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
-const pushMock = jest.fn();
+const replaceMock = mockRouter.replaceMock;
+const pushMock = mockRouter.pushMock;
+const applyReplaceUrl = mockRouter.applyReplaceUrl;
 
-// The mocked router applies each replace back into the mocked searchParams
-// and notifies subscribers, the way the real router re-renders the page with
-// the URL it just wrote. The page's queries read the URL, so without this
-// they would never see what the bar settled on.
-let mockSearchParams = new URLSearchParams();
-const searchParamsSubscribers = new Set<() => void>();
-const applyReplaceUrl = (url: string) => {
-  mockSearchParams = new URLSearchParams(url.split("?")[1] ?? "");
-  searchParamsSubscribers.forEach((notify) => notify());
-};
-// Holds a replace's URL for the test to apply later, modeling the real
-// router landing a write one render after the call.
-let mockDeferReplace = false;
-let deferredReplaceUrl: string | null = null;
-const replaceMock = jest.fn((url: string, _options?: { scroll: boolean }) => {
-  if (mockDeferReplace) {
-    deferredReplaceUrl = url;
-    return;
-  }
-  applyReplaceUrl(url);
-});
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: replaceMock, push: pushMock }),
-  useSearchParams: () => {
-    const { useSyncExternalStore } = require("react");
-    return useSyncExternalStore(
-      (notify: () => void) => {
-        searchParamsSubscribers.add(notify);
-        return () => searchParamsSubscribers.delete(notify);
-      },
-      () => mockSearchParams,
-    );
-  },
-}));
+jest.mock("next/navigation", () =>
+  require("@/__tests__/helpers/mock_router").nextNavigationMock(),
+);
 
 jest.mock("@/app/api/api_calls", () => ({
   __esModule: true,
@@ -281,12 +253,8 @@ function renderPage() {
 
 describe("TracesOverview page", () => {
   beforeEach(() => {
-    replaceMock.mockClear();
-    pushMock.mockClear();
+    mockRouter.reset();
     mockMountSubstitutesName = false;
-    mockDeferReplace = false;
-    deferredReplaceUrl = null;
-    mockSearchParams = new URLSearchParams();
     mockUseSpansQuery.mockReset();
     mockUseSpansQuery.mockReturnValue(pendingQueryState());
     mockUseSpanMetricsPlotQuery.mockReset();
@@ -306,7 +274,7 @@ describe("TracesOverview page", () => {
   });
 
   it("hands the bar the filter the URL opened on", () => {
-    mockSearchParams = new URLSearchParams(
+    mockRouter.searchParams = new URLSearchParams(
       "po=0&filter_expr=span_status%3Ain%3Aerror",
     );
     spansLoaded();
@@ -318,7 +286,7 @@ describe("TracesOverview page", () => {
   });
 
   it("hands the bar the trace name the URL opened on", () => {
-    mockSearchParams = new URLSearchParams("po=0&a=app-1&r=span.second");
+    mockRouter.searchParams = new URLSearchParams("po=0&a=app-1&r=span.second");
     spansLoaded();
     renderPage();
 
@@ -355,7 +323,7 @@ describe("TracesOverview page", () => {
   });
 
   it("records what the bar settled on, keeping the page the link asked for", () => {
-    mockSearchParams = new URLSearchParams(
+    mockRouter.searchParams = new URLSearchParams(
       "po=20&filter_expr=span_status%3Ain%3Aerror",
     );
     spansLoaded();
@@ -376,7 +344,7 @@ describe("TracesOverview page", () => {
   });
 
   it("shows the plot skeleton while the bar's report waits to reach the URL", () => {
-    mockDeferReplace = true;
+    mockRouter.deferReplace = true;
     spansLoaded();
     renderPage();
 
@@ -502,7 +470,7 @@ describe("TracesOverview page", () => {
 
   describe("a filter the bar could not settle", () => {
     beforeEach(() => {
-      mockSearchParams = new URLSearchParams(`po=10&${selectionParams}`);
+      mockRouter.searchParams = new URLSearchParams(`po=10&${selectionParams}`);
       spansLoaded();
     });
 
@@ -550,7 +518,7 @@ describe("TracesOverview page", () => {
 
   describe("pagination", () => {
     it("moves the offset on by the page size when Next is clicked", async () => {
-      mockSearchParams = new URLSearchParams(
+      mockRouter.searchParams = new URLSearchParams(
         `po=0&r=span.first&${selectionParams}`,
       );
       spansLoaded();
@@ -567,7 +535,9 @@ describe("TracesOverview page", () => {
     });
 
     it("moves the offset back when Prev is clicked, and never below zero", async () => {
-      mockSearchParams = new URLSearchParams("po=5&r=span.first&a=app-1");
+      mockRouter.searchParams = new URLSearchParams(
+        "po=5&r=span.first&a=app-1",
+      );
       spansLoaded();
       renderPage();
 
@@ -578,7 +548,9 @@ describe("TracesOverview page", () => {
         scroll: false,
       });
 
-      mockSearchParams = new URLSearchParams("po=0&r=span.first&a=app-1");
+      mockRouter.searchParams = new URLSearchParams(
+        "po=0&r=span.first&a=app-1",
+      );
       renderPage();
       await act(async () => {
         fireEvent.click(screen.getAllByTestId("prev-button")[1]);
@@ -589,7 +561,9 @@ describe("TracesOverview page", () => {
     });
 
     it("goes back to the first page when the filter changes", async () => {
-      mockSearchParams = new URLSearchParams("po=30&a=app-1&r=span.first");
+      mockRouter.searchParams = new URLSearchParams(
+        "po=30&a=app-1&r=span.first",
+      );
       spansLoaded();
       renderPage();
 
@@ -604,7 +578,7 @@ describe("TracesOverview page", () => {
     });
 
     it("goes back to the first page when the bar reports another name", async () => {
-      mockSearchParams = new URLSearchParams(`po=30&${selectionParams}`);
+      mockRouter.searchParams = new URLSearchParams(`po=30&${selectionParams}`);
       spansLoaded();
       renderPage();
 
@@ -633,8 +607,8 @@ describe("TracesOverview page", () => {
 
     it("goes back to the first page when the bar opens on a substituted name", async () => {
       mockMountSubstitutesName = true;
-      mockDeferReplace = true;
-      mockSearchParams = new URLSearchParams(
+      mockRouter.deferReplace = true;
+      mockRouter.searchParams = new URLSearchParams(
         `po=30&r=span.gone&${selectionParams}`,
       );
       spansLoaded();
@@ -645,7 +619,7 @@ describe("TracesOverview page", () => {
       expect(mockUseSpansQuery).toHaveBeenLastCalledWith(null, "span.gone", 30);
 
       await act(async () => {
-        applyReplaceUrl(deferredReplaceUrl!);
+        applyReplaceUrl(mockRouter.deferredReplaceUrl!);
       });
 
       expect(replaceMock).toHaveBeenLastCalledWith(

@@ -1,3 +1,4 @@
+import { mockRouter } from "@/__tests__/helpers/mock_router";
 import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
@@ -24,31 +25,10 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
 }));
 
-// The mocked router applies each replace back into the mocked searchParams
-// and notifies subscribers, the way the real router re-renders the page with
-// the URL it just wrote. The page's query reads the URL, so without this it
-// would never see what the bar settled on.
-let mockSearchParams = new URLSearchParams();
-const searchParamsSubscribers = new Set<() => void>();
-const mockRouterReplace = jest.fn(
-  (url: string, _options?: { scroll: boolean }) => {
-    mockSearchParams = new URLSearchParams(url.split("?")[1] ?? "");
-    searchParamsSubscribers.forEach((notify) => notify());
-  },
-);
+const mockRouterReplace = mockRouter.replaceMock;
+
 jest.mock("next/navigation", () => ({
-  __esModule: true,
-  useRouter: () => ({ replace: mockRouterReplace, push: jest.fn() }),
-  useSearchParams: () => {
-    const { useSyncExternalStore } = require("react");
-    return useSyncExternalStore(
-      (notify: () => void) => {
-        searchParamsSubscribers.add(notify);
-        return () => searchParamsSubscribers.delete(notify);
-      },
-      () => mockSearchParams,
-    );
-  },
+  ...require("@/__tests__/helpers/mock_router").nextNavigationMock(),
   usePathname: () => "/test-team/builds",
 }));
 
@@ -115,7 +95,7 @@ beforeEach(() => {
   filtersStore = createFiltersStore();
   onboardingStore = createOnboardingStore();
   queryClient.clear();
-  mockSearchParams = new URLSearchParams();
+  mockRouter.searchParams = new URLSearchParams();
   const { apiClient } = require("@/app/api/api_client");
   apiClient.init({ replace: jest.fn(), push: jest.fn() });
 });
@@ -208,7 +188,7 @@ describe("Builds page (MSW integration)", () => {
 
   describe("a link carrying a filter", () => {
     beforeEach(() => {
-      mockSearchParams = new URLSearchParams(
+      mockRouter.searchParams = new URLSearchParams(
         `po=0&filter_expr=${encodeURIComponent("mapping_type:in:proguard")}`,
       );
     });
@@ -236,7 +216,7 @@ describe("Builds page (MSW integration)", () => {
     });
 
     it("filters by nothing when it cannot be read", async () => {
-      mockSearchParams = new URLSearchParams(
+      mockRouter.searchParams = new URLSearchParams(
         `po=0&filter_expr=${encodeURIComponent("mapping_type:in:")}`,
       );
       const sent = recordBuildsRequests();
