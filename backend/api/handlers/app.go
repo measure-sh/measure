@@ -2707,120 +2707,15 @@ func (h Handlers) GetRootSpanNames(c *gin.Context) {
 
 func (h Handlers) GetSpansForSpanName(c *gin.Context) {
 	deps := h.Deps
-	ctx := c.Request.Context()
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	spanName := c.Query("span_name")
-	if spanName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Missing span_name query param",
-		})
-		return
-	}
-
-	ef := exprfilter.ExprFilter{
-		AppID: id,
-		Limit: exprfilter.DefaultPaginationLimit,
-	}
-
-	if err := c.ShouldBindQuery(&ef); err != nil {
-		msg := `failed to parse query parameters`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	ef.Entity = exprfilter.SpansEntity
-
-	if err := ef.BuildExprTree(); err != nil {
-		respondFilterError(c, err)
-		return
-	}
-
-	ef.SetDefaultTimeRangeIfUnset()
-
-	app := measure.App{
-		ID: &id,
-	}
-	team, err := app.GetTeam(ctx, deps.PgPool)
-	if err != nil {
-		msg := "failed to get team from app id"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	if !okTeam || !okApp {
-		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	app.TeamId = *team.ID
-	ef.TeamID = *team.ID
-
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment":     lc.MustPut(logcomment.Root, logcomment.Spans),
-		"use_query_cache": gin.Mode() == gin.ReleaseMode,
-	}
-
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "list"))
-
-	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
-		msg := "failed to read the filter's custom keys"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	if err := ef.Validate(); err != nil {
-		respondFilterError(c, err)
+	app, ef, ctx, spanName, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:          exprfilter.SpansEntity,
+		appScope:        *measure.ScopeAppRead,
+		logRoot:         logcomment.Spans,
+		logName:         "list",
+		useQueryCache:   true,
+		requireSpanName: true,
+	})
+	if !ok {
 		return
 	}
 
@@ -2845,119 +2740,14 @@ func (h Handlers) GetSpansForSpanName(c *gin.Context) {
 
 func (h Handlers) GetMetricsPlotForSpanName(c *gin.Context) {
 	deps := h.Deps
-	ctx := c.Request.Context()
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	spanName := c.Query("span_name")
-	if spanName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Missing span_name query param",
-		})
-		return
-	}
-
-	ef := exprfilter.ExprFilter{
-		AppID: id,
-		Limit: exprfilter.DefaultPaginationLimit,
-	}
-
-	if err := c.ShouldBindQuery(&ef); err != nil {
-		msg := `failed to parse query parameters`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	ef.Entity = exprfilter.SpansEntity
-
-	if err := ef.BuildExprTree(); err != nil {
-		respondFilterError(c, err)
-		return
-	}
-
-	ef.SetDefaultTimeRangeIfUnset()
-
-	app := measure.App{
-		ID: &id,
-	}
-	team, err := app.GetTeam(ctx, deps.PgPool)
-	if err != nil {
-		msg := "failed to get team from app id"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	if !okTeam || !okApp {
-		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	app.TeamId = *team.ID
-	ef.TeamID = *team.ID
-
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.MustPut(logcomment.Root, logcomment.Spans),
-	}
-
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_metrics"))
-
-	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
-		msg := "failed to read the filter's custom keys"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	if err := ef.Validate(); err != nil {
-		respondFilterError(c, err)
+	app, ef, ctx, spanName, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:          exprfilter.SpansEntity,
+		appScope:        *measure.ScopeAppRead,
+		logRoot:         logcomment.Spans,
+		logName:         "plots_metrics",
+		requireSpanName: true,
+	})
+	if !ok {
 		return
 	}
 
@@ -3092,113 +2882,13 @@ func (h Handlers) GetTrace(c *gin.Context) {
 
 func (h Handlers) GetBugReportsOverview(c *gin.Context) {
 	deps := h.Deps
-	ctx := c.Request.Context()
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	ef := exprfilter.ExprFilter{
-		AppID: id,
-		Limit: exprfilter.DefaultPaginationLimit,
-	}
-
-	if err := c.ShouldBindQuery(&ef); err != nil {
-		msg := `failed to parse query parameters`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	ef.Entity = exprfilter.BugReportsEntity
-
-	if err := ef.BuildExprTree(); err != nil {
-		respondFilterError(c, err)
-		return
-	}
-
-	ef.SetDefaultTimeRangeIfUnset()
-
-	app := measure.App{
-		ID: &id,
-	}
-	team, err := app.GetTeam(ctx, deps.PgPool)
-	if err != nil {
-		msg := "failed to get team from app id"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeBugReportRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	if !okTeam || !okApp {
-		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	app.TeamId = *team.ID
-	ef.TeamID = *team.ID
-
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.
-			MustPut(logcomment.Root, logcomment.BugReports).
-			String(),
-	}
-
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "list"))
-
-	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
-		msg := "failed to read the filter's custom keys"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	if err := ef.Validate(); err != nil {
-		respondFilterError(c, err)
+	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:   exprfilter.BugReportsEntity,
+		appScope: *measure.ScopeBugReportRead,
+		logRoot:  logcomment.BugReports,
+		logName:  "list",
+	})
+	if !ok {
 		return
 	}
 
@@ -3223,120 +2913,14 @@ func (h Handlers) GetBugReportsOverview(c *gin.Context) {
 
 func (h Handlers) GetBugReportsInstancesPlot(c *gin.Context) {
 	deps := h.Deps
-	ctx := c.Request.Context()
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	ef := exprfilter.ExprFilter{
-		AppID: id,
-		Limit: exprfilter.DefaultPaginationLimit,
-	}
-
-	if err := c.ShouldBindQuery(&ef); err != nil {
-		msg := `failed to parse query parameters`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	ef.Entity = exprfilter.BugReportsEntity
-
-	if err := ef.BuildExprTree(); err != nil {
-		respondFilterError(c, err)
-		return
-	}
-
-	if ef.Timezone == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "missing required field `timezone`",
-		})
-		return
-	}
-
-	ef.SetDefaultTimeRangeIfUnset()
-
-	app := measure.App{
-		ID: &id,
-	}
-	team, err := app.GetTeam(ctx, deps.PgPool)
-	if err != nil {
-		msg := "failed to get team from app id"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeBugReportRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	if !okTeam || !okApp {
-		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	app.TeamId = *team.ID
-	ef.TeamID = *team.ID
-
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.
-			MustPut(logcomment.Root, logcomment.BugReports).
-			String(),
-	}
-
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_instances"))
-
-	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
-		msg := "failed to read the filter's custom keys"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	if err := ef.Validate(); err != nil {
-		respondFilterError(c, err)
+	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:          exprfilter.BugReportsEntity,
+		appScope:        *measure.ScopeBugReportRead,
+		logRoot:         logcomment.BugReports,
+		logName:         "plots_instances",
+		requireTimezone: true,
+	})
+	if !ok {
 		return
 	}
 

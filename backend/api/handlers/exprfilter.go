@@ -1,13 +1,17 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 
+	"backend/libs/chquery"
 	"backend/libs/exprfilter"
+	"backend/libs/logcomment"
 	"backend/libs/measure"
 
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -32,6 +36,164 @@ func respondFilterError(c *gin.Context, err error) {
 		"error":              "invalid_filter_expr",
 		"filter_expr_issues": issues,
 	})
+}
+
+// exprFilterEndpoint carries what varies between the endpoints that query
+// with an exprfilter.ExprFilter: which entity the filter_expr grammar is
+// checked against, which scope (besides team read) the caller must hold,
+// the log_comment root and name the endpoint's ClickHouse queries are
+// tagged with, and which extra query params the endpoint requires.
+type exprFilterEndpoint struct {
+	entity   exprfilter.Entity
+	appScope measure.Scope
+	logRoot  string
+	logName  string
+	// useQueryCache adds the use_query_cache ClickHouse setting, enabled in
+	// release mode, to the endpoint's queries.
+	useQueryCache bool
+	// requireSpanName rejects requests without a span_name query param.
+	requireSpanName bool
+	// requireTimezone rejects requests without a timezone query param, which
+	// plot endpoints need to bucket rows by day.
+	requireTimezone bool
+}
+
+// prepareExprFilter runs the request prologue shared by the endpoints that
+// query with an exprfilter.ExprFilter: it parses the app id from the :id
+// route param, binds the query params into a filter, parses the filter_expr
+// into its expression tree, authorizes the caller on the app's team, tags the
+// context with the endpoint's ClickHouse settings, resolves the filter's
+// custom keys and validates the filter. On a failed check it writes the
+// error response itself and returns ok false; the handler then just returns.
+func (h Handlers) prepareExprFilter(c *gin.Context, endpoint exprFilterEndpoint) (app measure.App, ef exprfilter.ExprFilter, ctx context.Context, spanName string, ok bool) {
+	deps := h.Deps
+	ctx = c.Request.Context()
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	spanName = c.Query("span_name")
+	if endpoint.requireSpanName && spanName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Missing span_name query param",
+		})
+		return
+	}
+
+	ef = exprfilter.ExprFilter{
+		AppID: id,
+		Limit: exprfilter.DefaultPaginationLimit,
+	}
+
+	if err := c.ShouldBindQuery(&ef); err != nil {
+		msg := `failed to parse query parameters`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   msg,
+			"details": err.Error(),
+		})
+		return
+	}
+
+	ef.Entity = endpoint.entity
+
+	if err := ef.BuildExprTree(); err != nil {
+		respondFilterError(c, err)
+		return
+	}
+
+	if endpoint.requireTimezone && ef.Timezone == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "missing required field `timezone`",
+		})
+		return
+	}
+
+	ef.SetDefaultTimeRangeIfUnset()
+
+	app = measure.App{
+		ID: &id,
+	}
+	team, err := app.GetTeam(ctx, deps.PgPool)
+	if err != nil {
+		msg := "failed to get team from app id"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+	if team == nil {
+		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	userId := c.GetString("userId")
+	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), endpoint.appScope)
+	if err != nil {
+		msg := `failed to perform authorization`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if !okTeam || !okApp {
+		msg := `you are not authorized to access this app`
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	app.TeamId = *team.ID
+	ef.TeamID = *team.ID
+
+	lc := logcomment.New(2)
+	settings := clickhouse.Settings{
+		"log_comment": lc.MustPut(logcomment.Root, endpoint.logRoot).String(),
+	}
+	if endpoint.useQueryCache {
+		settings["use_query_cache"] = gin.Mode() == gin.ReleaseMode
+	}
+
+	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, endpoint.logName))
+
+	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
+		msg := "failed to read the filter's custom keys"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if err := ef.Validate(); err != nil {
+		respondFilterError(c, err)
+		return
+	}
+
+	return app, ef, ctx, spanName, true
 }
 
 // authorizeAppRead reports whether the caller may read the app, along with the

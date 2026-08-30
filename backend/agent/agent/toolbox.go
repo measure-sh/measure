@@ -1133,6 +1133,37 @@ func mcpExprFilter(entity exprfilter.Entity, appID, teamID uuid.UUID, fromStr, t
 	return ef, nil
 }
 
+// mcpPrepareExprFilter runs the request prologue shared by the tools that
+// query with an exprfilter.ExprFilter: it resolves the caller's access to the
+// app, builds the filter from the tool's time range and filter_expr inputs,
+// lets the tool set its pagination and timezone fields through apply, then
+// resolves the filter's custom keys and validates it.
+func (c *Config) mcpPrepareExprFilter(ctx context.Context, entity exprfilter.Entity, rawAppID, from, to, filterExpr string, apply func(*exprfilter.ExprFilter)) (appID, teamID uuid.UUID, ef *exprfilter.ExprFilter, err error) {
+	appID, teamID, err = c.mcpResolveAppAccess(ctx, rawAppID)
+	if err != nil {
+		return uuid.UUID{}, uuid.UUID{}, nil, err
+	}
+
+	ef, err = mcpExprFilter(entity, appID, teamID, from, to, filterExpr)
+	if err != nil {
+		return uuid.UUID{}, uuid.UUID{}, nil, err
+	}
+
+	if apply != nil {
+		apply(ef)
+	}
+
+	if err := ef.ResolveCustomKeys(ctx, c.Deps.RchPool); err != nil {
+		return uuid.UUID{}, uuid.UUID{}, nil, fmt.Errorf("failed to read the filter's custom keys: %v", err)
+	}
+
+	if err := ef.Validate(); err != nil {
+		return uuid.UUID{}, uuid.UUID{}, nil, mcpFilterExprError(err)
+	}
+
+	return appID, teamID, ef, nil
+}
+
 // mcpFilterExprError renders a filter_expr parse or validation failure as one
 // error whose text names each problem and where in the expression it is, so
 // the model can correct the expression and call again. Other errors pass
@@ -1795,32 +1826,19 @@ func (c *Config) mcpGetSession(ctx context.Context, in mcpGetSessionInput) (*mcp
 
 func (c *Config) mcpGetBugReports(ctx context.Context, in mcpGetBugReportsInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.BugReportsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
+		limit := in.Limit
+		if limit <= 0 {
+			limit = 10
+		}
+		if limit > 30 {
+			limit = 30
+		}
+		ef.Limit = limit
+		ef.Offset = in.Offset
+	})
 	if err != nil {
 		return nil, nil, err
-	}
-
-	ef, err := mcpExprFilter(exprfilter.BugReportsEntity, appID, teamID, in.From, in.To, in.FilterExpr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	limit := in.Limit
-	if limit <= 0 {
-		limit = 10
-	}
-	if limit > 30 {
-		limit = 30
-	}
-	ef.Limit = limit
-	ef.Offset = in.Offset
-
-	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
-		return nil, nil, fmt.Errorf("failed to read the filter's custom keys: %v", err)
-	}
-
-	if err := ef.Validate(); err != nil {
-		return nil, nil, mcpFilterExprError(err)
 	}
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
@@ -1839,23 +1857,11 @@ func (c *Config) mcpGetBugReportsOverTime(ctx context.Context, in mcpGetBugRepor
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
 
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.BugReportsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
+		ef.Timezone = in.Timezone
+	})
 	if err != nil {
 		return nil, nil, err
-	}
-
-	ef, err := mcpExprFilter(exprfilter.BugReportsEntity, appID, teamID, in.From, in.To, in.FilterExpr)
-	if err != nil {
-		return nil, nil, err
-	}
-	ef.Timezone = in.Timezone
-
-	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
-		return nil, nil, fmt.Errorf("failed to read the filter's custom keys: %v", err)
-	}
-
-	if err := ef.Validate(); err != nil {
-		return nil, nil, mcpFilterExprError(err)
 	}
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
@@ -1913,32 +1919,19 @@ func (c *Config) mcpGetSpanInstances(ctx context.Context, in mcpGetSpanInstances
 		return nil, nil, fmt.Errorf("root_span_name is required")
 	}
 
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.SpansEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
+		limit := in.Limit
+		if limit <= 0 {
+			limit = 10
+		}
+		if limit > 30 {
+			limit = 30
+		}
+		ef.Limit = limit
+		ef.Offset = in.Offset
+	})
 	if err != nil {
 		return nil, nil, err
-	}
-
-	ef, err := mcpExprFilter(exprfilter.SpansEntity, appID, teamID, in.From, in.To, in.FilterExpr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	limit := in.Limit
-	if limit <= 0 {
-		limit = 10
-	}
-	if limit > 30 {
-		limit = 30
-	}
-	ef.Limit = limit
-	ef.Offset = in.Offset
-
-	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
-		return nil, nil, fmt.Errorf("failed to read the filter's custom keys: %v", err)
-	}
-
-	if err := ef.Validate(); err != nil {
-		return nil, nil, mcpFilterExprError(err)
 	}
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
@@ -1960,23 +1953,11 @@ func (c *Config) mcpGetSpanMetricsOverTime(ctx context.Context, in mcpGetSpanMet
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
 
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.SpansEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
+		ef.Timezone = in.Timezone
+	})
 	if err != nil {
 		return nil, nil, err
-	}
-
-	ef, err := mcpExprFilter(exprfilter.SpansEntity, appID, teamID, in.From, in.To, in.FilterExpr)
-	if err != nil {
-		return nil, nil, err
-	}
-	ef.Timezone = in.Timezone
-
-	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
-		return nil, nil, fmt.Errorf("failed to read the filter's custom keys: %v", err)
-	}
-
-	if err := ef.Validate(); err != nil {
-		return nil, nil, mcpFilterExprError(err)
 	}
 
 	app := &measure.App{ID: &appID, TeamId: teamID}

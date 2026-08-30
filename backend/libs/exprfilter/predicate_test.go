@@ -19,8 +19,8 @@ var testEntity = Entity{
 		{Name: "patch_id", ValueType: ValueTypeUUID, Operators: AllowedOperatorsFor(ValueTypeUUID), ValueSuggestionMode: ValueSuggestionModeSample},
 		{Name: "file_size", ValueType: ValueTypeInt32, Operators: AllowedOperatorsFor(ValueTypeInt32), ValueSuggestionMode: ValueSuggestionModeNone},
 	},
-	BindKey:          bindTestKey,
-	SuggestKeyValues: fetchTestKeySuggestions,
+	BindKey:               bindTestKey,
+	SuggestFixedKeyValues: fetchTestKeySuggestions,
 }
 
 func bindTestKey(condition Condition) (*sqlf.Stmt, error) {

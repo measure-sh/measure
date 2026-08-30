@@ -125,9 +125,7 @@ func matchCustomCondition(key Key, condition Condition) (customConditionMatch, e
 // customMembershipBinder holds the request-scoped context needed to build
 // custom-key membership queries.
 type customMembershipBinder struct {
-	table      string
-	idColumn   string
-	extraScope string
+	store      customKeyStore
 	scope      CustomKeyScope
 	keysByName map[string]Key
 }
@@ -136,32 +134,26 @@ type customMembershipBinder struct {
 const customAttrScope = " where team_id = toUUID(?) and app_id = toUUID(?)" +
 	" and timestamp >= ? and timestamp <= ?"
 
-// scopeSQL is customAttrScope extended with the binder's extra clause, so
+// scopeSQL is customAttrScope extended with the store's extra clause, so
 // every membership subquery scans only the rows its entity owns.
 func (b *customMembershipBinder) scopeSQL() string {
-	if b.extraScope == "" {
+	if b.store.extraScope == "" {
 		return customAttrScope
 	}
-	return customAttrScope + " and " + b.extraScope
+	return customAttrScope + " and " + b.store.extraScope
 }
 
-// bindCustomConditionsToMembership creates a GroupKeyBinding for custom-key
-// conditions. Multiple conditions are evaluated with countIf over one grouped
-// query instead of generating a separate subquery for each condition.
-// extraScope is an extra boolean SQL clause for tables shared by more than one
-// entity, such as the bug_report flag of user_def_attrs; empty when the table
-// holds one entity's rows only.
-func bindCustomConditionsToMembership(table, idColumn, extraScope string) func(scope CustomKeyScope, keys []Key) GroupKeyBinding {
-	return func(scope CustomKeyScope, keys []Key) GroupKeyBinding {
-		binder := &customMembershipBinder{
-			table:      table,
-			idColumn:   idColumn,
-			extraScope: extraScope,
-			scope:      scope,
-			keysByName: IndexKeysByName(keys),
-		}
-		return binder.bind
+// bindConditions creates a GroupKeyBinding for one request's conditions on
+// the store's custom keys. Multiple conditions are evaluated with countIf
+// over one grouped query instead of generating a separate subquery for each
+// condition.
+func (s customKeyStore) bindConditions(scope CustomKeyScope, keys []Key) GroupKeyBinding {
+	binder := &customMembershipBinder{
+		store:      s,
+		scope:      scope,
+		keysByName: IndexKeysByName(keys),
 	}
+	return binder.bind
 }
 
 // bind is the GroupKeyBinding for one request's custom keys.
@@ -291,8 +283,8 @@ func (b *customMembershipBinder) single(match customConditionMatch) (string, []a
 		operator = "not in"
 	}
 	versionSQL, versionArgs := b.versionConditions()
-	text := b.idColumn + " " + operator + " (" +
-		"select " + b.idColumn + " from " + b.table +
+	text := b.store.idColumn + " " + operator + " (" +
+		"select " + b.store.idColumn + " from " + b.store.table +
 		b.scopeSQL() +
 		versionSQL +
 		" and " + match.sql +
@@ -315,12 +307,12 @@ func (b *customMembershipBinder) grouped(operator string, matches []customCondit
 	}
 
 	versionSQL, versionArgs := b.versionConditions()
-	text := b.idColumn + " " + operator + " (" +
-		"select " + b.idColumn + " from " + b.table +
+	text := b.store.idColumn + " " + operator + " (" +
+		"select " + b.store.idColumn + " from " + b.store.table +
 		b.scopeSQL() +
 		versionSQL +
 		" and key in ?" +
-		" group by " + b.idColumn +
+		" group by " + b.store.idColumn +
 		" having " + having +
 		")"
 	args := make([]any, 0, 5+len(versionArgs)+len(havingArgs))

@@ -42,6 +42,15 @@ type ValueRequest struct {
 	Limit  int
 }
 
+// effectiveLimit is the requested limit, or DefaultValueLimit when the
+// request does not name one.
+func (r ValueRequest) effectiveLimit() int {
+	if r.Limit <= 0 {
+		return DefaultValueLimit
+	}
+	return r.Limit
+}
+
 // ValueList is the answer to a ValueRequest. Truncated says more values matched
 // than the list holds.
 type ValueList struct {

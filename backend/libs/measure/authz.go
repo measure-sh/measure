@@ -104,12 +104,15 @@ var (
 	ScopeBugReportRead             = newScope("bugReport", "read")
 )
 
-type scope struct {
+// Scope is one permission an authorization check tests, such as reading a
+// team's apps. Its fields and constructor are unexported, so new scopes can
+// only be declared in this package.
+type Scope struct {
 	resource string
 	perm     string
 }
 
-func (s scope) GetRolesSameOrLower(r Rank) []Rank {
+func (s Scope) GetRolesSameOrLower(r Rank) []Rank {
 	lowerRoles := r.getLower()
 	var roles []Rank
 
@@ -128,7 +131,7 @@ func (s scope) GetRolesSameOrLower(r Rank) []Rank {
 	return roles
 }
 
-var ScopeMap = map[Rank][]scope{
+var ScopeMap = map[Rank][]Scope{
 	owner:     {*ScopeBillingAll, *ScopeTeamAll, *ScopeAlertAll, *ScopeAppAll, *ScopeBugReportAll},
 	admin:     {*ScopeBillingAll, *ScopeAlertAll, *ScopeAppAll, *ScopeBugReportAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
 	developer: {*ScopeBillingRead, *ScopeAlertAll, *ScopeAppRead, *ScopeBugReportAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
@@ -142,18 +145,18 @@ var RoleMap = map[string]Rank{
 	"viewer":    viewer,
 }
 
-func (s *scope) String() string {
+func (s *Scope) String() string {
 	return fmt.Sprintf("%s:%s", s.resource, s.perm)
 }
 
-func newScope(resource, perm string) *scope {
-	return &scope{
+func newScope(resource, perm string) *Scope {
+	return &Scope{
 		resource: resource,
 		perm:     perm,
 	}
 }
 
-func PerformAuthz(pg *pgxpool.Pool, uid string, rid string, scope scope) (bool, error) {
+func PerformAuthz(pg *pgxpool.Pool, uid string, rid string, scope Scope) (bool, error) {
 	u := &User{
 		ID: &uid,
 	}
