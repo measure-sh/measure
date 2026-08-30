@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Drop final from the span custom key listing by @anupcowkur in #4323
+- (**backend**): Order span custom value suggestions deterministically by @anupcowkur
+- (**backend**): Validate timezone in expression filters by @anupcowkur
 - (**backend**): Note the unbounded custom key discovery scans by @anupcowkur in #4313
 - (**backend**): Correct documentation accuracy (#4268) by @detj in #4268
 - (**backend**): Reduce clickhouse reads in issue common path query by @anupcowkur in #4267
