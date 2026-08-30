@@ -82,8 +82,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :recycle: Refactor
 
+- (**backend**): Consolidate expression filter implementations by @anupcowkur in #4325
 - (**backend**): Split exprfilter entity.go by concern by @anupcowkur in #4312
 - (**backend**): Build alert messages as channel-neutral plain text by @anupcowkur in #4265
+- (**frontend**): Consolidate the filter page mechanics into one hook by @anupcowkur
 
 ### :books: Documentation
 
