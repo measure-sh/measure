@@ -293,7 +293,7 @@ func fetchSpanCustomKeysByName(ctx context.Context, pgPool *pgxpool.Pool, chPool
 // of distinct keys and values like the span_filters rollupthat fixed keys read.
 func spanCustomKeyQuery(teamID, appID uuid.UUID) *sqlf.Stmt {
 	return sqlf.
-		From("span_user_def_attrs final").
+		From("span_user_def_attrs").
 		Select("key").
 		Select("argMax(type, timestamp) as type").
 		Where("team_id = toUUID(?)", teamID).
