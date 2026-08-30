@@ -1,8 +1,6 @@
 package measure
 
 import (
-	"fmt"
-	"strings"
 	"time"
 
 	"backend/libs/event"
@@ -29,7 +27,6 @@ type BugReport struct {
 // wrapper over BugReport for display purposes.
 type BugReportDisplay struct {
 	*BugReport
-	MatchedFreeText string `json:"matched_free_text"`
 }
 
 // BugReportInstance represents an entity
@@ -49,38 +46,4 @@ type BugReportStatusUpdatePayload struct {
 	// pointer differentiates between 0 and nil, to validate
 	// non-existant status.
 	Status *uint8 `json:"status" binding:"required"`
-}
-
-// ExtractMatches extracts matching text from
-// bug report's various fields.
-func extractMatches(needle, userId, eventId, sessionId, description string) (matched string) {
-	if needle == "" {
-		return
-	}
-
-	buff := []string{}
-
-	// user id
-	if strings.Contains(strings.ToLower(userId), strings.ToLower(needle)) {
-		buff = append(buff, fmt.Sprintf("User Id: %s", userId))
-	}
-
-	// event id
-	if strings.Contains(strings.ToLower(eventId), strings.ToLower(needle)) {
-		buff = append(buff, fmt.Sprintf("Bug Report Id: %s", eventId))
-	}
-
-	// session id
-	if strings.Contains(strings.ToLower(sessionId), strings.ToLower(needle)) {
-		buff = append(buff, fmt.Sprintf("Session Id: %s", sessionId))
-	}
-
-	// description
-	if strings.Contains(strings.ToLower(description), strings.ToLower(needle)) {
-		buff = append(buff, fmt.Sprintf("Description: %s", description))
-	}
-
-	matched = strings.Join(buff, " ")
-
-	return
 }

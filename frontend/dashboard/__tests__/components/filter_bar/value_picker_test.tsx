@@ -307,6 +307,13 @@ describe("ValuePicker", () => {
       expect(screen.getByTestId("filter-value-input")).toBeInTheDocument();
     });
 
+    it("asks the server for nothing when the key offers no values", () => {
+      mockUseFilterValuesQuery.mockClear();
+      renderPicker({ valueSuggestionMode: "none", valueType: "string" });
+
+      expect(mockUseFilterValuesQuery).not.toHaveBeenCalled();
+    });
+
     it("opens on the value the condition already has", () => {
       renderPicker({ valueSuggestionMode: "none", selected: [{ text: "42" }] });
 

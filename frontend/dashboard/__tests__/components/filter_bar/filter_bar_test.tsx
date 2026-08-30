@@ -539,6 +539,27 @@ describe("FilterBar", () => {
       );
     });
 
+    it("reports again when the request changes, even to the same resolution", async () => {
+      const { onFilterChange, askAgain } = await renderBar({
+        requestedAppId: "app-1",
+      });
+      expect(lastState(onFilterChange)).toMatchObject({
+        status: "ready",
+        app: { id: "app-1" },
+      });
+      const settledCalls = onFilterChange.mock.calls.length;
+
+      // Dropping the app from the request resolves to the same app, date
+      // and filter as before.
+      await askAgain({ requestedAppId: null });
+
+      expect(onFilterChange.mock.calls.length).toBeGreaterThan(settledCalls);
+      expect(lastState(onFilterChange)).toMatchObject({
+        status: "ready",
+        app: { id: "app-1" },
+      });
+    });
+
     it("holds the page back until the keys can vouch for it", async () => {
       mockUseFilterKeysQuery.mockReturnValue({
         data: undefined,

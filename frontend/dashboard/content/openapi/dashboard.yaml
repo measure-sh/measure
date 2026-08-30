@@ -1004,6 +1004,7 @@ paths:
             enum:
               - builds
               - spans
+              - bug_reports
         - name: key
           in: query
           required: false
@@ -1125,6 +1126,7 @@ paths:
             enum:
               - builds
               - spans
+              - bug_reports
         - name: key_name
           in: query
           required: true
@@ -3627,11 +3629,10 @@ paths:
         - Bug Reports
       summary: Fetch an app's bug reports
       description: |
-        Fetch an app's bug reports by applying various optional filters.
+        Fetch an app's bug reports, optionally narrowed by a filter
+        expression.
 
-        For multiple comma separated fields, make sure no whitespace characters
-        exist before or after commas. Pass `limit` and `offset` values to
-        paginate results.
+        Pass `limit` and `offset` values to paginate results.
       parameters:
         - name: id
           in: path
@@ -3642,77 +3643,7 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - $ref: "#/components/parameters/PlotTimeGroup"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version codes to return only matching sessions.
-          schema:
-            type: string
-        - name: countries
-          in: query
-          required: false
-          description: List of comma separated country identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: device_names
-          in: query
-          required: false
-          description: List of comma separated device name identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: device_manufacturers
-          in: query
-          required: false
-          description: List of comma separated device manufacturer identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: locales
-          in: query
-          required: false
-          description: List of comma separated device locale identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_providers
-          in: query
-          required: false
-          description: List of comma separated network provider identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_types
-          in: query
-          required: false
-          description: List of comma separated network type identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_generations
-          in: query
-          required: false
-          description: List of comma separated network generation identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: free_text
-          in: query
-          required: false
-          description: A sequence of characters used to filter sessions matching various criteria like user_id, description and so on.
-          schema:
-            type: string
-        - name: bug_report_statuses
-          in: query
-          required: false
-          description: Should be 0 (Open) or 1 (Closed). If multiple statuses are required, they should be passed as multiple query params like `bug_report_statuses=0&bug_report_statuses=1`.
-          style: form
-          explode: true
-          schema:
-            type: array
-            items:
-              type: integer
+        - $ref: "#/components/parameters/FilterExpr"
         - name: offset
           in: query
           required: false
@@ -3725,18 +3656,6 @@ paths:
           description: Number of items to return. Used for pagination. Should be used along with `offset`.
           schema:
             type: integer
-        - name: filter_short_code
-          in: query
-          required: false
-          description: Code representing combination of filters.
-          schema:
-            type: string
-        - name: ud_expression
-          in: query
-          required: false
-          description: Expression in JSON to filter using user defined attributes.
-          schema:
-            type: string
       responses:
         "200":
           description: Successful response, no errors.
@@ -3784,8 +3703,6 @@ paths:
                           type:
                             - array
                             - "null"
-                        matched_free_text:
-                          type: string
               examples:
                 response:
                   value:
@@ -3811,7 +3728,6 @@ paths:
                           os_version: "34"
                         user_defined_attribute: null
                         attachments: null
-                        matched_free_text: ""
                       - session_id: e19be4bf-0896-42bf-a4a0-ba4529c57f1e
                         app_id: 47cf0390-b11c-4e1f-8f8a-770bf9c159bb
                         event_id: ea5f4312-af64-47f5-9d36-e7ad5b00362c
@@ -3830,7 +3746,6 @@ paths:
                           os_version: "33"
                         user_defined_attribute: null
                         attachments: null
-                        matched_free_text: ""
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
@@ -3848,12 +3763,8 @@ paths:
         - Bug Reports
       summary: Fetch an app's bug report instances plot
       description: |
-        Fetch an app's bug report instances plot by applying various optional
-        filters.
-
-        For multiple comma separated fields, make sure no whitespace characters
-        exist before or after commas. Pass `limit` and `offset` values to
-        paginate results.
+        Fetch an app's bug report instances plot, optionally narrowed by a
+        filter expression.
       parameters:
         - name: id
           in: path
@@ -3864,100 +3775,9 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version codes to return only matching sessions.
-          schema:
-            type: string
-        - name: countries
-          in: query
-          required: false
-          description: List of comma separated country identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: device_names
-          in: query
-          required: false
-          description: List of comma separated device name identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: device_manufacturers
-          in: query
-          required: false
-          description: List of comma separated device manufacturer identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: locales
-          in: query
-          required: false
-          description: List of comma separated device locale identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_providers
-          in: query
-          required: false
-          description: List of comma separated network provider identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_types
-          in: query
-          required: false
-          description: List of comma separated network type identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_generations
-          in: query
-          required: false
-          description: List of comma separated network generation identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: free_text
-          in: query
-          required: false
-          description: A sequence of characters used to filter sessions matching various criteria like user_id, description and so on.
-          schema:
-            type: string
-        - name: bug_report_statuses
-          in: query
-          required: false
-          description: Should be 0 (Open) or 1 (Closed). If multiple statuses are required, they should be passed as multiple query params like `bug_report_statuses=0&bug_report_statuses=1`.
-          style: form
-          explode: true
-          schema:
-            type: array
-            items:
-              type: integer
-        - name: offset
-          in: query
-          required: false
-          description: Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
-          schema:
-            type: integer
-        - name: limit
-          in: query
-          required: false
-          description: Number of items to return. Used for pagination. Should be used along with `offset`.
-          schema:
-            type: integer
-        - name: filter_short_code
-          in: query
-          required: false
-          description: Code representing combination of filters.
-          schema:
-            type: string
-        - name: ud_expression
-          in: query
-          required: false
-          description: Expression in JSON to filter using user defined attributes.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/Timezone"
+        - $ref: "#/components/parameters/PlotTimeGroup"
       responses:
         "200":
           description: Successful response, no errors.

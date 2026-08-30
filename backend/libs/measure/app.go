@@ -2562,9 +2562,9 @@ func (a App) GetTrace(ctx context.Context, rch driver.Conn, traceId string) (tra
 	return
 }
 
-// GetBugReportsWithFilter provides bug reports that matches various
-// filter criteria in a paginated fashion.
-func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (bugReports []BugReportDisplay, next, previous bool, err error) {
+// GetBugReportsWithFilter provides bug reports that match the filter
+// expression, newest first, in a paginated fashion.
+func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (bugReports []BugReportDisplay, next, previous bool, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.
 		From("bug_reports final").
@@ -2584,114 +2584,28 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, af *f
 		Select("user_id").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To)
 
 	defer stmt.Close()
 
-	if af.HasVersions() {
-		stmt.Where("app_version.1 in ?", af.Versions)
-		stmt.Where("app_version.2 in ?", af.VersionCodes)
-	}
-
-	if af.Limit > 0 {
-		stmt.Limit(uint64(af.Limit) + 1)
-	}
-
-	if af.Offset >= 0 {
-		stmt.Offset(uint64(af.Offset))
-	}
-
-	if af.HasBugReportStatuses() {
-		stmt.Where("status").In(af.BugReportStatuses)
-	}
-
-	if af.HasOSVersions() {
-		selectedOSVersions, err := af.OSVersionPairs()
-		if err != nil {
-			return bugReports, next, previous, err
+	if ef.HasFilterExpr() {
+		predicate, errPredicate := ef.Predicate(nil)
+		if errPredicate != nil {
+			err = errPredicate
+			return
 		}
-
-		stmt.Where("os_version in (?)", selectedOSVersions.Parameterize())
-	}
-
-	if af.HasCountries() {
-		stmt.Where("country_code in ?", af.Countries)
-	}
-
-	if af.HasNetworkProviders() {
-		stmt.Where("network_provider in ?", af.NetworkProviders)
-	}
-
-	if af.HasNetworkTypes() {
-		stmt.Where("network_type in ?", af.NetworkTypes)
-	}
-
-	if af.HasNetworkGenerations() {
-		stmt.Where("network_generation in ?", af.NetworkGenerations)
-	}
-
-	if af.HasDeviceLocales() {
-		stmt.Where("device_locale in ?", af.Locales)
-	}
-
-	if af.HasDeviceManufacturers() {
-		stmt.Where("device_manufacturer in ?", af.DeviceManufacturers)
-	}
-
-	if af.HasDeviceNames() {
-		stmt.Where("device_name in ?", af.DeviceNames)
-	}
-
-	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.
-			From("user_def_attrs").
-			Select("event_id").
-			Where("team_id = toUUID(?)", a.TeamId).
-			Where("app_id = toUUID(?)", a.ID).
-			Where("bug_report = true").
-			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-
-		if af.HasVersions() {
-			subQuery.
-				Where("app_version.1 in ?", af.Versions).
-				Where("app_version.2 in ?", af.VersionCodes)
-		}
-
-		if af.HasOSVersions() {
-			selectedOSVersions, errVersions := af.OSVersionPairs()
-			if err != nil {
-				err = errVersions
-				return
-			}
-
-			subQuery.
-				Where("os_version in (?)", selectedOSVersions.Parameterize())
-		}
-
-		af.UDExpression.Augment(subQuery)
-		subQuery.GroupBy("event_id")
-		stmt.SubQuery("event_id in (", ")", subQuery)
+		defer predicate.Close()
+		stmt.Where(predicate.String(), predicate.Args()...)
 	}
 
 	stmt.OrderBy("timestamp desc")
 
-	if af.HasFreeText() {
-		partial := fmt.Sprintf("%%%s%%", af.FreeText)
+	if ef.Limit > 0 {
+		stmt.Limit(uint64(ef.Limit) + 1)
+	}
 
-		stmtMatch := sqlf.
-			New("").
-			SubQuery("(", ")", sqlf.
-				New("").
-				Clause("user_id ilike ?", af.FreeText).
-				Clause("or").
-				Clause("toString(event_id) ilike ?", af.FreeText).
-				Clause("or").
-				Clause("toString(session_id) ilike ?", af.FreeText).
-				Clause("or").
-				Clause("description ilike ?", partial),
-			)
-
-		stmt.Where(stmtMatch.String(), stmtMatch.Args()...)
+	if ef.Offset >= 0 {
+		stmt.Offset(uint64(ef.Offset))
 	}
 
 	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
@@ -2699,11 +2613,13 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, af *f
 		return
 	}
 
+	defer rows.Close()
+
 	for rows.Next() {
 		var bugReport BugReportDisplay
 		bugReport.BugReport = new(BugReport)
 		bugReport.Attribute = new(event.Attribute)
-		bugReport.AppID = af.AppID
+		bugReport.AppID = ef.AppID
 
 		dest := []any{
 			&bugReport.EventID,
@@ -2727,9 +2643,6 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, af *f
 			return
 		}
 
-		// set matched free text results
-		bugReport.MatchedFreeText = extractMatches(af.FreeText, bugReport.Attribute.UserID, bugReport.EventID.String(), bugReport.SessionID.String(), bugReport.Description)
-
 		bugReports = append(bugReports, bugReport)
 	}
 
@@ -2738,11 +2651,11 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, af *f
 	resultLen := len(bugReports)
 
 	// Set pagination next & previous flags
-	if resultLen > af.Limit {
+	if resultLen > ef.Limit {
 		bugReports = bugReports[:resultLen-1]
 		next = true
 	}
-	if af.Offset > 0 {
+	if ef.Offset > 0 {
 		previous = true
 	}
 
@@ -2750,18 +2663,20 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, af *f
 }
 
 // GetBugReportInstancesPlot provides aggregated bug report instances
-// matching various filters.
-func (a App) GetBugReportInstancesPlot(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (bugReportInstances []BugReportInstance, err error) {
+// matching the filter expression.
+func (a App) GetBugReportInstancesPlot(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (bugReportInstances []BugReportInstance, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	if af.Timezone == "" {
-		return nil, errors.New("missing timezone filter")
+	if ef.Timezone == "" {
+		err = fmt.Errorf("timezone is required")
+		return
 	}
 
-	if !af.HasPlotTimeGroup() {
-		af.SetDefaultPlotTimeGroup()
+	plotTimeGroup := ef.PlotTimeGroup
+	if plotTimeGroup == "" {
+		plotTimeGroup = exprfilter.PlotTimeGroupDays
 	}
 
-	groupExpr, err := GetPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	groupExpr, err := GetPlotTimeGroupExpr("timestamp", plotTimeGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -2772,102 +2687,15 @@ func (a App) GetBugReportInstancesPlot(ctx context.Context, rch driver.Conn, af 
 		Select("timestamp").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To)
 
-	if af.HasVersions() {
-		base.Where("app_version.1 in ?", af.Versions)
-		base.Where("app_version.2 in ?", af.VersionCodes)
-	}
-
-	if af.HasBugReportStatuses() {
-		base.Where("status").In(af.BugReportStatuses)
-	}
-
-	if af.HasOSVersions() {
-		selectedOSVersions, err := af.OSVersionPairs()
-		if err != nil {
-			return nil, err
+	if ef.HasFilterExpr() {
+		predicate, errPredicate := ef.Predicate(nil)
+		if errPredicate != nil {
+			return nil, errPredicate
 		}
-
-		base.Where("os_version in (?)", selectedOSVersions.Parameterize())
-	}
-
-	if af.HasCountries() {
-		base.Where("country_code in ?", af.Countries)
-	}
-
-	if af.HasNetworkProviders() {
-		base.Where("network_provider in ?", af.NetworkProviders)
-	}
-
-	if af.HasNetworkTypes() {
-		base.Where("network_type in ?", af.NetworkTypes)
-	}
-
-	if af.HasNetworkGenerations() {
-		base.Where("network_generation in ?", af.NetworkGenerations)
-	}
-
-	if af.HasDeviceLocales() {
-		base.Where("device_locale in ?", af.Locales)
-	}
-
-	if af.HasDeviceManufacturers() {
-		base.Where("device_manufacturer in ?", af.DeviceManufacturers)
-	}
-
-	if af.HasDeviceNames() {
-		base.Where("device_name in ?", af.DeviceNames)
-	}
-
-	if af.HasFreeText() {
-		partial := fmt.Sprintf("%%%s%%", af.FreeText)
-
-		stmtMatch := sqlf.
-			New("").
-			SubQuery("(", ")", sqlf.
-				New("").
-				Clause("user_id ilike ?", af.FreeText).
-				Clause("or").
-				Clause("toString(event_id) ilike ?", af.FreeText).
-				Clause("or").
-				Clause("toString(session_id) ilike ?", af.FreeText).
-				Clause("or").
-				Clause("description ilike ?", partial),
-			)
-
-		base.Where(stmtMatch.String(), stmtMatch.Args()...)
-	}
-
-	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.
-			From("user_def_attrs").
-			Select("event_id").
-			Where("team_id = toUUID(?)", a.TeamId).
-			Where("app_id = toUUID(?)", a.ID).
-			Where("bug_report = true").
-			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-
-		if af.HasVersions() {
-			subQuery.
-				Where("app_version.1 in ?", af.Versions).
-				Where("app_version.2 in ?", af.VersionCodes)
-		}
-
-		if af.HasOSVersions() {
-			selectedOSVersions, errVersions := af.OSVersionPairs()
-			if err != nil {
-				err = errVersions
-				return
-			}
-
-			subQuery.
-				Where("os_version in (?)", selectedOSVersions.Parameterize())
-		}
-
-		af.UDExpression.Augment(subQuery)
-		subQuery.GroupBy("event_id")
-		base.SubQuery("event_id in (", ")", subQuery)
+		defer predicate.Close()
+		base.Where(predicate.String(), predicate.Args()...)
 	}
 
 	base.OrderBy("timestamp desc")
@@ -2879,7 +2707,7 @@ func (a App) GetBugReportInstancesPlot(ctx context.Context, rch driver.Conn, af 
 		With("base", base).
 		From("base").
 		Select("uniq(event_id) instances").
-		Select(groupExpr.BucketExpr+" as datetime_bucket", af.Timezone).
+		Select(groupExpr.BucketExpr+" as datetime_bucket", ef.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 		Select("concat(tupleElement(app_version, 1), ' ', '(', tupleElement(app_version, 2), ')') app_version_fmt").
 		GroupBy("app_version, datetime_bucket").
@@ -2891,6 +2719,7 @@ func (a App) GetBugReportInstancesPlot(ctx context.Context, rch driver.Conn, af 
 	if err != nil {
 		return
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var bugReportInstance BugReportInstance

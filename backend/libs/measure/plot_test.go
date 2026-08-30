@@ -73,6 +73,19 @@ func (f plotFixture) spanExprFilter(from, to time.Time, timezone, plotTimeGroup 
 	}
 }
 
+func (f plotFixture) bugReportExprFilter(from, to time.Time, timezone, plotTimeGroup string) *exprfilter.ExprFilter {
+	return &exprfilter.ExprFilter{
+		AppID:         f.appID,
+		TeamID:        f.teamID,
+		Entity:        exprfilter.BugReportsEntity,
+		From:          from,
+		To:            to,
+		Timezone:      timezone,
+		Limit:         exprfilter.DefaultPaginationLimit,
+		PlotTimeGroup: plotTimeGroup,
+	}
+}
+
 func (f plotFixture) teamIDStr() string { return f.teamID.String() }
 func (f plotFixture) appIDStr() string  { return f.appID.String() }
 
@@ -181,7 +194,7 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 					seedBugReport(f.ctx, t, f.teamIDStr(), f.appIDStr(), uuid.New().String(), "test report", ts)
 				}
 
-				items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, af)
+				items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, f.bugReportExprFilter(from, to, "UTC", tc.group))
 				if err != nil {
 					t.Fatalf("GetBugReportInstancesPlot: %v", err)
 				}
@@ -206,7 +219,7 @@ func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 		if _, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, af); err == nil {
 			t.Fatalf("expected error for missing timezone in sessions plot")
 		}
-		if _, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, af); err == nil {
+		if _, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, f.bugReportExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "", exprfilter.PlotTimeGroupDays)); err == nil {
 			t.Fatalf("expected error for missing timezone in bug report plot")
 		}
 	})
@@ -216,7 +229,7 @@ func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 		if _, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, af); err == nil {
 			t.Fatalf("expected error for unsupported plot_time_group in sessions plot")
 		}
-		if _, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, af); err == nil {
+		if _, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, f.bugReportExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", "weeks")); err == nil {
 			t.Fatalf("expected error for unsupported plot_time_group in bug report plot")
 		}
 	})
@@ -240,7 +253,7 @@ func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 			t.Fatalf("expected empty spans plot, got %d rows", len(spans))
 		}
 
-		bugReports, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, af)
+		bugReports, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, f.bugReportExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays))
 		if err != nil {
 			t.Fatalf("GetBugReportInstancesPlot: %v", err)
 		}
@@ -285,8 +298,8 @@ func TestNonExceptionPlotsRespectTimezoneBucketing(t *testing.T) {
 	t.Run("bug reports", func(t *testing.T) {
 		cleanupAll(f.ctx, t)
 		seedBugReport(f.ctx, t, f.teamIDStr(), f.appIDStr(), uuid.New().String(), "tz bug report", ts)
-		af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "Asia/Kolkata", filter.PlotTimeGroupDays)
-		items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, af)
+		ef := f.bugReportExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "Asia/Kolkata", exprfilter.PlotTimeGroupDays)
+		items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, ef)
 		if err != nil {
 			t.Fatalf("GetBugReportInstancesPlot: %v", err)
 		}
@@ -327,8 +340,8 @@ func TestPlotMethodsDefaultToDaysWhenPlotTimeGroupMissing(t *testing.T) {
 		cleanupAll(f.ctx, t)
 		seedBugReport(f.ctx, t, f.teamIDStr(), f.appIDStr(), uuid.New().String(), "test report", t1)
 		seedBugReport(f.ctx, t, f.teamIDStr(), f.appIDStr(), uuid.New().String(), "test report", t2)
-		af := f.appFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
-		items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, af)
+		ef := f.bugReportExprFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
+		items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, ef)
 		if err != nil {
 			t.Fatalf("GetBugReportInstancesPlot: %v", err)
 		}
@@ -346,11 +359,13 @@ func TestPlotMethodsRespectOptionalFilters(t *testing.T) {
 
 	t.Run("bug report status filter", func(t *testing.T) {
 		cleanupAll(f.ctx, t)
+		// seedBugReport writes the report closed.
 		seedBugReport(f.ctx, t, f.teamIDStr(), f.appIDStr(), uuid.New().String(), "test report", now)
 
-		af := f.appFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
-		af.BugReportStatuses = []int8{1}
-		items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, af)
+		ef := f.bugReportExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays)
+		closedTree := leaf("bug_report_status", exprfilter.OperatorIn, "closed")
+		ef.ExprTree = &closedTree
+		items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, ef)
 		if err != nil {
 			t.Fatalf("GetBugReportInstancesPlot: %v", err)
 		}
@@ -358,8 +373,9 @@ func TestPlotMethodsRespectOptionalFilters(t *testing.T) {
 			t.Fatalf("expected non-empty bug report plot for matching status")
 		}
 
-		af.BugReportStatuses = []int8{0}
-		items, err = f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, af)
+		openTree := leaf("bug_report_status", exprfilter.OperatorIn, "open")
+		ef.ExprTree = &openTree
+		items, err = f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, ef)
 		if err != nil {
 			t.Fatalf("GetBugReportInstancesPlot mismatch status: %v", err)
 		}

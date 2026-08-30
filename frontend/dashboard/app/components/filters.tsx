@@ -20,7 +20,6 @@ import React, {
 import {
   App,
   AppVersion,
-  BugReportStatus,
   FilterSource,
   HttpMethod,
   SessionType,
@@ -94,7 +93,6 @@ interface FiltersProps {
   showLocales?: boolean;
   showDeviceManufacturers?: boolean;
   showDeviceNames?: boolean;
-  showBugReportStatus?: boolean;
   showHttpMethods?: boolean;
   showUdAttrs?: boolean;
   showFreeText?: boolean;
@@ -218,14 +216,6 @@ export function deserializeUrlFilters(queryString: string): URLFilters {
               return { key, type, op, value: val } as UdAttrMatcher;
             })
             .filter((m) => m.key && m.type && m.op && m.value);
-          break;
-
-        case "bugReportStatuses":
-          result[originalKey] = value
-            .split(",")
-            .filter((s): s is BugReportStatus =>
-              Object.values(BugReportStatus).includes(s as BugReportStatus),
-            );
           break;
 
         case "httpMethods":
@@ -503,7 +493,6 @@ const FiltersComponent = forwardRef<
       showLocales = false,
       showDeviceManufacturers = false,
       showDeviceNames = false,
-      showBugReportStatus = false,
       showHttpMethods = false,
       showUdAttrs = false,
       showFreeText = false,
@@ -558,7 +547,6 @@ const FiltersComponent = forwardRef<
         showLocales,
         showDeviceManufacturers,
         showDeviceNames,
-        showBugReportStatus,
         showHttpMethods,
         showUdAttrs,
         showFreeText,
@@ -580,7 +568,6 @@ const FiltersComponent = forwardRef<
       showLocales,
       showDeviceManufacturers,
       showDeviceNames,
-      showBugReportStatus,
       showHttpMethods,
       showUdAttrs,
       showFreeText,
@@ -747,7 +734,6 @@ const FiltersComponent = forwardRef<
     // confirms.
     type PendingModalFilters = {
       selectedSessionTypes: SessionType[];
-      selectedBugReportStatuses: BugReportStatus[];
       selectedHttpMethods: HttpMethod[];
       selectedOsVersions: typeof store.selectedOsVersions;
       selectedCountries: string[];
@@ -762,7 +748,6 @@ const FiltersComponent = forwardRef<
     const [pendingModalFilters, setPendingModalFilters] =
       useState<PendingModalFilters>(() => ({
         selectedSessionTypes: store.selectedSessionTypes,
-        selectedBugReportStatuses: store.selectedBugReportStatuses,
         selectedHttpMethods: store.selectedHttpMethods,
         selectedOsVersions: store.selectedOsVersions,
         selectedCountries: store.selectedCountries,
@@ -785,7 +770,6 @@ const FiltersComponent = forwardRef<
       if (moreFiltersOpen) {
         setPendingModalFilters({
           selectedSessionTypes: store.selectedSessionTypes,
-          selectedBugReportStatuses: store.selectedBugReportStatuses,
           selectedHttpMethods: store.selectedHttpMethods,
           selectedOsVersions: store.selectedOsVersions,
           selectedCountries: store.selectedCountries,
@@ -803,9 +787,6 @@ const FiltersComponent = forwardRef<
     // Commit the pending snapshot to the store and close the modal.
     const saveMoreFilters = () => {
       store.setSelectedSessionTypes(pendingModalFilters.selectedSessionTypes);
-      store.setSelectedBugReportStatuses(
-        pendingModalFilters.selectedBugReportStatuses,
-      );
       store.setSelectedHttpMethods(pendingModalFilters.selectedHttpMethods);
       store.setSelectedOsVersions(pendingModalFilters.selectedOsVersions);
       store.setSelectedCountries(pendingModalFilters.selectedCountries);
@@ -850,7 +831,6 @@ const FiltersComponent = forwardRef<
     // (no loaded data) so the skeleton can reserve the trigger's slot.
     const hasMoreFiltersConfig =
       showSessionTypes ||
-      showBugReportStatus ||
       showHttpMethods ||
       showOsVersions ||
       showCountries ||
@@ -888,7 +868,6 @@ const FiltersComponent = forwardRef<
     // trigger so it never opens an empty modal.
     const hasMoreFilters =
       showSessionTypes ||
-      showBugReportStatus ||
       showHttpMethods ||
       (showOsVersions && store.osVersions.length > 0) ||
       (showCountries && store.countries.length > 0) ||
@@ -919,19 +898,6 @@ const FiltersComponent = forwardRef<
           : resetAction(() =>
               store.setSelectedSessionTypes(defaultSessionTypes),
             ),
-      });
-    }
-    if (showBugReportStatus && store.selectedBugReportStatuses.length > 0) {
-      filterChips.push({
-        key: "bugReportStatuses",
-        ...chipLabels("Bug Report Status", store.selectedBugReportStatuses),
-        action:
-          store.selectedBugReportStatuses.length === 1 &&
-          store.selectedBugReportStatuses[0] === BugReportStatus.Open
-            ? undefined
-            : resetAction(() =>
-                store.setSelectedBugReportStatuses([BugReportStatus.Open]),
-              ),
       });
     }
     if (showHttpMethods && store.selectedHttpMethods.length > 0) {
@@ -1121,20 +1087,6 @@ const FiltersComponent = forwardRef<
               setPendingModalFilters((p) => ({
                 ...p,
                 selectedSessionTypes: items as SessionType[],
-              }))
-            }
-          />
-        )}
-        {showBugReportStatus && (
-          <StringMultiRow
-            rowKey="bugReportStatuses"
-            title="Bug Report Status"
-            items={Object.values(BugReportStatus)}
-            selected={pendingModalFilters.selectedBugReportStatuses}
-            onChange={(items) =>
-              setPendingModalFilters((p) => ({
-                ...p,
-                selectedBugReportStatuses: items as BugReportStatus[],
               }))
             }
           />

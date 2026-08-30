@@ -4,66 +4,184 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
-// Global replace mock for router.replace
-const replaceMock = jest.fn();
 const pushMock = jest.fn();
 
-// Mock next/navigation hooks
+// The mocked router applies each replace back into the mocked searchParams
+// and notifies subscribers, the way the real router re-renders the page with
+// the URL it just wrote. The page's queries read the URL, so without this
+// they would never see what the bar settled on.
 let mockSearchParams = new URLSearchParams();
+const searchParamsSubscribers = new Set<() => void>();
+const applyReplaceUrl = (url: string) => {
+  mockSearchParams = new URLSearchParams(url.split("?")[1] ?? "");
+  searchParamsSubscribers.forEach((notify) => notify());
+};
+// Holds a replace's URL for the test to apply later, modeling the real
+// router landing a write one render after the call.
+let mockDeferReplace = false;
+let deferredReplaceUrl: string | null = null;
+const replaceMock = jest.fn((url: string, _options?: { scroll: boolean }) => {
+  if (mockDeferReplace) {
+    deferredReplaceUrl = url;
+    return;
+  }
+  applyReplaceUrl(url);
+});
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({
-    replace: replaceMock,
-    push: pushMock,
-  }),
-  // By default, return empty search params.
-  useSearchParams: () => mockSearchParams,
+  useRouter: () => ({ replace: replaceMock, push: pushMock }),
+  useSearchParams: () => {
+    const { useSyncExternalStore } = require("react");
+    return useSyncExternalStore(
+      (notify: () => void) => {
+        searchParamsSubscribers.add(notify);
+        return () => searchParamsSubscribers.delete(notify);
+      },
+      () => mockSearchParams,
+    );
+  },
 }));
 
-// Mock API calls and constants
 jest.mock("@/app/api/api_calls", () => ({
   __esModule: true,
   emptyBugReportsOverviewResponse: {
     meta: { next: false, previous: false },
     results: [],
   },
-  FilterSource: { Events: "events" },
 }));
 
-jest.mock("@/app/stores/provider", () => {
-  const { create } = jest.requireActual("zustand");
-  const filtersStore = create(() => ({
-    filters: { ready: false, serialisedFilters: "" },
-  }));
-  return { __esModule: true, useFiltersStore: filtersStore };
-});
+jest.mock("@/app/stores/filters_store", () => ({
+  __esModule: true,
+  urlFiltersKeyMap: {
+    appId: "a",
+    dateRange: "d",
+    startDate: "sd",
+    endDate: "ed",
+  },
+}));
 
-const mockUseBugReportsOverviewQuery = jest.fn(() => ({
+const pendingQueryState = () => ({
   data: undefined as any,
   status: "pending" as string,
   isFetching: true,
   error: null as Error | null,
-}));
+});
+
+const mockUseBugReportsOverviewQuery = jest.fn(
+  (_filter: any, _offset: number) => pendingQueryState(),
+);
+const mockUseBugReportsOverviewPlotQuery = jest.fn((_filter: any) =>
+  pendingQueryState(),
+);
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
-  useBugReportsOverviewQuery: () => mockUseBugReportsOverviewQuery(),
+  useBugReportsOverviewQuery: (filter: any, offset: number) =>
+    mockUseBugReportsOverviewQuery(filter, offset),
+  useBugReportsOverviewPlotQuery: (filter: any) =>
+    mockUseBugReportsOverviewPlotQuery(filter),
   paginationOffsetUrlKey: "po",
 }));
 
-jest.mock("@/app/components/filters", () => ({
+const mockReportedApp = { id: "app-1", name: "Sample" };
+const mockReportedDate = {
+  dateRange: "Last 6 Hours",
+  startDate: "2026-01-01T00:00:00.000Z",
+  endDate: "2026-01-01T06:00:00.000Z",
+};
+
+// Makes the stub drop the URL's filter on mount, like the bar discarding
+// a filter it cannot read.
+let mockMountDiscardsFilter = false;
+
+// Like the real bar, this stub reports an app, a range and a filter as it
+// mounts, and offers buttons that report a changed filter, a cleared filter,
+// or a failure. Only the mount report carries appliedAsRequested true, and
+// only when the URL's filter was not discarded; a report from a button
+// models a user edit.
+jest.mock("@/app/components/filter_bar/filter_bar", () => {
+  const { useEffect } = require("react");
+
+  function FilterBarMock(props: any) {
+    const ready = (
+      filterExpr: string | null,
+      appliedAsRequested: boolean = false,
+    ) => ({
+      status: "ready",
+      app: mockReportedApp,
+      date: mockReportedDate,
+      filterExpr,
+      appliedAsRequested,
+    });
+
+    useEffect(() => {
+      if (mockMountDiscardsFilter) {
+        props.onFilterChange(ready(null, false));
+      } else {
+        props.onFilterChange(ready(props.requestedFilterExpr, true));
+      }
+    }, []);
+
+    return (
+      <div data-testid="filter-bar-mock">
+        <span data-testid="filter-bar-expr">
+          {props.requestedFilterExpr ?? "none"}
+        </span>
+        <button
+          data-testid="filter-bar-apply"
+          onClick={() =>
+            props.onFilterChange(ready("bug_report_status:in:open"))
+          }
+        >
+          apply
+        </button>
+        <button
+          data-testid="filter-bar-clear"
+          onClick={() => props.onFilterChange(ready(null))}
+        >
+          clear
+        </button>
+        <button
+          data-testid="filter-bar-fail"
+          onClick={() =>
+            props.onFilterChange({
+              status: "error",
+              message: "Error fetching apps, please refresh page to try again",
+            })
+          }
+        >
+          fail
+        </button>
+      </div>
+    );
+  }
+
+  return {
+    __esModule: true,
+    default: FilterBarMock,
+    filterExprUrlKey: "filter_expr",
+  };
+});
+
+jest.mock("@/app/components/skeleton", () => ({
   __esModule: true,
-  default: () => <div data-testid="filters-mock" />,
-  AppVersionsInitialSelectionType: { All: "all" },
+  SkeletonListPage: () => <div data-testid="skeleton-list-page-mock" />,
 }));
 
-// Mock BugReportsOverviewPlot component.
-jest.mock("@/app/components/bug_reports_overview_plot", () => () => (
-  <div data-testid="bug-reports-overview-plot-mock">
-    BugReportsOverviewPlot Rendered
-  </div>
-));
+// The real plot shows a skeleton while its query is pending, so the stub
+// distinguishes that case for tests that check what fills the plot area.
+jest.mock("@/app/components/bug_reports_overview_plot", () => ({
+  __esModule: true,
+  default: (props: any) => (
+    <div data-testid="bug-reports-overview-plot-mock">
+      {props.query.status === "pending" ? (
+        <div data-testid="skeleton-plot-mock" />
+      ) : (
+        "BugReportsOverviewPlot Rendered"
+      )}
+    </div>
+  ),
+}));
 
-// Updated Paginator mock renders Next and Prev buttons.
 jest.mock("@/app/components/paginator", () => ({
   __esModule: true,
   default: (props: any) => (
@@ -87,18 +205,14 @@ jest.mock("@/app/components/paginator", () => ({
   ),
 }));
 
-// Mock LoadingBar component.
 jest.mock("@/app/components/loading_bar", () => () => (
   <div data-testid="loading-bar-mock">LoadingBar Rendered</div>
 ));
 
-// Mock time utils
 jest.mock("@/app/utils/time_utils", () => ({
   formatDateToHumanReadableDate: jest.fn(() => "Jan 1, 2020"),
   formatDateToHumanReadableTime: jest.fn(() => "12:00 AM"),
 }));
-
-const { useFiltersStore } = require("@/app/stores/provider") as any;
 
 const mockBugReportResult = {
   session_id: "session1",
@@ -107,7 +221,6 @@ const mockBugReportResult = {
   description: "Test Bug Report",
   status: 0,
   timestamp: "2020-01-01T00:00:00Z",
-  matched_free_text: "error",
   attribute: {
     app_version: "1.0",
     app_build: "1",
@@ -125,217 +238,190 @@ const mockBugReportsData = {
   meta: { previous: true, next: true },
 };
 
-describe("BugReportsOverview Component", () => {
+function bugReportsLoaded(data: any = mockBugReportsData) {
+  mockUseBugReportsOverviewQuery.mockReturnValue({
+    data,
+    status: "success",
+    isFetching: false,
+    error: null,
+  });
+}
+
+// What the stub bar reports, as the page writes it into the URL.
+const selectionParams =
+  "a=app-1&d=Last+6+Hours&sd=2026-01-01T00%3A00%3A00.000Z&ed=2026-01-01T06%3A00%3A00.000Z";
+
+const selectionUrl = (offset: number, filterParam?: string) =>
+  `?po=${offset}&${selectionParams}${filterParam ? `&${filterParam}` : ""}`;
+
+function renderPage() {
+  return render(
+    <BugReportsOverview params={promiseParams({ teamId: "123" })} />,
+  );
+}
+
+describe("BugReportsOverview page", () => {
   beforeEach(() => {
     replaceMock.mockClear();
     pushMock.mockClear();
+    mockMountDiscardsFilter = false;
+    mockDeferReplace = false;
+    deferredReplaceUrl = null;
     mockSearchParams = new URLSearchParams();
     mockUseBugReportsOverviewQuery.mockReset();
-    mockUseBugReportsOverviewQuery.mockReturnValue({
-      data: undefined,
-      status: "pending" as string,
-      isFetching: true,
-      error: null,
-    });
-    useFiltersStore.setState({
-      filters: { ready: false, serialisedFilters: "" },
+    mockUseBugReportsOverviewQuery.mockReturnValue(pendingQueryState());
+    mockUseBugReportsOverviewPlotQuery.mockReset();
+    mockUseBugReportsOverviewPlotQuery.mockReturnValue(pendingQueryState());
+  });
+
+  it("renders the filter bar", () => {
+    renderPage();
+    expect(screen.getByTestId("filter-bar-mock")).toBeInTheDocument();
+  });
+
+  it("hands the bar the filter the URL opened on", () => {
+    mockSearchParams = new URLSearchParams(
+      "po=0&filter_expr=bug_report_status%3Ain%3Aopen",
+    );
+    bugReportsLoaded();
+    renderPage();
+
+    expect(screen.getByTestId("filter-bar-expr")).toHaveTextContent(
+      "bug_report_status:in:open",
+    );
+  });
+
+  it("fetches nothing until the bar settles on an app and a range", () => {
+    mockSearchParams = new URLSearchParams(
+      "po=20&filter_expr=bug_report_status%3Ain%3Aopen",
+    );
+    bugReportsLoaded();
+    renderPage();
+
+    expect(mockUseBugReportsOverviewQuery).toHaveBeenNthCalledWith(1, null, 20);
+    expect(mockUseBugReportsOverviewPlotQuery).toHaveBeenNthCalledWith(1, null);
+  });
+
+  it("fetches the page the URL names, filtered by what the bar reported", () => {
+    mockSearchParams = new URLSearchParams(
+      "po=20&filter_expr=bug_report_status%3Ain%3Aopen",
+    );
+    bugReportsLoaded();
+    renderPage();
+
+    expect(mockUseBugReportsOverviewQuery).toHaveBeenLastCalledWith(
+      {
+        appId: mockReportedApp.id,
+        startDate: mockReportedDate.startDate,
+        endDate: mockReportedDate.endDate,
+        filterExpr: "bug_report_status:in:open",
+      },
+      20,
+    );
+    expect(mockUseBugReportsOverviewPlotQuery).toHaveBeenLastCalledWith({
+      appId: mockReportedApp.id,
+      startDate: mockReportedDate.startDate,
+      endDate: mockReportedDate.endDate,
+      filterExpr: "bug_report_status:in:open",
     });
   });
 
-  it("renders the Filters component", () => {
-    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
-    expect(screen.getByTestId("filters-mock")).toBeInTheDocument();
-  });
+  it("never fetches a filter the bar discarded on mount", async () => {
+    mockMountDiscardsFilter = true;
+    mockDeferReplace = true;
+    mockSearchParams = new URLSearchParams(
+      `po=30&filter_expr=bug_report_status%3Ain%3Aopen&${selectionParams}`,
+    );
+    bugReportsLoaded();
+    renderPage();
 
-  it("does not render main bug reports UI when filters are not ready", () => {
-    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
-    expect(
-      screen.queryByTestId("bug-reports-overview-plot-mock"),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByTestId("paginator-mock")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("loading-bar-mock")).not.toBeInTheDocument();
-    expect(screen.queryByText("Bug Report Id")).not.toBeInTheDocument();
-  });
+    // The write has not landed, so the URL still holds the discarded
+    // filter and the queries stay disabled.
+    expect(mockUseBugReportsOverviewQuery).toHaveBeenLastCalledWith(null, 30);
 
-  it("renders main bug reports UI, updates URL when filters become ready, and renders table headers", async () => {
-    mockUseBugReportsOverviewQuery.mockReturnValue({
-      data: mockBugReportsData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
+      applyReplaceUrl(deferredReplaceUrl!);
     });
 
-    // Check URL update.
-    expect(replaceMock).toHaveBeenCalledWith("?po=0&updated", {
+    expect(replaceMock).toHaveBeenLastCalledWith(selectionUrl(0), {
       scroll: false,
     });
+    expect(mockUseBugReportsOverviewQuery).toHaveBeenLastCalledWith(
+      {
+        appId: mockReportedApp.id,
+        startDate: mockReportedDate.startDate,
+        endDate: mockReportedDate.endDate,
+        filterExpr: null,
+      },
+      0,
+    );
+    for (const [params] of mockUseBugReportsOverviewQuery.mock.calls) {
+      expect(params?.filterExpr ?? null).not.toBe("bug_report_status:in:open");
+    }
+  });
 
-    // Verify main UI components are rendered.
+  it("records what the bar settled on, keeping the page the link asked for", () => {
+    mockSearchParams = new URLSearchParams(
+      "po=20&filter_expr=bug_report_status%3Ain%3Aopen",
+    );
+    bugReportsLoaded();
+    renderPage();
+
+    expect(replaceMock).toHaveBeenCalledTimes(1);
+    expect(replaceMock).toHaveBeenCalledWith(
+      selectionUrl(20, "filter_expr=bug_report_status%3Ain%3Aopen"),
+      { scroll: false },
+    );
+  });
+
+  it("keeps the plot area up with paging disabled while the reports load", () => {
+    renderPage();
+    expect(
+      screen.getByTestId("bug-reports-overview-plot-mock"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("next-button")).toBeDisabled();
+    expect(screen.getByTestId("prev-button")).toBeDisabled();
+  });
+
+  it("shows the plot skeleton while the bar's report waits to reach the URL", () => {
+    mockDeferReplace = true;
+    bugReportsLoaded();
+    renderPage();
+
+    // The URL write has not landed, so the bar's report does not match the
+    // URL yet and the queries stay disabled with a null filter.
+    expect(mockUseBugReportsOverviewQuery).toHaveBeenLastCalledWith(null, 0);
+    expect(
+      screen.getByTestId("bug-reports-overview-plot-mock"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("skeleton-plot-mock")).toBeInTheDocument();
+  });
+
+  it("renders the plot, paginator and table headers once ready", async () => {
+    bugReportsLoaded();
+    renderPage();
+
     expect(
       await screen.findByTestId("bug-reports-overview-plot-mock"),
     ).toBeInTheDocument();
     expect(await screen.findByTestId("paginator-mock")).toBeInTheDocument();
-    // Check that the table header cells are rendered.
     expect(screen.getByText("Bug Report")).toBeInTheDocument();
     expect(screen.getByText("Time")).toBeInTheDocument();
     expect(screen.getByText("Status")).toBeInTheDocument();
   });
 
-  it("displays bug report data correctly when API returns results", async () => {
-    mockUseBugReportsOverviewQuery.mockReturnValue({
-      data: mockBugReportsData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
-    });
+  it("displays bug report data correctly", () => {
+    bugReportsLoaded();
+    renderPage();
 
-    // Verify the bug report data is displayed
     expect(screen.getByText("Test Bug Report")).toBeInTheDocument();
     expect(screen.getByText("Jan 1, 2020")).toBeInTheDocument();
     expect(screen.getByText("12:00 AM")).toBeInTheDocument();
     expect(screen.getByText("Open")).toBeInTheDocument();
     expect(screen.getByText("ID: bug1")).toBeInTheDocument();
-    expect(screen.getByText("Matched error")).toBeInTheDocument();
     expect(
       screen.getByText("1.0(1), iOS 15.0, Apple iPhone 12"),
     ).toBeInTheDocument();
-  });
-
-  it("shows error message when API returns error status", async () => {
-    mockUseBugReportsOverviewQuery.mockReturnValue({
-      data: undefined,
-      status: "error",
-      isFetching: false,
-      error: new Error("fail"),
-    });
-    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
-    });
-
-    // Check that error message is displayed
-    expect(
-      screen.getByText(/Error fetching list of bug reports/),
-    ).toBeInTheDocument();
-  });
-
-  it("renders appropriate link for each bug report that includes teamId, app_id and event_id", async () => {
-    mockUseBugReportsOverviewQuery.mockReturnValue({
-      data: mockBugReportsData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
-    });
-
-    // Check that the bug report link is rendered with the correct href and accessible name
-    const link = screen.getByRole("link", { name: /ID: bug1/i });
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute("href", "/123/bug_reports/app1/bug1");
-
-    // Find the table row that contains this link
-    const row = link.closest("tr");
-    expect(row).toBeInTheDocument();
-
-    // Simulate keyboard navigation (Enter) on the row
-    await act(async () => {
-      fireEvent.keyDown(row!, { key: "Enter" });
-    });
-    expect(pushMock).toHaveBeenCalledWith("/123/bug_reports/app1/bug1");
-
-    // Simulate keyboard navigation (Space) on the row
-    await act(async () => {
-      fireEvent.keyDown(row!, { key: " " });
-    });
-    expect(pushMock).toHaveBeenCalledWith("/123/bug_reports/app1/bug1");
-  });
-
-  it("handles bug reports with no description properly", async () => {
-    const noDescData = {
-      results: [
-        { ...mockBugReportResult, description: null, matched_free_text: "" },
-      ],
-      meta: { previous: false, next: false },
-    };
-    mockUseBugReportsOverviewQuery.mockReturnValue({
-      data: noDescData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
-    });
-
-    // Verify "No Description" text is displayed
-    expect(screen.getByText("No Description")).toBeInTheDocument();
-  });
-
-  it("does not render matched badge when matched_free_text is empty", async () => {
-    const noMatchData = {
-      results: [{ ...mockBugReportResult, matched_free_text: "" }],
-      meta: { previous: false, next: false },
-    };
-    mockUseBugReportsOverviewQuery.mockReturnValue({
-      data: noMatchData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
-    });
-
-    expect(screen.queryByText(/Matched /)).not.toBeInTheDocument();
   });
 
   // The device info line maps os_name to a display label: android becomes
@@ -359,8 +445,8 @@ describe("BugReportsOverview Component", () => {
     },
   ])(
     "formats device info line for os_name $osName",
-    async ({ osName, osVersion, expected }) => {
-      const osData = {
+    ({ osName, osVersion, expected }) => {
+      bugReportsLoaded({
         results: [
           {
             ...mockBugReportResult,
@@ -372,308 +458,257 @@ describe("BugReportsOverview Component", () => {
           },
         ],
         meta: { previous: false, next: false },
-      };
-      mockUseBugReportsOverviewQuery.mockReturnValue({
-        data: osData,
-        status: "success",
-        isFetching: false,
-        error: null,
       });
-      render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app1" },
-          },
-        });
-      });
+      renderPage();
 
       expect(screen.getByText(expected)).toBeInTheDocument();
     },
   );
 
-  it("renders table headers but no rows when results are empty", async () => {
-    mockUseBugReportsOverviewQuery.mockReturnValue({
-      data: { results: [], meta: { previous: false, next: false } },
-      status: "success",
-      isFetching: false,
-      error: null,
+  it("handles bug reports with no description properly", () => {
+    bugReportsLoaded({
+      results: [{ ...mockBugReportResult, description: null }],
+      meta: { previous: false, next: false },
     });
-    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
+    renderPage();
+
+    expect(screen.getByText("No Description")).toBeInTheDocument();
+  });
+
+  it("renders table headers but no rows when results are empty", () => {
+    bugReportsLoaded({
+      results: [],
+      meta: { previous: false, next: false },
     });
+    renderPage();
 
     expect(screen.getByText("Bug Report")).toBeInTheDocument();
     expect(screen.queryByText("ID: bug1")).not.toBeInTheDocument();
   });
 
-  describe("Pagination offset handling", () => {
-    it("initializes pagination offset to 0 when no offset is provided", async () => {
-      mockUseBugReportsOverviewQuery.mockReturnValue({
-        data: mockBugReportsData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app1" },
-          },
-        });
-      });
-      expect(replaceMock).toHaveBeenCalledWith("?po=0&updated", {
-        scroll: false,
-      });
+  it("shows an error message when the bug reports request fails", () => {
+    mockUseBugReportsOverviewQuery.mockReturnValue({
+      data: undefined,
+      status: "error",
+      isFetching: false,
+      error: new Error("fail"),
+    });
+    renderPage();
+
+    expect(
+      screen.getByText(/Error fetching list of bug reports/),
+    ).toBeInTheDocument();
+  });
+
+  it("renders appropriate link for each bug report", async () => {
+    bugReportsLoaded();
+    renderPage();
+
+    const link = screen.getByRole("link", { name: /ID: bug1/i });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("href", "/123/bug_reports/app1/bug1");
+
+    const row = link.closest("tr");
+    expect(row).toHaveAttribute("data-testid", "bug-report-row");
+    await act(async () => {
+      fireEvent.keyDown(row!, { key: "Enter" });
+    });
+    expect(pushMock).toHaveBeenCalledWith("/123/bug_reports/app1/bug1");
+
+    await act(async () => {
+      fireEvent.keyDown(row!, { key: " " });
+    });
+    expect(pushMock).toHaveBeenCalledWith("/123/bug_reports/app1/bug1");
+  });
+
+  it('renders "Open" and "Closed" status correctly based on status value', () => {
+    bugReportsLoaded();
+    const { unmount } = renderPage();
+
+    const openStatusBadge = screen
+      .getByText("Open")
+      .closest('[data-slot="badge"]');
+    expect(openStatusBadge).toHaveClass("border-green-400");
+    expect(openStatusBadge).toHaveClass("text-green-700");
+    expect(openStatusBadge).toHaveClass("bg-green-100");
+
+    unmount();
+
+    bugReportsLoaded({
+      results: [{ ...mockBugReportResult, status: 1 }],
+      meta: { previous: true, next: true },
+    });
+    renderPage();
+
+    const closedStatusBadge = screen
+      .getByText("Closed")
+      .closest('[data-slot="badge"]');
+    expect(closedStatusBadge).toHaveClass("border-indigo-400");
+    expect(closedStatusBadge).toHaveClass("text-indigo-700");
+    expect(closedStatusBadge).toHaveClass("bg-indigo-100");
+  });
+
+  describe("a filter the bar could not settle", () => {
+    beforeEach(() => {
+      mockSearchParams = new URLSearchParams(`po=10&${selectionParams}`);
+      bugReportsLoaded();
     });
 
-    it("increments pagination offset when Next is clicked", async () => {
-      mockUseBugReportsOverviewQuery.mockReturnValue({
-        data: mockBugReportsData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
+    it("is said by the page, in place of the list", async () => {
+      renderPage();
+
       await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app1" },
-          },
-        });
+        fireEvent.click(screen.getByTestId("filter-bar-fail"));
       });
-      const nextButton = await screen.findByTestId("next-button");
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      // The pagination limit is 5 so offset should be 5.
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=5&updated", {
-        scroll: false,
-      });
+
+      expect(
+        screen.getByText(
+          "Error fetching apps, please refresh page to try again",
+        ),
+      ).toBeInTheDocument();
     });
 
-    it("decrements pagination offset when Prev is clicked, but not below 0", async () => {
-      mockUseBugReportsOverviewQuery.mockReturnValue({
-        data: mockBugReportsData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
+    it("stops the page fetching anything", async () => {
+      renderPage();
+
       await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app1" },
-          },
-        });
+        fireEvent.click(screen.getByTestId("filter-bar-fail"));
       });
-      const nextButton = await screen.findByTestId("next-button");
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=5&updated", {
-        scroll: false,
-      });
-      const prevButton = await screen.findByTestId("prev-button");
-      await act(async () => {
-        fireEvent.click(prevButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated", {
-        scroll: false,
-      });
-      await act(async () => {
-        fireEvent.click(prevButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated", {
-        scroll: false,
-      });
+
+      expect(mockUseBugReportsOverviewQuery).toHaveBeenLastCalledWith(null, 10);
     });
 
-    it("resets pagination offset to 0 when filters change (if previous filters were non-default)", async () => {
-      mockUseBugReportsOverviewQuery.mockReturnValue({
-        data: mockBugReportsData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-
-      render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app1" },
-          },
-        });
-      });
-      expect(replaceMock).toHaveBeenCalledWith("?po=0&updated", {
-        scroll: false,
-      });
-
-      // Click Next twice to get to offset 10.
-      const nextButton = await screen.findByTestId("next-button");
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=5&updated", {
-        scroll: false,
-      });
+    it("leaves the URL where the link had it", async () => {
+      renderPage();
+      replaceMock.mockClear();
 
       await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=10&updated", {
-        scroll: false,
+        fireEvent.click(screen.getByTestId("filter-bar-fail"));
       });
 
-      // Now simulate a filter change with a different value.
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated2",
-            app: { id: "app1" },
-          },
-        });
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated2", {
-        scroll: false,
-      });
+      expect(replaceMock).not.toHaveBeenCalled();
     });
   });
 
-  it("correctly toggles loading bar visibility based on API status", async () => {
-    mockUseBugReportsOverviewQuery.mockReturnValue({
-      data: undefined,
-      status: "pending" as string,
-      isFetching: true,
-      error: null,
-    });
-    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
+  describe("pagination", () => {
+    it("moves the offset on by the page size when Next is clicked", async () => {
+      mockSearchParams = new URLSearchParams(`po=0&${selectionParams}`);
+      bugReportsLoaded();
+      renderPage();
 
-    // Set loading state
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("next-button"));
+      });
+
+      // Paging keeps everything else the URL was carrying.
+      expect(replaceMock).toHaveBeenLastCalledWith(selectionUrl(5), {
+        scroll: false,
       });
     });
 
-    // Test the loading state - loading bar should be visible
+    it("moves the offset back when Prev is clicked, and never below zero", async () => {
+      mockSearchParams = new URLSearchParams("po=5&a=app-1");
+      bugReportsLoaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("prev-button"));
+      });
+      expect(replaceMock).toHaveBeenLastCalledWith(selectionUrl(0), {
+        scroll: false,
+      });
+
+      mockSearchParams = new URLSearchParams("po=0&a=app-1");
+      renderPage();
+      await act(async () => {
+        fireEvent.click(screen.getAllByTestId("prev-button")[1]);
+      });
+      expect(replaceMock).toHaveBeenLastCalledWith(selectionUrl(0), {
+        scroll: false,
+      });
+    });
+
+    it("goes back to the first page when the filter changes", async () => {
+      mockSearchParams = new URLSearchParams("po=30&a=app-1");
+      bugReportsLoaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("filter-bar-apply"));
+      });
+
+      expect(replaceMock).toHaveBeenLastCalledWith(
+        selectionUrl(0, "filter_expr=bug_report_status%3Ain%3Aopen"),
+        { scroll: false },
+      );
+      // The changed filter and the reset offset reach the query together,
+      // through the URL, so the new filter is never fetched at the page the
+      // old filter was on.
+      expect(mockUseBugReportsOverviewQuery).toHaveBeenLastCalledWith(
+        expect.objectContaining({ filterExpr: "bug_report_status:in:open" }),
+        0,
+      );
+      for (const [params, offset] of mockUseBugReportsOverviewQuery.mock
+        .calls) {
+        if (params?.filterExpr === "bug_report_status:in:open") {
+          expect(offset).toBe(0);
+        }
+      }
+    });
+
+    it("goes back to the first page when the filter is cleared", async () => {
+      mockSearchParams = new URLSearchParams(
+        "po=30&filter_expr=bug_report_status%3Ain%3Aopen",
+      );
+      bugReportsLoaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("filter-bar-clear"));
+      });
+
+      expect(replaceMock).toHaveBeenLastCalledWith(selectionUrl(0), {
+        scroll: false,
+      });
+    });
+
+    it("cannot be used while a refetch is in flight", () => {
+      mockUseBugReportsOverviewQuery.mockReturnValue({
+        data: mockBugReportsData,
+        status: "success",
+        isFetching: true,
+        error: null,
+      });
+      renderPage();
+
+      expect(screen.getByTestId("next-button")).toBeDisabled();
+      expect(screen.getByTestId("prev-button")).toBeDisabled();
+    });
+  });
+
+  it("shows the loading bar only while a refetch is in flight", async () => {
+    mockUseBugReportsOverviewQuery.mockReturnValue({
+      data: mockBugReportsData,
+      status: "success",
+      isFetching: true,
+      error: null,
+    });
+    const { rerender } = renderPage();
+
     const loadingBarContainer =
       screen.getByTestId("loading-bar-mock").parentElement;
     expect(loadingBarContainer).toHaveClass("visible");
     expect(loadingBarContainer).not.toHaveClass("invisible");
 
-    // Set success state
     await act(async () => {
-      mockUseBugReportsOverviewQuery.mockReturnValue({
-        data: mockBugReportsData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
+      bugReportsLoaded();
+      rerender(
+        <BugReportsOverview params={promiseParams({ teamId: "123" })} />,
+      );
     });
 
-    // After loading, the loading bar should be invisible
     await screen.findByText("Test Bug Report");
     expect(loadingBarContainer).not.toHaveClass("visible");
     expect(loadingBarContainer).toHaveClass("invisible");
-  });
-
-  it('renders "Open" and "Closed" status correctly based on status value', async () => {
-    // First render with status 0 (Open)
-    mockUseBugReportsOverviewQuery.mockReturnValue({
-      data: mockBugReportsData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    const { unmount } = render(
-      <BugReportsOverview params={promiseParams({ teamId: "123" })} />,
-    );
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
-    });
-
-    // Find the Open status element
-    const openStatusText = screen.getByText("Open");
-    const statusBadge = openStatusText.closest('[data-slot="badge"]');
-
-    // Check for correct styling on the status badge
-    expect(statusBadge).toHaveClass("border-green-400");
-    expect(statusBadge).toHaveClass("text-green-700");
-    expect(statusBadge).toHaveClass("bg-green-100");
-
-    // Clean up the first render
-    unmount();
-    useFiltersStore.setState({
-      filters: { ready: false, serialisedFilters: "" },
-    });
-
-    // Re-render with status 1 (Closed)
-    const closedData = {
-      results: [{ ...mockBugReportResult, status: 1, matched_free_text: "" }],
-      meta: { previous: true, next: true },
-    };
-    mockUseBugReportsOverviewQuery.mockReturnValue({
-      data: closedData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<BugReportsOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app1" },
-        },
-      });
-    });
-
-    // Find the Closed status element
-    const closedStatusText = screen.getByText("Closed");
-    const closedStatusBadge = closedStatusText.closest('[data-slot="badge"]');
-
-    // Check for correct styling on the closed status badge
-    expect(closedStatusBadge).toHaveClass("border-indigo-400");
-    expect(closedStatusBadge).toHaveClass("text-indigo-700");
-    expect(closedStatusBadge).toHaveClass("bg-indigo-100");
   });
 });

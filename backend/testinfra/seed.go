@@ -929,16 +929,188 @@ func (h *TestHelper) SeedLaunchEvent(ctx context.Context, t *testing.T, teamID, 
 	}
 }
 
-// SeedBugReport inserts a single bug report into the bug_reports table.
-func (h *TestHelper) SeedBugReport(ctx context.Context, t *testing.T, teamID, appID, eventID, description string, ts time.Time) {
+// BugReportRow describes one row to insert into the bug_reports table.
+// A zero Status is an open report.
+//
+// Zero-value fields fall back to defaults applied by (BugReportRow).filled:
+//   - Timestamp:  time.Now().UTC()
+//   - AppVersion: "v1", AppBuild: "b1"
+//   - OSName: "Android", OSVersion: "14"
+//   - EventID, SessionID: fresh per row
+//
+// The country, network, device and user attributes default to a Google Pixel
+// on Verizon wifi 4g in the US, locale en-US, user id "u1".
+type BugReportRow struct {
+	EventID            string
+	SessionID          string
+	Status             uint8
+	Description        string
+	Timestamp          time.Time
+	AppVersion         string
+	AppBuild           string
+	OSName             string
+	OSVersion          string
+	CountryCode        string
+	NetworkProvider    string
+	NetworkType        string
+	NetworkGeneration  string
+	DeviceLocale       string
+	DeviceManufacturer string
+	DeviceName         string
+	DeviceModel        string
+	UserID             string
+}
+
+func (r BugReportRow) filled() BugReportRow {
+	if r.EventID == "" {
+		r.EventID = uuid.New().String()
+	}
+	if r.SessionID == "" {
+		r.SessionID = uuid.New().String()
+	}
+	if r.Timestamp.IsZero() {
+		r.Timestamp = time.Now().UTC()
+	}
+	if r.AppVersion == "" {
+		r.AppVersion = "v1"
+	}
+	if r.AppBuild == "" {
+		r.AppBuild = "b1"
+	}
+	if r.OSName == "" {
+		r.OSName = "Android"
+	}
+	if r.OSVersion == "" {
+		r.OSVersion = "14"
+	}
+	if r.CountryCode == "" {
+		r.CountryCode = "US"
+	}
+	if r.NetworkProvider == "" {
+		r.NetworkProvider = "Verizon"
+	}
+	if r.NetworkType == "" {
+		r.NetworkType = "wifi"
+	}
+	if r.NetworkGeneration == "" {
+		r.NetworkGeneration = "4g"
+	}
+	if r.DeviceLocale == "" {
+		r.DeviceLocale = "en-US"
+	}
+	if r.DeviceManufacturer == "" {
+		r.DeviceManufacturer = "Google"
+	}
+	if r.DeviceName == "" {
+		r.DeviceName = "Pixel"
+	}
+	if r.DeviceModel == "" {
+		r.DeviceModel = "Pixel 6"
+	}
+	if r.UserID == "" {
+		r.UserID = "u1"
+	}
+	return r
+}
+
+// SeedBugReportRow inserts one row described by row into the bug_reports
+// table.
+func (h *TestHelper) SeedBugReportRow(ctx context.Context, t *testing.T, teamID, appID string, row BugReportRow) {
 	t.Helper()
-	query := fmt.Sprintf(`
+	row = row.filled()
+	ts := row.Timestamp.UTC()
+	query := `
 		INSERT INTO measure.bug_reports
 		(team_id, event_id, app_id, session_id, timestamp, updated_at, status, description, app_version, os_version, country_code, network_provider, network_type, network_generation, device_locale, device_manufacturer, device_name, device_model, user_id, device_low_power_mode, device_thermal_throttling_enabled, user_defined_attribute, attachments)
-		VALUES (toUUID('%s'), '%s', '%s', '%s', '%s', '%s', 1, '%s', ('v1', 'b1'), ('Android', '14'), 'US', 'Verizon', 'wifi', '4g', 'en-US', 'Google', 'Pixel', 'Pixel 6', 'u1', false, false, map('test', (1, 'val')), '[]')`,
-		teamID, eventID, appID, uuid.New().String(), ts.UTC().Format("2006-01-02 15:04:05"), ts.UTC().Format("2006-01-02 15:04:05"), description)
-	if err := h.ChConn.Exec(ctx, query); err != nil {
+		VALUES (toUUID(?), ?, ?, ?, ?, ?, ?, ?, (?, ?), (?, ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, false, false, map('test', (1, 'val')), '[]')`
+	if err := h.ChConn.Exec(ctx, query,
+		teamID, row.EventID, appID, row.SessionID, ts, ts, row.Status, row.Description,
+		row.AppVersion, row.AppBuild, row.OSName, row.OSVersion,
+		row.CountryCode, row.NetworkProvider, row.NetworkType, row.NetworkGeneration,
+		row.DeviceLocale, row.DeviceManufacturer, row.DeviceName, row.DeviceModel, row.UserID); err != nil {
 		t.Fatalf("seed bug report: %v", err)
+	}
+}
+
+// SeedBugReport inserts a single closed bug report into the bug_reports table
+// with default attributes.
+func (h *TestHelper) SeedBugReport(ctx context.Context, t *testing.T, teamID, appID, eventID, description string, ts time.Time) {
+	t.Helper()
+	h.SeedBugReportRow(ctx, t, teamID, appID, BugReportRow{
+		EventID:     eventID,
+		Status:      1,
+		Description: description,
+		Timestamp:   ts,
+	})
+}
+
+// UDAttrRow describes one row to insert into the user_def_attrs table: one
+// user-defined attribute of one event. Values of every type are stored as
+// text in the one value column, with Type naming which of "string", "int64",
+// "float64" or "bool" the text holds. BugReport marks the row as coming from
+// a bug report event.
+//
+// Zero-value fields fall back to defaults:
+//   - Type:       "string"
+//   - Timestamp:  time.Now().UTC()
+//   - AppVersion: "v1", AppBuild: "b1"
+//   - OSName: "Android", OSVersion: "14"
+//   - EventID, SessionID: fresh per row
+//
+// Pin EventID to attach the attribute to an event seeded with the same id.
+type UDAttrRow struct {
+	EventID    string
+	SessionID  string
+	BugReport  bool
+	Key        string
+	Type       string
+	Value      string
+	Timestamp  time.Time
+	AppVersion string
+	AppBuild   string
+	OSName     string
+	OSVersion  string
+}
+
+// SeedUDAttrRow inserts one row described by row into the user_def_attrs
+// table.
+func (h *TestHelper) SeedUDAttrRow(ctx context.Context, t *testing.T, teamID, appID string, row UDAttrRow) {
+	t.Helper()
+
+	if row.EventID == "" {
+		row.EventID = uuid.New().String()
+	}
+	if row.SessionID == "" {
+		row.SessionID = uuid.New().String()
+	}
+	if row.Type == "" {
+		row.Type = "string"
+	}
+	if row.Timestamp.IsZero() {
+		row.Timestamp = time.Now().UTC()
+	}
+	if row.AppVersion == "" {
+		row.AppVersion = "v1"
+	}
+	if row.AppBuild == "" {
+		row.AppBuild = "b1"
+	}
+	if row.OSName == "" {
+		row.OSName = "Android"
+	}
+	if row.OSVersion == "" {
+		row.OSVersion = "14"
+	}
+
+	query := `INSERT INTO measure.user_def_attrs
+		(team_id, app_id, event_id, session_id, app_version, os_version, bug_report, key, type, value, timestamp)
+		VALUES (?, ?, ?, ?, (?,?), (?,?), ?, ?, ?, ?, ?)`
+	if err := h.ChConn.Exec(ctx, query,
+		teamID, appID, row.EventID, row.SessionID,
+		row.AppVersion, row.AppBuild, row.OSName, row.OSVersion,
+		row.BugReport, row.Key, row.Type, row.Value,
+		row.Timestamp.UTC()); err != nil {
+		t.Fatalf("seed user-defined attribute (%s): %v", row.Key, err)
 	}
 }
 

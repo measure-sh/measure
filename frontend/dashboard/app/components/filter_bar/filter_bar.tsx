@@ -527,9 +527,21 @@ export default function FilterBar({
     resolvedRootSpanName,
   ]);
 
+  // Every request gets a report, even when it resolves to the same
+  // values as the previous request. For example, after a request for
+  // app 1, a request with no app also resolves to app 1. Reporting
+  // only changed resolutions would leave that second request with no report.
   useEffect(() => {
     onFilterChange(filterState);
-  }, [filterState]);
+  }, [
+    filterState,
+    requestedAppId,
+    requestedDateRange.dateRange,
+    requestedDateRange.startDate,
+    requestedDateRange.endDate,
+    requestedFilterExpr,
+    requestedRootSpanName,
+  ]);
 
   useEffect(() => {
     if (anythingDiscarded) {

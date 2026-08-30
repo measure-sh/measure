@@ -31,7 +31,22 @@ import UserAvatar from "../components/user_avatar";
 import { useMeasureStoreRegistry } from "../stores/provider";
 import { isCloud } from "../utils/env_utils";
 
-function buildInitNavData() {
+type NavItem = {
+  title: string;
+  url: string;
+  // Query string appended when navigating, so a page opens with a default
+  // view. Not part of the pathname-based active match.
+  queryString?: string;
+  isActive: boolean;
+  external: boolean;
+};
+
+type NavSection = {
+  title: string;
+  items: NavItem[];
+};
+
+function buildInitNavData(): { navMain: NavSection[] } {
   return {
     navMain: [
       {
@@ -69,6 +84,7 @@ function buildInitNavData() {
           {
             title: "Bug Reports",
             url: "bug_reports",
+            queryString: "?filter_expr=bug_report_status:in:open",
             isActive: false,
             external: false,
           },
@@ -289,7 +305,7 @@ export default function DashboardLayout({
                                 href={
                                   item.external
                                     ? `${item.url}`
-                                    : `/${selectedTeam?.id}/${item.url}`
+                                    : `/${selectedTeam?.id}/${item.url}${item.queryString ?? ""}`
                                 }
                                 className="font-body"
                                 onClick={(e) => {
@@ -297,7 +313,7 @@ export default function DashboardLayout({
                                     e.preventDefault();
                                     handleNavClick(item.url);
                                     router.push(
-                                      `/${selectedTeam?.id}/${item.url}`,
+                                      `/${selectedTeam?.id}/${item.url}${item.queryString ?? ""}`,
                                     );
                                   }
                                 }}

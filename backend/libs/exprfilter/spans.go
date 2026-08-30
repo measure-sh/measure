@@ -25,7 +25,7 @@ var SpansEntity = Entity{
 	SuggestKeyValues:      fetchSpansKeySuggestions,
 	FetchCustomKeys:       fetchSpanCustomKeys,
 	FetchCustomKeysByName: fetchSpanCustomKeysByName,
-	BindCustomKeys:        bindCustomConditionsToMembership("span_user_def_attrs", "span_id"),
+	BindCustomKeys:        bindCustomConditionsToMembership("span_user_def_attrs", "span_id", ""),
 	// span_metrics groups spans into 15-minute buckets by start time. A query
 	// can therefore include spans whose bucket extends past the range end.
 	MaxTimeBucketWidth: 15 * time.Minute,

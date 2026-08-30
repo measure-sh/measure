@@ -617,7 +617,6 @@ export function makeBugReportsOverviewFixture(
         },
         user_defined_attribute: null,
         attachments: null,
-        matched_free_text: "",
       },
       {
         session_id: "sess-br-002",
@@ -654,7 +653,6 @@ export function makeBugReportsOverviewFixture(
         },
         user_defined_attribute: null,
         attachments: null,
-        matched_free_text: "",
       },
     ],
     ...overrides,
@@ -1395,6 +1393,83 @@ export function makeFilterKeysFixture(overrides: Record<string, any> = {}) {
       },
     ],
     key_groups: ["Version", "Build"],
+    ...overrides,
+  };
+}
+
+// --- Filter keys for the bug_reports entity ---
+
+export function makeBugReportsFilterKeysFixture(
+  overrides: Record<string, any> = {},
+) {
+  return {
+    keys: [
+      {
+        name: "version_name",
+        label: "App version",
+        description: "The app version the bug report was filed on",
+        key_group: "Version",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "bug_report_status",
+        label: "Bug report status",
+        description: "Whether the bug report is open or closed",
+        key_group: "Bug Report",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "user_id",
+        label: "User ID",
+        description: "The user the bug report was filed by",
+        key_group: "User",
+        value_type: "string",
+        value_suggestion_mode: "sample",
+        operators: ["in", "not_in", "contains"],
+      },
+      {
+        name: "bug_report_description",
+        label: "Description",
+        description: "The bug report's description text",
+        key_group: "Bug Report",
+        value_type: "string",
+        value_suggestion_mode: "none",
+        operators: ["contains", "not_contains"],
+      },
+      {
+        name: "session_id",
+        label: "Session ID",
+        description: "The session the bug report was filed in",
+        key_group: "Session",
+        value_type: "uuid",
+        value_suggestion_mode: "none",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "os_name",
+        label: "OS name",
+        description: "The operating system's name",
+        key_group: "OS",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+    ],
+    key_groups: [
+      "Bug Report",
+      "Version",
+      "OS",
+      "Device",
+      "Network",
+      "Location",
+      "User",
+      "Session",
+      "Custom",
+    ],
     ...overrides,
   };
 }

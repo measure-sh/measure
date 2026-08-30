@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import {
   App,
   AppVersion,
-  BugReportStatus,
   FilterSource,
   HttpMethod,
   OsVersion,
@@ -64,7 +63,6 @@ const baseConfig = {
   showLocales: true,
   showDeviceManufacturers: true,
   showDeviceNames: true,
-  showBugReportStatus: true,
   showHttpMethods: true,
   showUdAttrs: true,
   showFreeText: true,
@@ -314,26 +312,6 @@ describe("applyFilterOptions", () => {
     expect(patch.selectedUdAttrMatchers).toEqual([
       { key: "plan", type: "string", op: "eq", value: "pro" },
     ]);
-  });
-
-  it("defaults bug report statuses to [Open]", () => {
-    const patch = applyFilterOptions(
-      emptyOptions(),
-      app,
-      initConfig({}),
-      state(),
-    );
-    expect(patch.selectedBugReportStatuses).toEqual([BugReportStatus.Open]);
-  });
-
-  it("honors URL bug report statuses when valid", () => {
-    const patch = applyFilterOptions(
-      emptyOptions(),
-      app,
-      initConfig({ bugReportStatuses: [BugReportStatus.Closed] }),
-      state(),
-    );
-    expect(patch.selectedBugReportStatuses).toEqual([BugReportStatus.Closed]);
   });
 
   it("honors URL session types when valid", () => {

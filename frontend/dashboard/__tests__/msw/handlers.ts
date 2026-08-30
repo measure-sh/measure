@@ -18,6 +18,7 @@ import {
   makeAuthzAndMembersFixture,
   makeBillingInfoFixture,
   makeBugReportDetailFixture,
+  makeBugReportsFilterKeysFixture,
   makeBugReportsOverviewFixture,
   makeBugReportsPlotFixture,
   makeBuildsFixture,
@@ -409,8 +410,12 @@ export const handlers = [
     return HttpResponse.json({ url: "https://billing.stripe.com/portal/test" });
   }),
 
-  // 68. GET /api/apps/:appId/filters/keys
-  http.get("*/api/apps/:appId/filters/keys", () => {
+  // 68. GET /api/apps/:appId/filters/keys (keys differ per entity)
+  http.get("*/api/apps/:appId/filters/keys", ({ request }) => {
+    const entity = new URL(request.url).searchParams.get("entity");
+    if (entity === "bug_reports") {
+      return HttpResponse.json(makeBugReportsFilterKeysFixture());
+    }
     return HttpResponse.json(makeFilterKeysFixture());
   }),
 
