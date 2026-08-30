@@ -52,11 +52,6 @@ export enum SessionType {
   Background = "Background Sessions",
 }
 
-export enum BugReportStatus {
-  Open = "Open",
-  Closed = "Closed",
-}
-
 export enum HttpMethod {
   GET = "get",
   POST = "post",
@@ -475,7 +470,6 @@ export const emptyBugReportsOverviewResponse = {
     };
     user_defined_attribute: null;
     attachments: null;
-    matched_free_text: string;
   }[],
 };
 
@@ -643,7 +637,6 @@ export type Filters = {
   endDate: string;
   versions: { selected: AppVersion[]; all: boolean };
   sessionTypes: { selected: SessionType[]; all: boolean };
-  bugReportStatuses: { selected: BugReportStatus[]; all: boolean };
   httpMethods: { selected: HttpMethod[]; all: boolean };
   osVersions: { selected: OsVersion[]; all: boolean };
   countries: { selected: string[]; all: boolean };
@@ -674,7 +667,6 @@ export const defaultFilters: Filters = {
   endDate: "",
   versions: { selected: [], all: false },
   sessionTypes: { selected: [], all: false },
-  bugReportStatuses: { selected: [], all: false },
   httpMethods: { selected: [], all: false },
   osVersions: { selected: [], all: false },
   countries: { selected: [], all: false },
@@ -832,20 +824,6 @@ async function applyGenericFiltersToUrl(
   // leaking onto endpoints that don't filter by session content (e.g.
   // /errorGroups, which uses its own `type` param for selectedErrorTypes).
 
-  // Append bug report statuses if needed
-  if (
-    !filters.bugReportStatuses.all &&
-    filters.bugReportStatuses.selected.length > 0
-  ) {
-    filters.bugReportStatuses.selected.forEach((v) => {
-      if (v === BugReportStatus.Open) {
-        searchParams.append("bug_report_statuses", "0");
-      } else if (v === BugReportStatus.Closed) {
-        searchParams.append("bug_report_statuses", "1");
-      }
-    });
-  }
-
   // Append free text if present
   if (filters.freeText !== "") {
     searchParams.append("free_text", filters.freeText);
@@ -920,23 +898,6 @@ function appendSessionTypesToUrl(url: string, filters: Filters): string {
     if (severities.size > 0) {
       u.searchParams.append("severity", Array.from(severities).join(","));
     }
-  }
-  return u.toString();
-}
-
-function appendBugReportStatusesToUrl(url: string, filters: Filters): string {
-  const u = new URL(url, window.location.origin);
-  if (
-    !filters.bugReportStatuses.all &&
-    filters.bugReportStatuses.selected.length > 0
-  ) {
-    filters.bugReportStatuses.selected.forEach((v) => {
-      if (v === BugReportStatus.Open) {
-        u.searchParams.append("bug_report_statuses", "0");
-      } else if (v === BugReportStatus.Closed) {
-        u.searchParams.append("bug_report_statuses", "1");
-      }
-    });
   }
   return u.toString();
 }
@@ -1712,36 +1673,49 @@ export const fetchCustomerPortalUrlFromServer = async (
 };
 
 export const fetchBugReportsOverviewFromServer = async (
-  filters: Filters,
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
   limit: number,
   offset: number,
 ) => {
-  var url = `/api/apps/${filters.app!.id}/bugReports?`;
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    limit: String(limit),
+    offset: String(offset),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
 
-  url = await applyGenericFiltersToUrl(url, filters, limit, offset);
-  url = appendBugReportStatusesToUrl(url, filters);
-
-  const data = await request(url, {
+  return await request(`/api/apps/${appId}/bugReports?${params.toString()}`, {
     failsWith: "Failed to fetch bug reports overview",
   });
-
-  return data;
 };
 
 export const fetchBugReportsOverviewPlotFromServer = async (
-  filters: Filters,
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
 ) => {
-  var url = `/api/apps/${filters.app!.id}/bugReports/plots/instances?`;
-
-  url = await applyGenericFiltersToUrl(url, filters, null, null);
-  url = appendBugReportStatusesToUrl(url, filters);
-  url = appendPlotTimeGroupToUrl(url, filters);
-
-  const data = await request(url, {
-    failsWith: "Failed to fetch bug reports overview plot",
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    plot_time_group: getPlotTimeGroupForRange(startDate, endDate),
   });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
 
-  return data;
+  return await request(
+    `/api/apps/${appId}/bugReports/plots/instances?${params.toString()}`,
+    { failsWith: "Failed to fetch bug reports overview plot" },
+  );
 };
 
 export const fetchBugReportFromServer = async (

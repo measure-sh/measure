@@ -16,114 +16,81 @@ jest.mock("@/app/components/skeleton", () => ({
   SkeletonPlot: () => <div data-testid="skeleton-mock">loading</div>,
 }));
 
-const mockUseBugReportsOverviewPlotQuery = jest.fn(
-  (): { data: any; status: string; error: Error | null } => ({
+const plotDates = {
+  startDate: "2025-01-01T00:00:00Z",
+  endDate: "2025-12-31T00:00:00Z",
+};
+
+function queryWith(overrides: any) {
+  return {
     data: undefined,
     status: "pending",
     error: null,
-  }),
-);
-
-jest.mock("@/app/query/hooks", () => ({
-  __esModule: true,
-  useBugReportsOverviewPlotQuery: () => mockUseBugReportsOverviewPlotQuery(),
-}));
-
-jest.mock("@/app/stores/provider", () => {
-  const { create } = jest.requireActual("zustand");
-  const filtersStore = create(() => ({
-    filters: { ready: false, serialisedFilters: "" },
-  }));
-  return { __esModule: true, useFiltersStore: filtersStore };
-});
-
-const { useFiltersStore } = require("@/app/stores/provider") as any;
-
-const filters = {
-  ready: true,
-  startDate: "2025-01-01T00:00:00Z",
-  endDate: "2025-12-31T00:00:00Z",
-} as any;
+    ...overrides,
+  } as any;
+}
 
 describe("BugReportsOverviewPlot", () => {
   beforeEach(() => {
     lastLineProps = null;
-    useFiltersStore.setState({
-      filters: { ready: false, serialisedFilters: "" },
-    });
-    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "pending",
-      error: null,
-    });
   });
 
   it("renders error state", async () => {
-    useFiltersStore.setState({ filters });
-    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "error",
-      error: new Error("test"),
-    });
-    render(<BugReportsOverviewPlot />);
+    render(
+      <BugReportsOverviewPlot
+        {...plotDates}
+        query={queryWith({ status: "error", error: new Error("test") })}
+      />,
+    );
     expect(await screen.findByText(/Error fetching plot/)).toBeInTheDocument();
   });
 
   it("renders no data state", async () => {
-    useFiltersStore.setState({ filters });
-    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
-      data: null,
-      status: "success",
-      error: null,
-    });
-    render(<BugReportsOverviewPlot />);
+    render(
+      <BugReportsOverviewPlot
+        {...plotDates}
+        query={queryWith({ data: null, status: "success" })}
+      />,
+    );
     expect(await screen.findByText("No Data")).toBeInTheDocument();
-  });
-
-  it("does not fetch when filters are not ready", async () => {
-    useFiltersStore.setState({ filters: { ...filters, ready: false } });
-    render(<BugReportsOverviewPlot />);
-    // Query hook is called but TanStack Query handles the enabled flag internally
-    expect(mockUseBugReportsOverviewPlotQuery).toHaveBeenCalled();
+    expect(screen.getByTestId("bug-reports-plot-no-data")).toBeInTheDocument();
   });
 
   it("renders loading state before data is available", async () => {
-    useFiltersStore.setState({ filters });
-    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "pending",
-      error: null,
-    });
-
-    render(<BugReportsOverviewPlot />);
+    render(<BugReportsOverviewPlot {...plotDates} query={queryWith({})} />);
     expect(screen.getByText("loading")).toBeInTheDocument();
   });
 
   it("maps API result shape to nivo data", async () => {
-    useFiltersStore.setState({ filters });
-    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
-      data: [{ id: "v1", data: [{ id: "v1.0", x: "2025-02-01", y: 2 }] }],
-      status: "success",
-      error: null,
-    });
-    render(<BugReportsOverviewPlot />);
+    render(
+      <BugReportsOverviewPlot
+        {...plotDates}
+        query={queryWith({
+          data: [{ id: "v1", data: [{ id: "v1.0", x: "2025-02-01", y: 2 }] }],
+          status: "success",
+        })}
+      />,
+    );
 
     await waitFor(() =>
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
+    expect(screen.getByTestId("bug-reports-plot-data")).toBeInTheDocument();
     expect(lastLineProps.data[0].id).toBe("v1");
     expect(lastLineProps.data[0].data[0].y).toBe(2);
     expect(lastLineProps.axisLeft.legend).toBe("Bug Reports");
   });
 
   it("uses month-style axis formatting for long range", async () => {
-    useFiltersStore.setState({ filters });
-    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
-      data: [{ id: "v", data: [{ id: "v.0", x: "2025-02-01", y: 1 }] }],
-      status: "success",
-      error: null,
-    });
-    render(<BugReportsOverviewPlot />);
+    render(
+      <BugReportsOverviewPlot
+        {...plotDates}
+        query={queryWith({
+          data: [{ id: "v", data: [{ id: "v.0", x: "2025-02-01", y: 1 }] }],
+          status: "success",
+        })}
+      />,
+    );
 
     await waitFor(() =>
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
@@ -132,20 +99,21 @@ describe("BugReportsOverviewPlot", () => {
   });
 
   it("uses minute/day configs for shorter ranges", async () => {
-    const minuteFilters = {
-      ...filters,
+    const minuteDates = {
       startDate: "2026-02-01T00:00:00Z",
       endDate: "2026-02-01T06:00:00Z",
     };
-    useFiltersStore.setState({ filters: minuteFilters });
-    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
-      data: [
-        { id: "v", data: [{ id: "v.0", x: "2026-02-01T01:00:00", y: 1 }] },
-      ],
-      status: "success",
-      error: null,
-    });
-    const { unmount } = render(<BugReportsOverviewPlot />);
+    const { unmount } = render(
+      <BugReportsOverviewPlot
+        {...minuteDates}
+        query={queryWith({
+          data: [
+            { id: "v", data: [{ id: "v.0", x: "2026-02-01T01:00:00", y: 1 }] },
+          ],
+          status: "success",
+        })}
+      />,
+    );
     await waitFor(() =>
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
@@ -154,18 +122,19 @@ describe("BugReportsOverviewPlot", () => {
     unmount();
     lastLineProps = null;
 
-    const dayFilters = {
-      ...filters,
+    const dayDates = {
       startDate: "2026-01-01T00:00:00Z",
       endDate: "2026-03-30T00:00:00Z",
     };
-    useFiltersStore.setState({ filters: dayFilters });
-    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
-      data: [{ id: "v", data: [{ id: "v.0", x: "2026-02-01", y: 1 }] }],
-      status: "success",
-      error: null,
-    });
-    render(<BugReportsOverviewPlot />);
+    render(
+      <BugReportsOverviewPlot
+        {...dayDates}
+        query={queryWith({
+          data: [{ id: "v", data: [{ id: "v.0", x: "2026-02-01", y: 1 }] }],
+          status: "success",
+        })}
+      />,
+    );
     await waitFor(() =>
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
@@ -173,13 +142,15 @@ describe("BugReportsOverviewPlot", () => {
   });
 
   it("pluralizes tooltip labels for singular and plural", async () => {
-    useFiltersStore.setState({ filters });
-    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
-      data: [{ id: "v1", data: [{ id: "v1.0", x: "2025-02-01", y: 2 }] }],
-      status: "success",
-      error: null,
-    });
-    render(<BugReportsOverviewPlot />);
+    render(
+      <BugReportsOverviewPlot
+        {...plotDates}
+        query={queryWith({
+          data: [{ id: "v1", data: [{ id: "v1.0", x: "2025-02-01", y: 2 }] }],
+          status: "success",
+        })}
+      />,
+    );
     await waitFor(() =>
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
@@ -207,33 +178,26 @@ describe("BugReportsOverviewPlot", () => {
   });
 
   it("hides stale chart while new range data is loading", async () => {
-    useFiltersStore.setState({ filters });
-    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
-      data: [{ id: "v1", data: [{ id: "v1.0", x: "2025-02-01", y: 2 }] }],
-      status: "success",
-      error: null,
-    });
-    const { unmount } = render(<BugReportsOverviewPlot />);
+    const { rerender } = render(
+      <BugReportsOverviewPlot
+        {...plotDates}
+        query={queryWith({
+          data: [{ id: "v1", data: [{ id: "v1.0", x: "2025-02-01", y: 2 }] }],
+          status: "success",
+        })}
+      />,
+    );
     await waitFor(() =>
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
 
-    unmount();
-
-    // Simulate new range: filters changed, query is loading
-    const newFilters = {
-      ...filters,
-      startDate: "2026-02-01T00:00:00Z",
-      endDate: "2026-02-01T06:00:00Z",
-    };
-    useFiltersStore.setState({ filters: newFilters });
-    mockUseBugReportsOverviewPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "pending",
-      error: null,
-    });
-
-    render(<BugReportsOverviewPlot />);
+    rerender(
+      <BugReportsOverviewPlot
+        startDate="2026-02-01T00:00:00Z"
+        endDate="2026-02-01T06:00:00Z"
+        query={queryWith({})}
+      />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText("loading")).toBeInTheDocument();

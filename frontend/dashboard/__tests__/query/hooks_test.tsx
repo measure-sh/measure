@@ -11,6 +11,8 @@ jest.mock("@/app/api/api_calls", () => {
   return {
     ...actual,
     fetchAppsFromServer: jest.fn(),
+    fetchBugReportsOverviewFromServer: jest.fn(),
+    fetchBugReportsOverviewPlotFromServer: jest.fn(),
     fetchBuildsFromServer: jest.fn(),
     fetchFilterKeys: jest.fn(),
     fetchFiltersFromServer: jest.fn(),
@@ -53,6 +55,8 @@ jest.mock("@/app/api/api_client", () => ({
 
 import {
   fetchAppsFromServer,
+  fetchBugReportsOverviewFromServer,
+  fetchBugReportsOverviewPlotFromServer,
   fetchBuildsFromServer,
   fetchErrorGroupCommonPathFromServer,
   fetchErrorsDetailsFromServer,
@@ -71,6 +75,8 @@ import {
   fetchCurrentSession,
   signOut,
   useAppsQuery,
+  useBugReportsOverviewPlotQuery,
+  useBugReportsOverviewQuery,
   useBuildsQuery,
   useErrorGroupCommonPathQuery,
   useErrorsDetailsPlotQuery,
@@ -87,6 +93,10 @@ import {
 } from "@/app/query/hooks";
 
 const mockFetchApps = fetchAppsFromServer as jest.Mock;
+const mockFetchBugReportsOverview =
+  fetchBugReportsOverviewFromServer as jest.Mock;
+const mockFetchBugReportsOverviewPlot =
+  fetchBugReportsOverviewPlotFromServer as jest.Mock;
 const mockFetchBuilds = fetchBuildsFromServer as jest.Mock;
 const mockFetchFilterKeys = fetchFilterKeys as jest.Mock;
 const mockFetchFilters = fetchFiltersFromServer as jest.Mock;
@@ -898,6 +908,194 @@ describe("useSpanMetricsPlotQuery", () => {
     const { wrapper } = makeWrapper();
     const { result } = renderHook(
       () => useSpanMetricsPlotQuery(filteredBy(null), "root.a"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.error).toBe(failure);
+  });
+});
+
+describe("useBugReportsOverviewQuery", () => {
+  const filteredBy = (filterExpr: string | null) => ({
+    appId: "app-1",
+    startDate: "2026-01-01T00:00:00Z",
+    endDate: "2026-01-02T00:00:00Z",
+    filterExpr,
+  });
+
+  it("does not fetch without an app and a date range", () => {
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useBugReportsOverviewQuery(null, 0), {
+      wrapper,
+    });
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchBugReportsOverview).not.toHaveBeenCalled();
+  });
+
+  it("fetches for the app, range, filter and page, and returns the data", async () => {
+    mockFetchBugReportsOverview.mockResolvedValueOnce({
+      results: [{ event_id: "br1" }],
+      meta: { next: false, previous: false },
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () =>
+        useBugReportsOverviewQuery(filteredBy("bug_report_status:in:open"), 10),
+      { wrapper },
+    );
+
+    expect(result.current.status).toBe("pending");
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
+    expect(mockFetchBugReportsOverview).toHaveBeenCalledWith(
+      "app-1",
+      "2026-01-01T00:00:00Z",
+      "2026-01-02T00:00:00Z",
+      "bug_report_status:in:open",
+      5,
+      10,
+    );
+    expect((result.current.data as any).results[0].event_id).toBe("br1");
+  });
+
+  it("fetches without a filter when none is given", async () => {
+    mockFetchBugReportsOverview.mockResolvedValueOnce({
+      results: [],
+      meta: { next: false, previous: false },
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useBugReportsOverviewQuery(filteredBy(null), 0),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    expect(mockFetchBugReportsOverview).toHaveBeenCalledWith(
+      "app-1",
+      "2026-01-01T00:00:00Z",
+      "2026-01-02T00:00:00Z",
+      null,
+      5,
+      0,
+    );
+  });
+
+  it("fetches again for another page, and shows the last one meanwhile", async () => {
+    mockFetchBugReportsOverview
+      .mockResolvedValueOnce({
+        results: [{ event_id: "br1" }],
+        meta: { next: true, previous: false },
+      })
+      // The second page never arrives, so the hook stays mid-fetch.
+      .mockReturnValueOnce(new Promise(() => {}));
+
+    const { wrapper } = makeWrapper();
+    const { result, rerender } = renderHook(
+      ({ offset }) => useBugReportsOverviewQuery(filteredBy(null), offset),
+      { wrapper, initialProps: { offset: 0 } },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
+    rerender({ offset: 5 });
+
+    await waitFor(() =>
+      expect(mockFetchBugReportsOverview).toHaveBeenLastCalledWith(
+        "app-1",
+        "2026-01-01T00:00:00Z",
+        "2026-01-02T00:00:00Z",
+        null,
+        5,
+        5,
+      ),
+    );
+    expect(result.current.isFetching).toBe(true);
+    expect((result.current.data as any).results[0].event_id).toBe("br1");
+  });
+
+  it("surfaces a failed fetch as a query error", async () => {
+    const failure = new ApiError(500, "request failed");
+    mockFetchBugReportsOverview.mockRejectedValueOnce(failure);
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useBugReportsOverviewQuery(filteredBy(null), 0),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.error).toBe(failure);
+  });
+});
+
+describe("useBugReportsOverviewPlotQuery", () => {
+  const filteredBy = (filterExpr: string | null) => ({
+    appId: "app-1",
+    startDate: "2026-01-01T00:00:00Z",
+    endDate: "2026-01-02T00:00:00Z",
+    filterExpr,
+  });
+
+  it("does not fetch without an app and a date range", () => {
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useBugReportsOverviewPlotQuery(null), {
+      wrapper,
+    });
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchBugReportsOverviewPlot).not.toHaveBeenCalled();
+  });
+
+  it("fetches for the app, range and filter, and returns the mapped plot", async () => {
+    mockFetchBugReportsOverviewPlot.mockResolvedValueOnce([
+      { id: "v1", data: [{ datetime: "2026-01-01", instances: 3 }] },
+    ]);
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () =>
+        useBugReportsOverviewPlotQuery(filteredBy("bug_report_status:in:open")),
+      { wrapper },
+    );
+
+    expect(result.current.status).toBe("pending");
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
+    expect(mockFetchBugReportsOverviewPlot).toHaveBeenCalledWith(
+      "app-1",
+      "2026-01-01T00:00:00Z",
+      "2026-01-02T00:00:00Z",
+      "bug_report_status:in:open",
+    );
+    expect(result.current.data).toEqual([
+      { id: "v1", data: [{ x: "2026-01-01", y: 3 }] },
+    ]);
+  });
+
+  it("passes a null plot through", async () => {
+    mockFetchBugReportsOverviewPlot.mockResolvedValueOnce(null);
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useBugReportsOverviewPlotQuery(filteredBy(null)),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    expect(result.current.data).toBeNull();
+  });
+
+  it("surfaces a failed fetch as a query error", async () => {
+    const failure = new ApiError(500, "request failed");
+    mockFetchBugReportsOverviewPlot.mockRejectedValueOnce(failure);
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useBugReportsOverviewPlotQuery(filteredBy(null)),
       { wrapper },
     );
 

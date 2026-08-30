@@ -75,6 +75,8 @@ func FindByName(name string) (Entity, error) {
 		return BuildsEntity, nil
 	case SpansEntity.Name:
 		return SpansEntity, nil
+	case BugReportsEntity.Name:
+		return BugReportsEntity, nil
 	}
 
 	return Entity{}, fmt.Errorf("Unknown filter entity %q", name)
@@ -82,21 +84,24 @@ func FindByName(name string) (Entity, error) {
 
 // The groups a key can belong to.
 const (
-	KeyGroupVersion  KeyGroup = "Version"
-	KeyGroupBuild    KeyGroup = "Build"
-	KeyGroupSpan     KeyGroup = "Span"
-	KeyGroupOS       KeyGroup = "OS"
-	KeyGroupDevice   KeyGroup = "Device"
-	KeyGroupNetwork  KeyGroup = "Network"
-	KeyGroupLocation KeyGroup = "Location"
-	KeyGroupCustom   KeyGroup = "Custom"
+	KeyGroupVersion   KeyGroup = "Version"
+	KeyGroupBuild     KeyGroup = "Build"
+	KeyGroupSpan      KeyGroup = "Span"
+	KeyGroupBugReport KeyGroup = "Bug Report"
+	KeyGroupSession   KeyGroup = "Session"
+	KeyGroupUser      KeyGroup = "User"
+	KeyGroupOS        KeyGroup = "OS"
+	KeyGroupDevice    KeyGroup = "Device"
+	KeyGroupNetwork   KeyGroup = "Network"
+	KeyGroupLocation  KeyGroup = "Location"
+	KeyGroupCustom    KeyGroup = "Custom"
 )
 
 // keyGroupOrder is the order the filter bar shows groups in.
 var keyGroupOrder = []KeyGroup{
-	KeyGroupVersion, KeyGroupBuild, KeyGroupSpan,
+	KeyGroupBugReport, KeyGroupVersion, KeyGroupBuild, KeyGroupSpan,
 	KeyGroupOS, KeyGroupDevice, KeyGroupNetwork, KeyGroupLocation,
-	KeyGroupCustom,
+	KeyGroupUser, KeyGroupSession, KeyGroupCustom,
 }
 
 // ListKeyGroups lists the groups a set of keys falls into, in the order the
@@ -189,6 +194,53 @@ var (
 		Operators:           []Operator{OperatorIn, OperatorNotIn},
 		ValueSuggestionMode: ValueSuggestionModeFullList,
 		EnumValues:          []string{"unset", "ok", "error"},
+	}
+
+	bugReportStatus = Key{
+		Name:                "bug_report_status",
+		Label:               "Status",
+		Description:         "Whether the bug report is open or closed.",
+		KeyGroup:            KeyGroupBugReport,
+		ValueType:           ValueTypeEnum,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeFullList,
+		EnumValues:          []string{"open", "closed"},
+	}
+
+	userID = Key{
+		Name:        "user_id",
+		Label:       "User ID",
+		Description: "The user id of the session.",
+		KeyGroup:    KeyGroupUser,
+		ValueType:   ValueTypeString,
+		Operators: []Operator{
+			OperatorIn, OperatorNotIn,
+			OperatorContains, OperatorStartsWith,
+		},
+		ValueSuggestionMode: ValueSuggestionModeSample,
+	}
+
+	bugReportDescription = Key{
+		Name:        "bug_report_description",
+		Label:       "Description",
+		Description: "The bug report description written by the reporter.",
+		KeyGroup:    KeyGroupBugReport,
+		ValueType:   ValueTypeString,
+		Operators: []Operator{
+			OperatorContains, OperatorNotContains,
+			OperatorStartsWith, OperatorEndsWith,
+		},
+		ValueSuggestionMode: ValueSuggestionModeNone,
+	}
+
+	sessionID = Key{
+		Name:                "session_id",
+		Label:               "Session ID",
+		Description:         "The id of the session.",
+		KeyGroup:            KeyGroupSession,
+		ValueType:           ValueTypeUUID,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeNone,
 	}
 
 	osName = Key{

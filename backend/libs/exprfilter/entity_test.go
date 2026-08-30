@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var allEntities = []Entity{BuildsEntity, SpansEntity}
+var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity}
 
 func sampleValues(t *testing.T, key Key, operator Operator) []Value {
 	t.Helper()
@@ -277,6 +277,89 @@ func TestSpanStatusBindsTheColumnCodes(t *testing.T) {
 		KeyName:  "span_status",
 		Operator: OperatorIn,
 		Values:   []Value{{Text: "cancelled"}},
+	}); err == nil {
+		t.Error("want a status name the column does not store refused")
+	}
+}
+
+func TestBugReportsEntityOffersEveryBugReportKey(t *testing.T) {
+	byName := IndexKeysByName(BugReportsEntity.Keys)
+
+	wanted := []string{
+		"version_name", "version_code",
+		"bug_report_status", "user_id", "bug_report_description", "session_id",
+		"os_name", "os_version",
+		"device_name", "device_manufacturer", "locale",
+		"network_type", "network_generation", "network_provider",
+		"country",
+	}
+	for _, name := range wanted {
+		if _, ok := byName[name]; !ok {
+			t.Errorf("want a %q key on the bug reports entity", name)
+		}
+	}
+	if len(BugReportsEntity.Keys) != len(wanted) {
+		t.Errorf("want %d bug report keys, got %d", len(wanted), len(BugReportsEntity.Keys))
+	}
+}
+
+func TestBugReportsBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
+	_, err := BugReportsEntity.BindKey(Condition{
+		KeyName:  "span_status",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "error"}},
+	})
+
+	if err == nil {
+		t.Fatal("want a key the bug reports entity does not have refused")
+	}
+	if !strings.Contains(err.Error(), "span_status") {
+		t.Errorf("want the key named, got %q", err)
+	}
+}
+
+func TestBugReportStatusBindsTheColumnCodes(t *testing.T) {
+	stmt, err := BugReportsEntity.BindKey(Condition{
+		KeyName:  "bug_report_status",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "open"}, {Text: "closed"}},
+	})
+	if err != nil {
+		t.Fatalf("bind bug_report_status: %v", err)
+	}
+	defer stmt.Close()
+
+	if got := stmt.String(); got != "status in ?" {
+		t.Errorf("want the status column compared, got %q", got)
+	}
+	args := stmt.Args()
+	if len(args) != 1 {
+		t.Fatalf("want one bound argument, got %v", args)
+	}
+	if got, ok := args[0].([]uint8); !ok || !slices.Equal(got, []uint8{0, 1}) {
+		t.Errorf("want the codes [0 1] bound, got %v", args[0])
+	}
+
+	notIn, err := BugReportsEntity.BindKey(Condition{
+		KeyName:  "bug_report_status",
+		Operator: OperatorNotIn,
+		Values:   []Value{{Text: "closed"}},
+	})
+	if err != nil {
+		t.Fatalf("bind bug_report_status not_in: %v", err)
+	}
+	defer notIn.Close()
+	if got := notIn.String(); got != "status not in ?" {
+		t.Errorf("want the status column excluded, got %q", got)
+	}
+	if got, ok := notIn.Args()[0].([]uint8); !ok || !slices.Equal(got, []uint8{1}) {
+		t.Errorf("want the code [1] bound, got %v", notIn.Args()[0])
+	}
+
+	if _, err := BugReportsEntity.BindKey(Condition{
+		KeyName:  "bug_report_status",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "resolved"}},
 	}); err == nil {
 		t.Error("want a status name the column does not store refused")
 	}

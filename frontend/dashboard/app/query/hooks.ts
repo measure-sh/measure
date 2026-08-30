@@ -570,15 +570,26 @@ export function useNetworkTrendsQuery(active: boolean) {
 
 // ─── Plot: Overview ──────────────────────────────────────────────────────
 
-export function useBugReportsOverviewPlotQuery() {
-  const filters = useFiltersStore((s) => s.filters);
+export function useBugReportsOverviewPlotQuery(params: FilterParams | null) {
   return useQuery({
-    queryKey: ["bugReportsOverviewPlot", filters.serialisedFilters] as const,
+    queryKey: [
+      "bugReportsOverviewPlot",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+    ] as const,
     queryFn: async () => {
-      const result = await fetchBugReportsOverviewPlotFromServer(filters);
+      const result = await fetchBugReportsOverviewPlotFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+      );
       return mapPlotData(result);
     },
-    enabled: filters.ready,
+    enabled: params !== null,
+    retry: false,
   });
 }
 
@@ -654,22 +665,31 @@ export function useAlertsOverviewQuery(paginationOffset: number) {
 
 const BUG_REPORTS_LIMIT = 5;
 
-export function useBugReportsOverviewQuery(paginationOffset: number) {
-  const filters = useFiltersStore((s) => s.filters);
+export function useBugReportsOverviewQuery(
+  params: FilterParams | null,
+  paginationOffset: number,
+) {
   return useQuery({
     queryKey: [
       "bugReportsOverview",
-      filters.serialisedFilters,
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
     queryFn: () =>
       fetchBugReportsOverviewFromServer(
-        filters,
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
         BUG_REPORTS_LIMIT,
         paginationOffset,
       ),
-    enabled: filters.ready,
+    enabled: params !== null,
+    retry: false,
   });
 }
 

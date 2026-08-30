@@ -3,7 +3,6 @@ import { createStore } from "zustand/vanilla";
 import {
   App,
   AppVersion,
-  BugReportStatus,
   buildShortFiltersPostBody,
   defaultFilters,
   Filters,
@@ -41,7 +40,6 @@ export type FilterConfig = {
   showLocales: boolean;
   showDeviceManufacturers: boolean;
   showDeviceNames: boolean;
-  showBugReportStatus: boolean;
   showHttpMethods: boolean;
   showUdAttrs: boolean;
   showFreeText: boolean;
@@ -54,7 +52,6 @@ export type URLFilters = {
   dateRange?: string;
   versions?: number[];
   sessionTypes?: SessionType[];
-  bugReportStatuses?: BugReportStatus[];
   httpMethods?: HttpMethod[];
   osVersions?: number[];
   countries?: number[];
@@ -116,8 +113,6 @@ export const defaultSessionTypes = [
   SessionType.Foreground,
   SessionType.UserInteraction,
 ];
-const allBugReportStatuses = [BugReportStatus.Open, BugReportStatus.Closed];
-
 const urlFiltersKeyMap = {
   appId: "a",
   rootSpanName: "r",
@@ -126,7 +121,6 @@ const urlFiltersKeyMap = {
   endDate: "ed",
   versions: "v",
   sessionTypes: "st",
-  bugReportStatuses: "bs",
   httpMethods: "hm",
   osVersions: "os",
   countries: "c",
@@ -225,9 +219,6 @@ function serializeUrlFilters(
       case "deviceNames":
         if (!config.showDeviceNames) return;
         break;
-      case "bugReportStatuses":
-        if (!config.showBugReportStatus) return;
-        break;
       case "httpMethods":
         if (!config.showHttpMethods) return;
         break;
@@ -280,7 +271,6 @@ function serializeUrlFilters(
           )
           .join("|");
         break;
-      case "bugReportStatuses":
       case "httpMethods":
         if ((value as string[]).length === 0) return;
         serializedValue = (value as string[]).join(",");
@@ -365,7 +355,6 @@ interface FiltersStoreState {
   // every Filters mount via applyFilterOptions.
   selectedVersions: AppVersion[];
   selectedSessionTypes: SessionType[];
-  selectedBugReportStatuses: BugReportStatus[];
   selectedHttpMethods: HttpMethod[];
   selectedOsVersions: OsVersion[];
   selectedCountries: string[];
@@ -400,7 +389,6 @@ interface FiltersStoreActions {
   setSelectedEndDate: (date: string) => void;
   setSelectedVersions: (versions: AppVersion[]) => void;
   setSelectedSessionTypes: (types: SessionType[]) => void;
-  setSelectedBugReportStatuses: (statuses: BugReportStatus[]) => void;
   setSelectedHttpMethods: (methods: HttpMethod[]) => void;
   setSelectedOsVersions: (versions: OsVersion[]) => void;
   setSelectedCountries: (countries: string[]) => void;
@@ -454,7 +442,6 @@ const initialState: FiltersStoreState = {
   selectedEndDate: "",
   selectedVersions: [],
   selectedSessionTypes: defaultSessionTypes,
-  selectedBugReportStatuses: [BugReportStatus.Open],
   selectedHttpMethods: allHttpMethods,
   selectedOsVersions: [],
   selectedCountries: [],
@@ -506,7 +493,6 @@ function computeFilters(state: FiltersStoreState): Filters {
       ),
     ),
     sessionTypes: state.selectedSessionTypes,
-    bugReportStatuses: state.selectedBugReportStatuses,
     httpMethods: state.selectedHttpMethods,
     osVersions: state.selectedOsVersions.map((os) =>
       state.osVersions.findIndex(
@@ -554,11 +540,6 @@ function computeFilters(state: FiltersStoreState): Filters {
     sessionTypes: {
       selected: state.selectedSessionTypes,
       all: state.selectedSessionTypes.length === allSessionTypes.length,
-    },
-    bugReportStatuses: {
-      selected: state.selectedBugReportStatuses,
-      all:
-        state.selectedBugReportStatuses.length === allBugReportStatuses.length,
     },
     httpMethods: {
       selected: state.selectedHttpMethods,
@@ -712,17 +693,6 @@ export function applyFilterOptions(
     selectedUdAttrMatchers = [];
   }
 
-  let selectedBugReportStatuses: BugReportStatus[];
-  if (isUrlMatch && urlFilters.bugReportStatuses) {
-    selectedBugReportStatuses = urlFilters.bugReportStatuses
-      .filter((s: string) =>
-        Object.values(BugReportStatus).includes(s as BugReportStatus),
-      )
-      .map((s: string) => s as BugReportStatus);
-  } else {
-    selectedBugReportStatuses = [BugReportStatus.Open];
-  }
-
   let selectedHttpMethods: HttpMethod[];
   if (isUrlMatch && urlFilters.httpMethods) {
     selectedHttpMethods = urlFilters.httpMethods
@@ -795,7 +765,6 @@ export function applyFilterOptions(
     selectedDeviceManufacturers,
     selectedDeviceNames,
     selectedUdAttrMatchers,
-    selectedBugReportStatuses,
     selectedHttpMethods,
     selectedSessionTypes,
     selectedFreeText,
@@ -910,7 +879,6 @@ export function createFiltersStore() {
           selectedDeviceManufacturers: [],
           selectedDeviceNames: [],
           selectedSessionTypes: [],
-          selectedBugReportStatuses: [],
           selectedHttpMethods: [],
           selectedUdAttrMatchers: [],
           selectedFreeText: "",
@@ -966,8 +934,6 @@ export function createFiltersStore() {
       setSelectedEndDate: (date) => set({ selectedEndDate: date }),
       setSelectedVersions: (versions) => set({ selectedVersions: versions }),
       setSelectedSessionTypes: (types) => set({ selectedSessionTypes: types }),
-      setSelectedBugReportStatuses: (statuses) =>
-        set({ selectedBugReportStatuses: statuses }),
       setSelectedHttpMethods: (methods) =>
         set({ selectedHttpMethods: methods }),
       setSelectedOsVersions: (versions) =>

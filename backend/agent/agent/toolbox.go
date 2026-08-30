@@ -420,7 +420,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_filter_keys
 		newTool(&mcpsdk.Tool{
 			Name:        "get_filter_keys",
-			Description: "List the filter keys of an entity (spans or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
+			Description: "List the filter keys of an entity (spans, bug_reports or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
 			InputSchema: mcpMustInferSchema[mcpGetFilterKeysInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFilterKeysInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetFilterKeys(ctx, in)
@@ -528,8 +528,8 @@ func commonTools(cfg *Config) []Tool {
 		// get_bug_reports
 		newTool(&mcpsdk.Tool{
 			Name:        "get_bug_reports",
-			Description: "Get bug reports for an app, ordered by most recent first. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
-			InputSchema: mcpMustInferSchema[mcpGetBugReportsInput](),
+			Description: "Get bug reports for an app, ordered by most recent first. Covers every bug report unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.BugReportsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetBugReportsInput](mcpBugReportsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetBugReportsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetBugReports(ctx, in)
 		}),
@@ -537,8 +537,8 @@ func commonTools(cfg *Config) []Tool {
 		// get_bug_reports_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_bug_reports_over_time",
-			Description: "Get time-series of bug report counts. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
-			InputSchema: mcpMustInferSchema[mcpGetBugReportsOverTimeInput](),
+			Description: "Get time-series of bug report counts. Covers every bug report unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.BugReportsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetBugReportsOverTimeInput](mcpBugReportsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetBugReportsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetBugReportsOverTime(ctx, in)
 		}),
@@ -573,8 +573,8 @@ func commonTools(cfg *Config) []Tool {
 		// get_span_instances
 		newTool(&mcpsdk.Tool{
 			Name:        "get_span_instances",
-			Description: "Get span instances for a root span name. Covers every span unless filter_expr narrows it; " + mcpFilterExprToolsHint + ".",
-			InputSchema: mcpMustInferFilterExprSchema[mcpGetSpanInstancesInput](),
+			Description: "Get span instances for a root span name. Covers every span unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.SpansEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetSpanInstancesInput](mcpSpansFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSpanInstancesInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSpanInstances(ctx, in)
 		}),
@@ -582,8 +582,8 @@ func commonTools(cfg *Config) []Tool {
 		// get_span_metrics_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_span_metrics_over_time",
-			Description: "Get p50/p90/p95/p99 duration metrics over time for a span name. Covers every span unless filter_expr narrows it; " + mcpFilterExprToolsHint + ".",
-			InputSchema: mcpMustInferFilterExprSchema[mcpGetSpanMetricsOverTimeInput](),
+			Description: "Get p50/p90/p95/p99 duration metrics over time for a span name. Covers every span unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.SpansEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetSpanMetricsOverTimeInput](mcpSpansFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSpanMetricsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSpanMetricsOverTime(ctx, in)
 		}),
@@ -672,19 +672,34 @@ func commonTools(cfg *Config) []Tool {
 }
 
 // mcpFilterExprToolsHint tells the client where the vocabulary of a
-// filter_expr comes from. It is shared by every tool that takes one.
-const mcpFilterExprToolsHint = "get_filter_keys with entity spans lists the keys and operators a filter_expr may use, get_filter_values lists a key's suggested values"
+// filter_expr comes from, naming the entity whose keys get_filter_keys is
+// called with. It is shared by every tool that takes a filter_expr.
+func mcpFilterExprToolsHint(entity exprfilter.Entity) string {
+	return "get_filter_keys with entity " + entity.Name + " lists the keys and operators a filter_expr may use, get_filter_values lists a key's suggested values"
+}
 
 // mcpFilterExprGrammar is the filter_expr grammar, condensed from
-// backend/libs/exprfilter/parse.go, shared as the field's schema description
-// by every tool that takes one.
-const mcpFilterExprGrammar = "Filter expression narrowing the spans. A condition is key:operator:value or key:operator:[v1,v2]; a no-value operator like is_set is written key:operator. Conditions join with AND / OR, parentheses group, and AND binds tighter than OR. A value holding a space, comma, bracket, colon or quote is written in double quotes. Example: version_name:in:[1.2.0,1.1.9] AND span_status:in:error. User-defined span attribute keys appear under the Custom key group and carry the custom. prefix, as in custom.is_premium:eq:true. " + mcpFilterExprToolsHint
+// backend/libs/exprfilter/parse.go, shared as the filter_expr property's
+// schema description by every tool that takes one. The prose names the
+// entity being narrowed and the example is written in that entity's keys.
+func mcpFilterExprGrammar(entity exprfilter.Entity, example string) string {
+	noun := strings.ReplaceAll(entity.Name, "_", " ")
+	return "Filter expression narrowing the " + noun + ". A condition is key:operator:value or key:operator:[v1,v2]; a no-value operator like is_set is written key:operator. Conditions join with AND / OR, parentheses group, and AND binds tighter than OR. A value holding a space, comma, bracket, colon or quote is written in double quotes. Example: " + example + ". User-defined attribute keys appear under the Custom key group and carry the custom. prefix, as in custom.is_premium:eq:true. " + mcpFilterExprToolsHint(entity)
+}
+
+// The grammar text each entity's tools advertise, built from the shared
+// template with an example in that entity's keys.
+var (
+	mcpSpansFilterExprGrammar      = mcpFilterExprGrammar(exprfilter.SpansEntity, "version_name:in:[1.2.0,1.1.9] AND span_status:in:error")
+	mcpBugReportsFilterExprGrammar = mcpFilterExprGrammar(exprfilter.BugReportsEntity, "version_name:in:[1.2.0] AND bug_report_status:in:open")
+)
 
 // mcpMustInferFilterExprSchema infers a JSON schema from a Go type and sets
-// the shared grammar text as the description of its "filter_expr" property.
-// A struct tag cannot hold a constant, so the description is set here. Used
-// by tools whose input carries a filter_expr field.
-func mcpMustInferFilterExprSchema[T any]() json.RawMessage {
+// the given entity grammar text as the description of its "filter_expr"
+// property. A struct tag cannot hold the entity-specific text, so the
+// description is set here. Used by tools whose input carries a filter_expr
+// field.
+func mcpMustInferFilterExprSchema[T any](grammar string) json.RawMessage {
 	schema, err := jsonschema.For[T](nil)
 	if err != nil {
 		panic("mcp: failed to infer schema: " + err.Error())
@@ -693,7 +708,7 @@ func mcpMustInferFilterExprSchema[T any]() json.RawMessage {
 	if !ok {
 		panic("mcp: schema has no filter_expr property")
 	}
-	p.Description = mcpFilterExprGrammar
+	p.Description = grammar
 	data, err := schema.MarshalJSON()
 	if err != nil {
 		panic("mcp: failed to marshal schema: " + err.Error())
@@ -777,12 +792,12 @@ type mcpGetFiltersInput struct {
 }
 type mcpGetFilterKeysInput struct {
 	AppID  string   `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans or builds"`
+	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports or builds"`
 	Keys   []string `json:"keys,omitempty" jsonschema:"Key names you already know, for example from the user's request, to include in the result even when the listing is truncated"`
 }
 type mcpGetFilterValuesInput struct {
 	AppID   string `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans or builds"`
+	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports or builds"`
 	KeyName string `json:"key_name" jsonschema:"Name of the filter key to list values for, as get_filter_keys returns it"`
 	Search  string `json:"search,omitempty" jsonschema:"Return only values containing this text"`
 	Limit   int    `json:"limit,omitempty" jsonschema:"Maximum number of values to return (default: 50, max: 200)"`
@@ -846,16 +861,19 @@ type mcpGetSessionInput struct {
 	SessionID string `json:"session_id" jsonschema:"UUID of the session"`
 }
 type mcpGetBugReportsInput struct {
-	mcpCommonFilters
-	BugReportStatuses []int  `json:"bug_report_statuses,omitempty" jsonschema:"Filter by status: 0=OPEN, 1=CLOSED"`
-	FreeText          string `json:"free_text,omitempty" jsonschema:"Free text search filter"`
-	Limit             int    `json:"limit,omitempty" jsonschema:"Maximum number of bug reports to return (default: 10)"`
-	Offset            int    `json:"offset,omitempty" jsonschema:"Number of bug reports to skip for pagination (default: 0)"`
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of bug reports to return (default: 10)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of bug reports to skip for pagination (default: 0)"`
 }
 type mcpGetBugReportsOverTimeInput struct {
-	mcpCommonFilters
-	BugReportStatuses []int  `json:"bug_report_statuses,omitempty" jsonschema:"Filter by status: 0=OPEN, 1=CLOSED"`
-	Timezone          string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Timezone   string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
 }
 type mcpGetBugReportInput struct {
 	AppID       string `json:"app_id" jsonschema:"UUID of the app"`
@@ -1088,10 +1106,11 @@ func (c *Config) mcpBuildAppFilter(ctx context.Context, appID uuid.UUID, cf mcpC
 	return af, nil
 }
 
-// mcpSpanExprFilter builds the exprfilter.ExprFilter the span query tools pass
-// to the spans queries, parsing the tool's filter_expr input into the filter
-// tree. The caller still sets Limit, Offset and Timezone, then runs Validate.
-func mcpSpanExprFilter(appID, teamID uuid.UUID, fromStr, toStr, filterExpr string) (*exprfilter.ExprFilter, error) {
+// mcpExprFilter builds the exprfilter.ExprFilter a query tool passes to the
+// given entity's queries, parsing the tool's filter_expr input into the
+// filter tree. The caller still sets Limit, Offset and Timezone, then runs
+// Validate.
+func mcpExprFilter(entity exprfilter.Entity, appID, teamID uuid.UUID, fromStr, toStr, filterExpr string) (*exprfilter.ExprFilter, error) {
 	from, to, err := mcpParseTimeRangeStrings(fromStr, toStr)
 	if err != nil {
 		return nil, err
@@ -1100,7 +1119,7 @@ func mcpSpanExprFilter(appID, teamID uuid.UUID, fromStr, toStr, filterExpr strin
 	ef := &exprfilter.ExprFilter{
 		AppID:      appID,
 		TeamID:     teamID,
-		Entity:     exprfilter.SpansEntity,
+		Entity:     entity,
 		From:       from,
 		To:         to,
 		Limit:      exprfilter.DefaultPaginationLimit,
@@ -1781,7 +1800,7 @@ func (c *Config) mcpGetBugReports(ctx context.Context, in mcpGetBugReportsInput)
 		return nil, nil, err
 	}
 
-	af, err := c.mcpBuildAppFilter(ctx, appID, in.mcpCommonFilters)
+	ef, err := mcpExprFilter(exprfilter.BugReportsEntity, appID, teamID, in.From, in.To, in.FilterExpr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1793,24 +1812,20 @@ func (c *Config) mcpGetBugReports(ctx context.Context, in mcpGetBugReportsInput)
 	if limit > 30 {
 		limit = 30
 	}
-	af.Limit = limit
-	af.Offset = in.Offset
-	af.BugReport = true
+	ef.Limit = limit
+	ef.Offset = in.Offset
 
-	if in.FreeText != "" {
-		af.FreeText = in.FreeText
+	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
+		return nil, nil, fmt.Errorf("failed to read the filter's custom keys: %v", err)
 	}
-	if len(in.BugReportStatuses) > 0 {
-		statuses := make([]int8, len(in.BugReportStatuses))
-		for i, s := range in.BugReportStatuses {
-			statuses[i] = int8(s)
-		}
-		af.BugReportStatuses = statuses
+
+	if err := ef.Validate(); err != nil {
+		return nil, nil, mcpFilterExprError(err)
 	}
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	bugCtx := ambient.WithTeamId(ctx, teamID)
-	bugReports, _, _, bugErr := app.GetBugReportsWithFilter(bugCtx, deps.RchPool, af)
+	bugReports, _, _, bugErr := app.GetBugReportsWithFilter(bugCtx, deps.RchPool, ef)
 	if bugErr != nil {
 		return nil, nil, fmt.Errorf("failed to get bug reports: %v", bugErr)
 	}
@@ -1829,25 +1844,23 @@ func (c *Config) mcpGetBugReportsOverTime(ctx context.Context, in mcpGetBugRepor
 		return nil, nil, err
 	}
 
-	af, err := c.mcpBuildAppFilter(ctx, appID, in.mcpCommonFilters)
+	ef, err := mcpExprFilter(exprfilter.BugReportsEntity, appID, teamID, in.From, in.To, in.FilterExpr)
 	if err != nil {
 		return nil, nil, err
 	}
-	af.Timezone = in.Timezone
-	af.Limit = filter.DefaultPaginationLimit
-	af.BugReport = true
+	ef.Timezone = in.Timezone
 
-	if len(in.BugReportStatuses) > 0 {
-		statuses := make([]int8, len(in.BugReportStatuses))
-		for i, s := range in.BugReportStatuses {
-			statuses[i] = int8(s)
-		}
-		af.BugReportStatuses = statuses
+	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
+		return nil, nil, fmt.Errorf("failed to read the filter's custom keys: %v", err)
+	}
+
+	if err := ef.Validate(); err != nil {
+		return nil, nil, mcpFilterExprError(err)
 	}
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	plotCtx := ambient.WithTeamId(ctx, teamID)
-	instances, plotErr := app.GetBugReportInstancesPlot(plotCtx, deps.RchPool, af)
+	instances, plotErr := app.GetBugReportInstancesPlot(plotCtx, deps.RchPool, ef)
 	if plotErr != nil {
 		return nil, nil, fmt.Errorf("failed to get bug reports plot: %v", plotErr)
 	}
@@ -1905,7 +1918,7 @@ func (c *Config) mcpGetSpanInstances(ctx context.Context, in mcpGetSpanInstances
 		return nil, nil, err
 	}
 
-	ef, err := mcpSpanExprFilter(appID, teamID, in.From, in.To, in.FilterExpr)
+	ef, err := mcpExprFilter(exprfilter.SpansEntity, appID, teamID, in.From, in.To, in.FilterExpr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1952,7 +1965,7 @@ func (c *Config) mcpGetSpanMetricsOverTime(ctx context.Context, in mcpGetSpanMet
 		return nil, nil, err
 	}
 
-	ef, err := mcpSpanExprFilter(appID, teamID, in.From, in.To, in.FilterExpr)
+	ef, err := mcpExprFilter(exprfilter.SpansEntity, appID, teamID, in.From, in.To, in.FilterExpr)
 	if err != nil {
 		return nil, nil, err
 	}

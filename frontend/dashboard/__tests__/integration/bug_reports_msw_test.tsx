@@ -1,15 +1,14 @@
 /**
  * Integration tests for the wiring between the Bug Reports pages and the
- * server: request paths and parameters, filter serialisation into the
- * shortFilters POST and the bug reports GET, pagination round-trips, the
- * status toggle PATCH, and error responses. Rendering details of the
- * overview rows and the detail surface are covered by the unit tests in
+ * server: request paths and parameters, the filter expression carried by
+ * the URL, pagination round-trips, the status toggle PATCH, and error
+ * responses. Rendering details of the overview rows and the detail surface
+ * are covered by the unit tests in
  * __tests__/pages/bug_reports_overview_test.tsx and
  * __tests__/components/bug_report_test.tsx.
  *
  * Unique to bug reports:
- *   - bugReportStatus filter (Open/Closed)
- *   - freeText search
+ *   - the bug_reports filter entity (bug_report_status, user_id, ...)
  *   - PATCH endpoint for status toggle
  */
 import { promiseParams } from "@/__tests__/helpers/promise_params";
@@ -28,6 +27,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
@@ -38,13 +38,33 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
 }));
 
-const mockRouterReplace = jest.fn();
 const mockRouterPush = jest.fn();
-const mockSearchParams = new URLSearchParams();
+
+// The mocked router applies each replace back into the mocked searchParams
+// and notifies subscribers, the way the real router re-renders the page with
+// the URL it just wrote. The page's queries read the URL, so without this
+// they would never see what the bar settled on.
+let mockSearchParams = new URLSearchParams();
+const searchParamsSubscribers = new Set<() => void>();
+const mockRouterReplace = jest.fn(
+  (url: string, _options?: { scroll: boolean }) => {
+    mockSearchParams = new URLSearchParams(url.split("?")[1] ?? "");
+    searchParamsSubscribers.forEach((notify) => notify());
+  },
+);
 jest.mock("next/navigation", () => ({
   __esModule: true,
   useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
-  useSearchParams: () => mockSearchParams,
+  useSearchParams: () => {
+    const { useSyncExternalStore } = require("react");
+    return useSyncExternalStore(
+      (notify: () => void) => {
+        searchParamsSubscribers.add(notify);
+        return () => searchParamsSubscribers.delete(notify);
+      },
+      () => mockSearchParams,
+    );
+  },
   usePathname: () => "/test-team/bug_reports",
 }));
 
@@ -84,10 +104,23 @@ jest.mock("@nivo/line", () => {
   };
 });
 
+// The filter pickers are Radix popovers, which need a resize observer and
+// pointer capture that jsdom does not have.
+(globalThis as any).ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+Element.prototype.scrollIntoView = jest.fn();
+Element.prototype.hasPointerCapture = jest.fn(() => false);
+Element.prototype.setPointerCapture = jest.fn();
+Element.prototype.releasePointerCapture = jest.fn();
+
 // --- MSW ---
 import {
   makeAppFixture,
   makeBugReportDetailFixture,
+  makeBugReportsFilterKeysFixture,
   makeBugReportsOverviewFixture,
   makeBugReportsPlotFixture,
 } from "../msw/fixtures";
@@ -127,12 +160,13 @@ jest.mock("@/app/stores/provider", () => {
   };
 });
 
+const appId = makeAppFixture().id;
+
 beforeEach(() => {
   filtersStore = createFiltersStore();
   onboardingStore = createOnboardingStore();
   queryClient.clear();
-  filtersStore.getState().reset();
-  for (const key of [...mockSearchParams.keys()]) mockSearchParams.delete(key);
+  mockSearchParams = new URLSearchParams();
   const { apiClient } = require("@/app/api/api_client");
   apiClient.init({ replace: jest.fn(), push: jest.fn() });
 });
@@ -147,68 +181,219 @@ function renderWithProviders(ui: React.ReactElement) {
 // BUG REPORTS OVERVIEW
 // ====================================================================
 describe("Bug Reports Overview (MSW integration)", () => {
-  const {
-    AppVersion,
-    OsVersion,
-    BugReportStatus,
-  } = require("@/app/api/api_calls");
-
-  async function renderAndWaitForData() {
-    renderWithProviders(
+  function renderPage() {
+    return renderWithProviders(
       <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
     );
+  }
+
+  function recordBugReportsRequests() {
+    const sent: URL[] = [];
+    server.use(
+      http.get("*/api/apps/:appId/bugReports", ({ request }) => {
+        const url = new URL(request.url);
+        // Only match the list endpoint, not /bugReports/:id or
+        // /bugReports/plots/*.
+        const pathParts = url.pathname.split("/").filter(Boolean);
+        if (pathParts.length > 4) {
+          return;
+        }
+        sent.push(url);
+        return HttpResponse.json(makeBugReportsOverviewFixture());
+      }),
+    );
+    return sent;
+  }
+
+  async function waitForBugReports() {
     await waitFor(
-      () => {
+      () =>
         expect(
           screen.getByText("App crashes when tapping checkout button"),
-        ).toBeTruthy();
-      },
+        ).toBeTruthy(),
       { timeout: 5000 },
     );
   }
 
-  // ================================================================
-  // PAGE LOAD
-  // ================================================================
-  describe("page load", () => {
-    it("shows error when overview API returns 500", async () => {
+  describe("opening the page", () => {
+    it("lists the bug reports the server sent under the plot", async () => {
+      renderPage();
+      await waitForBugReports();
+
+      expect(screen.getByText("ID: evt-br-001")).toBeTruthy();
+      expect(screen.getByTestId("nivo-line-chart")).toBeTruthy();
+    });
+
+    it("asks for the app's bug reports over the range it settled on", async () => {
+      const sent = recordBugReportsRequests();
+      renderPage();
+      await waitForBugReports();
+
+      expect(sent).toHaveLength(1);
+      expect(sent[0].pathname).toBe(`/api/apps/${appId}/bugReports`);
+      const from = sent[0].searchParams.get("from")!;
+      const to = sent[0].searchParams.get("to")!;
+      expect(from).toMatch(/Z$/);
+      expect(to).toMatch(/Z$/);
+      expect(sent[0].searchParams.get("timezone")).toBeTruthy();
+      expect(sent[0].searchParams.get("limit")).toBe("5");
+      expect(sent[0].searchParams.get("offset")).toBe("0");
+      expect(sent[0].searchParams.has("filter_expr")).toBe(false);
+      expect(sent[0].searchParams.has("filter_short_code")).toBe(false);
+      expect(sent[0].searchParams.has("bug_report_statuses")).toBe(false);
+      expect(sent[0].searchParams.has("free_text")).toBe(false);
+    });
+
+    it("sends the time group in the plot request", async () => {
+      const plotUrls: URL[] = [];
       server.use(
-        http.get("*/api/apps/:appId/bugReports", ({ request }) => {
-          const url = new URL(request.url);
-          const pathParts = url.pathname.split("/").filter(Boolean);
-          if (pathParts.length > 4) return;
-          return new HttpResponse(null, { status: 500 });
+        http.get(
+          "*/api/apps/:appId/bugReports/plots/instances",
+          ({ request }) => {
+            plotUrls.push(new URL(request.url));
+            return HttpResponse.json(makeBugReportsPlotFixture());
+          },
+        ),
+      );
+      renderPage();
+      await waitForBugReports();
+
+      await waitFor(() => expect(plotUrls.length).toBeGreaterThan(0));
+      expect(plotUrls[0].pathname).toBe(
+        `/api/apps/${appId}/bugReports/plots/instances`,
+      );
+      expect(plotUrls[0].searchParams.get("plot_time_group")).toBeTruthy();
+      expect(plotUrls[0].searchParams.has("filter_expr")).toBe(false);
+    });
+
+    it("records the app and range it settled on in the URL", async () => {
+      renderPage();
+      await waitForBugReports();
+
+      const written = new URLSearchParams(
+        mockRouterReplace.mock.calls[0][0].slice(1),
+      );
+      expect(written.get("a")).toBe(appId);
+      expect(written.get("d")).toBe("Last 6 Hours");
+      expect(written.get("sd")).toBeTruthy();
+      expect(written.get("ed")).toBeTruthy();
+      expect(written.get("po")).toBe("0");
+    });
+
+    it("offers the keys the entity has, in the groups the server named", async () => {
+      const keysUrls: URL[] = [];
+      server.use(
+        http.get("*/api/apps/:appId/filters/keys", ({ request }) => {
+          keysUrls.push(new URL(request.url));
+          return HttpResponse.json(makeBugReportsFilterKeysFixture());
         }),
       );
+      renderPage();
+      await waitForBugReports();
 
-      renderWithProviders(
-        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
+      fireEvent.click(screen.getByTestId("filter-input"));
+
+      // The list opens on the first group's keys, with the other groups as
+      // tabs; a search reaches keys in every group.
+      const list = within(await screen.findByRole("dialog"));
+      expect(list.getByText("Bug report status")).toBeTruthy();
+      expect(list.getByText("Bug Report")).toBeTruthy();
+      expect(list.getByText("Version")).toBeTruthy();
+      fireEvent.change(list.getByTestId("filter-key-search"), {
+        target: { value: "App version" },
+      });
+      expect(await screen.findByTestId("filter-key-version_name")).toBeTruthy();
+      expect(keysUrls[0].searchParams.get("entity")).toBe("bug_reports");
+    });
+  });
+
+  // ================================================================
+  // FILTER EXPRESSION
+  // ================================================================
+  describe("a link carrying a filter", () => {
+    it("filters the bug reports and the plot by it", async () => {
+      mockSearchParams = new URLSearchParams(
+        `po=0&filter_expr=${encodeURIComponent("bug_report_status:in:open")}`,
       );
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(/Error fetching list of bug reports/),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
+      const sent = recordBugReportsRequests();
+      const plotUrls: URL[] = [];
+      server.use(
+        http.get(
+          "*/api/apps/:appId/bugReports/plots/instances",
+          ({ request }) => {
+            plotUrls.push(new URL(request.url));
+            return HttpResponse.json(makeBugReportsPlotFixture());
+          },
+        ),
+      );
+      renderPage();
+      await waitForBugReports();
+
+      expect(sent[0].searchParams.get("filter_expr")).toBe(
+        "bug_report_status:in:open",
+      );
+      await waitFor(() => expect(plotUrls.length).toBeGreaterThan(0));
+      expect(plotUrls[0].searchParams.get("filter_expr")).toBe(
+        "bug_report_status:in:open",
       );
     });
 
-    it("shows plot error when plot API returns 500", async () => {
+    it("draws it as a condition a person can edit", async () => {
+      mockSearchParams = new URLSearchParams(
+        `po=0&filter_expr=${encodeURIComponent("bug_report_status:in:open")}`,
+      );
+      renderPage();
+      await waitForBugReports();
+
+      const bar = within(screen.getByTestId("filter-bar"));
+      expect(await screen.findByText("Bug report status")).toBeTruthy();
+      expect(bar.getByText("is")).toBeTruthy();
+      expect(bar.getByText("open")).toBeTruthy();
+    });
+
+    it("filters by nothing when it cannot be read", async () => {
+      mockSearchParams = new URLSearchParams(
+        `po=0&filter_expr=${encodeURIComponent("bug_report_status:in:")}`,
+      );
+      const sent = recordBugReportsRequests();
+      renderPage();
+      await waitForBugReports();
+
+      expect(sent[0].searchParams.has("filter_expr")).toBe(false);
+    });
+  });
+
+  describe("filtering by a value", () => {
+    it("asks the server for the key's values, then filters by the one picked", async () => {
+      const values: URL[] = [];
       server.use(
-        http.get("*/api/apps/:appId/bugReports/plots/instances", () => {
-          return new HttpResponse(null, { status: 500 });
+        http.get("*/api/apps/:appId/filters/values", ({ request }) => {
+          values.push(new URL(request.url));
+          return HttpResponse.json({
+            values: [{ text: "open", label: "Open" }, { text: "closed" }],
+            truncated: false,
+          });
         }),
       );
+      const sent = recordBugReportsRequests();
+      renderPage();
+      await waitForBugReports();
 
-      renderWithProviders(
-        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
+      fireEvent.click(screen.getByTestId("filter-input"));
+      fireEvent.change(await screen.findByTestId("filter-key-search"), {
+        target: { value: "Bug report status" },
+      });
+      fireEvent.click(
+        await screen.findByTestId("filter-key-bug_report_status"),
       );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Error fetching plot/)).toBeTruthy();
-        },
-        { timeout: 5000 },
+      fireEvent.click(await screen.findByText("<values>"));
+      fireEvent.click(await screen.findByTestId("filter-value-open"));
+
+      await waitFor(() => expect(sent).toHaveLength(2));
+      expect(values[0].searchParams.get("entity")).toBe("bug_reports");
+      expect(values[0].searchParams.get("key_name")).toBe("bug_report_status");
+      expect(sent[1].searchParams.get("filter_expr")).toBe(
+        "bug_report_status:in:open",
       );
     });
   });
@@ -241,10 +426,8 @@ describe("Bug Reports Overview (MSW integration)", () => {
         }),
       );
 
-      await renderAndWaitForData();
-      expect(
-        screen.getByText("App crashes when tapping checkout button"),
-      ).toBeTruthy();
+      renderPage();
+      await waitForBugReports();
 
       // Navigate to page 2
       await act(async () => {
@@ -264,14 +447,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
       await act(async () => {
         fireEvent.click(screen.getByText("Previous").closest("button")!);
       });
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText("App crashes when tapping checkout button"),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
+      await waitForBugReports();
       expect(screen.queryByText("Page 2 bug report")).toBeNull();
 
       // URL reflects page 1
@@ -305,10 +481,8 @@ describe("Bug Reports Overview (MSW integration)", () => {
         }),
       );
 
-      mockSearchParams.set("po", "5");
-      renderWithProviders(
-        <BugReportsOverview params={promiseParams({ teamId: "test-team" })} />,
-      );
+      mockSearchParams = new URLSearchParams("po=5");
+      renderPage();
       await waitFor(
         () => {
           expect(
@@ -325,427 +499,59 @@ describe("Bug Reports Overview (MSW integration)", () => {
   });
 
   // ================================================================
-  // FILTERS — all relevant filter types
+  // ERROR STATES
   // ================================================================
-  describe("filters", () => {
-    let shortFilterBodies: any[];
-    let requestUrls: string[];
-
-    beforeEach(() => {
-      shortFilterBodies = [];
-      requestUrls = [];
-      server.use(
-        http.post("*/api/apps/:appId/shortFilters", async ({ request }) => {
-          shortFilterBodies.push(await request.json());
-          return HttpResponse.json({
-            filter_short_code: `code-${shortFilterBodies.length}`,
-          });
-        }),
-        http.get("*/api/apps/:appId/bugReports", ({ request }) => {
-          const url = new URL(request.url);
-          const pathParts = url.pathname.split("/").filter(Boolean);
-          if (pathParts.length > 4) return;
-          requestUrls.push(url.toString());
-          return HttpResponse.json(makeBugReportsOverviewFixture());
-        }),
-      );
-    });
-
-    // Each row applies one filter through the store and states what the page
-    // must send to the server: most filters travel as a field in the
-    // shortFilters POST body (bodyField/bodyValue), while free text and bug
-    // report status go directly as query parameters on the bug reports GET
-    // request (urlContains).
-    const filterCases: {
-      name: string;
-      apply: () => void;
-      bodyField?: string;
-      bodyValue?: unknown;
-      urlContains?: string;
-    }[] = [
-      {
-        name: "version change sends versions in shortFilters POST",
-        apply: () =>
-          filtersStore
-            .getState()
-            .setSelectedVersions([new AppVersion("3.0.1", "301")]),
-        bodyField: "versions",
-        bodyValue: ["3.0.1"],
-      },
-      {
-        name: "OS version change sends os_names in shortFilters POST",
-        apply: () =>
-          filtersStore
-            .getState()
-            .setSelectedOsVersions([new OsVersion("android", "14")]),
-        bodyField: "os_names",
-        bodyValue: ["android"],
-      },
-      {
-        name: "country change sends countries in POST",
-        apply: () => filtersStore.getState().setSelectedCountries(["DE"]),
-        bodyField: "countries",
-        bodyValue: ["DE"],
-      },
-      {
-        name: "network provider change sends network_providers in POST",
-        apply: () =>
-          filtersStore.getState().setSelectedNetworkProviders(["Jio"]),
-        bodyField: "network_providers",
-        bodyValue: ["Jio"],
-      },
-      {
-        name: "network type change sends network_types in POST",
-        apply: () =>
-          filtersStore.getState().setSelectedNetworkTypes(["cellular"]),
-        bodyField: "network_types",
-        bodyValue: ["cellular"],
-      },
-      {
-        name: "network generation change sends network_generations in POST",
-        apply: () =>
-          filtersStore.getState().setSelectedNetworkGenerations(["5g"]),
-        bodyField: "network_generations",
-        bodyValue: ["5g"],
-      },
-      {
-        name: "locale change sends locales in POST",
-        apply: () => filtersStore.getState().setSelectedLocales(["hi-IN"]),
-        bodyField: "locales",
-        bodyValue: ["hi-IN"],
-      },
-      {
-        name: "device manufacturer change sends device_manufacturers in POST",
-        apply: () =>
-          filtersStore.getState().setSelectedDeviceManufacturers(["Samsung"]),
-        bodyField: "device_manufacturers",
-        bodyValue: ["Samsung"],
-      },
-      {
-        name: "device name change sends device_names in POST",
-        apply: () =>
-          filtersStore.getState().setSelectedDeviceNames(["Galaxy S24"]),
-        bodyField: "device_names",
-        bodyValue: ["Galaxy S24"],
-      },
-      {
-        name: "free text change triggers re-fetch with free_text in URL",
-        apply: () => filtersStore.getState().setSelectedFreeText("user-123"),
-        urlContains: "free_text=",
-      },
-      {
-        name: "bug report status filter sends bug_report_statuses in URL",
-        apply: () =>
-          filtersStore
-            .getState()
-            .setSelectedBugReportStatuses([BugReportStatus.Closed]),
-        urlContains: "bug_report_statuses=1",
-      },
-    ];
-
-    it.each(filterCases)(
-      "$name",
-      async ({ apply, bodyField, bodyValue, urlContains }) => {
-        await renderAndWaitForData();
-        shortFilterBodies.length = 0;
-        requestUrls.length = 0;
-
-        await act(async () => {
-          apply();
-        });
-
-        if (bodyField !== undefined) {
-          await waitFor(
-            () => expect(shortFilterBodies.length).toBeGreaterThan(0),
-            { timeout: 5000 },
-          );
-          expect(
-            shortFilterBodies[shortFilterBodies.length - 1].filters[bodyField],
-          ).toEqual(bodyValue);
-        } else {
-          await waitFor(() => expect(requestUrls.length).toBeGreaterThan(0), {
-            timeout: 5000,
-          });
-          expect(requestUrls[requestUrls.length - 1]).toContain(urlContains!);
-        }
-      },
-    );
-  });
-
-  // ================================================================
-  // URL SYNC
-  // ================================================================
-  describe("URL sync", () => {
-    it("serialises filters into URL", async () => {
-      await renderAndWaitForData();
-      expect(mockRouterReplace).toHaveBeenCalled();
-      const url =
-        mockRouterReplace.mock.calls[
-          mockRouterReplace.mock.calls.length - 1
-        ][0];
-      // The URL should contain serialised filter params (app, dates, etc.)
-      expect(url).toContain("a=");
-      expect(url).toContain("sd=");
-      expect(url).toContain("ed=");
-    });
-  });
-
-  // ================================================================
-  // API PATH VERIFICATION
-  // ================================================================
-  describe("API paths", () => {
-    it("fetches from /bugReports path (not /crashGroups or /anrGroups)", async () => {
-      const requestPaths: string[] = [];
+  describe("when the server fails", () => {
+    it("shows error when overview API returns 500", async () => {
       server.use(
         http.get("*/api/apps/:appId/bugReports", ({ request }) => {
           const url = new URL(request.url);
           const pathParts = url.pathname.split("/").filter(Boolean);
           if (pathParts.length > 4) return;
-          requestPaths.push(url.pathname);
-          return HttpResponse.json(makeBugReportsOverviewFixture());
+          return new HttpResponse(null, { status: 500 });
         }),
       );
 
-      await renderAndWaitForData();
-      expect(requestPaths.some((p) => p.includes("/bugReports"))).toBe(true);
-      expect(requestPaths.some((p) => p.includes("/crashGroups"))).toBe(false);
-    });
-
-    it("plot endpoint uses /bugReports/plots/instances", async () => {
-      const plotPaths: string[] = [];
-      server.use(
-        http.get(
-          "*/api/apps/:appId/bugReports/plots/instances",
-          ({ request }) => {
-            plotPaths.push(new URL(request.url).pathname);
-            return HttpResponse.json(makeBugReportsPlotFixture());
-          },
-        ),
-      );
-
-      await renderAndWaitForData();
+      renderPage();
       expect(
-        plotPaths.some((p) => p.includes("/bugReports/plots/instances")),
-      ).toBe(true);
-    });
-  });
-
-  // ================================================================
-  // REQUEST URL PARAMS
-  // ================================================================
-  describe("request URL params", () => {
-    it("sends limit=5 and offset in request URL", async () => {
-      const requestUrls: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/bugReports", ({ request }) => {
-          const url = new URL(request.url);
-          const pathParts = url.pathname.split("/").filter(Boolean);
-          if (pathParts.length > 4) return;
-          requestUrls.push(url.toString());
-          return HttpResponse.json(makeBugReportsOverviewFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
-      const lastUrl = requestUrls[requestUrls.length - 1];
-      expect(lastUrl).toContain("limit=5");
-      expect(lastUrl).toContain("offset=0");
+        await screen.findByText(/Error fetching list of bug reports/),
+      ).toBeTruthy();
     });
 
-    it("default selection (Open only) sends bug_report_statuses=0 in initial request", async () => {
-      const requestUrls: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/bugReports", ({ request }) => {
-          const url = new URL(request.url);
-          const pathParts = url.pathname.split("/").filter(Boolean);
-          if (pathParts.length > 4) return;
-          requestUrls.push(url.toString());
-          return HttpResponse.json(makeBugReportsOverviewFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
-      // Default bug report status selection is [Open], so initial request should include status 0
-      const lastUrl = requestUrls[requestUrls.length - 1];
-      expect(lastUrl).toContain("bug_report_statuses=0");
-      expect(lastUrl).not.toContain("bug_report_statuses=1");
-    });
-
-    it("selecting all statuses omits bug_report_statuses from URL", async () => {
-      const requestUrls: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/bugReports", ({ request }) => {
-          const url = new URL(request.url);
-          const pathParts = url.pathname.split("/").filter(Boolean);
-          if (pathParts.length > 4) return;
-          requestUrls.push(url.toString());
-          return HttpResponse.json(makeBugReportsOverviewFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
-      requestUrls.length = 0;
-
-      await act(async () => {
-        filtersStore
-          .getState()
-          .setSelectedBugReportStatuses([
-            BugReportStatus.Open,
-            BugReportStatus.Closed,
-          ]);
-      });
-
-      await waitFor(() => expect(requestUrls.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      const lastUrl = requestUrls[requestUrls.length - 1];
-      // When all statuses selected, the filter is omitted (all=true → no param)
-      expect(lastUrl).not.toContain("bug_report_statuses=");
-    });
-
-    it("ud_expression sent in shortFilters POST for user-defined attribute filter", async () => {
-      let shortFilterBodies: any[] = [];
-      server.use(
-        http.post("*/api/apps/:appId/shortFilters", async ({ request }) => {
-          shortFilterBodies.push(await request.json());
-          return HttpResponse.json({
-            filter_short_code: `code-ud-${shortFilterBodies.length}`,
-          });
-        }),
-      );
-
-      await renderAndWaitForData();
-      shortFilterBodies.length = 0;
-
-      await act(async () => {
-        filtersStore
-          .getState()
-          .setSelectedUdAttrMatchers([
-            { key: "premium", type: "bool", op: "eq", value: true },
-          ]);
-      });
-
-      await waitFor(() => expect(shortFilterBodies.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      const body = shortFilterBodies[shortFilterBodies.length - 1];
-      expect(body.filters.ud_expression).toBeDefined();
-      const expr = JSON.parse(body.filters.ud_expression);
-      expect(expr.and[0].cmp.key).toBe("premium");
-      expect(expr.and[0].cmp.op).toBe("eq");
-      // Value may be serialized as string "true" or boolean true depending on JSON encoding
-      expect(String(expr.and[0].cmp.value)).toBe("true");
-    });
-
-    it("request URL contains correct app ID from filters", async () => {
-      const requestPaths: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/bugReports", ({ request }) => {
-          const url = new URL(request.url);
-          const pathParts = url.pathname.split("/").filter(Boolean);
-          if (pathParts.length > 4) return;
-          requestPaths.push(url.pathname);
-          return HttpResponse.json(makeBugReportsOverviewFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
-      expect(requestPaths[requestPaths.length - 1]).toContain(
-        `/apps/${makeAppFixture().id}/bugReports`,
-      );
-    });
-  });
-
-  // ================================================================
-  // PAGINATION EDGE CASES
-  // ================================================================
-  describe("pagination edge cases", () => {
-    it("offset updates in request URL after nextPage", async () => {
-      const requestUrls: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/bugReports", ({ request }) => {
-          const url = new URL(request.url);
-          const pathParts = url.pathname.split("/").filter(Boolean);
-          if (pathParts.length > 4) return;
-          requestUrls.push(url.toString());
-          return HttpResponse.json(makeBugReportsOverviewFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
-      requestUrls.length = 0;
-
-      await act(async () => {
-        fireEvent.click(screen.getByText("Next").closest("button")!);
-      });
-      await waitFor(() => expect(requestUrls.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      expect(requestUrls[requestUrls.length - 1]).toContain("offset=5");
-    });
-  });
-
-  // ================================================================
-  // PLOT STORE
-  // ================================================================
-  describe("plot store", () => {
-    it("plot re-fetches when filters change", async () => {
-      let plotFetchCount = 0;
+    it("shows plot error when plot API returns 500", async () => {
       server.use(
         http.get("*/api/apps/:appId/bugReports/plots/instances", () => {
-          plotFetchCount++;
-          return HttpResponse.json(makeBugReportsPlotFixture());
+          return new HttpResponse(null, { status: 500 });
         }),
       );
 
-      await renderAndWaitForData();
-      const initialPlotCount = plotFetchCount;
+      renderPage();
+      expect(await screen.findByText(/Error fetching plot/)).toBeTruthy();
+    });
 
-      await act(async () => {
-        filtersStore
-          .getState()
-          .setSelectedVersions([new AppVersion("3.0.1", "301")]);
-      });
-
-      await waitFor(
-        () => {
-          expect(plotFetchCount).toBeGreaterThan(initialPlotCount);
-        },
-        { timeout: 5000 },
+    it("says so when the team's apps cannot be fetched", async () => {
+      server.use(
+        http.get("*/api/teams/:teamId/apps", () => {
+          return new HttpResponse(null, { status: 500 });
+        }),
       );
+      renderPage();
+
+      expect(await screen.findByText(/Error fetching apps/)).toBeTruthy();
     });
   });
 
   // ================================================================
-  // CONCURRENT / RE-RENDER
+  // RE-RENDER
   // ================================================================
-  describe("concurrent and re-render", () => {
-    it("rapid pagination does not produce duplicate fetches for same offset", async () => {
-      let fetchCount = 0;
-      server.use(
-        http.get("*/api/apps/:appId/bugReports", ({ request }) => {
-          const url = new URL(request.url);
-          const pathParts = url.pathname.split("/").filter(Boolean);
-          if (pathParts.length > 4) return;
-          fetchCount++;
-          return HttpResponse.json(makeBugReportsOverviewFixture());
-        }),
-      );
+  describe("re-render", () => {
+    it("re-render still shows data", async () => {
+      const { unmount } = renderPage();
+      await waitForBugReports();
 
-      await renderAndWaitForData();
-      fetchCount = 0;
-
-      // Rapidly click next then previous — should settle at offset 0
-      await act(async () => {
-        fireEvent.click(screen.getByText("Next").closest("button")!);
-        fireEvent.click(screen.getByText("Previous").closest("button")!);
-      });
-
-      // Wait for any fetches to settle
-      await new Promise((r) => setTimeout(r, 200));
-      // The final offset is 0 (same as initial), so no new fetch should be needed
-      // (or at most 1 if the intermediate state triggered one)
-      expect(fetchCount).toBeLessThanOrEqual(1);
+      unmount();
+      renderPage();
+      await waitForBugReports();
     });
   });
 });

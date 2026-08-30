@@ -25,7 +25,6 @@ jest.mock("@/app/utils/navigation", () => ({
 }));
 
 import {
-  BugReportStatus,
   buildShortFiltersPostBody,
   changeAppApiKeyFromServer,
   changeAppNameFromServer,
@@ -851,18 +850,6 @@ describe("sessions, bug reports, alerts", () => {
     expect(lastFetchUrl()).toBe("/api/apps/app-1/sessions/sess-1");
   });
 
-  it("fetchBugReportsOverviewFromServer includes path and filters", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
-    await fetchBugReportsOverviewFromServer(makeFilters(), 5, 0);
-    expect(lastFetchUrl()).toContain("/api/apps/app-a/bugReports");
-  });
-
-  it("fetchBugReportsOverviewPlotFromServer returns null on a null body", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    const r = await fetchBugReportsOverviewPlotFromServer(makeFilters());
-    expect(r).toBeNull();
-  });
-
   it("fetchBugReportFromServer returns the body on 200", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ bug: {} }));
     const r = await fetchBugReportFromServer("app-1", "bug-1");
@@ -1283,28 +1270,6 @@ describe("applyGenericFiltersToUrl filter branches", () => {
     expect(url).not.toContain("background=");
   });
 
-  it("appends bug_report_statuses for Open/Closed", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
-    await fetchBugReportsOverviewFromServer(
-      makeFilters({
-        bugReportStatuses: {
-          all: false,
-          selected: [BugReportStatus.Open, BugReportStatus.Closed],
-        },
-      }),
-      5,
-      0,
-    );
-    const url = lastFetchUrl();
-    // NOTE: fetchBugReportsOverviewFromServer calls both
-    // applyGenericFiltersToUrl (which appends bug_report_statuses) AND
-    // appendBugReportStatusesToUrl (which appends them again) — so each
-    // status shows up twice in the final URL. This is a duplication in
-    // api_calls.ts; pin the current behaviour here rather than the ideal.
-    expect(url).toContain("bug_report_statuses=0");
-    expect(url).toContain("bug_report_statuses=1");
-  });
-
   it("appends free_text when non-empty", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
     await fetchMetricsFromServer(makeFilters({ freeText: "search me" }));
@@ -1437,6 +1402,102 @@ describe("fetchSpanMetricsPlotFromServer", () => {
   });
 });
 
+describe("fetchBugReportsOverviewFromServer", () => {
+  const call = (filterExpr: string | null = null) =>
+    fetchBugReportsOverviewFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      filterExpr,
+      5,
+      10,
+    );
+
+  it("sends the range, timezone and page in the URL", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await call();
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/bugReports");
+    expect(url.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    expect(url.searchParams.get("limit")).toBe("5");
+    expect(url.searchParams.get("offset")).toBe("10");
+    expect(url.searchParams.has("filter_expr")).toBe(false);
+    expect(url.searchParams.has("filter_short_code")).toBe(false);
+    expect(url.searchParams.has("bug_report_statuses")).toBe(false);
+    expect(url.searchParams.has("free_text")).toBe(false);
+  });
+
+  it("sends the filter expression when one is given", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await call("bug_report_status:in:open");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("filter_expr")).toBe(
+      "bug_report_status:in:open",
+    );
+  });
+
+  it("returns data, throws on failure", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ a: 1 }));
+    expect(await call()).toEqual({ a: 1 });
+
+    mockApiClientFetch.mockResolvedValueOnce(errorResponse());
+    await expect(call()).rejects.toThrow(ApiError);
+
+    mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
+    await expect(call()).rejects.toThrow(RequestError);
+  });
+});
+
+describe("fetchBugReportsOverviewPlotFromServer", () => {
+  const call = (filterExpr: string | null = null) =>
+    fetchBugReportsOverviewPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      filterExpr,
+    );
+
+  it("sends the range, timezone and time group in the URL", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
+    await call();
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/bugReports/plots/instances");
+    expect(url.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    // A nine day range buckets by day.
+    expect(url.searchParams.get("plot_time_group")).toBe("days");
+    expect(url.searchParams.has("filter_expr")).toBe(false);
+  });
+
+  it("sends the filter expression when one is given", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
+    await call("bug_report_status:in:open");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("filter_expr")).toBe(
+      "bug_report_status:in:open",
+    );
+  });
+
+  it("returns null when response data is null", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
+    expect(await call()).toBeNull();
+  });
+
+  it("returns data, throws on failure", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse([{ id: "v1" }]));
+    expect(await call()).toEqual([{ id: "v1" }]);
+
+    mockApiClientFetch.mockResolvedValueOnce(errorResponse());
+    await expect(call()).rejects.toThrow(ApiError);
+
+    mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
+    await expect(call()).rejects.toThrow(RequestError);
+  });
+});
+
 // ========================================================================
 // Failure paths for the fetch functions that didn't get them in the
 // happy-path tests above. Parameterized to keep it compact.
@@ -1462,11 +1523,25 @@ describe("fetch functions: failure paths", () => {
     ],
     [
       "fetchBugReportsOverviewFromServer",
-      () => fetchBugReportsOverviewFromServer(makeFilters(), 5, 0),
+      () =>
+        fetchBugReportsOverviewFromServer(
+          "app-a",
+          "2026-04-01T00:00:00.000Z",
+          "2026-04-10T00:00:00.000Z",
+          null,
+          5,
+          0,
+        ),
     ],
     [
       "fetchBugReportsOverviewPlotFromServer",
-      () => fetchBugReportsOverviewPlotFromServer(makeFilters()),
+      () =>
+        fetchBugReportsOverviewPlotFromServer(
+          "app-a",
+          "2026-04-01T00:00:00.000Z",
+          "2026-04-10T00:00:00.000Z",
+          null,
+        ),
     ],
     ["fetchBugReportFromServer", () => fetchBugReportFromServer("a", "b")],
     [
@@ -1665,13 +1740,6 @@ describe("additional branch coverage", () => {
     expect(url).not.toContain("background=");
   });
 
-  it("fetchBugReportsOverviewPlotFromServer throws on non-ok", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    await expect(
-      fetchBugReportsOverviewPlotFromServer(makeFilters()),
-    ).rejects.toThrow(ApiError);
-  });
-
   it("fetchUsageFromServer returns null on 404", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse(404));
     const r = await fetchUsageFromServer("t1");
@@ -1718,12 +1786,6 @@ describe("additional branch coverage", () => {
   it("OsVersion class passes through unknown OS name", async () => {
     const { OsVersion } = jest.requireActual("@/app/api/api_calls");
     expect(new OsVersion("windows", "11").displayName).toBe("windows 11");
-  });
-
-  it("fetchBugReportsOverviewPlotFromServer passes an empty body through", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
-    const r = await fetchBugReportsOverviewPlotFromServer(makeFilters());
-    expect(r).toEqual({});
   });
 
   it("createTeamFromServer throws the server message on non-ok", async () => {

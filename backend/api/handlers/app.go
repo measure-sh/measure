@@ -3155,12 +3155,12 @@ func (h Handlers) GetBugReportsOverview(c *gin.Context) {
 		return
 	}
 
-	af := filter.AppFilter{
+	ef := exprfilter.ExprFilter{
 		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
+		Limit: exprfilter.DefaultPaginationLimit,
 	}
 
-	if err := c.ShouldBindQuery(&af); err != nil {
+	if err := c.ShouldBindQuery(&ef); err != nil {
 		msg := `failed to parse query parameters`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -3170,44 +3170,14 @@ func (h Handlers) GetBugReportsOverview(c *gin.Context) {
 		return
 	}
 
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
+	ef.Entity = exprfilter.BugReportsEntity
+
+	if err := ef.BuildExprTree(); err != nil {
+		respondFilterError(c, err)
 		return
 	}
 
-	msg := "bug reports overview request validation failed"
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
-	}
+	ef.SetDefaultTimeRangeIfUnset()
 
 	app := measure.App{
 		ID: &id,
@@ -3259,6 +3229,7 @@ func (h Handlers) GetBugReportsOverview(c *gin.Context) {
 	}
 
 	app.TeamId = *team.ID
+	ef.TeamID = *team.ID
 
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
@@ -3269,7 +3240,21 @@ func (h Handlers) GetBugReportsOverview(c *gin.Context) {
 
 	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "list"))
 
-	bugReports, next, previous, err := app.GetBugReportsWithFilter(ctx, deps.RchPool, &af)
+	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
+		msg := "failed to read the filter's custom keys"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if err := ef.Validate(); err != nil {
+		respondFilterError(c, err)
+		return
+	}
+
+	bugReports, next, previous, err := app.GetBugReportsWithFilter(ctx, deps.RchPool, &ef)
 	if err != nil {
 		msg := "failed to get app's bug reports"
 		fmt.Println(msg, err)
@@ -3301,12 +3286,12 @@ func (h Handlers) GetBugReportsInstancesPlot(c *gin.Context) {
 		return
 	}
 
-	af := filter.AppFilter{
+	ef := exprfilter.ExprFilter{
 		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
+		Limit: exprfilter.DefaultPaginationLimit,
 	}
 
-	if err := c.ShouldBindQuery(&af); err != nil {
+	if err := c.ShouldBindQuery(&ef); err != nil {
 		msg := `failed to parse query parameters`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -3316,52 +3301,21 @@ func (h Handlers) GetBugReportsInstancesPlot(c *gin.Context) {
 		return
 	}
 
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
+	ef.Entity = exprfilter.BugReportsEntity
+
+	if err := ef.BuildExprTree(); err != nil {
+		respondFilterError(c, err)
 		return
 	}
 
-	msg := `bug reports plot request validation failed`
-
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if !af.HasTimezone() {
+	if ef.Timezone == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "missing required field `timezone`",
 		})
 		return
 	}
 
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
-	}
+	ef.SetDefaultTimeRangeIfUnset()
 
 	app := measure.App{
 		ID: &id,
@@ -3413,6 +3367,7 @@ func (h Handlers) GetBugReportsInstancesPlot(c *gin.Context) {
 	}
 
 	app.TeamId = *team.ID
+	ef.TeamID = *team.ID
 
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
@@ -3423,7 +3378,21 @@ func (h Handlers) GetBugReportsInstancesPlot(c *gin.Context) {
 
 	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_instances"))
 
-	bugReportInstances, err := app.GetBugReportInstancesPlot(ctx, deps.RchPool, &af)
+	if err := ef.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
+		msg := "failed to read the filter's custom keys"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	if err := ef.Validate(); err != nil {
+		respondFilterError(c, err)
+		return
+	}
+
+	bugReportInstances, err := app.GetBugReportInstancesPlot(ctx, deps.RchPool, &ef)
 	if err != nil {
 		msg := `failed to query data for bug reports plot`
 		fmt.Println(msg, err)
