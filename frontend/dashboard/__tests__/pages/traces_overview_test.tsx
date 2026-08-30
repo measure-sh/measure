@@ -184,10 +184,18 @@ jest.mock("@/app/components/skeleton", () => ({
   SkeletonListPage: () => <div data-testid="skeleton-list-page-mock" />,
 }));
 
+// The real plot shows a skeleton while its query is pending, so the stub
+// distinguishes that case for tests that check what fills the plot area.
 jest.mock("@/app/components/span_metrics_plot", () => ({
   __esModule: true,
-  default: () => (
-    <div data-testid="span-metrics-plot-mock">TracesOverviewPlot Rendered</div>
+  default: (props: any) => (
+    <div data-testid="span-metrics-plot-mock">
+      {props.query.status === "pending" ? (
+        <div data-testid="skeleton-plot-mock" />
+      ) : (
+        "TracesOverviewPlot Rendered"
+      )}
+    </div>
   ),
 }));
 
@@ -365,6 +373,18 @@ describe("TracesOverview page", () => {
     expect(screen.getByTestId("span-metrics-plot-mock")).toBeInTheDocument();
     expect(screen.getByTestId("next-button")).toBeDisabled();
     expect(screen.getByTestId("prev-button")).toBeDisabled();
+  });
+
+  it("shows the plot skeleton while the bar's report waits to reach the URL", () => {
+    mockDeferReplace = true;
+    spansLoaded();
+    renderPage();
+
+    // The URL write has not landed, so the bar's report does not match the
+    // URL yet and the queries stay disabled with a null filter.
+    expect(mockUseSpansQuery).toHaveBeenLastCalledWith(null, null, 0);
+    expect(screen.getByTestId("span-metrics-plot-mock")).toBeInTheDocument();
+    expect(screen.getByTestId("skeleton-plot-mock")).toBeInTheDocument();
   });
 
   it("renders the plot, paginator and table headers once ready", async () => {

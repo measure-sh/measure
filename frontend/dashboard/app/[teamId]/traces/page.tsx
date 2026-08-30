@@ -188,12 +188,11 @@ export default function TracesOverview(props: {
       {readyFilter !== null &&
         (status === "success" || status === "pending") && (
           <div className="flex flex-col items-center w-full">
-            {filterParams !== null && (
-              <SpanMetricsPlot
-                filterParams={filterParams}
-                query={spanMetricsPlotQuery}
-              />
-            )}
+            <SpanMetricsPlot
+              startDate={readyFilter.date.startDate}
+              endDate={readyFilter.date.endDate}
+              query={spanMetricsPlotQuery}
+            />
             <div className="self-end">
               <Paginator
                 prevEnabled={isFetching ? false : spans.meta.previous}

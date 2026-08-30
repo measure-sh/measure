@@ -3,7 +3,6 @@
 import {
   RootSpanMetricsQuantile,
   transformSpanMetricsPlotData,
-  type FilterParams,
   type useSpanMetricsPlotQuery,
 } from "@/app/query/hooks";
 import { ResponsiveLineCanvas } from "@nivo/line";
@@ -26,9 +25,10 @@ import { SkeletonPlot } from "./skeleton";
 import TabSelect from "./tab_select";
 
 const SpanMetricsPlot: React.FC<{
-  filterParams: FilterParams;
+  startDate: string;
+  endDate: string;
   query: ReturnType<typeof useSpanMetricsPlotQuery>;
-}> = ({ filterParams, query }) => {
+}> = ({ startDate, endDate, query }) => {
   const [quantile, setQuantile] = useState<RootSpanMetricsQuantile>(
     RootSpanMetricsQuantile.p50,
   );
@@ -36,10 +36,7 @@ const SpanMetricsPlot: React.FC<{
   const { theme } = useTheme();
   const chartColors = useChartColors();
   const canvasTheme = useChartCanvasTheme();
-  const plotTimeGroup = getPlotTimeGroupForRange(
-    filterParams.startDate,
-    filterParams.endDate,
-  );
+  const plotTimeGroup = getPlotTimeGroupForRange(startDate, endDate);
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
 
   const plot = useMemo(() => {

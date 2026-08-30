@@ -44,11 +44,9 @@ jest.mock("@/app/components/tab_select", () => ({
 
 import SpanMetricsPlot from "@/app/components/span_metrics_plot";
 
-const filterParams = {
-  appId: "app-1",
+const plotDates = {
   startDate: "2026-02-01T00:00:00Z",
   endDate: "2026-02-01T08:00:00Z",
-  filterExpr: null,
 };
 
 function queryWith(overrides: any) {
@@ -80,7 +78,7 @@ describe("SpanMetricsPlot", () => {
   it("renders no data state when the server sends a null plot", async () => {
     render(
       <SpanMetricsPlot
-        filterParams={filterParams}
+        {...plotDates}
         query={queryWith({ data: null, status: "success" })}
       />,
     );
@@ -91,7 +89,7 @@ describe("SpanMetricsPlot", () => {
   it("renders error state", async () => {
     render(
       <SpanMetricsPlot
-        filterParams={filterParams}
+        {...plotDates}
         query={queryWith({ status: "error", error: new Error("test") })}
       />,
     );
@@ -99,16 +97,14 @@ describe("SpanMetricsPlot", () => {
   });
 
   it("renders loading state before the request resolves", async () => {
-    render(
-      <SpanMetricsPlot filterParams={filterParams} query={queryWith({})} />,
-    );
+    render(<SpanMetricsPlot {...plotDates} query={queryWith({})} />);
     expect(screen.getByText("loading")).toBeInTheDocument();
   });
 
   it("maps quantile and updates when tab changes", async () => {
     render(
       <SpanMetricsPlot
-        filterParams={filterParams}
+        {...plotDates}
         query={queryWith({ data: rawPlotData, status: "success" })}
       />,
     );
@@ -130,7 +126,7 @@ describe("SpanMetricsPlot", () => {
   it("renders tooltip with human readable millis", async () => {
     render(
       <SpanMetricsPlot
-        filterParams={filterParams}
+        {...plotDates}
         query={queryWith({ data: rawPlotData, status: "success" })}
       />,
     );
@@ -152,15 +148,14 @@ describe("SpanMetricsPlot", () => {
   });
 
   it("uses hour axis configuration for multi-day ranges", async () => {
-    const hoursParams = {
-      ...filterParams,
+    const hoursDates = {
       startDate: "2026-02-01T00:00:00Z",
       endDate: "2026-02-06T00:00:00Z",
     };
 
     render(
       <SpanMetricsPlot
-        filterParams={hoursParams}
+        {...hoursDates}
         query={queryWith({ data: rawPlotData, status: "success" })}
       />,
     );
@@ -171,15 +166,14 @@ describe("SpanMetricsPlot", () => {
   });
 
   it("uses day axis configuration for medium ranges", async () => {
-    const daysParams = {
-      ...filterParams,
+    const daysDates = {
       startDate: "2026-01-01T00:00:00Z",
       endDate: "2026-03-15T00:00:00Z",
     };
 
     render(
       <SpanMetricsPlot
-        filterParams={daysParams}
+        {...daysDates}
         query={queryWith({ data: rawPlotData, status: "success" })}
       />,
     );
@@ -190,15 +184,14 @@ describe("SpanMetricsPlot", () => {
   });
 
   it("uses month axis configuration for large ranges", async () => {
-    const monthsParams = {
-      ...filterParams,
+    const monthsDates = {
       startDate: "2025-01-01T00:00:00Z",
       endDate: "2026-01-01T00:00:00Z",
     };
 
     render(
       <SpanMetricsPlot
-        filterParams={monthsParams}
+        {...monthsDates}
         query={queryWith({ data: rawPlotData, status: "success" })}
       />,
     );
@@ -211,7 +204,7 @@ describe("SpanMetricsPlot", () => {
   it("throws for invalid quantile selection", async () => {
     render(
       <SpanMetricsPlot
-        filterParams={filterParams}
+        {...plotDates}
         query={queryWith({ data: rawPlotData, status: "success" })}
       />,
     );
@@ -231,7 +224,7 @@ describe("SpanMetricsPlot", () => {
   it("hides stale chart while new range data is loading", async () => {
     const { rerender } = render(
       <SpanMetricsPlot
-        filterParams={filterParams}
+        {...plotDates}
         query={queryWith({ data: rawPlotData, status: "success" })}
       />,
     );
@@ -239,9 +232,7 @@ describe("SpanMetricsPlot", () => {
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
 
-    rerender(
-      <SpanMetricsPlot filterParams={filterParams} query={queryWith({})} />,
-    );
+    rerender(<SpanMetricsPlot {...plotDates} query={queryWith({})} />);
 
     await waitFor(() => {
       expect(screen.getByText("loading")).toBeInTheDocument();
