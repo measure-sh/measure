@@ -327,7 +327,7 @@ func fetchSpanCustomKeySuggestions(ctx context.Context, chPool driver.Conn, team
 		Where("type = ?", string(key.ValueType)).
 		Where("value <> ''").
 		GroupBy("value").
-		OrderBy("recency desc").
+		OrderBy("recency desc, value").
 		Limit(limit + 1)
 
 	defer stmt.Close()
