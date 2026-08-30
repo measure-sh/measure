@@ -10,6 +10,7 @@
  * Device, App version, Network type), TraceWaterfall timeline visualization,
  * and "View Session Replay" link.
  */
+import { mockRouter } from "@/__tests__/helpers/mock_router";
 import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
@@ -37,33 +38,11 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
 }));
 
-const mockRouterPush = jest.fn();
+const mockRouterReplace = mockRouter.replaceMock;
+const mockRouterPush = mockRouter.pushMock;
 
-// The mocked router applies each replace back into the mocked searchParams
-// and notifies subscribers, the way the real router re-renders the page with
-// the URL it just wrote. The page's queries read the URL, so without this
-// they would never see what the bar settled on.
-let mockSearchParams = new URLSearchParams();
-const searchParamsSubscribers = new Set<() => void>();
-const mockRouterReplace = jest.fn(
-  (url: string, _options?: { scroll: boolean }) => {
-    mockSearchParams = new URLSearchParams(url.split("?")[1] ?? "");
-    searchParamsSubscribers.forEach((notify) => notify());
-  },
-);
 jest.mock("next/navigation", () => ({
-  __esModule: true,
-  useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
-  useSearchParams: () => {
-    const { useSyncExternalStore } = require("react");
-    return useSyncExternalStore(
-      (notify: () => void) => {
-        searchParamsSubscribers.add(notify);
-        return () => searchParamsSubscribers.delete(notify);
-      },
-      () => mockSearchParams,
-    );
-  },
+  ...require("@/__tests__/helpers/mock_router").nextNavigationMock(),
   usePathname: () => "/test-team/traces",
 }));
 
@@ -162,7 +141,7 @@ beforeEach(() => {
   filtersStore = createFiltersStore();
   onboardingStore = createOnboardingStore();
   queryClient.clear();
-  mockSearchParams = new URLSearchParams();
+  mockRouter.searchParams = new URLSearchParams();
   const { apiClient } = require("@/app/api/api_client");
   apiClient.init({ replace: jest.fn(), push: jest.fn() });
 });
@@ -272,7 +251,7 @@ describe("Traces Overview (MSW integration)", () => {
 
   describe("root span selection", () => {
     it("restores the name a link asked for when its app matches", async () => {
-      mockSearchParams = new URLSearchParams(
+      mockRouter.searchParams = new URLSearchParams(
         `po=0&a=${appId}&r=api_fetch_payments`,
       );
       const sent = recordSpansRequests();
@@ -308,7 +287,7 @@ describe("Traces Overview (MSW integration)", () => {
     });
 
     it("falls back to the first name when the link's app is not the selected one", async () => {
-      mockSearchParams = new URLSearchParams(
+      mockRouter.searchParams = new URLSearchParams(
         `po=0&a=some-other-app&r=api_fetch_payments`,
       );
       const sent = recordSpansRequests();
@@ -319,7 +298,9 @@ describe("Traces Overview (MSW integration)", () => {
     });
 
     it("falls back to the first name when the link names an unknown span", async () => {
-      mockSearchParams = new URLSearchParams(`po=0&a=${appId}&r=span.gone`);
+      mockRouter.searchParams = new URLSearchParams(
+        `po=0&a=${appId}&r=span.gone`,
+      );
       const sent = recordSpansRequests();
       renderPage();
       await waitForSpans();
@@ -344,7 +325,7 @@ describe("Traces Overview (MSW integration)", () => {
 
   describe("a link carrying a filter", () => {
     it("filters the spans and the plot by it", async () => {
-      mockSearchParams = new URLSearchParams(
+      mockRouter.searchParams = new URLSearchParams(
         `po=0&filter_expr=${encodeURIComponent("version_name:in:3.1.0")}`,
       );
       const sent = recordSpansRequests();
@@ -397,7 +378,7 @@ describe("Traces Overview (MSW integration)", () => {
         }),
       );
 
-      mockSearchParams = new URLSearchParams("po=5");
+      mockRouter.searchParams = new URLSearchParams("po=5");
       renderPage();
       await waitFor(
         () => {

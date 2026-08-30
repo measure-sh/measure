@@ -1,43 +1,16 @@
+import { mockRouter } from "@/__tests__/helpers/mock_router";
 import { promiseParams } from "@/__tests__/helpers/promise_params";
 import Builds from "@/app/[teamId]/builds/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
-// The mocked router applies each replace back into the mocked searchParams
-// and notifies subscribers, the way the real router re-renders the page with
-// the URL it just wrote. The page's query reads the URL, so without this it
-// would never see what the bar settled on.
-let mockSearchParams = new URLSearchParams();
-const searchParamsSubscribers = new Set<() => void>();
-const applyReplaceUrl = (url: string) => {
-  mockSearchParams = new URLSearchParams(url.split("?")[1] ?? "");
-  searchParamsSubscribers.forEach((notify) => notify());
-};
-// Holds a replace's URL for the test to apply later, modeling the real
-// router landing a write one render after the call.
-let mockDeferReplace = false;
-let deferredReplaceUrl: string | null = null;
-const replaceMock = jest.fn((url: string, _options?: { scroll: boolean }) => {
-  if (mockDeferReplace) {
-    deferredReplaceUrl = url;
-    return;
-  }
-  applyReplaceUrl(url);
-});
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: replaceMock }),
-  useSearchParams: () => {
-    const { useSyncExternalStore } = require("react");
-    return useSyncExternalStore(
-      (notify: () => void) => {
-        searchParamsSubscribers.add(notify);
-        return () => searchParamsSubscribers.delete(notify);
-      },
-      () => mockSearchParams,
-    );
-  },
-}));
+const replaceMock = mockRouter.replaceMock;
+const applyReplaceUrl = mockRouter.applyReplaceUrl;
+
+jest.mock("next/navigation", () =>
+  require("@/__tests__/helpers/mock_router").nextNavigationMock(),
+);
 
 const downloadBuildFileMock = jest.fn();
 jest.mock("@/app/api/api_calls", () => ({
@@ -221,12 +194,9 @@ function renderPage() {
 
 describe("Builds page", () => {
   beforeEach(() => {
-    replaceMock.mockClear();
+    mockRouter.reset();
     downloadBuildFileMock.mockClear();
     mockMountDiscardsFilter = false;
-    mockDeferReplace = false;
-    deferredReplaceUrl = null;
-    mockSearchParams = new URLSearchParams();
     mockUseBuildsQuery.mockReset();
     mockUseBuildsQuery.mockReturnValue({
       data: undefined,
@@ -242,7 +212,7 @@ describe("Builds page", () => {
   });
 
   it("hands the bar the filter the URL opened on", () => {
-    mockSearchParams = new URLSearchParams(
+    mockRouter.searchParams = new URLSearchParams(
       "po=0&filter_expr=patch_id%3Ais_set",
     );
     loaded();
@@ -254,7 +224,7 @@ describe("Builds page", () => {
   });
 
   it("fetches nothing until the bar settles on an app and a range", () => {
-    mockSearchParams = new URLSearchParams(
+    mockRouter.searchParams = new URLSearchParams(
       "po=20&filter_expr=patch_id%3Ais_set",
     );
     loaded();
@@ -264,7 +234,7 @@ describe("Builds page", () => {
   });
 
   it("fetches the page the URL names, filtered by what the bar reported", () => {
-    mockSearchParams = new URLSearchParams(
+    mockRouter.searchParams = new URLSearchParams(
       "po=20&filter_expr=patch_id%3Ais_set",
     );
     loaded();
@@ -283,8 +253,8 @@ describe("Builds page", () => {
 
   it("never fetches a filter the bar discarded on mount", async () => {
     mockMountDiscardsFilter = true;
-    mockDeferReplace = true;
-    mockSearchParams = new URLSearchParams(
+    mockRouter.deferReplace = true;
+    mockRouter.searchParams = new URLSearchParams(
       `po=30&filter_expr=patch_id%3Ais_set&${selectionParams}`,
     );
     loaded();
@@ -295,7 +265,7 @@ describe("Builds page", () => {
     expect(mockUseBuildsQuery).toHaveBeenLastCalledWith(null, 30);
 
     await act(async () => {
-      applyReplaceUrl(deferredReplaceUrl!);
+      applyReplaceUrl(mockRouter.deferredReplaceUrl!);
     });
 
     expect(replaceMock).toHaveBeenLastCalledWith(selectionUrl(0), {
@@ -316,7 +286,7 @@ describe("Builds page", () => {
   });
 
   it("records what the bar settled on, keeping the page the link asked for", () => {
-    mockSearchParams = new URLSearchParams(
+    mockRouter.searchParams = new URLSearchParams(
       "po=20&filter_expr=patch_id%3Ais_set",
     );
     loaded();
@@ -501,7 +471,7 @@ describe("Builds page", () => {
 
   describe("a filter the bar could not settle", () => {
     beforeEach(() => {
-      mockSearchParams = new URLSearchParams(`po=10&${selectionParams}`);
+      mockRouter.searchParams = new URLSearchParams(`po=10&${selectionParams}`);
       loaded();
     });
 
@@ -543,7 +513,7 @@ describe("Builds page", () => {
 
   describe("pagination", () => {
     it("moves the offset on by the page size when Next is clicked", async () => {
-      mockSearchParams = new URLSearchParams(
+      mockRouter.searchParams = new URLSearchParams(
         `po=0&filter_expr=patch_id%3Ais_set&${selectionParams}`,
       );
       loaded();
@@ -561,7 +531,7 @@ describe("Builds page", () => {
     });
 
     it("moves the offset back when Prev is clicked, and never below zero", async () => {
-      mockSearchParams = new URLSearchParams(
+      mockRouter.searchParams = new URLSearchParams(
         "po=10&filter_expr=patch_id%3Ais_set",
       );
       loaded();
@@ -575,7 +545,7 @@ describe("Builds page", () => {
         { scroll: false },
       );
 
-      mockSearchParams = new URLSearchParams(
+      mockRouter.searchParams = new URLSearchParams(
         "po=0&filter_expr=patch_id%3Ais_set",
       );
       renderPage();
@@ -589,7 +559,7 @@ describe("Builds page", () => {
     });
 
     it("goes back to the first page when the filter changes", async () => {
-      mockSearchParams = new URLSearchParams(
+      mockRouter.searchParams = new URLSearchParams(
         "po=30&filter_expr=patch_id%3Ais_set",
       );
       loaded();
@@ -631,7 +601,7 @@ describe("Builds page", () => {
     });
 
     it("goes back to the first page when the filter is cleared", async () => {
-      mockSearchParams = new URLSearchParams(
+      mockRouter.searchParams = new URLSearchParams(
         "po=30&filter_expr=patch_id%3Ais_set",
       );
       loaded();
