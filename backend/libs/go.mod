@@ -22,7 +22,6 @@ require (
 	github.com/svix/svix-webhooks v1.95.2
 	github.com/valkey-io/valkey-go v1.0.75
 	github.com/wneessen/go-mail v0.7.3
-	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/trace v1.44.0
 	golang.org/x/sync v0.22.0

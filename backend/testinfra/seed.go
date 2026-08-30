@@ -711,6 +711,92 @@ func (h *TestHelper) SeedNavigationEventInSession(ctx context.Context, t *testin
 	}
 }
 
+// SeedLifecycleActivityInSession inserts a lifecycle_activity event with a
+// known session_id, activity type & class name, feeding journey_mv.
+func (h *TestHelper) SeedLifecycleActivityInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, activityType, className string, ts time.Time) {
+	t.Helper()
+	query := fmt.Sprintf(
+		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
+			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
+			"`attribute.app_unique_id`, `attribute.measure_sdk_version`, "+
+			"`lifecycle_activity.type`, `lifecycle_activity.class_name`) "+
+			`VALUES ('%s', 'lifecycle_activity', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', '0.1', '%s', '%s')`,
+		uuid.New().String(), sessionID, appID, teamID,
+		ts.UTC().Format("2006-01-02 15:04:05.000"), uuid.New().String(), activityType, className)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed lifecycle activity event: %v", err)
+	}
+}
+
+// SeedScreenViewInSession inserts a screen_view event with a known session_id
+// & screen name, feeding journey_mv.
+func (h *TestHelper) SeedScreenViewInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, screenName string, ts time.Time) {
+	t.Helper()
+	query := fmt.Sprintf(
+		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
+			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
+			"`attribute.app_unique_id`, `attribute.measure_sdk_version`, "+
+			"`screen_view.name`) "+
+			`VALUES ('%s', 'screen_view', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', '0.1', '%s')`,
+		uuid.New().String(), sessionID, appID, teamID,
+		ts.UTC().Format("2006-01-02 15:04:05.000"), uuid.New().String(), screenName)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed screen view event: %v", err)
+	}
+}
+
+// SeedLifecycleFragmentInSession inserts a lifecycle_fragment event with a
+// known session_id, fragment type & class name, feeding journey_mv.
+func (h *TestHelper) SeedLifecycleFragmentInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, fragmentType, className string, ts time.Time) {
+	t.Helper()
+	query := fmt.Sprintf(
+		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
+			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
+			"`attribute.app_unique_id`, `attribute.measure_sdk_version`, "+
+			"`lifecycle_fragment.type`, `lifecycle_fragment.class_name`) "+
+			`VALUES ('%s', 'lifecycle_fragment', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', '0.1', '%s', '%s')`,
+		uuid.New().String(), sessionID, appID, teamID,
+		ts.UTC().Format("2006-01-02 15:04:05.000"), uuid.New().String(), fragmentType, className)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed lifecycle fragment event: %v", err)
+	}
+}
+
+// SeedLifecycleViewControllerInSession inserts a lifecycle_view_controller
+// event with a known session_id, view controller type & class name, feeding
+// journey_mv.
+func (h *TestHelper) SeedLifecycleViewControllerInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, vcType, className string, ts time.Time) {
+	t.Helper()
+	query := fmt.Sprintf(
+		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
+			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
+			"`attribute.app_unique_id`, `attribute.measure_sdk_version`, "+
+			"`lifecycle_view_controller.type`, `lifecycle_view_controller.class_name`) "+
+			`VALUES ('%s', 'lifecycle_view_controller', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', '0.1', '%s', '%s')`,
+		uuid.New().String(), sessionID, appID, teamID,
+		ts.UTC().Format("2006-01-02 15:04:05.000"), uuid.New().String(), vcType, className)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed lifecycle view controller event: %v", err)
+	}
+}
+
+// SeedLifecycleSwiftUIInSession inserts a lifecycle_swift_ui event with a known
+// session_id, SwiftUI type & class name, feeding journey_mv.
+func (h *TestHelper) SeedLifecycleSwiftUIInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, swiftUIType, className string, ts time.Time) {
+	t.Helper()
+	query := fmt.Sprintf(
+		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
+			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
+			"`attribute.app_unique_id`, `attribute.measure_sdk_version`, "+
+			"`lifecycle_swift_ui.type`, `lifecycle_swift_ui.class_name`) "+
+			`VALUES ('%s', 'lifecycle_swift_ui', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', '0.1', '%s', '%s')`,
+		uuid.New().String(), sessionID, appID, teamID,
+		ts.UTC().Format("2006-01-02 15:04:05.000"), uuid.New().String(), swiftUIType, className)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed lifecycle swift ui event: %v", err)
+	}
+}
+
 // SeedEventWithSession inserts one event with a known session_id so that
 // sessions_index gets populated via the materialized view.
 func (h *TestHelper) SeedEventWithSession(ctx context.Context, t *testing.T, teamID, appID, sessionID string, ts time.Time) {
