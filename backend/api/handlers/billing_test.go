@@ -353,8 +353,8 @@ func TestGetTeamBilling(t *testing.T) {
 	})
 
 	t.Run("enterprise plan exposes retention_days and bytes_unlimited", func(t *testing.T) {
-		// A bespoke Enterprise plan typically has unlimited bytes and a
-		// custom retention entitlement (e.g. 365 days). Note that Autumn
+		// An enterprise plan typically has unlimited bytes and its own
+		// retention entitlement (e.g. 365 days). Note that Autumn
 		// hardcodes balance.usage=0 for any feature marked unlimited, so
 		// even though the customer may be ingesting data, BytesUsed comes
 		// through as 0.
@@ -437,8 +437,8 @@ func TestGetTeamBilling(t *testing.T) {
 		}
 	})
 
-	t.Run("bespoke Enterprise plan with bounded quota + overage_allowed flows through correctly", func(t *testing.T) {
-		// Some Enterprise plans aren't unlimited — they have a
+	t.Run("enterprise plan with bounded quota + overage_allowed flows through correctly", func(t *testing.T) {
+		// Some enterprise plans aren't unlimited — they have a
 		// quota with overage permitted (Autumn returns Granted > 0,
 		// Unlimited=false, OverageAllowed=true).
 		defer cleanupAll(ctx, t)
@@ -492,7 +492,7 @@ func TestGetTeamBilling(t *testing.T) {
 	})
 
 	t.Run("bytes_overage_allowed=false flows through (e.g. Free, hard-capped Enterprise)", func(t *testing.T) {
-		// The Free plan and any bespoke Enterprise plan with a hard byte
+		// The Free plan and any enterprise plan with a hard byte
 		// cap configure bytes with overage_allowed=false.
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")

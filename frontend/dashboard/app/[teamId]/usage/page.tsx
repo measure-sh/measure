@@ -724,7 +724,7 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
 
                 {/* Enterprise Plan Card — full-width, no price. Bytes can be
                     unlimited; retention and plan length come from the
-                    bespoke Autumn plan. */}
+                    enterprise plan configured in Autumn. */}
                 {billingInfo?.plan === "enterprise" && (
                   <Card className="w-full bg-green-50 dark:bg-card border border-green-300 dark:border-border relative">
                     {showCurrentPlanBadge()}

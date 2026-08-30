@@ -140,7 +140,7 @@ func TestDeterminePlan(t *testing.T) {
 			want: PlanFree,
 		},
 		{
-			name: "active free + active bespoke product → enterprise",
+			name: "active free + active enterprise product → enterprise",
 			cust: autumn.Customer{
 				Products: []autumn.CustomerProduct{
 					{ID: AutumnPlanFree, Status: "active"},
@@ -150,7 +150,7 @@ func TestDeterminePlan(t *testing.T) {
 			want: PlanEnterprise,
 		},
 		{
-			name: "active pro + active bespoke product → enterprise",
+			name: "active pro + active enterprise product → enterprise",
 			cust: autumn.Customer{
 				Products: []autumn.CustomerProduct{
 					{ID: AutumnPlanPro, Status: "active"},
@@ -160,7 +160,7 @@ func TestDeterminePlan(t *testing.T) {
 			want: PlanEnterprise,
 		},
 		{
-			name: "active free sub + active bespoke sub → enterprise",
+			name: "active free sub + active enterprise sub → enterprise",
 			cust: autumn.Customer{
 				Subscriptions: []autumn.Subscription{
 					{PlanID: AutumnPlanFree, Status: "active"},
@@ -170,7 +170,7 @@ func TestDeterminePlan(t *testing.T) {
 			want: PlanEnterprise,
 		},
 		{
-			name: "active free + scheduled bespoke product → free",
+			name: "active free + scheduled enterprise product → free",
 			cust: autumn.Customer{
 				Products: []autumn.CustomerProduct{
 					{ID: AutumnPlanFree, Status: "active"},
@@ -199,13 +199,13 @@ func TestDeterminePlan(t *testing.T) {
 // --------------------------------------------------------------------------
 
 func TestPlanRank(t *testing.T) {
-	// Free < Pro < Enterprise (any custom plan), so a transition's direction can
-	// be read from the plans that activated and expired.
+	// Free < Pro < Enterprise (any plan id that is neither free nor pro), so a
+	// transition's direction can be read from the plans that activated and expired.
 	if planRank(AutumnPlanFree) >= planRank(AutumnPlanPro) {
 		t.Error("Free should rank below Pro")
 	}
 	if planRank(AutumnPlanPro) >= planRank("plan_ent_acme") {
-		t.Error("Pro should rank below a custom Enterprise plan")
+		t.Error("Pro should rank below an enterprise plan")
 	}
 }
 

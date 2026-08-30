@@ -316,8 +316,8 @@ const proBillingInfo = {
   current_period_end: 1702678400,
 };
 
-// Helper: default enterprise plan billing info — bespoke plan with unlimited
-// bytes and a custom retention entitlement, the typical Enterprise shape.
+// Default enterprise plan billing info, the typical shape: unlimited bytes
+// and the plan's own retention entitlement.
 const enterpriseBillingInfo = {
   team_id: "team1",
   plan: "enterprise",
