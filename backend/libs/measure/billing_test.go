@@ -140,6 +140,46 @@ func TestDeterminePlan(t *testing.T) {
 			want: PlanFree,
 		},
 		{
+			name: "active free + active bespoke product → enterprise",
+			cust: autumn.Customer{
+				Products: []autumn.CustomerProduct{
+					{ID: AutumnPlanFree, Status: "active"},
+					{ID: "turtlemint_one_year", Status: "active"},
+				},
+			},
+			want: PlanEnterprise,
+		},
+		{
+			name: "active pro + active bespoke product → enterprise",
+			cust: autumn.Customer{
+				Products: []autumn.CustomerProduct{
+					{ID: AutumnPlanPro, Status: "active"},
+					{ID: "plan_ent_acme", Status: "active"},
+				},
+			},
+			want: PlanEnterprise,
+		},
+		{
+			name: "active free sub + active bespoke sub → enterprise",
+			cust: autumn.Customer{
+				Subscriptions: []autumn.Subscription{
+					{PlanID: AutumnPlanFree, Status: "active"},
+					{PlanID: "turtlemint_one_year", Status: "active"},
+				},
+			},
+			want: PlanEnterprise,
+		},
+		{
+			name: "active free + scheduled bespoke product → free",
+			cust: autumn.Customer{
+				Products: []autumn.CustomerProduct{
+					{ID: AutumnPlanFree, Status: "active"},
+					{ID: "turtlemint_one_year", Status: "scheduled"},
+				},
+			},
+			want: PlanFree,
+		},
+		{
 			name: "empty customer → free",
 			cust: autumn.Customer{},
 			want: PlanFree,

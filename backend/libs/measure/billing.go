@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"slices"
 	"strings"
 	"time"
 
@@ -119,42 +120,36 @@ func GetAutumnCustomerID(ctx context.Context, pool *pgxpool.Pool, teamID uuid.UU
 // Subscriptions with status != "active" (e.g. a Free that's "scheduled" to
 // take over after a Pro cancellation) are ignored — we only report on the
 // plan currently in effect.
+//
+// A customer can hold several active products at once: Autumn auto-attaches
+// the Free product on customer create, and attaching a bespoke plan from the
+// Autumn dashboard does not detach it unless the two share a product group.
+// The highest tier wins, using the same order as planRank: any non-free,
+// non-pro plan (bespoke Enterprise) over Pro over Free.
 func DeterminePlan(c *autumn.Customer) string {
-	hasActiveSub := false
-	hasActiveProduct := false
-	hasPlan := func(id string) bool {
-		for _, s := range c.Subscriptions {
-			if s.Status != "active" {
-				continue
-			}
-			hasActiveSub = true
-			if s.PlanID == id {
-				return true
-			}
+	var activePlans []string
+	for _, s := range c.Subscriptions {
+		if s.Status != "active" {
+			continue
 		}
-		for _, p := range c.Products {
-			// Webhook payloads sometimes omit status — treat empty as active
-			// for back-compat. Otherwise skip non-active (e.g. scheduled).
-			if p.Status != "" && p.Status != "active" {
-				continue
-			}
-			hasActiveProduct = true
-			if p.ID == id {
-				return true
-			}
+		activePlans = append(activePlans, s.PlanID)
+	}
+	for _, p := range c.Products {
+		// Webhook payloads sometimes omit status — treat empty as active
+		// for back-compat. Otherwise skip non-active (e.g. scheduled).
+		if p.Status != "" && p.Status != "active" {
+			continue
 		}
-		return false
+		activePlans = append(activePlans, p.ID)
 	}
 
-	if hasPlan(AutumnPlanPro) {
-		return PlanPro
-	}
-	if hasPlan(AutumnPlanFree) {
-		return PlanFree
-	}
-	// Any attached non-free, non-pro plan counts as Enterprise (bespoke plan).
-	if hasActiveSub || hasActiveProduct {
+	if slices.ContainsFunc(activePlans, func(id string) bool {
+		return id != AutumnPlanFree && id != AutumnPlanPro
+	}) {
 		return PlanEnterprise
+	}
+	if slices.Contains(activePlans, AutumnPlanPro) {
+		return PlanPro
 	}
 	return PlanFree
 }
