@@ -13,10 +13,10 @@ import (
 // BuildsEntity is an app's uploaded builds. Both its filtering and its
 // value lists read the build_mappings rows in Postgres.
 var BuildsEntity = Entity{
-	Name:             "builds",
-	Keys:             buildsKeys,
-	BindKey:          bindBuildsKey,
-	SuggestKeyValues: fetchBuildsKeySuggestions,
+	Name:                  "builds",
+	Keys:                  buildsKeys,
+	BindKey:               bindBuildsKey,
+	SuggestFixedKeyValues: fetchBuildsKeySuggestions,
 }
 
 var buildsKeys = []Key{
@@ -105,10 +105,7 @@ func fetchBuildsKeySuggestions(ctx context.Context, pgPool *pgxpool.Pool, chPool
 		return ValueList{}, fmt.Errorf("Key %q is typed in rather than picked from a list", key.Name)
 	}
 
-	limit := valueRequest.Limit
-	if limit <= 0 {
-		limit = DefaultValueLimit
-	}
+	limit := valueRequest.effectiveLimit()
 
 	// A row the key does not apply to holds the unset value in that column, so
 	// those rows are left out: a regular build has no patch columns and a patch

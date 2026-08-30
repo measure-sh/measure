@@ -9,9 +9,7 @@ import (
 
 	"backend/testinfra"
 
-	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func seedSpanUDAttrs(ctx context.Context, t *testing.T) (teamID, appID, otherAppID uuid.UUID) {
@@ -115,15 +113,14 @@ func TestListKeysResolvesRequestedNames(t *testing.T) {
 	ctx := context.Background()
 	teamID, appID, _ := seedSpanUDAttrs(ctx, t)
 
-	// The listing is held to the first two custom keys by name, flag and
+	// The listing is capped at the first two custom keys by name, flag and
 	// is_premium, so the other seeded keys stand in for keys past
 	// CustomKeyLimit.
-	entity := SpansEntity
-	entity.FetchCustomKeys = func(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, limit int) ([]Key, bool, error) {
-		return SpansEntity.FetchCustomKeys(ctx, pgPool, chPool, teamID, appID, 2)
+	listKeys := func(names []string) ([]Key, bool, error) {
+		return SpansEntity.listKeys(ctx, pgPool, chConn, teamID, appID, names, 2)
 	}
 
-	baseKeys, _, err := entity.ListKeys(ctx, pgPool, chConn, teamID, appID, nil)
+	baseKeys, _, err := listKeys(nil)
 	if err != nil {
 		t.Fatalf("list keys: %v", err)
 	}
@@ -132,7 +129,7 @@ func TestListKeysResolvesRequestedNames(t *testing.T) {
 	}
 
 	t.Run("a requested name beyond the listing is appended with its type", func(t *testing.T) {
-		keys, truncated, err := entity.ListKeys(ctx, pgPool, chConn, teamID, appID, []string{"custom.retries"})
+		keys, truncated, err := listKeys([]string{"custom.retries"})
 		if err != nil {
 			t.Fatalf("list keys: %v", err)
 		}
@@ -149,7 +146,7 @@ func TestListKeysResolvesRequestedNames(t *testing.T) {
 	})
 
 	t.Run("a requested name the app never reported is ignored", func(t *testing.T) {
-		keys, _, err := entity.ListKeys(ctx, pgPool, chConn, teamID, appID, []string{"custom.nope"})
+		keys, _, err := listKeys([]string{"custom.nope"})
 		if err != nil {
 			t.Fatalf("list keys: %v", err)
 		}
@@ -159,7 +156,7 @@ func TestListKeysResolvesRequestedNames(t *testing.T) {
 	})
 
 	t.Run("a requested name already listed is not duplicated", func(t *testing.T) {
-		keys, _, err := entity.ListKeys(ctx, pgPool, chConn, teamID, appID, []string{"custom.flag"})
+		keys, _, err := listKeys([]string{"custom.flag"})
 		if err != nil {
 			t.Fatalf("list keys: %v", err)
 		}
@@ -178,7 +175,7 @@ func TestListKeysResolvesRequestedNames(t *testing.T) {
 	})
 
 	t.Run("a name without the custom prefix is ignored", func(t *testing.T) {
-		keys, _, err := entity.ListKeys(ctx, pgPool, chConn, teamID, appID, []string{"retries"})
+		keys, _, err := listKeys([]string{"retries"})
 		if err != nil {
 			t.Fatalf("list keys: %v", err)
 		}

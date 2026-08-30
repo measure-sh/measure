@@ -6,13 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"backend/libs/chquery"
 	"backend/libs/symbol"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/leporo/sqlf"
 )
 
 // Entity is one subject a filter can be written against, such as builds,
@@ -32,23 +30,16 @@ type Entity struct {
 	// ErrKeyNotSupported.
 	BindKey KeyBinding
 
-	// SuggestKeyValues lists what one key can be set to, narrowed by what has been
-	// typed. Both pools are passed because which one an entity reads is its own
-	// choice.
-	SuggestKeyValues func(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error)
+	// SuggestFixedKeyValues lists what one fixed key can be set to, narrowed
+	// by what has been typed. Both pools are passed because which one an
+	// entity reads is its own choice.
+	SuggestFixedKeyValues func(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error)
 
-	// FetchCustomKeys lists the keys an app's user-defined attributes add to
-	// the entity's fixed set. Nil for an entity whose keys are all fixed.
-	FetchCustomKeys func(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, limit int) ([]Key, bool, error)
-
-	// FetchCustomKeysByName reads the entity's custom keys with the given
-	// names, each name without the custom prefix. A name not present in
-	// user defined attributes yields no key. Nil for an entity whose keys are all fixed.
-	FetchCustomKeysByName func(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, rawNames []string) ([]Key, error)
-
-	// BindCustomKeys builds the GroupKeyBinding for the given custom keys.
-	// Nil for an entity whose keys are all fixed.
-	BindCustomKeys func(scope CustomKeyScope, keys []Key) GroupKeyBinding
+	// CustomKeys is the one store every custom-key listing, lookup, value
+	// read and condition binding goes through, so an entity cannot list keys
+	// from one table and bind conditions against another. Nil for an entity
+	// whose keys are all fixed.
+	CustomKeys *customKeyStore
 
 	// MaxTimeBucketWidth is the widest time bucket used by any of the entity's
 	// tables. Bucketed queries may include rows from this bucket past the range
@@ -360,40 +351,9 @@ func narrowEnumValues(key Key, valueRequest ValueRequest) ValueList {
 		values = append(values, Value{Text: text})
 	}
 
-	limit := valueRequest.Limit
-	if limit <= 0 {
-		limit = DefaultValueLimit
-	}
+	limit := valueRequest.effectiveLimit()
 	if len(values) > limit {
 		return ValueList{Values: values[:limit], Truncated: true}
 	}
 	return ValueList{Values: values}
-}
-
-func readCustomKeys(ctx context.Context, ch driver.Conn, teamID uuid.UUID, stmt *sqlf.Stmt) ([]Key, error) {
-	ctx = chquery.WithTeamScope(ctx, teamID)
-
-	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to read the user-defined attribute keys: %w", err)
-	}
-	defer rows.Close()
-
-	keys := []Key{}
-	for rows.Next() {
-		var rawName, storedType string
-		if err := rows.Scan(&rawName, &storedType); err != nil {
-			return nil, fmt.Errorf("Failed to read the user-defined attribute keys: %w", err)
-		}
-		valueType, ok := customValueTypes[storedType]
-		if !ok {
-			return nil, fmt.Errorf("Attribute %q stores values of unknown type %q", rawName, storedType)
-		}
-		keys = append(keys, CustomKey(rawName, valueType))
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("Failed to read the user-defined attribute keys: %w", err)
-	}
-
-	return keys, nil
 }

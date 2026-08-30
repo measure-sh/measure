@@ -2689,7 +2689,7 @@ func TestMCPGetFilterValues(t *testing.T) {
 		// The span_filters rollup serving these values keeps only spans
 		// carrying every attribute, so the seeds set them all.
 		th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{
-			SpanName: "checkout", Status: 1, StartTime: now.Add(-2*time.Hour),
+			SpanName: "checkout", Status: 1, StartTime: now.Add(-2 * time.Hour),
 			AppVersion: "v1", AppBuild: "1",
 			CountryCode: "US", NetworkProvider: "T-Mobile", NetworkType: "wifi",
 			NetworkGeneration: "5g", DeviceLocale: "en-US",
@@ -2717,7 +2717,7 @@ func TestMCPGetFilterValues(t *testing.T) {
 	t.Run("search narrows values", func(t *testing.T) {
 		appID, teamID, rawToken := setupToolTest(t, "fvals4@mcp.test")
 		th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{
-			SpanName: "checkout", Status: 1, StartTime: now.Add(-2*time.Hour),
+			SpanName: "checkout", Status: 1, StartTime: now.Add(-2 * time.Hour),
 			AppVersion: "1.2.0", AppBuild: "1",
 			CountryCode: "US", NetworkProvider: "T-Mobile", NetworkType: "wifi",
 			NetworkGeneration: "5g", DeviceLocale: "en-US",

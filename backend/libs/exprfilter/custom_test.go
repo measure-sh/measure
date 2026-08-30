@@ -9,8 +9,6 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/leporo/sqlf"
 )
 
 func TestCustomKeyMapping(t *testing.T) {
@@ -123,58 +121,69 @@ func TestCollectCustomKeyNames(t *testing.T) {
 	})
 }
 
-func TestResolveCustomKeysBindsEveryMentionedKey(t *testing.T) {
-	keys := []Key{CustomKey("plan", ValueTypeString), CustomKey("retries", ValueTypeInt64)}
+// customKeyRowsStub feeds readCustomKeys the (name, stored type) rows a key
+// query would return; the embedded driver.Rows covers methods never called.
+type customKeyRowsStub struct {
+	driver.Rows
+	rows [][2]string
+	read int
+}
 
-	binderCalls := 0
-	entity := Entity{
-		Name: "stub",
-		Keys: []Key{versionName},
-		FetchCustomKeysByName: func(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, rawNames []string) ([]Key, error) {
-			if !slices.Equal(rawNames, []string{"plan", "retries"}) {
-				t.Errorf("want the mentioned names fetched, got %v", rawNames)
-			}
-			return keys, nil
-		},
-		BindCustomKeys: func(scope CustomKeyScope, boundKeys []Key) GroupKeyBinding {
-			names := make([]string, len(boundKeys))
-			for i, key := range boundKeys {
-				names[i] = key.Name
-			}
-			if !slices.Equal(names, []string{"custom.plan", "custom.retries"}) {
-				t.Errorf("want every fetched key handed to the binder, got %v", names)
-			}
-			return func(operator LogicalOperator, conditions []Condition) (*sqlf.Stmt, error) {
-				binderCalls++
-				conditionNames := make([]string, len(conditions))
-				for i, condition := range conditions {
-					conditionNames[i] = condition.KeyName
-				}
-				return sqlf.New("bound ?", strings.Join(conditionNames, ",")), nil
-			}
-		},
-	}
+func (r *customKeyRowsStub) Next() bool {
+	r.read++
+	return r.read <= len(r.rows)
+}
+
+func (r *customKeyRowsStub) Scan(dest ...any) error {
+	row := r.rows[r.read-1]
+	*(dest[0].(*string)) = row[0]
+	*(dest[1].(*string)) = row[1]
+	return nil
+}
+
+func (r *customKeyRowsStub) Err() error   { return nil }
+func (r *customKeyRowsStub) Close() error { return nil }
+
+// customKeyConnStub answers every query with the configured key rows,
+// recording the arguments so a test can assert which names were fetched.
+type customKeyConnStub struct {
+	driver.Conn
+	rows [][2]string
+	args []any
+}
+
+func (c *customKeyConnStub) Query(ctx context.Context, query string, args ...any) (driver.Rows, error) {
+	c.args = slices.Clone(args)
+	return &customKeyRowsStub{rows: c.rows}, nil
+}
+
+func TestResolveCustomKeysBindsEveryMentionedKey(t *testing.T) {
+	conn := &customKeyConnStub{rows: [][2]string{{"plan", "string"}, {"retries", "int64"}}}
 
 	ef := &ExprFilter{
 		AppID:  uuid.New(),
 		TeamID: uuid.New(),
-		Entity: entity,
+		Entity: SpansEntity,
 		ExprTree: &ExprTree{LogicalOperator: LogicalAnd, Children: []ExprTree{
 			*leafExprTree("custom.plan", OperatorIn, "pro"),
 			*leafExprTree("custom.retries", OperatorGt, "9"),
 		}},
 	}
 
-	if err := ef.ResolveCustomKeys(context.Background(), nil); err != nil {
+	if err := ef.ResolveCustomKeys(context.Background(), conn); err != nil {
 		t.Fatalf("ResolveCustomKeys: %v", err)
+	}
+
+	if rawNames, ok := conn.args[len(conn.args)-1].([]string); !ok || !slices.Equal(rawNames, []string{"plan", "retries"}) {
+		t.Errorf("want the mentioned names fetched, got %v", conn.args)
 	}
 	if ef.customBinder == nil {
 		t.Fatal("want the group binder installed on the filter")
 	}
 	byName := IndexKeysByName(ef.Entity.Keys)
-	for _, key := range keys {
-		if _, found := byName[key.Name]; !found {
-			t.Errorf("want %q added to the request's key set", key.Name)
+	for _, name := range []string{"custom.plan", "custom.retries"} {
+		if _, found := byName[name]; !found {
+			t.Errorf("want %q added to the request's key set", name)
 		}
 	}
 
@@ -183,14 +192,11 @@ func TestResolveCustomKeysBindsEveryMentionedKey(t *testing.T) {
 		t.Fatalf("Predicate: %v", err)
 	}
 	defer predicate.Close()
-	if binderCalls != 1 {
-		t.Errorf("want both conditions bound in one binder call, got %d calls", binderCalls)
-	}
-	if got := predicate.String(); got != "((bound ?))" {
-		t.Errorf("want the binder's fragment as the group's one child, got %q", got)
-	}
-	if got := predicate.Args()[0]; got != "custom.plan,custom.retries" {
-		t.Errorf("want both conditions in the one call, got %v", got)
+	// Both conditions inside one membership scan proves a single binder call.
+	want := "((span_id in (" + customGroupedScope +
+		"countIf(key = ? and type = ? and value in ?) > 0 and countIf(key = ? and type = ? and toInt64OrNull(value) > ?) > 0)))"
+	if got := predicate.String(); got != want {
+		t.Errorf("\n got %s\nwant %s", got, want)
 	}
 }
 

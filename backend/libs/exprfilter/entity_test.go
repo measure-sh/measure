@@ -56,8 +56,8 @@ func TestEntitiesFillEveryField(t *testing.T) {
 			if entity.BindKey == nil {
 				t.Error("an entity with no BindKey cannot write a filter")
 			}
-			if entity.SuggestKeyValues == nil {
-				t.Error("an entity with no SuggestKeyValues cannot list what a key can be set to")
+			if entity.SuggestFixedKeyValues == nil {
+				t.Error("an entity with no SuggestFixedKeyValues cannot list what a fixed key can be set to")
 			}
 		})
 	}

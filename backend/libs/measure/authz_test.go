@@ -283,7 +283,7 @@ func TestScopeMap_TeamInviteAndAlertScopes(t *testing.T) {
 func TestGetRolesSameOrLower_NonTeamScopesReturnEmpty(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
-		scope scope
+		scope Scope
 	}{
 		{name: "app read", scope: *ScopeAppRead},
 		{name: "app all", scope: *ScopeAppAll},
@@ -309,7 +309,7 @@ func TestPerformAuthzMatrix(t *testing.T) {
 	tests := []struct {
 		name      string
 		role      string
-		scope     scope
+		scope     Scope
 		wantAllow bool
 	}{
 		{name: "owner app all", role: "owner", scope: *ScopeAppAll, wantAllow: true},
