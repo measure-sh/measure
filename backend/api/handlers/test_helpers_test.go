@@ -230,6 +230,18 @@ func seedNavigationEventInSession(ctx context.Context, t *testing.T, teamID, app
 	th.SeedNavigationEventInSession(ctx, t, teamID, appID, sessionID, destination, ts)
 }
 
+func seedLifecycleActivityInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, activityType, className string, ts time.Time) {
+	th.SeedLifecycleActivityInSession(ctx, t, teamID, appID, sessionID, activityType, className, ts)
+}
+
+func seedExceptionGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {
+	th.SeedExceptionGroup(ctx, t, teamID, appID, fingerprint)
+}
+
+func seedAnrGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {
+	th.SeedAnrGroup(ctx, t, teamID, appID, fingerprint)
+}
+
 // --------------------------------------------------------------------------
 // Gin test context
 // --------------------------------------------------------------------------

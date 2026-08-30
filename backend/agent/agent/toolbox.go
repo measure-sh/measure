@@ -609,7 +609,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_journey
 		newTool(&mcpsdk.Tool{
 			Name:        "get_journey",
-			Description: "Get an app's journey as a graph of event types. Each link is one observed transition between consecutive events. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
+			Description: "Get an app's journey as a graph of screens. Each link is a transition between consecutive screens within a session, valued by the number of sessions that made that transition. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
 			InputSchema: mcpMustInferSchema[mcpGetJourneyInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetJourney(ctx, in)
@@ -2055,8 +2055,7 @@ func (c *Config) mcpGetJourney(ctx context.Context, in mcpGetJourneyInput) (*mcp
 	}
 	journeyCtx := ambient.WithTeamId(ctx, teamID)
 
-	opts := filter.JourneyOpts{All: true}
-	journeyEvents, journeyErr := app.GetJourneyEvents(journeyCtx, deps.RchPool, af, opts)
+	g, journeyErr := app.GetJourneyGraph(journeyCtx, deps.RchPool, af)
 	if journeyErr != nil {
 		return nil, nil, fmt.Errorf("failed to get journey: %v", journeyErr)
 	}
@@ -2064,7 +2063,7 @@ func (c *Config) mcpGetJourney(ctx context.Context, in mcpGetJourneyInput) (*mcp
 	type journeyNode struct {
 		Source string `json:"source"`
 		Target string `json:"target"`
-		Value  int    `json:"value"`
+		Value  uint64 `json:"value"`
 	}
 
 	type result struct {
@@ -2072,23 +2071,12 @@ func (c *Config) mcpGetJourney(ctx context.Context, in mcpGetJourneyInput) (*mcp
 		Links []journeyNode `json:"links"`
 	}
 
-	nodeSet := make(map[string]bool)
 	var links []journeyNode
-
-	for i := 1; i < len(journeyEvents); i++ {
-		src := journeyEvents[i-1].Type
-		tgt := journeyEvents[i].Type
-		nodeSet[src] = true
-		nodeSet[tgt] = true
-		links = append(links, journeyNode{Source: src, Target: tgt, Value: 1})
+	for _, edge := range g.Edges {
+		links = append(links, journeyNode{Source: edge.Source, Target: edge.Target, Value: edge.Sessions})
 	}
 
-	var nodes []string
-	for n := range nodeSet {
-		nodes = append(nodes, n)
-	}
-
-	data, _ := json.Marshal(result{Nodes: nodes, Links: links})
+	data, _ := json.Marshal(result{Nodes: g.Nodes, Links: links})
 	return mcpTextResult(string(data)), nil, nil
 }
 

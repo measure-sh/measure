@@ -256,6 +256,26 @@ func seedIssueEventWithDataInSession(
 	th.SeedIssueEventWithDataInSession(ctx, t, teamID, appID, sessionID, eventType, fingerprint, handled, exceptionsJSON, ts)
 }
 
+func seedLifecycleActivityInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, activityType, className string, ts time.Time) {
+	th.SeedLifecycleActivityInSession(ctx, t, teamID, appID, sessionID, activityType, className, ts)
+}
+
+func seedScreenViewInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, screenName string, ts time.Time) {
+	th.SeedScreenViewInSession(ctx, t, teamID, appID, sessionID, screenName, ts)
+}
+
+func seedLifecycleFragmentInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, fragmentType, className string, ts time.Time) {
+	th.SeedLifecycleFragmentInSession(ctx, t, teamID, appID, sessionID, fragmentType, className, ts)
+}
+
+func seedLifecycleViewControllerInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, vcType, className string, ts time.Time) {
+	th.SeedLifecycleViewControllerInSession(ctx, t, teamID, appID, sessionID, vcType, className, ts)
+}
+
+func seedLifecycleSwiftUIInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, swiftUIType, className string, ts time.Time) {
+	th.SeedLifecycleSwiftUIInSession(ctx, t, teamID, appID, sessionID, swiftUIType, className, ts)
+}
+
 func seedNavigationEventInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, destination string, ts time.Time) {
 	th.SeedNavigationEventInSession(ctx, t, teamID, appID, sessionID, destination, ts)
 }
