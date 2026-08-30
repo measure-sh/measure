@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Resolve bespoke plans over an attached free product by @anupcowkur in #4319
 - (**backend**): Set sender display name & drop repeated alert copy (#4304) by @detj in #4304
 - (**backend**): Quote ilike patterns in user defined attr filters (#4302) by @detj in #4302
 - (**backend**): Fail ingest boot when the bus producer is unavailable (#4275) by @detj in #4275
