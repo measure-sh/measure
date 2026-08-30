@@ -281,7 +281,8 @@ func (a App) journeyEdges(ctx context.Context, rch driver.Conn, af *filter.AppFi
 // journeyIssuesStmt builds the per node issue query. Each issue rides the last
 // anchor node seen in its session, anyLast skips the NULL non anchor rows. An
 // issue with no anchor yet in its session gets an empty node name, it stays
-// counted but attaches to no node.
+// counted but attaches to no node. journeyNodesStmt filters empty names, so
+// that node never renders.
 func (a App) journeyIssuesStmt(af *filter.AppFilter, je journeyExpr) *sqlf.Stmt {
 	anchored := sqlf.
 		From("journey").
