@@ -57,6 +57,23 @@ func TestExprFilterValidate(t *testing.T) {
 			wantErr: "App id",
 		},
 		{
+			name: "a valid timezone",
+			build: func() *ExprFilter {
+				ef := base()
+				ef.Timezone = "Asia/Kolkata"
+				return ef
+			},
+		},
+		{
+			name: "a timezone ClickHouse would reject",
+			build: func() *ExprFilter {
+				ef := base()
+				ef.Timezone = "EST5"
+				return ef
+			},
+			wantErr: "`timezone`",
+		},
+		{
 			name: "only one end of the time range",
 			build: func() *ExprFilter {
 				ef := base()

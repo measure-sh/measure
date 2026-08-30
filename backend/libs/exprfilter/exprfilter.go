@@ -130,6 +130,12 @@ func (ef *ExprFilter) Validate() error {
 		return fmt.Errorf("`plot_time_group` must be one of: %s", strings.Join(plotTimeGroups, ", "))
 	}
 
+	if ef.Timezone != "" {
+		if _, err := time.LoadLocation(ef.Timezone); err != nil {
+			return fmt.Errorf("`timezone` must be a valid IANA time zone name, got %q", ef.Timezone)
+		}
+	}
+
 	if !ef.HasFilterExpr() {
 		return nil
 	}
