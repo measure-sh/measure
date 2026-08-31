@@ -110,13 +110,13 @@ func main() {
 
 	// --- Billing: Usage limits ---
 
-	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 75)
+	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 75, false)
 	add("08-usage-75-percent.html", body)
 
-	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 90)
+	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 90, false)
 	add("09-usage-90-percent.html", body)
 
-	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 100)
+	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 100, false)
 	add("10-usage-100-percent.html", body)
 
 	// --- Billing: Subscription ---
@@ -218,6 +218,17 @@ func main() {
 	}
 	_, body = email.TeamDailySummaryEmail("Acme Corp", summaryDate, singleAppSummary, "https://measure.sh", "team-abc")
 	add("17-team-daily-summary-single-app.html", body)
+
+	// --- Billing: Usage limits (enterprise) ---
+
+	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 75, true)
+	add("18-usage-75-percent-enterprise.html", body)
+
+	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 90, true)
+	add("19-usage-90-percent-enterprise.html", body)
+
+	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 100, true)
+	add("20-usage-100-percent-enterprise.html", body)
 
 	for _, e := range emails {
 		path := filepath.Join(dir, e.name)
