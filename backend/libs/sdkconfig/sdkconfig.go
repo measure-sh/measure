@@ -18,8 +18,9 @@ import (
 // Valkey cache key & field names.
 const (
 	configCacheKeyPrefix = "sdk_config:"
-	// cacheFieldData keeps the entry a hash, changing the value type breaks readers mid deploy.
-	cacheFieldData = "data"
+	// cacheFieldData keeps the entry a hash & marks the payload shape.
+	// Rename it when the shape changes so legacy entries read as a miss.
+	cacheFieldData = "config"
 )
 
 // ErrNoCacheClient is returned by cache writes when no Valkey client is configured.
