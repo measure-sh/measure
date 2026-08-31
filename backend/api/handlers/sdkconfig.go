@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"backend/api/server"
-	"backend/libs/measure"
+	"backend/libs/sdkconfig"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -17,7 +17,7 @@ import (
 )
 
 func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userID string) error {
-	var patch measure.ConfigPatch
+	var patch sdkconfig.ConfigPatch
 	if err := c.ShouldBindJSON(&patch); err != nil {
 		return fmt.Errorf("failed to bind JSON: %w", err)
 	}
@@ -128,7 +128,7 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		return fmt.Errorf("config not found for app_id: %s", appID)
 	}
 
-	measure.InvalidateCache(c.Request.Context(), deps.VK, appID)
+	sdkconfig.InvalidateCache(c.Request.Context(), deps.VK, appID)
 
 	return nil
 }
@@ -169,7 +169,7 @@ func (h Handlers) GetConfigForSdk(c *gin.Context) {
 // config for dashboard use. It always
 // fetches the config from database.
 func GetConfigForDashboard(c *gin.Context, deps *server.Deps, appID uuid.UUID) {
-	sdkConfig, err := measure.GetConfigFromDb(c.Request.Context(), deps.PgPool, appID)
+	sdkConfig, err := sdkconfig.GetConfigFromDb(c.Request.Context(), deps.PgPool, appID)
 	if err != nil {
 		msg := `error fetching SDK config`
 		fmt.Println(msg, err)

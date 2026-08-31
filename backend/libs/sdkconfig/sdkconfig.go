@@ -1,8 +1,10 @@
-package measure
+package sdkconfig
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
+	"hash/fnv"
 	"time"
 
 	"github.com/google/uuid"
@@ -117,6 +119,58 @@ func createDefaultConfig() SdkConfig {
 
 func configCacheKey(appID uuid.UUID) string {
 	return fmt.Sprintf("%s{%s}", configCacheKeyPrefix, appID.String())
+}
+
+func ComputeETag(data []byte) string {
+	h := fnv.New64a()
+	_, _ = h.Write(data)
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// GetConfigETag fetches the cached ETag for an app's
+// SDK config from Valkey.
+func GetConfigETag(ctx context.Context, vk valkey.Client, appID uuid.UUID) (string, error) {
+	key := configCacheKey(appID)
+	cmd := vk.B().Hget().Key(key).Field("etag").Build()
+	result := vk.Do(ctx, cmd)
+
+	str, err := result.ToString()
+	if err != nil {
+		return "", nil
+	}
+	return str, nil
+}
+
+// GetConfigData fetches the cached JSON SDK config
+// for an app from Valkey.
+func GetConfigData(ctx context.Context, vk valkey.Client, appID uuid.UUID) (string, error) {
+	key := configCacheKey(appID)
+	cmd := vk.B().Hget().Key(key).Field("data").Build()
+	result := vk.Do(ctx, cmd)
+
+	str, err := result.ToString()
+	if err != nil {
+		return "", nil
+	}
+	return str, nil
+}
+
+// SetCacheWithETag stores the JSON SDK config & its
+// computed ETag in Valkey as a hash.
+func SetCacheWithETag(ctx context.Context, vk valkey.Client, appID uuid.UUID, jsonConfig []byte) (string, error) {
+	key := configCacheKey(appID)
+	etag := ComputeETag(jsonConfig)
+
+	cmd := vk.B().Hset().Key(key).FieldValue().
+		FieldValue("etag", etag).
+		FieldValue("data", string(jsonConfig)).
+		Build()
+
+	if err := vk.Do(ctx, cmd).Error(); err != nil {
+		return "", fmt.Errorf("failed to store config hash: %w", err)
+	}
+
+	return etag, nil
 }
 
 func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*SdkConfig, error) {
@@ -241,6 +295,3 @@ func CreateConfig(ctx context.Context, tx pgx.Tx, teamID, appID uuid.UUID, creat
 
 	return nil
 }
-
-// PatchConfigForApp applies the
-// given patch to the SDK config.
