@@ -34,4 +34,35 @@ final class ShakeBugReportCollectorTests: XCTestCase {
         XCTAssertTrue(shakeDetector.didStop)
         XCTAssertNil(shakeDetector.getShakeListener())
     }
+
+    func test_pause_stopsDetector() {
+        let shakeDetector = MockShakeDetector()
+        let collector = ShakeBugReportCollector(shakeDetector: shakeDetector)
+        collector.setShakeHandler {}
+
+        collector.pause()
+
+        XCTAssertTrue(shakeDetector.didStop)
+    }
+
+    func test_resume_startsDetector_whenHandlerIsSet() {
+        let shakeDetector = MockShakeDetector()
+        let collector = ShakeBugReportCollector(shakeDetector: shakeDetector)
+        collector.setShakeHandler {}
+        collector.pause()
+        shakeDetector.didStart = false
+
+        collector.resume()
+
+        XCTAssertTrue(shakeDetector.didStart)
+    }
+
+    func test_resume_doesNothing_whenNoHandlerIsSet() {
+        let shakeDetector = MockShakeDetector()
+        let collector = ShakeBugReportCollector(shakeDetector: shakeDetector)
+
+        collector.resume()
+
+        XCTAssertFalse(shakeDetector.didStart)
+    }
 }

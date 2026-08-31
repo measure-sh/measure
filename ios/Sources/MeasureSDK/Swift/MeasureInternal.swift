@@ -493,6 +493,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.sessionManager.applicationDidEnterBackground()
         self.lifecycleCollector.applicationDidEnterBackground()
         self.unregisterCollectors()
+        self.shakeBugReportCollector.pause()
         self.exporter.export()
         self.dataCleanupService.clearStaleData()
     }
@@ -505,6 +506,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.sessionManager.applicationWillEnterForeground()
         self.lifecycleCollector.applicationWillEnterForeground()
         self.registerCollectors()
+        self.shakeBugReportCollector.resume()
         if self.configLoader.isConfigLoaded {
             self.exporter.export()
         }
