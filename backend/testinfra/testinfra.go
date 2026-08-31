@@ -25,7 +25,7 @@ const (
 	// Test database credentials.
 	postgresImage   = "postgres:16.3-alpine"
 	clickhouseImage = "clickhouse/clickhouse-server:26.2-alpine"
-	valkeyImage     = "valkey/valkey:8-alpine"
+	valkeyImage     = "valkey/valkey:9.0.0-alpine"
 	testDBUser      = "test"
 	testDBPassword  = "test"
 	testDBName      = "measure"

@@ -24,6 +24,7 @@ import (
 	"backend/libs/metrics"
 	"backend/libs/network"
 	"backend/libs/opsys"
+	"backend/libs/sdkconfig"
 	"backend/libs/timeline"
 	"backend/libs/udattr"
 
@@ -1526,7 +1527,7 @@ func (h Handlers) CreateApp(c *gin.Context) {
 	userUUID, _ := uuid.Parse(userId)
 	appUUID, _ := uuid.Parse(app.ID.String())
 
-	err = measure.CreateConfig(c.Request.Context(), tx, teamId, appUUID, &userUUID)
+	err = sdkconfig.CreateConfig(c.Request.Context(), tx, teamId, appUUID, &userUUID)
 	if err != nil {
 		msg := "failed to create default config for app"
 		fmt.Println(msg, err)

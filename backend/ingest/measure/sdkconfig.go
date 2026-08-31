@@ -2,30 +2,27 @@ package measure
 
 import (
 	"backend/ingest/server"
+	"backend/libs/sdkconfig"
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"hash/fnv"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/leporo/sqlf"
 	"github.com/valkey-io/valkey-go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
 
+// Cache-Control header sent with every config response.
 const (
-	configCacheKeyPrefix = "sdk_config:"
-	cacheControlHeader   = "Cache-Control"
-	cacheControlValue    = "max-age=600"
+	cacheControlHeader = "Cache-Control"
+	cacheControlValue  = "max-age=600"
 )
 
-// OTel metric constants
+// OTel metric name & attribute values.
 const (
 	otelMeterName               = "measure/sdk_config"
 	otelCacheRequestsMetricName = "sdkconfig.cache.requests"
@@ -33,50 +30,18 @@ const (
 	otelCacheHitETagAttrValue   = "hit_etag"
 	otelCacheHitDataAttrValue   = "hit_data"
 	otelCacheMissAttrValue      = "miss"
+	otelCacheErrorAttrValue     = "error"
 )
 
-const (
-	ScreenshotMaskLevelAllTextAndMedia        ScreenshotMaskLevel = "all_text_and_media"
-	ScreenshotMaskLevelAllText                ScreenshotMaskLevel = "all_text"
-	ScreenshotMaskLevelAllTextExceptClickable ScreenshotMaskLevel = "all_text_except_clickable"
-	ScreenshotMaskLevelSensitiveFieldsOnly    ScreenshotMaskLevel = "sensitive_fields_only"
-)
-
-type ScreenshotMaskLevel string
-
-type SdkConfig struct {
-	MaxEventsInBatch          int                 `json:"max_events_in_batch"`
-	CrashTimelineDuration     int                 `json:"crash_timeline_duration"`
-	ANRTimelineDuration       int                 `json:"anr_timeline_duration"`
-	BugReportTimelineDuration int                 `json:"bug_report_timeline_duration"`
-	TraceSamplingRate         float64             `json:"trace_sampling_rate"`
-	JourneySamplingRate       float64             `json:"journey_sampling_rate"`
-	ScreenshotMaskLevel       ScreenshotMaskLevel `json:"screenshot_mask_level"`
-	LogAutocollectEnabled     bool                `json:"log_autocollect_enabled"`
-	LogMinSeverity            int                 `json:"log_min_severity"`
-	LogIgnorePatterns         []string            `json:"log_ignore_patterns"`
-	CPUUsageInterval          int                 `json:"cpu_usage_interval"`
-	MemoryUsageInterval       int                 `json:"memory_usage_interval"`
-	CrashTakeScreenshot       bool                `json:"crash_take_screenshot"`
-	ANRTakeScreenshot         bool                `json:"anr_take_screenshot"`
-	LaunchSamplingRate        float64             `json:"launch_sampling_rate"`
-	GestureClickTakeSnapshot  bool                `json:"gesture_click_take_snapshot"`
-	HTTPDisableEventForURLs   []string            `json:"http_disable_event_for_urls"`
-	HTTPTrackRequestForURLs   []string            `json:"http_track_request_for_urls"`
-	HTTPTrackResponseForURLs  []string            `json:"http_track_response_for_urls"`
-	HTTPBlockedHeaders        []string            `json:"http_blocked_headers"`
-	ProfileSamplingRate       float64             `json:"profile_sampling_rate"`
-	UpdatedAt                 *time.Time          `json:"-"`
-	UpdatedBy                 *uuid.UUID          `json:"-"`
-}
-
-// cacheMetrics encapsulates SDK config cache metrics
+// cacheMetrics holds the SDK config cache counters.
 type cacheMetrics struct {
 	requests metric.Int64Counter
 }
 
+// sdkConfigCache is the process wide cache metrics recorder.
 var sdkConfigCache *cacheMetrics
 
+// init builds the SDK config cache metrics counter.
 func init() {
 	meter := otel.Meter(otelMeterName)
 	counter, err := meter.Int64Counter(
@@ -89,199 +54,37 @@ func init() {
 	sdkConfigCache = &cacheMetrics{requests: counter}
 }
 
-// RecordHitETag records a cache hit
-// where client's ETag matched
+// RecordHitETag records a cache hit where the client's ETag matched.
 func (m *cacheMetrics) RecordHitETag(ctx context.Context) {
 	m.requests.Add(ctx, 1, metric.WithAttributes(
 		attribute.String(otelCacheResultAttrKey, otelCacheHitETagAttrValue),
 	))
 }
 
-// RecordHitData records a cache hit
-// where data was served from cache
+// RecordHitData records a cache hit served from cached data.
 func (m *cacheMetrics) RecordHitData(ctx context.Context) {
 	m.requests.Add(ctx, 1, metric.WithAttributes(
 		attribute.String(otelCacheResultAttrKey, otelCacheHitDataAttrValue),
 	))
 }
 
-// RecordMiss records a cache miss
+// RecordMiss records a cache miss.
 func (m *cacheMetrics) RecordMiss(ctx context.Context) {
 	m.requests.Add(ctx, 1, metric.WithAttributes(
 		attribute.String(otelCacheResultAttrKey, otelCacheMissAttrValue),
 	))
 }
 
-// createDefaultConfig returns an SdkConfig populated
-// with sensible defaults for new apps.
-func createDefaultConfig() SdkConfig {
-	return SdkConfig{
-		MaxEventsInBatch:          10000,
-		CrashTimelineDuration:     300,
-		ANRTimelineDuration:       300,
-		BugReportTimelineDuration: 300,
-		TraceSamplingRate:         100,
-		JourneySamplingRate:       100,
-		ScreenshotMaskLevel:       ScreenshotMaskLevelAllTextAndMedia,
-		LogAutocollectEnabled:     false,
-		LogMinSeverity:            16,
-		LogIgnorePatterns:         []string{},
-		CPUUsageInterval:          5,
-		MemoryUsageInterval:       5,
-		CrashTakeScreenshot:       true,
-		ANRTakeScreenshot:         true,
-		LaunchSamplingRate:        100,
-		GestureClickTakeSnapshot:  true,
-		HTTPDisableEventForURLs:   []string{},
-		HTTPTrackRequestForURLs:   []string{},
-		HTTPTrackResponseForURLs:  []string{},
-		HTTPBlockedHeaders:        []string{},
-		ProfileSamplingRate:       100,
-	}
+// RecordError records a request that could not consult the cache.
+func (m *cacheMetrics) RecordError(ctx context.Context) {
+	m.requests.Add(ctx, 1, metric.WithAttributes(
+		attribute.String(otelCacheResultAttrKey, otelCacheErrorAttrValue),
+	))
 }
 
-func configCacheKey(appID uuid.UUID) string {
-	return fmt.Sprintf("%s{%s}", configCacheKeyPrefix, appID.String())
-}
-
-func computeETag(data []byte) string {
-	h := fnv.New64a()
-	_, _ = h.Write(data)
-	return hex.EncodeToString(h.Sum(nil))
-}
-
-// getConfigETag fetches the cached ETag for an app's
-// SDK config from Valkey.
-func getConfigETag(ctx context.Context, vk valkey.Client, appID uuid.UUID) (string, error) {
-	key := configCacheKey(appID)
-	cmd := vk.B().Hget().Key(key).Field("etag").Build()
-	result := vk.Do(ctx, cmd)
-
-	str, err := result.ToString()
-	if err != nil {
-		return "", nil
-	}
-	return str, nil
-}
-
-// getConfigData fetches the cached JSON SDK config
-// for an app from Valkey.
-func getConfigData(ctx context.Context, vk valkey.Client, appID uuid.UUID) (string, error) {
-	key := configCacheKey(appID)
-	cmd := vk.B().Hget().Key(key).Field("data").Build()
-	result := vk.Do(ctx, cmd)
-
-	str, err := result.ToString()
-	if err != nil {
-		return "", nil
-	}
-	return str, nil
-}
-
-// setCacheWithETag stores the JSON SDK config and its
-// computed ETag in Valkey as a hash.
-func setCacheWithETag(ctx context.Context, vk valkey.Client, appID uuid.UUID, jsonConfig []byte) (string, error) {
-	key := configCacheKey(appID)
-	etag := computeETag(jsonConfig)
-
-	cmd := vk.B().Hset().Key(key).FieldValue().
-		FieldValue("etag", etag).
-		FieldValue("data", string(jsonConfig)).
-		Build()
-
-	if err := vk.Do(ctx, cmd).Error(); err != nil {
-		return "", fmt.Errorf("failed to store config hash: %w", err)
-	}
-
-	return etag, nil
-}
-
-// getConfigFromDb fetches the SDK config for an app
-// directly from PostgreSQL.
-func getConfigFromDb(ctx context.Context, appID uuid.UUID) (*SdkConfig, error) {
-	q := sqlf.PostgreSQL.
-		Select("max_events_in_batch").
-		Select("crash_timeline_duration").
-		Select("anr_timeline_duration").
-		Select("bug_report_timeline_duration").
-		Select("trace_sampling_rate").
-		Select("journey_sampling_rate").
-		Select("screenshot_mask_level").
-		Select("log_autocollect_enabled").
-		Select("log_min_severity").
-		Select("log_ignore_patterns").
-		Select("cpu_usage_interval").
-		Select("memory_usage_interval").
-		Select("crash_take_screenshot").
-		Select("anr_take_screenshot").
-		Select("launch_sampling_rate").
-		Select("gesture_click_take_snapshot").
-		Select("http_disable_event_for_urls").
-		Select("http_track_request_for_urls").
-		Select("http_track_response_for_urls").
-		Select("http_blocked_headers").
-		Select("profile_sampling_rate").
-		Select("updated_at").
-		Select("updated_by").
-		From("measure.sdk_config").
-		Where("app_id = ?", appID)
-
-	defer q.Close()
-
-	var sdkConfig SdkConfig
-
-	err := server.Server.PgPool.QueryRow(ctx, q.String(), q.Args()...).Scan(
-		&sdkConfig.MaxEventsInBatch,
-		&sdkConfig.CrashTimelineDuration,
-		&sdkConfig.ANRTimelineDuration,
-		&sdkConfig.BugReportTimelineDuration,
-		&sdkConfig.TraceSamplingRate,
-		&sdkConfig.JourneySamplingRate,
-		&sdkConfig.ScreenshotMaskLevel,
-		&sdkConfig.LogAutocollectEnabled,
-		&sdkConfig.LogMinSeverity,
-		&sdkConfig.LogIgnorePatterns,
-		&sdkConfig.CPUUsageInterval,
-		&sdkConfig.MemoryUsageInterval,
-		&sdkConfig.CrashTakeScreenshot,
-		&sdkConfig.ANRTakeScreenshot,
-		&sdkConfig.LaunchSamplingRate,
-		&sdkConfig.GestureClickTakeSnapshot,
-		&sdkConfig.HTTPDisableEventForURLs,
-		&sdkConfig.HTTPTrackRequestForURLs,
-		&sdkConfig.HTTPTrackResponseForURLs,
-		&sdkConfig.HTTPBlockedHeaders,
-		&sdkConfig.ProfileSamplingRate,
-		&sdkConfig.UpdatedAt,
-		&sdkConfig.UpdatedBy,
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to get config: %w", err)
-	}
-
-	return &sdkConfig, nil
-}
-
-// invalidateCache deletes the cached SDK config for
-// an app from Valkey. No-ops if vk is nil.
-func invalidateCache(ctx context.Context, vk valkey.Client, appID uuid.UUID) error {
-	if vk == nil {
-		return nil
-	}
-
-	cacheKey := configCacheKey(appID)
-	cmd := vk.B().Del().Key(cacheKey).Build()
-	result := vk.Do(ctx, cmd)
-
-	return result.Error()
-}
-
-// serveConfigFromDb fetches the SDK config from PostgreSQL,
-// populates the Valkey cache if vk is available, and writes
-// the JSON response.
+// serveConfigFromDb serves an app's config from Postgres & repopulates the cache.
 func serveConfigFromDb(c *gin.Context, ctx context.Context, appId uuid.UUID, vk valkey.Client) {
-	sdkConfig, err := getConfigFromDb(ctx, appId)
+	sdkConfig, err := sdkconfig.GetConfigFromDb(ctx, server.Server.PgPool, appId)
 	if err != nil {
 		msg := `error fetching SDK config`
 		fmt.Println(msg, err)
@@ -295,11 +98,11 @@ func serveConfigFromDb(c *gin.Context, ctx context.Context, appId uuid.UUID, vk 
 		return
 	}
 
-	var etag string
+	etag := sdkconfig.ComputeETag(jsonConfig)
+
 	if vk != nil {
-		etag, err = setCacheWithETag(ctx, vk, appId, jsonConfig)
-		if err != nil {
-			fmt.Println("error setting cache with ETag:", err)
+		if err := sdkconfig.SetCacheIfAbsent(ctx, vk, appId, jsonConfig); err != nil {
+			fmt.Println("error populating config cache:", err)
 		}
 	}
 
@@ -308,10 +111,7 @@ func serveConfigFromDb(c *gin.Context, ctx context.Context, appId uuid.UUID, vk 
 	c.Data(http.StatusOK, "application/json", jsonConfig)
 }
 
-// GetConfigForSdk retrieves the SDK config for the app.
-// It serves from the Valkey cache when available, falling
-// back to PostgreSQL on cache miss or when Valkey is
-// unavailable.
+// GetConfigForSdk serves the SDK config, from the Valkey cache when warm, else Postgres.
 func GetConfigForSdk(c *gin.Context) {
 	appId, err := uuid.Parse(c.GetString("appId"))
 	if err != nil {
@@ -336,33 +136,38 @@ func GetConfigForSdk(c *gin.Context) {
 
 	if vk == nil {
 		fmt.Println("valkey client not available, skipping cache")
+		sdkConfigCache.RecordError(ctx)
 		serveConfigFromDb(c, ctx, appId, nil)
 		return
 	}
 
-	cachedETag, err := getConfigETag(ctx, vk, appId)
-	if err == nil && cachedETag != "" {
-		if cachedETag == clientETag {
-			fmt.Println("sdk config cache hit (etag match)")
-			sdkConfigCache.RecordHitETag(ctx)
-			c.Header(cacheControlHeader, cacheControlValue)
-			c.Header("ETag", cachedETag)
-			c.Status(http.StatusNotModified)
-			return
-		}
-
-		data, err := getConfigData(ctx, vk, appId)
-		if err == nil && data != "" {
-			fmt.Println("sdk config cache hit")
-			sdkConfigCache.RecordHitData(ctx)
-			c.Header(cacheControlHeader, cacheControlValue)
-			c.Header("ETag", cachedETag)
-			c.Data(http.StatusOK, "application/json", []byte(data))
-			return
-		}
+	data, err := sdkconfig.GetCache(ctx, vk, appId)
+	if err != nil {
+		fmt.Println("sdk config cache error:", err)
+		sdkConfigCache.RecordError(ctx)
+		serveConfigFromDb(c, ctx, appId, vk)
+		return
 	}
 
-	fmt.Println("sdk config cache miss")
-	sdkConfigCache.RecordMiss(ctx)
-	serveConfigFromDb(c, ctx, appId, vk)
+	if data == "" {
+		fmt.Println("sdk config cache miss")
+		sdkConfigCache.RecordMiss(ctx)
+		serveConfigFromDb(c, ctx, appId, vk)
+		return
+	}
+
+	etag := sdkconfig.ComputeETag([]byte(data))
+	c.Header(cacheControlHeader, cacheControlValue)
+	c.Header("ETag", etag)
+
+	if etag == clientETag {
+		fmt.Println("sdk config cache hit (etag match)")
+		sdkConfigCache.RecordHitETag(ctx)
+		c.Status(http.StatusNotModified)
+		return
+	}
+
+	fmt.Println("sdk config cache hit")
+	sdkConfigCache.RecordHitData(ctx)
+	c.Data(http.StatusOK, "application/json", []byte(data))
 }

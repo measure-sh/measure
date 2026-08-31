@@ -4417,6 +4417,8 @@ paths:
                     type: number
                   gesture_click_take_snapshot:
                     type: boolean
+                  http_sampling_rate:
+                    type: number
                   http_disable_event_for_urls:
                     type: array
                     items:
@@ -4433,6 +4435,8 @@ paths:
                     type: array
                     items:
                       type: string
+                  profile_sampling_rate:
+                    type: number
               examples:
                 response:
                   value:
@@ -4452,10 +4456,12 @@ paths:
                     anr_take_screenshot: true
                     launch_sampling_rate: 1
                     gesture_click_take_snapshot: true
+                    http_sampling_rate: 100
                     http_disable_event_for_urls: []
                     http_track_request_for_urls: []
                     http_track_response_for_urls: []
                     http_blocked_headers: []
+                    profile_sampling_rate: 100
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":

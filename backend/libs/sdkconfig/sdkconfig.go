@@ -1,8 +1,11 @@
-package measure
+package sdkconfig
 
 import (
 	"context"
+	"encoding/hex"
+	"errors"
 	"fmt"
+	"hash/fnv"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,10 +15,17 @@ import (
 	"github.com/valkey-io/valkey-go"
 )
 
+// Valkey cache key & field names.
 const (
 	configCacheKeyPrefix = "sdk_config:"
+	// cacheFieldData keeps the entry a hash, changing the value type breaks readers mid deploy.
+	cacheFieldData = "data"
 )
 
+// ErrNoCacheClient is returned by cache writes when no Valkey client is configured.
+var ErrNoCacheClient = errors.New("valkey client not available")
+
+// Screenshot mask levels an SDK accepts.
 const (
 	ScreenshotMaskLevelAllTextAndMedia        ScreenshotMaskLevel = "all_text_and_media"
 	ScreenshotMaskLevelAllText                ScreenshotMaskLevel = "all_text"
@@ -23,8 +33,10 @@ const (
 	ScreenshotMaskLevelSensitiveFieldsOnly    ScreenshotMaskLevel = "sensitive_fields_only"
 )
 
+// ScreenshotMaskLevel is how much of a screenshot an SDK masks.
 type ScreenshotMaskLevel string
 
+// SdkConfig is an app's SDK configuration as served to SDKs.
 type SdkConfig struct {
 	MaxEventsInBatch          int                 `json:"max_events_in_batch"`
 	CrashTimelineDuration     int                 `json:"crash_timeline_duration"`
@@ -52,6 +64,7 @@ type SdkConfig struct {
 	UpdatedBy                 *uuid.UUID          `json:"-"`
 }
 
+// ConfigPatch is a partial SdkConfig update, nil fields are left unchanged.
 type ConfigPatch struct {
 	MaxEventsInBatch          *int                 `json:"max_events_in_batch,omitempty"`
 	CrashTimelineDuration     *int                 `json:"crash_timeline_duration,omitempty"`
@@ -77,6 +90,7 @@ type ConfigPatch struct {
 	ProfileSamplingRate       *float64             `json:"profile_sampling_rate,omitempty"`
 }
 
+// IsValid reports whether s is a known screenshot mask level.
 func (s ScreenshotMaskLevel) IsValid() bool {
 	switch s {
 	case ScreenshotMaskLevelAllText,
@@ -88,6 +102,7 @@ func (s ScreenshotMaskLevel) IsValid() bool {
 	return false
 }
 
+// createDefaultConfig returns the SDK config new apps start with.
 func createDefaultConfig() SdkConfig {
 	return SdkConfig{
 		MaxEventsInBatch:          10000,
@@ -115,10 +130,69 @@ func createDefaultConfig() SdkConfig {
 	}
 }
 
+// configCacheKey returns the Valkey key for an app's cached config.
 func configCacheKey(appID uuid.UUID) string {
 	return fmt.Sprintf("%s{%s}", configCacheKeyPrefix, appID.String())
 }
 
+// ComputeETag returns the hex FNV-1a hash of data, recomputed on read.
+func ComputeETag(data []byte) string {
+	h := fnv.New64a()
+	_, _ = h.Write(data)
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// GetCache returns the cached config JSON, empty & nil for a missing key, an error for any other failure.
+func GetCache(ctx context.Context, vk valkey.Client, appID uuid.UUID) (data string, err error) {
+	key := configCacheKey(appID)
+	cmd := vk.B().Hget().Key(key).Field(cacheFieldData).Build()
+
+	data, err = vk.Do(ctx, cmd).ToString()
+	if valkey.IsValkeyNil(err) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to read config cache: %w", err)
+	}
+
+	return data, nil
+}
+
+// SetCache writes the config JSON unconditionally, for the patch path only.
+func SetCache(ctx context.Context, vk valkey.Client, appID uuid.UUID, jsonConfig []byte) error {
+	if vk == nil {
+		return ErrNoCacheClient
+	}
+
+	key := configCacheKey(appID)
+	cmd := vk.B().Hset().Key(key).FieldValue().
+		FieldValue(cacheFieldData, string(jsonConfig)).
+		Build()
+
+	if err := vk.Do(ctx, cmd).Error(); err != nil {
+		return fmt.Errorf("failed to store config hash: %w", err)
+	}
+
+	return nil
+}
+
+// SetCacheIfAbsent writes the config JSON only when absent, else a slow reader can overwrite a fresh config.
+func SetCacheIfAbsent(ctx context.Context, vk valkey.Client, appID uuid.UUID, jsonConfig []byte) error {
+	if vk == nil {
+		return ErrNoCacheClient
+	}
+
+	key := configCacheKey(appID)
+	cmd := vk.B().Hsetnx().Key(key).Field(cacheFieldData).Value(string(jsonConfig)).Build()
+
+	if err := vk.Do(ctx, cmd).Error(); err != nil {
+		return fmt.Errorf("failed to store config hash: %w", err)
+	}
+
+	return nil
+}
+
+// GetConfigFromDb returns an app's SDK config from Postgres.
 func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*SdkConfig, error) {
 	q := sqlf.PostgreSQL.
 		Select("max_events_in_batch").
@@ -186,9 +260,10 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 	return &sdkConfig, nil
 }
 
+// InvalidateCache deletes an app's cached config.
 func InvalidateCache(ctx context.Context, vk valkey.Client, appID uuid.UUID) error {
 	if vk == nil {
-		return nil
+		return ErrNoCacheClient
 	}
 
 	cacheKey := configCacheKey(appID)
@@ -198,8 +273,7 @@ func InvalidateCache(ctx context.Context, vk valkey.Client, appID uuid.UUID) err
 	return result.Error()
 }
 
-// CreateConfig creates a default
-// SDK config for the given app.
+// CreateConfig creates a default SDK config for the given app.
 func CreateConfig(ctx context.Context, tx pgx.Tx, teamID, appID uuid.UUID, createdBy *uuid.UUID) error {
 	config := createDefaultConfig()
 
@@ -241,6 +315,3 @@ func CreateConfig(ctx context.Context, tx pgx.Tx, teamID, appID uuid.UUID, creat
 
 	return nil
 }
-
-// PatchConfigForApp applies the
-// given patch to the SDK config.
