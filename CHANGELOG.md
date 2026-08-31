@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Fold public oci workflow (#4220) by @detj in #4220
 - (**deps**): Bump github.com/moby/go-archive in /backend/testinfra (#4277) by @dependabot[bot] in #4277
 - (**deps**): Bump github.com/moby/go-archive in /backend/ingest-worker (#4276) by @dependabot[bot] in #4276
+- (**frontend**): Open the key picker on the selected key's group by @anupcowkur in #4342
 - (**frontend**): Adjust traces list loading bar spacing by @anupcowkur in #4318
 - (**frontend**): Update crashlytics alternative page by @anupcowkur in #4303
 - (**frontend**): Improve network navigation and search (#4292) by @abhaysood in #4292
