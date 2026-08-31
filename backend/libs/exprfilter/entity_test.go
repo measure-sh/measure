@@ -287,7 +287,7 @@ func TestBugReportsEntityOffersEveryBugReportKey(t *testing.T) {
 	byName := IndexKeysByName(BugReportsEntity.Keys)
 
 	wanted := []string{
-		"version_name", "version_code",
+		"version_name", "version_code", "patch_version", "patch_id",
 		"bug_report_status", "user_id", "bug_report_description", "session_id",
 		"os_name", "os_version",
 		"device_name", "device_manufacturer", "locale",
