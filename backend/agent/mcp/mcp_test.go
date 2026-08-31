@@ -2521,7 +2521,7 @@ func TestMCPGetFilterKeys(t *testing.T) {
 		for _, key := range result.Keys {
 			keysByName[key.Name] = true
 		}
-		for _, want := range []string{"version_name", "version_code", "bug_report_status", "user_id", "bug_report_description", "session_id", "os_name", "country"} {
+		for _, want := range []string{"version_name", "version_code", "patch_version", "patch_id", "bug_report_status", "user_id", "bug_report_description", "session_id", "os_name", "country"} {
 			if !keysByName[want] {
 				t.Errorf("bug_reports keys missing %q", want)
 			}
@@ -3365,6 +3365,45 @@ func TestMCPGetBugReports(t *testing.T) {
 			t.Errorf("filtered bug report description = %v, want open bug", reports[0]["description"])
 		}
 	})
+	t.Run("a patch filter_expr narrows results", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "brpatch@mcp.test")
+		patchID := uuid.New()
+		// One report came from an app running an OTA patch and one did not.
+		th.SeedBugReportRow(ctx, t, teamID.String(), appID.String(), testinfra.BugReportRow{
+			Status: 0, Description: "patched bug", Timestamp: now.Add(-time.Hour),
+			PatchID: patchID, PatchVersion: "1.2.0-patch.3",
+		})
+		th.SeedBugReportRow(ctx, t, teamID.String(), appID.String(), testinfra.BugReportRow{
+			Status: 0, Description: "unpatched bug", Timestamp: now.Add(-time.Hour),
+		})
+
+		reports := func(t *testing.T, filterExpr string) []map[string]any {
+			t.Helper()
+			resp := callMCPTool(t, rawToken, "get_bug_reports", map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": filterExpr})
+			if isToolError(resp) {
+				t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+			}
+			var reports []map[string]any
+			if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &reports); err != nil {
+				t.Fatalf("unmarshal bug reports: %v", err)
+			}
+			return reports
+		}
+
+		for _, filterExpr := range []string{
+			"patch_id:is_set",
+			"patch_id:in:" + patchID.String(),
+			"patch_version:in:1.2.0-patch.3",
+		} {
+			got := reports(t, filterExpr)
+			if len(got) != 1 {
+				t.Fatalf("filter %q: want 1 bug report, got %d", filterExpr, len(got))
+			}
+			if got[0]["description"] != "patched bug" {
+				t.Errorf("filter %q: description = %v, want patched bug", filterExpr, got[0]["description"])
+			}
+		}
+	})
 	t.Run("invalid filter_expr returns the issue", func(t *testing.T) {
 		appID, _, rawToken := setupToolTest(t, "brexprbad@mcp.test")
 		resp := callMCPTool(t, rawToken, "get_bug_reports", map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": "bogus_key:in:x"})
@@ -3460,6 +3499,14 @@ func TestMCPGetBugReportsPlot(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "brplotexpr@mcp.test")
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_bug_reports_over_time", map[string]any{"app_id": appID.String(), "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339), "filter_expr": "version_name:in:v1 AND bug_report_status:in:open"})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+	})
+	t.Run("a patch filter_expr is accepted", func(t *testing.T) {
+		appID, rawToken := setupToolTest(t, "brplotpatch@mcp.test")
+		now := time.Now().UTC()
+		resp := callMCPTool(t, rawToken, "get_bug_reports_over_time", map[string]any{"app_id": appID.String(), "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339), "filter_expr": "patch_id:is_set"})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}

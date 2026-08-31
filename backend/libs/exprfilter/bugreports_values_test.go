@@ -12,12 +12,14 @@ import (
 	"github.com/google/uuid"
 )
 
-func seedBugReports(ctx context.Context, t *testing.T) (teamID, appID, otherAppID uuid.UUID) {
+func seedBugReports(ctx context.Context, t *testing.T) (teamID, appID, otherAppID uuid.UUID, patchOne, patchTwo uuid.UUID) {
 	t.Helper()
 
 	teamID = uuid.New()
 	appID = uuid.New()
 	otherAppID = uuid.New()
+	patchOne = uuid.New()
+	patchTwo = uuid.New()
 
 	th.SeedTeam(ctx, t, teamID.String(), "bug report values team")
 	th.SeedApp(ctx, t, appID.String(), teamID.String(), "bug report values app", 90)
@@ -25,6 +27,8 @@ func seedBugReports(ctx context.Context, t *testing.T) (teamID, appID, otherAppI
 
 	base := time.Now().UTC().Add(-time.Hour).Truncate(time.Millisecond)
 
+	// Two reports came from apps running OTA patches; only the first patch
+	// has a version name.
 	th.SeedBugReportRow(ctx, t, teamID.String(), appID.String(), testinfra.BugReportRow{
 		Timestamp:          base,
 		Status:             0,
@@ -32,6 +36,8 @@ func seedBugReports(ctx context.Context, t *testing.T) (teamID, appID, otherAppI
 		UserID:             "alice",
 		DeviceName:         "pixel 4a",
 		DeviceManufacturer: "Google",
+		PatchID:            patchOne,
+		PatchVersion:       "1.2.0-patch.3",
 	})
 	th.SeedBugReportRow(ctx, t, teamID.String(), appID.String(), testinfra.BugReportRow{
 		Timestamp:          base.Add(10 * time.Minute),
@@ -42,6 +48,7 @@ func seedBugReports(ctx context.Context, t *testing.T) (teamID, appID, otherAppI
 		DeviceManufacturer: "Apple",
 		OSName:             "iOS",
 		OSVersion:          "17.4",
+		PatchID:            patchTwo,
 	})
 	th.SeedBugReportRow(ctx, t, teamID.String(), appID.String(), testinfra.BugReportRow{
 		Timestamp:   base.Add(20 * time.Minute),
@@ -56,12 +63,12 @@ func seedBugReports(ctx context.Context, t *testing.T) (teamID, appID, otherAppI
 		UserID:      "mallory",
 	})
 
-	return teamID, appID, otherAppID
+	return teamID, appID, otherAppID, patchOne, patchTwo
 }
 
 func TestBugReportsValues(t *testing.T) {
 	ctx := context.Background()
-	teamID, appID, otherAppID := seedBugReports(ctx, t)
+	teamID, appID, otherAppID, patchOne, patchTwo := seedBugReports(ctx, t)
 
 	byName := IndexKeysByName(BugReportsEntity.Keys)
 
@@ -146,6 +153,29 @@ func TestBugReportsValues(t *testing.T) {
 		}
 		if !truncated {
 			t.Error("want the picker told the list is partial")
+		}
+	})
+
+	t.Run("patch ids leave out reports without a patch", func(t *testing.T) {
+		values, _ := list(t, "patch_id", ValueRequest{})
+
+		got := texts(values)
+		// Recency here is each value's newest report timestamp, so the later
+		// patch comes first.
+		if len(got) != 2 || got[0] != patchTwo.String() || got[1] != patchOne.String() {
+			t.Errorf("want [%s %s], got %v", patchTwo, patchOne, got)
+		}
+		for _, value := range got {
+			if value == uuid.Nil.String() {
+				t.Error("want the nil patch id of unpatched reports left out")
+			}
+		}
+	})
+
+	t.Run("patch versions leave out the patch that named none", func(t *testing.T) {
+		values, _ := list(t, "patch_version", ValueRequest{})
+		if got := texts(values); len(got) != 1 || got[0] != "1.2.0-patch.3" {
+			t.Errorf("want only the named patch version, got %v", got)
 		}
 	})
 

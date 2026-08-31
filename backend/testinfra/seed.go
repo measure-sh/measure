@@ -223,9 +223,10 @@ func (h *TestHelper) SeedIngestionUsage(ctx context.Context, t *testing.T, teamI
 //   - Type:       "test"
 //   - AppVersion: "v1", AppBuild: "1"
 //   - Timestamp:  time.Now().UTC()
-//   - SessionID:  a fresh UUID per inserted row
+//   - EventID, SessionID: a fresh UUID per inserted row
 type EventRow struct {
 	Type       string
+	EventID    string
 	SessionID  string
 	Timestamp  time.Time
 	AppVersion string
@@ -240,6 +241,13 @@ type EventRow struct {
 	ExceptionsJSON string
 	IsCustom       bool
 
+	// Description is the bug report text, written only for Type "bug_report".
+	// For those events the seed also writes '[]' into the attachments column,
+	// the value real ingestion stores for a report without attachments.
+	// Readers of the derived bug_reports row json-decode that column and
+	// would fail on the empty-string column default.
+	Description string
+
 	// Device/network attributes, written only when OSName is non-empty.
 	// app_filters_mv requires all nine of these non-empty to emit a row, so
 	// set every field together when a test needs to reach that view.
@@ -252,6 +260,14 @@ type EventRow struct {
 	DeviceLocale       string
 	DeviceManufacturer string
 	DeviceName         string
+
+	// Attributes written individually only when set, leaving ClickHouse
+	// column defaults otherwise. PatchID and PatchVersion identify an OTA
+	// patch the app was running; both stay unwritten for an unpatched app.
+	UserID       string
+	DeviceModel  string
+	PatchID      uuid.UUID
+	PatchVersion string
 }
 
 func (r EventRow) filled() EventRow {
@@ -293,7 +309,11 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 	}
 
 	// generateUUIDv4() is evaluated per row by ClickHouse, so id, installation
-	// id and (unpinned) session id are unique across the batch.
+	// id and (unpinned) event and session ids are unique across the batch.
+	idExpr := "generateUUIDv4()"
+	if row.EventID != "" {
+		idExpr = quote(row.EventID)
+	}
 	sessionExpr := "generateUUIDv4()"
 	if row.SessionID != "" {
 		sessionExpr = quote(row.SessionID)
@@ -305,7 +325,7 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 		"`attribute.app_unique_id`", "`attribute.measure_sdk_version`",
 	}
 	vals := []string{
-		"generateUUIDv4()", quote(row.Type), sessionExpr, quote(appID), quote(teamID),
+		idExpr, quote(row.Type), sessionExpr, quote(appID), quote(teamID),
 		quote(ts), "false", "generateUUIDv4()",
 		quote(row.AppVersion), quote(row.AppBuild), "'com.test'", "'0.1'",
 	}
@@ -332,6 +352,11 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 		}
 	}
 
+	if row.Type == "bug_report" {
+		cols = append(cols, "`bug_report.description`", "attachments")
+		vals = append(vals, quote(row.Description), "'[]'")
+	}
+
 	if row.OSName != "" {
 		cols = append(cols,
 			"`attribute.os_name`", "`attribute.os_version`", "`inet.country_code`",
@@ -341,6 +366,23 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 			quote(row.OSName), quote(row.OSVersion), quote(row.CountryCode),
 			quote(row.NetworkProvider), quote(row.NetworkType), quote(row.NetworkGeneration),
 			quote(row.DeviceLocale), quote(row.DeviceManufacturer), quote(row.DeviceName))
+	}
+
+	if row.UserID != "" {
+		cols = append(cols, "`attribute.user_id`")
+		vals = append(vals, quote(row.UserID))
+	}
+	if row.DeviceModel != "" {
+		cols = append(cols, "`attribute.device_model`")
+		vals = append(vals, quote(row.DeviceModel))
+	}
+	if row.PatchID != uuid.Nil {
+		cols = append(cols, "`attribute.patch_id`")
+		vals = append(vals, quote(row.PatchID.String()))
+	}
+	if row.PatchVersion != "" {
+		cols = append(cols, "`attribute.patch_version`")
+		vals = append(vals, quote(row.PatchVersion))
 	}
 
 	query := fmt.Sprintf("INSERT INTO measure.events (%s) SELECT %s FROM numbers(%d)",
@@ -1021,8 +1063,10 @@ func (h *TestHelper) SeedLaunchEvent(ctx context.Context, t *testing.T, teamID, 
 	}
 }
 
-// BugReportRow describes one row to insert into the bug_reports table.
-// A zero Status is an open report.
+// BugReportRow describes one bug report to seed. The report is inserted as a
+// bug_report event into the events table, from which bug_reports_mv derives
+// the bug_reports row, the same path real ingestion takes. A zero Status is
+// an open report.
 //
 // Zero-value fields fall back to defaults applied by (BugReportRow).filled:
 //   - Timestamp:  time.Now().UTC()
@@ -1031,7 +1075,9 @@ func (h *TestHelper) SeedLaunchEvent(ctx context.Context, t *testing.T, teamID, 
 //   - EventID, SessionID: fresh per row
 //
 // The country, network, device and user attributes default to a Google Pixel
-// on Verizon wifi 4g in the US, locale en-US, user id "u1".
+// on Verizon wifi 4g in the US, locale en-US, user id "u1". PatchID stays the
+// nil uuid and PatchVersion an empty string unless set, as they are for a
+// report filed by an app not running an OTA patch.
 type BugReportRow struct {
 	EventID            string
 	SessionID          string
@@ -1051,6 +1097,8 @@ type BugReportRow struct {
 	DeviceName         string
 	DeviceModel        string
 	UserID             string
+	PatchID            uuid.UUID
+	PatchVersion       string
 }
 
 func (r BugReportRow) filled() BugReportRow {
@@ -1105,27 +1153,48 @@ func (r BugReportRow) filled() BugReportRow {
 	return r
 }
 
-// SeedBugReportRow inserts one row described by row into the bug_reports
-// table.
+// SeedBugReportRow seeds one bug report described by row by inserting a
+// bug_report event into the events table; bug_reports_mv fires on the insert
+// and writes the derived bug_reports row. The view fixes a new report's
+// status to open, so for a non-zero Status the same lightweight UPDATE the
+// API's status change runs is issued afterwards, with updated_at kept at the
+// report's timestamp.
 func (h *TestHelper) SeedBugReportRow(ctx context.Context, t *testing.T, teamID, appID string, row BugReportRow) {
 	t.Helper()
 	row = row.filled()
-	ts := row.Timestamp.UTC()
-	query := `
-		INSERT INTO measure.bug_reports
-		(team_id, event_id, app_id, session_id, timestamp, updated_at, status, description, app_version, os_version, country_code, network_provider, network_type, network_generation, device_locale, device_manufacturer, device_name, device_model, user_id, device_low_power_mode, device_thermal_throttling_enabled, user_defined_attribute, attachments)
-		VALUES (toUUID(?), ?, ?, ?, ?, ?, ?, ?, (?, ?), (?, ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, false, false, map('test', (1, 'val')), '[]')`
-	if err := h.ChConn.Exec(ctx, query,
-		teamID, row.EventID, appID, row.SessionID, ts, ts, row.Status, row.Description,
-		row.AppVersion, row.AppBuild, row.OSName, row.OSVersion,
-		row.CountryCode, row.NetworkProvider, row.NetworkType, row.NetworkGeneration,
-		row.DeviceLocale, row.DeviceManufacturer, row.DeviceName, row.DeviceModel, row.UserID); err != nil {
-		t.Fatalf("seed bug report: %v", err)
+	h.SeedEventRows(ctx, t, teamID, appID, 1, EventRow{
+		Type:               "bug_report",
+		EventID:            row.EventID,
+		SessionID:          row.SessionID,
+		Timestamp:          row.Timestamp,
+		AppVersion:         row.AppVersion,
+		AppBuild:           row.AppBuild,
+		Description:        row.Description,
+		OSName:             row.OSName,
+		OSVersion:          row.OSVersion,
+		CountryCode:        row.CountryCode,
+		NetworkProvider:    row.NetworkProvider,
+		NetworkType:        row.NetworkType,
+		NetworkGeneration:  row.NetworkGeneration,
+		DeviceLocale:       row.DeviceLocale,
+		DeviceManufacturer: row.DeviceManufacturer,
+		DeviceName:         row.DeviceName,
+		UserID:             row.UserID,
+		DeviceModel:        row.DeviceModel,
+		PatchID:            row.PatchID,
+		PatchVersion:       row.PatchVersion,
+	})
+
+	if row.Status != 0 {
+		query := `UPDATE measure.bug_reports SET status = ?, updated_at = ? WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND event_id = toUUID(?)`
+		if err := h.ChConn.Exec(ctx, query,
+			row.Status, row.Timestamp.UTC(), teamID, appID, row.EventID); err != nil {
+			t.Fatalf("set bug report status: %v", err)
+		}
 	}
 }
 
-// SeedBugReport inserts a single closed bug report into the bug_reports table
-// with default attributes.
+// SeedBugReport seeds a single closed bug report with default attributes.
 func (h *TestHelper) SeedBugReport(ctx context.Context, t *testing.T, teamID, appID, eventID, description string, ts time.Time) {
 	t.Helper()
 	h.SeedBugReportRow(ctx, t, teamID, appID, BugReportRow{

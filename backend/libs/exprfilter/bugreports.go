@@ -15,6 +15,8 @@ var BugReportsEntity = Entity{
 var bugReportsKeys = []Key{
 	versionName,
 	versionCode,
+	patchVersion,
+	patchID,
 	bugReportStatus,
 	userID,
 	bugReportDescription,
@@ -36,6 +38,8 @@ var bugReportsKeys = []Key{
 var bugReportsTableColumns = map[string]string{
 	versionName.Name:          "tupleElement(app_version, 1)",
 	versionCode.Name:          "tupleElement(app_version, 2)",
+	patchVersion.Name:         "patch_version",
+	patchID.Name:              "patch_id",
 	bugReportStatus.Name:      "status",
 	userID.Name:               "user_id",
 	bugReportDescription.Name: "description",
@@ -60,6 +64,7 @@ var bugReportStatusCodes = map[string]uint8{
 
 var bugReportsKeyBindingOverrides = map[string]columnKeyBinding{
 	bugReportStatus.Name: bindEnumKeyToCodes(bugReportStatusCodes),
+	patchID.Name:         bindUUIDKey,
 }
 
 // Fixed-key value suggestions read the bug_reports table itself
