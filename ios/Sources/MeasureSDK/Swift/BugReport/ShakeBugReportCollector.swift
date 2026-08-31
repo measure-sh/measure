@@ -36,6 +36,8 @@ final class ShakeBugReportCollector: ShakeDetectorListener {
     }
 
     func resume() {
+        guard shakeHandler != nil else { return }
+
         _ = shakeDetector.start()
     }
 }
