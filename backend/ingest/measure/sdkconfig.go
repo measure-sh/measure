@@ -29,6 +29,7 @@ const (
 	otelCacheHitETagAttrValue   = "hit_etag"
 	otelCacheHitDataAttrValue   = "hit_data"
 	otelCacheMissAttrValue      = "miss"
+	otelCacheErrorAttrValue     = "error"
 )
 
 // cacheMetrics encapsulates SDK config cache metrics
@@ -73,9 +74,17 @@ func (m *cacheMetrics) RecordMiss(ctx context.Context) {
 	))
 }
 
-// serveConfigFromDb fetches the SDK config from PostgreSQL,
-// populates the Valkey cache if vk is available, & writes
-// the JSON response.
+// RecordError records a cache request that
+// could not consult the cache at all
+func (m *cacheMetrics) RecordError(ctx context.Context) {
+	m.requests.Add(ctx, 1, metric.WithAttributes(
+		attribute.String(otelCacheResultAttrKey, otelCacheErrorAttrValue),
+	))
+}
+
+// serveConfigFromDb fetches the SDK config from PostgreSQL, populates
+// the Valkey cache if vk is available (only if the key is absent, so a
+// slow reader can't overwrite a fresher config), & writes the JSON response.
 func serveConfigFromDb(c *gin.Context, ctx context.Context, appId uuid.UUID, vk valkey.Client) {
 	sdkConfig, err := sdkconfig.GetConfigFromDb(ctx, server.Server.PgPool, appId)
 	if err != nil {
@@ -91,11 +100,11 @@ func serveConfigFromDb(c *gin.Context, ctx context.Context, appId uuid.UUID, vk 
 		return
 	}
 
-	var etag string
+	etag := sdkconfig.ComputeETag(jsonConfig)
+
 	if vk != nil {
-		etag, err = sdkconfig.SetCacheWithETag(ctx, vk, appId, jsonConfig)
-		if err != nil {
-			fmt.Println("error setting cache with ETag:", err)
+		if err := sdkconfig.SetCacheIfAbsent(ctx, vk, appId, jsonConfig); err != nil {
+			fmt.Println("error populating config cache:", err)
 		}
 	}
 
@@ -132,33 +141,38 @@ func GetConfigForSdk(c *gin.Context) {
 
 	if vk == nil {
 		fmt.Println("valkey client not available, skipping cache")
+		sdkConfigCache.RecordError(ctx)
 		serveConfigFromDb(c, ctx, appId, nil)
 		return
 	}
 
-	cachedETag, err := sdkconfig.GetConfigETag(ctx, vk, appId)
-	if err == nil && cachedETag != "" {
-		if cachedETag == clientETag {
-			fmt.Println("sdk config cache hit (etag match)")
-			sdkConfigCache.RecordHitETag(ctx)
-			c.Header(cacheControlHeader, cacheControlValue)
-			c.Header("ETag", cachedETag)
-			c.Status(http.StatusNotModified)
-			return
-		}
-
-		data, err := sdkconfig.GetConfigData(ctx, vk, appId)
-		if err == nil && data != "" {
-			fmt.Println("sdk config cache hit")
-			sdkConfigCache.RecordHitData(ctx)
-			c.Header(cacheControlHeader, cacheControlValue)
-			c.Header("ETag", cachedETag)
-			c.Data(http.StatusOK, "application/json", []byte(data))
-			return
-		}
+	data, err := sdkconfig.GetCache(ctx, vk, appId)
+	if err != nil {
+		fmt.Println("sdk config cache error:", err)
+		sdkConfigCache.RecordError(ctx)
+		serveConfigFromDb(c, ctx, appId, vk)
+		return
 	}
 
-	fmt.Println("sdk config cache miss")
-	sdkConfigCache.RecordMiss(ctx)
-	serveConfigFromDb(c, ctx, appId, vk)
+	if data == "" {
+		fmt.Println("sdk config cache miss")
+		sdkConfigCache.RecordMiss(ctx)
+		serveConfigFromDb(c, ctx, appId, vk)
+		return
+	}
+
+	etag := sdkconfig.ComputeETag([]byte(data))
+	c.Header(cacheControlHeader, cacheControlValue)
+	c.Header("ETag", etag)
+
+	if etag == clientETag {
+		fmt.Println("sdk config cache hit (etag match)")
+		sdkConfigCache.RecordHitETag(ctx)
+		c.Status(http.StatusNotModified)
+		return
+	}
+
+	fmt.Println("sdk config cache hit")
+	sdkConfigCache.RecordHitData(ctx)
+	c.Data(http.StatusOK, "application/json", []byte(data))
 }

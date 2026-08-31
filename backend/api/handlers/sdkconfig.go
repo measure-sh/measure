@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -13,8 +15,20 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/leporo/sqlf"
 )
+
+// configColumns is the RETURNING list for a config update.
+// Order matches the scan in PatchConfigForApp.
+const configColumns = `max_events_in_batch, crash_timeline_duration, anr_timeline_duration,
+	bug_report_timeline_duration, trace_sampling_rate, journey_sampling_rate,
+	screenshot_mask_level, log_autocollect_enabled, log_min_severity,
+	log_ignore_patterns, cpu_usage_interval, memory_usage_interval,
+	crash_take_screenshot, anr_take_screenshot, launch_sampling_rate,
+	gesture_click_take_snapshot, http_sampling_rate, http_disable_event_for_urls,
+	http_track_request_for_urls, http_track_response_for_urls, http_blocked_headers,
+	profile_sampling_rate, updated_at, updated_by`
 
 func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userID string) error {
 	var patch sdkconfig.ConfigPatch
@@ -117,37 +131,85 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 	stmt.Set("updated_by", &userIdUUID)
 	stmt.Where("app_id = ?", appID)
 
+	stmt.Returning(configColumns)
+
 	defer stmt.Close()
 
-	result, err := deps.PgPool.Exec(c.Request.Context(), stmt.String(), stmt.Args()...)
+	ctx := c.Request.Context()
+
+	tx, err := deps.PgPool.Begin(ctx)
 	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
+	defer tx.Rollback(ctx)
+
+	var config sdkconfig.SdkConfig
+	if err := tx.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
+		&config.MaxEventsInBatch,
+		&config.CrashTimelineDuration,
+		&config.ANRTimelineDuration,
+		&config.BugReportTimelineDuration,
+		&config.TraceSamplingRate,
+		&config.JourneySamplingRate,
+		&config.ScreenshotMaskLevel,
+		&config.LogAutocollectEnabled,
+		&config.LogMinSeverity,
+		&config.LogIgnorePatterns,
+		&config.CPUUsageInterval,
+		&config.MemoryUsageInterval,
+		&config.CrashTakeScreenshot,
+		&config.ANRTakeScreenshot,
+		&config.LaunchSamplingRate,
+		&config.GestureClickTakeSnapshot,
+		&config.HTTPSamplingRate,
+		&config.HTTPDisableEventForURLs,
+		&config.HTTPTrackRequestForURLs,
+		&config.HTTPTrackResponseForURLs,
+		&config.HTTPBlockedHeaders,
+		&config.ProfileSamplingRate,
+		&config.UpdatedAt,
+		&config.UpdatedBy,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("config not found for app_id: %s", appID)
+		}
 		return fmt.Errorf("failed to exec update: %w", err)
 	}
 
-	if result.RowsAffected() == 0 {
-		return fmt.Errorf("config not found for app_id: %s", appID)
+	jsonConfig, err := json.Marshal(&config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	sdkconfig.InvalidateCache(c.Request.Context(), deps.VK, appID)
+	// write-through inside the transaction: a cache write failure
+	// rolls the Postgres update back too
+	if err := sdkconfig.SetCache(ctx, deps.VK, appID, jsonConfig); err != nil {
+		return fmt.Errorf("failed to write config cache: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		// cache write already landed, drop it or the cache keeps an
+		// uncommitted config forever. ctx may be why the commit failed,
+		// so cleanup must not inherit its cancellation
+		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer cancel()
+		if err := sdkconfig.InvalidateCache(cleanupCtx, deps.VK, appID); err != nil {
+			fmt.Println("failed to invalidate config cache after commit failure, app_id:", appID, err)
+		}
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
 
 	return nil
 }
 
-// GetConfigForSdk retrieves the SDK
-// config for the app.
-// It uses the redis cache and falls back
-// to the database if needed.
+// GetConfigForSdk proxies to the ingest service on non-Cloud so SDKs
+// hitting the API endpoint keep working. On Cloud it returns 410, since
+// the cache/DB lookup lives only in the ingest service now.
 func (h Handlers) GetConfigForSdk(c *gin.Context) {
 	deps := h.Deps
-	// Proxy to ingest service
-	//
-	// Proxy to ingest service for non-Cloud
-	// environments so that SDKS using API endpoint
-	// continue to work. This is temporary & will be
-	// eventually removed.
-	//
-	// SDK consumers are encouraged to migrate to the
-	// ingest endpoint.
+	// temporary compatibility shim, remove once SDKs migrate to the
+	// ingest endpoint directly
 	if !deps.Config.IsCloud() {
 		ingestOrigin := "http://ingest:8085"
 		target, err := url.Parse(ingestOrigin)
@@ -165,9 +227,8 @@ func (h Handlers) GetConfigForSdk(c *gin.Context) {
 	c.Status(http.StatusGone)
 }
 
-// GetConfigForDashboard retrieves the SDK
-// config for dashboard use. It always
-// fetches the config from database.
+// GetConfigForDashboard retrieves the SDK config for dashboard use.
+// Always reads from Postgres, never the cache.
 func GetConfigForDashboard(c *gin.Context, deps *server.Deps, appID uuid.UUID) {
 	sdkConfig, err := sdkconfig.GetConfigFromDb(c.Request.Context(), deps.PgPool, appID)
 	if err != nil {

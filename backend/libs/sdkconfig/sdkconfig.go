@@ -3,6 +3,7 @@ package sdkconfig
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"time"
@@ -16,7 +17,14 @@ import (
 
 const (
 	configCacheKeyPrefix = "sdk_config:"
+	// HASH not STRING so this never collides with the older
+	// etag+data two-field layout during a deploy
+	cacheFieldData = "data"
 )
+
+// ErrNoCacheClient is returned when a cache operation
+// is attempted without a Valkey client.
+var ErrNoCacheClient = errors.New("valkey client not available")
 
 const (
 	ScreenshotMaskLevelAllTextAndMedia        ScreenshotMaskLevel = "all_text_and_media"
@@ -121,56 +129,69 @@ func configCacheKey(appID uuid.UUID) string {
 	return fmt.Sprintf("%s{%s}", configCacheKeyPrefix, appID.String())
 }
 
+// ComputeETag returns an FNV-1a hash of data, hex encoded.
+// The ETag isn't stored, it's recomputed from the cached bytes on read.
 func ComputeETag(data []byte) string {
 	h := fnv.New64a()
 	_, _ = h.Write(data)
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// GetConfigETag fetches the cached ETag for an app's
-// SDK config from Valkey.
-func GetConfigETag(ctx context.Context, vk valkey.Client, appID uuid.UUID) (string, error) {
+// GetCache fetches the cached JSON SDK config for an app.
+// A missing key yields empty data & a nil error, every other
+// failure yields the error so callers don't mistake a broken
+// cache for a miss.
+func GetCache(ctx context.Context, vk valkey.Client, appID uuid.UUID) (data string, err error) {
 	key := configCacheKey(appID)
-	cmd := vk.B().Hget().Key(key).Field("etag").Build()
-	result := vk.Do(ctx, cmd)
+	cmd := vk.B().Hget().Key(key).Field(cacheFieldData).Build()
 
-	str, err := result.ToString()
-	if err != nil {
+	data, err = vk.Do(ctx, cmd).ToString()
+	if valkey.IsValkeyNil(err) {
 		return "", nil
 	}
-	return str, nil
-}
-
-// GetConfigData fetches the cached JSON SDK config
-// for an app from Valkey.
-func GetConfigData(ctx context.Context, vk valkey.Client, appID uuid.UUID) (string, error) {
-	key := configCacheKey(appID)
-	cmd := vk.B().Hget().Key(key).Field("data").Build()
-	result := vk.Do(ctx, cmd)
-
-	str, err := result.ToString()
 	if err != nil {
-		return "", nil
+		return "", fmt.Errorf("failed to read config cache: %w", err)
 	}
-	return str, nil
+
+	return data, nil
 }
 
-// SetCacheWithETag stores the JSON SDK config & its
-// computed ETag in Valkey as a hash.
-func SetCacheWithETag(ctx context.Context, vk valkey.Client, appID uuid.UUID, jsonConfig []byte) (string, error) {
-	key := configCacheKey(appID)
-	etag := ComputeETag(jsonConfig)
+// SetCache stores the JSON SDK config in Valkey,
+// overwriting any existing value.
+func SetCache(ctx context.Context, vk valkey.Client, appID uuid.UUID, jsonConfig []byte) error {
+	if vk == nil {
+		return ErrNoCacheClient
+	}
 
+	key := configCacheKey(appID)
 	cmd := vk.B().Hset().Key(key).FieldValue().
-		FieldValue("etag", etag).
-		FieldValue("data", string(jsonConfig)).
+		FieldValue(cacheFieldData, string(jsonConfig)).
 		Build()
 
 	if err := vk.Do(ctx, cmd).Error(); err != nil {
-		return "", fmt.Errorf("failed to store config hash: %w", err)
+		return fmt.Errorf("failed to store config hash: %w", err)
 	}
 
-	return etag, nil
+	return nil
+}
+
+// SetCacheIfAbsent stores the JSON SDK config only when the key
+// is absent. Readers repopulating after a miss must not overwrite,
+// else a slow reader can write a pre-update config back over a
+// fresh one written by a concurrent PATCH.
+func SetCacheIfAbsent(ctx context.Context, vk valkey.Client, appID uuid.UUID, jsonConfig []byte) error {
+	if vk == nil {
+		return ErrNoCacheClient
+	}
+
+	key := configCacheKey(appID)
+	cmd := vk.B().Hsetnx().Key(key).Field(cacheFieldData).Value(string(jsonConfig)).Build()
+
+	if err := vk.Do(ctx, cmd).Error(); err != nil {
+		return fmt.Errorf("failed to store config hash: %w", err)
+	}
+
+	return nil
 }
 
 func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*SdkConfig, error) {
@@ -242,7 +263,7 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 
 func InvalidateCache(ctx context.Context, vk valkey.Client, appID uuid.UUID) error {
 	if vk == nil {
-		return nil
+		return ErrNoCacheClient
 	}
 
 	cacheKey := configCacheKey(appID)
@@ -252,8 +273,7 @@ func InvalidateCache(ctx context.Context, vk valkey.Client, appID uuid.UUID) err
 	return result.Error()
 }
 
-// CreateConfig creates a default
-// SDK config for the given app.
+// CreateConfig creates a default SDK config for the given app.
 func CreateConfig(ctx context.Context, tx pgx.Tx, teamID, appID uuid.UUID, createdBy *uuid.UUID) error {
 	config := createDefaultConfig()
 
