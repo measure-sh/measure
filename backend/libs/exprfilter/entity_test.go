@@ -220,7 +220,8 @@ func TestSpansEntityOffersEverySpanKey(t *testing.T) {
 	byName := IndexKeysByName(SpansEntity.Keys)
 
 	wanted := []string{
-		"version_name", "version_code", "span_status",
+		"version_name", "version_code", "patch_version", "patch_id",
+		"span_status",
 		"os_name", "os_version",
 		"device_name", "device_manufacturer", "locale",
 		"network_type", "network_generation", "network_provider",

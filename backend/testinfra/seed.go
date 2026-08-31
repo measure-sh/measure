@@ -369,7 +369,9 @@ func (h *TestHelper) SeedEvents(ctx context.Context, t *testing.T, teamID, appID
 //   - SessionID, TraceID, SpanID: fresh per inserted row
 //
 // The device, network and country attributes stay empty strings unless set,
-// as they are for a span whose SDK did not report them.
+// as they are for a span whose SDK did not report them. PatchID stays the nil
+// uuid and PatchVersion an empty string unless set, as they are for a span
+// not running an OTA patch.
 type SpanRow struct {
 	SpanName           string
 	SessionID          string
@@ -381,6 +383,8 @@ type SpanRow struct {
 	Duration           time.Duration
 	AppVersion         string
 	AppBuild           string
+	PatchID            uuid.UUID
+	PatchVersion       string
 	OSName             string
 	OSVersion          string
 	CountryCode        string
@@ -455,6 +459,7 @@ func (h *TestHelper) SeedSpanRows(ctx context.Context, t *testing.T, teamID, app
 		"status", "start_time", "end_time",
 		"`attribute.app_unique_id`", "`attribute.installation_id`",
 		"`attribute.measure_sdk_version`", "`attribute.app_version`", "`attribute.os_version`",
+		"`attribute.patch_id`", "`attribute.patch_version`",
 		"`attribute.country_code`", "`attribute.network_provider`",
 		"`attribute.network_type`", "`attribute.network_generation`",
 		"`attribute.device_locale`", "`attribute.device_manufacturer`", "`attribute.device_name`",
@@ -467,6 +472,7 @@ func (h *TestHelper) SeedSpanRows(ctx context.Context, t *testing.T, teamID, app
 		"'com.test'", "generateUUIDv4()",
 		"'0.1'", fmt.Sprintf("('%s','%s')", row.AppVersion, row.AppBuild),
 		fmt.Sprintf("('%s','%s')", row.OSName, row.OSVersion),
+		quote(row.PatchID.String()), quote(row.PatchVersion),
 		quote(row.CountryCode), quote(row.NetworkProvider),
 		quote(row.NetworkType), quote(row.NetworkGeneration),
 		quote(row.DeviceLocale), quote(row.DeviceManufacturer), quote(row.DeviceName),

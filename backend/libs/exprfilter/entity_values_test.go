@@ -6,6 +6,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"slices"
 	"testing"
 	"time"
 
@@ -210,12 +211,14 @@ func TestBuildsValues(t *testing.T) {
 	})
 }
 
-func seedSpans(ctx context.Context, t *testing.T) (teamID, appID, otherAppID uuid.UUID) {
+func seedSpans(ctx context.Context, t *testing.T) (teamID, appID, otherAppID uuid.UUID, patchOne, patchTwo uuid.UUID) {
 	t.Helper()
 
 	teamID = uuid.New()
 	appID = uuid.New()
 	otherAppID = uuid.New()
+	patchOne = uuid.New()
+	patchTwo = uuid.New()
 
 	th.SeedTeam(ctx, t, teamID.String(), "span values team")
 	th.SeedApp(ctx, t, appID.String(), teamID.String(), "span values app", 90)
@@ -223,8 +226,9 @@ func seedSpans(ctx context.Context, t *testing.T) (teamID, appID, otherAppID uui
 
 	base := time.Now().UTC().Add(-time.Hour).Truncate(time.Millisecond)
 
-	// The span_filters rollup keeps only spans carrying every attribute, so
-	// the suggestion fixtures set them all.
+	// The span_filters rollup keeps only spans carrying every attribute, so the
+	// fixtures include all of them. Two spans ran OTA patches; only one has a
+	// patch version.
 	th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{
 		StartTime:          base,
 		OSName:             "Android",
@@ -236,6 +240,8 @@ func seedSpans(ctx context.Context, t *testing.T) (teamID, appID, otherAppID uui
 		DeviceLocale:       "en-US",
 		DeviceManufacturer: "Google",
 		DeviceName:         "pixel 4a",
+		PatchID:            patchOne,
+		PatchVersion:       "1.2.0-patch.3",
 	})
 	th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{
 		StartTime:          base.Add(10 * time.Minute),
@@ -248,6 +254,20 @@ func seedSpans(ctx context.Context, t *testing.T) (teamID, appID, otherAppID uui
 		DeviceLocale:       "en-US",
 		DeviceManufacturer: "Apple",
 		DeviceName:         "iPhone 15",
+		PatchID:            patchTwo,
+	})
+	// A fully attributed span not running any patch.
+	th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{
+		StartTime:          base.Add(15 * time.Minute),
+		OSName:             "Android",
+		OSVersion:          "14",
+		CountryCode:        "US",
+		NetworkProvider:    "T-Mobile",
+		NetworkType:        "cellular",
+		NetworkGeneration:  "5g",
+		DeviceLocale:       "en-US",
+		DeviceManufacturer: "Google",
+		DeviceName:         "pixel 4a",
 	})
 	// A span whose SDK reported no device or country attributes.
 	th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{
@@ -268,12 +288,12 @@ func seedSpans(ctx context.Context, t *testing.T) (teamID, appID, otherAppID uui
 		DeviceName:         "galaxy s24",
 	})
 
-	return teamID, appID, otherAppID
+	return teamID, appID, otherAppID, patchOne, patchTwo
 }
 
 func TestSpansValues(t *testing.T) {
 	ctx := context.Background()
-	teamID, appID, otherAppID := seedSpans(ctx, t)
+	teamID, appID, otherAppID, patchOne, patchTwo := seedSpans(ctx, t)
 
 	byName := IndexKeysByName(SpansEntity.Keys)
 
@@ -310,8 +330,6 @@ func TestSpansValues(t *testing.T) {
 	t.Run("os names are read from the version tuple", func(t *testing.T) {
 		values, _ := list(t, "os_name", ValueRequest{})
 		got := texts(values)
-		// The span seeded with no attributes still carries the default os
-		// name, so both names are present.
 		if len(got) != 2 {
 			t.Errorf("want [Android iOS] in some order, got %v", got)
 		}
@@ -377,6 +395,34 @@ func TestSpansValues(t *testing.T) {
 		narrowed, _ := list(t, "span_status", ValueRequest{Search: "err"})
 		if got := texts(narrowed); len(got) != 1 || got[0] != "error" {
 			t.Errorf("want error, got %v", got)
+		}
+	})
+
+	t.Run("patch ids leave out spans without a patch", func(t *testing.T) {
+		values, _ := list(t, "patch_id", ValueRequest{})
+
+		got := texts(values)
+		if len(got) != 2 {
+			t.Fatalf("want the two patches, got %v", got)
+		}
+		// Both patches appear in the same month, so the alphabetical tiebreak
+		// orders their uuid strings.
+		want := []string{patchOne.String(), patchTwo.String()}
+		slices.Sort(want)
+		if got[0] != want[0] || got[1] != want[1] {
+			t.Errorf("want %v, got %v", want, got)
+		}
+		for _, value := range got {
+			if value == uuid.Nil.String() {
+				t.Error("want the nil patch id of unpatched spans left out")
+			}
+		}
+	})
+
+	t.Run("patch versions leave out the patch that named none", func(t *testing.T) {
+		values, _ := list(t, "patch_version", ValueRequest{})
+		if got := texts(values); len(got) != 1 || got[0] != "1.2.0-patch.3" {
+			t.Errorf("want only the named patch version, got %v", got)
 		}
 	})
 

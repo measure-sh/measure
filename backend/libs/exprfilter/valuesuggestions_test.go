@@ -59,6 +59,18 @@ func TestSuggestionSQL(t *testing.T) {
 			wantArgs: []any{teamID, appID, `%Ph\%one\_x%`, DefaultValueLimit + 1},
 		},
 		{
+			name: "spans patch id values read the column as text and leave out the nil uuid",
+			run: func(recorder *sqlRecorder) {
+				byName := IndexKeysByName(SpansEntity.Keys)
+				_, _ = SpansEntity.SuggestKeyValues(ctx, nil, recorder, teamID, appID, byName["patch_id"], ValueRequest{})
+			},
+			wantSQL: "SELECT toString(patch_id) as suggested_value, max(end_of_month) as recency" +
+				" FROM span_filters" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND toString(patch_id) <> ?" +
+				" GROUP BY suggested_value ORDER BY recency desc, suggested_value LIMIT ?",
+			wantArgs: []any{teamID, appID, uuid.Nil.String(), DefaultValueLimit + 1},
+		},
+		{
 			name: "bug report fixed key values read the bug_reports table by timestamp",
 			run: func(recorder *sqlRecorder) {
 				byName := IndexKeysByName(BugReportsEntity.Keys)

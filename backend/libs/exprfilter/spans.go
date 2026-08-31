@@ -4,10 +4,11 @@ import (
 	"time"
 )
 
-// SpansEntity is an app's performance trace spans. Both its filtering and its
-// value lists read the spans table in ClickHouse. The span_metrics rollup
-// stores the same fields as flat columns, which SpanMetricsKeyBindings maps
-// for queries that aggregate over it.
+// SpansEntity is an app's performance trace spans. Its filtering reads the
+// spans table in ClickHouse and its fixed-key value lists read the
+// span_filters rollup. The span_metrics rollup stores the same fields
+// as flat columns, which SpanMetricsKeyBindings maps for queries that
+// aggregate over it.
 var SpansEntity = Entity{
 	Name:                  "spans",
 	Keys:                  spansKeys,
@@ -22,6 +23,8 @@ var SpansEntity = Entity{
 var spansKeys = []Key{
 	versionName,
 	versionCode,
+	patchVersion,
+	patchID,
 	spanStatus,
 	osName,
 	osVersion,
@@ -34,14 +37,12 @@ var spansKeys = []Key{
 	country,
 }
 
-// The column expression each spans key compares against, per table. The spans
-// table nests device and network attributes in attribute-prefixed columns and
-// the span_metrics rollup stores the same fields as flat columns; both hold
-// the app and os versions as (name, version) tuples.
 var (
 	spansTableColumns = map[string]string{
 		versionName.Name:        "tupleElement(attribute.app_version, 1)",
 		versionCode.Name:        "tupleElement(attribute.app_version, 2)",
+		patchVersion.Name:       "attribute.patch_version",
+		patchID.Name:            "attribute.patch_id",
 		spanStatus.Name:         "status",
 		osName.Name:             "tupleElement(attribute.os_version, 1)",
 		osVersion.Name:          "tupleElement(attribute.os_version, 2)",
@@ -57,6 +58,8 @@ var (
 	spanFilterColumns = map[string]string{
 		versionName.Name:        "tupleElement(app_version, 1)",
 		versionCode.Name:        "tupleElement(app_version, 2)",
+		patchVersion.Name:       "patch_version",
+		patchID.Name:            "patch_id",
 		osName.Name:             "tupleElement(os_version, 1)",
 		osVersion.Name:          "tupleElement(os_version, 2)",
 		deviceName.Name:         "device_name",
@@ -71,6 +74,8 @@ var (
 	spanMetricsTableColumns = map[string]string{
 		versionName.Name:        "tupleElement(app_version, 1)",
 		versionCode.Name:        "tupleElement(app_version, 2)",
+		patchVersion.Name:       "patch_version",
+		patchID.Name:            "patch_id",
 		spanStatus.Name:         "status",
 		osName.Name:             "tupleElement(os_version, 1)",
 		osVersion.Name:          "tupleElement(os_version, 2)",
@@ -94,6 +99,7 @@ var spanStatusCodes = map[string]int8{
 
 var spansKeyBindingOverrides = map[string]columnKeyBinding{
 	spanStatus.Name: bindEnumKeyToCodes(spanStatusCodes),
+	patchID.Name:    bindUUIDKey,
 }
 
 // Fixed-key value suggestions read the span_filters rollup, which stores the
