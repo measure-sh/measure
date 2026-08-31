@@ -397,4 +397,15 @@ class HttpUrlConnectionClientTest {
 
         assertEquals(0L, (result as ConfigResponse.Success).cacheControlMs)
     }
+
+    @Test
+    fun `test not modified config response carries cache control max age`() {
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(304).setHeader("Cache-Control", "max-age=600"),
+        )
+
+        val result = client.getConfig(mockWebServer.url("/").toString(), "etag-123", emptyMap())
+
+        assertEquals(ConfigResponse.NotModified(cacheControlMs = 600_000L), result)
+    }
 }

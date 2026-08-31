@@ -149,7 +149,11 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
                 }
 
                 HttpURLConnection.HTTP_NOT_MODIFIED -> {
-                    ConfigResponse.NotModified
+                    ConfigResponse.NotModified(
+                        cacheControlMs = parseCacheControlMaxAgeMs(
+                            connection.getHeaderField("Cache-Control"),
+                        ),
+                    )
                 }
 
                 else -> {

@@ -66,7 +66,12 @@ internal class ConfigLoaderImpl(
                         )
                     }
 
-                    ConfigResponse.NotModified -> {
+                    is ConfigResponse.NotModified -> {
+                        prefsStorage.setConfigFetchTimestamp(timeProvider.now())
+                        // A response without the header parses to 0, keep the known window.
+                        if (response.cacheControlMs > 0) {
+                            prefsStorage.setConfigCacheControlMs(response.cacheControlMs)
+                        }
                         logger.log(LogLevel.Debug, "ConfigLoader: 304 Not Modified")
                     }
                 }

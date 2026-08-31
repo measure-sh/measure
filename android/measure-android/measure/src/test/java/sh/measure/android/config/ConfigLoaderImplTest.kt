@@ -154,7 +154,7 @@ internal class ConfigLoaderImplTest {
         setupCacheExpired()
         val etag = "etag-123"
         `when`(prefsStorage.getConfigEtag()).thenReturn(etag)
-        `when`(networkClient.getConfig(etag)).thenReturn(ConfigResponse.NotModified)
+        `when`(networkClient.getConfig(etag)).thenReturn(ConfigResponse.NotModified(cacheControlMs = 600_000L))
 
         // When
         configLoader.loadDynamicConfig { }
@@ -222,14 +222,69 @@ internal class ConfigLoaderImplTest {
         val configFile = createTempConfigFile(originalContent)
         `when`(fileStorage.getConfigFile()).thenReturn(configFile)
         setupCacheExpired()
-        `when`(networkClient.getConfig(any())).thenReturn(ConfigResponse.NotModified)
+        `when`(networkClient.getConfig(any())).thenReturn(ConfigResponse.NotModified(cacheControlMs = 600_000L))
 
         // When
         configLoader.loadDynamicConfig { }
 
         // Then
         assertEquals(originalContent, configFile.readText())
-        verify(prefsStorage, never()).setConfigFetchTimestamp(any())
+        verify(prefsStorage, never()).setConfigEtag(any())
+        configFile.delete()
+    }
+
+    @Test
+    fun `loadDynamicConfig updates fetch timestamp on NotModified response`() {
+        // Given
+        val configFile = createTempConfigFile("{}")
+        `when`(fileStorage.getConfigFile()).thenReturn(configFile)
+        setupCacheExpired()
+        val expectedTimestamp = timeProvider.now()
+        `when`(networkClient.getConfig(any())).thenReturn(
+            ConfigResponse.NotModified(cacheControlMs = 600_000L),
+        )
+
+        // When
+        configLoader.loadDynamicConfig { }
+
+        // Then
+        verify(prefsStorage).setConfigFetchTimestamp(expectedTimestamp)
+        configFile.delete()
+    }
+
+    @Test
+    fun `loadDynamicConfig updates cache control on NotModified response`() {
+        // Given
+        val configFile = createTempConfigFile("{}")
+        `when`(fileStorage.getConfigFile()).thenReturn(configFile)
+        setupCacheExpired()
+        `when`(networkClient.getConfig(any())).thenReturn(
+            ConfigResponse.NotModified(cacheControlMs = 900_000L),
+        )
+
+        // When
+        configLoader.loadDynamicConfig { }
+
+        // Then
+        verify(prefsStorage).setConfigCacheControlMs(900_000L)
+        configFile.delete()
+    }
+
+    @Test
+    fun `loadDynamicConfig keeps cache control when NotModified response has no header`() {
+        // Given
+        val configFile = createTempConfigFile("{}")
+        `when`(fileStorage.getConfigFile()).thenReturn(configFile)
+        setupCacheExpired()
+        `when`(networkClient.getConfig(any())).thenReturn(
+            ConfigResponse.NotModified(cacheControlMs = 0L),
+        )
+
+        // When
+        configLoader.loadDynamicConfig { }
+
+        // Then
+        verify(prefsStorage, never()).setConfigCacheControlMs(any())
         configFile.delete()
     }
 
@@ -249,7 +304,7 @@ internal class ConfigLoaderImplTest {
 
         // Then
         assertEquals(originalContent, configFile.readText())
-        verify(prefsStorage, never()).setConfigFetchTimestamp(any())
+        verify(prefsStorage, never()).setConfigEtag(any())
         configFile.delete()
     }
 

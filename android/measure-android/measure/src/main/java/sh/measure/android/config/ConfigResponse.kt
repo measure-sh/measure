@@ -7,7 +7,7 @@ internal sealed class ConfigResponse {
         val cacheControlMs: Long,
     ) : ConfigResponse()
 
-    object NotModified : ConfigResponse()
+    data class NotModified(val cacheControlMs: Long) : ConfigResponse()
 
     data class Error(val exception: Exception? = null) : ConfigResponse()
 }
