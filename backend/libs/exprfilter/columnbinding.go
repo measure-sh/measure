@@ -3,6 +3,7 @@ package exprfilter
 import (
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/leporo/sqlf"
 )
 
@@ -47,6 +48,32 @@ func bindKeysToColumns(columns map[string]string, overrides map[string]columnKey
 
 		return nil, fmt.Errorf("Key %q cannot be filtered with %q", condition.KeyName, condition.Operator)
 	}
+}
+
+// bindUUIDKey binds conditions for a UUID column. Empty values are stored as
+// uuid.Nil; is_set and is_not_set compare against uuid.Nil.
+func bindUUIDKey(column string, condition Condition) (*sqlf.Stmt, error) {
+	switch condition.Operator {
+	case OperatorIn, OperatorNotIn:
+		bound := make([]uuid.UUID, 0, len(condition.Values))
+		for _, text := range condition.TextValues() {
+			id, err := uuid.Parse(text)
+			if err != nil {
+				return nil, fmt.Errorf("Key %q takes uuid values, got %q", condition.KeyName, text)
+			}
+			bound = append(bound, id)
+		}
+		if condition.Operator == OperatorNotIn {
+			return sqlf.New(column+" not in ?", bound), nil
+		}
+		return sqlf.New(column+" in ?", bound), nil
+	case OperatorIsSet:
+		return sqlf.New(column+" <> ?", uuid.Nil), nil
+	case OperatorIsNotSet:
+		return sqlf.New(column+" = ?", uuid.Nil), nil
+	}
+
+	return nil, fmt.Errorf("Key %q cannot be filtered with %q", condition.KeyName, condition.Operator)
 }
 
 // bindEnumKeyToCodes builds the columnKeyBinding for an enum key whose column

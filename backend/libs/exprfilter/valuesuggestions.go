@@ -61,16 +61,26 @@ func suggestFixedKeyValuesFromClickHouse(fixedValues fixedKeyValueSource) func(c
 
 		ctx = chquery.WithTeamScope(ctx, teamID)
 
-		// A row that did not carry an attribute holds an empty string in that
-		// column, so those rows are left out. Values tied on recency order
-		// alphabetically.
+		// Unset attributes use an empty string, except UUID columns,
+		// which use the nil UUID. Unset values are excluded.
+		// UUID columns are read as text so searches and returned
+		// values use strings. Ties are ordered alphabetically.
+		valueExpr := column
+		unsetTest := valueExpr + " <> ''"
+		var unsetArgs []any
+		if key.ValueType == ValueTypeUUID {
+			valueExpr = "toString(" + column + ")"
+			unsetTest = valueExpr + " <> ?"
+			unsetArgs = []any{uuid.Nil.String()}
+		}
+
 		stmt := sqlf.
 			From(fixedValues.table).
-			Select(column+" as suggested_value").
+			Select(valueExpr+" as suggested_value").
 			Select(fixedValues.recencyExpr+" as recency").
 			Where("team_id = toUUID(?)", teamID).
 			Where("app_id = toUUID(?)", appID).
-			Where(column + " <> ''").
+			Where(unsetTest, unsetArgs...).
 			GroupBy("suggested_value").
 			OrderBy("recency desc, suggested_value").
 			Limit(limit + 1)
@@ -78,7 +88,7 @@ func suggestFixedKeyValuesFromClickHouse(fixedValues fixedKeyValueSource) func(c
 		defer stmt.Close()
 
 		if valueRequest.Search != "" {
-			stmt.Where(column+" ilike ?", "%"+EscapeLikeWildcards(valueRequest.Search)+"%")
+			stmt.Where(valueExpr+" ilike ?", "%"+EscapeLikeWildcards(valueRequest.Search)+"%")
 		}
 
 		return readSuggestedValues(ctx, chPool, key, stmt, limit)

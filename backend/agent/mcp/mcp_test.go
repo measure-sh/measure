@@ -2491,7 +2491,7 @@ func TestMCPGetFilterKeys(t *testing.T) {
 				t.Errorf("key %q is missing fields: %+v", key.Name, key)
 			}
 		}
-		for _, want := range []string{"version_name", "version_code", "span_status", "os_name", "country"} {
+		for _, want := range []string{"version_name", "version_code", "patch_version", "patch_id", "span_status", "os_name", "country"} {
 			if !keysByName[want] {
 				t.Errorf("spans keys missing %q", want)
 			}
@@ -3623,6 +3623,45 @@ func TestMCPGetSpanInstances(t *testing.T) {
 			t.Errorf("filtered span app_version = %v, want v1", spans[0]["app_version"])
 		}
 	})
+	t.Run("a patch filter_expr narrows results", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "si8@mcp.test")
+		patchID := uuid.New()
+		// One checkout span ran an OTA patch and one did not.
+		th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{
+			SpanName: "checkout", Status: 1,
+			StartTime: now.Add(-time.Hour), EndTime: now.Add(-time.Hour + time.Second),
+			AppVersion: "v1", AppBuild: "1",
+			PatchID: patchID, PatchVersion: "1.2.0-patch.3",
+		})
+		seedSpan(ctx, t, teamID.String(), appID.String(), "checkout", 1, now.Add(-time.Hour), now.Add(-time.Hour+time.Second), "v2", "2")
+
+		instances := func(t *testing.T, filterExpr string) []map[string]any {
+			t.Helper()
+			resp := callMCPTool(t, rawToken, "get_span_instances", map[string]any{"app_id": appID.String(), "root_span_name": "checkout", "from": from, "to": to, "filter_expr": filterExpr})
+			if isToolError(resp) {
+				t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+			}
+			var spans []map[string]any
+			if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &spans); err != nil {
+				t.Fatalf("unmarshal spans: %v", err)
+			}
+			return spans
+		}
+
+		for _, filterExpr := range []string{
+			"patch_id:is_set",
+			"patch_id:in:" + patchID.String(),
+			"patch_version:in:1.2.0-patch.3",
+		} {
+			spans := instances(t, filterExpr)
+			if len(spans) != 1 {
+				t.Fatalf("filter %q: want 1 span, got %d", filterExpr, len(spans))
+			}
+			if spans[0]["app_version"] != "v1" {
+				t.Errorf("filter %q: span app_version = %v, want v1", filterExpr, spans[0]["app_version"])
+			}
+		}
+	})
 	t.Run("invalid filter_expr returns the issue", func(t *testing.T) {
 		appID, _, rawToken := setupToolTest(t, "si4@mcp.test")
 		resp := callMCPTool(t, rawToken, "get_span_instances", map[string]any{"app_id": appID.String(), "root_span_name": "checkout", "from": from, "to": to, "filter_expr": "bogus_key:in:x"})
@@ -3718,6 +3757,32 @@ func TestMCPGetSpanMetricsPlot(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "smplot4@mcp.test")
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_span_metrics_over_time", map[string]any{"app_id": appID.String(), "root_span_name": "some-span", "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339), "filter_expr": "version_name:in:v1 AND span_status:in:error"})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+	})
+	t.Run("a patch filter_expr runs against the span metrics rollup", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "smplot6@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "smplot6 team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := "msr_smplot6@mcp.test"
+		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+
+		// The metrics plot reads the span_metrics rollup, not the spans table.
+		now := time.Now().UTC()
+		th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{
+			SpanName: "checkout", Status: 1,
+			StartTime: now.Add(-time.Hour), EndTime: now.Add(-time.Hour + time.Second),
+			AppVersion: "v1", AppBuild: "1",
+			PatchID: uuid.New(), PatchVersion: "1.2.0-patch.3",
+		})
+
+		resp := callMCPTool(t, rawToken, "get_span_metrics_over_time", map[string]any{"app_id": appID.String(), "root_span_name": "checkout", "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339), "filter_expr": "patch_id:is_set"})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
