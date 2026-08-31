@@ -8,13 +8,25 @@ type UsageThresholdBannerProps = {
   teamId: string;
 };
 
-// Banner only fires for Free plan above 75% — Pro/Enterprise self-manage overages.
+// Banner fires above 75% for the free plan and for enterprise plans with a
+// finite limit — Pro self-manages overages.
 function thresholdFor(
   billingInfo:
-    | { plan?: string; bytes_granted?: number; bytes_used?: number }
+    | {
+        plan?: string;
+        bytes_granted?: number;
+        bytes_used?: number;
+        bytes_unlimited?: boolean;
+      }
     | undefined,
 ): number {
-  if (!billingInfo || billingInfo.plan !== "free") {
+  if (!billingInfo) {
+    return 0;
+  }
+  if (billingInfo.plan !== "free" && billingInfo.plan !== "enterprise") {
+    return 0;
+  }
+  if (billingInfo.bytes_unlimited) {
     return 0;
   }
   const granted = billingInfo.bytes_granted ?? 0;
@@ -41,19 +53,24 @@ export default function UsageThresholdBanner({
     return null;
   }
 
-  const usagePageUrl = `/${teamId}/usage`;
+  const isEnterprise = billingInfo?.plan === "enterprise";
+  const planLabel = isEnterprise ? "plan data limit" : "free plan";
+  const linkHref = isEnterprise
+    ? "mailto:hello@measure.sh"
+    : `/${teamId}/usage`;
+  const linkText = isEnterprise ? "Contact Us →" : "Upgrade to Pro →";
 
   let message: string;
   let bannerClass: string;
 
   if (threshold >= 100) {
-    message = "100% of free plan used — event ingestion blocked.";
+    message = `100% of ${planLabel} used — event ingestion blocked.`;
     bannerClass = "bg-red-300 text-primary-foreground";
   } else if (threshold >= 90) {
-    message = "90% of free plan used.";
+    message = `90% of ${planLabel} used.`;
     bannerClass = "bg-orange-300 text-primary-foreground";
   } else {
-    message = "75% of free plan used.";
+    message = `75% of ${planLabel} used.`;
     bannerClass = "bg-yellow-300 text-primary-foreground";
   }
 
@@ -63,10 +80,10 @@ export default function UsageThresholdBanner({
     >
       <span>{message}</span>
       <Link
-        href={usagePageUrl}
+        href={linkHref}
         className="font-semibold underline ml-4 whitespace-nowrap"
       >
-        Upgrade to Pro →
+        {linkText}
       </Link>
     </div>
   );

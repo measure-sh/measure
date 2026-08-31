@@ -411,7 +411,7 @@ func HandleLimitReached(ctx context.Context, pg *pgxpool.Pool, siteOrigin, txEma
 		log.Printf("webhook: team not found for autumn customer %s: %v", data.CustomerID, err)
 		return
 	}
-	notifyLimitReached(ctx, pg, siteOrigin, txEmail, teamID)
+	notifyLimitReached(ctx, pg, siteOrigin, txEmail, teamID, isEnterpriseCustomer(ctx, data.CustomerID))
 }
 
 func HandleUsageAlert(ctx context.Context, pg *pgxpool.Pool, siteOrigin, txEmail string, data autumn.BalancesUsageAlertData) {
@@ -420,7 +420,19 @@ func HandleUsageAlert(ctx context.Context, pg *pgxpool.Pool, siteOrigin, txEmail
 		log.Printf("webhook: team not found for autumn customer %s: %v", data.CustomerID, err)
 		return
 	}
-	notifyUsageAlert(ctx, pg, siteOrigin, txEmail, teamID, int(data.UsageAlert.Threshold))
+	notifyUsageAlert(ctx, pg, siteOrigin, txEmail, teamID, int(data.UsageAlert.Threshold), isEnterpriseCustomer(ctx, data.CustomerID))
+}
+
+// isEnterpriseCustomer reports whether the Autumn customer is on an enterprise
+// plan. A failed lookup reports false so the email still goes out with the
+// standard upgrade copy.
+func isEnterpriseCustomer(ctx context.Context, customerID string) bool {
+	cust, err := autumn.GetCustomer(ctx, customerID)
+	if err != nil {
+		log.Printf("webhook: autumn get customer %s failed: %v", customerID, err)
+		return false
+	}
+	return DeterminePlan(cust) == PlanEnterprise
 }
 
 // ----------------------------------------------------------------------------
@@ -447,17 +459,17 @@ func notifyDowngrade(ctx context.Context, pg *pgxpool.Pool, tx pgx.Tx, siteOrigi
 	return queueTeamEmail(ctx, pg, tx, txEmail, teamID, subject, body)
 }
 
-func notifyLimitReached(ctx context.Context, pg *pgxpool.Pool, siteOrigin, txEmail string, teamID uuid.UUID) {
+func notifyLimitReached(ctx context.Context, pg *pgxpool.Pool, siteOrigin, txEmail string, teamID uuid.UUID, isEnterprise bool) {
 	name := teamName(ctx, pg, teamID)
-	subject, body := email.UsageLimitEmail(name, teamID.String(), siteOrigin, 100)
+	subject, body := email.UsageLimitEmail(name, teamID.String(), siteOrigin, 100, isEnterprise)
 	if err := queueTeamEmail(ctx, pg, nil, txEmail, teamID, subject, body); err != nil {
 		log.Printf("failed to queue email for team %s: %v", teamID, err)
 	}
 }
 
-func notifyUsageAlert(ctx context.Context, pg *pgxpool.Pool, siteOrigin, txEmail string, teamID uuid.UUID, threshold int) {
+func notifyUsageAlert(ctx context.Context, pg *pgxpool.Pool, siteOrigin, txEmail string, teamID uuid.UUID, threshold int, isEnterprise bool) {
 	name := teamName(ctx, pg, teamID)
-	subject, body := email.UsageLimitEmail(name, teamID.String(), siteOrigin, threshold)
+	subject, body := email.UsageLimitEmail(name, teamID.String(), siteOrigin, threshold, isEnterprise)
 	if err := queueTeamEmail(ctx, pg, nil, txEmail, teamID, subject, body); err != nil {
 		log.Printf("failed to queue email for team %s: %v", teamID, err)
 	}

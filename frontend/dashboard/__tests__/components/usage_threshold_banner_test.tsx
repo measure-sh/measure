@@ -49,6 +49,18 @@ function freeAt(percent: number) {
   };
 }
 
+// Helper: build a billingInfo payload that produces a given usage percentage
+// on an Enterprise plan with a finite data limit.
+function enterpriseAt(percent: number) {
+  const granted = 100_000_000_000;
+  return {
+    plan: "enterprise",
+    bytes_granted: granted,
+    bytes_used: granted * (percent / 100),
+    bytes_unlimited: false,
+  };
+}
+
 describe("UsageThresholdBanner", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -88,8 +100,8 @@ describe("UsageThresholdBanner", () => {
     });
   });
 
-  describe("When the team is not on the Free plan", () => {
-    it("renders nothing even at 100% usage (Pro/Enterprise have their own overage rules)", () => {
+  describe("When the team is on the Pro plan", () => {
+    it("renders nothing even at 100% usage (Pro self-manages overages)", () => {
       isBillingEnabled.mockReturnValue(true);
       mockBillingInfo = {
         plan: "pro",
@@ -100,6 +112,83 @@ describe("UsageThresholdBanner", () => {
       const { container } = render(<UsageThresholdBanner teamId="team-1" />);
 
       expect(container.firstChild).toBeNull();
+    });
+  });
+
+  describe("When the team is on Enterprise with unlimited bytes", () => {
+    it("renders nothing even at 100% of the granted bytes", () => {
+      isBillingEnabled.mockReturnValue(true);
+      mockBillingInfo = {
+        plan: "enterprise",
+        bytes_granted: 100_000_000_000,
+        bytes_used: 100_000_000_000,
+        bytes_unlimited: true,
+      };
+
+      const { container } = render(<UsageThresholdBanner teamId="team-1" />);
+
+      expect(container.firstChild).toBeNull();
+    });
+  });
+
+  describe("When an Enterprise team with a finite limit crosses thresholds", () => {
+    it("shows yellow banner with Contact Us mailto at 75%", () => {
+      isBillingEnabled.mockReturnValue(true);
+      mockBillingInfo = enterpriseAt(80);
+
+      render(<UsageThresholdBanner teamId="team-1" />);
+
+      expect(
+        screen.getByText("75% of plan data limit used."),
+      ).toBeInTheDocument();
+
+      const banner = screen.getByText(
+        "75% of plan data limit used.",
+      ).parentElement!;
+      expect(banner).toHaveClass("bg-yellow-300");
+
+      const link = screen.getByRole("link", { name: /Contact Us/i });
+      expect(link).toHaveAttribute("href", "mailto:hello@measure.sh");
+    });
+
+    it("shows orange banner with Contact Us mailto at 90%", () => {
+      isBillingEnabled.mockReturnValue(true);
+      mockBillingInfo = enterpriseAt(95);
+
+      render(<UsageThresholdBanner teamId="team-1" />);
+
+      expect(
+        screen.getByText("90% of plan data limit used."),
+      ).toBeInTheDocument();
+
+      const banner = screen.getByText(
+        "90% of plan data limit used.",
+      ).parentElement!;
+      expect(banner).toHaveClass("bg-orange-300");
+
+      const link = screen.getByRole("link", { name: /Contact Us/i });
+      expect(link).toHaveAttribute("href", "mailto:hello@measure.sh");
+    });
+
+    it("shows red banner with Contact Us mailto at 100%", () => {
+      isBillingEnabled.mockReturnValue(true);
+      mockBillingInfo = enterpriseAt(100);
+
+      render(<UsageThresholdBanner teamId="team-1" />);
+
+      expect(
+        screen.getByText(
+          "100% of plan data limit used — event ingestion blocked.",
+        ),
+      ).toBeInTheDocument();
+
+      const banner = screen.getByText(
+        "100% of plan data limit used — event ingestion blocked.",
+      ).parentElement!;
+      expect(banner).toHaveClass("bg-red-300");
+
+      const link = screen.getByRole("link", { name: /Contact Us/i });
+      expect(link).toHaveAttribute("href", "mailto:hello@measure.sh");
     });
   });
 

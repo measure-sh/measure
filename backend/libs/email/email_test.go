@@ -650,7 +650,7 @@ func TestUsageLimitEmail_Thresholds(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%d%%", tt.threshold), func(t *testing.T) {
-			subject, body := UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", tt.threshold)
+			subject, body := UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", tt.threshold, false)
 
 			if !strings.Contains(subject, tt.wantSubject) {
 				t.Errorf("subject = %q, want substring %q", subject, tt.wantSubject)
@@ -682,7 +682,7 @@ func TestUsageLimitEmail_Thresholds(t *testing.T) {
 func TestUsageLimitEmail_NonStandardThreshold(t *testing.T) {
 	// Autumn dashboard can send any numeric threshold — handler should not
 	// panic and should fall into the non-100 branch with an upgrade CTA.
-	subject, body := UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 50)
+	subject, body := UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 50, false)
 
 	if !strings.Contains(subject, "50% of Usage Limit Reached") {
 		t.Errorf("subject = %q, want '50%%' mention", subject)
@@ -691,6 +691,49 @@ func TestUsageLimitEmail_NonStandardThreshold(t *testing.T) {
 		t.Errorf("body missing 50%% usage copy")
 	}
 	mustNotContainByteNumbers(t, "UsageLimitEmail(50)", body)
+}
+
+func TestUsageLimitEmail_Enterprise(t *testing.T) {
+	tests := []struct {
+		threshold      int
+		wantSubject    string
+		wantBodySubstr string
+		wantExtraCopy  string
+	}{
+		{75, "75% of Usage Limit Reached", "has used <strong>75%</strong>", "Contact us if you need a higher limit."},
+		{90, "90% of Usage Limit Reached", "has used <strong>90%</strong>", "Contact us if you need a higher limit."},
+		{100, "Usage Limit Reached", "has reached its plan's data limit", "Data ingestion has been paused. Contact us to increase your limit."},
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%d%%", tt.threshold), func(t *testing.T) {
+			subject, body := UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", tt.threshold, true)
+
+			if !strings.Contains(subject, tt.wantSubject) {
+				t.Errorf("subject = %q, want substring %q", subject, tt.wantSubject)
+			}
+			if !strings.Contains(body, tt.wantBodySubstr) {
+				t.Errorf("body missing %q", tt.wantBodySubstr)
+			}
+			if !strings.Contains(body, tt.wantExtraCopy) {
+				t.Errorf("body missing enterprise copy %q", tt.wantExtraCopy)
+			}
+			if !strings.Contains(body, "Contact Us") {
+				t.Errorf("body missing 'Contact Us' CTA")
+			}
+			if !strings.Contains(body, "mailto:hello@measure.sh") {
+				t.Errorf("body missing mailto CTA link")
+			}
+			if strings.Contains(body, "Upgrade to Measure Pro") {
+				t.Errorf("enterprise body should not mention upgrading to Measure Pro")
+			}
+			if strings.Contains(body, "team-abc/usage") {
+				t.Errorf("enterprise CTA should not link to the usage page")
+			}
+
+			mustNotContainByteNumbers(t, fmt.Sprintf("UsageLimitEmail(%d, enterprise)", tt.threshold), body)
+		})
+	}
 }
 
 func TestRemovedFromTeamEmail(t *testing.T) {
@@ -734,8 +777,9 @@ func TestTeamNameMarkupIsEscaped(t *testing.T) {
 	_, bodies["InviteExistingUserEmail"] = InviteExistingUserEmail("attacker@example.com", "admin", payload, "https://measure.sh")
 	_, bodies["RemovedFromTeamEmail"] = RemovedFromTeamEmail(payload, "attacker@example.com", "https://measure.sh", "team-abc")
 	_, bodies["RoleChangedEmail"] = RoleChangedEmail("admin", "attacker@example.com", payload, "https://measure.sh", "team-abc")
-	_, bodies["UsageLimitEmail"] = UsageLimitEmail(payload, "team-abc", "https://measure.sh", 90)
-	_, bodies["UsageLimitEmail(100)"] = UsageLimitEmail(payload, "team-abc", "https://measure.sh", 100)
+	_, bodies["UsageLimitEmail"] = UsageLimitEmail(payload, "team-abc", "https://measure.sh", 90, false)
+	_, bodies["UsageLimitEmail(100)"] = UsageLimitEmail(payload, "team-abc", "https://measure.sh", 100, false)
+	_, bodies["UsageLimitEmail(enterprise)"] = UsageLimitEmail(payload, "team-abc", "https://measure.sh", 90, true)
 	_, bodies["UpgradeEmail"] = UpgradeEmail(payload, "team-abc", "https://measure.sh")
 	_, bodies["ManualDowngradeEmail"] = ManualDowngradeEmail(payload, "team-abc", "https://measure.sh")
 
