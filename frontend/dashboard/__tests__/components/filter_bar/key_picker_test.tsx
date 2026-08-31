@@ -150,6 +150,17 @@ describe("KeyPicker", () => {
     expect(screen.queryByText("Patch id")).not.toBeInTheDocument();
   });
 
+  it("opens on the group of the key already selected", () => {
+    openPicker({ selected: keys[1] });
+
+    expect(screen.getByTestId("tabs")).toHaveAttribute(
+      "data-selected",
+      "Build",
+    );
+    expect(screen.getByText("Patch id")).toBeInTheDocument();
+    expect(screen.queryByText("App version")).not.toBeInTheDocument();
+  });
+
   it("shows the keys of the group that is picked", () => {
     openPicker();
 

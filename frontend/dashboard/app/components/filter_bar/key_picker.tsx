@@ -107,7 +107,12 @@ function KeyList({
   const [search, setSearch] = useState("");
   const searching = search !== "";
 
-  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  // When opened from a condition key, start with that key's group.
+  // Without a selected key, start with the first group.
+  const [openGroup, setOpenGroup] = useState<string | null>(
+    selected?.key_group ?? null,
+  );
+
   // The chosen group can disappear from the server's list, so the first group
   // stands in.
   const group =
