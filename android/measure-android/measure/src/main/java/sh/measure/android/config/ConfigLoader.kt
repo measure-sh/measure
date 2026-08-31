@@ -40,8 +40,8 @@ internal class ConfigLoaderImpl(
             }
 
             val lastFetchTimestamp = prefsStorage.getConfigFetchTimestamp()
-            val cacheControlDuration = prefsStorage.getConfigCacheControl()
-            val shouldRefreshConfig = timeProvider.now() - lastFetchTimestamp > cacheControlDuration
+            val cacheControlMs = prefsStorage.getConfigCacheControlMs()
+            val shouldRefreshConfig = timeProvider.now() - lastFetchTimestamp > cacheControlMs
             val eTag = prefsStorage.getConfigEtag()
 
             if (shouldRefreshConfig) {
@@ -51,7 +51,7 @@ internal class ConfigLoaderImpl(
                         configFile.writeText(response.body)
                         prefsStorage.setConfigFetchTimestamp(timeProvider.now())
                         response.eTag?.let { prefsStorage.setConfigEtag(it) }
-                        prefsStorage.setConfigCacheControl(response.cacheControl)
+                        prefsStorage.setConfigCacheControlMs(response.cacheControlMs)
                         logger.log(
                             LogLevel.Debug,
                             "ConfigLoader: New config loaded from server successfully",
@@ -66,7 +66,12 @@ internal class ConfigLoaderImpl(
                         )
                     }
 
-                    ConfigResponse.NotModified -> {
+                    is ConfigResponse.NotModified -> {
+                        prefsStorage.setConfigFetchTimestamp(timeProvider.now())
+                        // A response without the header parses to 0, keep the known window.
+                        if (response.cacheControlMs > 0) {
+                            prefsStorage.setConfigCacheControlMs(response.cacheControlMs)
+                        }
                         logger.log(LogLevel.Debug, "ConfigLoader: 304 Not Modified")
                     }
                 }
