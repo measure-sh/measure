@@ -11,10 +11,10 @@ internal interface PrefsStorage {
     fun getUserId(): String?
     fun setUserId(userId: String?)
     fun getConfigFetchTimestamp(): Long
-    fun getConfigCacheControl(): Long
+    fun getConfigCacheControlMs(): Long
     fun getConfigEtag(): String?
     fun setConfigFetchTimestamp(timestamp: Long)
-    fun setConfigCacheControl(cacheControl: Long)
+    fun setConfigCacheControlMs(cacheControlMs: Long)
     fun setConfigEtag(etag: String)
 }
 
@@ -50,7 +50,7 @@ internal class PrefsStorageImpl(private val context: Context) : PrefsStorage {
 
     override fun getConfigFetchTimestamp(): Long = sharedPreferences.getLong(CONFIG_FETCH_TIMESTAMP, 0)
 
-    override fun getConfigCacheControl(): Long = sharedPreferences.getLong(CONFIG_CACHE_CONTROL, 0)
+    override fun getConfigCacheControlMs(): Long = sharedPreferences.getLong(CONFIG_CACHE_CONTROL, 0)
 
     override fun getConfigEtag(): String? = sharedPreferences.getString(CONFIG_ETAG, null)
 
@@ -58,8 +58,8 @@ internal class PrefsStorageImpl(private val context: Context) : PrefsStorage {
         sharedPreferences.edit { putLong(CONFIG_FETCH_TIMESTAMP, timestamp) }
     }
 
-    override fun setConfigCacheControl(cacheControl: Long) {
-        sharedPreferences.edit { putLong(CONFIG_CACHE_CONTROL, cacheControl) }
+    override fun setConfigCacheControlMs(cacheControlMs: Long) {
+        sharedPreferences.edit { putLong(CONFIG_CACHE_CONTROL, cacheControlMs) }
     }
 
     override fun setConfigEtag(etag: String) {

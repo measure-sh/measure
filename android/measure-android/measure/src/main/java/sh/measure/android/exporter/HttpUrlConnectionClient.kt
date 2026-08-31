@@ -138,12 +138,13 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
                 HttpURLConnection.HTTP_OK -> {
                     val body = connection.inputStream.source().buffer().readString(Charsets.UTF_8)
                     val newETag = connection.getHeaderField("ETag")
-                    val cacheControl = parseCacheControlMaxAge(connection.getHeaderField("Cache-Control"))
+                    val cacheControlMs =
+                        parseCacheControlMaxAgeMs(connection.getHeaderField("Cache-Control"))
 
                     ConfigResponse.Success(
                         body = body,
                         eTag = newETag,
-                        cacheControl = cacheControl,
+                        cacheControlMs = cacheControlMs,
                     )
                 }
 
@@ -164,13 +165,14 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
         }
     }
 
-    private fun parseCacheControlMaxAge(cacheControlHeader: String?): Long {
+    private fun parseCacheControlMaxAgeMs(cacheControlHeader: String?): Long {
         if (cacheControlHeader == null) return 0
 
         return try {
             val maxAgeRegex = "max-age=(\\d+)".toRegex()
             val matchResult = maxAgeRegex.find(cacheControlHeader)
-            matchResult?.groupValues?.get(1)?.toLong() ?: 0
+            val maxAgeSeconds = matchResult?.groupValues?.get(1)?.toLong() ?: 0
+            maxAgeSeconds * 1000
         } catch (e: NumberFormatException) {
             logger.log(LogLevel.Error, "Failed to parse Cache-Control max-age", e)
             0

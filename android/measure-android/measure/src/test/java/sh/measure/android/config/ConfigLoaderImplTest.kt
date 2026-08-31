@@ -128,7 +128,7 @@ internal class ConfigLoaderImplTest {
         val configFile = createTempConfigFile(validConfig)
         `when`(fileStorage.getConfigFile()).thenReturn(configFile)
         `when`(prefsStorage.getConfigFetchTimestamp()).thenReturn(timeProvider.now())
-        `when`(prefsStorage.getConfigCacheControl()).thenReturn(3600L)
+        `when`(prefsStorage.getConfigCacheControlMs()).thenReturn(600_000L)
         // Advance by less than cache duration so cache is NOT expired
         testClock.advance(Duration.ofMillis(2000))
 
@@ -173,12 +173,12 @@ internal class ConfigLoaderImplTest {
         val expectedTimestamp = timeProvider.now()
         val newConfig = """{"http_body_capture_enabled": true}"""
         val newEtag = "new-etag"
-        val newCacheControl = 3600L
+        val newCacheControlMs = 600_000L
         `when`(networkClient.getConfig(any())).thenReturn(
             ConfigResponse.Success(
                 body = newConfig,
                 eTag = newEtag,
-                cacheControl = newCacheControl,
+                cacheControlMs = newCacheControlMs,
             ),
         )
 
@@ -189,7 +189,7 @@ internal class ConfigLoaderImplTest {
         assertEquals(newConfig, configFile.readText())
         verify(prefsStorage).setConfigFetchTimestamp(expectedTimestamp)
         verify(prefsStorage).setConfigEtag(newEtag)
-        verify(prefsStorage).setConfigCacheControl(newCacheControl)
+        verify(prefsStorage).setConfigCacheControlMs(newCacheControlMs)
         configFile.delete()
     }
 
@@ -203,7 +203,7 @@ internal class ConfigLoaderImplTest {
             ConfigResponse.Success(
                 body = "{}",
                 eTag = null,
-                cacheControl = 3600L,
+                cacheControlMs = 600_000L,
             ),
         )
 
@@ -254,12 +254,12 @@ internal class ConfigLoaderImplTest {
     }
 
     private fun setupCacheExpired() {
-        val cacheControlDuration = 3600L
+        val cacheControlMs = 600_000L
         // Set last fetch time to current time
         `when`(prefsStorage.getConfigFetchTimestamp()).thenReturn(timeProvider.now())
-        `when`(prefsStorage.getConfigCacheControl()).thenReturn(cacheControlDuration)
+        `when`(prefsStorage.getConfigCacheControlMs()).thenReturn(cacheControlMs)
         // Advance clock beyond cache duration to make it expired
-        testClock.advance(Duration.ofMillis(cacheControlDuration + 1000))
+        testClock.advance(Duration.ofMillis(cacheControlMs + 1000))
         `when`(prefsStorage.getConfigEtag()).thenReturn("")
     }
 

@@ -7,6 +7,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import sh.measure.android.config.ConfigResponse
 import sh.measure.android.fakes.NoopLogger
 
 class HttpUrlConnectionClientTest {
@@ -369,5 +370,31 @@ class HttpUrlConnectionClientTest {
 
         assertTrue(result is HttpResponse.Error.ClientError)
         assertEquals(400, (result as HttpResponse.Error.ClientError).code)
+    }
+
+    @Test
+    fun `test config response converts cache control max age to milliseconds`() {
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Cache-Control", "max-age=600")
+                .setHeader("ETag", "etag-123")
+                .setBody("{}"),
+        )
+
+        val result = client.getConfig(mockWebServer.url("/").toString(), null, emptyMap())
+
+        assertEquals(
+            ConfigResponse.Success(body = "{}", eTag = "etag-123", cacheControlMs = 600_000L),
+            result,
+        )
+    }
+
+    @Test
+    fun `test config response defaults cache control to zero when header is missing`() {
+        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
+
+        val result = client.getConfig(mockWebServer.url("/").toString(), null, emptyMap())
+
+        assertEquals(0L, (result as ConfigResponse.Success).cacheControlMs)
     }
 }
