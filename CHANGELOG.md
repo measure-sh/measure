@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Keep sdk config cache in sync with database (#4340) by @detj in #4340
 - (**backend**): Aggregate app journey graph in clickhouse to stop oom (#4324) by @detj in #4324
 - (**backend**): Resolve bespoke plans over an attached free product by @anupcowkur in #4319
 - (**backend**): Set sender display name & drop repeated alert copy (#4304) by @detj in #4304
