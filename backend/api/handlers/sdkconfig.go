@@ -182,9 +182,12 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	// inside the txn, a cache failure must roll the row back
+	// inside the txn, a cache failure rolls the row back, except a TTL-only failure
 	if err := sdkconfig.SetCache(ctx, deps.VK, appID, jsonConfig); err != nil {
-		return fmt.Errorf("failed to write config cache: %w", err)
+		if !errors.Is(err, sdkconfig.ErrCacheTTLNotSet) {
+			return fmt.Errorf("failed to write config cache: %w", err)
+		}
+		fmt.Println("failed to set config cache ttl, app_id:", appID, err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {

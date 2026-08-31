@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"math/rand"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,8 +24,28 @@ const (
 	cacheFieldData = "config"
 )
 
+// Config cache TTL & jitter.
+const (
+	// configCacheTTL is how long a cached config entry lives, jittered so
+	// entries written together don't expire together.
+	configCacheTTL = 24 * time.Hour
+	// configCacheTTLJitter is the fraction configCacheTTL varies by, either way.
+	configCacheTTLJitter = 0.10
+)
+
 // ErrNoCacheClient is returned by cache writes when no Valkey client is configured.
 var ErrNoCacheClient = errors.New("valkey client not available")
+
+// ErrCacheTTLNotSet is returned when the value was cached but its expiry was not
+// set, so the entry risks living forever.
+var ErrCacheTTLNotSet = errors.New("failed to set config cache ttl")
+
+// jitteredCacheTTL returns configCacheTTL varied by up to configCacheTTLJitter
+// either way, in whole seconds.
+func jitteredCacheTTL() int64 {
+	factor := 1 + configCacheTTLJitter*(2*rand.Float64()-1)
+	return int64(configCacheTTL.Seconds() * factor)
+}
 
 // Screenshot mask levels an SDK accepts.
 const (
@@ -159,35 +180,51 @@ func GetCache(ctx context.Context, vk valkey.Client, appID uuid.UUID) (data stri
 	return data, nil
 }
 
-// SetCache writes the config JSON unconditionally, for the patch path only.
+// SetCache writes the config JSON unconditionally & refreshes its TTL, for the
+// patch path only. Returns ErrCacheTTLNotSet if the write succeeds but the TTL
+// could not be set.
 func SetCache(ctx context.Context, vk valkey.Client, appID uuid.UUID, jsonConfig []byte) error {
 	if vk == nil {
 		return ErrNoCacheClient
 	}
 
 	key := configCacheKey(appID)
-	cmd := vk.B().Hset().Key(key).FieldValue().
+	set := vk.B().Hset().Key(key).FieldValue().
 		FieldValue(cacheFieldData, string(jsonConfig)).
 		Build()
+	// unconditional, refreshes the ttl on every write
+	expire := vk.B().Expire().Key(key).Seconds(jitteredCacheTTL()).Build()
 
-	if err := vk.Do(ctx, cmd).Error(); err != nil {
+	results := vk.DoMulti(ctx, set, expire)
+	if err := results[0].Error(); err != nil {
 		return fmt.Errorf("failed to store config hash: %w", err)
+	}
+	if err := results[1].Error(); err != nil {
+		return fmt.Errorf("%w: %w", ErrCacheTTLNotSet, err)
 	}
 
 	return nil
 }
 
-// SetCacheIfAbsent writes the config JSON only when absent, else a slow reader can overwrite a fresh config.
+// SetCacheIfAbsent writes the config JSON & sets a TTL only when absent, else
+// a slow reader can overwrite a fresh config or extend its TTL. Returns
+// ErrCacheTTLNotSet if the write succeeds but the TTL could not be set.
 func SetCacheIfAbsent(ctx context.Context, vk valkey.Client, appID uuid.UUID, jsonConfig []byte) error {
 	if vk == nil {
 		return ErrNoCacheClient
 	}
 
 	key := configCacheKey(appID)
-	cmd := vk.B().Hsetnx().Key(key).Field(cacheFieldData).Value(string(jsonConfig)).Build()
+	set := vk.B().Hsetnx().Key(key).Field(cacheFieldData).Value(string(jsonConfig)).Build()
+	// NX only, readers hit this path on a live key & must not extend its ttl
+	expire := vk.B().Expire().Key(key).Seconds(jitteredCacheTTL()).Nx().Build()
 
-	if err := vk.Do(ctx, cmd).Error(); err != nil {
+	results := vk.DoMulti(ctx, set, expire)
+	if err := results[0].Error(); err != nil {
 		return fmt.Errorf("failed to store config hash: %w", err)
+	}
+	if err := results[1].Error(); err != nil {
+		return fmt.Errorf("%w: %w", ErrCacheTTLNotSet, err)
 	}
 
 	return nil
