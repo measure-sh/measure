@@ -16,12 +16,13 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
+// Cache-Control header sent with every config response.
 const (
 	cacheControlHeader = "Cache-Control"
 	cacheControlValue  = "max-age=600"
 )
 
-// OTel metric constants
+// OTel metric name & attribute values.
 const (
 	otelMeterName               = "measure/sdk_config"
 	otelCacheRequestsMetricName = "sdkconfig.cache.requests"
@@ -32,13 +33,15 @@ const (
 	otelCacheErrorAttrValue     = "error"
 )
 
-// cacheMetrics encapsulates SDK config cache metrics
+// cacheMetrics holds the SDK config cache counters.
 type cacheMetrics struct {
 	requests metric.Int64Counter
 }
 
+// sdkConfigCache is the process wide cache metrics recorder.
 var sdkConfigCache *cacheMetrics
 
+// init builds the SDK config cache metrics counter.
 func init() {
 	meter := otel.Meter(otelMeterName)
 	counter, err := meter.Int64Counter(
@@ -51,40 +54,35 @@ func init() {
 	sdkConfigCache = &cacheMetrics{requests: counter}
 }
 
-// RecordHitETag records a cache hit
-// where client's ETag matched
+// RecordHitETag records a cache hit where the client's ETag matched.
 func (m *cacheMetrics) RecordHitETag(ctx context.Context) {
 	m.requests.Add(ctx, 1, metric.WithAttributes(
 		attribute.String(otelCacheResultAttrKey, otelCacheHitETagAttrValue),
 	))
 }
 
-// RecordHitData records a cache hit
-// where data was served from cache
+// RecordHitData records a cache hit served from cached data.
 func (m *cacheMetrics) RecordHitData(ctx context.Context) {
 	m.requests.Add(ctx, 1, metric.WithAttributes(
 		attribute.String(otelCacheResultAttrKey, otelCacheHitDataAttrValue),
 	))
 }
 
-// RecordMiss records a cache miss
+// RecordMiss records a cache miss.
 func (m *cacheMetrics) RecordMiss(ctx context.Context) {
 	m.requests.Add(ctx, 1, metric.WithAttributes(
 		attribute.String(otelCacheResultAttrKey, otelCacheMissAttrValue),
 	))
 }
 
-// RecordError records a cache request that
-// could not consult the cache at all
+// RecordError records a request that could not consult the cache.
 func (m *cacheMetrics) RecordError(ctx context.Context) {
 	m.requests.Add(ctx, 1, metric.WithAttributes(
 		attribute.String(otelCacheResultAttrKey, otelCacheErrorAttrValue),
 	))
 }
 
-// serveConfigFromDb fetches the SDK config from PostgreSQL, populates
-// the Valkey cache if vk is available (only if the key is absent, so a
-// slow reader can't overwrite a fresher config), & writes the JSON response.
+// serveConfigFromDb serves an app's config from Postgres & repopulates the cache.
 func serveConfigFromDb(c *gin.Context, ctx context.Context, appId uuid.UUID, vk valkey.Client) {
 	sdkConfig, err := sdkconfig.GetConfigFromDb(ctx, server.Server.PgPool, appId)
 	if err != nil {
@@ -113,10 +111,7 @@ func serveConfigFromDb(c *gin.Context, ctx context.Context, appId uuid.UUID, vk 
 	c.Data(http.StatusOK, "application/json", jsonConfig)
 }
 
-// GetConfigForSdk retrieves the SDK config for the app.
-// It serves from the Valkey cache when available, falling
-// back to PostgreSQL on cache miss or when Valkey is
-// unavailable.
+// GetConfigForSdk serves the SDK config, from the Valkey cache when warm, else Postgres.
 func GetConfigForSdk(c *gin.Context) {
 	appId, err := uuid.Parse(c.GetString("appId"))
 	if err != nil {

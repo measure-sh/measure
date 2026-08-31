@@ -19,8 +19,7 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-// configColumns is the RETURNING list for a config update.
-// Order matches the scan in PatchConfigForApp.
+// configColumns must stay ordered to match the scan in PatchConfigForApp.
 const configColumns = `max_events_in_batch, crash_timeline_duration, anr_timeline_duration,
 	bug_report_timeline_duration, trace_sampling_rate, journey_sampling_rate,
 	screenshot_mask_level, log_autocollect_enabled, log_min_severity,
@@ -30,6 +29,7 @@ const configColumns = `max_events_in_batch, crash_timeline_duration, anr_timelin
 	http_track_request_for_urls, http_track_response_for_urls, http_blocked_headers,
 	profile_sampling_rate, updated_at, updated_by`
 
+// PatchConfigForApp applies a patch to an app's SDK config, updating Postgres & the cache together.
 func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userID string) error {
 	var patch sdkconfig.ConfigPatch
 	if err := c.ShouldBindJSON(&patch); err != nil {
@@ -182,16 +182,13 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	// write-through inside the transaction: a cache write failure
-	// rolls the Postgres update back too
+	// inside the txn, a cache failure must roll the row back
 	if err := sdkconfig.SetCache(ctx, deps.VK, appID, jsonConfig); err != nil {
 		return fmt.Errorf("failed to write config cache: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		// cache write already landed, drop it or the cache keeps an
-		// uncommitted config forever. ctx may be why the commit failed,
-		// so cleanup must not inherit its cancellation
+		// ctx may be why the commit failed, so don't inherit its cancellation
 		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 		if err := sdkconfig.InvalidateCache(cleanupCtx, deps.VK, appID); err != nil {
@@ -203,13 +200,10 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 	return nil
 }
 
-// GetConfigForSdk proxies to the ingest service on non-Cloud so SDKs
-// hitting the API endpoint keep working. On Cloud it returns 410, since
-// the cache/DB lookup lives only in the ingest service now.
+// GetConfigForSdk proxies to the ingest service, or returns 410 on Cloud.
 func (h Handlers) GetConfigForSdk(c *gin.Context) {
 	deps := h.Deps
-	// temporary compatibility shim, remove once SDKs migrate to the
-	// ingest endpoint directly
+	// temporary, remove once SDKs move to the ingest endpoint
 	if !deps.Config.IsCloud() {
 		ingestOrigin := "http://ingest:8085"
 		target, err := url.Parse(ingestOrigin)
@@ -227,8 +221,7 @@ func (h Handlers) GetConfigForSdk(c *gin.Context) {
 	c.Status(http.StatusGone)
 }
 
-// GetConfigForDashboard retrieves the SDK config for dashboard use.
-// Always reads from Postgres, never the cache.
+// GetConfigForDashboard returns the SDK config for the dashboard, always from Postgres.
 func GetConfigForDashboard(c *gin.Context, deps *server.Deps, appID uuid.UUID) {
 	sdkConfig, err := sdkconfig.GetConfigFromDb(c.Request.Context(), deps.PgPool, appID)
 	if err != nil {

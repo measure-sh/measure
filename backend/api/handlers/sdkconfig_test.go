@@ -14,8 +14,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// seedSdkConfig creates a team, app & its default SDK config row,
-// returning the app id & the user id to patch as.
 func seedSdkConfig(ctx context.Context, t *testing.T) (appID uuid.UUID, userID string) {
 	t.Helper()
 
@@ -81,10 +79,6 @@ func cachedMaxEvents(ctx context.Context, t *testing.T, appID uuid.UUID) int {
 	return config.MaxEventsInBatch
 }
 
-// TestPatchConfigForApp_SlowReaderCannotOverwrite pins both branches of
-// the reader repopulate: it must write when the key is absent, & it must
-// refuse once a patch has written a fresh config, so a reader that read
-// Postgres before the patch cannot pin the cache to the stale config.
 func TestPatchConfigForApp_SlowReaderCannotOverwrite(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
@@ -92,7 +86,6 @@ func TestPatchConfigForApp_SlowReaderCannotOverwrite(t *testing.T) {
 	appID, userID := seedSdkConfig(ctx, t)
 	staleJSON := []byte(`{"max_events_in_batch":1111}`)
 
-	// reader repopulating after a genuine miss
 	if err := sdkconfig.SetCacheIfAbsent(ctx, th.VK, appID, staleJSON); err != nil {
 		t.Fatalf("repopulate cache: %v", err)
 	}
@@ -105,7 +98,6 @@ func TestPatchConfigForApp_SlowReaderCannotOverwrite(t *testing.T) {
 		t.Fatalf("patch config: %v", err)
 	}
 
-	// slow reader arriving late with the pre-update config
 	if err := sdkconfig.SetCacheIfAbsent(ctx, th.VK, appID, staleJSON); err != nil {
 		t.Fatalf("repopulate cache: %v", err)
 	}
@@ -115,8 +107,6 @@ func TestPatchConfigForApp_SlowReaderCannotOverwrite(t *testing.T) {
 	}
 }
 
-// TestPatchConfigForApp_CacheFailureRollsBack proves the cache write is
-// part of the transaction, a cache failure must leave Postgres untouched.
 func TestPatchConfigForApp_CacheFailureRollsBack(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
@@ -136,8 +126,6 @@ func TestPatchConfigForApp_CacheFailureRollsBack(t *testing.T) {
 	}
 }
 
-// TestGetCache_ErrorIsNotMiss proves a broken cache surfaces an error
-// while a genuinely absent key does not.
 func TestGetCache_ErrorIsNotMiss(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
