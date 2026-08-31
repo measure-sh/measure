@@ -2411,6 +2411,9 @@ paths:
                   gesture_click_take_snapshot:
                     type: boolean
                     description: Whether to take snapshot with gesture_click event.
+                  http_sampling_rate:
+                    type: number
+                    description: Sampling rate for HTTP events.
                   http_disable_event_for_urls:
                     type: array
                     items:
@@ -2453,6 +2456,7 @@ paths:
                 anr_take_screenshot: true
                 launch_sampling_rate: 1
                 gesture_click_take_snapshot: true
+                http_sampling_rate: 100
                 http_disable_event_for_urls: []
                 http_track_request_for_urls: []
                 http_track_response_for_urls: []

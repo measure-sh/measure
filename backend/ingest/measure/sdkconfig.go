@@ -61,6 +61,7 @@ type SdkConfig struct {
 	ANRTakeScreenshot         bool                `json:"anr_take_screenshot"`
 	LaunchSamplingRate        float64             `json:"launch_sampling_rate"`
 	GestureClickTakeSnapshot  bool                `json:"gesture_click_take_snapshot"`
+	HTTPSamplingRate          float64             `json:"http_sampling_rate"`
 	HTTPDisableEventForURLs   []string            `json:"http_disable_event_for_urls"`
 	HTTPTrackRequestForURLs   []string            `json:"http_track_request_for_urls"`
 	HTTPTrackResponseForURLs  []string            `json:"http_track_response_for_urls"`
@@ -132,6 +133,7 @@ func createDefaultConfig() SdkConfig {
 		ANRTakeScreenshot:         true,
 		LaunchSamplingRate:        100,
 		GestureClickTakeSnapshot:  true,
+		HTTPSamplingRate:          100,
 		HTTPDisableEventForURLs:   []string{},
 		HTTPTrackRequestForURLs:   []string{},
 		HTTPTrackResponseForURLs:  []string{},
@@ -216,6 +218,7 @@ func getConfigFromDb(ctx context.Context, appID uuid.UUID) (*SdkConfig, error) {
 		Select("anr_take_screenshot").
 		Select("launch_sampling_rate").
 		Select("gesture_click_take_snapshot").
+		Select("http_sampling_rate").
 		Select("http_disable_event_for_urls").
 		Select("http_track_request_for_urls").
 		Select("http_track_response_for_urls").
@@ -247,6 +250,7 @@ func getConfigFromDb(ctx context.Context, appID uuid.UUID) (*SdkConfig, error) {
 		&sdkConfig.ANRTakeScreenshot,
 		&sdkConfig.LaunchSamplingRate,
 		&sdkConfig.GestureClickTakeSnapshot,
+		&sdkConfig.HTTPSamplingRate,
 		&sdkConfig.HTTPDisableEventForURLs,
 		&sdkConfig.HTTPTrackRequestForURLs,
 		&sdkConfig.HTTPTrackResponseForURLs,
