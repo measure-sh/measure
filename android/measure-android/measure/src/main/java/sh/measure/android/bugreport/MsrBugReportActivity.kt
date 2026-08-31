@@ -19,13 +19,11 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickMultipleVisualMedia
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.annotation.RequiresApi
-import androidx.core.content.IntentCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import sh.measure.android.Measure
 import sh.measure.android.R
-import sh.measure.android.bugreport.BugReportCollector.Companion.INITIAL_SCREENSHOT_EXTRA
 import sh.measure.android.bugreport.BugReportCollector.Companion.MAX_ATTACHMENTS_EXTRA
 import sh.measure.android.bugreport.BugReportCollector.Companion.MAX_DESCRIPTION_LENGTH
 
@@ -40,7 +38,10 @@ internal class MsrBugReportActivity : ComponentActivity() {
     private var maxAttachments: Int = 1
     private var uris: MutableSet<Uri> = mutableSetOf()
     private var attachments: MutableSet<ParcelableAttachment> = mutableSetOf()
-    private val totalAttachments: Int get() = attachments.size + uris.size
+    private var pendingScreenshot: PendingScreenshot? = null
+    private var pendingScreenshotView: ScreenshotView? = null
+    private val totalAttachments: Int
+        get() = attachments.size + uris.size + if (pendingScreenshot != null) 1 else 0
 
     private val pickMultipleMedia =
         registerForActivityResult(PickMultipleVisualMedia()) { selectedUris ->
@@ -57,14 +58,10 @@ internal class MsrBugReportActivity : ComponentActivity() {
 
         fun launch(
             context: Context,
-            initialScreenshot: ParcelableAttachment? = null,
             maxAttachmentsInBugReport: Int,
             maxDescriptionLengthInBugReport: Int,
         ) {
             val intent = Intent(context, MsrBugReportActivity::class.java)
-            initialScreenshot?.let {
-                intent.putExtra(INITIAL_SCREENSHOT_EXTRA, it)
-            }
             intent.putExtra(MAX_ATTACHMENTS_EXTRA, maxAttachmentsInBugReport)
             intent.putExtra(MAX_DESCRIPTION_LENGTH, maxDescriptionLengthInBugReport)
             context.startActivity(intent)
@@ -89,6 +86,16 @@ internal class MsrBugReportActivity : ComponentActivity() {
         bugReportCollector.setBugReportFlowInactive()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        pendingScreenshot?.setListener(null)
+        if (isFinishing) {
+            pendingScreenshot?.let { bugReportCollector.discardPendingScreenshot(it) }
+        }
+        pendingScreenshot = null
+        pendingScreenshotView = null
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putParcelableArray(PARCEL_SCREENSHOTS, attachments.toTypedArray())
@@ -99,12 +106,11 @@ internal class MsrBugReportActivity : ComponentActivity() {
         bugReportCollector = Measure.getBugReportCollector()
         maxAttachments = intent.getIntExtra(MAX_ATTACHMENTS_EXTRA, 1)
         tvChooseImage.visibility = View.VISIBLE
-        if (savedInstanceState == null) {
-            showInitialScreenshot()
-        } else {
+        if (savedInstanceState != null) {
             restoreState(savedInstanceState)
             restoreViews()
         }
+        showPendingScreenshot()
     }
 
     private fun initViews() {
@@ -177,17 +183,51 @@ internal class MsrBugReportActivity : ComponentActivity() {
         }
     }
 
-    private fun showInitialScreenshot() {
-        val screenshot = getInitialScreenshot() ?: return
-        attachments.add(screenshot)
-        addAttachmentView(screenshot)
+    /**
+     * Shows the screenshot captured for this flow while it is still being encoded. Its file does
+     * not exist yet, so the thumbnail comes from the in memory preview.
+     */
+    private fun showPendingScreenshot() {
+        val screenshot = bugReportCollector.getPendingScreenshot()
+            ?.takeIf { it.isEncoding() } ?: return
+        val preview = screenshot.preview ?: return
+        val view = ScreenshotView(this)
+        view.setImageFromBitmap(preview)
+        view.setRemoveClickListener { removePendingScreenshot(view) }
+        slScreenshotsContainer.addView(view)
+        pendingScreenshot = screenshot
+        pendingScreenshotView = view
+        screenshot.setListener(::onScreenshotEncoded)
+        updateAddImageClickListener()
     }
 
-    private fun getInitialScreenshot(): ParcelableAttachment? = IntentCompat.getParcelableExtra(
-        intent,
-        INITIAL_SCREENSHOT_EXTRA,
-        ParcelableAttachment::class.java,
-    )
+    private fun onScreenshotEncoded(attachment: ParcelableAttachment?) {
+        val view = pendingScreenshotView
+        pendingScreenshot = null
+        pendingScreenshotView = null
+        if (attachment == null) {
+            view?.let { slScreenshotsContainer.removeView(it) }
+            updateAddImageClickListener()
+            return
+        }
+        attachments.add(attachment)
+        view?.setRemoveClickListener {
+            attachments.remove(attachment)
+            slScreenshotsContainer.removeView(view)
+            updateAddImageClickListener()
+        }
+    }
+
+    private fun removePendingScreenshot(view: ScreenshotView) {
+        pendingScreenshot?.let {
+            it.setListener(null)
+            bugReportCollector.discardPendingScreenshot(it)
+        }
+        pendingScreenshot = null
+        pendingScreenshotView = null
+        slScreenshotsContainer.removeView(view)
+        updateAddImageClickListener()
+    }
 
     private fun restoreState(savedInstanceState: Bundle) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
