@@ -5,11 +5,14 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.net.Uri
+import android.os.Looper
 import androidx.concurrent.futures.ResolvableFuture
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -19,9 +22,14 @@ import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.isNull
 import org.mockito.kotlin.verify
+import org.robolectric.Robolectric
+import org.robolectric.Shadows.shadowOf
+import sh.measure.android.TestLifecycleActivity
 import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.executors.MeasureExecutorService
+import sh.measure.android.fakes.DeferredExecutorService
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakeSessionManager
@@ -46,7 +54,9 @@ class BugReportCollectorImplTest {
     private val fileStorage = FileStorageImpl(application.filesDir.path, logger)
     private val idProvider = FakeIdProvider()
     private val configProvider = FakeConfigProvider()
-    private val resumedActivityProvider = ResumedActivityProviderImpl(application)
+    private val resumedActivityProvider = ResumedActivityProviderImpl(application).apply {
+        register()
+    }
     private val bugReportCollector = BugReportCollectorImpl(
         logger = logger,
         signalProcessor = signalProcessor,
@@ -58,6 +68,136 @@ class BugReportCollectorImplTest {
         idProvider = idProvider,
         resumedActivityProvider = resumedActivityProvider,
     )
+
+    private fun collector(executor: MeasureExecutorService) = BugReportCollectorImpl(
+        logger = logger,
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        ioExecutor = executor,
+        configProvider = configProvider,
+        sessionManager = sessionManager,
+        fileStorage = fileStorage,
+        idProvider = idProvider,
+        resumedActivityProvider = resumedActivityProvider,
+    )
+
+    private fun resumeHostActivity() {
+        Robolectric.buildActivity(TestLifecycleActivity::class.java).setup()
+    }
+
+    @Test
+    fun `launches the bug report screen before the screenshot is encoded`() {
+        resumeHostActivity()
+        val executor = DeferredExecutorService()
+        val collector = collector(executor)
+
+        collector.startBugReportFlow()
+
+        val started = shadowOf(application).nextStartedActivity
+        assertEquals(MsrBugReportActivity::class.java.name, started.component?.className)
+        assertEquals(1, executor.pendingTaskCount)
+        assertTrue(collector.getPendingScreenshot()?.isEncoding() == true)
+    }
+
+    @Test
+    fun `does not put the screenshot in the launch intent`() {
+        resumeHostActivity()
+        val collector = collector(DeferredExecutorService())
+
+        collector.startBugReportFlow()
+
+        val extras = shadowOf(application).nextStartedActivity.extras
+        assertEquals(
+            setOf(
+                BugReportCollector.MAX_ATTACHMENTS_EXTRA,
+                BugReportCollector.MAX_DESCRIPTION_LENGTH,
+            ),
+            extras?.keySet(),
+        )
+    }
+
+    @Test
+    fun `notifies the screen once the screenshot is encoded`() {
+        resumeHostActivity()
+        val executor = DeferredExecutorService()
+        val collector = collector(executor)
+        collector.startBugReportFlow()
+        val screenshot = collector.getPendingScreenshot()
+        var encoded: ParcelableAttachment? = null
+        screenshot?.setListener { encoded = it }
+
+        executor.runAll()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertNotNull(encoded)
+        assertTrue(File(encoded!!.path).exists())
+        assertFalse(screenshot?.isEncoding() == true)
+    }
+
+    @Test
+    fun `tracks the screenshot when sent before encoding completes`() {
+        resumeHostActivity()
+        val executor = DeferredExecutorService()
+        val collector = collector(executor)
+        collector.startBugReportFlow()
+
+        collector.track(application, "description", emptyList(), emptyList())
+        executor.runAll()
+
+        val attachmentsCaptor = argumentCaptor<MutableList<Attachment>>()
+        verify(signalProcessor).track(
+            data = eq(BugReportData("description")),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.BUG_REPORT),
+            attributes = eq(emptyMap<String, Any?>().toMutableMap()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = attachmentsCaptor.capture(),
+            threadName = any(),
+            sessionId = isNull(),
+            userTriggered = eq(false),
+            isSampled = eq(true),
+        )
+        assertEquals(1, attachmentsCaptor.firstValue.size)
+    }
+
+    @Test
+    fun `does not track a discarded screenshot`() {
+        resumeHostActivity()
+        val executor = DeferredExecutorService()
+        val collector = collector(executor)
+        collector.startBugReportFlow()
+        collector.getPendingScreenshot()?.let { collector.discardPendingScreenshot(it) }
+
+        collector.track(application, "description", emptyList(), emptyList())
+        executor.runAll()
+
+        val attachmentsCaptor = argumentCaptor<MutableList<Attachment>>()
+        verify(signalProcessor).track(
+            data = eq(BugReportData("description")),
+            timestamp = eq(timeProvider.now()),
+            type = eq(EventType.BUG_REPORT),
+            attributes = eq(emptyMap<String, Any?>().toMutableMap()),
+            userDefinedAttributes = eq(emptyMap()),
+            attachments = attachmentsCaptor.capture(),
+            threadName = any(),
+            sessionId = isNull(),
+            userTriggered = eq(false),
+            isSampled = eq(true),
+        )
+        assertEquals(0, attachmentsCaptor.firstValue.size)
+    }
+
+    @Test
+    fun `does not capture a screenshot when takeScreenshot is false`() {
+        resumeHostActivity()
+        val executor = DeferredExecutorService()
+        val collector = collector(executor)
+
+        collector.startBugReportFlow(takeScreenshot = false)
+
+        assertNull(collector.getPendingScreenshot())
+        assertEquals(0, executor.pendingTaskCount)
+    }
 
     @Test
     fun `tracks bug report event`() {

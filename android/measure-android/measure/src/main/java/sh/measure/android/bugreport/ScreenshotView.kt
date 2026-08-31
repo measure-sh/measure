@@ -1,6 +1,7 @@
 package sh.measure.android.bugreport
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import android.util.AttributeSet
 import android.view.View
@@ -30,6 +31,12 @@ internal class ScreenshotView @JvmOverloads constructor(
         closeButton.setOnClickListener {
             removeListener?.invoke()
         }
+    }
+
+    fun setImageFromBitmap(bitmap: Bitmap) {
+        setInitialStateBeforeAnimation()
+        imageView.setImageBitmap(bitmap)
+        animateAppearance()
     }
 
     fun setImageFromPath(path: String) {

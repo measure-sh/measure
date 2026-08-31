@@ -2,11 +2,13 @@ package sh.measure.android.bugreport
 
 import android.app.Activity
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import sh.measure.android.SessionManager
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.BugReportCollector.Companion.MAX_OUTPUT_IMAGE_WIDTH
+import sh.measure.android.bugreport.BugReportCollector.Companion.MAX_PREVIEW_IMAGE_SIZE
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.EventType
@@ -14,6 +16,7 @@ import sh.measure.android.events.SignalProcessor
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.mainHandler
 import sh.measure.android.screenshot.ScreenshotMask
 import sh.measure.android.storage.FileStorage
 import sh.measure.android.tracing.InternalTrace
@@ -24,6 +27,7 @@ import sh.measure.android.utils.ScreenshotMaskConfig
 import sh.measure.android.utils.TimeProvider
 import java.io.File
 import java.lang.ref.WeakReference
+import java.util.concurrent.Callable
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
@@ -31,10 +35,10 @@ import sh.measure.android.events.Attachment as EventAttachment
 
 internal interface BugReportCollector {
     companion object {
-        const val INITIAL_SCREENSHOT_EXTRA = "msr_br_screenshot"
         const val MAX_ATTACHMENTS_EXTRA = "msr_br_max_attachments"
         const val MAX_DESCRIPTION_LENGTH = "msr_br_description_length"
         const val MAX_OUTPUT_IMAGE_WIDTH = 1080
+        const val MAX_PREVIEW_IMAGE_SIZE = 1024
     }
 
     fun startBugReportFlow(
@@ -52,6 +56,8 @@ internal interface BugReportCollector {
     fun validateBugReport(attachments: Int, descriptionLength: Int): Boolean
     fun setBugReportFlowActive()
     fun setBugReportFlowInactive()
+    fun getPendingScreenshot(): PendingScreenshot?
+    fun discardPendingScreenshot(screenshot: PendingScreenshot)
 }
 
 internal class BugReportCollectorImpl internal constructor(
@@ -66,6 +72,7 @@ internal class BugReportCollectorImpl internal constructor(
     private val resumedActivityProvider: ResumedActivityProvider,
 ) : BugReportCollector {
     private var attributes: MutableMap<String, AttributeValue>? = null
+    private var pendingScreenshot: PendingScreenshot? = null
     private val isBugReportFlowActive = AtomicBoolean(false)
 
     override fun startBugReportFlow(
@@ -78,23 +85,22 @@ internal class BugReportCollectorImpl internal constructor(
         }
         this.attributes = attributes
         val activity = resumedActivityProvider.getResumedActivity() ?: return
-        fun launchActivity(initialAttachment: ParcelableAttachment?) {
-            MsrBugReportActivity.launch(
-                activity,
-                initialAttachment,
-                configProvider.maxAttachmentsInBugReport,
-                configProvider.maxDescriptionLengthInBugReport,
-            )
+        pendingScreenshot?.discard()
+        pendingScreenshot = if (takeScreenshot) captureScreenshot(activity) else null
+        MsrBugReportActivity.launch(
+            activity,
+            configProvider.maxAttachmentsInBugReport,
+            configProvider.maxDescriptionLengthInBugReport,
+        )
+    }
+
+    override fun getPendingScreenshot(): PendingScreenshot? = pendingScreenshot
+
+    override fun discardPendingScreenshot(screenshot: PendingScreenshot) {
+        if (pendingScreenshot === screenshot) {
+            pendingScreenshot = null
         }
-        if (takeScreenshot) {
-            captureScreenshot(activity = activity, onSuccess = { screenshot ->
-                launchActivity(screenshot)
-            }, onError = {
-                launchActivity(null)
-            })
-        } else {
-            launchActivity(null)
-        }
+        screenshot.discard()
     }
 
     override fun setBugReportFlowActive() {
@@ -114,6 +120,8 @@ internal class BugReportCollectorImpl internal constructor(
         val timestamp = timeProvider.now()
         val threadName = Thread.currentThread().name
         val appContextRef = WeakReference(context.applicationContext)
+        val screenshot = pendingScreenshot?.takeIf { it.isEncoding() }
+        pendingScreenshot = null
         ioExecutor.submit {
             try {
                 InternalTrace.trace(
@@ -122,10 +130,10 @@ internal class BugReportCollectorImpl internal constructor(
                     },
                     block = {
                         val appContext = appContextRef.get() ?: return@trace
+                        val pending = listOfNotNull(screenshot?.awaitEncoded())
                         val eventAttachments =
-                            parcelableAttachments.toEventAttachments() + uris.toEventAttachments(
-                                appContext,
-                            )
+                            (parcelableAttachments + pending).toEventAttachments() +
+                                uris.toEventAttachments(appContext)
                         signalProcessor.track(
                             data = BugReportData(description = description),
                             timestamp = timestamp,
@@ -145,61 +153,73 @@ internal class BugReportCollectorImpl internal constructor(
 
     override fun validateBugReport(attachments: Int, descriptionLength: Int): Boolean = attachments > 0 || descriptionLength > 0
 
-    private fun captureScreenshot(
-        activity: Activity,
-        onSuccess: (ParcelableAttachment) -> Unit,
-        onError: () -> Unit,
-    ) {
-        InternalTrace.trace(
-            label = {
-                "msr-captureScreenshot"
-            },
-            block = {
-                val screenshotMaskConfig = ScreenshotMaskConfig(
-                    maskHexColor = configProvider.screenshotMaskHexColor,
-                    getMaskRects = { view ->
-                        ScreenshotMask(configProvider).findRectsToMask(view)
-                    },
-                )
-                val bitmap = BitmapHelper.captureBitmap(activity, logger, screenshotMaskConfig)
-                if (bitmap == null) {
-                    onError()
-                    return@trace
-                }
+    /**
+     * Captures the screen being reported, which has to happen before the bug report window covers
+     * it, and leaves encoding to the IO executor so that the screen can be shown straight away.
+     */
+    private fun captureScreenshot(activity: Activity): PendingScreenshot? {
+        val bitmap = InternalTrace.trace("msr-captureScreenshot") {
+            val screenshotMaskConfig = ScreenshotMaskConfig(
+                maskHexColor = configProvider.screenshotMaskHexColor,
+                getMaskRects = { view ->
+                    ScreenshotMask(configProvider).findRectsToMask(view)
+                },
+            )
+            BitmapHelper.captureBitmap(activity, logger, screenshotMaskConfig)
+        } ?: return null
+        val preview = scalePreview(bitmap) ?: return null
+        val screenshot = PendingScreenshot(preview)
+        return try {
+            screenshot.encoding = ioExecutor.submit(
+                Callable {
+                    val encoded = encodeScreenshot(bitmap)
+                    screenshot.recordEncoded(encoded)
+                    mainHandler.post { screenshot.finishEncoding(encoded) }
+                    encoded
+                },
+            )
+            screenshot
+        } catch (_: RejectedExecutionException) {
+            null
+        }
+    }
 
-                try {
-                    ioExecutor.submit {
-                        val compressedBitmap = BitmapHelper.compressBitmap(
-                            bitmap,
-                            configProvider.screenshotCompressionQuality,
-                            logger,
-                        )
-                        if (compressedBitmap == null) {
-                            activity.runOnUiThread { onError() }
-                            return@submit
-                        }
-                        val id = idProvider.uuid()
-                        val path = fileStorage.writeTempBugReportScreenshot(
-                            id,
-                            compressedBitmap.first,
-                            compressedBitmap.second,
-                            sessionManager.getSessionId(),
-                        )
-                        if (path == null) {
-                            activity.runOnUiThread { onError() }
-                            return@submit
-                        }
-                        val parcelableAttachment = ParcelableAttachment(
-                            name = "screenshot.${compressedBitmap.first}",
-                            path = path,
-                        )
-                        activity.runOnUiThread { onSuccess(parcelableAttachment) }
-                    }
-                } catch (_: RejectedExecutionException) {
-                    onError()
-                }
-            },
-        )
+    private fun encodeScreenshot(bitmap: Bitmap): ParcelableAttachment? = InternalTrace.trace("msr-encodeScreenshot") {
+        val (extension, bytes) = BitmapHelper.compressBitmap(
+            bitmap,
+            configProvider.screenshotCompressionQuality,
+            logger,
+        ) ?: return@trace null
+        val path = fileStorage.writeTempBugReportScreenshot(
+            idProvider.uuid(),
+            extension,
+            bytes,
+            sessionManager.getSessionId(),
+        ) ?: return@trace null
+        ParcelableAttachment(name = "screenshot.$extension", path = path)
+    }
+
+    /**
+     * The bug report screen shows a thumbnail, so the full size bitmap is never handed to it.
+     */
+    private fun scalePreview(bitmap: Bitmap): Bitmap? = InternalTrace.trace("msr-scalePreview") {
+        val longestSide = maxOf(bitmap.width, bitmap.height)
+        val scale = if (longestSide <= MAX_PREVIEW_IMAGE_SIZE) {
+            1f
+        } else {
+            MAX_PREVIEW_IMAGE_SIZE.toFloat() / longestSide
+        }
+        try {
+            Bitmap.createScaledBitmap(
+                bitmap,
+                (bitmap.width * scale).roundToInt().coerceAtLeast(1),
+                (bitmap.height * scale).roundToInt().coerceAtLeast(1),
+                true,
+            )
+        } catch (e: Exception) {
+            logger.log(LogLevel.Error, "Failed to scale bug report screenshot", e)
+            null
+        }
     }
 
     private fun List<ParcelableAttachment>.toEventAttachments(): List<EventAttachment> = mapNotNull { attachment: ParcelableAttachment ->
