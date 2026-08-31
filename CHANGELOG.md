@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Bust stale sdk config cache entries on deploy (#4341) by @detj in #4341
 - (**backend**): Keep sdk config cache in sync with database (#4340) by @detj in #4340
 - (**backend**): Aggregate app journey graph in clickhouse to stop oom (#4324) by @detj in #4324
 - (**backend**): Resolve bespoke plans over an attached free product by @anupcowkur in #4319
