@@ -8,17 +8,19 @@ const (
 	FeatureAgentTokens   = "agent_tokens"
 )
 
-// Customer represents an Autumn customer, including their active subscriptions
-// and balances. Returned by GetOrCreateCustomer and GetCustomer.
+// Customer represents an Autumn customer, including their active subscriptions,
+// one-off purchases and balances. Returned by GetOrCreateCustomer and
+// GetCustomer.
 //
-// The API's GET response populates Subscriptions; the webhook payload's
-// embedded customer object populates Products instead. Code that determines
-// the active plan should check both.
+// The API's GET response populates Subscriptions and Purchases; the webhook
+// payload's embedded customer object populates Products instead. Code that
+// determines the active plan should check all of them.
 type Customer struct {
 	ID            string             `json:"id"`
 	Email         string             `json:"email,omitempty"`
 	Name          string             `json:"name,omitempty"`
 	Subscriptions []Subscription     `json:"subscriptions,omitempty"`
+	Purchases     []Purchase         `json:"purchases,omitempty"`
 	Products      []CustomerProduct  `json:"products,omitempty"`
 	Balances      map[string]Balance `json:"balances,omitempty"`
 }
@@ -34,6 +36,19 @@ type Subscription struct {
 	CurrentPeriodEnd   int64  `json:"current_period_end,omitempty"`
 	CanceledAt         int64  `json:"canceled_at,omitempty"`
 	ExpiresAt          int64  `json:"expires_at,omitempty"`
+}
+
+// Purchase is a one-off plan a customer bought outright, such as a bespoke plan
+// sold for a fixed term. Autumn returns these in their own array on the
+// customer, separate from the recurring plans in Subscriptions, so a customer
+// can hold both at once. A purchase carries no status field the way a
+// subscription does, and StartedAt and ExpiresAt are milliseconds since epoch,
+// so those two timestamps are what say whether the purchase is currently in
+// effect.
+type Purchase struct {
+	PlanID    string `json:"plan_id"`
+	StartedAt int64  `json:"started_at,omitempty"`
+	ExpiresAt int64  `json:"expires_at,omitempty"`
 }
 
 // CustomerProduct is an Autumn product as it appears in webhook payloads
