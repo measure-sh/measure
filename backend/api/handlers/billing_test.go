@@ -1705,6 +1705,100 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		}
 	})
 
+	t.Run("billing.updated:one bespoke plan replaced by another resets retention and sends no email", func(t *testing.T) {
+		// A customer's bespoke contract is re-issued at different terms, so one
+		// bespoke plan expires as another activates. Both rank the same, which
+		// leaves no upgrade or downgrade to announce, but retention still has to
+		// follow the plan that just took effect.
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		userID := uuid.New().String()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedUser(ctx, t, userID, "bespoke-swap@test.com")
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedApp(ctx, t, appID, teamID, 180)
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       custID,
+				Products: []autumn.CustomerProduct{{ID: "acme_two_year"}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 365},
+				},
+			}, nil
+		})
+
+		payload := []byte(fmt.Sprintf(
+			`{"type":"billing.updated","data":{"customer_id":%q,"plan_changes":[{"action":"activated","subscription":{"plan_id":"acme_two_year"}},{"action":"expired","subscription":{"plan_id":"acme_one_year"}}]}}`,
+			custID,
+		))
+		headers := signSvixWebhook(t, secret, "msg_bespoke_swap", payload)
+		c, w := webhookReq(payload, headers)
+		h.HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		if got := getAppRetention(ctx, t, appID); got != 365 {
+			t.Errorf("retention after bespoke swap = %d, want 365", got)
+		}
+		if got := countQueuedTeamEmails(ctx, t, teamID); got != 0 {
+			t.Errorf("queued emails after bespoke swap = %d, want 0", got)
+		}
+	})
+
+	t.Run("billing.updated:the same bespoke plan re-attached resets retention and sends no email", func(t *testing.T) {
+		// Autumn re-attaches a plan to itself when a priced feature is added,
+		// putting the same plan id on both sides of the change. Writing the
+		// retention that plan grants is idempotent, and there is no transition
+		// to announce.
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		userID := uuid.New().String()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedUser(ctx, t, userID, "bespoke-reattach@test.com")
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedApp(ctx, t, appID, teamID, measure.MIN_RETENTION_DAYS)
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       custID,
+				Products: []autumn.CustomerProduct{{ID: "acme_one_year"}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 180},
+				},
+			}, nil
+		})
+
+		payload := []byte(fmt.Sprintf(
+			`{"type":"billing.updated","data":{"customer_id":%q,"plan_changes":[{"action":"activated","subscription":{"plan_id":"acme_one_year"}},{"action":"expired","subscription":{"plan_id":"acme_one_year"}}]}}`,
+			custID,
+		))
+		headers := signSvixWebhook(t, secret, "msg_bespoke_reattach", payload)
+		c, w := webhookReq(payload, headers)
+		h.HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		if got := getAppRetention(ctx, t, appID); got != 180 {
+			t.Errorf("retention after bespoke re-attach = %d, want 180", got)
+		}
+		if got := countQueuedTeamEmails(ctx, t, teamID); got != 0 {
+			t.Errorf("queued emails after bespoke re-attach = %d, want 0", got)
+		}
+	})
+
 	t.Run("billing.updated:scheduled alone is a no-op", func(t *testing.T) {
 		// A plan queued to start later has not taken effect, so neither
 		// retention nor an email should follow it.

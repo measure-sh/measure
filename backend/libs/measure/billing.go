@@ -337,8 +337,9 @@ func lookupTeamIDByAutumnCustomer(ctx context.Context, pg *pgxpool.Pool, custome
 // event. A transition is one plan activating in place of another expiring in the
 // same event; comparing their ranks tells an upgrade from a downgrade. A plan
 // activating or expiring on its own resets retention without announcing a
-// direction. In-place "updated"/"scheduled" changes and a same-rank swap (e.g.
-// re-attaching a plan when a priced feature is added) carry no transition.
+// direction. When the two plans rank the same, as two bespoke plans always do,
+// retention still follows the plan that activated while no upgrade or downgrade
+// is announced. In-place "updated"/"scheduled" changes carry no transition.
 func HandleBillingUpdated(ctx context.Context, pg *pgxpool.Pool, billingEnabled bool, siteOrigin, txEmail string, data autumn.BillingUpdatedData) {
 	teamID, err := lookupTeamIDByAutumnCustomer(ctx, pg, data.CustomerID)
 	if err != nil {
@@ -369,14 +370,7 @@ func HandleBillingUpdated(ctx context.Context, pg *pgxpool.Pool, billingEnabled 
 	// the change present there is no upgrade or downgrade to announce, so no
 	// email goes out.
 	if activated == nil || expired == nil {
-		retention, err := GetPlanRetentionDays(ctx, pg, billingEnabled, teamID)
-		if err != nil {
-			log.Printf("webhook: resolve retention for team %s failed: %v", teamID, err)
-			return
-		}
-		if err := resetAppsRetention(ctx, pg, nil, teamID, retention); err != nil {
-			log.Printf("webhook: reset retention for team %s failed: %v", teamID, err)
-		}
+		resetTeamRetentionFromPlan(ctx, pg, billingEnabled, teamID)
 		return
 	}
 
@@ -403,6 +397,33 @@ func HandleBillingUpdated(ctx context.Context, pg *pgxpool.Pool, billingEnabled 
 			return
 		}
 		fireSubscriptionDowngradedEvent(teamID, owner, data.CustomerID, activated.Subscription)
+
+	default:
+		// planRank gives every bespoke plan the same rank, so a customer whose
+		// bespoke contract is replaced by a re-issued one at different terms
+		// arrives here, as does a plan Autumn re-attaches to itself when a
+		// priced feature is added. The team's retention has to follow the plan
+		// that activated, otherwise a renewal at new terms leaves the team on
+		// the retention its previous contract granted. Neither side outranks
+		// the other, so there is no upgrade or downgrade to report and no email
+		// goes out.
+		resetTeamRetentionFromPlan(ctx, pg, billingEnabled, teamID)
+	}
+}
+
+// resetTeamRetentionFromPlan re-reads the retention the team's current Autumn
+// plans grant and writes it to every app the team owns, without sending any
+// email. Callers use it for a plan change that has no direction to announce.
+// Both steps log their own failure rather than returning one, since the
+// webhook handler acks the event either way.
+func resetTeamRetentionFromPlan(ctx context.Context, pg *pgxpool.Pool, billingEnabled bool, teamID uuid.UUID) {
+	retention, err := GetPlanRetentionDays(ctx, pg, billingEnabled, teamID)
+	if err != nil {
+		log.Printf("webhook: resolve retention for team %s failed: %v", teamID, err)
+		return
+	}
+	if err := resetAppsRetention(ctx, pg, nil, teamID, retention); err != nil {
+		log.Printf("webhook: reset retention for team %s failed: %v", teamID, err)
 	}
 }
 
