@@ -29,7 +29,7 @@ final class BaseSysCtl: SysCtl {
         var numCores = 0
         var size = MemoryLayout<Int>.size
         sysctlbyname("hw.ncpu", &numCores, &size, nil, 0)
-        cpuCores = UInt8(numCores)
+        cpuCores = UInt8(clamping: numCores)
         return cpuCores
     }
 

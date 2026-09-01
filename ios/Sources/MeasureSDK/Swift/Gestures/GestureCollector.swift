@@ -79,8 +79,8 @@ final class BaseGestureCollector: GestureCollector {
                 return
             }
 
-            let width = UInt16((gestureTargetFinderData.targetFrame?.width ?? targetFrame?.width) ?? 0)
-            let height = UInt16((gestureTargetFinderData.targetFrame?.height ?? targetFrame?.height) ?? 0)
+            let width = UInt16(clamping: Int((gestureTargetFinderData.targetFrame?.width ?? targetFrame?.width) ?? 0))
+            let height = UInt16(clamping: Int((gestureTargetFinderData.targetFrame?.height ?? targetFrame?.height) ?? 0))
 
             let data = ClickData(target: gestureTargetFinderData.target ?? target,
                                  targetId: gestureTargetFinderData.targetId ?? targetId,
@@ -111,8 +111,8 @@ final class BaseGestureCollector: GestureCollector {
                 return
             }
 
-            let width = UInt16((gestureTargetFinderData.targetFrame?.width ?? targetFrame?.width) ?? 0)
-            let height = UInt16((gestureTargetFinderData.targetFrame?.height ?? targetFrame?.height) ?? 0)
+            let width = UInt16(clamping: Int((gestureTargetFinderData.targetFrame?.width ?? targetFrame?.width) ?? 0))
+            let height = UInt16(clamping: Int((gestureTargetFinderData.targetFrame?.height ?? targetFrame?.height) ?? 0))
 
             let data = LongClickData(target: gestureTargetFinderData.target ?? target,
                                      targetId: gestureTargetFinderData.targetId ?? targetId,

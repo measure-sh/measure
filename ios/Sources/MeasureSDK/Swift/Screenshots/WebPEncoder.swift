@@ -37,9 +37,9 @@ struct WebPEncoder {
         var output: UnsafeMutablePointer<UInt8>?
         let size = WebPEncodeRGBA(
             pixelData.assumingMemoryBound(to: UInt8.self),
-            Int32(width),
-            Int32(height),
-            Int32(bytesPerRow),
+            Int32(clamping: width),
+            Int32(clamping: height),
+            Int32(clamping: bytesPerRow),
             Float(quality * 100.0),
             &output
         )
@@ -61,7 +61,7 @@ struct WebPEncoder {
         return pixels.withUnsafeBytes { (buf: UnsafeRawBufferPointer) -> Data? in
             guard let base = buf.baseAddress?.assumingMemoryBound(to: UInt8.self) else { return nil }
             var output: UnsafeMutablePointer<UInt8>?
-            let size = WebPEncodeRGBA(base, Int32(width), Int32(height), Int32(stride), clamped, &output)
+            let size = WebPEncodeRGBA(base, Int32(clamping: width), Int32(clamping: height), Int32(clamping: stride), clamped, &output)
             guard size > 0, let outputPtr = output else { return nil }
             defer { WebPFree(outputPtr) }
             return Data(bytes: outputPtr, count: size)
