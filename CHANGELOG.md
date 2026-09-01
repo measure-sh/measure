@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Drop the Products field Autumn doesn't send by @anupcowkur
+- (**backend**): Drop the monthly framing from enterprise usage emails by @anupcowkur
+- (**backend**): Reject self-serve plan changes for enterprise teams by @anupcowkur
+- (**backend**): Follow retention when a bespoke plan is replaced by @anupcowkur
+- (**backend**): Update retention when a plan starts without another ending by @anupcowkur
+- (**backend**): Take the longest plan retention, not the pooled sum by @anupcowkur
+- (**backend**): Count one-off purchases when determining a customer's plan by @anupcowkur
 - (**backend**): Write the sdk config cache after row is update (#4350) by @detj in #4350
 - (**backend**): Expire sdk config cache entries after ttl (#4345) by @detj in #4345
 - (**backend**): Bust stale sdk config cache entries on deploy (#4341) by @detj in #4341
@@ -32,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Pin ingest-worker pubsub ack lease (#4240) by @detj in #4240
 - (**backend**): Double close panic in cleanup service (#4219) by @detj in #4219
 - (**backend**): Set correct content type & encoding for multipart uploads (#4211) by @detj in #4211
+- (**frontend**): Say ingestion resumes when the allowance resets by @anupcowkur
 - (**frontend**): Show traces plot loading state immediately on filter change by @anupcowkur in #4317
 - (**frontend**): Let tooltip text fill the tooltip width by @anupcowkur
 - (**frontend**): Disallow crawling on non-canonical deployments (#4253) by @detj in #4253
@@ -39,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Update billing info comment by @anupcowkur
+- (**backend**): Add test to decode a full Autumn customer response by @anupcowkur
 - (**backend**): Remove lru cache dead code (#4346) by @detj in #4346
 - (**backend**): Drop final from the span custom key listing by @anupcowkur in #4323
 - (**backend**): Order span custom value suggestions deterministically by @anupcowkur
@@ -80,6 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Upgrade fumadocs by @anupcowkur
 - (**frontend**): Gate marketing attribution capture on consent (#4227) by @detj in #4227
 - (**frontend**): Make filter component flags optional by @anupcowkur in #4209
+- Tighten comments across billing code by @anupcowkur in #4352
 - Replace pro upgrade CTAs with contact us for enterprise plans by @anupcowkur in #4344
 
 ### :zap: Performance
