@@ -51,6 +51,22 @@ func signSvixWebhook(t *testing.T, secret, msgID string, payload []byte) http.He
 	return hdr
 }
 
+// countQueuedTeamEmails returns how many emails the webhook queued for a team.
+// Plan transition emails go into pending_alert_messages, one row per team
+// member, and a background worker picks them up from there.
+func countQueuedTeamEmails(ctx context.Context, t *testing.T, teamID uuid.UUID) int {
+	t.Helper()
+
+	var count int
+	err := th.PgPool.QueryRow(ctx,
+		`SELECT count(*) FROM pending_alert_messages WHERE team_id = $1 AND channel = 'email'`,
+		teamID).Scan(&count)
+	if err != nil {
+		t.Fatalf("count queued team emails: %v", err)
+	}
+	return count
+}
+
 // --------------------------------------------------------------------------
 // DeterminePlan
 // --------------------------------------------------------------------------
@@ -1544,23 +1560,31 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		}
 	})
 
-	t.Run("billing.updated:new with measure_free is a no-op (auto-attach during team creation)", func(t *testing.T) {
-		// Free is auto-attached for every new cloud team, firing scenario=new.
-		// We must NOT send "Upgraded to Pro" emails on signup, and there are
-		// no apps yet to reset retention on.
+	t.Run("billing.updated:new with measure_free resets retention and sends no email (auto-attach during team creation)", func(t *testing.T) {
+		// Free is auto-attached for every new cloud team, firing scenario=new
+		// with a lone activation. Retention follows the plan the team now
+		// holds, and with no plan expiring alongside it there is no upgrade to
+		// announce, so no "Upgraded to Pro" email goes out on signup.
 		defer cleanupAll(ctx, t)
 		withAutumnWebhookSecret(t, secret)
 
 		teamID := uuid.New()
 		appID := uuid.New()
+		userID := uuid.New().String()
 		seedTeam(ctx, t, teamID, testTeamName)
+		seedUser(ctx, t, userID, "new-free@test.com")
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
 		seedApp(ctx, t, appID, teamID, 90)
 		custID := uuid.New().String()
 		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
-			t.Errorf("autumn.GetCustomer must not be called for scenario=new+measure_free")
-			return nil, errors.New("unexpected")
+			return &autumn.Customer{
+				ID: custID,
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
+				},
+			}, nil
 		})
 
 		payload := []byte(fmt.Sprintf(
@@ -1574,8 +1598,144 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		if w.Code != http.StatusOK {
 			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
 		}
+		if got := getAppRetention(ctx, t, appID); got != measure.MIN_RETENTION_DAYS {
+			t.Errorf("retention after new+free = %d, want %d", got, measure.MIN_RETENTION_DAYS)
+		}
+		if got := countQueuedTeamEmails(ctx, t, teamID); got != 0 {
+			t.Errorf("queued emails after new+free = %d, want 0", got)
+		}
+	})
+
+	t.Run("billing.updated:one-off attach resets retention and sends no email", func(t *testing.T) {
+		// A one-off plan is attached on top of the free plan the team already
+		// holds. Autumn expires nothing in that case, so the payload carries a
+		// lone activation whose plan arrives as a purchase rather than a
+		// subscription, and retention still has to follow the bespoke plan.
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		userID := uuid.New().String()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedUser(ctx, t, userID, "one-off@test.com")
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedApp(ctx, t, appID, teamID, measure.MIN_RETENTION_DAYS)
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		// The team holds the free plan and the bespoke one at once, so the
+		// balance breaks the grant down per plan and the longer of the two wins.
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:        custID,
+				Purchases: []autumn.Purchase{{PlanID: "acme_one_year"}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {
+						FeatureID: autumn.FeatureRetentionDays,
+						Granted:   210,
+						Breakdown: []autumn.BalanceSource{
+							{PlanID: measure.AutumnPlanFree, IncludedGrant: 30},
+							{PlanID: "acme_one_year", IncludedGrant: 180},
+						},
+					},
+				},
+			}, nil
+		})
+
+		payload := []byte(fmt.Sprintf(
+			`{"type":"billing.updated","data":{"customer_id":%q,"plan_changes":[{"action":"activated","purchase":{"plan_id":"acme_one_year","status":"active","expires_at":1790000000000}}]}}`,
+			custID,
+		))
+		headers := signSvixWebhook(t, secret, "msg_one_off", payload)
+		c, w := webhookReq(payload, headers)
+		h.HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		if got := getAppRetention(ctx, t, appID); got != 180 {
+			t.Errorf("retention after one-off attach = %d, want 180", got)
+		}
+		if got := countQueuedTeamEmails(ctx, t, teamID); got != 0 {
+			t.Errorf("queued emails after one-off attach = %d, want 0", got)
+		}
+	})
+
+	t.Run("billing.updated:paired upgrade resets retention and queues the upgrade email", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		userID := uuid.New().String()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedUser(ctx, t, userID, "paired-upgrade@test.com")
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		seedApp(ctx, t, appID, teamID, measure.MIN_RETENTION_DAYS)
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       custID,
+				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanPro}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
+				},
+			}, nil
+		})
+
+		payload := []byte(fmt.Sprintf(
+			`{"type":"billing.updated","data":{"customer_id":%q,"plan_changes":[{"action":"activated","subscription":{"plan_id":%q}},{"action":"expired","subscription":{"plan_id":%q}}]}}`,
+			custID, measure.AutumnPlanPro, measure.AutumnPlanFree,
+		))
+		headers := signSvixWebhook(t, secret, "msg_paired_upgrade", payload)
+		c, w := webhookReq(payload, headers)
+		h.HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
 		if got := getAppRetention(ctx, t, appID); got != 90 {
-			t.Errorf("retention after new+free = %d, want 90 (unchanged)", got)
+			t.Errorf("retention after paired upgrade = %d, want 90", got)
+		}
+		if got := countQueuedTeamEmails(ctx, t, teamID); got != 1 {
+			t.Errorf("queued emails after paired upgrade = %d, want 1", got)
+		}
+	})
+
+	t.Run("billing.updated:scheduled alone is a no-op", func(t *testing.T) {
+		// A plan queued to start later has not taken effect, so neither
+		// retention nor an email should follow it.
+		defer cleanupAll(ctx, t)
+		withAutumnWebhookSecret(t, secret)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedApp(ctx, t, appID, teamID, 90)
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			t.Errorf("autumn.GetCustomer must not be called for a scheduled-only change")
+			return nil, errors.New("unexpected")
+		})
+
+		payload := []byte(fmt.Sprintf(
+			`{"type":"billing.updated","data":{"customer_id":%q,"plan_changes":[{"action":"scheduled","subscription":{"plan_id":%q}}]}}`,
+			custID, measure.AutumnPlanFree,
+		))
+		headers := signSvixWebhook(t, secret, "msg_scheduled_only", payload)
+		c, w := webhookReq(payload, headers)
+		h.HandleAutumnWebhook(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		if got := getAppRetention(ctx, t, appID); got != 90 {
+			t.Errorf("retention after scheduled-only = %d, want 90 (unchanged)", got)
 		}
 	})
 

@@ -38,13 +38,34 @@ type BillingUpdatedData struct {
 	PlanChanges []PlanChange `json:"plan_changes"`
 }
 
-// PlanChange is one plan transition inside a billing.updated event.
-// Subscription is the plan's state after the change; it reuses the shared
-// Subscription type, whose plan_id/started_at/status fields match the webhook's
-// subscription object.
+// PlanChange is one plan transition inside a billing.updated event. The plan
+// that changed is either a recurring subscription or a one-off purchase, so
+// Autumn fills in one of the two snapshots below and leaves the other empty.
+// Subscription reuses the shared Subscription type, whose
+// plan_id/started_at/status fields match the webhook's subscription object.
 type PlanChange struct {
-	Action       string       `json:"action"`
-	Subscription Subscription `json:"subscription"`
+	Action       string           `json:"action"`
+	Subscription Subscription     `json:"subscription"`
+	Purchase     PurchaseSnapshot `json:"purchase"`
+}
+
+// PurchaseSnapshot is a one-off purchase's state after a plan change. Autumn
+// sends a status here that the Purchase entries on a customer read from the
+// API do not carry, which is why the webhook has its own type.
+type PurchaseSnapshot struct {
+	PlanID    string `json:"plan_id"`
+	Status    string `json:"status,omitempty"` // "active" | "scheduled" | "expired"
+	ExpiresAt int64  `json:"expires_at,omitempty"`
+}
+
+// PlanID returns the identifier of the plan this change is about. A plan change
+// describes either a recurring subscription or a one-off purchase and never
+// both, so the plan id has to be read from whichever of the two Autumn sent.
+func (pc PlanChange) PlanID() string {
+	if pc.Subscription.PlanID != "" {
+		return pc.Subscription.PlanID
+	}
+	return pc.Purchase.PlanID
 }
 
 // BalancesLimitReachedData is the data payload for balances.limit_reached.
