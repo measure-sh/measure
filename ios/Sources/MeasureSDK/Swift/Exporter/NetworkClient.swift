@@ -9,7 +9,7 @@ import Foundation
 
 enum ConfigResponse {
     case success(config: BaseDynamicConfig, eTag: String?, cacheControl: Number)
-    case notModified
+    case notModified(cacheControl: Number)
     case error
 }
 
@@ -24,13 +24,15 @@ final class BaseNetworkClient: NetworkClient {
     private let httpClient: HttpClient
     private let eventSerializer: EventSerializer
     private let systemFileManager: SystemFileManager
+    private let logger: Logger
 
-    init(client: Client, httpClient: HttpClient, eventSerializer: EventSerializer, systemFileManager: SystemFileManager) {
+    init(client: Client, httpClient: HttpClient, eventSerializer: EventSerializer, systemFileManager: SystemFileManager, logger: Logger) {
         self.baseUrl = client.apiUrl
         self.apiKey = client.apiKey
         self.httpClient = httpClient
         self.eventSerializer = eventSerializer
         self.systemFileManager = systemFileManager
+        self.logger = logger
     }
 
     func execute(batchId: String, events: [EventEntity], spans: [SpanEntity]) -> HttpResponse {
@@ -38,7 +40,7 @@ final class BaseNetworkClient: NetworkClient {
         let serializedSpans = spans.compactMap { eventSerializer.serializeSpan($0) }
 
         if serializedEvents.isEmpty && serializedSpans.isEmpty {
-            return .success(body: "{}", eTag: nil)
+            return .success(body: "{}", eTag: nil, cacheControl: nil)
         }
 
         let jsonBody = buildBatchPayload(events: serializedEvents, spans: serializedSpans)
@@ -71,7 +73,7 @@ final class BaseNetworkClient: NetworkClient {
         )
 
         switch response {
-        case .success(let body, let newETag):
+        case .success(let body, let newETag, let cacheControlHeader):
 
             guard let body,
                   let data = body.data(using: .utf8) else {
@@ -82,26 +84,40 @@ final class BaseNetworkClient: NetworkClient {
                 let decoder = JSONDecoder()
                 let config = try decoder.decode(BaseDynamicConfig.self, from: data)
 
-                // default 5 minutes if backend forgets
-                let cacheControl = 300
+                let cacheControlMs = parseCacheControlMaxAgeMs(cacheControlHeader)
 
                 return .success(
                     config: config,
                     eTag: newETag,
-                    cacheControl: Number(cacheControl)
+                    cacheControl: cacheControlMs
                 )
             } catch {
                 return .error
             }
 
         case .error(let error):
-
-            if case .clientError(let code, _) = error, code == 304 {
-                return .notModified
+            if case .clientError(let code, _, let cacheControlHeader) = error, code == 304 {
+                let cacheControlMs = parseCacheControlMaxAgeMs(cacheControlHeader)
+                return .notModified(cacheControl: cacheControlMs)
             }
 
             return .error
         }
+    }
+
+    private func parseCacheControlMaxAgeMs(_ header: String?) -> Number {
+        guard let header,
+              let range = header.range(of: "max-age=(\\d+)", options: .regularExpression) else {
+            return 0
+        }
+
+        let match = header[range]
+        guard let equalsIndex = match.firstIndex(of: "="),
+              let maxAgeSeconds = Number(match[match.index(after: equalsIndex)...]) else {
+            return 0
+        }
+
+        return maxAgeSeconds * 1000
     }
 
     private func buildBatchPayload(events: [Data], spans: [Data]) -> Data {

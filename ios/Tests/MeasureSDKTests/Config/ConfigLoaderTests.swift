@@ -100,7 +100,7 @@ final class ConfigLoaderTests: XCTestCase {
     func testLoadConfig_fetchesConfig_whenCacheExpired() {
         setupCacheExpired()
 
-        mockNetworkClient.configResponse = .notModified
+        mockNetworkClient.configResponse = .notModified(cacheControl: 0)
 
         configLoader.loadDynamicConfig { _ in }
 
@@ -140,15 +140,30 @@ final class ConfigLoaderTests: XCTestCase {
         XCTAssert(mockUserDefaults.eTag!.isEmpty)
     }
 
-    func testLoadConfig_notModified_onlyUpdatesTimestamp() {
+    func testLoadConfig_notModified_withoutCacheControl_onlyUpdatesTimestamp() {
         setupCacheExpired()
 
         mockUserDefaults.configFetchTimestamp = 10
-        mockNetworkClient.configResponse = .notModified
+        let existingCacheControl = mockUserDefaults.configCacheControl
+        mockNetworkClient.configResponse = .notModified(cacheControl: 0)
 
         configLoader.loadDynamicConfig { _ in }
 
         XCTAssertEqual(mockUserDefaults.configFetchTimestamp, mockTimeProvider.current)
+        XCTAssertEqual(mockUserDefaults.configCacheControl, existingCacheControl)
+        XCTAssertTrue(mockFileManager.savedFiles.isEmpty)
+    }
+
+    func testLoadConfig_notModified_withCacheControl_updatesWindow() {
+        setupCacheExpired()
+
+        mockUserDefaults.configFetchTimestamp = 10
+        mockNetworkClient.configResponse = .notModified(cacheControl: 3600)
+
+        configLoader.loadDynamicConfig { _ in }
+
+        XCTAssertEqual(mockUserDefaults.configFetchTimestamp, mockTimeProvider.current)
+        XCTAssertEqual(mockUserDefaults.configCacheControl, 3600)
         XCTAssertTrue(mockFileManager.savedFiles.isEmpty)
     }
 
@@ -167,7 +182,7 @@ final class ConfigLoaderTests: XCTestCase {
     func testLoadConfig_passesStoredEtag() {
         setupCacheExpired()
         mockUserDefaults.eTag = "old-etag"
-        mockNetworkClient.configResponse = .notModified
+        mockNetworkClient.configResponse = .notModified(cacheControl: 0)
 
         configLoader.loadDynamicConfig { _ in }
 

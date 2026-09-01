@@ -177,13 +177,16 @@ final class BaseHttpClient: HttpClient {
         }
 
         let etag = httpResponse.allHeaderFields["Etag"] as? String
+        let cacheControl = httpResponse.allHeaderFields["Cache-Control"] as? String
         switch httpResponse.statusCode {
         case 200..<300:
-            return .success(body: responseBody, eTag: etag)
+            return .success(body: responseBody, eTag: etag, cacheControl: cacheControl)
+        case 304:
+            return .error(.clientError(responseCode: httpResponse.statusCode, body: responseBody, cacheControl: cacheControl))
         case 429:
             return .error(.rateLimitError(body: responseBody))
         case 400..<500:
-            return .error(.clientError(responseCode: httpResponse.statusCode, body: responseBody))
+            return .error(.clientError(responseCode: httpResponse.statusCode, body: responseBody, cacheControl: nil))
         case 500..<600:
             return .error(.serverError(responseCode: httpResponse.statusCode, body: responseBody))
         default:

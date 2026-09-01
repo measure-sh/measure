@@ -152,7 +152,8 @@ final class MockMeasureInitializer: MeasureInitializer {
         self.networkClient = networkClient ?? BaseNetworkClient(client: self.client,
                                                httpClient: self.httpClient,
                                                eventSerializer: EventSerializer(),
-                                               systemFileManager: self.systemFileManager)
+                                               systemFileManager: self.systemFileManager,
+                                               logger: self.logger)
         self.timeProvider = timeProvider ?? BaseTimeProvider()
         self.measureDispatchQueue = measureDispatchQueue ?? BaseMeasureDispatchQueue()
         self.configLoader = configLoader ?? BaseConfigLoader(userDefaultStorage: self.userDefaultStorage,

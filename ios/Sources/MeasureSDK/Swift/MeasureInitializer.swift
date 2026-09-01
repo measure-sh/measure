@@ -233,7 +233,8 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
         self.networkClient = BaseNetworkClient(client: client,
                                                httpClient: httpClient,
                                                eventSerializer: EventSerializer(),
-                                               systemFileManager: systemFileManager)
+                                               systemFileManager: systemFileManager,
+                                               logger: logger)
         self.timeProvider = BaseTimeProvider()
         self.measureDispatchQueue = BaseMeasureDispatchQueue()
         self.configLoader = BaseConfigLoader(userDefaultStorage: userDefaultStorage,

@@ -244,6 +244,7 @@
 		CF7CABB32F261DA800A9DC30 /* MockSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CABB22F261DA800A9DC30 /* MockSessionStore.swift */; };
 		CF7CABB52F27429800A9DC30 /* ConfigLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CABB42F27429800A9DC30 /* ConfigLoaderTests.swift */; };
 		CF7CABB72F2789B100A9DC30 /* ExporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CABB62F2789B100A9DC30 /* ExporterTests.swift */; };
+		259AE825871705F7F35EA997 /* NetworkClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ED4DDB5C02156A7ECFC1616 /* NetworkClientTests.swift */; };
 		CF7CABB92F278BF900A9DC30 /* MockHttpClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CABB82F278BF900A9DC30 /* MockHttpClient.swift */; };
 		CF7CABBB2F27BE4000A9DC30 /* SignalStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CABBA2F27BE4000A9DC30 /* SignalStoreTests.swift */; };
 		CF7CAE552D952FA600E15CDB /* HttpEventValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */; };
@@ -653,6 +654,7 @@
 		CF7CABB22F261DA800A9DC30 /* MockSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSessionStore.swift; sourceTree = "<group>"; };
 		CF7CABB42F27429800A9DC30 /* ConfigLoaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigLoaderTests.swift; sourceTree = "<group>"; };
 		CF7CABB62F2789B100A9DC30 /* ExporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExporterTests.swift; sourceTree = "<group>"; };
+		1ED4DDB5C02156A7ECFC1616 /* NetworkClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkClientTests.swift; sourceTree = "<group>"; };
 		CF7CABB82F278BF900A9DC30 /* MockHttpClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockHttpClient.swift; sourceTree = "<group>"; };
 		CF7CABBA2F27BE4000A9DC30 /* SignalStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignalStoreTests.swift; sourceTree = "<group>"; };
 		CF7CAE542D952FA600E15CDB /* HttpEventValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpEventValidator.swift; sourceTree = "<group>"; };
@@ -1225,6 +1227,7 @@
 				CFAA00030000000000000001 /* JSONWriterEscapingTests.swift */,
 				52B7F0F92D757F81001498BC /* HttpClientTests.swift */,
 				CF7CABB62F2789B100A9DC30 /* ExporterTests.swift */,
+				1ED4DDB5C02156A7ECFC1616 /* NetworkClientTests.swift */,
 			);
 			path = Exporter;
 			sourceTree = "<group>";
@@ -2118,6 +2121,7 @@
 				CF4EA2D52EA243EB0020FC71 /* UserTriggeredEventCollectorTests.swift in Sources */,
 				52B7F16B2D757F81001498BC /* MockTimeProvider.swift in Sources */,
 				CF7CABB72F2789B100A9DC30 /* ExporterTests.swift in Sources */,
+				259AE825871705F7F35EA997 /* NetworkClientTests.swift in Sources */,
 				52B7F1652D757F81001498BC /* MockScreenshotGenerator.swift in Sources */,
 				52B7F1582D757F81001498BC /* MockConfigProvider.swift in Sources */,
 				CF1BB4FF2DDF35E600588506 /* MockMotionManager.swift in Sources */,

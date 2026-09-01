@@ -166,7 +166,7 @@ final class BaseExporter: Exporter {
 
     private func handleBatchResponse(response: HttpResponse, batch: BatchEntity, events: [EventEntity], spans: [SpanEntity]) {
         switch response {
-        case .success(let body, _):
+        case .success(let body, _, _):
             logger.internalLog(level: .debug, message: "Exporter: batch \(batch.batchId) sent successfully", error: nil, data: nil)
             parseAndSaveAttachmentMetadata(responseBody: body)
             deleteEventsAndSpans(batch, events: events, spans: spans)
