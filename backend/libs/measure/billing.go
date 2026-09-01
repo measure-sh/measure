@@ -299,7 +299,26 @@ func GetPlanRetentionDays(ctx context.Context, pg *pgxpool.Pool, billingEnabled 
 	if !ok || b.Granted <= 0 {
 		return 0, fmt.Errorf("retention_days feature not configured for customer %s", customerID)
 	}
-	return int(b.Granted), nil
+	return RetentionDaysFromBalance(b), nil
+}
+
+// RetentionDaysFromBalance returns the longest retention any single plan on
+// the balance grants. Autumn adds up a feature's grants across every plan the
+// customer holds, which is what we want for a data quota but not for
+// retention, where a team on the free plan alongside a bespoke plan would
+// otherwise get the two retention periods added together. The longest period
+// any one plan grants is the one the team is entitled to. Older balances, and
+// any the API returns without a per-plan breakdown, fall back to the pooled
+// Granted value.
+func RetentionDaysFromBalance(b autumn.Balance) int {
+	if len(b.Breakdown) == 0 {
+		return int(b.Granted)
+	}
+	longest := 0.0
+	for _, source := range b.Breakdown {
+		longest = max(longest, source.IncludedGrant)
+	}
+	return int(longest)
 }
 
 func lookupTeamIDByAutumnCustomer(ctx context.Context, pg *pgxpool.Pool, customerID string) (uuid.UUID, error) {

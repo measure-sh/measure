@@ -65,13 +65,25 @@ type CustomerProduct struct {
 
 // Balance captures per-feature usage state on a customer.
 type Balance struct {
-	FeatureID      string  `json:"feature_id"`
-	Granted        float64 `json:"granted"`
-	Remaining      float64 `json:"remaining"`
-	Usage          float64 `json:"usage"`
-	Unlimited      bool    `json:"unlimited"`
-	OverageAllowed bool    `json:"overage_allowed"`
-	NextResetAt    int64   `json:"next_reset_at,omitempty"`
+	FeatureID      string          `json:"feature_id"`
+	Granted        float64         `json:"granted"`
+	Remaining      float64         `json:"remaining"`
+	Usage          float64         `json:"usage"`
+	Unlimited      bool            `json:"unlimited"`
+	OverageAllowed bool            `json:"overage_allowed"`
+	NextResetAt    int64           `json:"next_reset_at,omitempty"`
+	Breakdown      []BalanceSource `json:"breakdown,omitempty"`
+}
+
+// BalanceSource is one plan's contribution to a Balance. Autumn pools a
+// feature's grants from every plan a customer holds into the single Granted
+// number on the Balance, and the breakdown says what each plan granted on its
+// own, so a customer holding both the free plan and a bespoke plan has an
+// entry for each. IncludedGrant is what the plan itself grants, as opposed to
+// any extra quantity the customer bought on top of it.
+type BalanceSource struct {
+	PlanID        string  `json:"plan_id"`
+	IncludedGrant float64 `json:"included_grant"`
 }
 
 // createCustomerRequest is the payload for POST /v1/customers.
