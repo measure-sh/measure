@@ -117,7 +117,7 @@ func GetAutumnCustomerID(ctx context.Context, pool *pgxpool.Pool, teamID uuid.UU
 // enterprise).
 //
 // API responses populate Subscriptions[].PlanID for recurring plans and
-// Purchases[].PlanID for one-off plans bought outright; webhook payloads
+// Purchases[].PlanID for plans sold as one-off purchases; webhook payloads
 // populate Products[].ID. We check all three so the same helper works on
 // either source.
 // Subscriptions with status != "active" (e.g. a Free that's "scheduled" to
@@ -335,10 +335,10 @@ func lookupTeamIDByAutumnCustomer(ctx context.Context, pg *pgxpool.Pool, custome
 
 // HandleBillingUpdated applies a plan transition from an Autumn billing.updated
 // event. A transition is one plan activating in place of another expiring in the
-// same event; comparing their ranks tells an upgrade from a downgrade. In-place
-// "updated"/"scheduled" changes, a same-rank swap (e.g. re-attaching a plan when
-// a priced feature is added), and a lone Free activation (new-team signup) carry
-// no transition.
+// same event; comparing their ranks tells an upgrade from a downgrade. A plan
+// activating or expiring on its own resets retention without announcing a
+// direction. In-place "updated"/"scheduled" changes and a same-rank swap (e.g.
+// re-attaching a plan when a priced feature is added) carry no transition.
 func HandleBillingUpdated(ctx context.Context, pg *pgxpool.Pool, billingEnabled bool, siteOrigin, txEmail string, data autumn.BillingUpdatedData) {
 	teamID, err := lookupTeamIDByAutumnCustomer(ctx, pg, data.CustomerID)
 	if err != nil {
@@ -346,25 +346,42 @@ func HandleBillingUpdated(ctx context.Context, pg *pgxpool.Pool, billingEnabled 
 		return
 	}
 
-	var activated, expired *autumn.Subscription
+	var activated, expired *autumn.PlanChange
 	for i := range data.PlanChanges {
 		pc := &data.PlanChanges[i]
 		switch pc.Action {
 		case autumn.ActionActivated:
-			activated = &pc.Subscription
+			activated = pc
 		case autumn.ActionExpired:
-			expired = &pc.Subscription
+			expired = pc
 		}
 	}
-	// Without both a plan starting and one ending there is no transition to
-	// apply: an in-place update (a priced feature added), a scheduled change, or
-	// a new team's first Free attach.
+	// With no plan starting and none ending there is nothing to apply: an
+	// in-place update (a priced feature added) or a scheduled change.
+	if activated == nil && expired == nil {
+		return
+	}
+
+	// Autumn expires a plan only when a recurring plan replaces it, so attaching
+	// a plan sold as a one-off purchase on top of the free plan a team already
+	// holds arrives here as a lone activation. The team's retention still has to follow the plans they
+	// now hold, so reset it from the plans Autumn reports; with only one side of
+	// the change present there is no upgrade or downgrade to announce, so no
+	// email goes out.
 	if activated == nil || expired == nil {
+		retention, err := GetPlanRetentionDays(ctx, pg, billingEnabled, teamID)
+		if err != nil {
+			log.Printf("webhook: resolve retention for team %s failed: %v", teamID, err)
+			return
+		}
+		if err := resetAppsRetention(ctx, pg, nil, teamID, retention); err != nil {
+			log.Printf("webhook: reset retention for team %s failed: %v", teamID, err)
+		}
 		return
 	}
 
 	switch {
-	case planRank(activated.PlanID) > planRank(expired.PlanID):
+	case planRank(activated.PlanID()) > planRank(expired.PlanID()):
 		if err := applyPlanTransition(ctx, pg, billingEnabled, teamID, func(ctx context.Context, tx pgx.Tx) error {
 			return notifyUpgrade(ctx, pg, tx, siteOrigin, txEmail, teamID)
 		}); err != nil {
@@ -374,10 +391,10 @@ func HandleBillingUpdated(ctx context.Context, pg *pgxpool.Pool, billingEnabled 
 		if !ok {
 			return
 		}
-		firePurchaseEvent(teamID, owner, data.CustomerID, *activated)
-		fireSubscriptionUpgradedEvent(teamID, owner, data.CustomerID, *activated)
+		firePurchaseEvent(teamID, owner, data.CustomerID, activated.Subscription)
+		fireSubscriptionUpgradedEvent(teamID, owner, data.CustomerID, activated.Subscription)
 
-	case planRank(activated.PlanID) < planRank(expired.PlanID):
+	case planRank(activated.PlanID()) < planRank(expired.PlanID()):
 		applyPlanTransition(ctx, pg, billingEnabled, teamID, func(ctx context.Context, tx pgx.Tx) error {
 			return notifyDowngrade(ctx, pg, tx, siteOrigin, txEmail, teamID)
 		})
@@ -385,7 +402,7 @@ func HandleBillingUpdated(ctx context.Context, pg *pgxpool.Pool, billingEnabled 
 		if !ok {
 			return
 		}
-		fireSubscriptionDowngradedEvent(teamID, owner, data.CustomerID, *activated)
+		fireSubscriptionDowngradedEvent(teamID, owner, data.CustomerID, activated.Subscription)
 	}
 }
 

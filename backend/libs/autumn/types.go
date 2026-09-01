@@ -38,10 +38,10 @@ type Subscription struct {
 	ExpiresAt          int64  `json:"expires_at,omitempty"`
 }
 
-// Purchase is a one-off plan a customer bought outright, such as a bespoke plan
-// sold for a fixed term. Autumn returns these in their own array on the
-// customer, separate from the recurring plans in Subscriptions, so a customer
-// can hold both at once. A purchase carries no status field the way a
+// Purchase is a plan sold as a one-off purchase rather than as a recurring
+// subscription, such as a bespoke plan sold for a fixed term. Autumn returns
+// these in their own array on the customer, separate from the recurring plans
+// in Subscriptions, so a customer can hold both at once. A purchase carries no status field the way a
 // subscription does, and StartedAt and ExpiresAt are milliseconds since epoch,
 // so those two timestamps are what say whether the purchase is currently in
 // effect.
