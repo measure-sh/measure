@@ -47,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add ota patch filters to bug reports by @anupcowkur in #4343
+- (**backend**): Add ota patch filters to traces by @anupcowkur
 - (**backend**): Update billing info comment by @anupcowkur
 - (**backend**): Add test to decode a full Autumn customer response by @anupcowkur
 - (**backend**): Remove lru cache dead code (#4346) by @detj in #4346
