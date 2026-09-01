@@ -53,6 +53,12 @@ func signSvixWebhook(t *testing.T, secret, msgID string, payload []byte) http.He
 // --------------------------------------------------------------------------
 
 func TestDeterminePlan(t *testing.T) {
+	// Purchase timestamps are milliseconds since epoch, and DeterminePlan compares
+	// them against the current time, so the cases below anchor to now.
+	nowMillis := time.Now().UnixMilli()
+	pastMillis := nowMillis - time.Hour.Milliseconds()
+	futureMillis := nowMillis + time.Hour.Milliseconds()
+
 	cases := []struct {
 		name string
 		cust autumn.Customer
@@ -144,7 +150,7 @@ func TestDeterminePlan(t *testing.T) {
 			cust: autumn.Customer{
 				Products: []autumn.CustomerProduct{
 					{ID: AutumnPlanFree, Status: "active"},
-					{ID: "turtlemint_one_year", Status: "active"},
+					{ID: "acme_one_year", Status: "active"},
 				},
 			},
 			want: PlanEnterprise,
@@ -164,7 +170,7 @@ func TestDeterminePlan(t *testing.T) {
 			cust: autumn.Customer{
 				Subscriptions: []autumn.Subscription{
 					{PlanID: AutumnPlanFree, Status: "active"},
-					{PlanID: "turtlemint_one_year", Status: "active"},
+					{PlanID: "acme_one_year", Status: "active"},
 				},
 			},
 			want: PlanEnterprise,
@@ -174,7 +180,44 @@ func TestDeterminePlan(t *testing.T) {
 			cust: autumn.Customer{
 				Products: []autumn.CustomerProduct{
 					{ID: AutumnPlanFree, Status: "active"},
-					{ID: "turtlemint_one_year", Status: "scheduled"},
+					{ID: "acme_one_year", Status: "scheduled"},
+				},
+			},
+			want: PlanFree,
+		},
+		{
+			name: "active free sub + one-off enterprise purchase → enterprise",
+			cust: autumn.Customer{
+				Subscriptions: []autumn.Subscription{{PlanID: AutumnPlanFree, Status: "active"}},
+				Purchases: []autumn.Purchase{
+					{PlanID: "acme_one_year", StartedAt: pastMillis},
+				},
+			},
+			want: PlanEnterprise,
+		},
+		{
+			name: "one-off enterprise purchase with no subscriptions → enterprise",
+			cust: autumn.Customer{
+				Purchases: []autumn.Purchase{
+					{PlanID: "acme_one_year", StartedAt: pastMillis},
+				},
+			},
+			want: PlanEnterprise,
+		},
+		{
+			name: "purchase starting in the future is ignored → free",
+			cust: autumn.Customer{
+				Purchases: []autumn.Purchase{
+					{PlanID: "acme_one_year", StartedAt: futureMillis},
+				},
+			},
+			want: PlanFree,
+		},
+		{
+			name: "expired purchase is ignored → free",
+			cust: autumn.Customer{
+				Purchases: []autumn.Purchase{
+					{PlanID: "acme_one_year", StartedAt: pastMillis, ExpiresAt: pastMillis},
 				},
 			},
 			want: PlanFree,

@@ -112,11 +112,14 @@ func GetAutumnCustomerID(ctx context.Context, pool *pgxpool.Pool, teamID uuid.UU
 	return *customerID, nil
 }
 
-// DeterminePlan inspects a customer's active subscriptions/products and
-// returns the plan name we surface to the frontend (free, pro, enterprise).
+// DeterminePlan inspects a customer's active subscriptions, purchases and
+// products and returns the plan name we surface to the frontend (free, pro,
+// enterprise).
 //
-// API responses populate Subscriptions[].PlanID; webhook payloads populate
-// Products[].ID. We check both so the same helper works on either source.
+// API responses populate Subscriptions[].PlanID for recurring plans and
+// Purchases[].PlanID for one-off plans bought outright; webhook payloads
+// populate Products[].ID. We check all three so the same helper works on
+// either source.
 // Subscriptions with status != "active" (e.g. a Free that's "scheduled" to
 // take over after a Pro cancellation) are ignored — we only report on the
 // plan currently in effect.
@@ -133,6 +136,20 @@ func DeterminePlan(c *autumn.Customer) string {
 			continue
 		}
 		activePlans = append(activePlans, s.PlanID)
+	}
+	now := time.Now().UnixMilli()
+	for _, p := range c.Purchases {
+		// A purchase carries no status field the way a subscription does, so its
+		// start and expiry timestamps are what tell us it is in effect right now.
+		// Without checking them, a purchase scheduled to begin later, or one whose
+		// term has already ended, would count as if the customer held it today.
+		if p.StartedAt > now {
+			continue
+		}
+		if p.ExpiresAt != 0 && p.ExpiresAt <= now {
+			continue
+		}
+		activePlans = append(activePlans, p.PlanID)
 	}
 	for _, p := range c.Products {
 		// Webhook payloads sometimes omit status — treat empty as active
