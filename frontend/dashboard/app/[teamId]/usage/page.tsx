@@ -52,13 +52,8 @@ type AppMonthlyUsage = {
   bytes_in: number;
 };
 
-// formatDataLine renders the unified "Data" line shown on the user's
-// current plan card. All inputs come from BillingInfo (i.e. Autumn) so the
-// caller doesn't need plan-specific constants.
-//
-//   - bytes_unlimited           → "Unlimited"
-//   - else, with overage usage  → "X of Y used, Z overage"
-//   - else                      → "X of Y used"
+// Renders the "Data" line on the current plan card entirely from BillingInfo,
+// so the caller needs no plan-specific constants.
 function formatDataLine(billingInfo: {
   bytes_used?: number;
   bytes_granted?: number;
@@ -77,16 +72,8 @@ function formatDataLine(billingInfo: {
   return base;
 }
 
-// formatTokenCreditsLine renders the "Token credits" line shown on the current
-// plan card. agent_tokens is an Autumn credit system, so the balance is in
-// credits (token usage priced into credits), not raw token counts.
-// Mirrors formatDataLine; the caller only shows the line once credits have been
-// used, so the zero case never reaches here.
-//
-//   - token_credits_unlimited      → "Unlimited"
-//   - no granted allowance         → "X used"
-//   - else, with overage usage     → "X of Y used, Z overage"
-//   - else                         → "X of Y used"
+// Mirrors formatDataLine for the "Token credits" line. The caller renders the
+// line only once credits have been used, so a zero total never reaches here.
 function formatTokenCreditsLine(billingInfo: {
   token_credits_used?: number;
   token_credits_granted?: number;
@@ -142,7 +129,6 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
   const { theme } = useTheme();
   const chartColors = useChartColors();
 
-  // UI-only local state
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [isDowngrading, setIsDowngrading] = useState(false);
   const [isUndoingDowngrade, setIsUndoingDowngrade] = useState(false);
@@ -150,18 +136,14 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
     useState(false);
   const [isLoadingPortal, setIsLoadingPortal] = useState(false);
 
-  // Month selection state
   const [selectedMonth, setSelectedMonth] = useState<string | undefined>(
     undefined,
   );
 
-  // After a successful Stripe redirect-back, rapid-poll the billing info
-  // query until Autumn confirms the upgrade. (Downgrade no longer polls — the
-  // /billing/downgrade endpoint returns synchronously and the next refetch
-  // reflects canceled_at.)
+  // Autumn confirms an upgrade some moments after the checkout redirect back,
+  // so the billing info query polls until the plan reads as pro.
   const [awaitingProConfirmation, setAwaitingProConfirmation] = useState(false);
 
-  // TanStack Query: reads
   const { data: usageData, status: usageStatus } = useUsageQuery(params.teamId);
   const { data: permissions } = useUsagePermissionsQuery(
     isBillingEnabled() ? params.teamId : undefined,
@@ -176,12 +158,10 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
   );
   const currentUserCanChangePlan = permissions?.canChangePlan === true;
 
-  // TanStack Query: mutations
   const upgradeMutation = useHandleUpgradeMutation();
   const downgradeMutation = useDowngradeToFreeMutation();
   const undoDowngradeMutation = useUndoDowngradeMutation();
 
-  // Derived data from usage
   const months = usageData ? parseMonths(usageData) : [];
 
   // Pin the selected month to the latest available month when usage data first
@@ -203,7 +183,8 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
       ? parseUsageForMonth(usageData, effectiveMonth)
       : [];
 
-  // Handle success/cancel from Autumn-driven checkout redirect
+  // Checkout sends the user back here with success or canceled in the query
+  // string.
   useEffect(() => {
     const timer = setTimeout(() => {
       const searchParams = new URLSearchParams(window.location.search);
@@ -223,14 +204,12 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Stop polling once Autumn confirms Pro.
   if (awaitingProConfirmation && billingInfo?.plan === "pro") {
     setAwaitingProConfirmation(false);
   }
 
   const bytesGranted = billingInfo?.bytes_granted ?? 0;
   const bytesUsed = billingInfo?.bytes_used ?? 0;
-  // Capture "now" once at mount.
   const [now] = useState(() => Date.now());
   const cancellationScheduled =
     billingInfo?.plan === "pro" &&
@@ -362,7 +341,6 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
     );
   };
 
-  // Determine usage display status
   const usageIsError = usageStatus === "error";
   const usageIsLoading = usageStatus === "pending";
   const usageHasNoData = usageStatus === "success" && usageData === null;
@@ -536,7 +514,7 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
 
               {/* Plan Cards */}
               <div className="flex flex-col md:flex-row gap-8 w-full mt-12">
-                {/* Free Plan Card - only show when on free plan */}
+                {/* Free plan card */}
                 {billingInfo?.plan === "free" && (
                   <Card className="w-full md:w-1/2 relative">
                     {showCurrentPlanBadge()}
@@ -561,8 +539,9 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
                   </Card>
                 )}
 
-                {/* Pro Plan Card — visible to free (upgrade pitch) and pro (current plan).
-                    Enterprise users see the dedicated Enterprise card below instead. */}
+                {/* Pro plan card, an upgrade pitch on the free plan and the
+                    current plan on pro. Enterprise teams get their own card
+                    below instead. */}
                 {billingInfo?.plan !== "enterprise" && (
                   <Card
                     className={`${billingInfo?.plan === "pro" ? "w-full" : "w-full md:w-1/2"} bg-green-50 dark:bg-card border border-green-300 dark:border-border relative`}
@@ -722,9 +701,9 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
                   </Card>
                 )}
 
-                {/* Enterprise Plan Card — full-width, no price. Bytes can be
-                    unlimited; retention and plan length come from the
-                    enterprise plan configured in Autumn. */}
+                {/* Enterprise plan card. It shows no price because the terms,
+                    including retention and plan length, are whatever the
+                    enterprise plan in Autumn was configured with. */}
                 {billingInfo?.plan === "enterprise" && (
                   <Card className="w-full bg-green-50 dark:bg-card border border-green-300 dark:border-border relative">
                     {showCurrentPlanBadge()}

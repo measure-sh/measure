@@ -10,9 +10,8 @@ type UsageThresholdBannerProps = {
 
 type BannerState = { message: string; className: string } | null;
 
-// Banner fires above 75% for the free plan and for enterprise plans with a
-// finite limit — Pro self-manages overages. Returns null when there is nothing
-// to say.
+// The banner fires above 75% on the free plan and on enterprise plans with a
+// finite limit. Pro self-manages overages, so it never gets one.
 function bannerState(
   billingInfo:
     | {

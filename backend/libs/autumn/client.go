@@ -1,8 +1,7 @@
-// Package autumn is a thin REST client for useautumn.com's API.
+// Package autumn is a REST client for useautumn.com's API.
 //
-// Configure with Init() at startup, then use the package-level functions
-// (GetOrCreateCustomer, Attach, Track, Check, OpenCustomerPortal, GetCustomer).
-// Functions are exposed as package-level variables so tests can replace them.
+// Call Init() at startup, then the package-level functions. Those functions are
+// variables rather than plain funcs so tests can replace them.
 package autumn
 
 import (
@@ -22,7 +21,6 @@ import (
 
 var tracer = otel.Tracer("autumn-client")
 
-// Package state. Set via Init.
 var (
 	secretKey  string
 	apiURL     = "https://api.useautumn.com"
@@ -35,9 +33,9 @@ type Config struct {
 	SecretKey string
 }
 
-// Init wires up the package-level client. Call once at service startup.
-// The Autumn API environment (test vs live) is determined by the secret key
-// prefix (am_sk_test_… vs am_sk_live_…), so no URL override is needed.
+// Init wires up the package-level client. Call once at service startup. The
+// secret key prefix (am_sk_test_ vs am_sk_live_) picks the Autumn environment,
+// so there is no URL to override.
 func Init(cfg Config) {
 	secretKey = cfg.SecretKey
 }
@@ -52,11 +50,10 @@ func (e *APIError) Error() string {
 	return fmt.Sprintf("autumn API error: status=%d body=%s", e.StatusCode, e.Body)
 }
 
-// IsServerOrNetworkError reports whether err indicates Autumn is unreachable
-// (5xx, timeout, connection failure) or a 4xx client/config bug.
-// Fail-open call sites should branch on this so 4xx errors surface loudly
-// instead of being swallowed under the outage umbrella. Matches Autumn's
-// own SDKs, which only fail-open on 5xx/network.
+// IsServerOrNetworkError reports whether err is Autumn being unreachable (5xx,
+// timeout, connection failure) rather than a 4xx client or config bug.
+// Fail-open call sites branch on it so a 4xx surfaces loudly instead of being
+// swallowed as an outage.
 func IsServerOrNetworkError(err error) bool {
 	if err == nil {
 		return false
@@ -68,9 +65,9 @@ func IsServerOrNetworkError(err error) bool {
 	return true
 }
 
-// do performs a request against the Autumn API and decodes the JSON response
-// into out (if non-nil). Returns *APIError on non-2xx responses.
-// opName is used as the span name so every Autumn call appears in traces.
+// do calls the Autumn API and decodes the JSON response into out when non-nil.
+// A non-2xx response comes back as *APIError. opName names the span so every
+// Autumn call appears in traces.
 func do(ctx context.Context, opName, method, path string, body any, out any) (err error) {
 	ctx, span := tracer.Start(ctx, opName)
 	defer span.End()
@@ -129,10 +126,6 @@ func do(ctx context.Context, opName, method, path string, body any, out any) (er
 	return nil
 }
 
-// ----------------------------------------------------------------------------
-// Exported function variables. Replace in tests to stub out API calls.
-// ----------------------------------------------------------------------------
-
 var (
 	GetOrCreateCustomer = getOrCreateCustomer
 	GetCustomer         = getCustomer
@@ -144,10 +137,6 @@ var (
 	TrackTokens         = trackTokens
 	Check               = check
 )
-
-// ----------------------------------------------------------------------------
-// Customers
-// ----------------------------------------------------------------------------
 
 func getOrCreateCustomer(ctx context.Context, id, email, name string) (*Customer, error) {
 	req := createCustomerRequest{
@@ -170,8 +159,6 @@ func getCustomer(ctx context.Context, customerID string) (*Customer, error) {
 	return &out, nil
 }
 
-// updateCustomer changes the email on an existing Autumn customer. Invoices,
-// receipts and dunning notifications from Autumn/Stripe go to this address.
 func updateCustomer(ctx context.Context, customerID, email string) error {
 	req := updateCustomerRequest{
 		CustomerID: customerID,
@@ -179,10 +166,6 @@ func updateCustomer(ctx context.Context, customerID, email string) error {
 	}
 	return do(ctx, "autumn-update-customer", http.MethodPost, "/v1/customers.update", req, nil)
 }
-
-// ----------------------------------------------------------------------------
-// Billing (attach, portal)
-// ----------------------------------------------------------------------------
 
 func attach(ctx context.Context, req AttachRequest) (*AttachResponse, error) {
 	var out AttachResponse
@@ -209,10 +192,6 @@ func openCustomerPortal(ctx context.Context, customerID, returnURL string) (stri
 	}
 	return out.URL, nil
 }
-
-// ----------------------------------------------------------------------------
-// Balances (track, check)
-// ----------------------------------------------------------------------------
 
 func track(ctx context.Context, customerID, featureID string, value float64) error {
 	req := trackRequest{

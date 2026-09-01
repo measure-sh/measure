@@ -1,20 +1,17 @@
 package autumn
 
-// Feature IDs configured in the Autumn dashboard. Single source of truth for
-// every package that calls Autumn. Keep these aligned with the dashboard.
+// Feature IDs configured in the Autumn dashboard. Keep these in sync with it.
 const (
 	FeatureBytes         = "bytes"
 	FeatureRetentionDays = "retention_days"
 	FeatureAgentTokens   = "agent_tokens"
 )
 
-// Customer represents an Autumn customer, including their active subscriptions,
-// one-off purchases and balances. Returned by GetOrCreateCustomer and
-// GetCustomer.
+// Customer is an Autumn customer with their plans and balances.
 //
-// The API returns recurring plans in Subscriptions and plans sold as a one-off
-// purchase in Purchases, and a customer can hold both at once, so code that
-// determines the active plan has to read the two together.
+// Recurring plans arrive in Subscriptions and plans sold as a one-off purchase
+// arrive in Purchases, and a customer can hold both at once, so anything
+// deciding which plan a customer is on has to read the two together.
 type Customer struct {
 	ID            string             `json:"id"`
 	Email         string             `json:"email,omitempty"`
@@ -24,8 +21,8 @@ type Customer struct {
 	Balances      map[string]Balance `json:"balances,omitempty"`
 }
 
-// Subscription is an active billing subscription on a customer, as returned
-// by the API. PlanID is the external plan identifier (e.g. "measure_pro").
+// Subscription is a recurring plan on a customer. PlanID is the plan slug
+// configured in the Autumn dashboard (e.g. "measure_pro").
 type Subscription struct {
 	ID                 string `json:"id"`
 	PlanID             string `json:"plan_id"`
@@ -37,20 +34,19 @@ type Subscription struct {
 	ExpiresAt          int64  `json:"expires_at,omitempty"`
 }
 
-// Purchase is a plan sold as a one-off purchase rather than as a recurring
-// subscription, such as a bespoke plan sold for a fixed term. Autumn returns
-// these in their own array on the customer, separate from the recurring plans
-// in Subscriptions, so a customer can hold both at once. A purchase carries no status field the way a
-// subscription does, and StartedAt and ExpiresAt are milliseconds since epoch,
-// so those two timestamps are what say whether the purchase is currently in
-// effect.
+// Purchase is a plan sold as a one-off rather than as a recurring subscription,
+// such as an enterprise plan sold for a fixed term. It carries no status field
+// the way a subscription does, so StartedAt and ExpiresAt, both milliseconds
+// since epoch, are what say whether it is in effect.
 type Purchase struct {
 	PlanID    string `json:"plan_id"`
 	StartedAt int64  `json:"started_at,omitempty"`
 	ExpiresAt int64  `json:"expires_at,omitempty"`
 }
 
-// Balance captures per-feature usage state on a customer.
+// Balance is a customer's usage state for one feature. Autumn sums the feature's
+// grants across every plan the customer holds into Granted, and Breakdown says
+// what each plan granted on its own.
 type Balance struct {
 	FeatureID      string          `json:"feature_id"`
 	Granted        float64         `json:"granted"`
@@ -62,13 +58,9 @@ type Balance struct {
 	Breakdown      []BalanceSource `json:"breakdown,omitempty"`
 }
 
-// BalanceSource is one plan's contribution to a Balance. Autumn pools a
-// feature's grants from every plan a customer holds into the single Granted
-// number on the Balance, and the breakdown says what each plan granted on its
-// own, so a customer holding both the free plan and a bespoke plan has an
-// entry for each. IncludedGrant is what the plan itself grants, as opposed to
-// any extra quantity the customer bought on top of it, and Remaining is what
-// is left of this plan's own grant.
+// BalanceSource is one plan's own contribution to a pooled Balance.
+// IncludedGrant is what the plan grants, apart from any extra quantity bought on
+// top of it, and Remaining is what is left of that plan's grant.
 type BalanceSource struct {
 	PlanID        string  `json:"plan_id"`
 	IncludedGrant float64 `json:"included_grant"`
@@ -101,7 +93,7 @@ type AttachRequest struct {
 // AttachResponse is returned by POST /v1/billing.attach.
 type AttachResponse struct {
 	CustomerID string `json:"customer_id"`
-	// PaymentURL is set when checkout is required. Empty for in-place plan changes.
+	// PaymentURL is set when checkout is required, empty for in-place changes.
 	PaymentURL string `json:"payment_url,omitempty"`
 }
 
@@ -136,29 +128,24 @@ type openCustomerPortalResponse struct {
 	URL string `json:"url"`
 }
 
-// trackRequest is the payload for POST /v1/balances.track.
-//
-// Value has no omitempty: Autumn defaults Value to 1 when the field is
-// missing, which would silently misreport zero-byte ingests.
+// trackRequest is the payload for POST /v1/balances.track. Value has no
+// omitempty because Autumn defaults a missing Value to 1, which would
+// misreport zero-byte ingests.
 type trackRequest struct {
 	CustomerID string  `json:"customer_id"`
 	FeatureID  string  `json:"feature_id"`
 	Value      float64 `json:"value"`
 }
 
-// TrackTokensRequest is the payload for POST /v1/balances.track_tokens. It
-// records LLM token usage for one model call; Autumn prices it from its model
-// catalog and deducts from the token feature's balance. ModelID is
-// "provider/model" (for OpenRouter-served models, "openrouter/<provider>/<model>").
-// FeatureID names the token-billing feature; left empty, Autumn uses the
-// customer's sole token feature.
+// TrackTokensRequest is the payload for POST /v1/balances.track_tokens, one
+// model call's token usage, which Autumn prices from its model catalog. ModelID
+// is "provider/model", or "openrouter/<provider>/<model>" for OpenRouter-served
+// models. An empty FeatureID leaves Autumn to use the customer's sole token
+// feature.
 //
-// The token counts are exclusive pools, each priced at its own rate: InputTokens
-// is non-cached text input, OutputTokens is text output excluding reasoning, and
-// the cache and reasoning pools are billed separately. A token must appear in
-// exactly one pool, so the caller subtracts the cache and reasoning counts from
-// the prompt and completion totals before filling these in; otherwise those
-// tokens are billed twice.
+// The counts are exclusive pools, each priced at its own rate, so the caller
+// subtracts the cache and reasoning counts from the prompt and completion totals
+// before filling these in. A token counted in two pools is billed twice.
 type TrackTokensRequest struct {
 	CustomerID       string `json:"customer_id"`
 	ModelID          string `json:"model_id"`
