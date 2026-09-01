@@ -61,6 +61,24 @@ function enterpriseAt(percent: number) {
   };
 }
 
+// Helper: build a billingInfo payload for a team holding the free plan
+// alongside a plan sold as a one-off purchase whose grant is used up. Autumn
+// pools both grants into the bytes figures, so the pooled percentage lands
+// wherever the two grants happen to put it while the monthly free grant keeps
+// admitting data, which is why the backend reports ingestion_blocked as false
+// here.
+function purchaseSpentAt(percent: number) {
+  const granted = 370_000_000_000;
+  return {
+    plan: "enterprise",
+    bytes_granted: granted,
+    bytes_used: granted * (percent / 100),
+    bytes_unlimited: false,
+    data_purchase_spent: true,
+    ingestion_blocked: false,
+  };
+}
+
 describe("UsageThresholdBanner", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -172,7 +190,7 @@ describe("UsageThresholdBanner", () => {
 
     it("shows red banner with Contact Us mailto at 100%", () => {
       isBillingEnabled.mockReturnValue(true);
-      mockBillingInfo = enterpriseAt(100);
+      mockBillingInfo = { ...enterpriseAt(100), ingestion_blocked: true };
 
       render(<UsageThresholdBanner teamId="team-1" />);
 
@@ -189,6 +207,73 @@ describe("UsageThresholdBanner", () => {
 
       const link = screen.getByRole("link", { name: /Contact Us/i });
       expect(link).toHaveAttribute("href", "mailto:hello@measure.sh");
+    });
+  });
+
+  describe("When the backend reports ingestion blocked", () => {
+    it("takes priority over a spent data purchase", () => {
+      isBillingEnabled.mockReturnValue(true);
+      mockBillingInfo = { ...purchaseSpentAt(100), ingestion_blocked: true };
+
+      render(<UsageThresholdBanner teamId="team-1" />);
+
+      const message = screen.getByText(
+        "100% of plan data limit used — event ingestion blocked.",
+      );
+      expect(message).toBeInTheDocument();
+      expect(message.parentElement!).toHaveClass("bg-red-300");
+    });
+  });
+
+  describe("When a one-off data purchase is spent", () => {
+    it("says usage is limited to free plan limits, with no percentage", () => {
+      isBillingEnabled.mockReturnValue(true);
+      mockBillingInfo = purchaseSpentAt(98.6);
+
+      render(<UsageThresholdBanner teamId="team-1" />);
+
+      const message = screen.getByText(
+        "Your usage is limited to free plan limits.",
+      );
+      expect(message).toBeInTheDocument();
+      expect(message.textContent).not.toMatch(/%/);
+      expect(message.parentElement!).toHaveClass("bg-orange-300");
+
+      const link = screen.getByRole("link", { name: /Contact Us/i });
+      expect(link).toHaveAttribute("href", "mailto:hello@measure.sh");
+    });
+
+    it("still warns when the pooled percentage sits below 75", () => {
+      isBillingEnabled.mockReturnValue(true);
+      mockBillingInfo = purchaseSpentAt(60);
+
+      render(<UsageThresholdBanner teamId="team-1" />);
+
+      const message = screen.getByText(
+        "Your usage is limited to free plan limits.",
+      );
+      expect(message).toBeInTheDocument();
+      expect(message.parentElement!).toHaveClass("bg-orange-300");
+    });
+  });
+
+  describe("When the pool is at 100% and overage is allowed", () => {
+    it("reports the limit is reached without claiming ingestion stopped", () => {
+      isBillingEnabled.mockReturnValue(true);
+      // Overage keeps data flowing past the limit, so the backend reports
+      // ingestion_blocked as false.
+      mockBillingInfo = {
+        ...enterpriseAt(100),
+        bytes_overage_allowed: true,
+        ingestion_blocked: false,
+      };
+
+      render(<UsageThresholdBanner teamId="team-1" />);
+
+      const message = screen.getByText("100% of plan data limit used.");
+      expect(message).toBeInTheDocument();
+      expect(message.textContent).not.toMatch(/blocked/);
+      expect(message.parentElement!).toHaveClass("bg-red-300");
     });
   });
 
@@ -245,7 +330,7 @@ describe("UsageThresholdBanner", () => {
   describe("When usage is at or above 100%", () => {
     it("shows red banner with ingest blocked message", () => {
       isBillingEnabled.mockReturnValue(true);
-      mockBillingInfo = freeAt(100);
+      mockBillingInfo = { ...freeAt(100), ingestion_blocked: true };
 
       render(<UsageThresholdBanner teamId="team-1" />);
 
@@ -262,7 +347,7 @@ describe("UsageThresholdBanner", () => {
 
     it("shows Upgrade to Pro link pointing to usage page", () => {
       isBillingEnabled.mockReturnValue(true);
-      mockBillingInfo = freeAt(100);
+      mockBillingInfo = { ...freeAt(100), ingestion_blocked: true };
 
       render(<UsageThresholdBanner teamId="team-1" />);
 

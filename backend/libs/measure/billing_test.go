@@ -595,6 +595,82 @@ func TestGetPlanRetentionDays(t *testing.T) {
 }
 
 // --------------------------------------------------------------------------
+// DataPurchaseSpent
+// --------------------------------------------------------------------------
+
+func TestDataPurchaseSpent(t *testing.T) {
+	// Purchase timestamps are milliseconds since epoch and are compared against
+	// the current time, so the cases below anchor to now.
+	nowMillis := time.Now().UnixMilli()
+	pastMillis := nowMillis - time.Hour.Milliseconds()
+	futureMillis := nowMillis + time.Hour.Milliseconds()
+
+	freeSource := autumn.BalanceSource{PlanID: AutumnPlanFree, IncludedGrant: 5_000_000_000, Remaining: 2_000_000_000}
+	spentPurchaseSource := autumn.BalanceSource{PlanID: "acme_one_year", IncludedGrant: 365_000_000_000, Remaining: 0}
+
+	tests := []struct {
+		name      string
+		purchases []autumn.Purchase
+		breakdown []autumn.BalanceSource
+		want      bool
+	}{
+		{
+			name:      "purchase in effect with nothing left of its own grant",
+			purchases: []autumn.Purchase{{PlanID: "acme_one_year", StartedAt: pastMillis, ExpiresAt: futureMillis}},
+			breakdown: []autumn.BalanceSource{freeSource, spentPurchaseSource},
+			want:      true,
+		},
+		{
+			name:      "purchase in effect with data left",
+			purchases: []autumn.Purchase{{PlanID: "acme_one_year", StartedAt: pastMillis, ExpiresAt: futureMillis}},
+			breakdown: []autumn.BalanceSource{
+				{PlanID: AutumnPlanFree, IncludedGrant: 5_000_000_000, Remaining: 0},
+				{PlanID: "acme_one_year", IncludedGrant: 365_000_000_000, Remaining: 220_741_040_581},
+			},
+			want: false,
+		},
+		{
+			name:      "purchase that has not started yet",
+			purchases: []autumn.Purchase{{PlanID: "acme_one_year", StartedAt: futureMillis}},
+			breakdown: []autumn.BalanceSource{freeSource, spentPurchaseSource},
+			want:      false,
+		},
+		{
+			name:      "purchase whose term has ended",
+			purchases: []autumn.Purchase{{PlanID: "acme_one_year", StartedAt: pastMillis, ExpiresAt: pastMillis}},
+			breakdown: []autumn.BalanceSource{freeSource, spentPurchaseSource},
+			want:      false,
+		},
+		{
+			name:      "no purchases at all",
+			purchases: nil,
+			breakdown: []autumn.BalanceSource{{PlanID: AutumnPlanFree, IncludedGrant: 5_000_000_000, Remaining: 0}},
+			want:      false,
+		},
+		{
+			name:      "empty breakdown",
+			purchases: []autumn.Purchase{{PlanID: "acme_one_year", StartedAt: pastMillis, ExpiresAt: futureMillis}},
+			breakdown: nil,
+			want:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cust := &autumn.Customer{
+				Purchases: tt.purchases,
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureBytes: {FeatureID: autumn.FeatureBytes, Breakdown: tt.breakdown},
+				},
+			}
+			if got := DataPurchaseSpent(cust); got != tt.want {
+				t.Errorf("DataPurchaseSpent() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// --------------------------------------------------------------------------
 // GetTeamBilling
 // --------------------------------------------------------------------------
 

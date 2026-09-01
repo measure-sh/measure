@@ -73,6 +73,8 @@ func (h Handlers) GetTeamBilling(c *gin.Context) {
 				result.BytesUsed = b.Usage
 				result.BytesUnlimited = b.Unlimited
 				result.BytesOverageAllowed = b.OverageAllowed
+				result.IngestionBlocked = !b.Unlimited && b.Remaining <= 0 && !b.OverageAllowed
+				result.DataPurchaseSpent = measure.DataPurchaseSpent(cust)
 			}
 			if b, ok := cust.Balances[autumn.FeatureAgentTokens]; ok {
 				result.TokenCreditsGranted = b.Granted
