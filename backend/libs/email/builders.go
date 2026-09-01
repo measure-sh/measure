@@ -105,7 +105,10 @@ func TeamDailySummaryEmail(teamName string, date time.Time, apps []AppDailySumma
 // UsageLimitEmail builds the usage limit threshold notification email.
 // Percentages are safe to include (they're plan-agnostic); absolute byte
 // counts are not, since the dashboard is the source of truth for plan limits.
-// isEnterprise swaps the Pro upgrade CTA for a contact-us mailto link.
+// isEnterprise swaps the Pro upgrade CTA for a contact-us mailto link and
+// drops the monthly framing, since an enterprise plan buys data for a term
+// rather than per month. The free allowance the team falls back on afterwards
+// is the monthly one the message at 100 names.
 func UsageLimitEmail(teamName, teamId, siteOrigin string, threshold int, isEnterprise bool) (subject, body string) {
 	ctaText := "Upgrade to Measure Pro"
 	ctaURL := fmt.Sprintf("%s/%s/usage", siteOrigin, teamId)
@@ -120,7 +123,7 @@ func UsageLimitEmail(teamName, teamId, siteOrigin string, threshold int, isEnter
 		subject = fmt.Sprintf("%s - Usage Limit Reached", teamName)
 		title = "Usage Limit Reached"
 		if isEnterprise {
-			message = fmt.Sprintf(`Your team <strong>%s</strong> has reached its plan's data limit this month.<br><br>Data ingestion has been paused. Contact us to increase your limit.`, escape(teamName))
+			message = fmt.Sprintf(`Your team <strong>%s</strong> has ingested all the data its plan allows.<br><br>Ingestion is paused and will resume when the monthly free allowance resets. Contact us if you need a higher limit.`, escape(teamName))
 		} else {
 			message = fmt.Sprintf(`Your team <strong>%s</strong> has reached its plan's data limit this month.<br><br>Data ingestion has been paused. Upgrade to Measure Pro to resume.`, escape(teamName))
 		}
@@ -128,7 +131,7 @@ func UsageLimitEmail(teamName, teamId, siteOrigin string, threshold int, isEnter
 		subject = fmt.Sprintf("%s - %d%% of Usage Limit Reached", teamName, threshold)
 		title = fmt.Sprintf("%d%% Usage Limit Reached", threshold)
 		if isEnterprise {
-			message = fmt.Sprintf(`Your team <strong>%s</strong> has used <strong>%d%%</strong> of its plan's data limit this month.<br><br>Contact us if you need a higher limit.`, escape(teamName), threshold)
+			message = fmt.Sprintf(`Your team <strong>%s</strong> has used <strong>%d%%</strong> of its plan's data limit.<br><br>Contact us if you need a higher limit.`, escape(teamName), threshold)
 		} else {
 			message = fmt.Sprintf(`Your team <strong>%s</strong> has used <strong>%d%%</strong> of its plan's data limit this month.<br><br>Consider upgrading to Measure Pro for unlimited usage!`, escape(teamName), threshold)
 		}
