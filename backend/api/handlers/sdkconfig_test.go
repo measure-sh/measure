@@ -107,22 +107,21 @@ func TestPatchConfigForApp_SlowReaderCannotOverwrite(t *testing.T) {
 	}
 }
 
-func TestPatchConfigForApp_CacheFailureRollsBack(t *testing.T) {
+func TestPatchConfigForApp_CacheFailureStillUpdates(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
 
 	appID, userID := seedSdkConfig(ctx, t)
-	before := maxEventsInDb(ctx, t, appID)
 
 	noCache := *deps
 	noCache.VK = nil
 
-	if err := patchMaxEvents(t, &noCache, appID, userID, 4242); err == nil {
-		t.Fatal("patch config succeeded, want cache write error")
+	if err := patchMaxEvents(t, &noCache, appID, userID, 4242); err != nil {
+		t.Fatalf("patch config: %v", err)
 	}
 
-	if got := maxEventsInDb(ctx, t, appID); got != before {
-		t.Errorf("max_events_in_batch = %d, want %d, update was not rolled back", got, before)
+	if got := maxEventsInDb(ctx, t, appID); got != 4242 {
+		t.Errorf("max_events_in_batch = %d, want 4242", got)
 	}
 }
 

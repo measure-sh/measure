@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"math/rand"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,23 +23,21 @@ const (
 	// cacheFieldData keeps the entry a hash & marks the payload shape.
 	// Rename it when the shape changes so legacy entries read as a miss.
 	cacheFieldData = "config"
+	// cacheFieldUpdatedAt holds the source row's updated_at in unix micros.
+	cacheFieldUpdatedAt = "updated_at"
 )
 
 // Config cache TTL & jitter.
 const (
 	// configCacheTTL is how long a cached config entry lives, jittered so
 	// entries written together don't expire together.
-	configCacheTTL = 24 * time.Hour
+	configCacheTTL = 4 * time.Hour
 	// configCacheTTLJitter is the fraction configCacheTTL varies by, either way.
 	configCacheTTLJitter = 0.10
 )
 
 // ErrNoCacheClient is returned by cache writes when no Valkey client is configured.
 var ErrNoCacheClient = errors.New("valkey client not available")
-
-// ErrCacheTTLNotSet is returned when the value was cached but its expiry was not
-// set, so the entry risks living forever.
-var ErrCacheTTLNotSet = errors.New("failed to set config cache ttl")
 
 // jitteredCacheTTL returns configCacheTTL varied by up to configCacheTTLJitter
 // either way, in whole seconds.
@@ -180,51 +179,72 @@ func GetCache(ctx context.Context, vk valkey.Client, appID uuid.UUID) (data stri
 	return data, nil
 }
 
-// SetCache writes the config JSON unconditionally & refreshes its TTL, for the
-// patch path only. Returns ErrCacheTTLNotSet if the write succeeds but the TTL
-// could not be set.
-func SetCache(ctx context.Context, vk valkey.Client, appID uuid.UUID, jsonConfig []byte) error {
+// setCacheScript stores the config & refreshes the TTL only when the incoming
+// updated_at is strictly newer than the cached one, so two concurrent patches
+// can't land out of order. ARGV: 1 config JSON, 2 updated_at in unix micros,
+// 3 TTL seconds. Returns 1 on write, 0 when a newer entry already won.
+//
+// The fence depends on updated_at, so changing how the patch path stamps it
+// stops this guard working.
+//
+// Micros, not nanos, embedded Lua is 5.1 so numbers are float64 & unix nanos
+// exceed the 53-bit mantissa.
+var setCacheScript = valkey.NewLuaScript(fmt.Sprintf(`
+local cur = redis.call('HGET', KEYS[1], '%[2]s')
+if cur and tonumber(cur) >= tonumber(ARGV[2]) then
+  return 0
+end
+redis.call('HSET', KEYS[1], '%[1]s', ARGV[1], '%[2]s', ARGV[2])
+redis.call('EXPIRE', KEYS[1], ARGV[3])
+return 1
+`, cacheFieldData, cacheFieldUpdatedAt))
+
+// setCacheIfAbsentScript stores the config only when absent, but always tries
+// the TTL so a legacy key with no expiry gains one. ARGV: 1 config JSON,
+// 2 TTL seconds.
+var setCacheIfAbsentScript = valkey.NewLuaScript(fmt.Sprintf(`
+redis.call('HSETNX', KEYS[1], '%s', ARGV[1])
+redis.call('EXPIRE', KEYS[1], ARGV[2], 'NX')
+return 1
+`, cacheFieldData))
+
+// SetCache writes the config JSON & refreshes its TTL, for the patch path only.
+// A write older than what is cached is dropped, which is the guard working, not
+// an error.
+func SetCache(ctx context.Context, vk valkey.Client, appID uuid.UUID, jsonConfig []byte, updatedAt time.Time) error {
 	if vk == nil {
 		return ErrNoCacheClient
 	}
 
-	key := configCacheKey(appID)
-	set := vk.B().Hset().Key(key).FieldValue().
-		FieldValue(cacheFieldData, string(jsonConfig)).
-		Build()
-	// unconditional, refreshes the ttl on every write
-	expire := vk.B().Expire().Key(key).Seconds(jitteredCacheTTL()).Build()
-
-	results := vk.DoMulti(ctx, set, expire)
-	if err := results[0].Error(); err != nil {
-		return fmt.Errorf("failed to store config hash: %w", err)
+	keys := []string{configCacheKey(appID)}
+	args := []string{
+		string(jsonConfig),
+		strconv.FormatInt(updatedAt.UnixMicro(), 10),
+		strconv.FormatInt(jitteredCacheTTL(), 10),
 	}
-	if err := results[1].Error(); err != nil {
-		return fmt.Errorf("%w: %w", ErrCacheTTLNotSet, err)
+
+	if err := setCacheScript.Exec(ctx, vk, keys, args).Error(); err != nil {
+		return fmt.Errorf("failed to store config hash: %w", err)
 	}
 
 	return nil
 }
 
 // SetCacheIfAbsent writes the config JSON & sets a TTL only when absent, else
-// a slow reader can overwrite a fresh config or extend its TTL. Returns
-// ErrCacheTTLNotSet if the write succeeds but the TTL could not be set.
+// a slow reader can overwrite a fresh config or extend its TTL.
 func SetCacheIfAbsent(ctx context.Context, vk valkey.Client, appID uuid.UUID, jsonConfig []byte) error {
 	if vk == nil {
 		return ErrNoCacheClient
 	}
 
-	key := configCacheKey(appID)
-	set := vk.B().Hsetnx().Key(key).Field(cacheFieldData).Value(string(jsonConfig)).Build()
-	// NX only, readers hit this path on a live key & must not extend its ttl
-	expire := vk.B().Expire().Key(key).Seconds(jitteredCacheTTL()).Nx().Build()
-
-	results := vk.DoMulti(ctx, set, expire)
-	if err := results[0].Error(); err != nil {
-		return fmt.Errorf("failed to store config hash: %w", err)
+	keys := []string{configCacheKey(appID)}
+	args := []string{
+		string(jsonConfig),
+		strconv.FormatInt(jitteredCacheTTL(), 10),
 	}
-	if err := results[1].Error(); err != nil {
-		return fmt.Errorf("%w: %w", ErrCacheTTLNotSet, err)
+
+	if err := setCacheIfAbsentScript.Exec(ctx, vk, keys, args).Error(); err != nil {
+		return fmt.Errorf("failed to store config hash: %w", err)
 	}
 
 	return nil

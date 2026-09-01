@@ -29,7 +29,7 @@ const configColumns = `max_events_in_batch, crash_timeline_duration, anr_timelin
 	http_track_request_for_urls, http_track_response_for_urls, http_blocked_headers,
 	profile_sampling_rate, updated_at, updated_by`
 
-// PatchConfigForApp applies a patch to an app's SDK config, updating Postgres & the cache together.
+// PatchConfigForApp applies a patch to an app's SDK config in Postgres, then refreshes the cache.
 func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userID string) error {
 	var patch sdkconfig.ConfigPatch
 	if err := c.ShouldBindJSON(&patch); err != nil {
@@ -127,7 +127,8 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		}
 		stmt.Set("profile_sampling_rate", *patch.ProfileSamplingRate)
 	}
-	stmt.Set("updated_at", time.Now())
+	// the database clock, evaluated after the row lock, orders concurrent patches
+	stmt.SetExpr("updated_at", "clock_timestamp()")
 	stmt.Set("updated_by", &userIdUUID)
 	stmt.Where("app_id = ?", appID)
 
@@ -137,15 +138,8 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 
 	ctx := c.Request.Context()
 
-	tx, err := deps.PgPool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-
-	defer tx.Rollback(ctx)
-
 	var config sdkconfig.SdkConfig
-	if err := tx.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
+	if err := deps.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
 		&config.MaxEventsInBatch,
 		&config.CrashTimelineDuration,
 		&config.ANRTimelineDuration,
@@ -182,22 +176,23 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	// inside the txn, a cache failure rolls the row back, except a TTL-only failure
-	if err := sdkconfig.SetCache(ctx, deps.VK, appID, jsonConfig); err != nil {
-		if !errors.Is(err, sdkconfig.ErrCacheTTLNotSet) {
-			return fmt.Errorf("failed to write config cache: %w", err)
-		}
-		fmt.Println("failed to set config cache ttl, app_id:", appID, err)
+	// the cache guard fences on this, a nil means RETURNING dropped a column we set
+	if config.UpdatedAt == nil {
+		return fmt.Errorf("update returned no updated_at for app_id: %s", appID)
 	}
 
-	if err := tx.Commit(ctx); err != nil {
-		// ctx may be why the commit failed, so don't inherit its cancellation
-		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
-		defer cancel()
-		if err := sdkconfig.InvalidateCache(cleanupCtx, deps.VK, appID); err != nil {
-			fmt.Println("failed to invalidate config cache after commit failure, app_id:", appID, err)
+	// postgres is already updated & is the source of truth, the cache is best effort
+	cacheCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+
+	if err := sdkconfig.SetCache(cacheCtx, deps.VK, appID, jsonConfig, *config.UpdatedAt); err != nil {
+		fmt.Println("failed to write config cache, app_id:", appID, err)
+		// a fresh deadline, cacheCtx may be exhausted by the write that just failed
+		dropCtx, dropCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer dropCancel()
+		if err := sdkconfig.InvalidateCache(dropCtx, deps.VK, appID); err != nil {
+			fmt.Println("failed to drop config cache, app_id:", appID, err)
 		}
-		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil
