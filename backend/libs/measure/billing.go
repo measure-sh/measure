@@ -57,6 +57,17 @@ type BillingInfo struct {
 	// BytesOverageAllowed is true when the customer's plan permits going
 	// over BytesGranted (Pro: yes, Free: no, Enterprise: depends).
 	BytesOverageAllowed bool `json:"bytes_overage_allowed"`
+	// DataPurchaseSpent is true when a plan the team holds as a one-off
+	// purchase has no data left of its own grant, so the team is back on the
+	// limits of the free plan they hold alongside it even though BytesGranted
+	// and BytesUsed, which pool the two plans together, read close to the
+	// limit.
+	DataPurchaseSpent bool `json:"data_purchase_spent"`
+	// IngestionBlocked is true when the pooled bytes balance has nothing left
+	// on a plan that is neither unlimited nor permitted to go over, which
+	// mirrors the verdict Autumn gives the ingest path when it asks whether
+	// data may still be accepted.
+	IngestionBlocked bool `json:"ingestion_blocked"`
 	// TokenCreditsGranted and TokenCreditsUsed describe the agent_tokens
 	// feature balance from Autumn. agent_tokens is a credit system: token usage
 	// is priced through Autumn's model catalog into credits, so these are
@@ -139,14 +150,7 @@ func DeterminePlan(c *autumn.Customer) string {
 	}
 	now := time.Now().UnixMilli()
 	for _, p := range c.Purchases {
-		// A purchase carries no status field the way a subscription does, so its
-		// start and expiry timestamps are what tell us it is in effect right now.
-		// Without checking them, a purchase scheduled to begin later, or one whose
-		// term has already ended, would count as if the customer held it today.
-		if p.StartedAt > now {
-			continue
-		}
-		if p.ExpiresAt != 0 && p.ExpiresAt <= now {
+		if !purchaseInEffect(p, now) {
 			continue
 		}
 		activePlans = append(activePlans, p.PlanID)
@@ -169,6 +173,23 @@ func DeterminePlan(c *autumn.Customer) string {
 		return PlanPro
 	}
 	return PlanFree
+}
+
+// purchaseInEffect reports whether a purchase is running at nowMillis, which
+// callers pass as milliseconds since epoch to match the timestamps Autumn puts
+// on a purchase. A purchase carries no status field the way a subscription
+// does, so its start and expiry are the only thing saying it is in effect, and
+// Autumn returns purchases that have not begun yet alongside the running ones.
+// Without this test a purchase scheduled to begin later, or one whose term has
+// already ended, would count as if the customer held it today.
+func purchaseInEffect(p autumn.Purchase, nowMillis int64) bool {
+	if p.StartedAt > nowMillis {
+		return false
+	}
+	if p.ExpiresAt != 0 && p.ExpiresAt <= nowMillis {
+		return false
+	}
+	return true
 }
 
 // saveAutumnCustomerID persists an Autumn customer ID on the teams row.
@@ -319,6 +340,39 @@ func RetentionDaysFromBalance(b autumn.Balance) int {
 		longest = max(longest, source.IncludedGrant)
 	}
 	return int(longest)
+}
+
+// DataPurchaseSpent reports whether a team has used up the data granted by a
+// plan they hold as a one-off purchase. A team can hold the free plan, which
+// grants bytes every month, alongside such a purchase, which grants a large
+// fixed amount once, and Autumn pools both grants into the single bytes
+// balance, so the pooled numbers cannot say that the purchase is used up while
+// the monthly free grant still admits data. Matching the purchase against the
+// per-plan breakdown can, and knowing the difference is what lets the
+// dashboard tell the team they are now on free plan limits one their purchased
+// data ends.
+//
+// The purchase is identified by matching plan ids against the purchases the
+// customer holds today rather than read off the breakdown alone, because the
+// breakdown says nothing about when a plan's term runs and Autumn's customer
+// read includes purchases that are only scheduled to start.
+func DataPurchaseSpent(c *autumn.Customer) bool {
+	b, ok := c.Balances[autumn.FeatureBytes]
+	if !ok {
+		return false
+	}
+	now := time.Now().UnixMilli()
+	for _, source := range b.Breakdown {
+		if source.Remaining > 0 {
+			continue
+		}
+		if slices.ContainsFunc(c.Purchases, func(p autumn.Purchase) bool {
+			return p.PlanID == source.PlanID && purchaseInEffect(p, now)
+		}) {
+			return true
+		}
+	}
+	return false
 }
 
 func lookupTeamIDByAutumnCustomer(ctx context.Context, pg *pgxpool.Pool, customerID string) (uuid.UUID, error) {

@@ -191,6 +191,175 @@ func TestGetTeamBilling(t *testing.T) {
 		}
 	})
 
+	t.Run("reports a spent data purchase from the bytes breakdown", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		// The team holds the free plan alongside a plan sold as a one-off
+		// purchase whose grant is used up, so the pooled granted and usage read
+		// close to the limit while the monthly free grant still admits data.
+		startedAt := time.Now().Add(-time.Hour).UnixMilli()
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:        custID,
+				Purchases: []autumn.Purchase{{PlanID: "acme_one_year", StartedAt: startedAt}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureBytes: {
+						FeatureID: autumn.FeatureBytes,
+						Granted:   370_000_000_000,
+						Usage:     367_000_000_000,
+						Remaining: 3_000_000_000,
+						Breakdown: []autumn.BalanceSource{
+							{PlanID: measure.AutumnPlanFree, IncludedGrant: 5_000_000_000, Remaining: 3_000_000_000},
+							{PlanID: "acme_one_year", IncludedGrant: 365_000_000_000, Remaining: 0},
+						},
+					},
+				},
+			}, nil
+		})
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		h.GetTeamBilling(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+		}
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["data_purchase_spent"] != true {
+			t.Errorf("data_purchase_spent = %v, want true", got["data_purchase_spent"])
+		}
+		// The free grant still has bytes left, so data keeps flowing.
+		if got["ingestion_blocked"] != false {
+			t.Errorf("ingestion_blocked = %v, want false", got["ingestion_blocked"])
+		}
+	})
+
+	t.Run("reports no spent data purchase when the purchase has data left", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		startedAt := time.Now().Add(-time.Hour).UnixMilli()
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:        custID,
+				Purchases: []autumn.Purchase{{PlanID: "acme_one_year", StartedAt: startedAt}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureBytes: {
+						FeatureID: autumn.FeatureBytes,
+						Granted:   370_000_000_000,
+						Usage:     149_258_959_419,
+						Remaining: 220_741_040_581,
+						Breakdown: []autumn.BalanceSource{
+							{PlanID: measure.AutumnPlanFree, IncludedGrant: 5_000_000_000, Remaining: 0},
+							{PlanID: "acme_one_year", IncludedGrant: 365_000_000_000, Remaining: 220_741_040_581},
+						},
+					},
+				},
+			}, nil
+		})
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		h.GetTeamBilling(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+		}
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["data_purchase_spent"] != false {
+			t.Errorf("data_purchase_spent = %v, want false", got["data_purchase_spent"])
+		}
+		if got["ingestion_blocked"] != false {
+			t.Errorf("ingestion_blocked = %v, want false", got["ingestion_blocked"])
+		}
+	})
+
+	t.Run("reports ingestion blocked when the pooled balance is empty and overage is not allowed", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       custID,
+				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanFree}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureBytes: {
+						FeatureID:      autumn.FeatureBytes,
+						Granted:        5_000_000_000,
+						Usage:          5_000_000_000,
+						Remaining:      0,
+						OverageAllowed: false,
+					},
+				},
+			}, nil
+		})
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		h.GetTeamBilling(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+		}
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["ingestion_blocked"] != true {
+			t.Errorf("ingestion_blocked = %v, want true", got["ingestion_blocked"])
+		}
+		if got["data_purchase_spent"] != false {
+			t.Errorf("data_purchase_spent = %v, want false", got["data_purchase_spent"])
+		}
+	})
+
+	t.Run("reports ingestion not blocked when the pooled balance is empty but overage is allowed", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       custID,
+				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanPro}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureBytes: {
+						FeatureID:      autumn.FeatureBytes,
+						Granted:        25_000_000_000,
+						Usage:          25_000_000_000,
+						Remaining:      0,
+						OverageAllowed: true,
+					},
+				},
+			}, nil
+		})
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		h.GetTeamBilling(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+		}
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["ingestion_blocked"] != false {
+			t.Errorf("ingestion_blocked = %v, want false", got["ingestion_blocked"])
+		}
+	})
+
 	t.Run("includes agent token credit balance from autumn", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")

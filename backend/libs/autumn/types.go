@@ -80,10 +80,12 @@ type Balance struct {
 // number on the Balance, and the breakdown says what each plan granted on its
 // own, so a customer holding both the free plan and a bespoke plan has an
 // entry for each. IncludedGrant is what the plan itself grants, as opposed to
-// any extra quantity the customer bought on top of it.
+// any extra quantity the customer bought on top of it, and Remaining is what
+// is left of this plan's own grant.
 type BalanceSource struct {
 	PlanID        string  `json:"plan_id"`
 	IncludedGrant float64 `json:"included_grant"`
+	Remaining     float64 `json:"remaining"`
 }
 
 // createCustomerRequest is the payload for POST /v1/customers.
