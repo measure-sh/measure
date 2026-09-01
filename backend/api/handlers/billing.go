@@ -85,9 +85,10 @@ func (h Handlers) GetTeamBilling(c *gin.Context) {
 			if b, ok := cust.Balances[autumn.FeatureRetentionDays]; ok && b.Granted > 0 {
 				result.RetentionDays = measure.RetentionDaysFromBalance(b)
 			}
-			// Pick the active subscription. During a scheduled cancel, the
-			// customer also has a Free sub with status="scheduled" — we want
-			// the still-running Pro one, not whichever is index 0.
+			// Pick the active subscription, not whichever is index 0: during
+			// a scheduled cancel the customer also holds a scheduled Free sub.
+			// An enterpise plan is a one-off purchase and not a subscription, so for
+			// those teams this reports their Free plan, which no card shows.
 			for i := range cust.Subscriptions {
 				if cust.Subscriptions[i].Status == "active" {
 					s := &cust.Subscriptions[i]
