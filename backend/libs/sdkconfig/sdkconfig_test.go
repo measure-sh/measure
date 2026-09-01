@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"backend/testinfra"
 
@@ -38,9 +39,10 @@ func ttlOf(t *testing.T, ctx context.Context, key string) int64 {
 
 func assertTTLInJitterWindow(t *testing.T, ttl int64) {
 	t.Helper()
-	const lo, hi = int64(21.6 * 3600), int64(26.4 * 3600)
-	if ttl <= lo || ttl > hi {
-		t.Fatalf("expected ttl in (%d, %d], got %d", lo, hi, ttl)
+	lo := int64(configCacheTTL.Seconds() * (1 - configCacheTTLJitter))
+	hi := int64(configCacheTTL.Seconds() * (1 + configCacheTTLJitter))
+	if ttl < lo || ttl > hi {
+		t.Fatalf("expected ttl in [%d, %d], got %d", lo, hi, ttl)
 	}
 }
 
@@ -48,7 +50,7 @@ func TestSetCacheSetsTTL(t *testing.T) {
 	ctx := context.Background()
 	appID := uuid.New()
 
-	if err := SetCache(ctx, vk, appID, []byte(`{"max_events_in_batch":10000}`)); err != nil {
+	if err := SetCache(ctx, vk, appID, []byte(`{"max_events_in_batch":10000}`), time.Now()); err != nil {
 		t.Fatalf("SetCache: %v", err)
 	}
 
@@ -71,7 +73,7 @@ func TestSetCacheIfAbsentCannotExtendLiveTTL(t *testing.T) {
 	appID := uuid.New()
 	key := configCacheKey(appID)
 
-	if err := SetCache(ctx, vk, appID, []byte(`{"max_events_in_batch":10000}`)); err != nil {
+	if err := SetCache(ctx, vk, appID, []byte(`{"max_events_in_batch":10000}`), time.Now()); err != nil {
 		t.Fatalf("SetCache: %v", err)
 	}
 	if err := vk.Do(ctx, vk.B().Expire().Key(key).Seconds(60).Build()).Error(); err != nil {
@@ -112,6 +114,76 @@ func TestSetCacheIfAbsentGivesLegacyKeyTTL(t *testing.T) {
 
 	if ttl := ttlOf(t, ctx, key); ttl <= 0 {
 		t.Fatalf("expected legacy key to gain a ttl, got %d", ttl)
+	}
+}
+
+func TestSetCacheRejectsOlderWrite(t *testing.T) {
+	ctx := context.Background()
+	appID := uuid.New()
+
+	t2 := time.Now()
+	t1 := t2.Add(-time.Minute)
+
+	newer := []byte(`{"max_events_in_batch":2222}`)
+	older := []byte(`{"max_events_in_batch":1111}`)
+
+	if err := SetCache(ctx, vk, appID, newer, t2); err != nil {
+		t.Fatalf("SetCache newer: %v", err)
+	}
+	if err := SetCache(ctx, vk, appID, older, t1); err != nil {
+		t.Fatalf("SetCache older: %v", err)
+	}
+
+	data, err := GetCache(ctx, vk, appID)
+	if err != nil {
+		t.Fatalf("GetCache: %v", err)
+	}
+	if data != string(newer) {
+		t.Fatalf("expected %q, got %q", newer, data)
+	}
+}
+
+func TestSetCacheAcceptsNewerWrite(t *testing.T) {
+	ctx := context.Background()
+	appID := uuid.New()
+
+	t1 := time.Now()
+	t2 := t1.Add(time.Minute)
+
+	older := []byte(`{"max_events_in_batch":1111}`)
+	newer := []byte(`{"max_events_in_batch":2222}`)
+
+	if err := SetCache(ctx, vk, appID, older, t1); err != nil {
+		t.Fatalf("SetCache older: %v", err)
+	}
+	if err := SetCache(ctx, vk, appID, newer, t2); err != nil {
+		t.Fatalf("SetCache newer: %v", err)
+	}
+
+	data, err := GetCache(ctx, vk, appID)
+	if err != nil {
+		t.Fatalf("GetCache: %v", err)
+	}
+	if data != string(newer) {
+		t.Fatalf("expected %q, got %q", newer, data)
+	}
+}
+
+func TestSetCacheWritesEmptyKey(t *testing.T) {
+	ctx := context.Background()
+	appID := uuid.New()
+
+	jsonConfig := []byte(`{"max_events_in_batch":3333}`)
+	if err := SetCache(ctx, vk, appID, jsonConfig, time.Now()); err != nil {
+		t.Fatalf("SetCache: %v", err)
+	}
+
+	data, err := GetCache(ctx, vk, appID)
+	if err != nil {
+		t.Fatalf("GetCache: %v", err)
+	}
+	if data != string(jsonConfig) {
+		t.Fatalf("expected %q, got %q", jsonConfig, data)
 	}
 }
 
