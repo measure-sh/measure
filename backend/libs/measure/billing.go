@@ -123,21 +123,19 @@ func GetAutumnCustomerID(ctx context.Context, pool *pgxpool.Pool, teamID uuid.UU
 	return *customerID, nil
 }
 
-// DeterminePlan inspects a customer's active subscriptions, purchases and
-// products and returns the plan name we surface to the frontend (free, pro,
-// enterprise).
+// DeterminePlan inspects a customer's active subscriptions and purchases and
+// returns the plan name we surface to the frontend (free, pro, enterprise).
 //
-// API responses populate Subscriptions[].PlanID for recurring plans and
-// Purchases[].PlanID for plans sold as one-off purchases; webhook payloads
-// populate Products[].ID. We check all three so the same helper works on
-// either source.
+// Autumn returns recurring plans in Subscriptions[].PlanID and plans sold as
+// one-off purchases in Purchases[].PlanID, and a customer can hold both at
+// once, so both are checked.
 // Subscriptions with status != "active" (e.g. a Free that's "scheduled" to
 // take over after a Pro cancellation) are ignored — we only report on the
 // plan currently in effect.
 //
-// A customer can hold several active products at once: Autumn auto-attaches
-// the Free product on customer create, and attaching an enterprise plan from
-// the Autumn dashboard does not detach it unless the two share a product group.
+// A customer can hold several active plans at once: Autumn auto-attaches the
+// Free plan on customer create, and attaching an enterprise plan from the
+// Autumn dashboard does not detach it unless the two share a plan group.
 // The highest tier wins, using the same order as planRank: any non-free,
 // non-pro plan counts as enterprise and wins over Pro, which wins over Free.
 func DeterminePlan(c *autumn.Customer) string {
@@ -154,14 +152,6 @@ func DeterminePlan(c *autumn.Customer) string {
 			continue
 		}
 		activePlans = append(activePlans, p.PlanID)
-	}
-	for _, p := range c.Products {
-		// Webhook payloads sometimes omit status — treat empty as active
-		// for back-compat. Otherwise skip non-active (e.g. scheduled).
-		if p.Status != "" && p.Status != "active" {
-			continue
-		}
-		activePlans = append(activePlans, p.ID)
 	}
 
 	if slices.ContainsFunc(activePlans, func(id string) bool {
