@@ -166,6 +166,12 @@ func (h Handlers) CreateCheckoutSession(c *gin.Context) {
 		return
 	}
 
+	if measure.DeterminePlan(cust) == measure.PlanEnterprise {
+		msg := `cannot create checkout session with enterprise plan`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+		return
+	}
+
 	resp, err := autumn.Attach(ctx, autumn.AttachRequest{
 		CustomerID:   customerID,
 		PlanID:       measure.AutumnPlanPro,
@@ -217,6 +223,26 @@ func (h Handlers) CancelAndDowngradeToFreePlan(c *gin.Context) {
 	}
 	if customerID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "team billing not provisioned"})
+		return
+	}
+
+	// Only a Pro subscription can be cancelled from here. A free customer has
+	// nothing to cancel, and an enterprise plan is arranged directly with the
+	// Measure team, which is why the dashboard shows no downgrade button for
+	// either.
+	cust, err := autumn.GetCustomer(ctx, customerID)
+	if err != nil {
+		log.Println("autumn get customer failed (cancel pre-check):", err)
+		if autumn.IsServerOrNetworkError(err) {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "billing service temporarily unavailable"})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": "billing customer record is unavailable"})
+		return
+	}
+	if measure.DeterminePlan(cust) != measure.PlanPro {
+		msg := `only a pro plan can be cancelled`
+		c.JSON(http.StatusForbidden, gin.H{"error": msg})
 		return
 	}
 
