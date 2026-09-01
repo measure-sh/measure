@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Remove lru cache dead code (#4346) by @detj in #4346
 - (**backend**): Drop final from the span custom key listing by @anupcowkur in #4323
 - (**backend**): Order span custom value suggestions deterministically by @anupcowkur
 - (**backend**): Validate timezone in expression filters by @anupcowkur
@@ -94,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**backend**): Document sampling rate range in open api spec (#4347) by @detj in #4347
 - (**frontend**): Update legal (#4282) by @detj in #4282
 - Fix typo by @anupcowkur
 - Fix stale links in README by @anupcowkur
