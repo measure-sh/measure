@@ -700,9 +700,9 @@ func TestUsageLimitEmail_Enterprise(t *testing.T) {
 		wantBodySubstr string
 		wantExtraCopy  string
 	}{
-		{75, "75% of Usage Limit Reached", "has used <strong>75%</strong>", "Contact us if you need a higher limit."},
-		{90, "90% of Usage Limit Reached", "has used <strong>90%</strong>", "Contact us if you need a higher limit."},
-		{100, "Usage Limit Reached", "has reached its plan's data limit", "Data ingestion has been paused. Contact us to increase your limit."},
+		{75, "75% of Usage Limit Reached", "has used <strong>75%</strong> of its plan's data limit.<br><br>", "Contact us if you need a higher limit."},
+		{90, "90% of Usage Limit Reached", "has used <strong>90%</strong> of its plan's data limit.<br><br>", "Contact us if you need a higher limit."},
+		{100, "Usage Limit Reached", "has ingested all the data its plan allows.<br><br>", "Ingestion is paused and will resume when the monthly free allowance resets. Contact us if you need a higher limit."},
 	}
 
 	for _, tt := range tests {
@@ -729,6 +729,11 @@ func TestUsageLimitEmail_Enterprise(t *testing.T) {
 			}
 			if strings.Contains(body, "team-abc/usage") {
 				t.Errorf("enterprise CTA should not link to the usage page")
+			}
+			// The enterprise limit itself is not monthly. The free
+			// allowance the message at 100 names is.
+			if strings.Contains(body, "this month") {
+				t.Errorf("enterprise body should not frame the limit as monthly")
 			}
 
 			mustNotContainByteNumbers(t, fmt.Sprintf("UsageLimitEmail(%d, enterprise)", tt.threshold), body)
