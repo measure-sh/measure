@@ -582,7 +582,7 @@ func TestGetTeamBilling(t *testing.T) {
 	})
 
 	t.Run("retention_days reports the longest single plan grant, not the pooled sum", func(t *testing.T) {
-		// A team can hold the free plan and a bespoke plan at once, and
+		// A team can hold the free plan and an enterprise plan at once, and
 		// Autumn pools the two 30 day grants into Granted: 60. The usage
 		// page must show the 30 days the team was sold.
 		defer cleanupAll(ctx, t)
@@ -786,9 +786,9 @@ func TestGetTeamBilling(t *testing.T) {
 	})
 }
 
-// enterpriseCustomer models the way the Autumn API reports a team on a bespoke
+// enterpriseCustomer models the way the Autumn API reports a team on an enterprise
 // plan. Autumn auto-attaches the free plan as a recurring subscription when the
-// customer is created and leaves it in place, and the bespoke plan arrives
+// customer is created and leaves it in place, and the enterprise plan arrives
 // beside it as a one-off purchase under its own identifier.
 func enterpriseCustomer(custID string) *autumn.Customer {
 	return &autumn.Customer{
@@ -1924,7 +1924,7 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		// A one-off plan is attached on top of the free plan the team already
 		// holds. Autumn expires nothing in that case, so the payload carries a
 		// lone activation whose plan arrives as a purchase rather than a
-		// subscription, and retention still has to follow the bespoke plan.
+		// subscription, and retention still has to follow the enterprise plan.
 		defer cleanupAll(ctx, t)
 		withAutumnWebhookSecret(t, secret)
 
@@ -1938,7 +1938,7 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		custID := uuid.New().String()
 		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
-		// The team holds the free plan and the bespoke one at once, so the
+		// The team holds the free plan and the enterprise one at once, so the
 		// balance breaks the grant down per plan and the longer of the two wins.
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
@@ -2019,9 +2019,9 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		}
 	})
 
-	t.Run("billing.updated:one bespoke plan replaced by another resets retention and sends no email", func(t *testing.T) {
-		// A customer's bespoke contract is re-issued at different terms, so one
-		// bespoke plan expires as another activates. Both rank the same, which
+	t.Run("billing.updated:one enterprise plan replaced by another resets retention and sends no email", func(t *testing.T) {
+		// A customer's enterprise contract is re-issued at different terms, so one
+		// enterprise plan expires as another activates. Both rank the same, which
 		// leaves no upgrade or downgrade to announce, but retention still has to
 		// follow the plan that just took effect.
 		defer cleanupAll(ctx, t)
@@ -2031,7 +2031,7 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		appID := uuid.New()
 		userID := uuid.New().String()
 		seedTeam(ctx, t, teamID, testTeamName)
-		seedUser(ctx, t, userID, "bespoke-swap@test.com")
+		seedUser(ctx, t, userID, "enterprise-swap@test.com")
 		seedTeamMembership(ctx, t, teamID, userID, "owner")
 		seedApp(ctx, t, appID, teamID, 180)
 		custID := uuid.New().String()
@@ -2051,7 +2051,7 @@ func TestHandleAutumnWebhook(t *testing.T) {
 			`{"type":"billing.updated","data":{"customer_id":%q,"plan_changes":[{"action":"activated","subscription":{"plan_id":"acme_two_year"}},{"action":"expired","subscription":{"plan_id":"acme_one_year"}}]}}`,
 			custID,
 		))
-		headers := signSvixWebhook(t, secret, "msg_bespoke_swap", payload)
+		headers := signSvixWebhook(t, secret, "msg_enterprise_swap", payload)
 		c, w := webhookReq(payload, headers)
 		h.HandleAutumnWebhook(c)
 
@@ -2059,14 +2059,14 @@ func TestHandleAutumnWebhook(t *testing.T) {
 			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
 		}
 		if got := getAppRetention(ctx, t, appID); got != 365 {
-			t.Errorf("retention after bespoke swap = %d, want 365", got)
+			t.Errorf("retention after enterprise swap = %d, want 365", got)
 		}
 		if got := countQueuedTeamEmails(ctx, t, teamID); got != 0 {
-			t.Errorf("queued emails after bespoke swap = %d, want 0", got)
+			t.Errorf("queued emails after enterprise swap = %d, want 0", got)
 		}
 	})
 
-	t.Run("billing.updated:the same bespoke plan re-attached resets retention and sends no email", func(t *testing.T) {
+	t.Run("billing.updated:the same enterprise plan re-attached resets retention and sends no email", func(t *testing.T) {
 		// Autumn re-attaches a plan to itself when a priced feature is added,
 		// putting the same plan id on both sides of the change. Writing the
 		// retention that plan grants is idempotent, and there is no transition
@@ -2078,7 +2078,7 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		appID := uuid.New()
 		userID := uuid.New().String()
 		seedTeam(ctx, t, teamID, testTeamName)
-		seedUser(ctx, t, userID, "bespoke-reattach@test.com")
+		seedUser(ctx, t, userID, "enterprise-reattach@test.com")
 		seedTeamMembership(ctx, t, teamID, userID, "owner")
 		seedApp(ctx, t, appID, teamID, measure.MIN_RETENTION_DAYS)
 		custID := uuid.New().String()
@@ -2098,7 +2098,7 @@ func TestHandleAutumnWebhook(t *testing.T) {
 			`{"type":"billing.updated","data":{"customer_id":%q,"plan_changes":[{"action":"activated","subscription":{"plan_id":"acme_one_year"}},{"action":"expired","subscription":{"plan_id":"acme_one_year"}}]}}`,
 			custID,
 		))
-		headers := signSvixWebhook(t, secret, "msg_bespoke_reattach", payload)
+		headers := signSvixWebhook(t, secret, "msg_enterprise_reattach", payload)
 		c, w := webhookReq(payload, headers)
 		h.HandleAutumnWebhook(c)
 
@@ -2106,10 +2106,10 @@ func TestHandleAutumnWebhook(t *testing.T) {
 			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
 		}
 		if got := getAppRetention(ctx, t, appID); got != 180 {
-			t.Errorf("retention after bespoke re-attach = %d, want 180", got)
+			t.Errorf("retention after enterprise re-attach = %d, want 180", got)
 		}
 		if got := countQueuedTeamEmails(ctx, t, teamID); got != 0 {
-			t.Errorf("queued emails after bespoke re-attach = %d, want 0", got)
+			t.Errorf("queued emails after enterprise re-attach = %d, want 0", got)
 		}
 	})
 

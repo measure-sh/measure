@@ -16,10 +16,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// ----------------------------------------------------------------------------
-// HTTP handlers
-// ----------------------------------------------------------------------------
-
 func billingDisabled(c *gin.Context, deps *server.Deps) bool {
 	if !deps.Config.IsBillingEnabled() {
 		c.JSON(http.StatusNotFound, gin.H{"error": "billing is not enabled"})
@@ -85,10 +81,11 @@ func (h Handlers) GetTeamBilling(c *gin.Context) {
 			if b, ok := cust.Balances[autumn.FeatureRetentionDays]; ok && b.Granted > 0 {
 				result.RetentionDays = measure.RetentionDaysFromBalance(b)
 			}
-			// Pick the active subscription, not whichever is index 0: during
-			// a scheduled cancel the customer also holds a scheduled Free sub.
-			// An enterpise plan is a one-off purchase and not a subscription, so for
-			// those teams this reports their Free plan, which no card shows.
+			// During a scheduled cancel the customer also holds a scheduled free
+			// subscription, so the active one has to be picked rather than index
+			// 0. An enterprise plan is a one-off purchase rather than a
+			// subscription, so for those teams this reports their free plan,
+			// which no card shows.
 			for i := range cust.Subscriptions {
 				if cust.Subscriptions[i].Status == "active" {
 					s := &cust.Subscriptions[i]
@@ -151,9 +148,9 @@ func (h Handlers) CreateCheckoutSession(c *gin.Context) {
 		return
 	}
 
-	// Refuse if already Pro. Distinguish Autumn outage (503) from a 4xx
-	// (likely a missing customer record or config bug) so we don't proceed
-	// to Attach blindly and create a duplicate Stripe Checkout session.
+	// Refuse if the team is already on pro. An Autumn outage answers 503 and a
+	// 4xx, a missing customer record or a config bug, answers 400, so neither
+	// falls through to Attach and opens a duplicate Stripe Checkout session.
 	cust, err := autumn.GetCustomer(ctx, customerID)
 	if err != nil {
 		log.Println("autumn get customer failed (checkout pre-check):", err)
@@ -229,10 +226,9 @@ func (h Handlers) CancelAndDowngradeToFreePlan(c *gin.Context) {
 		return
 	}
 
-	// Only a Pro subscription can be cancelled from here. A free customer has
-	// nothing to cancel, and an enterprise plan is arranged directly with the
-	// Measure team, which is why the dashboard shows no downgrade button for
-	// either.
+	// Only a pro subscription can be cancelled from here. A free customer has
+	// nothing to cancel and an enterprise plan is arranged directly with the
+	// Measure team, so the dashboard shows no downgrade button for either.
 	cust, err := autumn.GetCustomer(ctx, customerID)
 	if err != nil {
 		log.Println("autumn get customer failed (cancel pre-check):", err)
@@ -249,10 +245,9 @@ func (h Handlers) CancelAndDowngradeToFreePlan(c *gin.Context) {
 		return
 	}
 
-	// Schedule cancellation at end of cycle. Pro stays usable until
-	// CurrentPeriodEnd. After expiry, Autumn auto-activates the plan marked
-	// is_default in the dashboard (Free), which fires billing.updated with the
-	// Pro plan expired — the webhook handler resets retention then.
+	// Pro stays usable until the end of the cycle. After it expires Autumn
+	// activates the plan marked is_default in the dashboard, the free plan,
+	// which fires a billing.updated the webhook handler acts on.
 	if _, err := autumn.Update(ctx, autumn.UpdateRequest{
 		CustomerID:   customerID,
 		PlanID:       measure.AutumnPlanPro,
@@ -298,9 +293,8 @@ func (h Handlers) UndoDowngradeToFreePlan(c *gin.Context) {
 		return
 	}
 
-	// Verify there's actually a pending cancellation to undo. Calling
-	// update(uncancel) on a customer with no scheduled cancel returns an
-	// opaque 4xx from Autumn; we'd rather give a clear 400 here.
+	// Uncancelling a customer with no scheduled cancel returns an opaque 4xx
+	// from Autumn, so check for a pending cancellation and answer clearly.
 	cust, err := autumn.GetCustomer(ctx, customerID)
 	if err != nil {
 		log.Println("autumn get customer failed (uncancel pre-check):", err)
@@ -395,10 +389,6 @@ func (h Handlers) CreateCustomerPortalSession(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"url": url})
 }
 
-// ----------------------------------------------------------------------------
-// Webhook
-// ----------------------------------------------------------------------------
-
 func (h Handlers) HandleAutumnWebhook(c *gin.Context) {
 	deps := h.Deps
 	if billingDisabled(c, deps) {
@@ -455,5 +445,3 @@ func (h Handlers) HandleAutumnWebhook(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"received": true})
 }
-
-// lookupTeamIDByAutumnCustomer finds the team with the given autumn_customer_id.

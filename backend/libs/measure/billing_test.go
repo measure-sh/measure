@@ -418,7 +418,7 @@ func TestGetPlanRetentionDays(t *testing.T) {
 		}
 	})
 
-	t.Run("free plan alongside a bespoke plan → longest single grant, not the sum", func(t *testing.T) {
+	t.Run("free plan alongside an enterprise plan → longest single grant, not the sum", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		teamID := uuid.New()
 		seedTeam(ctx, t, teamID, testTeamName)

@@ -29,9 +29,7 @@ type Event struct {
 	Data json.RawMessage `json:"data"`
 }
 
-// BillingUpdatedData is the data payload for billing.updated. plan_changes
-// carries the transitions in this event: each is one plan being activated,
-// scheduled, updated in place, or expired.
+// BillingUpdatedData is the data payload for billing.updated.
 type BillingUpdatedData struct {
 	CustomerID  string       `json:"customer_id"`
 	EntityID    string       `json:"entity_id,omitempty"`
@@ -40,27 +38,24 @@ type BillingUpdatedData struct {
 
 // PlanChange is one plan transition inside a billing.updated event. The plan
 // that changed is either a recurring subscription or a one-off purchase, so
-// Autumn fills in one of the two snapshots below and leaves the other empty.
-// Subscription reuses the shared Subscription type, whose
-// plan_id/started_at/status fields match the webhook's subscription object.
+// Autumn fills in one of the two snapshots and leaves the other empty.
 type PlanChange struct {
 	Action       string           `json:"action"`
 	Subscription Subscription     `json:"subscription"`
 	Purchase     PurchaseSnapshot `json:"purchase"`
 }
 
-// PurchaseSnapshot is a one-off purchase's state after a plan change. Autumn
-// sends a status here that the Purchase entries on a customer read from the
-// API do not carry, which is why the webhook has its own type.
+// PurchaseSnapshot is a one-off purchase's state after a plan change. It has
+// its own type because Autumn sends a status here that the Purchase entries on
+// a customer read from the API do not carry.
 type PurchaseSnapshot struct {
 	PlanID    string `json:"plan_id"`
 	Status    string `json:"status,omitempty"` // "active" | "scheduled" | "expired"
 	ExpiresAt int64  `json:"expires_at,omitempty"`
 }
 
-// PlanID returns the identifier of the plan this change is about. A plan change
-// describes either a recurring subscription or a one-off purchase and never
-// both, so the plan id has to be read from whichever of the two Autumn sent.
+// PlanID returns the identifier of the plan this change is about, from
+// whichever of the two snapshots Autumn filled in.
 func (pc PlanChange) PlanID() string {
 	if pc.Subscription.PlanID != "" {
 		return pc.Subscription.PlanID
@@ -90,11 +85,9 @@ type UsageAlert struct {
 	ThresholdType string  `json:"threshold_type"` // "usage" | "usage_percentage"
 }
 
-// VerifyWebhook validates the Svix signature on an Autumn webhook payload
-// and returns the parsed Event on success.
-//
-// The secret is Autumn's dashboard-provided webhook signing secret
-// (starts with "whsec_").
+// VerifyWebhook validates the Svix signature on an Autumn webhook payload and
+// returns the parsed Event. The secret is the webhook signing secret from the
+// Autumn dashboard, which starts with "whsec_".
 func VerifyWebhook(headers http.Header, body []byte, secret string) (*Event, error) {
 	wh, err := svix.NewWebhook(secret)
 	if err != nil {

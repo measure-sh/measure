@@ -18,9 +18,9 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-// Retention bounds enforced server-side. Per-plan retention values live in
-// Autumn (read via the retention_days feature); these constants only define
-// the floor we accept and the self-host default.
+// Retention bounds enforced server-side. Per-plan retention lives in Autumn's
+// retention_days feature; these only bound what we accept, and the minimum
+// doubles as the self-host default.
 const (
 	MIN_RETENTION_DAYS = 30
 	MAX_RETENTION_DAYS = 365
@@ -33,70 +33,48 @@ const (
 	PlanEnterprise = "enterprise"
 )
 
-// Autumn plan IDs — match the slugs configured in the Autumn dashboard.
+// Autumn plan IDs, matching the slugs configured in the Autumn dashboard.
 const (
 	AutumnPlanFree = "measure_free"
 	AutumnPlanPro  = "measure_pro"
 )
 
-// BillingInfo is the payload for GET /teams/{id}/billing/info.
-//
-// Single source for plan + bytes + subscription state used by the dashboard.
-// Subscription fields are only populated when the customer has at least one
-// Autumn subscription. CurrentPeriodStart/End are seconds since epoch (the
-// frontend multiplies by 1000 for JS Date).
+// BillingInfo is the payload for GET /teams/{id}/billing/info. Subscription
+// fields are filled in only when the customer has an Autumn subscription.
+// CurrentPeriodStart and CurrentPeriodEnd are seconds since epoch, which the
+// frontend multiplies by 1000 for JS Date.
 type BillingInfo struct {
-	TeamID           uuid.UUID `json:"team_id"`
-	Plan             string    `json:"plan"`
-	AutumnCustomerID *string   `json:"autumn_customer_id"`
-	BytesGranted     float64   `json:"bytes_granted"`
-	BytesUsed        float64   `json:"bytes_used"`
-	// BytesUnlimited is true when the customer's bytes feature is configured
-	// as unlimited in Autumn, typically only on enterprise plans.
-	BytesUnlimited bool `json:"bytes_unlimited"`
-	// BytesOverageAllowed is true when the customer's plan permits going
-	// over BytesGranted (Pro: yes, Free: no, Enterprise: depends).
-	BytesOverageAllowed bool `json:"bytes_overage_allowed"`
+	TeamID              uuid.UUID `json:"team_id"`
+	Plan                string    `json:"plan"`
+	AutumnCustomerID    *string   `json:"autumn_customer_id"`
+	BytesGranted        float64   `json:"bytes_granted"`
+	BytesUsed           float64   `json:"bytes_used"`
+	BytesUnlimited      bool      `json:"bytes_unlimited"`
+	BytesOverageAllowed bool      `json:"bytes_overage_allowed"`
 	// DataPurchaseSpent is true when a plan the team holds as a one-off
-	// purchase has no data left of its own grant, so the team is back on the
-	// limits of the free plan they hold alongside it even though BytesGranted
-	// and BytesUsed, which pool the two plans together, read close to the
-	// limit.
+	// purchase has no data left of its own grant, leaving the team on the
+	// limits of the free plan they hold alongside it.
 	DataPurchaseSpent bool `json:"data_purchase_spent"`
-	// IngestionBlocked is true when the pooled bytes balance has nothing left
-	// on a plan that is neither unlimited nor permitted to go over, which
-	// mirrors the verdict Autumn gives the ingest path when it asks whether
-	// data may still be accepted.
+	// IngestionBlocked mirrors the verdict Autumn gives the ingest path, so the
+	// dashboard does not have to infer it from a percentage.
 	IngestionBlocked bool `json:"ingestion_blocked"`
-	// TokenCreditsGranted and TokenCreditsUsed describe the agent_tokens
-	// feature balance from Autumn. agent_tokens is a credit system: token usage
-	// is priced through Autumn's model catalog into credits, so these are
-	// denominated in credits, not raw token counts.
-	TokenCreditsGranted float64 `json:"token_credits_granted,omitempty"`
-	TokenCreditsUsed    float64 `json:"token_credits_used,omitempty"`
-	// TokenCreditsUnlimited is true when the agent_tokens feature is configured
-	// as unlimited in Autumn.
-	TokenCreditsUnlimited bool `json:"token_credits_unlimited,omitempty"`
-	// TokenCreditsOverageAllowed is true when the customer's plan permits going
-	// over TokenCreditsGranted.
-	TokenCreditsOverageAllowed bool `json:"token_credits_overage_allowed,omitempty"`
-	// RetentionDays is the retention entitlement on the customer's current
-	// plan, read from the retention_days feature in Autumn. 0 when billing
-	// is disabled or the customer has no Autumn record yet.
+	// agent_tokens is an Autumn credit system: token usage is priced through
+	// Autumn's model catalog into credits, so these are credits rather than
+	// raw token counts.
+	TokenCreditsGranted        float64 `json:"token_credits_granted,omitempty"`
+	TokenCreditsUsed           float64 `json:"token_credits_used,omitempty"`
+	TokenCreditsUnlimited      bool    `json:"token_credits_unlimited,omitempty"`
+	TokenCreditsOverageAllowed bool    `json:"token_credits_overage_allowed,omitempty"`
+	// RetentionDays is 0 when billing is disabled or the customer has no Autumn
+	// record yet.
 	RetentionDays      int    `json:"retention_days,omitempty"`
 	Status             string `json:"status,omitempty"`
 	CurrentPeriodStart int64  `json:"current_period_start,omitempty"`
 	CurrentPeriodEnd   int64  `json:"current_period_end,omitempty"`
-	// CanceledAt is non-zero when a cancel_end_of_cycle is pending on the
-	// active subscription. The subscription remains usable until
-	// CurrentPeriodEnd; the frontend reads this to swap the downgrade button
-	// to "Undo Cancellation".
+	// CanceledAt is non-zero when a cancellation at end of cycle is pending on
+	// the active subscription, which stays usable until CurrentPeriodEnd.
 	CanceledAt int64 `json:"canceled_at,omitempty"`
 }
-
-// ----------------------------------------------------------------------------
-// Helpers
-// ----------------------------------------------------------------------------
 
 var ErrTeamNotFound = errors.New("team not found")
 
@@ -123,21 +101,13 @@ func GetAutumnCustomerID(ctx context.Context, pool *pgxpool.Pool, teamID uuid.UU
 	return *customerID, nil
 }
 
-// DeterminePlan inspects a customer's active subscriptions and purchases and
-// returns the plan name we surface to the frontend (free, pro, enterprise).
+// DeterminePlan returns the plan name we surface to the frontend (free, pro,
+// enterprise) for the plans a customer holds today.
 //
-// Autumn returns recurring plans in Subscriptions[].PlanID and plans sold as
-// one-off purchases in Purchases[].PlanID, and a customer can hold both at
-// once, so both are checked.
-// Subscriptions with status != "active" (e.g. a Free that's "scheduled" to
-// take over after a Pro cancellation) are ignored — we only report on the
-// plan currently in effect.
-//
-// A customer can hold several active plans at once: Autumn auto-attaches the
-// Free plan on customer create, and attaching an enterprise plan from the
-// Autumn dashboard does not detach it unless the two share a plan group.
-// The highest tier wins, using the same order as planRank: any non-free,
-// non-pro plan counts as enterprise and wins over Pro, which wins over Free.
+// Attaching an enterprise plan from the Autumn dashboard does not detach the
+// free plan unless the two share a plan group, so a customer can hold several
+// plans at once and the highest tier has to win. The order matches planRank:
+// any plan that is neither free nor pro counts as enterprise.
 func DeterminePlan(c *autumn.Customer) string {
 	var activePlans []string
 	for _, s := range c.Subscriptions {
@@ -165,13 +135,11 @@ func DeterminePlan(c *autumn.Customer) string {
 	return PlanFree
 }
 
-// purchaseInEffect reports whether a purchase is running at nowMillis, which
-// callers pass as milliseconds since epoch to match the timestamps Autumn puts
-// on a purchase. A purchase carries no status field the way a subscription
-// does, so its start and expiry are the only thing saying it is in effect, and
-// Autumn returns purchases that have not begun yet alongside the running ones.
-// Without this test a purchase scheduled to begin later, or one whose term has
-// already ended, would count as if the customer held it today.
+// purchaseInEffect reports whether a purchase is running at nowMillis, given in
+// milliseconds since epoch to match the timestamps on a purchase. Autumn returns
+// purchases that have not begun yet, and ones whose term has ended, alongside
+// the running ones, so without this test they would count as plans the customer
+// holds today.
 func purchaseInEffect(p autumn.Purchase, nowMillis int64) bool {
 	if p.StartedAt > nowMillis {
 		return false
@@ -182,8 +150,8 @@ func purchaseInEffect(p autumn.Purchase, nowMillis int64) bool {
 	return true
 }
 
-// saveAutumnCustomerID persists an Autumn customer ID on the teams row.
-// Accepts an optional transaction handle; pass nil to use the pool directly.
+// saveAutumnCustomerID persists an Autumn customer ID on the teams row. Pass a
+// non-nil tx to enroll the update in a caller-managed transaction.
 func saveAutumnCustomerID(ctx context.Context, pool *pgxpool.Pool, tx pgx.Tx, teamID uuid.UUID, customerID string) error {
 	stmt := sqlf.PostgreSQL.
 		Update("teams").
@@ -201,10 +169,9 @@ func saveAutumnCustomerID(ctx context.Context, pool *pgxpool.Pool, tx pgx.Tx, te
 }
 
 // ProvisionAutumnCustomer creates an Autumn customer for the given team and
-// returns the newly created autumn_customer_id. Called inside the
-// team-creation transaction so that team creation fails if Autumn is
-// unreachable. Autumn auto-attaches the Free plan on customer create — no
-// explicit Attach call is needed.
+// returns the new autumn_customer_id. It runs inside the team-creation
+// transaction so team creation fails when Autumn is unreachable. Autumn
+// auto-attaches the free plan on customer create, so no Attach call follows.
 func ProvisionAutumnCustomer(ctx context.Context, billingEnabled bool, tx pgx.Tx, teamID uuid.UUID, teamName, ownerEmail string) (string, error) {
 	if !billingEnabled {
 		return "", nil
@@ -222,11 +189,10 @@ func ProvisionAutumnCustomer(ctx context.Context, billingEnabled bool, tx pgx.Tx
 
 // SyncBillingEmailOnOwnerExit points a team's Autumn customer email at a
 // remaining owner after the member it belonged to was removed or demoted.
-// The customer email is set at team creation to the creating owner's email,
-// and Autumn/Stripe send invoices, receipts and dunning notices there, so a
-// departed owner's address must not stay on the record. An email that does
-// not match the departing member (for example a finance inbox set through
-// the billing portal) is left alone.
+// Autumn and Stripe send invoices, receipts and dunning notices to that
+// address, so a departed owner's address must not stay on the record. An
+// address that does not match the departing member, a finance inbox set through
+// the billing portal for instance, is left alone.
 func SyncBillingEmailOnOwnerExit(ctx context.Context, pg *pgxpool.Pool, billingEnabled bool, teamID uuid.UUID, departedEmail string) error {
 	if !billingEnabled || departedEmail == "" {
 		return nil
@@ -236,8 +202,7 @@ func SyncBillingEmailOnOwnerExit(ctx context.Context, pg *pgxpool.Pool, billingE
 	if err != nil {
 		return err
 	}
-	// In self hosted environments, a team will have no autumn customer and no billing email,
-	// nothing to do, return
+	// A self-hosted team has no Autumn customer and so no billing email.
 	if customerID == "" {
 		return nil
 	}
@@ -279,18 +244,12 @@ func resetAppsRetention(ctx context.Context, pool *pgxpool.Pool, tx pgx.Tx, team
 	return err
 }
 
-// ----------------------------------------------------------------------------
-// Retention checks (called from other handlers in this package)
-// ----------------------------------------------------------------------------
-
-// GetPlanRetentionDays returns the retention in days for a team's current
-// Autumn plan, read from the retention_days feature entitlement. In
-// self-hosted mode (billing disabled), returns the Free plan default — the
-// user controls retention directly in that mode.
+// GetPlanRetentionDays returns the retention in days a team's current Autumn
+// plans grant. With billing disabled the user controls retention directly, so
+// this returns the free plan default.
 //
-// Every plan in Autumn (Free, Pro, Enterprise) must have the retention_days
-// feature configured; if it's missing, this returns an error rather than
-// silently downgrading retention.
+// Every plan in Autumn must have the retention_days feature configured; a
+// missing one is an error rather than a silent downgrade to no retention.
 func GetPlanRetentionDays(ctx context.Context, pg *pgxpool.Pool, billingEnabled bool, teamID uuid.UUID) (int, error) {
 	if !billingEnabled {
 		return MIN_RETENTION_DAYS, nil
@@ -313,14 +272,15 @@ func GetPlanRetentionDays(ctx context.Context, pg *pgxpool.Pool, billingEnabled 
 	return RetentionDaysFromBalance(b), nil
 }
 
-// RetentionDaysFromBalance returns the longest retention any single plan on
-// the balance grants. Autumn adds up a feature's grants across every plan the
-// customer holds, which is what we want for a data quota but not for
-// retention, where a team on the free plan alongside a bespoke plan would
-// otherwise get the two retention periods added together. The longest period
-// any one plan grants is the one the team is entitled to. Older balances, and
-// any the API returns without a per-plan breakdown, fall back to the pooled
-// Granted value.
+// RetentionDaysFromBalance returns the longest retention any single plan on the
+// balance grants. The pooled Granted is right for a data quota and wrong for
+// retention: a team holding the free plan alongside an enterprise plan would get
+// the two retention periods added together. A balance the API returns without a
+// per-plan breakdown falls back to Granted.
+//
+// Retention follows the grant, not the balance, so a team that has spent an
+// enterprise plan's data keeps its retention until the plan is detached or
+// expires, indefinitely for a one-off enterprise plan that never expires.
 func RetentionDaysFromBalance(b autumn.Balance) int {
 	if len(b.Breakdown) == 0 {
 		return int(b.Granted)
@@ -333,19 +293,14 @@ func RetentionDaysFromBalance(b autumn.Balance) int {
 }
 
 // DataPurchaseSpent reports whether a team has used up the data granted by a
-// plan they hold as a one-off purchase. A team can hold the free plan, which
-// grants bytes every month, alongside such a purchase, which grants a large
-// fixed amount once, and Autumn pools both grants into the single bytes
-// balance, so the pooled numbers cannot say that the purchase is used up while
-// the monthly free grant still admits data. Matching the purchase against the
-// per-plan breakdown can, and knowing the difference is what lets the
-// dashboard tell the team they are now on free plan limits one their purchased
-// data ends.
+// plan they hold as a one-off purchase, which is what lets the dashboard tell
+// them they are back on free plan limits. The pooled bytes figures cannot
+// express "the purchase is spent while the monthly free grant still admits
+// data"; only the per-plan breakdown can.
 //
-// The purchase is identified by matching plan ids against the purchases the
-// customer holds today rather than read off the breakdown alone, because the
-// breakdown says nothing about when a plan's term runs and Autumn's customer
-// read includes purchases that are only scheduled to start.
+// The plan ids are matched against the purchases the customer holds today
+// rather than read off the breakdown alone, because the breakdown says nothing
+// about when a plan's term runs.
 func DataPurchaseSpent(c *autumn.Customer) bool {
 	b, ok := c.Balances[autumn.FeatureBytes]
 	if !ok {
@@ -378,12 +333,9 @@ func lookupTeamIDByAutumnCustomer(ctx context.Context, pg *pgxpool.Pool, custome
 }
 
 // HandleBillingUpdated applies a plan transition from an Autumn billing.updated
-// event. A transition is one plan activating in place of another expiring in the
-// same event; comparing their ranks tells an upgrade from a downgrade. A plan
-// activating or expiring on its own resets retention without announcing a
-// direction. When the two plans rank the same, as two bespoke plans always do,
-// retention still follows the plan that activated while no upgrade or downgrade
-// is announced. In-place "updated"/"scheduled" changes carry no transition.
+// event. A transition is one plan activating in place of another expiring in
+// the same event, and comparing their ranks tells an upgrade from a downgrade.
+// Anything else resets retention and announces nothing.
 func HandleBillingUpdated(ctx context.Context, pg *pgxpool.Pool, billingEnabled bool, siteOrigin, txEmail string, data autumn.BillingUpdatedData) {
 	teamID, err := lookupTeamIDByAutumnCustomer(ctx, pg, data.CustomerID)
 	if err != nil {
@@ -401,18 +353,17 @@ func HandleBillingUpdated(ctx context.Context, pg *pgxpool.Pool, billingEnabled 
 			expired = pc
 		}
 	}
-	// With no plan starting and none ending there is nothing to apply: an
-	// in-place update (a priced feature added) or a scheduled change.
+	// A change scheduled for later, or an in-place update such as a priced
+	// feature being added, has no plan starting and none ending.
 	if activated == nil && expired == nil {
 		return
 	}
 
 	// Autumn expires a plan only when a recurring plan replaces it, so attaching
 	// a plan sold as a one-off purchase on top of the free plan a team already
-	// holds arrives here as a lone activation. The team's retention still has to follow the plans they
-	// now hold, so reset it from the plans Autumn reports; with only one side of
-	// the change present there is no upgrade or downgrade to announce, so no
-	// email goes out.
+	// holds arrives as a lone activation. Retention still has to follow the
+	// plans the team now holds, but one side of a change on its own gives no
+	// direction to announce, so no email goes out.
 	if activated == nil || expired == nil {
 		resetTeamRetentionFromPlan(ctx, pg, billingEnabled, teamID)
 		return
@@ -443,23 +394,18 @@ func HandleBillingUpdated(ctx context.Context, pg *pgxpool.Pool, billingEnabled 
 		fireSubscriptionDowngradedEvent(teamID, owner, data.CustomerID, activated.Subscription)
 
 	default:
-		// planRank gives every bespoke plan the same rank, so a customer whose
-		// bespoke contract is replaced by a re-issued one at different terms
-		// arrives here, as does a plan Autumn re-attaches to itself when a
-		// priced feature is added. The team's retention has to follow the plan
-		// that activated, otherwise a renewal at new terms leaves the team on
-		// the retention its previous contract granted. Neither side outranks
-		// the other, so there is no upgrade or downgrade to report and no email
-		// goes out.
+		// Every enterprise plan shares a rank, so a contract re-issued at new
+		// terms ties, as does a plan Autumn re-attaches to itself. Retention
+		// still has to follow the plan that activated, and a tie gives no
+		// direction to announce, so no email goes out.
 		resetTeamRetentionFromPlan(ctx, pg, billingEnabled, teamID)
 	}
 }
 
 // resetTeamRetentionFromPlan re-reads the retention the team's current Autumn
-// plans grant and writes it to every app the team owns, without sending any
-// email. Callers use it for a plan change that has no direction to announce.
-// Both steps log their own failure rather than returning one, since the
-// webhook handler acks the event either way.
+// plans grant and writes it to every app the team owns, with no email. Failures
+// are logged rather than returned, since the webhook handler acks the event
+// either way.
 func resetTeamRetentionFromPlan(ctx context.Context, pg *pgxpool.Pool, billingEnabled bool, teamID uuid.UUID) {
 	retention, err := GetPlanRetentionDays(ctx, pg, billingEnabled, teamID)
 	if err != nil {
@@ -471,9 +417,9 @@ func resetTeamRetentionFromPlan(ctx context.Context, pg *pgxpool.Pool, billingEn
 	}
 }
 
-// planRank orders plans by tier so a transition's direction can be read from the
-// plans that activated and expired: Free < Pro < everything else (enterprise
-// plans).
+// planRank orders plans by tier so a transition's direction can be read from
+// the plans that activated and expired: free < pro < every enterprise plan,
+// which all share the top rank.
 func planRank(planID string) int {
 	switch planID {
 	case AutumnPlanFree:
@@ -485,15 +431,13 @@ func planRank(planID string) int {
 	}
 }
 
-// applyPlanTransition runs the retention reset and email enqueue for a real
-// plan change inside a single tx so they atomically commit. If either step
-// fails, the whole webhook ack stays 200 (Svix won't retry) but we don't
-// leave the database in a half-applied state — the next plan event will
-// reconcile retention, and the missed email is a soft failure.
+// applyPlanTransition runs the retention reset and email enqueue for a plan
+// change in one transaction so a failure in either leaves no half-applied
+// state. The webhook still acks 200 and Svix does not retry, so recovery is the
+// next plan event reconciling retention; the missed email is a soft failure.
 //
-// Returns the underlying error so callers can gate downstream side effects
-// (e.g. analytics events) on a successful transition. The error is already
-// logged here; callers should not log it again.
+// The returned error lets callers gate downstream side effects such as
+// analytics events. It is already logged here.
 func applyPlanTransition(ctx context.Context, pg *pgxpool.Pool, billingEnabled bool, teamID uuid.UUID, notify func(ctx context.Context, tx pgx.Tx) error) error {
 	retention, err := GetPlanRetentionDays(ctx, pg, billingEnabled, teamID)
 	if err != nil {
@@ -542,7 +486,7 @@ func HandleUsageAlert(ctx context.Context, pg *pgxpool.Pool, siteOrigin, txEmail
 }
 
 // isEnterpriseCustomer reports whether the Autumn customer is on an enterprise
-// plan. A failed lookup reports false so the email still goes out with the
+// plan. A failed lookup reports false so the email still goes out, with the
 // standard upgrade copy.
 func isEnterpriseCustomer(ctx context.Context, customerID string) bool {
 	cust, err := autumn.GetCustomer(ctx, customerID)
@@ -552,10 +496,6 @@ func isEnterpriseCustomer(ctx context.Context, customerID string) bool {
 	}
 	return DeterminePlan(cust) == PlanEnterprise
 }
-
-// ----------------------------------------------------------------------------
-// Email notifications
-// ----------------------------------------------------------------------------
 
 func teamName(ctx context.Context, pg *pgxpool.Pool, teamID uuid.UUID) string {
 	stmt := sqlf.PostgreSQL.Select("name").From("teams").Where("id = ?", teamID)

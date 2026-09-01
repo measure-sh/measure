@@ -14,7 +14,7 @@ const customerFixture = "../autumn/testdata/customer_get_response.json"
 
 // TestPlanAndRetentionFromCapturedCustomer runs both billing decisions over a
 // decoded response rather than a hand-built customer. The free plan and the
-// bespoke plan arrive in separate arrays, so DeterminePlan reaches enterprise
+// enterprise plan arrive in separate arrays, so DeterminePlan reaches enterprise
 // only if both decoded, and the retention grants pool to 60, so
 // RetentionDaysFromBalance reaches 30 only if the breakdown decoded. It lives
 // here because measure imports autumn.

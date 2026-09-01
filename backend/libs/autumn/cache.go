@@ -8,9 +8,9 @@ import (
 	valkey "github.com/valkey-io/valkey-go"
 )
 
-// CheckCacheTTLSeconds bounds how long a cached Check verdict is trusted.
-// Short enough that a plan transition (upgrade, downgrade, limit-reached)
-// surfaces within roughly a minute even without explicit invalidation.
+// CheckCacheTTLSeconds bounds how long a cached Check verdict is trusted. Short
+// enough that a plan change surfaces within about a minute with no explicit
+// invalidation.
 const CheckCacheTTLSeconds = 60
 
 // CheckCacheKey is the Valkey key holding a customer's cached Check verdict for
@@ -21,11 +21,10 @@ func CheckCacheKey(customerID, featureID string) string {
 }
 
 // CheckCached reports whether customerID is allowed to use featureID, reading
-// Valkey first and calling the Autumn API only on a miss. A nil client or any
-// Valkey error falls back to a direct Check — caching is best-effort.
-//
-// The error is non-nil only when the underlying Check fails; callers decide
-// whether to fail open or closed. Errors are never cached.
+// Valkey first and calling the Autumn API only on a miss. Caching is
+// best-effort, so a nil client or any Valkey trouble falls back to a direct
+// Check. The error is the underlying Check's and is never cached; callers
+// decide whether to fail open or closed.
 func CheckCached(ctx context.Context, vk valkey.Client, customerID, featureID string) (bool, error) {
 	if allowed, ok := GetCachedCheck(ctx, vk, customerID, featureID); ok {
 		return allowed, nil
@@ -38,8 +37,8 @@ func CheckCached(ctx context.Context, vk valkey.Client, customerID, featureID st
 	return resp.Allowed, nil
 }
 
-// GetCachedCheck returns (allowed, true) on a cache hit and (_, false) on a
-// miss, a nil client, or any Valkey error (logged, never surfaced).
+// GetCachedCheck returns a cached verdict and whether there was one. Valkey
+// trouble is logged and reported as a miss.
 func GetCachedCheck(ctx context.Context, vk valkey.Client, customerID, featureID string) (bool, bool) {
 	if vk == nil {
 		return false, false
@@ -61,8 +60,7 @@ func GetCachedCheck(ctx context.Context, vk valkey.Client, customerID, featureID
 	return str == "1", true
 }
 
-// SetCachedCheck caches allowed for customerID/featureID. A nil client is a
-// no-op; errors are logged but never surfaced.
+// SetCachedCheck caches allowed for customerID and featureID.
 func SetCachedCheck(ctx context.Context, vk valkey.Client, customerID, featureID string, allowed bool) {
 	if vk == nil {
 		return
