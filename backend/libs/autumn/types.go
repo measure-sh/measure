@@ -12,16 +12,15 @@ const (
 // one-off purchases and balances. Returned by GetOrCreateCustomer and
 // GetCustomer.
 //
-// The API's GET response populates Subscriptions and Purchases; the webhook
-// payload's embedded customer object populates Products instead. Code that
-// determines the active plan should check all of them.
+// The API returns recurring plans in Subscriptions and plans sold as a one-off
+// purchase in Purchases, and a customer can hold both at once, so code that
+// determines the active plan has to read the two together.
 type Customer struct {
 	ID            string             `json:"id"`
 	Email         string             `json:"email,omitempty"`
 	Name          string             `json:"name,omitempty"`
 	Subscriptions []Subscription     `json:"subscriptions,omitempty"`
 	Purchases     []Purchase         `json:"purchases,omitempty"`
-	Products      []CustomerProduct  `json:"products,omitempty"`
 	Balances      map[string]Balance `json:"balances,omitempty"`
 }
 
@@ -49,18 +48,6 @@ type Purchase struct {
 	PlanID    string `json:"plan_id"`
 	StartedAt int64  `json:"started_at,omitempty"`
 	ExpiresAt int64  `json:"expires_at,omitempty"`
-}
-
-// CustomerProduct is an Autumn product as it appears in webhook payloads
-// (customer.products[] and updated_product). The REST API uses Subscription
-// instead.
-type CustomerProduct struct {
-	ID        string         `json:"id"`
-	Name      string         `json:"name,omitempty"`
-	Status    string         `json:"status,omitempty"`
-	Metadata  map[string]any `json:"metadata,omitempty"`
-	StartedAt int64          `json:"started_at,omitempty"`
-	EndsAt    int64          `json:"ends_at,omitempty"`
 }
 
 // Balance captures per-feature usage state on a customer.

@@ -114,7 +114,7 @@ func TestGetTeamBilling(t *testing.T) {
 		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
-			return &autumn.Customer{ID: custID, Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanPro}}}, nil
+			return &autumn.Customer{ID: custID, Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanPro, Status: "active"}}}, nil
 		})
 
 		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
@@ -146,8 +146,7 @@ func TestGetTeamBilling(t *testing.T) {
 		endsAtSec := int64(1702592000)
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanPro}},
+				ID: custID,
 				Subscriptions: []autumn.Subscription{{
 					PlanID:             measure.AutumnPlanPro,
 					Status:             "active",
@@ -291,8 +290,8 @@ func TestGetTeamBilling(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanFree}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanFree, Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureBytes: {
 						FeatureID:      autumn.FeatureBytes,
@@ -331,8 +330,8 @@ func TestGetTeamBilling(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanPro}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanPro, Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureBytes: {
 						FeatureID:      autumn.FeatureBytes,
@@ -368,8 +367,8 @@ func TestGetTeamBilling(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanPro}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanPro, Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureBytes:       {FeatureID: autumn.FeatureBytes, Granted: 25_000_000_000, Usage: 1_000_000_000},
 					autumn.FeatureAgentTokens: {FeatureID: autumn.FeatureAgentTokens, Granted: 10_000_000, Usage: 1_500_000, OverageAllowed: true},
@@ -406,8 +405,8 @@ func TestGetTeamBilling(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanPro}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanPro, Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureBytes: {FeatureID: autumn.FeatureBytes, Granted: 25_000_000_000, Usage: 1_000_000_000},
 				},
@@ -464,7 +463,6 @@ func TestGetTeamBilling(t *testing.T) {
 						CanceledAt:         canceledAtSec * 1000,
 					},
 				},
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanPro}},
 			}, nil
 		})
 
@@ -550,8 +548,7 @@ func TestGetTeamBilling(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: "measure_enterprise_acme"}},
+				ID: custID,
 				Subscriptions: []autumn.Subscription{{
 					PlanID: "measure_enterprise_acme",
 					Status: "active",
@@ -634,8 +631,8 @@ func TestGetTeamBilling(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanPro}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanPro, Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureBytes:         {FeatureID: autumn.FeatureBytes, Granted: 25_000_000_000, Usage: 100, Unlimited: false, OverageAllowed: true},
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
@@ -675,8 +672,7 @@ func TestGetTeamBilling(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: "measure_enterprise_acme"}},
+				ID: custID,
 				Subscriptions: []autumn.Subscription{{
 					PlanID: "measure_enterprise_acme",
 					Status: "active",
@@ -728,8 +724,8 @@ func TestGetTeamBilling(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanFree}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanFree, Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureBytes: {FeatureID: autumn.FeatureBytes, Granted: 5_000_000_000, Usage: 0, Unlimited: false, OverageAllowed: false},
 				},
@@ -760,8 +756,7 @@ func TestGetTeamBilling(t *testing.T) {
 		canceledAtSec := int64(1700100000)
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanPro}},
+				ID: custID,
 				Subscriptions: []autumn.Subscription{{
 					PlanID:             measure.AutumnPlanPro,
 					Status:             "active",
@@ -862,7 +857,7 @@ func TestCreateCheckoutSession(t *testing.T) {
 		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
-			return &autumn.Customer{ID: custID, Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanPro}}}, nil
+			return &autumn.Customer{ID: custID, Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanPro, Status: "active"}}}, nil
 		})
 
 		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/checkout", body("https://s"))
@@ -911,7 +906,7 @@ func TestCreateCheckoutSession(t *testing.T) {
 		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
-			return &autumn.Customer{ID: custID, Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanFree}}}, nil
+			return &autumn.Customer{ID: custID, Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanFree, Status: "active"}}}, nil
 		})
 		autumntest.MockAttach(t, func(_ context.Context, req autumn.AttachRequest) (*autumn.AttachResponse, error) {
 			if req.PlanID != measure.AutumnPlanPro {
@@ -1000,7 +995,7 @@ func TestCreateCheckoutSession(t *testing.T) {
 		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
-			return &autumn.Customer{ID: custID, Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanFree}}}, nil
+			return &autumn.Customer{ID: custID, Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanFree, Status: "active"}}}, nil
 		})
 		autumntest.MockAttach(t, func(_ context.Context, req autumn.AttachRequest) (*autumn.AttachResponse, error) {
 			return &autumn.AttachResponse{CustomerID: req.CustomerID, PaymentURL: ""}, nil
@@ -1707,8 +1702,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanPro}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanPro, Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
 				},
@@ -1745,8 +1740,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: "plan_ent_acme"}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: "plan_ent_acme", Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 240},
 				},
@@ -1815,8 +1810,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanFree}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanFree, Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
 				},
@@ -1854,8 +1849,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanPro}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanPro, Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
 				},
@@ -1997,8 +1992,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanPro}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanPro, Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
 				},
@@ -2044,8 +2039,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: "acme_two_year"}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: "acme_two_year", Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 365},
 				},
@@ -2091,8 +2086,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: "acme_one_year"}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: "acme_one_year", Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 180},
 				},
@@ -2166,8 +2161,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			// After Pro expires, Autumn auto-activates the is_default Free plan.
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanFree}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanFree, Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
 				},
@@ -2216,7 +2211,8 @@ func TestHandleAutumnWebhook(t *testing.T) {
 			}, nil
 		})
 
-		// products[] still includes Pro with status=active → cancel is a no-op.
+		// Pro is only updated while Free is scheduled for the cycle boundary, so
+		// the plan in effect has not changed and the cancel is a no-op.
 		payload := []byte(fmt.Sprintf(
 			`{"type":"billing.updated","data":{"customer_id":%q,"plan_changes":[{"action":"updated","subscription":{"plan_id":%q}},{"action":"scheduled","subscription":{"plan_id":%q}}]}}`,
 			custID, measure.AutumnPlanPro, measure.AutumnPlanFree,
@@ -2250,15 +2246,15 @@ func TestHandleAutumnWebhook(t *testing.T) {
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			// Customer is now on Free post-cancel.
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanFree, Status: "active"}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanFree, Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
 				},
 			}, nil
 		})
 
-		// products[] does NOT include Pro as active anymore.
+		// Pro expires as Free activates, so the plan in effect has changed.
 		payload := []byte(fmt.Sprintf(
 			`{"type":"billing.updated","data":{"customer_id":%q,"plan_changes":[{"action":"activated","subscription":{"plan_id":%q}},{"action":"expired","subscription":{"plan_id":%q}}]}}`,
 			custID, measure.AutumnPlanFree, measure.AutumnPlanPro,

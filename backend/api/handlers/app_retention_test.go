@@ -188,8 +188,8 @@ func TestCreateAppRetention(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanFree}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanFree, Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 30},
 				},
@@ -213,8 +213,8 @@ func TestCreateAppRetention(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: measure.AutumnPlanPro}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanPro, Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 90},
 				},
@@ -238,8 +238,8 @@ func TestCreateAppRetention(t *testing.T) {
 
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{
-				ID:       custID,
-				Products: []autumn.CustomerProduct{{ID: "plan_ent_foo"}},
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: "plan_ent_foo", Status: "active"}},
 				Balances: map[string]autumn.Balance{
 					autumn.FeatureRetentionDays: {FeatureID: autumn.FeatureRetentionDays, Granted: 240},
 				},
